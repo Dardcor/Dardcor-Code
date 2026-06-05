@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Назначить Microsoft Bing службой поиска по умолчанию"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "ru-ru"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Поиск Microsoft Bing"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "ru"
+   }
+}

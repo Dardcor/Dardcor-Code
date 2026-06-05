@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Microsoft Bing als standardmäßige Suchmaschine festlegen"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "de-de"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Microsoft Bing-Suchmaschine"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "de"
+   }
+}

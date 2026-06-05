@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "A Microsoft Bing beállítása alapértelmezett keresésszolgáltatóként"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "hu-hu"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Microsoft Bing keresőmotor"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "hu"
+   }
+}

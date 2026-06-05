@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Призначити Microsoft Bing засобом пошуку за замовчуванням"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "uk-ua"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Засіб пошуку Microsoft Bing"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "uk"
+   }
+}

@@ -1,0 +1,169 @@
+body {
+    /* font-family: Segoe UI,SegoeUI,"Helvetica Neue",Helvetica,Arial,sans-serif;*/
+    color: #000;
+    background: #FFFFFF;
+    margin-top: 0;
+    opacity: 1;
+    margin: 0;
+    padding: 0;
+}
+
+/*logo for all RTL markets*/
+.ar-sa #logo, .fa-ir #logo, .he-il #logo, .ur-pk #logo, .ug-cn #logo {
+    right: 4.27%;
+    left: unset;
+}
+
+@media only screen and (min-width:886px) {
+
+    #Sub1 {
+        position: absolute;
+        width: 70vw;
+        height: auto;
+        left: 5vw;
+        top: 24vw;
+        line-height: 300%;
+        font-family: "Segoe UI";
+    }
+    
+    .bg-bg #Sub1, .bn-in #Sub1 , .ms-my #Sub1{
+        width: 80vw;
+    }
+    .ca-es #Sub1, .cs-cz #Sub1, .gu-in #Sub1, .hi-in #Sub1, .hu-hu #Sub1, .it-it #Sub1,
+    .ko-kr #Sub1, .nb-no #Sub1, .pl-pl #Sub1, .pt-pt #Sub1, .vi-vn #Sub1, .de-de #Sub1,
+    .fil-ph #Sub1{
+        width:70vw;
+    }
+
+    .ar-sa #Sub1{
+        width: 89vw;
+    }
+    .fa-ir #Sub1, .he-il #Sub1{
+        width:88vw;
+    }
+    
+    .da-dk #Sub1, .id-id #Sub1, .pt-br #Sub1, .ru-ru #Sub1{
+        width: 75vw;
+    }
+    .el-gr #Sub1{
+        width: 94vw;
+    }
+    .es-es #Sub1{
+        width: 69vw;
+    }
+    .fr-fr #Sub1{
+        width:74vw;
+    }
+    .ja-jp #Sub1, .te-in #Sub1{
+        width:85vw;
+    }
+    .kn-in #Sub1, .lt-lt #Sub1{
+        width:82vw;
+    }
+    .nl-nl #Sub1{
+        width:91vw;
+    }
+    .lv-lv #Sub1, .sr-cyrl #Sub1{
+        width:72vw;
+    }
+    .ml-in #Sub1{
+        width:86vw;
+    }
+    .ro-ro #Sub1, .tr-tr #Sub1{
+        width:79vw;
+    }
+    .ta-in #Sub1{
+        width:92vw;
+    }
+    .uk-ua #Sub1{
+        width:86vw;
+    }
+   
+    #Step1a {
+        font-size: 2.1vw;
+        font-weight: 600;
+        font-family: "Segoe UI";
+    }
+
+    #Step2a {
+        font-size: 2vw;
+        margin-top: 1.5vw;
+        font-family: "Segoe UI";
+        font-weight: 500;
+    }
+
+    #image2 {
+        position: relative;
+        width: 95%;
+        height: 21vw;
+        left: 0;
+        top: 0;
+        margin: 0 2.5%;
+    }
+
+    #logo {
+        position: absolute;
+        top: 6.2vw;
+        left: 4.27%;
+        width: 24.3vw;
+        height: auto;
+    }
+}
+
+@media only screen and (min-width:1400px) {
+    #Step2a {
+        margin-top: 3vw;
+    }
+}
+
+@media only screen and (max-width: 885px) {
+
+    #Sub1 {
+        position: absolute;
+        width: 85vw;
+        height: auto;
+        left: 5vw;
+        top: 25vw;
+    }
+    .ar-sa #Sub1,.fa-ir #Sub1, .he-il #Sub1{
+        width:88vw;
+    }
+
+    #Step1a {
+        /* font-size: 3vw;*/
+        font-size: 2.6vw; 
+        font-weight: 600;
+        font-family: "Segoe UI";
+    }
+
+    #Step2a {
+        /* font-size: 2.9vw;*/
+        font-size: 2.5vw; 
+        margin-top: 2.5vw;
+        font-family: "Segoe UI";
+        font-weight: 500;
+    }
+
+
+
+    #image2 {
+        display: block;
+        position: relative;
+        width: 95%;
+        height: 20vw;
+        bottom: 0;
+        left: 0;
+        top: -0.7320644216691069vw;
+        min-height: 6.887262079062958vw;
+        padding-top: 0.7320644216691069vw;
+        margin: 0 2.5%;
+    }
+
+    #logo {
+        position: absolute;
+        top: 6vw;
+        left: 4.27%;
+        width: 25vw;
+        height: auto;
+    }
+}

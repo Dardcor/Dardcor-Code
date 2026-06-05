@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "మీ డిఫాల్ట్ శోధన ప్రొవైడర్‌గా Microsoft Bing ను సెట్ చేయండి"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "te-in"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Microsoft Bing శోధన యంత్రం"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "te"
+   }
+}

@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Tetapkan Microsoft Bing sebagai penyedia carian lalai anda"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "ms-my"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Enjin Gelintar Microsoft Bing"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "ms"
+   }
+}

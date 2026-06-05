@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Microsoft Bing ነባሪ የፍለጋ አቅራቢዎ ያድርጉ"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "am-et"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Microsoft Bing የፍለጋ ዘዋሪ"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "am"
+   }
+}

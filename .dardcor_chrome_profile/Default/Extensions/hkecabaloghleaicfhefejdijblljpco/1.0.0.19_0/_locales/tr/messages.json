@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Microsoft Bing'i varsayılan arama sağlayıcınız olarak ayarlayın"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "tr-tr"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Microsoft Bing Arama Altyapısı"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "tr"
+   }
+}

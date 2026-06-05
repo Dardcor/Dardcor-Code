@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Ορισμός του Microsoft Bing ως προεπιλεγμένης υπηρεσίας παροχής αναζήτησης"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "el-gr"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Μηχανισμός αναζήτησης στο Microsoft Bing"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "el"
+   }
+}

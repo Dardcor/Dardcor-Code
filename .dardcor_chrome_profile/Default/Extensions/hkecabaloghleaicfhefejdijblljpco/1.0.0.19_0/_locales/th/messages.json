@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "ตั้งค่าให้  Microsoft Bing เป็นผู้ให้บริการการค้นหาเริ่มต้นของคุณ"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "th-th"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "โปรแกรมค้นหา  Microsoft Bing"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "th"
+   }
+}

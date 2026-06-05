@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "將 Microsoft Bing 設為您的預設搜尋提供者"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "zh-tw"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Microsoft Bing 搜尋引擎"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "zh_TW"
+   }
+}

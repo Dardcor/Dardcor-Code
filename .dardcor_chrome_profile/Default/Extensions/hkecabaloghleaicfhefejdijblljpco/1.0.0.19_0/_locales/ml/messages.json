@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "നിങ്ങളുടെ ഡിഫോള്‍ട്ട് തിരയൽ ദാതാവായി Microsoft Bing സജ്ജമാക്കുക"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "ml-in"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Microsoft Bing തിരയൽ എഞ്ചിൻ"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "ml"
+   }
+}

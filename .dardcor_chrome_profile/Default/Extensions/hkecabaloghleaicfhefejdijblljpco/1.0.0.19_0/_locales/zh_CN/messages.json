@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "将必应设置为默认搜索提供程序"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "zh-cn"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "必应搜索引擎"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "zh_CN"
+   }
+}

@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "הגדר את Microsoft Bing כספק החיפוש המוגדר כברירת מחדל"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "he-il"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "מנוע החיפוש של Microsoft Bing"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "he"
+   }
+}

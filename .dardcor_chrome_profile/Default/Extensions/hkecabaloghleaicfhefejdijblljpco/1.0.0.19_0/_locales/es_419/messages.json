@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Establece Microsoft Bing como el proveedor de búsqueda predeterminado."
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "es-419"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Motor de búsqueda de Microsoft Bing"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "es_419"
+   }
+}

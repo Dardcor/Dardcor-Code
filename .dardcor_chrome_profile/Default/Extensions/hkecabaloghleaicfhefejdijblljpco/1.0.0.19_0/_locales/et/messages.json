@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Microsoft Bingi määramine vaikeotsingupakkujaks"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "et-ee"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Microsoft Bingi otsingumootor"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "et"
+   }
+}

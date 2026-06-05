@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Defineix el Microsoft Bing com a proveïdor de cerques per defecte"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "ca-es"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Motor de cerca del Microsoft Bing"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "ca"
+   }
+}

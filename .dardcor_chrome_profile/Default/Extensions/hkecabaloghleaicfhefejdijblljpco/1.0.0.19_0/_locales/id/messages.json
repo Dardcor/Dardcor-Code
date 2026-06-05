@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Tetapkan Microsoft Bing sebagai penyedia pencarian default Anda"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "id-id"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Microsoft Bing Search Engine"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "id"
+   }
+}

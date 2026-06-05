@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:;">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; overflow: hidden; background: #000000; }
+        #container { width: 100%; height: 100%; }
+
+        /* Scrollbar theme */
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: #0a0a0a; }
+        ::-webkit-scrollbar-thumb { background: #2c004a; border-radius: 0; }
+        ::-webkit-scrollbar-thumb:hover { background: #3c0068; }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    <script src="qwebchannel.js"></script>
+    <script src="monaco/vs/loader.js"></script>
+    <script>
+        var editor = null;
+        var backend = null;
+        var currentModel = null;
+        var pendingContent = null;
+        var pendingLanguage = null;
+        var pendingFilePath = null;
+        var isRemoteUpdate = false;
+
+        // VS Code Dark+ theme matching Dardcor palette
+        var DARDCOR_THEME = {
+            base: 'vs-dark',
+            inherit: true,
+            rules: [
+                { token: 'comment', foreground: '6a9955', fontStyle: 'italic' },
+                { token: 'keyword', foreground: '569cd6', fontStyle: 'bold' },
+                { token: 'keyword.control', foreground: 'c586c0' },
+                { token: 'string', foreground: 'ce9178' },
+                { token: 'number', foreground: 'b5cea8' },
+                { token: 'type', foreground: '4ec9b0' },
+                { token: 'function', foreground: 'dcdcaa' },
+                { token: 'variable', foreground: '9cdcfe' },
+                { token: 'constant', foreground: '569cd6' },
+                { token: 'class', foreground: '4ec9b0' },
+                { token: 'decorator', foreground: 'c586c0' },
+                { token: 'operator', foreground: 'd4d4d4' },
+            ],
+            colors: {
+                'editor.background': '#000000',
+                'editor.foreground': '#d4d4d4',
+                'editor.lineHighlightBackground': '#1a1a1a',
+                'editor.selectionBackground': '#264f78',
+                'editor.inactiveSelectionBackground': '#3a3d41',
+                'editorLineNumber.foreground': '#858585',
+                'editorLineNumber.activeForeground': '#c6c6c6',
+                'editorCursor.foreground': '#aeafad',
+                'editorWhitespace.foreground': '#3b3a32',
+                'editorIndentGuide.background': '#404040',
+                'editorIndentGuide.activeBackground': '#707070',
+                'editor.findMatchBackground': '#515c6a',
+                'editor.findMatchHighlightBackground': '#ea5c004d',
+                'editor.hoverHighlightBackground': '#264f7840',
+                'editorBracketMatch.background': '#0064001a',
+                'editorBracketMatch.border': '#888888',
+                'editorOverviewRuler.border': '#2c004a',
+                'scrollbarSlider.background': '#2c004a88',
+                'scrollbarSlider.hoverBackground': '#3c006888',
+                'scrollbarSlider.activeBackground': '#4a007288',
+                'editorGutter.background': '#000000',
+                'editorWidget.background': '#1a0033',
+                'editorWidget.border': '#3c0068',
+                'editorSuggestWidget.background': '#1a0033',
+                'editorSuggestWidget.border': '#3c0068',
+                'editorSuggestWidget.foreground': '#d4d4d4',
+                'editorSuggestWidget.selectedBackground': '#2c004a',
+                'editorSuggestWidget.highlightForeground': '#18a3ff',
+                'editorHoverWidget.background': '#1a0033',
+                'editorHoverWidget.border': '#3c0068',
+                'peekViewEditor.background': '#000000',
+                'peekViewResult.background': '#1a0033',
+                'peekViewTitle.background': '#2c004a',
+                'debugExceptionWidget.background': '#1a0033',
+                'editorMarkerNavigation.background': '#1a0033',
+                'input.background': '#1a0033',
+                'input.border': '#3c0068',
+                'input.foreground': '#d4d4d4',
+                'focusBorder': '#3c0068',
+            }
+        };
+
+        require.config({ paths: { 'vs': 'monaco/vs' } });
+
+        require(['vs/editor/editor.main'], function() {
+            monaco.editor.defineTheme('dardcor-dark', DARDCOR_THEME);
+
+            editor = monaco.editor.create(document.getElementById('container'), {
+                value: '',
+                language: 'plaintext',
+                theme: 'dardcor-dark',
+                fontSize: 13,
+                fontFamily: '"Cascadia Code", "Cascadia Mono", "Consolas", "Courier New", monospace',
+                fontLigatures: true,
+                lineNumbers: 'on',
+                renderLineHighlight: 'line',
+                scrollBeyondLastLine: false,
+                minimap: {
+                    enabled: true,
+                    maxColumn: 80,
+                    renderCharacters: false,
+                    showSlider: 'always',
+                    side: 'right'
+                },
+                scrollbar: {
+                    vertical: 'auto',
+                    horizontal: 'auto',
+                    verticalScrollbarSize: 10,
+                    horizontalScrollbarSize: 10,
+                },
+                suggestOnTriggerCharacters: true,
+                quickSuggestions: { other: true, comments: false, strings: false },
+                wordBasedSuggestions: true,
+                parameterHints: { enabled: true },
+                autoClosingBrackets: 'always',
+                autoClosingQuotes: 'always',
+                autoIndent: 'full',
+                formatOnPaste: false,
+                formatOnType: false,
+                tabSize: 4,
+                insertSpaces: true,
+                detectIndentation: true,
+                rulers: [],
+                wordWrap: 'off',
+                bracketPairColorization: { enabled: true },
+                guides: { bracketPairs: true, indentation: true },
+                renderWhitespace: 'none',
+                renderControlCharacters: false,
+                cursorBlinking: 'blink',
+                cursorStyle: 'line',
+                cursorWidth: 2,
+                mouseWheelZoom: true,
+                contextmenu: true,
+                copyWithSyntaxHighlighting: true,
+                links: true,
+                occurrencesHighlight: true,
+                selectionHighlight: true,
+                codeLens: false,
+                folding: true,
+                showFoldingControls: 'mouseover',
+                foldingHighlight: true,
+                matchBrackets: 'always',
+                multiCursorModifier: 'alt',
+                dragAndDrop: true,
+                columnSelection: false,
+                accessibilitySupport: 'off',
+                glyphMargin: true,
+            });
+
+            // Listen for content changes
+            editor.onDidChangeModelContent(function(e) {
+                if (isRemoteUpdate) return;
+                if (backend) {
+                    backend.on_content_changed(editor.getValue());
+                }
+            });
+
+            // Listen for cursor position changes
+            editor.onDidChangeCursorPosition(function(e) {
+                if (backend) {
+                    backend.on_cursor_changed(e.position.lineNumber, e.position.column);
+                }
+            });
+
+            // Listen for save command (Ctrl+S)
+            editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, function() {
+                if (backend) backend.request_save();
+            });
+
+            // Listen for find command (Ctrl+F)
+            editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyF, function() {
+                editor.getAction('actions.find').run();
+            });
+
+            // Listen for command palette
+            editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyP, function() {
+                if (backend) backend.request_command_palette();
+            });
+
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                editor.layout();
+            });
+
+            // Initialize web channel
+            initWebChannel();
+        });
+
+        function initWebChannel() {
+            if (typeof qt === 'undefined' || !qt.webChannelTransport) {
+                setTimeout(initWebChannel, 50);
+                return;
+            }
+
+            new QWebChannel(qt.webChannelTransport, function(channel) {
+                backend = channel.objects.editor_backend;
+
+                // Apply any pending content
+                if (pendingContent !== null) {
+                    setEditorContent(pendingContent, pendingLanguage || 'plaintext', pendingFilePath || '');
+                    pendingContent = null;
+                }
+            });
+        }
+
+        // === Functions called from Python ===
+
+        function setEditorContent(content, language, filePath) {
+            if (!editor) {
+                pendingContent = content;
+                pendingLanguage = language;
+                pendingFilePath = filePath;
+                return;
+            }
+            isRemoteUpdate = true;
+            var model = editor.getModel();
+            if (model) {
+                model.setValue(content);
+                monaco.editor.setModelLanguage(model, language);
+            } else {
+                var newModel = monaco.editor.createModel(content, language);
+                editor.setModel(newModel);
+            }
+            isRemoteUpdate = false;
+        }
+
+        function getEditorContent() {
+            return editor ? editor.getValue() : '';
+        }
+
+        function setReadOnly(readOnly) {
+            if (editor) editor.updateOptions({ readOnly: readOnly });
+        }
+
+        function setCursorPosition(line, column) {
+            if (editor) {
+                editor.setPosition({ lineNumber: line, column: column });
+                editor.revealPositionInCenter({ lineNumber: line, column: column });
+            }
+        }
+
+        function revealLine(lineNumber) {
+            if (editor) {
+                editor.revealLineInCenter(lineNumber);
+                editor.setPosition({ lineNumber: lineNumber, column: 1 });
+            }
+        }
+
+        function setTheme(isDark) {
+            monaco.editor.setTheme(isDark ? 'dardcor-dark' : 'vs');
+        }
+
+        function setFontSize(size) {
+            if (editor) editor.updateOptions({ fontSize: size });
+        }
+
+        function setWordWrap(enabled) {
+            if (editor) editor.updateOptions({ wordWrap: enabled ? 'on' : 'off' });
+        }
+
+        function setMinimap(enabled) {
+            if (editor) editor.updateOptions({ minimap: { enabled: enabled } });
+        }
+
+        function triggerFind() {
+            if (editor) editor.getAction('actions.find').run();
+        }
+
+        function triggerFindReplace() {
+            if (editor) editor.getAction('editor.action.startFindReplaceAction').run();
+        }
+
+        function triggerFormat() {
+            if (editor) editor.getAction('editor.action.formatDocument').run();
+        }
+
+        function setDiagnostics(markers) {
+            if (!editor) return;
+            var model = editor.getModel();
+            if (!model) return;
+            monaco.editor.setModelMarkers(model, 'python', markers.map(function(m) {
+                return {
+                    severity: m.severity === 'error' ? monaco.MarkerSeverity.Error :
+                              m.severity === 'warning' ? monaco.MarkerSeverity.Warning :
+                              monaco.MarkerSeverity.Info,
+                    startLineNumber: m.startLine,
+                    startColumn: m.startColumn,
+                    endLineNumber: m.endLine,
+                    endColumn: m.endColumn,
+                    message: m.message,
+                    source: m.source || 'pylint'
+                };
+            }));
+        }
+
+        function clearDiagnostics() {
+            if (!editor) return;
+            var model = editor.getModel();
+            if (model) monaco.editor.setModelMarkers(model, 'python', []);
+        }
+
+        function addBreakpoint(lineNumber) {
+            if (!editor) return;
+            var decorations = editor.deltaDecorations([], [{
+                range: new monaco.Range(lineNumber, 1, lineNumber, 1),
+                options: {
+                    isWholeLine: true,
+                    glyphMarginClassName: 'breakpoint-glyph',
+                    glyphMarginHoverMessage: { value: 'Breakpoint' }
+                }
+            }]);
+            return decorations[0];
+        }
+
+        function focusEditor() {
+            if (editor) editor.focus();
+        }
+    </script>
+</body>
+</html>

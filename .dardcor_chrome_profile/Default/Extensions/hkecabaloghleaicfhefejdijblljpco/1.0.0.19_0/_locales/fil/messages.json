@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Itakda ang Microsoft Bing bilang ang default mong search provider"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "fil-ph"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Search Engine ng Microsoft Bing"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "fil"
+   }
+}

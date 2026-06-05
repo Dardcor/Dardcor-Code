@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Ustaw usługę Microsoft Bing jako domyślnego dostawcę wyszukiwania"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "pl-pl"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Wyszukiwarka Microsoft Bing"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "pl"
+   }
+}

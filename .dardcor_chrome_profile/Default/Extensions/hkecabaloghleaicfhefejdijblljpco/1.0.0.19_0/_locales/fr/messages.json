@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Définir Microsoft Bing comme moteur de recherche par défaut"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "fr-fr"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Moteur de recherche Microsoft Bing"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "fr"
+   }
+}

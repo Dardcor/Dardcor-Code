@@ -1,0 +1,88 @@
+"""Dardcor Code - Desktop Application Entry Point.
+
+Full VS Code Dark+ theme applied globally via QApplication stylesheet.
+"""
+
+import sys
+import os
+import signal
+
+from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QFont, QPalette, QColor, QIcon
+
+import ctypes
+if os.name == 'nt':
+    myappid = 'dardcor.code.ide.1.0'
+    try:
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+    except Exception:
+        pass
+
+from .windows.main_window import MainWindow
+
+
+from .windows.theme_manager import ThemeManager
+
+def run_desktop_app():
+    """Launch the Dardcor Code desktop application."""
+
+    # High DPI support
+    if hasattr(Qt, "AA_EnableHighDpiScaling"):
+        QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+    if hasattr(Qt, "AA_UseHighDpiPixmaps"):
+        QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+
+    app = QApplication(sys.argv)
+    app.setApplicationName("Dardcor Code")
+    app.setApplicationDisplayName("Dardcor Code")
+    app.setOrganizationName("Dardcor")
+    app.setOrganizationDomain("dardcor.com")
+    app.setStyle("Fusion")
+
+    # Set default font
+    default_font = QFont("Inter", 9)
+    default_font.setStyleHint(QFont.SansSerif)
+    app.setFont(default_font)
+
+    # Apply VS Code dark theme stylesheet via ThemeManager
+    ThemeManager.apply_theme(app, "dark+")
+
+    # Set app icon globally
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    logo_path = os.path.join(base_dir, "image", "dardcor.png")
+    if os.path.exists(logo_path):
+        app.setWindowIcon(QIcon(logo_path))
+
+    # Create and show main window
+    window = MainWindow()
+    window.show()
+
+    # ── Ctrl+C / SIGINT graceful + force-exit ────────────────────────────
+    def _handle_sigint(sig, frame):
+        """
+        Called when user presses Ctrl+C.
+        1. Ask Qt to quit gracefully (closes windows, runs closeEvent).
+        2. If it doesn't fully exit within 1.5 s, force-kill the process.
+           This is needed because PTY reader threads can block on read().
+        """
+        import threading
+
+        def _force_exit():
+            import time
+            time.sleep(1.5)
+            os._exit(0)   # hard kill — guaranteed to stop everything
+
+        threading.Thread(target=_force_exit, daemon=True).start()
+        app.quit()
+
+    signal.signal(signal.SIGINT,  _handle_sigint)
+    signal.signal(signal.SIGTERM, _handle_sigint)
+
+    # Keep a timer alive on the app object (not a local var) so Python's
+    # signal handler gets a chance to run every 200 ms inside the Qt loop.
+    app._sigint_timer = QTimer()
+    app._sigint_timer.timeout.connect(lambda: None)
+    app._sigint_timer.start(200)
+
+    sys.exit(app.exec())

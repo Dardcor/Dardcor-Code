@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="xterm.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; overflow: hidden; background: #000000; }
+        #terminal { width: 100%; height: 100%; padding: 4px 8px; }
+
+        /* VS Code-style scrollbar */
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: #000000; }
+        ::-webkit-scrollbar-thumb { background: #2c004a; border-radius: 0; }
+        ::-webkit-scrollbar-thumb:hover { background: #3c0068; }
+        ::-webkit-scrollbar-corner { background: #000000; }
+    </style>
+</head>
+<body>
+    <div id="terminal"></div>
+
+    <script src="qwebchannel.js"></script>
+    <script src="xterm.js"></script>
+
+    <script>
+    (function () {
+        'use strict';
+
+        var term       = null;
+        var backend    = null;
+        var resizeObs  = null;
+        var fitPending = false;
+
+        /* ── VS Code exact color theme ─────────────────────────── */
+        var VSCODE_THEME = {
+            background:         '#000000',
+            foreground:         '#cccccc',
+            cursor:             '#aeafad',
+            cursorAccent:       '#000000',
+            selectionBackground:'#264f78',
+            black:              '#000000',
+            red:                '#cd3131',
+            green:              '#0dbc79',
+            yellow:             '#e5e510',
+            blue:               '#2472c8',
+            magenta:            '#bc3fbc',
+            cyan:               '#11a8cd',
+            white:              '#e5e5e5',
+            brightBlack:        '#666666',
+            brightRed:          '#f14c4c',
+            brightGreen:        '#23d18b',
+            brightYellow:       '#f5f543',
+            brightBlue:         '#3b8eea',
+            brightMagenta:      '#d670d6',
+            brightCyan:         '#29b8db',
+            brightWhite:        '#e5e5e5'
+        };
+
+        /* ── Create xterm.js terminal ──────────────────────────── */
+        function createTerminal() {
+            term = new Terminal({
+                fontFamily: '"Cascadia Code", "Cascadia Mono", Consolas, "Courier New", monospace',
+                fontSize:   13,
+                lineHeight: 1.2,
+                cursorBlink:       true,
+                cursorStyle:       'block',
+                scrollback:        10000,
+                convertEol:        false,
+                allowProposedApi:  true,
+                theme: VSCODE_THEME
+            });
+
+            var container = document.getElementById('terminal');
+            term.open(container);
+
+            /* Fit terminal to container — no FitAddon needed */
+            scheduleFit();
+
+            /* ResizeObserver — fires when panel is resized */
+            if (typeof ResizeObserver !== 'undefined') {
+                resizeObs = new ResizeObserver(function () { scheduleFit(); });
+                resizeObs.observe(container);
+            }
+            window.addEventListener('resize', function () { scheduleFit(); });
+
+            /* Expose write function for Python → xterm */
+            window.writeToTerminal = function (data) {
+                if (term) { term.write(data); }
+            };
+
+            /* Forward keystrokes xterm → Python */
+            term.onData(function (data) {
+                if (backend) { backend.receive_data(data); }
+            });
+
+            /* Initial fit + notify Python of size */
+            doFit();
+        }
+
+        /* ── Fit logic: compute cols/rows from DOM pixel size ──── */
+        function scheduleFit() {
+            if (fitPending) { return; }
+            fitPending = true;
+            requestAnimationFrame(function () {
+                fitPending = false;
+                doFit();
+            });
+        }
+
+        function doFit() {
+            if (!term || !term.element) { return; }
+
+            /* Access xterm.js internal renderer to get cell pixel size */
+            var core = term._core;
+            if (!core) { return; }
+
+            var renderService = core._renderService;
+            if (!renderService) { return; }
+
+            var dims = renderService.dimensions;
+            if (!dims) { return; }
+
+            /* xterm.js 4.x uses dims.actualCellWidth/Height
+               xterm.js 5.x uses dims.css.cell.width/height */
+            var cellW, cellH;
+            if (dims.css && dims.css.cell) {
+                cellW = dims.css.cell.width;
+                cellH = dims.css.cell.height;
+            } else {
+                cellW = dims.actualCellWidth;
+                cellH = dims.actualCellHeight;
+            }
+
+            if (!cellW || !cellH || cellW <= 0 || cellH <= 0) { return; }
+
+            var container = document.getElementById('terminal');
+            var availW = container.clientWidth  - 16; /* subtract padding */
+            var availH = container.clientHeight - 8;
+
+            var cols = Math.max(10, Math.floor(availW / cellW));
+            var rows = Math.max(3,  Math.floor(availH / cellH));
+
+            if (cols !== term.cols || rows !== term.rows) {
+                try {
+                    term.resize(cols, rows);
+                } catch (e) { /* ignore */ }
+            }
+
+            if (backend) {
+                backend.resize_pty(term.cols, term.rows);
+            }
+        }
+
+        /* ── QWebChannel init — poll until Qt transport is ready ─ */
+        function initWebChannel() {
+            if (typeof qt === 'undefined' || !qt.webChannelTransport) {
+                setTimeout(initWebChannel, 50);
+                return;
+            }
+
+            new QWebChannel(qt.webChannelTransport, function (channel) {
+                backend = channel.objects.backend;
+                createTerminal();
+            });
+        }
+
+        /* Start */
+        initWebChannel();
+
+    }());
+    </script>
+</body>
+</html>

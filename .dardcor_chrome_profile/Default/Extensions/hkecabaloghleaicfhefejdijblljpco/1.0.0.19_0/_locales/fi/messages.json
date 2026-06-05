@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Aseta Microsoft Bing oletushakupalveluksi"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "fi-fi"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Microsoft Bing-hakukone"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "fi"
+   }
+}

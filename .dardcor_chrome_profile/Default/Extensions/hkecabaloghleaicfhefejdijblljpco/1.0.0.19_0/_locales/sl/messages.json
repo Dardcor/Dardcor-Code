@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Nastavite Microsoft Bing kot privzetega ponudnika iskanja"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "sl-si"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Iskalnik Microsoft Bing"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "sl"
+   }
+}

@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Angi Microsoft Bing som standard søkeleverandør"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "nb-no"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Microsoft Bing-søkemotor"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "nb"
+   }
+}

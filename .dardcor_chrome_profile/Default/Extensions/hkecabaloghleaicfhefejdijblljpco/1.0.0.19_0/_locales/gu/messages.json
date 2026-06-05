@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Microsoft Bing ને તમારા ડિફોલ્ટ શોધ પ્રદાતા તરીકે સેટ કરો"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "gu-in"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Microsoft Bing શોધો એન્જિન"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "gu"
+   }
+}

@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Microsoft Bing を既定の検索プロバイダーに設定する"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "ja-jp"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Microsoft Bing Search エンジン"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "ja"
+   }
+}

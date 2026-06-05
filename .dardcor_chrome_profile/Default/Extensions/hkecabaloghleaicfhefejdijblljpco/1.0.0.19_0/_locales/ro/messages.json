@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Setați Microsoft Bing ca furnizor de căutare implicit"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "ro-ro"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Motorul de căutare Microsoft Bing"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "ro"
+   }
+}

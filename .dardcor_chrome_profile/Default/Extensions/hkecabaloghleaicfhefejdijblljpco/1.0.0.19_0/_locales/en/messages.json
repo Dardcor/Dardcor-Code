@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Set Microsoft Bing as your default search provider"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "en-us"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Microsoft Bing Search for Chrome"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "en"
+   }
+}

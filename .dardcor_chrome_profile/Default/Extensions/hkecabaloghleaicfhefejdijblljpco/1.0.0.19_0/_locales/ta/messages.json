@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "உங்கள் இயல்புநிலை தேடல் வழங்குநராக,  Microsoft Bing-ஐ அமைக்கவும்"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "ta-in"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Microsoft Bing தேடு பொறி"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "ta"
+   }
+}

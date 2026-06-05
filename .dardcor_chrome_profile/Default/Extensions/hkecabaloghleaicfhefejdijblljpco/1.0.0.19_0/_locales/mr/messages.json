@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Microsoft Bing ला आपला डीफॉल्ट शोध प्रदाता म्हणून सेट करा"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "mr-in"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Microsoft Bing शोधा इंजिन"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "mr"
+   }
+}

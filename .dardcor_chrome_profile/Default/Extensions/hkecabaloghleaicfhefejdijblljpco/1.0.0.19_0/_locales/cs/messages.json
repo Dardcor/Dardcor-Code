@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Nastavit Microsoft Bing jako vašeho výchozího poskytovatele hledání"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "cs-cz"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Microsoft Bing Search Engine"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "cs"
+   }
+}

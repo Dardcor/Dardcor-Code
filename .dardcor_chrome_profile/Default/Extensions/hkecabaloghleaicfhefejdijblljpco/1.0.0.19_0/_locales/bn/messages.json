@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "আপনার ডিফল্ট সন্ধান প্রোভাইডার হিসাবে Microsoft Bing কে সেট করুন"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "bn-in"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Microsoft Bing সন্ধান ইঞ্জিন"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "bn"
+   }
+}

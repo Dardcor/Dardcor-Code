@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Indstil Microsoft Bing som din standardsøgemaskine"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "da-dk"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Microsoft Bing Search Engine"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "da"
+   }
+}

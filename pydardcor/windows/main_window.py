@@ -1,0 +1,1332 @@
+"""Main Window - VS Code style main application window."""
+
+import os
+import threading
+from pathlib import Path
+
+from ..browser.chrome_launcher import open_agent_chrome
+
+import ctypes
+if os.name == "nt":
+    from ctypes import wintypes
+
+from PySide6.QtWidgets import (
+    QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
+    QSplitter, QStackedWidget, QMessageBox, QApplication,
+    QFileDialog, QInputDialog, QLabel, QMenuBar, QPushButton,
+    QPlainTextEdit, QDialog, QFontDialog,
+)
+from PySide6.QtCore import Qt, QTimer, QPoint, QEvent
+from PySide6.QtGui import (
+    QAction, QKeySequence, QShortcut, QMouseEvent, QFont,
+    QPixmap, QIcon, QPainter, QColor
+)
+
+
+class ChromeButton(QPushButton):
+    """Button that paints the Chrome logo and opens agent Chrome on click."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedSize(38, 35)
+        self.setToolTip("Open Agent in Chrome")
+        self.setCursor(Qt.PointingHandCursor)
+        self.setStyleSheet("""
+            QPushButton { background-color: transparent; border: none; }
+            QPushButton:hover { background-color: #1a0033; }
+        """)
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        from PySide6.QtCore import QRect
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        cx = self.width() // 2
+        cy = self.height() // 2
+        r = 8   # outer radius
+        rw = 5  # dark ring radius
+        ri = 4  # blue center radius
+        outer = QRect(cx - r, cy - r, r * 2, r * 2)
+        painter.setPen(Qt.NoPen)
+        # Red segment (top)
+        painter.setBrush(QColor("#EA4335"))
+        painter.drawPie(outer, 30 * 16, 120 * 16)
+        # Yellow segment (bottom-left)
+        painter.setBrush(QColor("#FBBC05"))
+        painter.drawPie(outer, 150 * 16, 120 * 16)
+        # Green segment (bottom-right)
+        painter.setBrush(QColor("#34A853"))
+        painter.drawPie(outer, 270 * 16, 120 * 16)
+        # Dark separator ring
+        painter.setBrush(QColor("#0d0d0d"))
+        painter.drawEllipse(QRect(cx - rw, cy - rw, rw * 2, rw * 2))
+        # Blue center circle
+        painter.setBrush(QColor("#4285F4"))
+        painter.drawEllipse(QRect(cx - ri, cy - ri, ri * 2, ri * 2))
+        painter.end()
+
+
+class CustomTitleBar(QWidget):
+    """VS Code style custom title bar combining window controls, title, and menu."""
+    def __init__(self, parent: QMainWindow):
+        super().__init__(parent)
+        self.parent = parent
+        self.setFixedHeight(35)
+        self.setStyleSheet("""
+            #CustomTitleBar {
+                background-color: #000000; 
+                color: #cccccc;
+                border-bottom: 1px solid #3c0068;
+            }
+        """)
+        self.setObjectName("CustomTitleBar")
+        self.setAttribute(Qt.WA_StyledBackground, True)
+        self.layout = QHBoxLayout(self)
+        self.layout.setContentsMargins(8, 0, 0, 0)
+        self.layout.setSpacing(0)
+        
+        # App Icon
+        self.app_icon = QLabel()
+        self.app_icon.setStyleSheet("background: transparent; border: none;")
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        logo_path = os.path.join(base_dir, "image", "dardcor.png")
+        if os.path.exists(logo_path):
+            pixmap = QPixmap(logo_path)
+            if not pixmap.isNull():
+                self.app_icon.setPixmap(pixmap.scaled(20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+                self.app_icon.setContentsMargins(0, 0, 10, 0)
+            else:
+                self.app_icon.setText("D")
+        else:
+            self.app_icon.setText("D")
+        self.layout.addWidget(self.app_icon, 0, Qt.AlignVCenter)
+        
+        # Menu Bar
+        self.menu_bar = QMenuBar()
+        self.menu_bar.setStyleSheet("""
+            QMenuBar {
+                background-color: transparent;
+                color: #cccccc;
+                padding: 8px 0px 0px 0px;
+            }
+            QMenuBar::item {
+                padding: 2px 6px;
+                background-color: transparent;
+            }
+            QMenuBar::item:selected {
+                background-color: #1a0033;
+                border-radius: 4px;
+            }
+        """)
+        self.layout.addWidget(self.menu_bar)
+
+        self.layout.addStretch(1)  # left stretch
+        
+        # Title
+        self.title_label = QLabel("Dardcor Code")
+        self.title_label.setStyleSheet("color: #999999; font-size: 12px;")
+        self.title_label.setAlignment(Qt.AlignCenter)
+        self.layout.addWidget(self.title_label)
+
+        self.layout.addStretch(2)  # larger right stretch shifts title left
+        
+        # Window controls (compact 38px width)
+        btn_style = """
+            QPushButton {
+                background-color: transparent;
+                border: none;
+                color: #cccccc;
+                font-size: 12px;
+                width: 38px;
+                height: 35px;
+                padding: 0px;
+            }
+            QPushButton:hover {
+                background-color: #1a0033;
+            }
+        """
+        close_btn_style = """
+            QPushButton {
+                background-color: transparent;
+                border: none;
+                color: #cccccc;
+                font-size: 12px;
+                width: 38px;
+                height: 35px;
+                padding: 0px;
+            }
+            QPushButton:hover {
+                background-color: #e81123;
+                color: white;
+            }
+        """
+        
+        self.min_btn = QPushButton("—")
+        self.min_btn.setFixedSize(38, 35)
+        self.min_btn.setStyleSheet(btn_style)
+        self.min_btn.clicked.connect(self.parent.showMinimized)
+
+        self.max_btn = QPushButton("☐")
+        self.max_btn.setFixedSize(38, 35)
+        self.max_btn.setStyleSheet(btn_style)
+        self.max_btn.clicked.connect(self.toggle_max_restore)
+
+        self.close_btn = QPushButton("✕")
+        self.close_btn.setFixedSize(38, 35)
+        self.close_btn.setStyleSheet(close_btn_style)
+        self.close_btn.clicked.connect(self.parent.close)
+
+        # Chrome button — left of minimize
+        self.chrome_btn = ChromeButton()
+        self.chrome_btn.clicked.connect(self._open_chrome)
+
+        self.layout.addWidget(self.chrome_btn, 0, Qt.AlignVCenter)
+        self.layout.addWidget(self.min_btn)
+        self.layout.addWidget(self.max_btn)
+        self.layout.addWidget(self.close_btn)
+        
+        self.start_pos = None
+
+    def _open_chrome(self):
+        """Open Chrome with agent-specific profile."""
+        success, msg = open_agent_chrome()
+        if not success:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.warning(self, "Chrome", msg)
+
+    def toggle_max_restore(self):
+        if self.parent.isMaximized():
+            self.parent.showNormal()
+        else:
+            self.parent.showMaximized()
+            
+    # Native event handling in MainWindow takes care of dragging and double click
+
+from ..engine.agent import Agent
+from ..engine.config import get_config
+from ..engine.memory import Conversation
+from ..widgets.activity_bar import (
+    ActivityBar, VIEW_EXPLORER, VIEW_SEARCH, VIEW_SOURCE_CONTROL,
+    VIEW_EXTENSIONS,
+)
+from ..widgets.file_explorer import FileExplorer
+from ..editor import EditorTabs
+from ..widgets.chat_panel import ChatPanel
+from ..widgets.status_bar import StatusBar
+from ..terminal import TerminalPanel
+from ..widgets.search_panel import SearchPanel
+from ..widgets.settings_dialog import SettingsDialog
+from ..widgets.command_palette import CommandPalette, GoToLineDialog, QuickOpenDialog
+from ..widgets.git_panel import GitPanel
+from ..widgets.problems_panel import ProblemsPanel
+from ..widgets.output_panel import OutputPanel
+from ..widgets.outline_panel import OutlinePanel
+from ..widgets.timeline_panel import TimelinePanel
+from ..widgets.debug_panel import DebugPanel
+
+
+class MainWindow(QMainWindow):
+    """Main application window matching VS Code layout exactly."""
+
+    def __init__(self):
+        super().__init__()
+        self._config = get_config()
+        self._agent = Agent()
+        self._current_conversation_id = None
+        self._font_size = self._config.font_size
+        self._setup_agent()
+        self._setup_ui()
+        self._setup_menu()
+        self._setup_shortcuts()
+        self._setup_command_palette()
+
+    # ── Window Events (Native Resizing & Maximize Icon) ──
+
+    def changeEvent(self, event):
+        if event.type() == QEvent.WindowStateChange:
+            if self.isMaximized():
+                self._title_bar.max_btn.setText("❐")
+            else:
+                self._title_bar.max_btn.setText("☐")
+        super().changeEvent(event)
+
+    def nativeEvent(self, eventType, message):
+        if os.name == "nt":
+            msg = wintypes.MSG.from_address(message.__int__())
+            if msg.message == 0x0084: # WM_NCHITTEST
+                x = msg.lParam & 0xffff
+                y = (msg.lParam >> 16) & 0xffff
+                if x > 32767: x -= 65536
+                if y > 32767: y -= 65536
+                
+                pos = self.mapFromGlobal(QPoint(x, y))
+                w, h = self.width(), self.height()
+                b = 8 # Border size for resizing
+                
+                # Check corners
+                if pos.x() < b and pos.y() < b: return True, 13 # HTTOPLEFT
+                if pos.x() > w - b and pos.y() < b: return True, 14 # HTTOPRIGHT
+                if pos.x() < b and pos.y() > h - b: return True, 16 # HTBOTTOMLEFT
+                if pos.x() > w - b and pos.y() > h - b: return True, 17 # HTBOTTOMRIGHT
+                
+                # Check edges
+                if pos.x() < b: return True, 10 # HTLEFT
+                if pos.x() > w - b: return True, 11 # HTRIGHT
+                if pos.y() < b: return True, 12 # HTTOP
+                if pos.y() > h - b: return True, 15 # HTBOTTOM
+                
+                # Check title bar
+                if self._title_bar and self._title_bar.geometry().contains(pos):
+                    # Only return HTCAPTION if not clicking on buttons/menus
+                    child = self._title_bar.childAt(self._title_bar.mapFromGlobal(QPoint(x, y)))
+                    if not isinstance(child, QPushButton) and not isinstance(child, QMenuBar):
+                        return True, 2 # HTCAPTION
+        
+        return super().nativeEvent(eventType, message)
+
+    # ── Agent ──────────────────────────────────────────────
+
+    def _setup_agent(self):
+        self._agent.on_stream(self._on_agent_stream)
+
+    # ── UI Layout ─────────────────────────────────────────
+
+    def _setup_ui(self):
+        self.setWindowTitle("Dardcor Code")
+        self.setMinimumSize(1024, 680)
+        
+        # Dynamically resize to fit the screen
+        screen = QApplication.primaryScreen().availableGeometry()
+        width = min(1440, int(screen.width() * 0.9))
+        height = min(900, int(screen.height() * 0.9))
+        self.resize(width, height)
+        self.move((screen.width() - width) // 2, (screen.height() - height) // 2)
+        
+        # Set frameless window hint to hide native OS title bar
+        self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
+        
+        self.setObjectName("MainWindow")
+        self.setStyleSheet("#MainWindow { border: 1px solid #3c0068; }")
+        
+        # Set Window Icon
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        logo_path = os.path.join(base_dir, "image", "dardcor.png")
+        if os.path.exists(logo_path):
+            self.setWindowIcon(QIcon(logo_path))
+        
+        # Add custom title bar
+        self._title_bar = CustomTitleBar(self)
+        self.setMenuWidget(self._title_bar)
+
+        # Central widget
+        central = QWidget()
+        self.setCentralWidget(central)
+        main_layout = QHBoxLayout(central)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+
+        # ── Activity Bar (leftmost) ──
+        self._activity_bar = ActivityBar()
+        self._activity_bar.view_changed.connect(self._on_view_changed)
+        main_layout.addWidget(self._activity_bar)
+
+        # ── Sidebar Stack ──
+        self._sidebar_stack = QStackedWidget()
+        self._sidebar_stack.setMinimumWidth(200)
+
+        root_path = self._config.workspace_path or os.path.expanduser("~")
+
+        # Explorer Panel wrapper (Splitter)
+        explorer_wrapper = QWidget()
+        explorer_wrapper.setStyleSheet("background-color: #000000;")
+        explorer_layout = QVBoxLayout(explorer_wrapper)
+        explorer_layout.setContentsMargins(0, 0, 0, 0)
+        explorer_layout.setSpacing(0)
+        
+        explorer_splitter = QSplitter(Qt.Vertical)
+        explorer_splitter.setHandleWidth(1)
+        explorer_splitter.setStyleSheet("QSplitter::handle { background-color: #1a0033; }")
+
+        self._file_explorer = FileExplorer(root_path=root_path)
+        self._file_explorer.file_selected.connect(self._open_file_in_editor)
+        self._file_explorer.root_changed.connect(self._on_root_changed)
+        
+        self._outline_panel = OutlinePanel()
+        self._outline_panel.item_selected.connect(lambda line: self._open_file_at_line("", line))
+        
+        self._timeline_panel = TimelinePanel()
+
+        explorer_splitter.addWidget(self._file_explorer)
+        explorer_splitter.addWidget(self._outline_panel)
+        explorer_splitter.addWidget(self._timeline_panel)
+        
+        # Default sizes (Explorer takes most space)
+        explorer_splitter.setSizes([600, 200, 100])
+        
+        explorer_layout.addWidget(explorer_splitter)
+        self._sidebar_stack.addWidget(explorer_wrapper)
+
+        # Search
+        self._search_panel = SearchPanel(root_path=root_path)
+        self._search_panel.file_selected.connect(
+            lambda f, l: self._open_file_at_line(f, l)
+        )
+        self._sidebar_stack.addWidget(self._search_panel)
+
+        # Source Control - Full Git Panel
+        self._git_panel = GitPanel(root_path=root_path)
+        self._git_panel.file_open_requested.connect(self._open_file_in_editor)
+        self._sidebar_stack.addWidget(self._git_panel)
+
+        # Extensions placeholder
+        ext_placeholder = QWidget()
+        ext_placeholder.setStyleSheet("background-color: #000000;")
+        ext_layout = QVBoxLayout(ext_placeholder)
+        ext_layout.setAlignment(Qt.AlignTop)
+        ext_layout.setContentsMargins(16, 16, 16, 16)
+        ext_title = QLabel("EXTENSIONS")
+        ext_title.setStyleSheet("""
+            color: #bbbbbb; font-size: 11px;
+            font-weight: 600; letter-spacing: 1.2px;
+            padding-bottom: 12px;
+        """)
+        ext_layout.addWidget(ext_title)
+        ext_info = QLabel("Extensions coming soon.\n\nDardcor Code supports AI-powered\ncoding out of the box.")
+        ext_info.setStyleSheet("color: #858585; font-size: 13px;")
+        ext_info.setWordWrap(True)
+        ext_layout.addWidget(ext_info)
+        ext_layout.addStretch()
+        self._sidebar_stack.addWidget(ext_placeholder)
+
+        self._sidebar_stack.setCurrentIndex(0)
+
+        # ── Editor Tabs ──
+        self._editor_tabs = EditorTabs()
+
+        # ── Chat Panel ──
+        self._chat_panel = ChatPanel()
+        self._chat_panel.message_sent.connect(self._on_chat_message)
+        self._chat_panel._request_new_conversation = self._new_conversation
+        self._chat_panel.set_workspace_name(os.path.basename(root_path.rstrip("/\\\\")).lower() if root_path.rstrip("/\\\\") else "")
+
+        # ── Terminal Panel ──
+        self._terminal_panel = TerminalPanel(root_path=root_path)
+        self._terminal_panel.hide()  # Hidden by default like VS Code
+
+        # ── Problems Panel ──
+        self._problems_panel = ProblemsPanel()
+        self._problems_panel.problem_selected.connect(self._open_file_at_line)
+
+        # ── Output Panel ──
+        self._output_panel = OutputPanel()
+        self._output_panel.hide()
+
+        # ── Debug Console ──
+        self._debug_console = OutputPanel() # Use OutputPanel logic for REPL placeholder
+        self._debug_console.hide()
+
+        # ── Layout assembly ──
+
+        # Editor + Terminal vertical splitter
+        self._editor_term_split = QSplitter(Qt.Vertical)
+        self._editor_term_split.addWidget(self._editor_tabs)
+        self._editor_term_split.addWidget(self._terminal_panel)
+        self._editor_term_split.setStretchFactor(0, 3)
+        self._editor_term_split.setStretchFactor(1, 1)
+        self._editor_term_split.setSizes([600, 250])
+        self._editor_term_split.setHandleWidth(1)
+        self._editor_term_split.setStyleSheet("""
+            QSplitter::handle {
+                background-color: #3c0068;
+            }
+            QSplitter::handle:hover {
+                background-color: #4a0072;
+            }
+        """)
+
+        # Center area + Chat horizontal splitter
+        self._center_chat_split = QSplitter(Qt.Horizontal)
+        self._center_chat_split.addWidget(self._editor_term_split)
+        self._center_chat_split.addWidget(self._chat_panel)
+        self._center_chat_split.setStretchFactor(0, 3)
+        self._center_chat_split.setStretchFactor(1, 1)
+        self._center_chat_split.setSizes([800, 350])
+        self._center_chat_split.setHandleWidth(1)
+        self._center_chat_split.setStyleSheet("""
+            QSplitter::handle {
+                background-color: #3c0068;
+            }
+            QSplitter::handle:hover {
+                background-color: #4a0072;
+            }
+        """)
+
+        # Sidebar + Main horizontal splitter
+        self._horiz_split = QSplitter(Qt.Horizontal)
+        self._horiz_split.addWidget(self._sidebar_stack)
+        self._horiz_split.addWidget(self._center_chat_split)
+        self._horiz_split.setStretchFactor(0, 0)
+        self._horiz_split.setStretchFactor(1, 1)
+        self._horiz_split.setSizes([260, 1000])
+        self._horiz_split.setHandleWidth(1)
+        self._horiz_split.setStyleSheet("""
+            QSplitter::handle {
+                background-color: #3c0068;
+            }
+            QSplitter::handle:hover {
+                background-color: #4a0072;
+            }
+        """)
+
+        main_layout.addWidget(self._horiz_split)
+
+        # ── Status Bar ──
+        self._status_bar = StatusBar()
+        self.setStatusBar(self._status_bar)
+        self._status_bar.go_to_line_requested.connect(self._show_go_to_line)
+
+        # ── Connections ──
+        self._editor_tabs.tab_changed.connect(self._on_tab_changed)
+
+        # ── Initialize ──
+        self._agent.new_conversation()
+        QTimer.singleShot(500, self._check_engine)
+
+        # Detect git branch
+        QTimer.singleShot(1000, self._detect_git_branch)
+
+    # ── Menu Bar ──────────────────────────────────────────
+
+    def _setup_menu(self):
+        menubar = self._title_bar.menu_bar
+
+        # ── File menu ──
+        file_menu = menubar.addMenu("&File")
+
+        new_file = QAction("New Text File", self)
+        new_file.setShortcut(QKeySequence("Ctrl+N"))
+        new_file.triggered.connect(self._new_file)
+        file_menu.addAction(new_file)
+
+        new_window = QAction("New Window", self)
+        new_window.setShortcut(QKeySequence("Ctrl+Shift+N"))
+        new_window.triggered.connect(self._new_window)
+        file_menu.addAction(new_window)
+
+        file_menu.addSeparator()
+
+        open_file = QAction("Open File...", self)
+        open_file.setShortcut(QKeySequence("Ctrl+O"))
+        open_file.triggered.connect(self._open_file_dialog)
+        file_menu.addAction(open_file)
+
+        open_folder = QAction("Open Folder...", self)
+        open_folder.setShortcut(QKeySequence("Ctrl+K"))
+        open_folder.triggered.connect(lambda: self._file_explorer._open_folder())
+        file_menu.addAction(open_folder)
+
+        open_workspace = QAction("Open Workspace from File...", self)
+        open_workspace.triggered.connect(lambda: QMessageBox.information(self, "Workspace", "Workspace files support coming soon."))
+        file_menu.addAction(open_workspace)
+
+        file_menu.addSeparator()
+
+        save_action = QAction("Save", self)
+        save_action.setShortcut(QKeySequence("Ctrl+S"))
+        save_action.triggered.connect(self._save_current_file)
+        file_menu.addAction(save_action)
+
+        save_as = QAction("Save As...", self)
+        save_as.setShortcut(QKeySequence("Ctrl+Shift+S"))
+        save_as.triggered.connect(self._save_as)
+        file_menu.addAction(save_as)
+
+        save_all = QAction("Save All", self)
+        save_all.triggered.connect(self._save_all)
+        file_menu.addAction(save_all)
+
+        file_menu.addSeparator()
+
+        auto_save = QAction("Auto Save")
+        auto_save.setCheckable(True)
+        auto_save.setChecked(self._config.auto_save)
+        auto_save.toggled.connect(self._on_auto_save_toggle)
+        file_menu.addAction(auto_save)
+
+        file_menu.addSeparator()
+
+        close_editor = QAction("Close Editor", self)
+        close_editor.setShortcut(QKeySequence("Ctrl+W"))
+        close_editor.triggered.connect(self._close_current_editor)
+        file_menu.addAction(close_editor)
+
+        close_folder = QAction("Close Folder", self)
+        close_folder.triggered.connect(self._close_folder)
+        file_menu.addAction(close_folder)
+
+        close_window = QAction("Close Window", self)
+        close_window.setShortcut(QKeySequence("Alt+F4"))
+        close_window.triggered.connect(self.close)
+        file_menu.addAction(close_window)
+
+        file_menu.addSeparator()
+
+        exit_action = QAction("Exit", self)
+        exit_action.setShortcut(QKeySequence("Ctrl+Q"))
+        exit_action.triggered.connect(self.close)
+        file_menu.addAction(exit_action)
+
+        # ── Edit menu ──
+        edit_menu = menubar.addMenu("&Edit")
+        
+        undo_action = QAction("Undo", self)
+        undo_action.setShortcut(QKeySequence("Ctrl+Z"))
+        undo_action.triggered.connect(lambda: self._editor_tabs.current_editor().undo() if self._editor_tabs.current_editor() else None)
+        edit_menu.addAction(undo_action)
+        
+        redo_action = QAction("Redo", self)
+        redo_action.setShortcut(QKeySequence("Ctrl+Y"))
+        redo_action.triggered.connect(lambda: self._editor_tabs.current_editor().redo() if self._editor_tabs.current_editor() else None)
+        edit_menu.addAction(redo_action)
+        
+        edit_menu.addSeparator()
+        
+        cut_action = QAction("Cut", self)
+        cut_action.setShortcut(QKeySequence("Ctrl+X"))
+        cut_action.triggered.connect(lambda: self._editor_tabs.current_editor().cut() if self._editor_tabs.current_editor() else None)
+        edit_menu.addAction(cut_action)
+        
+        copy_action = QAction("Copy", self)
+        copy_action.setShortcut(QKeySequence("Ctrl+C"))
+        copy_action.triggered.connect(lambda: self._editor_tabs.current_editor().copy() if self._editor_tabs.current_editor() else None)
+        edit_menu.addAction(copy_action)
+        
+        paste_action = QAction("Paste", self)
+        paste_action.setShortcut(QKeySequence("Ctrl+V"))
+        paste_action.triggered.connect(lambda: self._editor_tabs.current_editor().paste() if self._editor_tabs.current_editor() else None)
+        edit_menu.addAction(paste_action)
+        
+        edit_menu.addSeparator()
+
+        find_action = QAction("Find", self)
+        find_action.setShortcut(QKeySequence("Ctrl+F"))
+        find_action.triggered.connect(self._show_find)
+        edit_menu.addAction(find_action)
+
+        find_replace = QAction("Replace", self)
+        find_replace.setShortcut(QKeySequence("Ctrl+H"))
+        find_replace.triggered.connect(self._show_find)
+        edit_menu.addAction(find_replace)
+        
+        find_files = QAction("Find in Files", self)
+        find_files.setShortcut(QKeySequence("Ctrl+Shift+F"))
+        find_files.triggered.connect(lambda: self._switch_sidebar(VIEW_SEARCH))
+        edit_menu.addAction(find_files)
+
+        edit_menu.addSeparator()
+
+        settings_action = QAction("Settings", self)
+        settings_action.setShortcut(QKeySequence("Ctrl+,"))
+        settings_action.triggered.connect(self._show_settings)
+        edit_menu.addAction(settings_action)
+
+        # ── Selection menu ──
+        sel_menu = menubar.addMenu("&Selection")
+
+        select_all = QAction("Select All", self)
+        select_all.setShortcut(QKeySequence("Ctrl+A"))
+        select_all.triggered.connect(self._select_all)
+        sel_menu.addAction(select_all)
+
+        expand_sel = QAction("Expand Selection", self)
+        expand_sel.setShortcut(QKeySequence("Shift+Alt+Right"))
+        sel_menu.addAction(expand_sel)
+
+        shrink_sel = QAction("Shrink Selection", self)
+        shrink_sel.setShortcut(QKeySequence("Shift+Alt+Left"))
+        sel_menu.addAction(shrink_sel)
+
+        sel_menu.addSeparator()
+
+        copy_up = QAction("Copy Line Up", self)
+        copy_up.setShortcut(QKeySequence("Shift+Alt+Up"))
+        sel_menu.addAction(copy_up)
+
+        copy_down = QAction("Copy Line Down", self)
+        copy_down.setShortcut(QKeySequence("Shift+Alt+Down"))
+        sel_menu.addAction(copy_down)
+
+        # ── View menu ──
+        view_menu = menubar.addMenu("&View")
+
+        cmd_palette = QAction("Command Palette...", self)
+        cmd_palette.setShortcut(QKeySequence("Ctrl+Shift+P"))
+        cmd_palette.triggered.connect(self._show_command_palette)
+        view_menu.addAction(cmd_palette)
+
+        quick_open = QAction("Quick Open...", self)
+        quick_open.setShortcut(QKeySequence("Ctrl+P"))
+        quick_open.triggered.connect(self._show_quick_open)
+        view_menu.addAction(quick_open)
+
+        view_menu.addSeparator()
+
+        # ── Appearance submenu ──
+        appearance_menu = view_menu.addMenu("Appearance")
+
+        # Theme switcher
+        theme_menu = appearance_menu.addMenu("Color Theme")
+        dark_theme = QAction("Dark+ (Default)", self)
+        dark_theme.setCheckable(True)
+        dark_theme.setChecked(True)
+        dark_theme.triggered.connect(lambda: self._set_theme("dark"))
+        theme_menu.addAction(dark_theme)
+
+        light_theme = QAction("Light+", self)
+        light_theme.setCheckable(True)
+        light_theme.triggered.connect(lambda: self._set_theme("light"))
+        theme_menu.addAction(light_theme)
+
+        high_contrast = QAction("High Contrast", self)
+        high_contrast.setCheckable(True)
+        high_contrast.triggered.connect(lambda: self._set_theme("hc"))
+        theme_menu.addAction(high_contrast)
+
+        appearance_menu.addSeparator()
+
+        toggle_menu_bar = QAction("Toggle Menu Bar", self)
+        toggle_menu_bar.triggered.connect(self._toggle_menu_bar)
+        appearance_menu.addAction(toggle_menu_bar)
+        
+        toggle_minimap = QAction("Toggle Minimap", self)
+        toggle_minimap.setCheckable(True)
+        toggle_minimap.setChecked(True)
+        toggle_minimap.triggered.connect(lambda checked: self._editor_tabs.active_group().current_editor().set_minimap(checked) if self._editor_tabs.active_group() and self._editor_tabs.active_group().current_editor() else None)
+        appearance_menu.addAction(toggle_minimap)
+
+        view_menu.addSeparator()
+        
+        layout_menu = view_menu.addMenu("Editor Layout")
+        split_right = QAction("Split Right", self)
+        split_right.setShortcut(QKeySequence("Ctrl+\\"))
+        split_right.triggered.connect(lambda: self._editor_tabs.split_editor("right"))
+        layout_menu.addAction(split_right)
+
+        view_menu.addSeparator()
+
+        explorer_view = QAction("Explorer", self)
+        explorer_view.setShortcut(QKeySequence("Ctrl+Shift+E"))
+        explorer_view.triggered.connect(lambda: self._switch_sidebar(VIEW_EXPLORER))
+        view_menu.addAction(explorer_view)
+
+        search_view = QAction("Search", self)
+        search_view.setShortcut(QKeySequence("Ctrl+Shift+F"))
+        search_view.triggered.connect(lambda: self._switch_sidebar(VIEW_SEARCH))
+        view_menu.addAction(search_view)
+
+        scm_view = QAction("Source Control", self)
+        scm_view.setShortcut(QKeySequence("Ctrl+Shift+G"))
+        scm_view.triggered.connect(lambda: self._switch_sidebar(VIEW_SOURCE_CONTROL))
+        view_menu.addAction(scm_view)
+
+        ext_view = QAction("Extensions", self)
+        ext_view.setShortcut(QKeySequence("Ctrl+Shift+X"))
+        ext_view.triggered.connect(lambda: self._switch_sidebar(VIEW_EXTENSIONS))
+        view_menu.addAction(ext_view)
+
+        view_menu.addSeparator()
+
+        problems_panel = QAction("Problems", self)
+        problems_panel.triggered.connect(self._open_problems_panel)
+        view_menu.addAction(problems_panel)
+
+        output_panel = QAction("Output", self)
+        output_panel.triggered.connect(self._open_output_panel)
+        view_menu.addAction(output_panel)
+
+        debug_console = QAction("Debug Console", self)
+        debug_console.triggered.connect(self._open_debug_console)
+        view_menu.addAction(debug_console)
+
+        view_menu.addSeparator()
+
+        toggle_sidebar = QAction("Toggle Sidebar", self)
+        toggle_sidebar.setShortcut(QKeySequence("Ctrl+B"))
+        toggle_sidebar.triggered.connect(self._toggle_sidebar)
+        view_menu.addAction(toggle_sidebar)
+
+        toggle_chat = QAction("Toggle Chat Panel", self)
+        toggle_chat.setShortcut(QKeySequence("Ctrl+Shift+J"))
+        toggle_chat.triggered.connect(self._toggle_chat)
+        view_menu.addAction(toggle_chat)
+
+        toggle_terminal = QAction("Toggle Terminal", self)
+        toggle_terminal.setShortcut(QKeySequence("Ctrl+`"))
+        toggle_terminal.triggered.connect(self._toggle_terminal)
+        view_menu.addAction(toggle_terminal)
+
+        view_menu.addSeparator()
+
+        toggle_word_wrap = QAction("Toggle Word Wrap", self)
+        toggle_word_wrap.setShortcut(QKeySequence("Alt+Z"))
+        toggle_word_wrap.triggered.connect(self._toggle_word_wrap)
+        view_menu.addAction(toggle_word_wrap)
+
+        view_menu.addSeparator()
+
+        zoom_in = QAction("Zoom In", self)
+        zoom_in.setShortcut(QKeySequence("Ctrl+="))
+        zoom_in.triggered.connect(self._zoom_in)
+        view_menu.addAction(zoom_in)
+
+        zoom_out = QAction("Zoom Out", self)
+        zoom_out.setShortcut(QKeySequence("Ctrl+-"))
+        zoom_out.triggered.connect(self._zoom_out)
+        view_menu.addAction(zoom_out)
+
+        # ── Go menu ──
+        go_menu = menubar.addMenu("&Go")
+
+        back_action = QAction("Back", self)
+        back_action.setShortcut(QKeySequence("Alt+Left"))
+        back_action.triggered.connect(lambda: self._status_bar.set_connected(True))
+        go_menu.addAction(back_action)
+
+        forward_action = QAction("Forward", self)
+        forward_action.setShortcut(QKeySequence("Alt+Right"))
+        forward_action.triggered.connect(lambda: self._status_bar.set_connected(True))
+        go_menu.addAction(forward_action)
+
+        go_menu.addSeparator()
+
+        go_to_file = QAction("Go to File...", self)
+        go_to_file.setShortcut(QKeySequence("Ctrl+P"))
+        go_to_file.triggered.connect(self._show_quick_open)
+        go_menu.addAction(go_to_file)
+
+        go_to_symbol = QAction("Go to Symbol in File...", self)
+        go_to_symbol.setShortcut(QKeySequence("Ctrl+Shift+O"))
+        go_to_symbol.triggered.connect(self._show_command_palette)
+        go_menu.addAction(go_to_symbol)
+
+        go_menu.addSeparator()
+
+        go_to_line = QAction("Go to Line/Column...", self)
+        go_to_line.setShortcut(QKeySequence("Ctrl+G"))
+        go_to_line.triggered.connect(self._show_go_to_line)
+        go_menu.addAction(go_to_line)
+
+        go_menu.addSeparator()
+
+        go_to_def = QAction("Go to Definition", self)
+        go_to_def.setShortcut(QKeySequence("F12"))
+        go_menu.addAction(go_to_def)
+
+        go_menu.addSeparator()
+
+        next_prob = QAction("Next Problem", self)
+        next_prob.setShortcut(QKeySequence("F8"))
+        go_menu.addAction(next_prob)
+
+        # ── Run menu ──
+        run_menu = menubar.addMenu("&Run")
+
+        start_debug = QAction("Start Debugging", self)
+        start_debug.setShortcut(QKeySequence("F5"))
+        start_debug.triggered.connect(lambda: QMessageBox.information(self, "Debug", "Debugger coming soon."))
+        run_menu.addAction(start_debug)
+
+        run_no_debug = QAction("Run Without Debugging", self)
+        run_no_debug.setShortcut(QKeySequence("Ctrl+F5"))
+        run_no_debug.triggered.connect(self._run_current_file)
+        run_menu.addAction(run_no_debug)
+
+        run_menu.addSeparator()
+
+        toggle_break = QAction("Toggle Breakpoint", self)
+        toggle_break.setShortcut(QKeySequence("F9"))
+        run_menu.addAction(toggle_break)
+
+        # ── Terminal menu ──
+        terminal_menu = menubar.addMenu("&Terminal")
+
+        new_terminal = QAction("New Terminal", self)
+        new_terminal.setShortcut(QKeySequence("Ctrl+Shift+`"))
+        new_terminal.triggered.connect(self._new_terminal)
+        terminal_menu.addAction(new_terminal)
+
+        kill_terminal = QAction("Kill Terminal", self)
+        kill_terminal.triggered.connect(self._kill_terminal)
+        terminal_menu.addAction(kill_terminal)
+
+        terminal_menu.addSeparator()
+
+        run_task = QAction("Run Task...", self)
+        run_task.triggered.connect(lambda: QMessageBox.information(self, "Tasks", "Task runner coming soon."))
+        terminal_menu.addAction(run_task)
+
+        # ── Help menu ──
+        help_menu = menubar.addMenu("&Help")
+
+        welcome_action = QAction("Welcome", self)
+        welcome_action.triggered.connect(lambda: self._new_conversation())
+        help_menu.addAction(welcome_action)
+
+        help_menu.addSeparator()
+
+        keyboard_ref = QAction("Keyboard Shortcuts Reference", self)
+        keyboard_ref.triggered.connect(self._show_keyboard_shortcuts)
+        help_menu.addAction(keyboard_ref)
+
+        help_menu.addSeparator()
+
+        report_issue = QAction("Report Issue", self)
+        report_issue.triggered.connect(self._report_issue)
+        help_menu.addAction(report_issue)
+
+        help_menu.addSeparator()
+
+        about_action = QAction("About Dardcor Code", self)
+        about_action.triggered.connect(self._show_about)
+        help_menu.addAction(about_action)
+
+    # ── Shortcuts ─────────────────────────────────────────
+
+    def _setup_shortcuts(self):
+        # Additional shortcuts not covered by menu
+        pass
+
+    # ── Command Palette ───────────────────────────────────
+
+    def _setup_command_palette(self):
+        self._command_palette = CommandPalette(self)
+        self._command_palette.command_selected.connect(self._execute_command)
+
+        root_path = self._config.workspace_path or os.path.expanduser("~")
+        self._quick_open = QuickOpenDialog(root_path, self)
+        self._quick_open.file_selected.connect(self._open_file_in_editor)
+
+        self._commands = [
+            {"id": "file.new", "label": "File: New File", "shortcut": "Ctrl+N"},
+            {"id": "file.open", "label": "File: Open File...", "shortcut": "Ctrl+O"},
+            {"id": "file.openFolder", "label": "File: Open Folder...", "shortcut": "Ctrl+K"},
+            {"id": "file.save", "label": "File: Save", "shortcut": "Ctrl+S"},
+            {"id": "file.saveAs", "label": "File: Save As...", "shortcut": "Ctrl+Shift+S"},
+            {"id": "edit.find", "label": "Edit: Find", "shortcut": "Ctrl+F"},
+            {"id": "edit.replace", "label": "Edit: Find and Replace", "shortcut": "Ctrl+H"},
+            {"id": "edit.settings", "label": "Preferences: Open Settings", "shortcut": "Ctrl+,"},
+            {"id": "view.toggleSidebar", "label": "View: Toggle Sidebar Visibility", "shortcut": "Ctrl+B"},
+            {"id": "view.toggleChat", "label": "View: Toggle Chat Panel", "shortcut": "Ctrl+Shift+J"},
+            {"id": "view.toggleTerminal", "label": "View: Toggle Terminal", "shortcut": "Ctrl+`"},
+            {"id": "view.quickOpen", "label": "Go to File...", "shortcut": "Ctrl+P"},
+            {"id": "view.goToLine", "label": "Go to Line...", "shortcut": "Ctrl+G"},
+            {"id": "view.commandPalette", "label": "Show All Commands", "shortcut": "Ctrl+Shift+P"},
+            {"id": "view.explorer", "label": "View: Show Explorer", "shortcut": "Ctrl+Shift+E"},
+            {"id": "view.search", "label": "View: Show Search", "shortcut": "Ctrl+Shift+F"},
+            {"id": "view.sourceControl", "label": "View: Show Source Control", "shortcut": "Ctrl+Shift+G"},
+            {"id": "view.zoomIn", "label": "View: Zoom In", "shortcut": "Ctrl+="},
+            {"id": "view.zoomOut", "label": "View: Zoom Out", "shortcut": "Ctrl+-"},
+            {"id": "view.wordWrap", "label": "View: Toggle Word Wrap", "shortcut": "Alt+Z"},
+            {"id": "terminal.new", "label": "Terminal: Create New Terminal", "shortcut": "Ctrl+Shift+`"},
+            {"id": "agent.newConversation", "label": "Dardcor AI: New Conversation", "shortcut": ""},
+            {"id": "help.about", "label": "Help: About Dardcor Code", "shortcut": ""},
+            {"id": "help.shortcuts", "label": "Help: Keyboard Shortcuts Reference", "shortcut": ""},
+        ]
+
+    def _execute_command(self, cmd_id: str):
+        handlers = {
+            "file.new": self._new_file,
+            "file.open": self._open_file_dialog,
+            "file.openFolder": lambda: self._file_explorer._open_folder(),
+            "file.save": self._save_current_file,
+            "file.saveAs": self._save_as,
+            "edit.find": self._show_find,
+            "edit.replace": self._show_find,
+            "edit.settings": self._show_settings,
+            "view.toggleSidebar": self._toggle_sidebar,
+            "view.toggleChat": self._toggle_chat,
+            "view.toggleTerminal": self._toggle_terminal,
+            "view.quickOpen": self._show_quick_open,
+            "view.goToLine": self._show_go_to_line,
+            "view.commandPalette": self._show_command_palette,
+            "view.explorer": lambda: self._switch_sidebar(VIEW_EXPLORER),
+            "view.search": lambda: self._switch_sidebar(VIEW_SEARCH),
+            "view.sourceControl": lambda: self._switch_sidebar(VIEW_SOURCE_CONTROL),
+            "view.zoomIn": self._zoom_in,
+            "view.zoomOut": self._zoom_out,
+            "view.wordWrap": self._toggle_word_wrap,
+            "terminal.new": self._new_terminal,
+            "agent.newConversation": self._new_conversation,
+            "help.about": self._show_about,
+            "help.shortcuts": self._show_keyboard_shortcuts,
+        }
+        handler = handlers.get(cmd_id)
+        if handler:
+            handler()
+
+    # ── File operations ───────────────────────────────────
+
+    def _new_file(self):
+        """Create a new untitled file."""
+        self._editor_tabs.new_file()
+
+    def _new_window(self):
+        """Open a new application window."""
+        QMessageBox.information(self, "New Window",
+            "Launch a new instance from command line:\n\ndardcor desktop")
+
+    def _open_file_dialog(self):
+        path, _ = QFileDialog.getOpenFileName(self, "Open File")
+        if path:
+            self._open_file_in_editor(path)
+
+    def _open_file_in_editor(self, path: str):
+        if os.path.isfile(path):
+            editor = self._editor_tabs.open_file(path)
+            if editor:
+                self._status_bar.set_language(editor.get_language())
+            self._status_bar.set_cursor_position(1, 1)
+
+    def _open_file_at_line(self, path: str, line: int):
+        self._open_file_in_editor(path)
+        editor = self._editor_tabs.current_editor()
+        if editor:
+            QTimer.singleShot(300, lambda: editor.reveal_line(line))
+
+    def _save_current_file(self):
+        self._editor_tabs.save_current()
+
+    def _save_as(self):
+        editor = self._editor_tabs.current_editor()
+        if not editor:
+            return
+        path, _ = QFileDialog.getSaveFileName(self, "Save As")
+        if path:
+            editor.save_as(path)
+
+    def _save_all(self):
+        self._editor_tabs.save_all()
+
+    def _on_auto_save_toggle(self, checked: bool):
+        self._config.auto_save = checked
+        self._config.save()
+
+    def _close_current_editor(self):
+        """Close the currently active editor tab (Ctrl+W)."""
+        self._editor_tabs.close_current()
+
+    def _close_folder(self):
+        """Close the current workspace folder."""
+        self._config.workspace_path = ""
+        self._config.save()
+        default_root = os.path.expanduser("~")
+        self._file_explorer.set_root(default_root)
+        self._on_root_changed(default_root)
+
+    def _select_all(self):
+        """Select all text via Monaco's built-in command."""
+        editor = self._editor_tabs.current_editor()
+        if editor:
+            editor._view.page().runJavaScript("editor && editor.trigger('', 'selectAll', {});")
+
+    def _set_theme(self, theme_name: str):
+        """Switch between Dark+, Light+, and High Contrast themes."""
+        theme_map = {
+            "dark": """
+                QMainWindow, QWidget { background-color: #000000; }
+                QPlainTextEdit { background-color: #000000; color: #d4d4d4; }
+                QMenuBar { background-color: #000000; }
+                QTreeWidget { background-color: #000000; }
+                #statusBar { background-color: #000000; border-top: 1px solid #3c0068; }
+            """,
+            "light": """
+                QMainWindow, QWidget { background-color: #ffffff; }
+                QPlainTextEdit { background-color: #ffffff; color: #000000; }
+                QMenuBar { background-color: #f3f3f3; color: #000000; }
+                QTreeWidget { background-color: #f3f3f3; color: #000000; }
+                #statusBar { background-color: #007acc; color: #ffffff; }
+            """,
+            "hc": """
+                QMainWindow, QWidget { background-color: #000000; }
+                QPlainTextEdit { background-color: #000000; color: #ffffff; }
+                QMenuBar { background-color: #000000; color: #ffffff; }
+                QTreeWidget { background-color: #0a0a0a; color: #ffffff; }
+                #statusBar { background-color: #000000; color: #ffffff; }
+            """,
+        }
+        css = theme_map.get(theme_name, theme_map["dark"])
+        self.setStyleSheet(css)
+
+    def _toggle_menu_bar(self):
+        """Toggle the visibility of the menu bar."""
+        menu_bar = self._title_bar.menu_bar
+        menu_bar.setVisible(not menu_bar.isVisible())
+
+    def _open_problems_panel(self):
+        self._terminal_panel.show()
+        self._status_bar.set_connected(True)
+
+    def _open_output_panel(self):
+        self._terminal_panel.show()
+
+    def _open_debug_console(self):
+        self._debug_console.show()
+        
+    def _start_debugging(self):
+        """Start debugging the current file."""
+        editor = self._editor_tabs.current_editor()
+        if not editor or not editor.get_file_path():
+            return
+        self._debug_console.show()
+        self._debug_console.append("DAP (Debug Adapter Protocol) is initializing...", "Debug")
+        self._debug_console.append(f"Attaching to {editor.get_file_path()}", "Debug")
+        self._editor_tabs.show_debug_toolbar(True)
+        # In a real impl, we start `python -m debugpy` and connect via socket.
+        
+    def _run_current_file(self):
+        """Run the currently open file."""
+        editor = self._editor_tabs.current_editor()
+        if not editor or not editor.get_file_path():
+            return
+        filepath = editor.get_file_path()
+        ext = os.path.splitext(filepath)[1]
+        if ext == ".py":
+            self._terminal_panel._new_terminal()
+            from PySide6.QtCore import QTimer
+            QTimer.singleShot(500, lambda: self._terminal_panel._terminals[-1].write_input(
+                f'python "{filepath}"\r\n'
+            ))
+        else:
+            self._terminal_panel._new_terminal()
+            from PySide6.QtCore import QTimer
+            QTimer.singleShot(500, lambda: self._terminal_panel._terminals[-1].write_input(
+                f'start "" "{filepath}"\r\n'
+            ))
+
+    def _kill_terminal(self):
+        """Kill the current terminal process."""
+        self._terminal_panel._kill_current()
+
+    def _report_issue(self):
+        """Open the GitHub issues page."""
+        import webbrowser
+        webbrowser.open("https://github.com/Dardcor/dardcor-code/issues")
+
+    # ── Tab events ────────────────────────────────────────
+
+    def _on_tab_changed(self, file_path: str, language: str):
+        self._status_bar.set_language(language)
+        
+        # Update Outline/Timeline
+        self._timeline_panel.update_timeline(file_path)
+        # We would parse symbols here for outline, but we need LSP or a basic parser.
+        # For now we'll just clear it or let Monaco JS send it back later.
+        self._outline_panel.set_symbols([])
+
+        # Update git panel root if needed
+        editor = self._editor_tabs.current_editor()
+        if editor:
+            editor.cursor_position_changed.connect(self._on_cursor_moved)
+
+    def _on_cursor_moved(self, line: int, col: int):
+        self._status_bar.set_cursor_position(line, col)
+
+    # ── Root / workspace ──────────────────────────────────
+
+    def _on_root_changed(self, path: str):
+        self._search_panel.set_root(path)
+        self._terminal_panel.set_workdir(path)
+        self._quick_open.set_root(path)
+        self._quick_open._all_files = []  # Reset file cache
+        self._chat_panel.set_workspace_name(os.path.basename(path.rstrip("/\\\\")).lower() if path.rstrip("/\\\\") else "")
+        self._git_panel.set_root(path)
+        self._config.workspace_path = path
+        self._config.save()
+        QTimer.singleShot(100, self._detect_git_branch)
+
+    # ── Sidebar ───────────────────────────────────────────
+
+    def _on_view_changed(self, view_id: int):
+        if view_id < self._sidebar_stack.count():
+            self._sidebar_stack.setCurrentIndex(view_id)
+            if not self._sidebar_stack.isVisible():
+                self._sidebar_stack.show()
+            self._activity_bar.set_active(view_id)
+
+    def _switch_sidebar(self, view_id: int):
+        self._sidebar_stack.setCurrentIndex(view_id)
+        self._activity_bar.set_active(view_id)
+        if not self._sidebar_stack.isVisible():
+            self._sidebar_stack.show()
+
+    # ── Chat / Agent ──────────────────────────────────────
+
+    def _on_chat_message(self, message: str):
+        self._chat_panel.set_enabled(False)
+
+        def process():
+            try:
+                response = self._agent.send_message(
+                    message,
+                    on_tool_call=self._chat_panel.append_tool_call,
+                )
+                self._chat_panel.append_agent_message(response)
+            except Exception as e:
+                self._chat_panel.append_system_message(f"Error: {e}")
+            finally:
+                self._chat_panel.set_enabled(True)
+
+        threading.Thread(target=process, daemon=True).start()
+
+    def _on_agent_stream(self, text: str):
+        pass
+
+    def _new_conversation(self):
+        self._agent.new_conversation()
+        self._chat_panel.clear()
+        self._chat_panel.append_system_message("New conversation started. Ask me anything!")
+
+    # ── Engine check ──────────────────────────────────────
+
+    def _check_engine(self):
+        if self._agent and self._agent.config:
+            self._status_bar.set_connected(True)
+
+    def _detect_git_branch(self):
+        """Detect current git branch and update status bar."""
+        from ..engine.commands import CommandExecutor
+        cmd = CommandExecutor()
+        root = self._config.workspace_path or os.path.expanduser("~")
+        result = cmd.execute("git rev-parse --abbrev-ref HEAD", workdir=root, timeout=5)
+        branch = result.stdout.strip() if result.stdout else "main"
+        if branch and result.exit_code == 0:
+            self._status_bar.set_git_branch(branch)
+
+    # ── Dialogs ───────────────────────────────────────────
+
+    def _show_settings(self):
+        dialog = SettingsDialog(self)
+        dialog.exec()
+
+    def _show_command_palette(self):
+        self._command_palette.set_commands(self._commands)
+        self._command_palette.show_palette()
+
+    def _show_quick_open(self):
+        self._quick_open.show_dialog()
+
+    def _show_go_to_line(self):
+        editor = self._editor_tabs.current_editor()
+        if not editor:
+            return
+        dialog = GoToLineDialog(9999, self)
+        dialog.line_selected.connect(lambda line: editor.reveal_line(line))
+        dialog.show_dialog()
+
+    def _show_find(self):
+        editor = self._editor_tabs.current_editor()
+        if editor:
+            editor.trigger_find()
+
+    def _show_about(self):
+        QMessageBox.about(
+            self,
+            "About Dardcor Code",
+            "Dardcor Code v1.0.13\n\n"
+            "Full Desktop AI Coding Assistant\n\n"
+            "A VS Code-like IDE with integrated AI pair programming.\n"
+            "Built with Python + PySide6 (Qt)\n\n"
+            "License: MIT\n"
+            "https://github.com/Dardcor/dardcor-code",
+        )
+
+    def _show_keyboard_shortcuts(self):
+        shortcuts_text = (
+            "Keyboard Shortcuts\n\n"
+            "Ctrl+Shift+P    Command Palette\n"
+            "Ctrl+P          Quick Open File\n"
+            "Ctrl+G          Go to Line\n"
+            "Ctrl+F          Find\n"
+            "Ctrl+H          Find and Replace\n"
+            "Ctrl+N          New File\n"
+            "Ctrl+O          Open File\n"
+            "Ctrl+K          Open Folder\n"
+            "Ctrl+S          Save\n"
+            "Ctrl+Shift+S    Save As\n"
+            "Ctrl+B          Toggle Sidebar\n"
+            "Ctrl+`          Toggle Terminal\n"
+            "Ctrl+Shift+J    Toggle Chat\n"
+            "Ctrl+,          Settings\n"
+            "Ctrl+/          Toggle Comment\n"
+            "Ctrl+D          Duplicate Line\n"
+            "Ctrl+=          Zoom In\n"
+            "Ctrl+-          Zoom Out\n"
+            "Alt+Z           Toggle Word Wrap\n"
+            "Tab             Indent / Insert Spaces\n"
+            "Shift+Tab       Unindent\n"
+            "Ctrl+Q          Exit\n"
+        )
+        QMessageBox.information(self, "Keyboard Shortcuts", shortcuts_text)
+
+    # ── Show/hide Git status ──────────────────────────────
+
+    def _show_git_status(self):
+        from ..engine.commands import CommandExecutor
+        cmd = CommandExecutor()
+        root = self._config.workspace_path or os.path.expanduser("~")
+        result = cmd.execute("git status", workdir=root, timeout=10)
+        if result.stdout:
+            self._chat_panel.append_system_message(f"Git Status:\n{result.stdout}")
+        else:
+            self._chat_panel.append_system_message(
+                "Not a git repository or git not available."
+            )
+
+    # ── Toggle panels ─────────────────────────────────────
+
+    def _toggle_sidebar(self):
+        visible = self._sidebar_stack.isVisible()
+        self._sidebar_stack.setVisible(not visible)
+
+    def _toggle_chat(self):
+        visible = self._chat_panel.isVisible()
+        self._chat_panel.setVisible(not visible)
+
+    def _toggle_terminal(self):
+        visible = self._terminal_panel.isVisible()
+        self._terminal_panel.setVisible(not visible)
+
+    def _new_terminal(self):
+        if not self._terminal_panel.isVisible():
+            self._terminal_panel.show()
+        self._terminal_panel._new_terminal()
+
+    def _toggle_word_wrap(self):
+        self._word_wrap = not getattr(self, '_word_wrap', False)
+        self._editor_tabs.set_word_wrap(self._word_wrap)
+
+    def _apply_font_size_to_all(self, size: int):
+        """Apply font size to all Monaco editors via JS."""
+        self._editor_tabs.set_font_size(size)
+
+    def _zoom_in(self):
+        self._font_size = min(self._font_size + 1, 32)
+        self._apply_font_size_to_all(self._font_size)
+        self._config.font_size = self._font_size
+        self._config.save()
+
+    def _zoom_out(self):
+        self._font_size = max(self._font_size - 1, 8)
+        self._apply_font_size_to_all(self._font_size)
+        self._config.font_size = self._font_size
+        self._config.save()
+
+    # ── Close ─────────────────────────────────────────────
+
+    def closeEvent(self, event):
+        # Clean up terminal processes
+        for term in self._terminal_panel._terminals:
+            term.kill()
+        # Save config
+        self._config.save()
+        super().closeEvent(event)

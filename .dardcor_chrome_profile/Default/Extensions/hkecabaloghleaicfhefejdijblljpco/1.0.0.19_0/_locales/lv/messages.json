@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Iestatīt Microsoft Bing kā noklusējuma meklēšanas pakalpojumu sniedzēju"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "lv-lv"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Microsoft Bing meklētājprogramma"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "lv"
+   }
+}

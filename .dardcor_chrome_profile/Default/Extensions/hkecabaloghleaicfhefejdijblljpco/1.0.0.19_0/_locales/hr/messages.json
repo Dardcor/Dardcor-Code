@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Postavite Microsoft Bing kao svoju zadanu tražilicu"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "hr-hr"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Tražilica Microsoft Bing"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "hr"
+   }
+}

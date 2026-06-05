@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Задайте Microsoft Bing като своя доставчик за търсене по подразбиране"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "bg-bg"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Търсачка Microsoft Bing"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "bg"
+   }
+}

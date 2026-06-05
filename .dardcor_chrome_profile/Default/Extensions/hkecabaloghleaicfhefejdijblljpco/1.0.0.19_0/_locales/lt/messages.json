@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Nustatykite „Microsoft Bing“ kaip numatytąjį paieškos teikėją"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "lt-lt"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "„Microsoft Bing“ paieškos modulis"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "lt"
+   }
+}

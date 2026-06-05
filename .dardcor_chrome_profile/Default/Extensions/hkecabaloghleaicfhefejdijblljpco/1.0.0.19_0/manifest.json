@@ -1,0 +1,38 @@
+{
+   "action": {
+      "default_icon": "./assets/Logo_48.png"
+   },
+   "background": {
+      "service_worker": "./scripts/rootServiceWorker.js"
+   },
+   "chrome_settings_overrides": {
+      "search_provider": {
+         "favicon_url": "https://www.bing.com/favicon.ico",
+         "is_default": true,
+         "prepopulated_id": 3,
+         "search_url": "https://www.bing.com/search?EID=MBSC&form=BGGCMF&pc=__PARAM__BG02&q={searchTerms}",
+         "suggest_url": "https://www.bing.com/osjson.aspx?form=BGGCSS&pc=__PARAM__BG02&query={searchTerms}"
+      }
+   },
+   "content_security_policy": {
+      "extension_pages": "script-src 'self'; object-src 'self'"
+   },
+   "default_locale": "en",
+   "description": "__MSG_ExtnDescription__",
+   "externally_connectable": {
+      "matches": [ "https://www.bing.com/*", "https://browserdefaults.microsoft.com/*" ]
+   },
+   "host_permissions": [ "https://*/*", "http://*/*" ],
+   "icons": {
+      "128": "./assets/Logo_128.png",
+      "16": "./assets/Logo.png",
+      "48": "./assets/Logo_48.png"
+   },
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqEWNrYg3EEAxMRIqJI9KTjSNnXBdul7xlPQrEsaw+rJLlqskIYjUXRGPfIta3i8yfxwksN1D9eYXxgoXSTPmMtNw5zyzHPOQjCt367a4qR9S5hiM9y1aj1R+34idI/7d1f8bN8KwJ+eyReNCWXJfVwzdWho9so9gTzekXC6geYWqocfVOevArsCf743V4K0IxcwgHEy26uEKGPygrK2DGOC3s2LQbNih2HOn3QO9991NUYjkBb5Pdz5M0kayTauuj6bpI4mspnIYW20+r01F39SZ0tA/JXyBchknJ/VrJ9N5fDm17n1c19dVazPLe7x7jw48hugR6Q/7kWy+Q8G2/wIDAQAB",
+   "manifest_version": 3,
+   "name": "__MSG_ExtnName__",
+   "permissions": [ "alarms", "contextMenus", "cookies", "declarativeNetRequest", "notifications", "scripting", "storage", "tabs" ],
+   "short_name": "__MSG_ExtnName__",
+   "update_url": "https://clients2.google.com/service/update2/crx",
+   "version": "1.0.0.19"
+}

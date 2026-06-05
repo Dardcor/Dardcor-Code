@@ -1,0 +1,18 @@
+{
+   "ExtnDescription": {
+      "Description": "Extension Description",
+      "message": "Microsoft Bing को अपने डिफ़ॉल्ट खोज प्रदाता के रूप में सेट करें"
+   },
+   "ExtnMarket": {
+      "Description": "Market",
+      "message": "hi-in"
+   },
+   "ExtnName": {
+      "Description": "Extension name",
+      "message": "Microsoft Bing खोज इंजन"
+   },
+   "HomePage": {
+      "Description": "Homepage",
+      "message": "hi"
+   }
+}
