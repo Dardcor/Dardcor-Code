@@ -336,16 +336,12 @@ class MainWindow(QMainWindow):
 
         root_path = self._config.workspace_path or os.path.expanduser("~")
 
-        # Explorer Panel wrapper (Splitter)
+        # Explorer Panel wrapper — File explorer fills space, Outline/Timeline pinned at bottom
         explorer_wrapper = QWidget()
         explorer_wrapper.setStyleSheet("background-color: #000000;")
         explorer_layout = QVBoxLayout(explorer_wrapper)
         explorer_layout.setContentsMargins(0, 0, 0, 0)
         explorer_layout.setSpacing(0)
-        
-        explorer_splitter = QSplitter(Qt.Vertical)
-        explorer_splitter.setHandleWidth(1)
-        explorer_splitter.setStyleSheet("QSplitter::handle { background-color: #1a0033; }")
 
         self._file_explorer = FileExplorer(root_path=root_path)
         self._file_explorer.file_selected.connect(self._open_file_in_editor)
@@ -356,14 +352,12 @@ class MainWindow(QMainWindow):
         
         self._timeline_panel = TimelinePanel()
 
-        explorer_splitter.addWidget(self._file_explorer)
-        explorer_splitter.addWidget(self._outline_panel)
-        explorer_splitter.addWidget(self._timeline_panel)
-        
-        # Default sizes (Explorer takes most space)
-        explorer_splitter.setSizes([600, 200, 100])
-        
-        explorer_layout.addWidget(explorer_splitter)
+        # File explorer takes all remaining space
+        explorer_layout.addWidget(self._file_explorer, 1)
+        # Outline and Timeline are pinned at the bottom as compact collapsible headers
+        explorer_layout.addWidget(self._outline_panel, 0)
+        explorer_layout.addWidget(self._timeline_panel, 0)
+
         self._sidebar_stack.addWidget(explorer_wrapper)
 
         # Search

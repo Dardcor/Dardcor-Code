@@ -82,13 +82,11 @@ class TerminalInstance(QWidget):
                     from winpty import PTY
                 self._pty = PTY(120, 30)
 
+                # pywinpty 3.x: spawn(appname, cmdline=None, cwd=None, env=None)
                 exe = cmd if isinstance(cmd, str) else cmd[0]
 
-                # pywinpty 3.x: env must be a list of "KEY=VALUE" strings, not a dict
-                env_dict = os.environ.copy()
-                env_list = [f"{k}={v}" for k, v in env_dict.items()]
-
-                self._pty.spawn(exe, cwd=self._workdir, env=env_list)
+                # Pass env=None to inherit naturally and avoid Rust binding cast errors
+                self._pty.spawn(exe, cwd=self._workdir, env=None)
 
                 self._reader_thread = PtyReaderThread(self._pty, self)
                 self._reader_thread.data_ready.connect(self._write_to_frontend)

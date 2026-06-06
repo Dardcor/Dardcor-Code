@@ -2,42 +2,52 @@
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTreeWidget,
-    QTreeWidgetItem, QPushButton
+    QTreeWidgetItem, QPushButton, QSizePolicy
 )
-from PySide6.QtCore import Signal, Qt
+from PySide6.QtCore import Signal, Qt, QSize
 from PySide6.QtGui import QColor, QIcon
+
 
 class OutlinePanel(QWidget):
     """Panel showing symbols (classes, functions, etc) for the active file."""
 
     item_selected = Signal(int)  # Emit line number to jump to
 
+    HEADER_HEIGHT = 22
+
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._collapsed = True
         self._setup_ui()
+        self._apply_collapsed_size()
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        # Header
-        header = QWidget()
-        header.setFixedHeight(22)
-        header.setStyleSheet("background-color: #000000;")
-        h_lay = QHBoxLayout(header)
-        h_lay.setContentsMargins(10, 0, 4, 0)
-        
-        title = QLabel("OUTLINE")
-        title.setStyleSheet("""
-            color: #cccccc;
-            font-size: 11px;
-            font-weight: bold;
+        # Header - VS Code style collapsible section header
+        self._header = QPushButton()
+        self._header.setFixedHeight(self.HEADER_HEIGHT)
+        self._header.setCursor(Qt.PointingHandCursor)
+        self._header.clicked.connect(self._toggle_collapse)
+        self._update_header_text()
+        self._header.setStyleSheet("""
+            QPushButton {
+                background-color: #181818;
+                color: #bbbbbb;
+                font-size: 11px;
+                font-weight: bold;
+                text-align: left;
+                padding-left: 10px;
+                border: none;
+                border-top: 1px solid #2b2b2b;
+            }
+            QPushButton:hover {
+                background-color: #252526;
+            }
         """)
-        h_lay.addWidget(title)
-        h_lay.addStretch()
-
-        layout.addWidget(header)
+        layout.addWidget(self._header)
 
         # Tree
         self._tree = QTreeWidget()
@@ -65,6 +75,34 @@ class OutlinePanel(QWidget):
         """)
         self._tree.itemClicked.connect(self._on_item_clicked)
         layout.addWidget(self._tree)
+
+        # Start collapsed
+        self._tree.hide()
+
+    def _apply_collapsed_size(self):
+        if self._collapsed:
+            self.setFixedHeight(self.HEADER_HEIGHT)
+        else:
+            self.setMinimumHeight(self.HEADER_HEIGHT + 40)
+            self.setMaximumHeight(16777215)  # QWIDGETSIZE_MAX
+
+    def _update_header_text(self):
+        chevron = "›" if self._collapsed else "⌄"
+        self._header.setText(f" {chevron}  Outline")
+
+    def _toggle_collapse(self):
+        self._collapsed = not self._collapsed
+        self._tree.setVisible(not self._collapsed)
+        self._update_header_text()
+        self._apply_collapsed_size()
+
+    def sizeHint(self):
+        if self._collapsed:
+            return QSize(200, self.HEADER_HEIGHT)
+        return super().sizeHint()
+
+    def minimumSizeHint(self):
+        return QSize(0, self.HEADER_HEIGHT)
 
     def set_symbols(self, symbols: list):
         """

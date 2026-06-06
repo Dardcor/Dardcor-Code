@@ -4,6 +4,7 @@ from PySide6.QtWidgets import (
     QStackedWidget, QLabel, QMessageBox, QFileDialog
 )
 from PySide6.QtCore import Signal, Qt
+from PySide6.QtGui import QPixmap
 
 from .widget import MonacoEditorWidget
 
@@ -118,6 +119,17 @@ class EditorGroup(QWidget):
         vl.setAlignment(Qt.AlignCenter)
         vl.setSpacing(16)
 
+        # Logo
+        logo = QLabel()
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        logo_path = os.path.join(base_dir, "image", "dardcor.png")
+        pixmap = QPixmap(logo_path)
+        if not pixmap.isNull():
+            pixmap = pixmap.scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            logo.setPixmap(pixmap)
+        logo.setAlignment(Qt.AlignCenter)
+        vl.addWidget(logo)
+
         title = QLabel("Dardcor Code")
         title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet("color: #4a0072; font-size: 42px; font-weight: bold; letter-spacing: 2px;")
@@ -130,13 +142,25 @@ class EditorGroup(QWidget):
 
         vl.addSpacing(24)
 
+        # Wrapper to perfectly center the button block
+        wrapper = QWidget()
+        h_layout = QHBoxLayout(wrapper)
+        h_layout.setContentsMargins(0, 0, 0, 0)
+        h_layout.addStretch()
+
+        # Container for buttons to keep them left-aligned internally
+        btn_container = QWidget()
+        btn_layout = QVBoxLayout(btn_container)
+        btn_layout.setSpacing(8)
+        btn_layout.setContentsMargins(0, 0, 0, 0)
+
         for label, shortcut, action in [
             ("Open File...", "Ctrl+O", None),
             ("Open Folder...", "Ctrl+K", None),
             ("New File", "Ctrl+N", None),
         ]:
             btn = QPushButton(f"{label}  {shortcut}")
-            btn.setFixedWidth(260)
+            btn.setCursor(Qt.PointingHandCursor)
             btn.setStyleSheet("""
                 QPushButton {
                     background: transparent;
@@ -144,11 +168,16 @@ class EditorGroup(QWidget):
                     border: none;
                     font-size: 14px;
                     text-align: left;
-                    padding: 4px 0;
+                    padding: 4px 8px;
                 }
                 QPushButton:hover { color: #7ab8f5; }
             """)
-            vl.addWidget(btn, alignment=Qt.AlignCenter)
+            btn_layout.addWidget(btn)
+
+        h_layout.addWidget(btn_container)
+        h_layout.addStretch()
+
+        vl.addWidget(wrapper)
 
         return w
 
