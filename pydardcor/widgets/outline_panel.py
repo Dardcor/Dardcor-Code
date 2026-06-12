@@ -34,9 +34,9 @@ class OutlinePanel(QWidget):
         self._update_header_text()
         self._header.setStyleSheet("""
             QPushButton {
-                background-color: #181818;
-                color: #bbbbbb;
-                font-size: 11px;
+                background-color: #000000;
+                color: #cccccc;
+                font-size: 12px;
                 font-weight: bold;
                 text-align: left;
                 padding-left: 10px;
@@ -44,7 +44,7 @@ class OutlinePanel(QWidget):
                 border-top: 1px solid #2b2b2b;
             }
             QPushButton:hover {
-                background-color: #252526;
+                background-color: #1a1a1a;
             }
         """)
         layout.addWidget(self._header)
@@ -87,7 +87,7 @@ class OutlinePanel(QWidget):
             self.setMaximumHeight(16777215)  # QWIDGETSIZE_MAX
 
     def _update_header_text(self):
-        chevron = "›" if self._collapsed else "⌄"
+        chevron = ">" if self._collapsed else "∨"
         self._header.setText(f" {chevron}  Outline")
 
     def _toggle_collapse(self):

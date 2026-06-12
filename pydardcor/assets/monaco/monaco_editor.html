@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: file:; worker-src blob: 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: file:;">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { width: 100%; height: 100%; overflow: hidden; background: #000000; }
@@ -18,7 +18,7 @@
 <body>
     <div id="container"></div>
     <script src="qwebchannel.js"></script>
-    <script src="monaco/vs/loader.js"></script>
+    <script src="vs/loader.js"></script>
     <script>
         var editor = null;
         var backend = null;
@@ -89,9 +89,30 @@
             }
         };
 
-        require.config({ paths: { 'vs': 'monaco/vs' } });
+        window.MonacoEnvironment = {
+            getWorker: function(workerId, label) {
+                var basePath = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
+                var workerUrl = basePath + '/vs/base/worker/workerMain.js';
+                // Build a blob that imports the real worker via importScripts with the correct base URL
+                var blob = new Blob([
+                    'self.MonacoEnvironment = { baseUrl: "' + basePath + '/" };' +
+                    'importScripts("' + workerUrl + '");'
+                ], { type: 'application/javascript' });
+                return new Worker(URL.createObjectURL(blob));
+            }
+        };
+
+        require.config({ paths: { 'vs': 'vs' } });
 
         require(['vs/editor/editor.main'], function() {
+            // Load all language tokenizers for syntax highlighting
+            require([
+                'vs/basic-languages/monaco.contribution',
+                'vs/language/json/monaco.contribution',
+                'vs/language/css/monaco.contribution',
+                'vs/language/html/monaco.contribution',
+                'vs/language/typescript/monaco.contribution'
+            ], function() {
             monaco.editor.defineTheme('dardcor-dark', DARDCOR_THEME);
 
             editor = monaco.editor.create(document.getElementById('container'), {
@@ -193,6 +214,7 @@
 
             // Initialize web channel
             initWebChannel();
+            }); // end inner require (language contributions)
         });
 
         function initWebChannel() {

@@ -77,9 +77,10 @@ class ThemeManager:
         QSplitter::handle {{ background-color: {c['border']}; }}
         QSplitter::handle:hover {{ background-color: {c['accent']}; }}
         
-        QScrollBar:vertical {{ background-color: transparent; width: 14px; border: none; margin: 0px; }}
-        QScrollBar::handle:vertical {{ background-color: rgba(121, 121, 121, 0.4); min-height: 30px; border-radius: 0px; margin: 0px 3px; }}
-        QScrollBar::handle:vertical:hover {{ background-color: rgba(121, 121, 121, 0.7); }}
+        QScrollBar:vertical {{ background-color: transparent; width: 0px; border: none; margin: 0px; }}
+        QScrollBar::handle:vertical {{ background-color: transparent; }}
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0px; background: transparent; border: none; }}
+        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{ background: transparent; border: none; }}
         
         QPushButton {{ background-color: {c['accent']}; color: #ffffff; border: none; border-radius: 2px; padding: 6px 16px; font-size: 13px; }}
         QPushButton:hover {{ background-color: {c['accent_hover']}; }}

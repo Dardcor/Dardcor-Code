@@ -375,6 +375,14 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 <div align="center">
 
-Built by [Dardcor](https://github.com/Dardcor) · [Report Issues](https://github.com/Dardcor/dardcor-code/issues)
+<br/>
+
+**Built with 💜 by [Dardcor](https://github.com/Dardcor) · [Report Issues](https://github.com/Dardcor/dardcor-code/issues)**
+
+*If this project saves you time, a ⭐ means everything.*
+
+<br/>
+
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:3d006e,50:1a0033,100:0d0017&height=140&section=footer" width="100%"/>
 
 </div>

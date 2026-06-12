@@ -61,10 +61,11 @@ class MonacoEditorWidget(QWidget):
             QTimer.singleShot(150, self._apply_pending_content)
 
     def _apply_pending_content(self):
-        safe_content = self._content.replace("\\\\", "\\\\\\\\").replace("`", "\\\\`")
-        lang = self._language
-        fpath = (self._file_path or "").replace("\\\\", "\\\\\\\\")
-        js = f"setEditorContent(`{safe_content}`, '{lang}', '{fpath}');"
+        import json
+        safe_content_js = json.dumps(self._content)
+        lang_js = json.dumps(self._language)
+        fpath_js = json.dumps(self._file_path or "")
+        js = f"setEditorContent({safe_content_js}, {lang_js}, {fpath_js});"
         self._view.page().runJavaScript(js)
 
     def _on_content_changed(self, content):
