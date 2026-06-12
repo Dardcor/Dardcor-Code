@@ -1,6 +1,8 @@
 <div align="center">
 
-# DARDCOR CODE
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0d0017,40:1a0033,80:2d0055,100:3d006e&height=240&section=header&text=DARDCOR%20CODE&fontSize=72&fontColor=d4b8ff&animation=fadeIn&fontAlignY=42&desc=The%20AI%20That%20Doesn%27t%20Just%20Talk%20%E2%80%94%20It%20Acts.&descAlignY=64&descSize=22&fontStyle=bold" width="100%"/>
+
+<br/>
 
 **Full Desktop AI Coding Assistant — VS Code-like IDE built entirely in Python**
 
