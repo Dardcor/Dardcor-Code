@@ -66,6 +66,84 @@ class ChromeButton(QPushButton):
         painter.end()
 
 
+class LayoutToggleButton(QPushButton):
+    """Button to toggle layout panels (sidebar, bottom panel, right sidebar)."""
+    
+    def __init__(self, layout_type, parent=None):
+        super().__init__(parent)
+        self.layout_type = layout_type # 'left', 'bottom', 'right'
+        self.setFixedSize(30, 28)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setCheckable(True)
+        self.setChecked(True)
+        self.setStyleSheet("""
+            QPushButton { 
+                background-color: transparent; 
+                border: none; 
+                border-radius: 4px; 
+                margin: 0px 2px;
+            }
+            QPushButton:hover { 
+                background-color: rgba(255, 255, 255, 0.1); 
+            }
+            QPushButton:checked { 
+                background-color: transparent; 
+            }
+            QPushButton:checked:hover { 
+                background-color: rgba(255, 255, 255, 0.1); 
+            }
+        """)
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        from PySide6.QtCore import QRectF, QPointF
+        from PySide6.QtGui import QPainterPath, QPen
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        w, h = 14, 12
+        x = (self.width() - w) / 2.0
+        y = (self.height() - h) / 2.0
+        
+        path = QPainterPath()
+        path.addRoundedRect(QRectF(x, y, w, h), 2, 2)
+        
+        color = QColor("#cccccc")
+        pen = QPen(color)
+        pen.setWidth(1)
+        painter.setPen(pen)
+        painter.drawPath(path)
+        
+        if self.isChecked():
+            painter.setBrush(color)
+            painter.setPen(Qt.NoPen)
+            if self.layout_type == "left":
+                p = QPainterPath()
+                p.addRoundedRect(QRectF(x, y, w*0.4, h), 2, 2)
+                p.addRect(QRectF(x + w*0.4 - 2, y, 2, h))
+                painter.drawPath(p)
+            elif self.layout_type == "bottom":
+                p = QPainterPath()
+                p.addRoundedRect(QRectF(x, y + h*0.6, w, h*0.4), 2, 2)
+                p.addRect(QRectF(x, y + h*0.6, w, 2))
+                painter.drawPath(p)
+            elif self.layout_type == "right":
+                p = QPainterPath()
+                p.addRoundedRect(QRectF(x + w*0.6, y, w*0.4, h), 2, 2)
+                p.addRect(QRectF(x + w*0.6, y, 2, h))
+                painter.drawPath(p)
+        else:
+            painter.setPen(pen)
+            if self.layout_type == "left":
+                painter.drawLine(QPointF(x + w*0.4, y), QPointF(x + w*0.4, y + h))
+            elif self.layout_type == "bottom":
+                painter.drawLine(QPointF(x, y + h*0.6), QPointF(x + w, y + h*0.6))
+            elif self.layout_type == "right":
+                painter.drawLine(QPointF(x + w*0.6, y), QPointF(x + w*0.6, y + h))
+
+        painter.end()
+
+
 class CustomTitleBar(QWidget):
     """VS Code style custom title bar combining window controls, title, and menu."""
     def __init__(self, parent: QMainWindow):
@@ -175,6 +253,30 @@ class CustomTitleBar(QWidget):
         self.close_btn.setFixedSize(38, 35)
         self.close_btn.setStyleSheet(close_btn_style)
         self.close_btn.clicked.connect(self.parent.close)
+
+        # Layout toggles
+        self.layout_controls = QWidget()
+        lc_layout = QHBoxLayout(self.layout_controls)
+        lc_layout.setContentsMargins(0, 0, 8, 0)
+        lc_layout.setSpacing(0)
+        
+        self.btn_left_sidebar = LayoutToggleButton("left")
+        self.btn_left_sidebar.setToolTip("Toggle Primary Sidebar")
+        self.btn_left_sidebar.clicked.connect(self.parent._toggle_sidebar)
+        
+        self.btn_bottom_panel = LayoutToggleButton("bottom")
+        self.btn_bottom_panel.setToolTip("Toggle Panel")
+        self.btn_bottom_panel.clicked.connect(self.parent._toggle_terminal)
+        
+        self.btn_right_sidebar = LayoutToggleButton("right")
+        self.btn_right_sidebar.setToolTip("Toggle Secondary Sidebar")
+        self.btn_right_sidebar.clicked.connect(self.parent._toggle_chat)
+        
+        lc_layout.addWidget(self.btn_left_sidebar)
+        lc_layout.addWidget(self.btn_bottom_panel)
+        lc_layout.addWidget(self.btn_right_sidebar)
+        
+        self.layout.addWidget(self.layout_controls, 0, Qt.AlignVCenter)
 
         # Chrome button — left of minimize
         self.chrome_btn = ChromeButton()
@@ -541,6 +643,11 @@ class MainWindow(QMainWindow):
 
         # Detect git branch
         QTimer.singleShot(1000, self._detect_git_branch)
+        
+        # Init layout toggle button states
+        self._title_bar.btn_left_sidebar.setChecked(self._sidebar_stack.isVisible())
+        self._title_bar.btn_right_sidebar.setChecked(self._chat_panel.isVisible())
+        self._title_bar.btn_bottom_panel.setChecked(self._terminal_panel.isVisible())
 
     # ── Menu Bar ──────────────────────────────────────────
 
@@ -1334,18 +1441,22 @@ class MainWindow(QMainWindow):
     def _toggle_sidebar(self):
         visible = self._sidebar_stack.isVisible()
         self._sidebar_stack.setVisible(not visible)
+        self._title_bar.btn_left_sidebar.setChecked(not visible)
 
     def _toggle_chat(self):
         visible = self._chat_panel.isVisible()
         self._chat_panel.setVisible(not visible)
+        self._title_bar.btn_right_sidebar.setChecked(not visible)
 
     def _toggle_terminal(self):
         visible = self._terminal_panel.isVisible()
         self._terminal_panel.setVisible(not visible)
+        self._title_bar.btn_bottom_panel.setChecked(not visible)
 
     def _new_terminal(self):
         if not self._terminal_panel.isVisible():
             self._terminal_panel.show()
+            self._title_bar.btn_bottom_panel.setChecked(True)
         self._terminal_panel._new_terminal()
 
     def _toggle_word_wrap(self):
