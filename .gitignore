@@ -6,3 +6,7 @@ __pycache__/
 *.whl
 *.tar.gz
 .pytest_cache/
+
+dist/
+build/
+*.spec
