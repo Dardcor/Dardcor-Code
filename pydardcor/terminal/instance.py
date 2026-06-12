@@ -76,17 +76,7 @@ class TerminalInstance(QWidget):
 
         if backend.HAS_PTY:
             try:
-                try:
-                    from pywinpty import PTY
-                except ImportError:
-                    from winpty import PTY
-                self._pty = PTY(120, 30)
-
-                # pywinpty 3.x: spawn(appname, cmdline=None, cwd=None, env=None)
-                exe = cmd if isinstance(cmd, str) else cmd[0]
-
-                # Pass env=None to inherit naturally and avoid Rust binding cast errors
-                self._pty.spawn(exe, cwd=self._workdir, env=None)
+                self._pty = backend.create_pty(120, 30, cmd, self._workdir)
 
                 self._reader_thread = PtyReaderThread(self._pty, self)
                 self._reader_thread.data_ready.connect(self._write_to_frontend)

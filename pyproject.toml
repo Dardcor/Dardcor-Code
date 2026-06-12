@@ -34,7 +34,7 @@ classifiers = [
 requires-python = ">=3.9"
 dependencies = [
     "PySide6>=6.6.0",
-    "pywinpty>=2.0.1",
+    "pywinpty>=2.0.1; sys_platform == 'win32'",
 ]
 
 [project.urls]

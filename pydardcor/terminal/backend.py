@@ -1,28 +1,9 @@
-"""Terminal Backend - PTY process management for pywinpty 3.x and shell detection."""
+"""Terminal Backend - Platform-agnostic PTY factory."""
 
-import os
 import platform
-import sys
-import site
+import os
 import time
-
 from PySide6.QtCore import Signal, QThread
-
-# Ensure user site-packages in path so pywinpty is importable
-user_site = site.getusersitepackages()
-if user_site not in sys.path:
-    sys.path.append(user_site)
-
-try:
-    # pywinpty 3.x exposes PTY under both 'pywinpty' and 'winpty'
-    try:
-        from pywinpty import PTY
-    except ImportError:
-        from winpty import PTY
-    HAS_PTY = True
-except ImportError:
-    HAS_PTY = False
-
 
 def get_shell_cmd() -> str:
     """Return the best available shell executable path."""
@@ -35,15 +16,25 @@ def get_shell_cmd() -> str:
         return "cmd.exe"
     return os.environ.get("SHELL", "/bin/bash")
 
+HAS_PTY = True
+
+def create_pty(cols: int, rows: int, cmd: str, cwd: str):
+    """Factory method to create the appropriate PTY wrapper for the current OS."""
+    if platform.system() == "Windows":
+        from .win_backend import WinPtyWrapper, HAS_WINPTY
+        if not HAS_WINPTY:
+            raise RuntimeError("pywinpty not installed")
+        return WinPtyWrapper(cols, rows, cmd, cwd)
+    else:
+        from .unix_backend import UnixPtyWrapper, HAS_UNIX_PTY
+        if not HAS_UNIX_PTY:
+            raise RuntimeError("POSIX pty not available")
+        return UnixPtyWrapper(cols, rows, cmd, cwd)
+
 
 class PtyReaderThread(QThread):
     """
     Background thread that continuously reads PTY output.
-
-    pywinpty 3.x API:
-        PTY.read(blocking=False) -> bytes   (non-blocking by default)
-        PTY.isalive() -> bool
-        PTY.iseof()   -> bool
     """
 
     data_ready = Signal(str)
@@ -55,25 +46,22 @@ class PtyReaderThread(QThread):
 
     def run(self):
         while self._running:
-            # Stop if process is dead and output drained
             if not self.pty.isalive() and self.pty.iseof():
                 break
 
             try:
-                # blocking=True waits until data is available
+                # blocking=True waits until data is available or timeout
                 raw = self.pty.read(blocking=True)
             except Exception:
                 time.sleep(0.005)
                 continue
 
             if not raw:
-                # blocking=True returned empty → process likely just exited
                 if not self.pty.isalive():
                     break
                 time.sleep(0.001)
                 continue
 
-            # raw is bytes in pywinpty 3.x
             if isinstance(raw, bytes):
                 text = raw.decode("utf-8", errors="replace")
             else:
@@ -84,7 +72,6 @@ class PtyReaderThread(QThread):
 
     def stop(self):
         self._running = False
-        # Unblock a stuck read() by cancelling pending I/O
         try:
             self.pty.cancel_io()
         except Exception:

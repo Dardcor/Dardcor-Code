@@ -24,8 +24,8 @@ def run_git(args, cwd):
             timeout=10
         )
         return result.stdout.strip(), result.stderr.strip(), result.returncode
-    except FileNotFoundError:
-        return "", "git not found", 1
+    except OSError:
+        return "", "git not found or invalid directory", 1
     except subprocess.TimeoutExpired:
         return "", "git command timed out", 1
 

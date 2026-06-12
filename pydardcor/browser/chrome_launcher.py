@@ -63,7 +63,16 @@ def open_agent_chrome(url: str = None) -> tuple[bool, str]:
                 return True, "Chrome launched via shell fallback."
             except Exception as e:
                 return False, f"Chrome not found. Fallback failed: {e}"
-        return False, "Chrome not found on this system."
+        else:
+            try:
+                subprocess.Popen(
+                    f'xdg-open "{target_url}"',
+                    shell=True,
+                    start_new_session=True
+                )
+                return True, "Launched via xdg-open fallback."
+            except Exception as e:
+                return False, f"Chrome not found. Fallback failed: {e}"
 
     profile_dir = _get_agent_profile_dir()
     args = [
@@ -76,8 +85,13 @@ def open_agent_chrome(url: str = None) -> tuple[bool, str]:
     ]
 
     try:
-        flags = subprocess.DETACHED_PROCESS if os.name == "nt" else 0
-        subprocess.Popen(args, creationflags=flags)
+        kwargs = {}
+        if os.name == "nt":
+            kwargs["creationflags"] = subprocess.DETACHED_PROCESS
+        else:
+            kwargs["start_new_session"] = True
+            
+        subprocess.Popen(args, **kwargs)
         return True, "Chrome opened successfully."
     except Exception as e:
         return False, f"Failed to open Chrome: {e}"

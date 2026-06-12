@@ -6,8 +6,9 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTextEdit,
     QPushButton, QLabel, QFrame, QScrollArea,
 )
-from PySide6.QtCore import Signal, Qt, QTimer
-from PySide6.QtGui import QColor, QTextCursor, QTextCharFormat, QFont, QKeyEvent
+from PySide6.QtCore import Signal, Qt, QTimer, QSize
+from PySide6.QtGui import QColor, QTextCursor, QTextCharFormat, QFont, QKeyEvent, QIcon
+import os
 
 
 class ChatPanel(QWidget):
@@ -132,8 +133,8 @@ class ChatPanel(QWidget):
             }
         """)
         input_layout = QVBoxLayout(input_container)
-        input_layout.setContentsMargins(16, 8, 16, 16)
-        input_layout.setSpacing(12)
+        input_layout.setContentsMargins(16, 8, 16, 6)
+        input_layout.setSpacing(6)
 
         input_box = QFrame()
         input_box.setStyleSheet("""
@@ -149,7 +150,7 @@ class ChatPanel(QWidget):
 
         # Text input
         self._input = ChatInput()
-        self._input.setPlaceholderText("Ask anything, @ to mention, / for workfl...")
+        self._input.setPlaceholderText("Ask Dardcor")
         self._input.setFixedHeight(50)
         self._input.setAcceptRichText(False)
         self._input.setStyleSheet("""
@@ -164,6 +165,7 @@ class ChatPanel(QWidget):
             }
         """)
         self._input.submit_pressed.connect(self._send_message)
+        self._input.textChanged.connect(self._on_input_changed)
         input_box_layout.addWidget(self._input)
 
         # Bottom row of input box
@@ -172,45 +174,44 @@ class ChatPanel(QWidget):
         input_bottom_layout.setContentsMargins(8, 4, 8, 8)
         input_bottom_layout.setSpacing(8)
 
-        attach_btn = QPushButton("+")
-        attach_btn.setFixedSize(24, 24)
+        # Base path for assets
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        assets_dir = os.path.join(base_dir, "assets")
+
+        attach_btn = QPushButton()
+        attach_btn.setIcon(QIcon(os.path.join(assets_dir, "plus.svg")))
+        attach_btn.setIconSize(QSize(18, 18))
+        attach_btn.setFixedSize(28, 28)
+        attach_btn.setToolTip("Upload File")
         attach_btn.setStyleSheet("""
             QPushButton {
-                background: transparent; border: none; color: #888888;
-                font-size: 18px; border-radius: 4px;
+                background: transparent; border: none;
+                border-radius: 14px;
             }
-            QPushButton:hover { background-color: #333333; color: #cccccc; }
+            QPushButton:hover { background-color: #333333; }
         """)
         input_bottom_layout.addWidget(attach_btn)
 
-        model_btn = QPushButton("Gemini 3.1 Pro (High) ⌄")
-        model_btn.setStyleSheet("""
-            QPushButton {
-                background: transparent; border: none; color: #888888;
-                font-size: 12px; border-radius: 4px; padding: 4px 8px;
-            }
-            QPushButton:hover { background-color: #333333; color: #cccccc; }
-        """)
-        input_bottom_layout.addWidget(model_btn)
-
         input_bottom_layout.addStretch()
 
-        self._send_btn = QPushButton("🎙")
+        self._mic_icon = QIcon(os.path.join(assets_dir, "mic.svg"))
+        self._send_icon = QIcon(os.path.join(assets_dir, "send.svg"))
+
+        self._send_btn = QPushButton()
+        self._send_btn.setIcon(self._mic_icon)
+        self._send_btn.setIconSize(QSize(14, 14))
         self._send_btn.setFixedSize(28, 28)
         self._send_btn.setCursor(Qt.PointingHandCursor)
         self._send_btn.setStyleSheet("""
             QPushButton {
                 background-color: #333333;
-                color: #cccccc;
                 border: none;
                 border-radius: 14px;
-                font-size: 14px;
             }
             QPushButton:hover { background-color: #444444; }
             QPushButton:pressed { background-color: #222222; }
             QPushButton:disabled {
                 background-color: #2a2a2a;
-                color: #666666;
             }
         """)
         self._send_btn.clicked.connect(self._send_message)
@@ -240,12 +241,20 @@ class ChatPanel(QWidget):
         """Placeholder - connected by main_window."""
         pass
 
+    def _on_input_changed(self):
+        text = self._input.toPlainText().strip()
+        if text:
+            self._send_btn.setIcon(self._send_icon)
+        else:
+            self._send_btn.setIcon(self._mic_icon)
+
     def _send_message(self):
         text = self._input.toPlainText().strip()
         if not text:
             return
         self._append_user_message(text)
         self._input.clear()
+        self._on_input_changed()
         self.message_sent.emit(text)
 
     def _append_user_message(self, text: str):
@@ -348,9 +357,7 @@ class ChatPanel(QWidget):
         self._send_btn.setEnabled(enabled)
         self._input.setEnabled(enabled)
         if enabled:
-            self._send_btn.setText("🎙")
-        else:
-            self._send_btn.setText("⏳")
+            self._on_input_changed()
 
 
 class ChatInput(QTextEdit):

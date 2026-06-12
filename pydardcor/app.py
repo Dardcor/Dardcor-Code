@@ -38,6 +38,8 @@ def run_desktop_app():
     app.setApplicationDisplayName("Dardcor Code")
     app.setOrganizationName("Dardcor")
     app.setOrganizationDomain("dardcor.com")
+    if hasattr(app, "setDesktopFileName"):
+        app.setDesktopFileName("dardcor-code")
     app.setStyle("Fusion")
 
     # Set default font
@@ -78,11 +80,15 @@ def run_desktop_app():
 
     signal.signal(signal.SIGINT,  _handle_sigint)
     signal.signal(signal.SIGTERM, _handle_sigint)
+    if hasattr(signal, "SIGBREAK"):
+        signal.signal(signal.SIGBREAK, _handle_sigint)
 
     # Keep a timer alive on the app object (not a local var) so Python's
     # signal handler gets a chance to run every 200 ms inside the Qt loop.
-    app._sigint_timer = QTimer()
-    app._sigint_timer.timeout.connect(lambda: None)
+    app._sigint_timer = QTimer(app)
+    def _python_yield():
+        pass
+    app._sigint_timer.timeout.connect(_python_yield)
     app._sigint_timer.start(200)
 
     sys.exit(app.exec())

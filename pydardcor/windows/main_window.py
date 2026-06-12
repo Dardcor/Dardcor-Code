@@ -200,7 +200,43 @@ class CustomTitleBar(QWidget):
         else:
             self.parent.showMaximized()
             
-    # Native event handling in MainWindow takes care of dragging and double click
+    # Native event handling in MainWindow takes care of dragging and double click on Windows
+    # Fallback for Linux:
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            from PySide6.QtWidgets import QApplication, QPushButton, QMenuBar
+            widget = QApplication.widgetAt(event.globalPosition().toPoint())
+            if isinstance(widget, QPushButton) or isinstance(widget, QMenuBar):
+                return super().mousePressEvent(event)
+            self.start_pos = event.globalPosition().toPoint() - self.parent.frameGeometry().topLeft()
+            event.accept()
+        else:
+            super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if event.buttons() == Qt.LeftButton and self.start_pos is not None:
+            if not self.parent.isMaximized():
+                self.parent.move(event.globalPosition().toPoint() - self.start_pos)
+                event.accept()
+            else:
+                super().mouseMoveEvent(event)
+        else:
+            super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        self.start_pos = None
+        super().mouseReleaseEvent(event)
+        
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            from PySide6.QtWidgets import QApplication, QPushButton, QMenuBar
+            widget = QApplication.widgetAt(event.globalPosition().toPoint())
+            if isinstance(widget, QPushButton) or isinstance(widget, QMenuBar):
+                return super().mouseDoubleClickEvent(event)
+            self.toggle_max_restore()
+            event.accept()
+        else:
+            super().mouseDoubleClickEvent(event)
 
 from ..engine.agent import Agent
 from ..engine.config import get_config
@@ -254,12 +290,10 @@ class MainWindow(QMainWindow):
         if os.name == "nt":
             msg = wintypes.MSG.from_address(message.__int__())
             if msg.message == 0x0084: # WM_NCHITTEST
-                x = msg.lParam & 0xffff
-                y = (msg.lParam >> 16) & 0xffff
-                if x > 32767: x -= 65536
-                if y > 32767: y -= 65536
+                from PySide6.QtGui import QCursor
+                logical_global_pos = QCursor.pos()
+                pos = self.mapFromGlobal(logical_global_pos)
                 
-                pos = self.mapFromGlobal(QPoint(x, y))
                 w, h = self.width(), self.height()
                 b = 8 # Border size for resizing
                 
@@ -277,10 +311,15 @@ class MainWindow(QMainWindow):
                 
                 # Check title bar
                 if self._title_bar and self._title_bar.geometry().contains(pos):
-                    # Only return HTCAPTION if not clicking on buttons/menus
-                    child = self._title_bar.childAt(self._title_bar.mapFromGlobal(QPoint(x, y)))
-                    if not isinstance(child, QPushButton) and not isinstance(child, QMenuBar):
-                        return True, 2 # HTCAPTION
+                    # Use global logical cursor to check widgets exactly (fixes high DPI button clicks)
+                    from PySide6.QtWidgets import QApplication, QPushButton, QMenuBar
+                    widget = QApplication.widgetAt(logical_global_pos)
+                    
+                    if isinstance(widget, QPushButton) or isinstance(widget, QMenuBar):
+                        # Let Qt handle mouse events for buttons/menus
+                        return False, 0
+                        
+                    return True, 2 # HTCAPTION
         
         return super().nativeEvent(eventType, message)
 
@@ -292,15 +331,20 @@ class MainWindow(QMainWindow):
     # ── UI Layout ─────────────────────────────────────────
 
     def _setup_ui(self):
+        # ── Window Settings ──
         self.setWindowTitle("Dardcor Code")
-        self.setMinimumSize(1024, 680)
+        self.setMinimumSize(600, 400)
         
-        # Dynamically resize to fit the screen
-        screen = QApplication.primaryScreen().availableGeometry()
-        width = min(1440, int(screen.width() * 0.9))
-        height = min(900, int(screen.height() * 0.9))
-        self.resize(width, height)
-        self.move((screen.width() - width) // 2, (screen.height() - height) // 2)
+        from PySide6.QtWidgets import QApplication
+        screen_obj = QApplication.primaryScreen()
+        if screen_obj:
+            avail = screen_obj.availableGeometry()
+            width = min(1440, int(avail.width() * 0.9))
+            height = min(900, int(avail.height() * 0.9))
+            self.resize(width, height)
+            self.move(avail.x() + (avail.width() - width) // 2, avail.y() + (avail.height() - height) // 2)
+        else:
+            self.resize(1000, 700)
         
         # Set frameless window hint to hide native OS title bar
         self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
@@ -335,6 +379,8 @@ class MainWindow(QMainWindow):
         self._sidebar_stack.setMinimumWidth(200)
 
         root_path = self._config.workspace_path or os.path.expanduser("~")
+        if not os.path.exists(root_path):
+            root_path = os.path.expanduser("~")
 
         # Explorer Panel wrapper — File explorer fills space, Outline/Timeline pinned at bottom
         explorer_wrapper = QWidget()
@@ -478,6 +524,13 @@ class MainWindow(QMainWindow):
         self._status_bar = StatusBar()
         self.setStatusBar(self._status_bar)
         self._status_bar.go_to_line_requested.connect(self._show_go_to_line)
+        
+        # ── Add QSizeGrip for Linux resizing ──
+        import platform
+        if platform.system() != "Windows":
+            from PySide6.QtWidgets import QSizeGrip
+            self.size_grip = QSizeGrip(self)
+            self._status_bar.layout().addWidget(self.size_grip)
 
         # ── Connections ──
         self._editor_tabs.tab_changed.connect(self._on_tab_changed)
