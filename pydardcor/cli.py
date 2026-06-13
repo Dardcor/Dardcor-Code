@@ -26,6 +26,12 @@ def cmd_version(args):
 
 
 def main():
+    # Intercept QtWebEngine internal subprocess arguments to prevent fork bombs!
+    if any(arg.startswith("--type=") for arg in sys.argv):
+        from PySide6.QtWidgets import QApplication
+        app = QApplication(sys.argv)
+        sys.exit(app.exec())
+
     parser = argparse.ArgumentParser(
         prog="dardcor",
         description="Dardcor Code - Full Desktop AI Coding Assistant",
