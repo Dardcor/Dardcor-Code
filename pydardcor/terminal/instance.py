@@ -5,6 +5,7 @@ import json
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 from PySide6.QtCore import Qt, QTimer, QUrl
 from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtWebEngineCore import QWebEngineSettings
 from PySide6.QtWebChannel import QWebChannel
 
 from .bridge import TerminalBridge
@@ -34,6 +35,10 @@ class TerminalInstance(QWidget):
 
         self._view = QWebEngineView(self)
         self._view.setContextMenuPolicy(Qt.NoContextMenu)
+        
+        settings = self._view.page().profile().settings()
+        settings.setAttribute(QWebEngineSettings.LocalContentCanAccessFileUrls, True)
+        settings.setAttribute(QWebEngineSettings.LocalContentCanAccessRemoteUrls, True)
 
         # Disable right-click default menu; allow copy/paste via xterm.js
         self._channel = QWebChannel()

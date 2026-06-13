@@ -32,14 +32,14 @@ jobs:
         run: |
           python build.py
 
-      - name: Compress Executable Folder
-        # Compress the output folder from PyInstaller into a single ZIP file for release
+      - name: Build Windows Installer
+        # Compile installer.iss using Inno Setup
         run: |
-          Compress-Archive -Path "dist/Dardcor Code" -DestinationPath "Dardcor-Code-Windows.zip"
+          iscc installer.iss
 
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v1
         with:
-          files: Dardcor-Code-Windows.zip
+          files: dist/Dardcor-Code-Setup-Windows.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

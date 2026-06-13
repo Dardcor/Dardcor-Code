@@ -3,6 +3,7 @@ import json
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 from PySide6.QtCore import Signal, Qt, QTimer, QUrl
 from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtWebEngineCore import QWebEngineSettings
 from PySide6.QtWebChannel import QWebChannel
 
 from .bridge import EditorBridge
@@ -32,6 +33,10 @@ class MonacoEditorWidget(QWidget):
 
         self._view = QWebEngineView(self)
         self._view.setContextMenuPolicy(Qt.NoContextMenu)
+        
+        settings = self._view.page().profile().settings()
+        settings.setAttribute(QWebEngineSettings.LocalContentCanAccessFileUrls, True)
+        settings.setAttribute(QWebEngineSettings.LocalContentCanAccessRemoteUrls, True)
 
         self._channel = QWebChannel()
         self._bridge = EditorBridge(self)
