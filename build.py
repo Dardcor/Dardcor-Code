@@ -24,6 +24,7 @@ def main():
         "--noconfirm",          # Replace output directory without asking
         "--windowed",           # Don't show console window (GUI app)
         "--onedir",             # Create a directory (faster startup, easier debugging than onefile)
+        "--icon", "image/dardcor.ico",
         
         # Add the 'image' directory
         "--add-data", f"image{separator}image",

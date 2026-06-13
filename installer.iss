@@ -4,6 +4,7 @@ AppVersion=1.0.1
 DefaultDirName={autopf}\Dardcor Code
 DefaultGroupName=Dardcor Code
 UninstallDisplayIcon={app}\Dardcor Code.exe
+SetupIconFile=image\dardcor.ico
 Compression=lzma2
 SolidCompression=yes
 OutputDir=dist
