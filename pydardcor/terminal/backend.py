@@ -18,18 +18,18 @@ def get_shell_cmd() -> str:
 
 HAS_PTY = True
 
-def create_pty(cols: int, rows: int, cmd: str, cwd: str):
+def create_pty(cols: int, rows: int, cmd: str, cwd: str, env: dict = None):
     """Factory method to create the appropriate PTY wrapper for the current OS."""
     if platform.system() == "Windows":
         from .win_backend import WinPtyWrapper, HAS_WINPTY
         if not HAS_WINPTY:
             raise RuntimeError("pywinpty not installed")
-        return WinPtyWrapper(cols, rows, cmd, cwd)
+        return WinPtyWrapper(cols, rows, cmd, cwd, env)
     else:
         from .unix_backend import UnixPtyWrapper, HAS_UNIX_PTY
         if not HAS_UNIX_PTY:
             raise RuntimeError("POSIX pty not available")
-        return UnixPtyWrapper(cols, rows, cmd, cwd)
+        return UnixPtyWrapper(cols, rows, cmd, cwd, env)
 
 
 class PtyReaderThread(QThread):

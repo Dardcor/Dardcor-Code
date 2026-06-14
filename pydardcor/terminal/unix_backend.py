@@ -15,7 +15,7 @@ except ImportError:
     HAS_UNIX_PTY = False
 
 class UnixPtyWrapper:
-    def __init__(self, cols: int, rows: int, cmd: str, cwd: str):
+    def __init__(self, cols: int, rows: int, cmd: str, cwd: str, env: dict = None):
         if not HAS_UNIX_PTY:
             raise RuntimeError("POSIX pty not available")
             
@@ -27,11 +27,14 @@ class UnixPtyWrapper:
                     os.chdir(cwd)
             except Exception:
                 pass
-            os.environ["TERM"] = "xterm-256color"
+            
+            # Use provided env or parent's env
+            process_env = env if env is not None else os.environ.copy()
+            process_env["TERM"] = "xterm-256color"
             
             # Execute shell
             shell = cmd if isinstance(cmd, str) else cmd[0]
-            os.execv(shell, [shell])
+            os.execve(shell, [shell], process_env)
         else:
             # Parent process
             self._alive = True

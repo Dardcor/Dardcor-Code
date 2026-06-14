@@ -20,7 +20,7 @@ except ImportError:
     pass
 
 class WinPtyWrapper:
-    def __init__(self, cols: int, rows: int, cmd: str, cwd: str):
+    def __init__(self, cols: int, rows: int, cmd: str, cwd: str, env: dict = None):
         if not HAS_WINPTY:
             raise RuntimeError("pywinpty not installed")
         self.pty = PTY(cols, rows)

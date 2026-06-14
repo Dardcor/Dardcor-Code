@@ -120,9 +120,19 @@ class TerminalPanel(QWidget):
 
     def set_workdir(self, path):
         self._current_workdir = path
-        current = self._stack.currentWidget()
-        if isinstance(current, TerminalInstance):
-            current.set_workdir(path)
+        
+        # When switching workspaces, we must kill old terminals 
+        # and start a fresh one so the CWD is correctly applied.
+        for term in self._terminals:
+            term.kill()
+            self._stack.removeWidget(term)
+            term.deleteLater()
+            
+        self._terminals.clear()
+        self._combo_box.clear()
+        
+        # Spawn a new terminal in the new workspace
+        self._new_terminal()
 
     def clear(self):
         current = self._stack.currentWidget()
