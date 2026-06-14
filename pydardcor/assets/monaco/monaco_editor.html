@@ -13,6 +13,12 @@
         ::-webkit-scrollbar-track { background: #0a0a0a; }
         ::-webkit-scrollbar-thumb { background: #2c004a; border-radius: 0; }
         ::-webkit-scrollbar-thumb:hover { background: #3c0068; }
+
+        /* Breakpoint styling in gutter */
+        .breakpoint-margin {
+            background: rgba(229, 20, 0, 0.15) !important;
+            border-left: 3px solid #e51400 !important;
+        }
     </style>
 </head>
 <body>
@@ -123,6 +129,8 @@
                 fontFamily: '"Cascadia Code", "Cascadia Mono", "Consolas", "Courier New", monospace',
                 fontLigatures: true,
                 lineNumbers: 'on',
+                lineNumbersMinChars: 1,
+                lineDecorationsWidth: 0,
                 renderLineHighlight: 'line',
                 scrollBeyondLastLine: false,
                 minimap: {
@@ -174,7 +182,7 @@
                 dragAndDrop: true,
                 columnSelection: false,
                 accessibilitySupport: 'off',
-                glyphMargin: true,
+                glyphMargin: false,
             });
 
             // Register python completions provider connected to Python backend
@@ -375,7 +383,7 @@
                 range: new monaco.Range(lineNumber, 1, lineNumber, 1),
                 options: {
                     isWholeLine: true,
-                    glyphMarginClassName: 'breakpoint-glyph',
+                    marginClassName: 'breakpoint-margin',
                     glyphMarginHoverMessage: { value: 'Breakpoint' }
                 }
             }]);

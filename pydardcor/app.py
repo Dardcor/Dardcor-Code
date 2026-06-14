@@ -8,7 +8,7 @@ import os
 import signal
 
 from PySide6.QtWidgets import QApplication
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, QLocale
 from PySide6.QtGui import QFont, QPalette, QColor, QIcon, QFontDatabase
 
 import ctypes
@@ -34,6 +34,8 @@ def run_desktop_app():
         QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
 
     app = QApplication(sys.argv)
+    # Fix Qt locale float parsing bugs in QSvgRenderer (e.g. for European/Indonesian locales using comma as decimal point)
+    QLocale.setDefault(QLocale.c())
     app.setApplicationName("Dardcor Code")
     app.setApplicationDisplayName("Dardcor Code")
     app.setOrganizationName("Dardcor")

@@ -5,7 +5,80 @@ from PySide6.QtWidgets import (
     QTreeWidgetItem, QPushButton, QSizePolicy
 )
 from PySide6.QtCore import Signal, Qt, QSize
-from PySide6.QtGui import QColor, QIcon
+from PySide6.QtGui import QColor, QIcon, QPainter, QPen
+
+
+class SectionHeaderButton(QPushButton):
+    """Custom button that draws a VS Code-style vector chevron to match FileExplorer."""
+    def __init__(self, text, collapsed=True, parent=None):
+        super().__init__(text, parent)
+        self._collapsed = collapsed
+        self.setFixedHeight(22)
+        self.setCursor(Qt.PointingHandCursor)
+        
+        # Load colors from ThemeManager if available
+        bg_color = "#000000"
+        fg_color = "#cccccc"
+        hover_color = "#1a1a1a"
+        border_color = "#3c0068"
+        try:
+            from pydardcor.windows.theme_manager import ThemeManager
+            theme = ThemeManager.THEMES.get(ThemeManager._current_theme, {})
+            colors = theme.get("colors", {})
+            bg_color = colors.get("background", bg_color)
+            fg_color = colors.get("foreground", fg_color)
+            hover_color = colors.get("hover", hover_color)
+            border_color = colors.get("border", border_color)
+        except Exception:
+            pass
+
+        self.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {bg_color};
+                color: {fg_color};
+                font-family: "Segoe UI", "Ubuntu", "Droid Sans", sans-serif;
+                font-size: 11px;
+                font-weight: bold;
+                text-align: left;
+                padding-left: 14px;
+                border: none;
+                border-top: 1px solid {border_color};
+            }}
+            QPushButton:hover {{
+                background-color: {hover_color};
+            }}
+        """)
+
+    def set_collapsed(self, collapsed):
+        self._collapsed = collapsed
+        self.update()
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        cx = 6
+        cy = self.height() // 2
+
+        pen = QPen(QColor("#858585"))
+        pen.setWidth(2)
+        pen.setCapStyle(Qt.RoundCap)
+        pen.setJoinStyle(Qt.RoundJoin)
+        painter.setPen(pen)
+        painter.setBrush(Qt.NoBrush)
+
+        if self._collapsed:
+            # > rightward chevron
+            painter.drawLine(cx - 2, cy - 3, cx + 2, cy)
+            painter.drawLine(cx + 2, cy, cx - 2, cy + 3)
+        else:
+            # v downward chevron
+            painter.drawLine(cx - 3, cy - 2, cx, cy + 2)
+            painter.drawLine(cx, cy + 2, cx + 3, cy - 2)
+
+        painter.end()
 
 
 class OutlinePanel(QWidget):
@@ -27,26 +100,8 @@ class OutlinePanel(QWidget):
         layout.setSpacing(0)
 
         # Header - VS Code style collapsible section header
-        self._header = QPushButton()
-        self._header.setFixedHeight(self.HEADER_HEIGHT)
-        self._header.setCursor(Qt.PointingHandCursor)
+        self._header = SectionHeaderButton("Outline", self._collapsed)
         self._header.clicked.connect(self._toggle_collapse)
-        self._update_header_text()
-        self._header.setStyleSheet("""
-            QPushButton {
-                background-color: #000000;
-                color: #cccccc;
-                font-size: 12px;
-                font-weight: bold;
-                text-align: left;
-                padding-left: 10px;
-                border: none;
-                border-top: 1px solid #2b2b2b;
-            }
-            QPushButton:hover {
-                background-color: #1a1a1a;
-            }
-        """)
         layout.addWidget(self._header)
 
         # Tree
@@ -87,8 +142,7 @@ class OutlinePanel(QWidget):
             self.setMaximumHeight(16777215)  # QWIDGETSIZE_MAX
 
     def _update_header_text(self):
-        chevron = ">" if self._collapsed else "∨"
-        self._header.setText(f" {chevron}  Outline")
+        self._header.set_collapsed(self._collapsed)
 
     def _toggle_collapse(self):
         self._collapsed = not self._collapsed

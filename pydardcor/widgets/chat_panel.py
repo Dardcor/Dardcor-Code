@@ -143,7 +143,7 @@ class ChatPanel(QWidget):
             }
         """)
         input_layout = QVBoxLayout(input_container)
-        input_layout.setContentsMargins(0, 8, 16, 6)
+        input_layout.setContentsMargins(16, 8, 16, 6)
         input_layout.setSpacing(6)
 
         input_box = QFrame()

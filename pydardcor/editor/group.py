@@ -3,88 +3,15 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTabBar, QPushButton,
     QStackedWidget, QLabel, QMessageBox, QFileDialog
 )
-from PySide6.QtCore import Signal, Qt, QSize
-from PySide6.QtGui import QPixmap, QIcon, QPainter, QColor, QFont
+from PySide6.QtCore import Signal, Qt, QSize, QTimer, QByteArray
+from PySide6.QtGui import QPixmap, QIcon, QPainter, QColor, QFont, QImage
+from PySide6.QtSvg import QSvgRenderer
 
 from .widget import MonacoEditorWidget
 from .diff_viewer import MonacoDiffEditorWidget
+from ..widgets.file_explorer import get_file_icon
 
-# File extension to icon color mapping (VS Code style)
-_ICON_COLORS = {
-    ".py": "#3572A5",
-    ".js": "#F7DF1E",
-    ".mjs": "#F7DF1E",
-    ".cjs": "#F7DF1E",
-    ".jsx": "#61DAFB",
-    ".ts": "#3178C6",
-    ".tsx": "#3178C6",
-    ".html": "#E34F26",
-    ".htm": "#E34F26",
-    ".css": "#1572B6",
-    ".scss": "#CC6699",
-    ".less": "#1D365D",
-    ".json": "#F5A623",
-    ".jsonc": "#F5A623",
-    ".md": "#519ABA",
-    ".xml": "#F16529",
-    ".svg": "#FFB13B",
-    ".yaml": "#CB171E",
-    ".yml": "#CB171E",
-    ".toml": "#9C4121",
-    ".ini": "#9C4121",
-    ".go": "#00ADD8",
-    ".rs": "#DEA584",
-    ".java": "#B07219",
-    ".cpp": "#F34B7D",
-    ".cc": "#F34B7D",
-    ".c": "#555555",
-    ".h": "#555555",
-    ".cs": "#178600",
-    ".rb": "#CC342D",
-    ".php": "#777BB4",
-    ".swift": "#F05138",
-    ".kt": "#A97BFF",
-    ".dart": "#00B4AB",
-    ".lua": "#000080",
-    ".sh": "#89E051",
-    ".bash": "#89E051",
-    ".bat": "#C1F12E",
-    ".ps1": "#012456",
-    ".sql": "#E38C00",
-    ".r": "#198CE7",
-    ".vue": "#4FC08D",
-    ".dockerfile": "#384D54",
-    ".gitignore": "#F05032",
-    ".txt": "#888888",
-    ".log": "#888888",
-}
 
-def _make_file_icon(filename):
-    """Create a small colored icon based on file extension."""
-    ext = os.path.splitext(filename)[1].lower()
-    name_lower = filename.lower()
-    color = _ICON_COLORS.get(ext, "#888888")
-    if name_lower == ".gitignore":
-        color = _ICON_COLORS[".gitignore"]
-    elif name_lower == "dockerfile":
-        color = _ICON_COLORS[".dockerfile"]
-
-    # Build a 16x16 pixmap with the first letter of extension
-    pixmap = QPixmap(16, 16)
-    pixmap.fill(QColor(0, 0, 0, 0))  # transparent
-    painter = QPainter(pixmap)
-    painter.setRenderHint(QPainter.Antialiasing)
-    painter.setBrush(QColor(color))
-    painter.setPen(Qt.NoPen)
-    painter.drawRoundedRect(1, 1, 14, 14, 3, 3)
-    # Draw letter
-    painter.setPen(QColor("#ffffff"))
-    font = QFont("Segoe UI", 8, QFont.Bold)
-    painter.setFont(font)
-    letter = ext[1:2].upper() if ext else "?"
-    painter.drawText(pixmap.rect(), Qt.AlignCenter, letter)
-    painter.end()
-    return QIcon(pixmap)
 
 
 class EditorTab:
@@ -93,6 +20,71 @@ class EditorTab:
         self.editor = editor
         self.file_path = file_path
         self.title = os.path.basename(file_path) if file_path else "Untitled"
+
+
+class TabCloseButton(QPushButton):
+    """Custom close button for tabs to guarantee rendering of X icon."""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedSize(QSize(22, 22))
+        self.setCursor(Qt.PointingHandCursor)
+        self.setFlat(True)
+        
+        # Render the 'X' SVG icon
+        svg_x = b'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="#969696" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="4" x2="12" y2="12"></line>
+            <line x1="12" y1="4" x2="4" y2="12"></line>
+        </svg>'''
+        
+        svg_x_hover = b'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="4" x2="12" y2="12"></line>
+            <line x1="12" y1="4" x2="4" y2="12"></line>
+        </svg>'''
+        
+        self._icon = QIcon()
+        
+        # Render normal state
+        renderer_normal = QSvgRenderer(QByteArray(svg_x))
+        for size in (16, 32, 48):
+            image = QImage(size, size, QImage.Format_ARGB32)
+            image.fill(Qt.transparent)
+            painter = QPainter(image)
+            painter.setRenderHint(QPainter.Antialiasing)
+            renderer_normal.render(painter)
+            painter.end()
+            pixmap = QPixmap.fromImage(image)
+            pixmap.setDevicePixelRatio(size / 16.0)
+            self._icon.addPixmap(pixmap, QIcon.Normal, QIcon.Off)
+            
+        # Render active state (hover)
+        renderer_hover = QSvgRenderer(QByteArray(svg_x_hover))
+        for size in (16, 32, 48):
+            image = QImage(size, size, QImage.Format_ARGB32)
+            image.fill(Qt.transparent)
+            painter = QPainter(image)
+            painter.setRenderHint(QPainter.Antialiasing)
+            renderer_hover.render(painter)
+            painter.end()
+            pixmap = QPixmap.fromImage(image)
+            pixmap.setDevicePixelRatio(size / 16.0)
+            self._icon.addPixmap(pixmap, QIcon.Active, QIcon.Off)
+            self._icon.addPixmap(pixmap, QIcon.Active, QIcon.On)
+            self._icon.addPixmap(pixmap, QIcon.Normal, QIcon.On)
+            
+        self.setIcon(self._icon)
+        self.setIconSize(QSize(16, 16))
+        
+        self.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                border: none;
+                padding: 0px;
+            }
+            QPushButton:hover {
+                background: transparent;
+            }
+        """)
 
 
 class DardcorTabBar(QTabBar):
@@ -105,6 +97,8 @@ class DardcorTabBar(QTabBar):
         self.setTabsClosable(True)
         self.setMovable(True)
         self.setExpanding(False)
+        self.setDrawBase(False)
+        self.setElideMode(Qt.ElideRight)
         self.setIconSize(QSize(16, 16))
         self.setStyleSheet("""
             QTabBar {
@@ -114,68 +108,98 @@ class DardcorTabBar(QTabBar):
             QTabBar::tab {
                 background: #0d0d0d;
                 color: #969696;
-                padding: 6px 12px 6px 8px;
+                padding: 6px 6px 6px 10px;
                 border: none;
                 border-right: 1px solid #1a0033;
-                min-width: 80px;
-                max-width: 200px;
+                min-width: 0px;
+                max-width: 220px;
                 font-size: 12px;
             }
             QTabBar::tab:selected {
                 background: #000000;
                 color: #cccccc;
-                border-top: 2px solid #007acc;
+                border-top: none;
                 border-bottom: none;
             }
             QTabBar::tab:hover:!selected {
                 background: #1a0033;
                 color: #cccccc;
             }
+            /* Style native close button to be hidden completely */
             QTabBar::close-button {
+                image: none;
+                width: 0px;
+                height: 0px;
                 background: transparent;
-                border: none;
-                padding: 0px;
-                margin: 2px;
-                subcontrol-position: right;
-            }
-            QTabBar::close-button:hover {
-                background: rgba(255, 255, 255, 0.15);
-                border-radius: 3px;
             }
         """)
-    
+
+    def tabSizeHint(self, index):
+        base_size = super().tabSizeHint(index)
+        text = self.tabText(index)
+        fm = self.fontMetrics()
+        if hasattr(fm, 'horizontalAdvance'):
+            text_width = fm.horizontalAdvance(text)
+        else:
+            text_width = fm.boundingRect(text).width()
+        
+        icon = self.tabIcon(index)
+        icon_width = 0
+        if not icon.isNull():
+            icon_width = self.iconSize().width() + 6  # Icon + spacing
+            
+        btn = self.tabButton(index, QTabBar.RightSide)
+        btn_width = 0
+        if btn:
+            btn_width = btn.width() + 4  # Button + spacing
+        else:
+            btn_width = 22 + 4  # Fallback based on 22px button size
+            
+        padding_left = 10
+        padding_right = 6
+        
+        width = padding_left + icon_width + text_width + btn_width + padding_right
+        width = min(max(width, 80), 220)
+        return QSize(width, base_size.height())
+        
     def tabInserted(self, index):
         super().tabInserted(index)
-        self._update_close_buttons()
-    
+        btn = TabCloseButton(self)
+        btn.clicked.connect(lambda: self._handle_close_clicked(btn))
+        self.setTabButton(index, QTabBar.RightSide, btn)
+        QTimer.singleShot(0, self._update_close_buttons)
+        
     def tabRemoved(self, index):
         super().tabRemoved(index)
-        self._update_close_buttons()
-    
+        QTimer.singleShot(0, self._update_close_buttons)
+        
     def mouseMoveEvent(self, event):
         super().mouseMoveEvent(event)
         idx = self.tabAt(event.pos())
         if idx != self._hovered_tab:
             self._hovered_tab = idx
             self._update_close_buttons()
-    
+            
     def leaveEvent(self, event):
         super().leaveEvent(event)
         self._hovered_tab = -1
         self._update_close_buttons()
-    
+        
+    def _handle_close_clicked(self, btn):
+        for i in range(self.count()):
+            if self.tabButton(i, QTabBar.RightSide) is btn or self.tabButton(i, QTabBar.LeftSide) is btn:
+                self.tabCloseRequested.emit(i)
+                return
+                
     def _update_close_buttons(self):
-        """Show close button only on selected or hovered tab."""
         current = self.currentIndex()
         for i in range(self.count()):
-            btn = self.tabButton(i, QTabBar.RightSide)
-            if btn:
+            btn = self.tabButton(i, QTabBar.RightSide) or self.tabButton(i, QTabBar.LeftSide)
+            if btn and isinstance(btn, TabCloseButton):
                 if i == current or i == self._hovered_tab:
-                    btn.setFixedSize(16, 16)
-                    btn.show()
+                    btn.setVisible(True)
                 else:
-                    btn.setFixedSize(0, 0)
-                    btn.hide()
+                    btn.setVisible(False)
 
 
 class EditorGroup(QWidget):
@@ -219,10 +243,11 @@ class EditorGroup(QWidget):
         layout.addWidget(self._debug_toolbar)
 
         # Tab bar row
-        tab_row = QWidget()
-        tab_row.setFixedHeight(35)
-        tab_row.setStyleSheet("background-color: #000000;")
-        row_layout = QHBoxLayout(tab_row)
+        self._tab_row = QWidget()
+        self._tab_row.setFixedHeight(35)
+        self._tab_row.setStyleSheet("background-color: #000000; border-bottom: 1px solid #3c0068;")
+        self._tab_row.hide()
+        row_layout = QHBoxLayout(self._tab_row)
         row_layout.setContentsMargins(0, 0, 0, 0)
         row_layout.setSpacing(0)
 
@@ -230,9 +255,8 @@ class EditorGroup(QWidget):
         self._tab_bar.tabCloseRequested.connect(self._close_tab)
         self._tab_bar.currentChanged.connect(self._on_tab_changed)
         row_layout.addWidget(self._tab_bar)
-        row_layout.addStretch()
 
-        layout.addWidget(tab_row)
+        layout.addWidget(self._tab_row)
 
         self._stack = QStackedWidget()
         layout.addWidget(self._stack)
@@ -311,6 +335,10 @@ class EditorGroup(QWidget):
 
         return w
 
+    def _update_tab_row_visibility(self):
+        has_tabs = len(self._tabs) > 0
+        self._tab_row.setVisible(has_tabs)
+
     def open_file(self, file_path):
         for i, tab in enumerate(self._tabs):
             if tab.file_path == file_path and not isinstance(tab.editor, MonacoDiffEditorWidget):
@@ -327,12 +355,13 @@ class EditorGroup(QWidget):
         self._stack.addWidget(editor)
 
         title = os.path.basename(file_path)
-        icon = _make_file_icon(title)
+        icon = get_file_icon(file_path)
         idx = self._tab_bar.addTab(icon, title)
         self._tab_bar.setCurrentIndex(idx)
         self._stack.setCurrentWidget(editor)
         self._current_idx = idx
         self._emit_tab_changed(editor)
+        self._update_tab_row_visibility()
         return editor
 
     def open_diff(self, file_path, original_content, modified_content):
@@ -350,12 +379,13 @@ class EditorGroup(QWidget):
         self._tabs.append(tab)
         self._stack.addWidget(editor)
 
-        icon = _make_file_icon(os.path.basename(file_path))
+        icon = get_file_icon(file_path)
         idx = self._tab_bar.addTab(icon, tab.title)
         self._tab_bar.setCurrentIndex(idx)
         self._stack.setCurrentWidget(editor)
         self._current_idx = idx
         self._emit_tab_changed(editor)
+        self._update_tab_row_visibility()
         return editor
 
 
@@ -371,10 +401,11 @@ class EditorGroup(QWidget):
         tab.title = title
         self._tabs.append(tab)
         self._stack.addWidget(editor)
-        idx = self._tab_bar.addTab(_make_file_icon("untitled.txt"), title)
+        idx = self._tab_bar.addTab(get_file_icon("untitled.txt"), title)
         self._tab_bar.setCurrentIndex(idx)
         self._stack.setCurrentWidget(editor)
         self._current_idx = idx
+        self._update_tab_row_visibility()
         return editor
 
     def _on_content_changed(self, editor):
@@ -400,6 +431,7 @@ class EditorGroup(QWidget):
                 tab.title = os.path.basename(path)
                 editor.save_as(path)
                 self._tab_bar.setTabText(idx, tab.title)
+                self._tab_bar.setTabIcon(idx, get_file_icon(path))
         self.dirty_changed.emit(False)
 
     def _close_tab(self, idx):
@@ -421,6 +453,7 @@ class EditorGroup(QWidget):
         tab.editor.deleteLater()
         self._tabs.pop(idx)
         self._tab_bar.removeTab(idx)
+        self._update_tab_row_visibility()
 
         if not self._tabs:
             self._stack.setCurrentWidget(self._welcome)
@@ -428,7 +461,7 @@ class EditorGroup(QWidget):
 
     def _on_tab_changed(self, idx):
         self._switch_tab(idx)
-        self._tab_bar._update_close_buttons()
+        QTimer.singleShot(0, self._tab_bar._update_close_buttons)
 
     def _switch_tab(self, idx):
         if 0 <= idx < len(self._tabs):

@@ -84,6 +84,15 @@ class ThemeManager:
         
         QPushButton {{ background-color: {c['accent']}; color: #ffffff; border: none; border-radius: 2px; padding: 6px 16px; font-size: 13px; }}
         QPushButton:hover {{ background-color: {c['accent_hover']}; }}
+        
+        QToolTip {{
+            background-color: {c['background'] == '#000000' and '#1e1e1e' or c['background']};
+            color: {c['foreground']};
+            border: 1px solid {c['border']};
+            font-size: 12px;
+            padding: 4px;
+            border-radius: 2px;
+        }}
         """
         
         app.setStyleSheet(stylesheet)
@@ -98,4 +107,10 @@ class ThemeManager:
         palette.setColor(QPalette.ButtonText, QColor(c["foreground"]))
         palette.setColor(QPalette.Highlight, QColor(c["selection"]))
         palette.setColor(QPalette.HighlightedText, QColor(c["foreground"]))
+        
+        # Sync native tooltips colors
+        tooltip_bg = "#1e1e1e" if c["background"] == "#000000" else c["background"]
+        palette.setColor(QPalette.ToolTipBase, QColor(tooltip_bg))
+        palette.setColor(QPalette.ToolTipText, QColor(c["foreground"]))
+        
         app.setPalette(palette)

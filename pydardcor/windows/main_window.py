@@ -539,6 +539,8 @@ class MainWindow(QMainWindow):
         # Outline and Timeline are pinned at the bottom as compact collapsible headers
         explorer_layout.addWidget(self._outline_panel, 0)
         explorer_layout.addWidget(self._timeline_panel, 0)
+        # Add stretch at the bottom so Outline/Timeline slide up when File Explorer collapses
+        explorer_layout.addStretch(0)
 
         self._sidebar_stack.addWidget(explorer_wrapper)
 
