@@ -34,46 +34,56 @@ class ChatPanel(QWidget):
 
         # Header
         header = QWidget()
+        header.setObjectName("chatHeader")
         header.setFixedHeight(35)
         header.setStyleSheet("""
-            background-color: #000000;
+            #chatHeader {
+                background-color: #000000;
+                border-bottom: 1px solid #3c0068;
+            }
         """)
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(12, 0, 8, 0)
         header_layout.setSpacing(4)
 
-        title = QLabel("Agent")
+        title = QLabel("Dardcor Agent")
         title.setStyleSheet("""
             color: #cccccc;
             font-size: 13px;
+            font-weight: bold;
+            border-bottom: 2px solid #3c0068;
+            padding-bottom: 2px;
         """)
         header_layout.addWidget(title)
+
         header_layout.addStretch()
 
+        from PySide6.QtGui import QFont
         def create_header_btn(icon, tooltip):
             btn = QPushButton(icon)
-            btn.setFixedSize(26, 26)
+            btn.setFixedSize(32, 32)
             btn.setToolTip(tooltip)
+            btn.setFont(QFont("codicon", 16))
             btn.setStyleSheet("""
                 QPushButton {
-                    background: transparent; border: none; color: #cccccc;
-                    font-size: 14px; border-radius: 4px;
+                    background: transparent; border: none;
+                    color: #e0e0e0; font-size: 16px;
+                    font-family: "codicon";
+                    border-radius: 4px;
+                    padding: 0px; margin: 0px;
                 }
-                QPushButton:hover { background-color: #2a2a2a; }
+                QPushButton:hover { background-color: rgba(90,93,94,0.4); }
             """)
             return btn
 
-        new_btn = create_header_btn("+", "New Chat")
+        new_btn = create_header_btn("\uea60", "New Chat")
         new_btn.clicked.connect(self._request_new_conversation)
         header_layout.addWidget(new_btn)
 
-        hist_btn = create_header_btn("⏱", "History")
+        hist_btn = create_header_btn("\uea82", "History")
         header_layout.addWidget(hist_btn)
 
-        more_btn = create_header_btn("⋯", "More Actions")
-        header_layout.addWidget(more_btn)
-
-        close_btn = create_header_btn("✕", "Close Chat")
+        close_btn = create_header_btn("\uea76", "Close Chat")
         close_btn.clicked.connect(self.hide)
         header_layout.addWidget(close_btn)
 
@@ -91,7 +101,7 @@ class ChatPanel(QWidget):
                 color: #d4d4d4;
                 font-family: "Segoe UI", "Ubuntu", sans-serif;
                 font-size: 13px;
-                padding: 12px;
+                padding: 12px 12px 12px 0px;
                 selection-background-color: #4a0072;
             }
             QScrollBar:vertical {
@@ -133,7 +143,7 @@ class ChatPanel(QWidget):
             }
         """)
         input_layout = QVBoxLayout(input_container)
-        input_layout.setContentsMargins(16, 8, 16, 6)
+        input_layout.setContentsMargins(0, 8, 16, 6)
         input_layout.setSpacing(6)
 
         input_box = QFrame()

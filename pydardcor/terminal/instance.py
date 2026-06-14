@@ -25,6 +25,12 @@ class TerminalInstance(QWidget):
         self._frontend_ready = False
         self._pending_data = []          # buffer while frontend loads
         self._setup_ui()
+        
+        from PySide6.QtCore import QTimer
+        self._resize_timer = QTimer(self)
+        self._resize_timer.setSingleShot(True)
+        self._resize_timer.setInterval(50)
+        self._resize_timer.timeout.connect(self._do_fit)
 
     # ── UI ────────────────────────────────────────────────────────────────
 
@@ -81,6 +87,11 @@ class TerminalInstance(QWidget):
 
         if backend.HAS_PTY:
             try:
+                # Add -NoLogo for powershell to prevent copyright text
+                if "powershell" in cmd.lower() or "pwsh" in cmd.lower():
+                    if "-NoLogo" not in cmd:
+                        cmd = f'{cmd} -NoLogo'
+                
                 self._pty = backend.create_pty(120, 30, cmd, self._workdir)
 
                 self._reader_thread = PtyReaderThread(self._pty, self)
@@ -177,6 +188,18 @@ class TerminalInstance(QWidget):
             pass
 
     # ── Public API ────────────────────────────────────────────────────────
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._resize_timer.start()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._resize_timer.start()
+
+    def _do_fit(self):
+        if hasattr(self, '_view') and self._view.page():
+            self._view.page().runJavaScript("if (typeof scheduleFit === 'function') { scheduleFit(); }")
 
     def set_workdir(self, path: str):
         self._workdir = path

@@ -6,14 +6,14 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { width: 100%; height: 100%; overflow: hidden; background: #000000; }
-        #terminal { width: 100%; height: 100%; padding: 4px 8px; }
+        #terminal { width: 100%; height: 100%; padding: 4px 0px 4px 8px; }
 
         /* VS Code-style scrollbar */
-        ::-webkit-scrollbar { width: 10px; height: 10px; }
-        ::-webkit-scrollbar-track { background: #000000; }
-        ::-webkit-scrollbar-thumb { background: #2c004a; border-radius: 0; }
-        ::-webkit-scrollbar-thumb:hover { background: #3c0068; }
-        ::-webkit-scrollbar-corner { background: #000000; }
+        ::-webkit-scrollbar { width: 14px; height: 14px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border: 4px solid transparent; background-clip: padding-box; min-height: 20px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); border: 4px solid transparent; background-clip: padding-box; }
+        ::-webkit-scrollbar-corner { background: transparent; }
     </style>
 </head>
 <body>
@@ -134,8 +134,16 @@
             if (!cellW || !cellH || cellW <= 0 || cellH <= 0) { return; }
 
             var container = document.getElementById('terminal');
-            var availW = container.clientWidth  - 16; /* subtract padding */
+            var availW = container.clientWidth  - 8; /* left padding only, scrollbar handled by xterm */
             var availH = container.clientHeight - 8;
+
+            // Prevent wrapping issues during initial layout sizing
+            if (availW < 300) {
+                availW = 1000;
+            }
+            if (availH < 100) {
+                availH = 400;
+            }
 
             var cols = Math.max(10, Math.floor(availW / cellW));
             var rows = Math.max(3,  Math.floor(availH / cellH));

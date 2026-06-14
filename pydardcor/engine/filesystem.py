@@ -145,3 +145,41 @@ class FileSystem:
             "is_file": os.path.isfile(path),
             "modified": stat.st_mtime,
         }
+
+
+def parse_python_symbols(content: str) -> list:
+    """Parse Python source code and return a tree of symbols (classes, functions)."""
+    import ast
+    try:
+        tree = ast.parse(content)
+    except Exception:
+        return []
+
+    symbols = []
+
+    def get_symbols(node, parent_list):
+        if not hasattr(node, 'body'):
+            return
+        for child in node.body:
+            if isinstance(child, ast.ClassDef):
+                sym = {
+                    'name': child.name,
+                    'type': 'class',
+                    'line': child.lineno,
+                    'children': []
+                }
+                parent_list.append(sym)
+                get_symbols(child, sym['children'])
+            elif isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                sym = {
+                    'name': child.name,
+                    'type': 'function',
+                    'line': child.lineno,
+                    'children': []
+                }
+                parent_list.append(sym)
+                # Parse methods or inner functions
+                get_symbols(child, sym['children'])
+
+    get_symbols(tree, symbols)
+    return symbols

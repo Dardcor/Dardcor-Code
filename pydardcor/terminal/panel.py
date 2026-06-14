@@ -19,127 +19,84 @@ class TerminalPanel(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        # Header bar
-        header = QWidget()
-        header.setFixedHeight(35)
-        header.setStyleSheet("""
-            background-color: #000000;
-            border-top: 1px solid #3c0068;
-        """)
-        header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(0, 0, 4, 0)
-        header_layout.setSpacing(0)
+        # We move the terminal controls into a toolbar widget to be embedded in BottomPanel
+        self._toolbar = QWidget()
+        tb_layout = QHBoxLayout(self._toolbar)
+        tb_layout.setContentsMargins(0, 0, 0, 0)
+        tb_layout.setSpacing(0)
 
-        # Panel tabs
-        panel_tabs = QWidget()
-        pt_layout = QHBoxLayout(panel_tabs)
-        pt_layout.setContentsMargins(0, 0, 0, 0)
-        pt_layout.setSpacing(0)
-
-        for label, active in [("PROBLEMS", False), ("OUTPUT", False),
-                               ("TERMINAL", True), ("DEBUG CONSOLE", False)]:
-            btn = QPushButton(label)
-            btn.setFixedHeight(35)
-            is_active = (label == "TERMINAL")
-            btn.setStyleSheet(f"""
-                QPushButton {{
-                    background: transparent;
-                    color: {"#cccccc" if is_active else "#888888"};
-                    border: none;
-                    border-bottom: {"1px solid #cccccc" if is_active else "1px solid transparent"};
-                    padding: 0px 14px;
-                    font-size: 11px;
-                    font-weight: {"bold" if is_active else "normal"};
-                    letter-spacing: 0.5px;
-                }}
-                QPushButton:hover {{
-                    color: #cccccc;
-                }}
-            """)
-            pt_layout.addWidget(btn)
-
-        header_layout.addWidget(panel_tabs)
-
-        # Terminal tab bar (for multiple terminals)
-        self._tab_bar = QTabBar()
-        self._tab_bar.setTabsClosable(True)
-        self._tab_bar.setMovable(True)
-        self._tab_bar.setExpanding(False)
-        self._tab_bar.setStyleSheet("""
-            QTabBar {
+        from PySide6.QtWidgets import QComboBox, QSizePolicy
+        self._combo_box = QComboBox()
+        self._combo_box.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+        self._combo_box.setStyleSheet("""
+            QComboBox {
                 background: transparent;
                 border: none;
-            }
-            QTabBar::tab {
-                background: #000000;
-                color: #969696;
-                padding: 4px 16px;
-                border: none;
-                border-right: 1px solid #3c0068;
+                color: #cccccc;
+                font-family: "Segoe UI", sans-serif;
                 font-size: 12px;
-                min-width: 60px;
+                padding: 0px 8px;
             }
-            QTabBar::tab:selected {
-                background: #000000;
-                color: #cccccc;
-                border-bottom: 1px solid #007acc;
-            }
-            QTabBar::tab:hover:!selected {
-                color: #cccccc;
-            }
-            QTabBar::close-button {
-                image: none;
+            QComboBox::drop-down {
+                border: none;
                 background: transparent;
-                color: #888888;
-                subcontrol-position: right;
-                padding-right: 2px;
+                width: 15px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #252526;
+                color: #cccccc;
+                border: 1px solid #454545;
+                selection-background-color: #094771;
             }
         """)
-        self._tab_bar.tabCloseRequested.connect(self._close_tab)
-        self._tab_bar.currentChanged.connect(self._switch_tab)
-        header_layout.addWidget(self._tab_bar, 1)
+        self._combo_box.currentIndexChanged.connect(self._switch_tab)
+        tb_layout.addWidget(self._combo_box)
 
+        from PySide6.QtGui import QFont
         # Action buttons
         for icon, tooltip in [
-            ("+", "New Terminal"),
-            ("\\u2716", "Kill Terminal"),
-            ("\\u2715", "Close Panel"),
+            ("\uea60", "New Terminal"),
+            ("\ueab0", "Launch Profile"),
+            ("\uea6a", "Split Terminal"),
+            ("\uea87", "Kill Terminal"),
+            ("\uea7c", "More Actions..."),
         ]:
             btn = QPushButton(icon)
+            btn.setFont(QFont("codicon", 14))
             btn.setFixedSize(28, 28)
             btn.setToolTip(tooltip)
             btn.setStyleSheet("""
                 QPushButton {
                     background: transparent; border: none;
-                    color: #cccccc; font-size: 12px;
+                    color: #cccccc; font-size: 14px;
+                    font-family: "codicon";
                     border-radius: 3px;
                 }
                 QPushButton:hover {
                     background-color: rgba(90,93,94,0.31);
                 }
             """)
-            if icon == "+":
+            if icon == "\uea60":
                 btn.clicked.connect(self._new_terminal)
-            elif icon == "\\u2716":
+            elif icon == "\uea87":
                 btn.clicked.connect(self._kill_current)
-            elif icon == "\\u2715":
-                btn.clicked.connect(lambda: self.hide())
-            header_layout.addWidget(btn)
-
-        layout.addWidget(header)
+            tb_layout.addWidget(btn)
 
         # Terminal stack
         self._stack = QStackedWidget()
         layout.addWidget(self._stack)
+
+    def get_toolbar(self):
+        return self._toolbar
 
     def _new_terminal(self):
         idx = len(self._terminals)
         term = TerminalInstance(workdir=self._current_workdir)
         self._terminals.append(term)
         self._stack.addWidget(term)
-        self._tab_bar.addTab(f"Terminal {idx + 1}")
+        self._combo_box.addItem(f"powershell ({idx + 1})")
         self._stack.setCurrentWidget(term)
-        self._tab_bar.setCurrentIndex(idx)
+        self._combo_box.setCurrentIndex(idx)
         if not self.isVisible():
             self.show()
 
@@ -150,11 +107,11 @@ class TerminalPanel(QWidget):
         term.kill()
         self._terminals.pop(idx)
         self._stack.removeWidget(term)
-        self._tab_bar.removeTab(idx)
+        self._combo_box.removeItem(idx)
         term.deleteLater()
 
     def _kill_current(self):
-        idx = self._tab_bar.currentIndex()
+        idx = self._combo_box.currentIndex()
         self._close_tab(idx)
 
     def _switch_tab(self, idx):

@@ -9,7 +9,7 @@ import signal
 
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QFont, QPalette, QColor, QIcon
+from PySide6.QtGui import QFont, QPalette, QColor, QIcon, QFontDatabase
 
 import ctypes
 if os.name == 'nt':
@@ -55,6 +55,11 @@ def run_desktop_app():
     logo_path = os.path.join(base_dir, "image", "dardcor.png")
     if os.path.exists(logo_path):
         app.setWindowIcon(QIcon(logo_path))
+
+    # Load codicon font
+    codicon_path = os.path.join(base_dir, "pydardcor", "assets", "codicon.ttf")
+    if os.path.exists(codicon_path):
+        QFontDatabase.addApplicationFont(codicon_path)
 
     # Create and show main window
     window = MainWindow()

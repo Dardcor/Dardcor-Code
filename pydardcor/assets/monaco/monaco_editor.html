@@ -346,6 +346,18 @@
         function focusEditor() {
             if (editor) editor.focus();
         }
+
+        function undo() {
+            if (editor) {
+                editor.trigger('source', 'undo', null);
+            }
+        }
+
+        function redo() {
+            if (editor) {
+                editor.trigger('source', 'redo', null);
+            }
+        }
     </script>
 </body>
 </html>

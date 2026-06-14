@@ -18,7 +18,7 @@ class StatusBarButton(QPushButton):
                 border: none;
                 padding: 0px 6px;
                 font-size: 12px;
-                font-family: "Segoe UI", "Ubuntu", sans-serif;
+                font-family: "codicon", "Segoe UI", "Ubuntu", sans-serif;
             }
             QPushButton:hover {
                 background-color: rgba(255, 255, 255, 0.12);
@@ -70,16 +70,16 @@ class StatusBar(QStatusBar):
         """)
         self.addWidget(self._remote_btn)
 
-        self._git_btn = StatusBarButton("\u2387 main")
+        self._git_btn = StatusBarButton("\uea68 main")
         self._git_btn.setToolTip("Git Branch")
         self.addWidget(self._git_btn)
 
-        self._sync_btn = StatusBarButton("\u21bb")
+        self._sync_btn = StatusBarButton("\uea77")
         self._sync_btn.setToolTip("Synchronize Changes")
         self._sync_btn.setFixedWidth(24)
         self.addWidget(self._sync_btn)
 
-        self._errors_btn = StatusBarButton("\u2716 0  \u26A0 0")
+        self._errors_btn = StatusBarButton("\uea87 0  \uea6c 0")
         self._errors_btn.setToolTip("No Problems")
         self.addWidget(self._errors_btn)
 
@@ -105,7 +105,7 @@ class StatusBar(QStatusBar):
         self._lang_btn.setToolTip("Select Language Mode")
         self.addPermanentWidget(self._lang_btn)
 
-        self._ai_btn = StatusBarButton("\u2713 Dardcor AI")
+        self._ai_btn = StatusBarButton("\ueab2 Dardcor AI")
         self._ai_btn.setToolTip("AI Engine Status")
         self._ai_btn.setStyleSheet("""
             QPushButton {
@@ -114,7 +114,7 @@ class StatusBar(QStatusBar):
                 border: none;
                 padding: 0px 8px;
                 font-size: 12px;
-                font-family: "Segoe UI", "Ubuntu", sans-serif;
+                font-family: "codicon", "Segoe UI", "Ubuntu", sans-serif;
             }
             QPushButton:hover {
                 background-color: rgba(255, 255, 255, 0.12);
@@ -122,17 +122,17 @@ class StatusBar(QStatusBar):
         """)
         self.addPermanentWidget(self._ai_btn)
 
-        self._notif_btn = StatusBarButton("\U0001F514")
+        self._notif_btn = StatusBarButton("\ueaa2")
         self._notif_btn.setFixedWidth(28)
         self._notif_btn.setToolTip("No Notifications")
         self.addPermanentWidget(self._notif_btn)
 
     def set_connected(self, connected: bool):
         if connected:
-            self._ai_btn.setText("\u2713 Dardcor AI")
+            self._ai_btn.setText("\ueab2 Dardcor AI")
             self._ai_btn.setToolTip("AI Engine Ready")
         else:
-            self._ai_btn.setText("\u2717 AI Offline")
+            self._ai_btn.setText("\uea76 AI Offline")
             self._ai_btn.setToolTip("AI Engine Offline - Check Settings")
 
     def set_cursor_position(self, line: int, col: int):
@@ -142,7 +142,7 @@ class StatusBar(QStatusBar):
         self._lang_btn.setText(language)
 
     def set_git_branch(self, branch: str):
-        self._git_btn.setText(f"\u2387 {branch}")
+        self._git_btn.setText(f"\uea68 {branch}")
 
     def set_encoding(self, encoding: str):
         self._encoding_btn.setText(encoding)
@@ -154,7 +154,7 @@ class StatusBar(QStatusBar):
         self._indent_btn.setText(f"Spaces: {spaces}")
 
     def set_errors_warnings(self, errors: int, warnings: int):
-        self._errors_btn.setText(f"\u2716 {errors}  \u26A0 {warnings}")
+        self._errors_btn.setText(f"\uea87 {errors}  \uea6c {warnings}")
         if errors > 0:
             self._errors_btn.setToolTip(f"{errors} Error(s), {warnings} Warning(s)")
         elif warnings > 0:

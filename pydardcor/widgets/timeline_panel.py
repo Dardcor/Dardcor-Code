@@ -104,14 +104,46 @@ class TimelinePanel(QWidget):
 
     def update_timeline(self, file_path: str):
         self._tree.clear()
-        if not file_path:
+        if not file_path or not os.path.exists(file_path):
             return
 
-        # Add a placeholder for now
-        item = QTreeWidgetItem([f"Local Save - {os.path.basename(file_path)}"])
+        # Add local save modified time
+        import time
+        try:
+            mtime = os.path.getmtime(file_path)
+            mtime_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(mtime))
+        except Exception:
+            mtime_str = "Unknown time"
+
+        item = QTreeWidgetItem([f"Local Save - {mtime_str}"])
         item.setForeground(0, QColor("#cccccc"))
         self._tree.addTopLevelItem(item)
 
-        item2 = QTreeWidgetItem(["Git commit: Initial commit (if tracked)"])
-        item2.setForeground(0, QColor("#888888"))
-        self._tree.addTopLevelItem(item2)
+        # Async fetch git log
+        import threading
+        from .git_panel import run_git
+
+        def fetch_git_log():
+            cwd = os.path.dirname(file_path)
+            basename = os.path.basename(file_path)
+            stdout, stderr, rc = run_git(["log", "--follow", "--oneline", "-n", "10", "--", basename], cwd)
+            if rc == 0 and stdout:
+                lines = stdout.splitlines()
+                from PySide6.QtCore import QTimer
+                QTimer.singleShot(0, lambda: self._add_git_commits(lines))
+            else:
+                from PySide6.QtCore import QTimer
+                QTimer.singleShot(0, lambda: self._add_no_commits_msg())
+
+        threading.Thread(target=fetch_git_log, daemon=True).start()
+
+    def _add_git_commits(self, lines):
+        for line in lines:
+            item = QTreeWidgetItem([f"Git: {line}"])
+            item.setForeground(0, QColor("#888888"))
+            self._tree.addTopLevelItem(item)
+
+    def _add_no_commits_msg(self):
+        item = QTreeWidgetItem(["No git commits found (untracked)"])
+        item.setForeground(0, QColor("#666666"))
+        self._tree.addTopLevelItem(item)

@@ -3,7 +3,7 @@ import json
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 from PySide6.QtCore import Signal, Qt, QTimer, QUrl
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtWebEngineCore import QWebEngineSettings
+from PySide6.QtWebEngineCore import QWebEngineSettings, QWebEnginePage
 from PySide6.QtWebChannel import QWebChannel
 
 from .bridge import EditorBridge
@@ -159,6 +159,23 @@ class MonacoEditorWidget(QWidget):
         if self._view_ready:
             js_markers = json.dumps(markers)
             self._view.page().runJavaScript(f"setDiagnostics({js_markers});")
+
+    def undo(self):
+        if self._view_ready:
+            self._view.page().runJavaScript("undo();")
+
+    def redo(self):
+        if self._view_ready:
+            self._view.page().runJavaScript("redo();")
+
+    def cut(self):
+        self._view.triggerPageAction(QWebEnginePage.WebAction.Cut)
+
+    def copy(self):
+        self._view.triggerPageAction(QWebEnginePage.WebAction.Copy)
+
+    def paste(self):
+        self._view.triggerPageAction(QWebEnginePage.WebAction.Paste)
 
     def focus(self):
         if self._view_ready:

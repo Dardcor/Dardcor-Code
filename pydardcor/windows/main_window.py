@@ -74,8 +74,7 @@ class LayoutToggleButton(QPushButton):
         self.layout_type = layout_type # 'left', 'bottom', 'right'
         self.setFixedSize(30, 28)
         self.setCursor(Qt.PointingHandCursor)
-        self.setCheckable(True)
-        self.setChecked(True)
+        self._is_active = True  # Track state manually
         self.setStyleSheet("""
             QPushButton { 
                 background-color: transparent; 
@@ -93,6 +92,13 @@ class LayoutToggleButton(QPushButton):
                 background-color: rgba(255, 255, 255, 0.1); 
             }
         """)
+
+    def setChecked(self, checked):
+        self._is_active = checked
+        self.update()
+
+    def isChecked(self):
+        return self._is_active
 
     def paintEvent(self, event):
         super().paintEvent(event)
@@ -114,7 +120,7 @@ class LayoutToggleButton(QPushButton):
         painter.setPen(pen)
         painter.drawPath(path)
         
-        if self.isChecked():
+        if self._is_active:
             painter.setBrush(color)
             painter.setPen(Qt.NoPen)
             if self.layout_type == "left":
@@ -262,15 +268,15 @@ class CustomTitleBar(QWidget):
         
         self.btn_left_sidebar = LayoutToggleButton("left")
         self.btn_left_sidebar.setToolTip("Toggle Primary Sidebar")
-        self.btn_left_sidebar.clicked.connect(self.parent._toggle_sidebar)
+        self.btn_left_sidebar.clicked.connect(lambda: self.parent._toggle_sidebar())
         
         self.btn_bottom_panel = LayoutToggleButton("bottom")
         self.btn_bottom_panel.setToolTip("Toggle Panel")
-        self.btn_bottom_panel.clicked.connect(self.parent._toggle_terminal)
+        self.btn_bottom_panel.clicked.connect(lambda: self.parent._toggle_terminal())
         
         self.btn_right_sidebar = LayoutToggleButton("right")
         self.btn_right_sidebar.setToolTip("Toggle Secondary Sidebar")
-        self.btn_right_sidebar.clicked.connect(self.parent._toggle_chat)
+        self.btn_right_sidebar.clicked.connect(lambda: self.parent._toggle_chat())
         
         lc_layout.addWidget(self.btn_left_sidebar)
         lc_layout.addWidget(self.btn_bottom_panel)
@@ -343,6 +349,7 @@ class CustomTitleBar(QWidget):
 from ..engine.agent import Agent
 from ..engine.config import get_config
 from ..engine.memory import Conversation
+from ..engine.filesystem import parse_python_symbols
 from ..widgets.activity_bar import (
     ActivityBar, VIEW_EXPLORER, VIEW_SEARCH, VIEW_SOURCE_CONTROL,
     VIEW_EXTENSIONS,
@@ -361,6 +368,7 @@ from ..widgets.output_panel import OutputPanel
 from ..widgets.outline_panel import OutlinePanel
 from ..widgets.timeline_panel import TimelinePanel
 from ..widgets.debug_panel import DebugPanel
+from ..widgets.bottom_panel import BottomPanel
 
 
 class MainWindow(QMainWindow):
@@ -372,6 +380,7 @@ class MainWindow(QMainWindow):
         self._agent = Agent()
         self._current_conversation_id = None
         self._font_size = self._config.font_size
+        self._current_active_editor = None
         self._setup_agent()
         self._setup_ui()
         self._setup_menu()
@@ -496,7 +505,7 @@ class MainWindow(QMainWindow):
         self._file_explorer.root_changed.connect(self._on_root_changed)
         
         self._outline_panel = OutlinePanel()
-        self._outline_panel.item_selected.connect(lambda line: self._open_file_at_line("", line))
+        self._outline_panel.item_selected.connect(self._on_outline_item_selected)
         
         self._timeline_panel = TimelinePanel()
 
@@ -551,32 +560,35 @@ class MainWindow(QMainWindow):
         self._chat_panel._request_new_conversation = self._new_conversation
         self._chat_panel.set_workspace_name(os.path.basename(root_path.rstrip("/\\\\")).lower() if root_path.rstrip("/\\\\") else "")
 
-        # ── Terminal Panel ──
-        self._terminal_panel = TerminalPanel(root_path=root_path)
-        self._terminal_panel.hide()  # Hidden by default like VS Code
-
-        # ── Problems Panel ──
+        # ── Bottom Panels ──
         self._problems_panel = ProblemsPanel()
         self._problems_panel.problem_selected.connect(self._open_file_at_line)
-
-        # ── Output Panel ──
         self._output_panel = OutputPanel()
-        self._output_panel.hide()
-
-        # ── Debug Console ──
         self._debug_console = OutputPanel() # Use OutputPanel logic for REPL placeholder
-        self._debug_console.hide()
+        self._terminal_panel = TerminalPanel(root_path=root_path)
+
+        self._bottom_panel = BottomPanel()
+        self._bottom_panel.set_panels(
+            self._problems_panel,
+            self._output_panel,
+            self._debug_console,
+            self._terminal_panel
+        )
+        self._bottom_panel.hide()
 
         # ── Layout assembly ──
 
         # Editor + Terminal vertical splitter
         self._editor_term_split = QSplitter(Qt.Vertical)
         self._editor_term_split.addWidget(self._editor_tabs)
-        self._editor_term_split.addWidget(self._terminal_panel)
-        self._editor_term_split.setStretchFactor(0, 3)
-        self._editor_term_split.setStretchFactor(1, 1)
+        self._editor_term_split.addWidget(self._bottom_panel)
+        self._editor_term_split.setStretchFactor(0, 1)
+        self._editor_term_split.setStretchFactor(1, 0)
         self._editor_term_split.setSizes([600, 250])
-        self._editor_term_split.setHandleWidth(1)
+        self._editor_term_split.setChildrenCollapsible(False)
+        self._editor_tabs.setMinimumHeight(50)
+        self._bottom_panel.setMinimumHeight(80)
+        self._editor_term_split.setHandleWidth(4)
         self._editor_term_split.setStyleSheet("""
             QSplitter::handle {
                 background-color: #3c0068;
@@ -645,9 +657,14 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(1000, self._detect_git_branch)
         
         # Init layout toggle button states
-        self._title_bar.btn_left_sidebar.setChecked(self._sidebar_stack.isVisible())
-        self._title_bar.btn_right_sidebar.setChecked(self._chat_panel.isVisible())
-        self._title_bar.btn_bottom_panel.setChecked(self._terminal_panel.isVisible())
+        # Use correct initial state (sidebar=visible, chat=hidden initially, bottom=hidden)
+        self._title_bar.btn_left_sidebar.setChecked(True)   # sidebar starts visible
+        self._title_bar.btn_right_sidebar.setChecked(True)  # chat starts visible
+        self._title_bar.btn_bottom_panel.setChecked(False)   # bottom starts hidden
+        self._chat_panel.show()  # Start with chat visible
+
+        # Sync button states after window is fully shown
+        QTimer.singleShot(100, self._sync_toggle_states)
 
     # ── Menu Bar ──────────────────────────────────────────
 
@@ -1217,21 +1234,21 @@ class MainWindow(QMainWindow):
         menu_bar.setVisible(not menu_bar.isVisible())
 
     def _open_problems_panel(self):
-        self._terminal_panel.show()
+        self._bottom_panel.set_active_view("problems")
         self._status_bar.set_connected(True)
 
     def _open_output_panel(self):
-        self._terminal_panel.show()
+        self._bottom_panel.set_active_view("output")
 
     def _open_debug_console(self):
-        self._debug_console.show()
+        self._bottom_panel.set_active_view("debug")
         
     def _start_debugging(self):
         """Start debugging the current file."""
         editor = self._editor_tabs.current_editor()
         if not editor or not editor.get_file_path():
             return
-        self._debug_console.show()
+        self._bottom_panel.set_active_view("debug")
         self._debug_console.append("DAP (Debug Adapter Protocol) is initializing...", "Debug")
         self._debug_console.append(f"Attaching to {editor.get_file_path()}", "Debug")
         self._editor_tabs.show_debug_toolbar(True)
@@ -1271,19 +1288,54 @@ class MainWindow(QMainWindow):
     def _on_tab_changed(self, file_path: str, language: str):
         self._status_bar.set_language(language)
         
+        # Disconnect old editor to prevent double triggers
+        if self._current_active_editor:
+            try:
+                self._current_active_editor.cursor_position_changed.disconnect(self._on_cursor_moved)
+                self._current_active_editor.content_changed.disconnect(self._on_editor_content_changed)
+            except (TypeError, RuntimeError):
+                pass
+
         # Update Outline/Timeline
         self._timeline_panel.update_timeline(file_path)
-        # We would parse symbols here for outline, but we need LSP or a basic parser.
-        # For now we'll just clear it or let Monaco JS send it back later.
-        self._outline_panel.set_symbols([])
+        self._update_outline(file_path)
 
         # Update git panel root if needed
         editor = self._editor_tabs.current_editor()
+        self._current_active_editor = editor
         if editor:
             editor.cursor_position_changed.connect(self._on_cursor_moved)
+            editor.content_changed.connect(self._on_editor_content_changed)
 
     def _on_cursor_moved(self, line: int, col: int):
         self._status_bar.set_cursor_position(line, col)
+
+    def _on_outline_item_selected(self, line: int):
+        editor = self._editor_tabs.current_editor()
+        if editor:
+            editor.reveal_line(line)
+            editor.focus()
+
+    def _update_outline(self, file_path: str):
+        if not file_path or not file_path.endswith(".py"):
+            self._outline_panel.set_symbols([])
+            return
+
+        editor = self._editor_tabs.current_editor()
+        if editor:
+            content = editor.get_content()
+            symbols = parse_python_symbols(content)
+            self._outline_panel.set_symbols(symbols)
+        else:
+            self._outline_panel.set_symbols([])
+
+    def _on_editor_content_changed(self, content: str):
+        editor = self._editor_tabs.current_editor()
+        if editor:
+            file_path = editor.get_file_path()
+            if file_path and file_path.endswith(".py"):
+                symbols = parse_python_symbols(content)
+                self._outline_panel.set_symbols(symbols)
 
     # ── Root / workspace ──────────────────────────────────
 
@@ -1438,6 +1490,12 @@ class MainWindow(QMainWindow):
 
     # ── Toggle panels ─────────────────────────────────────
 
+    def _sync_toggle_states(self):
+        """Sync toggle button states with actual panel visibility after window is shown."""
+        self._title_bar.btn_left_sidebar.setChecked(self._sidebar_stack.isVisible())
+        self._title_bar.btn_right_sidebar.setChecked(self._chat_panel.isVisible())
+        self._title_bar.btn_bottom_panel.setChecked(self._bottom_panel.isVisible())
+
     def _toggle_sidebar(self):
         visible = self._sidebar_stack.isVisible()
         self._sidebar_stack.setVisible(not visible)
@@ -1449,13 +1507,20 @@ class MainWindow(QMainWindow):
         self._title_bar.btn_right_sidebar.setChecked(not visible)
 
     def _toggle_terminal(self):
-        visible = self._terminal_panel.isVisible()
-        self._terminal_panel.setVisible(not visible)
-        self._title_bar.btn_bottom_panel.setChecked(not visible)
+        if self._bottom_panel.isVisible():
+            if self._bottom_panel.current_view_name() != "terminal":
+                self._bottom_panel.set_active_view("terminal")
+                self._title_bar.btn_bottom_panel.setChecked(True)
+            else:
+                self._bottom_panel.hide()
+                self._title_bar.btn_bottom_panel.setChecked(False)
+        else:
+            self._bottom_panel.set_active_view("terminal")
+            self._title_bar.btn_bottom_panel.setChecked(True)
 
     def _new_terminal(self):
-        if not self._terminal_panel.isVisible():
-            self._terminal_panel.show()
+        if not self._bottom_panel.isVisible() or self._bottom_panel.current_view_name() != "terminal":
+            self._bottom_panel.set_active_view("terminal")
             self._title_bar.btn_bottom_panel.setChecked(True)
         self._terminal_panel._new_terminal()
 
