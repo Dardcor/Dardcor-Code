@@ -74,6 +74,10 @@ class EditorTabs(QWidget):
         g = self.active_group()
         return g.open_file(file_path) if g else None
 
+    def open_diff(self, file_path, original_content, modified_content):
+        g = self.active_group()
+        return g.open_diff(file_path, original_content, modified_content) if g else None
+
     def new_file(self):
         g = self.active_group()
         return g.new_file() if g else None
@@ -118,3 +122,27 @@ class EditorTabs(QWidget):
 
     def show_debug_toolbar(self, show: bool):
         for g in self._groups: g.show_debug_toolbar(show)
+
+    def expand_selection(self):
+        g = self.active_group()
+        if g: g.expand_selection()
+
+    def shrink_selection(self):
+        g = self.active_group()
+        if g: g.shrink_selection()
+
+    def copy_line_up(self):
+        g = self.active_group()
+        if g: g.copy_line_up()
+
+    def copy_line_down(self):
+        g = self.active_group()
+        if g: g.copy_line_down()
+
+    def go_to_definition(self):
+        g = self.active_group()
+        if g: g.go_to_definition()
+
+    def toggle_breakpoint(self):
+        g = self.active_group()
+        if g: g.toggle_breakpoint()

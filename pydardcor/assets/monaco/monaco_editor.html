@@ -177,6 +177,45 @@
                 glyphMargin: true,
             });
 
+            // Register python completions provider connected to Python backend
+            monaco.languages.registerCompletionItemProvider('python', {
+                triggerCharacters: ['.', ' ', '_'],
+                provideCompletionItems: function(model, position) {
+                    return new Promise(function(resolve, reject) {
+                        if (backend && typeof backend.get_completions === 'function') {
+                            var code = model.getValue();
+                            var line = position.lineNumber;
+                            var column = position.column;
+                            backend.get_completions(code, line, column, function(res) {
+                                try {
+                                    var suggestions = JSON.parse(res);
+                                    resolve({
+                                        suggestions: suggestions.map(function(item) {
+                                            return {
+                                                label: item.label,
+                                                kind: item.kind,
+                                                insertText: item.insertText,
+                                                detail: item.detail || '',
+                                                range: {
+                                                    startLineNumber: position.lineNumber,
+                                                    startColumn: position.column - (item.typedLength || 0),
+                                                    endLineNumber: position.lineNumber,
+                                                    endColumn: position.column
+                                                }
+                                            };
+                                        })
+                                    });
+                                } catch (e) {
+                                    resolve({ suggestions: [] });
+                                }
+                            });
+                        } else {
+                            resolve({ suggestions: [] });
+                        }
+                    });
+                }
+            });
+
             // Listen for content changes
             editor.onDidChangeModelContent(function(e) {
                 if (isRemoteUpdate) return;

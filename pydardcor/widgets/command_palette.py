@@ -382,6 +382,117 @@ class QuickOpenDialog(QDialog):
                         return
 
     def _on_filter(self, text):
+        text_stripped = text.strip()
+        
+        # 1. Prefix ":" - Go to Line
+        if text_stripped.startswith(":"):
+            line_str = text_stripped[1:].strip()
+            self._list.clear()
+            
+            max_line = 99999
+            parent = self.parent()
+            if parent and hasattr(parent, "_editor_tabs"):
+                editor = parent._editor_tabs.current_editor()
+                if editor:
+                    content = editor.get_content()
+                    max_line = len(content.splitlines())
+                    
+            item = QListWidgetItem()
+            widget = QWidget()
+            layout = QHBoxLayout(widget)
+            layout.setContentsMargins(0, 0, 0, 0)
+            
+            if line_str:
+                try:
+                    line_num = int(line_str)
+                    if 1 <= line_num <= max_line:
+                        msg = f"Go to Line {line_num}"
+                        item.setData(Qt.UserRole, f"line:{line_num}")
+                    else:
+                        msg = f"Line {line_num} is out of range (1-{max_line})"
+                        item.setData(Qt.UserRole, None)
+                except ValueError:
+                    msg = "Type a line number to go to"
+                    item.setData(Qt.UserRole, None)
+            else:
+                msg = "Type a line number to go to"
+                item.setData(Qt.UserRole, None)
+                
+            label = QLabel(msg)
+            label.setStyleSheet("color: #cccccc; font-size: 13px; background: transparent;")
+            layout.addWidget(label)
+            layout.addStretch()
+            item.setSizeHint(QSize(0, 26))
+            self._list.addItem(item)
+            self._list.setItemWidget(item, widget)
+            self._list.setCurrentRow(0)
+            self._list.setFixedHeight(40)
+            self.adjustSize()
+            return
+            
+        # 2. Prefix "@" - Go to Symbol
+        if text_stripped.startswith("@"):
+            query_sym = text_stripped[1:].strip().lower()
+            self._list.clear()
+            
+            parent = self.parent()
+            if parent and hasattr(parent, "_editor_tabs"):
+                editor = parent._editor_tabs.current_editor()
+                if editor:
+                    content = editor.get_content()
+                    from ..engine.filesystem import parse_python_symbols
+                    symbols = parse_python_symbols(content)
+                    
+                    flat_symbols = []
+                    def flatten(syms, prefix=""):
+                        for sym in syms:
+                            fullname = f"{prefix}{sym['name']}"
+                            flat_symbols.append((fullname, sym['type'], sym['line']))
+                            if sym.get('children'):
+                                flatten(sym['children'], f"{fullname} > ")
+                    flatten(symbols)
+                    
+                    filtered_syms = [
+                        s for s in flat_symbols
+                        if not query_sym or query_sym in s[0].lower()
+                    ]
+                    
+                    for name, sym_type, line in filtered_syms[:30]:
+                        item = QListWidgetItem()
+                        widget = QWidget()
+                        layout = QHBoxLayout(widget)
+                        layout.setContentsMargins(0, 0, 0, 0)
+                        layout.setSpacing(8)
+                        
+                        icon_text = "\U0001F4E6" if sym_type == "class" else "\u0192"
+                        icon_label = QLabel(icon_text)
+                        icon_label.setStyleSheet("color: #858585; font-size: 13px; font-weight: bold; background: transparent;")
+                        layout.addWidget(icon_label)
+                        
+                        name_label = QLabel(name)
+                        name_label.setStyleSheet("color: #cccccc; font-size: 13px; background: transparent;")
+                        layout.addWidget(name_label)
+                        
+                        layout.addStretch()
+                        
+                        line_label = QLabel(f"line {line}")
+                        line_label.setStyleSheet("color: #858585; font-size: 11px; background: transparent;")
+                        layout.addWidget(line_label)
+                        
+                        item.setSizeHint(QSize(0, 26))
+                        item.setData(Qt.UserRole, f"line:{line}")
+                        self._list.addItem(item)
+                        self._list.setItemWidget(item, widget)
+                        
+                    if filtered_syms:
+                        self._list.setCurrentRow(0)
+                    
+                    visible = min(len(filtered_syms), 12)
+                    self._list.setFixedHeight(max(50, visible * 26 + 8))
+                    self.adjustSize()
+                    return
+
+        # 3. Default File Search
         text = text.strip().lower()
         if not text:
             self._filtered = self._all_files[:50]
@@ -424,9 +535,21 @@ class QuickOpenDialog(QDialog):
         self.adjustSize()
 
     def _on_item_selected(self, item):
-        path = item.data(Qt.UserRole)
-        if path:
-            self.file_selected.emit(path)
+        data = item.data(Qt.UserRole)
+        if not data:
+            return
+
+        if isinstance(data, str) and data.startswith("line:"):
+            line = int(data.split(":")[1])
+            parent = self.parent()
+            if parent and hasattr(parent, "_editor_tabs"):
+                editor = parent._editor_tabs.current_editor()
+                if editor:
+                    editor.reveal_line(line)
+            self.close()
+            return
+
+        self.file_selected.emit(data)
         self.close()
 
     def keyPressEvent(self, event):

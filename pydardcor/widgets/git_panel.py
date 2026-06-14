@@ -58,7 +58,9 @@ SECTION_STYLE = """
 class GitPanel(QWidget):
     """VS Code-style Source Control (Git) panel."""
 
-    file_open_requested = Signal(str)   # emit file path to open diff
+    file_open_requested = Signal(str)   # emit file path to open
+    diff_open_requested = Signal(str, str, str)  # emit file_path, original, modified
+    refreshed = Signal()
 
     def __init__(self, root_path=None, parent=None):
         super().__init__(parent)
@@ -247,6 +249,7 @@ class GitPanel(QWidget):
         self._populate_tree(self._staged_tree, self._staged, staged=True)
         self._populate_tree(self._changes_tree, self._unstaged, staged=False)
         self._populate_tree_simple(self._untracked_tree, self._untracked)
+        self.refreshed.emit()
 
     def _clear_trees(self):
         for tree in [self._staged_tree, self._changes_tree, self._untracked_tree]:
@@ -294,8 +297,33 @@ class GitPanel(QWidget):
     def _on_item_double_clicked(self, item, col):
         path = item.data(0, Qt.UserRole)
         if path:
-            full = os.path.join(self._root, path)
-            self.file_open_requested.emit(full)
+            self._open_diff_for_path(path)
+
+    def _open_diff_for_path(self, path):
+        full_path = os.path.join(self._root, path)
+        
+        # Get modified (current disk) content
+        modified_content = ""
+        if os.path.isfile(full_path):
+            try:
+                with open(full_path, "r", encoding="utf-8", errors="replace") as f:
+                    modified_content = f.read()
+            except Exception:
+                pass
+                
+        # Get original (git HEAD) content
+        original_content = ""
+        is_untracked = (path in self._untracked)
+        if not is_untracked:
+            # Run git show HEAD:path
+            git_path = path.replace("\\", "/")
+            out, err, rc = run_git(["show", f"HEAD:{git_path}"], self._root)
+            if rc == 0:
+                original_content = out
+            else:
+                original_content = ""
+                
+        self.diff_open_requested.emit(full_path, original_content, modified_content)
 
     def _show_context_menu(self, pos, tree):
         item = tree.itemAt(pos)
@@ -314,6 +342,7 @@ class GitPanel(QWidget):
         unstage_act = menu.addAction("Unstage Changes")
         discard_act = menu.addAction("Discard Changes")
         menu.addSeparator()
+        open_diff_act = menu.addAction("Open Diff")
         open_act = menu.addAction("Open File")
 
         action = menu.exec(tree.viewport().mapToGlobal(pos))
@@ -329,6 +358,8 @@ class GitPanel(QWidget):
             if reply == QMessageBox.Yes:
                 run_git(["checkout", "--", path], self._root)
                 self.refresh()
+        elif action == open_diff_act:
+            self._open_diff_for_path(path)
         elif action == open_act:
             full = os.path.join(self._root, path)
             self.file_open_requested.emit(full)

@@ -1,10 +1,47 @@
 import os
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QStackedWidget, QTabBar
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QStackedWidget, QComboBox, QSizePolicy, QSplitter
+from PySide6.QtCore import Qt
 
 from .instance import TerminalInstance
 
+
+class SplitTerminalContainer(QSplitter):
+    """Container that holds and splits TerminalInstances horizontally."""
+    
+    def __init__(self, workdir, parent=None):
+        super().__init__(Qt.Horizontal, parent)
+        self.setHandleWidth(1)
+        self.setStyleSheet("""
+            QSplitter::handle {
+                background-color: #3c0068;
+            }
+            QSplitter::handle:hover {
+                background-color: #4a0072;
+            }
+        """)
+        self.workdir = workdir
+        self.instances = []
+        self.add_instance()
+
+    def add_instance(self):
+        inst = TerminalInstance(workdir=self.workdir)
+        self.instances.append(inst)
+        self.addWidget(inst)
+        inst.show()
+        # Distribute width equally
+        count = len(self.instances)
+        if count > 1:
+            w = self.width() // count if self.width() > 0 else 100
+            self.setSizes([w] * count)
+        return inst
+
+    def kill_all(self):
+        for inst in self.instances:
+            inst.kill()
+
+
 class TerminalPanel(QWidget):
-    """VS Code style terminal panel with multiple tab support."""
+    """VS Code style terminal panel with multiple tab and split support."""
 
     def __init__(self, root_path=None, parent=None):
         super().__init__(parent)
@@ -25,7 +62,6 @@ class TerminalPanel(QWidget):
         tb_layout.setContentsMargins(0, 0, 0, 0)
         tb_layout.setSpacing(0)
 
-        from PySide6.QtWidgets import QComboBox, QSizePolicy
         self._combo_box = QComboBox()
         self._combo_box.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
         self._combo_box.setStyleSheet("""
@@ -78,6 +114,8 @@ class TerminalPanel(QWidget):
             """)
             if icon == "\uea60":
                 btn.clicked.connect(self._new_terminal)
+            elif icon == "\uea6a":
+                btn.clicked.connect(self._split_terminal)
             elif icon == "\uea87":
                 btn.clicked.connect(self._kill_current)
             tb_layout.addWidget(btn)
@@ -91,28 +129,55 @@ class TerminalPanel(QWidget):
 
     def _new_terminal(self):
         idx = len(self._terminals)
-        term = TerminalInstance(workdir=self._current_workdir)
-        self._terminals.append(term)
-        self._stack.addWidget(term)
+        container = SplitTerminalContainer(workdir=self._current_workdir)
+        self._terminals.append(container)
+        self._stack.addWidget(container)
         self._combo_box.addItem(f"powershell ({idx + 1})")
-        self._stack.setCurrentWidget(term)
+        self._stack.setCurrentWidget(container)
         self._combo_box.setCurrentIndex(idx)
         if not self.isVisible():
             self.show()
 
+    def _split_terminal(self):
+        idx = self._combo_box.currentIndex()
+        if 0 <= idx < len(self._terminals):
+            container = self._terminals[idx]
+            container.add_instance()
+
     def _close_tab(self, idx):
         if len(self._terminals) <= 1:
+            # If there's only one tab, but it has multiple split instances, we can kill the active split instance!
+            container = self._terminals[0]
+            if len(container.instances) > 1:
+                inst = container.instances.pop()
+                inst.kill()
+                inst.deleteLater()
             return
-        term = self._terminals[idx]
-        term.kill()
+        container = self._terminals[idx]
+        container.kill_all()
         self._terminals.pop(idx)
-        self._stack.removeWidget(term)
+        self._stack.removeWidget(container)
         self._combo_box.removeItem(idx)
-        term.deleteLater()
+        container.deleteLater()
 
     def _kill_current(self):
         idx = self._combo_box.currentIndex()
-        self._close_tab(idx)
+        if 0 <= idx < len(self._terminals):
+            container = self._terminals[idx]
+            if len(container.instances) > 1:
+                active_inst = None
+                for inst in container.instances:
+                    if inst.hasFocus():
+                        active_inst = inst
+                        break
+                if not active_inst:
+                    active_inst = container.instances[-1]
+                
+                active_inst.kill()
+                container.instances.remove(active_inst)
+                active_inst.deleteLater()
+            else:
+                self._close_tab(idx)
 
     def _switch_tab(self, idx):
         if 0 <= idx < len(self._terminals):
@@ -123,10 +188,10 @@ class TerminalPanel(QWidget):
         
         # When switching workspaces, we must kill old terminals 
         # and start a fresh one so the CWD is correctly applied.
-        for term in self._terminals:
-            term.kill()
-            self._stack.removeWidget(term)
-            term.deleteLater()
+        for container in self._terminals:
+            container.kill_all()
+            self._stack.removeWidget(container)
+            container.deleteLater()
             
         self._terminals.clear()
         self._combo_box.clear()
@@ -136,10 +201,11 @@ class TerminalPanel(QWidget):
 
     def clear(self):
         current = self._stack.currentWidget()
-        if isinstance(current, TerminalInstance):
-            current.clear()
+        if isinstance(current, SplitTerminalContainer):
+            for inst in current.instances:
+                inst.clear()
 
     def closeEvent(self, event):
-        for term in self._terminals:
-            term.kill()
+        for container in self._terminals:
+            container.kill_all()
         super().closeEvent(event)

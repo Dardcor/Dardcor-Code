@@ -1,29 +1,99 @@
 """Status Bar - VS Code exact replica status bar."""
 
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QStatusBar
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QSize
 from PySide6.QtGui import QColor, QPainter, QPen
 
 
 class StatusBarButton(QPushButton):
-    """Clickable status bar item."""
+    """Clickable status bar item with perfectly aligned icon and text."""
 
     def __init__(self, text="", parent=None):
-        super().__init__(text, parent)
+        super().__init__("", parent)
         self.setCursor(Qt.PointingHandCursor)
         self.setStyleSheet("""
             QPushButton {
                 background: transparent;
-                color: #ffffff;
                 border: none;
-                padding: 0px 6px;
-                font-size: 12px;
-                font-family: "codicon", "Segoe UI", "Ubuntu", sans-serif;
+                padding: 0px;
+                margin: 0px;
             }
             QPushButton:hover {
                 background-color: rgba(255, 255, 255, 0.12);
             }
         """)
+
+        # Internal layout to align icon and text perfectly
+        self._layout = QHBoxLayout(self)
+        self._layout.setContentsMargins(6, 0, 6, 0)
+        self._layout.setSpacing(4)
+        self._layout.setAlignment(Qt.AlignCenter)
+
+        self.icon_label = QLabel()
+        self.icon_label.setStyleSheet("color: #ffffff; background: transparent; border: none; font-size: 12px; font-family: 'codicon';")
+        self.icon_label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        self.icon_label.setAlignment(Qt.AlignCenter)
+
+        self.text_label = QLabel()
+        # Add 'codicon' to fallback font-family to avoid DirectWrite fallback failure to raster font '8514oem'
+        self.text_label.setStyleSheet("color: #ffffff; background: transparent; border: none; font-size: 12px; font-family: 'Inter', 'Segoe UI', 'Ubuntu', 'codicon', sans-serif;")
+        self.text_label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        self.text_label.setAlignment(Qt.AlignCenter)
+
+        self._layout.addWidget(self.icon_label)
+        self._layout.addWidget(self.text_label)
+
+        if text:
+            self.setText(text)
+
+    def sizeHint(self):
+        margins = self._layout.contentsMargins()
+        width = margins.left() + margins.right()
+        height = margins.top() + margins.bottom()
+
+        visible_widgets = []
+        if self.icon_label.isVisible() and self.icon_label.text():
+            visible_widgets.append(self.icon_label)
+        if self.text_label.isVisible() and self.text_label.text():
+            visible_widgets.append(self.text_label)
+
+        for i, widget in enumerate(visible_widgets):
+            sh = widget.sizeHint()
+            width += sh.width()
+            height = max(height, sh.height() + margins.top() + margins.bottom())
+            if i > 0:
+                width += self._layout.spacing()
+
+        return QSize(width, max(22, height))
+
+    def minimumSizeHint(self):
+        return self.sizeHint()
+
+    def setText(self, text):
+        if not text:
+            self.icon_label.setText("")
+            self.text_label.setText("")
+            self.icon_label.hide()
+            self.text_label.hide()
+            self.updateGeometry()
+            return
+
+        first_char = text[0]
+        # Check if the first character belongs to Unicode private use area E000-F8FF (icon font)
+        if 0xE000 <= ord(first_char) <= 0xF8FF:
+            self.icon_label.setText(first_char)
+            self.icon_label.show()
+            rest = text[1:].strip()
+            if rest:
+                self.text_label.setText(rest)
+                self.text_label.show()
+            else:
+                self.text_label.hide()
+        else:
+            self.icon_label.hide()
+            self.text_label.setText(text)
+            self.text_label.show()
+        self.updateGeometry()
 
 
 class StatusBar(QStatusBar):
@@ -105,21 +175,8 @@ class StatusBar(QStatusBar):
         self._lang_btn.setToolTip("Select Language Mode")
         self.addPermanentWidget(self._lang_btn)
 
-        self._ai_btn = StatusBarButton("\ueab2 Dardcor AI")
-        self._ai_btn.setToolTip("AI Engine Status")
-        self._ai_btn.setStyleSheet("""
-            QPushButton {
-                background: transparent;
-                color: #ffffff;
-                border: none;
-                padding: 0px 8px;
-                font-size: 12px;
-                font-family: "codicon", "Segoe UI", "Ubuntu", sans-serif;
-            }
-            QPushButton:hover {
-                background-color: rgba(255, 255, 255, 0.12);
-            }
-        """)
+        self._ai_btn = StatusBarButton("\ueab2 Dardcor Settings")
+        self._ai_btn.setToolTip("Dardcor Settings")
         self.addPermanentWidget(self._ai_btn)
 
         self._notif_btn = StatusBarButton("\ueaa2")
@@ -129,11 +186,11 @@ class StatusBar(QStatusBar):
 
     def set_connected(self, connected: bool):
         if connected:
-            self._ai_btn.setText("\ueab2 Dardcor AI")
-            self._ai_btn.setToolTip("AI Engine Ready")
+            self._ai_btn.setText("\ueab2 Dardcor Settings")
+            self._ai_btn.setToolTip("Settings Ready")
         else:
-            self._ai_btn.setText("\uea76 AI Offline")
-            self._ai_btn.setToolTip("AI Engine Offline - Check Settings")
+            self._ai_btn.setText("\uea76 Settings Offline")
+            self._ai_btn.setToolTip("Settings Offline - Check Configuration")
 
     def set_cursor_position(self, line: int, col: int):
         self._cursor_btn.setText(f"Ln {line}, Col {col}")

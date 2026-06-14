@@ -77,6 +77,31 @@ class TerminalInstance(QWidget):
             self._pending_data.clear()
             self._write_to_frontend(combined)
 
+        # Apply current theme colors
+        try:
+            from ..windows.theme_manager import ThemeManager
+            theme_data = ThemeManager.THEMES.get(ThemeManager._current_theme, ThemeManager.THEMES["dark+"])
+            c = theme_data["colors"]
+            is_dark = (theme_data.get("type", "dark") == "dark")
+            
+            xt_theme = {
+                "background": c["background"],
+                "foreground": c["foreground"],
+                "cursor": c["foreground"],
+                "selectionBackground": c["selection"],
+            }
+            if not is_dark:
+                xt_theme.update({
+                    "black": "#000000", "white": "#ffffff",
+                    "brightBlack": "#666666", "brightWhite": "#333333"
+                })
+            
+            encoded = json.dumps(xt_theme)
+            js = f"if (typeof setTheme === 'function') {{ setTheme({json.dumps(encoded)}); }}"
+            self._view.page().runJavaScript(js)
+        except Exception:
+            pass
+
         # Small delay so WebChannel handshake completes before shell starts
         QTimer.singleShot(150, self._start_shell)
 

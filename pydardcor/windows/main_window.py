@@ -438,6 +438,31 @@ class MainWindow(QMainWindow):
 
     def _setup_agent(self):
         self._agent.on_stream(self._on_agent_stream)
+        self._agent.permission_callback = self._ask_command_permission
+
+    def _ask_command_permission(self, command: str) -> bool:
+        """Prompt user in a thread-safe blocking popup before running terminal commands."""
+        import threading
+        from PySide6.QtCore import QMetaObject, Qt
+        from PySide6.QtWidgets import QMessageBox
+        
+        result_holder = [False]
+        event = threading.Event()
+        
+        def show_dialog():
+            reply = QMessageBox.question(
+                self, "AI Agent Command Authorization",
+                f"The AI Agent wants to execute the following command:\n\n"
+                f"{command}\n\n"
+                f"Do you authorize this?",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            result_holder[0] = (reply == QMessageBox.Yes)
+            event.set()
+            
+        QMetaObject.invokeMethod(self, show_dialog, Qt.QueuedConnection)
+        event.wait()
+        return result_holder[0]
 
     # ── UI Layout ─────────────────────────────────────────
 
@@ -527,6 +552,8 @@ class MainWindow(QMainWindow):
         # Source Control - Full Git Panel
         self._git_panel = GitPanel(root_path=root_path)
         self._git_panel.file_open_requested.connect(self._open_file_in_editor)
+        self._git_panel.diff_open_requested.connect(self._open_diff_in_editor)
+        self._git_panel.refreshed.connect(self._file_explorer._refresh)
         self._sidebar_stack.addWidget(self._git_panel)
 
         # Extensions placeholder
@@ -811,20 +838,24 @@ class MainWindow(QMainWindow):
 
         expand_sel = QAction("Expand Selection", self)
         expand_sel.setShortcut(QKeySequence("Shift+Alt+Right"))
+        expand_sel.triggered.connect(self._editor_tabs.expand_selection)
         sel_menu.addAction(expand_sel)
 
         shrink_sel = QAction("Shrink Selection", self)
         shrink_sel.setShortcut(QKeySequence("Shift+Alt+Left"))
+        shrink_sel.triggered.connect(self._editor_tabs.shrink_selection)
         sel_menu.addAction(shrink_sel)
 
         sel_menu.addSeparator()
 
         copy_up = QAction("Copy Line Up", self)
         copy_up.setShortcut(QKeySequence("Shift+Alt+Up"))
+        copy_up.triggered.connect(self._editor_tabs.copy_line_up)
         sel_menu.addAction(copy_up)
 
         copy_down = QAction("Copy Line Down", self)
         copy_down.setShortcut(QKeySequence("Shift+Alt+Down"))
+        copy_down.triggered.connect(self._editor_tabs.copy_line_down)
         sel_menu.addAction(copy_down)
 
         # ── View menu ──
@@ -991,6 +1022,7 @@ class MainWindow(QMainWindow):
 
         go_to_def = QAction("Go to Definition", self)
         go_to_def.setShortcut(QKeySequence("F12"))
+        go_to_def.triggered.connect(self._editor_tabs.go_to_definition)
         go_menu.addAction(go_to_def)
 
         go_menu.addSeparator()
@@ -1016,6 +1048,7 @@ class MainWindow(QMainWindow):
 
         toggle_break = QAction("Toggle Breakpoint", self)
         toggle_break.setShortcut(QKeySequence("F9"))
+        toggle_break.triggered.connect(self._editor_tabs.toggle_breakpoint)
         run_menu.addAction(toggle_break)
 
         # ── Terminal menu ──
@@ -1157,6 +1190,12 @@ class MainWindow(QMainWindow):
             if editor:
                 self._status_bar.set_language(editor.get_language())
             self._status_bar.set_cursor_position(1, 1)
+
+    def _open_diff_in_editor(self, path: str, original: str, modified: str):
+        editor = self._editor_tabs.open_diff(path, original, modified)
+        if editor:
+            self._status_bar.set_language(editor.get_language())
+        self._status_bar.set_cursor_position(1, 1)
 
     def _open_file_at_line(self, path: str, line: int):
         self._open_file_in_editor(path)
@@ -1549,7 +1588,7 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         # Clean up terminal processes
         for term in self._terminal_panel._terminals:
-            term.kill()
+            term.kill_all()
         # Save config
         self._config.save()
         super().closeEvent(event)

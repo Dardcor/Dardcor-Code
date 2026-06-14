@@ -7,6 +7,7 @@ from PySide6.QtCore import Signal, Qt, QSize
 from PySide6.QtGui import QPixmap, QIcon, QPainter, QColor, QFont
 
 from .widget import MonacoEditorWidget
+from .diff_viewer import MonacoDiffEditorWidget
 
 # File extension to icon color mapping (VS Code style)
 _ICON_COLORS = {
@@ -312,7 +313,7 @@ class EditorGroup(QWidget):
 
     def open_file(self, file_path):
         for i, tab in enumerate(self._tabs):
-            if tab.file_path == file_path:
+            if tab.file_path == file_path and not isinstance(tab.editor, MonacoDiffEditorWidget):
                 self._tab_bar.setCurrentIndex(i)
                 return tab.editor
 
@@ -333,6 +334,30 @@ class EditorGroup(QWidget):
         self._current_idx = idx
         self._emit_tab_changed(editor)
         return editor
+
+    def open_diff(self, file_path, original_content, modified_content):
+        for i, tab in enumerate(self._tabs):
+            if tab.file_path == file_path and isinstance(tab.editor, MonacoDiffEditorWidget):
+                tab.editor.set_diff(original_content, modified_content, file_path)
+                self._tab_bar.setCurrentIndex(i)
+                return tab.editor
+
+        editor = MonacoDiffEditorWidget(self)
+        editor.set_diff(original_content, modified_content, file_path)
+
+        tab = EditorTab(editor, file_path)
+        tab.title = f"diff: {os.path.basename(file_path)}"
+        self._tabs.append(tab)
+        self._stack.addWidget(editor)
+
+        icon = _make_file_icon(os.path.basename(file_path))
+        idx = self._tab_bar.addTab(icon, tab.title)
+        self._tab_bar.setCurrentIndex(idx)
+        self._stack.setCurrentWidget(editor)
+        self._current_idx = idx
+        self._emit_tab_changed(editor)
+        return editor
+
 
     def new_file(self):
         self._untitled_counter += 1
@@ -470,3 +495,27 @@ class EditorGroup(QWidget):
 
     def show_debug_toolbar(self, show: bool):
         self._debug_toolbar.setVisible(show)
+
+    def expand_selection(self):
+        ed = self.current_editor()
+        if ed and hasattr(ed, "expand_selection"): ed.expand_selection()
+
+    def shrink_selection(self):
+        ed = self.current_editor()
+        if ed and hasattr(ed, "shrink_selection"): ed.shrink_selection()
+
+    def copy_line_up(self):
+        ed = self.current_editor()
+        if ed and hasattr(ed, "copy_line_up"): ed.copy_line_up()
+
+    def copy_line_down(self):
+        ed = self.current_editor()
+        if ed and hasattr(ed, "copy_line_down"): ed.copy_line_down()
+
+    def go_to_definition(self):
+        ed = self.current_editor()
+        if ed and hasattr(ed, "go_to_definition"): ed.go_to_definition()
+
+    def toggle_breakpoint(self):
+        ed = self.current_editor()
+        if ed and hasattr(ed, "toggle_breakpoint"): ed.toggle_breakpoint()

@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
     QProxyStyle, QStyle,
 )
 from PySide6.QtCore import Signal, Qt, QSize, QPoint, QByteArray
-from PySide6.QtGui import QAction, QColor, QPainter, QPixmap, QIcon, QPen, QFont, QPolygonF
+from PySide6.QtGui import QAction, QColor, QPainter, QPixmap, QIcon, QPen, QFont, QPolygonF, QCursor
 from PySide6.QtSvg import QSvgRenderer
 
 
@@ -65,6 +65,18 @@ SVG_JSON = b'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path
 
 SVG_TOML = b'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="#CB3837" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>'''
 
+SVG_HTML = b'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="#E34F26" d="M1.5 2h21l-1.91 21.56L12 22l-8.59-1.56L1.5 2zm16.5 6H7.35l.22 2.5h10.21l-.47 5.25L12 17.15l-5.31-1.4-.35-3.8h2.5l.18 1.95L12 14.7l2.9-.8.29-3.4H6.57L5.9 3.5h12.1v2.5z"/></svg>'''
+
+SVG_CSS = b'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="#1572B6" d="M1.5 2h21l-1.91 21.56L12 22l-8.59-1.56L1.5 2zm16.5 6H7.35l.22 2.5h10.21l-.47 5.25L12 17.15l-5.31-1.4-.35-3.8h2.5l.18 1.95L12 14.7l2.9-.8.29-3.4H6.57L5.9 3.5h12.1v2.5z"/></svg>'''
+
+SVG_JS = b'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="#F7DF1E" d="M1.5 2h21l-1.91 21.56L12 22l-8.59-1.56L1.5 2zm12.33 13.06c.39.69.91 1.25 1.7 1.25.75 0 1.22-.36 1.22-.89 0-.61-.49-.83-1.34-1.2l-.46-.2c-1.36-.57-2.27-1.33-2.27-2.91 0-1.51 1.13-2.73 3.03-2.73 1.54 0 2.53.64 3.08 1.73l-1.43.92c-.3-.59-.72-.88-1.42-.88-.66 0-1.04.34-1.04.8 0 .54.38.74 1.17 1.08l.46.2c1.61.69 2.47 1.39 2.47 3.03 0 1.7-1.28 2.87-3.32 2.87-2.09 0-3.32-1.06-3.83-2.31l1.71-.97zM8.33 13h1.83v2.83c0 .87-.41 1.42-1.33 1.42-.64 0-1.1-.38-1.31-.91L5.8 17.18c.55 1.11 1.49 1.71 3.04 1.71 2.03 0 3.16-1.12 3.16-3.08V8.12H8.33V13z"/></svg>'''
+
+SVG_TS = b'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="#3178C6" d="M1.5 2h21l-1.91 21.56L12 22l-8.59-1.56L1.5 2zm11.36 13h-2.12v-5.26H7.9v-1.63h6.84v1.63H12.86V15zm5.72-2.12c-.22.61-.64 1.05-1.36 1.05-.63 0-.97-.31-.97-.73 0-.5.44-.68 1.18-.94l.43-.16c1.17-.43 1.83-.98 1.83-2.13 0-1.27-.92-2.16-2.58-2.16-1.23 0-2.07.51-2.49 1.37l1.23.73c.24-.49.59-.71 1.14-.71.5 0 .79.25.79.62 0 .42-.31.57-.96.82l-.4.16c-1.29.5-2.07 1.06-2.07 2.29 0 1.33.99 2.19 2.64 2.19 1.63 0 2.53-.84 2.86-1.92l-1.32-.47z"/></svg>'''
+
+SVG_SHELL = b'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="#4CAF50" d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM8 17H6v-2h2v2zm0-4H6v-2h2v2zm0-4H6V7h2v2zm10 8h-8v-2h8v2zm0-4h-8v-2h8v2zm0-4h-8V7h8v2z"/></svg>'''
+
+SVG_IMAGE = b'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="#4CAF50" d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>'''
+
 def _render_svg(svg_bytes: bytes, size: int = 16) -> QIcon:
     renderer = QSvgRenderer(QByteArray(svg_bytes))
     pixmap = QPixmap(size, size)
@@ -91,6 +103,18 @@ def get_file_icon(filepath: str) -> QIcon:
         return _render_svg(SVG_TOML)
     if ext in (".py", ".pyc", ".pyw"):
         return _render_svg(SVG_PYTHON)
+    if ext in (".html", ".htm"):
+        return _render_svg(SVG_HTML)
+    if ext == ".css":
+        return _render_svg(SVG_CSS)
+    if ext == ".js":
+        return _render_svg(SVG_JS)
+    if ext == ".ts":
+        return _render_svg(SVG_TS)
+    if ext in (".sh", ".bat", ".cmd", ".ps1"):
+        return _render_svg(SVG_SHELL)
+    if ext in (".png", ".jpg", ".jpeg", ".gif", ".svg", ".bmp", ".ico"):
+        return _render_svg(SVG_IMAGE)
     
     return _render_svg(SVG_FILE)
 
@@ -109,6 +133,9 @@ class FileExplorer(QWidget):
     def __init__(self, root_path: str = None, parent=None):
         super().__init__(parent)
         self._root_path = root_path or os.path.expanduser("~")
+        self._git_status = {}
+        self._git_folders = set()
+        self._in_inline_edit = False
         self.setObjectName("fileExplorer")
         self._setup_ui()
 
@@ -251,7 +278,8 @@ class FileExplorer(QWidget):
         """)
         layout.addWidget(self._tree)
 
-        self._load_directory(self._root_path)
+        self._tree.itemChanged.connect(self._on_item_changed)
+        self._refresh()
 
     def _load_directory(self, path: str, parent_item: QTreeWidgetItem = None):
         try:
@@ -274,14 +302,33 @@ class FileExplorer(QWidget):
             item.setData(0, Qt.UserRole, full_path)
             item.setToolTip(0, full_path)
 
+            # Git Status coloring
+            try:
+                rel_path = os.path.relpath(full_path, self._root_path)
+                rel_path_norm = rel_path.replace("/", os.sep).replace("\\", os.sep)
+            except Exception:
+                rel_path_norm = ""
+
             is_dir = os.path.isdir(full_path)
             if is_dir:
                 item.setIcon(0, get_folder_icon(False))
                 item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
                 # Lazy load placeholder
                 QTreeWidgetItem(item)
+                
+                # Color folder if it has changes inside
+                if rel_path_norm in self._git_folders:
+                    item.setForeground(0, QColor("#e2c08d"))
             else:
                 item.setIcon(0, get_file_icon(full_path))
+                
+                # Color file based on its git status
+                if rel_path_norm in self._git_status:
+                    status = self._git_status[rel_path_norm]
+                    if status == "M":
+                        item.setForeground(0, QColor("#e2c08d"))  # Yellow for modified
+                    elif status in ("A", "?"):
+                        item.setForeground(0, QColor("#73c991"))  # Green for added/untracked
 
             if parent_item:
                 parent_item.addChild(item)
@@ -307,14 +354,63 @@ class FileExplorer(QWidget):
         if os.path.isfile(path):
             self.file_selected.emit(path)
         elif os.path.isdir(path):
-            # Toggle expand/collapse like VS Code
-            if item.isExpanded():
-                self._tree.collapseItem(item)
-            else:
-                self._tree.expandItem(item)
+            # Calculate item depth to determine the bounds of the branch indicator
+            depth = 0
+            parent = item.parent()
+            while parent:
+                depth += 1
+                parent = parent.parent()
+            
+            indent = self._tree.indentation()
+            pos = self._tree.viewport().mapFromGlobal(QCursor.pos())
+            
+            # Only toggle expansion manually if clicking on the actual item text/icon (x >= indent boundaries)
+            # Clicking on the chevron (x < boundary) is already handled automatically by QTreeWidget
+            if pos.x() >= (depth + 1) * indent:
+                if item.isExpanded():
+                    self._tree.collapseItem(item)
+                else:
+                    self._tree.expandItem(item)
+
+    def _refresh_git_status(self):
+        self._git_status = {}
+        self._git_folders = set()
+        
+        # Check if it is a git repo
+        try:
+            import subprocess
+            result = subprocess.run(
+                ["git", "status", "--porcelain", "-u"],
+                cwd=self._root_path,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=3
+            )
+            if result.returncode != 0:
+                return
+            
+            for line in result.stdout.splitlines():
+                if len(line) < 3:
+                    continue
+                xy = line[:2]
+                path = line[3:].strip().replace("/", os.sep)
+                # Parse status
+                status = '?' if '?' in xy else ('M' if 'M' in xy or 'R' in xy else 'A')
+                self._git_status[path] = status
+                
+                # Add parents to self._git_folders
+                parent = os.path.dirname(path)
+                while parent:
+                    self._git_folders.add(parent)
+                    parent = os.path.dirname(parent)
+        except Exception:
+            pass
 
     def _refresh(self):
         self._tree.clear()
+        self._refresh_git_status()
         self._load_directory(self._root_path)
 
     def _open_folder(self):
@@ -414,17 +510,14 @@ class FileExplorer(QWidget):
         QApplication.clipboard().setText(rel)
 
     def _rename_item(self, item: QTreeWidgetItem, path: str):
-        new_name, ok = QInputDialog.getText(self, "Rename", "New name:", text=os.path.basename(path))
-        if ok and new_name:
-            new_path = os.path.join(os.path.dirname(path), new_name)
-            try:
-                os.rename(path, new_path)
-                item.setText(0, new_name)
-                item.setData(0, Qt.UserRole, new_path)
-                if os.path.isfile(new_path):
-                    item.setIcon(0, get_file_icon(new_path))
-            except Exception as e:
-                QMessageBox.warning(self, "Error", str(e))
+        # Store temporary data for the rename operation
+        item.setData(0, Qt.UserRole + 1, "rename")
+        item.setData(0, Qt.UserRole + 2, path)
+        
+        # Make the item editable and trigger editing
+        item.setFlags(item.flags() | Qt.ItemIsEditable)
+        self._tree.setCurrentItem(item)
+        self._tree.editItem(item, 0)
 
     def _delete_item(self, path: str):
         reply = QMessageBox.question(
@@ -444,50 +537,148 @@ class FileExplorer(QWidget):
                 QMessageBox.warning(self, "Error", str(e))
 
     def _new_file(self):
-        path, ok = QInputDialog.getText(self, "New File", "File name:")
-        if ok and path:
-            full_path = os.path.join(self._root_path, path)
-            try:
-                os.makedirs(os.path.dirname(full_path), exist_ok=True)
-                with open(full_path, "w") as f:
-                    f.write("")
-                self._refresh()
-                self.file_selected.emit(full_path)
-            except Exception as e:
-                QMessageBox.warning(self, "Error", str(e))
+        curr = self._tree.currentItem()
+        if curr:
+            path = curr.data(0, Qt.UserRole)
+            if os.path.isdir(path):
+                self._new_file_in(path, curr)
+                return
+            else:
+                parent = curr.parent()
+                parent_path = parent.data(0, Qt.UserRole) if parent else self._root_path
+                self._new_file_in(parent_path, parent)
+                return
+        self._new_file_in(self._root_path, None)
 
     def _new_folder(self):
-        path, ok = QInputDialog.getText(self, "New Folder", "Folder name:")
-        if ok and path:
-            full_path = os.path.join(self._root_path, path)
-            try:
-                os.makedirs(full_path, exist_ok=True)
-                self._refresh()
-            except Exception as e:
-                QMessageBox.warning(self, "Error", str(e))
+        curr = self._tree.currentItem()
+        if curr:
+            path = curr.data(0, Qt.UserRole)
+            if os.path.isdir(path):
+                self._new_folder_in(path, curr)
+                return
+            else:
+                parent = curr.parent()
+                parent_path = parent.data(0, Qt.UserRole) if parent else self._root_path
+                self._new_folder_in(parent_path, parent)
+                return
+        self._new_folder_in(self._root_path, None)
 
-    def _new_file_in(self, parent_path: str):
-        name, ok = QInputDialog.getText(self, "New File", "File name:")
-        if ok and name:
-            d = parent_path if os.path.isdir(parent_path) else os.path.dirname(parent_path)
-            full_path = os.path.join(d, name)
-            try:
+    def _new_file_in(self, parent_path: str, parent_item: QTreeWidgetItem = None):
+        d = parent_path if os.path.isdir(parent_path) else os.path.dirname(parent_path)
+        
+        item = QTreeWidgetItem()
+        item.setText(0, "untitled.py")
+        item.setIcon(0, get_file_icon("untitled.py"))
+        
+        # Operation meta info
+        item.setData(0, Qt.UserRole + 1, "create_file")
+        item.setData(0, Qt.UserRole + 2, d)
+        
+        if parent_item:
+            parent_item.addChild(item)
+            self._tree.expandItem(parent_item)
+        else:
+            self._tree.addTopLevelItem(item)
+            
+        item.setFlags(item.flags() | Qt.ItemIsEditable)
+        self._tree.setCurrentItem(item)
+        self._tree.editItem(item, 0)
+
+    def _new_folder_in(self, parent_path: str, parent_item: QTreeWidgetItem = None):
+        d = parent_path if os.path.isdir(parent_path) else os.path.dirname(parent_path)
+        
+        item = QTreeWidgetItem()
+        item.setText(0, "untitled_folder")
+        item.setIcon(0, get_folder_icon(False))
+        
+        # Operation meta info
+        item.setData(0, Qt.UserRole + 1, "create_folder")
+        item.setData(0, Qt.UserRole + 2, d)
+        
+        if parent_item:
+            parent_item.addChild(item)
+            self._tree.expandItem(parent_item)
+        else:
+            self._tree.addTopLevelItem(item)
+            
+        item.setFlags(item.flags() | Qt.ItemIsEditable)
+        self._tree.setCurrentItem(item)
+        self._tree.editItem(item, 0)
+
+    def _on_item_changed(self, item: QTreeWidgetItem, column: int):
+        if self._in_inline_edit:
+            return
+
+        operation = item.data(0, Qt.UserRole + 1)
+        if not operation:
+            return
+
+        new_name = item.text(0).strip()
+        
+        # Revert editable flag and clear operations metadata immediately
+        item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+        item.setData(0, Qt.UserRole + 1, None)
+        
+        if not new_name:
+            if operation in ("create_file", "create_folder"):
+                parent = item.parent()
+                if parent:
+                    parent.removeChild(item)
+                else:
+                    self._tree.takeTopLevelItem(self._tree.indexOfTopLevelItem(item))
+            elif operation == "rename":
+                old_path = item.data(0, Qt.UserRole + 2)
+                self._in_inline_edit = True
+                item.setText(0, os.path.basename(old_path))
+                self._in_inline_edit = False
+            return
+
+        self._in_inline_edit = True
+        try:
+            if operation == "rename":
+                old_path = item.data(0, Qt.UserRole + 2)
+                new_path = os.path.join(os.path.dirname(old_path), new_name)
+                if old_path != new_path:
+                    os.rename(old_path, new_path)
+                    item.setData(0, Qt.UserRole, new_path)
+                    item.setToolTip(0, new_path)
+                    if os.path.isfile(new_path):
+                        item.setIcon(0, get_file_icon(new_path))
+                    self._refresh()
+            elif operation == "create_file":
+                parent_dir = item.data(0, Qt.UserRole + 2)
+                full_path = os.path.join(parent_dir, new_name)
                 with open(full_path, "w") as f:
                     f.write("")
+                item.setData(0, Qt.UserRole, full_path)
+                item.setToolTip(0, full_path)
+                item.setIcon(0, get_file_icon(full_path))
                 self._refresh()
                 self.file_selected.emit(full_path)
-            except Exception as e:
-                QMessageBox.warning(self, "Error", str(e))
-
-    def _new_folder_in(self, parent_path: str):
-        name, ok = QInputDialog.getText(self, "New Folder", "Folder name:")
-        if ok and name:
-            full_path = os.path.join(parent_path, name)
-            try:
+            elif operation == "create_folder":
+                parent_dir = item.data(0, Qt.UserRole + 2)
+                full_path = os.path.join(parent_dir, new_name)
                 os.makedirs(full_path, exist_ok=True)
+                item.setData(0, Qt.UserRole, full_path)
+                item.setToolTip(0, full_path)
+                item.setIcon(0, get_folder_icon(False))
+                item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
+                QTreeWidgetItem(item) # lazy load placeholder
                 self._refresh()
-            except Exception as e:
-                QMessageBox.warning(self, "Error", str(e))
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Failed to perform operation: {str(e)}")
+            if operation in ("create_file", "create_folder"):
+                parent = item.parent()
+                if parent:
+                    parent.removeChild(item)
+                else:
+                    self._tree.takeTopLevelItem(self._tree.indexOfTopLevelItem(item))
+            elif operation == "rename":
+                old_path = item.data(0, Qt.UserRole + 2)
+                item.setText(0, os.path.basename(old_path))
+        finally:
+            self._in_inline_edit = False
 
     def set_root(self, path: str):
         self._root_path = path

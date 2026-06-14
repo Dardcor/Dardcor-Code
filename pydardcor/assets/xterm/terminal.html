@@ -88,6 +88,15 @@
                 if (term) { term.write(data); }
             };
 
+            window.setTheme = function (themeJson) {
+                if (!term) return;
+                try {
+                    var colors = JSON.parse(themeJson);
+                    term.options.theme = colors;
+                    document.body.style.background = colors.background || '#000000';
+                } catch(e) {}
+            };
+
             /* Forward keystrokes xterm → Python */
             term.onData(function (data) {
                 if (backend) { backend.receive_data(data); }

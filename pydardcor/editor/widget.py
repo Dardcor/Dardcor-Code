@@ -16,6 +16,7 @@ class MonacoEditorWidget(QWidget):
     cursor_position_changed = Signal(int, int)
     save_requested = Signal()
     command_palette_requested = Signal()
+    diagnostics_ready = Signal(list)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -24,6 +25,7 @@ class MonacoEditorWidget(QWidget):
         self._dirty = False
         self._content = ""
         self._view_ready = False
+        self.diagnostics_ready.connect(self.set_diagnostics)
         self._setup_ui()
 
     def _setup_ui(self):
@@ -64,6 +66,8 @@ class MonacoEditorWidget(QWidget):
         # Apply content if already set
         if self._content is not None:
             QTimer.singleShot(150, self._apply_pending_content)
+            if self._file_path and self._file_path.endswith(".py"):
+                QTimer.singleShot(600, self._run_linter)
 
     def _apply_pending_content(self):
         import json
@@ -107,6 +111,11 @@ class MonacoEditorWidget(QWidget):
             with open(self._file_path, "w", encoding="utf-8") as f:
                 f.write(self._content)
             self._dirty = False
+            
+            # Run linter on save
+            if self._file_path.endswith(".py"):
+                self._run_linter()
+                
             return True
         except Exception:
             return False
@@ -181,3 +190,92 @@ class MonacoEditorWidget(QWidget):
         if self._view_ready:
             self._view.page().runJavaScript("focusEditor();")
         self._view.setFocus()
+
+    def _run_linter(self):
+        if not self._file_path or not self._file_path.endswith(".py"):
+            return
+
+        import threading
+        def worker():
+            markers = []
+            
+            # 1. Built-in Syntax check using ast.parse (zero-dependency and fast)
+            try:
+                import ast
+                ast.parse(self._content, filename=self._file_path)
+            except SyntaxError as e:
+                markers.append({
+                    "severity": "error",
+                    "startLine": e.lineno or 1,
+                    "startColumn": e.offset or 1,
+                    "endLine": e.lineno or 1,
+                    "endColumn": (e.offset or 1) + 5,
+                    "message": e.msg,
+                    "source": "python-syntax"
+                })
+            except Exception:
+                pass
+            
+            # 2. Try running flake8 if available
+            if not markers:
+                try:
+                    import subprocess
+                    result = subprocess.run(
+                        ["flake8", self._file_path, "--format=%(row)d:%(col)d:%(code)s:%(text)s"],
+                        capture_output=True,
+                        text=True,
+                        encoding="utf-8",
+                        errors="replace",
+                        timeout=5
+                    )
+                    if result.stdout:
+                        for line in result.stdout.splitlines():
+                            parts = line.split(":", 3)
+                            if len(parts) == 4:
+                                row, col, code, text = parts
+                                severity = "error" if code.startswith("F") or code.startswith("E9") else "warning"
+                                markers.append({
+                                    "severity": severity,
+                                    "startLine": int(row),
+                                    "startColumn": int(col),
+                                    "endLine": int(row),
+                                    "endColumn": int(col) + 5,
+                                    "message": f"[{code}] {text}",
+                                    "source": "flake8"
+                                })
+                except Exception:
+                    pass
+
+            self.diagnostics_ready.emit(markers)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def expand_selection(self):
+        if self._view_ready:
+            self._view.page().runJavaScript("editor.trigger('keyboard', 'editor.action.smartSelect.expand', null);")
+            
+    def shrink_selection(self):
+        if self._view_ready:
+            self._view.page().runJavaScript("editor.trigger('keyboard', 'editor.action.smartSelect.shrink', null);")
+
+    def copy_line_up(self):
+        if self._view_ready:
+            self._view.page().runJavaScript("editor.trigger('keyboard', 'editor.action.copyLinesUpAction', null);")
+
+    def copy_line_down(self):
+        if self._view_ready:
+            self._view.page().runJavaScript("editor.trigger('keyboard', 'editor.action.copyLinesDownAction', null);")
+
+    def go_to_definition(self):
+        if self._view_ready:
+            self._view.page().runJavaScript("editor.trigger('keyboard', 'editor.action.revealDefinition', null);")
+
+    def toggle_breakpoint(self):
+        if self._view_ready:
+            js = """
+                var pos = editor.getPosition();
+                if (pos) {
+                    addBreakpoint(pos.lineNumber);
+                }
+            """
+            self._view.page().runJavaScript(js)
