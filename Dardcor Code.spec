@@ -5,7 +5,7 @@ a = Analysis(
     ['dardcor.py'],
     pathex=[],
     binaries=[],
-    datas=[('image', 'image'), ('pydardcor/assets', 'pydardcor/assets')],
+    datas=[('image', 'image'), ('pydardcor/assets', 'pydardcor/assets'), ('C:\\Users\\Dardcor\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\site-packages\\winpty', 'winpty')],
     hiddenimports=['PySide6.QtWebEngineWidgets', 'PySide6.QtWebEngineCore', 'pydardcor.cli'],
     hookspath=[],
     hooksconfig={},

@@ -220,13 +220,17 @@ class MonacoEditorWidget(QWidget):
             if not markers:
                 try:
                     import subprocess
+                    kwargs = {}
+                    if os.name == 'nt':
+                        kwargs['creationflags'] = 0x08000000  # CREATE_NO_WINDOW
                     result = subprocess.run(
                         ["flake8", self._file_path, "--format=%(row)d:%(col)d:%(code)s:%(text)s"],
                         capture_output=True,
                         text=True,
                         encoding="utf-8",
                         errors="replace",
-                        timeout=5
+                        timeout=5,
+                        **kwargs
                     )
                     if result.stdout:
                         for line in result.stdout.splitlines():

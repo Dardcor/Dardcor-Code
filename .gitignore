@@ -3,6 +3,11 @@ __pycache__/
 *.pyo
 *.egg-info/
 *.egg
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+*.egg
 *.whl
 *.tar.gz
 .pytest_cache/
@@ -10,3 +15,4 @@ __pycache__/
 dist/
 build/
 *.spec
+.dardcor_chrome_profile/

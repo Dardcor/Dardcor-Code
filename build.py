@@ -41,6 +41,15 @@ def main():
         "dardcor.py"
     ]
 
+    # Find winpty directory to pack its helper binaries (winpty-agent.exe, etc.)
+    try:
+        import winpty
+        winpty_dir = os.path.dirname(winpty.__file__)
+        print(f"[OK] winpty found at: {winpty_dir}")
+        cmd.extend(["--add-data", f"{winpty_dir}{separator}winpty"])
+    except ImportError:
+        print("[WARNING] winpty package not found.")
+
     print("\n[INFO] Running PyInstaller with arguments:")
     print(" ".join(cmd))
     

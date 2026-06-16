@@ -482,8 +482,14 @@ class MainWindow(QMainWindow):
         else:
             self.resize(1000, 700)
         
-        # Set frameless window hint to hide native OS title bar
-        self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
+        # Set frameless window hint to hide native OS title bar, but keep system menu and minimize/maximize buttons hints so Windows taskbar clicks and Aero Snap work
+        self.setWindowFlags(
+            Qt.Window |
+            Qt.FramelessWindowHint |
+            Qt.WindowSystemMenuHint |
+            Qt.WindowMinimizeButtonHint |
+            Qt.WindowMaximizeButtonHint
+        )
         
         self.setObjectName("MainWindow")
         self.setStyleSheet("#MainWindow { border: 1px solid #3c0068; }")
@@ -1479,7 +1485,7 @@ class MainWindow(QMainWindow):
         QMessageBox.about(
             self,
             "About Dardcor Code",
-            "Dardcor Code v1.0.13\n\n"
+            "Dardcor Code v1.0.4\n\n"
             "Full Desktop AI Coding Assistant\n\n"
             "A VS Code-like IDE with integrated AI pair programming.\n"
             "Built with Python + PySide6 (Qt)\n\n"

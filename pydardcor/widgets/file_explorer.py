@@ -467,6 +467,9 @@ class FileExplorer(QWidget):
         # Check if it is a git repo
         try:
             import subprocess
+            kwargs = {}
+            if os.name == 'nt':
+                kwargs['creationflags'] = 0x08000000  # CREATE_NO_WINDOW
             result = subprocess.run(
                 ["git", "status", "--porcelain", "-u"],
                 cwd=self._root_path,
@@ -474,7 +477,8 @@ class FileExplorer(QWidget):
                 text=True,
                 encoding="utf-8",
                 errors="replace",
-                timeout=3
+                timeout=3,
+                **kwargs
             )
             if result.returncode != 0:
                 return

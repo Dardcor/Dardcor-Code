@@ -43,17 +43,22 @@ class CommandExecutor:
         if env:
             merged_env.update(env)
 
+        popen_kwargs = {
+            "shell": shell,
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.PIPE,
+            "cwd": workdir,
+            "env": merged_env,
+            "text": True,
+            "errors": "replace",
+            "bufsize": 1,
+        }
+        if os.name == 'nt':
+            popen_kwargs['creationflags'] = 0x08000000  # CREATE_NO_WINDOW
         try:
             process = subprocess.Popen(
                 shell_cmd,
-                shell=shell,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                cwd=workdir,
-                env=merged_env,
-                text=True,
-                errors="replace",
-                bufsize=1,
+                **popen_kwargs
             )
             self._processes.append(process)
 

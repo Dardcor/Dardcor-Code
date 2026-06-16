@@ -1,6 +1,6 @@
 [Setup]
 AppName=Dardcor Code
-AppVersion=1.0.1
+AppVersion=1.0.4
 DefaultDirName={autopf}\Dardcor Code
 DefaultGroupName=Dardcor Code
 UninstallDisplayIcon={app}\Dardcor Code.exe

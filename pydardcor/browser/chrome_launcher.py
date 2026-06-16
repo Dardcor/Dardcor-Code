@@ -58,7 +58,8 @@ def open_agent_chrome(url: str = None) -> tuple[bool, str]:
             try:
                 subprocess.Popen(
                     f'start chrome "{target_url}"',
-                    shell=True
+                    shell=True,
+                    creationflags=0x08000000 # CREATE_NO_WINDOW
                 )
                 return True, "Chrome launched via shell fallback."
             except Exception as e:

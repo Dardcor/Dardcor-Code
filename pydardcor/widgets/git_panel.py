@@ -14,6 +14,9 @@ from PySide6.QtGui import QColor, QFont
 def run_git(args, cwd):
     """Run a git command and return stdout, stderr, returncode."""
     try:
+        kwargs = {}
+        if os.name == 'nt':
+            kwargs['creationflags'] = 0x08000000  # CREATE_NO_WINDOW
         result = subprocess.run(
             ["git"] + args,
             cwd=cwd,
@@ -21,7 +24,8 @@ def run_git(args, cwd):
             text=True,
             encoding="utf-8",
             errors="replace",
-            timeout=10
+            timeout=10,
+            **kwargs
         )
         return result.stdout.strip(), result.stderr.strip(), result.returncode
     except OSError:
