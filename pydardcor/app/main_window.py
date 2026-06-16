@@ -346,29 +346,29 @@ class CustomTitleBar(QWidget):
         else:
             super().mouseDoubleClickEvent(event)
 
-from ..engine.agent import Agent
-from ..engine.config import get_config
-from ..engine.memory import Conversation
-from ..engine.filesystem import parse_python_symbols
-from ..widgets.activity_bar import (
+from ..chat.agent import Agent
+from ..core.config import get_config
+from ..chat.memory import Conversation
+from ..core.filesystem import parse_python_symbols
+from ..ui_shared.activity_bar import (
     ActivityBar, VIEW_EXPLORER, VIEW_SEARCH, VIEW_SOURCE_CONTROL,
     VIEW_EXTENSIONS,
 )
-from ..widgets.file_explorer import FileExplorer
+from ..file_explorer.panel import FileExplorer
 from ..editor import EditorTabs
-from ..widgets.chat_panel import ChatPanel
-from ..widgets.status_bar import StatusBar
+from ..chat.panel import ChatPanel
+from ..ui_shared.status_bar import StatusBar
 from ..terminal import TerminalPanel
-from ..widgets.search_panel import SearchPanel
-from ..widgets.settings_dialog import SettingsDialog
-from ..widgets.command_palette import CommandPalette, GoToLineDialog, QuickOpenDialog
-from ..widgets.git_panel import GitPanel
-from ..widgets.problems_panel import ProblemsPanel
-from ..widgets.output_panel import OutputPanel
-from ..widgets.outline_panel import OutlinePanel
-from ..widgets.timeline_panel import TimelinePanel
-from ..widgets.debug_panel import DebugPanel
-from ..widgets.bottom_panel import BottomPanel
+from ..search.panel import SearchPanel
+from ..settings.settings_dialog import SettingsDialog
+from ..ui_shared.command_palette import CommandPalette, GoToLineDialog, QuickOpenDialog
+from ..git.panel import GitPanel
+from ..ui_shared.problems_panel import ProblemsPanel
+from ..ui_shared.output_panel import OutputPanel
+from ..file_explorer.outline_panel import OutlinePanel
+from ..file_explorer.timeline_panel import TimelinePanel
+from ..debug.panel import DebugPanel
+from ..ui_shared.bottom_panel import BottomPanel
 
 
 class MainWindow(QMainWindow):
@@ -563,6 +563,12 @@ class MainWindow(QMainWindow):
         self._git_panel.diff_open_requested.connect(self._open_diff_in_editor)
         self._git_panel.refreshed.connect(self._file_explorer._refresh)
         self._sidebar_stack.addWidget(self._git_panel)
+
+        # Run and Debug Panel
+        self._debug_panel = DebugPanel(self)
+        self._debug_panel.debug_requested.connect(self._start_debugging)
+        self._debug_panel.run_requested.connect(self._run_current_file)
+        self._sidebar_stack.addWidget(self._debug_panel)
 
         # Extensions placeholder
         ext_placeholder = QWidget()
@@ -821,13 +827,18 @@ class MainWindow(QMainWindow):
 
         find_replace = QAction("Replace", self)
         find_replace.setShortcut(QKeySequence("Ctrl+H"))
-        find_replace.triggered.connect(self._show_find)
+        find_replace.triggered.connect(self._show_find_replace)
         edit_menu.addAction(find_replace)
         
         find_files = QAction("Find in Files", self)
         find_files.setShortcut(QKeySequence("Ctrl+Shift+F"))
         find_files.triggered.connect(lambda: self._switch_sidebar(VIEW_SEARCH))
         edit_menu.addAction(find_files)
+
+        format_doc = QAction("Format Document", self)
+        format_doc.setShortcut(QKeySequence("Shift+Alt+F"))
+        format_doc.triggered.connect(lambda: self._editor_tabs.trigger_format() if self._editor_tabs.current_editor() else None)
+        edit_menu.addAction(format_doc)
 
         edit_menu.addSeparator()
 
@@ -1126,6 +1137,7 @@ class MainWindow(QMainWindow):
             {"id": "file.saveAs", "label": "File: Save As...", "shortcut": "Ctrl+Shift+S"},
             {"id": "edit.find", "label": "Edit: Find", "shortcut": "Ctrl+F"},
             {"id": "edit.replace", "label": "Edit: Find and Replace", "shortcut": "Ctrl+H"},
+            {"id": "edit.format", "label": "Format Document", "shortcut": "Shift+Alt+F"},
             {"id": "edit.settings", "label": "Preferences: Open Settings", "shortcut": "Ctrl+,"},
             {"id": "view.toggleSidebar", "label": "View: Toggle Sidebar Visibility", "shortcut": "Ctrl+B"},
             {"id": "view.toggleChat", "label": "View: Toggle Chat Panel", "shortcut": "Ctrl+Shift+J"},
@@ -1153,7 +1165,8 @@ class MainWindow(QMainWindow):
             "file.save": self._save_current_file,
             "file.saveAs": self._save_as,
             "edit.find": self._show_find,
-            "edit.replace": self._show_find,
+            "edit.replace": self._show_find_replace,
+            "edit.format": lambda: self._editor_tabs.trigger_format() if self._editor_tabs.current_editor() else None,
             "edit.settings": self._show_settings,
             "view.toggleSidebar": self._toggle_sidebar,
             "view.toggleChat": self._toggle_chat,
@@ -1249,31 +1262,18 @@ class MainWindow(QMainWindow):
 
     def _set_theme(self, theme_name: str):
         """Switch between Dark+, Light+, and High Contrast themes."""
-        theme_map = {
-            "dark": """
-                QMainWindow, QWidget { background-color: #000000; }
-                QPlainTextEdit { background-color: #000000; color: #d4d4d4; }
-                QMenuBar { background-color: #000000; }
-                QTreeWidget { background-color: #000000; }
-                #statusBar { background-color: #000000; border-top: 1px solid #3c0068; }
-            """,
-            "light": """
-                QMainWindow, QWidget { background-color: #ffffff; }
-                QPlainTextEdit { background-color: #ffffff; color: #000000; }
-                QMenuBar { background-color: #f3f3f3; color: #000000; }
-                QTreeWidget { background-color: #f3f3f3; color: #000000; }
-                #statusBar { background-color: #007acc; color: #ffffff; }
-            """,
-            "hc": """
-                QMainWindow, QWidget { background-color: #000000; }
-                QPlainTextEdit { background-color: #000000; color: #ffffff; }
-                QMenuBar { background-color: #000000; color: #ffffff; }
-                QTreeWidget { background-color: #0a0a0a; color: #ffffff; }
-                #statusBar { background-color: #000000; color: #ffffff; }
-            """,
-        }
-        css = theme_map.get(theme_name, theme_map["dark"])
-        self.setStyleSheet(css)
+        from .theme_manager import ThemeManager
+        from PySide6.QtWidgets import QApplication
+        
+        app = QApplication.instance()
+        if app:
+            theme_id = "dark+"
+            if theme_name == "light":
+                theme_id = "light+"
+            ThemeManager.apply_theme(app, theme_id)
+            
+        # Propagate theme changes to Monaco editor instances
+        self._editor_tabs.set_theme(theme_name)
 
     def _toggle_menu_bar(self):
         """Toggle the visibility of the menu bar."""
@@ -1447,7 +1447,7 @@ class MainWindow(QMainWindow):
 
     def _detect_git_branch(self):
         """Detect current git branch and update status bar."""
-        from ..engine.commands import CommandExecutor
+        from ..core.commands import CommandExecutor
         cmd = CommandExecutor()
         root = self._config.workspace_path or os.path.expanduser("~")
         result = cmd.execute("git rev-parse --abbrev-ref HEAD", workdir=root, timeout=5)
@@ -1480,6 +1480,11 @@ class MainWindow(QMainWindow):
         editor = self._editor_tabs.current_editor()
         if editor:
             editor.trigger_find()
+
+    def _show_find_replace(self):
+        editor = self._editor_tabs.current_editor()
+        if editor:
+            editor.trigger_find_replace()
 
     def _show_about(self):
         QMessageBox.about(
@@ -1524,7 +1529,7 @@ class MainWindow(QMainWindow):
     # ── Show/hide Git status ──────────────────────────────
 
     def _show_git_status(self):
-        from ..engine.commands import CommandExecutor
+        from ..core.commands import CommandExecutor
         cmd = CommandExecutor()
         root = self._config.workspace_path or os.path.expanduser("~")
         result = cmd.execute("git status", workdir=root, timeout=10)

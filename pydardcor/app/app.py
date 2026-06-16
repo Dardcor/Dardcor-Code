@@ -19,10 +19,8 @@ if os.name == 'nt':
     except Exception:
         pass
 
-from .windows.main_window import MainWindow
-
-
-from .windows.theme_manager import ThemeManager
+from .main_window import MainWindow
+from .theme_manager import ThemeManager
 
 def run_desktop_app():
     """Launch the Dardcor Code desktop application."""
@@ -53,7 +51,7 @@ def run_desktop_app():
     ThemeManager.apply_theme(app, "dark+")
 
     # Set app icon globally
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     logo_path = os.path.join(base_dir, "image", "dardcor.png")
     if os.path.exists(logo_path):
         app.setWindowIcon(QIcon(logo_path))

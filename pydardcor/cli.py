@@ -3,12 +3,12 @@ import argparse
 import threading
 
 from . import __version__
-from .engine.config import get_config
+from .core.config import get_config
 
 
 def cmd_desktop(args):
     try:
-        from .app import run_desktop_app
+        from .app.app import run_desktop_app
         run_desktop_app()
     except ImportError as e:
         print(f"[dardcor] ERROR: PySide6 is required.")

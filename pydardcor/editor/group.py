@@ -9,7 +9,7 @@ from PySide6.QtSvg import QSvgRenderer
 
 from .widget import MonacoEditorWidget
 from .diff_viewer import MonacoDiffEditorWidget
-from ..widgets.file_explorer import get_file_icon
+from ..file_explorer.panel import get_file_icon
 
 
 
@@ -513,6 +513,11 @@ class EditorGroup(QWidget):
     def set_word_wrap(self, enabled):
         for tab in self._tabs:
             tab.editor.set_word_wrap(enabled)
+
+    def set_theme(self, is_dark: bool):
+        for tab in self._tabs:
+            if hasattr(tab.editor, "set_theme"):
+                tab.editor.set_theme(is_dark)
 
     def trigger_find(self):
         ed = self.current_editor()

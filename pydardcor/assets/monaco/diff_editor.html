@@ -120,6 +120,10 @@
                     originalEditable: false,
                     readOnly: false,
                     renderSideBySide: true,
+                    scrollBeyondLastLine: true,
+                    smoothScrolling: true,
+                    cursorSmoothCaretAnimation: 'on',
+                    cursorBlinking: 'smooth',
                     scrollbar: {
                         vertical: 'auto',
                         horizontal: 'auto',
@@ -168,6 +172,10 @@
                 original: originalModel,
                 modified: modifiedModel
             });
+        }
+
+        function setTheme(isDark) {
+            monaco.editor.setTheme(isDark ? 'dardcor-dark' : 'vs');
         }
     </script>
 </body>

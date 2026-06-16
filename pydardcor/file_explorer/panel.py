@@ -331,6 +331,13 @@ class FileExplorer(QWidget):
         self._tree.itemCollapsed.connect(self._on_item_collapsed)
         self._tree.itemClicked.connect(self._on_item_clicked)
         self._tree.setIconSize(QSize(18, 18))
+        
+        # Drag and Drop support
+        self._tree.setDragEnabled(True)
+        self._tree.setAcceptDrops(True)
+        self._tree.setDropIndicatorShown(True)
+        self._tree.setDragDropMode(QTreeWidget.InternalMove)
+        self._tree.viewport().setAcceptDrops(True)
 
         self._tree.setStyleSheet("""
             QTreeWidget {

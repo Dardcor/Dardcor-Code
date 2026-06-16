@@ -5,10 +5,10 @@ import json
 import threading
 from typing import Callable, Optional, List, Dict, Any
 
-from .config import get_config, AppConfig
+from ..core.config import get_config, AppConfig
 from .memory import Conversation, ConversationStore, Message
-from .commands import CommandExecutor, CommandResult
-from .filesystem import FileSystem
+from ..core.commands import CommandExecutor, CommandResult
+from ..core.filesystem import FileSystem
 
 
 # Tool definitions for the AI agent
@@ -168,6 +168,37 @@ TOOLS = [
                     "query": {"type": "string", "description": "The search query (e.g. 'settings dialog', 'terminal setup')"}
                 },
                 "required": ["query"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "invoke_subagent",
+            "description": "Invoke a specialized subagent to perform a task.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "agent_type": {"type": "string", "description": "Type of agent (e.g. 'browser')"},
+                    "task": {"type": "string", "description": "The task for the subagent to complete"}
+                },
+                "required": ["agent_type", "task"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "manage_task",
+            "description": "Manage background tasks (list, status, kill, send_input).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "action": {"type": "string", "description": "list, status, kill, or send_input"},
+                    "task_id": {"type": "string", "description": "ID of the task (for status/kill/send_input)"},
+                    "input_text": {"type": "string", "description": "Text to send (for send_input)"}
+                },
+                "required": ["action"]
             }
         }
     },
@@ -520,6 +551,32 @@ class Agent:
                     return "Error: No query specified"
                 root = self._config.workspace_path or os.getcwd()
                 return self._tfidf_search(root, query)
+
+            elif name == "invoke_subagent":
+                agent_type = args.get("agent_type", "")
+                task = args.get("task", "")
+                if not agent_type or not task:
+                    return "Error: Missing agent_type or task"
+                if agent_type == "browser":
+                    from .browser_agent import BrowserAgent
+                    agent = BrowserAgent(self)
+                    return agent.run_task(task)
+                else:
+                    return f"Error: Unknown agent type '{agent_type}'"
+
+            elif name == "manage_task":
+                # Stub implementation for task management
+                action = args.get("action", "")
+                task_id = args.get("task_id", "")
+                if action == "list":
+                    return "Running Tasks:\n- (None)"
+                elif action == "status":
+                    return f"Task {task_id} not found."
+                elif action == "kill":
+                    return f"Task {task_id} killed."
+                elif action == "send_input":
+                    return f"Input sent to task {task_id}."
+                return "Unknown action."
 
             else:
                 return f"Unknown tool: {name}"

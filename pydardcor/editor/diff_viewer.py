@@ -90,3 +90,8 @@ class MonacoDiffEditorWidget(QWidget):
 
     def focus(self):
         self._view.setFocus()
+
+    def set_theme(self, is_dark):
+        if self._view_ready:
+            val = "true" if is_dark else "false"
+            self._view.page().runJavaScript(f"setTheme({val});")

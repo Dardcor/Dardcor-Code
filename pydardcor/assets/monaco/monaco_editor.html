@@ -132,7 +132,12 @@
                 lineNumbersMinChars: 1,
                 lineDecorationsWidth: 0,
                 renderLineHighlight: 'line',
-                scrollBeyondLastLine: false,
+                scrollBeyondLastLine: true,
+                smoothScrolling: true,
+                cursorSmoothCaretAnimation: 'on',
+                cursorBlinking: 'smooth',
+                colorDecorators: true,
+                showUnused: true,
                 minimap: {
                     enabled: true,
                     maxColumn: 80,
@@ -164,7 +169,6 @@
                 guides: { bracketPairs: true, indentation: true },
                 renderWhitespace: 'none',
                 renderControlCharacters: false,
-                cursorBlinking: 'blink',
                 cursorStyle: 'line',
                 cursorWidth: 2,
                 mouseWheelZoom: true,
@@ -219,6 +223,29 @@
                             });
                         } else {
                             resolve({ suggestions: [] });
+                        }
+                    });
+                }
+            });
+
+            // Register hover provider
+            monaco.languages.registerHoverProvider('python', {
+                provideHover: function(model, position) {
+                    return new Promise(function(resolve, reject) {
+                        if (backend && typeof backend.get_hover === 'function') {
+                            var line = position.lineNumber;
+                            var column = position.column;
+                            backend.get_hover(line, column, function(res) {
+                                if (res && res.trim() !== "") {
+                                    resolve({
+                                        contents: [{ value: res }]
+                                    });
+                                } else {
+                                    resolve(null);
+                                }
+                            });
+                        } else {
+                            resolve(null);
                         }
                     });
                 }

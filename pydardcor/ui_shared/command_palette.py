@@ -367,7 +367,7 @@ class QuickOpenDialog(QDialog):
         if self._all_files:
             return
 
-        from ..engine.filesystem import FileSystem, should_skip_dir, is_binary
+        from ..core.filesystem import FileSystem, should_skip_dir, is_binary
         skip_dirs = {".git", "__pycache__", "node_modules", ".venv", "venv",
                      "dist", "build", ".next", ".nuxt", "target"}
 
@@ -440,7 +440,7 @@ class QuickOpenDialog(QDialog):
                 editor = parent._editor_tabs.current_editor()
                 if editor:
                     content = editor.get_content()
-                    from ..engine.filesystem import parse_python_symbols
+                    from ..core.filesystem import parse_python_symbols
                     symbols = parse_python_symbols(content)
                     
                     flat_symbols = []

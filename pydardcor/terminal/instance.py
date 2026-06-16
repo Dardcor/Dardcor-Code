@@ -79,7 +79,7 @@ class TerminalInstance(QWidget):
 
         # Apply current theme colors
         try:
-            from ..windows.theme_manager import ThemeManager
+            from ..app.theme_manager import ThemeManager
             theme_data = ThemeManager.THEMES.get(ThemeManager._current_theme, ThemeManager.THEMES["dark+"])
             c = theme_data["colors"]
             is_dark = (theme_data.get("type", "dark") == "dark")
@@ -253,6 +253,12 @@ class TerminalInstance(QWidget):
             except Exception:
                 pass
             self._process = None
+
+    def split(self, direction="horizontal"):
+        """Stub for splitting this terminal instance."""
+        # In a full implementation, this would emit a signal to the parent
+        # container to create a QSplitter and add a new TerminalInstance.
+        pass
 
     def closeEvent(self, event):
         self.kill()
