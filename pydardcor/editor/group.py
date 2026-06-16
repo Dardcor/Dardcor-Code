@@ -458,6 +458,7 @@ class EditorGroup(QWidget):
         if not self._tabs:
             self._stack.setCurrentWidget(self._welcome)
             self._current_idx = -1
+            self.tab_changed.emit("", "")
 
     def _on_tab_changed(self, idx):
         self._switch_tab(idx)

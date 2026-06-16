@@ -16,9 +16,10 @@ import pydardcor.terminal.backend as backend
 class TerminalInstance(QWidget):
     """Single terminal instance backed by pywinpty + xterm.js via QWebEngineView."""
 
-    def __init__(self, workdir: str = None, parent=None):
+    def __init__(self, workdir: str = None, shell: str = None, parent=None):
         super().__init__(parent)
         self._workdir = workdir or os.path.expanduser("~")
+        self._shell = shell
         self._pty = None
         self._reader_thread = None
         self._process = None
@@ -107,7 +108,7 @@ class TerminalInstance(QWidget):
 
     def _start_shell(self):
         """Spawn the shell: pywinpty PTY → fallback to QProcess."""
-        cmd = get_shell_cmd()
+        cmd = self._shell or get_shell_cmd()
         env = os.environ.copy()
 
         if backend.HAS_PTY:

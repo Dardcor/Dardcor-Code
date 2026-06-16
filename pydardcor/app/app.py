@@ -7,6 +7,12 @@ import sys
 import os
 import signal
 
+# Suppress Qt QPA font warnings on Windows (DirectWrite font database issues with legacy/bitmap fonts)
+if os.name == "nt":
+    existing = os.environ.get("QT_LOGGING_RULES", "")
+    if "qt.qpa.fonts" not in existing:
+        os.environ["QT_LOGGING_RULES"] = f"{existing};qt.qpa.fonts=false;qt.qpa.fonts.warning=false".strip(";")
+
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import Qt, QTimer, QLocale
 from PySide6.QtGui import QFont, QPalette, QColor, QIcon, QFontDatabase

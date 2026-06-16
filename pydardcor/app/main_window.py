@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QSplitter, QStackedWidget, QMessageBox, QApplication,
     QFileDialog, QInputDialog, QLabel, QMenuBar, QPushButton,
-    QPlainTextEdit, QDialog, QFontDialog,
+    QPlainTextEdit, QDialog, QFontDialog, QSizePolicy,
 )
 from PySide6.QtCore import Qt, QTimer, QPoint, QEvent
 from PySide6.QtGui import (
@@ -22,6 +22,10 @@ from PySide6.QtGui import (
     QPixmap, QIcon, QPainter, QColor
 )
 
+from ..ui_shared.breadcrumbs import BreadcrumbsBar
+from ..editor.markdown_preview import MarkdownPreviewWidget
+from ..editor.zen_mode import ZenModeManager
+from ..settings.keybindings_dialog import KeybindingsDialog, KeybindingsManager
 
 class ChromeButton(QPushButton):
     """Button that paints the Chrome logo and opens agent Chrome on click."""
@@ -349,7 +353,7 @@ class CustomTitleBar(QWidget):
             super().mouseDoubleClickEvent(event)
 
 from ..chat.agent import Agent
-from ..core.config import get_config
+from ..core.config import get_config, CONFIG_FILE
 from ..chat.memory import Conversation
 from ..core.filesystem import parse_python_symbols
 from ..ui_shared.activity_bar import (
@@ -362,7 +366,6 @@ from ..chat.panel import ChatPanel
 from ..ui_shared.status_bar import StatusBar
 from ..terminal import TerminalPanel
 from ..search.panel import SearchPanel
-from ..settings.settings_dialog import SettingsDialog
 from ..ui_shared.command_palette import CommandPalette, GoToLineDialog, QuickOpenDialog
 from ..git.panel import GitPanel
 from ..ui_shared.problems_panel import ProblemsPanel
@@ -385,6 +388,9 @@ class MainWindow(QMainWindow):
         self._current_active_editor = None
         self._setup_agent()
         self._setup_ui()
+        self._zen_mode = ZenModeManager(self)
+        self._setup_breadcrumbs()
+        self._setup_keybindings()
         self._setup_menu()
         self._setup_shortcuts()
         self._setup_command_palette()
@@ -597,6 +603,20 @@ class MainWindow(QMainWindow):
         # ── Editor Tabs ──
         self._editor_tabs = EditorTabs()
 
+        # ── Breadcrumbs Navigation Bar ──
+        self._breadcrumbs_bar = BreadcrumbsBar()
+        self._breadcrumbs_bar.hide()  # Hidden until a file is open
+
+        # Container: breadcrumbs + editor stacked vertically
+        self._editor_container = QWidget()
+        self._editor_container.setStyleSheet("background-color: #3c0068;")
+        self._editor_container_layout = QVBoxLayout(self._editor_container)
+        self._editor_container_layout.setSizeConstraint(QVBoxLayout.SetNoConstraint)
+        self._editor_container_layout.setContentsMargins(0, 0, 0, 0)
+        self._editor_container_layout.setSpacing(0)
+        self._editor_container_layout.addWidget(self._breadcrumbs_bar)
+        self._editor_container_layout.addWidget(self._editor_tabs)
+
         # ── Chat Panel ──
         self._chat_panel = ChatPanel()
         self._chat_panel.message_sent.connect(self._on_chat_message)
@@ -623,15 +643,22 @@ class MainWindow(QMainWindow):
 
         # Editor + Terminal vertical splitter
         self._editor_term_split = QSplitter(Qt.Vertical)
-        self._editor_term_split.addWidget(self._editor_tabs)
+        self._editor_term_split.addWidget(self._editor_container)
         self._editor_term_split.addWidget(self._bottom_panel)
         self._editor_term_split.setStretchFactor(0, 1)
         self._editor_term_split.setStretchFactor(1, 0)
         self._editor_term_split.setSizes([600, 250])
         self._editor_term_split.setChildrenCollapsible(False)
-        self._editor_tabs.setMinimumHeight(50)
+        self._editor_term_split.setCollapsible(0, False)
+        self._editor_term_split.setCollapsible(1, False)
+        self._editor_tabs.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+        self._breadcrumbs_bar.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+        self._editor_container.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+        self._editor_tabs.setMinimumHeight(1)
+        self._breadcrumbs_bar.setMinimumHeight(1)
+        self._editor_container.setMinimumHeight(1)
         self._bottom_panel.setMinimumHeight(80)
-        self._editor_term_split.setHandleWidth(4)
+        self._editor_term_split.setHandleWidth(1)
         self._editor_term_split.setStyleSheet("""
             QSplitter::handle {
                 background-color: #3c0068;
@@ -844,11 +871,6 @@ class MainWindow(QMainWindow):
 
         edit_menu.addSeparator()
 
-        settings_action = QAction("Settings", self)
-        settings_action.setShortcut(QKeySequence("Ctrl+,"))
-        settings_action.triggered.connect(self._show_settings)
-        edit_menu.addAction(settings_action)
-
         # ── Selection menu ──
         sel_menu = menubar.addMenu("&Selection")
 
@@ -1025,6 +1047,20 @@ class MainWindow(QMainWindow):
         zoom_out.triggered.connect(self._zoom_out)
         view_menu.addAction(zoom_out)
 
+        view_menu.addSeparator()
+
+        zen_mode_action = QAction("Zen Mode", self)
+        zen_mode_action.setShortcut(QKeySequence("Ctrl+K, Z"))
+        zen_mode_action.triggered.connect(self._zen_mode.toggle_zen_mode)
+        view_menu.addAction(zen_mode_action)
+
+        view_menu.addSeparator()
+
+        md_preview_action = QAction("Markdown Preview", self)
+        md_preview_action.setShortcut(QKeySequence("Ctrl+Shift+V"))
+        md_preview_action.triggered.connect(self._open_markdown_preview)
+        view_menu.addAction(md_preview_action)
+
         # ── Go menu ──
         go_menu = menubar.addMenu("&Go")
 
@@ -1163,7 +1199,7 @@ class MainWindow(QMainWindow):
             {"id": "edit.find", "label": "Edit: Find", "shortcut": "Ctrl+F"},
             {"id": "edit.replace", "label": "Edit: Find and Replace", "shortcut": "Ctrl+H"},
             {"id": "edit.format", "label": "Format Document", "shortcut": "Shift+Alt+F"},
-            {"id": "edit.settings", "label": "Preferences: Open Settings", "shortcut": "Ctrl+,"},
+            {"id": "edit.settings", "label": "Preferences: Open Settings", "shortcut": ""},
             {"id": "view.toggleSidebar", "label": "View: Toggle Sidebar Visibility", "shortcut": "Ctrl+B"},
             {"id": "view.toggleChat", "label": "View: Toggle Chat Panel", "shortcut": "Ctrl+Shift+J"},
             {"id": "view.toggleTerminal", "label": "View: Toggle Terminal", "shortcut": "Ctrl+`"},
@@ -1176,11 +1212,68 @@ class MainWindow(QMainWindow):
             {"id": "view.zoomIn", "label": "View: Zoom In", "shortcut": "Ctrl+="},
             {"id": "view.zoomOut", "label": "View: Zoom Out", "shortcut": "Ctrl+-"},
             {"id": "view.wordWrap", "label": "View: Toggle Word Wrap", "shortcut": "Alt+Z"},
+            {"id": "view.zenMode", "label": "View: Toggle Zen Mode", "shortcut": "Ctrl+K, Z"},
+            {"id": "markdown.preview", "label": "Markdown: Open Preview", "shortcut": "Ctrl+Shift+V"},
             {"id": "terminal.new", "label": "Terminal: Create New Terminal", "shortcut": "Ctrl+Shift+`"},
             {"id": "agent.newConversation", "label": "Dardcor AI: New Conversation", "shortcut": ""},
             {"id": "help.about", "label": "Help: About Dardcor Code", "shortcut": ""},
             {"id": "help.shortcuts", "label": "Help: Keyboard Shortcuts Reference", "shortcut": ""},
         ]
+
+    # ── Breadcrumbs ───────────────────────────────────────
+
+    def _setup_breadcrumbs(self):
+        """Connect breadcrumbs signals to handlers."""
+        self._breadcrumbs_bar.segment_clicked.connect(self._on_breadcrumb_clicked)
+        self._breadcrumbs_bar.symbol_selected.connect(self._on_breadcrumb_symbol)
+
+    def _on_breadcrumb_clicked(self, path: str):
+        """Open QuickOpen filtered to the clicked breadcrumb path."""
+        editor = self._editor_tabs.current_editor()
+        if editor:
+            editor.show_quick_open(path)
+
+    def _on_breadcrumb_symbol(self, line: int):
+        """Jump to the selected symbol line in the editor."""
+        editor = self._editor_tabs.current_editor()
+        if editor:
+            editor.reveal_line(line)
+
+    # ── Keybindings ────────────────────────────────────────
+
+    def _setup_keybindings(self):
+        """Initialize keybindings manager with defaults from command palette."""
+        defaults = [
+            {"id": k, "label": v, "shortcut": s}
+            for k, v, s in [
+                ("file.new", "File: New File", "Ctrl+N"),
+                ("file.open", "File: Open File...", "Ctrl+O"),
+                ("file.openFolder", "File: Open Folder...", "Ctrl+K"),
+                ("file.save", "File: Save", "Ctrl+S"),
+                ("file.saveAs", "File: Save As...", "Ctrl+Shift+S"),
+                ("edit.find", "Edit: Find", "Ctrl+F"),
+                ("edit.replace", "Edit: Find and Replace", "Ctrl+H"),
+                ("edit.format", "Format Document", "Shift+Alt+F"),
+                ("edit.settings", "Preferences: Open Settings", ""),
+                ("view.toggleSidebar", "View: Toggle Sidebar Visibility", "Ctrl+B"),
+                ("view.toggleChat", "View: Toggle Chat Panel", "Ctrl+Shift+J"),
+                ("view.toggleTerminal", "View: Toggle Terminal", "Ctrl+`"),
+                ("view.quickOpen", "Go to File...", "Ctrl+P"),
+                ("view.goToLine", "Go to Line...", "Ctrl+G"),
+                ("view.commandPalette", "Show All Commands", "Ctrl+Shift+P"),
+                ("view.explorer", "View: Show Explorer", "Ctrl+Shift+E"),
+                ("view.search", "View: Show Search", "Ctrl+Shift+F"),
+                ("view.sourceControl", "View: Show Source Control", "Ctrl+Shift+G"),
+                ("view.zoomIn", "View: Zoom In", "Ctrl+="),
+                ("view.zoomOut", "View: Zoom Out", "Ctrl+-"),
+                ("view.wordWrap", "View: Toggle Word Wrap", "Alt+Z"),
+                ("terminal.new", "Terminal: Create New Terminal", "Ctrl+Shift+`"),
+                ("agent.newConversation", "Dardcor AI: New Conversation", ""),
+                ("help.about", "Help: About Dardcor Code", ""),
+                ("help.shortcuts", "Help: Keyboard Shortcuts Reference", ""),
+            ]
+        ]
+        self._keybindings_manager = KeybindingsManager(defaults)
 
     def _execute_command(self, cmd_id: str):
         handlers = {
@@ -1192,7 +1285,6 @@ class MainWindow(QMainWindow):
             "edit.find": self._show_find,
             "edit.replace": self._show_find_replace,
             "edit.format": lambda: self._editor_tabs.trigger_format() if self._editor_tabs.current_editor() else None,
-            "edit.settings": self._show_settings,
             "view.toggleSidebar": self._toggle_sidebar,
             "view.toggleChat": self._toggle_chat,
             "view.toggleTerminal": self._toggle_terminal,
@@ -1205,6 +1297,8 @@ class MainWindow(QMainWindow):
             "view.zoomIn": self._zoom_in,
             "view.zoomOut": self._zoom_out,
             "view.wordWrap": self._toggle_word_wrap,
+            "view.zenMode": self._zen_mode.toggle_zen_mode,
+            "markdown.preview": self._open_markdown_preview,
             "terminal.new": self._new_terminal,
             "agent.newConversation": self._new_conversation,
             "help.about": self._show_about,
@@ -1372,6 +1466,13 @@ class MainWindow(QMainWindow):
         self._timeline_panel.update_timeline(file_path)
         self._update_outline(file_path)
 
+        # Update Breadcrumbs
+        if file_path:
+            self._breadcrumbs_bar.show()
+            self._breadcrumbs_bar.update_breadcrumbs(file_path)
+        else:
+            self._breadcrumbs_bar.hide()
+
         # Update git panel root if needed
         editor = self._editor_tabs.current_editor()
         self._current_active_editor = editor
@@ -1381,6 +1482,7 @@ class MainWindow(QMainWindow):
 
     def _on_cursor_moved(self, line: int, col: int):
         self._status_bar.set_cursor_position(line, col)
+        self._breadcrumbs_bar.update_current_symbol(line)
 
     def _on_outline_item_selected(self, line: int):
         editor = self._editor_tabs.current_editor()
@@ -1482,10 +1584,6 @@ class MainWindow(QMainWindow):
 
     # ── Dialogs ───────────────────────────────────────────
 
-    def _show_settings(self):
-        dialog = SettingsDialog(self)
-        dialog.exec()
-
     def _show_command_palette(self):
         self._command_palette.set_commands(self._commands)
         self._command_palette.show_palette()
@@ -1524,32 +1622,32 @@ class MainWindow(QMainWindow):
         )
 
     def _show_keyboard_shortcuts(self):
-        shortcuts_text = (
-            "Keyboard Shortcuts\n\n"
-            "Ctrl+Shift+P    Command Palette\n"
-            "Ctrl+P          Quick Open File\n"
-            "Ctrl+G          Go to Line\n"
-            "Ctrl+F          Find\n"
-            "Ctrl+H          Find and Replace\n"
-            "Ctrl+N          New File\n"
-            "Ctrl+O          Open File\n"
-            "Ctrl+K          Open Folder\n"
-            "Ctrl+S          Save\n"
-            "Ctrl+Shift+S    Save As\n"
-            "Ctrl+B          Toggle Sidebar\n"
-            "Ctrl+`          Toggle Terminal\n"
-            "Ctrl+Shift+J    Toggle Chat\n"
-            "Ctrl+,          Settings\n"
-            "Ctrl+/          Toggle Comment\n"
-            "Ctrl+D          Duplicate Line\n"
-            "Ctrl+=          Zoom In\n"
-            "Ctrl+-          Zoom Out\n"
-            "Alt+Z           Toggle Word Wrap\n"
-            "Tab             Indent / Insert Spaces\n"
-            "Shift+Tab       Unindent\n"
-            "Ctrl+Q          Exit\n"
-        )
-        QMessageBox.information(self, "Keyboard Shortcuts", shortcuts_text)
+        dialog = KeybindingsDialog(self._keybindings_manager, self)
+        dialog.exec()
+
+    # ── Markdown Preview ──────────────────────────────────
+
+    def _open_markdown_preview(self):
+        """Open a markdown preview dialog for the current file."""
+        editor = self._editor_tabs.current_editor()
+        if not editor:
+            return
+        file_path = editor.get_file_path()
+        if not file_path:
+            return
+        if not file_path.lower().endswith(('.md', '.markdown')):
+            QMessageBox.information(self, "Markdown Preview",
+                "The current file is not a Markdown file.")
+            return
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Preview: {os.path.basename(file_path)}")
+        dialog.resize(800, 600)
+        preview = MarkdownPreviewWidget(file_path, dialog)
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(preview)
+        dialog.setStyleSheet("QDialog { background-color: #1e1b2e; }")
+        dialog.exec()
 
     # ── Show/hide Git status ──────────────────────────────
 

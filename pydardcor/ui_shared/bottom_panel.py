@@ -1,7 +1,8 @@
 """Bottom Panel - Unified container for Problems, Output, Debug, Terminal."""
 
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QStackedWidget, QSizePolicy
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QStackedWidget, QSplitter
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont
 
 class BottomPanelButton(QPushButton):
     def __init__(self, text, parent=None):
@@ -11,21 +12,20 @@ class BottomPanelButton(QPushButton):
         self.setStyleSheet("""
             QPushButton {
                 background: transparent;
-                color: #888888;
+                color: #969696;
                 border: none;
-                border-bottom: 1px solid transparent;
-                padding: 0px 14px;
+                border-bottom: 2px solid transparent;
+                padding: 0px 16px;
+                font-family: "Segoe UI", sans-serif;
                 font-size: 11px;
-                font-weight: normal;
-                letter-spacing: 0.5px;
+                font-weight: 600;
             }
             QPushButton:hover {
-                color: #cccccc;
+                color: #e7e7e7;
             }
             QPushButton:checked {
-                color: #cccccc;
-                border-bottom: 1px solid #cccccc;
-                font-weight: bold;
+                color: #ffffff;
+                border-bottom: 2px solid #3c0068; /* Purple accent */
             }
         """)
         self.setCheckable(True)
@@ -34,11 +34,14 @@ class BottomPanel(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("bottomPanel")
+        self.setStyleSheet("background-color: #000000;")
         
         self._problems_widget = None
         self._output_widget = None
         self._debug_widget = None
         self._terminal_widget = None
+        self._is_maximized = False
+        self._prev_sizes = None
         
         self._setup_ui()
 
@@ -47,27 +50,31 @@ class BottomPanel(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        # Header bar
+        # Header bar styled like VS Code
         self.header = QWidget()
         self.header.setFixedHeight(35)
         self.header.setStyleSheet("""
             background-color: #000000;
-            border-top: 1px solid #3c0068;
+            border-bottom: 1px solid #000000;
         """)
         self.header_layout = QHBoxLayout(self.header)
         self.header_layout.setContentsMargins(0, 0, 4, 0)
         self.header_layout.setSpacing(0)
 
-        # Left tabs
+        # Left tabs (Uppercase like VS Code)
         self.tabs_container = QWidget()
         self.tabs_layout = QHBoxLayout(self.tabs_container)
         self.tabs_layout.setContentsMargins(0, 0, 0, 0)
         self.tabs_layout.setSpacing(0)
         
-        self.btn_problems = BottomPanelButton("Problems")
-        self.btn_output = BottomPanelButton("Output")
-        self.btn_debug = BottomPanelButton("Debug Console")
-        self.btn_terminal = BottomPanelButton("Terminal")
+        self.btn_problems = BottomPanelButton("PROBLEMS")
+        self.btn_problems.setObjectName("btnProblems")
+        self.btn_output = BottomPanelButton("OUTPUT")
+        self.btn_output.setObjectName("btnOutput")
+        self.btn_debug = BottomPanelButton("DEBUG CONSOLE")
+        self.btn_debug.setObjectName("btnDebugConsole")
+        self.btn_terminal = BottomPanelButton("TERMINAL")
+        self.btn_terminal.setObjectName("btnTerminal")
         
         self.tabs_layout.addWidget(self.btn_problems)
         self.tabs_layout.addWidget(self.btn_output)
@@ -75,7 +82,7 @@ class BottomPanel(QWidget):
         self.tabs_layout.addWidget(self.btn_terminal)
         
         self.header_layout.addWidget(self.tabs_container)
-        self.header_layout.addStretch(1) # push terminal tabs to the right
+        self.header_layout.addStretch(1) # push terminal controls and actions to the right
         
         # Right controls container (will hold terminal toolbar)
         self.right_controls = QWidget()
@@ -84,7 +91,26 @@ class BottomPanel(QWidget):
         self.right_layout.setSpacing(0)
         self.header_layout.addWidget(self.right_controls)
 
-        from PySide6.QtGui import QFont
+        # Add maximize button
+        self.btn_maximize = QPushButton("\ueaaf") # chevron-up (maximize)
+        self.btn_maximize.setFont(QFont("codicon", 14))
+        self.btn_maximize.setFixedSize(28, 28)
+        self.btn_maximize.setToolTip("Maximize Panel Size")
+        self.btn_maximize.setStyleSheet("""
+            QPushButton {
+                background: transparent; border: none;
+                color: #cccccc; font-size: 14px;
+                font-family: "codicon";
+                border-radius: 3px;
+                padding: 0px; /* Override global QPushButton padding */
+            }
+            QPushButton:hover {
+                background-color: rgba(90,93,94,0.31);
+            }
+        """)
+        self.btn_maximize.clicked.connect(self._toggle_maximize)
+        self.header_layout.addWidget(self.btn_maximize)
+
         # Add panel close button at the very right
         close_btn = QPushButton("\uea76") # Codicon close
         close_btn.setFont(QFont("codicon", 14))
@@ -96,6 +122,7 @@ class BottomPanel(QWidget):
                 color: #cccccc; font-size: 14px;
                 font-family: "codicon";
                 border-radius: 3px;
+                padding: 0px; /* Override global QPushButton padding */
             }
             QPushButton:hover {
                 background-color: rgba(90,93,94,0.31);
@@ -159,3 +186,35 @@ class BottomPanel(QWidget):
         if idx == 2: return "debug"
         if idx == 3: return "terminal"
         return ""
+
+    def _toggle_maximize(self):
+        self._is_maximized = not self._is_maximized
+        if self._is_maximized:
+            self.btn_maximize.setText("\ueaab") # chevron-down (restore)
+            self.btn_maximize.setToolTip("Restore Panel Size")
+        else:
+            self.btn_maximize.setText("\ueaaf") # chevron-up (maximize)
+            self.btn_maximize.setToolTip("Maximize Panel Size")
+            
+        parent_splitter = self.parent()
+        if isinstance(parent_splitter, QSplitter):
+            editor_container = parent_splitter.widget(0)
+            if self._is_maximized:
+                # Save previous sizes before hiding
+                self._prev_sizes = parent_splitter.sizes()
+                if editor_container:
+                    editor_container.hide()
+            else:
+                if editor_container:
+                    editor_container.show()
+                # Restore previous sizes
+                if self._prev_sizes:
+                    parent_splitter.setSizes(self._prev_sizes)
+                else:
+                    parent_splitter.setSizes([600, 250])
+
+    def hideEvent(self, event):
+        # Restore editor container visibility if panel is closed/hidden while maximized
+        if self._is_maximized:
+            self._toggle_maximize()
+        super().hideEvent(event)
