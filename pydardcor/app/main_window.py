@@ -220,7 +220,8 @@ class CustomTitleBar(QWidget):
                 background-color: transparent;
                 border: none;
                 color: #cccccc;
-                font-size: 12px;
+                font-family: codicon;
+                font-size: 16px;
                 width: 38px;
                 height: 35px;
                 padding: 0px;
@@ -234,7 +235,8 @@ class CustomTitleBar(QWidget):
                 background-color: transparent;
                 border: none;
                 color: #cccccc;
-                font-size: 12px;
+                font-family: codicon;
+                font-size: 16px;
                 width: 38px;
                 height: 35px;
                 padding: 0px;
@@ -245,17 +247,17 @@ class CustomTitleBar(QWidget):
             }
         """
         
-        self.min_btn = QPushButton("—")
+        self.min_btn = QPushButton("\ueaba")
         self.min_btn.setFixedSize(38, 35)
         self.min_btn.setStyleSheet(btn_style)
         self.min_btn.clicked.connect(self.parent.showMinimized)
 
-        self.max_btn = QPushButton("☐")
+        self.max_btn = QPushButton("\ueab9")
         self.max_btn.setFixedSize(38, 35)
         self.max_btn.setStyleSheet(btn_style)
         self.max_btn.clicked.connect(self.toggle_max_restore)
 
-        self.close_btn = QPushButton("✕")
+        self.close_btn = QPushButton("\ueab8")
         self.close_btn.setFixedSize(38, 35)
         self.close_btn.setStyleSheet(close_btn_style)
         self.close_btn.clicked.connect(self.parent.close)
@@ -392,9 +394,9 @@ class MainWindow(QMainWindow):
     def changeEvent(self, event):
         if event.type() == QEvent.WindowStateChange:
             if self.isMaximized():
-                self._title_bar.max_btn.setText("❐")
+                self._title_bar.max_btn.setText("\ueabb") # chrome-restore
             else:
-                self._title_bar.max_btn.setText("☐")
+                self._title_bar.max_btn.setText("\ueab9") # chrome-maximize
         super().changeEvent(event)
 
     def nativeEvent(self, eventType, message):
@@ -876,6 +878,18 @@ class MainWindow(QMainWindow):
         copy_down.setShortcut(QKeySequence("Shift+Alt+Down"))
         copy_down.triggered.connect(self._editor_tabs.copy_line_down)
         sel_menu.addAction(copy_down)
+        
+        sel_menu.addSeparator()
+        
+        add_cursor_above = QAction("Add Cursor Above", self)
+        add_cursor_above.setShortcut(QKeySequence("Ctrl+Alt+Up"))
+        add_cursor_above.triggered.connect(lambda: QMessageBox.information(self, "Selection", "Multi-cursor coming soon."))
+        sel_menu.addAction(add_cursor_above)
+
+        add_cursor_below = QAction("Add Cursor Below", self)
+        add_cursor_below.setShortcut(QKeySequence("Ctrl+Alt+Down"))
+        add_cursor_below.triggered.connect(lambda: QMessageBox.information(self, "Selection", "Multi-cursor coming soon."))
+        sel_menu.addAction(add_cursor_below)
 
         # ── View menu ──
         view_menu = menubar.addMenu("&View")
@@ -889,6 +903,12 @@ class MainWindow(QMainWindow):
         quick_open.setShortcut(QKeySequence("Ctrl+P"))
         quick_open.triggered.connect(self._show_quick_open)
         view_menu.addAction(quick_open)
+
+        view_menu.addSeparator()
+
+        open_view = QAction("Open View...", self)
+        open_view.triggered.connect(self._show_command_palette)
+        view_menu.addAction(open_view)
 
         view_menu.addSeparator()
 
@@ -1077,6 +1097,11 @@ class MainWindow(QMainWindow):
         new_terminal.setShortcut(QKeySequence("Ctrl+Shift+`"))
         new_terminal.triggered.connect(self._new_terminal)
         terminal_menu.addAction(new_terminal)
+
+        split_terminal = QAction("Split Terminal", self)
+        split_terminal.setShortcut(QKeySequence("Ctrl+Shift+5"))
+        split_terminal.triggered.connect(lambda: QMessageBox.information(self, "Terminal", "Split terminal coming soon."))
+        terminal_menu.addAction(split_terminal)
 
         kill_terminal = QAction("Kill Terminal", self)
         kill_terminal.triggered.connect(self._kill_terminal)
