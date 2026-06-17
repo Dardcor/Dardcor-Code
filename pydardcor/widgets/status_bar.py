@@ -179,6 +179,17 @@ class StatusBar(QStatusBar):
         self._ai_btn.setToolTip("Dardcor Settings")
         self.addPermanentWidget(self._ai_btn)
 
+        self._ext_btn = StatusBarButton("")
+        self._ext_btn.setToolTip("Extension Status")
+        self._ext_btn.setStyleSheet("""
+            QPushButton {
+                background: #007acc; color: #ffffff; border: none;
+                padding: 0px 8px; font-size: 11px;
+            }
+        """)
+        self._ext_btn.hide()
+        self.addPermanentWidget(self._ext_btn)
+
         self._notif_btn = StatusBarButton("\ueaa2")
         self._notif_btn.setFixedWidth(28)
         self._notif_btn.setToolTip("No Notifications")
@@ -225,3 +236,11 @@ class StatusBar(QStatusBar):
             self._remote_btn.show()
         else:
             self._remote_btn.hide()
+
+    def set_ext_status(self, text: str, tooltip: str = ""):
+        self._ext_btn.setText(text)
+        self._ext_btn.setToolTip(tooltip)
+        self._ext_btn.show()
+
+    def clear_ext_status(self):
+        self._ext_btn.hide()

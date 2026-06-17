@@ -369,6 +369,8 @@ from ..widgets.outline_panel import OutlinePanel
 from ..widgets.timeline_panel import TimelinePanel
 from ..widgets.debug_panel import DebugPanel
 from ..widgets.bottom_panel import BottomPanel
+from ..widgets.extensions_panel import ExtensionsPanel
+from ..engine.extension_manager import get_extension_manager
 
 
 class MainWindow(QMainWindow):
@@ -381,11 +383,13 @@ class MainWindow(QMainWindow):
         self._current_conversation_id = None
         self._font_size = self._config.font_size
         self._current_active_editor = None
+        self._ext_manager = get_extension_manager()
         self._setup_agent()
         self._setup_ui()
         self._setup_menu()
         self._setup_shortcuts()
         self._setup_command_palette()
+        self._setup_extensions()
 
     # ── Window Events (Native Resizing & Maximize Icon) ──
 
@@ -520,69 +524,47 @@ class MainWindow(QMainWindow):
         self._sidebar_stack = QStackedWidget()
         self._sidebar_stack.setMinimumWidth(200)
 
-        root_path = self._config.workspace_path or os.path.expanduser("~")
-        if not os.path.exists(root_path):
-            root_path = os.path.expanduser("~")
-
-        # Explorer Panel wrapper — File explorer fills space, Outline/Timeline pinned at bottom
         explorer_wrapper = QWidget()
         explorer_wrapper.setStyleSheet("background-color: #000000;")
         explorer_layout = QVBoxLayout(explorer_wrapper)
         explorer_layout.setContentsMargins(0, 0, 0, 0)
         explorer_layout.setSpacing(0)
 
-        self._file_explorer = FileExplorer(root_path=root_path)
+        self._file_explorer = FileExplorer(root_path=None)
         self._file_explorer.file_selected.connect(self._open_file_in_editor)
         self._file_explorer.root_changed.connect(self._on_root_changed)
-        
+
         self._outline_panel = OutlinePanel()
         self._outline_panel.item_selected.connect(self._on_outline_item_selected)
-        
+
         self._timeline_panel = TimelinePanel()
 
-        # File explorer takes all remaining space
         explorer_layout.addWidget(self._file_explorer, 1)
-        # Outline and Timeline are pinned at the bottom as compact collapsible headers
         explorer_layout.addWidget(self._outline_panel, 0)
         explorer_layout.addWidget(self._timeline_panel, 0)
-        # Add stretch at the bottom so Outline/Timeline slide up when File Explorer collapses
         explorer_layout.addStretch(0)
 
         self._sidebar_stack.addWidget(explorer_wrapper)
 
-        # Search
-        self._search_panel = SearchPanel(root_path=root_path)
+        self._search_panel = SearchPanel(root_path="")
         self._search_panel.file_selected.connect(
             lambda f, l: self._open_file_at_line(f, l)
         )
         self._sidebar_stack.addWidget(self._search_panel)
 
-        # Source Control - Full Git Panel
-        self._git_panel = GitPanel(root_path=root_path)
+        self._git_panel = GitPanel(root_path="")
         self._git_panel.file_open_requested.connect(self._open_file_in_editor)
         self._git_panel.diff_open_requested.connect(self._open_diff_in_editor)
         self._git_panel.refreshed.connect(self._file_explorer._refresh)
         self._sidebar_stack.addWidget(self._git_panel)
 
-        # Extensions placeholder
-        ext_placeholder = QWidget()
-        ext_placeholder.setStyleSheet("background-color: #000000;")
-        ext_layout = QVBoxLayout(ext_placeholder)
-        ext_layout.setAlignment(Qt.AlignTop)
-        ext_layout.setContentsMargins(16, 16, 16, 16)
-        ext_title = QLabel("EXTENSIONS")
-        ext_title.setStyleSheet("""
-            color: #bbbbbb; font-size: 11px;
-            font-weight: 600; letter-spacing: 1.2px;
-            padding-bottom: 12px;
-        """)
-        ext_layout.addWidget(ext_title)
-        ext_info = QLabel("Extensions coming soon.\n\nDardcor Code supports AI-powered\ncoding out of the box.")
-        ext_info.setStyleSheet("color: #858585; font-size: 13px;")
-        ext_info.setWordWrap(True)
-        ext_layout.addWidget(ext_info)
-        ext_layout.addStretch()
-        self._sidebar_stack.addWidget(ext_placeholder)
+        self._debug_panel = DebugPanel()
+        self._debug_panel.debug_requested.connect(self._start_debugging)
+        self._sidebar_stack.addWidget(self._debug_panel)
+
+        self._extensions_panel = ExtensionsPanel()
+        self._extensions_panel.extension_installed.connect(self._on_extension_installed)
+        self._sidebar_stack.addWidget(self._extensions_panel)
 
         self._sidebar_stack.setCurrentIndex(0)
 
@@ -593,14 +575,15 @@ class MainWindow(QMainWindow):
         self._chat_panel = ChatPanel()
         self._chat_panel.message_sent.connect(self._on_chat_message)
         self._chat_panel._request_new_conversation = self._new_conversation
-        self._chat_panel.set_workspace_name(os.path.basename(root_path.rstrip("/\\\\")).lower() if root_path.rstrip("/\\\\") else "")
+        self._chat_panel.set_close_callback(self._toggle_chat)
+        self._chat_panel.set_workspace_name("")
 
         # ── Bottom Panels ──
         self._problems_panel = ProblemsPanel()
         self._problems_panel.problem_selected.connect(self._open_file_at_line)
         self._output_panel = OutputPanel()
-        self._debug_console = OutputPanel() # Use OutputPanel logic for REPL placeholder
-        self._terminal_panel = TerminalPanel(root_path=root_path)
+        self._debug_console = OutputPanel()
+        self._terminal_panel = TerminalPanel(root_path=os.path.expanduser("~"))
 
         self._bottom_panel = BottomPanel()
         self._bottom_panel.set_panels(
@@ -690,16 +673,16 @@ class MainWindow(QMainWindow):
 
         # Detect git branch
         QTimer.singleShot(1000, self._detect_git_branch)
-        
-        # Init layout toggle button states
-        # Use correct initial state (sidebar=visible, chat=hidden initially, bottom=hidden)
-        self._title_bar.btn_left_sidebar.setChecked(True)   # sidebar starts visible
-        self._title_bar.btn_right_sidebar.setChecked(True)  # chat starts visible
-        self._title_bar.btn_bottom_panel.setChecked(False)   # bottom starts hidden
-        self._chat_panel.show()  # Start with chat visible
 
-        # Sync button states after window is fully shown
+        self._title_bar.btn_left_sidebar.setChecked(True)
+        self._title_bar.btn_right_sidebar.setChecked(True)
+        self._title_bar.btn_bottom_panel.setChecked(False)
+        self._chat_panel.show()
+
         QTimer.singleShot(100, self._sync_toggle_states)
+
+        if self._config.workspace_path and os.path.exists(self._config.workspace_path):
+            QTimer.singleShot(200, lambda: self._file_explorer.set_root(self._config.workspace_path))
 
     # ── Menu Bar ──────────────────────────────────────────
 
@@ -1175,6 +1158,80 @@ class MainWindow(QMainWindow):
         handler = handlers.get(cmd_id)
         if handler:
             handler()
+        else:
+            self._ext_manager.execute_command(cmd_id)
+
+    def _setup_extensions(self):
+        from ..engine.lsp_client import get_lsp_manager
+        from ..engine.dap_client import get_dap_manager
+        self._lsp_manager = get_lsp_manager()
+        self._dap_manager = get_dap_manager()
+
+        self._ext_manager.set_event_handler("get_active_editor_content", lambda _: self._editor_tabs.current_editor().get_content() if self._editor_tabs.current_editor() else "")
+        self._ext_manager.set_event_handler("get_active_editor_path", lambda _: self._editor_tabs.current_editor().get_file_path() if self._editor_tabs.current_editor() else "")
+        self._ext_manager.set_event_handler("set_active_editor_content", lambda c: self._editor_tabs.current_editor().set_content(c) if self._editor_tabs.current_editor() else None)
+        self._ext_manager.set_event_handler("insert_text_at_cursor", lambda t: self._editor_tabs.current_editor().insert_text(t) if self._editor_tabs.current_editor() else None)
+        self._ext_manager.set_event_handler("open_file", lambda p: self._open_file_in_editor(p))
+        self._ext_manager.set_event_handler("get_config", lambda d: self._config.__dict__.get(d["key"], d["default"]))
+        self._ext_manager.set_event_handler("set_config", lambda d: setattr(self._config, d["key"], d["value"]) or self._config.save())
+        self._ext_manager.set_event_handler("get_workspace_path", lambda _: self._config.workspace_path or "")
+        self._ext_manager.set_event_handler("notification", lambda d: QMessageBox.information(self, "Extension", d["message"]) if d["type"] == "info" else QMessageBox.warning(self, "Extension", d["message"]))
+
+        from ..engine.extension_host import get_extension_host
+        host = get_extension_host()
+        host.register_callback("commands.registerCommand", lambda cmd: None)
+        host.register_callback("commands.unregisterCommand", lambda cmd: None)
+        host.register_callback("window.showInformationMessage", lambda msg: QMessageBox.information(self, "Extension", msg))
+        host.register_callback("window.showWarningMessage", lambda msg: QMessageBox.warning(self, "Extension", msg))
+        host.register_callback("window.showErrorMessage", lambda msg: QMessageBox.critical(self, "Extension", msg))
+        host.register_callback("window.statusBarShow", lambda p: self._status_bar.set_ext_status(p.get("text", ""), p.get("tooltip", "")))
+        host.register_callback("window.createTerminal", lambda p: self._new_terminal())
+        host.register_callback("window.createOutputChannel", lambda p: None)
+        host.register_callback("window.outputAppend", lambda p: None)
+
+        self._ext_manager.activate_all_enabled()
+        self._apply_extension_menu_items()
+
+    def _apply_extension_menu_items(self):
+        ext_menu = self._title_bar.menu_bar.addMenu("Extensions")
+        for item in self._ext_manager.get_menu_items():
+            action = QAction(item.label, self)
+            if item.shortcut:
+                action.setShortcut(QKeySequence(item.shortcut))
+            action.triggered.connect(lambda checked=False, cmd=item.command_id: self._ext_manager.execute_command(cmd))
+            ext_menu.addAction(action)
+
+    def _on_extension_installed(self, ext_name: str):
+        self._ext_manager.activate_extension(ext_name)
+        self._apply_extension_menu_items()
+        for cmd_id, cmd in self._ext_manager.get_all_commands().items():
+            found = any(c["id"] == cmd_id for c in self._commands)
+            if not found:
+                self._commands.append({"id": cmd_id, "label": cmd.label, "shortcut": cmd.shortcut})
+
+    def _on_lsp_diagnostics(self, uri: str, diagnostics: list):
+        markers = []
+        for d in diagnostics:
+            rng = d.get("range", {})
+            start = rng.get("start", {})
+            end = rng.get("end", {})
+            sev = d.get("severity", 1)
+            markers_map = {1: "error", 2: "warning", 3: "information", 4: "hint"}
+            markers.append({
+                "severity": markers_map.get(sev, "warning"),
+                "startLine": start.get("line", 0) + 1,
+                "startColumn": start.get("character", 0),
+                "endLine": end.get("line", 0) + 1,
+                "endColumn": end.get("character", 0),
+                "message": d.get("message", ""),
+                "source": d.get("source", "lsp"),
+            })
+        editor = self._editor_tabs.current_editor()
+        if editor and uri.replace("\\", "/").endswith((editor.get_file_path() or "").replace("\\", "/").split("/")[-1]):
+            editor.set_diagnostics(markers)
+        errors = sum(1 for m in markers if m["severity"] == "error")
+        warnings = sum(1 for m in markers if m["severity"] == "warning")
+        self._status_bar.set_errors_warnings(errors, warnings)
 
     # ── File operations ───────────────────────────────────
 
@@ -1197,6 +1254,15 @@ class MainWindow(QMainWindow):
             editor = self._editor_tabs.open_file(path)
             if editor:
                 self._status_bar.set_language(editor.get_language())
+                lang_id = "python" if path.endswith(".py") else ""
+                if lang_id and hasattr(self, "_lsp_manager"):
+                    client = self._lsp_manager.get_client(lang_id)
+                    if not client:
+                        if lang_id == "python":
+                            client = self._lsp_manager.start_python_lsp()
+                    if client:
+                        editor.set_lsp_client(client)
+                        client.on_diagnostics(self._on_lsp_diagnostics)
             self._status_bar.set_cursor_position(1, 1)
 
     def _open_diff_in_editor(self, path: str, original: str, modified: str):
@@ -1234,12 +1300,10 @@ class MainWindow(QMainWindow):
         self._editor_tabs.close_current()
 
     def _close_folder(self):
-        """Close the current workspace folder."""
         self._config.workspace_path = ""
         self._config.save()
-        default_root = os.path.expanduser("~")
-        self._file_explorer.set_root(default_root)
-        self._on_root_changed(default_root)
+        self._file_explorer.set_root(None)
+        self._on_root_changed(None)
 
     def _select_all(self):
         """Select all text via Monaco's built-in command."""
@@ -1291,15 +1355,26 @@ class MainWindow(QMainWindow):
         self._bottom_panel.set_active_view("debug")
         
     def _start_debugging(self):
-        """Start debugging the current file."""
         editor = self._editor_tabs.current_editor()
         if not editor or not editor.get_file_path():
             return
         self._bottom_panel.set_active_view("debug")
-        self._debug_console.append("DAP (Debug Adapter Protocol) is initializing...", "Debug")
-        self._debug_console.append(f"Attaching to {editor.get_file_path()}", "Debug")
-        self._editor_tabs.show_debug_toolbar(True)
-        # In a real impl, we start `python -m debugpy` and connect via socket.
+        file_path = editor.get_file_path()
+        self._dap_manager.set_workspace(self._config.workspace_path or os.path.dirname(file_path))
+        self._dap_manager.on_event(self._on_dap_event)
+
+        def worker():
+            config = {"type": "python", "request": "launch", "name": "Debug", "program": file_path, "console": "integratedTerminal"}
+            client = self._dap_manager.start_python_debug(config)
+            if client:
+                self._debug_panel.set_dap_client(client)
+            else:
+                self._debug_panel._status_label.setText("Failed to start debugger")
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_dap_event(self, event_name: str, body: dict):
+        pass
         
     def _run_current_file(self):
         """Run the currently open file."""
@@ -1334,8 +1409,7 @@ class MainWindow(QMainWindow):
 
     def _on_tab_changed(self, file_path: str, language: str):
         self._status_bar.set_language(language)
-        
-        # Disconnect old editor to prevent double triggers
+
         if self._current_active_editor:
             try:
                 self._current_active_editor.cursor_position_changed.disconnect(self._on_cursor_moved)
@@ -1343,16 +1417,15 @@ class MainWindow(QMainWindow):
             except (TypeError, RuntimeError):
                 pass
 
-        # Update Outline/Timeline
         self._timeline_panel.update_timeline(file_path)
         self._update_outline(file_path)
 
-        # Update git panel root if needed
         editor = self._editor_tabs.current_editor()
         self._current_active_editor = editor
         if editor:
             editor.cursor_position_changed.connect(self._on_cursor_moved)
             editor.content_changed.connect(self._on_editor_content_changed)
+            self._ext_manager.fire_event("active_editor_changed", file_path)
 
     def _on_cursor_moved(self, line: int, col: int):
         self._status_bar.set_cursor_position(line, col)
@@ -1387,13 +1460,15 @@ class MainWindow(QMainWindow):
     # ── Root / workspace ──────────────────────────────────
 
     def _on_root_changed(self, path: str):
-        self._search_panel.set_root(path)
-        self._terminal_panel.set_workdir(path)
-        self._quick_open.set_root(path)
-        self._quick_open._all_files = []  # Reset file cache
-        self._chat_panel.set_workspace_name(os.path.basename(path.rstrip("/\\\\")).lower() if path.rstrip("/\\\\") else "")
-        self._git_panel.set_root(path)
-        self._config.workspace_path = path
+        effective = path or ""
+        self._search_panel.set_root(effective)
+        self._terminal_panel.set_workdir(effective or os.path.expanduser("~"))
+        self._quick_open.set_root(effective)
+        self._quick_open._all_files = []
+        basename = os.path.basename(effective.rstrip("/\\")) if effective else ""
+        self._chat_panel.set_workspace_name(basename.lower())
+        self._git_panel.set_root(effective)
+        self._config.workspace_path = effective
         self._config.save()
         QTimer.singleShot(100, self._detect_git_branch)
 

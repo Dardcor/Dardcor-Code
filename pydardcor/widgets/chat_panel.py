@@ -99,8 +99,10 @@ class ChatPanel(QWidget):
         header_layout.addWidget(hist_btn)
 
         close_btn = create_header_btn("\uea76", "Close Chat")
-        close_btn.clicked.connect(self.hide)
+        close_btn.clicked.connect(self._request_close)
         header_layout.addWidget(close_btn)
+
+        self._close_callback = None
 
         layout.addWidget(header)
 
@@ -268,8 +270,16 @@ class ChatPanel(QWidget):
         self._workspace_lbl.setText(name)
 
     def _request_new_conversation(self):
-        """Placeholder - connected by main_window."""
         pass
+
+    def _request_close(self):
+        if self._close_callback:
+            self._close_callback()
+        else:
+            self.hide()
+
+    def set_close_callback(self, callback):
+        self._close_callback = callback
 
     def _on_input_changed(self):
         text = self._input.toPlainText().strip()

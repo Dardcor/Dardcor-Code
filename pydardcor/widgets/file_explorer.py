@@ -255,11 +255,12 @@ class FileExplorer(QWidget):
 
     def __init__(self, root_path: str = None, parent=None):
         super().__init__(parent)
-        self._root_path = root_path or os.path.expanduser("~")
+        self._root_path = root_path  # Keep None if no folder is open
         self._git_status = {}
         self._git_folders = set()
         self._in_inline_edit = False
         self._force_expand_root = True  # Flag to force expansion on first load or when root changes
+        self._welcome_widget = None
         self.setObjectName("fileExplorer")
         self._setup_ui()
 
@@ -317,6 +318,37 @@ class FileExplorer(QWidget):
 
         layout.addWidget(header)
 
+        self._welcome_widget = QWidget()
+        self._welcome_widget.setStyleSheet("background-color: #000000;")
+        welcome_layout = QVBoxLayout(self._welcome_widget)
+        welcome_layout.setAlignment(Qt.AlignCenter)
+        welcome_layout.setContentsMargins(20, 20, 20, 20)
+
+        folder_icon = QLabel("\U0001F4C2")
+        folder_icon.setStyleSheet("font-size: 48px;")
+        folder_icon.setAlignment(Qt.AlignCenter)
+        welcome_layout.addWidget(folder_icon)
+
+        no_folder_label = QLabel("No folder opened")
+        no_folder_label.setStyleSheet("color: #858585; font-size: 13px; padding: 10px;")
+        no_folder_label.setAlignment(Qt.AlignCenter)
+        welcome_layout.addWidget(no_folder_label)
+
+        open_folder_btn = QPushButton("Open Folder")
+        open_folder_btn.setFixedWidth(140)
+        open_folder_btn.setCursor(Qt.PointingHandCursor)
+        open_folder_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #3c0068; color: #ffffff; border: none;
+                padding: 8px 16px; border-radius: 4px; font-size: 12px; font-weight: bold;
+            }
+            QPushButton:hover { background-color: #4a0072; }
+        """)
+        open_folder_btn.clicked.connect(self._open_folder)
+        welcome_layout.addWidget(open_folder_btn, alignment=Qt.AlignCenter)
+
+        layout.addWidget(self._welcome_widget)
+
         # Tree widget
         self._tree = QTreeWidget()
         self._tree.setStyle(TreeBranchStyle())
@@ -361,7 +393,15 @@ class FileExplorer(QWidget):
         layout.addWidget(self._tree)
 
         self._tree.itemChanged.connect(self._on_item_changed)
-        self._refresh()
+        
+        # Only refresh if we have a root path
+        if self._root_path:
+            self._welcome_widget.hide()
+            self._tree.show()
+            self._refresh()
+        else:
+            self._welcome_widget.show()
+            self._tree.hide()
 
     def _load_directory(self, path: str, parent_item: QTreeWidgetItem = None):
         try:
@@ -528,6 +568,14 @@ class FileExplorer(QWidget):
             restore_item(self._tree.topLevelItem(i))
 
     def _refresh(self):
+        if not self._root_path:
+            self._welcome_widget.show()
+            self._tree.hide()
+            return
+
+        self._welcome_widget.hide()
+        self._tree.show()
+
         # Save active expansion states
         expanded = self._get_expanded_paths()
         
@@ -563,10 +611,13 @@ class FileExplorer(QWidget):
         self._restore_expanded_paths(expanded)
 
     def _open_folder(self):
-        folder = QFileDialog.getExistingDirectory(self, "Open Folder", self._root_path)
+        start_dir = self._root_path if self._root_path else os.path.expanduser("~")
+        folder = QFileDialog.getExistingDirectory(self, "Open Folder", start_dir)
         if folder:
             self._root_path = folder
             self._force_expand_root = True
+            self._welcome_widget.hide()
+            self._tree.show()
             self._refresh()
             self.root_changed.emit(folder)
 
@@ -846,7 +897,16 @@ class FileExplorer(QWidget):
     def set_root(self, path: str):
         self._root_path = path
         self._force_expand_root = True
-        self._refresh()
+        if path:
+            self._welcome_widget.hide()
+            self._tree.show()
+            self._refresh()
+        else:
+            self._welcome_widget.show()
+            self._tree.hide()
 
     def get_root(self) -> str:
         return self._root_path
+
+    def is_empty(self) -> bool:
+        return self._root_path is None

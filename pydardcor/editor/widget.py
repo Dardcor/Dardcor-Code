@@ -9,14 +9,14 @@ from PySide6.QtWebChannel import QWebChannel
 from .bridge import EditorBridge
 from .language import detect_language, LANGUAGE_DISPLAY
 
-class MonacoEditorWidget(QWidget):
-    """Single Monaco Editor instance backed by QWebEngineView."""
 
+class MonacoEditorWidget(QWidget):
     content_changed = Signal(str)
     cursor_position_changed = Signal(int, int)
     save_requested = Signal()
     command_palette_requested = Signal()
     diagnostics_ready = Signal(list)
+    definition_found = Signal(str, int, int)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -25,6 +25,7 @@ class MonacoEditorWidget(QWidget):
         self._dirty = False
         self._content = ""
         self._view_ready = False
+        self._lsp_client = None
         self.diagnostics_ready.connect(self.set_diagnostics)
         self._setup_ui()
 
@@ -83,6 +84,8 @@ class MonacoEditorWidget(QWidget):
         self.content_changed.emit(content)
 
     def open_file(self, file_path):
+        if self._file_path and self._lsp_client:
+            self._bridge.notify_closed()
         self._file_path = file_path
         self._language = detect_language(file_path)
         try:
@@ -93,6 +96,11 @@ class MonacoEditorWidget(QWidget):
         self._dirty = False
         if self._view_ready:
             self._apply_pending_content()
+        self._bridge.set_file_path(file_path)
+        if self._lsp_client:
+            QTimer.singleShot(300, self._run_lsp_diagnostics)
+        elif self._file_path and self._file_path.endswith(".py"):
+            QTimer.singleShot(600, self._run_linter)
 
     def set_content(self, content, language="plaintext"):
         self._content = content
@@ -124,6 +132,84 @@ class MonacoEditorWidget(QWidget):
         self._file_path = path
         self._language = detect_language(path)
         return self.save()
+
+    def set_lsp_client(self, client):
+        self._lsp_client = client
+        self._bridge.set_lsp_client(client)
+
+    def _run_lsp_diagnostics(self):
+        if not self._lsp_client or not self._file_path:
+            return
+
+        def worker():
+            try:
+                import urllib.parse
+                uri = "file:///" + self._file_path.replace("\\", "/")
+                from ..engine.lsp_client import LSPClient
+                resp = self._lsp_client._send_request_sync("textDocument/diagnostic", {
+                    "textDocument": {"uri": uri}
+                }, timeout=5.0)
+                diagnostics = []
+                if resp and "items" in resp:
+                    for d in resp["items"]:
+                        rng = d.get("range", {})
+                        start = rng.get("start", {})
+                        end = rng.get("end", {})
+                        sev = d.get("severity", 1)
+                        markers = {1: "error", 2: "warning", 3: "information", 4: "hint"}
+                        diagnostics.append({
+                            "severity": markers.get(sev, "warning"),
+                            "startLine": start.get("line", 0) + 1,
+                            "startColumn": start.get("character", 0),
+                            "endLine": end.get("line", 0) + 1,
+                            "endColumn": end.get("character", 0),
+                            "message": d.get("message", ""),
+                            "source": d.get("source", "lsp"),
+                        })
+                self.diagnostics_ready.emit(diagnostics)
+            except Exception:
+                pass
+
+        import threading
+        threading.Thread(target=worker, daemon=True).start()
+
+    def go_to_definition(self):
+        if self._lsp_client and self._file_path and self._view_ready:
+            def worker():
+                js = "var pos = editor.getPosition(); pos ? pos.lineNumber + ',' + pos.column : '0,0';"
+                result = [None]
+                self._view.page().runJavaScript(js, lambda r: result.__setitem__(0, r))
+                import time
+                time.sleep(0.1)
+                if result[0]:
+                    parts = result[0].split(",")
+                    line, col = int(parts[0]), int(parts[1])
+                    def_result = self._bridge.get_definition(self._content, line, col)
+                    if def_result:
+                        data = json.loads(def_result)
+                        uri = data.get("uri", "")
+                        def_line = data.get("line", 0)
+                        def_char = data.get("character", 0)
+                        if uri.startswith("file:///"):
+                            def_path = uri[8:].replace("/", os.sep)
+                            self.definition_found.emit(def_path, def_line, def_char)
+            import threading
+            threading.Thread(target=worker, daemon=True).start()
+        elif self._view_ready:
+            self._view.page().runJavaScript("editor.trigger('keyboard', 'editor.action.revealDefinition', null);")
+
+    def get_hover_at_cursor(self):
+        if self._lsp_client and self._file_path and self._view_ready:
+            js = "var pos = editor.getPosition(); pos ? pos.lineNumber + ',' + pos.column : '0,0';"
+            result = [None]
+            self._view.page().runJavaScript(js, lambda r: result.__setitem__(0, r))
+            import time
+            time.sleep(0.1)
+            if result[0]:
+                parts = result[0].split(",")
+                line, col = int(parts[0]), int(parts[1])
+                return self._bridge.get_hover(self._content, line, col)
+        return ""
 
     def is_dirty(self):
         return self._dirty

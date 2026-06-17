@@ -11,6 +11,8 @@ def cmd_desktop(args):
         from .app import run_desktop_app
         run_desktop_app()
     except ImportError as e:
+        import traceback
+        traceback.print_exc()
         print(f"[dardcor] ERROR: PySide6 is required.")
         print(f"[dardcor] Install: pip install PySide6")
         sys.exit(1)

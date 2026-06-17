@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QLabel, QTreeWidget, QTreeWidgetItem, QCheckBox, QMessageBox
 )
 from PySide6.QtCore import Signal, Qt
-from PySide6.QtGui import QColor
+from PySide6.QtGui import QColor, QFont
 
 from ..engine.filesystem import FileSystem
 
@@ -16,12 +16,14 @@ class SearchPanel(QWidget):
     """VS Code style search panel for searching across files."""
 
     file_selected = Signal(str, int)
+    _results_ready = Signal(str, list)
 
     def __init__(self, root_path: str = None, parent=None):
         super().__init__(parent)
         self._fs = FileSystem()
         self._root_path = root_path or os.path.expanduser("~")
         self._total_matches = 0
+        self._results_ready.connect(self._display_results)
         self._total_files = 0
         self.setObjectName("searchPanel")
         self._setup_ui()
@@ -87,18 +89,18 @@ class SearchPanel(QWidget):
         search_layout.setContentsMargins(12, 8, 12, 8)
         search_layout.setSpacing(6)
 
-        # Search input row
+        # Search input row with inline match options
         search_row = QHBoxLayout()
         search_row.setSpacing(4)
 
         self._query_input = QLineEdit()
         self._query_input.setPlaceholderText("Search")
-        self._query_input.setFixedHeight(26)
+        self._query_input.setFixedHeight(28)
         self._query_input.setStyleSheet(self._input_style())
         self._query_input.returnPressed.connect(self._search)
-        search_row.addWidget(self._query_input)
+        search_row.addWidget(self._query_input, 1)
+        search_row.setStretch(0, 1)
 
-        # Match case
         self._case_btn = QPushButton("Aa")
         self._case_btn.setCheckable(True)
         self._case_btn.setFixedSize(26, 26)
@@ -106,7 +108,6 @@ class SearchPanel(QWidget):
         self._case_btn.setStyleSheet(self._toggle_btn_style())
         search_row.addWidget(self._case_btn)
 
-        # Whole word
         self._word_btn = QPushButton("ab")
         self._word_btn.setCheckable(True)
         self._word_btn.setFixedSize(26, 26)
@@ -114,7 +115,6 @@ class SearchPanel(QWidget):
         self._word_btn.setStyleSheet(self._toggle_btn_style())
         search_row.addWidget(self._word_btn)
 
-        # Regex
         self._regex_btn = QPushButton(".*")
         self._regex_btn.setCheckable(True)
         self._regex_btn.setFixedSize(26, 26)
@@ -124,15 +124,14 @@ class SearchPanel(QWidget):
 
         search_layout.addLayout(search_row)
 
-        # Replace input row
         replace_row = QHBoxLayout()
         replace_row.setSpacing(4)
 
         self._replace_input = QLineEdit()
         self._replace_input.setPlaceholderText("Replace")
-        self._replace_input.setFixedHeight(26)
+        self._replace_input.setFixedHeight(28)
         self._replace_input.setStyleSheet(self._input_style())
-        replace_row.addWidget(self._replace_input)
+        replace_row.addWidget(self._replace_input, 1)
 
         replace_btn = QPushButton("\u21b7")
         replace_btn.setFixedSize(26, 26)
@@ -143,18 +142,35 @@ class SearchPanel(QWidget):
 
         search_layout.addLayout(replace_row)
 
-        # Files to include/exclude
+        include_widget = QWidget()
+        include_layout = QHBoxLayout(include_widget)
+        include_layout.setContentsMargins(0, 0, 0, 0)
+        include_layout.setSpacing(4)
+        inc_label = QLabel("Include:")
+        inc_label.setStyleSheet("color: #858585; font-size: 10px; padding: 0 4px 0 0;")
+        include_layout.addWidget(inc_label)
         self._include_input = QLineEdit()
-        self._include_input.setPlaceholderText("files to include (e.g. *.py, src/)")
-        self._include_input.setFixedHeight(24)
+        self._include_input.setPlaceholderText("*.py, src/")
+        self._include_input.setFixedHeight(22)
         self._include_input.setStyleSheet(self._input_style())
-        search_layout.addWidget(self._include_input)
+        self._include_input.setFont(QFont("Consolas", 9))
+        include_layout.addWidget(self._include_input, 1)
+        search_layout.addWidget(include_widget)
 
+        exclude_widget = QWidget()
+        exclude_layout = QHBoxLayout(exclude_widget)
+        exclude_layout.setContentsMargins(0, 0, 0, 0)
+        exclude_layout.setSpacing(4)
+        exc_label = QLabel("Exclude:")
+        exc_label.setStyleSheet("color: #858585; font-size: 10px; padding: 0 4px 0 0;")
+        exclude_layout.addWidget(exc_label)
         self._exclude_input = QLineEdit()
-        self._exclude_input.setPlaceholderText("files to exclude")
-        self._exclude_input.setFixedHeight(24)
+        self._exclude_input.setPlaceholderText(".git, node_modules")
+        self._exclude_input.setFixedHeight(22)
         self._exclude_input.setStyleSheet(self._input_style())
-        search_layout.addWidget(self._exclude_input)
+        self._exclude_input.setFont(QFont("Consolas", 9))
+        exclude_layout.addWidget(self._exclude_input, 1)
+        search_layout.addWidget(exclude_widget)
 
         layout.addWidget(search_area)
 
@@ -250,8 +266,7 @@ class SearchPanel(QWidget):
                 whole_word=self._word_btn.isChecked(),
                 file_pattern=file_pattern,
             )
-            # Safe UI update via signal or just standard queued call (using display_results directly usually works in simple apps, but should really be a signal)
-            self._display_results(query, results)
+            self._results_ready.emit(query, results)
 
         threading.Thread(target=do_search, daemon=True).start()
 

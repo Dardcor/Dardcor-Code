@@ -1,14 +1,11 @@
 import os
 import json
-import subprocess
 from PySide6.QtCore import QObject, Signal, Slot
 
-class EditorBridge(QObject):
-    """Bridge object exposed to Monaco Editor via QWebChannel."""
 
-    # Signals (Monaco -> Python)
-    content_changed = Signal(str)       # fired whenever user types
-    cursor_changed = Signal(int, int)   # line, column
+class EditorBridge(QObject):
+    content_changed = Signal(str)
+    cursor_changed = Signal(int, int)
     save_requested = Signal()
     command_palette_requested = Signal()
 
@@ -16,37 +13,75 @@ class EditorBridge(QObject):
         super().__init__(parent)
         self._diagnostics_callback = None
         self._file_path = None
+        self._lsp_client = None
+        self._document_version = 0
+
+    def set_lsp_client(self, client):
+        self._lsp_client = client
 
     @Slot(str)
     def on_content_changed(self, content):
-        """Called by Monaco when user edits text."""
+        self._content = content
+        self._document_version += 1
+        if self._lsp_client and self._file_path:
+            self._lsp_client.did_change(
+                self._file_path,
+                [{"range": {"start": {"line": 0, "character": 0}, "end": {"line": 99999, "character": 0}}, "text": content}],
+                self._document_version,
+            )
         self.content_changed.emit(content)
 
     @Slot(int, int)
     def on_cursor_changed(self, line, col):
-        """Called by Monaco when cursor moves."""
         self.cursor_changed.emit(line, col)
 
     @Slot()
     def request_save(self):
-        """Called by Monaco when user presses Ctrl+S."""
+        if self._lsp_client and self._file_path:
+            self._lsp_client.did_save(self._file_path, self._content)
         self.save_requested.emit()
 
     @Slot()
     def request_command_palette(self):
-        """Called by Monaco when user presses Ctrl+Shift+P."""
         self.command_palette_requested.emit()
 
     @Slot(str, int, int, result=str)
     def get_completions(self, code, line, col):
-        """Called by Monaco to get python/word completions."""
+        if self._lsp_client and self._file_path:
+            try:
+                items = self._lsp_client.completion(self._file_path, line - 1, col - 1)
+                results = []
+                for item in items[:50]:
+                    kind_map = {
+                        1: 1, 2: 2, 3: 2, 4: 5, 5: 6, 6: 4,
+                        7: 5, 8: 9, 9: 9, 10: 6, 11: 12, 12: 12,
+                        13: 5, 14: 12, 15: 15, 16: 14, 17: 17,
+                        18: 17, 19: 19, 20: 5, 21: 4, 22: 5,
+                        23: 12, 24: 12, 25: 5,
+                    }
+                    insert = item.get("insertText", {})
+                    insert_text = insert.get("value", item.get("label", "")) if isinstance(insert, dict) else str(insert)
+                    results.append({
+                        "label": item.get("label", ""),
+                        "insertText": insert_text,
+                        "kind": kind_map.get(item.get("kind", 1), 12),
+                        "detail": item.get("detail", ""),
+                        "documentation": item.get("documentation", "") if isinstance(item.get("documentation"), str) else "",
+                        "typedLength": 0,
+                    })
+                return json.dumps(results)
+            except Exception:
+                pass
+
+        return self._fallback_completions(code, line, col)
+
+    def _fallback_completions(self, code, line, col):
         try:
             import jedi
-            script = jedi.Script(code, path=self._file_path or '')
+            script = jedi.Script(code, path=self._file_path or "")
             completions = script.complete(line, col - 1)
             results = []
             for c in completions:
-                # Monaco Suggestion Kinds: Class=5, Function=2, Keyword=12, Variable=4
                 kind = 12
                 if c.type == "class":
                     kind = 5
@@ -59,36 +94,108 @@ class EditorBridge(QObject):
                     "insertText": c.complete,
                     "kind": kind,
                     "detail": c.description,
-                    "typedLength": len(c.name) - len(c.complete)
+                    "typedLength": len(c.name) - len(c.complete),
                 })
             return json.dumps(results)
         except Exception:
-            # Intelligent fallback parser using regex for local tokens
-            import re
-            keywords = ["def", "class", "import", "from", "return", "if", "elif", "else", "for", "while", "try", "except", "finally", "with", "as", "pass", "break", "continue", "print", "len", "range", "self", "None", "True", "False"]
-            words = set(re.findall(r"\b[a-zA-Z_][a-zA-Z0-9_]*\b", code))
-            all_suggestions = sorted(list(words.union(keywords)))
-            
-            # Extract word being typed
-            lines = code.splitlines()
-            current_line = lines[line - 1] if 0 < line <= len(lines) else ""
-            typed_word = ""
-            if current_line and 0 < col <= len(current_line) + 1:
-                match = re.search(r"([a-zA-Z_][a-zA-Z0-9_]*)$", current_line[:col-1])
-                if match:
-                    typed_word = match.group(1)
-            
-            results = []
-            for w in all_suggestions:
-                if w.lower().startswith(typed_word.lower()) and w != typed_word:
-                    results.append({
-                        "label": w,
-                        "insertText": w[len(typed_word):],
-                        "kind": 12 if w in keywords else 4,
-                        "detail": "keyword" if w in keywords else "local token",
-                        "typedLength": len(typed_word)
-                    })
-            return json.dumps(results)
+            pass
+
+        import re
+        keywords = ["def", "class", "import", "from", "return", "if", "elif", "else", "for", "while", "try", "except", "finally", "with", "as", "pass", "break", "continue", "print", "len", "range", "self", "None", "True", "False"]
+        words = set(re.findall(r"\b[a-zA-Z_][a-zA-Z0-9_]*\b", code))
+        all_suggestions = sorted(list(words.union(keywords)))
+
+        lines = code.splitlines()
+        current_line = lines[line - 1] if 0 < line <= len(lines) else ""
+        typed_word = ""
+        if current_line and 0 < col <= len(current_line) + 1:
+            match = re.search(r"([a-zA-Z_][a-zA-Z0-9_]*)$", current_line[:col - 1])
+            if match:
+                typed_word = match.group(1)
+
+        results = []
+        for w in all_suggestions:
+            if w.lower().startswith(typed_word.lower()) and w != typed_word:
+                results.append({
+                    "label": w,
+                    "insertText": w[len(typed_word):],
+                    "kind": 12 if w in keywords else 4,
+                    "detail": "keyword" if w in keywords else "local token",
+                    "typedLength": len(typed_word),
+                })
+        return json.dumps(results)
+
+    @Slot(str, int, int, result=str)
+    def get_hover(self, code, line, col):
+        if self._lsp_client and self._file_path:
+            try:
+                result = self._lsp_client.hover(self._file_path, line - 1, col - 1)
+                if result and "contents" in result:
+                    contents = result["contents"]
+                    if isinstance(contents, str):
+                        return contents
+                    if isinstance(contents, dict):
+                        return contents.get("value", "")
+                    if isinstance(contents, list) and contents:
+                        first = contents[0]
+                        if isinstance(first, str):
+                            return first
+                        if isinstance(first, dict):
+                            return first.get("value", "")
+            except Exception:
+                pass
+        return ""
+
+    @Slot(str, int, int, result=str)
+    def get_definition(self, code, line, col):
+        if self._lsp_client and self._file_path:
+            try:
+                result = self._lsp_client.definition(self._file_path, line - 1, col - 1)
+                if result:
+                    if isinstance(result, dict):
+                        uri = result.get("uri", "")
+                        rng = result.get("range", {})
+                        start = rng.get("start", {})
+                        return json.dumps({"uri": uri, "line": start.get("line", 0) + 1, "character": start.get("character", 0) + 1})
+                    if isinstance(result, list) and result:
+                        loc = result[0]
+                        uri = loc.get("uri", "")
+                        rng = loc.get("range", {})
+                        start = rng.get("start", {})
+                        return json.dumps({"uri": uri, "line": start.get("line", 0) + 1, "character": start.get("character", 0) + 1})
+            except Exception:
+                pass
+        return ""
+
+    @Slot(str, result=str)
+    def get_document_symbols(self, code):
+        symbols = []
+        import re
+        for i, line_text in enumerate(code.splitlines(), 1):
+            m = re.match(r"^(class|def|async def)\s+(\w+)", line_text)
+            if m:
+                symbols.append({
+                    "name": m.group(2),
+                    "kind": 5 if m.group(1) == "class" else 12,
+                    "line": i,
+                })
+        return json.dumps(symbols)
 
     def set_file_path(self, path):
         self._file_path = path
+        self._document_version = 0
+        if self._lsp_client and path:
+            try:
+                with open(path, "r", encoding="utf-8", errors="replace") as f:
+                    content = f.read()
+                lang = "python" if path.endswith(".py") else "plaintext"
+                self._lsp_client.did_open(path, lang, content)
+            except Exception:
+                pass
+
+    def notify_closed(self):
+        if self._lsp_client and self._file_path:
+            try:
+                self._lsp_client.did_close(self._file_path)
+            except Exception:
+                pass

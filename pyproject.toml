@@ -47,3 +47,6 @@ dardcor = "pydardcor.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["pydardcor", "pydardcor.*"]
+
+[tool.setuptools.package-data]
+"pydardcor.extensions" = ["*.json", "*.py"]
