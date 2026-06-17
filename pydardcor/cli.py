@@ -1,14 +1,21 @@
 import sys
+import os
 import argparse
 import threading
 
+# Suppress Qt QPA font warnings on Windows (DirectWrite font database issues with legacy/bitmap fonts)
+if os.name == "nt":
+    existing = os.environ.get("QT_LOGGING_RULES", "")
+    if "qt.qpa.fonts" not in existing:
+        os.environ["QT_LOGGING_RULES"] = f"{existing};qt.qpa.fonts=false;qt.qpa.fonts.warning=false".strip(";")
+
 from . import __version__
-from .engine.config import get_config
+from .core.config import get_config
 
 
 def cmd_desktop(args):
     try:
-        from .app import run_desktop_app
+        from .app.app import run_desktop_app
         run_desktop_app()
     except ImportError as e:
         import traceback

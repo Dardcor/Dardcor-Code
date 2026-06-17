@@ -26,7 +26,10 @@ class MonacoEditorWidget(QWidget):
         self._content = ""
         self._view_ready = False
         self._lsp_client = None
+<<<<<<< HEAD
         self.diagnostics_ready.connect(self.set_diagnostics)
+=======
+>>>>>>> 16ef49a5e3c95c5f83dcc4c92c05ac6647e5196b
         self._setup_ui()
 
     def _setup_ui(self):
@@ -82,6 +85,15 @@ class MonacoEditorWidget(QWidget):
         self._content = content
         self._dirty = True
         self.content_changed.emit(content)
+        
+        # Send didChange to LSP
+        if self._lsp_client and self._file_path:
+            from pathlib import Path
+            uri = Path(self._file_path).as_uri()
+            self._lsp_client.send_notification("textDocument/didChange", {
+                "textDocument": {"uri": uri, "version": 2},
+                "contentChanges": [{"text": content}]
+            })
 
     def open_file(self, file_path):
         if self._file_path and self._lsp_client:
@@ -96,11 +108,34 @@ class MonacoEditorWidget(QWidget):
         self._dirty = False
         if self._view_ready:
             self._apply_pending_content()
+<<<<<<< HEAD
         self._bridge.set_file_path(file_path)
         if self._lsp_client:
             QTimer.singleShot(300, self._run_lsp_diagnostics)
         elif self._file_path and self._file_path.endswith(".py"):
             QTimer.singleShot(600, self._run_linter)
+=======
+            
+        # Hook up LSP Client if python
+        if self._language == "python":
+            if not self._lsp_client:
+                from .lsp_client import LSPClient
+                self._lsp_client = LSPClient(["pylsp"])
+                self._lsp_client.diagnostics_ready.connect(self._on_lsp_diagnostics)
+                self._lsp_client.start()
+                
+            # Send didOpen to LSP
+            from pathlib import Path
+            uri = Path(self._file_path).as_uri()
+            self._lsp_client.send_notification("textDocument/didOpen", {
+                "textDocument": {
+                    "uri": uri,
+                    "languageId": "python",
+                    "version": 1,
+                    "text": self._content
+                }
+            })
+>>>>>>> 16ef49a5e3c95c5f83dcc4c92c05ac6647e5196b
 
     def set_content(self, content, language="plaintext"):
         self._content = content
@@ -234,6 +269,11 @@ class MonacoEditorWidget(QWidget):
             val = "true" if enabled else "false"
             self._view.page().runJavaScript(f"setMinimap({val});")
 
+    def set_theme(self, is_dark):
+        if self._view_ready:
+            val = "true" if is_dark else "false"
+            self._view.page().runJavaScript(f"setTheme({val});")
+
     def trigger_find(self):
         if self._view_ready:
             self._view.page().runJavaScript("triggerFind();")
@@ -252,8 +292,18 @@ class MonacoEditorWidget(QWidget):
 
     def set_diagnostics(self, markers):
         if self._view_ready:
+            import json
             js_markers = json.dumps(markers)
             self._view.page().runJavaScript(f"setDiagnostics({js_markers});")
+
+    def _on_lsp_diagnostics(self, uri: str, markers: list):
+        # We only care about diagnostics for the currently opened file
+        from pathlib import Path
+        if not self._file_path:
+            return
+        current_uri = Path(self._file_path).as_uri()
+        if uri == current_uri:
+            self.set_diagnostics(markers)
 
     def undo(self):
         if self._view_ready:

@@ -10,7 +10,7 @@ from PySide6.QtCore import Signal, Qt, QTimer, QSize, QThread, QCoreApplication
 from PySide6.QtGui import QColor, QTextCursor, QTextCharFormat, QFont, QKeyEvent, QIcon
 import os
 
-from ..engine.config import get_config
+from ..core.config import get_config
 
 
 class ChatPanel(QWidget):
@@ -335,13 +335,41 @@ class ChatPanel(QWidget):
             cursor.insertHtml(text)
             cursor.insertText("\n")
         else:
-            # Clean plain-text agent response (set to 9pt to make it smaller)
-            fmt_body = QTextCharFormat()
-            fmt_body.setForeground(QColor("#d4d4d4"))
-            fmt_body.setFontPointSize(9)
-            cursor.insertText(f"{text}\n\n", fmt_body)
+            # Clean plain-text agent response by converting basic markdown to HTML
+            html = self._parse_basic_markdown(text)
+            cursor.insertHtml(html)
+            cursor.insertText("\n\n")
 
         self._scroll_to_bottom()
+
+    def _parse_basic_markdown(self, text: str) -> str:
+        """A simple markdown parser for bold, italics, code blocks, and lists."""
+        import html
+        import re
+        
+        # Escape HTML first
+        text = html.escape(text)
+        
+        # Handle code blocks
+        def code_block_replacer(match):
+            lang = match.group(1).strip()
+            code = match.group(2)
+            return f"<pre style='background-color: #1e1e1e; color: #d4d4d4; padding: 10px; border-radius: 4px; font-family: monospace;'>{code}</pre>"
+        text = re.sub(r'```(\w*)\n(.*?)\n```', code_block_replacer, text, flags=re.DOTALL)
+        
+        # Handle inline code
+        text = re.sub(r'`([^`]+)`', r"<code style='background-color: #333333; color: #ce9178; padding: 2px 4px; border-radius: 3px; font-family: monospace;'>\1</code>", text)
+        
+        # Handle bold
+        text = re.sub(r'\*\*([^*]+)\*\*', r"<b>\1</b>", text)
+        
+        # Handle italic
+        text = re.sub(r'\*([^*]+)\*', r"<i>\1</i>", text)
+        
+        # Handle newlines
+        text = text.replace('\n', '<br/>')
+        
+        return f"<div style='color: #d4d4d4; font-size: 12px;'>{text}</div>"
 
     def _handle_slash_command(self, cmd_text: str):
         parts = cmd_text.split()
@@ -399,28 +427,12 @@ class ChatPanel(QWidget):
                 self.append_agent_message(html, is_html=True)
 
             elif cmd == "/models":
-                cfg = get_config()
-                provider = cfg.ai.provider
-                model = cfg.ai.model
-                max_tokens = cfg.ai.max_tokens
-                temperature = cfg.ai.temperature
-                
-                html = (
-                    "<div style='font-family: \"Segoe UI\", sans-serif; color: #d4d4d4; line-height: 1.4; font-size: 11px;'>"
-                    "  <h3 style='color: #c586c0; margin-top: 0; margin-bottom: 8px; border-bottom: 1px solid #3c0068; padding-bottom: 4px;'>🤖 Konfigurasi Model AI</h3>"
-                    "  <p style='margin-bottom: 10px;'>Berikut adalah status engine AI yang saat ini dikonfigurasi:</p>"
-                    "  <ul style='margin-top: 0; padding-left: 20px;'>"
-                    f"    <li><b>Provider Aktif:</b> <span style='color: #4fc1ff;'>{provider}</span></li>"
-                    f"    <li><b>Model Aktif:</b> <span style='color: #ce9178;'>{model}</span></li>"
-                    f"    <li><b>Max Tokens:</b> {max_tokens}</li>"
-                    f"    <li><b>Temperature:</b> {int(temperature * 100)}%</li>"
-                    "  </ul>"
-                    "  <p style='color: #858585; margin-top: 10px; font-size: 11px;'>"
-                    "    <b>Provider yang didukung:</b> openai, anthropic, gemini, deepseek, openrouter, ollama, nvidia."
-                    "  </p>"
-                    "</div>"
-                )
-                self.append_agent_message(html, is_html=True)
+                try:
+                    from ..settings.models_dialog import ModelsQuotaDialog
+                    dialog = ModelsQuotaDialog(self.window())
+                    dialog.exec()
+                except Exception as e:
+                    self.append_system_message(f"Error opening Models Dashboard: {e}")
 
             elif cmd == "/mcp":
                 html = (
@@ -485,7 +497,7 @@ class ChatPanel(QWidget):
                         "</div>"
                     )
                 else:
-                    from .git_panel import run_git
+                    from ..git.panel import run_git
                     # Get current branch
                     branch_out, _, code = run_git(["rev-parse", "--abbrev-ref", "HEAD"], root)
                     if code != 0:

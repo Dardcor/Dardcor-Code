@@ -1,11 +1,12 @@
-"""Outline Panel - VS Code style outline view for current file."""
+"""Timeline Panel - VS Code style timeline view for current file."""
 
+import os
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTreeWidget,
     QTreeWidgetItem, QPushButton, QSizePolicy
 )
-from PySide6.QtCore import Signal, Qt, QSize
-from PySide6.QtGui import QColor, QIcon, QPainter, QPen
+from PySide6.QtCore import Qt, QSize
+from PySide6.QtGui import QColor, QPainter, QPen
 
 
 class SectionHeaderButton(QPushButton):
@@ -22,7 +23,7 @@ class SectionHeaderButton(QPushButton):
         hover_color = "#1a1a1a"
         border_color = "#3c0068"
         try:
-            from pydardcor.windows.theme_manager import ThemeManager
+            from pydardcor.app.theme_manager import ThemeManager
             theme = ThemeManager.THEMES.get(ThemeManager._current_theme, {})
             colors = theme.get("colors", {})
             bg_color = colors.get("background", bg_color)
@@ -81,10 +82,8 @@ class SectionHeaderButton(QPushButton):
         painter.end()
 
 
-class OutlinePanel(QWidget):
-    """Panel showing symbols (classes, functions, etc) for the active file."""
-
-    item_selected = Signal(int)  # Emit line number to jump to
+class TimelinePanel(QWidget):
+    """Panel showing local save history and git commits for the active file."""
 
     HEADER_HEIGHT = 22
 
@@ -100,7 +99,7 @@ class OutlinePanel(QWidget):
         layout.setSpacing(0)
 
         # Header - VS Code style collapsible section header
-        self._header = SectionHeaderButton("Outline", self._collapsed)
+        self._header = SectionHeaderButton("Timeline", self._collapsed)
         self._header.clicked.connect(self._toggle_collapse)
         layout.addWidget(self._header)
 
@@ -128,7 +127,6 @@ class OutlinePanel(QWidget):
                 background-color: #2a2d2e;
             }
         """)
-        self._tree.itemClicked.connect(self._on_item_clicked)
         layout.addWidget(self._tree)
 
         # Start collapsed
@@ -158,44 +156,48 @@ class OutlinePanel(QWidget):
     def minimumSizeHint(self):
         return QSize(0, self.HEADER_HEIGHT)
 
-    def set_symbols(self, symbols: list):
-        """
-        symbols: list of dicts: {'name': str, 'type': str, 'line': int, 'children': list}
-        """
+    def update_timeline(self, file_path: str):
         self._tree.clear()
-        if not symbols:
-            item = QTreeWidgetItem(["No symbols found"])
-            item.setForeground(0, QColor("#888888"))
-            self._tree.addTopLevelItem(item)
+        if not file_path or not os.path.exists(file_path):
             return
 
-        def add_nodes(parent_item, syms):
-            for sym in syms:
-                item = QTreeWidgetItem([sym.get('name', 'Unknown')])
-                icon_text = "{} "  # fallback
-                t = sym.get('type', '')
-                if t == 'class':
-                    icon_text = "🅲 "
-                elif t == 'function' or t == 'method':
-                    icon_text = "🅼 "
-                elif t == 'variable':
-                    icon_text = "🆅 "
-                
-                item.setText(0, f"{icon_text}{sym.get('name')}")
-                item.setData(0, Qt.UserRole, sym.get('line', 1))
-                
-                if parent_item:
-                    parent_item.addChild(item)
-                else:
-                    self._tree.addTopLevelItem(item)
-                    
-                if sym.get('children'):
-                    add_nodes(item, sym.get('children'))
+        # Add local save modified time
+        import time
+        try:
+            mtime = os.path.getmtime(file_path)
+            mtime_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(mtime))
+        except Exception:
+            mtime_str = "Unknown time"
 
-        add_nodes(None, symbols)
-        self._tree.expandAll()
+        item = QTreeWidgetItem([f"Local Save - {mtime_str}"])
+        item.setForeground(0, QColor("#cccccc"))
+        self._tree.addTopLevelItem(item)
 
-    def _on_item_clicked(self, item: QTreeWidgetItem, col: int):
-        line = item.data(0, Qt.UserRole)
-        if line:
-            self.item_selected.emit(line)
+        # Async fetch git log
+        import threading
+        from ..git.panel import run_git
+
+        def fetch_git_log():
+            cwd = os.path.dirname(file_path)
+            basename = os.path.basename(file_path)
+            stdout, stderr, rc = run_git(["log", "--follow", "--oneline", "-n", "10", "--", basename], cwd)
+            if rc == 0 and stdout:
+                lines = stdout.splitlines()
+                from PySide6.QtCore import QTimer
+                QTimer.singleShot(0, lambda: self._add_git_commits(lines))
+            else:
+                from PySide6.QtCore import QTimer
+                QTimer.singleShot(0, lambda: self._add_no_commits_msg())
+
+        threading.Thread(target=fetch_git_log, daemon=True).start()
+
+    def _add_git_commits(self, lines):
+        for line in lines:
+            item = QTreeWidgetItem([f"Git: {line}"])
+            item.setForeground(0, QColor("#888888"))
+            self._tree.addTopLevelItem(item)
+
+    def _add_no_commits_msg(self):
+        item = QTreeWidgetItem(["No git commits found (untracked)"])
+        item.setForeground(0, QColor("#666666"))
+        self._tree.addTopLevelItem(item)

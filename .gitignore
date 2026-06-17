@@ -16,3 +16,4 @@ dist/
 build/
 *.spec
 .dardcor_chrome_profile/
+database
