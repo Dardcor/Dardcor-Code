@@ -217,7 +217,7 @@ class MonacoEditorWidget(QWidget):
             if result[0]:
                 parts = result[0].split(",")
                 line, col = int(parts[0]), int(parts[1])
-                return self._bridge.get_hover(self._content, line, col)
+                return self._bridge.get_hover(line, col)
         return ""
 
     def is_dirty(self):
@@ -380,9 +380,6 @@ class MonacoEditorWidget(QWidget):
         if self._view_ready:
             self._view.page().runJavaScript("editor.trigger('keyboard', 'editor.action.copyLinesDownAction', null);")
 
-    def go_to_definition(self):
-        if self._view_ready:
-            self._view.page().runJavaScript("editor.trigger('keyboard', 'editor.action.revealDefinition', null);")
 
     def toggle_breakpoint(self):
         if self._view_ready:

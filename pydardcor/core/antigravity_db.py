@@ -12,7 +12,9 @@ class AntigravityDB:
         self.root_path = root_path
         self.db_dir = os.path.join(self.root_path, "database", "models", "Antigravity")
         self.accounts_file = os.path.join(self.db_dir, "accounts.json")
+        self.config_file = os.path.join(self.db_dir, "config.json")
         self._ensure_db()
+        self._clean_duplicates()
 
     def _ensure_db(self):
         """Ensure the database directory and accounts.json exist."""
@@ -22,6 +24,59 @@ class AntigravityDB:
         if not os.path.exists(self.accounts_file):
             # Create an empty accounts array. No mock data.
             self.save_data({"version": "2.0", "accounts": []})
+        if not os.path.exists(self.config_file):
+            with open(self.config_file, "w", encoding="utf-8") as f:
+                json.dump({"show_all_quotas": False}, f, indent=2)
+
+    def get_config_value(self, key: str, default: Any = None) -> Any:
+        try:
+            if not os.path.exists(self.config_file): return default
+            with open(self.config_file, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+            return cfg.get(key, default)
+        except Exception:
+            return default
+
+    def set_config_value(self, key: str, value: Any):
+        cfg = {}
+        if os.path.exists(self.config_file):
+            try:
+                with open(self.config_file, "r", encoding="utf-8") as f:
+                    cfg = json.load(f)
+            except Exception:
+                pass
+        cfg[key] = value
+        try:
+            with open(self.config_file, "w", encoding="utf-8") as f:
+                json.dump(cfg, f, indent=2)
+        except Exception:
+            pass
+
+    def _clean_duplicates(self):
+        """Removes duplicate accounts based on email address. Keeps the one with most recent last_used."""
+        current_data = self.load_data()
+        accounts = current_data.get("accounts", [])
+        if not accounts: return
+        
+        unique_accounts = {}
+        for acc in accounts:
+            email = acc.get("email", "").lower()
+            if not email:
+                continue
+            
+            # Keep the newest one
+            if email in unique_accounts:
+                existing_ts = self._parse_last_used_to_ts(unique_accounts[email].get("last_used", ""))
+                current_ts = self._parse_last_used_to_ts(acc.get("last_used", ""))
+                if current_ts > existing_ts:
+                    unique_accounts[email] = acc
+            else:
+                unique_accounts[email] = acc
+                
+        cleaned_list = list(unique_accounts.values())
+        if len(cleaned_list) < len(accounts):
+            current_data["accounts"] = cleaned_list
+            self.save_data(current_data)
 
     def load_data(self) -> Dict[str, Any]:
         """Load data from local accounts.json."""
@@ -44,7 +99,7 @@ class AntigravityDB:
                 
             current_data = self.load_data()
             accounts = current_data.get("accounts", [])
-            existing_ids = {acc.get("id", "") for acc in accounts if acc.get("id")}
+            existing_emails = {acc.get("email", "").lower(): i for i, acc in enumerate(accounts) if acc.get("email")}
             
             imported_accounts = []
             if isinstance(imported_data, dict) and "accounts" in imported_data:
@@ -60,18 +115,23 @@ class AntigravityDB:
             added = 0
             for i, acc in enumerate(imported_accounts):
                 acc_id = acc.get("id")
-                email = acc.get("email")
+                email = acc.get("email", "").lower()
                 
-                # Antigravity Manager exports only have email and refresh_token, no id
+                # Assign ID if missing
                 if not acc_id and email:
                     import time
                     acc_id = f"acc_{int(time.time() * 1000)}_{i}"
                     acc["id"] = acc_id
                     
-                if acc_id and acc_id not in existing_ids:
+                if email and email not in existing_emails:
                     accounts.append(self._normalize_imported_account(acc))
-                    existing_ids.add(acc_id)
+                    existing_emails[email] = len(accounts) - 1
                     added += 1
+                elif email and email in existing_emails:
+                    # Overwrite refresh token if it exists but we still shouldn't duplicate
+                    idx = existing_emails[email]
+                    if "refresh_token" in acc and acc["refresh_token"]:
+                        accounts[idx]["refresh_token"] = acc["refresh_token"]
                     
             current_data["accounts"] = accounts
             self.save_data(current_data)

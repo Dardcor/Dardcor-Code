@@ -7,16 +7,17 @@ from typing import Dict, Any, Callable, Optional
 
 logger = logging.getLogger(__name__)
 
-class DapClient:
-    """Client for Debug Adapter Protocol (DAP)."""
+class LspClient:
+    """Client for Language Server Protocol (LSP)."""
 
-    def __init__(self, command: list[str]):
+    def __init__(self, command: list[str], root_uri: str):
         self.command = command
+        self.root_uri = root_uri
         self._process: Optional[subprocess.Popen] = None
-        self._request_seq = 1
+        self._request_seq = 0
         self._pending_requests: Dict[int, Any] = {}
         self._request_lock = threading.Lock()
-        self._event_handlers: Dict[str, Callable] = {}
+        self._notification_handlers: Dict[str, Callable] = {}
         self._is_running = False
 
     def start(self):
@@ -33,50 +34,68 @@ class DapClient:
             self._reader_thread.start()
             
             # Send initialize request
-            self.send_request("initialize", {
-                "clientID": "dardcor-code",
-                "clientName": "Dardcor Code",
-                "adapterID": "python",
-                "pathFormat": "path",
-                "linesStartAt1": True,
-                "columnsStartAt1": True,
-                "supportsVariableType": True,
-                "supportsVariablePaging": True,
-                "supportsRunInTerminalRequest": True,
-                "supportsMemoryReferences": True
-            })
+            self._initialize()
             
         except Exception as e:
-            logger.error(f"Failed to start DAP adapter {self.command}: {e}")
+            logger.error(f"Failed to start LSP server {self.command}: {e}")
 
     def stop(self):
         self._is_running = False
         if self._process and self._process.poll() is None:
-            try:
-                self.send_request("disconnect", {"restart": False, "terminateDebuggee": True}, timeout=2.0)
-            except Exception:
-                pass
+            self.send_notification("exit")
             self._process.terminate()
 
-    def on_event(self, event_name: str, handler: Callable):
-        """Register a handler for a specific DAP event (e.g., 'stopped', 'output')."""
-        self._event_handlers[event_name] = handler
+    def _initialize(self):
+        params = {
+            "processId": os.getpid(),
+            "rootUri": self.root_uri,
+            "capabilities": {
+                "textDocument": {
+                    "completion": {"completionItem": {"snippetSupport": True}},
+                    "hover": {"dynamicRegistration": True},
+                    "definition": {"dynamicRegistration": True},
+                    "references": {"dynamicRegistration": True},
+                    "formatting": {"dynamicRegistration": True},
+                    "publishDiagnostics": {"relatedInformation": True}
+                }
+            }
+        }
+        
+        try:
+            response = self.send_request("initialize", params)
+            self.send_notification("initialized")
+            logger.info("LSP server initialized successfully")
+        except Exception as e:
+            logger.error(f"LSP initialize failed: {e}")
 
-    def send_request(self, command: str, arguments: Any = None, timeout: float = 5.0) -> Any:
+    def on_notification(self, method: str, handler: Callable):
+        self._notification_handlers[method] = handler
+
+    def send_notification(self, method: str, params: Any = None):
         if not self._is_running:
-            raise RuntimeError("DAP Client is not running")
+            return
+            
+        msg = {
+            "jsonrpc": "2.0",
+            "method": method,
+            "params": params or {}
+        }
+        self._write_message(msg)
+
+    def send_request(self, method: str, params: Any = None, timeout: float = 5.0) -> Any:
+        if not self._is_running:
+            raise RuntimeError("LSP Client is not running")
 
         with self._request_lock:
-            seq = self._request_seq
             self._request_seq += 1
+            seq = self._request_seq
 
         msg = {
-            "seq": seq,
-            "type": "request",
-            "command": command,
+            "jsonrpc": "2.0",
+            "id": seq,
+            "method": method,
+            "params": params or {}
         }
-        if arguments:
-            msg["arguments"] = arguments
 
         result_holder = [None]
         exception_holder = [None]
@@ -99,7 +118,7 @@ class DapClient:
         if not event.wait(timeout=timeout):
             with self._request_lock:
                 self._pending_requests.pop(seq, None)
-            raise TimeoutError(f"DAP request {command} timed out")
+            raise TimeoutError(f"LSP request {method} timed out")
 
         with self._request_lock:
             self._pending_requests.pop(seq, None)
@@ -117,7 +136,7 @@ class DapClient:
             self._process.stdin.write(header + content)
             self._process.stdin.flush()
         except Exception as e:
-            logger.error(f"Error writing to DAP adapter: {e}")
+            logger.error(f"Error writing to LSP server: {e}")
 
     def _read_loop(self):
         while self._is_running and self._process.poll() is None:
@@ -142,28 +161,29 @@ class DapClient:
                 self._handle_message(msg)
                 
             except Exception as e:
-                logger.error(f"Error reading from DAP adapter: {e}")
+                logger.error(f"Error reading from LSP server: {e}")
                 
     def _handle_message(self, msg: dict):
-        msg_type = msg.get("type")
-        
-        if msg_type == "response":
-            request_seq = msg.get("request_seq")
+        # Is it a response?
+        if "id" in msg and "method" not in msg:
+            seq = msg["id"]
             with self._request_lock:
-                future = self._pending_requests.get(request_seq)
+                future = self._pending_requests.get(seq)
                 
             if future:
-                if not msg.get("success", False):
-                    future.set_exception(Exception(msg.get("message", "DAP Error")))
+                if "error" in msg:
+                    future.set_exception(Exception(msg["error"].get("message", "LSP Error")))
                 else:
-                    future.set_result(msg.get("body", {}))
-                    
-        elif msg_type == "event":
-            event_name = msg.get("event")
-            body = msg.get("body", {})
-            handler = self._event_handlers.get(event_name)
+                    future.set_result(msg.get("result"))
+            return
+
+        # It's a notification from server
+        method = msg.get("method")
+        if method:
+            params = msg.get("params", {})
+            handler = self._notification_handlers.get(method)
             if handler:
                 try:
-                    handler(body)
+                    handler(params)
                 except Exception as e:
-                    logger.error(f"Error in DAP event handler for {event_name}: {e}")
+                    logger.error(f"Error in LSP notification handler for {method}: {e}")

@@ -378,6 +378,12 @@ from ..ui_shared.bottom_panel import BottomPanel
 from ..ui_shared.extensions_panel import ExtensionsPanel
 from ..core.extension_manager import get_extension_manager
 
+# --- Phase 13 Injections ---
+from ..workspace.multi_root import MultiRootWorkspace
+from ..tasks.task_manager import TaskManager
+from ..sync.auth import AuthManager
+from ..sync.settings_sync import SettingsSync
+# ---------------------------
 
 class MainWindow(QMainWindow):
     """Main application window matching VS Code layout exactly."""
@@ -390,6 +396,14 @@ class MainWindow(QMainWindow):
         self._font_size = self._config.font_size
         self._current_active_editor = None
         self._ext_manager = get_extension_manager()
+        
+        # --- Phase 13 Instantiations ---
+        config_dir = os.path.join(os.path.expanduser("~"), ".dardcor-code")
+        self._auth_manager = AuthManager(config_dir)
+        self._settings_sync = SettingsSync(self._auth_manager, config_dir)
+        self._task_manager = TaskManager(self._config.workspace_path or "")
+        # -------------------------------
+        
         self._setup_agent()
         self._setup_ui()
         self._zen_mode = ZenModeManager(self)
@@ -582,18 +596,16 @@ class MainWindow(QMainWindow):
         # ── Editor Tabs ──
         self._editor_tabs = EditorTabs()
 
-        # ── Breadcrumbs Navigation Bar ──
-        self._breadcrumbs_bar = BreadcrumbsBar()
-        self._breadcrumbs_bar.hide()  # Hidden until a file is open
+        # ── Breadcrumbs Navigation Bar (Disabled/Hidden) ──
+        self._breadcrumbs_bar = None
 
-        # Container: breadcrumbs + editor stacked vertically
+        # Container: editor tabs stacked vertically
         self._editor_container = QWidget()
         self._editor_container.setStyleSheet("background-color: #3c0068;")
         self._editor_container_layout = QVBoxLayout(self._editor_container)
         self._editor_container_layout.setSizeConstraint(QVBoxLayout.SetNoConstraint)
         self._editor_container_layout.setContentsMargins(0, 0, 0, 0)
         self._editor_container_layout.setSpacing(0)
-        self._editor_container_layout.addWidget(self._breadcrumbs_bar)
         self._editor_container_layout.addWidget(self._editor_tabs)
 
         # ── Chat Panel ──
@@ -632,10 +644,8 @@ class MainWindow(QMainWindow):
         self._editor_term_split.setCollapsible(0, False)
         self._editor_term_split.setCollapsible(1, False)
         self._editor_tabs.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
-        self._breadcrumbs_bar.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
         self._editor_container.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
         self._editor_tabs.setMinimumHeight(1)
-        self._breadcrumbs_bar.setMinimumHeight(1)
         self._editor_container.setMinimumHeight(1)
         self._bottom_panel.setMinimumHeight(80)
         self._editor_term_split.setHandleWidth(1)
@@ -714,7 +724,10 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(100, self._sync_toggle_states)
 
         if self._config.workspace_path and os.path.exists(self._config.workspace_path):
-            QTimer.singleShot(200, lambda: self._file_explorer.set_root(self._config.workspace_path))
+            def init_workspace():
+                self._file_explorer.set_root(self._config.workspace_path)
+                self._on_root_changed(self._config.workspace_path)
+            QTimer.singleShot(200, init_workspace)
 
     # ── Menu Bar ──────────────────────────────────────────
 
@@ -1126,7 +1139,7 @@ class MainWindow(QMainWindow):
         terminal_menu.addSeparator()
 
         run_task = QAction("Run Task...", self)
-        run_task.triggered.connect(lambda: QMessageBox.information(self, "Tasks", "Task runner coming soon."))
+        run_task.triggered.connect(self._show_run_task)
         terminal_menu.addAction(run_task)
 
         # ── Help menu ──
@@ -1204,8 +1217,9 @@ class MainWindow(QMainWindow):
 
     def _setup_breadcrumbs(self):
         """Connect breadcrumbs signals to handlers."""
-        self._breadcrumbs_bar.segment_clicked.connect(self._on_breadcrumb_clicked)
-        self._breadcrumbs_bar.symbol_selected.connect(self._on_breadcrumb_symbol)
+        if self._breadcrumbs_bar:
+            self._breadcrumbs_bar.segment_clicked.connect(self._on_breadcrumb_clicked)
+            self._breadcrumbs_bar.symbol_selected.connect(self._on_breadcrumb_symbol)
 
     def _on_breadcrumb_clicked(self, path: str):
         """Open QuickOpen filtered to the clicked breadcrumb path."""
@@ -1537,13 +1551,13 @@ class MainWindow(QMainWindow):
         self._update_outline(file_path)
 
         # Update Breadcrumbs
-        if file_path:
-            self._breadcrumbs_bar.show()
-            self._breadcrumbs_bar.update_breadcrumbs(file_path)
-        else:
-            self._breadcrumbs_bar.hide()
+        if self._breadcrumbs_bar:
+            if file_path:
+                self._breadcrumbs_bar.show()
+                self._breadcrumbs_bar.update_breadcrumbs(file_path)
+            else:
+                self._breadcrumbs_bar.hide()
 
-        # Update git panel root if needed
         editor = self._editor_tabs.current_editor()
         self._current_active_editor = editor
         if editor:
@@ -1553,7 +1567,8 @@ class MainWindow(QMainWindow):
 
     def _on_cursor_moved(self, line: int, col: int):
         self._status_bar.set_cursor_position(line, col)
-        self._breadcrumbs_bar.update_current_symbol(line)
+        if self._breadcrumbs_bar:
+            self._breadcrumbs_bar.update_current_symbol(line)
 
     def _on_outline_item_selected(self, line: int):
         editor = self._editor_tabs.current_editor()
@@ -1771,6 +1786,29 @@ class MainWindow(QMainWindow):
             self._bottom_panel.set_active_view("terminal")
             self._title_bar.btn_bottom_panel.setChecked(True)
         self._terminal_panel._new_terminal()
+
+    def _show_run_task(self):
+        if not self._task_manager:
+            QMessageBox.information(self, "Tasks", "No workspace opened for tasks.")
+            return
+            
+        tasks = self._task_manager.get_tasks()
+        if not tasks:
+            QMessageBox.information(self, "Tasks", "No tasks found in .vscode/tasks.json.")
+            return
+            
+        labels = [t.get("label", "Unknown Task") for t in tasks]
+        from PySide6.QtWidgets import QInputDialog
+        task_label, ok = QInputDialog.getItem(self, "Run Task", "Select a task to run:", labels, 0, False)
+        if ok and task_label:
+            task = next((t for t in tasks if t.get("label") == task_label), None)
+            if task:
+                self._new_terminal()
+                # Run via terminal output (placeholder logic for task)
+                cmd = self._task_manager._build_command(task)
+                if cmd:
+                    from PySide6.QtCore import QTimer
+                    QTimer.singleShot(500, lambda: self._terminal_panel._terminals[-1].write_input(f"{cmd}\r\n"))
 
     def _toggle_word_wrap(self):
         self._word_wrap = not getattr(self, '_word_wrap', False)

@@ -1,49 +1,46 @@
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QSplitter
+from PySide6.QtWidgets import QWidget, QVBoxLayout
 from PySide6.QtCore import Signal, Qt
 
 from .group import EditorGroup
+from ..windows.grid_layout import GridLayoutSystem
 
 class EditorTabs(QWidget):
-    """Manager for multiple EditorGroups, allowing split views."""
+    """Manager for multiple EditorGroups, allowing grid layout split views."""
 
     tab_changed = Signal(str, str)
     dirty_changed = Signal(bool)
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._layout = QHBoxLayout(self)
+        self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(0)
         
-        self._splitter = QSplitter(Qt.Horizontal)
-        self._splitter.setHandleWidth(1)
-        self._splitter.setStyleSheet("""
-            QSplitter::handle {
-                background-color: #1a0033;
-            }
-            QSplitter::handle:hover {
-                background-color: #4a0072;
-            }
-        """)
-        self._layout.addWidget(self._splitter)
+        self.grid_system = GridLayoutSystem(self)
+        self._layout.addWidget(self.grid_system)
         
         self._groups = []
         self._active_group_idx = 0
         
-        self._add_group()
+        # Add the first group
+        first_group = EditorGroup(self)
+        first_group.tab_changed.connect(self.tab_changed.emit)
+        first_group.dirty_changed.connect(self.dirty_changed.emit)
+        self._groups.append(first_group)
+        self.grid_system.set_central_widget(first_group)
 
     def _add_group(self):
         group = EditorGroup(self)
         group.tab_changed.connect(self.tab_changed.emit)
         group.dirty_changed.connect(self.dirty_changed.emit)
         self._groups.append(group)
-        self._splitter.addWidget(group)
         return group
 
     def split_editor(self, direction="right"):
-        """Split the current editor group."""
+        """Split the current editor group in the specified direction ('up', 'down', 'left', 'right')."""
         if not self._groups:
-            self._add_group()
+            first = self._add_group()
+            self.grid_system.set_central_widget(first)
             return
             
         current = self.active_group()
@@ -59,10 +56,7 @@ class EditorTabs(QWidget):
             
         self._active_group_idx = self._groups.index(new_group)
         
-        # Adjust sizes evenly
-        count = len(self._groups)
-        width = self.width() // count if count > 0 else 100
-        self._splitter.setSizes([width] * count)
+        self.grid_system.split(current, new_group, direction)
 
     def active_group(self):
         if 0 <= self._active_group_idx < len(self._groups):

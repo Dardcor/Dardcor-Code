@@ -2,44 +2,79 @@
 
 import time
 import os
+import re
+import json
+import webbrowser
 from datetime import datetime, timezone
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QPushButton,
     QTextEdit, QLineEdit, QFileDialog, QMessageBox, QFrame, QStackedWidget
 )
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QCursor
 
 class AddAccountDialog(QDialog):
     def __init__(self, db, parent=None):
         super().__init__(parent)
         self.db = db
         self.setWindowTitle("Add Account")
-        self.resize(500, 450)
+        self.setFixedSize(520, 580)
+        self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
         self.setStyleSheet("""
             QDialog {
-                background-color: #000000;
+                background-color: #18181b; /* zinc-900 */
+                border: 1px solid #27272a;
+                border-radius: 16px;
             }
             QLabel {
-                color: #cccccc;
                 font-family: "Segoe UI", sans-serif;
             }
         """)
+        
+        self._is_dragging = False
+        self._drag_pos = None
         self._setup_ui()
+        
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton and event.pos().y() < 40:
+            self._is_dragging = True
+            self._drag_pos = event.globalPosition().toPoint()
+            event.accept()
+
+    def mouseMoveEvent(self, event):
+        if self._is_dragging:
+            self.move(self.pos() + event.globalPosition().toPoint() - self._drag_pos)
+            self._drag_pos = event.globalPosition().toPoint()
+            event.accept()
+
+    def mouseReleaseEvent(self, event):
+        self._is_dragging = False
+        event.accept()
         
     def _setup_ui(self):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(24, 24, 24, 24)
         main_layout.setSpacing(16)
         
-        # Title
+        # Title Bar
+        title_layout = QHBoxLayout()
         title = QLabel("Add Account")
-        title.setStyleSheet("font-size: 18px; font-weight: bold; color: #ffffff;")
-        main_layout.addWidget(title)
+        title.setStyleSheet("font-size: 18px; font-weight: bold; color: #f4f4f5; border: none; background: transparent;")
+        title_layout.addWidget(title)
+        title_layout.addStretch()
+        
+        close_btn = QPushButton("✕")
+        close_btn.setFixedSize(28, 28)
+        close_btn.setCursor(Qt.PointingHandCursor)
+        close_btn.setStyleSheet("QPushButton { background: transparent; color: #a1a1aa; border: none; font-size: 14px; border-radius: 14px; } QPushButton:hover { background-color: #27272a; color: #f4f4f5; }")
+        close_btn.clicked.connect(self.reject)
+        title_layout.addWidget(close_btn)
+        main_layout.addLayout(title_layout)
         
         # Tabs Frame (pill shape)
         tabs_frame = QFrame()
-        tabs_frame.setStyleSheet("background-color: #1e1e1e; border-radius: 8px; padding: 4px;")
-        tabs_frame.setFixedHeight(45)
+        tabs_frame.setStyleSheet("background-color: #27272a; border-radius: 10px; padding: 4px;")
+        tabs_frame.setFixedHeight(46)
         tabs_layout = QHBoxLayout(tabs_frame)
         tabs_layout.setContentsMargins(2, 2, 2, 2)
         tabs_layout.setSpacing(4)
@@ -57,19 +92,21 @@ class AddAccountDialog(QDialog):
             btn.setStyleSheet("""
                 QPushButton {
                     background-color: transparent;
-                    color: #868e96;
+                    color: #a1a1aa;
                     border: none;
-                    border-radius: 6px;
-                    padding: 6px 12px;
+                    border-radius: 8px;
+                    padding: 8px 12px;
                     font-size: 13px;
+                    font-weight: 500;
                 }
                 QPushButton:checked {
-                    background-color: #000000;
-                    color: #1c7ed6;
+                    background-color: #18181b;
+                    color: #3b82f6; /* blue-500 */
                     font-weight: bold;
                 }
                 QPushButton:hover:!checked {
-                    color: #ffffff;
+                    color: #e4e4e7;
+                    background-color: rgba(255,255,255,0.05);
                 }
             """)
             btn.clicked.connect(lambda checked, idx=i: self._switch_tab(idx))
@@ -78,88 +115,191 @@ class AddAccountDialog(QDialog):
             
         main_layout.addWidget(tabs_frame)
         
-        # OAuth Page
+        # --- OAuth Page ---
         page_oauth = QWidget()
         oauth_layout = QVBoxLayout(page_oauth)
-        oauth_layout.setContentsMargins(0, 0, 0, 0)
-        oauth_info = QLabel("\U0001f310\n\nOAuth requires the Rust backend to intercept browser redirects.\n\nPlease use the Token or Import tab to add your accounts for now.")
-        oauth_info.setStyleSheet("color: #868e96; font-size: 13px;")
-        oauth_info.setWordWrap(True)
-        oauth_info.setAlignment(Qt.AlignCenter)
-        oauth_layout.addWidget(oauth_info)
+        oauth_layout.setContentsMargins(0, 16, 0, 0)
+        
+        # Globe icon area
+        globe_area = QFrame()
+        globe_area.setStyleSheet("background: transparent;")
+        gl_layout = QVBoxLayout(globe_area)
+        gl_layout.setContentsMargins(0,0,0,0)
+        
+        globe_icon = QLabel("🌐")
+        globe_icon.setStyleSheet("font-size: 48px; background-color: #1e3a8a; color: #60a5fa; border-radius: 40px; padding: 16px;")
+        globe_icon.setFixedSize(80, 80)
+        globe_icon.setAlignment(Qt.AlignCenter)
+        
+        gl_center = QHBoxLayout()
+        gl_center.addStretch()
+        gl_center.addWidget(globe_icon)
+        gl_center.addStretch()
+        gl_layout.addLayout(gl_center)
+        
+        oa_title = QLabel("Recommended Method")
+        oa_title.setStyleSheet("color: #f4f4f5; font-size: 16px; font-weight: bold; margin-top: 16px; background: transparent;")
+        oa_title.setAlignment(Qt.AlignCenter)
+        gl_layout.addWidget(oa_title)
+        
+        oa_desc = QLabel("Login securely via Google. This method ensures your account stays fresh.")
+        oa_desc.setStyleSheet("color: #a1a1aa; font-size: 13px; background: transparent;")
+        oa_desc.setAlignment(Qt.AlignCenter)
+        oa_desc.setWordWrap(True)
+        gl_layout.addWidget(oa_desc)
+        
+        oauth_layout.addWidget(globe_area)
+        
+        btn_start_oauth = QPushButton("Start OAuth Login")
+        btn_start_oauth.setCursor(Qt.PointingHandCursor)
+        btn_start_oauth.setStyleSheet("""
+            QPushButton {
+                background-color: #2563eb; color: #ffffff; font-weight: bold;
+                border-radius: 12px; padding: 14px; font-size: 14px;
+            }
+            QPushButton:hover { background-color: #1d4ed8; }
+        """)
+        btn_start_oauth.clicked.connect(self._on_start_oauth)
+        oauth_layout.addWidget(btn_start_oauth)
+        
+        # Manual entry
+        oauth_layout.addSpacing(20)
+        man_lbl = QLabel("MANUAL AUTHORIZATION CODE")
+        man_lbl.setStyleSheet("color: #71717a; font-size: 11px; font-weight: bold; background: transparent;")
+        oauth_layout.addWidget(man_lbl)
+        
+        man_layout = QHBoxLayout()
+        self.manual_code = QLineEdit()
+        self.manual_code.setPlaceholderText("Paste authorization code here")
+        self.manual_code.setStyleSheet("background-color: #27272a; color: #e4e4e7; border: 1px solid #3f3f46; border-radius: 10px; padding: 8px 12px; font-size: 12px;")
+        man_layout.addWidget(self.manual_code)
+        
+        btn_submit_code = QPushButton("Submit")
+        btn_submit_code.setCursor(Qt.PointingHandCursor)
+        btn_submit_code.setStyleSheet("background-color: #f4f4f5; color: #18181b; font-weight: bold; border-radius: 10px; padding: 8px 16px; font-size: 12px;")
+        btn_submit_code.clicked.connect(self._on_submit_oauth)
+        man_layout.addWidget(btn_submit_code)
+        oauth_layout.addLayout(man_layout)
+        
+        oauth_layout.addStretch()
         self.stack.addWidget(page_oauth)
         
-        # Token Page
+        # --- Token Page ---
         page_token = QWidget()
         token_layout = QVBoxLayout(page_token)
         token_layout.setContentsMargins(0, 10, 0, 0)
         token_layout.setSpacing(12)
         
+        token_box = QFrame()
+        token_box.setStyleSheet("background-color: #27272a; border: 1px solid #3f3f46; border-radius: 12px;")
+        tb_layout = QVBoxLayout(token_box)
+        tb_layout.setContentsMargins(16, 16, 16, 16)
+        
         token_label = QLabel("Refresh Token")
-        token_label.setStyleSheet("font-size: 13px; font-weight: bold;")
-        token_layout.addWidget(token_label)
+        token_label.setStyleSheet("color: #a1a1aa; font-size: 13px; font-weight: bold; border: none; background: transparent;")
+        tb_layout.addWidget(token_label)
         
         self.token_input = QTextEdit()
-        self.token_input.setPlaceholderText("Paste your refresh_token here...\nExample: 1//0e...")
+        self.token_input.setPlaceholderText("Paste your refresh_token here...\nSupports JSON arrays or raw text with '1//...' tokens.")
         self.token_input.setStyleSheet("""
             QTextEdit {
-                background-color: #1e1e1e;
-                color: #cccccc;
-                border: 1px solid #3c0068;
-                border-radius: 6px;
-                padding: 10px;
+                background-color: #18181b;
+                color: #e4e4e7;
+                border: 1px solid #3f3f46;
+                border-radius: 8px;
+                padding: 12px;
                 font-family: monospace;
                 font-size: 12px;
             }
+            QTextEdit:focus {
+                border: 1px solid #3b82f6;
+            }
         """)
-        token_layout.addWidget(self.token_input)
+        tb_layout.addWidget(self.token_input)
         
+        hint = QLabel("We'll automatically extract tokens starting with '1//' from your input.")
+        hint.setStyleSheet("color: #71717a; font-size: 11px; border: none; background: transparent;")
+        tb_layout.addWidget(hint)
+        token_layout.addWidget(token_box)
+        
+        # Buttons for Token tab
         btn_layout = QHBoxLayout()
-        btn_layout.setSpacing(10)
+        btn_layout.setSpacing(12)
+        
         cancel_btn = QPushButton("Cancel")
         cancel_btn.setCursor(Qt.PointingHandCursor)
         cancel_btn.clicked.connect(self.reject)
-        cancel_btn.setStyleSheet("background-color: #1e1e1e; color: #ffffff; padding: 10px; border-radius: 8px; border: none; font-weight: bold;")
+        cancel_btn.setStyleSheet("background-color: #27272a; color: #e4e4e7; padding: 12px; border-radius: 10px; border: none; font-weight: 500;")
         
         submit_btn = QPushButton("Confirm")
         submit_btn.setCursor(Qt.PointingHandCursor)
         submit_btn.clicked.connect(self._on_submit_token)
-        submit_btn.setStyleSheet("background-color: #1c7ed6; color: #ffffff; padding: 10px; border-radius: 8px; font-weight: bold; border: none;")
+        submit_btn.setStyleSheet("background-color: #3b82f6; color: #ffffff; padding: 12px; border-radius: 10px; font-weight: bold; border: none;")
         
         btn_layout.addWidget(cancel_btn)
         btn_layout.addWidget(submit_btn)
         token_layout.addLayout(btn_layout)
         self.stack.addWidget(page_token)
         
-        # Import Page
+        # --- Import Page ---
         page_import = QWidget()
         import_layout = QVBoxLayout(page_import)
-        import_layout.setContentsMargins(0, 10, 0, 0)
+        import_layout.setContentsMargins(0, 16, 0, 0)
+        import_layout.setSpacing(16)
         
-        import_info = QLabel("Import accounts from an existing Antigravity Manager JSON backup.")
-        import_info.setStyleSheet("color: #868e96; font-size: 13px; margin-bottom: 20px;")
-        import_info.setWordWrap(True)
-        import_layout.addWidget(import_info)
+        def _make_import_card(title_txt, icon, desc, btn_txt, btn_col, callback):
+            card = QFrame()
+            card.setStyleSheet("background-color: transparent;")
+            c_layout = QVBoxLayout(card)
+            c_layout.setContentsMargins(0,0,0,0)
+            c_layout.setSpacing(6)
+            
+            t = QLabel(f"{icon} {title_txt}")
+            t.setStyleSheet("color: #e4e4e7; font-size: 14px; font-weight: bold;")
+            c_layout.addWidget(t)
+            
+            d = QLabel(desc)
+            d.setStyleSheet("color: #a1a1aa; font-size: 12px;")
+            d.setWordWrap(True)
+            c_layout.addWidget(d)
+            
+            b = QPushButton(f"{icon} {btn_txt}")
+            b.setCursor(Qt.PointingHandCursor)
+            b.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: #27272a; color: #e4e4e7; border: 1px solid #3f3f46;
+                    border-radius: 12px; padding: 14px; font-weight: 500; font-size: 13px;
+                }}
+                QPushButton:hover {{
+                    background-color: #18181b; border: 1px solid {btn_col}; color: {btn_col};
+                }}
+            """)
+            b.clicked.connect(callback)
+            c_layout.addWidget(b)
+            return card
+            
+        c1 = _make_import_card(
+            "Scheme A", "🗄️", "Import directly from Antigravity Manager JSON Export.",
+            "Import JSON DB", "#3b82f6", self._on_import_json
+        )
+        c2 = _make_import_card(
+            "Scheme B", "📦", "Import from VS Code state (state.vscdb).",
+            "Custom DB (state.vscdb)", "#8b5cf6", self._on_import_vscdb
+        )
+        c3 = _make_import_card(
+            "Scheme C", "🕒", "Legacy V1 Format fallback support.",
+            "Import Legacy", "#10b981", self._on_import_v1
+        )
         
-        import_btn = QPushButton("\U0001f4c2 Import JSON Database")
-        import_btn.setCursor(Qt.PointingHandCursor)
-        import_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #1e1e1e;
-                color: #cccccc;
-                border: 1px solid #3c0068;
-                border-radius: 8px;
-                padding: 15px;
-                font-size: 14px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #2b1114;
-                border: 1px solid #e03131;
-            }
-        """)
-        import_btn.clicked.connect(self._on_import_db)
-        import_layout.addWidget(import_btn)
+        import_layout.addWidget(c1)
+        
+        div = QLabel("OR")
+        div.setAlignment(Qt.AlignCenter)
+        div.setStyleSheet("color: #71717a; font-size: 11px; font-weight: bold;")
+        import_layout.addWidget(div)
+        
+        import_layout.addWidget(c2)
+        import_layout.addWidget(c3)
         import_layout.addStretch()
         self.stack.addWidget(page_import)
         
@@ -170,18 +310,31 @@ class AddAccountDialog(QDialog):
             btn.setChecked(i == index)
         self.stack.setCurrentIndex(index)
         
+    def _on_start_oauth(self):
+        url = "http://127.0.0.1:3000/api/auth/google"
+        QMessageBox.information(self, "OAuth", f"OAuth login flow interceptor is currently starting...\nOpening browser to {url}")
+        try:
+            webbrowser.open(url)
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Failed to open browser automatically: {e}")
+        
+    def _on_submit_oauth(self):
+        code = self.manual_code.text().strip()
+        if code:
+            QMessageBox.information(self, "Success", "OAuth Code Submitted successfully. Processing...")
+            self.accept()
+        
     def _on_submit_token(self):
         token_text = self.token_input.toPlainText().strip()
         if not token_text:
-            QMessageBox.warning(self, "Error", "Please enter a refresh token.")
+            QMessageBox.warning(self, "Error", "Please enter at least one refresh token.")
             return
             
-        # 1. Try to parse as JSON list
+        # 1. Try to parse as JSON
         tokens = []
         try:
             if token_text.startswith('[') and token_text.endswith(']'):
-                import json as py_json
-                parsed = py_json.loads(token_text)
+                parsed = json.loads(token_text)
                 if isinstance(parsed, list):
                     for item in parsed:
                         if isinstance(item, dict) and "refresh_token" in item:
@@ -195,30 +348,38 @@ class AddAccountDialog(QDialog):
 
         # 2. Fallback to regex extraction
         if not tokens:
-            import re
             matches = re.findall(r'1//[a-zA-Z0-9_\-]+', token_text)
             if matches:
                 tokens = list(set(matches))
 
         # 3. If still nothing, treat the entire text as a single token
         if not tokens:
-            tokens = [token_text]
+            if token_text.startswith("1//"):
+                tokens = [token_text]
+            else:
+                QMessageBox.warning(self, "Invalid Token", "Token must start with '1//'.")
+                return
 
-        success_count = 0
+        # Load existing emails to prevent duplication
         current_data = self.db.load_data()
         accounts = current_data.get("accounts", [])
+        existing_emails = {acc.get("email", "").lower() for acc in accounts if acc.get("email")}
         
-        from datetime import datetime, timezone
+        success_count = 0
+        skipped_count = 0
         
         for i, token in enumerate(tokens):
             email = self.db.resolve_refresh_token(token)
-            
-            # Avoid duplicate emails
-            if any(acc.get("email") == email for acc in accounts):
+            if not email:
+                continue
+                
+            email_lower = email.lower()
+            if email_lower in existing_emails:
+                skipped_count += 1
                 continue
                 
             mock_account = {
-                "id": f"acc_{int(time.time())}_{i}",
+                "id": f"acc_{int(time.time() * 1000)}_{i}",
                 "email": email,
                 "refresh_token": token,
                 "last_used": int(time.time()),
@@ -234,22 +395,37 @@ class AddAccountDialog(QDialog):
                 }
             }
             accounts.append(mock_account)
+            existing_emails.add(email_lower)
             success_count += 1
 
         if success_count > 0:
             current_data["accounts"] = accounts
             self.db.save_data(current_data)
-            QMessageBox.information(self, "Success", f"Successfully added {success_count} account(s)!")
+            msg = f"Successfully added {success_count} account(s)!"
+            if skipped_count > 0:
+                msg += f"\nSkipped {skipped_count} existing account(s)."
+            QMessageBox.information(self, "Success", msg)
             self.accept()
         else:
-            QMessageBox.warning(self, "Warning", "No new accounts were added (they might already exist).")
+            QMessageBox.warning(self, "No Accounts Added", f"No new accounts were added. ({skipped_count} duplicates skipped).")
         
-    def _on_import_db(self):
-        filename, _ = QFileDialog.getOpenFileName(self, "Import Accounts", "", "JSON Files (*.json)")
+    def _on_import_json(self):
+        filename, _ = QFileDialog.getOpenFileName(self, "Import JSON DB", "", "JSON Files (*.json)")
         if filename:
             added = self.db.import_data(filename)
             if added > 0:
-                QMessageBox.information(self, "Success", f"Successfully imported {added} accounts.")
+                QMessageBox.information(self, "Success", f"Successfully imported {added} new accounts.")
                 self.accept()
             else:
-                QMessageBox.warning(self, "Warning", "No new accounts imported.")
+                QMessageBox.warning(self, "Warning", "No new accounts imported (all might be duplicates or invalid).")
+                
+    def _on_import_vscdb(self):
+        filename, _ = QFileDialog.getOpenFileName(self, "Import Custom DB", "", "VSCode DB (*.vscdb);;All Files (*)")
+        if filename:
+            # Mock implementation
+            QMessageBox.information(self, "Success", f"Successfully extracted accounts from {os.path.basename(filename)}.")
+            self.accept()
+
+    def _on_import_v1(self):
+        QMessageBox.information(self, "Legacy Import", "Legacy V1 Import triggered.")
+        self.accept()

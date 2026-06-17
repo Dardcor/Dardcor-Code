@@ -162,25 +162,28 @@ class EditorBridge(QObject):
                 })
         return json.dumps(results)
 
-    @Slot(str, int, int, result=str)
-    def get_hover(self, code, line, col):
-        if self._lsp_client and self._file_path:
-            try:
-                result = self._lsp_client.hover(self._file_path, line - 1, col - 1)
-                if result and "contents" in result:
-                    contents = result["contents"]
-                    if isinstance(contents, str):
-                        return contents
-                    if isinstance(contents, dict):
-                        return contents.get("value", "")
-                    if isinstance(contents, list) and contents:
-                        first = contents[0]
-                        if isinstance(first, str):
-                            return first
-                        if isinstance(first, dict):
-                            return first.get("value", "")
-            except Exception:
-                pass
+    @Slot(int, int, result=str)
+    def get_hover(self, line, col):
+        """Called by Monaco to get hover documentation."""
+        widget = self.parent()
+        if widget and hasattr(widget, "_lsp_client") and widget._lsp_client:
+            lsp = widget._lsp_client
+            from pathlib import Path
+            uri = Path(self._file_path).as_uri() if self._file_path else "untitled:Untitled-1"
+            
+            resp = lsp.send_request_sync("textDocument/hover", {
+                "textDocument": {"uri": uri},
+                "position": {"line": line - 1, "character": col - 1}
+            }, timeout=1.0)
+            
+            if "result" in resp and resp["result"]:
+                contents = resp["result"].get("contents", "")
+                if isinstance(contents, dict):
+                    return contents.get("value", "")
+                elif isinstance(contents, list):
+                    return "\n\n".join([c.get("value", "") if isinstance(c, dict) else c for c in contents])
+                elif isinstance(contents, str):
+                    return contents
         return ""
 
     @Slot(str, int, int, result=str)
@@ -228,6 +231,20 @@ class EditorBridge(QObject):
                     return contents
         return ""
 
+    @Slot(str, result=str)
+    def get_document_symbols(self, code):
+        symbols = []
+        import re
+        for i, line_text in enumerate(code.splitlines(), 1):
+            m = re.match(r"^(class|def|async def)\s+(\w+)", line_text)
+            if m:
+                symbols.append({
+                    "name": m.group(2),
+                    "kind": 5 if m.group(1) == "class" else 12,
+                    "line": i,
+                })
+        return json.dumps(symbols)
+
     def set_file_path(self, path):
         self._file_path = path
         self._document_version = 0
@@ -246,3 +263,4 @@ class EditorBridge(QObject):
                 self._lsp_client.did_close(self._file_path)
             except Exception:
                 pass
+

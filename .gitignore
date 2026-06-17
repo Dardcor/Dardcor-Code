@@ -19,3 +19,5 @@ build/
 
 .omo
 .omo/*
+
+database/
