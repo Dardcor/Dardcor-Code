@@ -254,20 +254,30 @@ class Agent:
     def send_message(
         self,
         message: str,
+        model_override: str = None,
         on_tool_call: Callable[[str, str, str], None] = None,
     ) -> str:
         self._conversation.add_message("user", message)
 
         try:
-            response_text = self._call_api(on_tool_call)
+            response_text = self._call_api(on_tool_call, model_override=model_override)
             self._store.save(self._conversation)
             return response_text
+        except urllib.error.URLError as e:
+            if "10061" in str(e) or "Connection refused" in str(e):
+                error_msg = "🚨 Koneksi Gagal!\n\nTidak dapat terhubung ke server API Google. Periksa koneksi internet Anda atau pastikan Google API tidak diblokir oleh firewall."
+            else:
+                error_msg = f"Network error: {str(e)}"
+            self._conversation.add_message("assistant", error_msg)
+            return error_msg
         except Exception as e:
-            error_msg = f"Error: {str(e)}"
+            error_msg = f"Connection error: {str(e)}"
+            if "10061" in str(e):
+                error_msg = "🚨 Koneksi Gagal!\n\nTidak dapat terhubung ke server API Google. Periksa koneksi internet Anda atau pastikan Google API tidak diblokir oleh firewall."
             self._conversation.add_message("assistant", error_msg)
             return error_msg
 
-    def _call_api(self, on_tool_call=None, depth=0) -> str:
+    def _call_api(self, on_tool_call=None, depth=0, model_override=None) -> str:
         if depth > 10:
             return "Maximum tool call depth reached."
 
@@ -276,6 +286,46 @@ class Agent:
         provider = config.provider
         model = config.model
         base_url = _get_provider_url(provider, config.base_url)
+
+        # Intercept and override with Antigravity settings if active
+        try:
+            # Strictly use Dardcor-Code installation root to prevent database pollution
+            root_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            prov_file = os.path.join(root_path, "database", "models", "provider.json")
+            if os.path.exists(prov_file):
+                with open(prov_file, "r", encoding="utf-8") as f:
+                    providers = json.load(f)
+                if providers.get("Antigravity", False) and model_override:
+                    # Map display name to API model ID
+                    _MODEL_MAP = {
+                        "Gemini 3.1 Pro (High)": "gemini-3.1-pro-high",
+                        "Gemini 3.1 Pro (Low)": "gemini-3.1-pro-low",
+                        "Gemini 3 Pro (High)": "gemini-3-pro-high",
+                        "Gemini 3 Pro (Low)": "gemini-3-pro-low",
+                        "Gemini 3 Flash": "gemini-3-flash",
+                        "Gemini 3.5 Flash (High)": "gemini-3.5-flash-high",
+                        "Gemini 3.5 Flash (Low)": "gemini-3.5-flash-low",
+                        "Gemini 3.5 Flash (Medium)": "gemini-3.5-flash-medium",
+                        "Gemini 2.5 Pro": "gemini-2.5-pro",
+                        "Claude Sonnet 4.6 (Thinking)": "claude-sonnet-4-6-thinking",
+                        "Claude Sonnet 4.6": "claude-sonnet-4-6",
+                        "Claude Opus 4.6 (Thinking)": "claude-opus-4-6-thinking",
+                    }
+                    model = _MODEL_MAP.get(model_override, model_override.lower().replace(" ", "-").replace("(", "").replace(")", ""))
+                    provider = "openai"
+                    base_url = "http://127.0.0.1:8045/v1"
+                    
+                    # Read accounts.json directly and pick first non-disabled account id
+                    acc_file = os.path.join(root_path, "database", "models", "Antigravity", "accounts.json")
+                    if os.path.exists(acc_file):
+                        with open(acc_file, "r", encoding="utf-8") as f:
+                            acc_data = json.load(f)
+                        for acc in acc_data.get("accounts", []):
+                            if not acc.get("disabled", False):
+                                api_key = acc.get("id", "")
+                                break
+        except Exception:
+            pass
 
         if not api_key and provider not in ("ollama",):
             return (
@@ -348,7 +398,7 @@ class Agent:
                     )
 
                 # Recurse to get final response
-                return self._call_api(on_tool_call, depth + 1)
+                return self._call_api(on_tool_call, depth + 1, model_override=model_override)
             else:
                 self._conversation.add_message("assistant", content)
                 return content
@@ -360,7 +410,13 @@ class Agent:
             except Exception:
                 pass
             return f"API Error ({e.code}): {body[:500]}"
+        except urllib.error.URLError as e:
+            if "10061" in str(e) or "Connection refused" in str(e):
+                return "🚨 Koneksi Gagal!\n\nTidak dapat terhubung ke server API Google. Periksa koneksi internet Anda atau pastikan Google API tidak diblokir oleh firewall."
+            return f"Network error: {str(e)}"
         except Exception as e:
+            if "10061" in str(e):
+                return "🚨 Koneksi Gagal!\n\nTidak dapat terhubung ke server API Google. Periksa koneksi internet Anda atau pastikan Google API tidak diblokir oleh firewall."
             return f"Connection error: {str(e)}"
 
     def _execute_tool(self, name: str, args: dict) -> str:

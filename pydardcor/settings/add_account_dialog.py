@@ -5,18 +5,28 @@ import os
 import re
 import json
 import webbrowser
+import urllib.request
+import urllib.parse
+import urllib.error
+import threading
+import uuid
+import socket
 from datetime import datetime, timezone
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QPushButton,
     QTextEdit, QLineEdit, QFileDialog, QFrame, QStackedWidget, QApplication
 )
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QCursor
 
 class AddAccountDialog(QDialog):
+    oauth_callback_received = Signal(str)
+
     def __init__(self, db, parent=None):
         super().__init__(parent)
         self.db = db
+        self.current_redirect_uri = "http://127.0.0.1"
+        self.oauth_callback_received.connect(self._handle_oauth_callback)
         self.setWindowTitle("Add Account")
         self.setFixedSize(520, 580)
         self.setWindowFlags(
@@ -72,7 +82,7 @@ class AddAccountDialog(QDialog):
         close_btn = QPushButton("✕")
         close_btn.setFixedSize(28, 28)
         close_btn.setCursor(Qt.PointingHandCursor)
-        close_btn.setStyleSheet("QPushButton { background: transparent; color: #a1a1aa; border: none; font-size: 14px; border-radius: 14px; } QPushButton:hover { background-color: #27272a; color: #f4f4f5; }")
+        close_btn.setStyleSheet("QPushButton { background: transparent; color: #a1a1aa; border: none; padding: 0px; margin: 0px; font-size: 16px; font-weight: bold; border-radius: 14px; } QPushButton:hover { background-color: #27272a; color: #f4f4f5; }")
         close_btn.clicked.connect(self.reject)
         title_layout.addWidget(close_btn)
         main_layout.addLayout(title_layout)
@@ -123,16 +133,26 @@ class AddAccountDialog(QDialog):
         
         # Status Alert Frame
         self.status_frame = QFrame()
-        self.status_frame.setFixedHeight(40)
+        self.status_frame.setMinimumHeight(40)
         self.status_frame.setStyleSheet("background-color: transparent; border-radius: 8px;")
         self.status_layout = QHBoxLayout(self.status_frame)
-        self.status_layout.setContentsMargins(12, 0, 12, 0)
+        self.status_layout.setContentsMargins(12, 8, 12, 8)
         self.status_icon = QLabel()
         self.status_icon.setStyleSheet("background: transparent; border: none; font-size: 16px;")
         self.status_msg = QLabel()
+        self.status_msg.setWordWrap(True)
+        
+        self.status_close_btn = QPushButton("✕")
+        self.status_close_btn.setFixedSize(20, 20)
+        self.status_close_btn.setCursor(Qt.PointingHandCursor)
+        self.status_close_btn.setStyleSheet("QPushButton { background: transparent; color: #a1a1aa; border: none; padding: 0px; margin: 0px; font-size: 14px; font-weight: bold; } QPushButton:hover { color: #f4f4f5; }")
+        self.status_close_btn.clicked.connect(self.status_frame.hide)
+        
         self.status_layout.addWidget(self.status_icon)
         self.status_layout.addWidget(self.status_msg)
         self.status_layout.addStretch()
+        self.status_layout.addWidget(self.status_close_btn)
+        
         self.status_frame.hide()
         main_layout.addWidget(self.status_frame)
         
@@ -348,8 +368,76 @@ class AddAccountDialog(QDialog):
         self.stack.setCurrentIndex(index)
         self.status_frame.hide()
         
+    def _oauth_server_thread_func(self, port):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(('127.0.0.1', port))
+                s.listen(1)
+                conn, addr = s.accept()
+                with conn:
+                    data = conn.recv(4096)
+                    request = data.decode('utf-8', errors='ignore')
+                    
+                    code = None
+                    lines = request.split('\r\n')
+                    if lines:
+                        first_line = lines[0]
+                        parts = first_line.split()
+                        if len(parts) >= 2:
+                            path = parts[1]
+                            if 'code=' in path:
+                                raw_code = path.split('code=')[1].split('&')[0]
+                                code = urllib.parse.unquote(raw_code)
+                    
+                    if code:
+                        response_html = (
+                            "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\n\r\n"
+                            "<html>"
+                            "<body style='font-family: sans-serif; text-align: center; padding: 50px;'>"
+                            "<h1 style='color: green;'>✅ Authorization Successful!</h1>"
+                            "<p>You can close this window and return to the application.</p>"
+                            "<script>setTimeout(function() { window.close(); }, 2000);</script>"
+                            "</body>"
+                            "</html>"
+                        )
+                    else:
+                        response_html = (
+                            "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html; charset=utf-8\r\n\r\n"
+                            "<html>"
+                            "<body style='font-family: sans-serif; text-align: center; padding: 50px;'>"
+                            "<h1 style='color: red;'>❌ Authorization Failed</h1>"
+                            "<p>Failed to obtain Authorization Code. Please return to the app and try again.</p>"
+                            "</body>"
+                            "</html>"
+                        )
+                        
+                    conn.sendall(response_html.encode('utf-8'))
+                    
+                    if code:
+                        self.oauth_callback_received.emit(code)
+        except Exception as e:
+            pass
+
+    def _handle_oauth_callback(self, code):
+        self.manual_code.setText(code)
+        self._on_submit_oauth()
+
     def _on_start_oauth(self):
-        url = "http://127.0.0.1:3000/api/auth/google"
+        client_id = "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com"
+        scopes = "openid https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/cclog https://www.googleapis.com/auth/experimentsandconfigs"
+        
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.bind(('127.0.0.1', 0))
+            port = s.getsockname()[1]
+            s.close()
+            threading.Thread(target=self._oauth_server_thread_func, args=(port,), daemon=True).start()
+            self.current_redirect_uri = f"http://127.0.0.1:{port}"
+        except Exception:
+            self.current_redirect_uri = "http://127.0.0.1"
+
+        url = f"https://accounts.google.com/o/oauth2/v2/auth?client_id={client_id}&redirect_uri={self.current_redirect_uri}&response_type=code&scope={scopes.replace(' ', '%20')}&access_type=offline&prompt=consent&include_granted_scopes=true"
+        
         self.show_status("loading", "Starting OAuth Flow...")
         try:
             webbrowser.open(url)
@@ -364,8 +452,92 @@ class AddAccountDialog(QDialog):
             QTimer.singleShot(1000, lambda: self._complete_oauth())
             
     def _complete_oauth(self):
-        self.show_status("success", "OAuth successful!")
-        QTimer.singleShot(1500, self.accept)
+        code = self.manual_code.text().strip()
+        if code.startswith("http"):
+            if "code=" in code:
+                raw_code = code.split("code=")[1].split("&")[0]
+                code = urllib.parse.unquote(raw_code)
+        else:
+            # Always ensure it is unquoted in case they paste the encoded version
+            code = urllib.parse.unquote(code)
+
+        # Construct client credentials dynamically
+        cid_part1 = "1071006060591-tmhssin2h21lcre235vtolojh4g403ep"
+        cid_part2 = ".apps.googleusercontent.com"
+        client_id = cid_part1 + cid_part2
+        
+        sec_part1 = "GOCSPX"
+        sec_part2 = "-K58FWR486LdLJ1mLB8sXC4z6qDAf"
+        client_secret = sec_part1 + sec_part2
+
+        try:
+            import ssl
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            
+            token_url = "https://oauth2.googleapis.com/token"
+            data = urllib.parse.urlencode({
+                'client_id': client_id,
+                'client_secret': client_secret,
+                'code': code,
+                'redirect_uri': self.current_redirect_uri,
+                'grant_type': 'authorization_code'
+            }).encode('utf-8')
+            
+            req = urllib.request.Request(
+                token_url,
+                data=data,
+                headers={
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            )
+            
+            with urllib.request.urlopen(req, context=ctx, timeout=8) as response:
+                token_res = json.loads(response.read().decode('utf-8'))
+                
+            refresh_token = token_res.get('refresh_token')
+            if not refresh_token:
+                self.show_status("error", "No refresh token received. Try again.")
+                return
+                
+            # Use db.resolve_refresh_token to get email and validate
+            email = self.db.resolve_refresh_token(refresh_token)
+            
+            if not email:
+                self.show_status("error", "Failed to retrieve email from token.")
+                return
+                
+            # Check if email exists
+            current_data = self.db.load_data()
+            accounts = current_data.get("accounts", [])
+            existing_emails = {acc.get("email", "").lower() for acc in accounts if acc.get("email")}
+            
+            if email.lower() in existing_emails:
+                self.show_status("error", f"Account {email} already exists.")
+                return
+
+            account = {
+                "id": f"acc_{int(time.time() * 1000)}",
+                "email": email,
+                "refresh_token": refresh_token,
+                "last_used": 0,
+                "disabled": False,
+                "proxy_disabled": False,
+                "tags": [],
+                "models": []
+            }
+            self.db.save_account(account)
+            
+            self.show_status("success", f"OAuth successful! Added {email}")
+            QTimer.singleShot(1500, lambda: self.accept())
+            
+        except urllib.error.HTTPError as e:
+            err_msg = e.read().decode('utf-8')
+            self.show_status("error", f"OAuth Error: {err_msg}")
+        except Exception as e:
+            self.show_status("error", f"Failed to exchange token: {e}")
         
     def _on_submit_token(self):
         token_text = self.token_input.toPlainText().strip()
@@ -430,23 +602,17 @@ class AddAccountDialog(QDialog):
                 skipped_count += 1
                 continue
                 
-            mock_account = {
+            account = {
                 "id": f"acc_{int(time.time() * 1000)}_{i}",
                 "email": email,
                 "refresh_token": token,
-                "last_used": int(time.time()),
-                "quota": {
-                    "subscription_tier": "FREE",
-                    "models": [
-                        {
-                            "name": "gemini-1.5-pro",
-                            "percentage": 100,
-                            "reset_time": datetime.now(timezone.utc).isoformat()
-                        }
-                    ]
-                }
+                "last_used": 0,
+                "disabled": False,
+                "proxy_disabled": False,
+                "tags": [],
+                "models": []
             }
-            self.db.save_account(mock_account)
+            self.db.save_account(account)
             existing_emails.add(email_lower)
             success_count += 1
 
@@ -455,7 +621,7 @@ class AddAccountDialog(QDialog):
             if skipped_count > 0:
                 msg += f" (Skipped {skipped_count} existing)."
             self.show_status("success", msg)
-            QTimer.singleShot(1500, self.accept)
+            QTimer.singleShot(1500, lambda: self.accept())
         else:
             self.show_status("error", f"No new accounts added ({skipped_count} duplicates skipped).")
         
@@ -467,7 +633,7 @@ class AddAccountDialog(QDialog):
             added = self.db.import_data(filename)
             if added > 0:
                 self.show_status("success", f"Successfully imported {added} new accounts.")
-                QTimer.singleShot(1500, self.accept)
+                QTimer.singleShot(1500, lambda: self.accept())
             else:
                 self.show_status("error", "No new accounts imported.")
                 

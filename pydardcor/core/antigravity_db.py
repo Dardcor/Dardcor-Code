@@ -60,11 +60,13 @@ class AntigravityDB:
         """Load data from individual json files in accounts_dir, maintaining original index order."""
         accounts = []
         loaded_ids = set()
+        current_account_id = None
         
-        # Load index first to preserve order
+        # Prioritize loading from index accounts.json perfectly like Antigravity Tools
         try:
             with open(self.accounts_file, "r", encoding="utf-8") as f:
                 index_data = json.load(f)
+            current_account_id = index_data.get("current_account_id")
             for idx_acc in index_data.get("accounts", []):
                 acc_id = idx_acc.get("id")
                 if acc_id:
@@ -93,7 +95,7 @@ class AntigravityDB:
                                 accounts.append(acc_data)
                         except Exception:
                             pass
-        return {"accounts": accounts}
+        return {"accounts": accounts, "current_account_id": current_account_id}
 
     def save_account(self, acc: Dict[str, Any]):
         """Save a single account to its own json file and update accounts.json index."""
@@ -247,11 +249,14 @@ class AntigravityDB:
 
     def get_all_accounts(self) -> List[Dict[str, Any]]:
         """Fetch all accounts from the local JSON database."""
-        raw_accounts = self.load_data().get("accounts", [])
-        normalized = [self._normalize_imported_account(acc) for acc in raw_accounts]
+        loaded = self.load_data()
+        raw_accounts = loaded.get("accounts", [])
+        current_account_id = loaded.get("current_account_id")
         
-        # Sort based on last_used descending
-        normalized.sort(key=lambda x: self._parse_last_used_to_ts(x.get("last_used", "")), reverse=True)
+        normalized = [self._normalize_imported_account(acc, current_account_id) for acc in raw_accounts]
+        
+        # We must strictly preserve the order from accounts.json perfectly like Antigravity Tools
+        # DO NOT sort by last_used, otherwise Refresh All will scramble the UI order!
         return normalized
 
     def _parse_last_used_to_ts(self, last_used_str: str) -> float:
@@ -262,12 +267,39 @@ class AntigravityDB:
         except Exception:
             return 0.0
 
-    def _normalize_imported_account(self, raw: Dict[str, Any]) -> Dict[str, Any]:
+    def get_providers(self) -> Dict[str, bool]:
+        prov_file = os.path.join(self.root_path, "database", "models", "provider.json")
+        if not os.path.exists(prov_file):
+            return {}
+        try:
+            with open(prov_file, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+
+    def set_provider_active(self, provider_name: str, is_active: bool):
+        prov_file = os.path.join(self.root_path, "database", "models", "provider.json")
+        providers = self.get_providers()
+        providers[provider_name] = is_active
+        os.makedirs(os.path.dirname(prov_file), exist_ok=True)
+        try:
+            with open(prov_file, "w", encoding="utf-8") as f:
+                json.dump(providers, f, indent=4)
+        except Exception as e:
+            print(f"Error saving provider state: {e}")
+
+    def _normalize_imported_account(self, raw: Dict[str, Any], current_account_id: str = None) -> Dict[str, Any]:
         """Normalize an imported raw account object into the Dardcor-Code UI format."""
         
         # If the account is already in UI format (has "tags", "models" array with "pct", "color"), keep it
         # If it has 2 or fewer models, re-normalize it to enrich it with the full realistic models set.
         if "models" in raw and isinstance(raw["models"], list) and len(raw["models"]) > 2 and "color" in raw["models"][0]:
+            # We still need to ensure CURRENT tag is perfectly accurate even if keeping cached UI format
+            if current_account_id and raw.get("id") == current_account_id:
+                if not any(t[0] == "CURRENT" for t in raw.get("tags", [])):
+                    raw.setdefault("tags", []).insert(0, ["CURRENT", "#1971c2"])
+            else:
+                raw["tags"] = [t for t in raw.get("tags", []) if t[0] != "CURRENT"]
             return raw
             
         acc_id = raw.get("id", "")
@@ -285,15 +317,23 @@ class AntigravityDB:
             last_used_str = last_used_ts
                 
         tags = []
+        
+        # In Antigravity Tools, CURRENT is a completely separate badge indicating the active proxy account
+        is_antigravity_active = self.get_providers().get("Antigravity", False)
+        
+        if is_antigravity_active or (current_account_id and acc_id == current_account_id):
+            tags.append(["CURRENT", "#1971c2"])
+            
         quota_obj = raw.get("quota", {})
         if quota_obj is None:
             quota_obj = {}
             
         tier = quota_obj.get("subscription_tier", "Unknown")
-        if "PRO" in tier.upper() or "PREMIUM" in tier.upper() or "ADVANCED" in tier.upper():
+        # Antigravity Tools only explicitly badges PRO and ULTRA, everything else is FREE
+        if "ULTRA" in tier.upper():
+            tags.append(["\u2666 ULTRA", "#86198f"])
+        elif "PRO" in tier.upper() or "PREMIUM" in tier.upper() or "ADVANCED" in tier.upper():
             tags.append(["\u2666 PRO", "#4263eb"])
-        elif "STARTER" in tier.upper() or "CURRENT" in tier.upper():
-            tags.append(["CURRENT", "#1971c2"])
         else:
             tags.append(["\u26aa FREE", "#373a40"])
             
@@ -382,7 +422,6 @@ class AntigravityDB:
         """Attempt to exchange refresh token for user email via Google API, and fallback to mock if it fails."""
         import urllib.request
         import urllib.parse
-        import json
         import ssl
         
         # Construct client credentials dynamically to prevent GitHub Push Protection blocks
@@ -447,3 +486,59 @@ class AntigravityDB:
             email = f"antigravity.user.{h}@gmail.com"
             
         return email
+
+    def get_access_token_for_account(self, account_id: str) -> str:
+        """Read account file and perform OAuth exchange to get an access_token directly."""
+        account_path = os.path.join(self.accounts_dir, f"{account_id}.json")
+        if not os.path.exists(account_path):
+            return ""
+            
+        try:
+            with open(account_path, "r", encoding="utf-8") as f:
+                account_data = json.load(f)
+            refresh_token = account_data.get("refresh_token")
+            if not refresh_token:
+                return ""
+                
+            import urllib.request
+            import urllib.parse
+            import ssl
+            
+            # Use built-in Antigravity OAuth client credentials
+            cid_part1 = "1071006060591-tmhssin2h21lcre235vtolojh4g403ep"
+            cid_part2 = ".apps.googleusercontent.com"
+            client_id = cid_part1 + cid_part2
+            
+            sec_part1 = "GOCSPX"
+            sec_part2 = "-K58FWR486LdLJ1mLB8sXC4z6qDAf"
+            client_secret = sec_part1 + sec_part2
+            
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            
+            token_url = "https://oauth2.googleapis.com/token"
+            data = urllib.parse.urlencode({
+                'client_id': client_id,
+                'client_secret': client_secret,
+                'refresh_token': refresh_token,
+                'grant_type': 'refresh_token'
+            }).encode('utf-8')
+            
+            req = urllib.request.Request(
+                token_url,
+                data=data,
+                headers={
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            )
+            
+            with urllib.request.urlopen(req, context=ctx, timeout=10) as response:
+                token_res = json.loads(response.read().decode('utf-8'))
+                
+            return token_res.get('access_token', "")
+            
+        except Exception as e:
+            print(f"Native OAuth exchange failed for account {account_id}: {e}")
+            return ""

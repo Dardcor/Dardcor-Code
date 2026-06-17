@@ -29,7 +29,23 @@ def create_svg_icon(path_data, color="#ffffff", rotation_angle=0):
         painter.translate(-9, -9)
     renderer.render(painter)
     painter.end()
-    return QIcon(pixmap)
+    icon = QIcon(pixmap)
+    return icon
+
+import os
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+CHECK_SVG_PATH = os.path.join(CURRENT_DIR, "check.svg")
+if not os.path.exists(CHECK_SVG_PATH):
+    with open(CHECK_SVG_PATH, "w", encoding="utf-8") as f:
+        f.write("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'/></svg>")
+
+CHECK_URL = CHECK_SVG_PATH.replace("\\", "/")
+
+CHECKBOX_STYLE = f"""
+QCheckBox::indicator {{ width: 16px; height: 16px; border: 1px solid #495057; border-radius: 4px; background-color: transparent; }}
+QCheckBox::indicator:hover {{ border: 1px solid #5c1b8b; }}
+QCheckBox::indicator:checked {{ background-color: #5c1b8b; border: 1px solid #5c1b8b; image: url("{CHECK_URL}"); }}
+"""
 
 class ToastWidget(QFrame):
     """A floating notification toast similar to react-hot-toast."""
@@ -407,7 +423,7 @@ class AccountRow(QFrame):
         self.cb = QCheckBox()
         self.cb.setFixedWidth(24)
         self.cb.setChecked(selected)
-        self.cb.setStyleSheet("QCheckBox::indicator { width: 16px; height: 16px; border: 1px solid #495057; border-radius: 4px; }")
+        self.cb.setStyleSheet(CHECKBOX_STYLE)
         self.cb.stateChanged.connect(lambda state: self.checked_changed.emit(self.acc_id, bool(state)))
         main_layout.addWidget(self.cb)
         
@@ -515,7 +531,7 @@ class AccountCard(QFrame):
         top_layout = QHBoxLayout()
         self.cb = QCheckBox()
         self.cb.setChecked(selected)
-        self.cb.setStyleSheet("QCheckBox::indicator { width: 16px; height: 16px; border: 1px solid #495057; border-radius: 4px; }")
+        self.cb.setStyleSheet(CHECKBOX_STYLE)
         self.cb.stateChanged.connect(lambda state: self.checked_changed.emit(self.acc_id, bool(state)))
         top_layout.addWidget(self.cb)
         
@@ -640,7 +656,31 @@ class QuotaWorker(QThread):
                     if res.status == 200:
                         access_token = json.loads(res.read().decode('utf-8')).get("access_token")
                         if access_token:
-                            # 2. Fetch Quota Models
+                            # 2. Fetch Subscription Tier
+                            tier = "FREE"
+                            try:
+                                lc_req = urllib.request.Request("https://daily-cloudcode-pa.sandbox.googleapis.com/v1internal:loadCodeAssist",
+                                    data=json.dumps({"metadata": {"ideType": "ANTIGRAVITY"}}).encode('utf-8'),
+                                    headers={
+                                        "Authorization": f"Bearer {access_token}",
+                                        "User-Agent": "Antigravity/1.0",
+                                        "Content-Type": "application/json"
+                                    }
+                                )
+                                with urllib.request.urlopen(lc_req, timeout=15) as lc_res:
+                                    if lc_res.status == 200:
+                                        lc_data = json.loads(lc_res.read().decode('utf-8'))
+                                        paid = lc_data.get("paidTier", {})
+                                        if paid.get("name"): tier = paid.get("name")
+                                        elif paid.get("id"): tier = paid.get("id")
+                                        else:
+                                            curr = lc_data.get("currentTier", {})
+                                            if curr.get("name"): tier = curr.get("name")
+                                            elif curr.get("id"): tier = curr.get("id")
+                            except Exception as e:
+                                print(f"Error fetching tier: {e}")
+
+                            # 3. Fetch Quota Models
                             q_req = urllib.request.Request(self.quota_url, data=b"{}", headers={
                                 "Authorization": f"Bearer {access_token}",
                                 "User-Agent": "Antigravity/1.0",
@@ -667,9 +707,30 @@ class QuotaWorker(QThread):
                                         "max_output_tokens": m_info.get("maxOutputTokens", 0)
                                     })
                                     
+                            def get_model_sort_weight(model_name: str) -> int:
+                                m_id = model_name.lower()
+                                weight = 0
+                                if m_id.startswith('gemini-3'): weight += 100000
+                                elif m_id.startswith('gemini-2.5'): weight += 200000
+                                elif m_id.startswith('gemini-2'): weight += 300000
+                                elif m_id.startswith('claude'): weight += 400000
+                                elif m_id.startswith('gpt'): weight += 500000
+                                if 'pro' in m_id: weight += 1000
+                                elif 'flash' in m_id: weight += 2000
+                                elif 'lite' in m_id: weight += 3000
+                                elif 'opus' in m_id: weight += 500
+                                elif 'sonnet' in m_id: weight += 1000
+                                if 'thinking' in m_id: weight += 10
+                                elif 'image' in m_id: weight += 20
+                                elif 'high' in m_id: weight += 0
+                                elif 'low' in m_id: weight += 30
+                                return weight
+                                
+                            models_list.sort(key=lambda m: (get_model_sort_weight(m["name"]), m["name"]))
+                                    
                             acc["quota"] = {
                                 "models": models_list,
-                                "subscription_tier": "FREE"
+                                "subscription_tier": tier
                             }
                             import time
                             acc["last_used"] = int(time.time())
@@ -702,7 +763,8 @@ class ModelsQuotaDialog(QDialog):
         
         from ..core.config import get_config
         self._config = get_config()
-        root_path = self._config.workspace_path or os.path.expanduser("~")
+        # Strictly use Dardcor-Code installation root to prevent database pollution
+        root_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         
         from ..core.antigravity_db import AntigravityDB
         self.db = AntigravityDB(root_path)
@@ -765,14 +827,17 @@ class ModelsQuotaDialog(QDialog):
         self.currentPage = 1
         self.selectedIds.clear()
         self._load_data()
-        for i in range(self.tabs_layout.count() - 1):
-            item = self.tabs_layout.itemAt(i)
-            if item and item.widget():
-                btn = item.widget()
-                if btn.text() == tab_name:
-                    btn.setStyleSheet("QPushButton { background-color: transparent; color: #ffffff; border: none; border-bottom: 2px solid #1c7ed6; font-size: 13px; font-weight: bold; padding: 0 16px; }")
+        if hasattr(self, 'tab_widgets'):
+            for name, btn in self.tab_widgets.items():
+                if name == tab_name:
+                    btn.setStyleSheet("QPushButton { background-color: transparent; color: #ffffff; border: none; font-size: 14px; font-weight: bold; padding: 0 4px; }")
                 else:
-                    btn.setStyleSheet("QPushButton { background-color: transparent; color: #868e96; border: none; border-bottom: 2px solid transparent; font-size: 13px; padding: 0 16px; } QPushButton:hover { color: #cccccc; border-bottom: 2px solid #373a40; }")
+                    btn.setStyleSheet("QPushButton { background-color: transparent; color: #868e96; border: none; font-size: 14px; padding: 0 4px; } QPushButton:hover { color: #cccccc; }")
+                    
+    def _toggle_provider(self, name: str, is_active: bool):
+        self.db.set_provider_active(name, is_active)
+        if name == "Antigravity":
+            self._load_data()
         
     def _setup_ui(self):
         main_layout = QVBoxLayout(self)
@@ -822,15 +887,34 @@ class ModelsQuotaDialog(QDialog):
         self.tabs_layout = QHBoxLayout(tabs_frame)
         self.tabs_layout.setContentsMargins(20, 0, 20, 0)
         
+        self.provider_states = self.db.get_providers()
+        self.tab_widgets = {}
+        
         for i, name in enumerate(["Antigravity", "Gemini", "OpenRouter", "DeepSeek", "NVIDIA"]):
+            tab_widget = QWidget()
+            t_layout = QHBoxLayout(tab_widget)
+            t_layout.setContentsMargins(10, 0, 10, 0)
+            t_layout.setSpacing(6)
+            
+            cb = QCheckBox(fixedWidth=20)
+            cb.setStyleSheet(CHECKBOX_STYLE)
+            cb.setChecked(self.provider_states.get(name, False))
+            cb.toggled.connect(lambda checked, n=name: self._toggle_provider(n, checked))
+            
             btn = QPushButton(name)
             btn.setCursor(Qt.PointingHandCursor)
             btn.clicked.connect(lambda checked, n=name: self._switch_tab(n))
+            
             if i == 0:
-                btn.setStyleSheet("QPushButton { background-color: transparent; color: #ffffff; border: none; border-bottom: 2px solid #1c7ed6; font-size: 13px; font-weight: bold; padding: 0 16px; }")
+                btn.setStyleSheet("QPushButton { background-color: transparent; color: #ffffff; border: none; font-size: 14px; font-weight: bold; padding: 0 4px; }")
             else:
-                btn.setStyleSheet("QPushButton { background-color: transparent; color: #868e96; border: none; border-bottom: 2px solid transparent; font-size: 13px; padding: 0 16px; } QPushButton:hover { color: #cccccc; border-bottom: 2px solid #373a40; }")
-            self.tabs_layout.addWidget(btn)
+                btn.setStyleSheet("QPushButton { background-color: transparent; color: #868e96; border: none; font-size: 14px; padding: 0 4px; } QPushButton:hover { color: #cccccc; }")
+                
+            self.tab_widgets[name] = btn
+            
+            t_layout.addWidget(btn)
+            t_layout.addWidget(cb)
+            self.tabs_layout.addWidget(tab_widget)
         self.tabs_layout.addStretch()
         main_layout.addWidget(tabs_frame)
         
@@ -870,15 +954,7 @@ class ModelsQuotaDialog(QDialog):
             self.filters_layout.addWidget(f_btn)
         h_layout.addWidget(filters_container)
         
-        # 3. Add account (+)
-        icon_plus = create_svg_icon('<path d="M5 12h14"/><path d="M12 5v14"/>', "#cccccc")
-        add_btn = QPushButton()
-        add_btn.setIcon(icon_plus)
-        add_btn.setFixedSize(30, 30)
-        add_btn.setStyleSheet("QPushButton { background-color: #1a1d21; border: 1px solid #2c2e33; border-radius: 6px; } QPushButton:hover { background-color: #2c2e33; }")
-        add_btn.clicked.connect(self._on_add_account)
-        h_layout.addWidget(add_btn)
-        
+        # 3. Add account (+) button moved to the dynamic stack
         # 4. View Mode Toggle
         view_container = QFrame()
         view_container.setFixedHeight(30)
@@ -916,6 +992,14 @@ class ModelsQuotaDialog(QDialog):
         layout_normal = QHBoxLayout(page_normal)
         layout_normal.setContentsMargins(0, 0, 0, 0)
         layout_normal.setSpacing(8)
+        
+        icon_plus = create_svg_icon('<path d="M5 12h14"/><path d="M12 5v14"/>', "#cccccc")
+        add_btn = QPushButton()
+        add_btn.setIcon(icon_plus)
+        add_btn.setFixedSize(30, 30)
+        add_btn.setStyleSheet("QPushButton { background-color: #1a1d21; border: 1px solid #2c2e33; border-radius: 6px; } QPushButton:hover { background-color: #2c2e33; }")
+        add_btn.clicked.connect(self._on_add_account)
+        layout_normal.addWidget(add_btn)
         
         icon_refresh = create_svg_icon('<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>', "#ffffff")
         self.ref_btn = QPushButton(" Refresh All")
@@ -996,8 +1080,9 @@ class ModelsQuotaDialog(QDialog):
         self.btn_batch_enable.clicked.connect(lambda: self.show_toast("Enabled accounts", "success"))
         layout_sel.addWidget(self.btn_batch_enable)
         
-        self.btn_batch_ref = QPushButton(" Refresh (0)")
-        self.btn_batch_ref.setIcon(icon_refresh)
+        icon_batch_ref = create_svg_icon('<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>', "#ffffff")
+        self.btn_batch_ref = QPushButton(" Refresh Selected (0)")
+        self.btn_batch_ref.setIcon(icon_batch_ref)
         self.btn_batch_ref.setCursor(Qt.PointingHandCursor)
         self.btn_batch_ref.setFixedHeight(30)
         self.btn_batch_ref.setStyleSheet("background-color: #3b82f6; color: white; border: none; border-radius: 6px; padding: 0 10px; font-weight: bold; font-size: 11px;")
@@ -1027,7 +1112,7 @@ class ModelsQuotaDialog(QDialog):
         
         # --- TABLE HEADER (List View only) ---
         self.pyside_th = QFrame()
-        self.pyside_th.setStyleSheet("background-color: #080808; border-bottom: 1px solid #3c0068;")
+        self.pyside_th.setStyleSheet("background-color: #080808; border: none; border-bottom: 2px solid #5c1b8b;")
         self.pyside_th.setFixedHeight(40)
         th_layout = QHBoxLayout(self.pyside_th)
         th_layout.setContentsMargins(16, 0, 16, 0)
@@ -1035,6 +1120,7 @@ class ModelsQuotaDialog(QDialog):
         
         th_layout.addWidget(QLabel(" ", fixedWidth=20, styleSheet="border: none;"))
         self.cb_all = QCheckBox(fixedWidth=24)
+        self.cb_all.setStyleSheet(CHECKBOX_STYLE)
         self.cb_all.stateChanged.connect(self._on_check_all)
         th_layout.addWidget(self.cb_all)
         
@@ -1159,7 +1245,7 @@ class ModelsQuotaDialog(QDialog):
             self.btn_batch_delete.setText(f" Delete ({count})")
             self.btn_batch_disable.setText(f" Disable ({count})")
             self.btn_batch_enable.setText(f" Enable ({count})")
-            self.btn_batch_ref.setText(f" Refresh ({count})")
+            self.btn_batch_ref.setText(f" Refresh Selected ({count})")
             self.btn_batch_warm.setText(f" Warmup ({count})")
         else:
             self.action_stack.setCurrentIndex(0)
@@ -1331,17 +1417,18 @@ class ModelsQuotaDialog(QDialog):
         all_accounts = self.db.get_all_accounts() if self.current_tab == "Antigravity" else []
         
         # Update filter counts
+        pro_count = ultra_count = free_count = 0
         if self.current_tab == "Antigravity":
             pro_count = sum(1 for a in all_accounts if any('PRO' in t[0] for t in a.get('tags', [])))
             ultra_count = sum(1 for a in all_accounts if any('ULTRA' in t[0] for t in a.get('tags', [])))
             free_count = sum(1 for a in all_accounts if any('FREE' in t[0] for t in a.get('tags', [])))
             
-            for btn in self.filter_buttons:
-                prefix = btn.text
-                if prefix == "All": btn.lbl_cnt.setText(str(len(all_accounts)))
-                elif prefix == "PRO": btn.lbl_cnt.setText(str(pro_count))
-                elif prefix == "ULTRA": btn.lbl_cnt.setText(str(ultra_count))
-                elif prefix == "FREE": btn.lbl_cnt.setText(str(free_count))
+        for btn in self.filter_buttons:
+            prefix = btn.text
+            if prefix == "All": btn.lbl_cnt.setText(str(len(all_accounts)))
+            elif prefix == "PRO": btn.lbl_cnt.setText(str(pro_count))
+            elif prefix == "ULTRA": btn.lbl_cnt.setText(str(ultra_count))
+            elif prefix == "FREE": btn.lbl_cnt.setText(str(free_count))
 
         # Search
         if self.searchQuery:

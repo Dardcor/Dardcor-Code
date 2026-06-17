@@ -4,14 +4,22 @@ import json
 from datetime import datetime
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTextEdit,
-    QPushButton, QLabel, QFrame, QScrollArea,
+    QPushButton, QLabel, QFrame, QScrollArea, QComboBox
 )
 from PySide6.QtCore import Signal, Qt, QTimer, QSize, QThread, QCoreApplication
 from PySide6.QtGui import QColor, QTextCursor, QTextCharFormat, QFont, QKeyEvent, QIcon
 import os
 
 from ..core.config import get_config
+from ..core.antigravity_db import AntigravityDB
 
+class UpwardComboBox(QComboBox):
+    def showPopup(self):
+        super().showPopup()
+        popup = self.view().window()
+        # Move the popup above the combo box
+        global_pos = self.mapToGlobal(self.rect().topLeft())
+        popup.move(global_pos.x(), global_pos.y() - popup.height() - 2)
 
 class ChatPanel(QWidget):
     """VS Code Copilot Chat style panel."""
@@ -23,6 +31,7 @@ class ChatPanel(QWidget):
     _append_system_signal = Signal(str)
     _append_tool_call_signal = Signal(str, str, str)
     _set_enabled_signal = Signal(bool)
+    _show_typing_signal = Signal(bool)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -39,6 +48,15 @@ class ChatPanel(QWidget):
         self._append_system_signal.connect(self._safe_append_system_message)
         self._append_tool_call_signal.connect(self._safe_append_tool_call)
         self._set_enabled_signal.connect(self._safe_set_enabled)
+        self._show_typing_signal.connect(self._safe_show_typing)
+        
+        self._config = get_config()
+        # Strictly use Dardcor-Code installation root to prevent database pollution in user workspaces
+        root_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        self.db = AntigravityDB(root_path)
+        self._provider_timer = QTimer(self)
+        self._provider_timer.timeout.connect(self._check_provider_status)
+        self._provider_timer.start(1500)
 
         self._setup_ui()
 
@@ -156,6 +174,23 @@ class ChatPanel(QWidget):
         """)
         layout.addWidget(self._workspace_lbl)
 
+        # Typing Indicator
+        self._typing_lbl = QLabel("")
+        self._typing_lbl.setStyleSheet("""
+            color: #c586c0;
+            font-size: 12px;
+            font-style: italic;
+            padding: 0px 16px 4px 16px;
+            background-color: #000000;
+        """)
+        self._typing_lbl.hide()
+        layout.addWidget(self._typing_lbl)
+
+        # Timer for typing animation
+        self._typing_timer = QTimer(self)
+        self._typing_timer.timeout.connect(self._animate_typing)
+        self._typing_dots = 0
+
         # Input area
         input_container = QWidget()
         input_container.setObjectName("inputContainer")
@@ -223,6 +258,41 @@ class ChatPanel(QWidget):
             QPushButton:hover { background-color: #333333; }
         """)
         input_bottom_layout.addWidget(attach_btn)
+        
+        chevron_path = os.path.join(assets_dir, "chevron-up.svg").replace("\\", "/")
+        self.model_dropdown = UpwardComboBox()
+        self.model_dropdown.setVisible(False)
+        self.model_dropdown.setStyleSheet("""
+            QComboBox {
+                background-color: transparent;
+                color: #e4e4e7;
+                border: 1px solid #2c2e33;
+                border-radius: 4px;
+                padding: 2px 8px;
+                font-family: "Segoe UI", "Ubuntu", sans-serif;
+                font-size: 11px;
+                font-weight: bold;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                image: url("%s");
+                width: 12px;
+                height: 12px;
+                margin-right: 4px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #1a1d21;
+                color: #e4e4e7;
+                border: 1px solid #373a40;
+                selection-background-color: #2c2e33;
+                selection-color: #ffffff;
+            }
+        """ % chevron_path)
+        self.model_dropdown.setFixedHeight(24)
+        input_bottom_layout.addWidget(self.model_dropdown)
 
         input_bottom_layout.addStretch()
 
@@ -263,6 +333,39 @@ class ChatPanel(QWidget):
         # Show welcome message
         self._show_welcome()
 
+    def _check_provider_status(self):
+        try:
+            is_active = self.db.get_providers().get("Antigravity", False)
+            if is_active != self.model_dropdown.isVisible():
+                self.model_dropdown.setVisible(is_active)
+                if is_active:
+                    self._populate_models()
+        except Exception:
+            pass
+            
+    def _populate_models(self):
+        current_text = self.model_dropdown.currentText()
+        self.model_dropdown.clear()
+        
+        # These display names must match the _MODEL_MAP in agent.py
+        antigravity_models = [
+            "Gemini 3.5 Flash (High)",
+            "Gemini 3.5 Flash (Medium)",
+            "Gemini 3.5 Flash (Low)",
+            "Gemini 3.1 Pro (High)",
+            "Gemini 3.1 Pro (Low)",
+            "Gemini 3 Flash",
+            "Gemini 2.5 Pro",
+            "Claude Opus 4.6 (Thinking)",
+            "Claude Sonnet 4.6 (Thinking)",
+            "Claude Sonnet 4.6",
+        ]
+            
+        self.model_dropdown.addItems(antigravity_models)
+        
+        if current_text in antigravity_models:
+            self.model_dropdown.setCurrentText(current_text)
+
     def _show_welcome(self):
         pass
 
@@ -299,6 +402,7 @@ class ChatPanel(QWidget):
         if text.startswith("/"):
             self._handle_slash_command(text)
         else:
+            self.show_typing(True)
             self.message_sent.emit(text)
 
     def _append_user_message(self, text: str):
@@ -320,7 +424,30 @@ class ChatPanel(QWidget):
 
         self._scroll_to_bottom()
 
+    def show_typing(self, show: bool):
+        if QThread.currentThread() != QCoreApplication.instance().thread():
+            self._show_typing_signal.emit(show)
+        else:
+            self._safe_show_typing(show)
+
+    def _safe_show_typing(self, show: bool):
+        if show:
+            self._typing_dots = 0
+            self._typing_lbl.setText("Dardcor Agent is thinking")
+            self._typing_lbl.show()
+            self._typing_timer.start(500)
+            self._scroll_to_bottom()
+        else:
+            self._typing_timer.stop()
+            self._typing_lbl.hide()
+
+    def _animate_typing(self):
+        self._typing_dots = (self._typing_dots + 1) % 4
+        dots = "." * self._typing_dots
+        self._typing_lbl.setText(f"Dardcor Agent is thinking{dots}")
+
     def append_agent_message(self, text: str, is_html: bool = False):
+        self.show_typing(False)
         if QThread.currentThread() != QCoreApplication.instance().thread():
             self._append_agent_signal.emit(text, is_html)
         else:

@@ -1632,10 +1632,15 @@ class MainWindow(QMainWindow):
     def _on_chat_message(self, message: str):
         self._chat_panel.set_enabled(False)
 
+        selected_model = None
+        if self._chat_panel.model_dropdown.isVisible():
+            selected_model = self._chat_panel.model_dropdown.currentText()
+
         def process():
             try:
                 response = self._agent.send_message(
                     message,
+                    model_override=selected_model,
                     on_tool_call=self._chat_panel.append_tool_call,
                 )
                 self._chat_panel.append_agent_message(response)
