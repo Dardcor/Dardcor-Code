@@ -26,10 +26,7 @@ class MonacoEditorWidget(QWidget):
         self._content = ""
         self._view_ready = False
         self._lsp_client = None
-<<<<<<< HEAD
         self.diagnostics_ready.connect(self.set_diagnostics)
-=======
->>>>>>> 16ef49a5e3c95c5f83dcc4c92c05ac6647e5196b
         self._setup_ui()
 
     def _setup_ui(self):
@@ -108,34 +105,11 @@ class MonacoEditorWidget(QWidget):
         self._dirty = False
         if self._view_ready:
             self._apply_pending_content()
-<<<<<<< HEAD
         self._bridge.set_file_path(file_path)
         if self._lsp_client:
             QTimer.singleShot(300, self._run_lsp_diagnostics)
         elif self._file_path and self._file_path.endswith(".py"):
             QTimer.singleShot(600, self._run_linter)
-=======
-            
-        # Hook up LSP Client if python
-        if self._language == "python":
-            if not self._lsp_client:
-                from .lsp_client import LSPClient
-                self._lsp_client = LSPClient(["pylsp"])
-                self._lsp_client.diagnostics_ready.connect(self._on_lsp_diagnostics)
-                self._lsp_client.start()
-                
-            # Send didOpen to LSP
-            from pathlib import Path
-            uri = Path(self._file_path).as_uri()
-            self._lsp_client.send_notification("textDocument/didOpen", {
-                "textDocument": {
-                    "uri": uri,
-                    "languageId": "python",
-                    "version": 1,
-                    "text": self._content
-                }
-            })
->>>>>>> 16ef49a5e3c95c5f83dcc4c92c05ac6647e5196b
 
     def set_content(self, content, language="plaintext"):
         self._content = content
@@ -180,7 +154,7 @@ class MonacoEditorWidget(QWidget):
             try:
                 import urllib.parse
                 uri = "file:///" + self._file_path.replace("\\", "/")
-                from ..engine.lsp_client import LSPClient
+                from ..core.lsp_client import LSPClient
                 resp = self._lsp_client._send_request_sync("textDocument/diagnostic", {
                     "textDocument": {"uri": uri}
                 }, timeout=5.0)

@@ -134,7 +134,6 @@ class EditorBridge(QObject):
                     "typedLength": len(c.name) - len(c.complete),
                 })
             return json.dumps(results)
-<<<<<<< HEAD
         except Exception:
             pass
 
@@ -195,59 +194,15 @@ class EditorBridge(QObject):
                         rng = result.get("range", {})
                         start = rng.get("start", {})
                         return json.dumps({"uri": uri, "line": start.get("line", 0) + 1, "character": start.get("character", 0) + 1})
-                    if isinstance(result, list) and result:
-                        loc = result[0]
-                        uri = loc.get("uri", "")
-                        rng = loc.get("range", {})
-                        start = rng.get("start", {})
-                        return json.dumps({"uri": uri, "line": start.get("line", 0) + 1, "character": start.get("character", 0) + 1})
+                if isinstance(result, list) and result:
+                    loc = result[0]
+                    uri = loc.get("uri", "")
+                    rng = loc.get("range", {})
+                    start = rng.get("start", {})
+                    return json.dumps({"uri": uri, "line": start.get("line", 0) + 1, "character": start.get("character", 0) + 1})
             except Exception:
                 pass
         return ""
-
-    @Slot(str, result=str)
-    def get_document_symbols(self, code):
-        symbols = []
-        import re
-        for i, line_text in enumerate(code.splitlines(), 1):
-            m = re.match(r"^(class|def|async def)\s+(\w+)", line_text)
-            if m:
-                symbols.append({
-                    "name": m.group(2),
-                    "kind": 5 if m.group(1) == "class" else 12,
-                    "line": i,
-                })
-        return json.dumps(symbols)
-=======
-        except Exception as e:
-            print("Completion error:", e)
-            # Intelligent fallback parser using regex for local tokens
-            import re
-            keywords = ["def", "class", "import", "from", "return", "if", "elif", "else", "for", "while", "try", "except", "finally", "with", "as", "pass", "break", "continue", "print", "len", "range", "self", "None", "True", "False"]
-            words = set(re.findall(r"\b[a-zA-Z_][a-zA-Z0-9_]*\b", code))
-            all_suggestions = sorted(list(words.union(keywords)))
-            
-            # Extract word being typed
-            lines = code.splitlines()
-            current_line = lines[line - 1] if 0 < line <= len(lines) else ""
-            typed_word = ""
-            if current_line and 0 < col <= len(current_line) + 1:
-                match = re.search(r"([a-zA-Z_][a-zA-Z0-9_]*)$", current_line[:col-1])
-                if match:
-                    typed_word = match.group(1)
-            
-            results = []
-            for w in all_suggestions:
-                if w.lower().startswith(typed_word.lower()) and w != typed_word:
-                    results.append({
-                        "label": w,
-                        "insertText": w[len(typed_word):],
-                        "kind": 12 if w in keywords else 4,
-                        "detail": "keyword" if w in keywords else "local token",
-                        "typedLength": len(typed_word)
-                    })
-            return json.dumps(results)
->>>>>>> 16ef49a5e3c95c5f83dcc4c92c05ac6647e5196b
 
     @Slot(int, int, result=str)
     def get_hover(self, line, col):

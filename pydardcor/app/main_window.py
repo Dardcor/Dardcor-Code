@@ -365,21 +365,8 @@ from ..editor import EditorTabs
 from ..chat.panel import ChatPanel
 from ..ui_shared.status_bar import StatusBar
 from ..terminal import TerminalPanel
-<<<<<<< HEAD:pydardcor/windows/main_window.py
-from ..widgets.search_panel import SearchPanel
-from ..widgets.settings_dialog import SettingsDialog
-from ..widgets.command_palette import CommandPalette, GoToLineDialog, QuickOpenDialog
-from ..widgets.git_panel import GitPanel
-from ..widgets.problems_panel import ProblemsPanel
-from ..widgets.output_panel import OutputPanel
-from ..widgets.outline_panel import OutlinePanel
-from ..widgets.timeline_panel import TimelinePanel
-from ..widgets.debug_panel import DebugPanel
-from ..widgets.bottom_panel import BottomPanel
-from ..widgets.extensions_panel import ExtensionsPanel
-from ..engine.extension_manager import get_extension_manager
-=======
 from ..search.panel import SearchPanel
+from ..settings.settings_dialog import SettingsDialog
 from ..ui_shared.command_palette import CommandPalette, GoToLineDialog, QuickOpenDialog
 from ..git.panel import GitPanel
 from ..ui_shared.problems_panel import ProblemsPanel
@@ -388,7 +375,8 @@ from ..file_explorer.outline_panel import OutlinePanel
 from ..file_explorer.timeline_panel import TimelinePanel
 from ..debug.panel import DebugPanel
 from ..ui_shared.bottom_panel import BottomPanel
->>>>>>> 16ef49a5e3c95c5f83dcc4c92c05ac6647e5196b:pydardcor/app/main_window.py
+from ..ui_shared.extensions_panel import ExtensionsPanel
+from ..core.extension_manager import get_extension_manager
 
 
 class MainWindow(QMainWindow):
@@ -579,41 +567,15 @@ class MainWindow(QMainWindow):
         self._git_panel.refreshed.connect(self._file_explorer._refresh)
         self._sidebar_stack.addWidget(self._git_panel)
 
-<<<<<<< HEAD:pydardcor/windows/main_window.py
-        self._debug_panel = DebugPanel()
-        self._debug_panel.debug_requested.connect(self._start_debugging)
-        self._sidebar_stack.addWidget(self._debug_panel)
-
-        self._extensions_panel = ExtensionsPanel()
-        self._extensions_panel.extension_installed.connect(self._on_extension_installed)
-        self._sidebar_stack.addWidget(self._extensions_panel)
-=======
         # Run and Debug Panel
         self._debug_panel = DebugPanel(self)
         self._debug_panel.debug_requested.connect(self._start_debugging)
         self._debug_panel.run_requested.connect(self._run_current_file)
         self._sidebar_stack.addWidget(self._debug_panel)
 
-        # Extensions placeholder
-        ext_placeholder = QWidget()
-        ext_placeholder.setStyleSheet("background-color: #000000;")
-        ext_layout = QVBoxLayout(ext_placeholder)
-        ext_layout.setAlignment(Qt.AlignTop)
-        ext_layout.setContentsMargins(16, 16, 16, 16)
-        ext_title = QLabel("EXTENSIONS")
-        ext_title.setStyleSheet("""
-            color: #bbbbbb; font-size: 11px;
-            font-weight: 600; letter-spacing: 1.2px;
-            padding-bottom: 12px;
-        """)
-        ext_layout.addWidget(ext_title)
-        ext_info = QLabel("Extensions coming soon.\n\nDardcor Code supports AI-powered\ncoding out of the box.")
-        ext_info.setStyleSheet("color: #858585; font-size: 13px;")
-        ext_info.setWordWrap(True)
-        ext_layout.addWidget(ext_info)
-        ext_layout.addStretch()
-        self._sidebar_stack.addWidget(ext_placeholder)
->>>>>>> 16ef49a5e3c95c5f83dcc4c92c05ac6647e5196b:pydardcor/app/main_window.py
+        self._extensions_panel = ExtensionsPanel()
+        self._extensions_panel.extension_installed.connect(self._on_extension_installed)
+        self._sidebar_stack.addWidget(self._extensions_panel)
 
         self._sidebar_stack.setCurrentIndex(0)
 
@@ -1329,8 +1291,8 @@ class MainWindow(QMainWindow):
             self._ext_manager.execute_command(cmd_id)
 
     def _setup_extensions(self):
-        from ..engine.lsp_client import get_lsp_manager
-        from ..engine.dap_client import get_dap_manager
+        from ..core.lsp_client import get_lsp_manager
+        from ..core.dap_client import get_dap_manager
         self._lsp_manager = get_lsp_manager()
         self._dap_manager = get_dap_manager()
 
@@ -1344,7 +1306,7 @@ class MainWindow(QMainWindow):
         self._ext_manager.set_event_handler("get_workspace_path", lambda _: self._config.workspace_path or "")
         self._ext_manager.set_event_handler("notification", lambda d: QMessageBox.information(self, "Extension", d["message"]) if d["type"] == "info" else QMessageBox.warning(self, "Extension", d["message"]))
 
-        from ..engine.extension_host import get_extension_host
+        from ..core.extension_host import get_extension_host
         host = get_extension_host()
         host.register_callback("commands.registerCommand", lambda cmd: None)
         host.register_callback("commands.unregisterCommand", lambda cmd: None)
@@ -1574,8 +1536,6 @@ class MainWindow(QMainWindow):
         self._timeline_panel.update_timeline(file_path)
         self._update_outline(file_path)
 
-<<<<<<< HEAD:pydardcor/windows/main_window.py
-=======
         # Update Breadcrumbs
         if file_path:
             self._breadcrumbs_bar.show()
@@ -1584,7 +1544,6 @@ class MainWindow(QMainWindow):
             self._breadcrumbs_bar.hide()
 
         # Update git panel root if needed
->>>>>>> 16ef49a5e3c95c5f83dcc4c92c05ac6647e5196b:pydardcor/app/main_window.py
         editor = self._editor_tabs.current_editor()
         self._current_active_editor = editor
         if editor:

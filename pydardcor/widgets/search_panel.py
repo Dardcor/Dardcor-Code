@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtGui import QColor, QFont
 
-from ..engine.filesystem import FileSystem
+from ..core.filesystem import FileSystem
 
 
 class SearchPanel(QWidget):

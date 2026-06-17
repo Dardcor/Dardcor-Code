@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Signal, Qt, QSize, QTimer
 from PySide6.QtGui import QColor, QFont, QIcon
 
-from ..engine.extension_manager import get_extension_manager, InstalledExtension
+from ..core.extension_manager import get_extension_manager, InstalledExtension
 
 
 class OnlineExtensionCard(QWidget):
