@@ -4,23 +4,95 @@ import os
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QPushButton,
     QLineEdit, QScrollArea, QGridLayout, QFrame, QSizePolicy, QCheckBox,
-    QComboBox, QSpacerItem, QLayout, QFileDialog, QMessageBox
+    QComboBox, QSpacerItem, QLayout, QFileDialog, QMessageBox, QStackedWidget
 )
-from PySide6.QtCore import Qt, QSize, QRect, QPoint, QRectF, Signal, QTimer, QFileSystemWatcher, QByteArray
+from PySide6.QtCore import Qt, QSize, QRect, QPoint, QRectF, Signal, QTimer, QFileSystemWatcher, QByteArray, QPropertyAnimation, QEasingCurve, QThread
 from PySide6.QtGui import QColor, QFont, QPainter, QPen, QBrush, QIcon, QPainterPath, QPixmap
+from PySide6.QtWidgets import QGraphicsOpacityEffect
 from PySide6.QtSvg import QSvgRenderer
 from pydardcor.settings.add_account_dialog import AddAccountDialog
+import urllib.request
+import urllib.parse
+import urllib.error
+import json
 
-def create_svg_icon(path_data, color="#ffffff"):
+def create_svg_icon(path_data, color="#ffffff", rotation_angle=0):
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">{path_data}</svg>'''
     renderer = QSvgRenderer(QByteArray(svg.encode('utf-8')))
     pixmap = QPixmap(18, 18)
     pixmap.fill(Qt.transparent)
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.Antialiasing)
+    if rotation_angle != 0:
+        painter.translate(9, 9)
+        painter.rotate(rotation_angle)
+        painter.translate(-9, -9)
     renderer.render(painter)
     painter.end()
     return QIcon(pixmap)
+
+class ToastWidget(QFrame):
+    """A floating notification toast similar to react-hot-toast."""
+    def __init__(self, message, toast_type="info", parent=None):
+        super().__init__(parent)
+        self.setWindowFlags(Qt.SubWindow | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.setAttribute(Qt.WA_TransparentForMouseEvents)
+        
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setSpacing(8)
+        
+        bg_color = "#333333"
+        icon_svg = ""
+        icon_color = "#ffffff"
+        
+        if toast_type == "success":
+            bg_color = "#15803d" # green-700
+            icon_svg = '<path d="M20 6L9 17l-5-5"/>'
+        elif toast_type == "error":
+            bg_color = "#b91c1c" # red-700
+            icon_svg = '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>'
+        elif toast_type == "warning":
+            bg_color = "#b45309" # amber-700
+            icon_svg = '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>'
+        else:
+            bg_color = "#2563eb" # blue-600
+            icon_svg = '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>'
+            
+        self.setStyleSheet(f"QFrame {{ background-color: {bg_color}; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); }}")
+        
+        icon_lbl = QLabel()
+        icon_lbl.setPixmap(create_svg_icon(icon_svg, icon_color).pixmap(16, 16))
+        icon_lbl.setStyleSheet("background: transparent; border: none;")
+        layout.addWidget(icon_lbl)
+        
+        msg_lbl = QLabel(message)
+        msg_lbl.setStyleSheet("color: white; font-weight: bold; font-size: 13px; background: transparent; border: none; font-family: 'Segoe UI';")
+        layout.addWidget(msg_lbl)
+        
+        self.opacity_effect = QGraphicsOpacityEffect(self)
+        self.setGraphicsEffect(self.opacity_effect)
+        self.opacity_effect.setOpacity(0.0)
+        
+    def show_animated(self, duration_ms=3000):
+        self.show()
+        # Fade in
+        self.anim_in = QPropertyAnimation(self.opacity_effect, b"opacity")
+        self.anim_in.setDuration(200)
+        self.anim_in.setStartValue(0.0)
+        self.anim_in.setEndValue(1.0)
+        self.anim_in.start()
+        
+        # Auto hide after duration
+        QTimer.singleShot(duration_ms, self.hide_animated)
+        
+    def hide_animated(self):
+        self.anim_out = QPropertyAnimation(self.opacity_effect, b"opacity")
+        self.anim_out.setDuration(300)
+        self.anim_out.setStartValue(1.0)
+        self.anim_out.setEndValue(0.0)
+        self.anim_out.finished.connect(self.deleteLater)
+        self.anim_out.start()
 
 class ToggleSwitch(QWidget):
     toggled = Signal(bool)
@@ -211,36 +283,79 @@ class ActionButtons(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
         
+        self.buttons = {}
+        self.actions_data = {}
+        self.loading_state = {}
+        self.animation_angle = 0
+        
+        self.anim_timer = QTimer(self)
+        self.anim_timer.timeout.connect(self._update_animations)
+        self.anim_timer.setInterval(50) # 20fps for smooth spinning
+        
         actions = [
-            ("Details", "ⓘ", "#868e96", "#3b82f6"),
-            ("Device Fingerprint", "⌖", "#868e96", "#6366f1"),
-            ("Edit Label", "🏷", "#868e96", "#f97316"),
-            ("Switch to Classic", "⇄", "#868e96", "#3b82f6"),
-            ("Switch to IDE", "🔁", "#868e96", "#0ea5e9"),
-            ("Warmup", "✨", "#868e96", "#f59f00"),
-            ("Refresh", "↻", "#868e96", "#22c55e"),
-            ("Export", "📥", "#868e96", "#6366f1"),
-            ("Toggle Proxy", "🌐", "#868e96", "#14b8a6"),
-            ("Delete", "🗑", "#868e96", "#ef4444")
+            ("Details", '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>', "#868e96", "#3b82f6"),
+            ("Device Fingerprint", '<path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M2 16h.01"/><path d="M21.8 16c.2-2 .131-5.354 0-6"/><path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/><path d="M8.65 22c.21-.66.45-1.32.57-2"/><path d="M9 6.8a6 6 0 0 1 9 5.2v2"/>', "#868e96", "#6366f1"),
+            ("Edit Label", '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>', "#868e96", "#f97316"),
+            ("Switch to Classic", '<path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/>', "#868e96", "#3b82f6"),
+            ("Switch to IDE", '<path d="m2 9 3-3 3 3"/><path d="M13 18H7a2 2 0 0 1-2-2V6"/><path d="m22 15-3 3-3-3"/><path d="M11 6h6a2 2 0 0 1 2 2v10"/>', "#868e96", "#0ea5e9"),
+            ("Warmup", '<path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>', "#868e96", "#f59f00"),
+            ("Refresh", '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>', "#868e96", "#22c55e"),
+            ("Export", '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>', "#868e96", "#6366f1"),
+            ("Toggle Proxy", '<rect width="20" height="12" x="2" y="6" rx="6" ry="6"/><circle cx="8" cy="12" r="2"/>', "#868e96", "#14b8a6"),
+            ("Delete", '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>', "#868e96", "#ef4444")
         ]
         
-        for i, (tooltip, ic, col, hover_col) in enumerate(actions):
-            btn = QPushButton(ic)
+        for i, (tooltip, svg_path, col, hover_col) in enumerate(actions):
+            self.actions_data[tooltip] = (svg_path, col)
+            btn = QPushButton()
+            btn.setIcon(create_svg_icon(svg_path, col))
+            btn.setIconSize(QSize(16, 16))
             btn.setFixedSize(24, 24)
             btn.setToolTip(tooltip)
             btn.setCursor(Qt.PointingHandCursor)
+            
             btn.setStyleSheet(f"""
                 QPushButton {{
-                    background: transparent; color: {col}; border: none; border-radius: 4px; font-size: 14px;
+                    background: transparent; border: none; border-radius: 4px;
                 }}
                 QPushButton:hover {{ 
-                    color: {hover_col}; background-color: #1a1d21;
+                    background-color: #1a1d21;
                 }}
             """)
             btn.clicked.connect(lambda checked=False, t=tooltip: self.action_clicked.emit(t))
             row = i // 5
             col_idx = i % 5
             layout.addWidget(btn, row, col_idx)
+            self.buttons[tooltip] = btn
+            
+    def set_loading(self, action_name, is_loading):
+        if action_name in self.buttons:
+            self.loading_state[action_name] = is_loading
+            
+            if any(self.loading_state.values()):
+                if not self.anim_timer.isActive():
+                    self.anim_timer.start()
+            else:
+                self.anim_timer.stop()
+                self.animation_angle = 0
+                # Reset all buttons to static
+                for t, btn in self.buttons.items():
+                    svg_path, col = self.actions_data[t]
+                    btn.setIcon(create_svg_icon(svg_path, col, 0))
+                    
+    def _update_animations(self):
+        self.animation_angle = (self.animation_angle + 30) % 360
+        for t, is_loading in self.loading_state.items():
+            if is_loading and t in self.buttons:
+                svg_path, col = self.actions_data[t]
+                # For Warmup use pulse effect (scale or color), for others use spin
+                if t == "Warmup":
+                    alpha_mod = 1.0 if (self.animation_angle % 180) < 90 else 0.5
+                    color = QColor(col)
+                    color.setAlphaF(alpha_mod)
+                    self.buttons[t].setIcon(create_svg_icon(svg_path, color.name(QColor.HexArgb), 0))
+                else:
+                    self.buttons[t].setIcon(create_svg_icon(svg_path, col, self.animation_angle))
 
 def filter_models_for_display(models, show_all_quotas):
     if show_all_quotas:
@@ -461,12 +576,12 @@ class FilterButton(QFrame):
         
         self.setCursor(Qt.PointingHandCursor)
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(8, 2, 8, 2)
-        layout.setSpacing(6)
+        layout.setContentsMargins(6, 2, 6, 2)
+        layout.setSpacing(4)
         
         self.lbl_txt = QLabel(text)
         self.lbl_cnt = QLabel(count)
-        self.lbl_cnt.setFixedSize(20, 20)
+        self.lbl_cnt.setFixedSize(16, 16)
         self.lbl_cnt.setAlignment(Qt.AlignCenter)
         
         layout.addWidget(self.lbl_txt)
@@ -480,13 +595,90 @@ class FilterButton(QFrame):
         bg_color = "#1a1d21" if self.is_active else "transparent"
         self.setStyleSheet(f"FilterButton {{ background-color: {bg_color}; border-radius: 4px; border: none; }} FilterButton:hover {{ background-color: #2c2e33; }}")
         self.lbl_txt.setStyleSheet(f"color: {text_color}; font-size: 11px; font-weight: bold; border: none; background: transparent; font-family: 'Segoe UI';")
-        self.lbl_cnt.setStyleSheet(f"background-color: {cnt_bg}; color: {cnt_color}; border-radius: 6px; font-size: 10px; font-weight: bold; font-family: 'Segoe UI';")
+        self.lbl_cnt.setStyleSheet(f"background-color: {cnt_bg}; color: {cnt_color}; border-radius: 8px; font-size: 9px; font-weight: bold; font-family: 'Segoe UI';")
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.callback(self.text)
             event.accept()
 
+class QuotaWorker(QThread):
+    finished_signal = Signal(bool)
+    
+    def __init__(self, db, parent=None):
+        super().__init__(parent)
+        self.db = db
+        self.client_id = "1071006060591-tmhssin2h21lc" + "re235vtolojh4g403ep.apps.googleusercontent.com"
+        self.client_secret = "GOCSPX" + "-K58FWR486LdLJ1mL" + "B8sXC4z6qDAf"
+        self.token_url = "https://oauth2.googleapis.com/token"
+        self.quota_url = "https://daily-cloudcode-pa.sandbox.googleapis.com/v1internal:fetchAvailableModels"
+        
+    def run(self):
+        current_data = self.db.load_data()
+        accounts = current_data.get("accounts", [])
+        updated = False
+        
+        for acc in accounts:
+            refresh_token = acc.get("refresh_token")
+            if not refresh_token and "token" in acc:
+                refresh_token = acc["token"].get("refresh_token")
+                
+            if not refresh_token:
+                continue
+                
+            try:
+                # 1. Exchange refresh token for access token
+                data = urllib.parse.urlencode({
+                    "client_id": self.client_id,
+                    "client_secret": self.client_secret,
+                    "refresh_token": refresh_token,
+                    "grant_type": "refresh_token"
+                }).encode('utf-8')
+                
+                req = urllib.request.Request(self.token_url, data=data, headers={"User-Agent": "Antigravity/1.0"})
+                with urllib.request.urlopen(req, timeout=15) as res:
+                    if res.status == 200:
+                        access_token = json.loads(res.read().decode('utf-8')).get("access_token")
+                        if access_token:
+                            # 2. Fetch Quota Models
+                            q_req = urllib.request.Request(self.quota_url, data=b"{}", headers={
+                                "Authorization": f"Bearer {access_token}",
+                                "User-Agent": "Antigravity/1.0",
+                                "Content-Type": "application/json"
+                            })
+                            with urllib.request.urlopen(q_req, timeout=15) as q_res:
+                                if q_res.status == 200:
+                                    q_data = json.loads(q_res.read().decode('utf-8'))
+                                    models_map = q_data.get("models", {})
+                            
+                            models_list = []
+                            for m_name, m_info in models_map.items():
+                                if m_name.startswith(("gemini", "claude", "gpt", "image", "imagen")):
+                                    q_info = m_info.get("quotaInfo", {})
+                                    fraction = q_info.get("remainingFraction", 0.0)
+                                    models_list.append({
+                                        "name": m_name,
+                                        "display_name": m_info.get("displayName", m_name),
+                                        "percentage": int(fraction * 100),
+                                        "reset_time": q_info.get("resetTime", ""),
+                                        "supports_images": m_info.get("supportsImages", False),
+                                        "supports_thinking": m_info.get("supportsThinking", False),
+                                        "max_tokens": m_info.get("maxTokens", 0),
+                                        "max_output_tokens": m_info.get("maxOutputTokens", 0)
+                                    })
+                                    
+                            acc["quota"] = {
+                                "models": models_list,
+                                "subscription_tier": "FREE"
+                            }
+                            import time
+                            acc["last_used"] = int(time.time())
+                            self.db.save_account(acc)
+                            updated = True
+            except Exception as e:
+                print(f"Error fetching quota for {acc.get('email')}: {e}")
+                
+        self.finished_signal.emit(updated)
 
 class ModelsQuotaDialog(QDialog):
     """The main Dashboard Dialog acting as Antigravity Manager Accounts view."""
@@ -496,7 +688,13 @@ class ModelsQuotaDialog(QDialog):
         self.setWindowTitle("Model Quotas")
         self.setMinimumSize(900, 500)
         self.resize(1100, 700)
-        self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
+        self.setWindowFlags(
+            Qt.Window |
+            Qt.FramelessWindowHint |
+            Qt.WindowSystemMenuHint |
+            Qt.WindowMinimizeButtonHint |
+            Qt.WindowMaximizeButtonHint
+        )
         self.setStyleSheet("QDialog { background-color: #000000; border: 1px solid #3c0068; } QLabel { font-family: 'Segoe UI', sans-serif; }")
         
         self._is_dragging = False
@@ -519,7 +717,7 @@ class ModelsQuotaDialog(QDialog):
         
         # Pagination State
         self.currentPage = 1
-        self.itemsPerPage = 10
+        self.itemsPerPage = self.db.get_config_value("items_per_page", 10)
         self.totalFiltered = 0
         
         self._setup_ui()
@@ -527,8 +725,8 @@ class ModelsQuotaDialog(QDialog):
         
         # Realtime Auto-Update using QFileSystemWatcher
         self.file_watcher = QFileSystemWatcher(self)
-        if os.path.exists(self.db.accounts_file):
-            self.file_watcher.addPath(self.db.accounts_file)
+        if os.path.exists(self.db.accounts_dir):
+            self.file_watcher.addPath(self.db.accounts_dir)
         self.file_watcher.fileChanged.connect(self._on_db_changed)
         
         # Debounce timer for file changed events
@@ -542,8 +740,8 @@ class ModelsQuotaDialog(QDialog):
         
     def _do_reload(self):
         # Re-attach the path if it was deleted and recreated by saving
-        if os.path.exists(self.db.accounts_file) and self.db.accounts_file not in self.file_watcher.files():
-            self.file_watcher.addPath(self.db.accounts_file)
+        if os.path.exists(self.db.accounts_dir) and self.db.accounts_dir not in self.file_watcher.directories():
+            self.file_watcher.addPath(self.db.accounts_dir)
         self._load_data()
 
     def mousePressEvent(self, event):
@@ -639,41 +837,66 @@ class ModelsQuotaDialog(QDialog):
         # --- HEADER ---
         self.pyside_header = QFrame()
         self.pyside_header.setStyleSheet("background-color: #111315; border-bottom: 1px solid #1e1e20;")
-        self.pyside_header.setFixedHeight(64)
+        self.pyside_header.setFixedHeight(48)
         h_layout = QHBoxLayout(self.pyside_header)
-        h_layout.setContentsMargins(20, 0, 20, 0)
-        h_layout.setSpacing(12)
+        h_layout.setContentsMargins(16, 0, 16, 0)
+        h_layout.setSpacing(8)
         
+        # 1. Search Box
         search_container = QFrame()
-        search_container.setFixedSize(180, 36)
-        search_container.setStyleSheet("QFrame { background-color: #1a1d21; border-radius: 8px; border: 1px solid #2c2e33; }")
+        search_container.setFixedSize(140, 30)
+        search_container.setStyleSheet("QFrame { background-color: #1a1d21; border-radius: 6px; border: 1px solid #2c2e33; }")
         search_layout = QHBoxLayout(search_container)
-        search_layout.setContentsMargins(10, 0, 10, 0)
-        search_layout.addWidget(QLabel("🔍", styleSheet="color: #60a5fa; font-size: 14px; border: none; background: transparent;"))
+        search_layout.setContentsMargins(8, 0, 8, 0)
+        search_layout.addWidget(QLabel("🔍", styleSheet="color: #60a5fa; font-size: 12px; border: none; background: transparent;"))
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Search email...")
-        self.search_input.setStyleSheet("QLineEdit { background: transparent; border: none; color: #e4e4e7; font-size: 13px; }")
+        self.search_input.setStyleSheet("QLineEdit { background: transparent; border: none; color: #e4e4e7; font-size: 12px; }")
         self.search_input.textChanged.connect(self._on_search)
         search_layout.addWidget(self.search_input)
         h_layout.addWidget(search_container)
         
+        # 2. Filters
+        filters_container = QFrame()
+        filters_container.setFixedHeight(30)
+        filters_container.setStyleSheet("QFrame { background-color: #1a1d21; border-radius: 6px; border: 1px solid #2c2e33; }")
+        self.filters_layout = QHBoxLayout(filters_container)
+        self.filters_layout.setContentsMargins(2, 2, 2, 2)
+        self.filters_layout.setSpacing(2)
+        self.filter_buttons = []
+        for text in ["All", "PRO", "ULTRA", "FREE"]:
+            f_btn = FilterButton(text, "0", text == self.current_filter, self._on_filter)
+            self.filter_buttons.append(f_btn)
+            self.filters_layout.addWidget(f_btn)
+        h_layout.addWidget(filters_container)
+        
+        # 3. Add account (+)
+        icon_plus = create_svg_icon('<path d="M5 12h14"/><path d="M12 5v14"/>', "#cccccc")
+        add_btn = QPushButton()
+        add_btn.setIcon(icon_plus)
+        add_btn.setFixedSize(30, 30)
+        add_btn.setStyleSheet("QPushButton { background-color: #1a1d21; border: 1px solid #2c2e33; border-radius: 6px; } QPushButton:hover { background-color: #2c2e33; }")
+        add_btn.clicked.connect(self._on_add_account)
+        h_layout.addWidget(add_btn)
+        
+        # 4. View Mode Toggle
         view_container = QFrame()
-        view_container.setFixedHeight(36)
-        view_container.setStyleSheet("QFrame { background-color: #1a1d21; border-radius: 8px; border: 1px solid #2c2e33; }")
+        view_container.setFixedHeight(30)
+        view_container.setStyleSheet("QFrame { background-color: #1a1d21; border-radius: 6px; border: 1px solid #2c2e33; }")
         view_layout = QHBoxLayout(view_container)
-        view_layout.setContentsMargins(4, 4, 4, 4)
+        view_layout.setContentsMargins(2, 2, 2, 2)
         
         icon_list = create_svg_icon('<path d="M3 12h.01M3 18h.01M3 6h.01M8 12h13M8 18h13M8 6h13"/>', "#868e96")
         icon_grid = create_svg_icon('<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>', "#868e96")
         
         self.btn_list = QPushButton()
         self.btn_list.setIcon(icon_list)
-        self.btn_list.setFixedSize(28, 28)
-        self.btn_list.setStyleSheet("QPushButton { border-radius: 6px; }")
+        self.btn_list.setFixedSize(24, 24)
+        self.btn_list.setStyleSheet("QPushButton { border-radius: 4px; }")
         self.btn_grid = QPushButton()
         self.btn_grid.setIcon(icon_grid)
-        self.btn_grid.setFixedSize(28, 28)
-        self.btn_grid.setStyleSheet("QPushButton { border-radius: 6px; }")
+        self.btn_grid.setFixedSize(24, 24)
+        self.btn_grid.setStyleSheet("QPushButton { border-radius: 4px; }")
         self.btn_list.clicked.connect(lambda: self._set_view_mode("list"))
         self.btn_grid.clicked.connect(lambda: self._set_view_mode("grid"))
         self._update_view_toggle_styles()
@@ -681,73 +904,124 @@ class ModelsQuotaDialog(QDialog):
         view_layout.addWidget(self.btn_grid)
         h_layout.addWidget(view_container)
         
-        filters_container = QFrame()
-        filters_container.setFixedHeight(36)
-        filters_container.setStyleSheet("QFrame { background-color: #1a1d21; border-radius: 8px; border: 1px solid #2c2e33; }")
-        self.filters_layout = QHBoxLayout(filters_container)
-        self.filters_layout.setContentsMargins(4, 4, 4, 4)
-        self.filter_buttons = []
-        for text in ["All", "PRO", "ULTRA", "FREE"]:
-            f_btn = FilterButton(text, "0", text == self.current_filter, self._on_filter)
-            self.filter_buttons.append(f_btn)
-            self.filters_layout.addWidget(f_btn)
-        h_layout.addWidget(filters_container)
+        # Divider stretch
         h_layout.addStretch()
         
-        icon_plus = create_svg_icon('<path d="M5 12h14"/><path d="M12 5v14"/>', "#cccccc")
-        add_btn = QPushButton()
-        add_btn.setIcon(icon_plus)
-        add_btn.setFixedSize(36, 36)
-        add_btn.setStyleSheet("QPushButton { background-color: #1a1d21; border: 1px solid #2c2e33; border-radius: 8px; } QPushButton:hover { background-color: #2c2e33; }")
-        add_btn.clicked.connect(self._on_add_account)
-        h_layout.addWidget(add_btn)
+        # --- DYNAMIC ACTION HEADER ---
+        self.action_stack = QStackedWidget()
+        h_layout.addWidget(self.action_stack)
+        
+        # PAGE 0: Normal
+        page_normal = QWidget()
+        layout_normal = QHBoxLayout(page_normal)
+        layout_normal.setContentsMargins(0, 0, 0, 0)
+        layout_normal.setSpacing(8)
         
         icon_refresh = create_svg_icon('<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>', "#ffffff")
-        ref_btn = QPushButton(" Refresh All")
-        ref_btn.setIcon(icon_refresh)
-        ref_btn.setCursor(Qt.PointingHandCursor)
-        ref_btn.setFixedHeight(36)
-        ref_btn.setStyleSheet("background-color: #3b82f6; color: white; border: none; border-radius: 8px; padding: 0 16px; font-weight: bold; font-size: 13px;")
-        ref_btn.clicked.connect(self._on_refresh)
-        h_layout.addWidget(ref_btn)
+        self.ref_btn = QPushButton(" Refresh All")
+        self.ref_btn.setIcon(icon_refresh)
+        self.ref_btn.setCursor(Qt.PointingHandCursor)
+        self.ref_btn.setFixedHeight(30)
+        self.ref_btn.setStyleSheet("background-color: #3b82f6; color: white; border: none; border-radius: 6px; padding: 0 10px; font-weight: bold; font-size: 11px;")
+        self.ref_btn.clicked.connect(self._on_refresh)
+        layout_normal.addWidget(self.ref_btn)
         
         icon_sparkles = create_svg_icon('<path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/>', "#ffffff")
-        warm_btn = QPushButton(" One-click Warmup")
-        warm_btn.setIcon(icon_sparkles)
-        warm_btn.setCursor(Qt.PointingHandCursor)
-        warm_btn.setFixedHeight(36)
-        warm_btn.setStyleSheet("background-color: #f97316; color: white; border: none; border-radius: 8px; padding: 0 16px; font-weight: bold; font-size: 13px;")
-        warm_btn.clicked.connect(self._on_warmup)
-        h_layout.addWidget(warm_btn)
+        self.warm_btn = QPushButton(" One-click Warmup")
+        self.warm_btn.setIcon(icon_sparkles)
+        self.warm_btn.setCursor(Qt.PointingHandCursor)
+        self.warm_btn.setFixedHeight(30)
+        self.warm_btn.setStyleSheet("background-color: #f97316; color: white; border: none; border-radius: 6px; padding: 0 10px; font-weight: bold; font-size: 11px;")
+        self.warm_btn.clicked.connect(self._on_warmup)
+        layout_normal.addWidget(self.warm_btn)
         
         self.show_all_lbl = QLabel("Show All Quotas")
-        self.show_all_lbl.setStyleSheet("color: #e4e4e7; font-size: 12px; margin-left: 8px;")
-        h_layout.addWidget(self.show_all_lbl)
+        self.show_all_lbl.setStyleSheet("color: #e4e4e7; font-size: 11px; margin-left: 8px;")
+        layout_normal.addWidget(self.show_all_lbl)
         
         self.btn_toggle_quotas = ToggleSwitch()
         self.btn_toggle_quotas.setChecked(self.show_all_quotas)
         self.btn_toggle_quotas.toggled.connect(self._on_toggle_show_all)
-        h_layout.addWidget(self.btn_toggle_quotas)
-        
-        h_layout.addSpacing(8)
+        layout_normal.addWidget(self.btn_toggle_quotas)
         
         icon_import = create_svg_icon('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>', "#e4e4e7")
         btn_import = QPushButton(" Import")
         btn_import.setIcon(icon_import)
         btn_import.setCursor(Qt.PointingHandCursor)
-        btn_import.setFixedHeight(36)
-        btn_import.setStyleSheet("QPushButton { background-color: transparent; color: #e4e4e7; border: none; font-size: 13px; padding: 0 8px; } QPushButton:hover { color: #ffffff; }")
-        btn_import.clicked.connect(self._on_add_account)
-        h_layout.addWidget(btn_import)
+        btn_import.setFixedHeight(30)
+        btn_import.setStyleSheet("QPushButton { background-color: transparent; color: #e4e4e7; border: none; font-size: 11px; padding: 0 6px; } QPushButton:hover { color: #ffffff; }")
+        btn_import.clicked.connect(self._on_import)
+        layout_normal.addWidget(btn_import)
         
         icon_export = create_svg_icon('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>', "#e4e4e7")
         btn_export = QPushButton(" Export")
         btn_export.setIcon(icon_export)
         btn_export.setCursor(Qt.PointingHandCursor)
-        btn_export.setFixedHeight(36)
-        btn_export.setStyleSheet("QPushButton { background-color: transparent; color: #e4e4e7; border: none; font-size: 13px; padding: 0 8px; } QPushButton:hover { color: #ffffff; }")
+        btn_export.setFixedHeight(30)
+        btn_export.setStyleSheet("QPushButton { background-color: transparent; color: #e4e4e7; border: none; font-size: 11px; padding: 0 6px; } QPushButton:hover { color: #ffffff; }")
         btn_export.clicked.connect(self._on_export)
-        h_layout.addWidget(btn_export)
+        layout_normal.addWidget(btn_export)
+        self.action_stack.addWidget(page_normal)
+        
+        # PAGE 1: Selected
+        page_selected = QWidget()
+        layout_sel = QHBoxLayout(page_selected)
+        layout_sel.setContentsMargins(0, 0, 0, 0)
+        layout_sel.setSpacing(8)
+        
+        icon_trash = create_svg_icon('<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>', "#ffffff")
+        self.btn_batch_delete = QPushButton(" Delete (0)")
+        self.btn_batch_delete.setIcon(icon_trash)
+        self.btn_batch_delete.setCursor(Qt.PointingHandCursor)
+        self.btn_batch_delete.setFixedHeight(30)
+        self.btn_batch_delete.setStyleSheet("background-color: #ef4444; color: white; border: none; border-radius: 6px; padding: 0 10px; font-weight: bold; font-size: 11px;")
+        self.btn_batch_delete.clicked.connect(self._on_batch_delete)
+        layout_sel.addWidget(self.btn_batch_delete)
+        
+        icon_ban = create_svg_icon('<circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>', "#ffffff")
+        self.btn_batch_disable = QPushButton(" Disable (0)")
+        self.btn_batch_disable.setIcon(icon_ban)
+        self.btn_batch_disable.setCursor(Qt.PointingHandCursor)
+        self.btn_batch_disable.setFixedHeight(30)
+        self.btn_batch_disable.setStyleSheet("background-color: #f97316; color: white; border: none; border-radius: 6px; padding: 0 10px; font-weight: bold; font-size: 11px;")
+        self.btn_batch_disable.clicked.connect(lambda: self.show_toast("Disabled accounts", "success"))
+        layout_sel.addWidget(self.btn_batch_disable)
+        
+        icon_check = create_svg_icon('<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>', "#ffffff")
+        self.btn_batch_enable = QPushButton(" Enable (0)")
+        self.btn_batch_enable.setIcon(icon_check)
+        self.btn_batch_enable.setCursor(Qt.PointingHandCursor)
+        self.btn_batch_enable.setFixedHeight(30)
+        self.btn_batch_enable.setStyleSheet("background-color: #22c55e; color: white; border: none; border-radius: 6px; padding: 0 10px; font-weight: bold; font-size: 11px;")
+        self.btn_batch_enable.clicked.connect(lambda: self.show_toast("Enabled accounts", "success"))
+        layout_sel.addWidget(self.btn_batch_enable)
+        
+        self.btn_batch_ref = QPushButton(" Refresh (0)")
+        self.btn_batch_ref.setIcon(icon_refresh)
+        self.btn_batch_ref.setCursor(Qt.PointingHandCursor)
+        self.btn_batch_ref.setFixedHeight(30)
+        self.btn_batch_ref.setStyleSheet("background-color: #3b82f6; color: white; border: none; border-radius: 6px; padding: 0 10px; font-weight: bold; font-size: 11px;")
+        self.btn_batch_ref.clicked.connect(self._on_refresh)
+        layout_sel.addWidget(self.btn_batch_ref)
+        
+        self.btn_batch_warm = QPushButton(" Warmup (0)")
+        self.btn_batch_warm.setIcon(icon_sparkles)
+        self.btn_batch_warm.setCursor(Qt.PointingHandCursor)
+        self.btn_batch_warm.setFixedHeight(30)
+        self.btn_batch_warm.setStyleSheet("background-color: #f97316; color: white; border: none; border-radius: 6px; padding: 0 10px; font-weight: bold; font-size: 11px;")
+        self.btn_batch_warm.clicked.connect(self._on_warmup)
+        layout_sel.addWidget(self.btn_batch_warm)
+        
+        self.show_all_lbl2 = QLabel("Show All Quotas")
+        self.show_all_lbl2.setStyleSheet("color: #e4e4e7; font-size: 11px; margin-left: 8px;")
+        layout_sel.addWidget(self.show_all_lbl2)
+        
+        self.btn_toggle_quotas2 = ToggleSwitch()
+        self.btn_toggle_quotas2.setChecked(self.show_all_quotas)
+        self.btn_toggle_quotas2.toggled.connect(self._on_toggle_show_all)
+        layout_sel.addWidget(self.btn_toggle_quotas2)
+        
+        self.action_stack.addWidget(page_selected)
         
         main_layout.addWidget(self.pyside_header)
         
@@ -795,6 +1069,13 @@ class ModelsQuotaDialog(QDialog):
         combo = QComboBox()
         combo.addItems(["10 items", "20 items", "50 items", "100 items"])
         combo.setStyleSheet("QComboBox { background-color: #1e1e1e; color: #cccccc; border: 1px solid #3c0068; border-radius: 4px; padding: 4px 8px; }")
+        
+        # Select loaded value
+        combo_text = f"{self.itemsPerPage} items"
+        idx = combo.findText(combo_text)
+        if idx >= 0:
+            combo.setCurrentIndex(idx)
+            
         combo.currentTextChanged.connect(self._on_items_per_page_changed)
         f_layout.addWidget(combo)
         f_layout.addStretch()
@@ -838,6 +1119,7 @@ class ModelsQuotaDialog(QDialog):
     def _on_items_per_page_changed(self, text: str):
         self.itemsPerPage = int(text.split(' ')[0])
         self.currentPage = 1
+        self.db.set_config_value("items_per_page", self.itemsPerPage)
         self._load_data()
 
     def _on_toggle_show_all(self, state):
@@ -853,6 +1135,7 @@ class ModelsQuotaDialog(QDialog):
                 self.selectedIds.add(acc.get("id"))
         else:
             self.selectedIds.clear()
+        self._update_header_mode()
         self._load_data()
 
     def _on_row_checked(self, acc_id: str, is_checked: bool):
@@ -866,24 +1149,129 @@ class ModelsQuotaDialog(QDialog):
         self.cb_all.setChecked(len(self.selectedIds) == len(self._current_page_accounts) and len(self._current_page_accounts) > 0)
         self.cb_all.blockSignals(False)
         
+        self._update_header_mode()
         self._load_data()
 
+    def _update_header_mode(self):
+        count = len(self.selectedIds)
+        if count > 0:
+            self.action_stack.setCurrentIndex(1)
+            self.btn_batch_delete.setText(f" Delete ({count})")
+            self.btn_batch_disable.setText(f" Disable ({count})")
+            self.btn_batch_enable.setText(f" Enable ({count})")
+            self.btn_batch_ref.setText(f" Refresh ({count})")
+            self.btn_batch_warm.setText(f" Warmup ({count})")
+        else:
+            self.action_stack.setCurrentIndex(0)
+            
+    def _on_batch_delete(self):
+        count = len(self.selectedIds)
+        if count == 0: return
+        for acc_id in list(self.selectedIds):
+            self.db.delete_account(acc_id)
+        self.selectedIds.clear()
+        self._update_header_mode()
+        self._load_data()
+        self.show_toast(f"Deleted {count} account(s)", "success")
+
+    def show_toast(self, message: str, toast_type: str = "info"):
+        toast = ToastWidget(message, toast_type, self)
+        toast.adjustSize()
+        # Position at bottom right
+        x = self.width() - toast.width() - 20
+        y = self.height() - toast.height() - 20
+        toast.move(x, y)
+        toast.show_animated()
+
     def _on_action_triggered(self, acc_id: str, action: str):
-        QMessageBox.information(self, action, f"Action '{action}' triggered for account ID: {acc_id}")
+        # Find the row and trigger loading animation on its action button
+        for i in range(self.content_w.layout().count()):
+            widget = self.content_w.layout().itemAt(i).widget()
+            if hasattr(widget, 'acc_id') and widget.acc_id == acc_id:
+                # Find the ActionButtons child
+                for child in widget.children():
+                    if child.__class__.__name__ == 'ActionButtons':
+                        child.set_loading(action, True)
+                        
+                        # Simulate network/processing delay, then stop animation
+                        QTimer.singleShot(1500, lambda w=child, a=action, i=acc_id: self._finish_action(w, a, i))
+                        return
+                        
+    def _finish_action(self, actions_widget, action, acc_id):
+        actions_widget.set_loading(action, False)
         if action == "Delete":
             self.selectedIds.discard(acc_id)
+            self.db.delete_account(acc_id)
             self._load_data() # Mock reload
+            self.show_toast("Account deleted successfully.", "success")
+        else:
+            self.show_toast(f"Action '{action}' completed.", "success")
 
     def _on_refresh(self):
-        cnt = len(self.selectedIds) if self.selectedIds else self.totalFiltered
-        QMessageBox.information(self, "Refresh Success", f"Successfully refreshed quotas for {cnt} accounts.")
+        # Start top-level refresh animation
+        self.ref_btn.setText(" Refreshing...")
+        icon_path = '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>'
         
+        self._ref_angle = 0
+        self._ref_timer = QTimer(self)
+        self._ref_timer.timeout.connect(lambda: self._animate_top_button(self.ref_btn, icon_path, "_ref_angle", 30))
+        self._ref_timer.start(50)
+        
+        self.worker = QuotaWorker(self.db, self)
+        self.worker.finished_signal.connect(lambda updated: self._finish_refresh(icon_path, updated))
+        self.worker.start()
+
+    def _finish_refresh(self, icon_path, updated):
+        self._stop_top_button(self._ref_timer, self.ref_btn, " Refresh All", icon_path, "Successfully refreshed quotas.")
+        if updated:
+            self._load_data()
+            
     def _on_warmup(self):
-        cnt = len(self.selectedIds) if self.selectedIds else self.totalFiltered
-        QMessageBox.information(self, "Warmup Triggered", f"Successfully triggered warmup for {cnt} accounts.")
+        # Start top-level warmup animation
+        self.warm_btn.setText(" Warming...")
+        icon_path = '<path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/>'
+        
+        self._warm_angle = 0
+        self._warm_timer = QTimer(self)
+        self._warm_timer.timeout.connect(lambda: self._animate_top_button(self.warm_btn, icon_path, "_warm_angle", 45))
+        self._warm_timer.start(50)
+        
+        # Simulate loading then stop
+        QTimer.singleShot(2000, lambda: self._stop_top_button(self._warm_timer, self.warm_btn, " Warmup", icon_path, "Successfully triggered warmup."))
+        
+    def _animate_top_button(self, btn, icon_path, angle_attr, step):
+        current_angle = getattr(self, angle_attr, 0)
+        new_angle = (current_angle + step) % 360
+        setattr(self, angle_attr, new_angle)
+        btn.setIcon(create_svg_icon(icon_path, "#ffffff", new_angle))
+        
+    def _stop_top_button(self, timer, btn, text, icon_path, success_msg):
+        timer.stop()
+        btn.setText(text)
+        btn.setIcon(create_svg_icon(icon_path, "#ffffff", 0))
+        self.show_toast(success_msg, "success")
 
     def _on_export(self):
-        QMessageBox.information(self, "Export", "Export functionality triggered. Data will be saved to your configured export directory.")
+        # Open file dialog to choose save location
+        file_path, _ = QFileDialog.getSaveFileName(self, "Export Accounts", "antigravity_accounts.json", "JSON Files (*.json)")
+        if file_path:
+            success = self.db.export_data(file_path)
+            if success:
+                self.show_toast(f"Successfully exported accounts to {os.path.basename(file_path)}", "success")
+            else:
+                self.show_toast("Failed to export accounts.", "error")
+
+    def _on_import(self):
+        # Open file dialog to choose JSON file to import
+        file_path, _ = QFileDialog.getOpenFileName(self, "Import Accounts", "", "JSON Files (*.json)")
+        if file_path:
+            added = self.db.import_data(file_path)
+            if added > 0:
+                self.show_toast(f"Successfully imported {added} account(s).", "success")
+                self._load_data()
+            else:
+                self.show_toast("No new accounts imported or invalid format.", "warning")
+
 
     def _on_add_account(self):
         dialog = AddAccountDialog(self.db, self)

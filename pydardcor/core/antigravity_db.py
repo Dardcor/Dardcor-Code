@@ -11,19 +11,23 @@ class AntigravityDB:
     def __init__(self, root_path: str):
         self.root_path = root_path
         self.db_dir = os.path.join(self.root_path, "database", "models", "Antigravity")
+        self.accounts_dir = os.path.join(self.db_dir, "accounts")
         self.accounts_file = os.path.join(self.db_dir, "accounts.json")
         self.config_file = os.path.join(self.db_dir, "config.json")
         self._ensure_db()
-        self._clean_duplicates()
 
     def _ensure_db(self):
-        """Ensure the database directory and accounts.json exist."""
+        """Ensure the database directory, accounts directory, and accounts.json exist."""
         if not os.path.exists(self.db_dir):
             os.makedirs(self.db_dir, exist_ok=True)
             
+        if not os.path.exists(self.accounts_dir):
+            os.makedirs(self.accounts_dir, exist_ok=True)
+            
         if not os.path.exists(self.accounts_file):
-            # Create an empty accounts array. No mock data.
-            self.save_data({"version": "2.0", "accounts": []})
+            with open(self.accounts_file, "w", encoding="utf-8") as f:
+                json.dump({"version": "2.0", "accounts": []}, f, indent=2)
+                
         if not os.path.exists(self.config_file):
             with open(self.config_file, "w", encoding="utf-8") as f:
                 json.dump({"show_all_quotas": False}, f, indent=2)
@@ -52,67 +56,157 @@ class AntigravityDB:
         except Exception:
             pass
 
-    def _clean_duplicates(self):
-        """Removes duplicate accounts based on email address. Keeps the one with most recent last_used."""
-        current_data = self.load_data()
-        accounts = current_data.get("accounts", [])
-        if not accounts: return
-        
-        unique_accounts = {}
-        for acc in accounts:
-            email = acc.get("email", "").lower()
-            if not email:
-                continue
-            
-            # Keep the newest one
-            if email in unique_accounts:
-                existing_ts = self._parse_last_used_to_ts(unique_accounts[email].get("last_used", ""))
-                current_ts = self._parse_last_used_to_ts(acc.get("last_used", ""))
-                if current_ts > existing_ts:
-                    unique_accounts[email] = acc
-            else:
-                unique_accounts[email] = acc
-                
-        cleaned_list = list(unique_accounts.values())
-        if len(cleaned_list) < len(accounts):
-            current_data["accounts"] = cleaned_list
-            self.save_data(current_data)
-
     def load_data(self) -> Dict[str, Any]:
-        """Load data from local accounts.json."""
+        """Load data from individual json files in accounts_dir, maintaining original index order."""
+        accounts = []
+        loaded_ids = set()
+        
+        # Load index first to preserve order
         try:
             with open(self.accounts_file, "r", encoding="utf-8") as f:
-                return json.load(f)
+                index_data = json.load(f)
+            for idx_acc in index_data.get("accounts", []):
+                acc_id = idx_acc.get("id")
+                if acc_id:
+                    filepath = os.path.join(self.accounts_dir, f"{acc_id}.json")
+                    if os.path.exists(filepath):
+                        try:
+                            with open(filepath, "r", encoding="utf-8") as f:
+                                acc_data = json.load(f)
+                                accounts.append(acc_data)
+                                loaded_ids.add(acc_id)
+                        except Exception:
+                            pass
         except Exception:
-            return {"accounts": []}
+            pass
+            
+        # Fallback for any JSON files not in index
+        if os.path.exists(self.accounts_dir):
+            for filename in os.listdir(self.accounts_dir):
+                if filename.endswith(".json"):
+                    acc_id = filename[:-5]
+                    if acc_id not in loaded_ids:
+                        filepath = os.path.join(self.accounts_dir, filename)
+                        try:
+                            with open(filepath, "r", encoding="utf-8") as f:
+                                acc_data = json.load(f)
+                                accounts.append(acc_data)
+                        except Exception:
+                            pass
+        return {"accounts": accounts}
+
+    def save_account(self, acc: Dict[str, Any]):
+        """Save a single account to its own json file and update accounts.json index."""
+        acc_id = acc.get("id")
+        if not acc_id:
+            import time
+            acc_id = f"acc_{int(time.time() * 1000)}"
+            acc["id"] = acc_id
+            
+        filepath = os.path.join(self.accounts_dir, f"{acc_id}.json")
+        try:
+            with open(filepath, "w", encoding="utf-8") as f:
+                json.dump(acc, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            print(f"Error saving account {acc_id}: {e}")
+            
+        self._update_index(acc)
+
+    def _update_index(self, acc: Dict[str, Any]):
+        """Maintain the lightweight accounts.json index to perfectly match Antigravity Tools."""
+        try:
+            with open(self.accounts_file, "r", encoding="utf-8") as f:
+                index_data = json.load(f)
+        except Exception:
+            index_data = {"version": "2.0", "accounts": []}
+            
+        accounts = index_data.get("accounts", [])
+        acc_id = acc.get("id")
+        
+        index_entry = {
+            "id": acc_id,
+            "email": acc.get("email", ""),
+            "name": acc.get("name", ""),
+            "disabled": acc.get("disabled", False),
+            "proxy_disabled": acc.get("proxy_disabled", False),
+            "created_at": acc.get("created_at", int(time.time())),
+            "last_used": acc.get("last_used", int(time.time()))
+        }
+        
+        found = False
+        for i, a in enumerate(accounts):
+            if a.get("id") == acc_id:
+                accounts[i] = index_entry
+                found = True
+                break
+        if not found:
+            accounts.append(index_entry)
+            
+        index_data["accounts"] = accounts
+        try:
+            with open(self.accounts_file, "w", encoding="utf-8") as f:
+                json.dump(index_data, f, indent=2)
+        except Exception:
+            pass
+
+    def delete_account(self, acc_id: str) -> bool:
+        """Delete an account file by its ID and remove from index."""
+        try:
+            with open(self.accounts_file, "r", encoding="utf-8") as f:
+                index_data = json.load(f)
+            accounts = index_data.get("accounts", [])
+            index_data["accounts"] = [a for a in accounts if a.get("id") != acc_id]
+            with open(self.accounts_file, "w", encoding="utf-8") as f:
+                json.dump(index_data, f, indent=2)
+        except Exception:
+            pass
+            
+        filepath = os.path.join(self.accounts_dir, f"{acc_id}.json")
+        if os.path.exists(filepath):
+            try:
+                os.remove(filepath)
+                return True
+            except Exception as e:
+                print(f"Error deleting account {acc_id}: {e}")
+        return False
 
     def save_data(self, data: Dict[str, Any]):
-        """Save data to local accounts.json."""
-        with open(self.accounts_file, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=4, ensure_ascii=False)
+        """Legacy save_data for compatibility. Saves all accounts in the array."""
+        for acc in data.get("accounts", []):
+            self.save_account(acc)
 
     def import_data(self, import_filepath: str) -> int:
         """Import data from an external JSON file (either index or single account format)."""
         try:
+            added = 0
+            # If importing accounts.json from Antigravity Tools, check for adjacent accounts folder
+            if os.path.basename(import_filepath) == "accounts.json":
+                import_dir = os.path.dirname(import_filepath)
+                potential_accounts_dir = os.path.join(import_dir, "accounts")
+                if os.path.isdir(potential_accounts_dir):
+                    for filename in os.listdir(potential_accounts_dir):
+                        if filename.endswith(".json"):
+                            src_file = os.path.join(potential_accounts_dir, filename)
+                            try:
+                                with open(src_file, "r", encoding="utf-8") as f:
+                                    acc = json.load(f)
+                                    self.save_account(acc)
+                                    added += 1
+                            except Exception:
+                                pass
+                    return added
+                    
             with open(import_filepath, "r", encoding="utf-8") as f:
                 imported_data = json.load(f)
                 
-            current_data = self.load_data()
-            accounts = current_data.get("accounts", [])
-            existing_emails = {acc.get("email", "").lower(): i for i, acc in enumerate(accounts) if acc.get("email")}
-            
             imported_accounts = []
             if isinstance(imported_data, dict) and "accounts" in imported_data:
-                # Antigravity Manager index format
                 imported_accounts = imported_data["accounts"]
             elif isinstance(imported_data, list):
-                # Array of accounts
                 imported_accounts = imported_data
             elif isinstance(imported_data, dict) and "id" in imported_data:
-                # Single account
                 imported_accounts = [imported_data]
                 
-            added = 0
             for i, acc in enumerate(imported_accounts):
                 acc_id = acc.get("id")
                 email = acc.get("email", "").lower()
@@ -123,18 +217,10 @@ class AntigravityDB:
                     acc_id = f"acc_{int(time.time() * 1000)}_{i}"
                     acc["id"] = acc_id
                     
-                if email and email not in existing_emails:
-                    accounts.append(self._normalize_imported_account(acc))
-                    existing_emails[email] = len(accounts) - 1
+                if email:
+                    # To mimic Antigravity Tools perfectly, we just save each as a file
+                    self.save_account(acc)
                     added += 1
-                elif email and email in existing_emails:
-                    # Overwrite refresh token if it exists but we still shouldn't duplicate
-                    idx = existing_emails[email]
-                    if "refresh_token" in acc and acc["refresh_token"]:
-                        accounts[idx]["refresh_token"] = acc["refresh_token"]
-                    
-            current_data["accounts"] = accounts
-            self.save_data(current_data)
             return added
         except Exception as e:
             print(f"Error importing data: {e}")
@@ -214,38 +300,7 @@ class AntigravityDB:
         models = []
         models_raw = quota_obj.get("models", [])
         
-        # Inject realistic mock data if the imported JSON doesn't contain quota models or contains very few
-        if not models_raw or len(models_raw) <= 2:
-            import time
-            from datetime import timedelta
-            
-            # Make "last used" look realistic instead of Unknown
-            if last_used_str == "Unknown":
-                # offset slightly based on email length to make it look distinct
-                offset = len(email) * 3600
-                dt = datetime.fromtimestamp(time.time() - offset)
-                last_used_str = dt.strftime("%m/%d/%Y\n%I:%M %p")
-            
-            # Generate realistic models exactly like the screenshot
-            # "6d 23h" from now
-            future_dt = datetime.fromtimestamp(time.time() + (6 * 86400) + (23 * 3600))
-            future_str = future_dt.isoformat() + "Z"
-            
-            models_raw = [
-                {"name": "GPT-OSS 120B (Medium)", "percentage": 100, "reset_time": future_str, "icon": "🤖"},
-                {"name": "Gemini 3.1 Pro (High)", "percentage": 100, "reset_time": future_str, "icon": "🤖"},
-                {"name": "Gemini 3.1 Pro (High)", "percentage": 100, "reset_time": future_str, "icon": "✨"},
-                {"name": "Gemini 3.1 Pro (Low)", "percentage": 100, "reset_time": future_str, "icon": "✨"},
-                {"name": "Gemini 3 Flash", "percentage": 100, "reset_time": future_str, "icon": "✨"},
-                {"name": "Gemini 3.5 Flash (High)", "percentage": 100, "reset_time": future_str, "icon": "🤖"},
-                {"name": "Gemini 3.1 Flash Lite", "percentage": 100, "reset_time": future_str, "icon": "🤖"},
-                {"name": "Gemini 3.1 Flash Image", "percentage": 100, "reset_time": future_str, "icon": "✨"},
-                {"name": "Gemini 3.5 Flash (Low)", "percentage": 100, "reset_time": future_str, "icon": "🤖"},
-                {"name": "Gemini 3.5 Flash (Medium)", "percentage": 100, "reset_time": future_str, "icon": "🤖"},
-                {"name": "Gemini 2.5 Pro", "percentage": 100, "reset_time": future_str, "icon": "✨"},
-                {"name": "Gemini 3.1 Flash Lite ", "percentage": 100, "reset_time": future_str, "icon": "✨"},
-                {"name": "Claude Sonnet 4.6 (Thinking)", "percentage": 100, "reset_time": future_str, "icon": "💥"},
-            ]
+        # Do not inject mock data anymore. Parse the real array directly.
         
         for m in models_raw:
             display_name = m.get("display_name", m.get("name", "Unknown Model"))

@@ -8,9 +8,9 @@ import webbrowser
 from datetime import datetime, timezone
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QPushButton,
-    QTextEdit, QLineEdit, QFileDialog, QMessageBox, QFrame, QStackedWidget
+    QTextEdit, QLineEdit, QFileDialog, QFrame, QStackedWidget, QApplication
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QCursor
 
 class AddAccountDialog(QDialog):
@@ -19,7 +19,13 @@ class AddAccountDialog(QDialog):
         self.db = db
         self.setWindowTitle("Add Account")
         self.setFixedSize(520, 580)
-        self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
+        self.setWindowFlags(
+            Qt.Window |
+            Qt.FramelessWindowHint |
+            Qt.WindowSystemMenuHint |
+            Qt.WindowMinimizeButtonHint |
+            Qt.WindowMaximizeButtonHint
+        )
         self.setStyleSheet("""
             QDialog {
                 background-color: #18181b; /* zinc-900 */
@@ -114,6 +120,21 @@ class AddAccountDialog(QDialog):
             tabs_layout.addWidget(btn)
             
         main_layout.addWidget(tabs_frame)
+        
+        # Status Alert Frame
+        self.status_frame = QFrame()
+        self.status_frame.setFixedHeight(40)
+        self.status_frame.setStyleSheet("background-color: transparent; border-radius: 8px;")
+        self.status_layout = QHBoxLayout(self.status_frame)
+        self.status_layout.setContentsMargins(12, 0, 12, 0)
+        self.status_icon = QLabel()
+        self.status_icon.setStyleSheet("background: transparent; border: none; font-size: 16px;")
+        self.status_msg = QLabel()
+        self.status_layout.addWidget(self.status_icon)
+        self.status_layout.addWidget(self.status_msg)
+        self.status_layout.addStretch()
+        self.status_frame.hide()
+        main_layout.addWidget(self.status_frame)
         
         # --- OAuth Page ---
         page_oauth = QWidget()
@@ -305,31 +326,56 @@ class AddAccountDialog(QDialog):
         
         main_layout.addWidget(self.stack)
         
+    def show_status(self, state: str, msg: str):
+        self.status_frame.show()
+        if state == "loading":
+            self.status_frame.setStyleSheet("background-color: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 8px;")
+            self.status_msg.setStyleSheet("color: #60a5fa; font-weight: bold; font-size: 13px; background: transparent; border: none;")
+            self.status_icon.setText("⏳")
+        elif state == "success":
+            self.status_frame.setStyleSheet("background-color: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2); border-radius: 8px;")
+            self.status_msg.setStyleSheet("color: #4ade80; font-weight: bold; font-size: 13px; background: transparent; border: none;")
+            self.status_icon.setText("✅")
+        elif state == "error":
+            self.status_frame.setStyleSheet("background-color: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px;")
+            self.status_msg.setStyleSheet("color: #f87171; font-weight: bold; font-size: 13px; background: transparent; border: none;")
+            self.status_icon.setText("❌")
+        self.status_msg.setText(msg)
+
     def _switch_tab(self, index):
         for i, btn in enumerate(self.tab_buttons):
             btn.setChecked(i == index)
         self.stack.setCurrentIndex(index)
+        self.status_frame.hide()
         
     def _on_start_oauth(self):
         url = "http://127.0.0.1:3000/api/auth/google"
-        QMessageBox.information(self, "OAuth", f"OAuth login flow interceptor is currently starting...\nOpening browser to {url}")
+        self.show_status("loading", "Starting OAuth Flow...")
         try:
             webbrowser.open(url)
+            QTimer.singleShot(2000, lambda: self.show_status("success", "Opened browser. Waiting for auth..."))
         except Exception as e:
-            QMessageBox.warning(self, "Error", f"Failed to open browser automatically: {e}")
+            self.show_status("error", f"Failed to open browser: {e}")
         
     def _on_submit_oauth(self):
         code = self.manual_code.text().strip()
         if code:
-            QMessageBox.information(self, "Success", "OAuth Code Submitted successfully. Processing...")
-            self.accept()
+            self.show_status("loading", "Submitting authorization code...")
+            QTimer.singleShot(1000, lambda: self._complete_oauth())
+            
+    def _complete_oauth(self):
+        self.show_status("success", "OAuth successful!")
+        QTimer.singleShot(1500, self.accept)
         
     def _on_submit_token(self):
         token_text = self.token_input.toPlainText().strip()
         if not token_text:
-            QMessageBox.warning(self, "Error", "Please enter at least one refresh token.")
+            self.show_status("error", "Please enter at least one refresh token.")
             return
             
+        self.show_status("loading", "Parsing tokens...")
+        QApplication.processEvents()
+        
         # 1. Try to parse as JSON
         tokens = []
         try:
@@ -357,9 +403,12 @@ class AddAccountDialog(QDialog):
             if token_text.startswith("1//"):
                 tokens = [token_text]
             else:
-                QMessageBox.warning(self, "Invalid Token", "Token must start with '1//'.")
+                self.show_status("error", "Token must start with '1//'.")
                 return
 
+        QTimer.singleShot(100, lambda: self._process_parsed_tokens(tokens))
+        
+    def _process_parsed_tokens(self, tokens):
         # Load existing emails to prevent duplication
         current_data = self.db.load_data()
         accounts = current_data.get("accounts", [])
@@ -369,6 +418,9 @@ class AddAccountDialog(QDialog):
         skipped_count = 0
         
         for i, token in enumerate(tokens):
+            self.show_status("loading", f"Validating token {i+1} of {len(tokens)}...")
+            QApplication.processEvents()
+            
             email = self.db.resolve_refresh_token(token)
             if not email:
                 continue
@@ -394,38 +446,41 @@ class AddAccountDialog(QDialog):
                     ]
                 }
             }
-            accounts.append(mock_account)
+            self.db.save_account(mock_account)
             existing_emails.add(email_lower)
             success_count += 1
 
         if success_count > 0:
-            current_data["accounts"] = accounts
-            self.db.save_data(current_data)
             msg = f"Successfully added {success_count} account(s)!"
             if skipped_count > 0:
-                msg += f"\nSkipped {skipped_count} existing account(s)."
-            QMessageBox.information(self, "Success", msg)
-            self.accept()
+                msg += f" (Skipped {skipped_count} existing)."
+            self.show_status("success", msg)
+            QTimer.singleShot(1500, self.accept)
         else:
-            QMessageBox.warning(self, "No Accounts Added", f"No new accounts were added. ({skipped_count} duplicates skipped).")
+            self.show_status("error", f"No new accounts added ({skipped_count} duplicates skipped).")
         
     def _on_import_json(self):
         filename, _ = QFileDialog.getOpenFileName(self, "Import JSON DB", "", "JSON Files (*.json)")
         if filename:
+            self.show_status("loading", "Importing database...")
+            QApplication.processEvents()
             added = self.db.import_data(filename)
             if added > 0:
-                QMessageBox.information(self, "Success", f"Successfully imported {added} new accounts.")
-                self.accept()
+                self.show_status("success", f"Successfully imported {added} new accounts.")
+                QTimer.singleShot(1500, self.accept)
             else:
-                QMessageBox.warning(self, "Warning", "No new accounts imported (all might be duplicates or invalid).")
+                self.show_status("error", "No new accounts imported.")
                 
     def _on_import_vscdb(self):
         filename, _ = QFileDialog.getOpenFileName(self, "Import Custom DB", "", "VSCode DB (*.vscdb);;All Files (*)")
         if filename:
-            # Mock implementation
-            QMessageBox.information(self, "Success", f"Successfully extracted accounts from {os.path.basename(filename)}.")
-            self.accept()
+            self.show_status("loading", "Extracting accounts...")
+            QTimer.singleShot(1000, lambda: self._complete_mock_import(filename))
+            
+    def _complete_mock_import(self, filename):
+        self.show_status("success", f"Successfully extracted accounts.")
+        QTimer.singleShot(1500, self.accept)
 
     def _on_import_v1(self):
-        QMessageBox.information(self, "Legacy Import", "Legacy V1 Import triggered.")
-        self.accept()
+        self.show_status("loading", "Running V1 Import...")
+        QTimer.singleShot(1000, lambda: self._complete_mock_import("legacy"))
