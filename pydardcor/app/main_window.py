@@ -3,6 +3,7 @@
 import os
 import threading
 from pathlib import Path
+import shutil
 
 from ..browser.chrome_launcher import open_agent_chrome
 
@@ -611,7 +612,11 @@ class MainWindow(QMainWindow):
         # ── Chat Panel ──
         self._chat_panel = ChatPanel()
         self._chat_panel.message_sent.connect(self._on_chat_message)
-        self._chat_panel._request_new_conversation = self._new_conversation
+        self._chat_panel.new_chat_requested.connect(self._new_conversation)
+        self._chat_panel.history_requested.connect(self._show_chat_history)
+        self._chat_panel.select_file_requested.connect(self._upload_chat_file)
+        self._chat_panel.files_pasted.connect(self._attach_files_to_chat)
+        self._chat_panel.stop_requested.connect(self._on_stop_requested)
         self._chat_panel.set_close_callback(self._toggle_chat)
         self._chat_panel.set_workspace_name("")
 
@@ -1643,13 +1648,19 @@ class MainWindow(QMainWindow):
                     model_override=selected_model,
                     on_tool_call=self._chat_panel.append_tool_call,
                 )
-                self._chat_panel.append_agent_message(response)
+                if response and response != "Agent dihentikan oleh pengguna.":
+                    self._chat_panel.append_agent_message(response)
+                elif response == "Agent dihentikan oleh pengguna.":
+                    self._chat_panel.append_system_message("⛔ Generation stopped.")
             except Exception as e:
                 self._chat_panel.append_system_message(f"Error: {e}")
             finally:
                 self._chat_panel.set_enabled(True)
 
         threading.Thread(target=process, daemon=True).start()
+
+    def _on_stop_requested(self):
+        self._agent.abort()
 
     def _on_agent_stream(self, text: str):
         pass
@@ -1658,6 +1669,65 @@ class MainWindow(QMainWindow):
         self._agent.new_conversation()
         self._chat_panel.clear()
         self._chat_panel.append_system_message("New conversation started. Ask me anything!")
+
+    def _show_chat_history(self):
+        convs = self._agent.list_conversations()
+        if not convs:
+            QMessageBox.information(self, "Chat History", "No chat history found.")
+            return
+            
+        items = [f"{c.get('title', 'Untitled')} ({c.get('id')})" for c in convs]
+        item, ok = QInputDialog.getItem(self, "Chat History", "Select a conversation:", items, 0, False)
+        if ok and item:
+            conv_id = item.split("(")[-1].strip(")")
+            if self._agent.load_conversation(conv_id):
+                self._chat_panel.clear()
+                for msg in self._agent.get_conversation().messages:
+                    if msg.role == "user":
+                        self._chat_panel._append_user_message(msg.content)
+                    elif msg.role == "assistant":
+                        self._chat_panel.append_agent_message(msg.content)
+                    elif msg.role == "system":
+                        self._chat_panel.append_system_message(msg.content)
+
+    def _upload_chat_file(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Select File to Attach")
+        if file_path:
+            self._attach_files_to_chat([file_path])
+
+    def _attach_files_to_chat(self, file_paths: list):
+        if not file_paths:
+            return
+            
+        conv = self._agent.get_conversation()
+        if not conv or not conv.id:
+            return
+            
+        store_dir = getattr(self._agent._store, '_store_dir', None)
+        if not store_dir:
+            return
+            
+        conv_dir = os.path.join(store_dir, conv.id)
+        os.makedirs(conv_dir, exist_ok=True)
+        
+        for file_path in file_paths:
+            if not os.path.exists(file_path):
+                continue
+                
+            filename = os.path.basename(file_path)
+            dest_path = os.path.join(conv_dir, filename)
+            
+            try:
+                # Copy file into conversation folder
+                import shutil
+                if file_path != dest_path:
+                    shutil.copy2(file_path, dest_path)
+                
+                # Add visual pill to the chat panel
+                self._chat_panel.add_attachment(dest_path)
+                
+            except Exception as e:
+                QMessageBox.warning(self, "Attachment Error", f"Failed to attach file {filename}: {e}")
 
     # ── Engine check ──────────────────────────────────────
 

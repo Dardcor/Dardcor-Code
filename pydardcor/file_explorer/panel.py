@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QMessageBox, QHeaderView, QStyledItemDelegate, QStyleOptionViewItem,
     QProxyStyle, QStyle,
 )
-from PySide6.QtCore import Signal, Qt, QSize, QPoint, QByteArray, QLocale
+from PySide6.QtCore import Signal, Qt, QSize, QPoint, QByteArray, QLocale, QFileSystemWatcher, QTimer
 from PySide6.QtGui import QAction, QColor, QPainter, QPixmap, QIcon, QPen, QFont, QPolygonF, QCursor, QImage
 from PySide6.QtSvg import QSvgRenderer
 
@@ -262,6 +262,15 @@ class FileExplorer(QWidget):
         self._force_expand_root = True  # Flag to force expansion on first load or when root changes
         self._welcome_widget = None
         self.setObjectName("fileExplorer")
+
+        self._watcher = QFileSystemWatcher(self)
+        self._watcher.directoryChanged.connect(self._schedule_refresh)
+        
+        self._refresh_timer = QTimer(self)
+        self._refresh_timer.setSingleShot(True)
+        self._refresh_timer.setInterval(200) # debounce
+        self._refresh_timer.timeout.connect(self._do_refresh)
+
         self._setup_ui()
 
     def _setup_ui(self):
@@ -473,6 +482,7 @@ class FileExplorer(QWidget):
                 item.setIcon(0, get_folder_icon(item.text(0), True))
             else:
                 self.setMaximumHeight(16777215)
+            self._update_watcher(self._get_expanded_paths())
 
     def _on_item_collapsed(self, item: QTreeWidgetItem):
         path = item.data(0, Qt.UserRole)
@@ -481,6 +491,7 @@ class FileExplorer(QWidget):
                 item.setIcon(0, get_folder_icon(item.text(0), False))
             else:
                 self.setMaximumHeight(60)
+            self._update_watcher(self._get_expanded_paths())
 
     def _on_item_clicked(self, item: QTreeWidgetItem, column: int):
         path = item.data(0, Qt.UserRole)
@@ -574,7 +585,14 @@ class FileExplorer(QWidget):
         for i in range(self._tree.topLevelItemCount()):
             restore_item(self._tree.topLevelItem(i))
 
+    def _schedule_refresh(self, path=None):
+        if not self._in_inline_edit:
+            self._refresh_timer.start()
+
     def _refresh(self):
+        self._do_refresh()
+
+    def _do_refresh(self):
         if not self._root_path:
             self._welcome_widget.show()
             self._tree.hide()
@@ -616,6 +634,25 @@ class FileExplorer(QWidget):
         
         # Restore other expansion states
         self._restore_expanded_paths(expanded)
+        
+        # Update filesystem watcher
+        self._update_watcher(expanded)
+
+    def _update_watcher(self, expanded_paths):
+        # Clear existing paths
+        current_paths = self._watcher.directories()
+        if current_paths:
+            self._watcher.removePaths(current_paths)
+            
+        # Add root and expanded paths
+        if self._root_path and os.path.exists(self._root_path):
+            paths_to_watch = {self._root_path}
+            for p in expanded_paths:
+                if os.path.exists(p):
+                    paths_to_watch.add(p)
+            
+            if paths_to_watch:
+                self._watcher.addPaths(list(paths_to_watch))
 
     def _open_folder(self):
         start_dir = self._root_path if self._root_path else os.path.expanduser("~")

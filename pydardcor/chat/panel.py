@@ -4,11 +4,13 @@ import json
 from datetime import datetime
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTextEdit,
-    QPushButton, QLabel, QFrame, QScrollArea, QComboBox
+    QPushButton, QLabel, QFrame, QScrollArea, QComboBox,
+    QStyledItemDelegate
 )
 from PySide6.QtCore import Signal, Qt, QTimer, QSize, QThread, QCoreApplication
 from PySide6.QtGui import QColor, QTextCursor, QTextCharFormat, QFont, QKeyEvent, QIcon
 import os
+import html
 
 from ..core.config import get_config
 from ..core.antigravity_db import AntigravityDB
@@ -25,6 +27,11 @@ class ChatPanel(QWidget):
     """VS Code Copilot Chat style panel."""
 
     message_sent = Signal(str)
+    new_chat_requested = Signal()
+    history_requested = Signal()
+    select_file_requested = Signal()
+    files_pasted = Signal(list)
+    stop_requested = Signal()
 
     # Thread-safe slots signals
     _append_agent_signal = Signal(str, bool)
@@ -110,10 +117,11 @@ class ChatPanel(QWidget):
             return btn
 
         new_btn = create_header_btn("\uea60", "New Chat")
-        new_btn.clicked.connect(self._request_new_conversation)
+        new_btn.clicked.connect(self.new_chat_requested.emit)
         header_layout.addWidget(new_btn)
 
         hist_btn = create_header_btn("\uea82", "History")
+        hist_btn.clicked.connect(self.history_requested.emit)
         header_layout.addWidget(hist_btn)
 
         close_btn = create_header_btn("\uea76", "Close Chat")
@@ -127,6 +135,7 @@ class ChatPanel(QWidget):
         # Chat history
         self._history = QTextEdit()
         self._history.setReadOnly(True)
+        self._history.setTextInteractionFlags(Qt.TextBrowserInteraction)
         self._history.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self._history.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self._history.setStyleSheet("""
@@ -215,6 +224,14 @@ class ChatPanel(QWidget):
         input_box_layout.setContentsMargins(0, 0, 0, 0)
         input_box_layout.setSpacing(0)
 
+        # Attachments area (hidden by default)
+        self._attachments_container = QWidget()
+        self._attachments_layout = QHBoxLayout(self._attachments_container)
+        self._attachments_layout.setContentsMargins(12, 12, 12, 0)
+        self._attachments_layout.setSpacing(8)
+        self._attachments_container.hide()
+        input_box_layout.addWidget(self._attachments_container)
+
         # Text input
         self._input = ChatInput()
         self._input.setPlaceholderText("Ask Dardcor or type /help")
@@ -233,6 +250,7 @@ class ChatPanel(QWidget):
         """)
         self._input.submit_pressed.connect(self._send_message)
         self._input.textChanged.connect(self._on_input_changed)
+        self._input.file_pasted.connect(self.files_pasted.emit)
         input_box_layout.addWidget(self._input)
 
         # Bottom row of input box
@@ -257,10 +275,12 @@ class ChatPanel(QWidget):
             }
             QPushButton:hover { background-color: #333333; }
         """)
+        attach_btn.clicked.connect(self.select_file_requested.emit)
         input_bottom_layout.addWidget(attach_btn)
         
         chevron_path = os.path.join(assets_dir, "chevron-up.svg").replace("\\", "/")
         self.model_dropdown = UpwardComboBox()
+        self.model_dropdown.setItemDelegate(QStyledItemDelegate())
         self.model_dropdown.setVisible(False)
         self.model_dropdown.setStyleSheet("""
             QComboBox {
@@ -270,8 +290,8 @@ class ChatPanel(QWidget):
                 border-radius: 4px;
                 padding: 2px 8px;
                 font-family: "Segoe UI", "Ubuntu", sans-serif;
-                font-size: 11px;
-                font-weight: bold;
+                font-size: 11.5px;
+                font-weight: 500;
             }
             QComboBox::drop-down {
                 border: none;
@@ -287,17 +307,32 @@ class ChatPanel(QWidget):
                 background-color: #1a1d21;
                 color: #e4e4e7;
                 border: 1px solid #373a40;
-                selection-background-color: #2c2e33;
-                selection-color: #ffffff;
+                border-radius: 6px;
+                outline: 0px;
+                padding: 4px;
+            }
+            QComboBox QAbstractItemView::item {
+                padding: 8px 12px;
+                border-radius: 4px;
+                min-height: 20px;
+            }
+            QComboBox QAbstractItemView::item:hover {
+                background-color: #2c2e33;
+            }
+            QComboBox QAbstractItemView::item:selected {
+                background-color: #3b82f6;
+                color: #ffffff;
             }
         """ % chevron_path)
-        self.model_dropdown.setFixedHeight(24)
+        self.model_dropdown.setFixedHeight(26)
         input_bottom_layout.addWidget(self.model_dropdown)
 
         input_bottom_layout.addStretch()
 
         self._mic_icon = QIcon(os.path.join(assets_dir, "mic.svg"))
         self._send_icon = QIcon(os.path.join(assets_dir, "send.svg"))
+        self._stop_icon = QIcon(os.path.join(assets_dir, "stop.svg"))
+        self._is_generating = False
 
         self._send_btn = QPushButton()
         self._send_btn.setIcon(self._mic_icon)
@@ -316,7 +351,7 @@ class ChatPanel(QWidget):
                 background-color: #2a2a2a;
             }
         """)
-        self._send_btn.clicked.connect(self._send_message)
+        self._send_btn.clicked.connect(self._on_send_btn_clicked)
         input_bottom_layout.addWidget(self._send_btn)
 
         input_box_layout.addWidget(input_bottom)
@@ -384,26 +419,129 @@ class ChatPanel(QWidget):
     def set_close_callback(self, callback):
         self._close_callback = callback
 
+    def add_attachment(self, filepath: str):
+        import os
+        from PySide6.QtWidgets import QLabel, QHBoxLayout, QFrame, QFileIconProvider, QPushButton
+        from PySide6.QtCore import QFileInfo
+        
+        # Prevent duplicate files
+        filename = os.path.basename(filepath)
+        for i in range(self._attachments_layout.count()):
+            w = self._attachments_layout.itemAt(i).widget()
+            if w and os.path.basename(w.property("filepath") or "") == filename:
+                return
+        
+        icon_provider = QFileIconProvider()
+        icon = icon_provider.icon(QFileInfo(filepath))
+
+        pill = QFrame()
+        pill.setFixedSize(42, 42)
+        pill.setStyleSheet("""
+            QFrame {
+                background-color: #1e1e1e;
+                border: 1px solid #3c3c3c;
+                border-radius: 6px;
+            }
+        """)
+        pill.setToolTip(filename)
+        pill.setProperty("filepath", filepath)
+
+        icon_lbl = QLabel(pill)
+        icon_lbl.setPixmap(icon.pixmap(28, 28))
+        icon_lbl.setFixedSize(28, 28)
+        icon_lbl.move(7, 8)
+        icon_lbl.setStyleSheet("border: none; background: transparent;")
+
+        close_btn = QPushButton("✕", pill)
+        close_btn.setFixedSize(14, 14)
+        close_btn.move(26, 1)
+        close_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #555555;
+                color: #ffffff;
+                border: none;
+                border-radius: 7px;
+                font-size: 8px;
+                font-weight: bold;
+                padding: 0px;
+            }
+            QPushButton:hover { background-color: #cc3333; }
+        """)
+        close_btn.clicked.connect(lambda _, p=pill: self._remove_attachment(p))
+
+        self._attachments_layout.addWidget(pill)
+        self._attachments_container.show()
+        self._on_input_changed()
+
+    def _remove_attachment(self, pill):
+        self._attachments_layout.removeWidget(pill)
+        pill.deleteLater()
+        if self._attachments_layout.count() == 0:
+            self._attachments_container.hide()
+        self._on_input_changed()
+
+    def clear_attachments(self):
+        while self._attachments_layout.count():
+            item = self._attachments_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        self._attachments_container.hide()
+
+    def get_attachments(self) -> list:
+        paths = []
+        for i in range(self._attachments_layout.count()):
+            widget = self._attachments_layout.itemAt(i).widget()
+            if widget:
+                paths.append(widget.property("filepath"))
+        return paths
+
     def _on_input_changed(self):
+        if self._is_generating:
+            return
         text = self._input.toPlainText().strip()
-        if text:
+        has_attach = self._attachments_layout.count() > 0
+        if text or has_attach:
             self._send_btn.setIcon(self._send_icon)
         else:
             self._send_btn.setIcon(self._mic_icon)
 
+    def _on_send_btn_clicked(self):
+        if self._is_generating:
+            self.stop_requested.emit()
+        else:
+            self._send_message()
+
     def _send_message(self):
         text = self._input.toPlainText().strip()
-        if not text:
+        attachments = self.get_attachments()
+        
+        if not text and not attachments:
             return
-        self._append_user_message(text)
+            
+        display_text = text
+        final_text = text
+        
+        import os
+        for path in attachments:
+            filename = os.path.basename(path)
+            display_text += f"\\n📎 {filename}"
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    content = f.read()
+                final_text += f"\\n\\n[Attached File: {filename}]\\n```\\n{content}\\n```\\n"
+            except UnicodeDecodeError:
+                final_text += f"\\n\\n[Attached Binary File: {filename}]\\n"
+                
+        self._append_user_message(display_text.strip())
         self._input.clear()
+        self.clear_attachments()
         self._on_input_changed()
         
-        if text.startswith("/"):
-            self._handle_slash_command(text)
+        if final_text.startswith("/"):
+            self._handle_slash_command(final_text)
         else:
             self.show_typing(True)
-            self.message_sent.emit(text)
+            self.message_sent.emit(final_text)
 
     def _append_user_message(self, text: str):
         cursor = self._history.textCursor()
@@ -433,9 +571,9 @@ class ChatPanel(QWidget):
     def _safe_show_typing(self, show: bool):
         if show:
             self._typing_dots = 0
-            self._typing_lbl.setText("Dardcor Agent is thinking")
+            self._typing_lbl.setText("<span style='color: #4facfe;'>Dardcor Agent is thinking</span>")
             self._typing_lbl.show()
-            self._typing_timer.start(500)
+            self._typing_timer.start(300)
             self._scroll_to_bottom()
         else:
             self._typing_timer.stop()
@@ -444,7 +582,8 @@ class ChatPanel(QWidget):
     def _animate_typing(self):
         self._typing_dots = (self._typing_dots + 1) % 4
         dots = "." * self._typing_dots
-        self._typing_lbl.setText(f"Dardcor Agent is thinking{dots}")
+        color = "#4facfe" if self._typing_dots % 2 == 0 else "#6ab0ff"
+        self._typing_lbl.setText(f"<span style='color: {color}; font-style: italic;'>Dardcor Agent is thinking{dots}</span>")
 
     def append_agent_message(self, text: str, is_html: bool = False):
         self.show_typing(False)
@@ -476,6 +615,17 @@ class ChatPanel(QWidget):
         
         # Escape HTML first
         text = html.escape(text)
+        
+        # Handle thinking blocks
+        def thinking_replacer(match):
+            thought = match.group(1).strip()
+            thought = thought.replace('\n', '<br/>')
+            return (f"<div style='background-color: #1e1e1e; border: 1px solid #3e3e42; border-left: 3px solid #6c757d; "
+                    f"padding: 10px; border-radius: 6px; margin-bottom: 12px; margin-top: 8px; color: #a9a9a9; font-size: 11px;'>"
+                    f"<div style='color: #8a8a8a; font-weight: bold; margin-bottom: 6px;'>🧠 Proses Berpikir</div>"
+                    f"<div style='line-height: 1.4;'>{thought}</div>"
+                    f"</div>")
+        text = re.sub(r'@@THINKING_START@@(.*?)@@THINKING_END@@', thinking_replacer, text, flags=re.DOTALL)
         
         # Handle code blocks
         def code_block_replacer(match):
@@ -556,8 +706,9 @@ class ChatPanel(QWidget):
             elif cmd == "/models":
                 try:
                     from ..settings.models_dialog import ModelsQuotaDialog
-                    dialog = ModelsQuotaDialog(self.window())
-                    dialog.exec()
+                    self._models_dialog = ModelsQuotaDialog(parent=None)
+                    self._models_dialog.setAttribute(Qt.WA_DeleteOnClose)
+                    self._models_dialog.show()
                 except Exception as e:
                     self.append_system_message(f"Error opening Models Dashboard: {e}")
 
@@ -768,17 +919,21 @@ class ChatPanel(QWidget):
         color = color_map.get(status, "#858585")
 
         status_icon = {
-            "running": "\u23f3",
-            "success": "\u2713",
-            "error": "\u2717",
+            "running": "⏳",
+            "success": "✅",
+            "error": "❌",
         }
         icon = status_icon.get(status, "\u2022")
 
-        fmt = QTextCharFormat()
-        fmt.setForeground(QColor(color))
-        fmt.setFontFamily("Cascadia Code, Consolas, monospace")
-        fmt.setFontPointSize(8.5)
-        cursor.insertText(f"  {icon} {tool_name}({args[:60]}) [{status}]\n", fmt)
+        html_content = (
+            f"<div style='background-color: #1e1e1e; border: 1px solid {color}; border-left: 3px solid {color}; padding: 8px; "
+            f"border-radius: 6px; margin-bottom: 8px; margin-top: 4px; color: #d4d4d4; font-family: monospace; font-size: 11px;'>"
+            f"<b style='color: #e0e0e0; font-size: 12px;'>{icon} {tool_name}</b> <span style='color: #858585; font-size: 10px;'>[{status.upper()}]</span><br>"
+            f"<span style='color: #ce9178; display: inline-block; margin-top: 4px;'>args: {html.escape(args[:120])}{'...' if len(args) > 120 else ''}</span>"
+            f"</div>"
+        )
+        cursor.insertHtml(html_content)
+        cursor.insertText("\n")
 
         self._scroll_to_bottom()
 
@@ -789,6 +944,7 @@ class ChatPanel(QWidget):
 
     def clear(self):
         self._history.clear()
+        self.clear_attachments()
 
     def set_enabled(self, enabled: bool):
         if QThread.currentThread() != QCoreApplication.instance().thread():
@@ -797,9 +953,33 @@ class ChatPanel(QWidget):
             self._safe_set_enabled(enabled)
 
     def _safe_set_enabled(self, enabled: bool):
-        self._send_btn.setEnabled(enabled)
+        self._is_generating = not enabled
         self._input.setEnabled(enabled)
-        if enabled:
+        self._send_btn.setEnabled(True)  # always clickable (send OR stop)
+        if not enabled:
+            # Switch to STOP mode — red pill button with stop icon
+            self._send_btn.setIcon(self._stop_icon)
+            self._send_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #7f1d1d;
+                    border: none;
+                    border-radius: 14px;
+                }
+                QPushButton:hover { background-color: #991b1b; }
+                QPushButton:pressed { background-color: #450a0a; }
+            """)
+        else:
+            # Restore normal send/mic mode
+            self._send_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #333333;
+                    border: none;
+                    border-radius: 14px;
+                }
+                QPushButton:hover { background-color: #444444; }
+                QPushButton:pressed { background-color: #222222; }
+                QPushButton:disabled { background-color: #2a2a2a; }
+            """)
             self._on_input_changed()
 
 
@@ -807,6 +987,7 @@ class ChatInput(QTextEdit):
     """Custom text input that submits on Enter."""
 
     submit_pressed = Signal()
+    file_pasted = Signal(list)
 
     def keyPressEvent(self, event: QKeyEvent):
         if event.key() in (Qt.Key_Return, Qt.Key_Enter):
@@ -814,3 +995,14 @@ class ChatInput(QTextEdit):
                 self.submit_pressed.emit()
                 return
         super().keyPressEvent(event)
+
+    def insertFromMimeData(self, source):
+        if source.hasUrls():
+            file_paths = []
+            for url in source.urls():
+                if url.isLocalFile():
+                    file_paths.append(url.toLocalFile())
+            if file_paths:
+                self.file_pasted.emit(file_paths)
+                return
+        super().insertFromMimeData(source)

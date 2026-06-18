@@ -97,6 +97,17 @@ class AntigravityDB:
                             pass
         return {"accounts": accounts, "current_account_id": current_account_id}
 
+    def get_account(self, acc_id: str) -> Dict[str, Any]:
+        """Get a single account by its ID from the individual json file."""
+        filepath = os.path.join(self.accounts_dir, f"{acc_id}.json")
+        if os.path.exists(filepath):
+            try:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception:
+                pass
+        return None
+
     def save_account(self, acc: Dict[str, Any]):
         """Save a single account to its own json file and update accounts.json index."""
         acc_id = acc.get("id")

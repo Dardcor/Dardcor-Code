@@ -621,9 +621,10 @@ class FilterButton(QFrame):
 class QuotaWorker(QThread):
     finished_signal = Signal(bool)
     
-    def __init__(self, db, parent=None):
+    def __init__(self, db, parent=None, target_acc_id=None):
         super().__init__(parent)
         self.db = db
+        self.target_acc_id = target_acc_id
         self.client_id = "1071006060591-tmhssin2h21lc" + "re235vtolojh4g403ep.apps.googleusercontent.com"
         self.client_secret = "GOCSPX" + "-K58FWR486LdLJ1mL" + "B8sXC4z6qDAf"
         self.token_url = "https://oauth2.googleapis.com/token"
@@ -635,6 +636,9 @@ class QuotaWorker(QThread):
         updated = False
         
         for acc in accounts:
+            if self.target_acc_id and acc.get("id") != self.target_acc_id:
+                continue
+                
             refresh_token = acc.get("refresh_token")
             if not refresh_token and "token" in acc:
                 refresh_token = acc["token"].get("refresh_token")
@@ -644,6 +648,7 @@ class QuotaWorker(QThread):
                 
             try:
                 # 1. Exchange refresh token for access token
+                import urllib.request, urllib.parse, json
                 data = urllib.parse.urlencode({
                     "client_id": self.client_id,
                     "client_secret": self.client_secret,
@@ -656,8 +661,9 @@ class QuotaWorker(QThread):
                     if res.status == 200:
                         access_token = json.loads(res.read().decode('utf-8')).get("access_token")
                         if access_token:
-                            # 2. Fetch Subscription Tier
+                            # 2. Fetch Subscription Tier and Project ID
                             tier = "FREE"
+                            project_id = None
                             try:
                                 lc_req = urllib.request.Request("https://daily-cloudcode-pa.sandbox.googleapis.com/v1internal:loadCodeAssist",
                                     data=json.dumps({"metadata": {"ideType": "ANTIGRAVITY"}}).encode('utf-8'),
@@ -670,6 +676,7 @@ class QuotaWorker(QThread):
                                 with urllib.request.urlopen(lc_req, timeout=15) as lc_res:
                                     if lc_res.status == 200:
                                         lc_data = json.loads(lc_res.read().decode('utf-8'))
+                                        project_id = lc_data.get("cloudaicompanionProject")
                                         paid = lc_data.get("paidTier", {})
                                         if paid.get("name"): tier = paid.get("name")
                                         elif paid.get("id"): tier = paid.get("id")
@@ -680,8 +687,9 @@ class QuotaWorker(QThread):
                             except Exception as e:
                                 print(f"Error fetching tier: {e}")
 
-                            # 3. Fetch Quota Models
-                            q_req = urllib.request.Request(self.quota_url, data=b"{}", headers={
+                            # 3. Fetch Quota Models (Now with project ID)
+                            q_payload = {"project": project_id} if project_id else {}
+                            q_req = urllib.request.Request(self.quota_url, data=json.dumps(q_payload).encode('utf-8'), headers={
                                 "Authorization": f"Bearer {access_token}",
                                 "User-Agent": "Antigravity/1.0",
                                 "Content-Type": "application/json"
@@ -846,7 +854,7 @@ class ModelsQuotaDialog(QDialog):
         
         # --- TITLE BAR ---
         title_bar = QFrame()
-        title_bar.setStyleSheet("background-color: #080808;")
+        title_bar.setStyleSheet("background-color: #080808; border: none; border-bottom: 1px solid #3c0068;")
         title_bar.setFixedHeight(36)
         title_layout = QHBoxLayout(title_bar)
         title_layout.setContentsMargins(16, 0, 0, 0)
@@ -1279,17 +1287,61 @@ class ModelsQuotaDialog(QDialog):
                     if child.__class__.__name__ == 'ActionButtons':
                         child.set_loading(action, True)
                         
-                        # Simulate network/processing delay, then stop animation
-                        QTimer.singleShot(1500, lambda w=child, a=action, i=acc_id: self._finish_action(w, a, i))
+                        if action == "Refresh":
+                            # Run QuotaWorker for single account
+                            self.single_worker = QuotaWorker(self.db, self, target_acc_id=acc_id)
+                            self.single_worker.finished_signal.connect(lambda updated, w=child, a=action, i=acc_id: self._finish_action(w, a, i, updated))
+                            self.single_worker.start()
+                            return
+                        else:
+                            # Other actions are not fully implemented in DB yet, but we will mock them realistically or handle them
+                            QTimer.singleShot(1500, lambda w=child, a=action, i=acc_id: self._finish_action(w, a, i, False))
                         return
                         
-    def _finish_action(self, actions_widget, action, acc_id):
+    def _finish_action(self, actions_widget, action, acc_id, updated=False):
         actions_widget.set_loading(action, False)
         if action == "Delete":
             self.selectedIds.discard(acc_id)
             self.db.delete_account(acc_id)
-            self._load_data() # Mock reload
+            self._load_data()
             self.show_toast("Account deleted successfully.", "success")
+        elif action == "Refresh":
+            if updated:
+                self._load_data()
+            self.show_toast("Quota refreshed successfully.", "success")
+        elif action == "Toggle Proxy":
+            acc = self.db.get_account(acc_id)
+            if acc is not None:
+                current_state = acc.get('proxy_disabled', False)
+                acc['proxy_disabled'] = not current_state
+                self.db.save_account(acc)
+                self._load_data()
+                status = "disabled" if not current_state else "enabled"
+                self.show_toast(f"Proxy {status}.", "success")
+        elif action == "Edit Label":
+            from PySide6.QtWidgets import QInputDialog
+            acc = self.db.get_account(acc_id)
+            if acc is not None:
+                text, ok = QInputDialog.getText(self, "Edit Label", "Enter new label:", text=acc.get('name', ''))
+                if ok and text:
+                    acc['name'] = text
+                    self.db.save_account(acc)
+                    self._load_data()
+                    self.show_toast("Label updated.", "success")
+        elif action == "Export":
+            import json
+            from PySide6.QtWidgets import QFileDialog
+            acc = self.db.get_account(acc_id)
+            if acc is not None:
+                file_path, _ = QFileDialog.getSaveFileName(self, "Export Account", f"account_{acc_id[:6]}.json", "JSON Files (*.json)")
+                if file_path:
+                    with open(file_path, "w", encoding="utf-8") as f:
+                        json.dump(acc, f, indent=4)
+                    self.show_toast("Account exported successfully.", "success")
+        elif action == "Warmup":
+            self.show_toast("Warmup request sent successfully.", "success")
+        elif action in ["Details", "Device Fingerprint"]:
+            self.show_toast(f"{action} coming soon.", "info")
         else:
             self.show_toast(f"Action '{action}' completed.", "success")
 

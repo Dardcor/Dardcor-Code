@@ -67,12 +67,26 @@ class Conversation:
 class ConversationStore:
     def __init__(self, store_dir: str = None):
         if store_dir is None:
-            store_dir = os.path.join(os.path.expanduser("~"), ".dardcor-code", "conversations")
+            root_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            store_dir = os.path.join(root_path, "database", "conversation")
         self._store_dir = store_dir
         os.makedirs(self._store_dir, exist_ok=True)
+        
+        # Migrate old flat files to nested folders
+        import shutil
+        for fname in os.listdir(self._store_dir):
+            if fname.endswith(".json"):
+                conv_id = fname[:-5]
+                old_path = os.path.join(self._store_dir, fname)
+                new_dir = os.path.join(self._store_dir, conv_id)
+                os.makedirs(new_dir, exist_ok=True)
+                new_path = os.path.join(new_dir, fname)
+                shutil.move(old_path, new_path)
 
     def save(self, conversation: Conversation):
-        path = os.path.join(self._store_dir, f"{conversation.id}.json")
+        conv_dir = os.path.join(self._store_dir, conversation.id)
+        os.makedirs(conv_dir, exist_ok=True)
+        path = os.path.join(conv_dir, f"{conversation.id}.json")
         data = {
             "id": conversation.id,
             "title": conversation.title,
@@ -84,7 +98,7 @@ class ConversationStore:
             json.dump(data, f, indent=2, ensure_ascii=False)
 
     def load(self, conv_id: str) -> Optional[Conversation]:
-        path = os.path.join(self._store_dir, f"{conv_id}.json")
+        path = os.path.join(self._store_dir, conv_id, f"{conv_id}.json")
         if not os.path.exists(path):
             return None
         try:
@@ -104,10 +118,11 @@ class ConversationStore:
 
     def list_conversations(self) -> List[Dict[str, str]]:
         convs = []
-        for fname in os.listdir(self._store_dir):
-            if fname.endswith(".json"):
+        for dirname in os.listdir(self._store_dir):
+            path = os.path.join(self._store_dir, dirname, f"{dirname}.json")
+            if os.path.exists(path):
                 try:
-                    with open(os.path.join(self._store_dir, fname), "r", encoding="utf-8") as f:
+                    with open(path, "r", encoding="utf-8") as f:
                         data = json.load(f)
                     convs.append({
                         "id": data["id"],
@@ -120,6 +135,7 @@ class ConversationStore:
         return convs
 
     def delete(self, conv_id: str):
-        path = os.path.join(self._store_dir, f"{conv_id}.json")
-        if os.path.exists(path):
-            os.remove(path)
+        import shutil
+        conv_dir = os.path.join(self._store_dir, conv_id)
+        if os.path.exists(conv_dir):
+            shutil.rmtree(conv_dir, ignore_errors=True)
