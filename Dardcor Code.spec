@@ -1,10 +1,11 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+
 a = Analysis(
     ['dardcor.py'],
     pathex=[],
     binaries=[],
-    datas=[('image', 'image'), ('pydardcor/assets', 'pydardcor/assets'), ('C:\\Users\\Dardcor\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\site-packages\\winpty', 'winpty')],
+    datas=[('image', 'image'), ('pydardcor/assets', 'pydardcor/assets'), ('pydardcor/extension_host', 'pydardcor/extension_host'), ('pydardcor/settings', 'pydardcor/settings'), ('pydardcor/database', 'pydardcor/database'), ('C:\\Users\\Dardcor\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\site-packages\\winpty', 'winpty')],
     hiddenimports=['PySide6.QtWebEngineWidgets', 'PySide6.QtWebEngineCore', 'pydardcor.cli'],
     hookspath=[],
     hooksconfig={},
