@@ -769,13 +769,11 @@ class ModelsQuotaDialog(QDialog):
         self._is_dragging = False
         self._drag_pos = None
         
-        from ..core.config import get_config
+        from ..core.config import get_config, get_user_data_dir
         self._config = get_config()
-        # Strictly use Dardcor-Code installation root to prevent database pollution
-        root_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        
+        # Use user-writable data directory, never the installation folder (Program Files is read-only)
         from ..core.antigravity_db import AntigravityDB
-        self.db = AntigravityDB(root_path)
+        self.db = AntigravityDB(get_user_data_dir())
         
         # UI State
         self.current_tab = "Antigravity"

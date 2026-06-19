@@ -1,11 +1,11 @@
-"""Conversation memory management for Dardcor Code."""
-
 import os
 import json
 import uuid
 from datetime import datetime
 from dataclasses import dataclass, field, asdict
 from typing import List, Optional, Dict, Any
+
+from ..core.config import get_user_data_dir
 
 
 @dataclass
@@ -67,8 +67,7 @@ class Conversation:
 class ConversationStore:
     def __init__(self, store_dir: str = None):
         if store_dir is None:
-            root_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            store_dir = os.path.join(root_path, "database", "conversation")
+            store_dir = os.path.join(get_user_data_dir(), "database", "conversation")
         self._store_dir = store_dir
         os.makedirs(self._store_dir, exist_ok=True)
         

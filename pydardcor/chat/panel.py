@@ -58,9 +58,9 @@ class ChatPanel(QWidget):
         self._show_typing_signal.connect(self._safe_show_typing)
         
         self._config = get_config()
-        # Strictly use Dardcor-Code installation root to prevent database pollution in user workspaces
-        root_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        self.db = AntigravityDB(root_path)
+        # Use user-writable data directory, never the installation folder (Program Files is read-only)
+        from ..core.config import get_user_data_dir
+        self.db = AntigravityDB(get_user_data_dir())
         self._provider_timer = QTimer(self)
         self._provider_timer.timeout.connect(self._check_provider_status)
         self._provider_timer.start(1500)

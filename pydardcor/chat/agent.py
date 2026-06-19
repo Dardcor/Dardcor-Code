@@ -299,8 +299,8 @@ class Agent:
         antigravity_model_id = None
         antigravity_accounts = []  # List of dicts: {acc_id, refresh_token}
         try:
-            root_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            prov_file = os.path.join(root_path, "database", "models", "provider.json")
+            from ..core.config import get_user_data_dir
+            prov_file = os.path.join(get_user_data_dir(), "database", "models", "provider.json")
             if os.path.exists(prov_file):
                 with open(prov_file, "r", encoding="utf-8") as f:
                     providers = json.load(f)
@@ -324,8 +324,8 @@ class Agent:
                     antigravity_model_id = _MODEL_MAP.get(model_override, model_override.lower().replace(" ", "-").replace("(", "").replace(")", ""))
 
                     # Collect all enabled accounts (with their refresh_tokens from individual JSON files)
-                    accounts_dir = os.path.join(root_path, "database", "models", "Antigravity", "accounts")
-                    acc_index_file = os.path.join(root_path, "database", "models", "Antigravity", "accounts.json")
+                    accounts_dir = os.path.join(get_user_data_dir(), "database", "models", "Antigravity", "accounts")
+                    acc_index_file = os.path.join(get_user_data_dir(), "database", "models", "Antigravity", "accounts.json")
                     if os.path.exists(acc_index_file):
                         with open(acc_index_file, "r", encoding="utf-8") as f:
                             acc_index = json.load(f)

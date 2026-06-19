@@ -6,7 +6,23 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Dict, Any, Optional
 
-CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".dardcor-code")
+def get_user_data_dir() -> str:
+    """Return the writable user-data directory for Dardcor Code.
+
+    On Windows this is %LOCALAPPDATA%\\Dardcor Code so that the app never
+    tries to write into the Program Files installation folder.
+    On other platforms it falls back to ~/.dardcor-code.
+    The directory is created on first call.
+    """
+    if os.name == "nt":
+        base = os.environ.get("LOCALAPPDATA", os.path.expanduser("~"))
+        data_dir = os.path.join(base, "Dardcor Code")
+    else:
+        data_dir = os.path.join(os.path.expanduser("~"), ".dardcor-code")
+    os.makedirs(data_dir, exist_ok=True)
+    return data_dir
+
+CONFIG_DIR = get_user_data_dir()
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 
 @dataclass

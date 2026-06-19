@@ -353,7 +353,7 @@ class SettingsDialog(QDialog):
         title.setStyleSheet("font-size: 24px; font-weight: 300; color: #cccccc; padding-bottom: 8px;")
         layout.addWidget(title)
 
-        version = QLabel("Version 1.0.7")
+        version = QLabel("Version 1.0.8")
         version.setStyleSheet("font-size: 13px; color: #858585; padding-bottom: 16px;")
         layout.addWidget(version)
 
