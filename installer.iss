@@ -1,6 +1,15 @@
 [Setup]
 AppName=Dardcor Code
-AppVersion=1.0.6
+AppVersion=1.0.7
+AppPublisher=Dardcor Team
+AppPublisherURL=https://github.com/Dardcor/Dardcor-Code
+AppSupportURL=https://github.com/Dardcor/Dardcor-Code/issues
+AppUpdatesURL=https://github.com/Dardcor/Dardcor-Code/releases
+VersionInfoVersion=1.0.7.0
+VersionInfoCompany=Dardcor Team
+VersionInfoDescription=Dardcor Code Setup
+VersionInfoProductName=Dardcor Code
+VersionInfoProductVersion=1.0.7.0
 DefaultDirName={autopf}\Dardcor Code
 DefaultGroupName=Dardcor Code
 UninstallDisplayIcon={app}\Dardcor Code.exe

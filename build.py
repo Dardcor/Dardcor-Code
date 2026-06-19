@@ -23,6 +23,7 @@ def main():
         "--windowed",
         "--onedir",
         "--icon", "image/dardcor.ico",
+        "--version-file", "version_info.txt",
         "--add-data", f"image{separator}image",
         "--add-data", f"pydardcor/assets{separator}pydardcor/assets",
         "--add-data", f"pydardcor/extension_host{separator}pydardcor/extension_host",
