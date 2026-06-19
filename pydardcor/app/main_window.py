@@ -1776,7 +1776,7 @@ class MainWindow(QMainWindow):
         QMessageBox.about(
             self,
             "About Dardcor Code",
-            "Dardcor Code v1.0.5\n\n"
+            "Dardcor Code v1.0.6\n\n"
             "Full Desktop AI Coding Assistant\n\n"
             "A VS Code-like IDE with integrated AI pair programming.\n"
             "Built with Python + PySide6 (Qt)\n\n"
