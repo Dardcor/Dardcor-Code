@@ -12,16 +12,116 @@ from PySide6.QtGui import QColor, QTextCursor, QTextCharFormat, QFont, QKeyEvent
 import os
 import html
 
-from ..core.config import get_config
-from ..core.antigravity_db import AntigravityDB
+from pydardcor.core.config import get_config
+from pydardcor.core.antigravity_db import AntigravityDB
+
+class ChatHistory(QTextEdit):
+    """Custom QTextEdit for chat history that ensures copy always works properly.
+    
+    Overrides createMimeDataFromSelection to guarantee the clipboard receives
+    the full plain text of the selection, even when the content contains
+    HTML tables, hyperlinks, or other rich formatting that Qt might mangle.
+    """
+    
+    def createMimeDataFromSelection(self):
+        """Override to ensure plain text is always correctly set in clipboard."""
+        from PySide6.QtCore import QMimeData
+        
+        cursor = self.textCursor()
+        if not cursor.hasSelection():
+            return super().createMimeDataFromSelection()
+        
+        mime = QMimeData()
+        
+        # Get the selected plain text directly from the cursor
+        selected_text = cursor.selectedText()
+        # QTextCursor.selectedText() uses Unicode paragraph separator (\u2029)
+        # instead of newlines. Replace them with proper newlines.
+        selected_text = selected_text.replace('\u2029', '\n')
+        
+        mime.setText(selected_text)
+        
+        # Also preserve the HTML version for rich-text paste targets
+        selected_html = cursor.selection().toHtml()
+        if selected_html:
+            mime.setHtml(selected_html)
+        
+        return mime
+    
+    def keyPressEvent(self, event):
+        """Explicit Ctrl+C handler as a fallback."""
+        from PySide6.QtWidgets import QApplication
+        
+        if event.key() == Qt.Key_C and (event.modifiers() & Qt.ControlModifier):
+            cursor = self.textCursor()
+            if cursor.hasSelection():
+                selected_text = cursor.selectedText().replace('\u2029', '\n')
+                clipboard = QApplication.clipboard()
+                clipboard.setText(selected_text)
+                return
+        super().keyPressEvent(event)
+
 
 class UpwardComboBox(QComboBox):
+    """ComboBox that opens its popup upward and constrains width to parent."""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setMaxVisibleItems(15)  # Limit popup height
+    
     def showPopup(self):
+        # Get the popup view and its container window
+        popup = self.view()
+        popup_window = popup.window()
+        
+        # Make popup invisible during repositioning to prevent flicker
+        popup_window.setWindowOpacity(0)
+        
+        # Constrain popup width to match parent panel width (minus margins)
+        parent_widget = self.parent()
+        if parent_widget:
+            max_width = parent_widget.width() - 16  # 8px margin each side
+        else:
+            max_width = 350
+        popup.setFixedWidth(max(max_width, self.width()))
+        
         super().showPopup()
-        popup = self.view().window()
-        # Move the popup above the combo box
+        
+        # Calculate position above the combo box
         global_pos = self.mapToGlobal(self.rect().topLeft())
-        popup.move(global_pos.x(), global_pos.y() - popup.height() - 2)
+        popup_height = popup_window.height()
+        
+        # Ensure popup doesn't go above screen top
+        screen_top = 0
+        try:
+            from PySide6.QtWidgets import QApplication
+            screen = QApplication.screenAt(global_pos)
+            if screen:
+                screen_top = screen.availableGeometry().top()
+        except Exception:
+            pass
+        
+        target_y = global_pos.y() - popup_height - 2
+        if target_y < screen_top:
+            target_y = screen_top
+        
+        # Constrain X position so popup doesn't overflow right edge
+        target_x = global_pos.x()
+        try:
+            from PySide6.QtWidgets import QApplication
+            screen = QApplication.screenAt(global_pos)
+            if screen:
+                screen_right = screen.availableGeometry().right()
+                popup_right = target_x + popup_window.width()
+                if popup_right > screen_right:
+                    target_x = screen_right - popup_window.width()
+        except Exception:
+            pass
+        
+        popup_window.move(target_x, target_y)
+        
+        # Show popup after repositioning (no flicker)
+        popup_window.setWindowOpacity(1)
 
 class ChatPanel(QWidget):
     """VS Code Copilot Chat style panel."""
@@ -59,7 +159,7 @@ class ChatPanel(QWidget):
         
         self._config = get_config()
         # Use user-writable data directory, never the installation folder (Program Files is read-only)
-        from ..core.config import get_user_data_dir
+        from pydardcor.core.config import get_user_data_dir
         self.db = AntigravityDB(get_user_data_dir())
         self._provider_timer = QTimer(self)
         self._provider_timer.timeout.connect(self._check_provider_status)
@@ -132,10 +232,11 @@ class ChatPanel(QWidget):
 
         layout.addWidget(header)
 
-        # Chat history
-        self._history = QTextEdit()
+        # Chat history (uses ChatHistory subclass for proper copy/paste behavior)
+        self._history = ChatHistory()
         self._history.setReadOnly(True)
-        self._history.setTextInteractionFlags(Qt.TextBrowserInteraction)
+        # Enable full text selection (mouse and keyboard) so Ctrl+C works properly
+        self._history.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.TextSelectableByKeyboard | Qt.LinksAccessibleByMouse | Qt.LinksAccessibleByKeyboard)
         self._history.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self._history.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self._history.setStyleSheet("""
@@ -260,8 +361,8 @@ class ChatPanel(QWidget):
         input_bottom_layout.setSpacing(8)
 
         # Base path for assets
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        assets_dir = os.path.join(base_dir, "assets")
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        assets_dir = os.path.join(base_dir, "pydardcor", "assets")
 
         attach_btn = QPushButton()
         attach_btn.setIcon(QIcon(os.path.join(assets_dir, "plus.svg")))
@@ -286,7 +387,7 @@ class ChatPanel(QWidget):
             QComboBox {
                 background-color: transparent;
                 color: #e4e4e7;
-                border: 1px solid #2c2e33;
+                border: 1px solid #2c004a;
                 border-radius: 4px;
                 padding: 2px 8px;
                 font-family: "Segoe UI", "Ubuntu", sans-serif;
@@ -304,27 +405,51 @@ class ChatPanel(QWidget):
                 margin-right: 4px;
             }
             QComboBox QAbstractItemView {
-                background-color: #1a1d21;
+                background-color: #000000;
                 color: #e4e4e7;
-                border: 1px solid #373a40;
-                border-radius: 6px;
+                border: 1px solid #3c0068;
+                border-radius: 4px;
                 outline: 0px;
-                padding: 4px;
+                padding: 2px;
             }
             QComboBox QAbstractItemView::item {
-                padding: 8px 12px;
-                border-radius: 4px;
-                min-height: 20px;
+                padding: 3px 8px;
+                border-radius: 3px;
+                min-height: 14px;
             }
             QComboBox QAbstractItemView::item:hover {
-                background-color: #2c2e33;
+                background-color: #1a0033;
             }
             QComboBox QAbstractItemView::item:selected {
-                background-color: #3b82f6;
+                background-color: #3c0068;
                 color: #ffffff;
             }
+            QComboBox QAbstractItemView QScrollBar:vertical {
+                background-color: transparent;
+                width: 4px;
+                border: none;
+            }
+            QComboBox QAbstractItemView QScrollBar::handle:vertical {
+                background-color: #3c0068;
+                min-height: 20px;
+                border-radius: 2px;
+            }
+            QComboBox QAbstractItemView QScrollBar::handle:vertical:hover {
+                background-color: #5a009c;
+            }
+            QComboBox QAbstractItemView QScrollBar::add-line:vertical,
+            QComboBox QAbstractItemView QScrollBar::sub-line:vertical {
+                height: 0px;
+            }
+            QComboBox QAbstractItemView QScrollBar::add-page:vertical,
+            QComboBox QAbstractItemView QScrollBar::sub-page:vertical {
+                background: transparent;
+            }
         """ % chevron_path)
+        self.model_dropdown.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
+        self.model_dropdown.setMinimumContentsLength(12)
         self.model_dropdown.setFixedHeight(26)
+        self.model_dropdown.currentTextChanged.connect(self._on_model_changed)
         input_bottom_layout.addWidget(self.model_dropdown)
 
         input_bottom_layout.addStretch()
@@ -370,36 +495,110 @@ class ChatPanel(QWidget):
 
     def _check_provider_status(self):
         try:
-            is_active = self.db.get_providers().get("Antigravity", False)
-            if is_active != self.model_dropdown.isVisible():
+            providers = self.db.get_providers()
+            is_antigravity = providers.get("Antigravity", False)
+            is_gemini = providers.get("Gemini", False)
+            
+            is_active = is_antigravity or is_gemini
+            if not hasattr(self, '_last_provider_state') or self._last_provider_state != (is_antigravity, is_gemini):
                 self.model_dropdown.setVisible(is_active)
+                self._last_provider_state = (is_antigravity, is_gemini)
                 if is_active:
-                    self._populate_models()
+                    self._populate_models(is_antigravity, is_gemini)
+            else:
+                # Always re-populate to capture config changes real-time
+                if is_active:
+                    self._populate_models(is_antigravity, is_gemini)
         except Exception:
             pass
             
-    def _populate_models(self):
-        current_text = self.model_dropdown.currentText()
-        self.model_dropdown.clear()
-        
-        # These display names must match the _MODEL_MAP in agent.py
-        antigravity_models = [
-            "Gemini 3.5 Flash (High)",
-            "Gemini 3.5 Flash (Medium)",
-            "Gemini 3.5 Flash (Low)",
-            "Gemini 3.1 Pro (High)",
-            "Gemini 3.1 Pro (Low)",
-            "Gemini 3 Flash",
-            "Gemini 2.5 Pro",
-            "Claude Opus 4.6 (Thinking)",
-            "Claude Sonnet 4.6 (Thinking)",
-            "Claude Sonnet 4.6",
-        ]
+    def _on_model_changed(self, text: str):
+        if not text or self._is_populating:
+            return
             
-        self.model_dropdown.addItems(antigravity_models)
+        is_antigravity, is_gemini = getattr(self, '_last_provider_state', (False, False))
+        if is_gemini:
+            try:
+                import os, json
+                _project_root = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+                gem_conf = os.path.join(_project_root, "database", "models", "Gemini", "config.json")
+                if os.path.exists(gem_conf):
+                    with open(gem_conf, "r", encoding="utf-8") as f:
+                        g_data = json.load(f)
+                    
+                    if g_data.get("selected_model") != text:
+                        g_data["selected_model"] = text
+                        with open(gem_conf, "w", encoding="utf-8") as f:
+                            json.dump(g_data, f, indent=4)
+            except Exception:
+                pass
+
+    def _populate_models(self, is_antigravity=False, is_gemini=False):
+        current_text = self.model_dropdown.currentText()
         
-        if current_text in antigravity_models:
-            self.model_dropdown.setCurrentText(current_text)
+        models_list = []
+        force_selection = None
+        
+        if is_gemini:
+            try:
+                import os, json
+                _project_root = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+                gem_conf = os.path.join(_project_root, "database", "models", "Gemini", "config.json")
+                if os.path.exists(gem_conf):
+                    with open(gem_conf, "r", encoding="utf-8") as f:
+                        g_data = json.load(f)
+                    for m in g_data.get("models", []):
+                        models_list.append(m.get("id"))
+                    
+                    if not models_list and g_data.get("selected_model"):
+                        models_list.append(g_data.get("selected_model"))
+                        
+                    force_selection = g_data.get("selected_model")
+                        
+                if not models_list:
+                    models_list.append("Gemini (No Model Selected)")
+            except Exception:
+                models_list.append("Gemini (Error loading models)")
+                
+        elif is_antigravity:
+            models_list = [
+                "Gemini 3.5 Flash (High)",
+                "Gemini 3.5 Flash (Medium)",
+                "Gemini 3.5 Flash (Low)",
+                "Gemini 3.1 Pro (High)",
+                "Gemini 3.1 Pro (Low)",
+                "Gemini 3 Flash",
+                "Gemini 2.5 Pro",
+                "Claude Opus 4.6 (Thinking)",
+                "Claude Sonnet 4.6 (Thinking)",
+                "Claude Sonnet 4.6",
+            ]
+            
+        # Ensure we don't duplicate
+        unique_models = []
+        for m in models_list:
+            if m not in unique_models:
+                unique_models.append(m)
+                
+        # Only clear and repopulate if the list actually changed to prevent popup flickering
+        current_items = [self.model_dropdown.itemText(i) for i in range(self.model_dropdown.count())]
+        if current_items != unique_models:
+            self._is_populating = True
+            self.model_dropdown.clear()
+            self.model_dropdown.addItems(unique_models)
+            self._is_populating = False
+            
+        # Only force selection if it's different from current, to prevent combo box signal loops
+        if force_selection and force_selection in unique_models:
+            if self.model_dropdown.currentText() != force_selection:
+                self._is_populating = True
+                self.model_dropdown.setCurrentText(force_selection)
+                self._is_populating = False
+        elif current_text in unique_models:
+            if self.model_dropdown.currentText() != current_text:
+                self._is_populating = True
+                self.model_dropdown.setCurrentText(current_text)
+                self._is_populating = False
 
     def _show_welcome(self):
         pass
@@ -705,7 +904,7 @@ class ChatPanel(QWidget):
 
             elif cmd == "/models":
                 try:
-                    from ..settings.models_dialog import ModelsQuotaDialog
+                    from dardcor_agent.models.main_dialog import ModelsQuotaDialog
                     self._models_dialog = ModelsQuotaDialog(parent=None)
                     self._models_dialog.setAttribute(Qt.WA_DeleteOnClose)
                     self._models_dialog.show()
@@ -775,7 +974,7 @@ class ChatPanel(QWidget):
                         "</div>"
                     )
                 else:
-                    from ..git.panel import run_git
+                    from pydardcor.git.panel import run_git
                     # Get current branch
                     branch_out, _, code = run_git(["rev-parse", "--abbrev-ref", "HEAD"], root)
                     if code != 0:
@@ -997,7 +1196,13 @@ class ChatInput(QTextEdit):
         super().keyPressEvent(event)
 
     def insertFromMimeData(self, source):
-        if source.hasUrls():
+        # Prioritize pasting text if it's clearly a text selection (e.g. copied from chat history)
+        # If it has HTML, it was likely copied from a browser or rich text editor.
+        is_text_selection = source.hasHtml()
+        
+        # If the user copied text that contains a path, the clipboard might still set hasUrls.
+        # We only treat it as an attachment if it lacks HTML and doesn't look like a long paragraph.
+        if source.hasUrls() and not is_text_selection:
             file_paths = []
             for url in source.urls():
                 if url.isLocalFile():
@@ -1005,4 +1210,10 @@ class ChatInput(QTextEdit):
             if file_paths:
                 self.file_pasted.emit(file_paths)
                 return
+                
+        # Fallback to plain text insertion if it's text
+        if source.hasText():
+            self.insertPlainText(source.text())
+            return
+            
         super().insertFromMimeData(source)

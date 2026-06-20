@@ -353,9 +353,9 @@ class CustomTitleBar(QWidget):
         else:
             super().mouseDoubleClickEvent(event)
 
-from ..chat.agent import Agent
+from dardcor_agent.chat.agent import Agent
 from ..core.config import get_config, CONFIG_FILE
-from ..chat.memory import Conversation
+from dardcor_agent.chat.memory import Conversation
 from ..core.filesystem import parse_python_symbols
 from ..ui_shared.activity_bar import (
     ActivityBar, VIEW_EXPLORER, VIEW_SEARCH, VIEW_SOURCE_CONTROL,
@@ -363,7 +363,7 @@ from ..ui_shared.activity_bar import (
 )
 from ..file_explorer.panel import FileExplorer
 from ..editor import EditorTabs
-from ..chat.panel import ChatPanel
+from dardcor_agent.chat.panel import ChatPanel
 from ..ui_shared.status_bar import StatusBar
 from ..terminal import TerminalPanel
 from ..search.panel import SearchPanel

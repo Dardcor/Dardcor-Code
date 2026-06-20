@@ -5,10 +5,11 @@ import json
 import threading
 from typing import Callable, Optional, List, Dict, Any
 
-from ..core.config import get_config, AppConfig
-from .memory import Conversation, ConversationStore, Message
-from ..core.commands import CommandExecutor, CommandResult
-from ..core.filesystem import FileSystem
+from pydardcor.core.config import get_config, AppConfig
+from .memory import Conversation, ConversationStore, Message, CoreMemory, ArchivalMemory
+from .identity import get_identity_prompt
+from pydardcor.core.commands import CommandExecutor, CommandResult
+from pydardcor.core.filesystem import FileSystem
 
 
 # Tool definitions for the AI agent
@@ -22,6 +23,8 @@ TOOLS = [
                 "type": "object",
                 "properties": {
                     "path": {"type": "string", "description": "File path to read"},
+                    "start_line": {"type": "integer", "description": "Start line (1-indexed, optional)"},
+                    "end_line": {"type": "integer", "description": "End line (1-indexed, optional)"}
                 },
                 "required": ["path"],
             },
@@ -202,6 +205,35 @@ TOOLS = [
             }
         }
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "update_core_memory",
+            "description": "Update the core memory with permanent facts, user preferences, or project status.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "category": {"type": "string", "description": "The category (e.g. 'user_preferences', 'project_context')"},
+                    "fact": {"type": "string", "description": "The fact to save permanently"}
+                },
+                "required": ["category", "fact"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_archival_memory",
+            "description": "Search past conversations for historical context or previous discussions.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "The search query keywords"}
+                },
+                "required": ["query"]
+            }
+        }
+    },
 ]
 
 
@@ -227,6 +259,8 @@ class Agent:
         self._config = get_config()
         self._conversation = Conversation()
         self._store = ConversationStore()
+        self._core_memory = CoreMemory()
+        self._archival_memory = ArchivalMemory(self._store)
         self._fs = FileSystem()
         self._cmd = CommandExecutor()
         self._stream_callback = None
@@ -234,9 +268,9 @@ class Agent:
         self._lock = threading.Lock()
         self._abort_flag = False
 
-        # Add system message
-        if self._config.ai.system_prompt:
-            self._conversation.add_message("system", self._config.ai.system_prompt)
+        # Add system message with Core Memory
+        sys_prompt = self._config.ai.system_prompt if self._config.ai.system_prompt else get_identity_prompt(self._core_memory.get_summary())
+        self._conversation.add_message("system", sys_prompt)
 
     @property
     def config(self) -> AppConfig:
@@ -253,8 +287,8 @@ class Agent:
         if has_user_message:
             self._store.save(self._conversation)
         self._conversation = Conversation()
-        if self._config.ai.system_prompt:
-            self._conversation.add_message("system", self._config.ai.system_prompt)
+        sys_prompt = self._config.ai.system_prompt if self._config.ai.system_prompt else get_identity_prompt(self._core_memory.get_summary())
+        self._conversation.add_message("system", sys_prompt)
 
     def send_message(
         self,
@@ -299,12 +333,27 @@ class Agent:
         antigravity_model_id = None
         antigravity_accounts = []  # List of dicts: {acc_id, refresh_token}
         try:
-            from ..core.config import get_user_data_dir
+            from pydardcor.core.config import get_user_data_dir
             prov_file = os.path.join(get_user_data_dir(), "database", "models", "provider.json")
             if os.path.exists(prov_file):
                 with open(prov_file, "r", encoding="utf-8") as f:
                     providers = json.load(f)
-                if providers.get("Antigravity", False) and model_override:
+                
+                if providers.get("Gemini", False):
+                    # Gemini config is in the project root, not user_data_dir
+                    _project_root = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+                    gem_conf = os.path.join(_project_root, "database", "models", "Gemini", "config.json")
+                    if os.path.exists(gem_conf):
+                        with open(gem_conf, "r", encoding="utf-8") as f:
+                            g_data = json.load(f)
+                        if g_data.get("api_key"):
+                            api_key = g_data["api_key"]
+                            # Use model_override (from dropdown) if available, otherwise fallback to config's selected_model
+                            model = model_override if model_override else g_data.get("selected_model")
+                            provider = "gemini"
+                            base_url = "https://generativelanguage.googleapis.com/v1beta/openai"
+                            
+                elif providers.get("Antigravity", False) and model_override:
                     is_antigravity = True
                     # Map display name to API model ID used by Google Cloud Code Assist
                     _MODEL_MAP = {
@@ -379,7 +428,7 @@ class Agent:
                 if getattr(self, '_abort_flag', False):
                     return "Agent dihentikan oleh pengguna."
                 if current_acc_idx >= len(antigravity_accounts):
-                    return f"All Antigravity accounts exhausted. Last error: {last_err_str or 'Unknown'}"
+                    return f"Semua akun Dardcor Code telah habis. Error terakhir: {last_err_str or 'Unknown'}"
                 acc_info = antigravity_accounts[current_acc_idx]
                 rt = acc_info["refresh_token"]
                 acc_id = acc_info["acc_id"]
@@ -424,26 +473,12 @@ class Agent:
                     
                     # Transform messages to Google contents format
                     contents = []
-                    system_parts = [{
-                        "text": (
-                            "You are Antigravity, a powerful agentic AI coding assistant designed by the Google Deepmind team working on Advanced Agentic Coding.\n\n"
-                            "You have full autonomous access to the user's workspace filesystem and shell. "
-                            "When asked to create, modify, build, or fix a project, you must follow these rules:\n"
-                            "1. ACT DECISIVELY AND IMMEDIATELY: Start writing, creating, or modifying files immediately. Do NOT spend multiple turns researching or calling read/search/list tools repeatedly. If you need to build something, write the code files right away.\n"
-                            "2. BIAS FOR ACTION: Only use `search_files`, `list_files`, or `read_file` when absolutely necessary to locate existing code. A maximum of 1 or 2 search operations is permitted per task. If the files do not exist, create them directly with `write_file`.\n"
-                            "3. WRITE COMPLETE CODE: Never output placeholders, stubs, or comment-only blocks (e.g. '# implement here'). Write fully functional, complete implementation code.\n"
-                            "4. SELF-CORRECTION: If you execute a command and it fails, analyze the error, locate and read the relevant code, fix the issue, and re-run the command immediately. Do not ask for user intervention for minor fixes.\n"
-                            "5. PROMPT PROGRESSION: Make progress in every turn. Do not re-explain your steps or outline what you will do. Just do it."
-                        )
-                    }]
+                    system_parts = [{"text": get_identity_prompt(self._core_memory.get_summary())}]
                     
                     for msg in messages:
                         role = msg.get("role", "user")
                         content_text = msg.get("content", "")
                         if role == "system":
-                            # Skip standard Dardcor system prompt to avoid conflicts with Antigravity instructions
-                            if "You are Dardcor Code, a world-class autonomous AI coding assistant developed by Dardcor" in content_text:
-                                continue
                             system_parts.append({"text": content_text})
                         elif role == "assistant":
                             parts = []
@@ -626,6 +661,26 @@ class Agent:
                         body = e.read().decode("utf-8", errors="replace")
                     except Exception:
                         pass
+                    # Transient server errors → retry with backoff (same account)
+                    if e.code in (500, 502, 503, 504):
+                        import time
+                        _ag_retries = getattr(self, '_ag_retry_count', 0) + 1
+                        self._ag_retry_count = _ag_retries
+                        if _ag_retries <= 4:
+                            wait_secs = min(2 ** _ag_retries, 16)
+                            print(f"[Agent] Transient error {e.code} on account {acc_id[:8]}, retrying in {wait_secs}s (attempt {_ag_retries}/4)...")
+                            time.sleep(wait_secs)
+                            continue  # Retry same account
+                        else:
+                            self._ag_retry_count = 0
+                            return (
+                                f"⚠️ **API Error ({e.code})** - Model sedang sibuk (high demand).\n\n"
+                                f"Sudah dicoba 4 kali namun tetap gagal.\n"
+                                f"Silakan coba lagi nanti atau pilih model lain.\n\n"
+                                f"Detail: {body[:300]}"
+                            )
+                    # Reset retry counter on non-transient path
+                    self._ag_retry_count = 0
                     # quota exhausted → try next account
                     if e.code in (429, 403, 421):
                         last_err_str = f"Account {acc_id[:8]} quota exhausted ({e.code})"
@@ -646,10 +701,10 @@ class Agent:
                     current_acc_idx += 1
                     continue
 
-            return f"All Antigravity accounts exhausted. Last error: {last_err_str or 'Unknown'}"
+            return f"Semua akun Dardcor Code telah habis. Error terakhir: {last_err_str or 'Unknown'}"
 
         if is_antigravity and not antigravity_accounts:
-            return "⚠️ Antigravity aktif tapi tidak ada akun yang tersedia. Tambahkan akun terlebih dahulu di /models."
+            return "⚠️ Dardcor Code aktif tapi tidak ada akun yang tersedia. Tambahkan akun terlebih dahulu di /models."
 
         # --- NORMAL PROVIDER MODE ---
         api_keys = [api_key] if api_key else []
@@ -661,10 +716,13 @@ class Agent:
 
         import urllib.request
         import urllib.error
+        import time
         url = f"{base_url.rstrip('/')}/chat/completions"
 
         last_error = None
         consecutive_read_turns = 0
+        _MAX_RETRIES = 4  # Max retries for transient errors per API call
+        _RETRYABLE_CODES = {429, 500, 502, 503, 504}  # Transient HTTP error codes
         while True:  # Iterative agent loop for normal providers
             if getattr(self, '_abort_flag', False):
                 return "Agent dihentikan oleh pengguna."
@@ -697,74 +755,108 @@ class Agent:
                     headers["x-api-key"] = current_key
                     headers["anthropic-version"] = "2023-06-01"
 
-                try:
-                    req = urllib.request.Request(url, data=data, headers=headers, method="POST")
-                    with urllib.request.urlopen(req, timeout=120) as resp:
-                        result = json.loads(resp.read().decode("utf-8"))
+                # Retry loop for transient errors (503 high demand, 429 rate limit, etc.)
+                retry_count = 0
+                while retry_count <= _MAX_RETRIES:
+                    if getattr(self, '_abort_flag', False):
+                        return "Agent dihentikan oleh pengguna."
+                    try:
+                        req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+                        with urllib.request.urlopen(req, timeout=120) as resp:
+                            result = json.loads(resp.read().decode("utf-8"))
 
-                    choice = result["choices"][0]
-                    msg = choice["message"]
-                    content = msg.get("content", "") or ""
-                    tool_calls = msg.get("tool_calls", [])
+                        choice = result["choices"][0]
+                        msg = choice["message"]
+                        content = msg.get("content", "") or ""
+                        tool_calls = msg.get("tool_calls", [])
 
-                    if tool_calls:
-                        READ_ONLY_TOOLS = {"search_files", "list_files", "read_file", "semantic_search", "search_web", "read_url"}
-                        all_read_only = all(tc.get("function", {}).get("name") in READ_ONLY_TOOLS for tc in tool_calls)
-                        if all_read_only:
-                            consecutive_read_turns += 1
+                        if tool_calls:
+                            READ_ONLY_TOOLS = {"search_files", "list_files", "read_file", "semantic_search", "search_web", "read_url"}
+                            all_read_only = all(tc.get("function", {}).get("name") in READ_ONLY_TOOLS for tc in tool_calls)
+                            if all_read_only:
+                                consecutive_read_turns += 1
+                            else:
+                                consecutive_read_turns = 0
+
+                            self._conversation.add_message("assistant", content, tool_calls=tool_calls)
+                            for tc in tool_calls:
+                                if getattr(self, '_abort_flag', False): break
+                                func_name = tc["function"]["name"]
+                                try:
+                                    func_args = json.loads(tc["function"]["arguments"])
+                                except json.JSONDecodeError:
+                                    func_args = {}
+
+                                if on_tool_call:
+                                    on_tool_call(func_name, json.dumps(func_args)[:100], "running")
+
+                                tool_result = self._execute_tool(func_name, func_args)
+
+                                if on_tool_call:
+                                    status = "success" if not tool_result.startswith("Error") else "error"
+                                    on_tool_call(func_name, json.dumps(func_args)[:100], status)
+
+                                self._conversation.add_message(
+                                    "tool",
+                                    tool_result,
+                                    tool_call_id=tc["id"],
+                                    name=func_name,
+                                )
+                            # ✅ ITERATIVE: continue the while loop instead of recursive call
+                            sent = True
+                            break  # Break out of retry loop
                         else:
-                            consecutive_read_turns = 0
+                            self._conversation.add_message("assistant", content)
+                            return content
 
-                        self._conversation.add_message("assistant", content, tool_calls=tool_calls)
-                        for tc in tool_calls:
-                            if getattr(self, '_abort_flag', False): break
-                            func_name = tc["function"]["name"]
-                            try:
-                                func_args = json.loads(tc["function"]["arguments"])
-                            except json.JSONDecodeError:
-                                func_args = {}
-
-                            if on_tool_call:
-                                on_tool_call(func_name, json.dumps(func_args)[:100], "running")
-
-                            tool_result = self._execute_tool(func_name, func_args)
-
-                            if on_tool_call:
-                                status = "success" if not tool_result.startswith("Error") else "error"
-                                on_tool_call(func_name, json.dumps(func_args)[:100], status)
-
-                            self._conversation.add_message(
-                                "tool",
-                                tool_result,
-                                tool_call_id=tc["id"],
-                                name=func_name,
-                            )
-                        # ✅ ITERATIVE: continue the while loop instead of recursive call
-                        sent = True
-                        break
-                    else:
-                        self._conversation.add_message("assistant", content)
-                        return content
-
-                except urllib.error.HTTPError as e:
-                    if e.code in (429, 403, 421):
-                        last_error = e
-                        continue
-                    else:
+                    except urllib.error.HTTPError as e:
                         body = ""
                         try:
                             body = e.read().decode("utf-8", errors="replace")
                         except Exception:
                             pass
-                        return f"API Error ({e.code}): {body[:500]}"
-                except urllib.error.URLError as e:
-                    if "10061" in str(e) or "Connection refused" in str(e):
-                        return "🚨 Koneksi Gagal!\n\nTidak dapat terhubung ke server API. Periksa koneksi internet Anda."
-                    return f"Network error: {str(e)}"
-                except Exception as e:
-                    if "10061" in str(e):
-                        return "🚨 Koneksi Gagal!\n\nTidak dapat terhubung ke server API. Periksa koneksi internet Anda."
-                    return f"Connection error: {str(e)}"
+                        
+                        if e.code in _RETRYABLE_CODES:
+                            retry_count += 1
+                            if retry_count <= _MAX_RETRIES:
+                                wait_secs = min(2 ** retry_count, 16)  # 2, 4, 8, 16 seconds
+                                print(f"[Agent] Transient error {e.code}, retrying in {wait_secs}s (attempt {retry_count}/{_MAX_RETRIES})...")
+                                time.sleep(wait_secs)
+                                continue
+                            else:
+                                return (
+                                    f"⚠️ **API Error ({e.code})** - Model sedang sibuk (high demand).\n\n"
+                                    f"Sudah dicoba {_MAX_RETRIES} kali namun tetap gagal.\n"
+                                    f"Silakan coba lagi nanti atau pilih model lain.\n\n"
+                                    f"Detail: {body[:300]}"
+                                )
+                        elif e.code in (403, 421):
+                            last_error = e
+                            break  # Try next API key
+                        else:
+                            return f"API Error ({e.code}): {body[:500]}"
+                    except urllib.error.URLError as e:
+                        if "10061" in str(e) or "Connection refused" in str(e):
+                            return "🚨 Koneksi Gagal!\n\nTidak dapat terhubung ke server API. Periksa koneksi internet Anda."
+                        # Retry on connection reset / timeout
+                        retry_count += 1
+                        if retry_count <= _MAX_RETRIES:
+                            wait_secs = min(2 ** retry_count, 16)
+                            print(f"[Agent] Network error, retrying in {wait_secs}s (attempt {retry_count}/{_MAX_RETRIES})...")
+                            time.sleep(wait_secs)
+                            continue
+                        return f"Network error: {str(e)}"
+                    except Exception as e:
+                        if "10061" in str(e):
+                            return "🚨 Koneksi Gagal!\n\nTidak dapat terhubung ke server API. Periksa koneksi internet Anda."
+                        # Retry on generic connection errors
+                        retry_count += 1
+                        if retry_count <= _MAX_RETRIES:
+                            wait_secs = min(2 ** retry_count, 16)
+                            print(f"[Agent] Connection error, retrying in {wait_secs}s (attempt {retry_count}/{_MAX_RETRIES})...")
+                            time.sleep(wait_secs)
+                            continue
+                        return f"Connection error: {str(e)}"
 
             if sent:
                 continue  # Tool calls executed, loop again to call API
@@ -785,8 +877,19 @@ class Agent:
                 if not path or not os.path.isfile(path):
                     return f"Error: File not found: {path}"
                 content = self._fs.read_file(path)
-                if len(content) > 50000:
-                    content = content[:50000] + "\n... (truncated)"
+                
+                # Chunking logic for token optimization
+                start_line = args.get("start_line")
+                end_line = args.get("end_line")
+                if start_line is not None or end_line is not None:
+                    lines = content.splitlines()
+                    s = max(1, start_line) if start_line is not None else 1
+                    e = min(len(lines), end_line) if end_line is not None else len(lines)
+                    content = "\n".join(lines[s-1:e])
+                    return f"--- Showing lines {s} to {e} ---\n{content}"
+                
+                if len(content) > 15000:
+                    content = content[:15000] + "\n\n... (truncated to save tokens. Use start_line/end_line to read specific parts)"
                 return content
 
             elif name == "write_file":
@@ -817,7 +920,33 @@ class Agent:
                     output += "\n[stderr]\n" + result.stderr
                 if result.timed_out:
                     output += "\n[timed out]"
+                    
+                # Truncate long terminal output to save tokens
+                if len(output) > 3000:
+                    output = "...(truncated)...\n" + output[-3000:]
+                    
                 return output or "(no output)"
+
+            elif name == "update_core_memory":
+                category = args.get("category", "")
+                fact = args.get("fact", "")
+                if not category or not fact:
+                    return "Error: category and fact are required."
+                self._core_memory.add_fact(category, fact)
+                return f"Successfully added fact to Core Memory [{category}]: {fact}"
+
+            elif name == "search_archival_memory":
+                query = args.get("query", "")
+                if not query:
+                    return "Error: query is required."
+                results = self._archival_memory.search(query, top_k=5)
+                if not results:
+                    return "No historical records found for that query."
+                
+                out = "Found relevant past discussions:\n"
+                for i, r in enumerate(results):
+                    out += f"\n[{i+1}] Session: {r['conversation']} | Role: {r['role']} | Time: {r['timestamp']}\nMessage: {r['content']}\n"
+                return out
 
             elif name == "search_files":
                 query = args.get("query", "")
