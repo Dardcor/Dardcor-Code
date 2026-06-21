@@ -3,7 +3,7 @@
 import json
 from datetime import datetime
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QTextEdit,
+    QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QTextBrowser,
     QPushButton, QLabel, QFrame, QScrollArea, QComboBox,
     QStyledItemDelegate
 )
@@ -15,51 +15,57 @@ import html
 from pydardcor.core.config import get_config
 from pydardcor.core.antigravity_db import AntigravityDB
 
-class ChatHistory(QTextEdit):
-    """Custom QTextEdit for chat history that ensures copy always works properly.
-    
-    Overrides createMimeDataFromSelection to guarantee the clipboard receives
-    the full plain text of the selection, even when the content contains
-    HTML tables, hyperlinks, or other rich formatting that Qt might mangle.
+class ChatHistory(QTextBrowser):
+    """Custom QTextBrowser for chat history that ensures copy always works properly
+    and supports custom clickable anchors for copying specific messages.
     """
     
-    def createMimeDataFromSelection(self):
-        """Override to ensure plain text is always correctly set in clipboard."""
-        from PySide6.QtCore import QMimeData
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setOpenExternalLinks(False)
+        self.setOpenLinks(False)
+        self.anchorClicked.connect(self._handle_anchor_clicked)
+        
+    def _handle_anchor_clicked(self, url):
+        from PySide6.QtWidgets import QApplication
+        url_str = url.toString()
+        if url_str.startswith("copy_msg:"):
+            import base64
+            b64_text = url_str[len("copy_msg:"):]
+            try:
+                text = base64.urlsafe_b64decode(b64_text).decode("utf-8")
+                QApplication.clipboard().setText(text)
+            except Exception as e:
+                pass
+        else:
+            # For regular http/https links
+            from PySide6.QtGui import QDesktopServices
+            QDesktopServices.openUrl(url)
+
+    from PySide6.QtCore import Slot
+
+    @Slot()
+    def copy(self):
+        """Robust override of the copy slot to directly write plain text to the system clipboard."""
+        from PySide6.QtWidgets import QApplication
         
         cursor = self.textCursor()
         if not cursor.hasSelection():
-            return super().createMimeDataFromSelection()
+            return
+            
+        clipboard = QApplication.clipboard()
         
-        mime = QMimeData()
+        # Get raw selected text
+        text = cursor.selectedText()
         
-        # Get the selected plain text directly from the cursor
-        selected_text = cursor.selectedText()
-        # QTextCursor.selectedText() uses Unicode paragraph separator (\u2029)
-        # instead of newlines. Replace them with proper newlines.
-        selected_text = selected_text.replace('\u2029', '\n')
+        # Clean up Qt's internal paragraph/line separators and Object Replacement Characters
+        text = text.replace('\u2029', '\n').replace('\u2028', '\n').replace('\ufffc', '')
         
-        mime.setText(selected_text)
-        
-        # Also preserve the HTML version for rich-text paste targets
-        selected_html = cursor.selection().toHtml()
-        if selected_html:
-            mime.setHtml(selected_html)
-        
-        return mime
+        # We only set plain text directly via setText(). 
+        # This completely bypasses QMimeData garbage collection bugs and Windows HTML rejection.
+        clipboard.setText(text)
     
-    def keyPressEvent(self, event):
-        """Explicit Ctrl+C handler as a fallback."""
-        from PySide6.QtWidgets import QApplication
-        
-        if event.key() == Qt.Key_C and (event.modifiers() & Qt.ControlModifier):
-            cursor = self.textCursor()
-            if cursor.hasSelection():
-                selected_text = cursor.selectedText().replace('\u2029', '\n')
-                clipboard = QApplication.clipboard()
-                clipboard.setText(selected_text)
-                return
-        super().keyPressEvent(event)
+
 
 
 class UpwardComboBox(QComboBox):
@@ -287,11 +293,16 @@ class ChatPanel(QWidget):
         # Typing Indicator
         self._typing_lbl = QLabel("")
         self._typing_lbl.setStyleSheet("""
-            color: #c586c0;
-            font-size: 12px;
-            font-style: italic;
-            padding: 0px 16px 4px 16px;
-            background-color: #000000;
+            QLabel {
+                color: #858585;
+                font-size: 11px;
+                font-style: italic;
+                padding: 4px 14px;
+                background-color: transparent;
+                border: none;
+                margin: 0px;
+                font-family: "Segoe UI", sans-serif;
+            }
         """)
         self._typing_lbl.hide()
         layout.addWidget(self._typing_lbl)
@@ -482,11 +493,7 @@ class ChatPanel(QWidget):
         input_box_layout.addWidget(input_bottom)
         input_layout.addWidget(input_box)
 
-        # Disclaimer
-        disclaimer = QLabel("AI may make mistakes. Double-check all generated code.")
-        disclaimer.setAlignment(Qt.AlignCenter)
-        disclaimer.setStyleSheet("color: #666666; font-size: 10px;")
-        input_layout.addWidget(disclaimer)
+        # Disclaimer removed per user request
 
         layout.addWidget(input_container)
 
@@ -746,17 +753,22 @@ class ChatPanel(QWidget):
         cursor = self._history.textCursor()
         cursor.movePosition(QTextCursor.End)
 
-        # Message body wrapped in an HTML table with a full dark purple border enclosuring the text
-        html = (
-            f"<table style='border: 1px solid #3c0068; background-color: #161616; "
-            f"               border-collapse: collapse; margin-top: 4px; margin-bottom: 4px;'>"
-            f"  <tr>"
-            f"    <td style='padding: 8px 10px; color: #e0e0e0; font-family: \"Segoe UI\", sans-serif; "
-            f"               font-size: 11px; white-space: pre-wrap;'>{text}</td>"
-            f"  </tr>"
-            f"</table>"
+        import base64
+        import html
+        b64_text = base64.urlsafe_b64encode(text.encode('utf-8')).decode('utf-8')
+        safe_text = html.escape(text)
+
+        # Message body wrapped in a dark purple border column with a copy button
+        html_str = (
+            f"<div style='border: 1px solid #5c2092; border-left: 3px solid #8e24aa; background-color: #12001a; "
+            f"             margin-top: 6px; margin-bottom: 2px; padding: 12px 14px; border-radius: 6px; "
+            f"             color: #e0e0e0; font-family: \"Segoe UI\", sans-serif; "
+            f"             font-size: 12.5px; white-space: pre-wrap;'>{safe_text}</div>"
+            f"<div style='text-align: right; margin-bottom: 8px;'>"
+            f"  <a href='copy_msg:{b64_text}' style='color: #8e24aa; text-decoration: none; font-size: 10.5px; font-weight: bold; font-family: \"Segoe UI\", sans-serif;'>&#x1F4CB; Salin Teks</a>"
+            f"</div>"
         )
-        cursor.insertHtml(html)
+        cursor.insertHtml(html_str)
         cursor.insertText("\n")
 
         self._scroll_to_bottom()
@@ -770,7 +782,7 @@ class ChatPanel(QWidget):
     def _safe_show_typing(self, show: bool):
         if show:
             self._typing_dots = 0
-            self._typing_lbl.setText("<span style='color: #4facfe;'>Dardcor Agent is thinking</span>")
+            self._typing_lbl.setText("<span style='font-family: \"codicon\"; font-size: 14px; color: #4fc1ff;'>&#xea82;</span> <span style='color: #858585;'>Dardcor Agent is thinking</span>")
             self._typing_lbl.show()
             self._typing_timer.start(300)
             self._scroll_to_bottom()
@@ -781,8 +793,7 @@ class ChatPanel(QWidget):
     def _animate_typing(self):
         self._typing_dots = (self._typing_dots + 1) % 4
         dots = "." * self._typing_dots
-        color = "#4facfe" if self._typing_dots % 2 == 0 else "#6ab0ff"
-        self._typing_lbl.setText(f"<span style='color: {color}; font-style: italic;'>Dardcor Agent is thinking{dots}</span>")
+        self._typing_lbl.setText(f"<span style='font-family: \"codicon\"; font-size: 14px; color: #4fc1ff;'>&#xea82;</span> <span style='color: #858585; font-style: italic;'>Dardcor Agent is thinking{dots}</span>")
 
     def append_agent_message(self, text: str, is_html: bool = False):
         self.show_typing(False)
@@ -845,7 +856,9 @@ class ChatPanel(QWidget):
         # Handle newlines
         text = text.replace('\n', '<br/>')
         
-        return f"<div style='color: #d4d4d4; font-size: 12px;'>{text}</div>"
+        return (f"<div style='background-color: #121212; border: 1px solid #2d2d2d; border-radius: 8px; padding: 12px; margin-bottom: 8px; margin-top: 4px;'>"
+                f"<div style='color: #ffffff; font-size: 12px; font-family: \"Segoe UI\", sans-serif; line-height: 1.5;'>{text}</div>"
+                f"</div>")
 
     def _handle_slash_command(self, cmd_text: str):
         parts = cmd_text.split()
@@ -1089,6 +1102,9 @@ class ChatPanel(QWidget):
             self._safe_append_system_message(text)
 
     def _safe_append_system_message(self, text: str):
+        if "You are Dardcor Code" in text:
+            return  # Hide system prompt from UI
+
         cursor = self._history.textCursor()
         cursor.movePosition(QTextCursor.End)
 
@@ -1116,20 +1132,19 @@ class ChatPanel(QWidget):
             "error": "#f14c4c",
         }
         color = color_map.get(status, "#858585")
-
-        status_icon = {
-            "running": "⏳",
-            "success": "✅",
-            "error": "❌",
-        }
-        icon = status_icon.get(status, "\u2022")
-
+        
+        # Use a table instead of div to guarantee proper background-color and padding rendering in QTextBrowser
         html_content = (
-            f"<div style='background-color: #1e1e1e; border: 1px solid {color}; border-left: 3px solid {color}; padding: 8px; "
-            f"border-radius: 6px; margin-bottom: 8px; margin-top: 4px; color: #d4d4d4; font-family: monospace; font-size: 11px;'>"
-            f"<b style='color: #e0e0e0; font-size: 12px;'>{icon} {tool_name}</b> <span style='color: #858585; font-size: 10px;'>[{status.upper()}]</span><br>"
-            f"<span style='color: #ce9178; display: inline-block; margin-top: 4px;'>args: {html.escape(args[:120])}{'...' if len(args) > 120 else ''}</span>"
-            f"</div>"
+            f"<table width='100%' style='background-color: #1e1e1e; border: 1px solid #3c3c3c; border-left: 3px solid {color}; "
+            f"margin-top: 4px; margin-bottom: 8px;' cellspacing='0' cellpadding='10'>"
+            f"<tr><td>"
+            f"<div style='margin-bottom: 6px; font-weight: bold; color: #e0e0e0; font-family: \"Segoe UI\", sans-serif; font-size: 12px;'>"
+            f"<span style='font-family: \"codicon\"; font-size: 14px;'>&#xeaf9;</span> [Tool Call: {tool_name}] "
+            f"<span style='color: {color}; font-size: 10px; font-weight: normal; margin-left: 6px;'>[ {status.upper()} ]</span></div>"
+            f"<table width='100%' style='background-color: #161616; border: 1px solid #2d2d2d;' cellspacing='0' cellpadding='6'><tr><td>"
+            f"<div style='color: #ce9178; font-family: monospace; white-space: pre-wrap; font-size: 11px;'>{html.escape(args)}</div>"
+            f"</td></tr></table>"
+            f"</td></tr></table>"
         )
         cursor.insertHtml(html_content)
         cursor.insertText("\n")
@@ -1196,18 +1211,31 @@ class ChatInput(QTextEdit):
         super().keyPressEvent(event)
 
     def insertFromMimeData(self, source):
-        # Prioritize pasting text if it's clearly a text selection (e.g. copied from chat history)
-        # If it has HTML, it was likely copied from a browser or rich text editor.
-        is_text_selection = source.hasHtml()
-        
-        # If the user copied text that contains a path, the clipboard might still set hasUrls.
-        # We only treat it as an attachment if it lacks HTML and doesn't look like a long paragraph.
-        if source.hasUrls() and not is_text_selection:
+        # Check if the user pasted actual files from the OS (e.g. from Windows Explorer)
+        if source.hasUrls():
             file_paths = []
             for url in source.urls():
                 if url.isLocalFile():
                     file_paths.append(url.toLocalFile())
-            if file_paths:
+            
+            # If there are files, check if the clipboard text is ONLY those file paths.
+            # If the user copied conversational text that happens to contain a path, 
+            # the text will be longer/different than just the file path string.
+            if file_paths and source.hasText():
+                raw_text = source.text().strip()
+                # If the raw text is longer than the combined paths (plus some newlines), it's a text selection
+                # Let's just do a simple heuristic: if there's a newline that isn't separating paths, 
+                # or if the length of text is much larger than the paths, it's a chat message.
+                paths_str = "\n".join(file_paths)
+                
+                # If it's a pure file copy from OS, the raw text is exactly the paths (sometimes with file:// prefix)
+                # If it's clearly text, skip emitting file_pasted
+                if len(raw_text) > len(paths_str) + 50:
+                    pass # It's a text selection with a path inside, fallback to insertPlainText
+                else:
+                    self.file_pasted.emit(file_paths)
+                    return
+            elif file_paths:
                 self.file_pasted.emit(file_paths)
                 return
                 

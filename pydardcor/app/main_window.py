@@ -1668,7 +1668,6 @@ class MainWindow(QMainWindow):
     def _new_conversation(self):
         self._agent.new_conversation()
         self._chat_panel.clear()
-        self._chat_panel.append_system_message("New conversation started. Ask me anything!")
 
     def _show_chat_history(self):
         convs = self._agent.list_conversations()
@@ -1676,10 +1675,13 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "Chat History", "No chat history found.")
             return
             
-        items = [f"{c.get('title', 'Untitled')} ({c.get('id')})" for c in convs]
-        item, ok = QInputDialog.getItem(self, "Chat History", "Select a conversation:", items, 0, False)
-        if ok and item:
-            conv_id = item.split("(")[-1].strip(")")
+        import sys
+        sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
+        from dardcor_agent.chat.history_dialog import ChatHistoryDialog
+        
+        dialog = ChatHistoryDialog(self._agent, self)
+        
+        def on_conversation_selected(conv_id: str):
             if self._agent.load_conversation(conv_id):
                 self._chat_panel.clear()
                 for msg in self._agent.get_conversation().messages:
@@ -1688,7 +1690,12 @@ class MainWindow(QMainWindow):
                     elif msg.role == "assistant":
                         self._chat_panel.append_agent_message(msg.content)
                     elif msg.role == "system":
-                        self._chat_panel.append_system_message(msg.content)
+                        # Only show system messages if it's not the identity prompt
+                        if "You are Dardcor Code" not in msg.content:
+                            self._chat_panel.append_system_message(msg.content)
+                            
+        dialog.conversation_selected.connect(on_conversation_selected)
+        dialog.exec()
 
     def _upload_chat_file(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Select File to Attach")

@@ -512,6 +512,8 @@ class Agent:
                                     "response": {"result": content_text}
                                 }
                             }
+                            if msg.get("tool_call_id"):
+                                part["functionResponse"]["id"] = msg["tool_call_id"]
                             if contents and contents[-1]["role"] == "user" and any("functionResponse" in p for p in contents[-1]["parts"]):
                                 contents[-1]["parts"].append(part)
                             else:
@@ -521,6 +523,39 @@ class Agent:
                                 "role": "user",
                                 "parts": [{"text": content_text}]
                             })
+                            
+                    # --- Gemini Payload Sanitizer ---
+                    sanitized_contents = []
+                    for c in contents:
+                        if not sanitized_contents:
+                            if c["role"] == "model":
+                                sanitized_contents.append({"role": "user", "parts": [{"text": "Hello"}]})
+                            sanitized_contents.append(c)
+                        else:
+                            if sanitized_contents[-1]["role"] == c["role"]:
+                                sanitized_contents[-1]["parts"].extend(c["parts"])
+                            else:
+                                sanitized_contents.append(c)
+                                
+                    final_contents = []
+                    for c in sanitized_contents:
+                        if c["role"] == "user" and any("functionResponse" in p for p in c["parts"]):
+                            # Check if previous was a model with functionCall
+                            has_call = final_contents and final_contents[-1]["role"] == "model" and any("functionCall" in p for p in final_contents[-1]["parts"])
+                            if not has_call:
+                                # Orphaned tool response (probably due to sliding window) -> convert to text
+                                new_parts = []
+                                for p in c["parts"]:
+                                    if "functionResponse" in p:
+                                        fr = p["functionResponse"]
+                                        res = fr.get("response", {}).get("result", "")
+                                        new_parts.append({"text": f"[Tool Result: {fr.get('name', 'tool')}]\n{res}"})
+                                    else:
+                                        new_parts.append(p)
+                                c["parts"] = new_parts
+                        final_contents.append(c)
+                    contents = final_contents
+                    # --------------------------------
                             
                     if consecutive_read_turns >= 4 and contents and contents[-1]["role"] == "user":
                         print(f"[Agent] Consecutive read-only turns is {consecutive_read_turns}. Injecting action bias warning to model.")
@@ -608,7 +643,7 @@ class Agent:
                         elif "functionCall" in part:
                             fc = part["functionCall"]
                             tool_calls.append({
-                                "id": f"call_{uuid.uuid4().hex[:8]}",
+                                "id": fc.get("id", f"call_{uuid.uuid4().hex[:8]}"),
                                 "type": "function",
                                 "function": {
                                     "name": fc["name"],
@@ -1212,6 +1247,29 @@ class Agent:
 
     def list_conversations(self) -> list:
         return self._store.list_conversations()
+
+    def delete_conversation(self, conv_id: str):
+        """Delete a conversation by ID."""
+        self._store.delete(conv_id)
+        if self._conversation and self._conversation.id == conv_id:
+            self.new_conversation()
+
+    def rename_conversation(self, conv_id: str, new_title: str):
+        """Rename a conversation."""
+        # Find it
+        convs = self.list_conversations()
+        for c in convs:
+            if c["id"] == conv_id:
+                # Load, rename, save
+                conv = self._store.load(conv_id)
+                if conv:
+                    conv.title = new_title
+                    self._store.save(conv)
+                break
+        
+        # Also update current if it's the active one
+        if self._conversation and self._conversation.id == conv_id:
+            self._conversation.title = new_title
 
     def load_conversation(self, conv_id: str) -> bool:
         conv = self._store.load(conv_id)
