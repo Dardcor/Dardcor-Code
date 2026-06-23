@@ -15,9 +15,9 @@ from PySide6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QSplitter, QStackedWidget, QMessageBox, QApplication,
     QFileDialog, QInputDialog, QLabel, QMenuBar, QPushButton,
-    QPlainTextEdit, QDialog, QFontDialog, QSizePolicy,
+    QPlainTextEdit, QTextEdit, QLineEdit, QDialog, QFontDialog, QSizePolicy,
 )
-from PySide6.QtCore import Qt, QTimer, QPoint, QEvent
+from PySide6.QtCore import Qt, QTimer, QPoint, QEvent, Signal
 from PySide6.QtGui import (
     QAction, QKeySequence, QShortcut, QMouseEvent, QFont,
     QPixmap, QIcon, QPainter, QColor
@@ -389,10 +389,15 @@ from ..sync.settings_sync import SettingsSync
 class MainWindow(QMainWindow):
     """Main application window matching VS Code layout exactly."""
 
+    _run_queued_chat_signal = Signal()
+    pending_messages_changed = Signal(int)
+
     def __init__(self):
         super().__init__()
         self._config = get_config()
         self._agent = Agent()
+        self._chat_generation_active = False
+        self._queued_chat_messages = []
         self._current_conversation_id = None
         self._font_size = self._config.font_size
         self._current_active_editor = None
@@ -406,6 +411,7 @@ class MainWindow(QMainWindow):
         # -------------------------------
         
         self._setup_agent()
+        self._run_queued_chat_signal.connect(self._run_next_queued_chat_message)
         self._setup_ui()
         self._zen_mode = ZenModeManager(self)
         self._setup_breadcrumbs()
@@ -471,7 +477,7 @@ class MainWindow(QMainWindow):
     def _ask_command_permission(self, command: str) -> bool:
         """Prompt user in a thread-safe blocking popup before running terminal commands."""
         import threading
-        from PySide6.QtCore import QMetaObject, Qt
+        from PySide6.QtCore import QMetaObject, Qt, QTimer
         from PySide6.QtWidgets import QMessageBox
         
         result_holder = [False]
@@ -488,7 +494,7 @@ class MainWindow(QMainWindow):
             result_holder[0] = (reply == QMessageBox.Yes)
             event.set()
             
-        QMetaObject.invokeMethod(self, show_dialog, Qt.QueuedConnection)
+        QTimer.singleShot(0, show_dialog)
         event.wait()
         return result_holder[0]
 
@@ -837,12 +843,12 @@ class MainWindow(QMainWindow):
         
         copy_action = QAction("Copy", self)
         copy_action.setShortcut(QKeySequence("Ctrl+C"))
-        copy_action.triggered.connect(lambda: self._editor_tabs.current_editor().copy() if self._editor_tabs.current_editor() else None)
+        copy_action.triggered.connect(self._copy_from_focused_widget)
         edit_menu.addAction(copy_action)
         
         paste_action = QAction("Paste", self)
         paste_action.setShortcut(QKeySequence("Ctrl+V"))
-        paste_action.triggered.connect(lambda: self._editor_tabs.current_editor().paste() if self._editor_tabs.current_editor() else None)
+        paste_action.triggered.connect(self._paste_into_focused_widget)
         edit_menu.addAction(paste_action)
         
         edit_menu.addSeparator()
@@ -1171,6 +1177,26 @@ class MainWindow(QMainWindow):
         about_action = QAction("About Dardcor Code", self)
         about_action.triggered.connect(self._show_about)
         help_menu.addAction(about_action)
+
+    def _copy_from_focused_widget(self):
+        focused_widget = QApplication.focusWidget()
+        if isinstance(focused_widget, (QTextEdit, QPlainTextEdit, QLineEdit)):
+            focused_widget.copy()
+            return
+
+        editor = self._editor_tabs.current_editor()
+        if editor:
+            editor.copy()
+
+    def _paste_into_focused_widget(self):
+        focused_widget = QApplication.focusWidget()
+        if isinstance(focused_widget, (QTextEdit, QPlainTextEdit, QLineEdit)):
+            focused_widget.paste()
+            return
+
+        editor = self._editor_tabs.current_editor()
+        if editor:
+            editor.paste()
 
     # ── Shortcuts ─────────────────────────────────────────
 
@@ -1635,6 +1661,17 @@ class MainWindow(QMainWindow):
     # ── Chat / Agent ──────────────────────────────────────
 
     def _on_chat_message(self, message: str):
+        if self._chat_generation_active:
+            if message in self._queued_chat_messages:
+                return
+            self._queued_chat_messages.append(message)
+            self.pending_messages_changed.emit(len(self._queued_chat_messages))
+            return
+
+        self._start_chat_message(message)
+
+    def _start_chat_message(self, message: str):
+        self._chat_generation_active = True
         self._chat_panel.set_enabled(False)
 
         selected_model = None
@@ -1655,9 +1692,20 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 self._chat_panel.append_system_message(f"Error: {e}")
             finally:
-                self._chat_panel.set_enabled(True)
+                self._chat_generation_active = False
+                if self._queued_chat_messages:
+                    self._run_queued_chat_signal.emit()
+                else:
+                    self._chat_panel.set_enabled(True)
 
         threading.Thread(target=process, daemon=True).start()
+
+    def _run_next_queued_chat_message(self):
+        if self._chat_generation_active or not self._queued_chat_messages:
+            return
+        next_message = self._queued_chat_messages.pop(0)
+        self.pending_messages_changed.emit(len(self._queued_chat_messages))
+        self._start_chat_message(next_message)
 
     def _on_stop_requested(self):
         self._agent.abort()
@@ -1666,6 +1714,9 @@ class MainWindow(QMainWindow):
         pass
 
     def _new_conversation(self):
+        self._queued_chat_messages.clear()
+        self.pending_messages_changed.emit(0)
+        self._chat_generation_active = False
         self._agent.new_conversation()
         self._chat_panel.clear()
 
