@@ -258,6 +258,22 @@ class EditorGroup(QWidget):
 
         layout.addWidget(self._tab_row)
 
+        # Breadcrumbs bar (VS Code style)
+        self._breadcrumb_bar = QWidget()
+        self._breadcrumb_bar.setFixedHeight(22)
+        self._breadcrumb_bar.setStyleSheet("background-color: #0d0d0d; border-bottom: 1px solid #1a0033;")
+        self._breadcrumb_bar.hide()
+        bc_layout = QHBoxLayout(self._breadcrumb_bar)
+        bc_layout.setContentsMargins(15, 0, 10, 0)
+        bc_layout.setSpacing(4)
+        
+        self._breadcrumb_label = QLabel("No file open")
+        self._breadcrumb_label.setStyleSheet("color: #969696; font-size: 11px; font-family: 'Segoe UI', sans-serif;")
+        bc_layout.addWidget(self._breadcrumb_label)
+        bc_layout.addStretch()
+        
+        layout.addWidget(self._breadcrumb_bar)
+
         self._stack = QStackedWidget()
         layout.addWidget(self._stack)
 
@@ -474,6 +490,22 @@ class EditorGroup(QWidget):
     def _emit_tab_changed(self, editor):
         fp = editor.get_file_path() or ""
         lang = editor.get_language()
+        
+        # Update VS Code Breadcrumbs
+        if fp:
+            self._breadcrumb_bar.show()
+            parts = fp.replace('\\', '/').split('/')
+            display_parts = parts[-4:] if len(parts) >= 4 else parts
+            bc_text = " › ".join(display_parts)
+            self._breadcrumb_label.setText(bc_text)
+        elif self._tabs:
+            self._breadcrumb_bar.show()
+            idx = self._editor_index(editor)
+            title = self._tabs[idx].title.replace("● ", "") if idx >= 0 else "Untitled"
+            self._breadcrumb_label.setText(title)
+        else:
+            self._breadcrumb_bar.hide()
+            
         self.tab_changed.emit(fp, lang)
 
     def _editor_index(self, editor):

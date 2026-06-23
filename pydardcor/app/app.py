@@ -67,8 +67,13 @@ def run_desktop_app():
     if os.path.exists(codicon_path):
         QFontDatabase.addApplicationFont(codicon_path)
 
-    # Create and show main window
+    # Heavy initialization happens here
     window = MainWindow()
+    
+    # Force the OS to not paint a white background before Qt renders
+    window.setAttribute(Qt.WA_NoSystemBackground, True)
+    
+    # Once main window is ready to paint, show it
     window.show()
 
     # ── Ctrl+C / SIGINT graceful + force-exit ────────────────────────────

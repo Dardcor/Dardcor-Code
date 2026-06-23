@@ -36,8 +36,12 @@ class CommandExecutor:
         if workdir and not os.path.isdir(workdir):
             workdir = None
 
-        shell = True
-        shell_cmd = command
+        if os.name == 'nt':
+            shell = False
+            shell_cmd = ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", command]
+        else:
+            shell = True
+            shell_cmd = command
 
         merged_env = os.environ.copy()
         if env:

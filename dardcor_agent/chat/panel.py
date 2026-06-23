@@ -40,6 +40,22 @@ class ChatHistory(QTextBrowser):
     def _handle_anchor_clicked(self, url):
         from PySide6.QtWidgets import QApplication
         url_str = url.toString()
+        if url_str.startswith("toggle_tool:"):
+            uid = url_str.split(":", 1)[1]
+            if hasattr(self, "_tool_call_blocks") and uid in self._tool_call_blocks:
+                block = self._tool_call_blocks[uid]
+                block["expanded"] = not block["expanded"]
+                
+                # Delete the old HTML block
+                select_cursor = QTextCursor(self._history.document())
+                select_cursor.setPosition(block["start"].position())
+                select_cursor.setPosition(block["end"].position(), QTextCursor.KeepAnchor)
+                select_cursor.removeSelectedText()
+                
+                # Re-insert the updated HTML block
+                self._insert_tool_call_html(uid, select_cursor)
+            return
+
         if url_str.startswith("copy_msg:"):
             import base64
             b64_text = url_str[len("copy_msg:"):]
@@ -60,6 +76,13 @@ class ChatHistory(QTextBrowser):
             QDesktopServices.openUrl(url)
 
     from PySide6.QtCore import Slot
+
+    def keyPressEvent(self, event):
+        from PySide6.QtGui import QKeySequence
+        if event.matches(QKeySequence.Copy):
+            self.copy()
+            return
+        super().keyPressEvent(event)
 
     @Slot()
     def copy(self):
@@ -161,7 +184,7 @@ class ChatPanel(QWidget):
     _append_system_signal = Signal(str)
     _append_tool_call_signal = Signal(str, str, str)
     _set_enabled_signal = Signal(bool)
-    _show_typing_signal = Signal(bool)
+    _show_typing_signal = Signal(bool, str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -307,28 +330,15 @@ class ChatPanel(QWidget):
             color: #ffffff;
             font-size: 14px;
             font-weight: bold;
-            padding: 8px 16px 0px 16px;
+            padding: 0px 16px 0px 16px;
             background-color: #000000;
         """)
         layout.addWidget(self._workspace_lbl)
 
-        # Typing Indicator
-        self._typing_lbl = QLabel("")
-        self._typing_lbl.setStyleSheet("""
-            QLabel {
-                color: #858585;
-                font-size: 11px;
-                font-style: italic;
-                padding: 4px 14px;
-                background-color: transparent;
-                border: none;
-                margin: 0px;
-                font-family: "Segoe UI", sans-serif;
-            }
-        """)
-        self._typing_lbl.hide()
-        layout.addWidget(self._typing_lbl)
-
+        # State variables for dynamic typing indicator inside ChatHistory
+        self._is_typing = False
+        self._typing_state = "thinking"
+        self._typing_start_pos = 0
         # Timer for typing animation
         self._typing_timer = QTimer(self)
         self._typing_timer.timeout.connect(self._animate_typing)
@@ -851,6 +861,7 @@ class ChatPanel(QWidget):
 
         self._scroll_to_bottom()
 
+<<<<<<< HEAD
     def _handle_history_action(self, action: str, payload: str):
         if action == "toggle":
             self._toggle_collapsible_block(payload)
@@ -915,26 +926,72 @@ class ChatPanel(QWidget):
         self._render_history_entries()
 
     def show_typing(self, show: bool):
+=======
+    def show_typing(self, show: bool, state: str = "thinking"):
+>>>>>>> 5a16a85 (feat: complete visual engine overhaul and VS Code menu alignment)
         if QThread.currentThread() != QCoreApplication.instance().thread():
-            self._show_typing_signal.emit(show)
+            self._show_typing_signal.emit(show, state)
         else:
-            self._safe_show_typing(show)
+            self._safe_show_typing(show, state)
 
-    def _safe_show_typing(self, show: bool):
+    def _insert_typing_html(self, dots: str = ""):
+        cursor = self._history.textCursor()
+        cursor.setPosition(self._typing_start_pos)
+        
+        icon = "&#xea82;" if self._typing_state == "thinking" else "&#xea74;"
+        color = "#4fc1ff" if self._typing_state == "thinking" else "#e51400"
+        text = "Dardcor Agent is thinking" if self._typing_state == "thinking" else "Dardcor Agent is working"
+        
+        html = f"""<div align='left' style='margin-top: 8px; margin-bottom: 8px; margin-left: 10px; padding: 5px;'>
+            <span style='font-family: "codicon"; font-size: 14px; color: {color};'> {icon} </span> 
+            <span style='color: #858585; font-style: italic; font-size: 12px;'>{text}{dots}</span>
+        </div>"""
+        cursor.insertHtml(html)
+
+    def _safe_show_typing(self, show: bool, state: str = "thinking"):
         if show:
-            self._typing_dots = 0
-            self._typing_lbl.setText("<span style='font-family: \"codicon\"; font-size: 14px; color: #4fc1ff;'>&#xea82;</span> <span style='color: #858585;'>Dardcor Agent is thinking</span>")
-            self._typing_lbl.show()
-            self._typing_timer.start(300)
-            self._scroll_to_bottom()
+            if not self._is_typing:
+                self._is_typing = True
+                self._typing_state = state
+                self._typing_dots = 0
+                
+                # Append to bottom
+                cursor = self._history.textCursor()
+                cursor.movePosition(QTextCursor.End)
+                self._typing_start_pos = cursor.position()
+                self._insert_typing_html()
+                
+                self._typing_timer.start(300)
+                self._scroll_to_bottom()
+            elif self._typing_state != state:
+                # Update state if already typing
+                self._typing_state = state
+                cursor = self._history.textCursor()
+                cursor.setPosition(self._typing_start_pos)
+                cursor.movePosition(QTextCursor.End, QTextCursor.KeepAnchor)
+                cursor.removeSelectedText()
+                self._insert_typing_html("." * self._typing_dots)
+                self._scroll_to_bottom()
         else:
-            self._typing_timer.stop()
-            self._typing_lbl.hide()
+            if self._is_typing:
+                self._typing_timer.stop()
+                self._is_typing = False
+                cursor = self._history.textCursor()
+                cursor.setPosition(self._typing_start_pos)
+                cursor.movePosition(QTextCursor.End, QTextCursor.KeepAnchor)
+                cursor.removeSelectedText()
 
     def _animate_typing(self):
+        if not self._is_typing: return
         self._typing_dots = (self._typing_dots + 1) % 4
         dots = "." * self._typing_dots
-        self._typing_lbl.setText(f"<span style='font-family: \"codicon\"; font-size: 14px; color: #4fc1ff;'>&#xea82;</span> <span style='color: #858585; font-style: italic;'>Dardcor Agent is thinking{dots}</span>")
+        
+        cursor = self._history.textCursor()
+        cursor.setPosition(self._typing_start_pos)
+        cursor.movePosition(QTextCursor.End, QTextCursor.KeepAnchor)
+        cursor.removeSelectedText()
+        
+        self._insert_typing_html(dots)
 
     def append_agent_message(self, text: str, is_html: bool = False):
         self.show_typing(False)
@@ -1258,9 +1315,16 @@ class ChatPanel(QWidget):
         else:
             self._safe_append_tool_call(tool_name, args, status)
 
-    def _safe_append_tool_call(self, tool_name: str, args: str, status: str = "running"):
-        cursor = self._history.textCursor()
-        cursor.movePosition(QTextCursor.End)
+    def _insert_tool_call_html(self, uid: str, cursor: QTextCursor = None):
+        if cursor is None:
+            cursor = self._history.textCursor()
+            cursor.movePosition(QTextCursor.End)
+            
+        block = self._tool_call_blocks[uid]
+        tool_name = block["name"]
+        args = block["args"]
+        status = block["status"]
+        expanded = block["expanded"]
 
         color_map = {
             "running": "#dcdcaa",
@@ -1269,16 +1333,85 @@ class ChatPanel(QWidget):
         }
         color = color_map.get(status, "#858585")
         
+<<<<<<< HEAD
         body = (
+=======
+        display_args = args if expanded else args[:150].replace('\n', ' ') + ('...' if len(args) > 150 else '')
+        toggle_text = "[-]" if expanded else "[+]"
+        
+        # Use a table instead of div to guarantee proper background-color and padding rendering in QTextBrowser
+        html_content = (
+            f"<table width='100%' style='background-color: #1e1e1e; border: 1px solid #3c3c3c; border-left: 3px solid {color}; "
+            f"margin-top: 4px; margin-bottom: 8px;' cellspacing='0' cellpadding='10'>"
+            f"<tr><td>"
+            f"<div style='margin-bottom: 6px; font-weight: bold; color: #e0e0e0; font-family: \"Segoe UI\", sans-serif; font-size: 12px;'>"
+            f"<a href='toggle_tool:{uid}' style='text-decoration: none; color: #4fc1ff; margin-right: 5px;'>{toggle_text}</a>"
+            f"<span style='font-family: \"codicon\"; font-size: 14px;'>&#xeaf9;</span> [Tool Call: {tool_name}] "
+            f"<span style='color: {color}; font-size: 10px; font-weight: normal; margin-left: 6px;'>[ {status.upper()} ]</span></div>"
+>>>>>>> 5a16a85 (feat: complete visual engine overhaul and VS Code menu alignment)
             f"<table width='100%' style='background-color: #161616; border: 1px solid #2d2d2d;' cellspacing='0' cellpadding='6'><tr><td>"
-            f"<div style='color: #ce9178; font-family: monospace; white-space: pre-wrap; font-size: 11px;'>{html.escape(args)}</div>"
+            f"<div style='color: #ce9178; font-family: monospace; white-space: pre-wrap; font-size: 11px;'>{html.escape(display_args)}</div>"
             f"</td></tr></table>"
         )
+<<<<<<< HEAD
         title = (
             f"<span style='font-family: \"codicon\"; font-size: 14px;'>&#xeaf9;</span> [Tool Call: {html.escape(tool_name)}] "
             f"<span style='color: {color}; font-size: 10px; font-weight: normal; margin-left: 6px;'>[ {status.upper()} ]</span>"
         )
         self._append_history_html(self._new_collapsible_block(title, body, color))
+=======
+        
+        # We need to save the new start cursor since insertHtml modifies document
+        new_start = QTextCursor(cursor.document())
+        new_start.setPosition(cursor.position())
+        
+        cursor.insertHtml(html_content)
+        cursor.insertText("\n")
+        
+        new_end = QTextCursor(cursor.document())
+        new_end.setPosition(cursor.position())
+        
+        block["start"] = new_start
+        block["end"] = new_end
+
+    def _safe_append_tool_call(self, tool_name: str, args: str, status: str = "running"):
+        if not hasattr(self, "_tool_call_blocks"):
+            self._tool_call_blocks = {}
+            
+        import uuid
+        uid = str(uuid.uuid4())
+        self._tool_call_blocks[uid] = {
+            "name": tool_name,
+            "args": args,
+            "status": status,
+            "expanded": False,
+            "start": None,
+            "end": None
+        }
+
+        # Remove typing indicator before inserting tool call content
+        was_typing = self._is_typing
+        if was_typing:
+            self._typing_timer.stop()
+            self._is_typing = False
+            cursor = self._history.textCursor()
+            cursor.setPosition(self._typing_start_pos)
+            cursor.movePosition(QTextCursor.End, QTextCursor.KeepAnchor)
+            cursor.removeSelectedText()
+
+        self._insert_tool_call_html(uid)
+
+        # Re-show typing indicator as "working" after the tool call
+        if was_typing and status == "running":
+            cursor = self._history.textCursor()
+            cursor.movePosition(QTextCursor.End)
+            self._typing_start_pos = cursor.position()
+            self._is_typing = True
+            self._typing_state = "working"
+            self._typing_dots = 0
+            self._insert_typing_html()
+            self._typing_timer.start(300)
+>>>>>>> 5a16a85 (feat: complete visual engine overhaul and VS Code menu alignment)
 
         self._scroll_to_bottom()
 
@@ -1288,10 +1421,20 @@ class ChatPanel(QWidget):
         ))
 
     def clear(self):
+<<<<<<< HEAD
         self._history_entries.clear()
         self._collapsible_blocks.clear()
         self._next_block_id = 1
+=======
+        self._typing_timer.stop()
+        self._is_typing = False
+        self._typing_state = "thinking"
+        self._typing_start_pos = 0
+        self._typing_dots = 0
+>>>>>>> 5a16a85 (feat: complete visual engine overhaul and VS Code menu alignment)
         self._history.clear()
+        if hasattr(self, "_tool_call_blocks"):
+            self._tool_call_blocks.clear()
         self.clear_attachments()
 
     def set_enabled(self, enabled: bool):

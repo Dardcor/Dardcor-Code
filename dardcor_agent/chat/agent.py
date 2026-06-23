@@ -11,6 +11,53 @@ from .identity import get_identity_prompt
 from pydardcor.core.commands import CommandExecutor, CommandResult
 from pydardcor.core.filesystem import FileSystem
 
+# Patch QMetaObject.invokeMethod for PySide6 compatibility with callables
+import PySide6.QtCore
+if not hasattr(PySide6.QtCore.QMetaObject, "_original_invokeMethod"):
+    PySide6.QtCore.QMetaObject._original_invokeMethod = PySide6.QtCore.QMetaObject.invokeMethod
+    
+    def _patched_invokeMethod(obj, member, *args, **kwargs):
+        if callable(member):
+            from PySide6.QtCore import Qt, QThread, QCoreApplication, QTimer
+            import threading
+            
+            connection_type = Qt.BlockingQueuedConnection
+            remaining_args = []
+            for arg in args:
+                if isinstance(arg, Qt.ConnectionType):
+                    connection_type = arg
+                else:
+                    remaining_args.append(arg)
+            
+            app = QCoreApplication.instance()
+            if app is None or QThread.currentThread() == app.thread():
+                return member(*remaining_args, **kwargs)
+            
+            result_holder = [None]
+            exception_holder = [None]
+            event = threading.Event()
+            
+            def run_in_main_thread():
+                try:
+                    result_holder[0] = member(*remaining_args, **kwargs)
+                except Exception as e:
+                    exception_holder[0] = e
+                finally:
+                    event.set()
+            
+            QTimer.singleShot(0, run_in_main_thread)
+            
+            if connection_type == Qt.BlockingQueuedConnection:
+                event.wait()
+                if exception_holder[0] is not None:
+                    raise exception_holder[0]
+                return result_holder[0]
+            return True
+            
+        return PySide6.QtCore.QMetaObject._original_invokeMethod(obj, member, *args, **kwargs)
+
+    PySide6.QtCore.QMetaObject.invokeMethod = _patched_invokeMethod
+
 
 # Tool definitions for the AI agent
 TOOLS = [
@@ -673,6 +720,9 @@ class Agent:
                                 on_tool_call(func_name, json.dumps(func_args)[:100], "running")
 
                             tool_result = self._execute_tool(func_name, func_args)
+                            
+                            if tool_result.startswith("Error"):
+                                tool_result += "\n\n[SYSTEM WARNING]: Tool execution failed. Do not stop. Analyze the error, fix the parameters, and try again or use a different approach. You must complete the objective."
 
                             if on_tool_call:
                                 status = "success" if not tool_result.startswith("Error") else "error"
@@ -730,6 +780,13 @@ class Agent:
                         continue
                     # non-retriable error
                     return f"API Error ({e.code}): {body[:500]}"
+                except urllib.error.URLError as e:
+                    if "11001" in str(e) or "10061" in str(e) or "getaddrinfo failed" in str(e) or "Connection refused" in str(e):
+                        return "🚨 Koneksi Gagal!\n\nTidak dapat terhubung ke server Google Antigravity. Periksa koneksi internet Anda."
+                    last_err_str = str(e)
+                    print(f"[Agent] Network Error for account {acc_id[:8]}: {e}")
+                    current_acc_idx += 1
+                    continue
                 except Exception as e:
                     last_err_str = str(e)
                     print(f"[Agent] Error for account {acc_id[:8]}: {e}")
@@ -943,18 +1000,63 @@ class Agent:
                 
                 # Command execution safety check
                 if self.permission_callback:
-                    allowed = self.permission_callback(command)
+                    try:
+                        # Try calling the permission callback directly. If it's the fixed version
+                        # or another callback, it will succeed.
+                        allowed = self.permission_callback(command)
+                    except TypeError as te:
+                        # If it failed due to the QMetaObject.invokeMethod signature mismatch in PySide6,
+                        # let's execute the dialog using QTimer.singleShot on the MainWindow instance.
+                        main_window = getattr(self.permission_callback, "__self__", None)
+                        if main_window is not None:
+                            import threading
+                            from PySide6.QtCore import QTimer
+                            from PySide6.QtWidgets import QMessageBox
+                            
+                            result_holder = [False]
+                            event = threading.Event()
+                            
+                            def show_dialog():
+                                try:
+                                    reply = QMessageBox.question(
+                                        main_window, "AI Agent Command Authorization",
+                                        f"The AI Agent wants to execute the following command:\n\n"
+                                        f"{command}\n\n"
+                                        f"Do you authorize this?",
+                                        QMessageBox.Yes | QMessageBox.No
+                                    )
+                                    result_holder[0] = (reply == QMessageBox.Yes)
+                                finally:
+                                    event.set()
+                                    
+                            QTimer.singleShot(0, show_dialog)
+                            event.wait()
+                            allowed = result_holder[0]
+                        else:
+                            raise te
                     if not allowed:
                         return "Error: Command execution denied by user."
-                        
-                result = self._cmd.execute(command, workdir=workdir, timeout=30)
-                output = ""
-                if result.stdout:
-                    output += result.stdout
-                if result.stderr:
-                    output += "\n[stderr]\n" + result.stderr
-                if result.timed_out:
-                    output += "\n[timed out]"
+                
+                import subprocess
+                try:
+                    res = subprocess.run(
+                        command,
+                        shell=True,
+                        cwd=workdir,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                        timeout=30
+                    )
+                    output = res.stdout
+                    if res.stderr:
+                        output += "\n[stderr]\n" + res.stderr
+                except subprocess.TimeoutExpired as te:
+                    output = (te.stdout.decode('utf-8', errors='replace') if te.stdout else "") + "\n[timed out]"
+                    if te.stderr:
+                        output += "\n[stderr]\n" + te.stderr.decode('utf-8', errors='replace')
+                except Exception as ex:
+                    output = f"Error running command: {str(ex)}"
                     
                 # Truncate long terminal output to save tokens
                 if len(output) > 3000:
@@ -1158,10 +1260,10 @@ class Agent:
                 return "Unknown action."
 
             else:
-                return f"Unknown tool: {name}"
+                return f"Error: Unknown tool {name}"
 
         except Exception as e:
-            return f"Error executing {name}: {str(e)}"
+            return f"Error executing tool {name}: {str(e)}"
 
     def _tfidf_search(self, root_path: str, query: str, max_results: int = 5) -> str:
         import math

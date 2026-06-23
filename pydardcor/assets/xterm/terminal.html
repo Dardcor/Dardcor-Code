@@ -102,6 +102,35 @@
                 if (backend) { backend.receive_data(data); }
             });
 
+            /* Attach custom key handlers for copy/paste */
+            term.attachCustomKeyEventHandler(function (e) {
+                if ((e.ctrlKey || e.metaKey) && e.code === 'KeyC' && e.type === 'keydown') {
+                    var selection = term.getSelection();
+                    if (selection) {
+                        if (backend) { backend.copy_to_clipboard(selection); }
+                        term.clearSelection();
+                        return false; // Prevent sending SIGINT (Ctrl+C) if text is selected
+                    }
+                }
+                if ((e.ctrlKey || e.metaKey) && e.code === 'KeyV' && e.type === 'keydown') {
+                    if (backend) { backend.request_paste(); }
+                    return false;
+                }
+                return true;
+            });
+
+            /* VS Code style right click: copy if selection, paste otherwise */
+            document.getElementById('terminal').addEventListener('contextmenu', function (e) {
+                e.preventDefault();
+                var selection = term.getSelection();
+                if (selection) {
+                    if (backend) { backend.copy_to_clipboard(selection); }
+                    term.clearSelection();
+                } else {
+                    if (backend) { backend.request_paste(); }
+                }
+            });
+
             /* Initial fit + notify Python of size */
             doFit();
         }

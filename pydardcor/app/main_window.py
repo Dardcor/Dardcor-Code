@@ -17,7 +17,58 @@ from PySide6.QtWidgets import (
     QFileDialog, QInputDialog, QLabel, QMenuBar, QPushButton,
     QPlainTextEdit, QTextEdit, QLineEdit, QDialog, QFontDialog, QSizePolicy,
 )
+<<<<<<< HEAD
 from PySide6.QtCore import Qt, QTimer, QPoint, QEvent, Signal
+=======
+from PySide6.QtCore import Qt, QTimer, QPoint, QEvent
+
+# Patch QMetaObject.invokeMethod for PySide6 compatibility with callables
+import PySide6.QtCore
+if not hasattr(PySide6.QtCore.QMetaObject, "_original_invokeMethod"):
+    PySide6.QtCore.QMetaObject._original_invokeMethod = PySide6.QtCore.QMetaObject.invokeMethod
+    
+    def _patched_invokeMethod(obj, member, *args, **kwargs):
+        if callable(member):
+            from PySide6.QtCore import Qt, QThread, QCoreApplication, QTimer
+            import threading
+            
+            connection_type = Qt.BlockingQueuedConnection
+            remaining_args = []
+            for arg in args:
+                if isinstance(arg, Qt.ConnectionType):
+                    connection_type = arg
+                else:
+                    remaining_args.append(arg)
+            
+            app = QCoreApplication.instance()
+            if app is None or QThread.currentThread() == app.thread():
+                return member(*remaining_args, **kwargs)
+            
+            result_holder = [None]
+            exception_holder = [None]
+            event = threading.Event()
+            
+            def run_in_main_thread():
+                try:
+                    result_holder[0] = member(*remaining_args, **kwargs)
+                except Exception as e:
+                    exception_holder[0] = e
+                finally:
+                    event.set()
+            
+            QTimer.singleShot(0, run_in_main_thread)
+            
+            if connection_type == Qt.BlockingQueuedConnection:
+                event.wait()
+                if exception_holder[0] is not None:
+                    raise exception_holder[0]
+                return result_holder[0]
+            return True
+            
+        return PySide6.QtCore.QMetaObject._original_invokeMethod(obj, member, *args, **kwargs)
+
+    PySide6.QtCore.QMetaObject.invokeMethod = _patched_invokeMethod
+>>>>>>> 5a16a85 (feat: complete visual engine overhaul and VS Code menu alignment)
 from PySide6.QtGui import (
     QAction, QKeySequence, QShortcut, QMouseEvent, QFont,
     QPixmap, QIcon, QPainter, QColor
@@ -382,8 +433,6 @@ from ..core.extension_manager import get_extension_manager
 # --- Phase 13 Injections ---
 from ..workspace.multi_root import MultiRootWorkspace
 from ..tasks.task_manager import TaskManager
-from ..sync.auth import AuthManager
-from ..sync.settings_sync import SettingsSync
 # ---------------------------
 
 class MainWindow(QMainWindow):
@@ -404,9 +453,6 @@ class MainWindow(QMainWindow):
         self._ext_manager = get_extension_manager()
         
         # --- Phase 13 Instantiations ---
-        config_dir = os.path.join(os.path.expanduser("~"), ".dardcor-code")
-        self._auth_manager = AuthManager(config_dir)
-        self._settings_sync = SettingsSync(self._auth_manager, config_dir)
         self._task_manager = TaskManager(self._config.workspace_path or "")
         # -------------------------------
         
@@ -477,7 +523,11 @@ class MainWindow(QMainWindow):
     def _ask_command_permission(self, command: str) -> bool:
         """Prompt user in a thread-safe blocking popup before running terminal commands."""
         import threading
+<<<<<<< HEAD
         from PySide6.QtCore import QMetaObject, Qt, QTimer
+=======
+        from PySide6.QtCore import QMetaObject, Qt, QTimer, QThread, QCoreApplication
+>>>>>>> 5a16a85 (feat: complete visual engine overhaul and VS Code menu alignment)
         from PySide6.QtWidgets import QMessageBox
         
         result_holder = [False]
@@ -494,6 +544,14 @@ class MainWindow(QMainWindow):
             result_holder[0] = (reply == QMessageBox.Yes)
             event.set()
             
+<<<<<<< HEAD
+=======
+        app = QCoreApplication.instance()
+        if app is None or QThread.currentThread() == app.thread():
+            show_dialog()
+            return result_holder[0]
+            
+>>>>>>> 5a16a85 (feat: complete visual engine overhaul and VS Code menu alignment)
         QTimer.singleShot(0, show_dialog)
         event.wait()
         return result_holder[0]
@@ -774,6 +832,11 @@ class MainWindow(QMainWindow):
         open_workspace.triggered.connect(lambda: QMessageBox.information(self, "Workspace", "Workspace files support coming soon."))
         file_menu.addAction(open_workspace)
 
+        open_recent_menu = file_menu.addMenu("Open Recent")
+        clear_recent = QAction("Clear Recently Opened", self)
+        clear_recent.triggered.connect(lambda: QMessageBox.information(self, "Recent", "History tracking coming soon."))
+        open_recent_menu.addAction(clear_recent)
+
         file_menu.addSeparator()
 
         save_action = QAction("Save", self)
@@ -813,6 +876,25 @@ class MainWindow(QMainWindow):
         close_window.setShortcut(QKeySequence("Alt+F4"))
         close_window.triggered.connect(self.close)
         file_menu.addAction(close_window)
+
+        file_menu.addSeparator()
+
+        preferences_menu = file_menu.addMenu("Preferences")
+        
+        settings_action = QAction("Settings", self)
+        settings_action.setShortcut(QKeySequence("Ctrl+,"))
+        settings_action.triggered.connect(self._show_command_palette)
+        preferences_menu.addAction(settings_action)
+
+        keyboard_shortcuts = QAction("Keyboard Shortcuts", self)
+        keyboard_shortcuts.setShortcut(QKeySequence("Ctrl+K, Ctrl+S"))
+        keyboard_shortcuts.triggered.connect(self._show_keyboard_shortcuts)
+        preferences_menu.addAction(keyboard_shortcuts)
+
+        color_theme = QAction("Color Theme", self)
+        color_theme.setShortcut(QKeySequence("Ctrl+K, Ctrl+T"))
+        color_theme.triggered.connect(self._show_command_palette)
+        preferences_menu.addAction(color_theme)
 
         file_menu.addSeparator()
 
@@ -909,13 +991,29 @@ class MainWindow(QMainWindow):
         
         add_cursor_above = QAction("Add Cursor Above", self)
         add_cursor_above.setShortcut(QKeySequence("Ctrl+Alt+Up"))
-        add_cursor_above.triggered.connect(lambda: QMessageBox.information(self, "Selection", "Multi-cursor coming soon."))
+        add_cursor_above.triggered.connect(lambda: self._run_editor_action("editor.action.insertCursorAbove"))
         sel_menu.addAction(add_cursor_above)
 
         add_cursor_below = QAction("Add Cursor Below", self)
         add_cursor_below.setShortcut(QKeySequence("Ctrl+Alt+Down"))
-        add_cursor_below.triggered.connect(lambda: QMessageBox.information(self, "Selection", "Multi-cursor coming soon."))
+        add_cursor_below.triggered.connect(lambda: self._run_editor_action("editor.action.insertCursorBelow"))
         sel_menu.addAction(add_cursor_below)
+
+        sel_menu.addSeparator()
+
+        add_next_occurrence = QAction("Add Selection To Next Find Match", self)
+        add_next_occurrence.setShortcut(QKeySequence("Ctrl+D"))
+        add_next_occurrence.triggered.connect(lambda: self._run_editor_action("editor.action.addSelectionToNextFindMatch"))
+        sel_menu.addAction(add_next_occurrence)
+
+        select_all_occur = QAction("Select All Occurrences of Find Match", self)
+        select_all_occur.setShortcut(QKeySequence("Ctrl+Shift+L"))
+        select_all_occur.triggered.connect(lambda: self._run_editor_action("editor.action.selectHighlights"))
+        sel_menu.addAction(select_all_occur)
+
+        column_sel_mode = QAction("Column Selection Mode", self)
+        column_sel_mode.triggered.connect(lambda: self._run_editor_action("editor.action.toggleColumnSelection"))
+        sel_menu.addAction(column_sel_mode)
 
         # ── View menu ──
         view_menu = menubar.addMenu("&View")
@@ -1115,7 +1213,7 @@ class MainWindow(QMainWindow):
 
         start_debug = QAction("Start Debugging", self)
         start_debug.setShortcut(QKeySequence("F5"))
-        start_debug.triggered.connect(lambda: QMessageBox.information(self, "Debug", "Debugger coming soon."))
+        start_debug.triggered.connect(self._start_debugging)
         run_menu.addAction(start_debug)
 
         run_no_debug = QAction("Run Without Debugging", self)
@@ -1140,7 +1238,7 @@ class MainWindow(QMainWindow):
 
         split_terminal = QAction("Split Terminal", self)
         split_terminal.setShortcut(QKeySequence("Ctrl+Shift+5"))
-        split_terminal.triggered.connect(lambda: QMessageBox.information(self, "Terminal", "Split terminal coming soon."))
+        split_terminal.triggered.connect(self._split_terminal)
         terminal_menu.addAction(split_terminal)
 
         kill_terminal = QAction("Kill Terminal", self)
@@ -1415,8 +1513,34 @@ class MainWindow(QMainWindow):
 
     def _new_window(self):
         """Open a new application window."""
-        QMessageBox.information(self, "New Window",
-            "Launch a new instance from command line:\n\ndardcor desktop")
+        import subprocess
+        import sys
+        import os
+        try:
+            exe = sys.executable
+            if sys.platform == "win32" and exe.lower().endswith("python.exe"):
+                # Use pythonw.exe to avoid Windows console allocation entirely
+                pythonw = exe[:-10] + "pythonw.exe"
+                if os.path.exists(pythonw):
+                    exe = pythonw
+
+            cmd = [exe, sys.argv[0]]
+            
+            flags = 0
+            if sys.platform == "win32":
+                flags = subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS
+                
+            # Disconnect standard I/O to prevent blocking/lagging the current process
+            subprocess.Popen(
+                cmd, 
+                creationflags=flags,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                close_fds=True
+            )
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Failed to open new window: {e}")
 
     def _open_file_dialog(self):
         path, _ = QFileDialog.getOpenFileName(self, "Open File")
@@ -1557,9 +1681,25 @@ class MainWindow(QMainWindow):
                 f'start "" "{filepath}"\r\n'
             ))
 
+
     def _kill_terminal(self):
         """Kill the current terminal process."""
         self._terminal_panel._kill_current()
+
+    def _split_terminal(self):
+        """Split the current terminal."""
+        if hasattr(self._terminal_panel, '_split_terminal'):
+            self._terminal_panel._split_terminal()
+        else:
+            self._terminal_panel._new_terminal()
+
+    def _run_editor_action(self, action_id: str):
+        """Run a Monaco editor action by its ID on the currently active editor."""
+        editor = self._editor_tabs.current_editor()
+        if editor and editor._view_ready:
+            import json
+            js = f"editor.trigger('menu', {json.dumps(action_id)}, null);"
+            editor._view.page().runJavaScript(js)
 
     def _report_issue(self):
         """Open the GitHub issues page."""
@@ -1739,7 +1879,13 @@ class MainWindow(QMainWindow):
                     if msg.role == "user":
                         self._chat_panel._append_user_message(msg.content)
                     elif msg.role == "assistant":
-                        self._chat_panel.append_agent_message(msg.content)
+                        if hasattr(msg, "tool_calls") and msg.tool_calls:
+                            for tc in msg.tool_calls:
+                                fn_name = tc.get("function", {}).get("name", "tool")
+                                fn_args = tc.get("function", {}).get("arguments", "{}")
+                                self._chat_panel._safe_append_tool_call(fn_name, fn_args, status="success")
+                        if msg.content:
+                            self._chat_panel.append_agent_message(msg.content)
                     elif msg.role == "system":
                         # Only show system messages if it's not the identity prompt
                         if "You are Dardcor Code" not in msg.content:

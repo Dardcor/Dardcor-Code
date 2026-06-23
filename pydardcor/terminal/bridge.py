@@ -21,3 +21,20 @@ class TerminalBridge(QObject):
     def resize_pty(self, cols, rows):
         """Called by xterm.js via QWebChannel when terminal resizes."""
         self.resize_requested.emit(cols, rows)
+
+    @Slot(str)
+    def copy_to_clipboard(self, text):
+        """Called by xterm.js to copy text to system clipboard."""
+        from PySide6.QtWidgets import QApplication
+        clipboard = QApplication.clipboard()
+        clipboard.setText(text)
+
+    @Slot()
+    def request_paste(self):
+        """Called by xterm.js to paste text from system clipboard."""
+        from PySide6.QtWidgets import QApplication
+        clipboard = QApplication.clipboard()
+        text = clipboard.text()
+        if text:
+            # We treat pasted text exactly like typed data
+            self.data_from_frontend.emit(text)
