@@ -5,10 +5,10 @@ from datetime import datetime
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTextEdit,
     QPushButton, QLabel, QFrame, QScrollArea, QComboBox,
-    QStyledItemDelegate
+    QStyledItemDelegate, QCompleter
 )
-from PySide6.QtCore import Signal, Qt, QTimer, QSize, QThread, QCoreApplication, QUrl
-from PySide6.QtGui import QColor, QTextCursor, QTextCharFormat, QFont, QKeyEvent, QIcon
+from PySide6.QtCore import Signal, Qt, QTimer, QSize, QThread, QCoreApplication, QUrl, QSortFilterProxyModel
+from PySide6.QtGui import QColor, QTextCursor, QTextCharFormat, QFont, QKeyEvent, QIcon, QStandardItemModel, QStandardItem
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebChannel import QWebChannel
 import os
@@ -97,7 +97,7 @@ class ChatPanel(QWidget):
     # Thread-safe slots signals
     _append_agent_signal = Signal(str, bool)
     _append_system_signal = Signal(str)
-    _append_tool_call_signal = Signal(str, str, str)
+    _append_tool_call_signal = Signal(str, str, str, str)
     _set_enabled_signal = Signal(bool)
     _show_typing_signal = Signal(bool, str)
 
@@ -293,6 +293,16 @@ class ChatPanel(QWidget):
         chevron_path = os.path.join(assets_dir, "chevron-up.svg").replace("\\", "/")
         self.model_dropdown = UpwardComboBox()
         self.model_dropdown.setItemDelegate(QStyledItemDelegate())
+        self._dropdown_model = QStandardItemModel(self.model_dropdown)
+        self._model_proxy = QSortFilterProxyModel(self.model_dropdown)
+        self._model_proxy.setSourceModel(self._dropdown_model)
+        self._model_proxy.setFilterCaseSensitivity(Qt.CaseInsensitive)
+        self._model_proxy.setFilterKeyColumn(0)
+        self.model_dropdown.setModel(self._model_proxy)
+        self.model_dropdown.setEditable(True)
+        self.model_dropdown.setInsertPolicy(QComboBox.NoInsert)
+        self.model_dropdown.lineEdit().setPlaceholderText("Search models...")
+        self.model_dropdown.lineEdit().textEdited.connect(self._model_proxy.setFilterFixedString)
         self.model_dropdown.setVisible(False)
         self.model_dropdown.setStyleSheet("""
             QComboBox {
@@ -304,6 +314,14 @@ class ChatPanel(QWidget):
                 font-family: "Segoe UI", "Ubuntu", sans-serif;
                 font-size: 11.5px;
                 font-weight: 500;
+            }
+            QComboBox QLineEdit {
+                background-color: transparent;
+                color: #e4e4e7;
+                border: none;
+                padding: 0px 4px;
+                font-size: 11.5px;
+                selection-background-color: #3c0068;
             }
             QComboBox::drop-down {
                 border: none;
@@ -372,19 +390,20 @@ class ChatPanel(QWidget):
 
         self._send_btn = QPushButton()
         self._send_btn.setIcon(self._mic_icon)
-        self._send_btn.setIconSize(QSize(14, 14))
-        self._send_btn.setFixedSize(28, 28)
+        self._send_btn.setIconSize(QSize(20, 20))
+        self._send_btn.setFixedSize(36, 36)
         self._send_btn.setCursor(Qt.PointingHandCursor)
         self._send_btn.setStyleSheet("""
             QPushButton {
-                background-color: #333333;
-                border: none;
-                border-radius: 14px;
+                background-color: #444444;
+                border: 1px solid #555555;
+                border-radius: 18px;
             }
-            QPushButton:hover { background-color: #444444; }
-            QPushButton:pressed { background-color: #222222; }
+            QPushButton:hover { background-color: #555555; }
+            QPushButton:pressed { background-color: #333333; }
             QPushButton:disabled {
                 background-color: #2a2a2a;
+                border-color: #333333;
             }
         """)
         self._send_btn.clicked.connect(self._on_send_btn_clicked)
@@ -403,108 +422,129 @@ class ChatPanel(QWidget):
     def _check_provider_status(self):
         try:
             providers = self.db.get_providers()
-            is_antigravity = providers.get("Antigravity", False)
-            is_gemini = providers.get("Gemini", False)
-            
-            is_active = is_antigravity or is_gemini
-            if not hasattr(self, '_last_provider_state') or self._last_provider_state != (is_antigravity, is_gemini):
+            state = tuple((name, providers.get(name, False)) for name in ["Antigravity", "Gemini", "OpenRouter", "DeepSeek", "NVIDIA"])
+            is_active = any(active for _, active in state)
+            if not hasattr(self, '_last_provider_state') or self._last_provider_state != state:
                 self.model_dropdown.setVisible(is_active)
-                self._last_provider_state = (is_antigravity, is_gemini)
+                self._last_provider_state = state
                 if is_active:
-                    self._populate_models(is_antigravity, is_gemini)
+                    self._populate_models(providers)
             else:
-                # Always re-populate to capture config changes real-time
                 if is_active:
-                    self._populate_models(is_antigravity, is_gemini)
+                    self._populate_models(providers)
         except Exception:
             pass
+
+    def _provider_config_path(self, provider_name: str) -> str:
+        project_root = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+        return os.path.join(project_root, "database", "models", provider_name, "config.json")
+
+    def _active_model_provider(self, providers: dict) -> str:
+        for name in ["Gemini", "OpenRouter", "DeepSeek", "NVIDIA", "Antigravity"]:
+            if providers.get(name, False):
+                return name
+        return ""
             
     def _on_model_changed(self, text: str):
         if not text or self._is_populating:
             return
-            
-        is_antigravity, is_gemini = getattr(self, '_last_provider_state', (False, False))
-        if is_gemini:
+
+        provider_name = getattr(self, "_model_to_provider", {}).get(text, "")
+        if provider_name and provider_name != "Antigravity":
             try:
-                import os, json
-                _project_root = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-                gem_conf = os.path.join(_project_root, "database", "models", "Gemini", "config.json")
-                if os.path.exists(gem_conf):
-                    with open(gem_conf, "r", encoding="utf-8") as f:
-                        g_data = json.load(f)
-                    
-                    if g_data.get("selected_model") != text:
-                        g_data["selected_model"] = text
-                        with open(gem_conf, "w", encoding="utf-8") as f:
-                            json.dump(g_data, f, indent=4)
+                config_path = self._provider_config_path(provider_name)
+                if os.path.exists(config_path):
+                    with open(config_path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    if data.get("selected_model") != text:
+                        data["selected_model"] = text
+                        with open(config_path, "w", encoding="utf-8") as f:
+                            json.dump(data, f, indent=4)
             except Exception:
                 pass
 
-    def _populate_models(self, is_antigravity=False, is_gemini=False):
+    def _populate_models(self, providers: dict = None):
+        providers = providers or self.db.get_providers()
         current_text = self.model_dropdown.currentText()
-        
-        models_list = []
-        force_selection = None
-        
-        if is_gemini:
-            try:
-                import os, json
-                _project_root = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-                gem_conf = os.path.join(_project_root, "database", "models", "Gemini", "config.json")
-                if os.path.exists(gem_conf):
-                    with open(gem_conf, "r", encoding="utf-8") as f:
-                        g_data = json.load(f)
-                    for m in g_data.get("models", []):
-                        models_list.append(m.get("id"))
-                    
-                    if not models_list and g_data.get("selected_model"):
-                        models_list.append(g_data.get("selected_model"))
-                        
-                    force_selection = g_data.get("selected_model")
-                        
-                if not models_list:
-                    models_list.append("Gemini (No Model Selected)")
-            except Exception:
-                models_list.append("Gemini (Error loading models)")
-                
-        elif is_antigravity:
-            models_list = [
-                "Gemini 3.5 Flash (High)",
-                "Gemini 3.5 Flash (Medium)",
-                "Gemini 3.5 Flash (Low)",
-                "Gemini 3.1 Pro (High)",
-                "Gemini 3.1 Pro (Low)",
-                "Gemini 3 Flash",
-                "Gemini 2.5 Pro",
-                "Claude Opus 4.6 (Thinking)",
-                "Claude Sonnet 4.6 (Thinking)",
-                "Claude Sonnet 4.6",
-            ]
-            
-        # Ensure we don't duplicate
-        unique_models = []
-        for m in models_list:
-            if m not in unique_models:
-                unique_models.append(m)
-                
-        # Only clear and repopulate if the list actually changed to prevent popup flickering
-        current_items = [self.model_dropdown.itemText(i) for i in range(self.model_dropdown.count())]
-        if current_items != unique_models:
+
+        model_to_provider = {}
+        all_display_items = []
+
+        provider_order = ["Antigravity", "Gemini", "OpenRouter", "DeepSeek", "NVIDIA"]
+        for provider_name in provider_order:
+            if not providers.get(provider_name, False):
+                continue
+
+            provider_models = []
+            if provider_name == "Antigravity":
+                provider_models = [
+                    "Gemini 3.5 Flash (High)",
+                    "Gemini 3.5 Flash (Medium)",
+                    "Gemini 3.5 Flash (Low)",
+                    "Gemini 3.1 Pro (High)",
+                    "Gemini 3.1 Pro (Low)",
+                    "Gemini 3 Flash",
+                    "Gemini 2.5 Pro",
+                    "Claude Opus 4.6 (Thinking)",
+                    "Claude Sonnet 4.6 (Thinking)",
+                    "Claude Sonnet 4.6",
+                ]
+            else:
+                try:
+                    config_path = self._provider_config_path(provider_name)
+                    if os.path.exists(config_path):
+                        with open(config_path, "r", encoding="utf-8") as f:
+                            data = json.load(f)
+                        for m in data.get("models", []):
+                            model_id = m.get("id")
+                            if model_id:
+                                provider_models.append(model_id)
+                        if not provider_models and data.get("selected_model"):
+                            provider_models.append(data.get("selected_model"))
+                except Exception:
+                    pass
+
+            if not provider_models:
+                continue
+
+            for m in provider_models:
+                model_to_provider[m] = provider_name
+
+            all_display_items.append(QStandardItem(f"── {provider_name} ──"))
+            all_display_items[-1].setEnabled(False)
+            font = all_display_items[-1].font()
+            font.setBold(True)
+            all_display_items[-1].setFont(font)
+            all_display_items[-1].setForeground(QColor("#858585"))
+
+            for model_id in provider_models:
+                item = QStandardItem(model_id)
+                all_display_items.append(item)
+
+        current_items = [self._dropdown_model.item(i).text() for i in range(self._dropdown_model.rowCount())]
+        display_texts = [it.text() for it in all_display_items]
+        if current_items != display_texts or not self._dropdown_model.rowCount():
             self._is_populating = True
-            self.model_dropdown.clear()
-            self.model_dropdown.addItems(unique_models)
+            self._dropdown_model.clear()
+            for it in all_display_items:
+                self._dropdown_model.appendRow(it)
             self._is_populating = False
-            
-        # Only force selection if it's different from current, to prevent combo box signal loops
-        if force_selection and force_selection in unique_models:
-            if self.model_dropdown.currentText() != force_selection:
-                self._is_populating = True
-                self.model_dropdown.setCurrentText(force_selection)
-                self._is_populating = False
-        elif current_text in unique_models:
+
+        self._model_to_provider = model_to_provider
+        if current_text and current_text in model_to_provider:
             if self.model_dropdown.currentText() != current_text:
                 self._is_populating = True
                 self.model_dropdown.setCurrentText(current_text)
+                self._is_populating = False
+        elif self._dropdown_model.rowCount() > 0:
+            first_selectable = None
+            for i in range(self._dropdown_model.rowCount()):
+                if self._dropdown_model.item(i).isEnabled():
+                    first_selectable = self._dropdown_model.item(i).text()
+                    break
+            if first_selectable and self.model_dropdown.currentText() != first_selectable:
+                self._is_populating = True
+                self.model_dropdown.setCurrentText(first_selectable)
                 self._is_populating = False
 
     def _show_welcome(self):
@@ -610,7 +650,7 @@ class ChatPanel(QWidget):
             self._send_btn.setIcon(self._mic_icon)
 
     def _on_send_btn_clicked(self):
-        if self._is_generating and not self._input.toPlainText().strip() and self._attachments_layout.count() == 0:
+        if self._is_generating:
             self.stop_requested.emit()
             return
         self._send_message()
@@ -976,14 +1016,16 @@ class ChatPanel(QWidget):
         else:
             self._web_bridge.append_system_message.emit(text)
 
-    def append_tool_call(self, tool_name: str, args: str, status: str = "running"):
+    def append_tool_call(self, tool_name: str, args: str, status: str = "running", tool_id: str = ""):
+        if not tool_id:
+            tool_id = f"auto-{tool_name}-{hash(args) & 0xFFFFFFFF:x}"
         if QThread.currentThread() != QCoreApplication.instance().thread():
-            self._append_tool_call_signal.emit(tool_name, args, status)
+            self._append_tool_call_signal.emit(tool_id, tool_name, args, status)
         else:
-            self._safe_append_tool_call(tool_name, args, status)
+            self._safe_append_tool_call(tool_id, tool_name, args, status)
 
-    def _safe_append_tool_call(self, tool_name: str, args: str, status: str = "running"):
-        self._web_bridge.append_tool_call.emit(tool_name, args, status)
+    def _safe_append_tool_call(self, tool_id: str, tool_name: str, args: str, status: str = "running"):
+        self._web_bridge.append_tool_call.emit(tool_id, tool_name, args, status)
         self.show_typing(True, "working")
 
     def _scroll_to_bottom(self):
@@ -1010,26 +1052,31 @@ class ChatPanel(QWidget):
         if not enabled:
             # Switch to STOP mode — red pill button with stop icon
             self._send_btn.setIcon(self._stop_icon)
+            self._send_btn.setToolTip("Stop generation")
             self._send_btn.setStyleSheet("""
                 QPushButton {
-                    background-color: #7f1d1d;
-                    border: none;
-                    border-radius: 14px;
+                    background-color: #dc2626;
+                    border: 1px solid #ef4444;
+                    border-radius: 18px;
                 }
-                QPushButton:hover { background-color: #991b1b; }
-                QPushButton:pressed { background-color: #450a0a; }
+                QPushButton:hover { background-color: #ef4444; }
+                QPushButton:pressed { background-color: #991b1b; }
             """)
         else:
             # Restore normal send/mic mode
+            self._send_btn.setToolTip("")
             self._send_btn.setStyleSheet("""
                 QPushButton {
-                    background-color: #333333;
-                    border: none;
-                    border-radius: 14px;
+                    background-color: #444444;
+                    border: 1px solid #555555;
+                    border-radius: 18px;
                 }
-                QPushButton:hover { background-color: #444444; }
-                QPushButton:pressed { background-color: #222222; }
-                QPushButton:disabled { background-color: #2a2a2a; }
+                QPushButton:hover { background-color: #555555; }
+                QPushButton:pressed { background-color: #333333; }
+                QPushButton:disabled {
+                    background-color: #2a2a2a;
+                    border-color: #333333;
+                }
             """)
             self._on_input_changed()
 

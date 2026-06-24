@@ -14,9 +14,11 @@ body {
     font-family: var(--font-family);
     margin: 0;
     padding: 16px;
-    padding-bottom: 60px; /* Space for typing indicator */
+    padding-bottom: 60px;
     overflow-y: auto;
     font-size: 13px;
+    -webkit-user-select: text;
+    user-select: text;
 }
 
 /* Scrollbar styling */
@@ -55,6 +57,8 @@ body {
     line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-word;
+    -webkit-user-select: text;
+    user-select: text;
 }
 
 /* User Message Styles */
@@ -142,33 +146,165 @@ body {
     color: inherit;
 }
 
-/* Tool Calls and Collapsible blocks */
-.tool-call {
-    background-color: #1a1a1a;
-    border: 1px solid #333;
-    border-radius: 6px;
-    margin: 8px 0;
-    overflow: hidden;
+.agent-work-msg {
+    border-bottom: 1px solid #1f2228;
+    margin-top: 2px;
+    padding-bottom: 10px;
 }
 
-.tool-header {
-    padding: 8px 12px;
+.agent-work-msg.settled .work-text {
+    color: #858585;
+}
+
+.work-header {
+    align-items: center;
+    color: #a0a0a0;
+    display: flex;
     font-size: 11px;
-    font-weight: bold;
+    font-style: italic;
+    justify-content: space-between;
+    margin: 2px 0 7px 12px;
+}
+
+.work-left {
+    align-items: center;
+    display: inline-flex;
+    gap: 8px;
+    min-width: 0;
+}
+
+.work-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tool-list-toggle {
+    background: #1a1a1a;
+    border: 1px solid #2d2d35;
+    border-radius: 5px;
+    color: #a0a0a0;
+    cursor: pointer;
+    font-size: 13px;
+    height: 22px;
+    line-height: 16px;
+    margin-right: 4px;
+    padding: 0;
+    width: 24px;
+}
+
+.tool-list-toggle:hover {
+    background: #24242a;
+    color: #e4e4e7;
+}
+
+.tool-list.collapsed {
+    display: none;
+}
+
+.typing-bubble.small {
+    padding: 5px 9px;
+}
+
+.typing-bubble.done .dot {
+    animation: none;
+    background-color: #4ec9b0;
+    transform: scale(1);
+}
+
+.tool-call {
+    background: linear-gradient(180deg, #171717 0%, #121212 100%);
+    border: 1px solid #2d2d35;
+    border-left: 2px solid #3a3a44;
+    border-radius: 7px;
+    margin: 7px 0 7px 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset;
+}
+
+.tool-call.running { border-left-color: #dcdcaa; }
+.tool-call.success { border-left-color: #4ec9b0; }
+.tool-call.error { border-left-color: #f14c4c; }
+
+.tool-header {
+    padding: 9px 11px;
+    font-size: 11.5px;
     cursor: pointer;
     user-select: none;
     display: flex;
+    align-items: center;
     justify-content: space-between;
+    gap: 10px;
+}
+
+.tool-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+}
+
+.tool-title .marker {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 auto;
+}
+
+.tool-name {
+    color: #f3f3f3;
+    font-family: "Consolas", monospace;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tool-name::before {
+    content: "Tool · ";
+    color: #858585;
+    font-family: var(--font-family);
+    font-weight: 500;
+}
+
+.tool-status {
+    border-radius: 999px;
+    flex: 0 0 auto;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 2px 7px;
+    text-transform: uppercase;
+}
+
+.tool-status.running {
+    background-color: rgba(220, 220, 170, 0.12);
+    color: #dcdcaa;
+}
+
+.tool-status.success {
+    background-color: rgba(78, 201, 176, 0.12);
+    color: #4ec9b0;
+}
+
+.tool-status.error {
+    background-color: rgba(241, 76, 76, 0.12);
+    color: #f14c4c;
 }
 
 .tool-body {
-    padding: 8px 12px;
-    border-top: 1px solid #333;
+    padding: 9px 12px 10px 32px;
+    border-top: 1px solid #2d2d35;
     font-family: "Consolas", monospace;
     font-size: 11px;
+    line-height: 1.5;
     color: #ce9178;
     background-color: #121212;
     display: none;
+    max-height: 180px;
+    overflow: auto;
+    white-space: pre-wrap;
+    -webkit-user-select: text;
+    user-select: text;
 }
 
 .tool-body.open {

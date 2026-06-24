@@ -268,10 +268,11 @@ class AntigravityProvider(BaseProvider):
                     "requestType": "agent"
                 }
 
-                if "thinking" in antigravity_model_id or "thinking" in model_override.lower() or "gemini-3" in antigravity_model_id or "gemini-2" in antigravity_model_id:
+                model_label = model_override or ""
+                if "thinking" in antigravity_model_id or "thinking" in model_label.lower():
                     payload["request"]["generationConfig"]["thinkingConfig"] = {
                         "includeThoughts": True,
-                        "thinkingBudget": 4096
+                        "thinkingBudget": 1024
                     }
 
                 req = urllib.request.Request(

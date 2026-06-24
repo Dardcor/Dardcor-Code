@@ -314,6 +314,7 @@ class Agent:
         self.permission_callback = None
         self._lock = threading.Lock()
         self._abort_flag = False
+        self._current_process = None
 
         # Add system message with Core Memory
         sys_prompt = self._config.ai.system_prompt if self._config.ai.system_prompt else get_identity_prompt(self._core_memory.get_summary())
@@ -325,6 +326,12 @@ class Agent:
 
     def abort(self):
         self._abort_flag = True
+        proc = self._current_process
+        if proc and proc.poll() is None:
+            try:
+                proc.kill()
+            except Exception:
+                pass
 
     def on_stream(self, callback: Callable[[str], None]):
         self._stream_callback = callback
@@ -426,13 +433,20 @@ class Agent:
                 for tc in response.tool_calls:
                     if abort_check(): break
                     func_name = tc["function"]["name"]
+                    tool_id = tc.get("id", f"tc-{func_name}-{id(tc):x}")
                     try:
                         func_args = json.loads(tc["function"]["arguments"])
                     except json.JSONDecodeError:
                         func_args = {}
 
+                    args_preview = json.dumps(func_args)[:100]
                     if on_tool_call:
-                        on_tool_call(func_name, json.dumps(func_args)[:100], "running")
+                        try:
+                            on_tool_call(func_name, args_preview, "running", tool_id)
+                        except TypeError:
+                            on_tool_call(func_name, args_preview, "running")
+                        import time
+                        time.sleep(0.12)
 
                     tool_result = self._execute_tool(func_name, func_args)
                     
@@ -441,7 +455,10 @@ class Agent:
 
                     if on_tool_call:
                         status = "success" if not tool_result.startswith("Error") else "error"
-                        on_tool_call(func_name, json.dumps(func_args)[:100], status)
+                        try:
+                            on_tool_call(func_name, args_preview, status, tool_id)
+                        except TypeError:
+                            on_tool_call(func_name, args_preview, status)
 
                     self._conversation.add_message(
                         "tool",
@@ -459,7 +476,11 @@ class Agent:
         try:
             if name == "read_file":
                 path = args.get("path", "")
-                if not path or not os.path.isfile(path):
+                if not path:
+                    return "Error: No path specified"
+                if not os.path.isabs(path) and self._config.workspace_path:
+                    path = os.path.join(self._config.workspace_path, path)
+                if not os.path.isfile(path):
                     return f"Error: File not found: {path}"
                 content = self._fs.read_file(path)
                 
@@ -482,6 +503,8 @@ class Agent:
                 content = args.get("content", "")
                 if not path:
                     return "Error: No path specified"
+                if not os.path.isabs(path) and self._config.workspace_path:
+                    path = os.path.join(self._config.workspace_path, path)
                 self._fs.write_file(path, content)
                 return f"File written successfully: {path}"
 
@@ -531,23 +554,38 @@ class Agent:
                         return "Error: Command execution denied by user."
                 
                 import subprocess
+                import time as _time
                 try:
-                    res = subprocess.run(
+                    proc = subprocess.Popen(
                         command,
                         shell=True,
                         cwd=workdir,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
                         text=True,
-                        timeout=30
                     )
-                    output = res.stdout
-                    if res.stderr:
-                        output += "\n[stderr]\n" + res.stderr
-                except subprocess.TimeoutExpired as te:
-                    output = (te.stdout.decode('utf-8', errors='replace') if te.stdout else "") + "\n[timed out]"
-                    if te.stderr:
-                        output += "\n[stderr]\n" + te.stderr.decode('utf-8', errors='replace')
+                    self._current_process = proc
+                    try:
+                        stdout, stderr = proc.communicate(timeout=30)
+                    except subprocess.TimeoutExpired:
+                        proc.kill()
+                        stdout, stderr = proc.communicate()
+                        output = stdout + "\n[timed out]"
+                        if stderr:
+                            output += "\n[stderr]\n" + stderr
+                        self._current_process = None
+                        if len(output) > 3000:
+                            output = "...(truncated)...\n" + output[-3000:]
+                        return output or "(no output)"
+                    finally:
+                        self._current_process = None
+                    if getattr(self, '_abort_flag', False) and proc.returncode == -9:
+                        return "Agent dihentikan oleh pengguna."
+                    output = stdout
+                    if stderr:
+                        output += "\n[stderr]\n" + stderr
+                except FileNotFoundError:
+                    output = f"Error: command not found: {command.split()[0] if command else ''}"
                 except Exception as ex:
                     output = f"Error running command: {str(ex)}"
                     
@@ -603,7 +641,11 @@ class Agent:
                 path = args.get("path", "")
                 target = args.get("targetContent", "")
                 replacement = args.get("replacementContent", "")
-                if not path or not os.path.isfile(path):
+                if not path:
+                    return "Error: No path specified"
+                if not os.path.isabs(path) and self._config.workspace_path:
+                    path = os.path.join(self._config.workspace_path, path)
+                if not os.path.isfile(path):
                     return f"Error: File not found: {path}"
                 try:
                     with open(path, "r", encoding="utf-8", errors="replace") as f:
@@ -625,7 +667,11 @@ class Agent:
             elif name == "multi_replace_file_content":
                 path = args.get("path", "")
                 replacements = args.get("replacements", [])
-                if not path or not os.path.isfile(path):
+                if not path:
+                    return "Error: No path specified"
+                if not os.path.isabs(path) and self._config.workspace_path:
+                    path = os.path.join(self._config.workspace_path, path)
+                if not os.path.isfile(path):
                     return f"Error: File not found: {path}"
                 if not replacements:
                     return "Error: No replacements specified"

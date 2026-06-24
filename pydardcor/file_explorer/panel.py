@@ -875,8 +875,10 @@ class FileExplorer(QWidget):
         new_name = item.text(0).strip()
         
         # Revert editable flag and clear operations metadata immediately
+        item.blockSignals(True)
         item.setFlags(item.flags() & ~Qt.ItemIsEditable)
         item.setData(0, Qt.UserRole + 1, None)
+        item.blockSignals(False)
         
         if not new_name:
             if operation in ("create_file", "create_folder"):

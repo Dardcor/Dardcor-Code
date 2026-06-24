@@ -46,7 +46,9 @@ class FileSystem:
             return f.read()
 
     def write_file(self, path: str, content: str, encoding: str = "utf-8"):
-        os.makedirs(os.path.dirname(path), exist_ok=True)
+        dir_name = os.path.dirname(path)
+        if dir_name:
+            os.makedirs(dir_name, exist_ok=True)
         with open(path, "w", encoding=encoding) as f:
             f.write(content)
 

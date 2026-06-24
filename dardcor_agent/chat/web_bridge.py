@@ -6,7 +6,7 @@ class WebBridge(QObject):
     append_user_message = Signal(str, str)
     append_agent_message = Signal(str, bool)
     append_system_message = Signal(str)
-    append_tool_call = Signal(str, str, str)
+    append_tool_call = Signal(str, str, str, str)
     show_typing = Signal(bool, str)
     clear_chat = Signal()
     show_notification = Signal(str)

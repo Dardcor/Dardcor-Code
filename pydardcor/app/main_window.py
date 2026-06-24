@@ -1270,7 +1270,23 @@ class MainWindow(QMainWindow):
         if isinstance(focused_widget, (QTextEdit, QPlainTextEdit, QLineEdit)):
             focused_widget.copy()
             return
-
+        if hasattr(focused_widget, 'page') and hasattr(focused_widget, 'triggerAction'):
+            try:
+                from PySide6.QtWebEngineWidgets import QWebEnginePage
+                focused_widget.page().triggerAction(QWebEnginePage.WebAction.Copy)
+                return
+            except Exception:
+                pass
+        parent = focused_widget
+        while parent:
+            if hasattr(parent, 'page') and hasattr(parent, 'triggerAction'):
+                try:
+                    from PySide6.QtWebEngineWidgets import QWebEnginePage
+                    parent.page().triggerAction(QWebEnginePage.WebAction.Copy)
+                    return
+                except Exception:
+                    break
+            parent = parent.parentWidget() if hasattr(parent, 'parentWidget') else None
         editor = self._editor_tabs.current_editor()
         if editor:
             editor.copy()
@@ -1280,7 +1296,23 @@ class MainWindow(QMainWindow):
         if isinstance(focused_widget, (QTextEdit, QPlainTextEdit, QLineEdit)):
             focused_widget.paste()
             return
-
+        if hasattr(focused_widget, 'page') and hasattr(focused_widget, 'triggerAction'):
+            try:
+                from PySide6.QtWebEngineWidgets import QWebEnginePage
+                focused_widget.page().triggerAction(QWebEnginePage.WebAction.Paste)
+                return
+            except Exception:
+                pass
+        parent = focused_widget
+        while parent:
+            if hasattr(parent, 'page') and hasattr(parent, 'triggerAction'):
+                try:
+                    from PySide6.QtWebEngineWidgets import QWebEnginePage
+                    parent.page().triggerAction(QWebEnginePage.WebAction.Paste)
+                    return
+                except Exception:
+                    break
+            parent = parent.parentWidget() if hasattr(parent, 'parentWidget') else None
         editor = self._editor_tabs.current_editor()
         if editor:
             editor.paste()
@@ -1874,7 +1906,8 @@ class MainWindow(QMainWindow):
                             for tc in msg.tool_calls:
                                 fn_name = tc.get("function", {}).get("name", "tool")
                                 fn_args = tc.get("function", {}).get("arguments", "{}")
-                                self._chat_panel._safe_append_tool_call(fn_name, fn_args, status="success")
+                                fn_id = tc.get("id", f"hist-{fn_name}-{hash(fn_args) & 0xFFFFFFFF:x}")
+                                self._chat_panel._safe_append_tool_call(fn_id, fn_name, fn_args, status="success")
                         if msg.content:
                             self._chat_panel.append_agent_message(msg.content)
                     elif msg.role == "system":

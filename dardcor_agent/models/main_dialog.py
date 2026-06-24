@@ -376,10 +376,10 @@ class ModelsQuotaDialog(QDialog):
                     btn.setStyleSheet("QPushButton { background-color: transparent; color: #ffffff; border: none; font-size: 14px; font-weight: bold; padding: 0 4px; }")
                 else:
                     btn.setStyleSheet("QPushButton { background-color: transparent; color: #868e96; border: none; font-size: 14px; padding: 0 4px; } QPushButton:hover { color: #cccccc; }")
-        # Show/hide Gemini panel vs Antigravity list
         if hasattr(self, 'content_stack'):
-            if tab_name == "Gemini":
-                self.content_stack.setCurrentIndex(1)
+            panel_index = getattr(self, "provider_panel_indexes", {}).get(tab_name)
+            if panel_index is not None:
+                self.content_stack.setCurrentIndex(panel_index)
                 self.pyside_header.setVisible(False)
                 self.pyside_th.setVisible(False)
                 self.pyside_footer.setVisible(False)
@@ -698,10 +698,19 @@ class ModelsQuotaDialog(QDialog):
         self.scroll.setWidget(self.content_w)
         self.content_stack.addWidget(self.scroll)  # index 0
         
-        # Page 1: Gemini panel
+        self.provider_panel_indexes = {}
+
         from dardcor_agent.models.providers.gemini.components import GeminiProviderPanel
         self.gemini_panel = GeminiProviderPanel()
-        self.content_stack.addWidget(self.gemini_panel)  # index 1
+        self.provider_panel_indexes["Gemini"] = self.content_stack.addWidget(self.gemini_panel)
+
+        from dardcor_agent.models.providers.openai_compatible.components import OpenAICompatibleProviderPanel
+        self.openrouter_panel = OpenAICompatibleProviderPanel("OpenRouter")
+        self.provider_panel_indexes["OpenRouter"] = self.content_stack.addWidget(self.openrouter_panel)
+        self.deepseek_panel = OpenAICompatibleProviderPanel("DeepSeek")
+        self.provider_panel_indexes["DeepSeek"] = self.content_stack.addWidget(self.deepseek_panel)
+        self.nvidia_panel = OpenAICompatibleProviderPanel("NVIDIA")
+        self.provider_panel_indexes["NVIDIA"] = self.content_stack.addWidget(self.nvidia_panel)
         
         main_layout.addWidget(self.content_stack, stretch=1)
         
