@@ -342,13 +342,14 @@ class Agent:
         message: str,
         model_override: Optional[str] = None,
         on_tool_call: Optional[Callable[[str, str, str], None]] = None,
+        on_system_message: Optional[Callable[[str], None]] = None,
     ) -> str:
         self._abort_flag = False
         with self._lock:
             self._conversation.add_message("user", message)
 
         try:
-            response_text = self._call_api(on_tool_call, model_override=model_override)
+            response_text = self._call_api(on_tool_call, on_system_message, model_override=model_override)
             self._store.save(self._conversation)
             return response_text
         except urllib.error.URLError as e:
@@ -357,470 +358,41 @@ class Agent:
             else:
                 error_msg = f"Network error: {str(e)}"
             self._conversation.add_message("assistant", error_msg)
+            self._store.save(self._conversation)
             return error_msg
         except Exception as e:
             error_msg = f"Connection error: {str(e)}"
             if "10061" in str(e):
                 error_msg = "🚨 Koneksi Gagal!\n\nTidak dapat terhubung ke server API Google. Periksa koneksi internet Anda atau pastikan Google API tidak diblokir oleh firewall."
             self._conversation.add_message("assistant", error_msg)
+            self._store.save(self._conversation)
             return error_msg
 
-    def _call_api(self, on_tool_call=None, depth=0, model_override=None) -> str:
-        if getattr(self, '_abort_flag', False):
-            return "Agent dihentikan oleh pengguna."
-
-        config = self._config.ai
-        api_key = config.api_key
-        provider = config.provider
-        model = config.model
-        base_url = _get_provider_url(provider, config.base_url)
-
-        # Intercept and override with Antigravity settings if active
-        is_antigravity = False
-        antigravity_model_id = None
-        antigravity_accounts = []  # List of dicts: {acc_id, refresh_token}
-        try:
-            from pydardcor.core.config import get_user_data_dir
-            prov_file = os.path.join(get_user_data_dir(), "database", "models", "provider.json")
-            if os.path.exists(prov_file):
-                with open(prov_file, "r", encoding="utf-8") as f:
-                    providers = json.load(f)
-                
-                if providers.get("Gemini", False):
-                    # Gemini config is in the project root, not user_data_dir
-                    _project_root = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-                    gem_conf = os.path.join(_project_root, "database", "models", "Gemini", "config.json")
-                    if os.path.exists(gem_conf):
-                        with open(gem_conf, "r", encoding="utf-8") as f:
-                            g_data = json.load(f)
-                        if g_data.get("api_key"):
-                            api_key = g_data["api_key"]
-                            # Use model_override (from dropdown) if available, otherwise fallback to config's selected_model
-                            model = model_override if model_override else g_data.get("selected_model")
-                            provider = "gemini"
-                            base_url = "https://generativelanguage.googleapis.com/v1beta/openai"
-                            
-                elif providers.get("Antigravity", False) and model_override:
-                    is_antigravity = True
-                    # Map display name to API model ID used by Google Cloud Code Assist
-                    _MODEL_MAP = {
-                        "Gemini 3.1 Pro (High)": "gemini-3.1-pro-high",
-                        "Gemini 3.1 Pro (Low)": "gemini-3.1-pro-low",
-                        "Gemini 3 Pro (High)": "gemini-3-pro-high",
-                        "Gemini 3 Pro (Low)": "gemini-3-pro-low",
-                        "Gemini 3 Flash": "gemini-3-flash",
-                        "Gemini 3.5 Flash (High)": "gemini-3-flash-agent",
-                        "Gemini 3.5 Flash (Low)": "gemini-3.5-flash-extra-low",
-                        "Gemini 3.5 Flash (Medium)": "gemini-3.5-flash-low",
-                        "Gemini 2.5 Pro": "gemini-2.5-pro",
-                        "Claude Sonnet 4.6 (Thinking)": "claude-sonnet-4-6-thinking",
-                        "Claude Sonnet 4.6": "claude-sonnet-4-6",
-                        "Claude Opus 4.6 (Thinking)": "claude-opus-4-6-thinking",
-                    }
-                    antigravity_model_id = _MODEL_MAP.get(model_override, model_override.lower().replace(" ", "-").replace("(", "").replace(")", ""))
-
-                    # Collect all enabled accounts (with their refresh_tokens from individual JSON files)
-                    accounts_dir = os.path.join(get_user_data_dir(), "database", "models", "Antigravity", "accounts")
-                    acc_index_file = os.path.join(get_user_data_dir(), "database", "models", "Antigravity", "accounts.json")
-                    if os.path.exists(acc_index_file):
-                        with open(acc_index_file, "r", encoding="utf-8") as f:
-                            acc_index = json.load(f)
-                        for idx_acc in acc_index.get("accounts", []):
-                            if idx_acc.get("disabled", False) or idx_acc.get("proxy_disabled", False):
-                                continue
-                            acc_id = idx_acc.get("id", "")
-                            acc_file = os.path.join(accounts_dir, f"{acc_id}.json")
-                            if os.path.exists(acc_file):
-                                try:
-                                    with open(acc_file, "r", encoding="utf-8") as f:
-                                        acc_data = json.load(f)
-                                    rt = acc_data.get("refresh_token") or acc_data.get("token", {}).get("refresh_token")
-                                    if rt:
-                                        antigravity_accounts.append({
-                                            "acc_id": acc_id, 
-                                            "refresh_token": rt,
-                                            "email": acc_data.get("email", "Unknown Email")
-                                        })
-                                except Exception:
-                                    pass
-        except Exception:
-            pass
-
-        # --- ANTIGRAVITY DIRECT MODE (no proxy needed) ---
-        if is_antigravity and antigravity_accounts:
-            import urllib.request
-            import urllib.error
-            import urllib.parse
-            import ssl
-
-            # OAuth credentials for Code Assist (same as antigravity_manager)
-            cid_part1 = "1071006060591-tmhssin2h21lcre235vtolojh4g403ep"
-            cid_part2 = ".apps.googleusercontent.com"
-            client_id = cid_part1 + cid_part2
-            sec_part1 = "GOCSPX"
-            sec_part2 = "-K58FWR486LdLJ1mLB8sXC4z6qDAf"
-            client_secret = sec_part1 + sec_part2
-            token_url = "https://oauth2.googleapis.com/token"
-
-            ctx = ssl.create_default_context()
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
-
-            messages = self._conversation.get_api_messages()
-
-            last_err_str = None
-            current_acc_idx = 0
-            consecutive_read_turns = 0
-            while True:  # Iterative agent loop — no depth limit
-                if getattr(self, '_abort_flag', False):
-                    return "Agent dihentikan oleh pengguna."
-                if current_acc_idx >= len(antigravity_accounts):
-                    return f"Semua akun Dardcor Code telah habis. Error terakhir: {last_err_str or 'Unknown'}"
-                acc_info = antigravity_accounts[current_acc_idx]
-                rt = acc_info["refresh_token"]
-                acc_id = acc_info["acc_id"]
-                messages = self._conversation.get_api_messages()
-                try:
-                    # Step 1: exchange refresh_token for access_token
-                    token_data = urllib.parse.urlencode({
-                        "client_id": client_id,
-                        "client_secret": client_secret,
-                        "refresh_token": rt,
-                        "grant_type": "refresh_token"
-                    }).encode("utf-8")
-                    req = urllib.request.Request(token_url, data=token_data, headers={"User-Agent": "Antigravity/1.0"})
-                    with urllib.request.urlopen(req, context=ctx, timeout=15) as res:
-                        tok_res = json.loads(res.read().decode("utf-8"))
-                    access_token = tok_res.get("access_token")
-                    if not access_token:
-                        last_err_str = f"No access_token for account {acc_id[:8]}"
-                        continue
-
-                    # Step 2: loadCodeAssist to get project_id
-                    project_id = None
-                    try:
-                        lc_req = urllib.request.Request(
-                            "https://daily-cloudcode-pa.sandbox.googleapis.com/v1internal:loadCodeAssist",
-                            data=json.dumps({"metadata": {"ideType": "ANTIGRAVITY"}}).encode("utf-8"),
-                            headers={
-                                "Authorization": f"Bearer {access_token}",
-                                "User-Agent": "Antigravity/1.0",
-                                "Content-Type": "application/json"
-                            }
-                        )
-                        with urllib.request.urlopen(lc_req, context=ctx, timeout=15) as lc_res:
-                            lc_data = json.loads(lc_res.read().decode("utf-8"))
-                            project_id = lc_data.get("cloudaicompanionProject")
-                    except Exception as lc_e:
-                        print(f"[Agent] loadCodeAssist failed for {acc_id[:8]}: {lc_e}")
-
-                    # Step 3: Call the Google Cloud Code Assist native endpoint
-                    base_api = "https://daily-cloudcode-pa.sandbox.googleapis.com"
-                    api_url = f"{base_api}/v1internal:generateContent"
-                    
-                    # Transform messages to Google contents format
-                    contents = []
-                    system_parts = [{"text": get_identity_prompt(self._core_memory.get_summary())}]
-                    
-                    for msg in messages:
-                        role = msg.get("role", "user")
-                        content_text = msg.get("content", "")
-                        if role == "system":
-                            system_parts.append({"text": content_text})
-                        elif role == "assistant":
-                            parts = []
-                            has_google_parts = False
-                            if "tool_calls" in msg and msg["tool_calls"] and msg["tool_calls"][0].get("google_parts"):
-                                parts = msg["tool_calls"][0]["google_parts"]
-                                has_google_parts = True
-                                
-                            if not has_google_parts:
-                                if content_text:
-                                    parts.append({"text": content_text})
-                                if "tool_calls" in msg:
-                                    for tc in msg["tool_calls"]:
-                                        try:
-                                            args = json.loads(tc["function"]["arguments"])
-                                        except:
-                                            args = {}
-                                        parts.append({
-                                            "functionCall": {
-                                                "name": tc["function"]["name"],
-                                                "args": args
-                                            }
-                                        })
-                                if not parts:
-                                    parts.append({"text": ""})
-                            contents.append({"role": "model", "parts": parts})
-                        elif role == "tool":
-                            part = {
-                                "functionResponse": {
-                                    "name": msg.get("name", "tool"),
-                                    "response": {"result": content_text}
-                                }
-                            }
-                            if msg.get("tool_call_id"):
-                                part["functionResponse"]["id"] = msg["tool_call_id"]
-                            if contents and contents[-1]["role"] == "user" and any("functionResponse" in p for p in contents[-1]["parts"]):
-                                contents[-1]["parts"].append(part)
-                            else:
-                                contents.append({"role": "user", "parts": [part]})
-                        else:
-                            contents.append({
-                                "role": "user",
-                                "parts": [{"text": content_text}]
-                            })
-                            
-                    # --- Gemini Payload Sanitizer ---
-                    sanitized_contents = []
-                    for c in contents:
-                        if not sanitized_contents:
-                            if c["role"] == "model":
-                                sanitized_contents.append({"role": "user", "parts": [{"text": "Hello"}]})
-                            sanitized_contents.append(c)
-                        else:
-                            if sanitized_contents[-1]["role"] == c["role"]:
-                                sanitized_contents[-1]["parts"].extend(c["parts"])
-                            else:
-                                sanitized_contents.append(c)
-                                
-                    final_contents = []
-                    for c in sanitized_contents:
-                        if c["role"] == "user" and any("functionResponse" in p for p in c["parts"]):
-                            # Check if previous was a model with functionCall
-                            has_call = final_contents and final_contents[-1]["role"] == "model" and any("functionCall" in p for p in final_contents[-1]["parts"])
-                            if not has_call:
-                                # Orphaned tool response (probably due to sliding window) -> convert to text
-                                new_parts = []
-                                for p in c["parts"]:
-                                    if "functionResponse" in p:
-                                        fr = p["functionResponse"]
-                                        res = fr.get("response", {}).get("result", "")
-                                        new_parts.append({"text": f"[Tool Result: {fr.get('name', 'tool')}]\n{res}"})
-                                    else:
-                                        new_parts.append(p)
-                                c["parts"] = new_parts
-                        final_contents.append(c)
-                    contents = final_contents
-                    # --------------------------------
-                            
-                    if consecutive_read_turns >= 4 and contents and contents[-1]["role"] == "user":
-                        print(f"[Agent] Consecutive read-only turns is {consecutive_read_turns}. Injecting action bias warning to model.")
-                        contents[-1]["parts"].append({
-                            "text": (
-                                "\n[System Warning: You have performed search/read operations multiple times. "
-                                "You MUST start writing files or running commands now to complete the task. "
-                                "Do NOT perform any more search/list operations. Prefer using write_file or run_command.]"
-                            )
-                        })
-                            
-                    google_tools = []
-                    for t in TOOLS:
-                        func = t["function"].copy()
-                        if "parameters" in func and not func["parameters"].get("properties"):
-                            func["parameters"] = {"type": "object", "properties": {}}
-                        google_tools.append(func)
-                            
-                    # Construct Google Cloud Code Assist payload
-                    import uuid
-                    request_id = f"agent/antigravity/{uuid.uuid4().hex[:8]}/{len(messages)}"
-                    
-                    payload = {
-                        "project": project_id or "",
-                        "requestId": request_id,
-                        "request": {
-                            "contents": contents,
-                            "systemInstruction": {
-                                "role": "user",
-                                "parts": system_parts
-                            },
-                            "tools": [{"functionDeclarations": google_tools}],
-                            "generationConfig": {
-                                "temperature": self._config.ai.temperature,
-                                "maxOutputTokens": min(self._config.ai.max_tokens, 16384),
-                                "topP": 1.0,
-                                "topK": 40
-                            },
-                            "safetySettings": [
-                                { "category": "HARM_CATEGORY_HARASSMENT", "threshold": "OFF" },
-                                { "category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "OFF" },
-                                { "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "OFF" },
-                                { "category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "OFF" },
-                                { "category": "HARM_CATEGORY_CIVIC_INTEGRITY", "threshold": "OFF" }
-                            ]
-                        },
-                        "model": antigravity_model_id,
-                        "userAgent": "antigravity",
-                        "requestType": "agent"
-                    }
-
-                    if "thinking" in antigravity_model_id or "gemini-3" in antigravity_model_id or "gemini-2" in antigravity_model_id:
-                        payload["request"]["generationConfig"]["thinkingConfig"] = {
-                            "includeThoughts": True,
-                            "thinkingBudget": 4096
-                        }
-
-                    api_req = urllib.request.Request(
-                        api_url,
-                        data=json.dumps(payload).encode("utf-8"),
-                        headers={
-                            "Authorization": f"Bearer {access_token}",
-                            "Content-Type": "application/json",
-                            "User-Agent": "Antigravity/1.0",
-                            "x-client-name": "antigravity"
-                        },
-                        method="POST"
-                    )
-                    with urllib.request.urlopen(api_req, context=ctx, timeout=120) as api_res:
-                        result = json.loads(api_res.read().decode("utf-8"))
-
-                    # Parse Google Cloud Code API response
-                    candidates = result.get("response", {}).get("candidates", [])
-                    if not candidates:
-                        raise Exception(f"No candidates returned: {result}")
-                        
-                    content = ""
-                    tool_calls = []
-                    parts = candidates[0].get("content", {}).get("parts", [])
-                    for part in parts:
-                        if part.get("thought", False):
-                            content += f"@@THINKING_START@@\n{part['text']}\n@@THINKING_END@@\n\n"
-                        elif "text" in part:
-                            content += part["text"]
-                        elif "functionCall" in part:
-                            fc = part["functionCall"]
-                            tool_calls.append({
-                                "id": fc.get("id", f"call_{uuid.uuid4().hex[:8]}"),
-                                "type": "function",
-                                "function": {
-                                    "name": fc["name"],
-                                    "arguments": json.dumps(fc.get("args", {}))
-                                },
-                                "google_parts": parts
-                            })
-
-                    if tool_calls:
-                        READ_ONLY_TOOLS = {"search_files", "list_files", "read_file", "semantic_search", "search_web", "read_url"}
-                        all_read_only = all(tc.get("function", {}).get("name") in READ_ONLY_TOOLS for tc in tool_calls)
-                        if all_read_only:
-                            consecutive_read_turns += 1
-                        else:
-                            consecutive_read_turns = 0
-
-                        self._conversation.add_message("assistant", content, tool_calls=tool_calls)
-                        for tc in tool_calls:
-                            if getattr(self, '_abort_flag', False): break
-                            func_name = tc["function"]["name"]
-                            try:
-                                func_args = json.loads(tc["function"]["arguments"])
-                            except json.JSONDecodeError:
-                                func_args = {}
-
-                            if on_tool_call:
-                                on_tool_call(func_name, json.dumps(func_args)[:100], "running")
-
-                            tool_result = self._execute_tool(func_name, func_args)
-                            
-                            if tool_result.startswith("Error"):
-                                tool_result += "\n\n[SYSTEM WARNING]: Tool execution failed. Do not stop. Analyze the error, fix the parameters, and try again or use a different approach. You must complete the objective."
-
-                            if on_tool_call:
-                                status = "success" if not tool_result.startswith("Error") else "error"
-                                on_tool_call(func_name, json.dumps(func_args)[:100], status)
-
-                            self._conversation.add_message(
-                                "tool",
-                                tool_result,
-                                tool_call_id=tc["id"],
-                                name=func_name,
-                            )
-                        # ✅ ITERATIVE: continue the while loop instead of recursive call
-                        continue
-                    else:
-                        self._conversation.add_message("assistant", content)
-                        return content
-
-                except urllib.error.HTTPError as e:
-                    body = ""
-                    try:
-                        body = e.read().decode("utf-8", errors="replace")
-                    except Exception:
-                        pass
-                    # Transient server errors → retry with backoff (same account)
-                    if e.code in (500, 502, 503, 504):
-                        import time
-                        _ag_retries = getattr(self, '_ag_retry_count', 0) + 1
-                        self._ag_retry_count = _ag_retries
-                        if _ag_retries <= 4:
-                            wait_secs = min(2 ** _ag_retries, 16)
-                            print(f"[Agent] Transient error {e.code} on account {acc_id[:8]}, retrying in {wait_secs}s (attempt {_ag_retries}/4)...")
-                            time.sleep(wait_secs)
-                            continue  # Retry same account
-                        else:
-                            self._ag_retry_count = 0
-                            return (
-                                f"⚠️ **API Error ({e.code})** - Model sedang sibuk (high demand).\n\n"
-                                f"Sudah dicoba 4 kali namun tetap gagal.\n"
-                                f"Silakan coba lagi nanti atau pilih model lain.\n\n"
-                                f"Detail: {body[:300]}"
-                            )
-                    # Reset retry counter on non-transient path
-                    self._ag_retry_count = 0
-                    # quota exhausted → try next account
-                    if e.code in (429, 403, 421):
-                        last_err_str = f"Account {acc_id[:8]} quota exhausted ({e.code})"
-                        print(f"[Agent] {last_err_str}, trying next account...")
-                        
-                        next_idx = current_acc_idx + 1
-                        if next_idx < len(antigravity_accounts):
-                            next_email = antigravity_accounts[next_idx].get("email", "Unknown Email")
-                            switch_msg = f"🔄 **Batas Token Tercapai.**\nSistem secara otomatis beralih melanjutkan pemikiran/tugas ke akun berikutnya: **{next_email}**"
-                            self._conversation.add_message("system", switch_msg)
-                        current_acc_idx += 1
-                        continue
-                    # non-retriable error
-                    return f"API Error ({e.code}): {body[:500]}"
-                except urllib.error.URLError as e:
-                    if "11001" in str(e) or "10061" in str(e) or "getaddrinfo failed" in str(e) or "Connection refused" in str(e):
-                        return "🚨 Koneksi Gagal!\n\nTidak dapat terhubung ke server Google Antigravity. Periksa koneksi internet Anda."
-                    last_err_str = str(e)
-                    print(f"[Agent] Network Error for account {acc_id[:8]}: {e}")
-                    current_acc_idx += 1
-                    continue
-                except Exception as e:
-                    last_err_str = str(e)
-                    print(f"[Agent] Error for account {acc_id[:8]}: {e}")
-                    current_acc_idx += 1
-                    continue
-
-            return f"Semua akun Dardcor Code telah habis. Error terakhir: {last_err_str or 'Unknown'}"
-
-        if is_antigravity and not antigravity_accounts:
-            return "⚠️ Dardcor Code aktif tapi tidak ada akun yang tersedia. Tambahkan akun terlebih dahulu di /models."
-
-        # --- NORMAL PROVIDER MODE ---
-        api_keys = [api_key] if api_key else []
-        if not api_keys and provider not in ("ollama",):
-            return (
-                "No API key configured. Go to Settings (Ctrl+,) to set your API key, "
-                "or set the DARDCOR_CODE_API_KEY environment variable."
-            )
-
-        import urllib.request
-        import urllib.error
-        import time
-        url = f"{base_url.rstrip('/')}/chat/completions"
-
-        last_error = None
+    def _call_api(self, on_tool_call=None, on_system_message=None, depth=0, model_override=None) -> str:
+        from dardcor_agent.models.providers.factory import ProviderFactory
+        provider = ProviderFactory.create(self._config.ai, model_override)
+        
         consecutive_read_turns = 0
-        _MAX_RETRIES = 4  # Max retries for transient errors per API call
-        _RETRYABLE_CODES = {429, 500, 502, 503, 504}  # Transient HTTP error codes
-        while True:  # Iterative agent loop for normal providers
-            if getattr(self, '_abort_flag', False):
+        READ_ONLY_TOOLS = {"search_files", "list_files", "read_file", "semantic_search", "search_web", "read_url"}
+
+        def abort_check():
+            return getattr(self, '_abort_flag', False)
+            
+        def on_conversation_sys_msg(role, msg):
+            self._conversation.add_message(role, msg)
+            if role == "system" and on_system_message:
+                on_system_message(msg)
+
+        while True:
+            if abort_check():
                 return "Agent dihentikan oleh pengguna."
+                
             messages = self._conversation.get_api_messages()
+            
+            # Action bias warning if consecutive read turns
             if consecutive_read_turns >= 4:
                 print(f"[Agent] Consecutive read-only turns is {consecutive_read_turns}. Injecting action bias warning to messages.")
+                # We append a warning to the end of the messages
                 messages.append({
                     "role": "system",
                     "content": (
@@ -829,138 +401,59 @@ class Agent:
                         "Do NOT perform any more search/list operations. Prefer using write_file or run_command."
                     )
                 })
-            payload = {
-                "model": model or "gpt-4o",
-                "messages": messages,
-                "tools": TOOLS,
-                "temperature": config.temperature,
-                "max_tokens": min(config.max_tokens, 16384),
-            }
-            data = json.dumps(payload).encode("utf-8")
-            sent = False
-            for current_key in api_keys:
-                headers = {
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {current_key}",
-                }
-                if provider == "anthropic":
-                    headers["x-api-key"] = current_key
-                    headers["anthropic-version"] = "2023-06-01"
 
-                # Retry loop for transient errors (503 high demand, 429 rate limit, etc.)
-                retry_count = 0
-                while retry_count <= _MAX_RETRIES:
-                    if getattr(self, '_abort_flag', False):
-                        return "Agent dihentikan oleh pengguna."
+            response = provider.generate_turn(
+                messages=messages,
+                tools=TOOLS,
+                config=self._config.ai,
+                model_override=model_override,
+                abort_check_fn=abort_check,
+                conversation_callback=on_conversation_sys_msg
+            )
+
+            if response.error:
+                return response.error
+
+            if response.tool_calls:
+                all_read_only = all(tc.get("function", {}).get("name") in READ_ONLY_TOOLS for tc in response.tool_calls)
+                if all_read_only:
+                    consecutive_read_turns += 1
+                else:
+                    consecutive_read_turns = 0
+
+                self._conversation.add_message("assistant", response.content, tool_calls=response.tool_calls)
+                
+                for tc in response.tool_calls:
+                    if abort_check(): break
+                    func_name = tc["function"]["name"]
                     try:
-                        req = urllib.request.Request(url, data=data, headers=headers, method="POST")
-                        with urllib.request.urlopen(req, timeout=120) as resp:
-                            result = json.loads(resp.read().decode("utf-8"))
+                        func_args = json.loads(tc["function"]["arguments"])
+                    except json.JSONDecodeError:
+                        func_args = {}
 
-                        choice = result["choices"][0]
-                        msg = choice["message"]
-                        content = msg.get("content", "") or ""
-                        tool_calls = msg.get("tool_calls", [])
+                    if on_tool_call:
+                        on_tool_call(func_name, json.dumps(func_args)[:100], "running")
 
-                        if tool_calls:
-                            READ_ONLY_TOOLS = {"search_files", "list_files", "read_file", "semantic_search", "search_web", "read_url"}
-                            all_read_only = all(tc.get("function", {}).get("name") in READ_ONLY_TOOLS for tc in tool_calls)
-                            if all_read_only:
-                                consecutive_read_turns += 1
-                            else:
-                                consecutive_read_turns = 0
+                    tool_result = self._execute_tool(func_name, func_args)
+                    
+                    if tool_result.startswith("Error"):
+                        tool_result += "\n\n[SYSTEM WARNING]: Tool execution failed. Do not stop. Analyze the error, fix the parameters, and try again or use a different approach. You must complete the objective."
 
-                            self._conversation.add_message("assistant", content, tool_calls=tool_calls)
-                            for tc in tool_calls:
-                                if getattr(self, '_abort_flag', False): break
-                                func_name = tc["function"]["name"]
-                                try:
-                                    func_args = json.loads(tc["function"]["arguments"])
-                                except json.JSONDecodeError:
-                                    func_args = {}
+                    if on_tool_call:
+                        status = "success" if not tool_result.startswith("Error") else "error"
+                        on_tool_call(func_name, json.dumps(func_args)[:100], status)
 
-                                if on_tool_call:
-                                    on_tool_call(func_name, json.dumps(func_args)[:100], "running")
-
-                                tool_result = self._execute_tool(func_name, func_args)
-
-                                if on_tool_call:
-                                    status = "success" if not tool_result.startswith("Error") else "error"
-                                    on_tool_call(func_name, json.dumps(func_args)[:100], status)
-
-                                self._conversation.add_message(
-                                    "tool",
-                                    tool_result,
-                                    tool_call_id=tc["id"],
-                                    name=func_name,
-                                )
-                            # ✅ ITERATIVE: continue the while loop instead of recursive call
-                            sent = True
-                            break  # Break out of retry loop
-                        else:
-                            self._conversation.add_message("assistant", content)
-                            return content
-
-                    except urllib.error.HTTPError as e:
-                        body = ""
-                        try:
-                            body = e.read().decode("utf-8", errors="replace")
-                        except Exception:
-                            pass
-                        
-                        if e.code in _RETRYABLE_CODES:
-                            retry_count += 1
-                            if retry_count <= _MAX_RETRIES:
-                                wait_secs = min(2 ** retry_count, 16)  # 2, 4, 8, 16 seconds
-                                print(f"[Agent] Transient error {e.code}, retrying in {wait_secs}s (attempt {retry_count}/{_MAX_RETRIES})...")
-                                time.sleep(wait_secs)
-                                continue
-                            else:
-                                return (
-                                    f"⚠️ **API Error ({e.code})** - Model sedang sibuk (high demand).\n\n"
-                                    f"Sudah dicoba {_MAX_RETRIES} kali namun tetap gagal.\n"
-                                    f"Silakan coba lagi nanti atau pilih model lain.\n\n"
-                                    f"Detail: {body[:300]}"
-                                )
-                        elif e.code in (403, 421):
-                            last_error = e
-                            break  # Try next API key
-                        else:
-                            return f"API Error ({e.code}): {body[:500]}"
-                    except urllib.error.URLError as e:
-                        if "10061" in str(e) or "Connection refused" in str(e):
-                            return "🚨 Koneksi Gagal!\n\nTidak dapat terhubung ke server API. Periksa koneksi internet Anda."
-                        # Retry on connection reset / timeout
-                        retry_count += 1
-                        if retry_count <= _MAX_RETRIES:
-                            wait_secs = min(2 ** retry_count, 16)
-                            print(f"[Agent] Network error, retrying in {wait_secs}s (attempt {retry_count}/{_MAX_RETRIES})...")
-                            time.sleep(wait_secs)
-                            continue
-                        return f"Network error: {str(e)}"
-                    except Exception as e:
-                        if "10061" in str(e):
-                            return "🚨 Koneksi Gagal!\n\nTidak dapat terhubung ke server API. Periksa koneksi internet Anda."
-                        # Retry on generic connection errors
-                        retry_count += 1
-                        if retry_count <= _MAX_RETRIES:
-                            wait_secs = min(2 ** retry_count, 16)
-                            print(f"[Agent] Connection error, retrying in {wait_secs}s (attempt {retry_count}/{_MAX_RETRIES})...")
-                            time.sleep(wait_secs)
-                            continue
-                        return f"Connection error: {str(e)}"
-
-            if sent:
-                continue  # Tool calls executed, loop again to call API
-
-            if last_error:
-                body = ""
-                try:
-                    body = last_error.read().decode("utf-8", errors="replace")
-                except Exception:
-                    pass
-                return f"All accounts exhausted. Last API Error ({last_error.code}): {body[:500]}"
-            return "All accounts exhausted."
+                    self._conversation.add_message(
+                        "tool",
+                        tool_result,
+                        tool_call_id=tc["id"],
+                        name=func_name,
+                    )
+                # Loop again with the new tool results
+                continue
+            else:
+                self._conversation.add_message("assistant", response.content)
+                return response.content
 
     def _execute_tool(self, name: str, args: dict) -> str:
         try:

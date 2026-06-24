@@ -17,10 +17,7 @@ from PySide6.QtWidgets import (
     QFileDialog, QInputDialog, QLabel, QMenuBar, QPushButton,
     QPlainTextEdit, QTextEdit, QLineEdit, QDialog, QFontDialog, QSizePolicy,
 )
-<<<<<<< HEAD
 from PySide6.QtCore import Qt, QTimer, QPoint, QEvent, Signal
-=======
-from PySide6.QtCore import Qt, QTimer, QPoint, QEvent
 
 # Patch QMetaObject.invokeMethod for PySide6 compatibility with callables
 import PySide6.QtCore
@@ -68,7 +65,6 @@ if not hasattr(PySide6.QtCore.QMetaObject, "_original_invokeMethod"):
         return PySide6.QtCore.QMetaObject._original_invokeMethod(obj, member, *args, **kwargs)
 
     PySide6.QtCore.QMetaObject.invokeMethod = _patched_invokeMethod
->>>>>>> 5a16a85 (feat: complete visual engine overhaul and VS Code menu alignment)
 from PySide6.QtGui import (
     QAction, QKeySequence, QShortcut, QMouseEvent, QFont,
     QPixmap, QIcon, QPainter, QColor
@@ -523,11 +519,7 @@ class MainWindow(QMainWindow):
     def _ask_command_permission(self, command: str) -> bool:
         """Prompt user in a thread-safe blocking popup before running terminal commands."""
         import threading
-<<<<<<< HEAD
-        from PySide6.QtCore import QMetaObject, Qt, QTimer
-=======
         from PySide6.QtCore import QMetaObject, Qt, QTimer, QThread, QCoreApplication
->>>>>>> 5a16a85 (feat: complete visual engine overhaul and VS Code menu alignment)
         from PySide6.QtWidgets import QMessageBox
         
         result_holder = [False]
@@ -544,14 +536,11 @@ class MainWindow(QMainWindow):
             result_holder[0] = (reply == QMessageBox.Yes)
             event.set()
             
-<<<<<<< HEAD
-=======
         app = QCoreApplication.instance()
         if app is None or QThread.currentThread() == app.thread():
             show_dialog()
             return result_holder[0]
             
->>>>>>> 5a16a85 (feat: complete visual engine overhaul and VS Code menu alignment)
         QTimer.singleShot(0, show_dialog)
         event.wait()
         return result_holder[0]
@@ -1824,6 +1813,7 @@ class MainWindow(QMainWindow):
                     message,
                     model_override=selected_model,
                     on_tool_call=self._chat_panel.append_tool_call,
+                    on_system_message=self._chat_panel.append_system_message,
                 )
                 if response and response != "Agent dihentikan oleh pengguna.":
                     self._chat_panel.append_agent_message(response)
@@ -1833,6 +1823,7 @@ class MainWindow(QMainWindow):
                 self._chat_panel.append_system_message(f"Error: {e}")
             finally:
                 self._chat_generation_active = False
+                self._chat_panel.show_typing(False)
                 if self._queued_chat_messages:
                     self._run_queued_chat_signal.emit()
                 else:

@@ -3,107 +3,22 @@
 import json
 from datetime import datetime
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QTextBrowser,
+    QWidget, QVBoxLayout, QHBoxLayout, QTextEdit,
     QPushButton, QLabel, QFrame, QScrollArea, QComboBox,
     QStyledItemDelegate
 )
-from PySide6.QtCore import Signal, Qt, QTimer, QSize, QThread, QCoreApplication
+from PySide6.QtCore import Signal, Qt, QTimer, QSize, QThread, QCoreApplication, QUrl
 from PySide6.QtGui import QColor, QTextCursor, QTextCharFormat, QFont, QKeyEvent, QIcon
+from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtWebChannel import QWebChannel
 import os
 import html
 
 from pydardcor.core.config import get_config
 from pydardcor.core.antigravity_db import AntigravityDB
+from dardcor_agent.chat.web_bridge import WebBridge
 
-class ChatHistory(QTextBrowser):
-    """Custom QTextBrowser for chat history that ensures copy always works properly
-    and supports custom clickable anchors for copying specific messages.
-    """
-
-    action_requested = Signal(str, str)
-    
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setReadOnly(True)
-        self.setOpenExternalLinks(False)
-        self.setOpenLinks(False)
-        self.setTextInteractionFlags(
-            Qt.TextSelectableByMouse
-            | Qt.TextSelectableByKeyboard
-            | Qt.LinksAccessibleByMouse
-            | Qt.LinksAccessibleByKeyboard
-        )
-        self.setFocusPolicy(Qt.StrongFocus)
-        self.viewport().setCursor(Qt.IBeamCursor)
-        self.anchorClicked.connect(self._handle_anchor_clicked)
-        
-    def _handle_anchor_clicked(self, url):
-        from PySide6.QtWidgets import QApplication
-        url_str = url.toString()
-        if url_str.startswith("toggle_tool:"):
-            uid = url_str.split(":", 1)[1]
-            if hasattr(self, "_tool_call_blocks") and uid in self._tool_call_blocks:
-                block = self._tool_call_blocks[uid]
-                block["expanded"] = not block["expanded"]
-                
-                # Delete the old HTML block
-                select_cursor = QTextCursor(self._history.document())
-                select_cursor.setPosition(block["start"].position())
-                select_cursor.setPosition(block["end"].position(), QTextCursor.KeepAnchor)
-                select_cursor.removeSelectedText()
-                
-                # Re-insert the updated HTML block
-                self._insert_tool_call_html(uid, select_cursor)
-            return
-
-        if url_str.startswith("copy_msg:"):
-            import base64
-            b64_text = url_str[len("copy_msg:"):]
-            try:
-                text = base64.urlsafe_b64decode(b64_text).decode("utf-8")
-                QApplication.clipboard().setText(text)
-            except Exception as e:
-                pass
-        elif url_str.startswith("toggleblock:"):
-            self.action_requested.emit("toggle", url_str[len("toggleblock:"):])
-        elif url_str.startswith("retry_msg:"):
-            self.action_requested.emit("retry", url_str[len("retry_msg:"):])
-        elif url_str.startswith("revert_msg:"):
-            self.action_requested.emit("revert", url_str[len("revert_msg:"):])
-        else:
-            # For regular http/https links
-            from PySide6.QtGui import QDesktopServices
-            QDesktopServices.openUrl(url)
-
-    from PySide6.QtCore import Slot
-
-    def keyPressEvent(self, event):
-        from PySide6.QtGui import QKeySequence
-        if event.matches(QKeySequence.Copy):
-            self.copy()
-            return
-        super().keyPressEvent(event)
-
-    @Slot()
-    def copy(self):
-        """Robust override of the copy slot to directly write plain text to the system clipboard."""
-        from PySide6.QtWidgets import QApplication
-        
-        cursor = self.textCursor()
-        if not cursor.hasSelection():
-            return
-            
-        clipboard = QApplication.clipboard()
-        
-        # Get raw selected text
-        text = cursor.selectedText()
-        
-        # Clean up Qt's internal paragraph/line separators and Object Replacement Characters
-        text = text.replace('\u2029', '\n').replace('\u2028', '\n').replace('\ufffc', '')
-        
-        # We only set plain text directly via setText(). 
-        # This completely bypasses QMimeData garbage collection bugs and Windows HTML rejection.
-        clipboard.setText(text)
+# ChatHistory has been replaced by QWebEngineView and sliced into dardcor_agent/chat/web/index.html
     
 
 
@@ -282,67 +197,19 @@ class ChatPanel(QWidget):
 
         layout.addWidget(header)
 
-        # Chat history (uses ChatHistory subclass for proper copy/paste behavior)
-        self._history = ChatHistory()
-        self._history.action_requested.connect(self._handle_history_action)
-        self._history.setReadOnly(True)
-        # Enable full text selection (mouse and keyboard) so Ctrl+C works properly
-        self._history.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.TextSelectableByKeyboard | Qt.LinksAccessibleByMouse | Qt.LinksAccessibleByKeyboard)
-        self._history.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self._history.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self._history.setStyleSheet("""
-            QTextEdit {
-                background-color: #000000;
-                border: none;
-                color: #d4d4d4;
-                font-family: "Segoe UI", "Ubuntu", sans-serif;
-                font-size: 11px;
-                padding: 12px 2px 12px 12px;
-                selection-background-color: #4a0072;
-            }
-            QScrollBar:vertical {
-                background-color: transparent;
-                width: 4px;
-                border: none;
-                margin: 0px;
-            }
-            QScrollBar::handle:vertical {
-                background-color: #3c0068;
-                min-height: 20px;
-                border-radius: 2px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background-color: #5a009c;
-            }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                height: 0px;
-                background: transparent;
-            }
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                background: transparent;
-            }
-        """)
-        layout.addWidget(self._history, 1)
+        # Chat history (uses QWebEngineView for modern slicing)
+        self._web_view = QWebEngineView(self)
+        self._web_channel = QWebChannel(self._web_view.page())
+        self._web_bridge = WebBridge(self)
+        self._web_channel.registerObject("backend", self._web_bridge)
+        self._web_view.page().setWebChannel(self._web_channel)
+        self._web_bridge.action_requested.connect(self._handle_history_action)
 
-        # Workspace Title
-        self._workspace_lbl = QLabel("")
-        self._workspace_lbl.setStyleSheet("""
-            color: #ffffff;
-            font-size: 14px;
-            font-weight: bold;
-            padding: 0px 16px 0px 16px;
-            background-color: #000000;
-        """)
-        layout.addWidget(self._workspace_lbl)
+        web_dir = os.path.join(os.path.dirname(__file__), "web")
+        index_path = os.path.join(web_dir, "index.html")
+        self._web_view.setUrl(QUrl.fromLocalFile(index_path))
+        layout.addWidget(self._web_view, 1)
 
-        # State variables for dynamic typing indicator inside ChatHistory
-        self._is_typing = False
-        self._typing_state = "thinking"
-        self._typing_start_pos = 0
-        # Timer for typing animation
-        self._typing_timer = QTimer(self)
-        self._typing_timer.timeout.connect(self._animate_typing)
-        self._typing_dots = 0
 
         # Input area
         input_container = QWidget()
@@ -644,7 +511,7 @@ class ChatPanel(QWidget):
         pass
 
     def set_workspace_name(self, name: str):
-        self._workspace_lbl.setText(name)
+        pass
 
     def _request_new_conversation(self):
         pass
@@ -803,195 +670,52 @@ class ChatPanel(QWidget):
 
         return base64.urlsafe_b64decode(text).decode("utf-8")
 
-    def _append_history_html(self, html_content: str, trailing: str = "\n"):
-        self._history_entries.append(("html", html_content, trailing))
-        cursor = self._history.textCursor()
-        cursor.movePosition(QTextCursor.End)
-        cursor.insertHtml(self._render_history_html_content(html_content))
-        if trailing:
-            cursor.insertText(trailing)
-
-    def _append_history_text(self, text: str, fmt: QTextCharFormat):
-        self._history_entries.append(("text", text, fmt))
-        cursor = self._history.textCursor()
-        cursor.movePosition(QTextCursor.End)
-        cursor.insertText(text, fmt)
-
-    def _render_history_entries(self):
-        self._history.clear()
-        cursor = self._history.textCursor()
-        cursor.movePosition(QTextCursor.End)
-        for kind, content, extra in self._history_entries:
-            if kind == "html":
-                cursor.insertHtml(self._render_history_html_content(content))
-                if extra:
-                    cursor.insertText(extra)
-            else:
-                cursor.insertText(content, extra)
-
-    def _render_history_html_content(self, html_content: str) -> str:
-        for block_id in self._collapsible_blocks:
-            html_content = html_content.replace(
-                self._collapsible_block_token(block_id),
-                self._render_collapsible_block(block_id),
-            )
-        return html_content
-
     def _append_user_message(self, text: str, retry_text: str = None):
-        import html
-
         retry_text = retry_text or text
-        b64_text = self._encode_action_text(text)
-        b64_retry = self._encode_action_text(retry_text)
-        safe_text = html.escape(text)
+        self._web_bridge.append_user_message.emit(text, retry_text)
 
-        # Message body wrapped in a dark purple border column with a copy button
-        html_str = (
-            f"<div style='border: 1px solid #5c2092; border-left: 3px solid #8e24aa; background-color: #12001a; "
-            f"             margin-top: 6px; margin-bottom: 2px; padding: 12px 14px; border-radius: 6px; "
-            f"             color: #e0e0e0; font-family: \"Segoe UI\", sans-serif; "
-            f"             font-size: 12.5px; white-space: pre-wrap;'>{safe_text}</div>"
-            f"<div style='text-align: right; margin-bottom: 8px; font-family: \"Segoe UI\", sans-serif; font-size: 11px;'>"
-            f"  <a href='copy_msg:{b64_text}' style='color: #d8b4fe; text-decoration: none;'>&#x1F4CB;</a>"
-            f"  <a href='retry_msg:{b64_retry}' style='color: #8e24aa; text-decoration: none; margin-left: 10px;'>↻ Retry</a>"
-            f"  <a href='revert_msg:{b64_retry}' style='color: #8e24aa; text-decoration: none; margin-left: 10px;'>↩ Revert</a>"
-            f"</div>"
-        )
-        self._append_history_html(html_str)
-
-        self._scroll_to_bottom()
-
-<<<<<<< HEAD
     def _handle_history_action(self, action: str, payload: str):
-        if action == "toggle":
-            self._toggle_collapsible_block(payload)
-        elif action == "retry":
+        if action == "retry":
             self._retry_message(payload)
         elif action == "revert":
             self._revert_message(payload)
+        elif action == "copy":
+            import base64
+            try:
+                from PySide6.QtWidgets import QApplication
+                text = base64.b64decode(payload).decode("utf-8")
+                QApplication.clipboard().setText(text)
+            except Exception:
+                pass
 
     def _retry_message(self, payload: str):
-        text = self._decode_action_text(payload)
+        import base64
+        try:
+            text = base64.b64decode(payload).decode("utf-8")
+        except Exception:
+            text = payload
         self._append_user_message(text, text)
         self.show_typing(True)
         self.message_sent.emit(text)
 
     def _revert_message(self, payload: str):
-        self._input.setPlainText(self._decode_action_text(payload))
+        import base64
+        try:
+            text = base64.b64decode(payload).decode("utf-8")
+        except Exception:
+            text = payload
+        self._input.setPlainText(text)
         self._input.setFocus()
         self._on_input_changed()
 
-    def _new_collapsible_block(self, title: str, body: str, accent: str) -> str:
-        block_id = str(self._next_block_id)
-        self._next_block_id += 1
-        self._collapsible_blocks[block_id] = {
-            "title": title,
-            "body": body,
-            "accent": accent,
-            "expanded": True,
-        }
-        return self._collapsible_block_token(block_id)
-
-    def _collapsible_block_token(self, block_id: str) -> str:
-        return f"@@COLLAPSIBLE_BLOCK_{block_id}@@"
-
-    def _render_collapsible_block(self, block_id: str) -> str:
-        block = self._collapsible_blocks[block_id]
-        marker = "[-]" if block["expanded"] else "[+]"
-        body = block["body"] if block["expanded"] else ""
-        header = (
-            f"<div style='color: #8a8a8a; font-weight: bold; font-size: 11px;'>"
-            f"<a href='toggleblock:{block_id}' style='color: #d8b4fe; text-decoration: none; margin-right: 6px;'>{marker}</a>{block['title']}</div>"
-        )
-        if block["expanded"]:
-            return (
-                f"<table width='100%' style='background-color: #1e1e1e; border: 1px solid #3e3e42; border-left: 3px solid {block['accent']}; "
-                f"margin-bottom: 12px; margin-top: 8px;' cellspacing='0' cellpadding='10'>"
-                f"<tr><td>"
-                f"{header}"
-                f"<div style='line-height: 1.4; color: #a9a9a9; font-size: 11px; margin-top: 6px;'>{body}</div>"
-                f"</td></tr></table>"
-            )
-        return (
-            f"<table width='100%' style='background-color: #1e1e1e; border: 1px solid #3e3e42; border-left: 3px solid {block['accent']}; "
-            f"margin-bottom: 6px; margin-top: 6px;' cellspacing='0' cellpadding='8'>"
-            f"<tr><td>{header}</td></tr></table>"
-        )
-
-    def _toggle_collapsible_block(self, block_id: str):
-        if block_id not in self._collapsible_blocks:
-            return
-        block = self._collapsible_blocks[block_id]
-        block["expanded"] = not block["expanded"]
-        self._render_history_entries()
-
-    def show_typing(self, show: bool):
-=======
     def show_typing(self, show: bool, state: str = "thinking"):
->>>>>>> 5a16a85 (feat: complete visual engine overhaul and VS Code menu alignment)
         if QThread.currentThread() != QCoreApplication.instance().thread():
             self._show_typing_signal.emit(show, state)
         else:
             self._safe_show_typing(show, state)
 
-    def _insert_typing_html(self, dots: str = ""):
-        cursor = self._history.textCursor()
-        cursor.setPosition(self._typing_start_pos)
-        
-        icon = "&#xea82;" if self._typing_state == "thinking" else "&#xea74;"
-        color = "#4fc1ff" if self._typing_state == "thinking" else "#e51400"
-        text = "Dardcor Agent is thinking" if self._typing_state == "thinking" else "Dardcor Agent is working"
-        
-        html = f"""<div align='left' style='margin-top: 8px; margin-bottom: 8px; margin-left: 10px; padding: 5px;'>
-            <span style='font-family: "codicon"; font-size: 14px; color: {color};'> {icon} </span> 
-            <span style='color: #858585; font-style: italic; font-size: 12px;'>{text}{dots}</span>
-        </div>"""
-        cursor.insertHtml(html)
-
     def _safe_show_typing(self, show: bool, state: str = "thinking"):
-        if show:
-            if not self._is_typing:
-                self._is_typing = True
-                self._typing_state = state
-                self._typing_dots = 0
-                
-                # Append to bottom
-                cursor = self._history.textCursor()
-                cursor.movePosition(QTextCursor.End)
-                self._typing_start_pos = cursor.position()
-                self._insert_typing_html()
-                
-                self._typing_timer.start(300)
-                self._scroll_to_bottom()
-            elif self._typing_state != state:
-                # Update state if already typing
-                self._typing_state = state
-                cursor = self._history.textCursor()
-                cursor.setPosition(self._typing_start_pos)
-                cursor.movePosition(QTextCursor.End, QTextCursor.KeepAnchor)
-                cursor.removeSelectedText()
-                self._insert_typing_html("." * self._typing_dots)
-                self._scroll_to_bottom()
-        else:
-            if self._is_typing:
-                self._typing_timer.stop()
-                self._is_typing = False
-                cursor = self._history.textCursor()
-                cursor.setPosition(self._typing_start_pos)
-                cursor.movePosition(QTextCursor.End, QTextCursor.KeepAnchor)
-                cursor.removeSelectedText()
-
-    def _animate_typing(self):
-        if not self._is_typing: return
-        self._typing_dots = (self._typing_dots + 1) % 4
-        dots = "." * self._typing_dots
-        
-        cursor = self._history.textCursor()
-        cursor.setPosition(self._typing_start_pos)
-        cursor.movePosition(QTextCursor.End, QTextCursor.KeepAnchor)
-        cursor.removeSelectedText()
-        
-        self._insert_typing_html(dots)
+        self._web_bridge.show_typing.emit(show, state)
 
     def append_agent_message(self, text: str, is_html: bool = False):
         self.show_typing(False)
@@ -1001,60 +725,7 @@ class ChatPanel(QWidget):
             self._safe_append_agent_message(text, is_html)
 
     def _safe_append_agent_message(self, text: str, is_html: bool = False):
-        if is_html:
-            # Clean agent text/HTML response (no container borders/backgrounds as requested)
-            self._append_history_html(text)
-        else:
-            # Clean plain-text agent response by converting basic markdown to HTML
-            html = self._parse_basic_markdown(text)
-            copy_text = self._encode_action_text(text)
-            html = (
-                f"{html}"
-                f"<div style='text-align: right; margin-bottom: 8px; font-family: \"Segoe UI\", sans-serif; font-size: 11px;'>"
-                f"  <a href='copy_msg:{copy_text}' style='color: #d8b4fe; text-decoration: none;'>&#x1F4CB;</a>"
-                f"</div>"
-            )
-            self._append_history_html(html, "\n\n")
-
-        self._scroll_to_bottom()
-
-    def _parse_basic_markdown(self, text: str) -> str:
-        """A simple markdown parser for bold, italics, code blocks, and lists."""
-        import html
-        import re
-        
-        # Escape HTML first
-        text = html.escape(text)
-        
-        # Handle thinking blocks
-        def thinking_replacer(match):
-            thought = match.group(1).strip()
-            thought = thought.replace('\n', '<br/>')
-            return self._new_collapsible_block("🧠 Proses Berpikir", thought, "#6c757d")
-        text = re.sub(r'@@THINKING_START@@(.*?)@@THINKING_END@@', thinking_replacer, text, flags=re.DOTALL)
-        
-        # Handle code blocks
-        def code_block_replacer(match):
-            lang = match.group(1).strip()
-            code = match.group(2)
-            return f"<pre style='background-color: #1e1e1e; color: #d4d4d4; padding: 10px; border-radius: 4px; font-family: monospace;'>{code}</pre>"
-        text = re.sub(r'```(\w*)\n(.*?)\n```', code_block_replacer, text, flags=re.DOTALL)
-        
-        # Handle inline code
-        text = re.sub(r'`([^`]+)`', r"<code style='background-color: #333333; color: #ce9178; padding: 2px 4px; border-radius: 3px; font-family: monospace;'>\1</code>", text)
-        
-        # Handle bold
-        text = re.sub(r'\*\*([^*]+)\*\*', r"<b>\1</b>", text)
-        
-        # Handle italic
-        text = re.sub(r'\*([^*]+)\*', r"<i>\1</i>", text)
-        
-        # Handle newlines
-        text = text.replace('\n', '<br/>')
-        
-        return (f"<div style='background-color: #121212; border: 1px solid #2d2d2d; border-radius: 8px; padding: 12px; margin-bottom: 8px; margin-top: 4px;'>"
-                f"<div style='color: #ffffff; font-size: 12px; font-family: \"Segoe UI\", sans-serif; line-height: 1.5;'>{text}</div>"
-                f"</div>")
+        self._web_bridge.append_agent_message.emit(text, is_html)
 
     def _handle_slash_command(self, cmd_text: str):
         parts = cmd_text.split()
@@ -1299,15 +970,11 @@ class ChatPanel(QWidget):
 
     def _safe_append_system_message(self, text: str):
         if "You are Dardcor Code" in text:
-            return  # Hide system prompt from UI
-
-        fmt = QTextCharFormat()
-        fmt.setForeground(QColor("#858585"))
-        fmt.setFontItalic(True)
-        fmt.setFontPointSize(9)
-        self._append_history_text(f"{text}\n\n", fmt)
-
-        self._scroll_to_bottom()
+            return
+        if "Batas Token Tercapai" in text or "token" in text.lower():
+            self._web_bridge.show_notification.emit(text)
+        else:
+            self._web_bridge.append_system_message.emit(text)
 
     def append_tool_call(self, tool_name: str, args: str, status: str = "running"):
         if QThread.currentThread() != QCoreApplication.instance().thread():
@@ -1315,126 +982,17 @@ class ChatPanel(QWidget):
         else:
             self._safe_append_tool_call(tool_name, args, status)
 
-    def _insert_tool_call_html(self, uid: str, cursor: QTextCursor = None):
-        if cursor is None:
-            cursor = self._history.textCursor()
-            cursor.movePosition(QTextCursor.End)
-            
-        block = self._tool_call_blocks[uid]
-        tool_name = block["name"]
-        args = block["args"]
-        status = block["status"]
-        expanded = block["expanded"]
-
-        color_map = {
-            "running": "#dcdcaa",
-            "success": "#4ec9b0",
-            "error": "#f14c4c",
-        }
-        color = color_map.get(status, "#858585")
-        
-<<<<<<< HEAD
-        body = (
-=======
-        display_args = args if expanded else args[:150].replace('\n', ' ') + ('...' if len(args) > 150 else '')
-        toggle_text = "[-]" if expanded else "[+]"
-        
-        # Use a table instead of div to guarantee proper background-color and padding rendering in QTextBrowser
-        html_content = (
-            f"<table width='100%' style='background-color: #1e1e1e; border: 1px solid #3c3c3c; border-left: 3px solid {color}; "
-            f"margin-top: 4px; margin-bottom: 8px;' cellspacing='0' cellpadding='10'>"
-            f"<tr><td>"
-            f"<div style='margin-bottom: 6px; font-weight: bold; color: #e0e0e0; font-family: \"Segoe UI\", sans-serif; font-size: 12px;'>"
-            f"<a href='toggle_tool:{uid}' style='text-decoration: none; color: #4fc1ff; margin-right: 5px;'>{toggle_text}</a>"
-            f"<span style='font-family: \"codicon\"; font-size: 14px;'>&#xeaf9;</span> [Tool Call: {tool_name}] "
-            f"<span style='color: {color}; font-size: 10px; font-weight: normal; margin-left: 6px;'>[ {status.upper()} ]</span></div>"
->>>>>>> 5a16a85 (feat: complete visual engine overhaul and VS Code menu alignment)
-            f"<table width='100%' style='background-color: #161616; border: 1px solid #2d2d2d;' cellspacing='0' cellpadding='6'><tr><td>"
-            f"<div style='color: #ce9178; font-family: monospace; white-space: pre-wrap; font-size: 11px;'>{html.escape(display_args)}</div>"
-            f"</td></tr></table>"
-        )
-<<<<<<< HEAD
-        title = (
-            f"<span style='font-family: \"codicon\"; font-size: 14px;'>&#xeaf9;</span> [Tool Call: {html.escape(tool_name)}] "
-            f"<span style='color: {color}; font-size: 10px; font-weight: normal; margin-left: 6px;'>[ {status.upper()} ]</span>"
-        )
-        self._append_history_html(self._new_collapsible_block(title, body, color))
-=======
-        
-        # We need to save the new start cursor since insertHtml modifies document
-        new_start = QTextCursor(cursor.document())
-        new_start.setPosition(cursor.position())
-        
-        cursor.insertHtml(html_content)
-        cursor.insertText("\n")
-        
-        new_end = QTextCursor(cursor.document())
-        new_end.setPosition(cursor.position())
-        
-        block["start"] = new_start
-        block["end"] = new_end
-
     def _safe_append_tool_call(self, tool_name: str, args: str, status: str = "running"):
-        if not hasattr(self, "_tool_call_blocks"):
-            self._tool_call_blocks = {}
-            
-        import uuid
-        uid = str(uuid.uuid4())
-        self._tool_call_blocks[uid] = {
-            "name": tool_name,
-            "args": args,
-            "status": status,
-            "expanded": False,
-            "start": None,
-            "end": None
-        }
-
-        # Remove typing indicator before inserting tool call content
-        was_typing = self._is_typing
-        if was_typing:
-            self._typing_timer.stop()
-            self._is_typing = False
-            cursor = self._history.textCursor()
-            cursor.setPosition(self._typing_start_pos)
-            cursor.movePosition(QTextCursor.End, QTextCursor.KeepAnchor)
-            cursor.removeSelectedText()
-
-        self._insert_tool_call_html(uid)
-
-        # Re-show typing indicator as "working" after the tool call
-        if was_typing and status == "running":
-            cursor = self._history.textCursor()
-            cursor.movePosition(QTextCursor.End)
-            self._typing_start_pos = cursor.position()
-            self._is_typing = True
-            self._typing_state = "working"
-            self._typing_dots = 0
-            self._insert_typing_html()
-            self._typing_timer.start(300)
->>>>>>> 5a16a85 (feat: complete visual engine overhaul and VS Code menu alignment)
-
-        self._scroll_to_bottom()
+        self._web_bridge.append_tool_call.emit(tool_name, args, status)
+        self.show_typing(True, "working")
 
     def _scroll_to_bottom(self):
-        QTimer.singleShot(10, lambda: self._history.verticalScrollBar().setValue(
-            self._history.verticalScrollBar().maximum()
-        ))
+        # Scrolling is now handled automatically by JS
+        pass
 
     def clear(self):
-<<<<<<< HEAD
-        self._history_entries.clear()
-        self._collapsible_blocks.clear()
-        self._next_block_id = 1
-=======
-        self._typing_timer.stop()
-        self._is_typing = False
-        self._typing_state = "thinking"
-        self._typing_start_pos = 0
-        self._typing_dots = 0
->>>>>>> 5a16a85 (feat: complete visual engine overhaul and VS Code menu alignment)
-        self._history.clear()
-        if hasattr(self, "_tool_call_blocks"):
-            self._tool_call_blocks.clear()
+        self._web_bridge.clear_chat.emit()
+        self.show_typing(False)
         self.clear_attachments()
 
     def set_enabled(self, enabled: bool):
