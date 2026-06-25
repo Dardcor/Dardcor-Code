@@ -35,6 +35,8 @@ class MonacoEditorWidget(QWidget):
         layout.setSpacing(0)
 
         self._view = QWebEngineView(self)
+        from PySide6.QtGui import QColor
+        self._view.page().setBackgroundColor(QColor(0, 0, 0, 0))
         self._view.setContextMenuPolicy(Qt.NoContextMenu)
         
         settings = self._view.page().profile().settings()

@@ -50,6 +50,10 @@ function handleAction(action, payload) {
 }
 
 function appendUserMessage(text, retry_text) {
+    // ── KEY FIX: every new user message ends the previous agent turn ──
+    // Settle any active work panel so the next agent response starts fresh.
+    settleCurrentWorkPanel();
+
     const safeText = escapeHtml(text);
     const div = document.createElement('div');
     div.className = 'message user-msg';
@@ -66,6 +70,9 @@ function appendUserMessage(text, retry_text) {
 }
 
 function appendAgentMessage(text, isHtml) {
+    // Agent message also ends (settles) the current work panel
+    settleCurrentWorkPanel();
+
     const div = document.createElement('div');
     div.className = 'message agent-msg';
     let contentHtml = isHtml ? text : marked.parse(text);
@@ -118,6 +125,18 @@ function toggleToolList(buttonEl) {
     buttonEl.title = isCollapsed ? 'Hide tool calls' : 'Show tool calls';
 }
 
+// ── Settle helper: marks the current panel as done and detaches it ──
+function settleCurrentWorkPanel() {
+    if (currentWorkPanel && !currentWorkPanel.classList.contains('settled')) {
+        currentWorkPanel.classList.add('settled');
+        const textEl = currentWorkPanel.querySelector('.work-text');
+        if (textEl) textEl.textContent = 'Done';
+        const bubble = currentWorkPanel.querySelector('.typing-bubble');
+        if (bubble) bubble.classList.add('done');
+    }
+    currentWorkPanel = null;
+}
+
 function createWorkPanel(state) {
     const div = document.createElement('div');
     div.className = 'agent-work-msg';
@@ -142,10 +161,12 @@ function createWorkPanel(state) {
 }
 
 function ensureWorkPanel(state) {
+    // Create a fresh panel if none exists, or if the current one is already settled/done
     if (!currentWorkPanel || currentWorkPanel.classList.contains('settled')) {
         currentWorkPanel = createWorkPanel(state);
     }
-    currentWorkPanel.querySelector('.work-text').textContent = state === 'thinking' ? 'Dardcor Agent is thinking...' : 'Dardcor Agent is working...';
+    const textEl = currentWorkPanel.querySelector('.work-text');
+    if (textEl) textEl.textContent = state === 'thinking' ? 'Dardcor Agent is thinking...' : 'Dardcor Agent is working...';
     currentWorkPanel.classList.remove('hidden', 'settled');
     return currentWorkPanel;
 }

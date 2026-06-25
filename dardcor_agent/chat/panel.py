@@ -203,6 +203,7 @@ class ChatPanel(QWidget):
         # Chat history (uses QWebEngineView for modern slicing)
         self._web_view = QWebEngineView(self)
         self._web_view.setFocusPolicy(Qt.StrongFocus)
+        self._web_view.page().setBackgroundColor(QColor(0, 0, 0, 0))
 
         # Enable clipboard so Ctrl+C / Ctrl+A work on selected chat text
         try:

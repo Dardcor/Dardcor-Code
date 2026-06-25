@@ -98,10 +98,9 @@ TOOLS = [
         "function": {
             "name": "run_command",
             "description": (
-                "Execute a shell command and return stdout+stderr. "
-                "stdin is /dev/null so interactive prompts are auto-skipped. "
-                "Default timeout 120s; pass timeout=300 for slow installs/builds. "
-                "Use for: tests, package installs, builds, git ops, any CLI task. "
+                "Execute a shell command. "
+                "Use WaitMsBeforeAsync to run in the background if the command is interactive or long-running. "
+                "Use manage_task to interact with background tasks."
             ),
             "parameters": {
                 "type": "object",
@@ -109,6 +108,7 @@ TOOLS = [
                     "command": {"type": "string", "description": "Shell command to run"},
                     "workdir": {"type": "string", "description": "Working directory (optional)"},
                     "timeout": {"type": "integer", "description": "Max seconds before kill (default 120)"},
+                    "WaitMsBeforeAsync": {"type": "integer", "description": "Milliseconds to wait before sending task to background (default 0)"}
                 },
                 "required": ["command"],
             },
@@ -380,12 +380,14 @@ class Agent:
         self._cmd = CommandExecutor()
         self._stream_callback = None
         self.permission_callback = None
+        self._bg_msg_callback = None
+        self._bg_tasks = {}
         self._lock = threading.Lock()
         self._abort_flag = False
         self._current_process = None
 
         # Add system message with Core Memory
-        sys_prompt = self._config.ai.system_prompt if self._config.ai.system_prompt else get_identity_prompt(self._core_memory.get_summary())
+        sys_prompt = self._config.ai.system_prompt if self._config.ai.system_prompt else get_identity_prompt(self._core_memory.get_summary(), self._config.workspace_path)
         self._conversation.add_message("system", sys_prompt)
 
     @property
@@ -396,14 +398,30 @@ class Agent:
         """Called when the user opens a different folder mid-session."""
         if not path:
             return
-        # Only inject if the conversation already has user messages (not at cold start)
-        msgs = self._conversation.get_api_messages()
-        has_user = any(m.get("role") == "user" for m in msgs)
+        # Update config so all tool calls use the correct root
+        self._config.workspace_path = path
+
+        # Rebuild the system prompt so the LLM knows the new path immediately
+        sys_prompt = (
+            self._config.ai.system_prompt
+            if self._config.ai.system_prompt
+            else get_identity_prompt(self._core_memory.get_summary(), path)
+        )
+        # Replace the existing system message (always index 0)
+        msgs = self._conversation.messages
+        if msgs and msgs[0].role == "system":
+            msgs[0].content = sys_prompt
+        else:
+            # No system message yet — prepend it
+            self._conversation.add_message("system", sys_prompt)
+
+        # Only inject a change notification if there are already user messages
+        has_user = any(m.role == "user" for m in msgs)
         if has_user:
             self._conversation.add_message(
                 "system",
-                f"[WORKSPACE CHANGED] The user switched workspace to: {path}. "
-                f"Use this directory for all file operations going forward."
+                f"[WORKSPACE CHANGED] Switched to: {path}. "
+                f"Use this as the root for all file operations.",
             )
 
     def abort(self):
@@ -440,15 +458,18 @@ class Agent:
                 pass
     def on_stream(self, callback: Callable[[str], None]):
         self._stream_callback = callback
+        
+    def set_background_message_callback(self, callback: Callable[[str], None]):
+        self._bg_msg_callback = callback
 
     def new_conversation(self):
         has_user_message = any(m.role == "user" for m in self._conversation.messages)
         if has_user_message:
             self._store.save(self._conversation)
         self._conversation = Conversation()
-        sys_prompt = self._config.ai.system_prompt if self._config.ai.system_prompt else get_identity_prompt(self._core_memory.get_summary())
+        sys_prompt = self._config.ai.system_prompt if self._config.ai.system_prompt else get_identity_prompt(self._core_memory.get_summary(), self._config.workspace_path)
         self._conversation.add_message("system", sys_prompt)
-        self._store.save(self._conversation)
+        # Do not save to disk until there is an actual user message
     def send_message(
         self,
         message: str,
@@ -520,9 +541,8 @@ class Agent:
                 messages.insert(0, {"role": "system", "content": _ws_note.strip()})
 
             # Action bias warning if consecutive read turns
-            if consecutive_read_turns >= 4:
-                print(f"[Agent] Consecutive read-only turns is {consecutive_read_turns}. Injecting action bias warning to messages.")
-                # We append a warning to the end of the messages
+            if consecutive_read_turns >= 10:
+                # We append a warning to the end of the messages silently after 10 turns
                 messages.append({
                     "role": "system",
                     "content": (
@@ -648,6 +668,7 @@ class Agent:
                 import subprocess
                 import time as _time
                 import queue as _queue
+                import uuid as _uuid
 
                 command = args.get("command", "")
                 _ws = self._config.workspace_path or os.getcwd()
@@ -655,6 +676,9 @@ class Agent:
                 if workdir and not os.path.isabs(workdir):
                     workdir = os.path.join(_ws, workdir)
                 timeout_secs = int(args.get("timeout", 120))
+                # WaitMsBeforeAsync: how many ms to wait before offloading to background
+                # 0 = wait synchronously (old behaviour), >0 = go async after that delay
+                wait_ms = int(args.get("WaitMsBeforeAsync", 0))
                 if not command:
                     return "Error: No command specified"
 
@@ -668,7 +692,7 @@ class Agent:
                             from PySide6.QtCore import QTimer
                             from PySide6.QtWidgets import QMessageBox
                             result_holder = [False]
-                            event = threading.Event()
+                            ev_ = threading.Event()
                             def show_dialog():
                                 try:
                                     reply = QMessageBox.question(
@@ -678,9 +702,9 @@ class Agent:
                                     )
                                     result_holder[0] = (reply == QMessageBox.Yes)
                                 finally:
-                                    event.set()
+                                    ev_.set()
                             QTimer.singleShot(0, show_dialog)
-                            event.wait()
+                            ev_.wait()
                             allowed = result_holder[0]
                         else:
                             raise te
@@ -688,14 +712,11 @@ class Agent:
                         return "Error: Command execution denied by user."
 
                 def _kill_proc(p):
-                    """Kill process and its children reliably on all platforms."""
                     try:
                         if sys.platform == "win32":
                             subprocess.call(
                                 ["taskkill", "/F", "/T", "/PID", str(p.pid)],
-                                shell=False,
-                                stdout=subprocess.DEVNULL,
-                                stderr=subprocess.DEVNULL,
+                                shell=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                             )
                         else:
                             import signal as _sig
@@ -713,8 +734,7 @@ class Agent:
                     except Exception:
                         pass
 
-                def _reader(pipe, q):
-                    """Read pipe in 4096-byte chunks — avoids blocking on partial lines."""
+                def _chunk_reader(pipe, q):
                     try:
                         while True:
                             chunk = pipe.read(4096)
@@ -735,80 +755,162 @@ class Agent:
                         cwd=workdir,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
-                        # KEY FIX: never block waiting for stdin input
-                        stdin=subprocess.DEVNULL,
+                        # stdin as PIPE so manage_task send_input can feed interactive prompts
+                        stdin=subprocess.PIPE,
                     )
                     if sys.platform == "win32":
-                        # No console window; new process group so taskkill /T works
                         popen_kwargs["creationflags"] = (
-                            subprocess.CREATE_NO_WINDOW
-                            | subprocess.CREATE_NEW_PROCESS_GROUP
+                            subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP
                         )
                     else:
-                        # Own session → own process group for killpg
                         popen_kwargs["start_new_session"] = True
 
-                    proc = subprocess.Popen(**popen_kwargs)
+                    proc = subprocess.Popen(command, **popen_kwargs)
                     self._current_process = proc
 
                     stdout_q: _queue.Queue = _queue.Queue()
                     stderr_q: _queue.Queue = _queue.Queue()
-                    t_out = threading.Thread(target=_reader, args=(proc.stdout, stdout_q), daemon=True)
-                    t_err = threading.Thread(target=_reader, args=(proc.stderr, stderr_q), daemon=True)
+                    t_out = threading.Thread(target=_chunk_reader, args=(proc.stdout, stdout_q), daemon=True)
+                    t_err = threading.Thread(target=_chunk_reader, args=(proc.stderr, stderr_q), daemon=True)
                     t_out.start()
                     t_err.start()
 
+                    task_id = _uuid.uuid4().hex[:8]
+                    task_data = {
+                        "id": task_id,
+                        "proc": proc,
+                        "stdout_q": stdout_q,
+                        "stderr_q": stderr_q,
+                        "t_out": t_out,
+                        "t_err": t_err,
+                        "command": command,
+                        "workdir": workdir,
+                        "start_time": _time.monotonic(),
+                        "timeout": timeout_secs,
+                        "aborted": False,
+                        "status": "running",
+                    }
+                    self._bg_tasks[task_id] = task_data
+
+                    # Synchronous wait period
+                    sync_wait = (wait_ms / 1000.0) if wait_ms > 0 else timeout_secs
                     start = _time.monotonic()
-                    timed_out = False
                     while proc.poll() is None:
-                        if getattr(self, '_abort_flag', False):
+                        if getattr(self, "_abort_flag", False):
                             _kill_proc(proc)
                             t_out.join(1.0)
                             t_err.join(1.0)
                             self._current_process = None
+                            task_data["status"] = "aborted"
                             return "Agent dihentikan oleh pengguna."
-                        if _time.monotonic() - start > timeout_secs:
-                            timed_out = True
-                            _kill_proc(proc)
+                        if _time.monotonic() - start > sync_wait:
                             break
                         _time.sleep(0.05)
 
-                    t_out.join(3.0)
-                    t_err.join(3.0)
-                    self._current_process = None
+                    finished_sync = proc.poll() is not None
 
-                    raw_out = b"".join(list(stdout_q.queue))
-                    raw_err = b"".join(list(stderr_q.queue))
-                    stdout = raw_out.decode("utf-8", errors="replace")
-                    stderr = raw_err.decode("utf-8", errors="replace")
-                    rc = proc.returncode
+                    if finished_sync:
+                        # Process finished within sync window — return output directly
+                        t_out.join(3.0)
+                        t_err.join(3.0)
+                        self._current_process = None
+                        task_data["status"] = "done"
 
-                    if timed_out:
-                        output = stdout + f"\n[TIMEOUT after {timeout_secs}s — process killed]"
-                        if stderr:
-                            output += "\n[stderr]\n" + stderr
-                    else:
-                        output = stdout
-                        if stderr:
-                            output += "\n[stderr]\n" + stderr
+                        raw_out = b"".join(list(stdout_q.queue))
+                        raw_err = b"".join(list(stderr_q.queue))
+                        stdout_s = raw_out.decode("utf-8", errors="replace")
+                        stderr_s = raw_err.decode("utf-8", errors="replace")
+                        rc = proc.returncode
+
+                        out_all = stdout_s
+                        if stderr_s:
+                            out_all += "\n[stderr]\n" + stderr_s
                         if rc not in (None, 0):
-                            output += f"\n[exit code: {rc}]"
+                            out_all += f"\n[exit code: {rc}]"
+
+                        if len(out_all) > 8000:
+                            head = out_all[:2000]
+                            tail = out_all[-5000:]
+                            out_all = f"{head}\n\n... [truncated] ...\n\n{tail}"
+
+                        # Remove completed task
+                        self._bg_tasks.pop(task_id, None)
+                        return out_all or "(no output)"
+
+                    else:
+                        # Still running — hand off to background monitor thread
+                        self._current_process = None
+
+                        def _bg_monitor(td, agent_ref):
+                            p = td["proc"]
+                            while p.poll() is None:
+                                if td["aborted"] or getattr(agent_ref, "_abort_flag", False):
+                                    _kill_proc(p)
+                                    break
+                                if _time.monotonic() - td["start_time"] > td["timeout"]:
+                                    _kill_proc(p)
+                                    td["status"] = "timeout"
+                                    break
+                                _time.sleep(0.1)
+
+                            td["t_out"].join(3.0)
+                            td["t_err"].join(3.0)
+
+                            raw_out = b"".join(list(td["stdout_q"].queue))
+                            raw_err = b"".join(list(td["stderr_q"].queue))
+                            out_s = raw_out.decode("utf-8", errors="replace")
+                            err_s = raw_err.decode("utf-8", errors="replace")
+                            combined = out_s
+                            if err_s:
+                                combined += "\n[stderr]\n" + err_s
+                            if len(combined) > 6000:
+                                combined = combined[:1500] + "\n...[truncated]...\n" + combined[-3500:]
+
+                            td["status"] = "done"
+                            td["output"] = combined
+
+                            # Fire callback → injects system message into chat and wakes agent
+                            cb = getattr(agent_ref, "_bg_msg_callback", None)
+                            if cb:
+                                msg = (
+                                    f"<SYSTEM_MESSAGE>\n"
+                                    f"[Background Task Completed] task_id={td['id']}\n"
+                                    f"Command: {td['command']}\n"
+                                    f"Exit Code: {p.returncode}\n\n"
+                                    f"Output:\n{combined or '(no output)'}\n"
+                                    f"</SYSTEM_MESSAGE>"
+                                )
+                                try:
+                                    cb(msg)
+                                except Exception:
+                                    pass
+
+                            # Cleanup
+                            agent_ref._bg_tasks.pop(td["id"], None)
+
+                        threading.Thread(
+                            target=_bg_monitor, args=(task_data, self), daemon=True
+                        ).start()
+
+                        running_cmds = "\n".join(
+                            f"  - [{t['id']}] {t['command']}" for t in self._bg_tasks.values()
+                        )
+                        return (
+                            f"Background task started. Task ID: {task_id}\n"
+                            f"Command: {command}\n"
+                            f"Running tasks:\n{running_cmds}\n\n"
+                            f"Use manage_task with action='send_input' to feed interactive prompts (e.g. 'y\\n'), "
+                            f"action='status' to check progress, or action='kill' to stop it."
+                        )
 
                 except FileNotFoundError:
                     self._current_process = None
-                    output = f"Error: command not found: {command.split()[0] if command else ''}"
+                    return f"Error: command not found: {command.split()[0] if command else ''}"
                 except Exception as ex:
                     self._current_process = None
-                    output = f"Error running command: {str(ex)}"
+                    return f"Error running command: {str(ex)}"
 
-                # Smart truncation: keep head + tail so context is preserved
-                if len(output) > 8000:
-                    head = output[:2000]
-                    tail = output[-5000:]
-                    skipped = len(output) - 7000
-                    output = f"{head}\n\n... [{skipped} chars truncated] ...\n\n{tail}"
 
-                return output or "(no output)"
 
             elif name == "update_core_memory":
                 category = args.get("category", "")
@@ -1006,18 +1108,90 @@ class Agent:
                     return f"Error: Unknown agent type '{agent_type}'"
 
             elif name == "manage_task":
-                # Stub implementation for task management
-                action = args.get("action", "")
-                task_id = args.get("task_id", "")
+                import time as _mt
+                action = args.get("action", "").strip().lower()
+                task_id = args.get("task_id", "").strip()
+                input_text = args.get("input_text", "")
+
                 if action == "list":
-                    return "Running Tasks:\n- (None)"
+                    tasks = self._bg_tasks
+                    if not tasks:
+                        return "No background tasks currently running."
+                    lines = ["Running Background Tasks:"]
+                    for tid, td in tasks.items():
+                        elapsed = _mt.monotonic() - td["start_time"]
+                        lines.append(
+                            f"  [{tid}] status={td['status']} elapsed={elapsed:.1f}s cmd={td['command']}"
+                        )
+                    return "\n".join(lines)
+
                 elif action == "status":
-                    return f"Task {task_id} not found."
+                    if not task_id:
+                        return "Error: task_id is required for action='status'"
+                    td = self._bg_tasks.get(task_id)
+                    if td is None:
+                        return f"Task '{task_id}' not found or already completed."
+                    proc = td["proc"]
+                    elapsed = _mt.monotonic() - td["start_time"]
+                    rc = proc.poll()
+                    status = td.get("status", "running")
+                    # Collect partial output buffered so far
+                    import queue as _q2
+                    partial = b""
+                    q = td["stdout_q"]
+                    try:
+                        while True:
+                            partial += q.get_nowait()
+                    except _q2.Empty:
+                        pass
+                    out_so_far = partial.decode("utf-8", errors="replace")
+                    return (
+                        f"Task {task_id} — status={status} elapsed={elapsed:.1f}s "
+                        f"exit_code={rc}\nPartial output so far:\n{out_so_far[-2000:] or '(none yet)'}"
+                    )
+
                 elif action == "kill":
-                    return f"Task {task_id} killed."
+                    if not task_id:
+                        return "Error: task_id is required for action='kill'"
+                    td = self._bg_tasks.get(task_id)
+                    if td is None:
+                        return f"Task '{task_id}' not found or already completed."
+                    td["aborted"] = True
+                    try:
+                        import subprocess as _sp
+                        p = td["proc"]
+                        if sys.platform == "win32":
+                            _sp.call(
+                                ["taskkill", "/F", "/T", "/PID", str(p.pid)],
+                                shell=False, stdout=_sp.DEVNULL, stderr=_sp.DEVNULL,
+                            )
+                        else:
+                            p.kill()
+                    except Exception as _ke:
+                        return f"Task {task_id}: attempted kill, result: {_ke}"
+                    td["status"] = "killed"
+                    return f"Task {task_id} killed successfully."
+
                 elif action == "send_input":
-                    return f"Input sent to task {task_id}."
-                return "Unknown action."
+                    if not task_id:
+                        return "Error: task_id is required for action='send_input'"
+                    td = self._bg_tasks.get(task_id)
+                    if td is None:
+                        return f"Task '{task_id}' not found or already completed."
+                    proc = td["proc"]
+                    if proc.stdin is None or proc.stdin.closed:
+                        return f"Task {task_id}: stdin is not available (process may have exited)."
+                    try:
+                        # Ensure newline so the process sees a complete line
+                        data = input_text if input_text.endswith("\n") else input_text + "\n"
+                        proc.stdin.write(data.encode("utf-8"))
+                        proc.stdin.flush()
+                        return f"Sent input to task {task_id}: {repr(data)}"
+                    except Exception as _se:
+                        return f"Error sending input to task {task_id}: {_se}"
+
+                else:
+                    return f"Error: Unknown manage_task action '{action}'. Valid: list, status, kill, send_input"
 
             elif name == "glob_files":
                 import fnmatch as _fnmatch2

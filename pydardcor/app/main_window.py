@@ -612,6 +612,27 @@ class MainWindow(QMainWindow):
     def _setup_agent(self):
         self._agent.on_stream(self._on_agent_stream)
         self._agent.permission_callback = self._ask_command_permission
+        self._agent.set_background_message_callback(self._on_background_task_complete)
+
+    def _on_background_task_complete(self, system_message: str):
+        """Called from a background thread when a bg task finishes.
+        Injects the task output into the chat as a system message, then
+        re-invokes the agent so it can continue its workflow."""
+        from PySide6.QtCore import QTimer
+
+        def _run_in_main():
+            # Show the result in the chat as a system message
+            self._chat_panel.append_system_message(system_message)
+            # Now wake the agent: inject the msg into conversation and call API
+            # Only auto-continue if no other generation is active
+            if not self._chat_generation_active:
+                # Feed the system message into the agent conversation and trigger a continue
+                self._agent._conversation.add_message("system", system_message)
+                self._start_chat_message(
+                    "Continue with the task using the background task output above."
+                )
+
+        QTimer.singleShot(0, _run_in_main)
 
     def _ask_command_permission(self, command: str) -> bool:
         """Prompt user in a thread-safe blocking popup before running terminal commands."""
@@ -2306,7 +2327,68 @@ class MainWindow(QMainWindow):
             self.pending_messages_changed.emit(len(self._queued_chat_messages))
             return
 
+        # Inject real-time project context into agent BEFORE sending the message
+        self._inject_project_context_to_agent()
+
         self._start_chat_message(message)
+
+    def _inject_project_context_to_agent(self):
+        """Build a real-time snapshot of the current IDE state and inject it
+        as a system message so the Agent always knows exactly what project is open."""
+        ctx_parts = []
+
+        # 1. Workspace / folder
+        ws = self._config.workspace_path
+        if ws:
+            ctx_parts.append(f"WORKSPACE: {ws}")
+
+        # 2. Active (focused) editor file
+        active_editor = self._editor_tabs.current_editor() if self._editor_tabs else None
+        active_path = None
+        if active_editor:
+            # Support both .file_path attribute and .get_file_path() method
+            active_path = (
+                getattr(active_editor, "file_path", None)
+                or (active_editor.get_file_path() if hasattr(active_editor, "get_file_path") else None)
+            )
+        if active_path:
+            ctx_parts.append(f"ACTIVE FILE: {active_path}")
+
+        # 3. All open editor files (across all groups)
+        open_files = []
+        if self._editor_tabs and hasattr(self._editor_tabs, "_groups"):
+            for group in self._editor_tabs._groups:
+                ed = group.current_editor() if hasattr(group, "current_editor") else None
+                if ed:
+                    fp = (
+                        getattr(ed, "file_path", None)
+                        or (ed.get_file_path() if hasattr(ed, "get_file_path") else None)
+                    )
+                    if fp and fp not in open_files:
+                        open_files.append(fp)
+        if open_files:
+            ctx_parts.append("OPEN FILES:\n" + "\n".join(f"  - {f}" for f in open_files))
+
+        if not ctx_parts:
+            return
+
+        ctx_msg = "[REAL-TIME IDE CONTEXT]\n" + "\n".join(ctx_parts)
+
+        # Only inject if the context has actually changed since last time
+        last_ctx = getattr(self, "_last_injected_context", None)
+        if ctx_msg == last_ctx:
+            return
+
+        self._last_injected_context = ctx_msg
+        # Update agent's workspace path silently
+        if ws:
+            self._agent._config.workspace_path = ws
+        # Insert as a system message into agent conversation (not shown in chat UI)
+        self._agent._conversation.add_message("system", ctx_msg)
+
+
+
+
 
     def _start_chat_message(self, message: str):
         self._chat_generation_active = True
