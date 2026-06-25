@@ -1,6 +1,7 @@
 """AI Agent engine for Dardcor Code."""
 
 import os
+import sys
 import json
 import threading
 from typing import Callable, Optional, List, Dict, Any
@@ -96,12 +97,18 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "run_command",
-            "description": "Execute a shell command and return output",
+            "description": (
+                "Execute a shell command and return stdout+stderr. "
+                "stdin is /dev/null so interactive prompts are auto-skipped. "
+                "Default timeout 120s; pass timeout=300 for slow installs/builds. "
+                "Use for: tests, package installs, builds, git ops, any CLI task. "
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "command": {"type": "string", "description": "Shell command to run"},
                     "workdir": {"type": "string", "description": "Working directory (optional)"},
+                    "timeout": {"type": "integer", "description": "Max seconds before kill (default 120)"},
                 },
                 "required": ["command"],
             },
@@ -281,6 +288,67 @@ TOOLS = [
             }
         }
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "glob_files",
+            "description": "Find files matching a glob pattern (e.g. '**/*.py', 'src/**/*.ts'). Returns matching paths relative to the base directory.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "pattern": {"type": "string", "description": "Glob pattern, e.g. '**/*.py'"},
+                    "path": {"type": "string", "description": "Base directory to search (default: workspace)"},
+                },
+                "required": ["pattern"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "grep",
+            "description": "Search file contents with a regex pattern, with optional context lines and file-type filter. More powerful than search_files.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "pattern": {"type": "string", "description": "Regex pattern to search for"},
+                    "path": {"type": "string", "description": "Directory or file to search"},
+                    "context_lines": {"type": "integer", "description": "Lines of context before/after each match (default 0)"},
+                    "file_pattern": {"type": "string", "description": "Glob filter for files, e.g. '*.py'"},
+                    "case_insensitive": {"type": "boolean", "description": "Case-insensitive match (default false)"},
+                },
+                "required": ["pattern"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "apply_patch",
+            "description": "Apply a unified diff patch to modify a file. The patch must be in standard --- / +++ unified diff format.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "patch": {"type": "string", "description": "Unified diff content (--- a/file +++ b/file @@ ... format)"},
+                },
+                "required": ["patch"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "create_directory",
+            "description": "Create a directory and all parent directories as needed.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "Directory path to create"},
+                },
+                "required": ["path"],
+            },
+        },
+    },
 ]
 
 
@@ -324,15 +392,45 @@ class Agent:
     def config(self) -> AppConfig:
         return self._config
 
+    def set_workspace(self, path: str):
+        """Called when the user opens a different folder mid-session."""
+        if not path:
+            return
+        # Only inject if the conversation already has user messages (not at cold start)
+        msgs = self._conversation.get_api_messages()
+        has_user = any(m.get("role") == "user" for m in msgs)
+        if has_user:
+            self._conversation.add_message(
+                "system",
+                f"[WORKSPACE CHANGED] The user switched workspace to: {path}. "
+                f"Use this directory for all file operations going forward."
+            )
+
     def abort(self):
         self._abort_flag = True
         proc = self._current_process
         if proc and proc.poll() is None:
             try:
-                proc.kill()
+                if sys.platform == "win32":
+                    import subprocess as _sub
+                    _sub.call(
+                        ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                        shell=False,
+                        stdout=_sub.DEVNULL,
+                        stderr=_sub.DEVNULL,
+                    )
+                else:
+                    import os as _os, signal as _signal
+                    try:
+                        _os.killpg(_os.getpgid(proc.pid), _signal.SIGKILL)
+                    except Exception:
+                        proc.kill()
             except Exception:
-                pass
-        
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
+
         # Abort active provider API request
         provider = getattr(self, '_current_provider', None)
         if provider and hasattr(provider, 'abort'):
@@ -340,7 +438,6 @@ class Agent:
                 provider.abort()
             except Exception:
                 pass
-
     def on_stream(self, callback: Callable[[str], None]):
         self._stream_callback = callback
 
@@ -352,21 +449,20 @@ class Agent:
         sys_prompt = self._config.ai.system_prompt if self._config.ai.system_prompt else get_identity_prompt(self._core_memory.get_summary())
         self._conversation.add_message("system", sys_prompt)
         self._store.save(self._conversation)
-
     def send_message(
         self,
         message: str,
         model_override: Optional[str] = None,
         on_tool_call: Optional[Callable[[str, str, str], None]] = None,
         on_system_message: Optional[Callable[[str], None]] = None,
+        on_tool_output: Optional[Callable[[str, str], None]] = None,
     ) -> str:
         self._abort_flag = False
         with self._lock:
             self._conversation.add_message("user", message)
-            self._store.save(self._conversation)
 
         try:
-            response_text = self._call_api(on_tool_call, on_system_message, model_override=model_override)
+            response_text = self._call_api(on_tool_call, on_system_message, model_override=model_override, on_tool_output=on_tool_output)
             self._store.save(self._conversation)
             return response_text
         except urllib.error.URLError as e:
@@ -385,108 +481,130 @@ class Agent:
             self._store.save(self._conversation)
             return error_msg
 
-    def _call_api(self, on_tool_call=None, on_system_message=None, depth=0, model_override=None) -> str:
+    def _call_api(self, on_tool_call=None, on_system_message=None, depth=0, model_override=None, on_tool_output=None) -> str:
         from dardcor_agent.models.providers.factory import ProviderFactory
         provider = ProviderFactory.create(self._config.ai, model_override)
         self._current_provider = provider
         
+        consecutive_read_turns = 0
+        READ_ONLY_TOOLS = {"search_files", "list_files", "read_file", "semantic_search", "search_web", "read_url", "glob_files", "grep"}
+
+        def abort_check():
+            return getattr(self, '_abort_flag', False)
+            
+        def on_conversation_sys_msg(role, msg):
+            self._conversation.add_message(role, msg)
+            self._store.save(self._conversation)
+            if role == "system" and on_system_message:
+                on_system_message(msg)
+
         try:
-            consecutive_read_turns = 0
-            READ_ONLY_TOOLS = {"search_files", "list_files", "read_file", "semantic_search", "search_web", "read_url"}
-
-            def abort_check():
-                return getattr(self, '_abort_flag', False)
+          while True:
+            if abort_check():
+                return "Agent dihentikan oleh pengguna."
                 
-            def on_conversation_sys_msg(role, msg):
-                self._conversation.add_message(role, msg)
-                self._store.save(self._conversation)
-                if role == "system" and on_system_message:
-                    on_system_message(msg)
+            messages = self._conversation.get_api_messages()
 
-            while True:
-                if abort_check():
-                    return "Agent dihentikan oleh pengguna."
-                    
-                messages = self._conversation.get_api_messages()
-                
-                # Action bias warning if consecutive read turns
-                if consecutive_read_turns >= 4:
-                    print(f"[Agent] Consecutive read-only turns is {consecutive_read_turns}. Injecting action bias warning to messages.")
-                    # We append a warning to the end of the messages
-                    messages.append({
-                        "role": "system",
-                        "content": (
-                            "Warning: You have performed search/read operations multiple times. "
-                            "You MUST start writing files or running commands now to complete the task. "
-                            "Do NOT perform any more search/list operations. Prefer using write_file or run_command."
-                        )
-                    })
+            # Always reflect the current open workspace in the system context.
+            # This is injected per-call only — not persisted in conversation history.
+            _ws = self._config.workspace_path or os.getcwd()
+            _ws_note = f"\n\n[ACTIVE WORKSPACE]: {_ws}\nAll file operations and shell commands run relative to this directory."
+            _patched = False
+            for _i, _m in enumerate(messages):
+                if _m.get("role") == "system":
+                    messages[_i] = dict(_m)
+                    messages[_i]["content"] = _m["content"] + _ws_note
+                    _patched = True
+                    break
+            if not _patched:
+                messages.insert(0, {"role": "system", "content": _ws_note.strip()})
 
-                response = provider.generate_turn(
-                    messages=messages,
-                    tools=TOOLS,
-                    config=self._config.ai,
-                    model_override=model_override,
-                    abort_check_fn=abort_check,
-                    conversation_callback=on_conversation_sys_msg
-                )
+            # Action bias warning if consecutive read turns
+            if consecutive_read_turns >= 4:
+                print(f"[Agent] Consecutive read-only turns is {consecutive_read_turns}. Injecting action bias warning to messages.")
+                # We append a warning to the end of the messages
+                messages.append({
+                    "role": "system",
+                    "content": (
+                        "Warning: You have performed search/read operations multiple times. "
+                        "You MUST start writing files or running commands now to complete the task. "
+                        "Do NOT perform any more search/list operations. Prefer using write_file or run_command."
+                    )
+                })
 
-                if response.error:
-                    return response.error
+            response = provider.generate_turn(
+                messages=messages,
+                tools=TOOLS,
+                config=self._config.ai,
+                model_override=model_override,
+                abort_check_fn=abort_check,
+                conversation_callback=on_conversation_sys_msg
+            )
 
-                if response.tool_calls:
-                    all_read_only = all(tc.get("function", {}).get("name") in READ_ONLY_TOOLS for tc in response.tool_calls)
-                    if all_read_only:
-                        consecutive_read_turns += 1
-                    else:
-                        consecutive_read_turns = 0
+            if response.error:
+                return response.error
 
-                    self._conversation.add_message("assistant", response.content, tool_calls=response.tool_calls)
-                    self._store.save(self._conversation)
-                    
-                    for tc in response.tool_calls:
-                        if abort_check(): break
-                        func_name = tc["function"]["name"]
-                        tool_id = tc.get("id", f"tc-{func_name}-{id(tc):x}")
-                        try:
-                            func_args = json.loads(tc["function"]["arguments"])
-                        except json.JSONDecodeError:
-                            func_args = {}
-
-                        args_preview = json.dumps(func_args)[:100]
-                        if on_tool_call:
-                            try:
-                                on_tool_call(func_name, args_preview, "running", tool_id)
-                            except TypeError:
-                                on_tool_call(func_name, args_preview, "running")
-                            import time
-                            time.sleep(0.12)
-
-                        tool_result = self._execute_tool(func_name, func_args)
-                        
-                        if tool_result.startswith("Error"):
-                            tool_result += "\n\n[SYSTEM WARNING]: Tool execution failed. Do not stop. Analyze the error, fix the parameters, and try again or use a different approach. You must complete the objective."
-
-                        if on_tool_call:
-                            status = "success" if not tool_result.startswith("Error") else "error"
-                            try:
-                                on_tool_call(func_name, args_preview, status, tool_id)
-                            except TypeError:
-                                on_tool_call(func_name, args_preview, status)
-
-                        self._conversation.add_message(
-                            "tool",
-                            tool_result,
-                            tool_call_id=tc["id"],
-                            name=func_name,
-                        )
-                        self._store.save(self._conversation)
-                    # Loop again with the new tool results
-                    continue
+            if response.tool_calls:
+                all_read_only = all(tc.get("function", {}).get("name") in READ_ONLY_TOOLS for tc in response.tool_calls)
+                if all_read_only:
+                    consecutive_read_turns += 1
                 else:
-                    self._conversation.add_message("assistant", response.content)
+                    consecutive_read_turns = 0
+
+                self._conversation.add_message("assistant", response.content, tool_calls=response.tool_calls)
+                self._store.save(self._conversation)
+                
+                for tc in response.tool_calls:
+                    if abort_check(): break
+                    func_name = tc["function"]["name"]
+                    tool_id = tc.get("id", f"tc-{func_name}-{id(tc):x}")
+                    try:
+                        func_args = json.loads(tc["function"]["arguments"])
+                    except json.JSONDecodeError:
+                        func_args = {}
+
+                    args_preview = json.dumps(func_args)[:100]
+                    if on_tool_call:
+                        try:
+                            on_tool_call(func_name, args_preview, "running", tool_id)
+                        except TypeError:
+                            on_tool_call(func_name, args_preview, "running")
+                        import time
+                        time.sleep(0.12)
+
+                    tool_result = self._execute_tool(func_name, func_args)
+
+                    if tool_result.startswith("Error"):
+                        tool_result += "\n\n[SYSTEM WARNING]: Tool execution failed. Do not stop. Analyze the error, fix the parameters, and try again or use a different approach. You must complete the objective."
+
+                    if on_tool_call:
+                        status = "success" if not tool_result.startswith("Error") else "error"
+                        try:
+                            on_tool_call(func_name, args_preview, status, tool_id)
+                        except TypeError:
+                            on_tool_call(func_name, args_preview, status)
+
+                    # Show result preview in the tool card (like Claude Code does)
+                    if on_tool_output and tool_id:
+                        preview = (tool_result or "(no output)")[:1500]
+                        try:
+                            on_tool_output(tool_id, preview)
+                        except Exception:
+                            pass
+
+                    self._conversation.add_message(
+                        "tool",
+                        tool_result,
+                        tool_call_id=tc["id"],
+                        name=func_name,
+                    )
                     self._store.save(self._conversation)
-                    return response.content
+                # Loop again with the new tool results
+                continue
+            else:
+                self._conversation.add_message("assistant", response.content)
+                self._store.save(self._conversation)
+                return response.content
         finally:
             self._current_provider = None
 
@@ -527,42 +645,40 @@ class Agent:
                 return f"File written successfully: {path}"
 
             elif name == "run_command":
+                import subprocess
+                import time as _time
+                import queue as _queue
+
                 command = args.get("command", "")
-                workdir = args.get("workdir", self._config.workspace_path or None)
+                _ws = self._config.workspace_path or os.getcwd()
+                workdir = args.get("workdir", _ws)
+                if workdir and not os.path.isabs(workdir):
+                    workdir = os.path.join(_ws, workdir)
+                timeout_secs = int(args.get("timeout", 120))
                 if not command:
                     return "Error: No command specified"
-                
-                # Command execution safety check
+
+                # Permission check
                 if self.permission_callback:
                     try:
-                        # Try calling the permission callback directly. If it's the fixed version
-                        # or another callback, it will succeed.
                         allowed = self.permission_callback(command)
                     except TypeError as te:
-                        # If it failed due to the QMetaObject.invokeMethod signature mismatch in PySide6,
-                        # let's execute the dialog using QTimer.singleShot on the MainWindow instance.
                         main_window = getattr(self.permission_callback, "__self__", None)
                         if main_window is not None:
-                            import threading
                             from PySide6.QtCore import QTimer
                             from PySide6.QtWidgets import QMessageBox
-                            
                             result_holder = [False]
                             event = threading.Event()
-                            
                             def show_dialog():
                                 try:
                                     reply = QMessageBox.question(
                                         main_window, "AI Agent Command Authorization",
-                                        f"The AI Agent wants to execute the following command:\n\n"
-                                        f"{command}\n\n"
-                                        f"Do you authorize this?",
-                                        QMessageBox.Yes | QMessageBox.No
+                                        f"The AI Agent wants to execute:\n\n{command}\n\nAuthorize?",
+                                        QMessageBox.Yes | QMessageBox.No,
                                     )
                                     result_holder[0] = (reply == QMessageBox.Yes)
                                 finally:
                                     event.set()
-                                    
                             QTimer.singleShot(0, show_dialog)
                             event.wait()
                             allowed = result_holder[0]
@@ -570,52 +686,128 @@ class Agent:
                             raise te
                     if not allowed:
                         return "Error: Command execution denied by user."
-                
-                import subprocess
-                import time as _time
+
+                def _kill_proc(p):
+                    """Kill process and its children reliably on all platforms."""
+                    try:
+                        if sys.platform == "win32":
+                            subprocess.call(
+                                ["taskkill", "/F", "/T", "/PID", str(p.pid)],
+                                shell=False,
+                                stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL,
+                            )
+                        else:
+                            import signal as _sig
+                            try:
+                                os.killpg(os.getpgid(p.pid), _sig.SIGKILL)
+                            except Exception:
+                                p.kill()
+                    except Exception:
+                        try:
+                            p.kill()
+                        except Exception:
+                            pass
+                    try:
+                        p.wait(3)
+                    except Exception:
+                        pass
+
+                def _reader(pipe, q):
+                    """Read pipe in 4096-byte chunks — avoids blocking on partial lines."""
+                    try:
+                        while True:
+                            chunk = pipe.read(4096)
+                            if not chunk:
+                                break
+                            q.put(chunk)
+                    except Exception:
+                        pass
+                    finally:
+                        try:
+                            pipe.close()
+                        except Exception:
+                            pass
+
                 try:
-                    proc = subprocess.Popen(
-                        command,
+                    popen_kwargs = dict(
                         shell=True,
                         cwd=workdir,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
-                        text=True,
+                        # KEY FIX: never block waiting for stdin input
+                        stdin=subprocess.DEVNULL,
                     )
+                    if sys.platform == "win32":
+                        # No console window; new process group so taskkill /T works
+                        popen_kwargs["creationflags"] = (
+                            subprocess.CREATE_NO_WINDOW
+                            | subprocess.CREATE_NEW_PROCESS_GROUP
+                        )
+                    else:
+                        # Own session → own process group for killpg
+                        popen_kwargs["start_new_session"] = True
+
+                    proc = subprocess.Popen(**popen_kwargs)
                     self._current_process = proc
-                    start_time = _time.time()
-                    stdout, stderr = "", ""
+
+                    stdout_q: _queue.Queue = _queue.Queue()
+                    stderr_q: _queue.Queue = _queue.Queue()
+                    t_out = threading.Thread(target=_reader, args=(proc.stdout, stdout_q), daemon=True)
+                    t_err = threading.Thread(target=_reader, args=(proc.stderr, stderr_q), daemon=True)
+                    t_out.start()
+                    t_err.start()
+
+                    start = _time.monotonic()
+                    timed_out = False
                     while proc.poll() is None:
                         if getattr(self, '_abort_flag', False):
-                            proc.kill()
+                            _kill_proc(proc)
+                            t_out.join(1.0)
+                            t_err.join(1.0)
+                            self._current_process = None
                             return "Agent dihentikan oleh pengguna."
-                        try:
-                            out, err = proc.communicate(timeout=0.5)
-                            stdout, stderr = out, err
+                        if _time.monotonic() - start > timeout_secs:
+                            timed_out = True
+                            _kill_proc(proc)
                             break
-                        except subprocess.TimeoutExpired:
-                            if _time.time() - start_time > 30:
-                                proc.kill()
-                                out, err = proc.communicate()
-                                stdout, stderr = out, err
-                                stdout += "\n[timed out]"
-                                break
-                    if getattr(self, '_abort_flag', False) and proc.returncode == -9:
-                        return "Agent dihentikan oleh pengguna."
-                    output = stdout
-                    if stderr:
-                        output += "\n[stderr]\n" + stderr
+                        _time.sleep(0.05)
+
+                    t_out.join(3.0)
+                    t_err.join(3.0)
+                    self._current_process = None
+
+                    raw_out = b"".join(list(stdout_q.queue))
+                    raw_err = b"".join(list(stderr_q.queue))
+                    stdout = raw_out.decode("utf-8", errors="replace")
+                    stderr = raw_err.decode("utf-8", errors="replace")
+                    rc = proc.returncode
+
+                    if timed_out:
+                        output = stdout + f"\n[TIMEOUT after {timeout_secs}s — process killed]"
+                        if stderr:
+                            output += "\n[stderr]\n" + stderr
+                    else:
+                        output = stdout
+                        if stderr:
+                            output += "\n[stderr]\n" + stderr
+                        if rc not in (None, 0):
+                            output += f"\n[exit code: {rc}]"
+
                 except FileNotFoundError:
+                    self._current_process = None
                     output = f"Error: command not found: {command.split()[0] if command else ''}"
                 except Exception as ex:
-                    output = f"Error running command: {str(ex)}"
-                finally:
                     self._current_process = None
-                    
-                # Truncate long terminal output to save tokens
-                if len(output) > 3000:
-                    output = "...(truncated)...\n" + output[-3000:]
-                    
+                    output = f"Error running command: {str(ex)}"
+
+                # Smart truncation: keep head + tail so context is preserved
+                if len(output) > 8000:
+                    head = output[:2000]
+                    tail = output[-5000:]
+                    skipped = len(output) - 7000
+                    output = f"{head}\n\n... [{skipped} chars truncated] ...\n\n{tail}"
+
                 return output or "(no output)"
 
             elif name == "update_core_memory":
@@ -641,7 +833,10 @@ class Agent:
 
             elif name == "search_files":
                 query = args.get("query", "")
-                path = args.get("path", self._config.workspace_path or os.getcwd())
+                workspace = self._config.workspace_path or os.getcwd()
+                path = args.get("path", workspace)
+                if not os.path.isabs(path):
+                    path = os.path.join(workspace, path)
                 if not query:
                     return "Error: No query specified"
                 results = self._fs.grep(query, path, max_results=50)
@@ -653,7 +848,10 @@ class Agent:
                 return "\n".join(lines)
 
             elif name == "list_files":
-                path = args.get("path", self._config.workspace_path or os.getcwd())
+                workspace = self._config.workspace_path or os.getcwd()
+                path = args.get("path", workspace)
+                if not os.path.isabs(path):
+                    path = os.path.join(workspace, path)
                 recursive = args.get("recursive", False)
                 files = self._fs.list_dir(path, recursive=recursive)
                 if not files:
@@ -820,6 +1018,176 @@ class Agent:
                 elif action == "send_input":
                     return f"Input sent to task {task_id}."
                 return "Unknown action."
+
+            elif name == "glob_files":
+                import fnmatch as _fnmatch2
+                pattern = args.get("pattern", "")
+                base = args.get("path", self._config.workspace_path or os.getcwd())
+                if not pattern:
+                    return "Error: No pattern specified"
+                if not os.path.isabs(base) and self._config.workspace_path:
+                    base = os.path.join(self._config.workspace_path, base)
+                skip = {".git", "__pycache__", "node_modules", ".venv", "venv", "dist", "build"}
+                results = []
+                for root, dirs, files in os.walk(base):
+                    dirs[:] = [d for d in dirs if d not in skip and not d.startswith(".")]
+                    for fname in files:
+                        full = os.path.join(root, fname)
+                        rel = os.path.relpath(full, base).replace(os.sep, "/")
+                        if _fnmatch2.fnmatch(rel, pattern) or _fnmatch2.fnmatch(fname, pattern):
+                            results.append(rel)
+                        if len(results) >= 200:
+                            break
+                    if len(results) >= 200:
+                        break
+                if not results:
+                    return "No files matched."
+                results.sort()
+                return "\n".join(results)
+
+            elif name == "grep":
+                import re as _re2
+                import fnmatch as _fnmatch3
+                pattern = args.get("pattern", "")
+                path = args.get("path", self._config.workspace_path or os.getcwd())
+                context = int(args.get("context_lines", 0))
+                file_pat = args.get("file_pattern", "")
+                ci = args.get("case_insensitive", False)
+                if not pattern:
+                    return "Error: No pattern specified"
+                if not os.path.isabs(path) and self._config.workspace_path:
+                    path = os.path.join(self._config.workspace_path, path)
+                flags = _re2.IGNORECASE if ci else 0
+                try:
+                    regex = _re2.compile(pattern, flags)
+                except _re2.error as e:
+                    return f"Error: Invalid regex: {e}"
+                output_lines = []
+                skip2 = {".git", "__pycache__", "node_modules", ".venv", "venv"}
+
+                def _grep_file(fpath, base_dir):
+                    try:
+                        with open(fpath, "r", encoding="utf-8", errors="replace") as f:
+                            lines = f.readlines()
+                        rel = os.path.relpath(fpath, base_dir).replace(os.sep, "/")
+                        for i, line in enumerate(lines):
+                            if regex.search(line):
+                                s, e2 = max(0, i - context), min(len(lines), i + context + 1)
+                                if context > 0:
+                                    output_lines.append(f"--- {rel} ---")
+                                for j in range(s, e2):
+                                    prefix = ">" if j == i else " "
+                                    output_lines.append(f"{rel}:{j+1}{prefix} {lines[j].rstrip()}")
+                                if len(output_lines) >= 500:
+                                    return True
+                    except Exception:
+                        pass
+                    return False
+
+                if os.path.isfile(path):
+                    _grep_file(path, os.path.dirname(path))
+                else:
+                    for root, dirs, files in os.walk(path):
+                        dirs[:] = [d for d in dirs if d not in skip2 and not d.startswith(".")]
+                        for fname in files:
+                            if file_pat and not _fnmatch3.fnmatch(fname, file_pat):
+                                continue
+                            if _grep_file(os.path.join(root, fname), path):
+                                break
+                if not output_lines:
+                    return "No matches found."
+                return "\n".join(output_lines[:500])
+
+            elif name == "apply_patch":
+                patch_text = args.get("patch", "")
+                if not patch_text:
+                    return "Error: No patch provided"
+
+                # Parse unified diff into per-hunk (old, new) pairs
+                plines = patch_text.splitlines()
+                target_file = None
+                hunks = []
+                cur_old: list = []
+                cur_new: list = []
+                in_hunk = False
+
+                for ln in plines:
+                    if ln.startswith("+++ "):
+                        fname = ln[4:].split("\t")[0].strip()
+                        for pfx in ("b/", "a/"):
+                            if fname.startswith(pfx):
+                                fname = fname[len(pfx):]
+                                break
+                        target_file = fname
+                        in_hunk = False
+                    elif ln.startswith("--- "):
+                        pass
+                    elif ln.startswith("@@"):
+                        # New hunk boundary — save previous hunk
+                        if in_hunk:
+                            hunks.append((list(cur_old), list(cur_new)))
+                        cur_old, cur_new = [], []
+                        in_hunk = True
+                    elif in_hunk:
+                        if ln.startswith("-"):
+                            cur_old.append(ln[1:])
+                        elif ln.startswith("+"):
+                            cur_new.append(ln[1:])
+                        else:
+                            # Context line (space prefix or bare)
+                            ctx = ln[1:] if ln.startswith(" ") else ln
+                            cur_old.append(ctx)
+                            cur_new.append(ctx)
+
+                if in_hunk:
+                    hunks.append((cur_old, cur_new))
+
+                if not target_file:
+                    return "Error: Could not parse patch — expected unified diff (--- / +++ format)"
+                if not hunks:
+                    return "Error: No hunks found in patch"
+
+                if not os.path.isabs(target_file) and self._config.workspace_path:
+                    target_file = os.path.join(self._config.workspace_path, target_file)
+                if not os.path.isfile(target_file):
+                    return f"Error: File not found: {target_file}"
+
+                with open(target_file, "r", encoding="utf-8", errors="replace") as f:
+                    content = f.read()
+
+                # Apply hunks sequentially; each replaces first occurrence
+                applied, failed = 0, []
+                for idx, (old_ls, new_ls) in enumerate(hunks):
+                    old_text = "\n".join(old_ls)
+                    new_text = "\n".join(new_ls)
+                    if old_text in content:
+                        content = content.replace(old_text, new_text, 1)
+                        applied += 1
+                    else:
+                        failed.append(idx + 1)
+
+                if applied == 0:
+                    preview = "\n".join(hunks[0][0][:5]) if hunks else ""
+                    return (
+                        f"Error: No hunks applied — old content not found in {target_file}.\n"
+                        f"First hunk expected:\n{preview}"
+                    )
+
+                with open(target_file, "w", encoding="utf-8") as f:
+                    f.write(content)
+
+                if failed:
+                    return f"Partial patch: {applied}/{len(hunks)} hunks applied to {target_file}. Skipped hunks: {failed}"
+                return f"Patch applied: {applied} hunk(s) → {target_file}"
+
+            elif name == "create_directory":
+                path = args.get("path", "")
+                if not path:
+                    return "Error: No path specified"
+                if not os.path.isabs(path) and self._config.workspace_path:
+                    path = os.path.join(self._config.workspace_path, path)
+                os.makedirs(path, exist_ok=True)
+                return f"Directory created: {path}"
 
             else:
                 return f"Error: Unknown tool {name}"

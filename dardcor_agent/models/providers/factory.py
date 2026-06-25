@@ -2,21 +2,20 @@ from typing import Optional, Dict, Any
 from .base import BaseProvider
 
 
+def _build_antigravity_model_set() -> set:
+    """Derive Antigravity model IDs from the registry so this never drifts."""
+    try:
+        from .registry import PROVIDER_REGISTRY
+        entry = PROVIDER_REGISTRY.get("Antigravity", {})
+        return {m["id"] for m in entry.get("models", []) if m.get("id")}
+    except Exception:
+        return set()
+
+
 class ProviderFactory:
     """Factory to instantiate the appropriate provider."""
 
-    _ANTIGRAVITY_MODELS = {
-        "Gemini 3.5 Flash (High)",
-        "Gemini 3.5 Flash (Medium)",
-        "Gemini 3.5 Flash (Low)",
-        "Gemini 3.1 Pro (High)",
-        "Gemini 3.1 Pro (Low)",
-        "Gemini 3 Flash",
-        "Gemini 2.5 Pro",
-        "Claude Opus 4.6 (Thinking)",
-        "Claude Sonnet 4.6 (Thinking)",
-        "Claude Sonnet 4.6",
-    }
+    _ANTIGRAVITY_MODELS = _build_antigravity_model_set()
 
     @staticmethod
     def create(config: Any, model_override: Optional[str]) -> BaseProvider:
@@ -39,10 +38,13 @@ class ProviderFactory:
                         from .antigravity.provider import AntigravityProvider
                         return AntigravityProvider()
 
+                from .registry import PROVIDER_REGISTRY
                 project_root = os.path.normpath(
                     os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..")
                 )
-                for std_name in ("Gemini", "OpenRouter", "DeepSeek", "NVIDIA"):
+                for std_name, pdef in PROVIDER_REGISTRY.items():
+                    if pdef.get("is_special"):
+                        continue
                     if not providers.get(std_name, False):
                         continue
                     config_path = os.path.join(

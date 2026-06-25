@@ -2214,6 +2214,8 @@ class MainWindow(QMainWindow):
         self._config.workspace_path = effective
         self._config.save()
         self._update_window_title()
+        if effective and hasattr(self, '_agent'):
+            self._agent.set_workspace(effective)
         QTimer.singleShot(100, self._detect_git_branch)
 
     def _update_window_title(self, file_path: str = None):
@@ -2290,6 +2292,7 @@ class MainWindow(QMainWindow):
                     model_override=selected_model,
                     on_tool_call=self._chat_panel.append_tool_call,
                     on_system_message=self._chat_panel.append_system_message,
+                    on_tool_output=self._chat_panel.append_tool_output,
                 )
                 if response and response != "Agent dihentikan oleh pengguna.":
                     self._chat_panel.append_agent_message(response)

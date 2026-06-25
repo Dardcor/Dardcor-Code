@@ -34,8 +34,11 @@ class StandardOpenAIProvider(BaseProvider):
             with open(provider_file, "r", encoding="utf-8") as f:
                 states = json.load(f)
 
+            from dardcor_agent.models.providers.registry import PROVIDER_REGISTRY
             project_root = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", ".."))
-            for provider_name in ["Gemini", "OpenRouter", "DeepSeek", "NVIDIA"]:
+            for provider_name, pdef in PROVIDER_REGISTRY.items():
+                if pdef.get("is_special"):
+                    continue
                 if not states.get(provider_name, False):
                     continue
                 config_path = os.path.join(project_root, "database", "models", provider_name, "config.json")
@@ -43,7 +46,6 @@ class StandardOpenAIProvider(BaseProvider):
                     continue
                 with open(config_path, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                provider_key = provider_name.lower()
                 if model_override:
                     model_ids = {m.get("id") for m in data.get("models", []) if m.get("id")}
                     if data.get("selected_model"):
@@ -51,10 +53,10 @@ class StandardOpenAIProvider(BaseProvider):
                     if model_override not in model_ids:
                         continue
                 return {
-                    "provider": provider_key,
+                    "provider": provider_name.lower(),
                     "api_key": data.get("api_key", ""),
                     "model": data.get("selected_model", ""),
-                    "base_url": data.get("base_url", ""),
+                    "base_url": data.get("base_url", "") or pdef.get("base_url", ""),
                 }
         except Exception:
             return {}

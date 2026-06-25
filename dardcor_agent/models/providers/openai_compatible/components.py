@@ -22,6 +22,7 @@ _PROJECT_ROOT = os.path.normpath(
 
 
 PROVIDER_DEFINITIONS = {
+    # ─── Existing ──────────────────────────────────────────────────────────────
     "OpenRouter": {
         "title": "OpenRouter API Configuration",
         "icon": "◇",
@@ -46,6 +47,224 @@ PROVIDER_DEFINITIONS = {
         "models_url": "https://integrate.api.nvidia.com/v1/models",
         "base_url": "https://integrate.api.nvidia.com/v1",
     },
+    # ─── Tier 1: Major Cloud Providers ────────────────────────────────────────
+    "OpenAI": {
+        "title": "OpenAI API Configuration",
+        "icon": "⊕",
+        "accent": "#10a37f",
+        "placeholder": "sk-...",
+        "models_url": "https://api.openai.com/v1/models",
+        "base_url": "https://api.openai.com/v1",
+    },
+    "Anthropic": {
+        "title": "Anthropic API Configuration",
+        "icon": "◈",
+        "accent": "#d97706",
+        "placeholder": "sk-ant-...",
+        "models_url": "",
+        "base_url": "https://api.anthropic.com/v1",
+    },
+    "xAI": {
+        "title": "xAI (Grok) API Configuration",
+        "icon": "✕",
+        "accent": "#1da1f2",
+        "placeholder": "xai-...",
+        "models_url": "https://api.x.ai/v1/models",
+        "base_url": "https://api.x.ai/v1",
+    },
+    # ─── Fast Inference ────────────────────────────────────────────────────────
+    "Groq": {
+        "title": "Groq API Configuration",
+        "icon": "▶",
+        "accent": "#f55036",
+        "placeholder": "gsk_...",
+        "models_url": "https://api.groq.com/openai/v1/models",
+        "base_url": "https://api.groq.com/openai/v1",
+    },
+    "Cerebras": {
+        "title": "Cerebras API Configuration",
+        "icon": "⬡",
+        "accent": "#ff6b35",
+        "placeholder": "csk-...",
+        "models_url": "https://api.cerebras.ai/v1/models",
+        "base_url": "https://api.cerebras.ai/v1",
+    },
+    # ─── European / Specialized ────────────────────────────────────────────────
+    "Mistral": {
+        "title": "Mistral AI API Configuration",
+        "icon": "⊞",
+        "accent": "#ff7000",
+        "placeholder": "...",
+        "models_url": "https://api.mistral.ai/v1/models",
+        "base_url": "https://api.mistral.ai/v1",
+    },
+    "Cohere": {
+        "title": "Cohere API Configuration",
+        "icon": "◍",
+        "accent": "#39594d",
+        "placeholder": "...",
+        "models_url": "",
+        "base_url": "https://api.cohere.com/compatibility/v1",
+    },
+    "Perplexity": {
+        "title": "Perplexity API Configuration",
+        "icon": "◌",
+        "accent": "#1fb8cd",
+        "placeholder": "pplx-...",
+        "models_url": "",
+        "base_url": "https://api.perplexity.ai",
+    },
+    # ─── Alternative Inference Platforms ──────────────────────────────────────
+    "TogetherAI": {
+        "title": "Together AI API Configuration",
+        "icon": "⧖",
+        "accent": "#7c3aed",
+        "placeholder": "...",
+        "models_url": "https://api.together.xyz/v1/models",
+        "base_url": "https://api.together.xyz/v1",
+    },
+    "DeepInfra": {
+        "title": "DeepInfra API Configuration",
+        "icon": "⬢",
+        "accent": "#6366f1",
+        "placeholder": "...",
+        "models_url": "https://api.deepinfra.com/v1/openai/models",
+        "base_url": "https://api.deepinfra.com/v1/openai",
+    },
+    "FireworksAI": {
+        "title": "Fireworks AI API Configuration",
+        "icon": "✦",
+        "accent": "#ef4444",
+        "placeholder": "fw-...",
+        "models_url": "",
+        "base_url": "https://api.fireworks.ai/inference/v1",
+    },
+    "Hyperbolic": {
+        "title": "Hyperbolic API Configuration",
+        "icon": "≋",
+        "accent": "#0ea5e9",
+        "placeholder": "...",
+        "models_url": "https://api.hyperbolic.xyz/v1/models",
+        "base_url": "https://api.hyperbolic.xyz/v1",
+    },
+    "NovitaAI": {
+        "title": "Novita AI API Configuration",
+        "icon": "⬛",
+        "accent": "#8b5cf6",
+        "placeholder": "...",
+        "models_url": "https://api.novita.ai/v3/openai/models",
+        "base_url": "https://api.novita.ai/v3/openai",
+    },
+    "SambaNova": {
+        "title": "SambaNova API Configuration",
+        "icon": "◤",
+        "accent": "#e11d48",
+        "placeholder": "...",
+        "models_url": "https://api.sambanova.ai/v1/models",
+        "base_url": "https://api.sambanova.ai/v1",
+    },
+    # ─── Chinese / Asian Providers ─────────────────────────────────────────────
+    "MoonshotAI": {
+        "title": "Moonshot AI (Kimi) API Configuration",
+        "icon": "☾",
+        "accent": "#4f46e5",
+        "placeholder": "sk-...",
+        "models_url": "https://api.moonshot.cn/v1/models",
+        "base_url": "https://api.moonshot.cn/v1",
+    },
+    "ZhipuAI": {
+        "title": "Zhipu AI (GLM) API Configuration",
+        "icon": "⬡",
+        "accent": "#3b82f6",
+        "placeholder": "...",
+        "models_url": "",
+        "base_url": "https://open.bigmodel.cn/api/paas/v4",
+    },
+    "Minimax": {
+        "title": "MiniMax API Configuration",
+        "icon": "◎",
+        "accent": "#7c3aed",
+        "placeholder": "...",
+        "models_url": "",
+        "base_url": "https://api.minimaxi.chat/v1",
+    },
+    "AlibabaDashScope": {
+        "title": "Alibaba DashScope (Qwen) API Configuration",
+        "icon": "◈",
+        "accent": "#f97316",
+        "placeholder": "sk-...",
+        "models_url": "",
+        "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    },
+    # ─── Enterprise / Specialized ──────────────────────────────────────────────
+    "AzureOpenAI": {
+        "title": "Azure OpenAI API Configuration",
+        "icon": "⊞",
+        "accent": "#0078d4",
+        "placeholder": "...",
+        "models_url": "",
+        "base_url": "",
+        "requires_base_url": True,
+    },
+    "UpstageAI": {
+        "title": "Upstage AI API Configuration",
+        "icon": "↑",
+        "accent": "#6366f1",
+        "placeholder": "up-...",
+        "models_url": "",
+        "base_url": "https://api.upstage.ai/v1",
+    },
+    "LeptonAI": {
+        "title": "Lepton AI API Configuration",
+        "icon": "λ",
+        "accent": "#14b8a6",
+        "placeholder": "...",
+        "models_url": "",
+        "base_url": "https://llama3-1-405b.lepton.run/api/v1",
+    },
+    "VeniceAI": {
+        "title": "Venice AI API Configuration",
+        "icon": "⛵",
+        "accent": "#0891b2",
+        "placeholder": "...",
+        "models_url": "https://api.venice.ai/api/v1/models",
+        "base_url": "https://api.venice.ai/api/v1",
+    },
+    "CloudflareAI": {
+        "title": "Cloudflare Workers AI Configuration",
+        "icon": "☁",
+        "accent": "#f6821f",
+        "placeholder": "...",
+        "models_url": "",
+        "base_url": "",
+        "requires_base_url": True,
+    },
+    # ─── Local / Self-hosted ───────────────────────────────────────────────────
+    "Ollama": {
+        "title": "Ollama (Local) Configuration",
+        "icon": "⊙",
+        "accent": "#6b7280",
+        "placeholder": "(no key needed)",
+        "models_url": "http://localhost:11434/v1/models",
+        "base_url": "http://localhost:11434/v1",
+    },
+    "LMStudio": {
+        "title": "LM Studio (Local) Configuration",
+        "icon": "⊡",
+        "accent": "#6b7280",
+        "placeholder": "(no key needed)",
+        "models_url": "http://localhost:1234/v1/models",
+        "base_url": "http://localhost:1234/v1",
+    },
+    "OpenAICompatible": {
+        "title": "Custom OpenAI-Compatible Endpoint",
+        "icon": "⬡",
+        "accent": "#64748b",
+        "placeholder": "your-api-key",
+        "models_url": "",
+        "base_url": "",
+        "requires_base_url": True,
+    },
 }
 
 
@@ -67,7 +286,9 @@ def load_provider_config(provider_name: str) -> dict:
 def save_provider_config(provider_name: str, data: dict) -> None:
     definition = PROVIDER_DEFINITIONS[provider_name]
     data.setdefault("provider", provider_name.lower())
-    data.setdefault("base_url", definition["base_url"])
+    default_base = definition.get("base_url", "")
+    if default_base:
+        data.setdefault("base_url", default_base)
     path = provider_config_path(provider_name)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
@@ -270,6 +491,28 @@ class OpenAICompatibleProviderPanel(QWidget):
         self._status_lbl = QLabel("")
         self._status_lbl.setStyleSheet("color: #6b7280; font-size: 11px; background: transparent; border: none;")
         api_layout.addWidget(self._status_lbl)
+
+        if self.definition.get("requires_base_url"):
+            base_row = QHBoxLayout()
+            base_row.setSpacing(10)
+            base_container = QFrame()
+            base_container.setStyleSheet("QFrame { background-color: #111315; border: 1px solid #374151; border-radius: 8px; }")
+            base_inner = QHBoxLayout(base_container)
+            base_inner.setContentsMargins(12, 0, 12, 0)
+            base_inner.setSpacing(8)
+            base_inner.addWidget(QLabel("🌐", styleSheet="background: transparent; border: none; font-size: 14px;"))
+            self._base_url_input = QLineEdit()
+            self._base_url_input.setPlaceholderText("https://your-endpoint.example.com/v1")
+            self._base_url_input.setFixedHeight(38)
+            self._base_url_input.setText(self._config.get("base_url", ""))
+            self._base_url_input.setStyleSheet("QLineEdit { background: transparent; border: none; color: #e4e4e7; font-size: 13px; font-family: monospace; }")
+            base_inner.addWidget(self._base_url_input, stretch=1)
+            base_row.addWidget(base_container, stretch=1)
+            api_layout.addLayout(base_row)
+            base_hint = QLabel("⚠️ Required: enter your API endpoint URL above.")
+            base_hint.setStyleSheet("color: #f59e0b; font-size: 11px; background: transparent; border: none;")
+            api_layout.addWidget(base_hint)
+
         main_layout.addWidget(api_section)
 
         save_bar = QFrame()
@@ -329,8 +572,12 @@ class OpenAICompatibleProviderPanel(QWidget):
             self._show_btn.setText("👁")
 
     def _fetch_models(self):
+        if not self.definition.get("models_url"):
+            self._status_lbl.setText("ℹ️ Provider ini tidak memiliki endpoint model. Masukkan model ID secara manual di config.")
+            self._status_lbl.setStyleSheet("color: #60a5fa; font-size: 11px; background: transparent; border: none;")
+            return
         api_key = self._key_input.text().strip()
-        if not api_key and self.provider_name != "OpenRouter":
+        if not api_key and self.provider_name not in ("OpenRouter", "Ollama", "LMStudio"):
             self._status_lbl.setText("⚠️ Masukkan API key terlebih dahulu.")
             self._status_lbl.setStyleSheet("color: #f59e0b; font-size: 11px; background: transparent; border: none;")
             return
@@ -353,7 +600,10 @@ class OpenAICompatibleProviderPanel(QWidget):
         cfg = load_provider_config(self.provider_name)
         cfg["models"] = models
         cfg["api_key"] = self._key_input.text().strip()
-        cfg["base_url"] = self.definition["base_url"]
+        if hasattr(self, "_base_url_input"):
+            cfg["base_url"] = self._base_url_input.text().strip() or self.definition.get("base_url", "")
+        else:
+            cfg["base_url"] = self.definition["base_url"]
         save_provider_config(self.provider_name, cfg)
         self._status_lbl.setText(f"✅ Berhasil memuat {len(models)} model dari {self.provider_name}.")
         self._status_lbl.setStyleSheet("color: #2f9e44; font-size: 11px; background: transparent; border: none;")
@@ -402,7 +652,10 @@ class OpenAICompatibleProviderPanel(QWidget):
         data = load_provider_config(self.provider_name)
         data["api_key"] = self._key_input.text().strip()
         data["selected_model"] = self._selected_model
-        data["base_url"] = self.definition["base_url"]
+        if hasattr(self, "_base_url_input"):
+            data["base_url"] = self._base_url_input.text().strip() or self.definition.get("base_url", "")
+        else:
+            data["base_url"] = self.definition["base_url"]
         if self._models:
             data["models"] = self._models
         save_provider_config(self.provider_name, data)
