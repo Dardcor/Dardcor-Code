@@ -524,9 +524,11 @@ class EditorGroup(QWidget):
         if ed:
             self._save_editor(ed)
 
-    def save_all(self):
+    def save_all(self, is_auto_save=False):
         for i, tab in enumerate(self._tabs):
             if tab.editor.is_dirty():
+                if is_auto_save and not tab.file_path:
+                    continue
                 self._save_editor(tab.editor)
 
     def close_current(self):

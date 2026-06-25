@@ -2067,7 +2067,7 @@ class MainWindow(QMainWindow):
 
     def _save_all_dirty_if_auto_save(self):
         if getattr(self._config, 'auto_save', False):
-            self._save_all()
+            self._editor_tabs.save_all(is_auto_save=True)
 
     def _on_auto_save_toggle(self, checked: bool):
         self._config.auto_save = checked

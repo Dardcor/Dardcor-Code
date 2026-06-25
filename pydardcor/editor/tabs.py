@@ -84,9 +84,9 @@ class EditorTabs(QWidget):
         g = self.active_group()
         if g: g.save_current()
 
-    def save_all(self):
+    def save_all(self, is_auto_save=False):
         for g in self._groups:
-            g.save_all()
+            g.save_all(is_auto_save)
 
     def close_current(self):
         g = self.active_group()
