@@ -118,6 +118,48 @@ class ChromeButton(QPushButton):
         painter.end()
 
 
+class SearchButton(QPushButton):
+    """Custom button for the Command Center that allows window dragging and double-click to maximize."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._start_pos = None
+        self._is_dragging = False
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self._start_pos = event.globalPosition().toPoint()
+            self._is_dragging = False
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self._start_pos is not None:
+            delta = event.globalPosition().toPoint() - self._start_pos
+            if delta.manhattanLength() > 3:
+                self._is_dragging = True
+                window = self.window()
+                if not window.isMaximized():
+                    window.move(window.pos() + delta)
+                    self._start_pos = event.globalPosition().toPoint()
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if self._start_pos is not None:
+            self._start_pos = None
+        if not self._is_dragging:
+            super().mouseReleaseEvent(event)
+
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            window = self.window()
+            if hasattr(window, 'toggle_max_restore'):
+                window.toggle_max_restore()
+            elif window.isMaximized():
+                window.showNormal()
+            else:
+                window.showMaximized()
+            event.accept()
+
+
 class CommandCenterWidget(QWidget):
     """VS Code style Command Center (Search bar) in the Title Bar."""
     def __init__(self, parent=None):
@@ -162,35 +204,55 @@ class CommandCenterWidget(QWidget):
             }
         """)
         
-        self.btn_back = QPushButton("\ueab6") # arrow-left
+        self.btn_back = QPushButton("\uea9b") # arrow-left
         self.btn_back.setToolTip("Go Back")
         self.btn_back.setFixedSize(28, 24)
         
-        self.btn_forward = QPushButton("\ueab7") # arrow-right
+        self.btn_forward = QPushButton("\uea9c") # arrow-right
         self.btn_forward.setToolTip("Go Forward")
         self.btn_forward.setFixedSize(28, 24)
         
-        self.search_btn = QPushButton()
+        self.search_btn = SearchButton()
         self.search_btn.setObjectName("SearchBox")
         self.search_btn.setCursor(Qt.PointingHandCursor)
-        sc_layout = QHBoxLayout(self.search_btn)
-        sc_layout.setContentsMargins(10, 0, 10, 0)
-        sc_layout.setSpacing(8)
+        self.search_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         
-        search_icon = QLabel("\uea6d")
-        search_icon.setFont(QFont("codicon", 11))
-        search_icon.setStyleSheet("color: #858585;")
+        sc_layout = QHBoxLayout(self.search_btn)
+        sc_layout.setContentsMargins(10, 0, 8, 0)
+        sc_layout.setSpacing(6)
         
         self.lbl_title = QLabel("Dardcor Code")
         self.lbl_title.setStyleSheet("color: #cccccc;")
+        self.lbl_title.setAlignment(Qt.AlignCenter)
+        self.lbl_title.setAttribute(Qt.WA_TransparentForMouseEvents)
         
-        sc_layout.addWidget(search_icon)
+        separator = QLabel("|")
+        separator.setStyleSheet("color: rgba(255, 255, 255, 0.15); font-size: 14px;")
+        separator.setAttribute(Qt.WA_TransparentForMouseEvents)
+        
+        # Copilot/Chat sparkle icon
+        copilot_icon = QLabel("\uec4f") # chat-sparkle codicon
+        copilot_icon.setFont(QFont("codicon", 12))
+        copilot_icon.setStyleSheet("color: #cccccc;")
+        copilot_icon.setAttribute(Qt.WA_TransparentForMouseEvents)
+        
+        chevron_down = QLabel("\ueab4") # chevron-down
+        chevron_down.setFont(QFont("codicon", 10))
+        chevron_down.setStyleSheet("color: #858585;")
+        chevron_down.setAttribute(Qt.WA_TransparentForMouseEvents)
+        
+        # Centering the title, keeping right icons fixed
+        sc_layout.addStretch(1)
         sc_layout.addWidget(self.lbl_title)
-        sc_layout.addStretch()
+        sc_layout.addStretch(1)
+        
+        sc_layout.addWidget(separator)
+        sc_layout.addWidget(copilot_icon)
+        sc_layout.addWidget(chevron_down)
         
         layout.addWidget(self.btn_back)
         layout.addWidget(self.btn_forward)
-        layout.addWidget(self.search_btn)
+        layout.addWidget(self.search_btn, 1)
 
     def set_title(self, text):
         self.lbl_title.setText(text)
@@ -344,19 +406,16 @@ class CustomTitleBar(QWidget):
         """)
         self.layout.addWidget(self.menu_bar)
 
-        self.layout.addStretch(1)  # left stretch
-        
         # Command Center
         self.command_center = CommandCenterWidget()
-        self.command_center.setFixedWidth(500)
+        self.command_center.setMinimumWidth(400)
+        self.command_center.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         
         # Connect buttons
-        self.command_center.search_btn.clicked.connect(self.parent._show_command_palette)
-        # Assuming we can connect back/forward to navigation (for now just print or no-op)
+        self.command_center.search_btn.clicked.connect(self.parent._show_command_center_quick_open)
+        self.command_center.search_btn.setToolTip("Search (Ctrl+P)")
         
-        self.layout.addWidget(self.command_center)
-
-        self.layout.addStretch(2)  # larger right stretch shifts title left
+        self.layout.addWidget(self.command_center, 1)
         
         # Window controls (compact 38px width)
         btn_style = """
@@ -2021,6 +2080,9 @@ class MainWindow(QMainWindow):
 
     def _open_file_in_editor(self, path: str):
         if os.path.isfile(path):
+            # Track as recently opened file
+            if hasattr(self, '_quick_open'):
+                self._quick_open.add_recent_file(path)
             editor = self._editor_tabs.open_file(path)
             if editor:
                 self._status_bar.set_language(editor.get_language())
@@ -2540,7 +2602,11 @@ class MainWindow(QMainWindow):
         self._command_palette.show_palette()
 
     def _show_quick_open(self):
-        self._quick_open.show_dialog()
+        self._quick_open.show_dialog(from_command_center=False)
+
+    def _show_command_center_quick_open(self):
+        """Open Quick Open in Command Center mode (shows help picks first)."""
+        self._quick_open.show_dialog(from_command_center=True)
 
     def _show_go_to_line(self):
         editor = self._editor_tabs.current_editor()
