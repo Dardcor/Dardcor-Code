@@ -27,6 +27,7 @@ new QWebChannel(qt.webChannelTransport, function (channel) {
     backend.append_agent_message.connect(appendAgentMessage);
     backend.append_system_message.connect(appendSystemMessage);
     backend.append_tool_call.connect(appendToolCall);
+    backend.update_tool_output.connect(updateToolOutput);
     backend.show_typing.connect(showTyping);
     backend.clear_chat.connect(clearChat);
     backend.show_notification.connect(showNotification);
@@ -188,6 +189,24 @@ function appendToolCall(toolId, toolName, args, status) {
     toolCards.set(toolId, div);
     const panel = ensureWorkPanel('working');
     panel.querySelector('.tool-list').appendChild(div);
+    scrollToBottom();
+}
+
+function updateToolOutput(toolId, chunk) {
+    const card = toolCards.get(toolId);
+    if (!card) return;
+    const body = card.querySelector('.tool-body');
+    if (!body) return;
+
+    // Find or create the live-output area inside the card body
+    let outEl = body.querySelector('.tool-output');
+    if (!outEl) {
+        outEl = document.createElement('div');
+        outEl.className = 'tool-output';
+        body.appendChild(outEl);
+    }
+
+    outEl.textContent = chunk;
     scrollToBottom();
 }
 

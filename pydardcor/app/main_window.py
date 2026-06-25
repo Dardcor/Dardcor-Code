@@ -1802,6 +1802,8 @@ class MainWindow(QMainWindow):
         self._git_panel.set_root(effective)
         self._config.workspace_path = effective
         self._config.save()
+        if effective and hasattr(self, '_agent'):
+            self._agent.set_workspace(effective)
         QTimer.singleShot(100, self._detect_git_branch)
 
     # ── Sidebar ───────────────────────────────────────────
@@ -1846,6 +1848,7 @@ class MainWindow(QMainWindow):
                     model_override=selected_model,
                     on_tool_call=self._chat_panel.append_tool_call,
                     on_system_message=self._chat_panel.append_system_message,
+                    on_tool_output=self._chat_panel.append_tool_output,
                 )
                 if response and response != "Agent dihentikan oleh pengguna.":
                     self._chat_panel.append_agent_message(response)

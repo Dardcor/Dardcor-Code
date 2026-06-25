@@ -229,6 +229,181 @@ class FlowLayout(QLayout):
 from dardcor_agent.models.providers.antigravity.components import ModelBadge, ActionButtons, AccountRow, AccountCard, QuotaWorker
 
 
+class ProviderChip(QFrame):
+    """Pill chip for a pinned provider in the header bar."""
+    switch_requested = Signal(str)
+    toggle_requested = Signal(str, bool)
+    remove_requested = Signal(str)
+
+    def __init__(self, name: str, is_active: bool, is_current: bool, can_remove: bool = True, parent=None):
+        super().__init__(parent)
+        self.name = name
+        self.setFixedHeight(30)
+        self.setAttribute(Qt.WA_StyledBackground, True)
+        self.setCursor(Qt.PointingHandCursor)
+
+        row = QHBoxLayout(self)
+        row.setContentsMargins(10, 0, 6 if can_remove else 10, 0)
+        row.setSpacing(5)
+
+        self.name_btn = QPushButton(name)
+        self.name_btn.setCursor(Qt.PointingHandCursor)
+        self.name_btn.setFlat(True)
+        self.name_btn.clicked.connect(lambda: self.switch_requested.emit(name))
+        row.addWidget(self.name_btn)
+
+        self.cb = QCheckBox()
+        self.cb.setFixedSize(16, 16)
+        self.cb.setStyleSheet(CHECKBOX_STYLE)
+        self.cb.setChecked(is_active)
+        self.cb.toggled.connect(lambda v: self.toggle_requested.emit(name, v))
+        row.addWidget(self.cb)
+
+        if can_remove:
+            rm = QPushButton("✕")
+            rm.setFixedSize(14, 14)
+            rm.setCursor(Qt.PointingHandCursor)
+            rm.setStyleSheet(
+                "QPushButton{background:transparent;border:none;color:#555;font-size:9px;padding:0}"
+                "QPushButton:hover{color:#e4e4e7}"
+            )
+            rm.clicked.connect(lambda: self.remove_requested.emit(name))
+            row.addWidget(rm)
+
+        self.set_current(is_current)
+
+    def set_current(self, active: bool):
+        if active:
+            self.setStyleSheet(
+                "QFrame{background:#1a0030;border:1px solid #5c1b8b;border-radius:7px}"
+            )
+            self.name_btn.setStyleSheet(
+                "QPushButton{background:transparent;border:none;font-size:12px;"
+                "font-weight:600;color:#e4e4e7;padding:0 2px}"
+            )
+        else:
+            self.setStyleSheet(
+                "QFrame{background:#111315;border:1px solid #2c2e33;border-radius:7px}"
+            )
+            self.name_btn.setStyleSheet(
+                "QPushButton{background:transparent;border:none;font-size:12px;"
+                "color:#868e96;padding:0 2px}"
+                "QPushButton:hover{color:#cccccc}"
+            )
+
+
+class ProviderDropdownPopup(QFrame):
+    """Searchable popup listing providers not yet pinned to the header bar."""
+    provider_pinned = Signal(str)
+
+    def __init__(self, available: list, parent=None):
+        super().__init__(parent, Qt.Popup | Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_StyledBackground, True)
+        self.setStyleSheet(
+            "QFrame{background:#111315;border:1px solid #2c2e33;border-radius:10px}"
+            "QScrollBar:vertical{width:5px;background:transparent}"
+            "QScrollBar::handle:vertical{background:#2c2e33;border-radius:2px}"
+        )
+        self.setMinimumWidth(210)
+        self.setMaximumWidth(260)
+        self._all = list(available)
+
+        vbox = QVBoxLayout(self)
+        vbox.setContentsMargins(8, 8, 8, 8)
+        vbox.setSpacing(5)
+
+        # Search row
+        sf = QFrame()
+        sf.setStyleSheet("QFrame{background:#1a1d21;border:1px solid #2c2e33;border-radius:6px}")
+        sf_row = QHBoxLayout(sf)
+        sf_row.setContentsMargins(8, 2, 8, 2)
+        sf_row.setSpacing(5)
+        sf_lbl = QLabel("⌕")
+        sf_lbl.setStyleSheet("color:#5c6bc0;font-size:14px;border:none;background:transparent")
+        sf_row.addWidget(sf_lbl)
+        self._search = QLineEdit()
+        self._search.setPlaceholderText("Search providers…")
+        self._search.setStyleSheet(
+            "QLineEdit{background:transparent;border:none;color:#e4e4e7;font-size:12px}"
+        )
+        self._search.textChanged.connect(self._filter)
+        sf_row.addWidget(self._search)
+        vbox.addWidget(sf)
+
+        # Divider
+        div = QFrame()
+        div.setFrameShape(QFrame.HLine)
+        div.setStyleSheet("background:#2c2e33;max-height:1px;border:none")
+        vbox.addWidget(div)
+
+        # Scrollable list
+        self._scroll = QScrollArea()
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setStyleSheet("QScrollArea{border:none;background:transparent}")
+        self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self._scroll.setMaximumHeight(300)
+
+        self._list_w = QWidget()
+        self._list_w.setStyleSheet("background:transparent")
+        self._list_vbox = QVBoxLayout(self._list_w)
+        self._list_vbox.setContentsMargins(0, 0, 0, 0)
+        self._list_vbox.setSpacing(1)
+        self._build_items(self._all)
+
+        self._scroll.setWidget(self._list_w)
+        vbox.addWidget(self._scroll)
+
+    def _build_items(self, items):
+        while self._list_vbox.count():
+            c = self._list_vbox.takeAt(0)
+            if c.widget():
+                c.widget().deleteLater()
+
+        if not items:
+            empty = QLabel("No providers available")
+            empty.setAlignment(Qt.AlignCenter)
+            empty.setStyleSheet("color:#555;font-size:12px;padding:12px")
+            self._list_vbox.addWidget(empty)
+            return
+
+        for name, is_enabled in items:
+            dot_color = "#22c55e" if is_enabled else "#555"
+            dot = "●" if is_enabled else "○"
+            btn = QPushButton(f"  {dot}   {name}")
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.setStyleSheet(
+                f"QPushButton{{background:transparent;border:none;text-align:left;"
+                f"color:#c1c2c5;font-size:12px;padding:7px 10px;border-radius:5px}}"
+                f"QPushButton:hover{{background:#1a1d21;color:#e4e4e7}}"
+            )
+            # tint the dot part
+            btn.setToolTip("Enabled" if is_enabled else "Disabled")
+            btn.clicked.connect(lambda _=False, n=name: self._select(n))
+            self._list_vbox.addWidget(btn)
+
+        self._list_vbox.addStretch()
+
+    def _filter(self, text: str):
+        filtered = [(n, e) for n, e in self._all if text.lower() in n.lower()]
+        self._build_items(filtered)
+
+    def _select(self, name: str):
+        self.provider_pinned.emit(name)
+        self.close()
+
+    def show_below(self, widget: QWidget):
+        self.adjustSize()
+        from PySide6.QtWidgets import QApplication
+        screen = QApplication.primaryScreen().availableGeometry()
+        # Right-align popup under the button; clamp to screen edges
+        br = widget.mapToGlobal(QPoint(widget.width(), widget.height() + 4))
+        x = max(screen.left() + 4, br.x() - self.width())
+        y = min(br.y(), screen.bottom() - self.height() - 4)
+        self.move(x, y)
+        self.show()
+        self._search.setFocus()
+
+
 class FilterButton(QFrame):
     """Interactive filter button containing label and count badge."""
     def __init__(self, text: str, count: str, is_active: bool, callback, parent=None):
@@ -371,11 +546,12 @@ class ModelsQuotaDialog(QDialog):
         self.selectedIds.clear()
         self._load_data()
         if hasattr(self, 'tab_widgets'):
-            for name, btn in self.tab_widgets.items():
-                if name == tab_name:
-                    btn.setStyleSheet("QPushButton { background-color: transparent; color: #ffffff; border: none; font-size: 14px; font-weight: bold; padding: 0 4px; }")
-                else:
-                    btn.setStyleSheet("QPushButton { background-color: transparent; color: #868e96; border: none; font-size: 14px; padding: 0 4px; } QPushButton:hover { color: #cccccc; }")
+            for name, chip in self.tab_widgets.items():
+                if hasattr(chip, 'set_current'):
+                    chip.set_current(name == tab_name)
+        # Show/hide back button
+        if hasattr(self, '_back_btn'):
+            self._back_btn.setVisible(tab_name != 'Antigravity')
         if hasattr(self, 'content_stack'):
             panel_index = getattr(self, "provider_panel_indexes", {}).get(tab_name)
             if panel_index is not None:
@@ -386,13 +562,70 @@ class ModelsQuotaDialog(QDialog):
             else:
                 self.content_stack.setCurrentIndex(0)
                 self.pyside_header.setVisible(True)
+                self.pyside_th.setVisible(True)
                 self.pyside_footer.setVisible(True)
                     
     def _toggle_provider(self, name: str, is_active: bool):
         self.db.set_provider_active(name, is_active)
+        self.provider_states[name] = is_active
         if name == "Antigravity":
             self._load_data()
-        
+
+    # ── Provider-bar helpers ────────────────────────────────────────────────
+
+    def _rebuild_chips(self):
+        """Recreate all ProviderChip widgets from self.pinned_providers."""
+        from dardcor_agent.models.providers.registry import PROVIDER_REGISTRY as _PR
+        while self._chips_layout.count():
+            item = self._chips_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        self.tab_widgets = {}
+        current = getattr(self, 'current_tab', 'Antigravity')
+
+        for name in self.pinned_providers:
+            is_active = self.provider_states.get(name, False)
+            chip = ProviderChip(
+                name,
+                is_active=is_active,
+                is_current=(name == current),
+                can_remove=(name != 'Antigravity'),
+            )
+            chip.switch_requested.connect(self._switch_tab)
+            chip.toggle_requested.connect(self._toggle_provider)
+            chip.remove_requested.connect(self._unpin_provider)
+            self.tab_widgets[name] = chip
+            self._chips_layout.addWidget(chip)
+
+        self._chips_layout.addStretch()
+
+    def _show_provider_dropdown(self):
+        from dardcor_agent.models.providers.registry import PROVIDER_REGISTRY as _PR
+        available = [
+            (name, self.provider_states.get(name, False))
+            for name in _PR.keys()
+            if name not in self.pinned_providers
+        ]
+        popup = ProviderDropdownPopup(available, self)
+        popup.provider_pinned.connect(self._pin_provider)
+        popup.show_below(self._add_prov_btn)
+
+    def _pin_provider(self, name: str):
+        if name not in self.pinned_providers:
+            self.pinned_providers.append(name)
+            self.provider_states = self.db.get_providers()
+            self._rebuild_chips()
+            self._switch_tab(name)
+
+    def _unpin_provider(self, name: str):
+        if name in self.pinned_providers and name != 'Antigravity':
+            self.pinned_providers.remove(name)
+            if getattr(self, 'current_tab', 'Antigravity') == name:
+                self._switch_tab('Antigravity')
+            else:
+                self._rebuild_chips()
+
     def _setup_ui(self):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -434,43 +667,77 @@ class ModelsQuotaDialog(QDialog):
         title_layout.addWidget(close_btn)
         main_layout.addWidget(title_bar)
         
-        # --- TABS ---
-        tabs_frame = QFrame()
-        tabs_frame.setStyleSheet("background-color: #000000;")
-        tabs_frame.setFixedHeight(40)
-        self.tabs_layout = QHBoxLayout(tabs_frame)
-        self.tabs_layout.setContentsMargins(20, 0, 20, 0)
-        
+        # --- PROVIDER BAR (chips + searchable dropdown) ---
+        from dardcor_agent.models.providers.registry import PROVIDER_REGISTRY as _PROV_REG
+
         self.provider_states = self.db.get_providers()
-        self.tab_widgets = {}
-        
-        for i, name in enumerate(["Antigravity", "Gemini", "OpenRouter", "DeepSeek", "NVIDIA"]):
-            tab_widget = QWidget()
-            t_layout = QHBoxLayout(tab_widget)
-            t_layout.setContentsMargins(10, 0, 10, 0)
-            t_layout.setSpacing(6)
-            
-            cb = QCheckBox(fixedWidth=20)
-            cb.setStyleSheet(CHECKBOX_STYLE)
-            cb.setChecked(self.provider_states.get(name, False))
-            cb.toggled.connect(lambda checked, n=name: self._toggle_provider(n, checked))
-            
-            btn = QPushButton(name)
-            btn.setCursor(Qt.PointingHandCursor)
-            btn.clicked.connect(lambda checked, n=name: self._switch_tab(n))
-            
-            if i == 0:
-                btn.setStyleSheet("QPushButton { background-color: transparent; color: #ffffff; border: none; font-size: 14px; font-weight: bold; padding: 0 4px; }")
-            else:
-                btn.setStyleSheet("QPushButton { background-color: transparent; color: #868e96; border: none; font-size: 14px; padding: 0 4px; } QPushButton:hover { color: #cccccc; }")
-                
-            self.tab_widgets[name] = btn
-            
-            t_layout.addWidget(btn)
-            t_layout.addWidget(cb)
-            self.tabs_layout.addWidget(tab_widget)
-        self.tabs_layout.addStretch()
-        main_layout.addWidget(tabs_frame)
+        self.tab_widgets = {}   # name -> ProviderChip
+
+        # Initially pin Antigravity + any already-enabled providers
+        self.pinned_providers: list = ["Antigravity"]
+        for _n in _PROV_REG.keys():
+            if _n != "Antigravity" and self.provider_states.get(_n, False):
+                self.pinned_providers.append(_n)
+
+        provider_bar = QFrame()
+        provider_bar.setFixedHeight(50)
+        provider_bar.setStyleSheet(
+            "QFrame{background:#0a0a0a;border-bottom:1px solid #2c2e33}"
+        )
+        _bar_row = QHBoxLayout(provider_bar)
+        _bar_row.setContentsMargins(12, 0, 12, 0)
+        _bar_row.setSpacing(6)
+
+        # ← Back button (hidden on Antigravity tab)
+        _back_icon = create_svg_icon('<path d="m15 18-6-6 6-6"/>', "#e4e4e7")
+        self._back_btn = QPushButton()
+        self._back_btn.setIcon(_back_icon)
+        self._back_btn.setFixedSize(32, 32)
+        self._back_btn.setCursor(Qt.PointingHandCursor)
+        self._back_btn.setToolTip("Back to account list")
+        self._back_btn.setStyleSheet(
+            "QPushButton{background:#1a1d21;border:1px solid #2c2e33;border-radius:6px}"
+            "QPushButton:hover{background:#2c2e33}"
+        )
+        self._back_btn.setVisible(False)
+        self._back_btn.clicked.connect(lambda: self._switch_tab("Antigravity"))
+        _bar_row.addWidget(self._back_btn)
+
+        # Chips container — plain QWidget, no scroll area (avoids size-hint bugs)
+        self._chips_frame = QWidget()
+        self._chips_frame.setStyleSheet("background:transparent")
+        self._chips_layout = QHBoxLayout(self._chips_frame)
+        self._chips_layout.setContentsMargins(0, 0, 0, 0)
+        self._chips_layout.setSpacing(6)
+        _bar_row.addWidget(self._chips_frame, stretch=1)
+
+        # Divider
+        _div = QFrame()
+        _div.setFrameShape(QFrame.VLine)
+        _div.setFixedWidth(1)
+        _div.setStyleSheet("background:#2c2e33;border:none")
+        _bar_row.addWidget(_div)
+
+        # "+ Providers" dropdown button
+        _prov_icon = create_svg_icon(
+            '<path d="M5 12h14"/><path d="M12 5v14"/>', "#868e96"
+        )
+        self._add_prov_btn = QPushButton("  Providers")
+        self._add_prov_btn.setIcon(_prov_icon)
+        self._add_prov_btn.setFixedHeight(30)
+        self._add_prov_btn.setCursor(Qt.PointingHandCursor)
+        self._add_prov_btn.setStyleSheet(
+            "QPushButton{background:#1a1d21;border:1px solid #2c2e33;border-radius:6px;"
+            "color:#868e96;font-size:12px;padding:0 10px}"
+            "QPushButton:hover{background:#2c2e33;color:#e4e4e7}"
+        )
+        self._add_prov_btn.clicked.connect(self._show_provider_dropdown)
+        _bar_row.addWidget(self._add_prov_btn)
+
+        main_layout.addWidget(provider_bar)
+
+        # Build initial chips
+        self._rebuild_chips()
         
         # --- HEADER ---
         self.pyside_header = QFrame()
@@ -704,13 +971,13 @@ class ModelsQuotaDialog(QDialog):
         self.gemini_panel = GeminiProviderPanel()
         self.provider_panel_indexes["Gemini"] = self.content_stack.addWidget(self.gemini_panel)
 
-        from dardcor_agent.models.providers.openai_compatible.components import OpenAICompatibleProviderPanel
-        self.openrouter_panel = OpenAICompatibleProviderPanel("OpenRouter")
-        self.provider_panel_indexes["OpenRouter"] = self.content_stack.addWidget(self.openrouter_panel)
-        self.deepseek_panel = OpenAICompatibleProviderPanel("DeepSeek")
-        self.provider_panel_indexes["DeepSeek"] = self.content_stack.addWidget(self.deepseek_panel)
-        self.nvidia_panel = OpenAICompatibleProviderPanel("NVIDIA")
-        self.provider_panel_indexes["NVIDIA"] = self.content_stack.addWidget(self.nvidia_panel)
+        from dardcor_agent.models.providers.openai_compatible.components import OpenAICompatibleProviderPanel, PROVIDER_DEFINITIONS
+        for _pname in _PROV_REG.keys():
+            if _pname in ("Antigravity", "Gemini"):
+                continue
+            if _pname in PROVIDER_DEFINITIONS and _pname not in self.provider_panel_indexes:
+                _panel = OpenAICompatibleProviderPanel(_pname)
+                self.provider_panel_indexes[_pname] = self.content_stack.addWidget(_panel)
         
         main_layout.addWidget(self.content_stack, stretch=1)
         
@@ -986,31 +1253,54 @@ class ModelsQuotaDialog(QDialog):
             item = self.pag_layout.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
-                
-        def make_btn(text, page):
-            b = QPushButton(str(text))
-            b.setFixedSize(28, 28)
-            b.setCursor(Qt.PointingHandCursor)
-            bg = "#1c7ed6" if page == self.currentPage else "transparent"
-            col = "#ffffff" if page == self.currentPage else "#868e96"
-            b.setStyleSheet(f"background-color: {bg}; color: {col}; border: 1px solid #2c2e33; border-radius: 4px;")
-            b.clicked.connect(lambda: self._go_to_page(page))
-            self.pag_layout.addWidget(b)
 
         if total_pages <= 1:
             return
 
-        make_btn("<", max(1, self.currentPage - 1))
-        
+        def make_btn(text, page, _is_nav=False):
+            is_nav = _is_nav
+            is_cur = (not is_nav) and (page == self.currentPage)
+            b = QPushButton(str(text))
+            b.setFixedSize(32, 32)
+            b.setCursor(Qt.PointingHandCursor)
+            if is_cur:
+                b.setStyleSheet(
+                    "QPushButton{background:#1c7ed6;color:#fff;border:none;"
+                    "border-radius:6px;font-size:12px;font-weight:600}"
+                )
+            elif is_nav:
+                b.setStyleSheet(
+                    "QPushButton{background:#1a1d21;color:#c1c2c5;border:1px solid #2c2e33;"
+                    "border-radius:6px;font-size:13px;font-weight:600}"
+                    "QPushButton:hover{background:#2c2e33;color:#fff}"
+                )
+            else:
+                b.setStyleSheet(
+                    "QPushButton{background:#1a1d21;color:#c1c2c5;border:1px solid #2c2e33;"
+                    "border-radius:6px;font-size:12px}"
+                    "QPushButton:hover{background:#2c2e33;color:#fff}"
+                )
+            b.clicked.connect(lambda _=False, pg=page: self._go_to_page(pg))
+            self.pag_layout.addWidget(b)
+
+        prev_page = max(1, self.currentPage - 1)
+        make_btn("‹", prev_page, _is_nav=True)
+
+        shown = set()
         for p in range(1, total_pages + 1):
-            if abs(p - self.currentPage) <= 2 or p == 1 or p == total_pages:
-                make_btn(p, p)
-            elif abs(p - self.currentPage) == 3:
-                l = QLabel("...")
-                l.setStyleSheet("color: #868e96; padding: 0 4px;")
-                self.pag_layout.addWidget(l)
-                
-        make_btn(">", min(total_pages, self.currentPage + 1))
+            if p == 1 or p == total_pages or abs(p - self.currentPage) <= 2:
+                if p not in shown:
+                    make_btn(p, p)
+                    shown.add(p)
+            elif p - 1 in shown and p not in shown:
+                dot = QLabel("…")
+                dot.setStyleSheet("color:#555;padding:0 4px;font-size:14px")
+                dot.setAlignment(Qt.AlignCenter)
+                self.pag_layout.addWidget(dot)
+                shown.add(p)
+
+        next_page = min(total_pages, self.currentPage + 1)
+        make_btn("›", next_page, _is_nav=True)
 
     def _go_to_page(self, page: int):
         if page != self.currentPage:

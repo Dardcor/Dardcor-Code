@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QPushButton, QLabel, QFrame, QScrollArea, QComboBox,
     QStyledItemDelegate, QCompleter
 )
-from PySide6.QtCore import Signal, Qt, QTimer, QSize, QThread, QCoreApplication, QUrl, QSortFilterProxyModel
+from PySide6.QtCore import Signal, Qt, QTimer, QSize, QThread, QCoreApplication, QUrl
 from PySide6.QtGui import QColor, QTextCursor, QTextCharFormat, QFont, QKeyEvent, QIcon, QStandardItemModel, QStandardItem
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebChannel import QWebChannel
@@ -98,6 +98,7 @@ class ChatPanel(QWidget):
     _append_agent_signal = Signal(str, bool)
     _append_system_signal = Signal(str)
     _append_tool_call_signal = Signal(str, str, str, str)
+    _update_tool_output_signal = Signal(str, str)
     _set_enabled_signal = Signal(bool)
     _show_typing_signal = Signal(bool, str)
 
@@ -115,6 +116,7 @@ class ChatPanel(QWidget):
         self._append_agent_signal.connect(self._safe_append_agent_message)
         self._append_system_signal.connect(self._safe_append_system_message)
         self._append_tool_call_signal.connect(self._safe_append_tool_call)
+        self._update_tool_output_signal.connect(self._safe_update_tool_output)
         self._set_enabled_signal.connect(self._safe_set_enabled)
         self._show_typing_signal.connect(self._safe_show_typing)
         self._history_entries = []
@@ -129,6 +131,7 @@ class ChatPanel(QWidget):
         self._provider_timer = QTimer(self)
         self._provider_timer.timeout.connect(self._check_provider_status)
         self._provider_timer.start(1500)
+        self._is_populating = False
 
         self._setup_ui()
 
@@ -199,11 +202,36 @@ class ChatPanel(QWidget):
 
         # Chat history (uses QWebEngineView for modern slicing)
         self._web_view = QWebEngineView(self)
+        self._web_view.setFocusPolicy(Qt.StrongFocus)
+
+        # Enable clipboard so Ctrl+C / Ctrl+A work on selected chat text
+        try:
+            from PySide6.QtWebEngineCore import QWebEngineSettings
+            _ws = self._web_view.settings()
+            _ws.setAttribute(QWebEngineSettings.WebAttribute.JavascriptCanAccessClipboard, True)
+            _ws.setAttribute(QWebEngineSettings.WebAttribute.JavascriptCanPaste, True)
+        except Exception:
+            pass
+
         self._web_channel = QWebChannel(self._web_view.page())
         self._web_bridge = WebBridge(self)
         self._web_channel.registerObject("backend", self._web_bridge)
         self._web_view.page().setWebChannel(self._web_channel)
         self._web_bridge.action_requested.connect(self._handle_history_action)
+
+        # Grant clipboard permission automatically when the page requests it
+        try:
+            from PySide6.QtWebEngineCore import QWebEnginePermission
+            self._web_view.page().permissionRequested.connect(
+                lambda perm: perm.grant()
+                if perm.permissionType() in (
+                    QWebEnginePermission.PermissionType.ClipboardReadWrite,
+                    QWebEnginePermission.PermissionType.ClipboardSanitizedWrite,
+                )
+                else perm.deny()
+            )
+        except Exception:
+            pass
 
         web_dir = os.path.join(os.path.dirname(__file__), "web")
         index_path = os.path.join(web_dir, "index.html")
@@ -294,15 +322,7 @@ class ChatPanel(QWidget):
         self.model_dropdown = UpwardComboBox()
         self.model_dropdown.setItemDelegate(QStyledItemDelegate())
         self._dropdown_model = QStandardItemModel(self.model_dropdown)
-        self._model_proxy = QSortFilterProxyModel(self.model_dropdown)
-        self._model_proxy.setSourceModel(self._dropdown_model)
-        self._model_proxy.setFilterCaseSensitivity(Qt.CaseInsensitive)
-        self._model_proxy.setFilterKeyColumn(0)
-        self.model_dropdown.setModel(self._model_proxy)
-        self.model_dropdown.setEditable(True)
-        self.model_dropdown.setInsertPolicy(QComboBox.NoInsert)
-        self.model_dropdown.lineEdit().setPlaceholderText("Search models...")
-        self.model_dropdown.lineEdit().textEdited.connect(self._model_proxy.setFilterFixedString)
+        self.model_dropdown.setModel(self._dropdown_model)
         self.model_dropdown.setVisible(False)
         self.model_dropdown.setStyleSheet("""
             QComboBox {
@@ -421,15 +441,13 @@ class ChatPanel(QWidget):
 
     def _check_provider_status(self):
         try:
+            from dardcor_agent.models.providers.registry import PROVIDER_REGISTRY
             providers = self.db.get_providers()
-            state = tuple((name, providers.get(name, False)) for name in ["Antigravity", "Gemini", "OpenRouter", "DeepSeek", "NVIDIA"])
+            state = tuple((name, providers.get(name, False)) for name in PROVIDER_REGISTRY.keys())
             is_active = any(active for _, active in state)
             if not hasattr(self, '_last_provider_state') or self._last_provider_state != state:
                 self.model_dropdown.setVisible(is_active)
                 self._last_provider_state = state
-                if is_active:
-                    self._populate_models(providers)
-            else:
                 if is_active:
                     self._populate_models(providers)
         except Exception:
@@ -464,31 +482,20 @@ class ChatPanel(QWidget):
                 pass
 
     def _populate_models(self, providers: dict = None):
+        from dardcor_agent.models.providers.registry import PROVIDER_REGISTRY
         providers = providers or self.db.get_providers()
         current_text = self.model_dropdown.currentText()
 
         model_to_provider = {}
         all_display_items = []
 
-        provider_order = ["Antigravity", "Gemini", "OpenRouter", "DeepSeek", "NVIDIA"]
-        for provider_name in provider_order:
+        for provider_name, pdef in PROVIDER_REGISTRY.items():
             if not providers.get(provider_name, False):
                 continue
 
             provider_models = []
-            if provider_name == "Antigravity":
-                provider_models = [
-                    "Gemini 3.5 Flash (High)",
-                    "Gemini 3.5 Flash (Medium)",
-                    "Gemini 3.5 Flash (Low)",
-                    "Gemini 3.1 Pro (High)",
-                    "Gemini 3.1 Pro (Low)",
-                    "Gemini 3 Flash",
-                    "Gemini 2.5 Pro",
-                    "Claude Opus 4.6 (Thinking)",
-                    "Claude Sonnet 4.6 (Thinking)",
-                    "Claude Sonnet 4.6",
-                ]
+            if pdef.get("is_special"):
+                provider_models = [m["id"] for m in pdef.get("models", [])]
             else:
                 try:
                     config_path = self._provider_config_path(provider_name)
@@ -503,6 +510,9 @@ class ChatPanel(QWidget):
                             provider_models.append(data.get("selected_model"))
                 except Exception:
                     pass
+                # Show registry defaults when user enabled provider but hasn't fetched yet
+                if not provider_models:
+                    provider_models = [m["id"] for m in pdef.get("models", [])]
 
             if not provider_models:
                 continue
@@ -651,6 +661,15 @@ class ChatPanel(QWidget):
 
     def _on_send_btn_clicked(self):
         if self._is_generating:
+            self._send_btn.setEnabled(False)
+            self._send_btn.setToolTip("Stopping...")
+            self._send_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #7f1d1d;
+                    border: 1px solid #991b1b;
+                    border-radius: 18px;
+                }
+            """)
             self.stop_requested.emit()
             return
         self._send_message()
@@ -1026,7 +1045,21 @@ class ChatPanel(QWidget):
 
     def _safe_append_tool_call(self, tool_id: str, tool_name: str, args: str, status: str = "running"):
         self._web_bridge.append_tool_call.emit(tool_id, tool_name, args, status)
-        self.show_typing(True, "working")
+        if status == "running":
+            self.show_typing(True, "working")
+
+    def append_tool_output(self, tool_id: str, chunk: str):
+        """Stream live output into an existing tool card (thread-safe)."""
+        if not tool_id or not chunk:
+            return
+        from PySide6.QtCore import QThread, QCoreApplication
+        if QThread.currentThread() != QCoreApplication.instance().thread():
+            self._update_tool_output_signal.emit(tool_id, chunk)
+        else:
+            self._safe_update_tool_output(tool_id, chunk)
+
+    def _safe_update_tool_output(self, tool_id: str, chunk: str):
+        self._web_bridge.update_tool_output.emit(tool_id, chunk)
 
     def _scroll_to_bottom(self):
         # Scrolling is now handled automatically by JS
