@@ -332,6 +332,14 @@ class Agent:
                 proc.kill()
             except Exception:
                 pass
+        
+        # Abort active provider API request
+        provider = getattr(self, '_current_provider', None)
+        if provider and hasattr(provider, 'abort'):
+            try:
+                provider.abort()
+            except Exception:
+                pass
 
     def on_stream(self, callback: Callable[[str], None]):
         self._stream_callback = callback
@@ -343,6 +351,7 @@ class Agent:
         self._conversation = Conversation()
         sys_prompt = self._config.ai.system_prompt if self._config.ai.system_prompt else get_identity_prompt(self._core_memory.get_summary())
         self._conversation.add_message("system", sys_prompt)
+        self._store.save(self._conversation)
 
     def send_message(
         self,
@@ -354,6 +363,7 @@ class Agent:
         self._abort_flag = False
         with self._lock:
             self._conversation.add_message("user", message)
+            self._store.save(self._conversation)
 
         try:
             response_text = self._call_api(on_tool_call, on_system_message, model_override=model_override)
@@ -378,99 +388,107 @@ class Agent:
     def _call_api(self, on_tool_call=None, on_system_message=None, depth=0, model_override=None) -> str:
         from dardcor_agent.models.providers.factory import ProviderFactory
         provider = ProviderFactory.create(self._config.ai, model_override)
+        self._current_provider = provider
         
-        consecutive_read_turns = 0
-        READ_ONLY_TOOLS = {"search_files", "list_files", "read_file", "semantic_search", "search_web", "read_url"}
+        try:
+            consecutive_read_turns = 0
+            READ_ONLY_TOOLS = {"search_files", "list_files", "read_file", "semantic_search", "search_web", "read_url"}
 
-        def abort_check():
-            return getattr(self, '_abort_flag', False)
-            
-        def on_conversation_sys_msg(role, msg):
-            self._conversation.add_message(role, msg)
-            if role == "system" and on_system_message:
-                on_system_message(msg)
-
-        while True:
-            if abort_check():
-                return "Agent dihentikan oleh pengguna."
+            def abort_check():
+                return getattr(self, '_abort_flag', False)
                 
-            messages = self._conversation.get_api_messages()
-            
-            # Action bias warning if consecutive read turns
-            if consecutive_read_turns >= 4:
-                print(f"[Agent] Consecutive read-only turns is {consecutive_read_turns}. Injecting action bias warning to messages.")
-                # We append a warning to the end of the messages
-                messages.append({
-                    "role": "system",
-                    "content": (
-                        "Warning: You have performed search/read operations multiple times. "
-                        "You MUST start writing files or running commands now to complete the task. "
-                        "Do NOT perform any more search/list operations. Prefer using write_file or run_command."
-                    )
-                })
+            def on_conversation_sys_msg(role, msg):
+                self._conversation.add_message(role, msg)
+                self._store.save(self._conversation)
+                if role == "system" and on_system_message:
+                    on_system_message(msg)
 
-            response = provider.generate_turn(
-                messages=messages,
-                tools=TOOLS,
-                config=self._config.ai,
-                model_override=model_override,
-                abort_check_fn=abort_check,
-                conversation_callback=on_conversation_sys_msg
-            )
-
-            if response.error:
-                return response.error
-
-            if response.tool_calls:
-                all_read_only = all(tc.get("function", {}).get("name") in READ_ONLY_TOOLS for tc in response.tool_calls)
-                if all_read_only:
-                    consecutive_read_turns += 1
-                else:
-                    consecutive_read_turns = 0
-
-                self._conversation.add_message("assistant", response.content, tool_calls=response.tool_calls)
-                
-                for tc in response.tool_calls:
-                    if abort_check(): break
-                    func_name = tc["function"]["name"]
-                    tool_id = tc.get("id", f"tc-{func_name}-{id(tc):x}")
-                    try:
-                        func_args = json.loads(tc["function"]["arguments"])
-                    except json.JSONDecodeError:
-                        func_args = {}
-
-                    args_preview = json.dumps(func_args)[:100]
-                    if on_tool_call:
-                        try:
-                            on_tool_call(func_name, args_preview, "running", tool_id)
-                        except TypeError:
-                            on_tool_call(func_name, args_preview, "running")
-                        import time
-                        time.sleep(0.12)
-
-                    tool_result = self._execute_tool(func_name, func_args)
+            while True:
+                if abort_check():
+                    return "Agent dihentikan oleh pengguna."
                     
-                    if tool_result.startswith("Error"):
-                        tool_result += "\n\n[SYSTEM WARNING]: Tool execution failed. Do not stop. Analyze the error, fix the parameters, and try again or use a different approach. You must complete the objective."
+                messages = self._conversation.get_api_messages()
+                
+                # Action bias warning if consecutive read turns
+                if consecutive_read_turns >= 4:
+                    print(f"[Agent] Consecutive read-only turns is {consecutive_read_turns}. Injecting action bias warning to messages.")
+                    # We append a warning to the end of the messages
+                    messages.append({
+                        "role": "system",
+                        "content": (
+                            "Warning: You have performed search/read operations multiple times. "
+                            "You MUST start writing files or running commands now to complete the task. "
+                            "Do NOT perform any more search/list operations. Prefer using write_file or run_command."
+                        )
+                    })
 
-                    if on_tool_call:
-                        status = "success" if not tool_result.startswith("Error") else "error"
+                response = provider.generate_turn(
+                    messages=messages,
+                    tools=TOOLS,
+                    config=self._config.ai,
+                    model_override=model_override,
+                    abort_check_fn=abort_check,
+                    conversation_callback=on_conversation_sys_msg
+                )
+
+                if response.error:
+                    return response.error
+
+                if response.tool_calls:
+                    all_read_only = all(tc.get("function", {}).get("name") in READ_ONLY_TOOLS for tc in response.tool_calls)
+                    if all_read_only:
+                        consecutive_read_turns += 1
+                    else:
+                        consecutive_read_turns = 0
+
+                    self._conversation.add_message("assistant", response.content, tool_calls=response.tool_calls)
+                    self._store.save(self._conversation)
+                    
+                    for tc in response.tool_calls:
+                        if abort_check(): break
+                        func_name = tc["function"]["name"]
+                        tool_id = tc.get("id", f"tc-{func_name}-{id(tc):x}")
                         try:
-                            on_tool_call(func_name, args_preview, status, tool_id)
-                        except TypeError:
-                            on_tool_call(func_name, args_preview, status)
+                            func_args = json.loads(tc["function"]["arguments"])
+                        except json.JSONDecodeError:
+                            func_args = {}
 
-                    self._conversation.add_message(
-                        "tool",
-                        tool_result,
-                        tool_call_id=tc["id"],
-                        name=func_name,
-                    )
-                # Loop again with the new tool results
-                continue
-            else:
-                self._conversation.add_message("assistant", response.content)
-                return response.content
+                        args_preview = json.dumps(func_args)[:100]
+                        if on_tool_call:
+                            try:
+                                on_tool_call(func_name, args_preview, "running", tool_id)
+                            except TypeError:
+                                on_tool_call(func_name, args_preview, "running")
+                            import time
+                            time.sleep(0.12)
+
+                        tool_result = self._execute_tool(func_name, func_args)
+                        
+                        if tool_result.startswith("Error"):
+                            tool_result += "\n\n[SYSTEM WARNING]: Tool execution failed. Do not stop. Analyze the error, fix the parameters, and try again or use a different approach. You must complete the objective."
+
+                        if on_tool_call:
+                            status = "success" if not tool_result.startswith("Error") else "error"
+                            try:
+                                on_tool_call(func_name, args_preview, status, tool_id)
+                            except TypeError:
+                                on_tool_call(func_name, args_preview, status)
+
+                        self._conversation.add_message(
+                            "tool",
+                            tool_result,
+                            tool_call_id=tc["id"],
+                            name=func_name,
+                        )
+                        self._store.save(self._conversation)
+                    # Loop again with the new tool results
+                    continue
+                else:
+                    self._conversation.add_message("assistant", response.content)
+                    self._store.save(self._conversation)
+                    return response.content
+        finally:
+            self._current_provider = None
 
     def _execute_tool(self, name: str, args: dict) -> str:
         try:
@@ -565,20 +583,23 @@ class Agent:
                         text=True,
                     )
                     self._current_process = proc
-                    try:
-                        stdout, stderr = proc.communicate(timeout=30)
-                    except subprocess.TimeoutExpired:
-                        proc.kill()
-                        stdout, stderr = proc.communicate()
-                        output = stdout + "\n[timed out]"
-                        if stderr:
-                            output += "\n[stderr]\n" + stderr
-                        self._current_process = None
-                        if len(output) > 3000:
-                            output = "...(truncated)...\n" + output[-3000:]
-                        return output or "(no output)"
-                    finally:
-                        self._current_process = None
+                    start_time = _time.time()
+                    stdout, stderr = "", ""
+                    while proc.poll() is None:
+                        if getattr(self, '_abort_flag', False):
+                            proc.kill()
+                            return "Agent dihentikan oleh pengguna."
+                        try:
+                            out, err = proc.communicate(timeout=0.5)
+                            stdout, stderr = out, err
+                            break
+                        except subprocess.TimeoutExpired:
+                            if _time.time() - start_time > 30:
+                                proc.kill()
+                                out, err = proc.communicate()
+                                stdout, stderr = out, err
+                                stdout += "\n[timed out]"
+                                break
                     if getattr(self, '_abort_flag', False) and proc.returncode == -9:
                         return "Agent dihentikan oleh pengguna."
                     output = stdout
@@ -588,6 +609,8 @@ class Agent:
                     output = f"Error: command not found: {command.split()[0] if command else ''}"
                 except Exception as ex:
                     output = f"Error running command: {str(ex)}"
+                finally:
+                    self._current_process = None
                     
                 # Truncate long terminal output to save tokens
                 if len(output) > 3000:

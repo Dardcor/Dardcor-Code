@@ -5,7 +5,7 @@ from datetime import datetime
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTextEdit,
     QPushButton, QLabel, QFrame, QScrollArea, QComboBox,
-    QStyledItemDelegate, QCompleter
+    QStyledItemDelegate, QCompleter, QSizePolicy
 )
 from PySide6.QtCore import Signal, Qt, QTimer, QSize, QThread, QCoreApplication, QUrl, QSortFilterProxyModel
 from PySide6.QtGui import QColor, QTextCursor, QTextCharFormat, QFont, QKeyEvent, QIcon, QStandardItemModel, QStandardItem
@@ -277,13 +277,13 @@ class ChatPanel(QWidget):
 
         attach_btn = QPushButton()
         attach_btn.setIcon(QIcon(os.path.join(assets_dir, "plus.svg")))
-        attach_btn.setIconSize(QSize(18, 18))
-        attach_btn.setFixedSize(28, 28)
+        attach_btn.setIconSize(QSize(14, 14))
+        attach_btn.setFixedSize(26, 26)
         attach_btn.setToolTip("Upload File")
         attach_btn.setStyleSheet("""
             QPushButton {
                 background: transparent; border: none;
-                border-radius: 14px;
+                border-radius: 13px;
             }
             QPushButton:hover { background-color: #333333; }
         """)
@@ -376,28 +376,27 @@ class ChatPanel(QWidget):
             }
         """ % chevron_path)
         self.model_dropdown.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
+        self.model_dropdown.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.model_dropdown.setMinimumContentsLength(12)
         self.model_dropdown.setFixedHeight(26)
         self.model_dropdown.currentTextChanged.connect(self._on_model_changed)
         input_bottom_layout.addWidget(self.model_dropdown)
 
-        input_bottom_layout.addStretch()
-
         self._mic_icon = QIcon(os.path.join(assets_dir, "mic.svg"))
         self._send_icon = QIcon(os.path.join(assets_dir, "send.svg"))
-        self._stop_icon = QIcon(os.path.join(assets_dir, "stop.svg"))
+        self._stop_icon = QIcon(os.path.join(assets_dir, "stop-red.svg"))
         self._is_generating = False
 
         self._send_btn = QPushButton()
         self._send_btn.setIcon(self._mic_icon)
-        self._send_btn.setIconSize(QSize(20, 20))
-        self._send_btn.setFixedSize(36, 36)
+        self._send_btn.setIconSize(QSize(14, 14))
+        self._send_btn.setFixedSize(28, 28)
         self._send_btn.setCursor(Qt.PointingHandCursor)
         self._send_btn.setStyleSheet("""
             QPushButton {
                 background-color: #444444;
                 border: 1px solid #555555;
-                border-radius: 18px;
+                border-radius: 14px;
             }
             QPushButton:hover { background-color: #555555; }
             QPushButton:pressed { background-color: #333333; }
@@ -794,10 +793,6 @@ class ChatPanel(QWidget):
                     "      <td style='padding: 6px 4px;'>Menampilkan panduan dan daftar perintah ini.</td>"
                     "    </tr>"
                     "    <tr style='border-bottom: 1px solid #1a0033;'>"
-                    "      <td style='padding: 6px 4px; font-weight: bold; color: #ce9178;'>/models</td>"
-                    "      <td style='padding: 6px 4px;'>Melihat status provider dan model AI yang dikonfigurasi.</td>"
-                    "    </tr>"
-                    "    <tr style='border-bottom: 1px solid #1a0033;'>"
                     "      <td style='padding: 6px 4px; font-weight: bold; color: #ce9178;'>/mcp</td>"
                     "      <td style='padding: 6px 4px;'>Melihat status Model Context Protocol (MCP) server lokal.</td>"
                     "    </tr>"
@@ -821,15 +816,6 @@ class ChatPanel(QWidget):
                     "</div>"
                 )
                 self.append_agent_message(html, is_html=True)
-
-            elif cmd == "/models":
-                try:
-                    from dardcor_agent.models.main_dialog import ModelsQuotaDialog
-                    self._models_dialog = ModelsQuotaDialog(parent=None)
-                    self._models_dialog.setAttribute(Qt.WA_DeleteOnClose)
-                    self._models_dialog.show()
-                except Exception as e:
-                    self.append_system_message(f"Error opening Models Dashboard: {e}")
 
             elif cmd == "/mcp":
                 html = (
@@ -1055,12 +1041,12 @@ class ChatPanel(QWidget):
             self._send_btn.setToolTip("Stop generation")
             self._send_btn.setStyleSheet("""
                 QPushButton {
-                    background-color: #dc2626;
-                    border: 1px solid #ef4444;
-                    border-radius: 18px;
+                    background-color: #444444;
+                    border: 1px solid #555555;
+                    border-radius: 14px;
                 }
-                QPushButton:hover { background-color: #ef4444; }
-                QPushButton:pressed { background-color: #991b1b; }
+                QPushButton:hover { background-color: #555555; }
+                QPushButton:pressed { background-color: #333333; }
             """)
         else:
             # Restore normal send/mic mode
@@ -1069,7 +1055,7 @@ class ChatPanel(QWidget):
                 QPushButton {
                     background-color: #444444;
                     border: 1px solid #555555;
-                    border-radius: 18px;
+                    border-radius: 14px;
                 }
                 QPushButton:hover { background-color: #555555; }
                 QPushButton:pressed { background-color: #333333; }

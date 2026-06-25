@@ -154,11 +154,12 @@ def filter_models_for_display(models, show_all_quotas):
         return models
         
     pinned_names = [
-        "gemini-3.1-pro-high", "gemini-3-pro-high", "gemini-3.1-pro-low",
-        "gemini-3-pro-low", "gemini-3-flash", "gemini-2.5-pro",
-        "claude-sonnet-4-6-thinking", "claude-sonnet-4-6", "claude-opus-4-6-thinking",
-        "gemini 3.1 pro (high)", "gemini 3.1 pro (low)", "gemini 3 flash", 
-        "gemini 2.5 pro", "claude sonnet 4.6 (thinking)"
+        "gemini-3.1-pro-high", "gemini-3.1-pro-low",
+        "gemini-3-pro-high", "gemini-3-pro-low",
+        "gemini-3-flash", "gemini-3-flash-agent",
+        "gemini-3.5-flash-extra-low", "gemini-3.5-flash-low",
+        "gemini-2.5-pro",
+        "claude-sonnet-4-6", "claude-sonnet-4-6-thinking", "claude-opus-4-6-thinking"
     ]
     filtered = [m for m in models if m.get("name", "").lower() in [p.lower() for p in pinned_names]]
     if not filtered and models:

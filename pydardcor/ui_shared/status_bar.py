@@ -101,6 +101,7 @@ class StatusBar(QStatusBar):
 
     command_palette_requested = Signal()
     go_to_line_requested = Signal()
+    models_requested = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -174,6 +175,11 @@ class StatusBar(QStatusBar):
         self._lang_btn = StatusBarButton("Plain Text")
         self._lang_btn.setToolTip("Select Language Mode")
         self.addPermanentWidget(self._lang_btn)
+
+        self._models_btn = StatusBarButton("\ueb66 Models")
+        self._models_btn.setToolTip("View Model Quotas")
+        self._models_btn.clicked.connect(self.models_requested.emit)
+        self.addPermanentWidget(self._models_btn)
 
         self._ai_btn = StatusBarButton("\ueab2 Dardcor Settings")
         self._ai_btn.setToolTip("Dardcor Settings")

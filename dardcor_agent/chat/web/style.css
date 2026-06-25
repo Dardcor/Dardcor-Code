@@ -21,9 +21,9 @@ body {
     user-select: text;
 }
 
-/* Scrollbar styling */
 ::-webkit-scrollbar {
-    width: 6px;
+    width: 3px;
+    height: 3px;
 }
 ::-webkit-scrollbar-track {
     background: transparent;
@@ -61,7 +61,6 @@ body {
     user-select: text;
 }
 
-/* User Message Styles */
 .user-msg .header {
     color: #4fc1ff;
 }
@@ -92,7 +91,6 @@ body {
     color: var(--text-color);
 }
 
-/* Agent Message Styles */
 .agent-msg {
     margin-top: 8px;
     border-bottom: 1px solid #2a2d32;
@@ -121,7 +119,6 @@ body {
     color: var(--text-color);
 }
 
-/* Markdown specific styling inside Agent messages */
 .content pre {
     background-color: #1e1e1e;
     border-radius: 6px;
@@ -311,7 +308,6 @@ body {
     display: block;
 }
 
-/* System Messages */
 .system-msg {
     color: #858585;
     font-style: italic;
@@ -320,7 +316,6 @@ body {
     margin: 12px 0;
 }
 
-/* Independent Typing Indicator Inline */
 #typing-indicator {
     padding: 8px 12px;
     display: flex;

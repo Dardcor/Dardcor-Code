@@ -1,4 +1,3 @@
-// Configure marked.js to use highlight.js
 marked.setOptions({
     highlight: function (code, lang) {
         const language = hljs.getLanguage(lang) ? lang : 'plaintext';
@@ -12,14 +11,12 @@ let backend = null;
 const toolCards = new Map();
 let currentWorkPanel = null;
 
-// UTF-8 safe base64 encode (replaces btoa which crashes on Unicode)
 function safeEncode(text) {
     return btoa(encodeURIComponent(String(text)).replace(/%([0-9A-F]{2})/g, function (_, p1) {
         return String.fromCharCode(parseInt(p1, 16));
     }));
 }
 
-// Setup QWebChannel to connect with Python
 new QWebChannel(qt.webChannelTransport, function (channel) {
     backend = channel.objects.backend;
 

@@ -118,6 +118,84 @@ class ChromeButton(QPushButton):
         painter.end()
 
 
+class CommandCenterWidget(QWidget):
+    """VS Code style Command Center (Search bar) in the Title Bar."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedHeight(28)
+        self.setCursor(Qt.PointingHandCursor)
+        
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(4, 2, 4, 2)
+        layout.setSpacing(4)
+        
+        self.setStyleSheet("""
+            QWidget {
+                background-color: transparent;
+            }
+            #SearchBox {
+                background-color: rgba(255, 255, 255, 0.08);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 6px;
+            }
+            #SearchBox:hover {
+                background-color: rgba(255, 255, 255, 0.12);
+            }
+            QPushButton {
+                background: transparent;
+                border: none;
+                color: #cccccc;
+                font-family: codicon;
+                font-size: 14px;
+                padding: 0px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: rgba(255, 255, 255, 0.1);
+                color: #ffffff;
+            }
+            QLabel {
+                background: transparent;
+                border: none;
+                color: #cccccc;
+                font-size: 12px;
+            }
+        """)
+        
+        self.btn_back = QPushButton("\ueab6") # arrow-left
+        self.btn_back.setToolTip("Go Back")
+        self.btn_back.setFixedSize(28, 24)
+        
+        self.btn_forward = QPushButton("\ueab7") # arrow-right
+        self.btn_forward.setToolTip("Go Forward")
+        self.btn_forward.setFixedSize(28, 24)
+        
+        self.search_btn = QPushButton()
+        self.search_btn.setObjectName("SearchBox")
+        self.search_btn.setCursor(Qt.PointingHandCursor)
+        sc_layout = QHBoxLayout(self.search_btn)
+        sc_layout.setContentsMargins(10, 0, 10, 0)
+        sc_layout.setSpacing(8)
+        
+        search_icon = QLabel("\uea6d")
+        search_icon.setFont(QFont("codicon", 11))
+        search_icon.setStyleSheet("color: #858585;")
+        
+        self.lbl_title = QLabel("Dardcor Code")
+        self.lbl_title.setStyleSheet("color: #cccccc;")
+        
+        sc_layout.addWidget(search_icon)
+        sc_layout.addWidget(self.lbl_title)
+        sc_layout.addStretch()
+        
+        layout.addWidget(self.btn_back)
+        layout.addWidget(self.btn_forward)
+        layout.addWidget(self.search_btn)
+
+    def set_title(self, text):
+        self.lbl_title.setText(text)
+
+
 class LayoutToggleButton(QPushButton):
     """Button to toggle layout panels (sidebar, bottom panel, right sidebar)."""
     
@@ -190,6 +268,12 @@ class LayoutToggleButton(QPushButton):
                 p.addRoundedRect(QRectF(x + w*0.6, y, w*0.4, h), 2, 2)
                 p.addRect(QRectF(x + w*0.6, y, 2, h))
                 painter.drawPath(p)
+            elif self.layout_type == "customize":
+                p = QPainterPath()
+                p.addRoundedRect(QRectF(x, y, w, h), 2, 2)
+                p.addRect(QRectF(x + w*0.3, y, 2, h))
+                p.addRect(QRectF(x + w*0.3, y + h*0.6, w*0.7, 2))
+                painter.drawPath(p)
         else:
             painter.setPen(pen)
             if self.layout_type == "left":
@@ -198,6 +282,10 @@ class LayoutToggleButton(QPushButton):
                 painter.drawLine(QPointF(x, y + h*0.6), QPointF(x + w, y + h*0.6))
             elif self.layout_type == "right":
                 painter.drawLine(QPointF(x + w*0.6, y), QPointF(x + w*0.6, y + h))
+            elif self.layout_type == "customize":
+                p = QPainterPath()
+                p.addRoundedRect(QRectF(x, y, w, h), 2, 2)
+                painter.drawPath(p)
 
         painter.end()
 
@@ -258,11 +346,15 @@ class CustomTitleBar(QWidget):
 
         self.layout.addStretch(1)  # left stretch
         
-        # Title
-        self.title_label = QLabel("Dardcor Code")
-        self.title_label.setStyleSheet("color: #999999; font-size: 12px;")
-        self.title_label.setAlignment(Qt.AlignCenter)
-        self.layout.addWidget(self.title_label)
+        # Command Center
+        self.command_center = CommandCenterWidget()
+        self.command_center.setFixedWidth(500)
+        
+        # Connect buttons
+        self.command_center.search_btn.clicked.connect(self.parent._show_command_palette)
+        # Assuming we can connect back/forward to navigation (for now just print or no-op)
+        
+        self.layout.addWidget(self.command_center)
 
         self.layout.addStretch(2)  # larger right stretch shifts title left
         
@@ -332,9 +424,13 @@ class CustomTitleBar(QWidget):
         self.btn_right_sidebar.setToolTip("Toggle Secondary Sidebar")
         self.btn_right_sidebar.clicked.connect(lambda: self.parent._toggle_chat())
         
+        self.btn_customize = LayoutToggleButton("customize")
+        self.btn_customize.setToolTip("Customize Layout")
+        
         lc_layout.addWidget(self.btn_left_sidebar)
         lc_layout.addWidget(self.btn_bottom_panel)
         lc_layout.addWidget(self.btn_right_sidebar)
+        lc_layout.addWidget(self.btn_customize)
         
         self.layout.addWidget(self.layout_controls, 0, Qt.AlignVCenter)
 
@@ -756,6 +852,7 @@ class MainWindow(QMainWindow):
         self._status_bar = StatusBar()
         self.setStatusBar(self._status_bar)
         self._status_bar.go_to_line_requested.connect(self._show_go_to_line)
+        self._status_bar.models_requested.connect(self._show_models_dialog)
         
         # ── Add QSizeGrip for Linux resizing ──
         import platform
@@ -799,6 +896,11 @@ class MainWindow(QMainWindow):
         new_file.setShortcut(QKeySequence("Ctrl+N"))
         new_file.triggered.connect(self._new_file)
         file_menu.addAction(new_file)
+        
+        new_file_ellipses = QAction("New File...", self)
+        new_file_ellipses.setShortcut(QKeySequence("Ctrl+Alt+Windows+N"))
+        new_file_ellipses.triggered.connect(self._show_command_palette)
+        file_menu.addAction(new_file_ellipses)
 
         new_window = QAction("New Window", self)
         new_window.setShortcut(QKeySequence("Ctrl+Shift+N"))
@@ -813,7 +915,7 @@ class MainWindow(QMainWindow):
         file_menu.addAction(open_file)
 
         open_folder = QAction("Open Folder...", self)
-        open_folder.setShortcut(QKeySequence("Ctrl+K"))
+        open_folder.setShortcut(QKeySequence("Ctrl+K, Ctrl+O"))
         open_folder.triggered.connect(lambda: self._file_explorer._open_folder())
         file_menu.addAction(open_folder)
 
@@ -825,6 +927,20 @@ class MainWindow(QMainWindow):
         clear_recent = QAction("Clear Recently Opened", self)
         clear_recent.triggered.connect(lambda: QMessageBox.information(self, "Recent", "History tracking coming soon."))
         open_recent_menu.addAction(clear_recent)
+
+        file_menu.addSeparator()
+        
+        add_folder_ws = QAction("Add Folder to Workspace...", self)
+        add_folder_ws.triggered.connect(self._show_command_palette)
+        file_menu.addAction(add_folder_ws)
+        
+        save_ws_as = QAction("Save Workspace As...", self)
+        save_ws_as.triggered.connect(self._show_command_palette)
+        file_menu.addAction(save_ws_as)
+        
+        duplicate_ws = QAction("Duplicate Workspace", self)
+        duplicate_ws.triggered.connect(self._show_command_palette)
+        file_menu.addAction(duplicate_ws)
 
         file_menu.addSeparator()
 
@@ -839,18 +955,71 @@ class MainWindow(QMainWindow):
         file_menu.addAction(save_as)
 
         save_all = QAction("Save All", self)
+        save_all.setShortcut(QKeySequence("Ctrl+K, S"))
         save_all.triggered.connect(self._save_all)
         file_menu.addAction(save_all)
 
         file_menu.addSeparator()
+        
+        share_menu = file_menu.addMenu("Share")
+        share_export = QAction("Export Profile...", self)
+        share_export.triggered.connect(self._show_command_palette)
+        share_menu.addAction(share_export)
+        
+        file_menu.addSeparator()
 
-        auto_save = QAction("Auto Save")
+        auto_save = QAction("Auto Save", self)
         auto_save.setCheckable(True)
         auto_save.setChecked(self._config.auto_save)
         auto_save.toggled.connect(self._on_auto_save_toggle)
         file_menu.addAction(auto_save)
 
+        preferences_menu = file_menu.addMenu("Preferences")
+        
+        settings_action = QAction("Settings", self)
+        settings_action.setShortcut(QKeySequence("Ctrl+,"))
+        settings_action.triggered.connect(self._show_command_palette)
+        preferences_menu.addAction(settings_action)
+        
+        extensions_action = QAction("Extensions", self)
+        extensions_action.setShortcut(QKeySequence("Ctrl+Shift+X"))
+        extensions_action.triggered.connect(lambda: self._switch_sidebar(VIEW_EXTENSIONS))
+        preferences_menu.addAction(extensions_action)
+
+        keyboard_shortcuts = QAction("Keyboard Shortcuts", self)
+        keyboard_shortcuts.setShortcut(QKeySequence("Ctrl+K, Ctrl+S"))
+        keyboard_shortcuts.triggered.connect(self._show_keyboard_shortcuts)
+        preferences_menu.addAction(keyboard_shortcuts)
+        
+        keymaps = QAction("Keymaps", self)
+        keymaps.setShortcut(QKeySequence("Ctrl+K, Ctrl+M"))
+        keymaps.triggered.connect(self._show_command_palette)
+        preferences_menu.addAction(keymaps)
+        
+        user_snippets = QAction("User Snippets", self)
+        user_snippets.triggered.connect(self._show_command_palette)
+        preferences_menu.addAction(user_snippets)
+        
+        preferences_menu.addSeparator()
+
+        color_theme = QAction("Color Theme", self)
+        color_theme.setShortcut(QKeySequence("Ctrl+K, Ctrl+T"))
+        color_theme.triggered.connect(self._show_command_palette)
+        preferences_menu.addAction(color_theme)
+        
+        file_icon_theme = QAction("File Icon Theme", self)
+        file_icon_theme.triggered.connect(self._show_command_palette)
+        preferences_menu.addAction(file_icon_theme)
+        
+        product_icon_theme = QAction("Product Icon Theme", self)
+        product_icon_theme.triggered.connect(self._show_command_palette)
+        preferences_menu.addAction(product_icon_theme)
+
         file_menu.addSeparator()
+
+        revert_file = QAction("Revert File", self)
+        revert_file.triggered.connect(self._show_command_palette)
+        file_menu.addAction(revert_file)
 
         close_editor = QAction("Close Editor", self)
         close_editor.setShortcut(QKeySequence("Ctrl+W"))
@@ -858,6 +1027,7 @@ class MainWindow(QMainWindow):
         file_menu.addAction(close_editor)
 
         close_folder = QAction("Close Folder", self)
+        close_folder.setShortcut(QKeySequence("Ctrl+K, F"))
         close_folder.triggered.connect(self._close_folder)
         file_menu.addAction(close_folder)
 
@@ -868,27 +1038,7 @@ class MainWindow(QMainWindow):
 
         file_menu.addSeparator()
 
-        preferences_menu = file_menu.addMenu("Preferences")
-        
-        settings_action = QAction("Settings", self)
-        settings_action.setShortcut(QKeySequence("Ctrl+,"))
-        settings_action.triggered.connect(self._show_command_palette)
-        preferences_menu.addAction(settings_action)
-
-        keyboard_shortcuts = QAction("Keyboard Shortcuts", self)
-        keyboard_shortcuts.setShortcut(QKeySequence("Ctrl+K, Ctrl+S"))
-        keyboard_shortcuts.triggered.connect(self._show_keyboard_shortcuts)
-        preferences_menu.addAction(keyboard_shortcuts)
-
-        color_theme = QAction("Color Theme", self)
-        color_theme.setShortcut(QKeySequence("Ctrl+K, Ctrl+T"))
-        color_theme.triggered.connect(self._show_command_palette)
-        preferences_menu.addAction(color_theme)
-
-        file_menu.addSeparator()
-
         exit_action = QAction("Exit", self)
-        exit_action.setShortcut(QKeySequence("Ctrl+Q"))
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
 
@@ -934,10 +1084,36 @@ class MainWindow(QMainWindow):
         find_replace.triggered.connect(self._show_find_replace)
         edit_menu.addAction(find_replace)
         
+        edit_menu.addSeparator()
+        
         find_files = QAction("Find in Files", self)
         find_files.setShortcut(QKeySequence("Ctrl+Shift+F"))
         find_files.triggered.connect(lambda: self._switch_sidebar(VIEW_SEARCH))
         edit_menu.addAction(find_files)
+        
+        replace_files = QAction("Replace in Files", self)
+        replace_files.setShortcut(QKeySequence("Ctrl+Shift+H"))
+        replace_files.triggered.connect(lambda: self._switch_sidebar(VIEW_SEARCH))
+        edit_menu.addAction(replace_files)
+
+        edit_menu.addSeparator()
+        
+        toggle_line_comment = QAction("Toggle Line Comment", self)
+        toggle_line_comment.setShortcut(QKeySequence("Ctrl+/"))
+        toggle_line_comment.triggered.connect(lambda: self._run_editor_action("editor.action.commentLine"))
+        edit_menu.addAction(toggle_line_comment)
+        
+        toggle_block_comment = QAction("Toggle Block Comment", self)
+        toggle_block_comment.setShortcut(QKeySequence("Shift+Alt+A"))
+        toggle_block_comment.triggered.connect(lambda: self._run_editor_action("editor.action.blockComment"))
+        edit_menu.addAction(toggle_block_comment)
+        
+        emmet_expand = QAction("Emmet: Expand Abbreviation", self)
+        emmet_expand.setShortcut(QKeySequence("Tab"))
+        emmet_expand.triggered.connect(self._show_command_palette)
+        edit_menu.addAction(emmet_expand)
+
+        edit_menu.addSeparator()
 
         format_doc = QAction("Format Document", self)
         format_doc.setShortcut(QKeySequence("Shift+Alt+F"))
@@ -976,6 +1152,20 @@ class MainWindow(QMainWindow):
         copy_down.triggered.connect(self._editor_tabs.copy_line_down)
         sel_menu.addAction(copy_down)
         
+        move_line_up = QAction("Move Line Up", self)
+        move_line_up.setShortcut(QKeySequence("Alt+Up"))
+        move_line_up.triggered.connect(lambda: self._run_editor_action("editor.action.moveLinesUpAction"))
+        sel_menu.addAction(move_line_up)
+        
+        move_line_down = QAction("Move Line Down", self)
+        move_line_down.setShortcut(QKeySequence("Alt+Down"))
+        move_line_down.triggered.connect(lambda: self._run_editor_action("editor.action.moveLinesDownAction"))
+        sel_menu.addAction(move_line_down)
+        
+        duplicate_selection = QAction("Duplicate Selection", self)
+        duplicate_selection.triggered.connect(lambda: self._run_editor_action("editor.action.duplicateSelection"))
+        sel_menu.addAction(duplicate_selection)
+        
         sel_menu.addSeparator()
         
         add_cursor_above = QAction("Add Cursor Above", self)
@@ -987,18 +1177,31 @@ class MainWindow(QMainWindow):
         add_cursor_below.setShortcut(QKeySequence("Ctrl+Alt+Down"))
         add_cursor_below.triggered.connect(lambda: self._run_editor_action("editor.action.insertCursorBelow"))
         sel_menu.addAction(add_cursor_below)
-
-        sel_menu.addSeparator()
-
-        add_next_occurrence = QAction("Add Selection To Next Find Match", self)
+        
+        add_cursors_to_line_ends = QAction("Add Cursors to Line Ends", self)
+        add_cursors_to_line_ends.setShortcut(QKeySequence("Shift+Alt+I"))
+        add_cursors_to_line_ends.triggered.connect(lambda: self._run_editor_action("editor.action.insertCursorAtEndOfEachLineSelected"))
+        sel_menu.addAction(add_cursors_to_line_ends)
+        
+        add_next_occurrence = QAction("Add Next Occurrence", self)
         add_next_occurrence.setShortcut(QKeySequence("Ctrl+D"))
         add_next_occurrence.triggered.connect(lambda: self._run_editor_action("editor.action.addSelectionToNextFindMatch"))
         sel_menu.addAction(add_next_occurrence)
+        
+        add_previous_occurrence = QAction("Add Previous Occurrence", self)
+        add_previous_occurrence.triggered.connect(lambda: self._run_editor_action("editor.action.addSelectionToPreviousFindMatch"))
+        sel_menu.addAction(add_previous_occurrence)
 
-        select_all_occur = QAction("Select All Occurrences of Find Match", self)
+        select_all_occur = QAction("Select All Occurrences", self)
         select_all_occur.setShortcut(QKeySequence("Ctrl+Shift+L"))
         select_all_occur.triggered.connect(lambda: self._run_editor_action("editor.action.selectHighlights"))
         sel_menu.addAction(select_all_occur)
+
+        sel_menu.addSeparator()
+
+        switch_ctrl_click = QAction("Switch to Ctrl+Click for Multi-Cursor", self)
+        switch_ctrl_click.triggered.connect(self._show_command_palette)
+        sel_menu.addAction(switch_ctrl_click)
 
         column_sel_mode = QAction("Column Selection Mode", self)
         column_sel_mode.triggered.connect(lambda: self._run_editor_action("editor.action.toggleColumnSelection"))
@@ -1012,13 +1215,6 @@ class MainWindow(QMainWindow):
         cmd_palette.triggered.connect(self._show_command_palette)
         view_menu.addAction(cmd_palette)
 
-        quick_open = QAction("Quick Open...", self)
-        quick_open.setShortcut(QKeySequence("Ctrl+P"))
-        quick_open.triggered.connect(self._show_quick_open)
-        view_menu.addAction(quick_open)
-
-        view_menu.addSeparator()
-
         open_view = QAction("Open View...", self)
         open_view.triggered.connect(self._show_command_palette)
         view_menu.addAction(open_view)
@@ -1027,42 +1223,64 @@ class MainWindow(QMainWindow):
 
         # ── Appearance submenu ──
         appearance_menu = view_menu.addMenu("Appearance")
-
-        # Theme switcher
-        theme_menu = appearance_menu.addMenu("Color Theme")
-        dark_theme = QAction("Dark+ (Default)", self)
-        dark_theme.setCheckable(True)
-        dark_theme.setChecked(True)
-        dark_theme.triggered.connect(lambda: self._set_theme("dark"))
-        theme_menu.addAction(dark_theme)
-
-        light_theme = QAction("Light+", self)
-        light_theme.setCheckable(True)
-        light_theme.triggered.connect(lambda: self._set_theme("light"))
-        theme_menu.addAction(light_theme)
-
-        high_contrast = QAction("High Contrast", self)
-        high_contrast.setCheckable(True)
-        high_contrast.triggered.connect(lambda: self._set_theme("hc"))
-        theme_menu.addAction(high_contrast)
-
+        
+        full_screen = QAction("Full Screen", self)
+        full_screen.setShortcut(QKeySequence("F11"))
+        full_screen.triggered.connect(self._show_command_palette)
+        appearance_menu.addAction(full_screen)
+        
+        zen_mode = QAction("Zen Mode", self)
+        zen_mode.setShortcut(QKeySequence("Ctrl+K, Z"))
+        zen_mode.triggered.connect(self._zen_mode.toggle_zen_mode)
+        appearance_menu.addAction(zen_mode)
+        
+        centered_layout = QAction("Centered Layout", self)
+        centered_layout.triggered.connect(self._show_command_palette)
+        appearance_menu.addAction(centered_layout)
+        
         appearance_menu.addSeparator()
-
-        toggle_menu_bar = QAction("Toggle Menu Bar", self)
+        
+        toggle_menu_bar = QAction("Menu Bar", self)
         toggle_menu_bar.triggered.connect(self._toggle_menu_bar)
         appearance_menu.addAction(toggle_menu_bar)
         
-        toggle_minimap = QAction("Toggle Minimap", self)
-        toggle_minimap.setCheckable(True)
-        toggle_minimap.setChecked(True)
-        toggle_minimap.triggered.connect(lambda checked: self._editor_tabs.active_group().current_editor().set_minimap(checked) if self._editor_tabs.active_group() and self._editor_tabs.active_group().current_editor() else None)
-        appearance_menu.addAction(toggle_minimap)
-
-        view_menu.addSeparator()
+        primary_sidebar = QAction("Primary Side Bar", self)
+        primary_sidebar.setShortcut(QKeySequence("Ctrl+B"))
+        primary_sidebar.triggered.connect(self._toggle_sidebar)
+        appearance_menu.addAction(primary_sidebar)
         
+        secondary_sidebar = QAction("Secondary Side Bar", self)
+        secondary_sidebar.triggered.connect(self._toggle_chat)
+        appearance_menu.addAction(secondary_sidebar)
+        
+        status_bar = QAction("Status Bar", self)
+        status_bar.triggered.connect(self._show_command_palette)
+        appearance_menu.addAction(status_bar)
+        
+        activity_bar = QAction("Activity Bar", self)
+        activity_bar.triggered.connect(self._show_command_palette)
+        appearance_menu.addAction(activity_bar)
+        
+        panel = QAction("Panel", self)
+        panel.setShortcut(QKeySequence("Ctrl+`"))
+        panel.triggered.connect(self._toggle_terminal)
+        appearance_menu.addAction(panel)
+
         layout_menu = view_menu.addMenu("Editor Layout")
+        split_up = QAction("Split Up", self)
+        split_up.triggered.connect(self._show_command_palette)
+        layout_menu.addAction(split_up)
+        
+        split_down = QAction("Split Down", self)
+        split_down.triggered.connect(self._show_command_palette)
+        layout_menu.addAction(split_down)
+        
+        split_left = QAction("Split Left", self)
+        split_left.triggered.connect(self._show_command_palette)
+        layout_menu.addAction(split_left)
+        
         split_right = QAction("Split Right", self)
-        split_right.setShortcut(QKeySequence("Ctrl+\\"))
+        split_right.setShortcut(QKeySequence("Ctrl+\\\\"))
         split_right.triggered.connect(lambda: self._editor_tabs.split_editor("right"))
         layout_menu.addAction(split_right)
 
@@ -1082,6 +1300,11 @@ class MainWindow(QMainWindow):
         scm_view.setShortcut(QKeySequence("Ctrl+Shift+G"))
         scm_view.triggered.connect(lambda: self._switch_sidebar(VIEW_SOURCE_CONTROL))
         view_menu.addAction(scm_view)
+        
+        run_view = QAction("Run", self)
+        run_view.setShortcut(QKeySequence("Ctrl+Shift+D"))
+        run_view.triggered.connect(self._show_command_palette)
+        view_menu.addAction(run_view)
 
         ext_view = QAction("Extensions", self)
         ext_view.setShortcut(QKeySequence("Ctrl+Shift+X"))
@@ -1091,37 +1314,28 @@ class MainWindow(QMainWindow):
         view_menu.addSeparator()
 
         problems_panel = QAction("Problems", self)
+        problems_panel.setShortcut(QKeySequence("Ctrl+Shift+M"))
         problems_panel.triggered.connect(self._open_problems_panel)
         view_menu.addAction(problems_panel)
 
         output_panel = QAction("Output", self)
+        output_panel.setShortcut(QKeySequence("Ctrl+Shift+U"))
         output_panel.triggered.connect(self._open_output_panel)
         view_menu.addAction(output_panel)
 
         debug_console = QAction("Debug Console", self)
+        debug_console.setShortcut(QKeySequence("Ctrl+Shift+Y"))
         debug_console.triggered.connect(self._open_debug_console)
         view_menu.addAction(debug_console)
+        
+        terminal_panel = QAction("Terminal", self)
+        terminal_panel.setShortcut(QKeySequence("Ctrl+`"))
+        terminal_panel.triggered.connect(self._toggle_terminal)
+        view_menu.addAction(terminal_panel)
 
         view_menu.addSeparator()
 
-        toggle_sidebar = QAction("Toggle Sidebar", self)
-        toggle_sidebar.setShortcut(QKeySequence("Ctrl+B"))
-        toggle_sidebar.triggered.connect(self._toggle_sidebar)
-        view_menu.addAction(toggle_sidebar)
-
-        toggle_chat = QAction("Toggle Chat Panel", self)
-        toggle_chat.setShortcut(QKeySequence("Ctrl+Shift+J"))
-        toggle_chat.triggered.connect(self._toggle_chat)
-        view_menu.addAction(toggle_chat)
-
-        toggle_terminal = QAction("Toggle Terminal", self)
-        toggle_terminal.setShortcut(QKeySequence("Ctrl+`"))
-        toggle_terminal.triggered.connect(self._toggle_terminal)
-        view_menu.addAction(toggle_terminal)
-
-        view_menu.addSeparator()
-
-        toggle_word_wrap = QAction("Toggle Word Wrap", self)
+        toggle_word_wrap = QAction("Word Wrap", self)
         toggle_word_wrap.setShortcut(QKeySequence("Alt+Z"))
         toggle_word_wrap.triggered.connect(self._toggle_word_wrap)
         view_menu.addAction(toggle_word_wrap)
@@ -1137,13 +1351,6 @@ class MainWindow(QMainWindow):
         zoom_out.setShortcut(QKeySequence("Ctrl+-"))
         zoom_out.triggered.connect(self._zoom_out)
         view_menu.addAction(zoom_out)
-
-        view_menu.addSeparator()
-
-        zen_mode_action = QAction("Zen Mode", self)
-        zen_mode_action.setShortcut(QKeySequence("Ctrl+K, Z"))
-        zen_mode_action.triggered.connect(self._zen_mode.toggle_zen_mode)
-        view_menu.addAction(zen_mode_action)
 
         view_menu.addSeparator()
 
@@ -1164,6 +1371,29 @@ class MainWindow(QMainWindow):
         forward_action.setShortcut(QKeySequence("Alt+Right"))
         forward_action.triggered.connect(lambda: self._status_bar.set_connected(True))
         go_menu.addAction(forward_action)
+        
+        last_edit_location = QAction("Last Edit Location", self)
+        last_edit_location.setShortcut(QKeySequence("Ctrl+K, Ctrl+Q"))
+        last_edit_location.triggered.connect(self._show_command_palette)
+        go_menu.addAction(last_edit_location)
+        
+        go_menu.addSeparator()
+        
+        switch_editor_menu = go_menu.addMenu("Switch Editor")
+        next_editor = QAction("Next Editor", self)
+        next_editor.triggered.connect(self._show_command_palette)
+        switch_editor_menu.addAction(next_editor)
+        prev_editor = QAction("Previous Editor", self)
+        prev_editor.triggered.connect(self._show_command_palette)
+        switch_editor_menu.addAction(prev_editor)
+        
+        switch_group_menu = go_menu.addMenu("Switch Group")
+        next_group = QAction("Next Group", self)
+        next_group.triggered.connect(self._show_command_palette)
+        switch_group_menu.addAction(next_group)
+        prev_group = QAction("Previous Group", self)
+        prev_group.triggered.connect(self._show_command_palette)
+        switch_group_menu.addAction(prev_group)
 
         go_menu.addSeparator()
 
@@ -1171,11 +1401,40 @@ class MainWindow(QMainWindow):
         go_to_file.setShortcut(QKeySequence("Ctrl+P"))
         go_to_file.triggered.connect(self._show_quick_open)
         go_menu.addAction(go_to_file)
+        
+        go_to_symbol_ws = QAction("Go to Symbol in Workspace...", self)
+        go_to_symbol_ws.setShortcut(QKeySequence("Ctrl+T"))
+        go_to_symbol_ws.triggered.connect(self._show_command_palette)
+        go_menu.addAction(go_to_symbol_ws)
 
-        go_to_symbol = QAction("Go to Symbol in File...", self)
+        go_to_symbol = QAction("Go to Symbol in Editor...", self)
         go_to_symbol.setShortcut(QKeySequence("Ctrl+Shift+O"))
         go_to_symbol.triggered.connect(self._show_command_palette)
         go_menu.addAction(go_to_symbol)
+        
+        go_menu.addSeparator()
+
+        go_to_def = QAction("Go to Definition", self)
+        go_to_def.setShortcut(QKeySequence("F12"))
+        go_to_def.triggered.connect(self._editor_tabs.go_to_definition)
+        go_menu.addAction(go_to_def)
+        
+        go_to_decl = QAction("Go to Declaration", self)
+        go_to_decl.triggered.connect(self._show_command_palette)
+        go_menu.addAction(go_to_decl)
+        
+        go_to_type_def = QAction("Go to Type Definition", self)
+        go_to_type_def.triggered.connect(self._show_command_palette)
+        go_menu.addAction(go_to_type_def)
+        
+        go_to_impl = QAction("Go to Implementations", self)
+        go_to_impl.triggered.connect(self._show_command_palette)
+        go_menu.addAction(go_to_impl)
+        
+        go_to_ref = QAction("Go to References", self)
+        go_to_ref.setShortcut(QKeySequence("Shift+F12"))
+        go_to_ref.triggered.connect(self._show_command_palette)
+        go_menu.addAction(go_to_ref)
 
         go_menu.addSeparator()
 
@@ -1183,19 +1442,31 @@ class MainWindow(QMainWindow):
         go_to_line.setShortcut(QKeySequence("Ctrl+G"))
         go_to_line.triggered.connect(self._show_go_to_line)
         go_menu.addAction(go_to_line)
-
-        go_menu.addSeparator()
-
-        go_to_def = QAction("Go to Definition", self)
-        go_to_def.setShortcut(QKeySequence("F12"))
-        go_to_def.triggered.connect(self._editor_tabs.go_to_definition)
-        go_menu.addAction(go_to_def)
+        
+        go_to_bracket = QAction("Go to Bracket", self)
+        go_to_bracket.setShortcut(QKeySequence("Ctrl+Shift+\\\\"))
+        go_to_bracket.triggered.connect(self._show_command_palette)
+        go_menu.addAction(go_to_bracket)
 
         go_menu.addSeparator()
 
         next_prob = QAction("Next Problem", self)
         next_prob.setShortcut(QKeySequence("F8"))
         go_menu.addAction(next_prob)
+        
+        prev_prob = QAction("Previous Problem", self)
+        prev_prob.setShortcut(QKeySequence("Shift+F8"))
+        go_menu.addAction(prev_prob)
+        
+        go_menu.addSeparator()
+        
+        next_change = QAction("Next Change", self)
+        next_change.triggered.connect(self._show_command_palette)
+        go_menu.addAction(next_change)
+        
+        prev_change = QAction("Previous Change", self)
+        prev_change.triggered.connect(self._show_command_palette)
+        go_menu.addAction(prev_change)
 
         # ── Run menu ──
         run_menu = menubar.addMenu("&Run")
@@ -1209,6 +1480,48 @@ class MainWindow(QMainWindow):
         run_no_debug.setShortcut(QKeySequence("Ctrl+F5"))
         run_no_debug.triggered.connect(self._run_current_file)
         run_menu.addAction(run_no_debug)
+        
+        stop_debug = QAction("Stop Debugging", self)
+        stop_debug.setShortcut(QKeySequence("Shift+F5"))
+        stop_debug.triggered.connect(self._show_command_palette)
+        run_menu.addAction(stop_debug)
+        
+        restart_debug = QAction("Restart Debugging", self)
+        restart_debug.setShortcut(QKeySequence("Ctrl+Shift+F5"))
+        restart_debug.triggered.connect(self._show_command_palette)
+        run_menu.addAction(restart_debug)
+
+        run_menu.addSeparator()
+        
+        open_configs = QAction("Open Configurations", self)
+        open_configs.triggered.connect(self._show_command_palette)
+        run_menu.addAction(open_configs)
+        
+        add_config = QAction("Add Configuration...", self)
+        add_config.triggered.connect(self._show_command_palette)
+        run_menu.addAction(add_config)
+        
+        run_menu.addSeparator()
+        
+        step_over = QAction("Step Over", self)
+        step_over.setShortcut(QKeySequence("F10"))
+        step_over.triggered.connect(self._show_command_palette)
+        run_menu.addAction(step_over)
+        
+        step_into = QAction("Step Into", self)
+        step_into.setShortcut(QKeySequence("F11"))
+        step_into.triggered.connect(self._show_command_palette)
+        run_menu.addAction(step_into)
+        
+        step_out = QAction("Step Out", self)
+        step_out.setShortcut(QKeySequence("Shift+F11"))
+        step_out.triggered.connect(self._show_command_palette)
+        run_menu.addAction(step_out)
+        
+        continue_debug = QAction("Continue", self)
+        continue_debug.setShortcut(QKeySequence("F5"))
+        continue_debug.triggered.connect(self._show_command_palette)
+        run_menu.addAction(continue_debug)
 
         run_menu.addSeparator()
 
@@ -1216,6 +1529,28 @@ class MainWindow(QMainWindow):
         toggle_break.setShortcut(QKeySequence("F9"))
         toggle_break.triggered.connect(self._editor_tabs.toggle_breakpoint)
         run_menu.addAction(toggle_break)
+        
+        new_break_menu = run_menu.addMenu("New Breakpoint")
+        cond_break = QAction("Conditional Breakpoint...", self)
+        cond_break.triggered.connect(self._show_command_palette)
+        new_break_menu.addAction(cond_break)
+        inline_break = QAction("Inline Breakpoint", self)
+        inline_break.triggered.connect(self._show_command_palette)
+        new_break_menu.addAction(inline_break)
+        
+        run_menu.addSeparator()
+        
+        enable_all_breakpoints = QAction("Enable All Breakpoints", self)
+        enable_all_breakpoints.triggered.connect(self._show_command_palette)
+        run_menu.addAction(enable_all_breakpoints)
+        
+        disable_all_breakpoints = QAction("Disable All Breakpoints", self)
+        disable_all_breakpoints.triggered.connect(self._show_command_palette)
+        run_menu.addAction(disable_all_breakpoints)
+        
+        remove_all_breakpoints = QAction("Remove All Breakpoints", self)
+        remove_all_breakpoints.triggered.connect(self._show_command_palette)
+        run_menu.addAction(remove_all_breakpoints)
 
         # ── Terminal menu ──
         terminal_menu = menubar.addMenu("&Terminal")
@@ -1229,16 +1564,25 @@ class MainWindow(QMainWindow):
         split_terminal.setShortcut(QKeySequence("Ctrl+Shift+5"))
         split_terminal.triggered.connect(self._split_terminal)
         terminal_menu.addAction(split_terminal)
-
-        kill_terminal = QAction("Kill Terminal", self)
-        kill_terminal.triggered.connect(self._kill_terminal)
-        terminal_menu.addAction(kill_terminal)
-
+        
         terminal_menu.addSeparator()
 
         run_task = QAction("Run Task...", self)
         run_task.triggered.connect(self._show_run_task)
         terminal_menu.addAction(run_task)
+        
+        run_build_task = QAction("Run Build Task...", self)
+        run_build_task.setShortcut(QKeySequence("Ctrl+Shift+B"))
+        run_build_task.triggered.connect(self._show_command_palette)
+        terminal_menu.addAction(run_build_task)
+        
+        run_active_file = QAction("Run Active File", self)
+        run_active_file.triggered.connect(self._run_current_file)
+        terminal_menu.addAction(run_active_file)
+        
+        run_selected_text = QAction("Run Selected Text", self)
+        run_selected_text.triggered.connect(self._show_command_palette)
+        terminal_menu.addAction(run_selected_text)
 
         # ── Help menu ──
         help_menu = menubar.addMenu("&Help")
@@ -1246,20 +1590,77 @@ class MainWindow(QMainWindow):
         welcome_action = QAction("Welcome", self)
         welcome_action.triggered.connect(lambda: self._new_conversation())
         help_menu.addAction(welcome_action)
+        
+        show_all_commands = QAction("Show All Commands", self)
+        show_all_commands.triggered.connect(self._show_command_palette)
+        help_menu.addAction(show_all_commands)
+        
+        documentation = QAction("Documentation", self)
+        documentation.triggered.connect(self._show_command_palette)
+        help_menu.addAction(documentation)
+        
+        editor_playground = QAction("Editor Playground", self)
+        editor_playground.triggered.connect(self._show_command_palette)
+        help_menu.addAction(editor_playground)
+        
+        release_notes = QAction("Show Release Notes", self)
+        release_notes.triggered.connect(self._show_command_palette)
+        help_menu.addAction(release_notes)
 
         help_menu.addSeparator()
 
         keyboard_ref = QAction("Keyboard Shortcuts Reference", self)
+        keyboard_ref.setShortcut(QKeySequence("Ctrl+K, Ctrl+R"))
         keyboard_ref.triggered.connect(self._show_keyboard_shortcuts)
         help_menu.addAction(keyboard_ref)
+        
+        video_tutorials = QAction("Video Tutorials", self)
+        video_tutorials.triggered.connect(self._show_command_palette)
+        help_menu.addAction(video_tutorials)
+        
+        tips_tricks = QAction("Tips and Tricks", self)
+        tips_tricks.triggered.connect(self._show_command_palette)
+        help_menu.addAction(tips_tricks)
 
         help_menu.addSeparator()
+        
+        join_youtube = QAction("Join Us on YouTube", self)
+        join_youtube.triggered.connect(self._show_command_palette)
+        help_menu.addAction(join_youtube)
+        
+        search_feature_reqs = QAction("Search Feature Requests", self)
+        search_feature_reqs.triggered.connect(self._show_command_palette)
+        help_menu.addAction(search_feature_reqs)
 
         report_issue = QAction("Report Issue", self)
         report_issue.triggered.connect(self._report_issue)
         help_menu.addAction(report_issue)
 
         help_menu.addSeparator()
+        
+        view_license = QAction("View License", self)
+        view_license.triggered.connect(self._show_command_palette)
+        help_menu.addAction(view_license)
+        
+        privacy_statement = QAction("Privacy Statement", self)
+        privacy_statement.triggered.connect(self._show_command_palette)
+        help_menu.addAction(privacy_statement)
+        
+        help_menu.addSeparator()
+        
+        toggle_dev_tools = QAction("Toggle Developer Tools", self)
+        toggle_dev_tools.triggered.connect(self._show_command_palette)
+        help_menu.addAction(toggle_dev_tools)
+        
+        process_explorer = QAction("Open Process Explorer", self)
+        process_explorer.triggered.connect(self._show_command_palette)
+        help_menu.addAction(process_explorer)
+        
+        help_menu.addSeparator()
+        
+        check_updates = QAction("Check for Updates...", self)
+        check_updates.triggered.connect(self._show_command_palette)
+        help_menu.addAction(check_updates)
 
         about_action = QAction("About Dardcor Code", self)
         about_action.triggered.connect(self._show_about)
@@ -1528,6 +1929,15 @@ class MainWindow(QMainWindow):
 
     # ── File operations ───────────────────────────────────
 
+    def _show_models_dialog(self):
+        try:
+            from dardcor_agent.models.main_dialog import ModelsQuotaDialog
+            self._models_dialog = ModelsQuotaDialog(parent=self)
+            self._models_dialog.setAttribute(Qt.WA_DeleteOnClose)
+            self._models_dialog.show()
+        except Exception as e:
+            print(f"Error opening Models Dashboard: {e}")
+
     def _new_file(self):
         """Create a new untitled file."""
         self._editor_tabs.new_file()
@@ -1731,6 +2141,7 @@ class MainWindow(QMainWindow):
 
     def _on_tab_changed(self, file_path: str, language: str):
         self._status_bar.set_language(language)
+        self._update_window_title(file_path)
 
         if self._current_active_editor:
             try:
@@ -1802,7 +2213,40 @@ class MainWindow(QMainWindow):
         self._git_panel.set_root(effective)
         self._config.workspace_path = effective
         self._config.save()
+        self._update_window_title()
         QTimer.singleShot(100, self._detect_git_branch)
+
+    def _update_window_title(self, file_path: str = None):
+        """Update window title dynamically based on active file and workspace."""
+        file_name = ""
+        if file_path:
+            file_name = os.path.basename(file_path)
+        elif self._editor_tabs and self._editor_tabs.current_editor():
+            fp = self._editor_tabs.current_editor().file_path
+            if fp:
+                file_name = os.path.basename(fp)
+                
+        workspace_name = ""
+        if self._config.workspace_path:
+            workspace_name = os.path.basename(self._config.workspace_path.rstrip("/\\\\"))
+            
+        if file_name and workspace_name:
+            title = f"{file_name} - {workspace_name} - Dardcor Code"
+            cc_title = f"{workspace_name}"
+        elif workspace_name:
+            title = f"{workspace_name} - Dardcor Code"
+            cc_title = f"{workspace_name}"
+        elif file_name:
+            title = f"{file_name} - Dardcor Code"
+            cc_title = "Dardcor Code"
+        else:
+            title = "Dardcor Code"
+            cc_title = "Dardcor Code"
+            
+        self.setWindowTitle(title)
+        
+        if hasattr(self, '_title_bar') and hasattr(self._title_bar, 'command_center'):
+            self._title_bar.command_center.set_title(cc_title)
 
     # ── Sidebar ───────────────────────────────────────────
 

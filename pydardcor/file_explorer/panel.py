@@ -11,6 +11,8 @@ from PySide6.QtCore import Signal, Qt, QSize, QPoint, QByteArray, QLocale, QFile
 from PySide6.QtGui import QAction, QColor, QPainter, QPixmap, QIcon, QPen, QFont, QPolygonF, QCursor, QImage
 from PySide6.QtSvg import QSvgRenderer
 
+from .outline_panel import SectionHeaderButton
+
 # Fix Qt locale float parsing bugs in QSvgRenderer (e.g. for European/Indonesian locales using comma as decimal point)
 QLocale.setDefault(QLocale.c())
 
@@ -266,6 +268,13 @@ class FileExplorer(QWidget):
         self._watcher = QFileSystemWatcher(self)
         self._watcher.directoryChanged.connect(self._schedule_refresh)
         
+        self._is_refreshing = False
+        
+        self._watcher_timer = QTimer(self)
+        self._watcher_timer.setSingleShot(True)
+        self._watcher_timer.setInterval(500)
+        self._watcher_timer.timeout.connect(lambda: self._update_watcher(self._get_expanded_paths()))
+        
         self._refresh_timer = QTimer(self)
         self._refresh_timer.setSingleShot(True)
         self._refresh_timer.setInterval(200) # debounce
@@ -358,6 +367,15 @@ class FileExplorer(QWidget):
 
         layout.addWidget(self._welcome_widget)
 
+        # Workspace Header
+        self._workspace_collapsed = False
+        self._workspace_header = SectionHeaderButton("", collapsed=self._workspace_collapsed)
+        self._workspace_header.clicked.connect(self._toggle_workspace)
+        self._workspace_header.setContextMenuPolicy(Qt.CustomContextMenu)
+        self._workspace_header.customContextMenuRequested.connect(self._show_workspace_context_menu)
+        self._workspace_header.hide()
+        layout.addWidget(self._workspace_header)
+
         # Tree widget
         self._tree = QTreeWidget()
         self._tree.setStyle(TreeBranchStyle())
@@ -428,12 +446,12 @@ class FileExplorer(QWidget):
         except (PermissionError, OSError):
             return
 
+        added_any = False
         for name in entries:
-            if name.startswith(".") and name not in (".gitignore", ".env", ".dockerignore", ".next", ".venv", ".github"):
-                continue
             if name in ("__pycache__", ".git"):
                 continue
 
+            added_any = True
             full_path = os.path.join(path, name)
             item = QTreeWidgetItem()
             item.setText(0, name)
@@ -473,25 +491,30 @@ class FileExplorer(QWidget):
             else:
                 self._tree.addTopLevelItem(item)
 
+    def _toggle_workspace(self):
+        self._workspace_collapsed = not getattr(self, '_workspace_collapsed', False)
+        self._workspace_header.set_collapsed(self._workspace_collapsed)
+        self._tree.setVisible(not self._workspace_collapsed)
+        if self._workspace_collapsed:
+            self.setMaximumHeight(60)
+        else:
+            self.setMaximumHeight(16777215)
+
     def _on_item_expanded(self, item: QTreeWidgetItem):
         path = item.data(0, Qt.UserRole)
         if path and os.path.isdir(path):
             item.takeChildren()
             self._load_directory(path, item)
-            if path != self._root_path:
-                item.setIcon(0, get_folder_icon(item.text(0), True))
-            else:
-                self.setMaximumHeight(16777215)
-            self._update_watcher(self._get_expanded_paths())
+            item.setIcon(0, get_folder_icon(item.text(0), True))
+            if not getattr(self, '_is_refreshing', False):
+                self._watcher_timer.start()
 
     def _on_item_collapsed(self, item: QTreeWidgetItem):
         path = item.data(0, Qt.UserRole)
         if path and os.path.isdir(path):
-            if path != self._root_path:
-                item.setIcon(0, get_folder_icon(item.text(0), False))
-            else:
-                self.setMaximumHeight(60)
-            self._update_watcher(self._get_expanded_paths())
+            item.setIcon(0, get_folder_icon(item.text(0), False))
+            if not getattr(self, '_is_refreshing', False):
+                self._watcher_timer.start()
 
     def _on_item_clicked(self, item: QTreeWidgetItem, column: int):
         path = item.data(0, Qt.UserRole)
@@ -599,44 +622,38 @@ class FileExplorer(QWidget):
             return
 
         self._welcome_widget.hide()
-        self._tree.show()
-
-        # Save active expansion states
-        expanded = self._get_expanded_paths()
+        self._workspace_header.setText(os.path.basename(self._root_path))
+        self._workspace_header.show()
         
-        self._tree.clear()
-        self._refresh_git_status()
-        
-        # Create collapsible root workspace item
-        root_item = QTreeWidgetItem()
-        root_item.setText(0, os.path.basename(self._root_path).upper())
-        root_item.setData(0, Qt.UserRole, self._root_path)
-        root_item.setToolTip(0, self._root_path)
-        
-        font = root_item.font(0)
-        font.setBold(True)
-        font.setPixelSize(11)
-        root_item.setFont(0, font)
-        
-        root_item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
-        QTreeWidgetItem(root_item)  # Lazy load placeholder
-        
-        self._tree.addTopLevelItem(root_item)
-        
-        # Expand root item if forced (first load/changed project) or if it was previously expanded
-        if self._force_expand_root or self._root_path in expanded:
-            self._tree.expandItem(root_item)
-            self.setMaximumHeight(16777215)
+        if not getattr(self, '_workspace_collapsed', False):
+            self._tree.show()
         else:
-            self.setMaximumHeight(60)
+            self._tree.hide()
+
+        self._is_refreshing = True
+        try:
+            # Save active expansion states
+            expanded = self._get_expanded_paths()
             
-        self._force_expand_root = False  # Reset force flag
-        
-        # Restore other expansion states
-        self._restore_expanded_paths(expanded)
-        
-        # Update filesystem watcher
-        self._update_watcher(expanded)
+            self._tree.clear()
+            self._refresh_git_status()
+            
+            # Load directory directly as top-level items
+            self._load_directory(self._root_path, None)
+            
+            if self._force_expand_root:
+                self._workspace_collapsed = False
+                self._workspace_header.set_collapsed(False)
+                self._tree.show()
+                self.setMaximumHeight(16777215)
+                
+            self._force_expand_root = False  # Reset force flag
+            
+            # Restore other expansion states
+            self._restore_expanded_paths(expanded)
+        finally:
+            self._is_refreshing = False
+            self._watcher_timer.start()
 
     def _update_watcher(self, expanded_paths):
         # Clear existing paths
@@ -664,6 +681,65 @@ class FileExplorer(QWidget):
             self._tree.show()
             self._refresh()
             self.root_changed.emit(folder)
+
+    def _show_workspace_context_menu(self, position):
+        if not self._root_path:
+            return
+
+        menu = QMenu(self)
+        menu.setStyleSheet("""
+            QMenu {
+                background-color: #000000;
+                color: #cccccc;
+                border: 1px solid #454545;
+                padding: 4px 0px;
+                font-size: 12px;
+            }
+            QMenu::item {
+                padding: 4px 28px 4px 12px;
+                min-width: 150px;
+            }
+            QMenu::item:selected {
+                background-color: #2c004a;
+            }
+            QMenu::separator {
+                height: 1px;
+                background: #454545;
+                margin: 4px 0px;
+            }
+        """)
+
+        new_file = QAction("New File...", self)
+        new_file.triggered.connect(lambda: self._new_file_in(self._root_path, None))
+        menu.addAction(new_file)
+
+        new_folder = QAction("New Folder...", self)
+        new_folder.triggered.connect(lambda: self._new_folder_in(self._root_path, None))
+        menu.addAction(new_folder)
+        
+        menu.addSeparator()
+
+        copy_path = QAction("Copy Path", self)
+        from PySide6.QtWidgets import QApplication
+        copy_path.triggered.connect(lambda: QApplication.clipboard().setText(os.path.normpath(self._root_path)))
+        menu.addAction(copy_path)
+
+        open_explorer = QAction("Reveal in File Explorer", self)
+        open_explorer.triggered.connect(lambda: self._reveal_in_explorer(self._root_path))
+        menu.addAction(open_explorer)
+
+        menu.exec(self._workspace_header.mapToGlobal(position))
+
+    def _reveal_in_explorer(self, path: str):
+        import subprocess, sys
+        if not path or not os.path.exists(path):
+            return
+        if os.name == 'nt':
+            subprocess.Popen(['explorer', '/select,', os.path.normpath(path)])
+        elif sys.platform == 'darwin':
+            subprocess.Popen(['open', '-R', path])
+        else:
+            subprocess.Popen(['xdg-open', os.path.dirname(path)])
 
     def _show_context_menu(self, position):
         item = self._tree.itemAt(position)

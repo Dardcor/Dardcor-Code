@@ -5,21 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dardcor Chat</title>
     <link rel="stylesheet" href="style.css">
-    
-    <!-- qwebchannel.js will be injected automatically or loaded from qrc -->
     <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
-    
-    <!-- Lightweight Markdown & Code Highlight -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 </head>
 <body>
     <div id="chat-container">
-        <!-- Messages will be appended here dynamically -->
     </div>
-    
-    <!-- Independent CSS-driven Thinking Animation Container -->
     <div id="typing-indicator" class="hidden">
         <div class="typing-bubble">
             <span class="dot"></span>
@@ -28,7 +21,6 @@
         </div>
         <span id="typing-text">Agent is thinking</span>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>
