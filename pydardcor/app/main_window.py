@@ -526,6 +526,7 @@ from ..core.extension_manager import get_extension_manager
 from ..workspace.multi_root import MultiRootWorkspace
 from ..tasks.task_manager import TaskManager
 # ---------------------------
+from ..windows.customize_layout_dialog import CustomizeLayoutPopup
 
 class MainWindow(QMainWindow):
     """Main application window matching VS Code layout exactly."""
@@ -863,6 +864,13 @@ class MainWindow(QMainWindow):
 
         # ── Connections ──
         self._editor_tabs.tab_changed.connect(self._on_tab_changed)
+        self._editor_tabs.dirty_changed.connect(self._on_editor_dirty_changed)
+        
+        # Setup Auto Save Timer
+        self._auto_save_timer = QTimer(self)
+        self._auto_save_timer.setInterval(1000)
+        self._auto_save_timer.timeout.connect(self._save_all_dirty_if_auto_save)
+        self._auto_save_timer.setSingleShot(True)
 
         # ── Initialize ──
         self._agent.new_conversation()
@@ -877,6 +885,12 @@ class MainWindow(QMainWindow):
         self._chat_panel.show()
 
         QTimer.singleShot(100, self._sync_toggle_states)
+
+        # ── Customize Layout popup (lazy, created once) ──
+        self._customize_layout_popup = None
+        self._primary_sidebar_position = 'left'
+        self._panel_position = 'panel_bottom'
+        self._title_bar.btn_customize.clicked.connect(self._show_customize_layout)
 
         if self._config.workspace_path and os.path.exists(self._config.workspace_path):
             def init_workspace():
@@ -1240,31 +1254,43 @@ class MainWindow(QMainWindow):
         
         appearance_menu.addSeparator()
         
-        toggle_menu_bar = QAction("Menu Bar", self)
-        toggle_menu_bar.triggered.connect(self._toggle_menu_bar)
-        appearance_menu.addAction(toggle_menu_bar)
+        self.toggle_menu_bar_act = QAction("Menu Bar", self)
+        self.toggle_menu_bar_act.setCheckable(True)
+        self.toggle_menu_bar_act.setChecked(True)
+        self.toggle_menu_bar_act.triggered.connect(self._toggle_menu_bar_force)
+        appearance_menu.addAction(self.toggle_menu_bar_act)
         
-        primary_sidebar = QAction("Primary Side Bar", self)
-        primary_sidebar.setShortcut(QKeySequence("Ctrl+B"))
-        primary_sidebar.triggered.connect(self._toggle_sidebar)
-        appearance_menu.addAction(primary_sidebar)
+        self.primary_sidebar_act = QAction("Primary Side Bar", self)
+        self.primary_sidebar_act.setCheckable(True)
+        self.primary_sidebar_act.setChecked(True)
+        self.primary_sidebar_act.setShortcut(QKeySequence("Ctrl+B"))
+        self.primary_sidebar_act.triggered.connect(self._toggle_primary_sidebar_force)
+        appearance_menu.addAction(self.primary_sidebar_act)
         
-        secondary_sidebar = QAction("Secondary Side Bar", self)
-        secondary_sidebar.triggered.connect(self._toggle_chat)
-        appearance_menu.addAction(secondary_sidebar)
+        self.secondary_sidebar_act = QAction("Secondary Side Bar", self)
+        self.secondary_sidebar_act.setCheckable(True)
+        self.secondary_sidebar_act.setChecked(False)
+        self.secondary_sidebar_act.triggered.connect(self._toggle_secondary_sidebar_force)
+        appearance_menu.addAction(self.secondary_sidebar_act)
         
-        status_bar = QAction("Status Bar", self)
-        status_bar.triggered.connect(self._show_command_palette)
-        appearance_menu.addAction(status_bar)
+        self.status_bar_act = QAction("Status Bar", self)
+        self.status_bar_act.setCheckable(True)
+        self.status_bar_act.setChecked(True)
+        self.status_bar_act.triggered.connect(self._toggle_status_bar_force)
+        appearance_menu.addAction(self.status_bar_act)
         
-        activity_bar = QAction("Activity Bar", self)
-        activity_bar.triggered.connect(self._show_command_palette)
-        appearance_menu.addAction(activity_bar)
+        self.activity_bar_act = QAction("Activity Bar", self)
+        self.activity_bar_act.setCheckable(True)
+        self.activity_bar_act.setChecked(True)
+        self.activity_bar_act.triggered.connect(self._toggle_activity_bar_force)
+        appearance_menu.addAction(self.activity_bar_act)
         
-        panel = QAction("Panel", self)
-        panel.setShortcut(QKeySequence("Ctrl+`"))
-        panel.triggered.connect(self._toggle_terminal)
-        appearance_menu.addAction(panel)
+        self.panel_act = QAction("Panel", self)
+        self.panel_act.setCheckable(True)
+        self.panel_act.setChecked(False)
+        self.panel_act.setShortcut(QKeySequence("Ctrl+J"))
+        self.panel_act.triggered.connect(self._toggle_panel_force)
+        appearance_menu.addAction(self.panel_act)
 
         layout_menu = view_menu.addMenu("Editor Layout")
         split_up = QAction("Split Up", self)
@@ -1329,7 +1355,7 @@ class MainWindow(QMainWindow):
         view_menu.addAction(debug_console)
         
         terminal_panel = QAction("Terminal", self)
-        terminal_panel.setShortcut(QKeySequence("Ctrl+`"))
+        terminal_panel.setShortcut(QKeySequence("Ctrl+Shift+`"))
         terminal_panel.triggered.connect(self._toggle_terminal)
         view_menu.addAction(terminal_panel)
 
@@ -1887,13 +1913,7 @@ class MainWindow(QMainWindow):
         self._apply_extension_menu_items()
 
     def _apply_extension_menu_items(self):
-        ext_menu = self._title_bar.menu_bar.addMenu("Extensions")
-        for item in self._ext_manager.get_menu_items():
-            action = QAction(item.label, self)
-            if item.shortcut:
-                action.setShortcut(QKeySequence(item.shortcut))
-            action.triggered.connect(lambda checked=False, cmd=item.command_id: self._ext_manager.execute_command(cmd))
-            ext_menu.addAction(action)
+        pass  # In VS Code, extensions don't add a top-level "Extensions" menu. They add to command palette or specific menus.
 
     def _on_extension_installed(self, ext_name: str):
         self._ext_manager.activate_extension(ext_name)
@@ -2020,9 +2040,20 @@ class MainWindow(QMainWindow):
     def _save_all(self):
         self._editor_tabs.save_all()
 
+    def _on_editor_dirty_changed(self, is_dirty: bool):
+        if is_dirty and getattr(self._config, 'auto_save', False):
+            self._auto_save_timer.start()
+
+    def _save_all_dirty_if_auto_save(self):
+        if getattr(self._config, 'auto_save', False):
+            self._save_all()
+
     def _on_auto_save_toggle(self, checked: bool):
         self._config.auto_save = checked
         self._config.save()
+        if checked:
+            # Trigger immediate save if turning on
+            self._save_all_dirty_if_auto_save()
 
     def _close_current_editor(self):
         """Close the currently active editor tab (Ctrl+W)."""
@@ -2508,28 +2539,58 @@ class MainWindow(QMainWindow):
         self._title_bar.btn_left_sidebar.setChecked(self._sidebar_stack.isVisible())
         self._title_bar.btn_right_sidebar.setChecked(self._chat_panel.isVisible())
         self._title_bar.btn_bottom_panel.setChecked(self._bottom_panel.isVisible())
+        
+        if hasattr(self, 'primary_sidebar_act'):
+            self.primary_sidebar_act.setChecked(self._sidebar_stack.isVisible())
+        if hasattr(self, 'secondary_sidebar_act'):
+            self.secondary_sidebar_act.setChecked(self._chat_panel.isVisible())
+        if hasattr(self, 'panel_act'):
+            self.panel_act.setChecked(self._bottom_panel.isVisible())
+        if hasattr(self, 'status_bar_act'):
+            self.status_bar_act.setChecked(self._status_bar.isVisible())
+        if hasattr(self, 'activity_bar_act'):
+            self.activity_bar_act.setChecked(self._activity_bar.isVisible())
+        if hasattr(self, 'toggle_menu_bar_act'):
+            self.toggle_menu_bar_act.setChecked(self._title_bar.menu_bar.isVisible())
+
+    def _toggle_menu_bar(self):
+        self._toggle_menu_bar_force(not self._title_bar.menu_bar.isVisible())
+        self._refresh_customize_popup()
+
+    def _toggle_status_bar(self):
+        self._toggle_status_bar_force(not self._status_bar.isVisible())
+        self._refresh_customize_popup()
+
+    def _toggle_activity_bar(self):
+        self._toggle_activity_bar_force(not self._activity_bar.isVisible())
+        self._refresh_customize_popup()
 
     def _toggle_sidebar(self):
-        visible = self._sidebar_stack.isVisible()
-        self._sidebar_stack.setVisible(not visible)
-        self._title_bar.btn_left_sidebar.setChecked(not visible)
+        self._toggle_primary_sidebar_force(not self._sidebar_stack.isVisible())
+        self._refresh_customize_popup()
 
     def _toggle_chat(self):
-        visible = self._chat_panel.isVisible()
-        self._chat_panel.setVisible(not visible)
-        self._title_bar.btn_right_sidebar.setChecked(not visible)
+        self._toggle_secondary_sidebar_force(not self._chat_panel.isVisible())
+        self._refresh_customize_popup()
 
     def _toggle_terminal(self):
         if self._bottom_panel.isVisible():
             if self._bottom_panel.current_view_name() != "terminal":
                 self._bottom_panel.set_active_view("terminal")
                 self._title_bar.btn_bottom_panel.setChecked(True)
+                if hasattr(self, 'panel_act'):
+                    self.panel_act.setChecked(True)
             else:
-                self._bottom_panel.hide()
-                self._title_bar.btn_bottom_panel.setChecked(False)
+                self._toggle_panel_force(False)
         else:
             self._bottom_panel.set_active_view("terminal")
-            self._title_bar.btn_bottom_panel.setChecked(True)
+            self._toggle_panel_force(True)
+        self._refresh_customize_popup()
+
+    def _refresh_customize_popup(self):
+        """If the popup is open, update its toggle states."""
+        if self._customize_layout_popup is not None and self._customize_layout_popup.isVisible():
+            self._customize_layout_popup.refresh_state()
 
     def _new_terminal(self):
         if not self._bottom_panel.isVisible() or self._bottom_panel.current_view_name() != "terminal":
@@ -2589,3 +2650,141 @@ class MainWindow(QMainWindow):
         # Save config
         self._config.save()
         super().closeEvent(event)
+
+    # ── Customize Layout ───────────────────────────────────
+
+    def _show_customize_layout(self):
+        """Show the Customize Layout floating popup below the btn_customize button."""
+        if self._customize_layout_popup is None:
+            self._customize_layout_popup = CustomizeLayoutPopup(self)
+        btn = self._title_bar.btn_customize
+        global_pos = btn.mapToGlobal(btn.rect().bottomLeft())
+        self._customize_layout_popup.show_at(global_pos)
+
+    # --- Force-visibility helpers (accept explicit bool) ------
+
+    def _toggle_activity_bar_force(self, show: bool):
+        self._activity_bar.setVisible(show)
+        if hasattr(self, 'activity_bar_act'):
+            self.activity_bar_act.setChecked(show)
+        self._refresh_customize_popup()
+
+    def _toggle_primary_sidebar_force(self, show: bool):
+        self._sidebar_stack.setVisible(show)
+        self._title_bar.btn_left_sidebar.setChecked(show)
+        if hasattr(self, 'primary_sidebar_act'):
+            self.primary_sidebar_act.setChecked(show)
+        self._refresh_customize_popup()
+
+    def _toggle_secondary_sidebar_force(self, show: bool):
+        self._chat_panel.setVisible(show)
+        self._title_bar.btn_right_sidebar.setChecked(show)
+        if hasattr(self, 'secondary_sidebar_act'):
+            self.secondary_sidebar_act.setChecked(show)
+        self._refresh_customize_popup()
+
+    def _toggle_panel_force(self, show: bool):
+        if show:
+            self._bottom_panel.show()
+            self._title_bar.btn_bottom_panel.setChecked(True)
+        else:
+            self._bottom_panel.hide()
+            self._title_bar.btn_bottom_panel.setChecked(False)
+        if hasattr(self, 'panel_act'):
+            self.panel_act.setChecked(show)
+        self._refresh_customize_popup()
+
+    def _toggle_status_bar_force(self, show: bool):
+        self._status_bar.setVisible(show)
+        if hasattr(self, 'status_bar_act'):
+            self.status_bar_act.setChecked(show)
+        self._refresh_customize_popup()
+
+    def _toggle_menu_bar_force(self, show: bool):
+        self._title_bar.menu_bar.setVisible(show)
+        if hasattr(self, 'toggle_menu_bar_act'):
+            self.toggle_menu_bar_act.setChecked(show)
+        self._refresh_customize_popup()
+
+    # --- Primary Sidebar Position ----------------------
+
+    def _set_primary_sidebar_position(self, position: str):
+        """Move the Primary Sidebar to 'left' or 'right'."""
+        self._primary_sidebar_position = position
+        # _horiz_split has [sidebar_stack, center_chat_split]
+        # For 'right' we swap the order; for 'left' we restore it.
+        splitter = self._horiz_split
+        sidebar = self._sidebar_stack
+        center = self._center_chat_split
+        activity = self._activity_bar
+
+        if position == 'right':
+            # Move activity bar to right of center
+            splitter.insertWidget(0, center)
+            splitter.insertWidget(1, sidebar)
+            # Move activity bar widget inside main layout
+            main_lay = self.centralWidget().layout()
+            main_lay.removeWidget(activity)
+            main_lay.addWidget(activity)
+        else:
+            # Restore left
+            splitter.insertWidget(0, sidebar)
+            splitter.insertWidget(1, center)
+            main_lay = self.centralWidget().layout()
+            main_lay.removeWidget(activity)
+            main_lay.insertWidget(0, activity)
+
+        splitter.setStretchFactor(0, 0)
+        splitter.setStretchFactor(1, 1)
+
+    # --- Panel Position --------------------------------
+
+    def _set_panel_position(self, position: str):
+        """Reposition the bottom panel: panel_bottom, panel_top, panel_left, panel_right."""
+        self._panel_position = position
+        panel = self._bottom_panel
+        editor_term = self._editor_term_split
+        center_chat = self._center_chat_split
+
+        if position == 'panel_bottom':
+            # Standard: vertical splitter editor | panel
+            editor_term.setOrientation(Qt.Vertical)
+            idx = editor_term.indexOf(panel)
+            if idx == -1:
+                editor_term.addWidget(panel)
+            elif idx == 0:
+                # It's at top, move to bottom
+                editor_term.insertWidget(1, panel)
+            editor_term.setStretchFactor(0, 1)
+            editor_term.setStretchFactor(1, 0)
+
+        elif position == 'panel_top':
+            editor_term.setOrientation(Qt.Vertical)
+            idx = editor_term.indexOf(panel)
+            if idx == -1:
+                editor_term.insertWidget(0, panel)
+            elif idx != 0:
+                editor_term.insertWidget(0, panel)
+            editor_term.setStretchFactor(0, 0)
+            editor_term.setStretchFactor(1, 1)
+
+        elif position == 'panel_left':
+            editor_term.setOrientation(Qt.Horizontal)
+            idx = editor_term.indexOf(panel)
+            if idx == -1:
+                editor_term.insertWidget(0, panel)
+            elif idx != 0:
+                editor_term.insertWidget(0, panel)
+            editor_term.setStretchFactor(0, 0)
+            editor_term.setStretchFactor(1, 1)
+
+        elif position == 'panel_right':
+            editor_term.setOrientation(Qt.Horizontal)
+            idx = editor_term.indexOf(panel)
+            if idx == -1:
+                editor_term.addWidget(panel)
+            elif idx == 0:
+                editor_term.insertWidget(1, panel)
+            editor_term.setStretchFactor(0, 1)
+            editor_term.setStretchFactor(1, 0)
+

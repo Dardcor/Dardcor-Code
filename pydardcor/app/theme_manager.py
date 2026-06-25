@@ -70,9 +70,12 @@ class ThemeManager:
         QMenuBar::item:pressed {{ background-color: {c['selection']}; }}
         
         QMenu {{ background-color: {c['background']}; color: {c['foreground']}; border: 1px solid {c['border']}; padding: 4px 0px; }}
-        QMenu::item {{ padding: 6px 30px 6px 20px; }}
+        QMenu::item {{ padding: 6px 30px 6px 30px; }}
         QMenu::item:selected {{ background-color: {c['selection']}; }}
         QMenu::separator {{ height: 1px; background-color: {c['border']}; margin: 4px 0px; }}
+        QMenu::indicator {{ width: 16px; height: 16px; left: 8px; }}
+        QMenu::indicator:non-exclusive:checked {{ image: url(image/menu_check.svg); }}
+        QMenu::indicator:non-exclusive:unchecked {{ image: none; }}
         
         QSplitter::handle {{ background-color: {c['border']}; }}
         QSplitter::handle:hover {{ background-color: {c['accent']}; }}
