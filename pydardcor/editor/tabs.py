@@ -80,6 +80,11 @@ class EditorTabs(QWidget):
         g = self.active_group()
         return g.current_editor() if g else None
 
+    def add_custom_tab(self, widget, title, icon=None):
+        g = self.active_group()
+        if g: return g.add_custom_tab(widget, title, icon)
+        return None
+
     def save_current(self):
         g = self.active_group()
         if g: g.save_current()

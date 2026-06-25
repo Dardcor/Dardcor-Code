@@ -43,7 +43,8 @@ class TerminalInstance(QWidget):
         self._view = QWebEngineView(self)
         from PySide6.QtGui import QColor
         self._view.page().setBackgroundColor(QColor(0, 0, 0, 0))
-        self._view.setContextMenuPolicy(Qt.NoContextMenu)
+        self._view.setContextMenuPolicy(Qt.CustomContextMenu)
+        self._view.customContextMenuRequested.connect(self._show_context_menu)
         
         settings = self._view.page().profile().settings()
         settings.setAttribute(QWebEngineSettings.LocalContentCanAccessFileUrls, True)
@@ -266,3 +267,86 @@ class TerminalInstance(QWidget):
     def closeEvent(self, event):
         self.kill()
         super().closeEvent(event)
+
+    def _show_context_menu(self, pos):
+        from PySide6.QtWidgets import QMenu
+        from PySide6.QtGui import QAction, QKeySequence
+        
+        menu = QMenu(self)
+        menu.setStyleSheet("""
+            QMenu {
+                background-color: #000000;
+                color: #cccccc;
+                border: 1px solid #3c0068;
+            }
+            QMenu::item {
+                padding: 6px 20px;
+            }
+            QMenu::item:selected {
+                background-color: #3c0068;
+                color: #ffffff;
+            }
+            QMenu::separator {
+                height: 1px;
+                background: #3c0068;
+                margin: 4px 0px;
+            }
+        """)
+
+        copy_action = QAction("Copy", self)
+        copy_action.setShortcut(QKeySequence("Ctrl+C"))
+        copy_action.triggered.connect(lambda: self._view.page().triggerAction(self._view.page().WebAction.Copy))
+        menu.addAction(copy_action)
+
+        paste_action = QAction("Paste", self)
+        paste_action.setShortcut(QKeySequence("Ctrl+V"))
+        paste_action.triggered.connect(lambda: self._view.page().triggerAction(self._view.page().WebAction.Paste))
+        menu.addAction(paste_action)
+        
+        select_all_action = QAction("Select All", self)
+        select_all_action.setShortcut(QKeySequence("Ctrl+A"))
+        select_all_action.triggered.connect(lambda: self._view.page().triggerAction(self._view.page().WebAction.SelectAll))
+        menu.addAction(select_all_action)
+        
+        menu.addSeparator()
+        
+        clear_action = QAction("Clear", self)
+        clear_action.setShortcut(QKeySequence("Ctrl+L"))
+        clear_action.triggered.connect(self.clear)
+        menu.addAction(clear_action)
+        
+        menu.addSeparator()
+        
+        split_action = QAction("Split Terminal", self)
+        split_action.triggered.connect(lambda: self.split())
+        menu.addAction(split_action)
+        
+        kill_action = QAction("Kill Terminal", self)
+        kill_action.triggered.connect(self._request_kill)
+        menu.addAction(kill_action)
+        
+        menu.exec(self._view.mapToGlobal(pos))
+
+    def _request_kill(self):
+        """Request the parent to kill this specific instance, effectively acting like the trash button."""
+        p = self.parentWidget()
+        while p:
+            if hasattr(p, 'kill_all'): # It's a SplitContainer
+                # Find TerminalPanel
+                tp = p.parentWidget()
+                while tp:
+                    if hasattr(tp, '_kill_current'):
+                        # Hacky way to let it know we want to kill this specific instance
+                        if len(p.instances) > 1:
+                            self.kill()
+                            p.instances.remove(self)
+                            self.deleteLater()
+                        else:
+                            # It's the only one in the split, kill the whole tab
+                            idx = tp._stack.indexOf(p)
+                            if idx >= 0:
+                                tp._close_tab(idx)
+                        return
+                    tp = tp.parentWidget()
+                break
+            p = p.parentWidget()

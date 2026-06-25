@@ -1434,7 +1434,7 @@ class MainWindow(QMainWindow):
         view_menu.addAction(debug_console)
         
         terminal_panel = QAction("Terminal", self)
-        terminal_panel.setShortcut(QKeySequence("Ctrl+Shift+`"))
+        terminal_panel.setShortcuts([QKeySequence("Ctrl+`"), QKeySequence("Ctrl+~")])
         terminal_panel.triggered.connect(self._toggle_terminal)
         view_menu.addAction(terminal_panel)
 
@@ -1661,7 +1661,7 @@ class MainWindow(QMainWindow):
         terminal_menu = menubar.addMenu("&Terminal")
 
         new_terminal = QAction("New Terminal", self)
-        new_terminal.setShortcut(QKeySequence("Ctrl+Shift+`"))
+        new_terminal.setShortcuts([QKeySequence("Ctrl+Shift+`"), QKeySequence("Ctrl+Shift+~")])
         new_terminal.triggered.connect(self._new_terminal)
         terminal_menu.addAction(new_terminal)
 
@@ -2336,8 +2336,8 @@ class MainWindow(QMainWindow):
         file_name = ""
         if file_path:
             file_name = os.path.basename(file_path)
-        elif self._editor_tabs and self._editor_tabs.current_editor():
-            fp = self._editor_tabs.current_editor().file_path
+        elif self._editor_tabs.current_editor() and hasattr(self._editor_tabs.current_editor(), 'get_file_path'):
+            fp = self._editor_tabs.current_editor().get_file_path()
             if fp:
                 file_name = os.path.basename(fp)
                 

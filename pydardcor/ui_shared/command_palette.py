@@ -785,14 +785,8 @@ class QuickOpenDialog(QDialog):
             return
             
         if isinstance(data, str) and data.startswith("option:"):
-            _, option_id, val = data.split(":")
-            parent = self.parent()
-            if parent:
-                if option_id == "sidebar":
-                    parent._set_primary_sidebar_position(val)
-                elif option_id == "panel_align":
-                    parent._set_panel_position(val)
-            self._populate_customize_layout()
+            _, option_id, val = data.split(":", 2)
+            self._on_option_select(option_id, val)
             return
 
         if isinstance(data, str) and data.startswith("help:"):
@@ -947,7 +941,7 @@ class QuickOpenDialog(QDialog):
         curr_sidebar_pos  = getattr(parent, '_primary_sidebar_position', 'left')
         curr_panel_pos    = getattr(parent, '_panel_position', 'panel_bottom')
         is_fullscreen     = parent.isFullScreen()
-        is_zen            = getattr(parent, '_zen_mode', None) and parent._zen_mode.is_active() if hasattr(parent, '_zen_mode') else False
+        is_zen            = parent._zen_mode.is_zen_active if hasattr(parent, '_zen_mode') else False
 
         # ─────────────────────────────────────────────────────────────────────
         def add_separator(text):
@@ -1113,21 +1107,26 @@ class QuickOpenDialog(QDialog):
         elif panel_id == "panel":
             parent._toggle_panel_force(new_val)
         elif panel_id == "status_bar":
-            
-* 30 + 8) # approximate
-        list_height = self._list.sizeHintForRow(0) * self._list.count() + 12 # better calc
-        self._list.setFixedHeight(list_height)
-        self.setFixedHeight(list_height + 38)
-
-    def _on_customize_toggle(self, panel_id, new_val):
-        parent = self.parent()
-        if not parent: return
-        if panel_id == "activity_bar": parent._toggle_activity_bar_force(new_val)
-        elif panel_id == "primary_sidebar": parent._toggle_primary_sidebar_force(new_val)
-        elif panel_id == "secondary_sidebar": parent._toggle_secondary_sidebar_force(new_val)
-        elif panel_id == "panel": parent._toggle_panel_force(new_val)
-        elif panel_id == "status_bar": parent._toggle_status_bar_force(new_val)
-        elif panel_id == "menu_bar": parent._toggle_menu_bar_force(new_val)
+            parent._toggle_status_bar_force(new_val)
+        elif panel_id == "menu_bar":
+            parent._toggle_menu_bar_force(new_val)
         self._populate_customize_layout()
-        
 
+    def _on_option_select(self, option_id, val):
+        parent = self.parent()
+        if not parent:
+            return
+        if option_id == "sidebar":
+            parent._set_primary_sidebar_position(val)
+        elif option_id == "panel_align":
+            parent._set_panel_position(val)
+        elif option_id == "mode":
+            if val == "fullscreen":
+                if parent.isFullScreen():
+                    parent.showNormal()
+                else:
+                    parent.showFullScreen()
+            elif val == "zen":
+                if hasattr(parent, '_zen_mode'):
+                    parent._zen_mode.toggle_zen_mode()
+        self._populate_customize_layout()

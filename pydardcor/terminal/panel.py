@@ -103,8 +103,9 @@ def get_available_shells():
 class TerminalTabItemWidget(QWidget):
     """Custom widget for terminal list items in the sidebar with hover action buttons."""
     
-    def __init__(self, index, name, shell_type="powershell", parent=None, on_split=None, on_close=None):
+    def __init__(self, index, name, container, parent=None, on_split=None, on_close=None):
         super().__init__(parent)
+        self.container = container
         self.on_split = on_split
         self.on_close = on_close
         layout = QHBoxLayout(self)
@@ -112,21 +113,30 @@ class TerminalTabItemWidget(QWidget):
         layout.setSpacing(6)
         
         # Always use the standard terminal prompt icon \uea85 to match VS Code exactly
-        icon_char = "\uea85"
+        self.icon_char = "\uea85"
+        if getattr(self.container, "custom_icon", None):
+            self.icon_char = self.container.custom_icon
             
-        icon_label = QLabel(icon_char)
-        icon_label.setFont(QFont("codicon", 11))
-        icon_label.setStyleSheet("color: #cccccc; background: transparent;")
-        layout.addWidget(icon_label)
+        self.icon_label = QLabel(self.icon_char)
+        self.icon_label.setFont(QFont("codicon", 11))
+        
+        color_style = "color: #cccccc;"
+        if getattr(self.container, "custom_color", None):
+            color_style = f"color: {self.container.custom_color};"
+        self.icon_label.setStyleSheet(f"{color_style} background: transparent;")
+        layout.addWidget(self.icon_label)
         
         # Name display (e.g. "powershell" or "Python" matching VS Code exact styling)
         display_name = name
-        if display_name.lower() == "powershell" or display_name.lower() == "pwsh":
-            display_name = "powershell"
-        elif display_name.lower() == "cmd":
-            display_name = "Command Prompt"
+        if getattr(self.container, "custom_name", None):
+            display_name = self.container.custom_name
         else:
-            display_name = display_name.capitalize()
+            if display_name.lower() == "powershell" or display_name.lower() == "pwsh":
+                display_name = "powershell"
+            elif display_name.lower() == "cmd":
+                display_name = "Command Prompt"
+            else:
+                display_name = display_name.capitalize()
             
         self.text_label = QLabel(display_name)
         self.text_label.setStyleSheet("color: #cccccc; font-family: 'Segoe UI', sans-serif; font-size: 11px; background: transparent;")
@@ -195,6 +205,110 @@ class TerminalTabItemWidget(QWidget):
         self.split_btn.hide()
         self.close_btn.hide()
         super().leaveEvent(event)
+
+    def contextMenuEvent(self, event):
+        from PySide6.QtWidgets import QMenu, QInputDialog, QColorDialog
+        from PySide6.QtGui import QAction
+        
+        menu = QMenu(self)
+        menu.setStyleSheet("""
+            QMenu {
+                background-color: #000000;
+                color: #cccccc;
+                border: 1px solid #3c0068;
+            }
+            QMenu::item {
+                padding: 6px 20px;
+            }
+            QMenu::item:selected {
+                background-color: #3c0068;
+                color: #ffffff;
+            }
+            QMenu::separator {
+                height: 1px;
+                background: #3c0068;
+                margin: 4px 0px;
+            }
+        """)
+
+        rename_action = QAction("Rename...", self)
+        rename_action.triggered.connect(self._rename_tab)
+        menu.addAction(rename_action)
+        
+        change_color_action = QAction("Change Color...", self)
+        change_color_action.triggered.connect(self._change_color)
+        menu.addAction(change_color_action)
+        
+        change_icon_action = QAction("Change Icon...", self)
+        change_icon_action.triggered.connect(self._change_icon)
+        menu.addAction(change_icon_action)
+        
+        menu.addSeparator()
+
+        split_action = QAction("Split Terminal", self)
+        if self.on_split:
+            split_action.triggered.connect(self.on_split)
+        menu.addAction(split_action)
+        
+        kill_action = QAction("Kill Terminal", self)
+        if self.on_close:
+            kill_action.triggered.connect(self.on_close)
+        menu.addAction(kill_action)
+        
+        menu.addSeparator()
+        
+        move_editor_action = QAction("Move into Editor Area", self)
+        move_editor_action.triggered.connect(self._move_to_editor)
+        menu.addAction(move_editor_action)
+
+        menu.exec(event.globalPos())
+
+    def _rename_tab(self):
+        from PySide6.QtWidgets import QInputDialog
+        new_name, ok = QInputDialog.getText(self, "Rename Terminal", "Name:", text=self.text_label.text())
+        if ok and new_name:
+            self.text_label.setText(new_name)
+            self.container.custom_name = new_name
+            try:
+                p = self.parentWidget().parentWidget()
+                if hasattr(p, 'currentRow'):
+                    idx = p.currentRow()
+                    tp = p.parentWidget().parentWidget()
+                    if hasattr(tp, '_combo_box'):
+                        tp._combo_box.setItemText(idx, f"{idx + 1}: {new_name}")
+            except Exception:
+                pass
+            
+    def _change_color(self):
+        from PySide6.QtWidgets import QColorDialog
+        color = QColorDialog.getColor(parent=self)
+        if color.isValid():
+            self.icon_label.setStyleSheet(f"color: {color.name()}; background: transparent;")
+            self.container.custom_color = color.name()
+            
+    def _change_icon(self):
+        from PySide6.QtWidgets import QInputDialog
+        icons = ["\uea85 (Default)", "\uea71 (Bash)", "\uea93 (Cmd)", "\ueabc (Ubuntu)", "\uea9c (Python)", "\ueac4 (Warning)"]
+        icon_str, ok = QInputDialog.getItem(self, "Select Icon", "Icon:", icons, 0, False)
+        if ok and icon_str:
+            new_icon = icon_str.split(" ")[0]
+            self.icon_label.setText(new_icon)
+            self.container.custom_icon = new_icon
+
+    def _move_to_editor(self):
+        # Notify the TerminalPanel to move this instance out
+        p = self.parentWidget()
+        while p:
+            if hasattr(p, '_move_terminal_to_editor'):
+                try:
+                    idx = p._list_widget.row(p._list_widget.itemAt(self.mapTo(p._list_widget, self.rect().topLeft())))
+                    if idx < 0:
+                        idx = p._combo_box.currentIndex()
+                    p._move_terminal_to_editor(idx)
+                except Exception:
+                    pass
+                break
+            p = p.parentWidget()
 
 
 class SplitTerminalContainer(QSplitter):
@@ -494,6 +608,37 @@ class TerminalPanel(QWidget):
         else:
             self._main_splitter.setSizes([self.width(), 0])
 
+    def _move_terminal_to_editor(self, idx):
+        if idx < 0 or idx >= len(self._terminals):
+            return
+
+        container = self._terminals[idx]
+        
+        self._terminals.pop(idx)
+        self._stack.removeWidget(container)
+        
+        self._combo_box.blockSignals(True)
+        self._combo_box.removeItem(idx)
+        self._combo_box.blockSignals(False)
+        
+        new_idx = max(0, idx - 1)
+        if len(self._terminals) > 0:
+            self._combo_box.setCurrentIndex(new_idx)
+            self._stack.setCurrentWidget(self._terminals[new_idx])
+
+        self._update_sidebar_list()
+        
+        p = self.parentWidget()
+        while p:
+            if hasattr(p, '_editor_tabs'):
+                shell_name = "Terminal"
+                if container.shell:
+                    shell_name = os.path.basename(container.shell).replace(".exe", "").lower()
+                
+                p._editor_tabs.add_custom_tab(container, shell_name)
+                break
+            p = p.parentWidget()
+
     def _update_sidebar_list(self):
         self._list_widget.clear()
         self._combo_box.blockSignals(True)
@@ -501,12 +646,15 @@ class TerminalPanel(QWidget):
 
         for i, container in enumerate(self._terminals):
             shell = container.shell
-            shell_name = "powershell"
-            if shell:
-                shell_name = os.path.basename(shell).replace(".exe", "").lower()
+            if getattr(container, "custom_name", None):
+                shell_name = container.custom_name
             else:
-                default_shell = get_shell_cmd()
-                shell_name = os.path.basename(default_shell).replace(".exe", "").lower()
+                shell_name = "powershell"
+                if shell:
+                    shell_name = os.path.basename(shell).replace(".exe", "").lower()
+                else:
+                    default_shell = get_shell_cmd()
+                    shell_name = os.path.basename(default_shell).replace(".exe", "").lower()
 
             self._combo_box.addItem(f"{i + 1}: {shell_name}")
 
@@ -516,9 +664,10 @@ class TerminalPanel(QWidget):
             widget = TerminalTabItemWidget(
                 index=i,
                 name=shell_name,
-                shell_type=shell_name,
-                on_split=lambda idx=i: self._split_terminal_at(idx),
-                on_close=lambda idx=i: self._close_tab(idx)
+                container=container,
+                parent=self._list_widget,
+                on_split=lambda checked=False, idx=i: self._split_terminal_at(idx),
+                on_close=lambda checked=False, idx=i: self._close_tab(idx)
             )
             self._list_widget.addItem(item)
             self._list_widget.setItemWidget(item, widget)

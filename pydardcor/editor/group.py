@@ -1,7 +1,7 @@
 import os
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTabBar, QPushButton,
-    QStackedWidget, QLabel, QMessageBox, QFileDialog
+    QStackedWidget, QLabel, QMessageBox, QFileDialog, QScrollArea
 )
 from PySide6.QtCore import Signal, Qt, QSize, QTimer, QByteArray
 from PySide6.QtGui import QPixmap, QIcon, QPainter, QColor, QFont, QImage
@@ -202,6 +202,129 @@ class DardcorTabBar(QTabBar):
                     btn.setVisible(False)
 
 
+class WelcomeWidget(QScrollArea):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWidgetResizable(True)
+        self.setFrameShape(QScrollArea.NoFrame)
+        self.setStyleSheet("background-color: #000000; border: none;")
+        
+        self.container = QWidget()
+        self.container.setStyleSheet("background-color: #000000;")
+        vl = QVBoxLayout(self.container)
+        vl.setAlignment(Qt.AlignCenter)
+        vl.setSpacing(16)
+
+        # Logo
+        logo = QLabel()
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        logo_path = os.path.join(base_dir, "image", "dardcor.png")
+        pixmap = QPixmap(logo_path)
+        if not pixmap.isNull():
+            pixmap = pixmap.scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            logo.setPixmap(pixmap)
+        logo.setAlignment(Qt.AlignCenter)
+        vl.addWidget(logo)
+
+        title = QLabel("Dardcor Code")
+        title.setAlignment(Qt.AlignCenter)
+        title.setStyleSheet("color: #4a0072; font-size: 42px; font-weight: bold; letter-spacing: 2px;")
+        vl.addWidget(title)
+
+        sub = QLabel("Editing evolved")
+        sub.setAlignment(Qt.AlignCenter)
+        sub.setStyleSheet("color: #555555; font-size: 16px;")
+        vl.addWidget(sub)
+
+        vl.addSpacing(24)
+
+        # Wrapper to perfectly center the button block
+        wrapper = QWidget()
+        h_layout = QHBoxLayout(wrapper)
+        h_layout.setContentsMargins(0, 0, 0, 0)
+        h_layout.addStretch()
+
+        # Container for buttons to keep them left-aligned internally
+        btn_container = QWidget()
+        btn_layout = QVBoxLayout(btn_container)
+        btn_layout.setSpacing(8)
+        btn_layout.setContentsMargins(0, 0, 0, 0)
+
+        for label, shortcut, cmd in [
+            ("Open File...", "Ctrl+O", "file.open"),
+            ("Open Folder...", "Ctrl+K", "file.openFolder"),
+            ("New File", "Ctrl+N", "file.new"),
+        ]:
+            btn = QPushButton(f"{label}  {shortcut}")
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.setStyleSheet("""
+                QPushButton {
+                    background: transparent;
+                    color: #4a90d9;
+                    border: none;
+                    font-size: 14px;
+                    text-align: left;
+                    padding: 4px 8px;
+                }
+                QPushButton:hover { color: #7ab8f5; }
+            """)
+            btn.clicked.connect(lambda checked=False, c=cmd: self._execute_cmd(c))
+            btn_layout.addWidget(btn)
+
+        h_layout.addWidget(btn_container)
+        h_layout.addStretch()
+
+        vl.addWidget(wrapper)
+        self.setWidget(self.container)
+
+    def _execute_cmd(self, cmd_id):
+        p = self.parentWidget()
+        while p:
+            if hasattr(p, "_execute_command"):
+                p._execute_command(cmd_id)
+                break
+            p = p.parentWidget()
+            
+    def contextMenuEvent(self, event):
+        from PySide6.QtWidgets import QMenu
+        from PySide6.QtGui import QAction
+        menu = QMenu(self)
+        menu.setStyleSheet("""
+            QMenu {
+                background-color: #000000;
+                color: #cccccc;
+                border: 1px solid #3c0068;
+            }
+            QMenu::item {
+                padding: 6px 20px;
+            }
+            QMenu::item:selected {
+                background-color: #3c0068;
+                color: #ffffff;
+            }
+        """)
+        new_file = QAction("New File", self)
+        new_file.triggered.connect(lambda: self._execute_cmd("file.new"))
+        menu.addAction(new_file)
+        
+        open_file = QAction("Open File...", self)
+        open_file.triggered.connect(lambda: self._execute_cmd("file.open"))
+        menu.addAction(open_file)
+        
+        open_folder = QAction("Open Folder...", self)
+        open_folder.triggered.connect(lambda: self._execute_cmd("file.openFolder"))
+        menu.addAction(open_folder)
+        
+        menu.addSeparator()
+        
+        open_terminal = QAction("Open Terminal", self)
+        open_terminal.triggered.connect(lambda: self._execute_cmd("terminal.new"))
+        menu.addAction(open_terminal)
+        
+        menu.exec(event.globalPos())
+
+
+
 class EditorGroup(QWidget):
     """VS Code-style editor tab manager with Monaco instances (Single Group)."""
 
@@ -278,78 +401,11 @@ class EditorGroup(QWidget):
         layout.addWidget(self._stack)
 
         # Welcome screen
-        self._welcome = self._make_welcome()
+        self._welcome = WelcomeWidget(self)
         self._stack.addWidget(self._welcome)
         self._stack.setCurrentWidget(self._welcome)
 
-    def _make_welcome(self):
-        w = QWidget()
-        w.setStyleSheet("background-color: #000000;")
-        vl = QVBoxLayout(w)
-        vl.setAlignment(Qt.AlignCenter)
-        vl.setSpacing(16)
 
-        # Logo
-        logo = QLabel()
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        logo_path = os.path.join(base_dir, "image", "dardcor.png")
-        pixmap = QPixmap(logo_path)
-        if not pixmap.isNull():
-            pixmap = pixmap.scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            logo.setPixmap(pixmap)
-        logo.setAlignment(Qt.AlignCenter)
-        vl.addWidget(logo)
-
-        title = QLabel("Dardcor Code")
-        title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet("color: #4a0072; font-size: 42px; font-weight: bold; letter-spacing: 2px;")
-        vl.addWidget(title)
-
-        sub = QLabel("Editing evolved")
-        sub.setAlignment(Qt.AlignCenter)
-        sub.setStyleSheet("color: #555555; font-size: 16px;")
-        vl.addWidget(sub)
-
-        vl.addSpacing(24)
-
-        # Wrapper to perfectly center the button block
-        wrapper = QWidget()
-        h_layout = QHBoxLayout(wrapper)
-        h_layout.setContentsMargins(0, 0, 0, 0)
-        h_layout.addStretch()
-
-        # Container for buttons to keep them left-aligned internally
-        btn_container = QWidget()
-        btn_layout = QVBoxLayout(btn_container)
-        btn_layout.setSpacing(8)
-        btn_layout.setContentsMargins(0, 0, 0, 0)
-
-        for label, shortcut, action in [
-            ("Open File...", "Ctrl+O", None),
-            ("Open Folder...", "Ctrl+K", None),
-            ("New File", "Ctrl+N", None),
-        ]:
-            btn = QPushButton(f"{label}  {shortcut}")
-            btn.setCursor(Qt.PointingHandCursor)
-            btn.setStyleSheet("""
-                QPushButton {
-                    background: transparent;
-                    color: #4a90d9;
-                    border: none;
-                    font-size: 14px;
-                    text-align: left;
-                    padding: 4px 8px;
-                }
-                QPushButton:hover { color: #7ab8f5; }
-            """)
-            btn_layout.addWidget(btn)
-
-        h_layout.addWidget(btn_container)
-        h_layout.addStretch()
-
-        vl.addWidget(wrapper)
-
-        return w
 
     def _update_tab_row_visibility(self):
         has_tabs = len(self._tabs) > 0
@@ -372,13 +428,33 @@ class EditorGroup(QWidget):
 
         title = os.path.basename(file_path)
         icon = get_file_icon(file_path)
-        idx = self._tab_bar.addTab(icon, title)
-        self._tab_bar.setCurrentIndex(idx)
-        self._stack.setCurrentWidget(editor)
-        self._current_idx = idx
-        self._emit_tab_changed(editor)
+        
+        self._tab_bar.addTab(icon, title)
+        self._tab_bar.setCurrentIndex(len(self._tabs) - 1)
         self._update_tab_row_visibility()
+        self._update_breadcrumb(file_path)
         return editor
+
+    def add_custom_tab(self, widget, title, icon=None):
+        # Provide dummy methods for Monaco duck-typing
+        if not hasattr(widget, 'get_file_path'): widget.get_file_path = lambda: ""
+        if not hasattr(widget, 'is_dirty'): widget.is_dirty = lambda: False
+        if not hasattr(widget, 'get_language'): widget.get_language = lambda: "terminal"
+        
+        tab = EditorTab(widget, "")
+        tab.title = title
+        self._tabs.append(tab)
+        self._stack.addWidget(widget)
+        
+        if not icon:
+            icon = QIcon()
+            
+        self._tab_bar.addTab(icon, title)
+        self._tab_bar.setCurrentIndex(len(self._tabs) - 1)
+        self._stack.setCurrentWidget(widget)
+        self._update_tab_row_visibility()
+        self._update_breadcrumb("")
+        return widget
 
     def open_diff(self, file_path, original_content, modified_content):
         for i, tab in enumerate(self._tabs):
