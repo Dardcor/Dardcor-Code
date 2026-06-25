@@ -370,6 +370,27 @@ def _get_provider_url(provider: str, base_url: str) -> str:
 class Agent:
     """AI Agent with tool-calling capabilities."""
 
+    def _get_system_prompt(self, workspace_path: str = None) -> str:
+        if workspace_path is None:
+            workspace_path = self._config.workspace_path
+        default_prompt = (
+            "You are Dardcor Code, a world-class autonomous AI coding assistant developed by Dardcor. "
+            "You are equipped with tools to view files, write files, search local codebases, and run commands. "
+            "Before implementing large changes, create a clean step-by-step implementation plan. "
+            "Use 'semantic_search' to find relevant code in the workspace before answering questions or doing tasks. "
+            "If you run a test or compile command and it fails, you MUST analyze the traceback/logs, read the failing files, "
+            "correct the code self-sufficiently, and run the command again. Continue this Self-Correction loop autonomously "
+            "until the tests and compilation pass successfully. Be concise, precise, and professional."
+        )
+        is_default_or_empty = (
+            not self._config.ai.system_prompt or 
+            self._config.ai.system_prompt.strip() == default_prompt.strip()
+        )
+        if is_default_or_empty:
+            return get_identity_prompt(self._core_memory.get_summary(), workspace_path)
+        else:
+            return self._config.ai.system_prompt
+
     def __init__(self):
         self._config = get_config()
         self._conversation = Conversation()
@@ -387,7 +408,7 @@ class Agent:
         self._current_process = None
 
         # Add system message with Core Memory
-        sys_prompt = self._config.ai.system_prompt if self._config.ai.system_prompt else get_identity_prompt(self._core_memory.get_summary(), self._config.workspace_path)
+        sys_prompt = self._get_system_prompt()
         self._conversation.add_message("system", sys_prompt)
 
     @property
@@ -402,11 +423,7 @@ class Agent:
         self._config.workspace_path = path
 
         # Rebuild the system prompt so the LLM knows the new path immediately
-        sys_prompt = (
-            self._config.ai.system_prompt
-            if self._config.ai.system_prompt
-            else get_identity_prompt(self._core_memory.get_summary(), path)
-        )
+        sys_prompt = self._get_system_prompt(path)
         # Replace the existing system message (always index 0)
         msgs = self._conversation.messages
         if msgs and msgs[0].role == "system":
@@ -467,7 +484,7 @@ class Agent:
         if has_user_message:
             self._store.save(self._conversation)
         self._conversation = Conversation()
-        sys_prompt = self._config.ai.system_prompt if self._config.ai.system_prompt else get_identity_prompt(self._core_memory.get_summary(), self._config.workspace_path)
+        sys_prompt = self._get_system_prompt()
         self._conversation.add_message("system", sys_prompt)
         # Do not save to disk until there is an actual user message
     def send_message(
@@ -592,17 +609,21 @@ class Agent:
                         import time
                         time.sleep(0.12)
 
-                    tool_result = self._execute_tool(func_name, func_args)
+                    tool_result = self._execute_tool(func_name, func_args, on_tool_call, on_tool_output, tool_id)
 
                     if tool_result.startswith("Error"):
                         tool_result += "\n\n[SYSTEM WARNING]: Tool execution failed. Do not stop. Analyze the error, fix the parameters, and try again or use a different approach. You must complete the objective."
 
                     if on_tool_call:
-                        status = "success" if not tool_result.startswith("Error") else "error"
-                        try:
-                            on_tool_call(func_name, args_preview, status, tool_id)
-                        except TypeError:
-                            on_tool_call(func_name, args_preview, status)
+                        is_bg = tool_result.startswith("Background task started.")
+                        if not is_bg:
+                            status = "success" if not tool_result.startswith("Error") else "error"
+                            import time
+                            time.sleep(0.10)  # Give Qt event loop time to process the "running" card
+                            try:
+                                on_tool_call(func_name, args_preview, status, tool_id)
+                            except TypeError:
+                                on_tool_call(func_name, args_preview, status)
 
                     # Show result preview in the tool card (like Claude Code does)
                     if on_tool_output and tool_id:
@@ -628,7 +649,7 @@ class Agent:
         finally:
             self._current_provider = None
 
-    def _execute_tool(self, name: str, args: dict) -> str:
+    def _execute_tool(self, name: str, args: dict, on_tool_call=None, on_tool_output=None, tool_id: str = "") -> str:
         try:
             if name == "read_file":
                 path = args.get("path", "")
@@ -789,12 +810,15 @@ class Agent:
                         "timeout": timeout_secs,
                         "aborted": False,
                         "status": "running",
+                        "cumulative_out": b"",
+                        "cumulative_err": b"",
                     }
                     self._bg_tasks[task_id] = task_data
 
                     # Synchronous wait period
                     sync_wait = (wait_ms / 1000.0) if wait_ms > 0 else timeout_secs
                     start = _time.monotonic()
+                    last_stream_time = _time.monotonic()
                     while proc.poll() is None:
                         if getattr(self, "_abort_flag", False):
                             _kill_proc(proc)
@@ -803,9 +827,53 @@ class Agent:
                             self._current_process = None
                             task_data["status"] = "aborted"
                             return "Agent dihentikan oleh pengguna."
+
+                        # Drain stdout and stderr from queue to cumulative buffers
+                        changed = False
+                        while not stdout_q.empty():
+                            try:
+                                task_data["cumulative_out"] += stdout_q.get_nowait()
+                                changed = True
+                            except Exception:
+                                break
+                        while not stderr_q.empty():
+                            try:
+                                task_data["cumulative_err"] += stderr_q.get_nowait()
+                                changed = True
+                            except Exception:
+                                break
+
+                        # Stream cumulative output every 0.5s
+                        if changed and (_time.monotonic() - last_stream_time > 0.5):
+                            last_stream_time = _time.monotonic()
+                            if on_tool_output and tool_id:
+                                out_s = task_data["cumulative_out"].decode("utf-8", errors="replace")
+                                err_s = task_data["cumulative_err"].decode("utf-8", errors="replace")
+                                combined = out_s
+                                if err_s:
+                                    combined += "\n[stderr]\n" + err_s
+                                if len(combined) > 3000:
+                                    combined = combined[:1000] + "\n...[truncated]...\n" + combined[-1800:]
+                                try:
+                                    on_tool_output(tool_id, combined)
+                                except Exception:
+                                    pass
+
                         if _time.monotonic() - start > sync_wait:
                             break
                         _time.sleep(0.05)
+
+                    # Do final sync drain
+                    while not stdout_q.empty():
+                        try:
+                            task_data["cumulative_out"] += stdout_q.get_nowait()
+                        except Exception:
+                            break
+                    while not stderr_q.empty():
+                        try:
+                            task_data["cumulative_err"] += stderr_q.get_nowait()
+                        except Exception:
+                            break
 
                     finished_sync = proc.poll() is not None
 
@@ -816,8 +884,8 @@ class Agent:
                         self._current_process = None
                         task_data["status"] = "done"
 
-                        raw_out = b"".join(list(stdout_q.queue))
-                        raw_err = b"".join(list(stderr_q.queue))
+                        raw_out = task_data["cumulative_out"] + b"".join(list(stdout_q.queue))
+                        raw_err = task_data["cumulative_err"] + b"".join(list(stderr_q.queue))
                         stdout_s = raw_out.decode("utf-8", errors="replace")
                         stderr_s = raw_err.decode("utf-8", errors="replace")
                         rc = proc.returncode
@@ -843,6 +911,7 @@ class Agent:
 
                         def _bg_monitor(td, agent_ref):
                             p = td["proc"]
+                            last_stream_time_bg = _time.monotonic()
                             while p.poll() is None:
                                 if td["aborted"] or getattr(agent_ref, "_abort_flag", False):
                                     _kill_proc(p)
@@ -851,23 +920,85 @@ class Agent:
                                     _kill_proc(p)
                                     td["status"] = "timeout"
                                     break
+
+                                # Drain stdout and stderr from queue to cumulative buffers
+                                changed_bg = False
+                                while not td["stdout_q"].empty():
+                                    try:
+                                        td["cumulative_out"] += td["stdout_q"].get_nowait()
+                                        changed_bg = True
+                                    except Exception:
+                                        break
+                                while not td["stderr_q"].empty():
+                                    try:
+                                        td["cumulative_err"] += td["stderr_q"].get_nowait()
+                                        changed_bg = True
+                                    except Exception:
+                                        break
+
+                                # Stream output from background task every 0.5s
+                                if changed_bg and (_time.monotonic() - last_stream_time_bg > 0.5):
+                                    last_stream_time_bg = _time.monotonic()
+                                    if on_tool_output and tool_id:
+                                        out_s = td["cumulative_out"].decode("utf-8", errors="replace")
+                                        err_s = td["cumulative_err"].decode("utf-8", errors="replace")
+                                        combined = out_s
+                                        if err_s:
+                                            combined += "\n[stderr]\n" + err_s
+                                        if len(combined) > 3000:
+                                            combined = combined[:1000] + "\n...[truncated]...\n" + combined[-1800:]
+                                        try:
+                                            on_tool_output(tool_id, combined)
+                                        except Exception:
+                                            pass
+
                                 _time.sleep(0.1)
 
                             td["t_out"].join(3.0)
                             td["t_err"].join(3.0)
 
-                            raw_out = b"".join(list(td["stdout_q"].queue))
-                            raw_err = b"".join(list(td["stderr_q"].queue))
+                            # Final background drain
+                            while not td["stdout_q"].empty():
+                                try:
+                                    td["cumulative_out"] += td["stdout_q"].get_nowait()
+                                except Exception:
+                                    break
+                            while not td["stderr_q"].empty():
+                                try:
+                                    td["cumulative_err"] += td["stderr_q"].get_nowait()
+                                except Exception:
+                                    break
+
+                            raw_out = td["cumulative_out"] + b"".join(list(td["stdout_q"].queue))
+                            raw_err = td["cumulative_err"] + b"".join(list(td["stderr_q"].queue))
                             out_s = raw_out.decode("utf-8", errors="replace")
                             err_s = raw_err.decode("utf-8", errors="replace")
                             combined = out_s
                             if err_s:
                                 combined += "\n[stderr]\n" + err_s
                             if len(combined) > 6000:
-                                combined = combined[:1500] + "\n...[truncated]...\n" + combined[-3500:]
+                                combined_short = combined[:1500] + "\n...[truncated]...\n" + combined[-3500:]
+                            else:
+                                combined_short = combined
 
                             td["status"] = "done"
                             td["output"] = combined
+
+                            # Update final output on the tool card
+                            if on_tool_output and tool_id:
+                                try:
+                                    on_tool_output(tool_id, combined_short)
+                                except Exception:
+                                    pass
+
+                            # Update tool card status to success/error
+                            if on_tool_call:
+                                status = "success" if p.returncode == 0 else "error"
+                                cmd_preview = json.dumps({"command": td["command"]})[:100]
+                                try:
+                                    on_tool_call("run_command", cmd_preview, status, td["id"])
+                                except Exception:
+                                    pass
 
                             # Fire callback → injects system message into chat and wakes agent
                             cb = getattr(agent_ref, "_bg_msg_callback", None)

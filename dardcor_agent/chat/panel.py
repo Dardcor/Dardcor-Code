@@ -662,14 +662,6 @@ class ChatPanel(QWidget):
     def _on_send_btn_clicked(self):
         if self._is_generating:
             self._send_btn.setEnabled(False)
-            self._send_btn.setToolTip("Stopping...")
-            self._send_btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #7f1d1d;
-                    border: 1px solid #991b1b;
-                    border-radius: 18px;
-                }
-            """)
             self.stop_requested.emit()
             return
         self._send_message()
@@ -1031,8 +1023,13 @@ class ChatPanel(QWidget):
             self._safe_append_tool_call(tool_id, tool_name, args, status)
 
     def _safe_append_tool_call(self, tool_id: str, tool_name: str, args: str, status: str = "running"):
-        self._web_bridge.append_tool_call.emit(tool_id, tool_name, args, status)
-        if status == "running":
+        if status != "running":
+            # For status updates (success/error), use a small delay to ensure
+            # the QWebChannel has processed the initial "running" card creation first.
+            from PySide6.QtCore import QTimer
+            QTimer.singleShot(50, lambda: self._web_bridge.append_tool_call.emit(tool_id, tool_name, args, status))
+        else:
+            self._web_bridge.append_tool_call.emit(tool_id, tool_name, args, status)
             self.show_typing(True, "working")
 
     def append_tool_output(self, tool_id: str, chunk: str):

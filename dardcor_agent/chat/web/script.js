@@ -178,6 +178,24 @@ function toolStatusLabel(status) {
     return status || 'Unknown';
 }
 
+// Queue for status updates that arrive before the card is created
+const pendingStatusUpdates = new Map();
+
+function applyStatusUpdate(card, status) {
+    card.className = `tool-call ${status}`;
+    const statusEl = card.querySelector('.tool-status');
+    if (statusEl) {
+        statusEl.textContent = toolStatusLabel(status);
+        statusEl.className = `tool-status ${status}`;
+    }
+    // Update border-left color via inline style for immediate visual feedback
+    if (status === 'success') {
+        card.style.borderLeftColor = '#4ec9b0';
+    } else if (status === 'error') {
+        card.style.borderLeftColor = '#f14c4c';
+    }
+}
+
 function appendToolCall(toolId, toolName, args, status) {
     if (status === undefined) {
         status = args;
@@ -188,13 +206,28 @@ function appendToolCall(toolId, toolName, args, status) {
 
     const existing = toolCards.get(toolId);
     if (existing) {
-        existing.className = `tool-call ${status}`;
-        existing.querySelector('.tool-status').textContent = toolStatusLabel(status);
-        existing.querySelector('.tool-status').className = `tool-status ${status}`;
+        // UPDATE existing card's status
+        applyStatusUpdate(existing, status);
         scrollToBottom();
         return;
     }
 
+    // If this is a status update but the card doesn't exist yet (race condition),
+    // store it and retry after a short delay
+    if (status !== 'running') {
+        pendingStatusUpdates.set(toolId, status);
+        setTimeout(() => {
+            const card = toolCards.get(toolId);
+            const pending = pendingStatusUpdates.get(toolId);
+            if (card && pending) {
+                applyStatusUpdate(card, pending);
+                pendingStatusUpdates.delete(toolId);
+            }
+        }, 150);
+        return;
+    }
+
+    // CREATE new card
     const div = document.createElement('div');
     div.className = `tool-call ${status}`;
     div.innerHTML = `
@@ -208,6 +241,15 @@ function appendToolCall(toolId, toolName, args, status) {
     const panel = ensureWorkPanel('working');
     panel.querySelector('.tool-list').appendChild(div);
     scrollToBottom();
+
+    // Check if there's a pending status update for this card (arrived before creation)
+    const pendingStatus = pendingStatusUpdates.get(toolId);
+    if (pendingStatus) {
+        setTimeout(() => {
+            applyStatusUpdate(div, pendingStatus);
+            pendingStatusUpdates.delete(toolId);
+        }, 30);
+    }
 }
 
 function updateToolOutput(toolId, chunk) {
@@ -233,6 +275,12 @@ function showTyping(show, state) {
         ensureWorkPanel(state);
         scrollToBottom();
     } else {
+        // Mark all still-running tool cards as error/stopped
+        for (const [toolId, card] of toolCards.entries()) {
+            if (card.classList.contains('running')) {
+                applyStatusUpdate(card, 'error');
+            }
+        }
         if (currentWorkPanel) {
             currentWorkPanel.classList.add('settled');
             currentWorkPanel.querySelector('.work-text').textContent = 'Done';

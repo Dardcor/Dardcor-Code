@@ -2454,6 +2454,9 @@ class MainWindow(QMainWindow):
     def _start_chat_message(self, message: str):
         self._chat_generation_active = True
         self._chat_panel.set_enabled(False)
+        import uuid
+        current_exec_id = str(uuid.uuid4())
+        self._current_chat_exec_id = current_exec_id
 
         selected_model = None
         if self._chat_panel.model_dropdown.isVisible():
@@ -2468,19 +2471,21 @@ class MainWindow(QMainWindow):
                     on_system_message=self._chat_panel.append_system_message,
                     on_tool_output=self._chat_panel.append_tool_output,
                 )
+                if getattr(self, "_current_chat_exec_id", None) != current_exec_id:
+                    return # A new generation started or stopped
                 if response and response != "Agent dihentikan oleh pengguna.":
                     self._chat_panel.append_agent_message(response)
-                elif response == "Agent dihentikan oleh pengguna.":
-                    self._chat_panel.append_system_message("⛔ Generation stopped.")
             except Exception as e:
-                self._chat_panel.append_system_message(f"Error: {e}")
+                if getattr(self, "_current_chat_exec_id", None) == current_exec_id:
+                    self._chat_panel.append_system_message(f"Error: {e}")
             finally:
-                self._chat_generation_active = False
-                self._chat_panel.show_typing(False)
-                if self._queued_chat_messages:
-                    self._run_queued_chat_signal.emit()
-                else:
-                    self._chat_panel.set_enabled(True)
+                if getattr(self, "_current_chat_exec_id", None) == current_exec_id:
+                    self._chat_generation_active = False
+                    self._chat_panel.show_typing(False)
+                    if self._queued_chat_messages:
+                        self._run_queued_chat_signal.emit()
+                    else:
+                        self._chat_panel.set_enabled(True)
 
         threading.Thread(target=process, daemon=True).start()
 
@@ -2493,6 +2498,13 @@ class MainWindow(QMainWindow):
 
     def _on_stop_requested(self):
         self._agent.abort()
+        self._chat_generation_active = False
+        self._chat_panel.show_typing(False)
+        self._chat_panel.append_system_message("⛔ Generation stopped.")
+        if self._queued_chat_messages:
+            self._run_queued_chat_signal.emit()
+        else:
+            self._chat_panel.set_enabled(True)
 
     def _on_agent_stream(self, text: str):
         pass

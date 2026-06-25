@@ -23,7 +23,8 @@ body {
 
 /* Scrollbar styling */
 ::-webkit-scrollbar {
-    width: 6px;
+    width: 3px;
+    height: 3px;
 }
 
 ::-webkit-scrollbar-track {

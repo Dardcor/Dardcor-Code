@@ -60,6 +60,23 @@ class Conversation:
         """Returns API messages using a Sliding Window approach to save tokens.
         Always keeps the system prompt(s) and the most recent `max_messages`."""
         api_msgs = [m.to_api_dict() for m in self.messages]
+        
+        # Merge adjacent messages with the same role (e.g. user -> user)
+        merged_msgs = []
+        for msg in api_msgs:
+            if not merged_msgs:
+                merged_msgs.append(msg)
+            elif merged_msgs[-1]["role"] == msg["role"] and msg["role"] in ("user", "assistant"):
+                # Append content with a double newline
+                merged_msgs[-1] = dict(merged_msgs[-1])  # avoid mutating original
+                c1 = merged_msgs[-1].get("content", "") or ""
+                c2 = msg.get("content", "") or ""
+                merged_msgs[-1]["content"] = c1 + "\n\n" + c2
+            else:
+                merged_msgs.append(msg)
+                
+        api_msgs = merged_msgs
+
         if len(api_msgs) <= max_messages:
             return api_msgs
             
