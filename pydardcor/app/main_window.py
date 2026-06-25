@@ -585,7 +585,7 @@ from ..core.extension_manager import get_extension_manager
 from ..workspace.multi_root import MultiRootWorkspace
 from ..tasks.task_manager import TaskManager
 # ---------------------------
-from ..windows.customize_layout_dialog import CustomizeLayoutPopup
+
 
 class MainWindow(QMainWindow):
     """Main application window matching VS Code layout exactly."""
@@ -967,7 +967,6 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(100, self._sync_toggle_states)
 
         # ── Customize Layout popup (lazy, created once) ──
-        self._customize_layout_popup = None
         self._primary_sidebar_position = 'left'
         self._panel_position = 'panel_bottom'
         self._title_bar.btn_customize.clicked.connect(self._show_customize_layout)
@@ -2737,8 +2736,7 @@ class MainWindow(QMainWindow):
 
     def _refresh_customize_popup(self):
         """If the popup is open, update its toggle states."""
-        if self._customize_layout_popup is not None and self._customize_layout_popup.isVisible():
-            self._customize_layout_popup.refresh_state()
+
 
     def _new_terminal(self):
         if not self._bottom_panel.isVisible() or self._bottom_panel.current_view_name() != "terminal":
@@ -2802,12 +2800,8 @@ class MainWindow(QMainWindow):
     # ── Customize Layout ───────────────────────────────────
 
     def _show_customize_layout(self):
-        """Show the Customize Layout floating popup below the btn_customize button."""
-        if self._customize_layout_popup is None:
-            self._customize_layout_popup = CustomizeLayoutPopup(self)
-        btn = self._title_bar.btn_customize
-        global_pos = btn.mapToGlobal(btn.rect().bottomLeft())
-        self._customize_layout_popup.show_at(global_pos)
+        """Show the Customize Layout via Quick Pick Command Palette."""
+        self._quick_open.show_customize_layout()
 
     # --- Force-visibility helpers (accept explicit bool) ------
 

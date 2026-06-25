@@ -3,7 +3,7 @@
 import os
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QLineEdit, QListWidget, QListWidgetItem,
-    QWidget, QHBoxLayout, QLabel, QApplication,
+    QWidget, QFrame, QHBoxLayout, QLabel, QApplication, QPushButton,
 )
 from PySide6.QtCore import Signal, Qt, QTimer, QSize
 from PySide6.QtGui import QColor, QKeyEvent, QFont
@@ -31,9 +31,10 @@ class CommandPalette(QDialog):
         layout.setSpacing(0)
 
         # Container with border
-        container = QWidget()
+        container = QFrame()
+        container.setObjectName("DialogContainer")
         container.setStyleSheet("""
-            QWidget {
+            #DialogContainer {
                 background-color: #000000;
                 border: 1px solid #3c0068;
                 border-radius: 6px;
@@ -42,6 +43,8 @@ class CommandPalette(QDialog):
         container_layout = QVBoxLayout(container)
         container_layout.setContentsMargins(0, 0, 0, 0)
         container_layout.setSpacing(0)
+
+
 
         # Search input
         self._input = QLineEdit()
@@ -222,9 +225,10 @@ class GoToLineDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        container = QWidget()
+        container = QFrame()
+        container.setObjectName("DialogContainer")
         container.setStyleSheet("""
-            QWidget {
+            #DialogContainer {
                 background-color: #000000;
                 border: 1px solid #3c0068;
                 border-radius: 6px;
@@ -321,9 +325,10 @@ class QuickOpenDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        container = QWidget()
+        container = QFrame()
+        container.setObjectName("DialogContainer")
         container.setStyleSheet("""
-            QWidget {
+            #DialogContainer {
                 background-color: #000000;
                 border: 1px solid #3c0068;
                 border-radius: 6px;
@@ -333,7 +338,59 @@ class QuickOpenDialog(QDialog):
         container_layout.setContentsMargins(0, 0, 0, 0)
         container_layout.setSpacing(0)
 
+        # ── Title bar (shown only in Customize Layout mode) ──────────────────
+        self._title_bar = QWidget()
+        self._title_bar.setObjectName("QODTitleBar")
+        self._title_bar.setFixedHeight(36)
+        self._title_bar.setAttribute(Qt.WA_StyledBackground, True)
+        self._title_bar.setStyleSheet("""
+            #QODTitleBar {
+                background-color: #2c004a;
+                border-top-left-radius: 6px;
+                border-top-right-radius: 6px;
+                border-bottom: 1px solid #3c0068;
+            }
+        """)
+        self._title_bar.hide()
+
+        t_layout = QHBoxLayout(self._title_bar)
+        t_layout.setContentsMargins(14, 0, 8, 0)
+        t_layout.setSpacing(4)
+
+        self._title_label = QLabel("Customize Layout")
+        self._title_label.setStyleSheet(
+            "color: #cccccc; font-size: 13px; background: transparent; border: none;"
+        )
+        t_layout.addWidget(self._title_label)
+        t_layout.addStretch()
+
+        _btn_style = """
+            QPushButton {
+                background: transparent; border: none;
+                color: #cccccc; font-family: codicon; font-size: 14px;
+                min-width: 24px; max-width: 24px; min-height: 24px; max-height: 24px;
+            }
+            QPushButton:hover { background-color: #4a0072; border-radius: 4px; }
+        """
+        self._btn_reset_layout = QPushButton("\ueab0")
+        self._btn_reset_layout.setToolTip("Restore Defaults")
+        self._btn_reset_layout.setStyleSheet(_btn_style)
+        self._btn_reset_layout.setCursor(Qt.PointingHandCursor)
+        self._btn_reset_layout.clicked.connect(self._reset_layout)
+        t_layout.addWidget(self._btn_reset_layout)
+
+        self._btn_close_layout = QPushButton("\uea76")
+        self._btn_close_layout.setToolTip("Close")
+        self._btn_close_layout.setStyleSheet(_btn_style)
+        self._btn_close_layout.setCursor(Qt.PointingHandCursor)
+        self._btn_close_layout.clicked.connect(self.hide)
+        t_layout.addWidget(self._btn_close_layout)
+
+        container_layout.addWidget(self._title_bar)
+        # ─────────────────────────────────────────────────────────────────────
+
         self._input = QLineEdit()
+
         self._input.setPlaceholderText("Search files by name (type '>' for commands)")
         self._input.setFixedHeight(36)
         self._input.setStyleSheet("""
@@ -512,8 +569,9 @@ class QuickOpenDialog(QDialog):
 
         total = self._list.count()
         visible = min(total, 14)
-        self._list.setFixedHeight(max(50, visible * 27 + 8))
-        self.adjustSize()
+        list_height = max(50, visible * 27 + 8)
+        self._list.setFixedHeight(list_height)
+        self.setFixedHeight(list_height + 38)
 
     def _on_filter(self, text):
         text_stripped = text.strip()
@@ -579,7 +637,7 @@ class QuickOpenDialog(QDialog):
             self._list.setItemWidget(item, widget)
             self._list.setCurrentRow(0)
             self._list.setFixedHeight(40)
-            self.adjustSize()
+            self.setFixedHeight(78)
             return
             
         # 3. Prefix "@" - Go to Symbol
@@ -640,8 +698,9 @@ class QuickOpenDialog(QDialog):
                         self._list.setCurrentRow(0)
                     
                     visible = min(len(filtered_syms), 12)
-                    self._list.setFixedHeight(max(50, visible * 26 + 8))
-                    self.adjustSize()
+                    list_height = max(50, visible * 26 + 8)
+                    self._list.setFixedHeight(list_height)
+                    self.setFixedHeight(list_height + 38)
                     return
 
         # 4. Prefix "% " - Search file content
@@ -662,7 +721,7 @@ class QuickOpenDialog(QDialog):
                 self._list.addItem(item)
                 self._list.setItemWidget(item, widget)
                 self._list.setFixedHeight(40)
-                self.adjustSize()
+                self.setFixedHeight(78)
             else:
                 # Open the search sidebar
                 parent = self.parent()
@@ -710,8 +769,9 @@ class QuickOpenDialog(QDialog):
             self._list.setCurrentRow(0)
 
         visible = min(len(self._filtered), 12)
-        self._list.setFixedHeight(max(50, visible * 26 + 8))
-        self.adjustSize()
+        list_height = max(50, visible * 26 + 8)
+        self._list.setFixedHeight(list_height)
+        self.setFixedHeight(list_height + 38)
 
     def _on_item_selected(self, item):
         data = item.data(Qt.UserRole)
@@ -719,6 +779,22 @@ class QuickOpenDialog(QDialog):
             return
 
         # Help pick selected - set the prefix in the input
+        if isinstance(data, str) and data.startswith("toggle:"):
+            _, panel_id, new_val = data.split(":")
+            self._on_customize_toggle(panel_id, new_val == "True")
+            return
+            
+        if isinstance(data, str) and data.startswith("option:"):
+            _, option_id, val = data.split(":")
+            parent = self.parent()
+            if parent:
+                if option_id == "sidebar":
+                    parent._set_primary_sidebar_position(val)
+                elif option_id == "panel_align":
+                    parent._set_panel_position(val)
+            self._populate_customize_layout()
+            return
+
         if isinstance(data, str) and data.startswith("help:"):
             prefix = data[5:]
             if prefix:
@@ -778,13 +854,11 @@ class QuickOpenDialog(QDialog):
             return
         super().keyPressEvent(event)
 
+
     def show_dialog(self, from_command_center=False):
-        """Show the Quick Open dialog.
+        self._title_bar.hide()
+        self._input.show()
         
-        Args:
-            from_command_center: If True, shows help picks first (VS Code Command Center behavior).
-                                If False, shows file list directly (Ctrl+P behavior).
-        """
         self._scan_files()
         self._from_command_center = from_command_center
         parent = self.parent()
@@ -800,7 +874,260 @@ class QuickOpenDialog(QDialog):
         else:
             self._filtered = self._all_files[:50]
             self._populate_list()
-        
+            
         self.show()
         self._input.setFocus()
+        
+    def show_customize_layout(self):
+        self._title_bar.show()
+        self._input.hide()
+        
+        parent = self.parent()
+        if parent:
+            parent_geo = parent.geometry()
+            x = parent_geo.x() + (parent_geo.width() - self.width()) // 2
+            y = parent_geo.y() + 50
+            self.move(x, y)
+            
+        self._populate_customize_layout()
+        self.show()
+
+    def _reset_layout(self):
+        parent = self.parent()
+        if parent:
+            parent._set_primary_sidebar_position('left')
+            parent._set_panel_position('panel_bottom')
+            parent._toggle_activity_bar_force(True)
+            parent._toggle_primary_sidebar_force(True)
+            parent._toggle_panel_force(True)
+            parent._toggle_status_bar_force(True)
+            parent._toggle_menu_bar_force(True)
+            self._populate_customize_layout()
+
+    def _populate_customize_layout(self):
+        """Populate the Customize Layout Quick Pick items, matching VS Code exactly.
+        
+        VS Code source: layoutActions.ts → CustomizeLayoutAction.getItems()
+        Codicon codepoints from: codiconsLibrary.ts
+        """
+        self._list.clear()
+
+        # ── Codicon codepoints (from VS Code codiconsLibrary.ts) ─────────────
+        EYE          = "\uea70"   # Codicon.eye          (visible)
+        EYE_CLOSED   = "\ueae7"   # Codicon.eyeClosed    (hidden)
+        CHECK        = "\ueab2"   # Codicon.check        (active option)
+        # Layout visual icons
+        IC_MENU_BAR  = "\uebf6"   # layoutMenubar
+        IC_ACT_LEFT  = "\uebec"   # layoutActivitybarLeft
+        IC_ACT_RIGHT = "\uebed"   # layoutActivitybarRight
+        IC_SB_LEFT   = "\uebf3"   # layoutSidebarLeft
+        IC_SB_LEFT_OFF = "\uec02" # layoutSidebarLeftOff
+        IC_SB_RIGHT  = "\uebf4"   # layoutSidebarRight
+        IC_SB_RIGHT_OFF = "\uec00" # layoutSidebarRightOff
+        IC_PANEL     = "\uebf2"   # layoutPanel
+        IC_STATUSBAR = "\uebf5"   # layoutStatusbar
+        IC_PA_LEFT   = "\uebee"   # layoutPanelLeft
+        IC_PA_CENTER = "\uebef"   # layoutPanelCenter
+        IC_PA_JUSTIFY= "\uebf0"   # layoutPanelJustify
+        IC_PA_RIGHT  = "\uebf1"   # layoutPanelRight
+        IC_ARROW_UP  = "\ueaa1"   # arrowUp
+        IC_CIRCLE    = "\ueabc"   # circle
+        IC_FULLSCREEN= "\ueb4c"   # screenFull
+        IC_ZEN       = "\uebf8"   # target (zen mode)
+        IC_CENTERED  = "\uebf7"   # layoutCentered
+
+        _icon_style = "font-family: codicon; font-size: 14px; color: #cccccc; background: transparent; border: none;"
+
+        parent = self.parent()
+        if not parent:
+            return
+
+        # Detect current states
+        sidebar_left      = getattr(parent, '_primary_sidebar_position', 'left') == 'left'
+        curr_sidebar_pos  = getattr(parent, '_primary_sidebar_position', 'left')
+        curr_panel_pos    = getattr(parent, '_panel_position', 'panel_bottom')
+        is_fullscreen     = parent.isFullScreen()
+        is_zen            = getattr(parent, '_zen_mode', None) and parent._zen_mode.is_active() if hasattr(parent, '_zen_mode') else False
+
+        # ─────────────────────────────────────────────────────────────────────
+        def add_separator(text):
+            item = QListWidgetItem()
+            item.setFlags(Qt.NoItemFlags)
+            w = QWidget()
+            lay = QHBoxLayout(w)
+            lay.setContentsMargins(14, 6, 14, 2)
+            lbl = QLabel(text)
+            lbl.setStyleSheet("color: #858585; font-size: 11px; font-weight: 600; background: transparent; border: none;")
+            lay.addWidget(lbl)
+            lay.addStretch()
+            item.setSizeHint(QSize(0, 28))
+            self._list.addItem(item)
+            self._list.setItemWidget(item, w)
+
+        def add_toggle(label, panel_id, is_visible, visual_icon_on, visual_icon_off=None):
+            """Toggle item: has visual icon on left, eye/eye-closed button on right."""
+            vis_ic = visual_icon_on if is_visible else (visual_icon_off or visual_icon_on)
+            eye_ic = EYE if is_visible else EYE_CLOSED
+
+            item = QListWidgetItem()
+            w = QWidget()
+            lay = QHBoxLayout(w)
+            lay.setContentsMargins(12, 0, 8, 0)
+            lay.setSpacing(8)
+
+            # Visual icon (left)
+            ic_lbl = QLabel(vis_ic)
+            ic_lbl.setStyleSheet(_icon_style)
+            ic_lbl.setFixedWidth(18)
+            ic_lbl.setAlignment(Qt.AlignCenter)
+            lay.addWidget(ic_lbl)
+
+            # Label
+            txt_lbl = QLabel(label)
+            txt_lbl.setStyleSheet("color: #cccccc; font-size: 13px; background: transparent; border: none;")
+            lay.addWidget(txt_lbl)
+            lay.addStretch()
+
+            # Eye button (right) — VS Code "useButtons: true"
+            btn = QPushButton(eye_ic)
+            btn.setFixedSize(22, 22)
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.setToolTip("Select to Hide" if is_visible else "Select to Show")
+            btn.setStyleSheet("""
+                QPushButton {
+                    background: transparent; border: none;
+                    font-family: codicon; font-size: 14px; color: #cccccc;
+                }
+                QPushButton:hover { background-color: #3c3c3c; border-radius: 3px; }
+            """)
+            _id = panel_id
+            _new = not is_visible
+            btn.clicked.connect(lambda checked=False, i=_id, v=_new: self._on_customize_toggle(i, v))
+            lay.addWidget(btn)
+
+            item.setSizeHint(QSize(0, 26))
+            item.setData(Qt.UserRole, f"toggle:{panel_id}:{not is_visible}")
+            item.setFlags(item.flags() | Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+            self._list.addItem(item)
+            self._list.setItemWidget(item, w)
+
+        def add_option(label, option_id, val, current_val, visual_icon):
+            """Option item: visual icon on left, checkmark appended if active — VS Code 'useButtons: false'."""
+            is_active = (val == current_val)
+
+            item = QListWidgetItem()
+            w = QWidget()
+            lay = QHBoxLayout(w)
+            lay.setContentsMargins(12, 0, 8, 0)
+            lay.setSpacing(8)
+
+            # Visual icon (left)
+            ic_lbl = QLabel(visual_icon)
+            ic_lbl.setStyleSheet(_icon_style)
+            ic_lbl.setFixedWidth(18)
+            ic_lbl.setAlignment(Qt.AlignCenter)
+            lay.addWidget(ic_lbl)
+
+            # Label (+ checkmark if active)
+            display = label
+            txt_lbl = QLabel(display)
+            txt_lbl.setStyleSheet("color: #cccccc; font-size: 13px; background: transparent; border: none;")
+            lay.addWidget(txt_lbl)
+
+            if is_active:
+                chk = QLabel(CHECK)
+                chk.setStyleSheet("font-family: codicon; font-size: 14px; color: #cccccc; background: transparent; border: none;")
+                chk.setFixedWidth(18)
+                lay.addWidget(chk)
+
+            lay.addStretch()
+
+            item.setSizeHint(QSize(0, 26))
+            item.setData(Qt.UserRole, f"option:{option_id}:{val}")
+            item.setFlags(item.flags() | Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+            self._list.addItem(item)
+            self._list.setItemWidget(item, w)
+
+        # ── Section: Visibility ───────────────────────────────────────────────
+        add_separator("Visibility")
+        # Menu Bar (always shown on non-Mac)
+        add_toggle("Menu Bar",           "menu_bar",        parent._title_bar.menu_bar.isVisible(), IC_MENU_BAR)
+        # Activity Bar: icon changes based on sidebar position
+        if sidebar_left:
+            add_toggle("Activity Bar",   "activity_bar",    parent._activity_bar.isVisible(), IC_ACT_LEFT)
+        else:
+            add_toggle("Activity Bar",   "activity_bar",    parent._activity_bar.isVisible(), IC_ACT_RIGHT)
+        # Primary Side Bar: icon ON=layoutSidebarLeft(Off), depending on position
+        if sidebar_left:
+            add_toggle("Primary Side Bar",  "primary_sidebar", parent._sidebar_stack.isVisible(), IC_SB_LEFT, IC_SB_LEFT_OFF)
+        else:
+            add_toggle("Primary Side Bar",  "primary_sidebar", parent._sidebar_stack.isVisible(), IC_SB_RIGHT, IC_SB_RIGHT_OFF)
+        # Secondary Side Bar: opposite position
+        if sidebar_left:
+            add_toggle("Secondary Side Bar","secondary_sidebar",parent._chat_panel.isVisible(), IC_SB_RIGHT, IC_SB_RIGHT_OFF)
+        else:
+            add_toggle("Secondary Side Bar","secondary_sidebar",parent._chat_panel.isVisible(), IC_SB_LEFT, IC_SB_LEFT_OFF)
+        add_toggle("Panel",              "panel",           parent._bottom_panel.isVisible(), IC_PANEL)
+        add_toggle("Status Bar",         "status_bar",      parent._status_bar.isVisible(), IC_STATUSBAR)
+
+        # ── Section: Primary Side Bar Position ────────────────────────────────
+        add_separator("Primary Side Bar Position")
+        add_option("Left",   "sidebar", "left",  curr_sidebar_pos, IC_SB_LEFT)
+        add_option("Right",  "sidebar", "right", curr_sidebar_pos, IC_SB_RIGHT)
+
+        # ── Section: Panel Alignment ──────────────────────────────────────────
+        add_separator("Panel Alignment")
+        add_option("Left",    "panel_align", "panel_left",   curr_panel_pos, IC_PA_LEFT)
+        add_option("Right",   "panel_align", "panel_right",  curr_panel_pos, IC_PA_RIGHT)
+        add_option("Center",  "panel_align", "panel_center", curr_panel_pos, IC_PA_CENTER)
+        add_option("Justify", "panel_align", "panel_justify",curr_panel_pos, IC_PA_JUSTIFY)
+
+        # ── Section: Quick Input Position ─────────────────────────────────────
+        add_separator("Quick Input Position")
+        add_option("Top",    "quick_input", "top",    "top",    IC_ARROW_UP)
+        add_option("Center", "quick_input", "center", "top",    IC_CIRCLE)
+
+        # ── Section: Modes ────────────────────────────────────────────────────
+        add_separator("Modes")
+        add_option("Full Screen",     "mode", "fullscreen",      "fullscreen" if is_fullscreen else "", IC_FULLSCREEN)
+        add_option("Zen Mode",        "mode", "zen",             "zen" if is_zen else "",               IC_ZEN)
+        add_option("Centered Layout", "mode", "centered_layout", "",                                    IC_CENTERED)
+
+        # ── Fit height to content ─────────────────────────────────────────────
+        self._list.setCurrentRow(1)
+        total = self._list.count()
+        list_height = total * 27
+        self._list.setFixedHeight(list_height)
+        self.setFixedHeight(list_height + 38)  # +38 for title bar
+
+    def _on_customize_toggle(self, panel_id, new_val):
+        parent = self.parent()
+        if not parent:
+            return
+        if panel_id == "activity_bar":
+            parent._toggle_activity_bar_force(new_val)
+        elif panel_id == "primary_sidebar":
+            parent._toggle_primary_sidebar_force(new_val)
+        elif panel_id == "secondary_sidebar":
+            parent._toggle_secondary_sidebar_force(new_val)
+        elif panel_id == "panel":
+            parent._toggle_panel_force(new_val)
+        elif panel_id == "status_bar":
+            
+* 30 + 8) # approximate
+        list_height = self._list.sizeHintForRow(0) * self._list.count() + 12 # better calc
+        self._list.setFixedHeight(list_height)
+        self.setFixedHeight(list_height + 38)
+
+    def _on_customize_toggle(self, panel_id, new_val):
+        parent = self.parent()
+        if not parent: return
+        if panel_id == "activity_bar": parent._toggle_activity_bar_force(new_val)
+        elif panel_id == "primary_sidebar": parent._toggle_primary_sidebar_force(new_val)
+        elif panel_id == "secondary_sidebar": parent._toggle_secondary_sidebar_force(new_val)
+        elif panel_id == "panel": parent._toggle_panel_force(new_val)
+        elif panel_id == "status_bar": parent._toggle_status_bar_force(new_val)
+        elif panel_id == "menu_bar": parent._toggle_menu_bar_force(new_val)
+        self._populate_customize_layout()
+        
 
