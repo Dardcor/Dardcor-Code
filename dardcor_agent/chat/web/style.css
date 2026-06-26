@@ -405,26 +405,30 @@ body {
 }
 
 .top-notification {
-    background-color: rgba(90, 0, 156, 0.9);
-    color: white;
-    padding: 8px 12px;
-    margin-bottom: 12px;
-    border-radius: 6px;
+    position: fixed;
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(25, 25, 35, 0.95);
+    color: #e0e0e0;
+    padding: 10px 16px;
+    border-radius: 8px;
     font-size: 11.5px;
     text-align: center;
-    border: 1px solid #d8b4fe;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    border: 1px solid #4a2b7a;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
     animation: slideDown 0.3s ease-out forwards;
 }
 
 @keyframes slideDown {
     from {
-        transform: translateY(-20px);
+        transform: translate(-50%, -30px);
         opacity: 0;
     }
 
     to {
-        transform: translateY(0);
+        transform: translate(-50%, 0);
         opacity: 1;
     }
 }
@@ -465,4 +469,46 @@ body {
     40% {
         transform: scale(1);
     }
+}
+
+/* Thinking Block Styles */
+.thought-block {
+    margin: 8px 0;
+    border: 1px solid #3c3c44;
+    border-radius: 8px;
+    background-color: #1a1a20;
+    overflow: hidden;
+}
+
+.thought-block summary {
+    padding: 8px 12px;
+    cursor: pointer;
+    background-color: #24242a;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #a0a0a0;
+    user-select: none;
+    outline: none;
+}
+
+.thought-block summary:hover {
+    background-color: #2a2a32;
+    color: #e4e4e7;
+}
+
+.thought-content {
+    padding: 12px 14px;
+    font-size: 11.5px;
+    color: #b0b0b0;
+    font-style: italic;
+    border-top: 1px solid #3c3c44;
+    background-color: #141418;
+}
+
+.thought-content p {
+    margin-bottom: 8px !important;
+}
+
+.thought-content p:last-child {
+    margin-bottom: 0 !important;
 }

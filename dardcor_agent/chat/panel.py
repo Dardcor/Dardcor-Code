@@ -101,6 +101,7 @@ class ChatPanel(QWidget):
     _update_tool_output_signal = Signal(str, str)
     _set_enabled_signal = Signal(bool)
     _show_typing_signal = Signal(bool, str)
+    _show_native_notification_signal = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -119,6 +120,7 @@ class ChatPanel(QWidget):
         self._update_tool_output_signal.connect(self._safe_update_tool_output)
         self._set_enabled_signal.connect(self._safe_set_enabled)
         self._show_typing_signal.connect(self._safe_show_typing)
+        self._show_native_notification_signal.connect(self._safe_show_native_notification)
         self._history_entries = []
         self._collapsible_blocks = {}
         self._next_block_id = 1
@@ -141,16 +143,16 @@ class ChatPanel(QWidget):
         layout.setSpacing(0)
 
         # Header
-        header = QWidget()
-        header.setObjectName("chatHeader")
-        header.setFixedHeight(35)
-        header.setStyleSheet("""
+        self._header = QWidget()
+        self._header.setObjectName("chatHeader")
+        self._header.setFixedHeight(35)
+        self._header.setStyleSheet("""
             #chatHeader {
                 background-color: #000000;
                 border-bottom: 1px solid #3c0068;
             }
         """)
-        header_layout = QHBoxLayout(header)
+        header_layout = QHBoxLayout(self._header)
         header_layout.setContentsMargins(12, 0, 8, 0)
         header_layout.setSpacing(4)
 
@@ -198,7 +200,7 @@ class ChatPanel(QWidget):
 
         self._close_callback = None
 
-        layout.addWidget(header)
+        layout.addWidget(self._header)
 
         # Chat history (uses QWebEngineView for modern slicing)
         self._web_view = QWebEngineView(self)
@@ -778,6 +780,66 @@ class ChatPanel(QWidget):
     def _safe_append_agent_message(self, text: str, is_html: bool = False):
         self._web_bridge.append_agent_message.emit(text, is_html)
 
+    def show_native_notification(self, msg: str):
+        self._show_native_notification_signal.emit(msg)
+
+    def _safe_show_native_notification(self, msg: str):
+        # Overlay label lives inside the header bar ("Dardcor Agent" strip)
+        header = getattr(self, "_header", self)
+        if not hasattr(self, "_notification_label"):
+            from PySide6.QtWidgets import QLabel
+            self._notification_label = QLabel(header)
+            self._notification_label.setObjectName("nativeNotification")
+            self._notification_label.setStyleSheet("""
+                #nativeNotification {
+                    background-color: rgba(20, 18, 32, 0.97);
+                    color: #d0c8ff;
+                    padding: 5px 14px;
+                    border-radius: 6px;
+                    font-size: 11px;
+                    font-weight: 600;
+                    border: 1px solid #5c3a9e;
+                    letter-spacing: 0.2px;
+                }
+            """)
+            self._notification_label.setAlignment(Qt.AlignVCenter | Qt.AlignCenter)
+            self._notification_label.setAttribute(Qt.WA_TransparentForMouseEvents)
+
+        self._notification_label.setText(msg)
+        self._notification_label.adjustSize()
+
+        # Centre horizontally inside the header, vertically centred in its 35px height
+        h_w = header.width()
+        h_h = header.height()
+        lbl_w = self._notification_label.width()
+        lbl_h = self._notification_label.height()
+        target_x = max(0, (h_w - lbl_w) // 2)
+        target_y = max(0, (h_h - lbl_h) // 2)
+        self._notification_label.move(target_x, target_y)
+        self._notification_label.raise_()
+        self._notification_label.show()
+
+        if hasattr(self, "_notification_timer"):
+            self._notification_timer.stop()
+        else:
+            self._notification_timer = QTimer(self)
+            self._notification_timer.setSingleShot(True)
+            self._notification_timer.timeout.connect(self._notification_label.hide)
+        # Show for 2 seconds then auto-hide
+        self._notification_timer.start(2000)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, "_notification_label") and self._notification_label.isVisible():
+            header = getattr(self, "_header", self)
+            h_w = header.width()
+            h_h = header.height()
+            lbl_w = self._notification_label.width()
+            lbl_h = self._notification_label.height()
+            target_x = max(0, (h_w - lbl_w) // 2)
+            target_y = max(0, (h_h - lbl_h) // 2)
+            self._notification_label.move(target_x, target_y)
+
     def _handle_slash_command(self, cmd_text: str):
         parts = cmd_text.split()
         cmd = parts[0].lower()
@@ -1010,7 +1072,7 @@ class ChatPanel(QWidget):
         if "You are Dardcor Code" in text:
             return
         if "Batas Token Tercapai" in text or "token" in text.lower():
-            self._web_bridge.show_notification.emit(text)
+            self.show_native_notification(text)
         else:
             self._web_bridge.append_system_message.emit(text)
 

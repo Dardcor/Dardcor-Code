@@ -73,9 +73,17 @@ function appendAgentMessage(text, isHtml) {
     // Agent message also ends (settles) the current work panel
     settleCurrentWorkPanel();
 
+    // Preprocess <thought>...</thought> tags into collapsible details blocks
+    let processedText = text;
+    if (!isHtml) {
+        processedText = processedText.replace(/<thought>([\s\S]*?)<\/thought>/gi, function(match, innerContent) {
+            return `\n<details class="thought-block"><summary><span>🧠 Agent is thinking...</span></summary><div class="thought-content">\n\n${innerContent}\n\n</div></details>\n`;
+        });
+    }
+
     const div = document.createElement('div');
     div.className = 'message agent-msg';
-    let contentHtml = isHtml ? text : marked.parse(text);
+    let contentHtml = isHtml ? processedText : marked.parse(processedText);
     div.innerHTML = `
         <div class="content">${contentHtml}</div>
         <div class="agent-actions">

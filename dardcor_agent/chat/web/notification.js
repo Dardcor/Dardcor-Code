@@ -1,16 +1,12 @@
 function showNotification(message) {
-    const chatContainer = document.getElementById('chat-container');
-    if (!chatContainer) return;
-    
-    // Create the notification element
     const div = document.createElement('div');
     div.className = 'top-notification';
     div.textContent = message;
     
-    // Insert it at the top of the chat area (header)
-    chatContainer.insertBefore(div, chatContainer.firstChild);
+    // Insert it directly into the body so it floats over everything
+    document.body.appendChild(div);
     
-    // Remove it after 4 seconds
+    // Remove after 2 seconds
     setTimeout(() => {
         if (div.parentNode) {
             div.style.animation = 'slideUp 0.3s ease-in forwards';
@@ -18,15 +14,15 @@ function showNotification(message) {
                 if (div.parentNode) div.parentNode.removeChild(div);
             }, 300);
         }
-    }, 4000);
+    }, 2000);
 }
 
 // Add CSS keyframes dynamically for sliding up
 const style = document.createElement('style');
 style.textContent = `
     @keyframes slideUp {
-        from { transform: translateY(0); opacity: 1; }
-        to { transform: translateY(-20px); opacity: 0; }
+        from { transform: translate(-50%, 0); opacity: 1; }
+        to { transform: translate(-50%, -30px); opacity: 0; }
     }
 `;
 document.head.appendChild(style);

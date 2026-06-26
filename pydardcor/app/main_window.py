@@ -680,16 +680,48 @@ class MainWindow(QMainWindow):
         from PySide6.QtCore import QTimer
 
         def _run_in_main():
-            # Show the result in the chat as a system message
+            # Show the result in the chat panel as a system message
             self._chat_panel.append_system_message(system_message)
-            # Now wake the agent: inject the msg into conversation and call API
             # Only auto-continue if no other generation is active
             if not self._chat_generation_active:
-                # Feed the system message into the agent conversation and trigger a continue
-                self._agent._conversation.add_message("system", system_message)
-                self._start_chat_message(
-                    "Continue with the task using the background task output above."
-                )
+                # Inject the message into conversation history so agent sees it
+                self._agent._conversation.add_message("user", f"[Background Task Result]\n{system_message}\n\nContinue with the next step of the task based on this output. Do not stop.")
+                # Wake the agent — pass empty string so _start_chat_message re-uses conversation
+                self._chat_panel.show_native_notification("Task selesai, melanjutkan...")
+                # Directly invoke the API without adding another user message
+                import threading
+                def _continue():
+                    import uuid
+                    exec_id = str(uuid.uuid4())
+                    self._current_chat_exec_id = exec_id
+                    self._chat_generation_active = True
+                    self._chat_panel.set_enabled(False)
+                    self._chat_panel.show_typing(True)
+                    try:
+                        selected_model = None
+                        if self._chat_panel.model_dropdown.isVisible():
+                            selected_model = self._chat_panel.model_dropdown.currentText()
+                        def _on_notification(msg: str):
+                            self._chat_panel.show_native_notification(msg)
+                        response = self._agent._call_api(
+                            on_tool_call=self._chat_panel.append_tool_call,
+                            on_system_message=self._chat_panel.append_system_message,
+                            on_tool_output=self._chat_panel.append_tool_output,
+                            on_notification=_on_notification,
+                            model_override=selected_model,
+                        )
+                        if getattr(self, "_current_chat_exec_id", None) != exec_id:
+                            return
+                        if response and response != "Agent dihentikan oleh pengguna.":
+                            self._chat_panel.append_agent_message(response)
+                    except Exception as e:
+                        self._chat_panel.append_system_message(f"Error (bg continue): {e}")
+                    finally:
+                        if getattr(self, "_current_chat_exec_id", None) == exec_id:
+                            self._chat_generation_active = False
+                            self._chat_panel.show_typing(False)
+                            self._chat_panel.set_enabled(True)
+                threading.Thread(target=_continue, daemon=True).start()
 
         QTimer.singleShot(0, _run_in_main)
 
@@ -2463,7 +2495,7 @@ class MainWindow(QMainWindow):
             selected_model = self._chat_panel.model_dropdown.currentText()
 
         def _on_notification(msg: str):
-            self._chat_panel._web_bridge.show_notification.emit(msg)
+            self._chat_panel.show_native_notification(msg)
 
         def process():
             try:
@@ -2549,7 +2581,7 @@ class MainWindow(QMainWindow):
                             self._chat_panel.append_agent_message(msg.content)
                     elif msg.role == "system":
                         # Only show system messages if it's not the identity prompt
-                        if "You are Dardcor Code" not in msg.content:
+                        if "You are" not in msg.content and "Dardcor Code" not in msg.content:
                             self._chat_panel.append_system_message(msg.content)
                             
         dialog.conversation_selected.connect(on_conversation_selected)

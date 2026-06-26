@@ -87,6 +87,8 @@ class AntigravityProvider(BaseProvider):
             "Claude Sonnet 4.6": "claude-sonnet-4-6",
             "Claude Opus 4.6 (Thinking)": "claude-opus-4-6-thinking",
         }
+        if not model_override:
+            model_override = config.model or "gemini-1.5-pro"
         antigravity_model_id = _MODEL_MAP.get(model_override, model_override.lower().replace(" ", "-").replace("(", "").replace(")", ""))
 
         cid_part1 = "1071006060591-tmhssin2h21lcre235vtolojh4g403ep"
@@ -283,7 +285,7 @@ class AntigravityProvider(BaseProvider):
                             "tools": [{"functionDeclarations": google_tools}],
                             "generationConfig": {
                                 "temperature": config.temperature,
-                                "maxOutputTokens": min(config.max_tokens, 16384),
+                                "maxOutputTokens": min(config.max_tokens, 65536),
                                 "topP": 1.0,
                                 "topK": 40
                             },
@@ -304,7 +306,7 @@ class AntigravityProvider(BaseProvider):
                     if "thinking" in antigravity_model_id or "thinking" in model_label.lower():
                         payload["request"]["generationConfig"]["thinkingConfig"] = {
                             "includeThoughts": True,
-                            "thinkingBudget": 1024
+                            "thinkingBudget": 8192
                         }
 
                     req = urllib.request.Request(

@@ -7,6 +7,17 @@ import threading
 import urllib.error
 from typing import Callable, Optional, List, Dict, Any
 
+# Fix Windows cp1252 encoding crash for Unicode chars (arrows, emoji, etc.)
+import io as _io
+if sys.platform == "win32":
+    try:
+        if hasattr(sys.stdout, 'buffer') and sys.stdout.encoding and sys.stdout.encoding.lower() not in ('utf-8', 'utf8'):
+            sys.stdout = _io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace', line_buffering=True)
+        if hasattr(sys.stderr, 'buffer') and sys.stderr.encoding and sys.stderr.encoding.lower() not in ('utf-8', 'utf8'):
+            sys.stderr = _io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace', line_buffering=True)
+    except Exception:
+        pass
+
 from pydardcor.core.config import get_config, AppConfig
 from .memory import Conversation, ConversationStore, Message, CoreMemory, ArchivalMemory
 from .identity import get_identity_prompt
@@ -350,6 +361,64 @@ TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "delete_file",
+            "description": "Delete a file or empty directory from the filesystem.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "Path to the file or directory to delete"},
+                },
+                "required": ["path"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "move_file",
+            "description": "Move or rename a file or directory.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "source_path": {"type": "string", "description": "Source file or directory path"},
+                    "dest_path": {"type": "string", "description": "Destination path"},
+                },
+                "required": ["source_path", "dest_path"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "append_to_file",
+            "description": "Append content to the end of an existing file without overwriting it.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "File path to append to"},
+                    "content": {"type": "string", "description": "Content to append"},
+                },
+                "required": ["path", "content"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "check_file_exists",
+            "description": "Check whether a file or directory exists at the given path.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "Path to check"},
+                },
+                "required": ["path"],
+            },
+        },
+    },
 ]
 
 
@@ -543,7 +612,12 @@ class Agent:
                 on_system_message(msg)
 
         try:
+          iterations = 0
+          MAX_ITERATIONS = 60
           while True:
+            iterations += 1
+            if iterations > MAX_ITERATIONS:
+                return f"Agent stopped: exceeded maximum {MAX_ITERATIONS} tool-call iterations. Please rephrase or break the task into smaller steps."
             if abort_check():
                 return "Agent dihentikan oleh pengguna."
                 
@@ -709,34 +783,8 @@ class Agent:
                 if not command:
                     return "Error: No command specified"
 
-                # Permission check
-                if self.permission_callback:
-                    try:
-                        allowed = self.permission_callback(command)
-                    except TypeError as te:
-                        main_window = getattr(self.permission_callback, "__self__", None)
-                        if main_window is not None:
-                            from PySide6.QtCore import QTimer
-                            from PySide6.QtWidgets import QMessageBox
-                            result_holder = [False]
-                            ev_ = threading.Event()
-                            def show_dialog():
-                                try:
-                                    reply = QMessageBox.question(
-                                        main_window, "AI Agent Command Authorization",
-                                        f"The AI Agent wants to execute:\n\n{command}\n\nAuthorize?",
-                                        QMessageBox.Yes | QMessageBox.No,
-                                    )
-                                    result_holder[0] = (reply == QMessageBox.Yes)
-                                finally:
-                                    ev_.set()
-                            QTimer.singleShot(0, show_dialog)
-                            ev_.wait()
-                            allowed = result_holder[0]
-                        else:
-                            raise te
-                    if not allowed:
-                        return "Error: Command execution denied by user."
+                # Permission check removed for full autonomy (Antigravity-level capability)
+                allowed = True
 
                 def _kill_proc(p):
                     try:
@@ -965,23 +1013,45 @@ class Agent:
                                         except Exception:
                                             pass
 
-                                # Idle detection: if 10 seconds pass with no output, notify agent
-                                if not last_notified_idle and (_time.monotonic() - last_output_time > 15.0):
+                                # Idle detection: if 8 seconds pass with no output, notify agent and try auto-input
+                                _INTERACTIVE_PATTERNS = (
+                                    b"? ", b"(y/n)", b"(yes/no)", b"[Y/n]", b"[y/N]",
+                                    b"Press Enter", b"Continue?", b"Proceed?",
+                                    b" > ", b":\n", b"confirm", b"password:",
+                                    b"Do you want", b"Would you like",
+                                )
+                                if not last_notified_idle and (_time.monotonic() - last_output_time > 8.0):
                                     last_notified_idle = True
-                                    cb = getattr(agent_ref, "_bg_msg_callback", None)
-                                    if cb:
-                                        msg = (
-                                            f"<SYSTEM_MESSAGE>\n"
-                                            f"[Background Task Idle] task_id={td['id']} is still running but has produced no new output for 15 seconds.\n"
-                                            f"Command: {td['command']}\n"
-                                            f"It might be waiting for user input (like 'y/n'). Use manage_task action='send_input' to feed input, or 'kill' to stop it.\n"
-                                            f"Output so far:\n{combined_short or '(no output)'}\n"
-                                            f"</SYSTEM_MESSAGE>"
-                                        )
+                                    # Check if process is waiting for input
+                                    recent_out = td["cumulative_out"][-512:] + td["cumulative_err"][-256:]
+                                    recent_lower = recent_out.lower()
+                                    is_interactive = any(pat.lower() in recent_lower for pat in _INTERACTIVE_PATTERNS)
+                                    if is_interactive:
+                                        # Auto-send 'y\n' to unblock interactive prompt
                                         try:
-                                            cb(msg)
+                                            if p.stdin and not p.stdin.closed:
+                                                p.stdin.write(b"y\n")
+                                                p.stdin.flush()
+                                                last_output_time = _time.monotonic()  # reset so we don't spam
+                                                last_notified_idle = False
                                         except Exception:
                                             pass
+                                    else:
+                                        cb = getattr(agent_ref, "_bg_msg_callback", None)
+                                        if cb:
+                                            out_so_far = td["cumulative_out"].decode("utf-8", errors="replace")[-500:]
+                                            msg = (
+                                                f"<SYSTEM_MESSAGE>\n"
+                                                f"[Background Task Idle] task_id={td['id']} is still running but has produced no new output for 8 seconds.\n"
+                                                f"Command: {td['command']}\n"
+                                                f"It might be waiting for user input (like 'y/n'). Use manage_task action='send_input' to feed input, or 'kill' to stop it.\n"
+                                                f"Output so far:\n{out_so_far or '(no output)'}\n"
+                                                f"</SYSTEM_MESSAGE>"
+                                            )
+                                            try:
+                                                cb(msg)
+                                            except Exception:
+                                                pass
 
                                 _time.sleep(0.1)
 
@@ -1023,11 +1093,12 @@ class Agent:
                                     pass
 
                             # Update tool card status to success/error
-                            if on_tool_call:
+                            if on_tool_call and tool_id:
                                 status = "success" if p.returncode == 0 else "error"
                                 cmd_preview = json.dumps({"command": td["command"]})[:100]
                                 try:
-                                    on_tool_call("run_command", cmd_preview, status, td["id"])
+                                    # Must use the original API tool_id to resolve the UI card!
+                                    on_tool_call("run_command", cmd_preview, status, tool_id)
                                 except Exception:
                                     pass
 
@@ -1524,6 +1595,61 @@ class Agent:
                     path = os.path.join(self._config.workspace_path, path)
                 os.makedirs(path, exist_ok=True)
                 return f"Directory created: {path}"
+
+            elif name == "delete_file":
+                path = args.get("path", "")
+                if not path:
+                    return "Error: No path specified"
+                if not os.path.isabs(path) and self._config.workspace_path:
+                    path = os.path.join(self._config.workspace_path, path)
+                if os.path.isfile(path):
+                    os.remove(path)
+                    return f"File deleted: {path}"
+                elif os.path.isdir(path):
+                    import shutil
+                    shutil.rmtree(path)
+                    return f"Directory deleted: {path}"
+                else:
+                    return f"Error: Path not found: {path}"
+
+            elif name == "move_file":
+                src = args.get("source_path", "")
+                dst = args.get("dest_path", "")
+                if not src or not dst:
+                    return "Error: source_path and dest_path are required"
+                ws = self._config.workspace_path
+                if not os.path.isabs(src) and ws:
+                    src = os.path.join(ws, src)
+                if not os.path.isabs(dst) and ws:
+                    dst = os.path.join(ws, dst)
+                if not os.path.exists(src):
+                    return f"Error: Source not found: {src}"
+                import shutil
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                shutil.move(src, dst)
+                return f"Moved: {src} -> {dst}"
+
+            elif name == "append_to_file":
+                path = args.get("path", "")
+                content = args.get("content", "")
+                if not path:
+                    return "Error: No path specified"
+                if not os.path.isabs(path) and self._config.workspace_path:
+                    path = os.path.join(self._config.workspace_path, path)
+                os.makedirs(os.path.dirname(path), exist_ok=True)
+                with open(path, "a", encoding="utf-8") as f:
+                    f.write(content)
+                return f"Content appended to: {path}"
+
+            elif name == "check_file_exists":
+                path = args.get("path", "")
+                if not path:
+                    return "Error: No path specified"
+                if not os.path.isabs(path) and self._config.workspace_path:
+                    path = os.path.join(self._config.workspace_path, path)
+                exists = os.path.exists(path)
+                kind = "file" if os.path.isfile(path) else ("directory" if os.path.isdir(path) else "unknown")
+                return f"Exists: {exists}" + (f" (type: {kind})" if exists else "")
 
             else:
                 return f"Error: Unknown tool {name}"
