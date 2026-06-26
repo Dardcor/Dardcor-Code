@@ -4,6 +4,7 @@ import os
 import sys
 import json
 import threading
+import urllib.error
 from typing import Callable, Optional, List, Dict, Any
 
 from pydardcor.core.config import get_config, AppConfig
@@ -494,13 +495,14 @@ class Agent:
         on_tool_call: Optional[Callable[[str, str, str], None]] = None,
         on_system_message: Optional[Callable[[str], None]] = None,
         on_tool_output: Optional[Callable[[str, str], None]] = None,
+        on_notification: Optional[Callable[[str], None]] = None,
     ) -> str:
         with self._lock:
             self._abort_flag = False
             self._conversation.add_message("user", message)
 
             try:
-                response_text = self._call_api(on_tool_call, on_system_message, model_override=model_override, on_tool_output=on_tool_output)
+                response_text = self._call_api(on_tool_call, on_system_message, model_override=model_override, on_tool_output=on_tool_output, on_notification=on_notification)
                 self._store.save(self._conversation)
                 return response_text
             except urllib.error.URLError as e:
@@ -519,7 +521,7 @@ class Agent:
                 self._store.save(self._conversation)
                 return error_msg
 
-    def _call_api(self, on_tool_call=None, on_system_message=None, depth=0, model_override=None, on_tool_output=None) -> str:
+    def _call_api(self, on_tool_call=None, on_system_message=None, depth=0, model_override=None, on_tool_output=None, on_notification=None) -> str:
         from dardcor_agent.models.providers.factory import ProviderFactory
         provider = ProviderFactory.create(self._config.ai, model_override)
         self._current_provider = provider
@@ -531,6 +533,10 @@ class Agent:
             return getattr(self, '_abort_flag', False)
             
         def on_conversation_sys_msg(role, msg):
+            if role == "notification":
+                if on_notification:
+                    on_notification(msg)
+                return
             self._conversation.add_message(role, msg)
             self._store.save(self._conversation)
             if role == "system" and on_system_message:
@@ -912,6 +918,9 @@ class Agent:
                         def _bg_monitor(td, agent_ref):
                             p = td["proc"]
                             last_stream_time_bg = _time.monotonic()
+                            last_output_time = _time.monotonic()
+                            last_notified_idle = False
+                            
                             while p.poll() is None:
                                 if td["aborted"] or getattr(agent_ref, "_abort_flag", False):
                                     _kill_proc(p)
@@ -935,6 +944,10 @@ class Agent:
                                         changed_bg = True
                                     except Exception:
                                         break
+                                        
+                                if changed_bg:
+                                    last_output_time = _time.monotonic()
+                                    last_notified_idle = False
 
                                 # Stream output from background task every 0.5s
                                 if changed_bg and (_time.monotonic() - last_stream_time_bg > 0.5):
@@ -949,6 +962,24 @@ class Agent:
                                             combined = combined[:1000] + "\n...[truncated]...\n" + combined[-1800:]
                                         try:
                                             on_tool_output(tool_id, combined)
+                                        except Exception:
+                                            pass
+
+                                # Idle detection: if 10 seconds pass with no output, notify agent
+                                if not last_notified_idle and (_time.monotonic() - last_output_time > 15.0):
+                                    last_notified_idle = True
+                                    cb = getattr(agent_ref, "_bg_msg_callback", None)
+                                    if cb:
+                                        msg = (
+                                            f"<SYSTEM_MESSAGE>\n"
+                                            f"[Background Task Idle] task_id={td['id']} is still running but has produced no new output for 15 seconds.\n"
+                                            f"Command: {td['command']}\n"
+                                            f"It might be waiting for user input (like 'y/n'). Use manage_task action='send_input' to feed input, or 'kill' to stop it.\n"
+                                            f"Output so far:\n{combined_short or '(no output)'}\n"
+                                            f"</SYSTEM_MESSAGE>"
+                                        )
+                                        try:
+                                            cb(msg)
                                         except Exception:
                                             pass
 

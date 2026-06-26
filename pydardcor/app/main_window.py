@@ -2462,6 +2462,9 @@ class MainWindow(QMainWindow):
         if self._chat_panel.model_dropdown.isVisible():
             selected_model = self._chat_panel.model_dropdown.currentText()
 
+        def _on_notification(msg: str):
+            self._chat_panel._web_bridge.show_notification.emit(msg)
+
         def process():
             try:
                 response = self._agent.send_message(
@@ -2470,6 +2473,7 @@ class MainWindow(QMainWindow):
                     on_tool_call=self._chat_panel.append_tool_call,
                     on_system_message=self._chat_panel.append_system_message,
                     on_tool_output=self._chat_panel.append_tool_output,
+                    on_notification=_on_notification,
                 )
                 if getattr(self, "_current_chat_exec_id", None) != current_exec_id:
                     return # A new generation started or stopped

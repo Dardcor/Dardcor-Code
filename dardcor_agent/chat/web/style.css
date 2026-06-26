@@ -16,7 +16,7 @@ body {
     padding: 16px;
     padding-bottom: 60px;
     overflow-y: auto;
-    font-size: 13px;
+    font-size: 12px;
     -webkit-user-select: text;
     user-select: text;
 }
@@ -59,10 +59,49 @@ body {
 
 .content {
     line-height: 1.5;
-    white-space: pre-wrap;
     word-break: break-word;
     -webkit-user-select: text;
     user-select: text;
+}
+
+/* Compact markdown element spacing inside agent responses */
+.content p {
+    margin: 0 0 6px 0;
+}
+
+.content p:last-child {
+    margin-bottom: 0;
+}
+
+.content ul,
+.content ol {
+    margin: 4px 0 6px 0;
+    padding-left: 20px;
+}
+
+.content li {
+    margin-bottom: 2px;
+}
+
+.content h1,
+.content h2,
+.content h3,
+.content h4 {
+    margin: 8px 0 4px 0;
+    line-height: 1.3;
+}
+
+.content blockquote {
+    margin: 6px 0 6px 12px;
+    padding: 4px 8px;
+    border-left: 3px solid #3c0068;
+    color: #a0a0a0;
+}
+
+.content hr {
+    margin: 8px 0;
+    border: none;
+    border-top: 1px solid #2d2d35;
 }
 
 /* User Message Styles */
@@ -78,6 +117,7 @@ body {
     align-self: flex-start;
     display: inline-block;
     max-width: 90%;
+    white-space: pre-wrap;
 }
 
 .user-actions {

@@ -215,6 +215,10 @@ class ConversationStore:
                 shutil.move(old_path, new_path)
 
     def save(self, conversation: Conversation):
+        # Do not save if there are no user messages
+        if not any(m.role == "user" for m in conversation.messages):
+            return
+            
         conv_dir = os.path.join(self._store_dir, conversation.id)
         os.makedirs(conv_dir, exist_ok=True)
         path = os.path.join(conv_dir, f"{conversation.id}.json")
@@ -248,22 +252,35 @@ class ConversationStore:
             return None
 
     def list_conversations(self) -> List[Dict[str, str]]:
-        convs = []
-        for dirname in os.listdir(self._store_dir):
-            path = os.path.join(self._store_dir, dirname, f"{dirname}.json")
+        results = []
+        if not os.path.exists(self._store_dir):
+            return results
+        for conv_id in os.listdir(self._store_dir):
+            path = os.path.join(self._store_dir, conv_id, f"{conv_id}.json")
             if os.path.exists(path):
                 try:
                     with open(path, "r", encoding="utf-8") as f:
                         data = json.load(f)
-                    convs.append({
+                    
+                    # Ensure conversation actually has a user message
+                    has_user = any(m.get("role") == "user" for m in data.get("messages", []))
+                    if not has_user:
+                        import shutil
+                        try:
+                            shutil.rmtree(os.path.join(self._store_dir, conv_id))
+                        except Exception:
+                            pass
+                        continue
+                        
+                    results.append({
                         "id": data["id"],
                         "title": data.get("title", ""),
                         "updated_at": data.get("updated_at", ""),
                     })
                 except Exception:
                     pass
-        convs.sort(key=lambda x: x.get("updated_at", ""), reverse=True)
-        return convs
+        results.sort(key=lambda x: x.get("updated_at", ""), reverse=True)
+        return results
 
     def delete(self, conv_id: str):
         import shutil

@@ -128,6 +128,11 @@ class AntigravityProvider(BaseProvider):
                 current_acc = self._accounts[self._current_acc_idx]
                 refresh_token = current_acc["refresh_token"]
                 acc_id = current_acc["acc_id"]
+                acc_email = current_acc.get("email", "Unknown Email")
+
+                if getattr(self, "_last_notified_idx", None) != self._current_acc_idx:
+                    conversation_callback("notification", f"Selected account: {acc_email}")
+                    self._last_notified_idx = self._current_acc_idx
 
                 try:
                     # Step 1: Refresh token
@@ -383,6 +388,7 @@ class AntigravityProvider(BaseProvider):
                             next_email = self._accounts[next_idx].get("email", "Unknown Email")
                             switch_msg = f"🔄 **Batas Token Tercapai.**\nSistem secara otomatis beralih melanjutkan pemikiran/tugas ke akun berikutnya: **{next_email}**"
                             conversation_callback("system", switch_msg)
+                            conversation_callback("notification", f"Next account: {next_email}")
                         self._current_acc_idx += 1
                         continue
                         
