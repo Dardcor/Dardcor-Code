@@ -405,7 +405,7 @@ class ChatPanel(QWidget):
 
         self._mic_icon = QIcon(os.path.join(assets_dir, "mic.svg"))
         self._send_icon = QIcon(os.path.join(assets_dir, "send.svg"))
-        self._stop_icon = QIcon(os.path.join(assets_dir, "stop-red.svg"))
+        self._stop_icon = QIcon(os.path.join(assets_dir, "stop.svg"))
         self._is_generating = False
 
         self._send_btn = QPushButton()

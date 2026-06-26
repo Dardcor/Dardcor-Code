@@ -495,29 +495,29 @@ class Agent:
         on_system_message: Optional[Callable[[str], None]] = None,
         on_tool_output: Optional[Callable[[str, str], None]] = None,
     ) -> str:
-        self._abort_flag = False
         with self._lock:
+            self._abort_flag = False
             self._conversation.add_message("user", message)
 
-        try:
-            response_text = self._call_api(on_tool_call, on_system_message, model_override=model_override, on_tool_output=on_tool_output)
-            self._store.save(self._conversation)
-            return response_text
-        except urllib.error.URLError as e:
-            if "10061" in str(e) or "Connection refused" in str(e):
-                error_msg = "🚨 Koneksi Gagal!\n\nTidak dapat terhubung ke server API Google. Periksa koneksi internet Anda atau pastikan Google API tidak diblokir oleh firewall."
-            else:
-                error_msg = f"Network error: {str(e)}"
-            self._conversation.add_message("assistant", error_msg)
-            self._store.save(self._conversation)
-            return error_msg
-        except Exception as e:
-            error_msg = f"Connection error: {str(e)}"
-            if "10061" in str(e):
-                error_msg = "🚨 Koneksi Gagal!\n\nTidak dapat terhubung ke server API Google. Periksa koneksi internet Anda atau pastikan Google API tidak diblokir oleh firewall."
-            self._conversation.add_message("assistant", error_msg)
-            self._store.save(self._conversation)
-            return error_msg
+            try:
+                response_text = self._call_api(on_tool_call, on_system_message, model_override=model_override, on_tool_output=on_tool_output)
+                self._store.save(self._conversation)
+                return response_text
+            except urllib.error.URLError as e:
+                if "10061" in str(e) or "Connection refused" in str(e):
+                    error_msg = "🚨 Koneksi Gagal!\n\nTidak dapat terhubung ke server API Google. Periksa koneksi internet Anda atau pastikan Google API tidak diblokir oleh firewall."
+                else:
+                    error_msg = f"Network error: {str(e)}"
+                self._conversation.add_message("assistant", error_msg)
+                self._store.save(self._conversation)
+                return error_msg
+            except Exception as e:
+                error_msg = f"Connection error: {str(e)}"
+                if "10061" in str(e):
+                    error_msg = "🚨 Koneksi Gagal!\n\nTidak dapat terhubung ke server API Google. Periksa koneksi internet Anda atau pastikan Google API tidak diblokir oleh firewall."
+                self._conversation.add_message("assistant", error_msg)
+                self._store.save(self._conversation)
+                return error_msg
 
     def _call_api(self, on_tool_call=None, on_system_message=None, depth=0, model_override=None, on_tool_output=None) -> str:
         from dardcor_agent.models.providers.factory import ProviderFactory
@@ -551,7 +551,7 @@ class Agent:
             for _i, _m in enumerate(messages):
                 if _m.get("role") == "system":
                     messages[_i] = dict(_m)
-                    messages[_i]["content"] = _m["content"] + _ws_note
+                    messages[_i]["content"] = self._get_system_prompt() + _ws_note
                     _patched = True
                     break
             if not _patched:
