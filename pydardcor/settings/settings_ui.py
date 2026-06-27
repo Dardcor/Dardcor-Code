@@ -115,6 +115,7 @@ class SettingsUIWidget(QWidget):
         super().__init__(parent)
         self._config = get_config()
         self._rows = []
+        self._category_labels = []
         self._setup_ui()
 
     # Duck-typing for editor tab compatibility
@@ -217,6 +218,7 @@ class SettingsUIWidget(QWidget):
             padding: 16px 0 8px 0; border-bottom: 1px solid #1a0033;
         """)
         self._content_layout.addWidget(lbl)
+        self._category_labels.append((lbl, title))
         return lbl
 
     def _add_setting(self, key, label, description, widget_type, value, options=None, category=None):
@@ -235,7 +237,7 @@ class SettingsUIWidget(QWidget):
     def _build_settings(self):
         c = self._config
 
-        # ── Editor ──
+        # ── Text Editor ──
         self._add_category("Text Editor")
 
         self._add_setting("font_family", "Editor: Font Family",
@@ -265,6 +267,54 @@ class SettingsUIWidget(QWidget):
             "Controls whether files are automatically saved after changes.",
             "checkbox", c.auto_save, None, "editor")
 
+        self._add_setting("render_whitespace", "Editor: Render Whitespace",
+            "Controls how whitespace characters are rendered in the editor.",
+            "combo", getattr(c, "render_whitespace", "selection"),
+            {"items": ["none", "boundary", "selection", "trailing", "all"]},
+            "editor")
+
+        self._add_setting("cursor_style", "Editor: Cursor Style",
+            "Controls the cursor style.",
+            "combo", getattr(c, "cursor_style", "line"),
+            {"items": ["line", "block", "underline", "line-thin", "block-outline", "underline-thin"]},
+            "editor")
+
+        self._add_setting("cursor_blinking", "Editor: Cursor Blinking",
+            "Controls the cursor animation style.",
+            "combo", getattr(c, "cursor_blinking", "blink"),
+            {"items": ["blink", "smooth", "phase", "expand", "solid"]},
+            "editor")
+
+        self._add_setting("bracket_pair_colorization", "Editor: Bracket Pair Colorization",
+            "Controls whether bracket pair colorization is enabled.",
+            "checkbox", getattr(c, "bracket_pair_colorization", True), None, "editor")
+
+        self._add_setting("smooth_scrolling", "Editor: Smooth Scrolling",
+            "Controls whether the editor scrolls with an animation.",
+            "checkbox", getattr(c, "smooth_scrolling", True), None, "editor")
+
+        self._add_setting("sticky_scroll", "Editor: Sticky Scroll",
+            "Shows nested current scopes during scroll.",
+            "checkbox", getattr(c, "sticky_scroll", True), None, "editor")
+
+        self._add_setting("format_on_save", "Editor: Format On Save",
+            "Format a file on save.",
+            "checkbox", getattr(c, "format_on_save", False), None, "editor")
+
+        self._add_setting("format_on_paste", "Editor: Format On Paste",
+            "Format pasted content.",
+            "checkbox", getattr(c, "format_on_paste", False), None, "editor")
+
+        self._add_setting("line_numbers", "Editor: Line Numbers",
+            "Controls the display of line numbers.",
+            "combo", getattr(c, "line_numbers", "on"),
+            {"items": ["on", "off", "relative", "interval"]},
+            "editor")
+
+        self._add_setting("font_ligatures", "Editor: Font Ligatures",
+            "Configures font ligatures or font features.",
+            "checkbox", getattr(c, "font_ligatures", False), None, "editor")
+
         # ── AI ──
         self._add_category("AI Provider")
 
@@ -286,6 +336,71 @@ class SettingsUIWidget(QWidget):
             "Maximum number of tokens in AI responses.",
             "spinbox", c.ai.max_tokens, {"min": 1024, "max": 256000}, "ai")
 
+        self._add_setting("ai.temperature", "AI: Temperature",
+            "Controls randomness. Lower = more focused (0.0 - 2.0). Value is x10 (e.g., 7 = 0.7).",
+            "spinbox", int(getattr(c.ai, "temperature", 0.7) * 10),
+            {"min": 0, "max": 20}, "ai")
+
+        # ── Workbench ──
+        self._add_category("Workbench")
+
+        self._add_setting("ui_theme", "Workbench: Color Theme",
+            "Specifies the color theme used in the workbench.",
+            "combo", getattr(c, "ui_theme", "dark+"),
+            {"items": ["dark+", "light+", "high-contrast", "monokai", "solarized-dark",
+                       "solarized-light", "github-dark", "one-dark-pro"]},
+            "workbench")
+
+        self._add_setting("sidebar_position", "Workbench: Side Bar Location",
+            "Controls the location of the sidebar. It can be shown on the left or right of the editor.",
+            "combo", getattr(c, "sidebar_position", "left"),
+            {"items": ["left", "right"]},
+            "workbench")
+
+        self._add_setting("breadcrumbs_enabled", "Breadcrumbs: Enabled",
+            "Enable or disable breadcrumb navigation.",
+            "checkbox", getattr(c, "breadcrumbs_enabled", True), None, "workbench")
+
+        # ── Files ──
+        self._add_category("Files")
+
+        self._add_setting("files_encoding", "Files: Encoding",
+            "The default character set encoding to use when reading and writing files.",
+            "combo", getattr(c, "files_encoding", "utf-8"),
+            {"items": ["utf-8", "utf-16", "ascii", "iso-8859-1", "windows-1252", "shift-jis", "euc-kr"]},
+            "files")
+
+        self._add_setting("files_eol", "Files: Eol",
+            "The default end of line character.",
+            "combo", getattr(c, "files_eol", "auto"),
+            {"items": ["auto", "\\n", "\\r\\n"]},
+            "files")
+
+        self._add_setting("files_trim_trailing_whitespace", "Files: Trim Trailing Whitespace",
+            "When enabled, will trim trailing whitespace when saving a file.",
+            "checkbox", getattr(c, "files_trim_trailing_whitespace", False), None, "files")
+
+        self._add_setting("files_insert_final_newline", "Files: Insert Final Newline",
+            "When enabled, insert a final new line at the end of the file when saving it.",
+            "checkbox", getattr(c, "files_insert_final_newline", False), None, "files")
+
+        # ── Terminal ──
+        self._add_category("Terminal")
+
+        self._add_setting("terminal_shell", "Terminal: Shell",
+            "The shell to use for the integrated terminal. Leave empty for default.",
+            "text", c.terminal_shell, {"placeholder": "Leave empty for default"}, "terminal")
+
+        self._add_setting("terminal_font_size", "Terminal: Font Size",
+            "Controls the font size of the terminal.",
+            "spinbox", getattr(c, "terminal_font_size", 14), {"min": 8, "max": 36}, "terminal")
+
+        self._add_setting("terminal_cursor_style", "Terminal: Cursor Style",
+            "Controls the style of terminal cursor.",
+            "combo", getattr(c, "terminal_cursor_style", "block"),
+            {"items": ["block", "underline", "bar"]},
+            "terminal")
+
         # ── Workspace ──
         self._add_category("Workspace")
 
@@ -293,9 +408,12 @@ class SettingsUIWidget(QWidget):
             "The root folder path for the current workspace.",
             "text", c.workspace_path, {"placeholder": "Path to workspace"}, "workspace")
 
-        self._add_setting("terminal_shell", "Terminal: Shell",
-            "The shell to use for the integrated terminal. Leave empty for default.",
-            "text", c.terminal_shell, {"placeholder": "Leave empty for default"}, "workspace")
+        # ── Telemetry ──
+        self._add_category("Telemetry")
+
+        self._add_setting("telemetry_enabled", "Telemetry: Enabled",
+            "Enable usage data and errors to be sent to Dardcor.",
+            "checkbox", getattr(c, "telemetry_enableTelemetry", True), None, "telemetry")
 
     def _on_setting_changed(self):
         c = self._config
@@ -308,19 +426,57 @@ class SettingsUIWidget(QWidget):
             elif k == "word_wrap": c.word_wrap = v
             elif k == "minimap_enabled": c.minimap_enabled = v
             elif k == "auto_save": c.auto_save = v
+            elif k == "render_whitespace": c.render_whitespace = v
+            elif k == "cursor_style": c.cursor_style = v
+            elif k == "cursor_blinking": c.cursor_blinking = v
+            elif k == "bracket_pair_colorization": c.bracket_pair_colorization = v
+            elif k == "smooth_scrolling": c.smooth_scrolling = v
+            elif k == "sticky_scroll": c.sticky_scroll = v
+            elif k == "format_on_save": c.format_on_save = v
+            elif k == "format_on_paste": c.format_on_paste = v
+            elif k == "line_numbers": c.line_numbers = v
+            elif k == "font_ligatures": c.font_ligatures = v
             elif k == "ai.provider": c.ai.provider = v
             elif k == "ai.model": c.ai.model = v
             elif k == "ai.base_url": c.ai.base_url = v
             elif k == "ai.max_tokens": c.ai.max_tokens = v
+            elif k == "ai.temperature": c.ai.temperature = v / 10.0
+            elif k == "ui_theme": c.ui_theme = v
+            elif k == "sidebar_position": c.sidebar_position = v
+            elif k == "breadcrumbs_enabled": c.breadcrumbs_enabled = v
+            elif k == "files_encoding": c.files_encoding = v
+            elif k == "files_eol": c.files_eol = v
+            elif k == "files_trim_trailing_whitespace": c.files_trim_trailing_whitespace = v
+            elif k == "files_insert_final_newline": c.files_insert_final_newline = v
             elif k == "workspace_path": c.workspace_path = v
             elif k == "terminal_shell": c.terminal_shell = v
+            elif k == "terminal_font_size": c.terminal_font_size = v
+            elif k == "terminal_cursor_style": c.terminal_cursor_style = v
+            elif k == "telemetry_enabled": c.telemetry_enableTelemetry = v
         c.save()
 
     def _filter_settings(self, text):
         text = text.lower()
-        for row, _ in self._rows:
+        # Track which categories have visible rows
+        visible_categories = set()
+        
+        for row, category in self._rows:
             visible = not text or text in row.key.lower() or any(
                 text in child.text().lower()
                 for child in row.findChildren(QLabel)
             )
             row.setVisible(visible)
+            if visible and category:
+                visible_categories.add(category)
+        
+        # Show/hide category labels
+        for lbl, title in self._category_labels:
+            if not text:
+                lbl.setVisible(True)
+            else:
+                # Check if any associated category is visible
+                cat_match = any(
+                    cat in visible_categories
+                    for cat in [title.lower()]
+                ) or text in title.lower()
+                lbl.setVisible(cat_match)

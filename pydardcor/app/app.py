@@ -45,14 +45,16 @@ def run_desktop_app():
     QLocale.setDefault(QLocale.c())
     app.setApplicationName("Dardcor Code")
     app.setApplicationDisplayName("Dardcor Code")
-    app.setOrganizationName("Dardcor")
-    app.setOrganizationDomain("dardcor.com")
     if hasattr(app, "setDesktopFileName"):
         app.setDesktopFileName("dardcor-code")
     app.setStyle("Fusion")
 
     # Set default font
-    default_font = QFont("Inter", 9)
+    from ..core.config import get_config
+    cfg = get_config()
+    ui_zoom = getattr(cfg, "ui_zoom", 0)
+    
+    default_font = QFont("Inter", 9 + ui_zoom)
     default_font.setStyleHint(QFont.SansSerif)
     app.setFont(default_font)
 

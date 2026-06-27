@@ -73,6 +73,8 @@ from PySide6.QtGui import (
 from ..ui_shared.breadcrumbs import BreadcrumbsBar
 from ..editor.markdown_preview import MarkdownPreviewWidget
 from ..editor.zen_mode import ZenModeManager
+from ..editor.centered_layout import CenteredLayoutManager
+from .focus_manager import FocusManager
 from ..settings.keybindings_dialog import KeybindingsDialog, KeybindingsManager
 
 class ChromeButton(QPushButton):
@@ -637,12 +639,25 @@ class MainWindow(QMainWindow):
         self._run_queued_chat_signal.connect(self._run_next_queued_chat_message)
         self._setup_ui()
         self._zen_mode = ZenModeManager(self)
+        self._centered_layout = CenteredLayoutManager(self)
+        self._focus_manager = FocusManager(self)
         self._setup_breadcrumbs()
         self._setup_keybindings()
         self._setup_menu()
         self._setup_shortcuts()
         self._setup_command_palette()
         self._setup_extensions()
+
+        # Log session start telemetry
+        try:
+            from ..core.telemetry import get_telemetry_service
+            telemetry = get_telemetry_service()
+            telemetry.public_log("session.start", {
+                "workspace": self._config.workspace_path or "",
+                "theme": getattr(self._config, "ui_theme", "dark+"),
+            })
+        except Exception:
+            pass
 
     # ── Window Events (Native Resizing & Maximize Icon) ──
 
@@ -844,6 +859,9 @@ class MainWindow(QMainWindow):
         self._file_explorer = FileExplorer(root_path=None)
         self._file_explorer.file_selected.connect(self._open_file_in_editor)
         self._file_explorer.root_changed.connect(self._on_root_changed)
+        self._file_explorer.find_in_folder_requested.connect(self._find_in_folder)
+        self._file_explorer.open_in_terminal_requested.connect(self._open_in_terminal)
+        self._file_explorer.open_to_side_requested.connect(self._open_to_side)
 
         self._outline_panel = OutlinePanel()
         self._outline_panel.item_selected.connect(self._on_outline_item_selected)
@@ -993,10 +1011,10 @@ class MainWindow(QMainWindow):
         
         self._center_chat_split.addWidget(self._secondary_sidebar_stack)
         self._center_chat_split.addWidget(self._chat_panel)
-        self._center_chat_split.setStretchFactor(0, 3)
+        self._center_chat_split.setStretchFactor(0, 1)
         self._center_chat_split.setStretchFactor(1, 0)
-        self._center_chat_split.setStretchFactor(2, 1)
-        self._center_chat_split.setSizes([800, 0, 350])
+        self._center_chat_split.setCollapsible(0, False)
+        self._center_chat_split.setCollapsible(1, True)
         self._center_chat_split.setHandleWidth(1)
         self._center_chat_split.setStyleSheet("""
             QSplitter::handle {
@@ -1007,15 +1025,20 @@ class MainWindow(QMainWindow):
             }
         """)
 
-        # Sidebar + Main horizontal splitter
-        self._horiz_split = QSplitter(Qt.Horizontal)
-        self._horiz_split.addWidget(self._sidebar_stack)
-        self._horiz_split.addWidget(self._center_chat_split)
-        self._horiz_split.setStretchFactor(0, 0)
-        self._horiz_split.setStretchFactor(1, 1)
-        self._horiz_split.setSizes([260, 1000])
-        self._horiz_split.setHandleWidth(1)
-        self._horiz_split.setStyleSheet("""
+        # Panel Position tracking
+        self._panel_position = "bottom"
+
+        # Main horizontal splitter
+        self._main_split = QSplitter(Qt.Horizontal)
+        self._main_split.addWidget(self._sidebar_stack)
+        self._main_split.addWidget(self._center_chat_split)
+        self._main_split.setStretchFactor(0, 0)
+        self._main_split.setStretchFactor(1, 1)
+        self._main_split.setCollapsible(0, True)
+        self._main_split.setCollapsible(1, False)
+        self._main_split.setSizes([250, 800])
+        self._main_split.setHandleWidth(1)
+        self._main_split.setStyleSheet("""
             QSplitter::handle {
                 background-color: #3c0068;
             }
@@ -1023,14 +1046,14 @@ class MainWindow(QMainWindow):
                 background-color: #4a0072;
             }
         """)
-
-        main_layout.addWidget(self._horiz_split)
+        main_layout.addWidget(self._main_split, 1)
 
         # ── Status Bar ──
         self._status_bar = StatusBar()
         self.setStatusBar(self._status_bar)
         self._status_bar.go_to_line_requested.connect(self._show_go_to_line)
         self._status_bar.models_requested.connect(self._show_models_dialog)
+        self._status_bar.git_branch_requested.connect(self._show_git_branch_menu)
         
         # ── Add QSizeGrip for Linux resizing ──
         import platform
@@ -1073,6 +1096,35 @@ class MainWindow(QMainWindow):
                 self._file_explorer.set_root(self._config.workspace_path)
                 self._on_root_changed(self._config.workspace_path)
             QTimer.singleShot(200, init_workspace)
+
+
+
+
+
+    def set_panel_position(self, position: str):
+        """Move the bottom panel to 'bottom', 'left', or 'right' of the editor."""
+        if position == self._panel_position:
+            return
+            
+        self._bottom_panel.setParent(None)
+        
+        if position == "bottom":
+            self._editor_term_split.setOrientation(Qt.Vertical)
+            self._editor_term_split.insertWidget(1, self._bottom_panel)
+            self._editor_term_split.setSizes([600, 250])
+        elif position == "right":
+            self._editor_term_split.setOrientation(Qt.Horizontal)
+            self._editor_term_split.insertWidget(1, self._bottom_panel)
+            self._editor_term_split.setSizes([600, 350])
+        elif position == "left":
+            self._editor_term_split.setOrientation(Qt.Horizontal)
+            self._editor_term_split.insertWidget(0, self._bottom_panel)
+            self._editor_term_split.setSizes([350, 600])
+            
+        self._panel_position = position
+        if not self._bottom_panel.isVisible():
+            self._bottom_panel.show()
+
 
     # ── Menu Bar ──────────────────────────────────────────
 
@@ -1419,13 +1471,29 @@ class MainWindow(QMainWindow):
         full_screen.triggered.connect(self._show_command_palette)
         appearance_menu.addAction(full_screen)
         
+        panel_position_menu = appearance_menu.addMenu("Panel Position")
+        
+        panel_bottom = QAction("Bottom", self)
+        panel_bottom.triggered.connect(lambda: self.set_panel_position("bottom"))
+        panel_position_menu.addAction(panel_bottom)
+        
+        panel_right = QAction("Right", self)
+        panel_right.triggered.connect(lambda: self.set_panel_position("right"))
+        panel_position_menu.addAction(panel_right)
+        
+        panel_left = QAction("Left", self)
+        panel_left.triggered.connect(lambda: self.set_panel_position("left"))
+        panel_position_menu.addAction(panel_left)
+
+        appearance_menu.addSeparator()
+        
         zen_mode = QAction("Zen Mode", self)
         zen_mode.setShortcut(QKeySequence("Ctrl+K, Z"))
         zen_mode.triggered.connect(self._zen_mode.toggle_zen_mode)
         appearance_menu.addAction(zen_mode)
         
         centered_layout = QAction("Centered Layout", self)
-        centered_layout.triggered.connect(self._show_command_palette)
+        centered_layout.triggered.connect(self._centered_layout.toggle)
         appearance_menu.addAction(centered_layout)
         
         appearance_menu.addSeparator()
@@ -1470,15 +1538,16 @@ class MainWindow(QMainWindow):
 
         layout_menu = view_menu.addMenu("Editor Layout")
         split_up = QAction("Split Up", self)
-        split_up.triggered.connect(self._show_command_palette)
+        split_up.triggered.connect(lambda: self._editor_tabs.split_editor("up"))
         layout_menu.addAction(split_up)
         
         split_down = QAction("Split Down", self)
-        split_down.triggered.connect(self._show_command_palette)
+        split_down.setShortcut(QKeySequence("Ctrl+K, Ctrl+\\"))
+        split_down.triggered.connect(lambda: self._editor_tabs.split_editor("down"))
         layout_menu.addAction(split_down)
         
         split_left = QAction("Split Left", self)
-        split_left.triggered.connect(self._show_command_palette)
+        split_left.triggered.connect(lambda: self._editor_tabs.split_editor("left"))
         layout_menu.addAction(split_left)
         
         split_right = QAction("Split Right", self)
@@ -1923,6 +1992,10 @@ class MainWindow(QMainWindow):
     # ── Shortcuts ─────────────────────────────────────────
 
     def _setup_shortcuts(self):
+        # Focus Management
+        f6_shortcut = QShortcut(QKeySequence("F6"), self)
+        f6_shortcut.activated.connect(self._focus_manager.cycle_focus)
+        
         # Additional shortcuts not covered by menu
         pass
 
@@ -1939,15 +2012,43 @@ class MainWindow(QMainWindow):
         self._commands = [
             {"id": "file.new", "label": "File: New File", "shortcut": "Ctrl+N"},
             {"id": "file.open", "label": "File: Open File...", "shortcut": "Ctrl+O"},
-            # Base
+            {"id": "file.save", "label": "File: Save", "shortcut": "Ctrl+S"},
+            {"id": "file.saveAs", "label": "File: Save As...", "shortcut": "Ctrl+Shift+S"},
+            {"id": "file.saveAll", "label": "File: Save All", "shortcut": "Ctrl+K S"},
+            {"id": "file.close", "label": "File: Close Editor", "shortcut": "Ctrl+W"},
+            # Preferences
             {"id": "workbench.action.showCommands", "label": "Show All Commands", "category": "Preferences"},
-            {"id": "workbench.action.openSettings", "label": "Open Settings (UI)", "category": "Preferences"},
-            {"id": "workbench.action.openGlobalKeybindings", "label": "Open Keyboard Shortcuts", "category": "Preferences"},
+            {"id": "workbench.action.openSettings", "label": "Preferences: Open Settings (UI)", "shortcut": "Ctrl+,"},
+            {"id": "workbench.action.openGlobalKeybindings", "label": "Preferences: Open Keyboard Shortcuts", "shortcut": "Ctrl+K Ctrl+S"},
+            {"id": "workbench.action.selectTheme", "label": "Preferences: Color Theme", "shortcut": "Ctrl+K Ctrl+T"},
             
             # Editor
-            {"id": "editor.action.formatDocument", "label": "Format Document", "category": "Editor"},
-            {"id": "editor.action.revealDefinition", "label": "Go to Definition", "category": "Editor"},
+            {"id": "editor.action.formatDocument", "label": "Format Document", "shortcut": "Shift+Alt+F"},
+            {"id": "editor.action.revealDefinition", "label": "Go to Definition", "shortcut": "F12"},
             {"id": "editor.action.colorPicker", "label": "Show Color Picker", "category": "Editor"},
+            {"id": "editor.action.commentLine", "label": "Toggle Line Comment", "shortcut": "Ctrl+/"},
+            {"id": "editor.action.blockComment", "label": "Toggle Block Comment", "shortcut": "Shift+Alt+A"},
+            {"id": "editor.action.triggerSuggest", "label": "Trigger Suggest", "shortcut": "Ctrl+Space"},
+            {"id": "editor.action.formatSelection", "label": "Format Selection", "shortcut": "Ctrl+K Ctrl+F"},
+            {"id": "editor.fold", "label": "Fold", "shortcut": "Ctrl+Shift+["},
+            {"id": "editor.unfold", "label": "Unfold", "shortcut": "Ctrl+Shift+]"},
+            {"id": "editor.foldAll", "label": "Fold All", "shortcut": "Ctrl+K Ctrl+0"},
+            {"id": "editor.unfoldAll", "label": "Unfold All", "shortcut": "Ctrl+K Ctrl+J"},
+            {"id": "editor.action.peekDefinition", "label": "Peek Definition", "shortcut": "Alt+F12"},
+            {"id": "editor.action.goToReferences", "label": "Go to References", "shortcut": "Shift+F12"},
+            {"id": "editor.action.rename", "label": "Rename Symbol", "shortcut": "F2"},
+            {"id": "editor.action.changeAll", "label": "Change All Occurrences", "shortcut": "Ctrl+F2"},
+            {"id": "editor.action.addSelectionToNextFindMatch", "label": "Add Selection to Next Find Match", "shortcut": "Ctrl+D"},
+            {"id": "editor.action.copyLinesUpAction", "label": "Copy Line Up", "shortcut": "Shift+Alt+Up"},
+            {"id": "editor.action.copyLinesDownAction", "label": "Copy Line Down", "shortcut": "Shift+Alt+Down"},
+            {"id": "editor.action.moveLinesUpAction", "label": "Move Line Up", "shortcut": "Alt+Up"},
+            {"id": "editor.action.moveLinesDownAction", "label": "Move Line Down", "shortcut": "Alt+Down"},
+            {"id": "editor.action.deleteLines", "label": "Delete Line", "shortcut": "Ctrl+Shift+K"},
+            {"id": "editor.action.insertLineBefore", "label": "Insert Line Above", "shortcut": "Ctrl+Shift+Enter"},
+            {"id": "editor.action.insertLineAfter", "label": "Insert Line Below", "shortcut": "Ctrl+Enter"},
+            {"id": "editor.action.quickFix", "label": "Quick Fix...", "shortcut": "Ctrl+."},
+            {"id": "workbench.action.splitEditor", "label": "View: Split Editor", "shortcut": "Ctrl+\\"},
+            {"id": "view.toggleInlineDiff", "label": "View: Toggle Inline Diff", "category": "View"},
             
             # Workspace
             {"id": "workbench.action.addRootFolder", "label": "Add Folder to Workspace...", "category": "Workspaces"},
@@ -1955,10 +2056,10 @@ class MainWindow(QMainWindow):
             {"id": "workbench.action.duplicateWorkspaceInNewWindow", "label": "Duplicate As Workspace in New Window", "category": "Workspaces"},
             
             # View
-            {"id": "workbench.action.toggleFullScreen", "label": "Toggle Full Screen", "category": "View"},
-            {"id": "workbench.action.toggleCenteredLayout", "label": "Toggle Centered Layout", "category": "View"},
-            {"id": "workbench.action.toggleSidebarVisibility", "label": "Toggle Primary Side Bar Visibility", "category": "View"},
-            {"id": "workbench.action.toggleSecondarySidebar", "label": "Toggle Secondary Side Bar", "category": "View"},
+            {"id": "workbench.action.toggleFullScreen", "label": "View: Toggle Full Screen", "shortcut": "F11"},
+            {"id": "workbench.action.toggleCenteredLayout", "label": "View: Toggle Centered Layout", "category": "View"},
+            {"id": "workbench.action.toggleSidebarVisibility", "label": "View: Toggle Primary Side Bar Visibility", "shortcut": "Ctrl+B"},
+            {"id": "workbench.action.toggleSecondarySidebar", "label": "View: Toggle Secondary Side Bar", "category": "View"},
             {"id": "edit.find", "label": "Edit: Find", "shortcut": "Ctrl+F"},
             {"id": "edit.replace", "label": "Edit: Find and Replace", "shortcut": "Ctrl+H"},
             {"id": "edit.format", "label": "Format Document", "shortcut": "Shift+Alt+F"},
@@ -1977,9 +2078,33 @@ class MainWindow(QMainWindow):
             {"id": "view.wordWrap", "label": "View: Toggle Word Wrap", "shortcut": "Alt+Z"},
             {"id": "view.splitEditorRight", "label": "View: Split Editor Right", "shortcut": "Ctrl+\\"},
             {"id": "view.splitEditorDown", "label": "View: Split Editor Down", "shortcut": "Ctrl+K Ctrl+\\"},
+            {"id": "view.splitEditorUp", "label": "View: Split Editor Up", "shortcut": ""},
+            {"id": "view.splitEditorLeft", "label": "View: Split Editor Left", "shortcut": ""},
             {"id": "view.zenMode", "label": "View: Toggle Zen Mode", "shortcut": "Ctrl+K, Z"},
+            {"id": "view.customizeLayout", "label": "View: Customize Layout...", "shortcut": ""},
             {"id": "markdown.preview", "label": "Markdown: Open Preview", "shortcut": "Ctrl+Shift+V"},
             {"id": "terminal.new", "label": "Terminal: Create New Terminal", "shortcut": "Ctrl+Shift+`"},
+            {"id": "terminal.split", "label": "Terminal: Split Terminal", "shortcut": "Ctrl+Shift+5"},
+            
+            # Debug
+            {"id": "debug.start", "label": "Debug: Start Debugging", "shortcut": "F5"},
+            {"id": "debug.run", "label": "Run: Run Without Debugging", "shortcut": "Ctrl+F5"},
+            {"id": "debug.toggleBreakpoint", "label": "Debug: Toggle Breakpoint", "shortcut": "F9"},
+
+            # Git
+            {"id": "git.clone", "label": "Git: Clone", "shortcut": ""},
+            {"id": "git.init", "label": "Git: Initialize Repository", "shortcut": ""},
+
+            # Screencast
+            {"id": "screencast.toggle", "label": "Developer: Toggle Screencast Mode", "shortcut": ""},
+
+            # Task
+            {"id": "task.run", "label": "Tasks: Run Task", "shortcut": ""},
+
+            # Workspace Trust
+            {"id": "workspace.trust", "label": "Workspaces: Manage Workspace Trust", "shortcut": ""},
+
+            # Agent
             {"id": "agent.newConversation", "label": "Dardcor AI: New Conversation", "shortcut": ""},
             {"id": "help.about", "label": "Help: About Dardcor Code", "shortcut": ""},
             {"id": "help.shortcuts", "label": "Help: Keyboard Shortcuts Reference", "shortcut": ""},
@@ -2059,7 +2184,7 @@ class MainWindow(QMainWindow):
             "workbench.action.addRootFolder": lambda: self._show_command_palette(),
             "workbench.action.saveWorkspaceAs": lambda: self._show_command_palette(),
             "workbench.action.duplicateWorkspaceInNewWindow": lambda: self._show_command_palette(),
-            "workbench.action.toggleFullScreen": lambda: self._show_command_palette(),
+            "workbench.action.toggleFullScreen": lambda: self.showNormal() if self.isFullScreen() else self.showFullScreen(),
             "workbench.action.toggleCenteredLayout": lambda: self._show_command_palette(),
             "workbench.action.toggleSidebarVisibility": self._toggle_sidebar,
             "workbench.action.toggleSecondarySidebar": self._toggle_chat,
@@ -2075,11 +2200,54 @@ class MainWindow(QMainWindow):
             "view.zoomIn": self._zoom_in,
             "view.zoomOut": self._zoom_out,
             "view.wordWrap": self._toggle_word_wrap,
+            "view.toggleInlineDiff": self._toggle_inline_diff,
+            "workbench.action.splitEditor": lambda: self._editor_tabs.split_editor("right"),
+            "editor.action.formatDocument": lambda: self._editor_tabs.trigger_format() if self._editor_tabs.current_editor() else None,
+            "editor.action.formatSelection": lambda: self._run_editor_action("editor.action.formatSelection"),
+            "editor.action.blockComment": lambda: self._run_editor_action("editor.action.blockCommentAction"),
+            "editor.action.commentLine": lambda: self._run_editor_action("editor.action.commentLine"),
+            "editor.action.triggerSuggest": lambda: self._run_editor_action("editor.action.triggerSuggest"),
+            "editor.fold": lambda: self._run_editor_action("editor.fold"),
+            "editor.unfold": lambda: self._run_editor_action("editor.unfold"),
+            "editor.foldAll": lambda: self._run_editor_action("editor.foldAll"),
+            "editor.unfoldAll": lambda: self._run_editor_action("editor.unfoldAll"),
+            "editor.action.peekDefinition": lambda: self._run_editor_action("editor.action.peekDefinition"),
+            "editor.action.goToReferences": lambda: self._run_editor_action("editor.action.goToReferences"),
+            "editor.action.rename": lambda: self._run_editor_action("editor.action.rename"),
+            "editor.action.changeAll": lambda: self._run_editor_action("editor.action.changeAll"),
+            "editor.action.addSelectionToNextFindMatch": lambda: self._run_editor_action("editor.action.addSelectionToNextFindMatch"),
+            "editor.action.copyLinesUpAction": lambda: self._run_editor_action("editor.action.copyLinesUpAction"),
+            "editor.action.copyLinesDownAction": lambda: self._run_editor_action("editor.action.copyLinesDownAction"),
+            "editor.action.moveLinesUpAction": lambda: self._run_editor_action("editor.action.moveLinesUpAction"),
+            "editor.action.moveLinesDownAction": lambda: self._run_editor_action("editor.action.moveLinesDownAction"),
+            "editor.action.deleteLines": lambda: self._run_editor_action("editor.action.deleteLines"),
+            "editor.action.insertLineBefore": lambda: self._run_editor_action("editor.action.insertLineBefore"),
+            "editor.action.insertLineAfter": lambda: self._run_editor_action("editor.action.insertLineAfter"),
+            "editor.action.quickFix": lambda: self._run_editor_action("editor.action.quickFix"),
+            "workbench.action.zoomIn": self._zoom_in,
             "view.splitEditorRight": lambda: self._editor_tabs.split_editor("right"),
             "view.splitEditorDown": lambda: self._editor_tabs.split_editor("down"),
+            "view.splitEditorUp": lambda: self._editor_tabs.split_editor("up"),
+            "view.splitEditorLeft": lambda: self._editor_tabs.split_editor("left"),
             "view.zenMode": self._zen_mode.toggle_zen_mode,
+            "view.customizeLayout": self._show_customize_layout,
             "markdown.preview": self._open_markdown_preview,
             "terminal.new": self._new_terminal,
+            "terminal.split": self._split_terminal,
+            "file.close": self._close_current_editor,
+            "file.saveAll": self._save_all,
+            "workbench.action.selectTheme": self._show_theme_switcher,
+            "editor.action.formatDocument": lambda: self._editor_tabs.trigger_format() if self._editor_tabs.current_editor() else None,
+            "editor.action.commentLine": lambda: self._run_editor_action("editor.action.commentLine"),
+            "editor.action.blockComment": lambda: self._run_editor_action("editor.action.blockCommentAction"),
+            "debug.start": self._start_debugging,
+            "debug.run": self._run_current_file,
+            "debug.toggleBreakpoint": self._editor_tabs.toggle_breakpoint,
+            "git.clone": lambda: GitCloneDialog(self._config.workspace_path or "", self).exec(),
+            "git.init": lambda: self._show_command_palette(),
+            "screencast.toggle": lambda: self._screencast.toggle(),
+            "task.run": self._show_run_task,
+            "workspace.trust": lambda: WorkspaceTrustDialog(self._workspace_trust, self._config.workspace_path or "", self).exec(),
             "agent.newConversation": self._new_conversation,
             "help.about": self._show_about,
             "help.shortcuts": self._show_keyboard_shortcuts,
@@ -2259,6 +2427,44 @@ class MainWindow(QMainWindow):
         if path:
             editor.save_as(path)
 
+    def _close_workspace(self):
+        self._config.workspace_path = None
+        self._config.save()
+        self._file_explorer.set_root(None)
+        self._git_panel.set_workspace_path(None)
+        self._update_window_title()
+
+    def _find_in_folder(self, path: str):
+        self._switch_sidebar(VIEW_SEARCH)
+        if hasattr(self._search_panel, '_include_input'):
+            import os
+            # Set the 'files to include' input to this specific folder
+            self._search_panel._include_input.setText(path.replace('\\', '/') + "/**")
+            self._search_panel._search_input.setFocus()
+
+    def _open_in_terminal(self, path: str):
+        import os
+        if os.path.isfile(path):
+            path = os.path.dirname(path)
+        
+        # We need to create a new terminal in this specific path
+        if not self._terminal_panel.isVisible():
+            self._toggle_terminal()
+            
+        self._terminal_panel._create_new_terminal(cwd=path)
+
+    def _open_to_side(self, path: str):
+        if not os.path.isfile(path):
+            return
+            
+        # If we only have one group, split it
+        if len(self._editor_tabs._groups) == 1:
+            self._editor_tabs.split_editor("right")
+            
+        # Open the file in the right-most group (which is likely the newly created or secondary one)
+        target_group = self._editor_tabs._groups[-1]
+        target_group.open_file(path)
+
     def _save_all(self):
         self._editor_tabs.save_all()
 
@@ -2294,15 +2500,15 @@ class MainWindow(QMainWindow):
             editor._view.page().runJavaScript("editor && editor.trigger('', 'selectAll', {});")
 
     def _show_theme_switcher(self):
-        """Show theme preview picker."""
+        """Show theme preview picker with all available themes."""
+        from .theme_manager import ThemeManager
         cmd_palette = CommandPalette(self)
         
-        # We need a custom handler for real-time preview
-        original_theme = self._config.ui_theme if hasattr(self._config, 'ui_theme') else "dark"
+        original_theme_id = ThemeManager.current_theme_id()
         
         themes = [
-            {"id": "theme:dark", "label": "Dark+ (default dark)", "shortcut": ""},
-            {"id": "theme:light", "label": "Light+ (default light)", "shortcut": ""}
+            {"id": f"theme:{t['id']}", "label": f"{t['name']}  ({t['type']})", "shortcut": ""}
+            for t in ThemeManager.get_theme_list()
         ]
         
         cmd_palette.set_commands(themes)
@@ -2311,40 +2517,38 @@ class MainWindow(QMainWindow):
         def preview_theme(current, previous):
             if current:
                 cmd_id = current.data(Qt.UserRole)
-                if cmd_id.startswith("theme:"):
-                    self._set_theme(cmd_id.split(":")[1])
+                if isinstance(cmd_id, str) and cmd_id.startswith("theme:"):
+                    tid = cmd_id[6:]
+                    self._set_theme(tid)
                     
         cmd_palette._list.currentItemChanged.connect(preview_theme)
         
         def confirm_theme(cmd_id):
             if cmd_id.startswith("theme:"):
-                theme_name = cmd_id.split(":")[1]
-                self._set_theme(theme_name)
-                self._config.ui_theme = theme_name
+                tid = cmd_id[6:]
+                self._set_theme(tid)
+                self._config.ui_theme = tid
                 self._config.save()
                 
         def cancel_theme():
-            # If closed without selecting, restore
-            if not cmd_palette.result():
-                self._set_theme(original_theme)
+            self._set_theme(original_theme_id)
                 
         cmd_palette.command_selected.connect(confirm_theme)
         cmd_palette.rejected.connect(cancel_theme)
         cmd_palette.show_palette()
 
-    def _set_theme(self, theme_name: str):
-        """Switch between Dark+, Light+, and High Contrast themes."""
+    def _set_theme(self, theme_id: str):
+        """Apply a theme by its ID from ThemeManager."""
         from .theme_manager import ThemeManager
         from PySide6.QtWidgets import QApplication
         
         app = QApplication.instance()
         if app:
-            theme_id = "dark+"
-            if theme_name == "light":
-                theme_id = "light+"
             ThemeManager.apply_theme(app, theme_id)
             
         # Propagate theme changes to Monaco editor instances
+        is_dark = ThemeManager.THEMES.get(theme_id, {}).get("type", "dark") == "dark"
+        theme_name = "dark" if is_dark else "light"
         self._editor_tabs.set_theme(theme_name)
 
     def _toggle_menu_bar(self):
@@ -2434,11 +2638,17 @@ class MainWindow(QMainWindow):
     def _on_tab_changed(self, file_path: str, language: str):
         self._status_bar.set_language(language)
         self._update_window_title(file_path)
+        
+        # Auto-reveal in file explorer
+        if file_path:
+            self._file_explorer.reveal_and_select_file(file_path)
 
         if self._current_active_editor:
             try:
-                self._current_active_editor.cursor_position_changed.disconnect(self._on_cursor_moved)
-                self._current_active_editor.content_changed.disconnect(self._on_editor_content_changed)
+                if hasattr(self._current_active_editor, "cursor_position_changed"):
+                    self._current_active_editor.cursor_position_changed.disconnect(self._on_cursor_moved)
+                if hasattr(self._current_active_editor, "content_changed"):
+                    self._current_active_editor.content_changed.disconnect(self._on_editor_content_changed)
             except (TypeError, RuntimeError):
                 pass
 
@@ -2456,8 +2666,10 @@ class MainWindow(QMainWindow):
         editor = self._editor_tabs.current_editor()
         self._current_active_editor = editor
         if editor:
-            editor.cursor_position_changed.connect(self._on_cursor_moved)
-            editor.content_changed.connect(self._on_editor_content_changed)
+            if hasattr(editor, "cursor_position_changed"):
+                editor.cursor_position_changed.connect(self._on_cursor_moved)
+            if hasattr(editor, "content_changed"):
+                editor.content_changed.connect(self._on_editor_content_changed)
             self._ext_manager.fire_event("active_editor_changed", file_path)
 
     def _on_cursor_moved(self, line: int, col: int):
@@ -2788,7 +3000,8 @@ class MainWindow(QMainWindow):
         result = cmd.execute("git rev-parse --abbrev-ref HEAD", workdir=root, timeout=5)
         branch = result.stdout.strip() if result.stdout else "main"
         if branch and result.exit_code == 0:
-            self._status_bar.set_git_branch(branch)
+            if hasattr(self, "_status_bar") and self._status_bar:
+                self._status_bar.set_git_branch(branch)
 
     # ── Dialogs ───────────────────────────────────────────
 
@@ -2815,6 +3028,42 @@ class MainWindow(QMainWindow):
         editor = self._editor_tabs.current_editor()
         if editor:
             editor.trigger_find()
+
+    def _show_git_branch_menu(self):
+        from PySide6.QtWidgets import QMenu, QInputDialog
+        import subprocess, os
+        menu = QMenu(self)
+        menu.setStyleSheet("QMenu { background: #1a0033; color: #cccccc; border: 1px solid #3c0068; } QMenu::item:selected { background: #2c004a; }")
+        
+        cwd = self._config.workspace_path or "."
+        kwargs = {}
+        if os.name == 'nt':
+            kwargs['creationflags'] = 0x08000000
+        try:
+            out = subprocess.check_output(["git", "branch"], cwd=cwd, text=True, **kwargs)
+            branches = [b.strip().lstrip("* ") for b in out.splitlines() if b.strip()]
+            for b in branches:
+                act = menu.addAction(f"Checkout {b}")
+                act.triggered.connect(lambda checked=False, branch=b: subprocess.run(["git", "checkout", branch], cwd=cwd, **kwargs))
+        except Exception:
+            menu.addAction("No Git Repository").setEnabled(False)
+            
+        menu.addSeparator()
+        create_act = menu.addAction("Create Branch...")
+        def create_branch():
+            name, ok = QInputDialog.getText(self, "Create Branch", "Branch name:")
+            if ok and name:
+                try:
+                    subprocess.run(["git", "checkout", "-b", name], cwd=cwd, **kwargs)
+                except Exception:
+                    pass
+        create_act.triggered.connect(create_branch)
+        
+        if hasattr(self._status_bar, "_git_btn"):
+            pos = self._status_bar._git_btn.mapToGlobal(self._status_bar._git_btn.rect().topLeft())
+            # Move up slightly so it appears above status bar
+            pos.setY(pos.y() - menu.sizeHint().height() - 20)
+            menu.exec(pos)
 
     def _show_find_replace(self):
         editor = self._editor_tabs.current_editor()
@@ -3001,20 +3250,48 @@ class MainWindow(QMainWindow):
         self._editor_tabs.set_font_size(size)
 
     def _zoom_in(self):
+        self._config.ui_zoom = getattr(self._config, 'ui_zoom', 0) + 1
+        app = QApplication.instance()
+        font = app.font()
+        font.setPointSize(9 + self._config.ui_zoom)
+        app.setFont(font)
+        
         self._font_size = min(self._font_size + 1, 32)
         self._apply_font_size_to_all(self._font_size)
         self._config.font_size = self._font_size
         self._config.save()
 
     def _zoom_out(self):
+        self._config.ui_zoom = getattr(self._config, 'ui_zoom', 0) - 1
+        app = QApplication.instance()
+        font = app.font()
+        new_size = max(6, 9 + self._config.ui_zoom)
+        font.setPointSize(new_size)
+        app.setFont(font)
+        
         self._font_size = max(self._font_size - 1, 8)
         self._apply_font_size_to_all(self._font_size)
         self._config.font_size = self._font_size
         self._config.save()
 
+    def _toggle_inline_diff(self):
+        self._diff_inline_view = not getattr(self, '_diff_inline_view', False)
+        self._editor_tabs.toggle_inline_diff(self._diff_inline_view)
+
     # ── Close ─────────────────────────────────────────────
 
     def closeEvent(self, event):
+        # Log session end telemetry
+        try:
+            from ..core.telemetry import get_telemetry_service
+            telemetry = get_telemetry_service()
+            telemetry.public_log("session.end", {
+                "workspace": self._config.workspace_path or "",
+                "open_tabs": sum(len(g._tabs) for g in self._editor_tabs._groups),
+            })
+        except Exception:
+            pass
+
         # Handle unsaved files
         if getattr(self._config, 'auto_save', False):
             self._editor_tabs.save_all(is_auto_save=True)
@@ -3043,7 +3320,7 @@ class MainWindow(QMainWindow):
                 
         # Clean up language servers
         if hasattr(self, '_lsp_manager'):
-            self._lsp_manager.shutdown_all()
+            self._lsp_manager.stop_all()
 
         # Save config
         self._config.save()

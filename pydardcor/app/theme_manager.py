@@ -2,7 +2,7 @@
 
 import os
 import json
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QPalette, QColor
@@ -47,8 +47,122 @@ class ThemeManager:
                 "accent_hover": "#005a9e",
                 "error": "#e51400"
             }
-        }
+        },
+        "high-contrast": {
+            "name": "High Contrast",
+            "type": "dark",
+            "colors": {
+                "background": "#000000",
+                "foreground": "#ffffff",
+                "sidebar": "#000000",
+                "activity_bar": "#000000",
+                "activity_bar_fg": "#ffffff",
+                "selection": "#264f78",
+                "hover": "#2a2d2e",
+                "border": "#6fc3df",
+                "accent": "#f38518",
+                "accent_hover": "#ff9e40",
+                "error": "#f48771"
+            }
+        },
+        "monokai": {
+            "name": "Monokai",
+            "type": "dark",
+            "colors": {
+                "background": "#272822",
+                "foreground": "#f8f8f2",
+                "sidebar": "#1e1f1c",
+                "activity_bar": "#1e1f1c",
+                "activity_bar_fg": "#f8f8f2",
+                "selection": "#49483e",
+                "hover": "#3e3d32",
+                "border": "#414339",
+                "accent": "#a6e22e",
+                "accent_hover": "#b8f544",
+                "error": "#f92672"
+            }
+        },
+        "solarized-dark": {
+            "name": "Solarized Dark",
+            "type": "dark",
+            "colors": {
+                "background": "#002b36",
+                "foreground": "#839496",
+                "sidebar": "#002129",
+                "activity_bar": "#001e27",
+                "activity_bar_fg": "#93a1a1",
+                "selection": "#073642",
+                "hover": "#073642",
+                "border": "#0d4f5e",
+                "accent": "#268bd2",
+                "accent_hover": "#2aa198",
+                "error": "#dc322f"
+            }
+        },
+        "solarized-light": {
+            "name": "Solarized Light",
+            "type": "light",
+            "colors": {
+                "background": "#fdf6e3",
+                "foreground": "#657b83",
+                "sidebar": "#eee8d5",
+                "activity_bar": "#ddd6c1",
+                "activity_bar_fg": "#586e75",
+                "selection": "#eee8d5",
+                "hover": "#eee8d5",
+                "border": "#d3af86",
+                "accent": "#268bd2",
+                "accent_hover": "#2aa198",
+                "error": "#dc322f"
+            }
+        },
+        "github-dark": {
+            "name": "GitHub Dark",
+            "type": "dark",
+            "colors": {
+                "background": "#0d1117",
+                "foreground": "#c9d1d9",
+                "sidebar": "#010409",
+                "activity_bar": "#010409",
+                "activity_bar_fg": "#c9d1d9",
+                "selection": "#163b56",
+                "hover": "#161b22",
+                "border": "#30363d",
+                "accent": "#58a6ff",
+                "accent_hover": "#79c0ff",
+                "error": "#f85149"
+            }
+        },
+        "one-dark-pro": {
+            "name": "One Dark Pro",
+            "type": "dark",
+            "colors": {
+                "background": "#282c34",
+                "foreground": "#abb2bf",
+                "sidebar": "#21252b",
+                "activity_bar": "#21252b",
+                "activity_bar_fg": "#abb2bf",
+                "selection": "#3e4452",
+                "hover": "#2c313a",
+                "border": "#3e4452",
+                "accent": "#61afef",
+                "accent_hover": "#528bff",
+                "error": "#e06c75"
+            }
+        },
     }
+
+    @classmethod
+    def get_theme_list(cls) -> List[Dict[str, str]]:
+        """Return list of available themes for theme picker UI."""
+        return [
+            {"id": tid, "name": data["name"], "type": data["type"]}
+            for tid, data in cls.THEMES.items()
+        ]
+
+    @classmethod
+    def current_theme_id(cls) -> str:
+        return cls._current_theme
 
     @classmethod
     def apply_theme(cls, app: QApplication, theme_id: str):
@@ -60,6 +174,7 @@ class ThemeManager:
         c = theme_data["colors"]
         
         # 1. Update global stylesheet
+        tooltip_bg = "#1e1e1e" if c["background"] in ("#000000",) else c["background"]
         stylesheet = f"""
         QMainWindow {{ background-color: {c['background']}; color: {c['foreground']}; }}
         QWidget {{ color: {c['foreground']}; font-family: 'Segoe UI', 'Inter', sans-serif; }}
@@ -89,7 +204,7 @@ class ThemeManager:
         QPushButton:hover {{ background-color: {c['accent_hover']}; }}
         
         QToolTip {{
-            background-color: {c['background'] == '#000000' and '#1e1e1e' or c['background']};
+            background-color: {tooltip_bg};
             color: {c['foreground']};
             border: 1px solid {c['border']};
             font-size: 12px;
@@ -112,7 +227,6 @@ class ThemeManager:
         palette.setColor(QPalette.HighlightedText, QColor(c["foreground"]))
         
         # Sync native tooltips colors
-        tooltip_bg = "#1e1e1e" if c["background"] == "#000000" else c["background"]
         palette.setColor(QPalette.ToolTipBase, QColor(tooltip_bg))
         palette.setColor(QPalette.ToolTipText, QColor(c["foreground"]))
         

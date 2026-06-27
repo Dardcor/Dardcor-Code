@@ -414,6 +414,7 @@ class SearchPanel(QWidget):
         self._count_label.show()
 
         file_pattern = self._include_input.text().strip() or None
+        exclude_pattern = self._exclude_input.text().strip() or None
 
         def do_search():
             results = self._fs.grep(
@@ -422,6 +423,7 @@ class SearchPanel(QWidget):
                 is_regex=self._regex_btn.isChecked(),
                 whole_word=self._word_btn.isChecked(),
                 file_pattern=file_pattern,
+                exclude_pattern=exclude_pattern,
             )
             self.search_finished.emit(query, results)
 
@@ -442,12 +444,14 @@ class SearchPanel(QWidget):
             return
 
         file_pattern = self._include_input.text().strip() or None
+        exclude_pattern = self._exclude_input.text().strip() or None
         results = self._fs.grep(
             query, self._root_path,
             case_sensitive=self._case_btn.isChecked(),
             is_regex=self._regex_btn.isChecked(),
             whole_word=self._word_btn.isChecked(),
             file_pattern=file_pattern,
+            exclude_pattern=exclude_pattern,
         )
 
         files_to_modify = set(r["file"] for r in results)

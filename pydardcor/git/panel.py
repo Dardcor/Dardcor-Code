@@ -4,10 +4,10 @@ import os
 import subprocess
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QTreeWidget, QTreeWidgetItem, QLineEdit, QScrollArea,
+    QTreeWidget, QTreeWidgetItem, QLineEdit, QTextEdit, QScrollArea,
     QFrame, QMenu, QMessageBox, QInputDialog, QApplication
 )
-from PySide6.QtCore import Signal, Qt, QTimer
+from PySide6.QtCore import Signal, Qt, QTimer, QEvent
 from PySide6.QtGui import QColor, QFont
 
 
@@ -120,21 +120,21 @@ class GitPanel(QWidget):
         """)
         layout.addWidget(self._branch_bar)
 
-        # Commit message input
-        self._commit_msg = QLineEdit()
+        self._commit_msg = QTextEdit()
         self._commit_msg.setPlaceholderText(" Message (Ctrl+Enter to commit)")
-        self._commit_msg.setFixedHeight(32)
+        self._commit_msg.setFixedHeight(60)
         self._commit_msg.setStyleSheet("""
-            QLineEdit {
+            QTextEdit {
                 background-color: #1a0033;
                 color: #d4d4d4;
                 border: 1px solid #3c0068;
                 padding: 4px 8px;
                 font-size: 12px;
             }
-            QLineEdit:focus { border: 1px solid #6600aa; }
+            QTextEdit:focus { border: 1px solid #6600aa; }
         """)
-        self._commit_msg.returnPressed.connect(self._commit)
+        # Catch Ctrl+Enter in QTextEdit event filter
+        self._commit_msg.installEventFilter(self)
         layout.addWidget(self._commit_msg)
 
         # Commit + Sync buttons
@@ -206,6 +206,13 @@ class GitPanel(QWidget):
         tree._title = title
         tree.setMaximumHeight(400)
         return tree
+
+    def eventFilter(self, obj, event):
+        if obj == self._commit_msg and event.type() == QEvent.Type.KeyPress:
+            if event.key() == Qt.Key_Return and (event.modifiers() & Qt.ControlModifier):
+                self._commit()
+                return True
+        return super().eventFilter(obj, event)
 
     def refresh(self):
         """Re-run git status and update all trees."""
@@ -369,7 +376,7 @@ class GitPanel(QWidget):
             self.file_open_requested.emit(full)
 
     def _commit(self):
-        msg = self._commit_msg.text().strip()
+        msg = self._commit_msg.toPlainText().strip()
         if not msg:
             QMessageBox.warning(self, "Commit", "Please enter a commit message.")
             return

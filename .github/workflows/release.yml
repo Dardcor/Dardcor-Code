@@ -1,4 +1,4 @@
-name: Build and Release Windows
+name: Build and Release
 
 on:
   push:
@@ -7,8 +7,21 @@ on:
 
 jobs:
   build:
-    name: Build Windows Executable
-    runs-on: windows-latest
+    name: Build Release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_name: Dardcor-Code-Windows.zip
+            asset_name: Dardcor-Code-Setup-Windows.exe
+          - os: ubuntu-latest
+            artifact_name: Dardcor-Code-Linux.tar.gz
+            asset_name: Dardcor-Code-Linux-x86_64.AppImage
+          - os: macos-latest
+            artifact_name: Dardcor-Code-MacOS.zip
+            asset_name: Dardcor-Code-MacOS.dmg
+            
     permissions:
       contents: write
 
@@ -32,13 +45,60 @@ jobs:
         run: |
           python build.py
 
-      - name: Build Windows Installer
+      - name: Build Windows Installer (Windows Only)
+        if: matrix.os == 'windows-latest'
         run: |
           iscc installer.iss
 
-      - name: Upload Release Asset
+      - name: Package Linux (AppImage)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          # Setup AppDir structure
+          mkdir -p AppDir/usr/bin
+          cp -r "dist/Dardcor Code"/* AppDir/usr/bin/
+          
+          # Create .desktop file
+          echo "[Desktop Entry]" > AppDir/dardcor-code.desktop
+          echo "Name=Dardcor Code" >> AppDir/dardcor-code.desktop
+          echo "Exec=Dardcor\ Code" >> AppDir/dardcor-code.desktop
+          echo "Icon=dardcor" >> AppDir/dardcor-code.desktop
+          echo "Type=Application" >> AppDir/dardcor-code.desktop
+          echo "Categories=Development;" >> AppDir/dardcor-code.desktop
+          
+          # Copy icon
+          cp "image/dardcor.png" AppDir/dardcor.png || true
+          
+          # Create AppRun script
+          echo '#!/bin/sh' > AppDir/AppRun
+          echo 'HERE="$(dirname "$(readlink -f "${0}")")"' >> AppDir/AppRun
+          echo 'exec "${HERE}/usr/bin/Dardcor Code" "$@"' >> AppDir/AppRun
+          chmod +x AppDir/AppRun
+          
+          # Download appimagetool and build
+          wget -c "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
+          chmod +x appimagetool-x86_64.AppImage
+          ./appimagetool-x86_64.AppImage --appimage-extract-and-run AppDir Dardcor-Code-Linux-x86_64.AppImage
+
+      - name: Package MacOS (DMG)
+        if: matrix.os == 'macos-latest'
+        run: |
+          npm install -g create-dmg
+          cd dist
+          create-dmg "Dardcor Code.app" || true
+          mv *.dmg ../Dardcor-Code-MacOS.dmg
+
+      - name: Upload Release Asset (Windows)
+        if: matrix.os == 'windows-latest'
         uses: softprops/action-gh-release@v1
         with:
           files: dist/Dardcor-Code-Setup-Windows.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Release Asset (Linux/MacOS)
+        if: matrix.os != 'windows-latest'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ matrix.asset_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

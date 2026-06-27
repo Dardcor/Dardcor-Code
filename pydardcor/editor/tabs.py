@@ -152,3 +152,10 @@ class EditorTabs(QWidget):
     def toggle_breakpoint(self):
         g = self.active_group()
         if g: g.toggle_breakpoint()
+
+    def toggle_inline_diff(self, inline: bool):
+        for g in self._groups:
+            for tab in g._tabs:
+                from .diff_viewer import MonacoDiffEditorWidget
+                if isinstance(tab.editor, MonacoDiffEditorWidget):
+                    tab.editor.toggle_inline_view(inline)

@@ -1,18 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: file:; worker-src blob: 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: file:;">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: file:; worker-src blob: 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: file:;">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { width: 100%; height: 100%; overflow: hidden; background: #000000; }
-        #container { width: 100%; height: 100%; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000000;
+        }
+
+        #container {
+            width: 100%;
+            height: 100%;
+        }
 
         /* Scrollbar theme */
-        ::-webkit-scrollbar { width: 10px; height: 10px; }
-        ::-webkit-scrollbar-track { background: #0a0a0a; }
-        ::-webkit-scrollbar-thumb { background: #2c004a; border-radius: 0; }
-        ::-webkit-scrollbar-thumb:hover { background: #3c0068; }
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #2c004a;
+            border-radius: 0;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3c0068;
+        }
 
         /* Breakpoint styling in gutter */
         .breakpoint-margin {
@@ -21,6 +51,7 @@
         }
     </style>
 </head>
+
 <body>
     <div id="container"></div>
     <script src="qwebchannel.js"></script>
@@ -96,7 +127,7 @@
         };
 
         window.MonacoEnvironment = {
-            getWorker: function(workerId, label) {
+            getWorker: function (workerId, label) {
                 var basePath = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
                 var workerUrl = basePath + '/vs/base/worker/workerMain.js';
                 // Build a blob that imports the real worker via importScripts with the correct base URL
@@ -110,7 +141,7 @@
 
         require.config({ paths: { 'vs': 'vs' } });
 
-        require(['vs/editor/editor.main'], function() {
+        require(['vs/editor/editor.main'], function () {
             // Load all language tokenizers for syntax highlighting
             require([
                 'vs/basic-languages/monaco.contribution',
@@ -118,180 +149,194 @@
                 'vs/language/css/monaco.contribution',
                 'vs/language/html/monaco.contribution',
                 'vs/language/typescript/monaco.contribution'
-            ], function() {
-            monaco.editor.defineTheme('dardcor-dark', DARDCOR_THEME);
+            ], function () {
+                monaco.editor.defineTheme('dardcor-dark', DARDCOR_THEME);
 
-            editor = monaco.editor.create(document.getElementById('container'), {
-                value: '',
-                language: 'plaintext',
-                theme: 'dardcor-dark',
-                fontSize: 13,
-                fontFamily: '"Cascadia Code", "Cascadia Mono", "Consolas", "Courier New", monospace',
-                fontLigatures: true,
-                lineNumbers: 'on',
-                lineNumbersMinChars: 1,
-                lineDecorationsWidth: 0,
-                renderLineHighlight: 'line',
-                scrollBeyondLastLine: true,
-                smoothScrolling: true,
-                cursorSmoothCaretAnimation: 'on',
-                cursorBlinking: 'smooth',
-                colorDecorators: true,
-                showUnused: true,
-                minimap: {
-                    enabled: true,
-                    maxColumn: 120,
-                    renderCharacters: true,
-                    showSlider: 'mouseover',
-                    side: 'right'
-                },
-                scrollbar: {
-                    vertical: 'auto',
-                    horizontal: 'auto',
-                    verticalScrollbarSize: 14,
-                    horizontalScrollbarSize: 14,
-                    alwaysConsumeMouseWheel: false
-                },
-                suggestOnTriggerCharacters: true,
-                quickSuggestions: { other: true, comments: false, strings: true },
-                wordBasedSuggestions: true,
-                parameterHints: { enabled: true },
-                autoClosingBrackets: 'always',
-                autoClosingQuotes: 'always',
-                autoIndent: 'full',
-                formatOnPaste: true,
-                formatOnType: true,
-                tabSize: 4,
-                insertSpaces: true,
-                detectIndentation: true,
-                rulers: [80, 120],
-                wordWrap: 'on',
-                bracketPairColorization: { enabled: true, independentColorPoolPerBracketType: true },
-                guides: { bracketPairs: true, indentation: true, highlightActiveIndentation: true },
-                renderWhitespace: 'selection',
-                renderControlCharacters: true,
-                cursorStyle: 'line',
-                cursorWidth: 2,
-                mouseWheelZoom: true,
-                contextmenu: true,
-                copyWithSyntaxHighlighting: true,
-                links: true,
-                occurrencesHighlight: true,
-                selectionHighlight: true,
-                codeLens: true,
-                folding: true,
-                showFoldingControls: 'mouseover',
-                foldingHighlight: true,
-                matchBrackets: 'always',
-                multiCursorModifier: 'alt',
-                dragAndDrop: true,
-                columnSelection: true,
-                accessibilitySupport: 'off',
-                glyphMargin: true,
-                lightbulb: { enabled: true },
-                inlayHints: { enabled: 'on' },
-                stickyScroll: { enabled: true, maxLineCount: 5 }
-            });
+                editor = monaco.editor.create(document.getElementById('container'), {
+                    value: '',
+                    language: 'plaintext',
+                    theme: 'dardcor-dark',
+                    fontSize: 13,
+                    fontFamily: '"Cascadia Code", "Cascadia Mono", "Consolas", "Courier New", monospace',
+                    fontLigatures: true,
+                    lineNumbers: 'on',
+                    lineNumbersMinChars: 1,
+                    lineDecorationsWidth: 0,
+                    renderLineHighlight: 'line',
+                    scrollBeyondLastLine: true,
+                    smoothScrolling: true,
+                    cursorSmoothCaretAnimation: 'on',
+                    cursorBlinking: 'smooth',
+                    colorDecorators: true,
+                    showUnused: true,
+                    minimap: {
+                        enabled: true,
+                        maxColumn: 120,
+                        renderCharacters: true,
+                        showSlider: 'mouseover',
+                        side: 'right'
+                    },
+                    scrollbar: {
+                        vertical: 'auto',
+                        horizontal: 'auto',
+                        verticalScrollbarSize: 14,
+                        horizontalScrollbarSize: 14,
+                        alwaysConsumeMouseWheel: false
+                    },
+                    suggestOnTriggerCharacters: true,
+                    quickSuggestions: { other: true, comments: false, strings: true },
+                    wordBasedSuggestions: true,
+                    parameterHints: { enabled: true },
+                    autoClosingBrackets: 'always',
+                    autoClosingQuotes: 'always',
+                    autoIndent: 'full',
+                    formatOnPaste: true,
+                    formatOnType: true,
+                    tabSize: 4,
+                    insertSpaces: true,
+                    detectIndentation: true,
+                    rulers: [80, 120],
+                    wordWrap: 'on',
+                    bracketPairColorization: { enabled: true, independentColorPoolPerBracketType: true },
+                    guides: { bracketPairs: true, indentation: true, highlightActiveIndentation: true },
+                    renderWhitespace: 'selection',
+                    renderControlCharacters: true,
+                    cursorStyle: 'line',
+                    cursorWidth: 2,
+                    mouseWheelZoom: true,
+                    contextmenu: true,
+                    copyWithSyntaxHighlighting: true,
+                    links: true,
+                    occurrencesHighlight: true,
+                    selectionHighlight: true,
+                    codeLens: true,
+                    folding: true,
+                    showFoldingControls: 'mouseover',
+                    foldingHighlight: true,
+                    matchBrackets: 'always',
+                    multiCursorModifier: 'alt',
+                    dragAndDrop: true,
+                    columnSelection: true,
+                    accessibilitySupport: 'off',
+                    glyphMargin: true,
+                    lightbulb: { enabled: true },
+                    inlayHints: { enabled: 'on' },
+                    stickyScroll: { enabled: true, maxLineCount: 5 }
+                });
 
-            // Register python completions provider connected to Python backend
-            monaco.languages.registerCompletionItemProvider('python', {
-                triggerCharacters: ['.', ' ', '_'],
-                provideCompletionItems: function(model, position) {
-                    return new Promise(function(resolve, reject) {
-                        if (backend && typeof backend.get_completions === 'function') {
-                            var code = model.getValue();
-                            var line = position.lineNumber;
-                            var column = position.column;
-                            backend.get_completions(code, line, column, function(res) {
-                                try {
-                                    var suggestions = JSON.parse(res);
-                                    resolve({
-                                        suggestions: suggestions.map(function(item) {
-                                            return {
-                                                label: item.label,
-                                                kind: item.kind,
-                                                insertText: item.insertText,
-                                                detail: item.detail || '',
-                                                range: {
-                                                    startLineNumber: position.lineNumber,
-                                                    startColumn: position.column - (item.typedLength || 0),
-                                                    endLineNumber: position.lineNumber,
-                                                    endColumn: position.column
-                                                }
-                                            };
-                                        })
-                                    });
-                                } catch (e) {
-                                    resolve({ suggestions: [] });
-                                }
-                            });
-                        } else {
-                            resolve({ suggestions: [] });
-                        }
-                    });
-                }
-            });
+                // Register python completions provider connected to Python backend
+                monaco.languages.registerCompletionItemProvider('python', {
+                    triggerCharacters: ['.', ' ', '_'],
+                    provideCompletionItems: function (model, position) {
+                        return new Promise(function (resolve, reject) {
+                            if (backend && typeof backend.get_completions === 'function') {
+                                var code = model.getValue();
+                                var line = position.lineNumber;
+                                var column = position.column;
+                                backend.get_completions(code, line, column, function (res) {
+                                    try {
+                                        var suggestions = JSON.parse(res);
+                                        resolve({
+                                            suggestions: suggestions.map(function (item) {
+                                                return {
+                                                    label: item.label,
+                                                    kind: item.kind,
+                                                    insertText: item.insertText,
+                                                    detail: item.detail || '',
+                                                    range: {
+                                                        startLineNumber: position.lineNumber,
+                                                        startColumn: position.column - (item.typedLength || 0),
+                                                        endLineNumber: position.lineNumber,
+                                                        endColumn: position.column
+                                                    }
+                                                };
+                                            })
+                                        });
+                                    } catch (e) {
+                                        resolve({ suggestions: [] });
+                                    }
+                                });
+                            } else {
+                                resolve({ suggestions: [] });
+                            }
+                        });
+                    }
+                });
 
-            // Register hover provider
-            monaco.languages.registerHoverProvider('python', {
-                provideHover: function(model, position) {
-                    return new Promise(function(resolve, reject) {
-                        if (backend && typeof backend.get_hover === 'function') {
-                            var line = position.lineNumber;
-                            var column = position.column;
-                            backend.get_hover(line, column, function(res) {
-                                if (res && res.trim() !== "") {
-                                    resolve({
-                                        contents: [{ value: res }]
-                                    });
-                                } else {
-                                    resolve(null);
-                                }
-                            });
-                        } else {
-                            resolve(null);
-                        }
-                    });
-                }
-            });
+                // Register hover provider
+                monaco.languages.registerHoverProvider('python', {
+                    provideHover: function (model, position) {
+                        return new Promise(function (resolve, reject) {
+                            if (backend && typeof backend.get_hover === 'function') {
+                                var line = position.lineNumber;
+                                var column = position.column;
+                                backend.get_hover(line, column, function (res) {
+                                    if (res && res.trim() !== "") {
+                                        resolve({
+                                            contents: [{ value: res }]
+                                        });
+                                    } else {
+                                        resolve(null);
+                                    }
+                                });
+                            } else {
+                                resolve(null);
+                            }
+                        });
+                    }
+                });
 
-            // Listen for content changes
-            editor.onDidChangeModelContent(function(e) {
-                if (isRemoteUpdate) return;
-                if (backend) {
-                    backend.on_content_changed(editor.getValue());
-                }
-            });
+                // Listen for content changes
+                editor.onDidChangeModelContent(function (e) {
+                    if (isRemoteUpdate) return;
+                    if (backend) {
+                        backend.on_content_changed(editor.getValue());
+                    }
+                });
 
-            // Listen for cursor position changes
-            editor.onDidChangeCursorPosition(function(e) {
-                if (backend) {
-                    backend.on_cursor_changed(e.position.lineNumber, e.position.column);
-                }
-            });
+                // Listen for cursor position changes
+                editor.onDidChangeCursorPosition(function (e) {
+                    if (backend) {
+                        backend.on_cursor_changed(e.position.lineNumber, e.position.column);
+                    }
+                });
 
-            // Listen for save command (Ctrl+S)
-            editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, function() {
-                if (backend) backend.request_save();
-            });
+                // Listen for save command (Ctrl+S)
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, function () {
+                    if (backend) backend.request_save();
+                });
 
-            // Listen for find command (Ctrl+F)
-            editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyF, function() {
-                editor.getAction('actions.find').run();
-            });
+                // Listen for find command (Ctrl+F)
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyF, function () {
+                    editor.getAction('actions.find').run();
+                });
 
-            // Listen for command palette
-            editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyP, function() {
-                if (backend) backend.request_command_palette();
-            });
+                // Listen for command palette
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyP, function () {
+                    if (backend) backend.request_command_palette();
+                });
 
-            // Handle window resize
-            window.addEventListener('resize', function() {
-                editor.layout();
-            });
+                // Handle window resize
+                window.addEventListener('resize', function () {
+                    editor.layout();
+                });
 
-            // Initialize web channel
-            initWebChannel();
+                monaco.languages.registerInlineCompletionsProvider('*', {
+                    provideInlineCompletions: function (model, position, context, token) {
+                        if (!aiSuggestion) return { items: [] };
+
+                        return {
+                            items: [{
+                                insertText: aiSuggestion,
+                                range: new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column)
+                            }]
+                        };
+                    },
+                    freeInlineCompletions(completions) { }
+                });
+
+                // Initialize web channel
+                initWebChannel();
             }); // end inner require (language contributions)
         });
 
@@ -301,7 +346,7 @@
                 return;
             }
 
-            new QWebChannel(qt.webChannelTransport, function(channel) {
+            new QWebChannel(qt.webChannelTransport, function (channel) {
                 backend = channel.objects.editor_backend;
 
                 // Apply any pending content
@@ -313,6 +358,27 @@
         }
 
         // === Functions called from Python ===
+
+        // --- Inline AI Suggestions (Ghost Text) ---
+        let aiSuggestion = null;
+        let aiSuggestionRange = null;
+
+
+
+        // Trigger AI Suggestion externally
+        function setAISuggestion(text) {
+            aiSuggestion = text;
+            if (editor) {
+                // Trigger inline completion manually if possible, or wait for typing
+                // Monaco triggers it automatically as you type when provider is registered
+            }
+        }
+
+        function clearAISuggestion() {
+            aiSuggestion = null;
+        }
+
+        // --- End Inline AI ---
 
         function setEditorContent(content, language, filePath) {
             if (!editor) {
@@ -387,11 +453,11 @@
             if (!editor) return;
             var model = editor.getModel();
             if (!model) return;
-            monaco.editor.setModelMarkers(model, 'python', markers.map(function(m) {
+            monaco.editor.setModelMarkers(model, 'python', markers.map(function (m) {
                 return {
                     severity: m.severity === 'error' ? monaco.MarkerSeverity.Error :
-                              m.severity === 'warning' ? monaco.MarkerSeverity.Warning :
-                              monaco.MarkerSeverity.Info,
+                        m.severity === 'warning' ? monaco.MarkerSeverity.Warning :
+                            monaco.MarkerSeverity.Info,
                     startLineNumber: m.startLine,
                     startColumn: m.startColumn,
                     endLineNumber: m.endLine,
@@ -438,4 +504,5 @@
         }
     </script>
 </body>
+
 </html>

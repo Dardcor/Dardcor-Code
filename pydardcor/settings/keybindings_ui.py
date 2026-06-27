@@ -20,6 +20,7 @@ DEFAULT_KEYBINDINGS = [
     {"command": "workbench.action.togglePanel", "keybinding": "Ctrl+J", "when": ""},
     {"command": "editor.action.formatDocument", "keybinding": "Shift+Alt+F", "when": "editorTextFocus"},
     {"command": "editor.action.commentLine", "keybinding": "Ctrl+/", "when": "editorTextFocus"},
+    {"command": "editor.action.blockComment", "keybinding": "Shift+Alt+A", "when": "editorTextFocus"},
     {"command": "editor.action.triggerSuggest", "keybinding": "Ctrl+Space", "when": "editorTextFocus"},
     {"command": "workbench.action.gotoLine", "keybinding": "Ctrl+G", "when": ""},
     {"command": "editor.action.findWithSelection", "keybinding": "Ctrl+F", "when": ""},
@@ -36,6 +37,7 @@ DEFAULT_KEYBINDINGS = [
     {"command": "editor.action.rename", "keybinding": "F2", "when": "editorTextFocus"},
     {"command": "workbench.action.splitEditor", "keybinding": "Ctrl+\\", "when": ""},
     {"command": "workbench.action.focusNextGroup", "keybinding": "Ctrl+1", "when": ""},
+    {"command": "workbench.action.focusSecondEditorGroup", "keybinding": "Ctrl+2", "when": ""},
     {"command": "workbench.action.debug.start", "keybinding": "F5", "when": ""},
     {"command": "workbench.action.debug.stepOver", "keybinding": "F10", "when": "inDebugMode"},
     {"command": "workbench.action.debug.stepInto", "keybinding": "F11", "when": "inDebugMode"},
@@ -47,6 +49,7 @@ DEFAULT_KEYBINDINGS = [
     {"command": "editor.action.clipboardCopyAction", "keybinding": "Ctrl+C", "when": "editorTextFocus"},
     {"command": "editor.action.clipboardPasteAction", "keybinding": "Ctrl+V", "when": "editorTextFocus"},
     {"command": "editor.action.addSelectionToNextFindMatch", "keybinding": "Ctrl+D", "when": "editorTextFocus"},
+    {"command": "editor.action.selectHighlights", "keybinding": "Ctrl+Shift+L", "when": "editorTextFocus"},
     {"command": "editor.action.copyLinesDownAction", "keybinding": "Shift+Alt+Down", "when": "editorTextFocus"},
     {"command": "editor.action.copyLinesUpAction", "keybinding": "Shift+Alt+Up", "when": "editorTextFocus"},
     {"command": "editor.action.moveLinesDownAction", "keybinding": "Alt+Down", "when": "editorTextFocus"},
@@ -55,9 +58,37 @@ DEFAULT_KEYBINDINGS = [
     {"command": "editor.action.insertLineBefore", "keybinding": "Ctrl+Shift+Enter", "when": "editorTextFocus"},
     {"command": "editor.action.outdentLines", "keybinding": "Shift+Tab", "when": "editorTextFocus"},
     {"command": "editor.action.indentLines", "keybinding": "Tab", "when": "editorTextFocus"},
+    {"command": "editor.action.deleteLines", "keybinding": "Ctrl+Shift+K", "when": "editorTextFocus"},
+    {"command": "editor.action.jumpToBracket", "keybinding": "Ctrl+Shift+\\", "when": "editorTextFocus"},
+    {"command": "editor.action.smartSelect.expand", "keybinding": "Shift+Alt+Right", "when": "editorTextFocus"},
+    {"command": "editor.action.smartSelect.shrink", "keybinding": "Shift+Alt+Left", "when": "editorTextFocus"},
+    {"command": "editor.action.transformToUppercase", "keybinding": "Ctrl+Shift+U", "when": "editorTextFocus"},
+    {"command": "editor.action.transformToLowercase", "keybinding": "Ctrl+U", "when": "editorTextFocus"},
+    {"command": "editor.fold", "keybinding": "Ctrl+Shift+[", "when": "editorTextFocus"},
+    {"command": "editor.unfold", "keybinding": "Ctrl+Shift+]", "when": "editorTextFocus"},
+    {"command": "editor.foldAll", "keybinding": "Ctrl+K Ctrl+0", "when": "editorTextFocus"},
+    {"command": "editor.unfoldAll", "keybinding": "Ctrl+K Ctrl+J", "when": "editorTextFocus"},
     {"command": "workbench.action.files.save", "keybinding": "Ctrl+S", "when": ""},
     {"command": "workbench.action.files.saveAll", "keybinding": "Ctrl+K S", "when": ""},
     {"command": "workbench.action.closeEditor", "keybinding": "Ctrl+W", "when": ""},
+    {"command": "workbench.action.reopenClosedEditor", "keybinding": "Ctrl+Shift+T", "when": ""},
+    {"command": "workbench.action.nextEditor", "keybinding": "Ctrl+Tab", "when": ""},
+    {"command": "workbench.action.previousEditor", "keybinding": "Ctrl+Shift+Tab", "when": ""},
+    {"command": "workbench.action.navigateBack", "keybinding": "Alt+Left", "when": ""},
+    {"command": "workbench.action.navigateForward", "keybinding": "Alt+Right", "when": ""},
+    {"command": "workbench.action.openSettings", "keybinding": "Ctrl+,", "when": ""},
+    {"command": "workbench.action.openGlobalKeybindings", "keybinding": "Ctrl+K Ctrl+S", "when": ""},
+    {"command": "workbench.action.selectTheme", "keybinding": "Ctrl+K Ctrl+T", "when": ""},
+    {"command": "workbench.action.toggleZenMode", "keybinding": "Ctrl+K Z", "when": ""},
+    {"command": "workbench.action.gotoSymbol", "keybinding": "Ctrl+Shift+O", "when": ""},
+    {"command": "workbench.action.showAllSymbols", "keybinding": "Ctrl+T", "when": ""},
+    {"command": "editor.action.marker.nextInFiles", "keybinding": "F8", "when": "editorTextFocus"},
+    {"command": "editor.action.marker.prevInFiles", "keybinding": "Shift+F8", "when": "editorTextFocus"},
+    {"command": "workbench.action.toggleScreencastMode", "keybinding": "Ctrl+Shift+Alt+P", "when": ""},
+    {"command": "editor.action.insertCursorAbove", "keybinding": "Ctrl+Alt+Up", "when": "editorTextFocus"},
+    {"command": "editor.action.insertCursorBelow", "keybinding": "Ctrl+Alt+Down", "when": "editorTextFocus"},
+    {"command": "cursorColumnSelectDown", "keybinding": "Ctrl+Shift+Alt+Down", "when": "editorTextFocus"},
+    {"command": "cursorColumnSelectUp", "keybinding": "Ctrl+Shift+Alt+Up", "when": "editorTextFocus"},
 ]
 
 
@@ -167,14 +198,33 @@ class KeybindingsUIWidget(QWidget):
         layout.addWidget(self._table)
 
     def _populate_table(self):
+        # Detect conflicts: same keybinding and same 'when' condition
+        conflicts = {}
+        for i, kb in enumerate(self._keybindings):
+            key = (kb["keybinding"].lower(), kb.get("when", ""))
+            if key not in conflicts:
+                conflicts[key] = []
+            conflicts[key].append(i)
+
         self._table.setRowCount(len(self._keybindings))
         for i, kb in enumerate(self._keybindings):
-            cmd_item = QTableWidgetItem(kb["command"])
+            is_conflict = len(conflicts.get((kb["keybinding"].lower(), kb.get("when", "")), [])) > 1
+
+            cmd_text = kb["command"]
+            if is_conflict:
+                cmd_text = "⚠️ " + cmd_text
+
+            cmd_item = QTableWidgetItem(cmd_text)
             cmd_item.setFlags(cmd_item.flags() & ~Qt.ItemIsEditable)
+            if is_conflict:
+                cmd_item.setToolTip("Conflict detected with another keybinding")
             self._table.setItem(i, 0, cmd_item)
 
             key_item = QTableWidgetItem(kb["keybinding"])
-            key_item.setForeground(QColor("#e2c08d"))
+            if is_conflict:
+                key_item.setForeground(QColor("#ff5555"))
+            else:
+                key_item.setForeground(QColor("#e2c08d"))
             self._table.setItem(i, 1, key_item)
 
             when_item = QTableWidgetItem(kb.get("when", ""))

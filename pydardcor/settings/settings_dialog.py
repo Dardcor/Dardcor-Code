@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 
-from ..core.config import get_config, AIConfig
+from ..core.config import get_config
 
 
 class SettingsDialog(QDialog):
@@ -151,7 +151,6 @@ class SettingsDialog(QDialog):
 
         # Tabs
         tabs = QTabWidget()
-        tabs.addTab(self._build_model_tab(), "AI Model")
         tabs.addTab(self._build_editor_tab(), "Editor")
         tabs.addTab(self._build_workspace_tab(), "Workspace")
         tabs.addTab(self._build_about_tab(), "About")
@@ -202,68 +201,7 @@ class SettingsDialog(QDialog):
 
         layout.addWidget(btn_container)
 
-    def _build_model_tab(self) -> QWidget:
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setStyleSheet("QScrollArea { border: none; }")
 
-        tab = QWidget()
-        form = QVBoxLayout(tab)
-        form.setContentsMargins(24, 16, 24, 16)
-        form.setSpacing(12)
-
-        # Provider group
-        provider_group = QGroupBox("AI Provider")
-        provider_layout = QFormLayout()
-        provider_layout.setSpacing(10)
-
-        self._provider = QComboBox()
-        self._provider.addItems([
-            "openai", "anthropic", "gemini", "deepseek",
-            "openrouter", "ollama", "nvidia",
-        ])
-        self._provider.setEditable(True)
-        provider_layout.addRow("Provider:", self._provider)
-
-        self._model = QLineEdit()
-        self._model.setPlaceholderText("e.g., gpt-4o, claude-sonnet-4-20250514, gemini-2.0-flash")
-        provider_layout.addRow("Model:", self._model)
-
-        self._api_key = QLineEdit()
-        self._api_key.setEchoMode(QLineEdit.Password)
-        self._api_key.setPlaceholderText("API Key (or set env: DARDCOR_CODE_API_KEY)")
-        provider_layout.addRow("API Key:", self._api_key)
-
-        self._base_url = QLineEdit()
-        self._base_url.setPlaceholderText("Leave empty for default provider URL")
-        provider_layout.addRow("Base URL:", self._base_url)
-
-        provider_group.setLayout(provider_layout)
-        form.addWidget(provider_group)
-
-        # Generation group
-        gen_group = QGroupBox("Generation Settings")
-        gen_layout = QFormLayout()
-        gen_layout.setSpacing(10)
-
-        self._max_tokens = QSpinBox()
-        self._max_tokens.setRange(1024, 256000)
-        self._max_tokens.setValue(128000)
-        self._max_tokens.setSingleStep(4096)
-        gen_layout.addRow("Max Tokens:", self._max_tokens)
-
-        self._temperature = QSpinBox()
-        self._temperature.setRange(0, 100)
-        self._temperature.setValue(70)
-        self._temperature.setSuffix("%")
-        gen_layout.addRow("Temperature:", self._temperature)
-
-        gen_group.setLayout(gen_layout)
-        form.addWidget(gen_group)
-
-        form.addStretch()
-        scroll.setWidget(tab)
-        return scroll
 
     def _build_editor_tab(self) -> QWidget:
         scroll = QScrollArea()
@@ -387,13 +325,6 @@ class SettingsDialog(QDialog):
         return tab
 
     def _load_settings(self):
-        self._provider.setCurrentText(self._config.ai.provider)
-        self._model.setText(self._config.ai.model)
-        if self._config.ai.api_key:
-            self._api_key.setText(self._config.ai.api_key)
-        self._base_url.setText(self._config.ai.base_url)
-        self._max_tokens.setValue(self._config.ai.max_tokens)
-        self._temperature.setValue(int(self._config.ai.temperature * 100))
         self._workspace.setText(self._config.workspace_path)
         self._auto_save_cb.setChecked(self._config.auto_save)
         self._font_family.setCurrentText(self._config.font_family)
@@ -404,13 +335,6 @@ class SettingsDialog(QDialog):
         self._terminal_shell.setText(self._config.terminal_shell)
 
     def _save_settings(self):
-        self._config.ai.provider = self._provider.currentText()
-        self._config.ai.model = self._model.text()
-        if self._api_key.text():
-            self._config.ai.api_key = self._api_key.text()
-        self._config.ai.base_url = self._base_url.text()
-        self._config.ai.max_tokens = self._max_tokens.value()
-        self._config.ai.temperature = self._temperature.value() / 100.0
         self._config.workspace_path = self._workspace.text()
         self._config.auto_save = self._auto_save_cb.isChecked()
         self._config.font_family = self._font_family.currentText()

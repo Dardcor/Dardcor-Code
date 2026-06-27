@@ -97,3 +97,8 @@ class MonacoDiffEditorWidget(QWidget):
         if self._view_ready:
             val = "true" if is_dark else "false"
             self._view.page().runJavaScript(f"setTheme({val});")
+
+    def toggle_inline_view(self, inline: bool):
+        if self._view_ready:
+            val = "true" if inline else "false"
+            self._view.page().runJavaScript(f"toggleInline({val});")

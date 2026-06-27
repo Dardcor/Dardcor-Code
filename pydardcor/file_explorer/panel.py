@@ -258,12 +258,61 @@ class ExplorerTreeWidget(QTreeWidget):
     """Custom tree widget to handle actual file moving on drag and drop."""
     file_dropped = Signal(str, str) # source_path, target_folder
 
+    def keyPressEvent(self, event):
+        parent_explorer = self.parent()
+        
+        # Handle Delete
+        if event.key() == Qt.Key_Delete:
+            selected = self.selectedItems()
+            if selected and hasattr(parent_explorer, '_delete_items'):
+                paths = [item.data(0, Qt.UserRole) for item in selected]
+                parent_explorer._delete_items(paths)
+                event.accept()
+                return
+
+        # Handle F2 (Rename)
+        if event.key() == Qt.Key_F2:
+            selected = self.selectedItems()
+            if len(selected) == 1 and hasattr(parent_explorer, '_rename_item'):
+                parent_explorer._rename_item(selected[0], selected[0].data(0, Qt.UserRole))
+                event.accept()
+                return
+
+        # Handle Ctrl+C (Copy)
+        if event.modifiers() & Qt.ControlModifier and event.key() == Qt.Key_C:
+            selected = self.selectedItems()
+            if selected and hasattr(parent_explorer, '_copy_selected'):
+                paths = [item.data(0, Qt.UserRole) for item in selected]
+                parent_explorer._copy_selected(paths)
+                event.accept()
+                return
+                
+        # Handle Ctrl+X (Cut)
+        if event.modifiers() & Qt.ControlModifier and event.key() == Qt.Key_X:
+            selected = self.selectedItems()
+            if selected and hasattr(parent_explorer, '_cut_selected'):
+                paths = [item.data(0, Qt.UserRole) for item in selected]
+                parent_explorer._cut_selected(paths)
+                event.accept()
+                return
+                
+        # Handle Ctrl+V (Paste)
+        if event.modifiers() & Qt.ControlModifier and event.key() == Qt.Key_V:
+            curr = self.currentItem()
+            if hasattr(parent_explorer, '_paste_files'):
+                target = curr.data(0, Qt.UserRole) if curr else getattr(parent_explorer, '_root_path', None)
+                if target:
+                    parent_explorer._paste_files(target)
+                event.accept()
+                return
+
+        super().keyPressEvent(event)
+
     def dropEvent(self, event):
-        source_item = self.currentItem()
-        if not source_item:
+        selected_items = self.selectedItems()
+        if not selected_items:
             return super().dropEvent(event)
             
-        source_path = source_item.data(0, Qt.UserRole)
         target_item = self.itemAt(event.position().toPoint())
         
         target_path = None
@@ -272,30 +321,54 @@ class ExplorerTreeWidget(QTreeWidget):
             if target_path and not os.path.isdir(target_path):
                 target_path = os.path.dirname(target_path)
         else:
-            # If no target item (empty area), drop to root
             parent_explorer = self.parent()
             if hasattr(parent_explorer, '_root_path'):
                 target_path = parent_explorer._root_path
                 
-        if source_path and target_path and source_path != target_path:
-            # Check if target is not a subfolder of source
-            if not target_path.startswith(source_path + os.sep):
-                try:
-                    dest = os.path.join(target_path, os.path.basename(source_path))
-                    if not os.path.exists(dest):
-                        shutil.move(source_path, dest)
-                        # No need to call super() because filesystem watcher will refresh the UI
-                        event.accept()
-                        return
-                except Exception as e:
-                    print(f"Error moving file: {e}")
+        if target_path:
+            moved_any = False
+            for source_item in selected_items:
+                source_path = source_item.data(0, Qt.UserRole)
+                if source_path and source_path != target_path:
+                    # If Ctrl is pressed, do copy instead of move
+                    from PySide6.QtWidgets import QApplication
+                    is_copy = QApplication.keyboardModifiers() & Qt.ControlModifier
                     
+                    if not target_path.startswith(source_path + os.sep):
+                        try:
+                            dest = os.path.join(target_path, os.path.basename(source_path))
+                            if dest == source_path:
+                                continue
+                                
+                            base, ext = os.path.splitext(os.path.basename(source_path))
+                            counter = 1
+                            while os.path.exists(dest):
+                                dest = os.path.join(target_path, f"{base} copy {counter}{ext}" if counter > 1 else f"{base} copy{ext}")
+                                counter += 1
+                                
+                            if is_copy:
+                                if os.path.isdir(source_path):
+                                    shutil.copytree(source_path, dest)
+                                else:
+                                    shutil.copy2(source_path, dest)
+                            else:
+                                shutil.move(source_path, dest)
+                            moved_any = True
+                        except Exception as e:
+                            print(f"Error moving/copying file: {e}")
+            if moved_any:
+                event.accept()
+                return
+                
         super().dropEvent(event)
 
 
 class FileExplorer(QWidget):
     file_selected = Signal(str)
     root_changed = Signal(str)
+    find_in_folder_requested = Signal(str)
+    open_in_terminal_requested = Signal(str)
+    open_to_side_requested = Signal(str)
 
     def __init__(self, root_path: str = None, parent=None):
         super().__init__(parent)
@@ -305,6 +378,7 @@ class FileExplorer(QWidget):
         self._in_inline_edit = False
         self._force_expand_root = True  # Flag to force expansion on first load or when root changes
         self._welcome_widget = None
+        self._clipboard = {"action": None, "paths": []}
         self.setObjectName("fileExplorer")
 
         self._watcher = QFileSystemWatcher(self)
@@ -355,6 +429,7 @@ class FileExplorer(QWidget):
             ("+", "New File", self._new_file),
             ("\U0001F4C1", "New Folder", self._new_folder),
             ("\u21BB", "Refresh", self._refresh),
+            ("-", "Collapse All", self.collapse_all),
             ("\U0001F4C2", "Open Folder", self._open_folder),
         ]:
             btn = QPushButton(icon_text)
@@ -428,6 +503,13 @@ class FileExplorer(QWidget):
         self._tree.setRootIsDecorated(True)
         self._tree.setContextMenuPolicy(Qt.CustomContextMenu)
         self._tree.customContextMenuRequested.connect(self._show_context_menu)
+        self._tree.header().hide()
+        
+        # Shortcuts
+        from PySide6.QtGui import QShortcut, QKeySequence
+        f2_shortcut = QShortcut(QKeySequence("F2"), self._tree)
+        f2_shortcut.activated.connect(self._trigger_rename)
+
         self._tree.itemExpanded.connect(self._on_item_expanded)
         self._tree.itemCollapsed.connect(self._on_item_collapsed)
         self._tree.itemClicked.connect(self._on_item_clicked)
@@ -438,6 +520,7 @@ class FileExplorer(QWidget):
         self._tree.setAcceptDrops(True)
         self._tree.setDropIndicatorShown(True)
         self._tree.setDragDropMode(QTreeWidget.InternalMove)
+        self._tree.setSelectionMode(QTreeWidget.ExtendedSelection)
         self._tree.viewport().setAcceptDrops(True)
 
         self._tree.setStyleSheet("""
@@ -806,6 +889,52 @@ class FileExplorer(QWidget):
         else:
             subprocess.Popen(['xdg-open', os.path.dirname(path)])
 
+    def reveal_and_select_file(self, target_path: str):
+        if not target_path or not self._root_path:
+            return
+            
+        target_path = os.path.normpath(target_path)
+        
+        def find_item(parent_item):
+            for i in range(parent_item.childCount()):
+                child = parent_item.child(i)
+                item_path = child.data(0, Qt.UserRole)
+                if not item_path:
+                    continue
+                item_path = os.path.normpath(item_path)
+                
+                if item_path == target_path:
+                    return child
+                elif target_path.startswith(item_path + os.sep):
+                    if not child.isExpanded():
+                        child.setExpanded(True)
+                        if child.childCount() == 1 and child.child(0).text(0) == "Loading...":
+                            self._load_directory(item_path, child)
+                    found = find_item(child)
+                    if found: return found
+            return None
+
+        for i in range(self._tree.topLevelItemCount()):
+            top_item = self._tree.topLevelItem(i)
+            item_path = top_item.data(0, Qt.UserRole)
+            if not item_path: continue
+            item_path = os.path.normpath(item_path)
+            
+            if item_path == target_path:
+                self._tree.setCurrentItem(top_item)
+                self._tree.scrollToItem(top_item)
+                return
+            elif target_path.startswith(item_path + os.sep):
+                if not top_item.isExpanded():
+                    top_item.setExpanded(True)
+                    if top_item.childCount() == 1 and top_item.child(0).text(0) == "Loading...":
+                        self._load_directory(item_path, top_item)
+                found = find_item(top_item)
+                if found:
+                    self._tree.setCurrentItem(found)
+                    self._tree.scrollToItem(found)
+                    return
+
     def _show_context_menu(self, position):
         item = self._tree.itemAt(position)
 
@@ -856,6 +985,9 @@ class FileExplorer(QWidget):
             open_action = QAction("Open", self)
             open_action.triggered.connect(lambda: self.file_selected.emit(path))
             menu.addAction(open_action)
+            open_side_action = QAction("Open to the Side", self)
+            open_side_action.triggered.connect(lambda: self.open_to_side_requested.emit(path))
+            menu.addAction(open_side_action)
             menu.addSeparator()
 
         if os.path.isdir(path):
@@ -866,14 +998,33 @@ class FileExplorer(QWidget):
             new_folder.triggered.connect(lambda: self._new_folder_in(path, item))
             menu.addAction(new_folder)
             menu.addSeparator()
+            find_folder = QAction("Find in Folder...", self)
+            find_folder.triggered.connect(lambda: self.find_in_folder_requested.emit(path))
+            menu.addAction(find_folder)
+            open_term = QAction("Open in Integrated Terminal", self)
+            open_term.triggered.connect(lambda: self.open_in_terminal_requested.emit(path))
+            menu.addAction(open_term)
+            menu.addSeparator()
 
         if not is_root:
+            cut_action = QAction("Cut", self)
+            cut_action.triggered.connect(lambda: self._cut_selected([item.data(0, Qt.UserRole) for item in self._tree.selectedItems()]))
+            menu.addAction(cut_action)
+            copy_action = QAction("Copy", self)
+            copy_action.triggered.connect(lambda: self._copy_selected([item.data(0, Qt.UserRole) for item in self._tree.selectedItems()]))
+            menu.addAction(copy_action)
+            paste_action = QAction("Paste", self)
+            paste_action.triggered.connect(lambda: self._paste_files(path))
+            paste_action.setEnabled(bool(self._clipboard["paths"]))
+            menu.addAction(paste_action)
+            menu.addSeparator()
+
             rename_action = QAction("Rename...", self)
             rename_action.triggered.connect(lambda: self._rename_item(item, path))
             menu.addAction(rename_action)
 
             delete_action = QAction("Delete", self)
-            delete_action.triggered.connect(lambda: self._delete_item(path))
+            delete_action.triggered.connect(lambda: self._delete_items([item.data(0, Qt.UserRole) for item in self._tree.selectedItems()]))
             menu.addAction(delete_action)
 
             menu.addSeparator()
@@ -894,9 +1045,17 @@ class FileExplorer(QWidget):
         QApplication.clipboard().setText(path)
 
     def _copy_relative_path(self, path: str):
-        from PySide6.QtWidgets import QApplication
+        if not self._root_path: return
         rel = os.path.relpath(path, self._root_path)
+        from PySide6.QtWidgets import QApplication
         QApplication.clipboard().setText(rel)
+        
+    def _trigger_rename(self):
+        item = self._tree.currentItem()
+        if item:
+            path = item.data(0, Qt.UserRole)
+            if path:
+                self._rename_item(item, path)
 
     def _rename_item(self, item: QTreeWidgetItem, path: str):
         # Store temporary data for the rename operation
@@ -909,21 +1068,102 @@ class FileExplorer(QWidget):
         self._tree.editItem(item, 0)
 
     def _delete_item(self, path: str):
-        reply = QMessageBox.question(
-            self, "Confirm Delete",
-            f"Are you sure you want to delete '{os.path.basename(path)}'?\n\nThis action cannot be undone.",
-            QMessageBox.Yes | QMessageBox.No,
-        )
-        if reply == QMessageBox.Yes:
-            try:
-                if os.path.isdir(path):
-                    import shutil
-                    shutil.rmtree(path)
+        self._delete_items([path])
+
+    def _delete_items(self, paths: list):
+        if not paths:
+            return
+            
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Confirm Delete")
+        msg_box.setText(f"Are you sure you want to delete {len(paths)} item(s)?")
+        msg_box.setIcon(QMessageBox.Question)
+        
+        try:
+            import send2trash
+            has_trash = True
+        except ImportError:
+            has_trash = False
+
+        if has_trash:
+            trash_btn = msg_box.addButton("Move to Trash", QMessageBox.AcceptRole)
+        perm_btn = msg_box.addButton("Delete Permanently", QMessageBox.DestructiveRole)
+        cancel_btn = msg_box.addButton("Cancel", QMessageBox.RejectRole)
+        
+        msg_box.exec()
+        
+        clicked = msg_box.clickedButton()
+        if clicked == cancel_btn:
+            return
+            
+        use_trash = has_trash and (clicked == trash_btn)
+        
+        try:
+            for path in paths:
+                if use_trash:
+                    import send2trash
+                    send2trash.send2trash(os.path.normpath(path))
                 else:
-                    os.remove(path)
-                self._refresh()
-            except Exception as e:
-                QMessageBox.warning(self, "Error", str(e))
+                    if os.path.isdir(path):
+                        import shutil
+                        shutil.rmtree(path)
+                    else:
+                        os.remove(path)
+            self._refresh()
+        except Exception as e:
+            QMessageBox.warning(self, "Error", str(e))
+
+    def _copy_selected(self, paths: list):
+        self._clipboard = {"action": "copy", "paths": paths}
+
+    def _cut_selected(self, paths: list):
+        self._clipboard = {"action": "cut", "paths": paths}
+
+    def _paste_files(self, target_dir: str):
+        if not target_dir or not os.path.isdir(target_dir):
+            target_dir = os.path.dirname(target_dir) if target_dir else getattr(self, '_root_path', None)
+            if not target_dir: return
+
+        if not self._clipboard["paths"]:
+            return
+
+        action = self._clipboard["action"]
+        paths = self._clipboard["paths"]
+        moved_any = False
+        try:
+            import shutil
+            for source_path in paths:
+                if not os.path.exists(source_path):
+                    continue
+                
+                dest = os.path.join(target_dir, os.path.basename(source_path))
+                if dest == source_path:
+                    continue
+                
+                base, ext = os.path.splitext(os.path.basename(source_path))
+                counter = 1
+                while os.path.exists(dest):
+                    dest = os.path.join(target_dir, f"{base} copy {counter}{ext}" if counter > 1 else f"{base} copy{ext}")
+                    counter += 1
+                
+                if action == "copy":
+                    if os.path.isdir(source_path):
+                        shutil.copytree(source_path, dest)
+                    else:
+                        shutil.copy2(source_path, dest)
+                    moved_any = True
+                elif action == "cut":
+                    shutil.move(source_path, dest)
+                    moved_any = True
+            
+            if action == "cut" and moved_any:
+                self._clipboard = {"action": None, "paths": []}
+                
+        except Exception as e:
+            print(f"Error pasting files: {e}")
+
+    def collapse_all(self):
+        self._tree.collapseAll()
 
     def _new_file(self):
         curr = self._tree.currentItem()

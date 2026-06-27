@@ -443,23 +443,7 @@ class Agent:
     def _get_system_prompt(self, workspace_path: str = None) -> str:
         if workspace_path is None:
             workspace_path = self._config.workspace_path
-        default_prompt = (
-            "You are Dardcor Code, a world-class autonomous AI coding assistant developed by Dardcor. "
-            "You are equipped with tools to view files, write files, search local codebases, and run commands. "
-            "Before implementing large changes, create a clean step-by-step implementation plan. "
-            "Use 'semantic_search' to find relevant code in the workspace before answering questions or doing tasks. "
-            "If you run a test or compile command and it fails, you MUST analyze the traceback/logs, read the failing files, "
-            "correct the code self-sufficiently, and run the command again. Continue this Self-Correction loop autonomously "
-            "until the tests and compilation pass successfully. Be concise, precise, and professional."
-        )
-        is_default_or_empty = (
-            not self._config.ai.system_prompt or 
-            self._config.ai.system_prompt.strip() == default_prompt.strip()
-        )
-        if is_default_or_empty:
-            return get_identity_prompt(self._core_memory.get_summary(), workspace_path)
-        else:
-            return self._config.ai.system_prompt
+        return get_identity_prompt(self._core_memory.get_summary(), workspace_path)
 
     def __init__(self):
         self._config = get_config()
@@ -591,8 +575,20 @@ class Agent:
                 return error_msg
 
     def _call_api(self, on_tool_call=None, on_system_message=None, depth=0, model_override=None, on_tool_output=None, on_notification=None) -> str:
+        from dataclasses import dataclass
+        @dataclass
+        class _DummyAIConfig:
+            provider: str = "openai"
+            model: str = "gpt-4o"
+            api_key: str = os.environ.get("DARDCOR_CODE_API_KEY", os.environ.get("OPENAI_API_KEY", ""))
+            base_url: str = ""
+            max_tokens: int = 128000
+            temperature: float = 0.7
+            system_prompt: str = ""
+            
         from dardcor_agent.models.providers.factory import ProviderFactory
-        provider = ProviderFactory.create(self._config.ai, model_override)
+        dummy_config = _DummyAIConfig()
+        provider = ProviderFactory.create(dummy_config, model_override)
         self._current_provider = provider
         
         consecutive_read_turns = 0
@@ -652,7 +648,7 @@ class Agent:
             response = provider.generate_turn(
                 messages=messages,
                 tools=TOOLS,
-                config=self._config.ai,
+                config=dummy_config,
                 model_override=model_override,
                 abort_check_fn=abort_check,
                 conversation_callback=on_conversation_sys_msg

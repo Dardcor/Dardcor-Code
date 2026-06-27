@@ -26,27 +26,9 @@ CONFIG_DIR = get_user_data_dir()
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 
 @dataclass
-class AIConfig:
-    provider: str = "openai"
-    model: str = "gpt-4o"
-    api_key: str = ""
-    base_url: str = ""
-    max_tokens: int = 128000
-    temperature: float = 0.7
-    system_prompt: str = (
-        "You are Dardcor Code, a world-class autonomous AI coding assistant developed by Dardcor. "
-        "You are equipped with tools to view files, write files, search local codebases, and run commands. "
-        "Before implementing large changes, create a clean step-by-step implementation plan. "
-        "Use 'semantic_search' to find relevant code in the workspace before answering questions or doing tasks. "
-        "If you run a test or compile command and it fails, you MUST analyze the traceback/logs, read the failing files, "
-        "correct the code self-sufficiently, and run the command again. Continue this Self-Correction loop autonomously "
-        "until the tests and compilation pass successfully. Be concise, precise, and professional."
-    )
-
-@dataclass
 class AppConfig:
-    ai: AIConfig = field(default_factory=AIConfig)
     workspace_path: str = ""
+    ui_zoom: int = 0
     auto_save: bool = True
     font_family: str = "Cascadia Code"
     font_size: int = 13
@@ -67,27 +49,14 @@ class AppConfig:
     def load(cls) -> "AppConfig":
         if not os.path.exists(CONFIG_FILE):
             cfg = cls()
-            for env_key in ("DARDCOR_CODE_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY"):
-                val = os.environ.get(env_key, "")
-                if val:
-                    cfg.ai.api_key = val
-                    break
             cfg.save()
             return cfg
         try:
             with open(CONFIG_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            ai_data = data.pop("ai", {})
-            ai_config = AIConfig(**{k: v for k, v in ai_data.items() if k in AIConfig.__dataclass_fields__})
-            cfg = cls(ai=ai_config, **{k: v for k, v in data.items() if k in cls.__dataclass_fields__ and k != "ai"})
-            
-            if not cfg.ai.api_key:
-                for env_key in ("DARDCOR_CODE_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY"):
-                    val = os.environ.get(env_key, "")
-                    if val:
-                        cfg.ai.api_key = val
-                        break
-            return cfg
+            valid_keys = {k for k in cls.__dataclass_fields__}
+            cfg_data = {k: v for k, v in data.items() if k in valid_keys}
+            return cls(**cfg_data)
         except Exception:
             return cls()
 

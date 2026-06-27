@@ -83,6 +83,7 @@ class FileSystem:
         whole_word: bool = False,
         max_results: int = 500,
         file_pattern: str = None,
+        exclude_pattern: str = None,
     ) -> List[Dict[str, Any]]:
         """Search file contents for a query string."""
         results = []
@@ -104,6 +105,8 @@ class FileSystem:
                 if is_binary(filename):
                     continue
                 if file_pattern and not fnmatch.fnmatch(filename, file_pattern):
+                    continue
+                if exclude_pattern and fnmatch.fnmatch(filename, exclude_pattern):
                     continue
 
                 filepath = os.path.join(dirpath, filename)

@@ -102,6 +102,7 @@ class StatusBar(QStatusBar):
     command_palette_requested = Signal()
     go_to_line_requested = Signal()
     models_requested = Signal()
+    git_branch_requested = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -143,6 +144,7 @@ class StatusBar(QStatusBar):
 
         self._git_btn = StatusBarButton("\uea68 main")
         self._git_btn.setToolTip("Git Branch")
+        self._git_btn.clicked.connect(self.git_branch_requested.emit)
         self.addWidget(self._git_btn)
 
         self._sync_btn = StatusBarButton("\uea77")
@@ -162,18 +164,22 @@ class StatusBar(QStatusBar):
 
         self._indent_btn = StatusBarButton("Spaces: 4")
         self._indent_btn.setToolTip("Select Indentation")
+        self._indent_btn.clicked.connect(self.command_palette_requested.emit)
         self.addPermanentWidget(self._indent_btn)
 
         self._encoding_btn = StatusBarButton("UTF-8")
         self._encoding_btn.setToolTip("Select Encoding")
+        self._encoding_btn.clicked.connect(self.command_palette_requested.emit)
         self.addPermanentWidget(self._encoding_btn)
 
         self._eol_btn = StatusBarButton("CRLF")
         self._eol_btn.setToolTip("Select End of Line Sequence")
+        self._eol_btn.clicked.connect(self.command_palette_requested.emit)
         self.addPermanentWidget(self._eol_btn)
 
         self._lang_btn = StatusBarButton("Plain Text")
         self._lang_btn.setToolTip("Select Language Mode")
+        self._lang_btn.clicked.connect(self.command_palette_requested.emit)
         self.addPermanentWidget(self._lang_btn)
 
         self._models_btn = StatusBarButton("\ueb66 Models")
@@ -250,3 +256,17 @@ class StatusBar(QStatusBar):
 
     def clear_ext_status(self):
         self._ext_btn.hide()
+
+    def resizeEvent(self, event):
+        w = event.size().width()
+        
+        # Hide items progressively as the window gets smaller
+        self._encoding_btn.setVisible(w > 800)
+        self._eol_btn.setVisible(w > 700)
+        self._indent_btn.setVisible(w > 600)
+        self._lang_btn.setVisible(w > 500)
+        self._git_btn.setVisible(w > 400)
+        self._errors_btn.setVisible(w > 300)
+        
+        super().resizeEvent(event)
+

@@ -6,11 +6,12 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Dict, Any
+from .config import CONFIG_DIR
 
 class AntigravityDB:
     def __init__(self, root_path: str):
         self.root_path = root_path
-        self.db_dir = os.path.join(self.root_path, "database", "models", "Antigravity")
+        self.db_dir = os.path.join(CONFIG_DIR, "database", "models", "Antigravity")
         self.accounts_dir = os.path.join(self.db_dir, "accounts")
         self.accounts_file = os.path.join(self.db_dir, "accounts.json")
         self.config_file = os.path.join(self.db_dir, "config.json")
@@ -279,7 +280,7 @@ class AntigravityDB:
             return 0.0
 
     def get_providers(self) -> Dict[str, bool]:
-        prov_file = os.path.join(self.root_path, "database", "models", "provider.json")
+        prov_file = os.path.join(CONFIG_DIR, "database", "models", "provider.json")
         if not os.path.exists(prov_file):
             return {}
         try:
@@ -289,7 +290,7 @@ class AntigravityDB:
             return {}
 
     def set_provider_active(self, provider_name: str, is_active: bool):
-        prov_file = os.path.join(self.root_path, "database", "models", "provider.json")
+        prov_file = os.path.join(CONFIG_DIR, "database", "models", "provider.json")
         providers = self.get_providers()
         providers[provider_name] = is_active
         os.makedirs(os.path.dirname(prov_file), exist_ok=True)

@@ -1,8 +1,8 @@
 """Activity Bar - VS Code style vertical icon bar."""
 
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QButtonGroup
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QButtonGroup, QMenu
 from PySide6.QtCore import Signal, Qt, QSize, QRect, QPoint
-from PySide6.QtGui import QPainter, QColor, QPen, QPolygon, QPainterPath
+from PySide6.QtGui import QPainter, QColor, QPen, QPolygon, QPainterPath, QAction
 
 
 VIEW_EXPLORER = 0
@@ -109,3 +109,26 @@ class ActivityBar(QWidget):
         btn = self._group.button(view_id)
         if btn:
             btn.setChecked(True)
+
+    def contextMenuEvent(self, event):
+        menu = QMenu(self)
+        menu.setStyleSheet("""
+            QMenu { background-color: #252526; color: #cccccc; border: 1px solid #454545; }
+            QMenu::item { padding: 4px 24px 4px 24px; }
+            QMenu::item:selected { background-color: #094771; color: white; }
+        """)
+        
+        for btn in self._group.buttons():
+            # Extract the actual name from tooltip (e.g., "Explorer (Ctrl+Shift+E)" -> "Explorer")
+            tooltip = btn.toolTip()
+            name = tooltip.split(" (")[0] if " (" in tooltip else tooltip
+            
+            action = QAction(name, self)
+            action.setCheckable(True)
+            action.setChecked(btn.isVisible())
+            # Capture btn in lambda correctly
+            action.toggled.connect(lambda checked, b=btn: b.setVisible(checked))
+            menu.addAction(action)
+            
+        menu.exec_(event.globalPos())
+

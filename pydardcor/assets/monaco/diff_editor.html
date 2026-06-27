@@ -177,6 +177,14 @@
         function setTheme(isDark) {
             monaco.editor.setTheme(isDark ? 'dardcor-dark' : 'vs');
         }
+
+        function toggleInline(inline) {
+            if (diffEditor) {
+                diffEditor.updateOptions({
+                    renderSideBySide: !inline
+                });
+            }
+        }
     </script>
 </body>
 </html>
