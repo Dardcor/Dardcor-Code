@@ -10,6 +10,7 @@ VIEW_SEARCH = 1
 VIEW_SOURCE_CONTROL = 2
 VIEW_DEBUG = 3
 VIEW_EXTENSIONS = 4
+VIEW_TESTING = 5
 
 
 
@@ -34,7 +35,8 @@ class ActivityBarButton(QPushButton):
             "search": "\uea6d",
             "git": "\uea68",
             "debug": "\uead8",
-            "extensions": "\ueae6"
+            "extensions": "\ueae6",
+            "testing": "\uebfc"
         }
         self.setText(icon_map.get(icon_type, "?"))
 
@@ -87,6 +89,7 @@ class ActivityBar(QWidget):
         self._add_button("git", "Source Control (Ctrl+Shift+G)", VIEW_SOURCE_CONTROL)
         self._add_button("debug", "Run and Debug (Ctrl+Shift+D)", VIEW_DEBUG)
         self._add_button("extensions", "Extensions (Ctrl+Shift+X)", VIEW_EXTENSIONS)
+        self._add_button("testing", "Testing", VIEW_TESTING)
 
         layout.addStretch()
 

@@ -613,7 +613,7 @@ class Agent:
 
         try:
           iterations = 0
-          MAX_ITERATIONS = 60
+          MAX_ITERATIONS = 999999
           while True:
             iterations += 1
             if iterations > MAX_ITERATIONS:

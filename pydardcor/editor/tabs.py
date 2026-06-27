@@ -107,6 +107,9 @@ class EditorTabs(QWidget):
     def set_word_wrap(self, enabled):
         for g in self._groups: g.set_word_wrap(enabled)
 
+    def set_minimap(self, enabled):
+        for g in self._groups: g.set_minimap(enabled)
+
     def set_theme(self, theme_name: str):
         is_dark = (theme_name != "light")
         for g in self._groups: g.set_theme(is_dark)

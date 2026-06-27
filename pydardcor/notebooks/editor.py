@@ -47,11 +47,18 @@ class NotebookCell(QWidget):
             }
         """)
 
+from PySide6.QtCore import Qt, Signal
+
 class NotebookEditor(QWidget):
     """Editor for .ipynb files."""
     
+    content_changed = Signal(str)
+    save_requested = Signal()
+    
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._file_path = ""
+        self._is_dirty = False
         
         self.kernel = KernelClient()
         self.kernel.start()
@@ -122,3 +129,20 @@ class NotebookEditor(QWidget):
                 self.add_cell(cell_type, source)
         except Exception as e:
             self.add_cell("markdown", f"# Error loading notebook\n{e}")
+
+    def get_file_path(self):
+        return self._file_path
+
+    def is_dirty(self):
+        return self._is_dirty
+
+    def get_language(self):
+        return "jupyter"
+
+    def save(self):
+        # Dummy save for now
+        self._is_dirty = False
+
+    def save_as(self, path):
+        self._file_path = path
+        self._is_dirty = False

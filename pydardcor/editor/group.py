@@ -20,6 +20,7 @@ class EditorTab:
         self.editor = editor
         self.file_path = file_path
         self.title = os.path.basename(file_path) if file_path else "Untitled"
+        self.is_pinned = False
 
 
 class TabCloseButton(QPushButton):
@@ -200,6 +201,35 @@ class DardcorTabBar(QTabBar):
                     btn.setVisible(True)
                 else:
                     btn.setVisible(False)
+
+    def contextMenuEvent(self, event):
+        idx = self.tabAt(event.pos())
+        if idx < 0:
+            super().contextMenuEvent(event)
+            return
+            
+        from PySide6.QtWidgets import QMenu
+        menu = QMenu(self)
+        
+        # We need a reference to the EditorGroup to pin the tab
+        group = self.parent().parent()
+        if hasattr(group, "_tabs") and idx < len(group._tabs):
+            tab_data = group._tabs[idx]
+            
+            pin_action = menu.addAction("Unpin Tab" if tab_data.is_pinned else "Pin Tab")
+            close_action = menu.addAction("Close")
+            close_other = menu.addAction("Close Others")
+            
+            action = menu.exec_(self.mapToGlobal(event.pos()))
+            
+            if action == pin_action:
+                group.toggle_pin_tab(idx)
+            elif action == close_action:
+                self.tabCloseRequested.emit(idx)
+            elif action == close_other:
+                for i in range(self.count() - 1, -1, -1):
+                    if i != idx:
+                        self.tabCloseRequested.emit(i)
 
 
 class WelcomeWidget(QScrollArea):
@@ -411,16 +441,39 @@ class EditorGroup(QWidget):
         has_tabs = len(self._tabs) > 0
         self._tab_row.setVisible(has_tabs)
 
+    def toggle_pin_tab(self, idx: int):
+        if 0 <= idx < len(self._tabs):
+            tab = self._tabs[idx]
+            tab.is_pinned = not tab.is_pinned
+            
+            # Update title with a pin indicator
+            title = tab.title
+            if tab.is_pinned:
+                title = "📌 " + title
+            self._tab_bar.setTabText(idx, title)
+
     def open_file(self, file_path):
         for i, tab in enumerate(self._tabs):
             if tab.file_path == file_path and not isinstance(tab.editor, MonacoDiffEditorWidget):
                 self._tab_bar.setCurrentIndex(i)
                 return tab.editor
 
-        editor = MonacoEditorWidget(self)
-        editor.open_file(file_path)
-        editor.content_changed.connect(lambda c: self._on_content_changed(editor))
-        editor.save_requested.connect(lambda: self._save_editor(editor))
+        if file_path.endswith(".ipynb"):
+            from ..notebooks.editor import NotebookEditor
+            editor = NotebookEditor(self)
+            editor._file_path = file_path
+            editor.load_ipynb(file_path)
+            editor.content_changed.connect(lambda c: self._on_content_changed(editor))
+            editor.save_requested.connect(lambda: self._save_editor(editor))
+        elif file_path.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.svg', '.bmp', '.webp', '.ico')):
+            from .image_viewer import ImageViewer
+            editor = ImageViewer(self)
+            editor.load_image(file_path)
+        else:
+            editor = MonacoEditorWidget(self)
+            editor.open_file(file_path)
+            editor.content_changed.connect(lambda c: self._on_content_changed(editor))
+            editor.save_requested.connect(lambda: self._save_editor(editor))
 
         tab = EditorTab(editor, file_path)
         self._tabs.append(tab)
@@ -434,6 +487,28 @@ class EditorGroup(QWidget):
         self._update_tab_row_visibility()
         self._update_breadcrumb(file_path)
         return editor
+
+    def _update_breadcrumb(self, file_path: str):
+        if not hasattr(self, "_breadcrumb_label") or not self._breadcrumb_label:
+            return
+        if not file_path:
+            self._breadcrumb_label.setText("No file open")
+            return
+            
+        # Display path relative to workspace or just the basename if no workspace
+        from ..core.config import get_config
+        config = get_config()
+        ws = config.workspace_path
+        
+        display_path = file_path
+        if ws and file_path.startswith(ws):
+            display_path = os.path.relpath(file_path, ws)
+            # Use VS Code style breadcrumb separator
+            display_path = display_path.replace(os.sep, " > ")
+        else:
+            display_path = os.path.basename(file_path)
+            
+        self._breadcrumb_label.setText(display_path)
 
     def add_custom_tab(self, widget, title, icon=None):
         # Provide dummy methods for Monaco duck-typing
@@ -623,7 +698,13 @@ class EditorGroup(QWidget):
 
     def set_word_wrap(self, enabled):
         for tab in self._tabs:
-            tab.editor.set_word_wrap(enabled)
+            if hasattr(tab.editor, "set_word_wrap"):
+                tab.editor.set_word_wrap(enabled)
+
+    def set_minimap(self, enabled):
+        for tab in self._tabs:
+            if hasattr(tab.editor, "set_minimap"):
+                tab.editor.set_minimap(enabled)
 
     def set_theme(self, is_dark: bool):
         for tab in self._tabs:

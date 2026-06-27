@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dardcor-code"
-version = "1.0.8"
+version = "1.0.0"
 description = "Full Desktop AI Coding Assistant — VS Code-like IDE with AI pair programming"
 readme = "README.md"
 license = { text = "MIT" }

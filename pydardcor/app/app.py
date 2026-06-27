@@ -27,9 +27,12 @@ if os.name == 'nt':
 
 from .main_window import MainWindow
 from .theme_manager import ThemeManager
+from ..core.crash_reporter import setup_crash_reporter
 
 def run_desktop_app():
     """Launch the Dardcor Code desktop application."""
+    
+    setup_crash_reporter()
 
     # High DPI support
     if hasattr(Qt, "AA_EnableHighDpiScaling"):

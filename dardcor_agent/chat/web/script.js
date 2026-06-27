@@ -79,6 +79,9 @@ function appendAgentMessage(text, isHtml) {
         processedText = processedText.replace(/<thought>([\s\S]*?)<\/thought>/gi, function(match, innerContent) {
             return `\n<details class="thought-block"><summary><span>🧠 Agent is thinking...</span></summary><div class="thought-content">\n\n${innerContent}\n\n</div></details>\n`;
         });
+        processedText = processedText.replace(/<thought>([\s\S]*)$/gi, function(match, innerContent) {
+            return `\n<details class="thought-block" open><summary><span>🧠 Agent is thinking...</span></summary><div class="thought-content">\n\n${innerContent}\n\n</div></details>\n`;
+        });
     }
 
     const div = document.createElement('div');

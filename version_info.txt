@@ -16,12 +16,12 @@ VSVersionInfo(
         '040904B0',
         [StringStruct('CompanyName', 'Dardcor Team'),
         StringStruct('FileDescription', 'Dardcor Code AI Assistant'),
-        StringStruct('FileVersion', '1.0.8'),
+        StringStruct('FileVersion', '1.0.0'),
         StringStruct('InternalName', 'dardcor'),
         StringStruct('LegalCopyright', '\xa9 Dardcor Team. All rights reserved.'),
         StringStruct('OriginalFilename', 'Dardcor Code.exe'),
         StringStruct('ProductName', 'Dardcor Code'),
-        StringStruct('ProductVersion', '1.0.8')])
+        StringStruct('ProductVersion', '1.0.0')])
       ]), 
     VarFileInfo([VarStruct('Translation', [1033, 1200])])
   ]

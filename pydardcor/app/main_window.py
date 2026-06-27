@@ -561,7 +561,7 @@ from dardcor_agent.chat.memory import Conversation
 from ..core.filesystem import parse_python_symbols
 from ..ui_shared.activity_bar import (
     ActivityBar, VIEW_EXPLORER, VIEW_SEARCH, VIEW_SOURCE_CONTROL,
-    VIEW_EXTENSIONS,
+    VIEW_EXTENSIONS, VIEW_TESTING
 )
 from ..file_explorer.panel import FileExplorer
 from ..editor import EditorTabs
@@ -584,6 +584,20 @@ from ..core.extension_manager import get_extension_manager
 # --- Phase 13 Injections ---
 from ..workspace.multi_root import MultiRootWorkspace
 from ..tasks.task_manager import TaskManager
+from ..testing.panel import TestExplorerPanel
+# --- Phase 14 Injections ---
+from ..ui_shared.screencast_mode import ScreencastMode
+from ..ui_shared.notification_service import NotificationService
+from ..editor.hex_editor import HexEditorWidget
+from ..editor.snippet_manager import get_snippet_manager
+from ..workspace.workspace_trust import WorkspaceTrust, WorkspaceTrustDialog
+from ..debug.launch_config import LaunchConfigManager
+from ..git.clone_dialog import GitCloneDialog
+from ..remote.ports_panel import PortForwardingPanel
+# --- Phase 5 Injections ---
+from ..sync.settings_sync import SettingsSyncManager
+from ..remote.ssh_manager import RemoteSSHManager
+from ..git.git_graph import GitGraphPanel
 # ---------------------------
 
 
@@ -606,6 +620,17 @@ class MainWindow(QMainWindow):
         
         # --- Phase 13 Instantiations ---
         self._task_manager = TaskManager(self._config.workspace_path or "")
+        
+        # --- Phase 14 Instantiations ---
+        self._screencast = ScreencastMode(self)
+        self._notifications = NotificationService(self)
+        self._workspace_trust = WorkspaceTrust()
+        self._launch_config = LaunchConfigManager(self._config.workspace_path or "")
+        self._snippet_manager = get_snippet_manager()
+        
+        # --- Phase 5 Instantiations ---
+        self._settings_sync = SettingsSyncManager(self)
+        self._ssh_manager = RemoteSSHManager(self)
         # -------------------------------
         
         self._setup_agent()
@@ -838,11 +863,25 @@ class MainWindow(QMainWindow):
         )
         self._sidebar_stack.addWidget(self._search_panel)
 
+        # Source Control
+        git_wrapper = QWidget()
+        git_wrapper.setStyleSheet("background-color: #000000;")
+        git_layout = QVBoxLayout(git_wrapper)
+        git_layout.setContentsMargins(0, 0, 0, 0)
+        git_layout.setSpacing(0)
+        
         self._git_panel = GitPanel(root_path="")
         self._git_panel.file_open_requested.connect(self._open_file_in_editor)
         self._git_panel.diff_open_requested.connect(self._open_diff_in_editor)
         self._git_panel.refreshed.connect(self._file_explorer._refresh)
-        self._sidebar_stack.addWidget(self._git_panel)
+        
+        self._git_graph_panel = GitGraphPanel(workspace_path="")
+        self._git_graph_panel.commit_selected.connect(lambda commit: self._chat_panel.append_system_message(f"Selected commit: {commit}"))
+        
+        git_layout.addWidget(self._git_panel, 2)
+        git_layout.addWidget(self._git_graph_panel, 1)
+        
+        self._sidebar_stack.addWidget(git_wrapper)
 
         # Run and Debug Panel
         self._debug_panel = DebugPanel(self)
@@ -853,6 +892,10 @@ class MainWindow(QMainWindow):
         self._extensions_panel = ExtensionsPanel()
         self._extensions_panel.extension_installed.connect(self._on_extension_installed)
         self._sidebar_stack.addWidget(self._extensions_panel)
+        
+        self._testing_panel = TestExplorerPanel(root_path="")
+        self._testing_panel.file_open_requested.connect(self._open_file_in_editor)
+        self._sidebar_stack.addWidget(self._testing_panel)
 
         self._sidebar_stack.setCurrentIndex(0)
 
@@ -888,15 +931,29 @@ class MainWindow(QMainWindow):
         self._output_panel = OutputPanel()
         self._debug_console = OutputPanel()
         self._terminal_panel = TerminalPanel(root_path=os.path.expanduser("~"))
+        
+        self._ports_panel = PortForwardingPanel(self)
 
         self._bottom_panel = BottomPanel()
         self._bottom_panel.set_panels(
             self._problems_panel,
             self._output_panel,
             self._debug_console,
-            self._terminal_panel
+            self._terminal_panel,
+            self._ports_panel
         )
         self._bottom_panel.hide()
+        
+        # Connect Task Manager to Output Panel
+        self._task_manager.task_started.connect(
+            lambda name: self._output_panel.append(f"> Executing task: {name} <\n", "Tasks")
+        )
+        self._task_manager.task_output.connect(
+            lambda name, out: self._output_panel.append(out, "Tasks")
+        )
+        self._task_manager.task_finished.connect(
+            lambda name, code: self._output_panel.append(f"Terminal will be reused by tasks, press any key to close it.\n", "Tasks")
+        )
 
         # ── Layout assembly ──
 
@@ -928,10 +985,18 @@ class MainWindow(QMainWindow):
         # Center area + Chat horizontal splitter
         self._center_chat_split = QSplitter(Qt.Horizontal)
         self._center_chat_split.addWidget(self._editor_term_split)
+        
+        # ── Secondary Sidebar ──
+        self._secondary_sidebar_stack = QStackedWidget()
+        self._secondary_sidebar_stack.setMinimumWidth(200)
+        self._secondary_sidebar_stack.hide()
+        
+        self._center_chat_split.addWidget(self._secondary_sidebar_stack)
         self._center_chat_split.addWidget(self._chat_panel)
         self._center_chat_split.setStretchFactor(0, 3)
-        self._center_chat_split.setStretchFactor(1, 1)
-        self._center_chat_split.setSizes([800, 350])
+        self._center_chat_split.setStretchFactor(1, 0)
+        self._center_chat_split.setStretchFactor(2, 1)
+        self._center_chat_split.setSizes([800, 0, 350])
         self._center_chat_split.setHandleWidth(1)
         self._center_chat_split.setStyleSheet("""
             QSplitter::handle {
@@ -1103,7 +1168,7 @@ class MainWindow(QMainWindow):
         
         settings_action = QAction("Settings", self)
         settings_action.setShortcut(QKeySequence("Ctrl+,"))
-        settings_action.triggered.connect(self._show_command_palette)
+        settings_action.triggered.connect(self._show_settings)
         preferences_menu.addAction(settings_action)
         
         extensions_action = QAction("Extensions", self)
@@ -1129,7 +1194,7 @@ class MainWindow(QMainWindow):
 
         color_theme = QAction("Color Theme", self)
         color_theme.setShortcut(QKeySequence("Ctrl+K, Ctrl+T"))
-        color_theme.triggered.connect(self._show_command_palette)
+        color_theme.triggered.connect(self._show_theme_switcher)
         preferences_menu.addAction(color_theme)
         
         file_icon_theme = QAction("File Icon Theme", self)
@@ -1874,9 +1939,26 @@ class MainWindow(QMainWindow):
         self._commands = [
             {"id": "file.new", "label": "File: New File", "shortcut": "Ctrl+N"},
             {"id": "file.open", "label": "File: Open File...", "shortcut": "Ctrl+O"},
-            {"id": "file.openFolder", "label": "File: Open Folder...", "shortcut": "Ctrl+K"},
-            {"id": "file.save", "label": "File: Save", "shortcut": "Ctrl+S"},
-            {"id": "file.saveAs", "label": "File: Save As...", "shortcut": "Ctrl+Shift+S"},
+            # Base
+            {"id": "workbench.action.showCommands", "label": "Show All Commands", "category": "Preferences"},
+            {"id": "workbench.action.openSettings", "label": "Open Settings (UI)", "category": "Preferences"},
+            {"id": "workbench.action.openGlobalKeybindings", "label": "Open Keyboard Shortcuts", "category": "Preferences"},
+            
+            # Editor
+            {"id": "editor.action.formatDocument", "label": "Format Document", "category": "Editor"},
+            {"id": "editor.action.revealDefinition", "label": "Go to Definition", "category": "Editor"},
+            {"id": "editor.action.colorPicker", "label": "Show Color Picker", "category": "Editor"},
+            
+            # Workspace
+            {"id": "workbench.action.addRootFolder", "label": "Add Folder to Workspace...", "category": "Workspaces"},
+            {"id": "workbench.action.saveWorkspaceAs", "label": "Save Workspace As...", "category": "Workspaces"},
+            {"id": "workbench.action.duplicateWorkspaceInNewWindow", "label": "Duplicate As Workspace in New Window", "category": "Workspaces"},
+            
+            # View
+            {"id": "workbench.action.toggleFullScreen", "label": "Toggle Full Screen", "category": "View"},
+            {"id": "workbench.action.toggleCenteredLayout", "label": "Toggle Centered Layout", "category": "View"},
+            {"id": "workbench.action.toggleSidebarVisibility", "label": "Toggle Primary Side Bar Visibility", "category": "View"},
+            {"id": "workbench.action.toggleSecondarySidebar", "label": "Toggle Secondary Side Bar", "category": "View"},
             {"id": "edit.find", "label": "Edit: Find", "shortcut": "Ctrl+F"},
             {"id": "edit.replace", "label": "Edit: Find and Replace", "shortcut": "Ctrl+H"},
             {"id": "edit.format", "label": "Format Document", "shortcut": "Shift+Alt+F"},
@@ -1893,6 +1975,8 @@ class MainWindow(QMainWindow):
             {"id": "view.zoomIn", "label": "View: Zoom In", "shortcut": "Ctrl+="},
             {"id": "view.zoomOut", "label": "View: Zoom Out", "shortcut": "Ctrl+-"},
             {"id": "view.wordWrap", "label": "View: Toggle Word Wrap", "shortcut": "Alt+Z"},
+            {"id": "view.splitEditorRight", "label": "View: Split Editor Right", "shortcut": "Ctrl+\\"},
+            {"id": "view.splitEditorDown", "label": "View: Split Editor Down", "shortcut": "Ctrl+K Ctrl+\\"},
             {"id": "view.zenMode", "label": "View: Toggle Zen Mode", "shortcut": "Ctrl+K, Z"},
             {"id": "markdown.preview", "label": "Markdown: Open Preview", "shortcut": "Ctrl+Shift+V"},
             {"id": "terminal.new", "label": "Terminal: Create New Terminal", "shortcut": "Ctrl+Shift+`"},
@@ -1967,6 +2051,18 @@ class MainWindow(QMainWindow):
             "edit.find": self._show_find,
             "edit.replace": self._show_find_replace,
             "edit.format": lambda: self._editor_tabs.trigger_format() if self._editor_tabs.current_editor() else None,
+            "editor.action.revealDefinition": lambda: self._editor_tabs.go_to_definition() if self._editor_tabs.current_editor() else None,
+            "editor.action.colorPicker": self._show_color_picker,
+            "workbench.action.showCommands": self._show_command_palette,
+            "workbench.action.openSettings": self._show_settings,
+            "workbench.action.openGlobalKeybindings": self._show_keyboard_shortcuts,
+            "workbench.action.addRootFolder": lambda: self._show_command_palette(),
+            "workbench.action.saveWorkspaceAs": lambda: self._show_command_palette(),
+            "workbench.action.duplicateWorkspaceInNewWindow": lambda: self._show_command_palette(),
+            "workbench.action.toggleFullScreen": lambda: self._show_command_palette(),
+            "workbench.action.toggleCenteredLayout": lambda: self._show_command_palette(),
+            "workbench.action.toggleSidebarVisibility": self._toggle_sidebar,
+            "workbench.action.toggleSecondarySidebar": self._toggle_chat,
             "view.toggleSidebar": self._toggle_sidebar,
             "view.toggleChat": self._toggle_chat,
             "view.toggleTerminal": self._toggle_terminal,
@@ -1979,6 +2075,8 @@ class MainWindow(QMainWindow):
             "view.zoomIn": self._zoom_in,
             "view.zoomOut": self._zoom_out,
             "view.wordWrap": self._toggle_word_wrap,
+            "view.splitEditorRight": lambda: self._editor_tabs.split_editor("right"),
+            "view.splitEditorDown": lambda: self._editor_tabs.split_editor("down"),
             "view.zenMode": self._zen_mode.toggle_zen_mode,
             "markdown.preview": self._open_markdown_preview,
             "terminal.new": self._new_terminal,
@@ -2110,6 +2208,16 @@ class MainWindow(QMainWindow):
             self._open_file_in_editor(path)
 
     def _open_file_in_editor(self, path: str):
+        if path.startswith("line:"):
+            try:
+                line = int(path.split(":")[1])
+                editor = self._editor_tabs.current_editor()
+                if editor:
+                    editor.reveal_line(line)
+            except ValueError:
+                pass
+            return
+
         if os.path.isfile(path):
             # Track as recently opened file
             if hasattr(self, '_quick_open'):
@@ -2184,6 +2292,45 @@ class MainWindow(QMainWindow):
         editor = self._editor_tabs.current_editor()
         if editor:
             editor._view.page().runJavaScript("editor && editor.trigger('', 'selectAll', {});")
+
+    def _show_theme_switcher(self):
+        """Show theme preview picker."""
+        cmd_palette = CommandPalette(self)
+        
+        # We need a custom handler for real-time preview
+        original_theme = self._config.ui_theme if hasattr(self._config, 'ui_theme') else "dark"
+        
+        themes = [
+            {"id": "theme:dark", "label": "Dark+ (default dark)", "shortcut": ""},
+            {"id": "theme:light", "label": "Light+ (default light)", "shortcut": ""}
+        ]
+        
+        cmd_palette.set_commands(themes)
+        
+        # Real-time preview when hovering
+        def preview_theme(current, previous):
+            if current:
+                cmd_id = current.data(Qt.UserRole)
+                if cmd_id.startswith("theme:"):
+                    self._set_theme(cmd_id.split(":")[1])
+                    
+        cmd_palette._list.currentItemChanged.connect(preview_theme)
+        
+        def confirm_theme(cmd_id):
+            if cmd_id.startswith("theme:"):
+                theme_name = cmd_id.split(":")[1]
+                self._set_theme(theme_name)
+                self._config.ui_theme = theme_name
+                self._config.save()
+                
+        def cancel_theme():
+            # If closed without selecting, restore
+            if not cmd_palette.result():
+                self._set_theme(original_theme)
+                
+        cmd_palette.command_selected.connect(confirm_theme)
+        cmd_palette.rejected.connect(cancel_theme)
+        cmd_palette.show_palette()
 
     def _set_theme(self, theme_name: str):
         """Switch between Dark+, Light+, and High Contrast themes."""
@@ -2576,6 +2723,7 @@ class MainWindow(QMainWindow):
                                 fn_name = tc.get("function", {}).get("name", "tool")
                                 fn_args = tc.get("function", {}).get("arguments", "{}")
                                 fn_id = tc.get("id", f"hist-{fn_name}-{hash(fn_args) & 0xFFFFFFFF:x}")
+                                self._chat_panel._safe_append_tool_call(fn_id, fn_name, fn_args, status="running")
                                 self._chat_panel._safe_append_tool_call(fn_id, fn_name, fn_args, status="success")
                         if msg.content:
                             self._chat_panel.append_agent_message(msg.content)
@@ -2673,11 +2821,39 @@ class MainWindow(QMainWindow):
         if editor:
             editor.trigger_find_replace()
 
+    def _show_color_picker(self):
+        from PySide6.QtWidgets import QColorDialog
+        color = QColorDialog.getColor(self._config.ui_theme_base if hasattr(self._config, 'ui_theme_base') else Qt.white, self, "Color Picker")
+        if color.isValid():
+            editor = self._editor_tabs.current_editor()
+            if editor:
+                editor.insert_text(color.name())
+
+    def _show_settings(self):
+        from ..settings.settings_ui import SettingsUIWidget
+        widget = SettingsUIWidget(self)
+        self._editor_tabs.add_custom_tab(widget, "⚙ Settings")
+
+    def _apply_settings(self):
+        from ..core.config import get_config
+        self._config = get_config()
+        
+        # Apply to editor tabs
+        if hasattr(self, '_editor_tabs') and self._editor_tabs:
+            self._editor_tabs.set_font_size(self._config.font_size)
+            self._editor_tabs.set_word_wrap(self._config.word_wrap)
+            self._editor_tabs.set_minimap(self._config.minimap_enabled)
+            
+        # Apply to file explorer (to pick up files.exclude changes)
+        if hasattr(self, '_sidebar') and hasattr(self._sidebar, '_explorer'):
+            if self._sidebar._explorer._root_path:
+                self._sidebar._explorer.set_root(self._sidebar._explorer._root_path)
+
     def _show_about(self):
         QMessageBox.about(
             self,
             "About Dardcor Code",
-            "Dardcor Code v1.0.8\n\n"
+            "Dardcor Code v1.0.0\n\n"
             "Full Desktop AI Coding Assistant\n\n"
             "A VS Code-like IDE with integrated AI pair programming.\n"
             "Built with Python + PySide6 (Qt)\n\n"
@@ -2686,8 +2862,9 @@ class MainWindow(QMainWindow):
         )
 
     def _show_keyboard_shortcuts(self):
-        dialog = KeybindingsDialog(self._keybindings_manager, self)
-        dialog.exec()
+        from ..settings.keybindings_ui import KeybindingsUIWidget
+        widget = KeybindingsUIWidget(self)
+        self._editor_tabs.add_custom_tab(widget, "⌨ Keyboard Shortcuts")
 
     # ── Markdown Preview ──────────────────────────────────
 
@@ -2838,9 +3015,36 @@ class MainWindow(QMainWindow):
     # ── Close ─────────────────────────────────────────────
 
     def closeEvent(self, event):
+        # Handle unsaved files
+        if getattr(self._config, 'auto_save', False):
+            self._editor_tabs.save_all(is_auto_save=True)
+        else:
+            dirty_count = 0
+            for group in self._editor_tabs._groups:
+                for tab in group._tabs:
+                    if tab.editor and hasattr(tab.editor, 'is_dirty') and tab.editor.is_dirty():
+                        dirty_count += 1
+            if dirty_count > 0:
+                reply = QMessageBox.question(
+                    self, "Unsaved Files",
+                    f"You have {dirty_count} unsaved file(s). Do you want to save them before closing?",
+                    QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel
+                )
+                if reply == QMessageBox.Save:
+                    self._editor_tabs.save_all()
+                elif reply == QMessageBox.Cancel:
+                    event.ignore()
+                    return
+
         # Clean up terminal processes
-        for term in self._terminal_panel._terminals:
-            term.kill_all()
+        for term in getattr(self._terminal_panel, '_terminals', []):
+            if hasattr(term, 'kill_all'):
+                term.kill_all()
+                
+        # Clean up language servers
+        if hasattr(self, '_lsp_manager'):
+            self._lsp_manager.shutdown_all()
+
         # Save config
         self._config.save()
         super().closeEvent(event)

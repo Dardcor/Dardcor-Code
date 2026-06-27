@@ -75,11 +75,14 @@ class BottomPanel(QWidget):
         self.btn_debug.setObjectName("btnDebugConsole")
         self.btn_terminal = BottomPanelButton("TERMINAL")
         self.btn_terminal.setObjectName("btnTerminal")
+        self.btn_ports = BottomPanelButton("PORTS")
+        self.btn_ports.setObjectName("btnPorts")
         
         self.tabs_layout.addWidget(self.btn_problems)
         self.tabs_layout.addWidget(self.btn_output)
         self.tabs_layout.addWidget(self.btn_debug)
         self.tabs_layout.addWidget(self.btn_terminal)
+        self.tabs_layout.addWidget(self.btn_ports)
         
         self.header_layout.addWidget(self.tabs_container)
         self.header_layout.addStretch(1) # push terminal controls and actions to the right
@@ -142,20 +145,23 @@ class BottomPanel(QWidget):
         self.btn_output.clicked.connect(lambda: self.switch_view(1))
         self.btn_debug.clicked.connect(lambda: self.switch_view(2))
         self.btn_terminal.clicked.connect(lambda: self.switch_view(3))
+        self.btn_ports.clicked.connect(lambda: self.switch_view(4))
 
         # Default to Terminal
         self.switch_view(3)
 
-    def set_panels(self, problems, output, debug, terminal):
+    def set_panels(self, problems, output, debug, terminal, ports):
         self._problems_widget = problems
         self._output_widget = output
         self._debug_widget = debug
         self._terminal_widget = terminal
+        self._ports_widget = ports
         
         self._stack.addWidget(problems)
         self._stack.addWidget(output)
         self._stack.addWidget(debug)
         self._stack.addWidget(terminal)
+        self._stack.addWidget(ports)
         
         # Move terminal controls (QTabBar + actions) into the right controls container
         if hasattr(terminal, "get_toolbar"):
@@ -169,12 +175,13 @@ class BottomPanel(QWidget):
         self.btn_output.setChecked(index == 1)
         self.btn_debug.setChecked(index == 2)
         self.btn_terminal.setChecked(index == 3)
+        self.btn_ports.setChecked(index == 4)
         
         # Only show terminal toolbar when Terminal is active
         self.right_controls.setVisible(index == 3)
 
     def set_active_view(self, name: str):
-        mapping = {"problems": 0, "output": 1, "debug": 2, "terminal": 3}
+        mapping = {"problems": 0, "output": 1, "debug": 2, "terminal": 3, "ports": 4}
         if name in mapping:
             self.switch_view(mapping[name])
             self.show()
@@ -184,7 +191,13 @@ class BottomPanel(QWidget):
         if idx == 0: return "problems"
         if idx == 1: return "output"
         if idx == 2: return "debug"
+    def current_view_name(self):
+        idx = self._stack.currentIndex()
+        if idx == 0: return "problems"
+        if idx == 1: return "output"
+        if idx == 2: return "debug"
         if idx == 3: return "terminal"
+        if idx == 4: return "ports"
         return ""
 
     def _toggle_maximize(self):

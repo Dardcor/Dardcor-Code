@@ -11,7 +11,10 @@ from PySide6.QtCore import Signal, Qt, QSize, QPoint, QByteArray, QLocale, QFile
 from PySide6.QtGui import QAction, QColor, QPainter, QPixmap, QIcon, QPen, QFont, QPolygonF, QCursor, QImage
 from PySide6.QtSvg import QSvgRenderer
 
+import shutil
+import fnmatch
 from .outline_panel import SectionHeaderButton
+from ..core.config import get_config, get_hierarchical_config
 
 # Fix Qt locale float parsing bugs in QSvgRenderer (e.g. for European/Indonesian locales using comma as decimal point)
 QLocale.setDefault(QLocale.c())
@@ -251,6 +254,45 @@ def get_folder_icon(foldername: str = "", is_open: bool = False) -> QIcon:
     return _render_svg(SVG_FOLDER)
 
 
+class ExplorerTreeWidget(QTreeWidget):
+    """Custom tree widget to handle actual file moving on drag and drop."""
+    file_dropped = Signal(str, str) # source_path, target_folder
+
+    def dropEvent(self, event):
+        source_item = self.currentItem()
+        if not source_item:
+            return super().dropEvent(event)
+            
+        source_path = source_item.data(0, Qt.UserRole)
+        target_item = self.itemAt(event.position().toPoint())
+        
+        target_path = None
+        if target_item:
+            target_path = target_item.data(0, Qt.UserRole)
+            if target_path and not os.path.isdir(target_path):
+                target_path = os.path.dirname(target_path)
+        else:
+            # If no target item (empty area), drop to root
+            parent_explorer = self.parent()
+            if hasattr(parent_explorer, '_root_path'):
+                target_path = parent_explorer._root_path
+                
+        if source_path and target_path and source_path != target_path:
+            # Check if target is not a subfolder of source
+            if not target_path.startswith(source_path + os.sep):
+                try:
+                    dest = os.path.join(target_path, os.path.basename(source_path))
+                    if not os.path.exists(dest):
+                        shutil.move(source_path, dest)
+                        # No need to call super() because filesystem watcher will refresh the UI
+                        event.accept()
+                        return
+                except Exception as e:
+                    print(f"Error moving file: {e}")
+                    
+        super().dropEvent(event)
+
+
 class FileExplorer(QWidget):
     file_selected = Signal(str)
     root_changed = Signal(str)
@@ -377,7 +419,7 @@ class FileExplorer(QWidget):
         layout.addWidget(self._workspace_header)
 
         # Tree widget
-        self._tree = QTreeWidget()
+        self._tree = ExplorerTreeWidget(self)
         self._tree.setStyle(TreeBranchStyle())
         self._tree.setHeaderHidden(True)
         self._tree.setIndentation(12)
@@ -446,9 +488,32 @@ class FileExplorer(QWidget):
         except (PermissionError, OSError):
             return
 
+        # Fetch files.exclude config
+        h_config = get_hierarchical_config(self._root_path)
+        exclude_dict = h_config.get("files.exclude", {
+            "**/.git": True,
+            "**/__pycache__": True,
+            "**/.DS_Store": True
+        })
+        
+        # Parse exclude patterns
+        exclude_patterns = []
+        for pattern, is_excluded in exclude_dict.items():
+            if is_excluded:
+                # Basic conversion from glob to fnmatch compatible
+                pat = pattern.replace("**/", "*") if pattern.startswith("**/") else pattern
+                exclude_patterns.append(pat)
+
         added_any = False
         for name in entries:
-            if name in ("__pycache__", ".git"):
+            # Check exclusions
+            should_exclude = False
+            for pat in exclude_patterns:
+                if fnmatch.fnmatch(name, pat):
+                    should_exclude = True
+                    break
+            
+            if should_exclude:
                 continue
 
             added_any = True

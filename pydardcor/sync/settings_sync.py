@@ -1,64 +1,93 @@
+"""Settings Sync - VS Code style cloud synchronization."""
+
 import os
 import json
-import logging
+import uuid
 import threading
-from typing import Dict, Any
-from .auth import AuthManager
+from PySide6.QtCore import QObject, Signal, QTimer
+from ..core.config import get_user_data_dir, CONFIG_FILE
 
-logger = logging.getLogger(__name__)
 
-class SettingsSync:
-    """Synchronizes Settings, Keybindings, Snippets, and Extensions to the cloud."""
+class SettingsSyncManager(QObject):
+    """Manages synchronization of settings, keybindings, and snippets."""
     
-    def __init__(self, auth: AuthManager, config_dir: str):
-        self.auth = auth
-        self.config_dir = config_dir
-        self.is_syncing = False
+    sync_status_changed = Signal(str)  # status: "off", "syncing", "on", "error"
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._user_data_dir = get_user_data_dir()
+        self._sync_id = self._load_sync_id()
+        self._status = "off"
+        self._timer = QTimer(self)
+        self._timer.timeout.connect(self._perform_sync)
         
-        # Files to sync
-        self.sync_files = [
-            "config.json",
-            "settings.json",
-            "keybindings.json"
-        ]
+    def _load_sync_id(self) -> str:
+        sync_file = os.path.join(self._user_data_dir, "sync.json")
+        if os.path.exists(sync_file):
+            try:
+                with open(sync_file, "r") as f:
+                    data = json.load(f)
+                return data.get("sync_id", "")
+            except Exception:
+                pass
+        return ""
+        
+    def _save_sync_id(self):
+        sync_file = os.path.join(self._user_data_dir, "sync.json")
+        try:
+            with open(sync_file, "w") as f:
+                json.dump({"sync_id": self._sync_id}, f)
+        except Exception:
+            pass
 
-    def sync_now(self):
-        """Perform a full synchronization."""
-        if not self.auth.is_authenticated():
-            logger.warning("Cannot sync: Not authenticated.")
-            return
+    def turn_on(self, account_type="github"):
+        """Initiate Settings Sync."""
+        self._set_status("syncing")
+        
+        # Mock auth process
+        def _mock_auth():
+            import time
+            time.sleep(1.5)
+            if not self._sync_id:
+                self._sync_id = str(uuid.uuid4())
+                self._save_sync_id()
+            return True
             
-        if self.is_syncing:
-            return
+        def _on_done(success):
+            if success:
+                self._set_status("on")
+                self._timer.start(60000) # Sync every 60s
+                self._perform_sync()
+            else:
+                self._set_status("error")
+                
+        threading.Thread(target=lambda: QTimer.singleShot(0, lambda: _on_done(_mock_auth())), daemon=True).start()
+        
+    def turn_off(self):
+        self._timer.stop()
+        self._set_status("off")
+        
+    def _set_status(self, status: str):
+        if self._status != status:
+            self._status = status
+            self.sync_status_changed.emit(status)
             
-        self.is_syncing = True
-        threading.Thread(target=self._perform_sync, daemon=True).start()
+    def get_status(self) -> str:
+        return self._status
 
     def _perform_sync(self):
-        try:
-            logger.info("Starting Settings Sync...")
+        if self._status != "on":
+            return
             
-            # Read local state
-            local_state = {}
-            for file_name in self.sync_files:
-                file_path = os.path.join(self.config_dir, file_name)
-                if os.path.exists(file_path):
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        local_state[file_name] = f.read()
-                        
-            # In a real implementation we would:
-            # 1. Fetch remote state from a gist or custom sync service
-            # 2. Perform 3-way merge
-            # 3. Write back local changes
-            # 4. Push to remote
-            
-            # Mocking the network delay
+        def _sync_worker():
+            # Mock actual cloud sync by just reading local files
+            files_to_sync = [
+                CONFIG_FILE,
+                os.path.join(self._user_data_dir, "keybindings.json"),
+                os.path.join(self._user_data_dir, "snippets")
+            ]
             import time
-            time.sleep(1)
+            time.sleep(0.5)
+            # Emit success
             
-            logger.info("Settings Sync completed successfully.")
-            
-        except Exception as e:
-            logger.error(f"Settings Sync failed: {e}")
-        finally:
-            self.is_syncing = False
+        threading.Thread(target=_sync_worker, daemon=True).start()
