@@ -5,6 +5,47 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, Signal
 
+class ChatHistoryItemWidget(QWidget):
+    edit_clicked = Signal(str, str) # cid, current_title
+    delete_clicked = Signal(str, str) # cid, current_title
+
+    def __init__(self, cid, title, parent=None):
+        super().__init__(parent)
+        self.cid = cid
+        self.title = title
+        
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(8, 4, 8, 4)
+        
+        self.lbl_title = QLabel(title)
+        self.lbl_title.setStyleSheet("color: #d4d4d4; font-size: 13px; background: transparent;")
+        
+        self.btn_edit = QPushButton("✏️")
+        self.btn_edit.setFixedSize(28, 28)
+        self.btn_edit.setToolTip("Ubah Judul")
+        self.btn_edit.setStyleSheet("""
+            QPushButton { background: transparent; border: none; font-size: 14px; border-radius: 4px; }
+            QPushButton:hover { background-color: rgba(255, 255, 255, 0.1); }
+        """)
+        self.btn_edit.setCursor(Qt.PointingHandCursor)
+        self.btn_edit.clicked.connect(lambda: self.edit_clicked.emit(self.cid, self.title))
+        
+        self.btn_delete = QPushButton("🗑️")
+        self.btn_delete.setFixedSize(28, 28)
+        self.btn_delete.setToolTip("Hapus")
+        self.btn_delete.setStyleSheet("""
+            QPushButton { background: transparent; border: none; font-size: 14px; border-radius: 4px; }
+            QPushButton:hover { background-color: rgba(255, 50, 50, 0.3); }
+        """)
+        self.btn_delete.setCursor(Qt.PointingHandCursor)
+        self.btn_delete.clicked.connect(lambda: self.delete_clicked.emit(self.cid, self.title))
+        
+        layout.addWidget(self.lbl_title)
+        layout.addStretch()
+        layout.addWidget(self.btn_edit)
+        layout.addWidget(self.btn_delete)
+
+
 class ChatHistoryDialog(QDialog):
     """A robust dialog to view, edit, and delete chat history."""
 
@@ -19,90 +60,114 @@ class ChatHistoryDialog(QDialog):
 
         layout = QVBoxLayout(self)
 
-        # Title
+        # Header Row
+        header_layout = QHBoxLayout()
         title_lbl = QLabel("Riwayat Percakapan")
-        title_lbl.setStyleSheet("font-size: 16px; font-weight: bold; color: #e0e0e0; margin-bottom: 8px;")
-        layout.addWidget(title_lbl)
+        title_lbl.setStyleSheet("font-size: 16px; font-weight: bold; color: #e0e0e0;")
+        header_layout.addWidget(title_lbl)
+        
+        header_layout.addStretch()
+        
+        self.btn_delete_all = QPushButton("Delete All")
+        self.btn_delete_all.setStyleSheet("""
+            QPushButton {
+                background-color: #8a1515; 
+                color: white; 
+                padding: 4px 12px; 
+                border-radius: 4px;
+                font-size: 12px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #a81a1a;
+            }
+        """)
+        self.btn_delete_all.setCursor(Qt.PointingHandCursor)
+        self.btn_delete_all.clicked.connect(self._on_delete_all_clicked)
+        header_layout.addWidget(self.btn_delete_all)
+        
+        layout.addLayout(header_layout)
 
         # List Widget
         self.list_widget = QListWidget()
-        self.list_widget.setStyleSheet(
-            "QListWidget { background-color: #161616; border: 1px solid #3c0068; border-radius: 4px; padding: 4px; outline: none; }"
-            "QListWidget::item { padding: 8px; border-bottom: 1px solid #2d2d2d; }"
-            "QListWidget::item:selected { background-color: #2a2238; }"
-        )
-        self.list_widget.itemDoubleClicked.connect(self._on_item_double_clicked)
+        self.list_widget.setStyleSheet("""
+            QListWidget { 
+                background-color: #161616; 
+                border: 1px solid #3c0068; 
+                border-radius: 4px; 
+                padding: 4px; 
+                outline: none; 
+            }
+            QListWidget::item { 
+                border-bottom: 1px solid #2d2d2d; 
+            }
+            QListWidget::item:selected { 
+                background-color: #2a2238; 
+            }
+            QListWidget::item:hover:!selected {
+                background-color: rgba(255, 255, 255, 0.05);
+            }
+        """)
+        self.list_widget.itemClicked.connect(self._on_item_clicked)
         layout.addWidget(self.list_widget)
-
-        # Buttons
-        btn_layout = QHBoxLayout()
-        
-        self.btn_open = QPushButton("Buka")
-        self.btn_open.setStyleSheet("background-color: #3c0068; color: white; padding: 6px 16px; border-radius: 4px;")
-        self.btn_open.clicked.connect(self._on_open_clicked)
-        
-        self.btn_edit = QPushButton("Ubah Judul")
-        self.btn_edit.setStyleSheet("background-color: #2d2d2d; color: white; padding: 6px 16px; border-radius: 4px;")
-        self.btn_edit.clicked.connect(self._on_edit_clicked)
-        
-        self.btn_delete = QPushButton("Hapus")
-        self.btn_delete.setStyleSheet("background-color: #8a1515; color: white; padding: 6px 16px; border-radius: 4px;")
-        self.btn_delete.clicked.connect(self._on_delete_clicked)
-
-        btn_layout.addWidget(self.btn_open)
-        btn_layout.addStretch()
-        btn_layout.addWidget(self.btn_edit)
-        btn_layout.addWidget(self.btn_delete)
-
-        layout.addLayout(btn_layout)
 
         self._load_data()
 
     def _load_data(self):
         self.list_widget.clear()
         convs = self._agent.list_conversations()
+        
+        self.btn_delete_all.setVisible(len(convs) > 0)
+        
         for c in convs:
             title = c.get("title", "Untitled")
             cid = c.get("id")
-            item = QListWidgetItem(f"{title}")
+            
+            item = QListWidgetItem(self.list_widget)
             item.setData(Qt.UserRole, cid)
+            
+            # Create custom widget
+            widget = ChatHistoryItemWidget(cid, title, self.list_widget)
+            widget.edit_clicked.connect(self._on_edit_clicked)
+            widget.delete_clicked.connect(self._on_delete_clicked)
+            
+            # Set size hint properly
+            item.setSizeHint(widget.sizeHint())
+            
             self.list_widget.addItem(item)
+            self.list_widget.setItemWidget(item, widget)
 
-    def _on_item_double_clicked(self, item):
-        self._on_open_clicked()
-
-    def _on_open_clicked(self):
-        item = self.list_widget.currentItem()
-        if not item:
-            return
+    def _on_item_clicked(self, item):
         cid = item.data(Qt.UserRole)
         self.conversation_selected.emit(cid)
         self.accept()
 
-    def _on_edit_clicked(self):
-        item = self.list_widget.currentItem()
-        if not item:
-            return
-        cid = item.data(Qt.UserRole)
-        old_title = item.text()
-
+    def _on_edit_clicked(self, cid, old_title):
         new_title, ok = QInputDialog.getText(self, "Ubah Judul", "Judul Percakapan Baru:", text=old_title)
         if ok and new_title.strip():
             self._agent.rename_conversation(cid, new_title.strip())
             self._load_data()
 
-    def _on_delete_clicked(self):
-        item = self.list_widget.currentItem()
-        if not item:
-            return
-        cid = item.data(Qt.UserRole)
-        
+    def _on_delete_clicked(self, cid, title):
         reply = QMessageBox.question(
             self, 'Konfirmasi Hapus',
-            f"Apakah Anda yakin ingin menghapus percakapan '{item.text()}'?",
+            f"Apakah Anda yakin ingin menghapus percakapan '{title}'?",
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No
         )
         
         if reply == QMessageBox.Yes:
             self._agent.delete_conversation(cid)
+            self._load_data()
+
+    def _on_delete_all_clicked(self):
+        reply = QMessageBox.question(
+            self, 'Konfirmasi Hapus Semua',
+            "Apakah Anda yakin ingin menghapus SEMUA riwayat percakapan? Tindakan ini tidak dapat dibatalkan.",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            convs = self._agent.list_conversations()
+            for c in convs:
+                self._agent.delete_conversation(c.get("id"))
             self._load_data()

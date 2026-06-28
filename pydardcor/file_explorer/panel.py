@@ -936,11 +936,14 @@ class FileExplorer(QWidget):
                     return
 
     def _show_context_menu(self, position):
-        item = self._tree.itemAt(position)
+        self._refresh_timer.stop()
+        self._in_inline_edit = True
+        try:
+            item = self._tree.itemAt(position)
 
-        menu = QMenu(self)
-        menu.setStyleSheet("""
-            QMenu {
+            menu = QMenu(self)
+            menu.setStyleSheet("""
+                QMenu {
                 background-color: #000000;
                 color: #cccccc;
                 border: 1px solid #454545;
@@ -1039,6 +1042,10 @@ class FileExplorer(QWidget):
             menu.addAction(copy_rel)
 
         menu.exec(self._tree.viewport().mapToGlobal(position))
+        
+        finally:
+            self._in_inline_edit = False
+            self._schedule_refresh()
 
     def _copy_path(self, path: str):
         from PySide6.QtWidgets import QApplication
