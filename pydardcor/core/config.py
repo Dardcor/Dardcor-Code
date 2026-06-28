@@ -38,6 +38,10 @@ class AppConfig:
     terminal_shell: str = ""
     recent_files: list = field(default_factory=list)
     recent_folders: list = field(default_factory=list)
+    show_open_editors: bool = False
+    show_folders: bool = True
+    show_outline: bool = True
+    show_timeline: bool = True
 
     def save(self):
         os.makedirs(CONFIG_DIR, exist_ok=True)

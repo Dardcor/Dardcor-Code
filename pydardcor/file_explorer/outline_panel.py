@@ -13,7 +13,7 @@ class SectionHeaderButton(QPushButton):
     def __init__(self, text, collapsed=True, parent=None):
         super().__init__(text, parent)
         self._collapsed = collapsed
-        self.setFixedHeight(24)
+        self.setMinimumHeight(24)
         self.setCursor(Qt.PointingHandCursor)
         self.setObjectName("SectionHeaderButton")
         
@@ -89,13 +89,10 @@ class OutlinePanel(QWidget):
 
     item_selected = Signal(int)  # Emit line number to jump to
 
-    HEADER_HEIGHT = 22
-
     def __init__(self, parent=None):
         super().__init__(parent)
         self._collapsed = True
         self._setup_ui()
-        self._apply_collapsed_size()
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
@@ -137,13 +134,6 @@ class OutlinePanel(QWidget):
         # Start collapsed
         self._tree.hide()
 
-    def _apply_collapsed_size(self):
-        if self._collapsed:
-            self.setFixedHeight(self.HEADER_HEIGHT)
-        else:
-            self.setMinimumHeight(self.HEADER_HEIGHT + 40)
-            self.setMaximumHeight(16777215)  # QWIDGETSIZE_MAX
-
     def _update_header_text(self):
         self._header.set_collapsed(self._collapsed)
 
@@ -151,15 +141,6 @@ class OutlinePanel(QWidget):
         self._collapsed = not self._collapsed
         self._tree.setVisible(not self._collapsed)
         self._update_header_text()
-        self._apply_collapsed_size()
-
-    def sizeHint(self):
-        if self._collapsed:
-            return QSize(200, self.HEADER_HEIGHT)
-        return super().sizeHint()
-
-    def minimumSizeHint(self):
-        return QSize(0, self.HEADER_HEIGHT)
 
     def set_symbols(self, symbols: list):
         """

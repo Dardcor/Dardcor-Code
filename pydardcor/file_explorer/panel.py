@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem,
     QLabel, QPushButton, QHBoxLayout, QFileDialog, QMenu, QInputDialog,
     QMessageBox, QHeaderView, QStyledItemDelegate, QStyleOptionViewItem,
-    QProxyStyle, QStyle,
+    QProxyStyle, QStyle, QSizePolicy,
 )
 from PySide6.QtCore import Signal, Qt, QSize, QPoint, QByteArray, QLocale, QFileSystemWatcher, QTimer
 from PySide6.QtGui import QAction, QColor, QPainter, QPixmap, QIcon, QPen, QFont, QPolygonF, QCursor, QImage
@@ -491,9 +491,20 @@ class FileExplorer(QWidget):
         self._outline_panel = outline_panel
         self._timeline_panel = timeline_panel
         
-        # Hide Open Editors by default to match VS Code
+        config = get_config()
         if self._open_editors_panel:
-            self._open_editors_panel.hide()
+            self._open_editors_panel.setVisible(config.show_open_editors)
+        if self._outline_panel:
+            self._outline_panel.setVisible(config.show_outline)
+        if self._timeline_panel:
+            self._timeline_panel.setVisible(config.show_timeline)
+        
+        folders_visible = config.show_folders
+        if not folders_visible:
+            self._tree.setVisible(False)
+            self._workspace_header.setVisible(False)
+            if self._welcome_widget:
+                self._welcome_widget.setVisible(False)
 
     def _show_explorer_menu(self):
         from PySide6.QtWidgets import QMenu
@@ -514,11 +525,16 @@ class FileExplorer(QWidget):
             }
         """)
         
+        config = get_config()
         if self._open_editors_panel:
             toggle_oe = QAction("Open Editors", self)
             toggle_oe.setCheckable(True)
-            toggle_oe.setChecked(self._open_editors_panel.isVisible())
-            toggle_oe.triggered.connect(lambda checked: self._open_editors_panel.setVisible(checked))
+            toggle_oe.setChecked(not self._open_editors_panel.isHidden())
+            def _toggle_oe(checked):
+                self._open_editors_panel.setVisible(checked)
+                config.show_open_editors = checked
+                config.save()
+            toggle_oe.triggered.connect(_toggle_oe)
             menu.addAction(toggle_oe)
             
         toggle_folders = QAction("Folders", self)
@@ -530,21 +546,31 @@ class FileExplorer(QWidget):
             self._workspace_header.setVisible(checked)
             if self._welcome_widget and not self._root_path:
                 self._welcome_widget.setVisible(checked)
+            config.show_folders = checked
+            config.save()
         toggle_folders.triggered.connect(_toggle_folders)
         menu.addAction(toggle_folders)
         
         if hasattr(self, '_outline_panel') and self._outline_panel:
             toggle_outline = QAction("Outline", self)
             toggle_outline.setCheckable(True)
-            toggle_outline.setChecked(self._outline_panel.isVisible())
-            toggle_outline.triggered.connect(lambda checked: self._outline_panel.setVisible(checked))
+            toggle_outline.setChecked(not self._outline_panel.isHidden())
+            def _toggle_outline(checked):
+                self._outline_panel.setVisible(checked)
+                config.show_outline = checked
+                config.save()
+            toggle_outline.triggered.connect(_toggle_outline)
             menu.addAction(toggle_outline)
             
         if hasattr(self, '_timeline_panel') and self._timeline_panel:
             toggle_timeline = QAction("Timeline", self)
             toggle_timeline.setCheckable(True)
-            toggle_timeline.setChecked(self._timeline_panel.isVisible())
-            toggle_timeline.triggered.connect(lambda checked: self._timeline_panel.setVisible(checked))
+            toggle_timeline.setChecked(not self._timeline_panel.isHidden())
+            def _toggle_timeline(checked):
+                self._timeline_panel.setVisible(checked)
+                config.show_timeline = checked
+                config.save()
+            toggle_timeline.triggered.connect(_toggle_timeline)
             menu.addAction(toggle_timeline)
             
         menu.exec(self.mapToGlobal(self._explorer_menu_btn.pos() + self._explorer_menu_btn.rect().bottomLeft()))
@@ -751,6 +777,10 @@ class FileExplorer(QWidget):
             }
         """)
         layout.addWidget(self._tree)
+        
+        self._bottom_spacer = QWidget()
+        self._bottom_spacer.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        layout.addWidget(self._bottom_spacer)
 
         self._tree.itemChanged.connect(self._on_item_changed)
         
@@ -758,10 +788,12 @@ class FileExplorer(QWidget):
         if self._root_path:
             self._welcome_widget.hide()
             self._tree.show()
+            self._bottom_spacer.hide()
             self._refresh()
         else:
             self._welcome_widget.show()
             self._tree.hide()
+            self._bottom_spacer.show()
     def _get_compact_folder(self, base_path: str, base_name: str, exclude_patterns: list):
         current_path = os.path.join(base_path, base_name)
         display_name = base_name
@@ -937,10 +969,8 @@ class FileExplorer(QWidget):
         self._workspace_collapsed = not getattr(self, '_workspace_collapsed', False)
         self._workspace_header.set_collapsed(self._workspace_collapsed)
         self._tree.setVisible(not self._workspace_collapsed)
-        if self._workspace_collapsed:
-            self.setMaximumHeight(60)
-        else:
-            self.setMaximumHeight(16777215)
+        if hasattr(self, '_bottom_spacer'):
+            self._bottom_spacer.setVisible(self._workspace_collapsed)
 
     def _on_item_expanded(self, item: QTreeWidgetItem):
         path = item.data(0, Qt.UserRole)
@@ -1075,7 +1105,7 @@ class FileExplorer(QWidget):
         if is_workspace_file:
             self._workspace_header.setText("WORKSPACE")
         else:
-            self._workspace_header.setText(os.path.basename(self._root_path).upper())
+            self._workspace_header.setText(os.path.basename(self._root_path))
             
         self._workspace_header.show()
         
@@ -1124,7 +1154,8 @@ class FileExplorer(QWidget):
                 self._workspace_collapsed = False
                 self._workspace_header.set_collapsed(False)
                 self._tree.show()
-                self.setMaximumHeight(16777215)
+                if hasattr(self, '_bottom_spacer'):
+                    self._bottom_spacer.hide()
                 
             self._force_expand_root = False  # Reset force flag
             

@@ -11,14 +11,10 @@ from .outline_panel import SectionHeaderButton
 
 class TimelinePanel(QWidget):
     item_selected = Signal(str)  # Emit commit hash or local history ID
-    
-    HEADER_HEIGHT = 22
-    
     def __init__(self, parent=None):
         super().__init__(parent)
         self._collapsed = True
         self._setup_ui()
-        self._apply_collapsed_size()
         
     def _setup_ui(self):
         layout = QVBoxLayout(self)
@@ -55,13 +51,6 @@ class TimelinePanel(QWidget):
         layout.addWidget(self._tree)
         self._tree.hide()
         
-    def _apply_collapsed_size(self):
-        if self._collapsed:
-            self.setFixedHeight(self.HEADER_HEIGHT)
-        else:
-            self.setMinimumHeight(self.HEADER_HEIGHT + 40)
-            self.setMaximumHeight(16777215)
-            
     def _update_header_text(self):
         self._header.set_collapsed(self._collapsed)
         
@@ -69,7 +58,6 @@ class TimelinePanel(QWidget):
         self._collapsed = not self._collapsed
         self._tree.setVisible(not self._collapsed)
         self._update_header_text()
-        self._apply_collapsed_size()
         
     def update_timeline(self, file_path: str):
         self._tree.clear()

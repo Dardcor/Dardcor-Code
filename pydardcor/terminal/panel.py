@@ -465,11 +465,16 @@ class TerminalPanel(QWidget):
         # Tabs sidebar
         self._sidebar_container = QWidget()
         self._sidebar_container.setStyleSheet("background-color: #000000; border-left: 1px solid #000000;")
+        self._sidebar_container.setMinimumWidth(0) # Allow collapsing completely
+        self._sidebar_container.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)
         self._sidebar_layout = QVBoxLayout(self._sidebar_container)
         self._sidebar_layout.setContentsMargins(0, 0, 0, 0)
         self._sidebar_layout.setSpacing(0)
 
         self._list_widget = QListWidget()
+        self._list_widget.setMinimumWidth(0) # Allow collapsing completely
+        self._list_widget.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)
+        self._list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self._list_widget.setStyleSheet("""
             QListWidget {
                 background-color: #000000;
@@ -491,6 +496,8 @@ class TerminalPanel(QWidget):
         self._sidebar_layout.addWidget(self._list_widget)
 
         self._main_splitter.addWidget(self._sidebar_container)
+        self._main_splitter.setCollapsible(0, False)
+        self._main_splitter.setCollapsible(1, True)
         self._main_splitter.setSizes([800, 200])
 
         layout.addWidget(self._main_splitter)

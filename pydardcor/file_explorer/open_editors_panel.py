@@ -15,8 +15,6 @@ class OpenEditorsPanel(QWidget):
         self._collapsed = False
         self._open_files = [] # list of (path, is_active)
         self.setObjectName("openEditorsPanel")
-        
-        self.setMaximumHeight(200) # Initial max height
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -50,6 +48,9 @@ class OpenEditorsPanel(QWidget):
             }
         """)
         self._list.itemClicked.connect(self._on_item_clicked)
+        self._list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self._list.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self._list.setTextElideMode(Qt.ElideRight)
         layout.addWidget(self._list)
         
         self._adjust_height()
@@ -57,21 +58,19 @@ class OpenEditorsPanel(QWidget):
     def _toggle_collapse(self):
         self._collapsed = not self._collapsed
         self._header.set_collapsed(self._collapsed)
-        self._list.setVisible(not self._collapsed)
-        if self._collapsed:
-            self.setMaximumHeight(28) # Header height approx
-        else:
-            self._adjust_height()
+        self._adjust_height()
 
     def _adjust_height(self):
-        if self._collapsed:
-            return
         count = self._list.count()
-        if count == 0:
-            self.setMaximumHeight(28)
+        if self._collapsed or count == 0:
+            self._list.setVisible(False)
+            self.setMaximumHeight(16777215) # Let layout naturally shrink it to header size
         else:
-            h = 28 + (count * 22) + 4
-            self.setMaximumHeight(min(h, 200))
+            self._list.setVisible(True)
+            # Calculate height needed for list items (approx 22px each)
+            h = (count * 22) + 4
+            self._list.setFixedHeight(min(h, 200))
+            self.setMaximumHeight(16777215)
 
     def update_editors(self, open_files: list, active_path: str = None):
         """open_files is a list of file paths"""
