@@ -28,7 +28,7 @@ def main():
         "--add-data", f"pydardcor/assets{separator}pydardcor/assets",
         "--add-data", f"pydardcor/extension_host{separator}pydardcor/extension_host",
         "--add-data", f"pydardcor/settings{separator}pydardcor/settings",
-        "--add-data", f"pydardcor/database{separator}pydardcor/database",
+        "--add-data", f"dardcor_agent/chat/web{separator}dardcor_agent/chat/web",
         "--hidden-import", "PySide6.QtWebEngineWidgets",
         "--hidden-import", "PySide6.QtWebEngineCore",
         "--hidden-import", "pydardcor.cli",

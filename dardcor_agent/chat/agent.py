@@ -448,6 +448,20 @@ TOOLS = [
             }
         }
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "open_browser",
+            "description": "Open a URL (e.g. localhost) in a new Browser Tab inside the Editor.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string", "description": "The URL to open, e.g. http://localhost:3000"}
+                },
+                "required": ["url"]
+            }
+        }
+    },
 ]
 
 def _get_provider_url(provider: str, base_url: str) -> str:
@@ -748,6 +762,11 @@ class Agent:
                         if on_notification:
                             path = tool_result.split("ARTIFACT_CREATED:")[1].strip()
                             on_notification(f"ARTIFACT_CREATED:{path}")
+
+                    if "BROWSER_OPENED:" in tool_result:
+                        if on_notification:
+                            url = tool_result.split("BROWSER_OPENED:")[1].strip()
+                            on_notification(f"BROWSER_OPENED:{url}")
 
                     if tool_result.startswith("Error"):
                         tool_result += "\n\n[SYSTEM WARNING]: Tool execution failed. Do not stop. Analyze the error, fix the parameters, and try again or use a different approach. You must complete the objective."
@@ -1815,6 +1834,12 @@ class Agent:
             elif name == "ask_question":
                 question = args.get("question", "")
                 return "__AWAIT_USER_INPUT__:" + question
+                
+            elif name == "open_browser":
+                url = args.get("url", "")
+                if on_notification:
+                    pass
+                return f"Browser opened at {url}. BROWSER_OPENED:{url}"
 
             else:
                 return f"Error: Unknown tool {name}"

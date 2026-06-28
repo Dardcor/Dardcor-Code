@@ -951,6 +951,7 @@ class MainWindow(QMainWindow):
         self._chat_panel.select_file_requested.connect(self._upload_chat_file)
         self._chat_panel.files_pasted.connect(self._attach_files_to_chat)
         self._chat_panel.stop_requested.connect(self._on_stop_requested)
+        self._chat_panel.link_clicked.connect(self._on_chat_link_clicked)
         self._chat_panel.set_close_callback(self._toggle_chat)
         self._chat_panel.set_workspace_name("")
 
@@ -2782,6 +2783,14 @@ class MainWindow(QMainWindow):
 
     # ── Chat / Agent ──────────────────────────────────────
 
+    def _on_chat_link_clicked(self, url: str):
+        def open_browser_tab():
+            from ..editor.browser_widget import BrowserWidget
+            from PySide6.QtGui import QIcon
+            browser = BrowserWidget(url, self)
+            self._editor_tabs.add_custom_tab(browser, "Browser", QIcon())
+        QTimer.singleShot(0, open_browser_tab)
+
     def _on_chat_message(self, message: str):
         if self._chat_generation_active:
             if message in self._queued_chat_messages:
@@ -2878,6 +2887,15 @@ class MainWindow(QMainWindow):
             if msg.startswith("ARTIFACT_CREATED:"):
                 path = msg.split("ARTIFACT_CREATED:")[1]
                 QTimer.singleShot(0, lambda: self._editor_tabs.open_file(path))
+                return
+            if msg.startswith("BROWSER_OPENED:"):
+                url = msg.split("BROWSER_OPENED:")[1]
+                def open_browser_tab():
+                    from ..editor.browser_widget import BrowserWidget
+                    from PySide6.QtGui import QIcon
+                    browser = BrowserWidget(url, self)
+                    self._editor_tabs.add_custom_tab(browser, "Browser", QIcon())
+                QTimer.singleShot(0, open_browser_tab)
                 return
             self._chat_panel.show_native_notification(msg)
 

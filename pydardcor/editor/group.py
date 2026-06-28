@@ -623,6 +623,7 @@ class EditorGroup(QWidget):
         self._update_tab_row_visibility()
 
         if not self._tabs:
+            self._breadcrumb_bar.hide()
             self._stack.setCurrentWidget(self._welcome)
             self._current_idx = -1
             self.tab_changed.emit("", "")

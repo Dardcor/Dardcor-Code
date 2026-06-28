@@ -93,6 +93,7 @@ class ChatPanel(QWidget):
     select_file_requested = Signal()
     files_pasted = Signal(list)
     stop_requested = Signal()
+    link_clicked = Signal(str)
 
     # Thread-safe slots signals
     _append_agent_signal = Signal(str, bool)
@@ -201,9 +202,24 @@ class ChatPanel(QWidget):
         self._close_callback = None
 
         layout.addWidget(self._header)
+        
+        # Custom Web Page to intercept link clicks
+        from PySide6.QtWebEngineCore import QWebEnginePage
+        class ChatWebPage(QWebEnginePage):
+            def __init__(self, panel, parent=None):
+                super().__init__(parent)
+                self.panel = panel
+            
+            def acceptNavigationRequest(self, url, _type, isMainFrame):
+                # Block all navigations away from the chat interface on the main frame
+                if isMainFrame and not url.toString().endswith("index.html") and not url.scheme() == "qrc":
+                    self.panel.link_clicked.emit(url.toString())
+                    return False
+                return super().acceptNavigationRequest(url, _type, isMainFrame)
 
         # Chat history (uses QWebEngineView for modern slicing)
         self._web_view = QWebEngineView(self)
+        self._web_view.setPage(ChatWebPage(self, self._web_view))
         self._web_view.setFocusPolicy(Qt.StrongFocus)
         self._web_view.page().setBackgroundColor(QColor(0, 0, 0, 0))
 
