@@ -63,6 +63,14 @@ class EditorTabs(QWidget):
             return self._groups[self._active_group_idx]
         return self._groups[0] if self._groups else None
 
+    def get_open_files(self) -> list:
+        files = []
+        for g in self._groups:
+            for tab in g._tabs:
+                if tab.file_path and tab.file_path not in files:
+                    files.append(tab.file_path)
+        return files
+
     # Delegate methods to active group
     def open_file(self, file_path):
         g = self.active_group()

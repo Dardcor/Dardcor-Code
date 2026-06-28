@@ -4,6 +4,7 @@ from PySide6.QtWidgets import (
     QPushButton, QLabel, QInputDialog, QMessageBox, QWidget
 )
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QIcon
 
 class ChatHistoryItemWidget(QWidget):
     edit_clicked = Signal(str, str) # cid, current_title
@@ -20,21 +21,34 @@ class ChatHistoryItemWidget(QWidget):
         self.lbl_title = QLabel(title)
         self.lbl_title.setStyleSheet("color: #d4d4d4; font-size: 13px; background: transparent;")
         
-        self.btn_edit = QPushButton("✏️")
+        self.btn_edit = QPushButton()
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        edit_icon = os.path.join(base_dir, "image", "edit.svg")
+        if os.path.exists(edit_icon):
+            self.btn_edit.setIcon(QIcon(edit_icon))
+        else:
+            self.btn_edit.setText("✏️")
+            
         self.btn_edit.setFixedSize(28, 28)
         self.btn_edit.setToolTip("Ubah Judul")
         self.btn_edit.setStyleSheet("""
-            QPushButton { background: transparent; border: none; font-size: 14px; border-radius: 4px; }
+            QPushButton { background: transparent; border: none; font-size: 14px; border-radius: 4px; font-family: "Segoe UI Emoji", "Segoe UI Symbol", sans-serif; }
             QPushButton:hover { background-color: rgba(255, 255, 255, 0.1); }
         """)
         self.btn_edit.setCursor(Qt.PointingHandCursor)
         self.btn_edit.clicked.connect(lambda: self.edit_clicked.emit(self.cid, self.title))
         
-        self.btn_delete = QPushButton("🗑️")
+        self.btn_delete = QPushButton()
+        del_icon = os.path.join(base_dir, "image", "delete.svg")
+        if os.path.exists(del_icon):
+            self.btn_delete.setIcon(QIcon(del_icon))
+        else:
+            self.btn_delete.setText("🗑️")
+            
         self.btn_delete.setFixedSize(28, 28)
         self.btn_delete.setToolTip("Hapus")
         self.btn_delete.setStyleSheet("""
-            QPushButton { background: transparent; border: none; font-size: 14px; border-radius: 4px; }
+            QPushButton { background: transparent; border: none; font-size: 14px; border-radius: 4px; font-family: "Segoe UI Emoji", "Segoe UI Symbol", sans-serif; }
             QPushButton:hover { background-color: rgba(255, 50, 50, 0.3); }
         """)
         self.btn_delete.setCursor(Qt.PointingHandCursor)

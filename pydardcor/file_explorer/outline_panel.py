@@ -13,8 +13,9 @@ class SectionHeaderButton(QPushButton):
     def __init__(self, text, collapsed=True, parent=None):
         super().__init__(text, parent)
         self._collapsed = collapsed
-        self.setFixedHeight(22)
+        self.setFixedHeight(24)
         self.setCursor(Qt.PointingHandCursor)
+        self.setObjectName("SectionHeaderButton")
         
         # Load colors from ThemeManager if available
         bg_color = "#000000"
@@ -33,7 +34,7 @@ class SectionHeaderButton(QPushButton):
             pass
 
         self.setStyleSheet(f"""
-            QPushButton {{
+            QPushButton#SectionHeaderButton {{
                 background-color: {bg_color};
                 color: {fg_color};
                 font-family: "Segoe UI", "Ubuntu", "Droid Sans", sans-serif;
@@ -41,10 +42,12 @@ class SectionHeaderButton(QPushButton):
                 font-weight: bold;
                 text-align: left;
                 padding-left: 14px;
+                padding-top: 2px;
+                padding-bottom: 2px;
                 border: none;
                 border-top: 1px solid {border_color};
             }}
-            QPushButton:hover {{
+            QPushButton#SectionHeaderButton:hover {{
                 background-color: {hover_color};
             }}
         """)

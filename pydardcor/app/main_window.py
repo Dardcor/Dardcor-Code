@@ -577,6 +577,7 @@ from ..ui_shared.activity_bar import (
     VIEW_EXTENSIONS, VIEW_TESTING
 )
 from ..file_explorer.panel import FileExplorer
+from ..file_explorer.open_editors_panel import OpenEditorsPanel
 from ..editor import EditorTabs
 from dardcor_agent.chat.panel import ChatPanel
 from ..ui_shared.status_bar import StatusBar
@@ -888,6 +889,17 @@ class MainWindow(QMainWindow):
         self._outline_panel.item_selected.connect(self._on_outline_item_selected)
 
         self._timeline_panel = TimelinePanel()
+
+        self._open_editors_panel = OpenEditorsPanel()
+        self._open_editors_panel.file_selected.connect(self._open_file_in_editor)
+        
+        # We will pass the toggle function to FileExplorer if needed, or handle it here
+        # But we must hide it by default if user wants to toggle it.
+        # Actually, let's keep it visible and let the ... menu toggle it.
+
+        # Add top subpanels inside FileExplorer (below the global EXPLORER label)
+        self._file_explorer.add_subpanel(self._open_editors_panel)
+        self._file_explorer.setup_explorer_menu(self._open_editors_panel, self._outline_panel, self._timeline_panel)
 
         explorer_layout.addWidget(self._file_explorer, 1)
         explorer_layout.addWidget(self._outline_panel, 0)
@@ -2661,6 +2673,10 @@ class MainWindow(QMainWindow):
         self._status_bar.set_language(language)
         self._update_window_title(file_path)
         
+        # Sync Open Editors Panel
+        open_files = self._editor_tabs.get_open_files()
+        self._open_editors_panel.update_editors(open_files, file_path)
+        
         # Auto-reveal in file explorer
         if file_path:
             self._file_explorer.reveal_and_select_file(file_path)
@@ -3062,9 +3078,14 @@ class MainWindow(QMainWindow):
 
     def _detect_git_branch(self):
         """Detect current git branch and update status bar."""
+        root = self._config.workspace_path or os.path.expanduser("~")
+        if not os.path.exists(os.path.join(root, ".git")):
+            if hasattr(self, "_status_bar") and self._status_bar:
+                self._status_bar.set_git_branch("")
+            return
+
         from ..core.commands import CommandExecutor
         cmd = CommandExecutor()
-        root = self._config.workspace_path or os.path.expanduser("~")
         result = cmd.execute("git rev-parse --abbrev-ref HEAD", workdir=root, timeout=5)
         branch = result.stdout.strip() if result.stdout else "main"
         if branch and result.exit_code == 0:
