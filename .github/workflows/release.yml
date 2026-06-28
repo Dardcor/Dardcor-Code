@@ -6,33 +6,62 @@ on:
       - 'v*'
 
 jobs:
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+
+    steps:
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: "Dardcor Code ${{ github.ref_name }}"
+          draft: false
+          prerelease: false
+          body: |
+            ## Dardcor Code ${{ github.ref_name }}
+
+            Release resmi Dardcor Code — Full Desktop AI Coding Assistant.
+
+            ### Download
+            | Platform | File | Keterangan |
+            |----------|------|-----------|
+            | 🪟 Windows | `Dardcor-Code-Setup-Windows.exe` | Installer Windows |
+            | 🐧 Linux | `Dardcor-Code-Linux-x86_64.tar.gz` | Extract lalu jalankan |
+            | 🍎 macOS | `Dardcor-Code-MacOS.tar.gz` | Extract lalu jalankan |
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── Job 2: Build & Upload per OS ─────────────────────────────────────────
   build:
-    name: Build Release (${{ matrix.os }})
+    name: Build (${{ matrix.os }})
+    needs: create-release
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: windows-latest
-            asset_name: Dardcor-Code-Setup-Windows.exe
           - os: ubuntu-latest
-            asset_name: Dardcor-Code-Linux-x86_64.tar.gz
           - os: macos-latest
-            asset_name: Dardcor-Code-MacOS.tar.gz
-
-    permissions:
-      contents: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
 
+      # ── Linux: install system deps ────────────────────────────────────────
       - name: Install system dependencies (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -46,65 +75,60 @@ jobs:
             libnss3 libatk1.0-0 libatk-bridge2.0-0 libgtk-3-0 \
             libpulse0 || true
 
+      # ── Install Python deps ───────────────────────────────────────────────
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pyinstaller
 
+      # ── Build ─────────────────────────────────────────────────────────────
       - name: Build with PyInstaller
-        run: |
-          python build.py
+        run: python build.py
 
-      - name: Install Inno Setup and build installer (Windows)
+      # ── Windows: Inno Setup installer ────────────────────────────────────
+      - name: Build Windows Installer
         if: matrix.os == 'windows-latest'
+        shell: pwsh
         run: |
           choco install innosetup --yes --no-progress
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
-        shell: pwsh
 
-      - name: Package Linux (tar.gz)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          cd dist
-          tar -czf "../Dardcor-Code-Linux-x86_64.tar.gz" "Dardcor Code"
-          cd ..
-
-      - name: Package MacOS (tar.gz)
-        if: matrix.os == 'macos-latest'
-        run: |
-          cd dist
-          tar -czf "../Dardcor-Code-MacOS.tar.gz" "Dardcor Code"
-          cd ..
-
-      - name: Upload Release Asset (Windows)
+      - name: Upload Windows Installer
         if: matrix.os == 'windows-latest'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ github.ref_name }}
           files: dist/Dardcor-Code-Setup-Windows.exe
-          name: "Dardcor Code ${{ github.ref_name }}"
-          body: |
-            ## Dardcor Code ${{ github.ref_name }}
-
-            ### Download
-            - **Windows**: `Dardcor-Code-Setup-Windows.exe` — Windows Installer
-            - **Linux**: `Dardcor-Code-Linux-x86_64.tar.gz` — Extract and run
-            - **macOS**: `Dardcor-Code-MacOS.tar.gz` — Extract and run
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Release Asset (Linux)
+      # ── Linux: tar.gz ─────────────────────────────────────────────────────
+      - name: Package Linux
         if: matrix.os == 'ubuntu-latest'
-        uses: softprops/action-gh-release@v2
+        run: |
+          tar -czf Dardcor-Code-Linux-x86_64.tar.gz -C dist "Dardcor Code"
+
+      - name: Upload Linux Package
+        if: matrix.os == 'ubuntu-latest'
+        uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ github.ref_name }}
           files: Dardcor-Code-Linux-x86_64.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Release Asset (MacOS)
+      # ── macOS: tar.gz ─────────────────────────────────────────────────────
+      - name: Package macOS
         if: matrix.os == 'macos-latest'
-        uses: softprops/action-gh-release@v2
+        run: |
+          tar -czf Dardcor-Code-MacOS.tar.gz -C dist "Dardcor Code"
+
+      - name: Upload macOS Package
+        if: matrix.os == 'macos-latest'
+        uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ github.ref_name }}
           files: Dardcor-Code-MacOS.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
