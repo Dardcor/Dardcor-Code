@@ -5,19 +5,18 @@ on:
     tags:
       - 'v*'
 
-# ─── Job 1: Buat GitHub Release ──────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# Job 1: Create the GitHub Release (empty, assets will be uploaded by builds)
+# ─────────────────────────────────────────────────────────────────────────────
 jobs:
   create-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    outputs:
-      release_id: ${{ steps.create.outputs.id }}
 
     steps:
       - name: Create Release
-        id: create
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
@@ -27,26 +26,33 @@ jobs:
           body: |
             ## Dardcor Code ${{ github.ref_name }}
 
-            Release resmi Dardcor Code — Full Desktop AI Coding Assistant dengan Monaco Editor & AI Agent terintegrasi.
+            Release resmi Dardcor Code — Full Desktop AI Coding Assistant.
 
-            ### 📦 Download
+            ### 📥 Download
 
             | Platform | File | Keterangan |
             |----------|------|-----------|
             | 🪟 Windows | `Dardcor-Code-Setup-Windows.exe` | Windows Installer (direkomendasikan) |
-            | 🐧 Linux | `Dardcor-Code-Linux-x86_64.tar.gz` | Extract dan jalankan `Dardcor Code` |
-            | 🍎 macOS | `Dardcor-Code-MacOS.tar.gz` | Extract dan jalankan `Dardcor Code` |
+            | 🪟 Windows | `Dardcor-Code-Windows-Portable.zip` | Windows Portable (tanpa install) |
+            | 🍎 macOS | `Dardcor-Code-MacOS.dmg` | macOS Disk Image |
+            | 🍎 macOS | `Dardcor-Code-MacOS.tar.gz` | macOS Archive |
+            | 🐧 Linux | `Dardcor-Code-Linux-x86_64.tar.gz` | Linux Archive (Extract & Run) |
+            | 🐧 Linux | `Dardcor-Code-Linux-x86_64.AppImage` | Linux AppImage (Universal) |
+            | 🐧 Linux | `Dardcor-Code-Linux-x86_64.deb` | Debian/Ubuntu Package |
+            | 🐧 Linux | `Dardcor-Code-Linux-x86_64.rpm` | Fedora/RHEL Package |
 
-            ### ✨ Fitur
+            ### ✨ Fitur Utama
             - Monaco Editor (sama seperti VS Code)
             - AI Agent terintegrasi (Gemini, GPT, Claude, DeepSeek, Ollama)
             - Terminal terintegrasi
-            - File Explorer, Git integration
+            - File Explorer & Git integration
             - Multi-language support
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-# ─── Job 2: Build Windows ─────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# Job 2: Windows Build → .exe Installer + .zip Portable
+# ─────────────────────────────────────────────────────────────────────────────
   build-windows:
     name: Build Windows
     needs: create-release
@@ -72,24 +78,26 @@ jobs:
       - name: Build with PyInstaller
         run: python build.py
 
-      - name: Install Inno Setup
-        run: choco install innosetup --yes --no-progress
+      - name: Build Windows Installer (.exe)
         shell: pwsh
-
-      - name: Build Windows Installer
         run: |
+          choco install innosetup --yes --no-progress
           $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
           if (Test-Path $iscc) {
             & $iscc installer.iss
-            Write-Host "[OK] Installer built successfully"
+            Write-Host "✅ Installer built"
           } else {
-            Write-Host "[WARN] ISCC not found, creating zip instead"
-            Compress-Archive -Path "dist\Dardcor Code" -DestinationPath "dist\Dardcor-Code-Setup-Windows.zip"
-            Rename-Item "dist\Dardcor-Code-Setup-Windows.zip" "dist\Dardcor-Code-Setup-Windows.exe"
+            Write-Host "❌ ISCC not found"
+            exit 1
           }
-        shell: pwsh
 
-      - name: Upload Windows Installer to Release
+      - name: Package Windows Portable (.zip)
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "dist\Dardcor Code\*" -DestinationPath "Dardcor-Code-Windows-Portable.zip"
+          Write-Host "✅ Portable zip created"
+
+      - name: Upload Windows Installer
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
@@ -97,7 +105,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-# ─── Job 3: Build Linux ───────────────────────────────────────────────────────
+      - name: Upload Windows Portable
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: Dardcor-Code-Windows-Portable.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Job 3: Linux Build → .tar.gz + .AppImage + .deb + .rpm
+# ─────────────────────────────────────────────────────────────────────────────
   build-linux:
     name: Build Linux
     needs: create-release
@@ -119,29 +137,14 @@ jobs:
         run: |
           sudo apt-get update -y
           sudo apt-get install -y \
-            libglib2.0-0 \
-            libgl1-mesa-glx \
-            libx11-xcb1 \
-            libxcb-cursor0 \
-            libxcb-icccm4 \
-            libxcb-image0 \
-            libxcb-keysyms1 \
-            libxcb-render-util0 \
-            libxcb-xinerama0 \
-            libfontconfig1 \
-            libdbus-1-3 \
-            libxrandr2 \
-            libxcomposite1 \
-            libxcursor1 \
-            libxi6 \
-            libnss3 \
-            libatk1.0-0 \
-            libatk-bridge2.0-0 \
-            libgtk-3-0 \
-            libpulse0 \
-            xvfb || true
+            libglib2.0-0 libgl1-mesa-glx libx11-xcb1 libxcb-cursor0 \
+            libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 \
+            libxcb-xinerama0 libfontconfig1 libdbus-1-3 libxrandr2 \
+            libxcomposite1 libxcursor1 libxi6 libnss3 \
+            libatk1.0-0 libatk-bridge2.0-0 libgtk-3-0 libpulse0 \
+            fakeroot ruby ruby-dev rubygems rpm || true
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install PySide6 requests pyinstaller
@@ -149,10 +152,137 @@ jobs:
       - name: Build with PyInstaller
         run: python build.py
 
-      - name: Package as tar.gz
-        run: tar -czf Dardcor-Code-Linux-x86_64.tar.gz -C dist "Dardcor Code"
+      - name: Package tar.gz
+        run: |
+          tar -czf Dardcor-Code-Linux-x86_64.tar.gz -C dist "Dardcor Code"
+          echo "✅ tar.gz created"
 
-      - name: Upload Linux Package to Release
+      - name: Package AppImage
+        run: |
+          APP_DIR="AppDir"
+          APP_NAME="Dardcor Code"
+          BINARY_NAME="Dardcor Code"
+
+          # Build AppDir structure
+          mkdir -p "$APP_DIR/usr/bin"
+          cp -r "dist/$APP_NAME/"* "$APP_DIR/usr/bin/"
+
+          # Desktop file
+          cat > "$APP_DIR/dardcor-code.desktop" << 'EOF'
+          [Desktop Entry]
+          Name=Dardcor Code
+          Exec=Dardcor Code
+          Icon=dardcor
+          Type=Application
+          Categories=Development;IDE;
+          Comment=Full Desktop AI Coding Assistant
+          EOF
+
+          # Icon
+          if [ -f "image/dardcor.png" ]; then
+            cp "image/dardcor.png" "$APP_DIR/dardcor.png"
+            mkdir -p "$APP_DIR/usr/share/icons/hicolor/256x256/apps"
+            cp "image/dardcor.png" "$APP_DIR/usr/share/icons/hicolor/256x256/apps/dardcor.png"
+          fi
+
+          # AppRun script
+          cat > "$APP_DIR/AppRun" << 'EOF'
+          #!/bin/sh
+          HERE="$(dirname "$(readlink -f "${0}")")"
+          exec "$HERE/usr/bin/Dardcor Code" "$@"
+          EOF
+          chmod +x "$APP_DIR/AppRun"
+
+          # Download appimagetool and build
+          wget -q "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
+          chmod +x appimagetool-x86_64.AppImage
+          ARCH=x86_64 ./appimagetool-x86_64.AppImage --appimage-extract-and-run "$APP_DIR" "Dardcor-Code-Linux-x86_64.AppImage"
+          echo "✅ AppImage created"
+        continue-on-error: true
+
+      - name: Package .deb
+        run: |
+          APP_VERSION="${{ github.ref_name }}"
+          APP_VERSION="${APP_VERSION#v}"  # Remove 'v' prefix
+          DEB_DIR="deb_package"
+
+          mkdir -p "$DEB_DIR/DEBIAN"
+          mkdir -p "$DEB_DIR/opt/dardcor-code"
+          mkdir -p "$DEB_DIR/usr/local/bin"
+          mkdir -p "$DEB_DIR/usr/share/applications"
+          mkdir -p "$DEB_DIR/usr/share/icons/hicolor/256x256/apps"
+
+          # Copy application
+          cp -r "dist/Dardcor Code/"* "$DEB_DIR/opt/dardcor-code/"
+
+          # Launcher script
+          cat > "$DEB_DIR/usr/local/bin/dardcor-code" << 'EOF'
+          #!/bin/sh
+          exec /opt/dardcor-code/"Dardcor Code" "$@"
+          EOF
+          chmod +x "$DEB_DIR/usr/local/bin/dardcor-code"
+
+          # Desktop entry
+          cat > "$DEB_DIR/usr/share/applications/dardcor-code.desktop" << 'EOF'
+          [Desktop Entry]
+          Name=Dardcor Code
+          Exec=/opt/dardcor-code/Dardcor Code
+          Icon=dardcor
+          Type=Application
+          Categories=Development;IDE;
+          Comment=Full Desktop AI Coding Assistant
+          EOF
+
+          # Icon
+          if [ -f "image/dardcor.png" ]; then
+            cp "image/dardcor.png" "$DEB_DIR/usr/share/icons/hicolor/256x256/apps/dardcor.png"
+          fi
+
+          # Control file
+          cat > "$DEB_DIR/DEBIAN/control" << EOF
+          Package: dardcor-code
+          Version: $APP_VERSION
+          Architecture: amd64
+          Maintainer: Dardcor Team <support@dardcor.com>
+          Description: Dardcor Code - Full Desktop AI Coding Assistant
+           AI-powered coding assistant with Monaco Editor, terminal, and Git integration.
+          Section: devel
+          Priority: optional
+          EOF
+
+          # Build .deb
+          dpkg-deb --build "$DEB_DIR" "Dardcor-Code-Linux-x86_64.deb"
+          echo "✅ .deb created"
+        continue-on-error: true
+
+      - name: Package .rpm
+        run: |
+          APP_VERSION="${{ github.ref_name }}"
+          APP_VERSION="${APP_VERSION#v}"
+
+          # Install fpm for easy rpm creation
+          sudo gem install fpm --no-document 2>/dev/null || true
+
+          if command -v fpm &> /dev/null; then
+            fpm -s dir -t rpm \
+              -n "dardcor-code" \
+              -v "$APP_VERSION" \
+              --architecture x86_64 \
+              --description "Dardcor Code - Full Desktop AI Coding Assistant" \
+              --maintainer "Dardcor Team" \
+              --url "https://github.com/Dardcor/Dardcor-Code" \
+              --license "MIT" \
+              --category "Development/Tools" \
+              "dist/Dardcor Code/=/opt/dardcor-code/" \
+              --package "Dardcor-Code-Linux-x86_64.rpm"
+            echo "✅ .rpm created via fpm"
+          else
+            # Fallback: create a simple tar.gz renamed as .rpm indicator
+            echo "⚠️ fpm not available, skipping RPM"
+          fi
+        continue-on-error: true
+
+      - name: Upload Linux tar.gz
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
@@ -160,7 +290,36 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-# ─── Job 4: Build macOS ───────────────────────────────────────────────────────
+      - name: Upload Linux AppImage
+        if: hashFiles('Dardcor-Code-Linux-x86_64.AppImage') != ''
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: Dardcor-Code-Linux-x86_64.AppImage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Linux .deb
+        if: hashFiles('Dardcor-Code-Linux-x86_64.deb') != ''
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: Dardcor-Code-Linux-x86_64.deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Linux .rpm
+        if: hashFiles('Dardcor-Code-Linux-x86_64.rpm') != ''
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: Dardcor-Code-Linux-x86_64.rpm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Job 4: macOS Build → .dmg + .tar.gz
+# ─────────────────────────────────────────────────────────────────────────────
   build-macos:
     name: Build macOS
     needs: create-release
@@ -186,13 +345,45 @@ jobs:
       - name: Build with PyInstaller
         run: python build.py
 
-      - name: Package as tar.gz
-        run: tar -czf Dardcor-Code-MacOS.tar.gz -C dist "Dardcor Code"
+      - name: Package tar.gz
+        run: |
+          tar -czf Dardcor-Code-MacOS.tar.gz -C dist "Dardcor Code"
+          echo "✅ tar.gz created"
 
-      - name: Upload macOS Package to Release
+      - name: Package .dmg
+        run: |
+          APP_DIR="dist/Dardcor Code"
+          DMG_NAME="Dardcor-Code-MacOS.dmg"
+          VOLUME_NAME="Dardcor Code"
+
+          # Create a temporary DMG using hdiutil (built-in macOS tool)
+          TEMP_DMG="temp_dmg"
+          mkdir -p "$TEMP_DMG"
+          cp -r "$APP_DIR" "$TEMP_DMG/"
+
+          hdiutil create \
+            -volname "$VOLUME_NAME" \
+            -srcfolder "$TEMP_DMG" \
+            -ov \
+            -format UDZO \
+            "$DMG_NAME"
+
+          echo "✅ DMG created"
+        continue-on-error: true
+
+      - name: Upload macOS tar.gz
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
           files: Dardcor-Code-MacOS.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload macOS DMG
+        if: hashFiles('Dardcor-Code-MacOS.dmg') != ''
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: Dardcor-Code-MacOS.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
