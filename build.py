@@ -73,9 +73,9 @@ def main():
     result = subprocess.run(cmd, cwd=os.path.dirname(os.path.abspath(__file__)))
 
     if result.returncode == 0:
-        print("\n✅ Build SUCCESS — dist/Dardcor Code/")
+        print("\n[SUCCESS] Build SUCCESS - dist/Dardcor Code/")
     else:
-        print(f"\n❌ Build FAILED (exit code {result.returncode})")
+        print(f"\n[ERROR] Build FAILED (exit code {result.returncode})")
         sys.exit(result.returncode)
 
 
