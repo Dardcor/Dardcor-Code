@@ -253,8 +253,8 @@ jobs:
               --maintainer "Dardcor Team" \
               --url "https://github.com/Dardcor/Dardcor-Code" \
               --license "MIT" \
-              "dist/Dardcor Code/=/opt/dardcor-code/" \
-              --package "Dardcor-Code-Linux-x86_64.rpm"
+              --package "Dardcor-Code-Linux-x86_64.rpm" \
+              "dist/Dardcor Code/=/opt/dardcor-code/"
             echo ".rpm created"
           else
             echo "fpm not available, skipping rpm"
