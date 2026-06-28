@@ -7,21 +7,19 @@ on:
 
 jobs:
   build:
-    name: Build Release
+    name: Build Release (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
-            artifact_name: Dardcor-Code-Windows.zip
             asset_name: Dardcor-Code-Setup-Windows.exe
           - os: ubuntu-latest
-            artifact_name: Dardcor-Code-Linux.tar.gz
-            asset_name: Dardcor-Code-Linux-x86_64.AppImage
+            asset_name: Dardcor-Code-Linux-x86_64.tar.gz
           - os: macos-latest
-            artifact_name: Dardcor-Code-MacOS.zip
-            asset_name: Dardcor-Code-MacOS.dmg
-            
+            asset_name: Dardcor-Code-MacOS.tar.gz
+
     permissions:
       contents: write
 
@@ -35,84 +33,78 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: Install dependencies
+      - name: Install system dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            libglib2.0-0 libgl1-mesa-glx libx11-xcb1 \
+            libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
+            libxcb-keysyms1 libxcb-render-util0 libxcb-xinerama0 \
+            libfontconfig1 libdbus-1-3 xvfb \
+            libxrandr2 libxcomposite1 libxcursor1 libxi6 \
+            libnss3 libatk1.0-0 libatk-bridge2.0-0 libgtk-3-0 \
+            libpulse0 || true
+
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e .
+          pip install -r requirements.txt
           pip install pyinstaller
 
-      - name: Run Build Script
+      - name: Build with PyInstaller
         run: |
           python build.py
 
-      - name: Build Windows Installer (Windows Only)
+      - name: Install Inno Setup and build installer (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          iscc installer.iss
+          choco install innosetup --yes --no-progress
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+        shell: pwsh
 
-      - name: Package Linux (AppImage)
+      - name: Package Linux (tar.gz)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          # Setup AppDir structure
-          mkdir -p AppDir/usr/bin
-          cp -r "dist/Dardcor Code"/* AppDir/usr/bin/
-          
-          # Create .desktop file
-          echo "[Desktop Entry]" > AppDir/dardcor-code.desktop
-          echo "Name=Dardcor Code" >> AppDir/dardcor-code.desktop
-          echo "Exec=Dardcor\ Code" >> AppDir/dardcor-code.desktop
-          echo "Icon=dardcor" >> AppDir/dardcor-code.desktop
-          echo "Type=Application" >> AppDir/dardcor-code.desktop
-          echo "Categories=Development;" >> AppDir/dardcor-code.desktop
-          
-          # Copy icon
-          cp "image/dardcor.png" AppDir/dardcor.png || true
-          
-          # Create AppRun script
-          echo '#!/bin/sh' > AppDir/AppRun
-          echo 'HERE="$(dirname "$(readlink -f "${0}")")"' >> AppDir/AppRun
-          echo 'exec "${HERE}/usr/bin/Dardcor Code" "$@"' >> AppDir/AppRun
-          chmod +x AppDir/AppRun
-          
-          # Download appimagetool and build
-          wget -c "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
-          chmod +x appimagetool-x86_64.AppImage
-          ./appimagetool-x86_64.AppImage --appimage-extract-and-run AppDir Dardcor-Code-Linux-x86_64.AppImage
+          cd dist
+          tar -czf "../Dardcor-Code-Linux-x86_64.tar.gz" "Dardcor Code"
+          cd ..
 
-      - name: Package MacOS (DMG)
+      - name: Package MacOS (tar.gz)
         if: matrix.os == 'macos-latest'
         run: |
-          npm install -g create-dmg
           cd dist
-          create-dmg "Dardcor Code.app" || true
-          mv *.dmg ../Dardcor-Code-MacOS.dmg
-
-      - name: Upload Build Artifact (Windows)
-        if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact_name }}
-          path: dist/Dardcor-Code-Setup-Windows.exe
-
-      - name: Upload Build Artifact (Linux/MacOS)
-        if: matrix.os != 'windows-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact_name }}
-          path: ${{ matrix.asset_name }}
+          tar -czf "../Dardcor-Code-MacOS.tar.gz" "Dardcor Code"
+          cd ..
 
       - name: Upload Release Asset (Windows)
         if: matrix.os == 'windows-latest'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: dist/Dardcor-Code-Setup-Windows.exe
+          name: "Dardcor Code ${{ github.ref_name }}"
+          body: |
+            ## Dardcor Code ${{ github.ref_name }}
+
+            ### Download
+            - **Windows**: `Dardcor-Code-Setup-Windows.exe` — Windows Installer
+            - **Linux**: `Dardcor-Code-Linux-x86_64.tar.gz` — Extract and run
+            - **macOS**: `Dardcor-Code-MacOS.tar.gz` — Extract and run
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Release Asset (Linux/MacOS)
-        if: matrix.os != 'windows-latest'
-        uses: softprops/action-gh-release@v1
+      - name: Upload Release Asset (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        uses: softprops/action-gh-release@v2
         with:
-          files: ${{ matrix.asset_name }}
+          files: Dardcor-Code-Linux-x86_64.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Release Asset (MacOS)
+        if: matrix.os == 'macos-latest'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Dardcor-Code-MacOS.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
