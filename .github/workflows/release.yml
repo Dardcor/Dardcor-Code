@@ -70,26 +70,24 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install PySide6 pywinpty requests pyinstaller
+          # Install PySide6 wheel (no build needed)
+          pip install "PySide6==6.7.3" requests pyinstaller
+          # pywinpty: try installing, ok if fails (it's optional for CI build)
+          pip install pywinpty || echo "pywinpty not available, skipping"
+        shell: pwsh
 
       - name: Build with PyInstaller
         run: python build.py
-
-      - name: Build Windows Installer (.exe)
         shell: pwsh
-        run: |
-          choco install innosetup --yes --no-progress
-          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-          if (Test-Path $iscc) {
-            & $iscc installer.iss
-            Write-Host "✅ Installer built"
-          } else {
-            Write-Host "❌ ISCC not found"
-            exit 1
-          }
+
+      - name: Install Inno Setup
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.4
+        with:
+          path: installer.iss
+          options: /O+
 
       - name: Package Windows Portable (.zip)
         shell: pwsh
@@ -147,7 +145,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install PySide6 requests pyinstaller
+          pip install "PySide6==6.7.3" requests pyinstaller
 
       - name: Build with PyInstaller
         run: python build.py
@@ -323,7 +321,9 @@ jobs:
   build-macos:
     name: Build macOS
     needs: create-release
-    runs-on: macos-latest
+    # macos-13 = Intel x86_64 — required for PySide6 PyInstaller compatibility
+    # macos-14+ is ARM64 which has PySide6 wheel issues with PyInstaller
+    runs-on: macos-13
     permissions:
       contents: write
 
@@ -340,7 +340,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install PySide6 requests pyinstaller
+          pip install "PySide6==6.7.3" requests pyinstaller
 
       - name: Build with PyInstaller
         run: python build.py
