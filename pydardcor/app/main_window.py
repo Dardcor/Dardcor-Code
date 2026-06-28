@@ -705,11 +705,21 @@ class MainWindow(QMainWindow):
                 
                 # Check title bar
                 if self._title_bar and self._title_bar.geometry().contains(pos):
-                    # Use global logical cursor to check widgets exactly (fixes high DPI button clicks)
-                    from PySide6.QtWidgets import QApplication, QPushButton, QMenuBar
-                    widget = QApplication.widgetAt(logical_global_pos)
+                    # Use local coordinates for reliable hit testing (avoids high DPI issues with widgetAt)
+                    tb_pos = self._title_bar.mapFrom(self, pos)
+                    child = self._title_bar.childAt(tb_pos)
                     
-                    if isinstance(widget, QPushButton) or isinstance(widget, QMenuBar):
+                    from PySide6.QtWidgets import QPushButton, QMenuBar
+                    # We check if the child itself or any of its parents up to title bar is a button
+                    is_clickable = False
+                    curr = child
+                    while curr and curr != self._title_bar:
+                        if isinstance(curr, QPushButton) or isinstance(curr, QMenuBar):
+                            is_clickable = True
+                            break
+                        curr = curr.parentWidget()
+
+                    if is_clickable:
                         # Let Qt handle mouse events for buttons/menus
                         return False, 0
                         

@@ -997,6 +997,10 @@ class FileExplorer(QWidget):
             open_side_action.triggered.connect(lambda: self.open_to_side_requested.emit(path))
             menu.addAction(open_side_action)
             menu.addSeparator()
+            reveal_action = QAction("Reveal in File Explorer", self)
+            reveal_action.triggered.connect(lambda: self._reveal_in_explorer(path))
+            menu.addAction(reveal_action)
+            menu.addSeparator()
 
         if os.path.isdir(path):
             new_file = QAction("New File...", self)
@@ -1012,6 +1016,9 @@ class FileExplorer(QWidget):
             open_term = QAction("Open in Integrated Terminal", self)
             open_term.triggered.connect(lambda: self.open_in_terminal_requested.emit(path))
             menu.addAction(open_term)
+            reveal_dir_action = QAction("Reveal in File Explorer", self)
+            reveal_dir_action.triggered.connect(lambda: self._reveal_in_explorer(path))
+            menu.addAction(reveal_dir_action)
             menu.addSeparator()
 
         if not is_root:
@@ -1077,6 +1084,21 @@ class FileExplorer(QWidget):
         item.setFlags(item.flags() | Qt.ItemIsEditable)
         self._tree.setCurrentItem(item)
         self._tree.editItem(item, 0)
+        
+        # Smart Selection: Select only filename, not extension
+        def select_filename_only():
+            from PySide6.QtWidgets import QLineEdit
+            for child in self._tree.children():
+                if isinstance(child, QLineEdit):
+                    text = child.text()
+                    if '.' in text and not os.path.isdir(path):
+                        # Don't select the extension
+                        name_len = len(text) - len(text.split('.')[-1]) - 1
+                        if name_len > 0:
+                            child.setSelection(0, name_len)
+                    break
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(10, select_filename_only)
 
     def _delete_item(self, path: str):
         self._delete_items([path])
