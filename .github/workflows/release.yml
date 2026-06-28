@@ -327,14 +327,14 @@ jobs:
 
       - name: Package tar.gz
         run: |
-          tar -czf Dardcor-Code-MacOS.tar.gz -C dist "Dardcor Code"
+          tar -czf Dardcor-Code-MacOS.tar.gz -C dist "Dardcor Code.app"
           echo "tar.gz created"
 
       - name: Package .dmg
         run: |
           hdiutil create \
             -volname "Dardcor Code" \
-            -srcfolder "dist/Dardcor Code" \
+            -srcfolder "dist/Dardcor Code.app" \
             -ov \
             -format UDZO \
             "Dardcor-Code-MacOS.dmg"

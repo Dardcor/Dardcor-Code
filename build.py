@@ -57,11 +57,9 @@ def main():
             print("[WARN] winpty not found, skipping.")
 
     elif is_mac:
-        # Icon: .icns for macOS, fallback to .png
-        for icon in ["image/dardcor.icns", "image/dardcor.png"]:
-            if os.path.exists(icon):
-                cmd.extend(["--icon", icon])
-                break
+        # Icon: .icns for macOS ONLY. PyInstaller crashes/fails with .png on mac.
+        if os.path.exists("image/dardcor.icns"):
+            cmd.extend(["--icon", "image/dardcor.icns"])
 
     elif is_linux:
         # Linux: no icon embedding needed
