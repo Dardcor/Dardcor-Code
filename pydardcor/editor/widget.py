@@ -50,7 +50,16 @@ class MonacoEditorWidget(QWidget):
 
         # Wire bridge signals
         self._bridge.content_changed.connect(self._on_content_changed)
-        self._bridge.cursor_changed.connect(self.cursor_position_changed)
+        
+        self._cursor_line = 1
+        self._cursor_col = 1
+        def _handle_cursor_changed(line, col):
+            self._cursor_line = line
+            self._cursor_col = col
+            self.cursor_position_changed.emit(line, col)
+        
+        self._bridge.cursor_changed.connect(_handle_cursor_changed)
+        
         self._bridge.save_requested.connect(self.save_requested)
         self._bridge.command_palette_requested.connect(self.command_palette_requested)
 
@@ -227,6 +236,9 @@ class MonacoEditorWidget(QWidget):
 
     def get_file_path(self):
         return self._file_path
+
+    def get_cursor_position(self):
+        return getattr(self, "_cursor_line", 1), getattr(self, "_cursor_col", 1)
 
     def get_language(self):
         return LANGUAGE_DISPLAY.get(self._language, self._language.capitalize())

@@ -56,7 +56,7 @@ class Conversation:
             self.title = content[:60].strip()
         return msg
 
-    def get_api_messages(self, max_messages: int = 15) -> List[dict]:
+    def get_api_messages(self, max_messages: int = 100) -> List[dict]:
         """Returns API messages using a Sliding Window approach to save tokens.
         Always keeps the system prompt(s) and the most recent `max_messages`."""
         api_msgs = [m.to_api_dict() for m in self.messages]
@@ -118,8 +118,14 @@ class CoreMemory:
         return {"user_preferences": [], "project_context": []}
         
     def save(self):
-        with open(self.path, "w", encoding="utf-8") as f:
-            json.dump(self.data, f, indent=2, ensure_ascii=False)
+        temp_path = self.path + ".tmp"
+        try:
+            with open(temp_path, "w", encoding="utf-8") as f:
+                json.dump(self.data, f, indent=2, ensure_ascii=False)
+            os.replace(temp_path, self.path)
+        except Exception:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
             
     def add_fact(self, category: str, fact: str):
         if category not in self.data:
@@ -229,8 +235,14 @@ class ConversationStore:
             "updated_at": conversation.updated_at,
             "messages": [asdict(m) for m in conversation.messages],
         }
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+        temp_path = path + ".tmp"
+        try:
+            with open(temp_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            os.replace(temp_path, path)
+        except Exception:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
 
     def load(self, conv_id: str) -> Optional[Conversation]:
         path = os.path.join(self._store_dir, conv_id, f"{conv_id}.json")

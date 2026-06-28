@@ -517,16 +517,26 @@ class CustomTitleBar(QWidget):
         if self.parent.isMaximized():
             self.parent.showNormal()
         else:
+            # Fix frameless window covering taskbar on Windows
+            if os.name == 'nt':
+                from PySide6.QtWidgets import QApplication
+                screen = QApplication.screenAt(self.parent.geometry().center())
+                if screen:
+                    # Manually set geometry to available geometry to prevent taskbar overlap
+                    avail = screen.availableGeometry()
+                    self.parent.setGeometry(avail)
+                    return
             self.parent.showMaximized()
             
     # Native event handling in MainWindow takes care of dragging and double click on Windows
     # Fallback for Linux:
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            from PySide6.QtWidgets import QApplication, QPushButton, QMenuBar
-            widget = QApplication.widgetAt(event.globalPosition().toPoint())
-            if isinstance(widget, QPushButton) or isinstance(widget, QMenuBar):
-                return super().mousePressEvent(event)
+            from PySide6.QtWidgets import QPushButton, QMenuBar
+            child = self.childAt(event.position().toPoint())
+            if child is not None:
+                if isinstance(child, QPushButton) or isinstance(child, QMenuBar) or child.parent() == self.search_btn:
+                    return super().mousePressEvent(event)
             self.start_pos = event.globalPosition().toPoint() - self.parent.frameGeometry().topLeft()
             event.accept()
         else:
@@ -548,10 +558,11 @@ class CustomTitleBar(QWidget):
         
     def mouseDoubleClickEvent(self, event):
         if event.button() == Qt.LeftButton:
-            from PySide6.QtWidgets import QApplication, QPushButton, QMenuBar
-            widget = QApplication.widgetAt(event.globalPosition().toPoint())
-            if isinstance(widget, QPushButton) or isinstance(widget, QMenuBar):
-                return super().mouseDoubleClickEvent(event)
+            from PySide6.QtWidgets import QPushButton, QMenuBar
+            child = self.childAt(event.position().toPoint())
+            if child is not None:
+                if isinstance(child, QPushButton) or isinstance(child, QMenuBar) or child.parent() == self.search_btn:
+                    return super().mouseDoubleClickEvent(event)
             self.toggle_max_restore()
             event.accept()
         else:
@@ -2849,12 +2860,39 @@ class MainWindow(QMainWindow):
         current_exec_id = str(uuid.uuid4())
         self._current_chat_exec_id = current_exec_id
 
+        # Slash Commands Processing
+        original_message = message
+        if message.startswith("/fix"):
+            message = "Tolong perbaiki kode di file aktif saya. Temukan bug atau error sintaks dan perbaiki. " + message[4:].strip()
+        elif message.startswith("/explain"):
+            message = "Tolong jelaskan kode di file aktif saya secara mendetail. " + message[8:].strip()
+        elif message.startswith("/plan"):
+            message = "Tolong buatkan rencana arsitektur untuk fitur ini: " + message[5:].strip()
+        self._current_chat_exec_id = current_exec_id
+
         selected_model = None
         if self._chat_panel.model_dropdown.isVisible():
             selected_model = self._chat_panel.model_dropdown.currentText()
 
         def _on_notification(msg: str):
+            if msg.startswith("ARTIFACT_CREATED:"):
+                path = msg.split("ARTIFACT_CREATED:")[1]
+                QTimer.singleShot(0, lambda: self._editor_tabs.open_file(path))
+                return
             self._chat_panel.show_native_notification(msg)
+
+        # Collect ephemeral state
+        ephemeral_state = ""
+        try:
+            editor = self._editor_tabs.current_editor()
+            if editor:
+                fpath = editor.get_file_path()
+                if fpath:
+                    ephemeral_state += f"Active File: {fpath}\n"
+                    line, col = editor.get_cursor_position()
+                    ephemeral_state += f"Cursor Position: Line {line}, Column {col}\n"
+        except Exception:
+            pass
 
         def process():
             try:
@@ -2865,6 +2903,8 @@ class MainWindow(QMainWindow):
                     on_system_message=self._chat_panel.append_system_message,
                     on_tool_output=self._chat_panel.append_tool_output,
                     on_notification=_on_notification,
+                    on_agent_message=self._chat_panel.append_agent_message,
+                    ephemeral_state=ephemeral_state,
                 )
                 if getattr(self, "_current_chat_exec_id", None) != current_exec_id:
                     return # A new generation started or stopped

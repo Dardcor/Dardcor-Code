@@ -18,7 +18,7 @@ if sys.platform == "win32":
     except Exception:
         pass
 
-from pydardcor.core.config import get_config, AppConfig
+from pydardcor.core.config import get_config, AppConfig, get_user_data_dir
 from .memory import Conversation, ConversationStore, Message, CoreMemory, ArchivalMemory
 from .identity import get_identity_prompt
 from pydardcor.core.commands import CommandExecutor, CommandResult
@@ -419,8 +419,36 @@ TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "create_artifact",
+            "description": "Create a Markdown artifact (e.g. for long explanations, code design, tables, or architecture plans) and display it to the user in the UI.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string", "description": "Short title for the artifact file (e.g. 'architecture_plan')"},
+                    "content": {"type": "string", "description": "The markdown content of the artifact"},
+                },
+                "required": ["title", "content"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "ask_question",
+            "description": "Ask the user a question to clarify underspecified requirements, request approval for destructive actions, or resolve ambiguity.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "question": {"type": "string", "description": "The question or confirmation message to ask the user."}
+                },
+                "required": ["question"]
+            }
+        }
+    },
 ]
-
 
 def _get_provider_url(provider: str, base_url: str) -> str:
     if base_url:
@@ -549,13 +577,22 @@ class Agent:
         on_system_message: Optional[Callable[[str], None]] = None,
         on_tool_output: Optional[Callable[[str, str], None]] = None,
         on_notification: Optional[Callable[[str], None]] = None,
+        on_agent_message: Optional[Callable[[str], None]] = None,
+        ephemeral_state: str = "",
     ) -> str:
         with self._lock:
             self._abort_flag = False
             self._conversation.add_message("user", message)
 
             try:
-                response_text = self._call_api(on_tool_call, on_system_message, model_override=model_override, on_tool_output=on_tool_output, on_notification=on_notification)
+                response_text = self._call_api(
+                    on_tool_call, on_system_message, 
+                    model_override=model_override, 
+                    on_tool_output=on_tool_output, 
+                    on_notification=on_notification,
+                    on_agent_message=on_agent_message,
+                    ephemeral_state=ephemeral_state
+                )
                 self._store.save(self._conversation)
                 return response_text
             except urllib.error.URLError as e:
@@ -574,7 +611,7 @@ class Agent:
                 self._store.save(self._conversation)
                 return error_msg
 
-    def _call_api(self, on_tool_call=None, on_system_message=None, depth=0, model_override=None, on_tool_output=None, on_notification=None) -> str:
+    def _call_api(self, on_tool_call=None, on_system_message=None, depth=0, model_override=None, on_tool_output=None, on_notification=None, on_agent_message=None, ephemeral_state="") -> str:
         from dataclasses import dataclass
         @dataclass
         class _DummyAIConfig:
@@ -623,6 +660,9 @@ class Agent:
             # This is injected per-call only — not persisted in conversation history.
             _ws = self._config.workspace_path or os.getcwd()
             _ws_note = f"\n\n[ACTIVE WORKSPACE]: {_ws}\nAll file operations and shell commands run relative to this directory."
+            if ephemeral_state:
+                _ws_note += f"\n\n[EPHEMERAL STATE]:\n{ephemeral_state}"
+                
             _patched = False
             for _i, _m in enumerate(messages):
                 if _m.get("role") == "system":
@@ -667,6 +707,10 @@ class Agent:
                 self._conversation.add_message("assistant", response.content, tool_calls=response.tool_calls)
                 self._store.save(self._conversation)
                 
+                # IMPORTANT: Emit the content (which contains the <thought> block) to the UI!
+                if on_agent_message and response.content.strip():
+                    on_agent_message(response.content)
+                
                 for tc in response.tool_calls:
                     if abort_check(): break
                     func_name = tc["function"]["name"]
@@ -687,8 +731,27 @@ class Agent:
 
                     tool_result = self._execute_tool(func_name, func_args, on_tool_call, on_tool_output, tool_id)
 
+                    if tool_result.startswith("__AWAIT_USER_INPUT__:"):
+                        question = tool_result.split("__AWAIT_USER_INPUT__:", 1)[1]
+                        self._conversation.add_message(
+                            "tool",
+                            "Tolong berikan respons Anda.",
+                            tool_call_id=tc["id"],
+                            name=func_name,
+                        )
+                        self._store.save(self._conversation)
+                        if on_agent_message:
+                            on_agent_message("\n\n**[HitL Gate] Membutuhkan Konfirmasi:**\n" + question)
+                        return question
+
+                    if "ARTIFACT_CREATED:" in tool_result:
+                        if on_notification:
+                            path = tool_result.split("ARTIFACT_CREATED:")[1].strip()
+                            on_notification(f"ARTIFACT_CREATED:{path}")
+
                     if tool_result.startswith("Error"):
                         tool_result += "\n\n[SYSTEM WARNING]: Tool execution failed. Do not stop. Analyze the error, fix the parameters, and try again or use a different approach. You must complete the objective."
+
 
                     if on_tool_call:
                         is_bg = tool_result.startswith("Background task started.")
@@ -725,6 +788,80 @@ class Agent:
         finally:
             self._current_provider = None
 
+    def _backup_file(self, path: str):
+        if not os.path.exists(path):
+            return
+        try:
+            import shutil
+            import time
+            backup_dir = os.path.join(get_user_data_dir(), "backups")
+            os.makedirs(backup_dir, exist_ok=True)
+            fname = os.path.basename(path)
+            ts = int(time.time())
+            backup_path = os.path.join(backup_dir, f"{fname}.{ts}.bak")
+            shutil.copy2(path, backup_path)
+        except Exception:
+            pass
+
+    def _tfidf_search(self, root: str, query: str) -> str:
+        import os
+        import re
+        from collections import Counter
+        
+        def get_words(text):
+            return set(re.findall(r'\w+', text.lower()))
+            
+        query_words = get_words(query)
+        if not query_words:
+            return "No valid search terms in query."
+            
+        results = []
+        for dirpath, dirnames, filenames in os.walk(root):
+            # Exclude common dirs
+            dirnames[:] = [d for d in dirnames if d not in {'.git', 'node_modules', '__pycache__', '.pytest_cache', 'venv', 'env', '.dardcor', 'build', 'dist'}]
+            
+            for file in filenames:
+                if not file.endswith(('.py', '.js', '.ts', '.html', '.css', '.md', '.json', '.txt', '.go', '.cpp', '.c', '.h', '.java')):
+                    continue
+                path = os.path.join(dirpath, file)
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        content = f.read()
+                    
+                    # AST/Symbol extraction (for Python)
+                    symbols = []
+                    if path.endswith(".py"):
+                        import ast
+                        try:
+                            tree = ast.parse(content)
+                            for node in ast.walk(tree):
+                                if isinstance(node, ast.FunctionDef) or isinstance(node, ast.ClassDef):
+                                    symbols.append(node.name)
+                        except Exception:
+                            pass
+                            
+                    file_words = get_words(content)
+                    file_words.update(set(s.lower() for s in symbols))
+                    
+                    overlap = len(query_words.intersection(file_words))
+                    if overlap > 0:
+                        results.append({"path": path, "score": overlap, "symbols": symbols})
+                except Exception:
+                    pass
+                    
+        results.sort(key=lambda x: x["score"], reverse=True)
+        top = results[:10]
+        
+        if not top:
+            return "No matching files found for semantic search."
+            
+        res = "Semantic Search Results (Workspace AST & Keyword Index):\n"
+        for i, item in enumerate(top):
+            rel_path = os.path.relpath(item["path"], root)
+            syms = ", ".join(item["symbols"][:5]) if item["symbols"] else "None"
+            res += f"{i+1}. {rel_path} (Score: {item['score']}) - Found Symbols: {syms}\n"
+        return res
+
     def _execute_tool(self, name: str, args: dict, on_tool_call=None, on_tool_output=None, tool_id: str = "") -> str:
         try:
             if name == "read_file":
@@ -758,6 +895,7 @@ class Agent:
                     return "Error: No path specified"
                 if not os.path.isabs(path) and self._config.workspace_path:
                     path = os.path.join(self._config.workspace_path, path)
+                self._backup_file(path)
                 self._fs.write_file(path, content)
                 return f"File written successfully: {path}"
 
@@ -1209,6 +1347,7 @@ class Agent:
                     elif count > 1:
                         return f"Error: targetContent found {count} times in the file. Specify a unique block of lines."
                         
+                    self._backup_file(path)
                     new_content = content.replace(target, replacement, 1)
                     with open(path, "w", encoding="utf-8") as f:
                         f.write(new_content)
@@ -1239,6 +1378,12 @@ class Agent:
                             return f"Error: targetContent '{target}' not found in the file."
                         elif count > 1:
                             return f"Error: targetContent '{target}' found {count} times. Make search block unique."
+                        
+                    self._backup_file(path)
+                    
+                    for r in replacements:
+                        target = r.get("targetContent", "")
+                        replacement = r.get("replacementContent", "")
                         content = content.replace(target, replacement, 1)
                         
                     with open(path, "w", encoding="utf-8") as f:
@@ -1646,6 +1791,30 @@ class Agent:
                 exists = os.path.exists(path)
                 kind = "file" if os.path.isfile(path) else ("directory" if os.path.isdir(path) else "unknown")
                 return f"Exists: {exists}" + (f" (type: {kind})" if exists else "")
+
+            elif name == "create_artifact":
+                title = args.get("title", "artifact").replace(" ", "_").lower()
+                if not title.endswith(".md"):
+                    title += ".md"
+                content = args.get("content", "")
+                
+                artifacts_dir = os.path.join(get_user_data_dir(), "artifacts")
+                os.makedirs(artifacts_dir, exist_ok=True)
+                
+                path = os.path.join(artifacts_dir, title)
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(content)
+                    
+                if on_tool_output:
+                    # We can use on_notification but _execute_tool signature doesn't take it directly in all versions
+                    # We'll rely on the agent to emit a message, or we can use sys.stdout
+                    pass
+                    
+                return f"Artifact created at {path} and opened in UI. ARTIFACT_CREATED:{path}"
+
+            elif name == "ask_question":
+                question = args.get("question", "")
+                return "__AWAIT_USER_INPUT__:" + question
 
             else:
                 return f"Error: Unknown tool {name}"
