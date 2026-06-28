@@ -9,71 +9,75 @@ def main():
 
     try:
         import PyInstaller
-        print("[OK] PyInstaller is installed.")
+        print(f"[OK] PyInstaller {PyInstaller.__version__} found.")
     except ImportError:
         print("[INFO] Installing PyInstaller...")
         subprocess.check_call([sys.executable, "-m", "pip", "install", "pyinstaller"])
 
     is_windows = os.name == "nt"
     is_mac = sys.platform == "darwin"
-    separator = ";" if is_windows else ":"
+    is_linux = sys.platform.startswith("linux")
+    sep = ";" if is_windows else ":"
 
+    # ── Core PyInstaller command ──────────────────────────────────────────────
     cmd = [
         sys.executable, "-m", "PyInstaller",
         "--name", "Dardcor Code",
         "--noconfirm",
         "--windowed",
         "--onedir",
-        "--add-data", f"image{separator}image",
-        "--add-data", f"pydardcor/assets{separator}pydardcor/assets",
-        "--add-data", f"pydardcor/extension_host{separator}pydardcor/extension_host",
-        "--add-data", f"pydardcor/settings{separator}pydardcor/settings",
-        "--add-data", f"dardcor_agent/chat/web{separator}dardcor_agent/chat/web",
+        # Data files (always present)
+        "--add-data", f"image{sep}image",
+        "--add-data", f"pydardcor/assets{sep}pydardcor/assets",
+        "--add-data", f"pydardcor/extension_host{sep}pydardcor/extension_host",
+        "--add-data", f"pydardcor/settings{sep}pydardcor/settings",
+        "--add-data", f"dardcor_agent/chat/web{sep}dardcor_agent/chat/web",
+        # Hidden imports
         "--hidden-import", "PySide6.QtWebEngineWidgets",
         "--hidden-import", "PySide6.QtWebEngineCore",
         "--hidden-import", "pydardcor.cli",
         "dardcor.py"
     ]
 
-    # Icon: .ico for Windows, .icns for Mac (fallback to .png)
+    # ── Platform-specific options ─────────────────────────────────────────────
     if is_windows:
-        icon_path = "image/dardcor.ico"
-        if os.path.exists(icon_path):
-            cmd.extend(["--icon", icon_path])
-        # Version info is Windows-only
+        # Icon: .ico for Windows
+        if os.path.exists("image/dardcor.ico"):
+            cmd.extend(["--icon", "image/dardcor.ico"])
+        # Version info: Windows only
         if os.path.exists("version_info.txt"):
             cmd.extend(["--version-file", "version_info.txt"])
-    elif is_mac:
-        icon_path = "image/dardcor.icns"
-        if not os.path.exists(icon_path):
-            icon_path = "image/dardcor.png"
-        if os.path.exists(icon_path):
-            cmd.extend(["--icon", icon_path])
-    else:
-        # Linux - icon embedded in binary is not standard, skip
-        pass
-
-    # winpty only on Windows
-    if is_windows:
+        # winpty: Windows only
         try:
             import winpty
             winpty_dir = os.path.dirname(winpty.__file__)
-            print(f"[OK] winpty found at: {winpty_dir}")
-            cmd.extend(["--add-data", f"{winpty_dir}{separator}winpty"])
+            print(f"[OK] winpty found: {winpty_dir}")
+            cmd.extend(["--add-data", f"{winpty_dir}{sep}winpty"])
         except ImportError:
-            print("[WARNING] winpty package not found. Skipping.")
+            print("[WARN] winpty not found, skipping.")
 
-    print("\n[INFO] Running PyInstaller with arguments:")
-    print(" ".join(str(c) for c in cmd))
+    elif is_mac:
+        # Icon: .icns for macOS, fallback to .png
+        for icon in ["image/dardcor.icns", "image/dardcor.png"]:
+            if os.path.exists(icon):
+                cmd.extend(["--icon", icon])
+                break
 
-    result = subprocess.run(cmd)
+    elif is_linux:
+        # Linux: no icon embedding needed
+        pass
+
+    print("\n[CMD]", " ".join(f'"{c}"' if " " in str(c) else str(c) for c in cmd))
+    print()
+
+    result = subprocess.run(cmd, cwd=os.path.dirname(os.path.abspath(__file__)))
 
     if result.returncode == 0:
-        print("\n[SUCCESS] Build completed!")
-        print("You can find the compiled executable in the 'dist/Dardcor Code' folder.")
+        print("\n✅ Build SUCCESS — dist/Dardcor Code/")
     else:
-        print(f"\n[ERROR] Build failed with exit code {result.returncode}")
+        print(f"\n❌ Build FAILED (exit code {result.returncode})")
         sys.exit(result.returncode)
+
 
 if __name__ == "__main__":
     main()

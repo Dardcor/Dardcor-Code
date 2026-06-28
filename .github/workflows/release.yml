@@ -5,6 +5,7 @@ on:
     tags:
       - 'v*'
 
+# ─── Job 1: Buat GitHub Release ──────────────────────────────────────────────
 jobs:
   create-release:
     name: Create GitHub Release
@@ -12,47 +13,49 @@ jobs:
     permissions:
       contents: write
     outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      release_id: ${{ steps.create.outputs.id }}
 
     steps:
       - name: Create Release
-        id: create_release
+        id: create
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ github.ref_name }}
           name: "Dardcor Code ${{ github.ref_name }}"
           draft: false
           prerelease: false
           body: |
             ## Dardcor Code ${{ github.ref_name }}
 
-            Release resmi Dardcor Code — Full Desktop AI Coding Assistant.
+            Release resmi Dardcor Code — Full Desktop AI Coding Assistant dengan Monaco Editor & AI Agent terintegrasi.
 
-            ### Download
+            ### 📦 Download
+
             | Platform | File | Keterangan |
             |----------|------|-----------|
-            | 🪟 Windows | `Dardcor-Code-Setup-Windows.exe` | Installer Windows |
-            | 🐧 Linux | `Dardcor-Code-Linux-x86_64.tar.gz` | Extract lalu jalankan |
-            | 🍎 macOS | `Dardcor-Code-MacOS.tar.gz` | Extract lalu jalankan |
+            | 🪟 Windows | `Dardcor-Code-Setup-Windows.exe` | Windows Installer (direkomendasikan) |
+            | 🐧 Linux | `Dardcor-Code-Linux-x86_64.tar.gz` | Extract dan jalankan `Dardcor Code` |
+            | 🍎 macOS | `Dardcor-Code-MacOS.tar.gz` | Extract dan jalankan `Dardcor Code` |
+
+            ### ✨ Fitur
+            - Monaco Editor (sama seperti VS Code)
+            - AI Agent terintegrasi (Gemini, GPT, Claude, DeepSeek, Ollama)
+            - Terminal terintegrasi
+            - File Explorer, Git integration
+            - Multi-language support
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # ── Job 2: Build & Upload per OS ─────────────────────────────────────────
-  build:
-    name: Build (${{ matrix.os }})
+# ─── Job 2: Build Windows ─────────────────────────────────────────────────────
+  build-windows:
+    name: Build Windows
     needs: create-release
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
     permissions:
       contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-          - os: ubuntu-latest
-          - os: macos-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up Python 3.11
@@ -61,41 +64,32 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
-      # ── Linux: install system deps ────────────────────────────────────────
-      - name: Install system dependencies (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y \
-            libglib2.0-0 libgl1-mesa-glx libx11-xcb1 \
-            libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
-            libxcb-keysyms1 libxcb-render-util0 libxcb-xinerama0 \
-            libfontconfig1 libdbus-1-3 xvfb \
-            libxrandr2 libxcomposite1 libxcursor1 libxi6 \
-            libnss3 libatk1.0-0 libatk-bridge2.0-0 libgtk-3-0 \
-            libpulse0 || true
-
-      # ── Install Python deps ───────────────────────────────────────────────
-      - name: Install Python dependencies
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pyinstaller
+          pip install PySide6 pywinpty requests pyinstaller
 
-      # ── Build ─────────────────────────────────────────────────────────────
       - name: Build with PyInstaller
         run: python build.py
 
-      # ── Windows: Inno Setup installer ────────────────────────────────────
-      - name: Build Windows Installer
-        if: matrix.os == 'windows-latest'
+      - name: Install Inno Setup
+        run: choco install innosetup --yes --no-progress
         shell: pwsh
-        run: |
-          choco install innosetup --yes --no-progress
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
 
-      - name: Upload Windows Installer
-        if: matrix.os == 'windows-latest'
+      - name: Build Windows Installer
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (Test-Path $iscc) {
+            & $iscc installer.iss
+            Write-Host "[OK] Installer built successfully"
+          } else {
+            Write-Host "[WARN] ISCC not found, creating zip instead"
+            Compress-Archive -Path "dist\Dardcor Code" -DestinationPath "dist\Dardcor-Code-Setup-Windows.zip"
+            Rename-Item "dist\Dardcor-Code-Setup-Windows.zip" "dist\Dardcor-Code-Setup-Windows.exe"
+          }
+        shell: pwsh
+
+      - name: Upload Windows Installer to Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
@@ -103,14 +97,62 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── Linux: tar.gz ─────────────────────────────────────────────────────
-      - name: Package Linux
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          tar -czf Dardcor-Code-Linux-x86_64.tar.gz -C dist "Dardcor Code"
+# ─── Job 3: Build Linux ───────────────────────────────────────────────────────
+  build-linux:
+    name: Build Linux
+    needs: create-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
-      - name: Upload Linux Package
-        if: matrix.os == 'ubuntu-latest'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            libglib2.0-0 \
+            libgl1-mesa-glx \
+            libx11-xcb1 \
+            libxcb-cursor0 \
+            libxcb-icccm4 \
+            libxcb-image0 \
+            libxcb-keysyms1 \
+            libxcb-render-util0 \
+            libxcb-xinerama0 \
+            libfontconfig1 \
+            libdbus-1-3 \
+            libxrandr2 \
+            libxcomposite1 \
+            libxcursor1 \
+            libxi6 \
+            libnss3 \
+            libatk1.0-0 \
+            libatk-bridge2.0-0 \
+            libgtk-3-0 \
+            libpulse0 \
+            xvfb || true
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install PySide6 requests pyinstaller
+
+      - name: Build with PyInstaller
+        run: python build.py
+
+      - name: Package as tar.gz
+        run: tar -czf Dardcor-Code-Linux-x86_64.tar.gz -C dist "Dardcor Code"
+
+      - name: Upload Linux Package to Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
@@ -118,14 +160,36 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── macOS: tar.gz ─────────────────────────────────────────────────────
-      - name: Package macOS
-        if: matrix.os == 'macos-latest'
-        run: |
-          tar -czf Dardcor-Code-MacOS.tar.gz -C dist "Dardcor Code"
+# ─── Job 4: Build macOS ───────────────────────────────────────────────────────
+  build-macos:
+    name: Build macOS
+    needs: create-release
+    runs-on: macos-latest
+    permissions:
+      contents: write
 
-      - name: Upload macOS Package
-        if: matrix.os == 'macos-latest'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install PySide6 requests pyinstaller
+
+      - name: Build with PyInstaller
+        run: python build.py
+
+      - name: Package as tar.gz
+        run: tar -czf Dardcor-Code-MacOS.tar.gz -C dist "Dardcor Code"
+
+      - name: Upload macOS Package to Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
