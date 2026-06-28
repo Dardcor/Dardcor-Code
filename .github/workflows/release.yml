@@ -6,7 +6,7 @@ on:
       - 'v*'
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Job 1: Create the GitHub Release (empty, assets will be uploaded by builds)
+# Job 1: Create the GitHub Release
 # ─────────────────────────────────────────────────────────────────────────────
 jobs:
   create-release:
@@ -46,12 +46,13 @@ jobs:
             - AI Agent terintegrasi (Gemini, GPT, Claude, DeepSeek, Ollama)
             - Terminal terintegrasi
             - File Explorer & Git integration
-            - Multi-language support
+            - Multi-language syntax highlighting
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Job 2: Windows Build → .exe Installer + .zip Portable
+# Fix: PySide6 terbaru tersedia, pywinpty opsional, gunakan Inno Setup Action
 # ─────────────────────────────────────────────────────────────────────────────
   build-windows:
     name: Build Windows
@@ -71,19 +72,20 @@ jobs:
           cache: 'pip'
 
       - name: Install Python dependencies
+        shell: pwsh
         run: |
           python -m pip install --upgrade pip
-          # Install PySide6 wheel (no build needed)
-          pip install "PySide6==6.7.3" requests pyinstaller
-          # pywinpty: try installing, ok if fails (it's optional for CI build)
-          pip install pywinpty || echo "pywinpty not available, skipping"
-        shell: pwsh
+          # Install PySide6 latest stable + pyinstaller
+          pip install PySide6 requests pyinstaller
+          # pywinpty: optional, needed for terminal bundling
+          pip install pywinpty
+          Write-Host "Dependencies installed successfully"
 
       - name: Build with PyInstaller
-        run: python build.py
         shell: pwsh
+        run: python build.py
 
-      - name: Install Inno Setup
+      - name: Install Inno Setup and build installer
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.4
         with:
           path: installer.iss
@@ -93,7 +95,7 @@ jobs:
         shell: pwsh
         run: |
           Compress-Archive -Path "dist\Dardcor Code\*" -DestinationPath "Dardcor-Code-Windows-Portable.zip"
-          Write-Host "✅ Portable zip created"
+          Write-Host "Portable zip created"
 
       - name: Upload Windows Installer
         uses: softprops/action-gh-release@v1
@@ -145,7 +147,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install "PySide6==6.7.3" requests pyinstaller
+          pip install PySide6 requests pyinstaller
 
       - name: Build with PyInstaller
         run: python build.py
@@ -153,20 +155,15 @@ jobs:
       - name: Package tar.gz
         run: |
           tar -czf Dardcor-Code-Linux-x86_64.tar.gz -C dist "Dardcor Code"
-          echo "✅ tar.gz created"
+          echo "tar.gz created"
 
       - name: Package AppImage
         run: |
           APP_DIR="AppDir"
-          APP_NAME="Dardcor Code"
-          BINARY_NAME="Dardcor Code"
-
-          # Build AppDir structure
           mkdir -p "$APP_DIR/usr/bin"
-          cp -r "dist/$APP_NAME/"* "$APP_DIR/usr/bin/"
+          cp -r "dist/Dardcor Code/"* "$APP_DIR/usr/bin/"
 
-          # Desktop file
-          cat > "$APP_DIR/dardcor-code.desktop" << 'EOF'
+          cat > "$APP_DIR/dardcor-code.desktop" << 'DESKTOP'
           [Desktop Entry]
           Name=Dardcor Code
           Exec=Dardcor Code
@@ -174,34 +171,29 @@ jobs:
           Type=Application
           Categories=Development;IDE;
           Comment=Full Desktop AI Coding Assistant
-          EOF
+          DESKTOP
 
-          # Icon
           if [ -f "image/dardcor.png" ]; then
             cp "image/dardcor.png" "$APP_DIR/dardcor.png"
-            mkdir -p "$APP_DIR/usr/share/icons/hicolor/256x256/apps"
-            cp "image/dardcor.png" "$APP_DIR/usr/share/icons/hicolor/256x256/apps/dardcor.png"
           fi
 
-          # AppRun script
-          cat > "$APP_DIR/AppRun" << 'EOF'
+          cat > "$APP_DIR/AppRun" << 'APPRUN'
           #!/bin/sh
           HERE="$(dirname "$(readlink -f "${0}")")"
           exec "$HERE/usr/bin/Dardcor Code" "$@"
-          EOF
+          APPRUN
           chmod +x "$APP_DIR/AppRun"
 
-          # Download appimagetool and build
           wget -q "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
           chmod +x appimagetool-x86_64.AppImage
           ARCH=x86_64 ./appimagetool-x86_64.AppImage --appimage-extract-and-run "$APP_DIR" "Dardcor-Code-Linux-x86_64.AppImage"
-          echo "✅ AppImage created"
+          echo "AppImage created"
         continue-on-error: true
 
       - name: Package .deb
         run: |
           APP_VERSION="${{ github.ref_name }}"
-          APP_VERSION="${APP_VERSION#v}"  # Remove 'v' prefix
+          APP_VERSION="${APP_VERSION#v}"
           DEB_DIR="deb_package"
 
           mkdir -p "$DEB_DIR/DEBIAN"
@@ -210,18 +202,15 @@ jobs:
           mkdir -p "$DEB_DIR/usr/share/applications"
           mkdir -p "$DEB_DIR/usr/share/icons/hicolor/256x256/apps"
 
-          # Copy application
           cp -r "dist/Dardcor Code/"* "$DEB_DIR/opt/dardcor-code/"
 
-          # Launcher script
-          cat > "$DEB_DIR/usr/local/bin/dardcor-code" << 'EOF'
+          cat > "$DEB_DIR/usr/local/bin/dardcor-code" << 'LAUNCHER'
           #!/bin/sh
           exec /opt/dardcor-code/"Dardcor Code" "$@"
-          EOF
+          LAUNCHER
           chmod +x "$DEB_DIR/usr/local/bin/dardcor-code"
 
-          # Desktop entry
-          cat > "$DEB_DIR/usr/share/applications/dardcor-code.desktop" << 'EOF'
+          cat > "$DEB_DIR/usr/share/applications/dardcor-code.desktop" << 'DESKTOP'
           [Desktop Entry]
           Name=Dardcor Code
           Exec=/opt/dardcor-code/Dardcor Code
@@ -229,15 +218,13 @@ jobs:
           Type=Application
           Categories=Development;IDE;
           Comment=Full Desktop AI Coding Assistant
-          EOF
+          DESKTOP
 
-          # Icon
           if [ -f "image/dardcor.png" ]; then
             cp "image/dardcor.png" "$DEB_DIR/usr/share/icons/hicolor/256x256/apps/dardcor.png"
           fi
 
-          # Control file
-          cat > "$DEB_DIR/DEBIAN/control" << EOF
+          cat > "$DEB_DIR/DEBIAN/control" << CONTROL
           Package: dardcor-code
           Version: $APP_VERSION
           Architecture: amd64
@@ -246,21 +233,17 @@ jobs:
            AI-powered coding assistant with Monaco Editor, terminal, and Git integration.
           Section: devel
           Priority: optional
-          EOF
+          CONTROL
 
-          # Build .deb
           dpkg-deb --build "$DEB_DIR" "Dardcor-Code-Linux-x86_64.deb"
-          echo "✅ .deb created"
+          echo ".deb created"
         continue-on-error: true
 
       - name: Package .rpm
         run: |
           APP_VERSION="${{ github.ref_name }}"
           APP_VERSION="${APP_VERSION#v}"
-
-          # Install fpm for easy rpm creation
           sudo gem install fpm --no-document 2>/dev/null || true
-
           if command -v fpm &> /dev/null; then
             fpm -s dir -t rpm \
               -n "dardcor-code" \
@@ -270,13 +253,11 @@ jobs:
               --maintainer "Dardcor Team" \
               --url "https://github.com/Dardcor/Dardcor-Code" \
               --license "MIT" \
-              --category "Development/Tools" \
               "dist/Dardcor Code/=/opt/dardcor-code/" \
               --package "Dardcor-Code-Linux-x86_64.rpm"
-            echo "✅ .rpm created via fpm"
+            echo ".rpm created"
           else
-            # Fallback: create a simple tar.gz renamed as .rpm indicator
-            echo "⚠️ fpm not available, skipping RPM"
+            echo "fpm not available, skipping rpm"
           fi
         continue-on-error: true
 
@@ -317,12 +298,13 @@ jobs:
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Job 4: macOS Build → .dmg + .tar.gz
+# Fix: macos-13 (Intel x86_64) untuk PySide6 + PyInstaller compatibility
 # ─────────────────────────────────────────────────────────────────────────────
   build-macos:
     name: Build macOS
     needs: create-release
-    # macos-13 = Intel x86_64 — required for PySide6 PyInstaller compatibility
-    # macos-14+ is ARM64 which has PySide6 wheel issues with PyInstaller
+    # macos-13 = Intel x86_64, WAJIB untuk PySide6+PyInstaller
+    # macos-14/15 = ARM64, belum stabil untuk PySide6 PyInstaller bundling
     runs-on: macos-13
     permissions:
       contents: write
@@ -337,10 +319,10 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install "PySide6==6.7.3" requests pyinstaller
+          pip install PySide6 requests pyinstaller
 
       - name: Build with PyInstaller
         run: python build.py
@@ -348,27 +330,17 @@ jobs:
       - name: Package tar.gz
         run: |
           tar -czf Dardcor-Code-MacOS.tar.gz -C dist "Dardcor Code"
-          echo "✅ tar.gz created"
+          echo "tar.gz created"
 
       - name: Package .dmg
         run: |
-          APP_DIR="dist/Dardcor Code"
-          DMG_NAME="Dardcor-Code-MacOS.dmg"
-          VOLUME_NAME="Dardcor Code"
-
-          # Create a temporary DMG using hdiutil (built-in macOS tool)
-          TEMP_DMG="temp_dmg"
-          mkdir -p "$TEMP_DMG"
-          cp -r "$APP_DIR" "$TEMP_DMG/"
-
           hdiutil create \
-            -volname "$VOLUME_NAME" \
-            -srcfolder "$TEMP_DMG" \
+            -volname "Dardcor Code" \
+            -srcfolder "dist/Dardcor Code" \
             -ov \
             -format UDZO \
-            "$DMG_NAME"
-
-          echo "✅ DMG created"
+            "Dardcor-Code-MacOS.dmg"
+          echo "DMG created"
         continue-on-error: true
 
       - name: Upload macOS tar.gz
