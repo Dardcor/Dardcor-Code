@@ -88,19 +88,90 @@ class TabCloseButton(QPushButton):
         """)
 
 
+class TabScrollArea(QScrollArea):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWidgetResizable(True)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        from PySide6.QtWidgets import QFrame
+        self.setFrameShape(QFrame.NoFrame)
+        self._hover_style = """
+            QScrollArea {
+                background: transparent;
+                border: none;
+            }
+            QScrollBar:horizontal {
+                border: none;
+                background: transparent;
+                height: 3px; /* Just tall enough for the line */
+                margin: 0px 0px 0px 0px;
+            }
+            QScrollBar::handle:horizontal {
+                background: #6a1b9a;
+                min-width: 30px;
+                border-radius: 1px;
+                margin: 0px 0px 0px 0px; /* Flush with bottom */
+            }
+            QScrollBar::handle:horizontal:hover {
+                background: #4a0072;
+            }
+            QScrollBar::add-line:horizontal {
+                width: 0px;
+                background: transparent;
+            }
+            QScrollBar::sub-line:horizontal {
+                width: 0px;
+                background: transparent;
+            }
+        """
+        self._hidden_style = """
+            QScrollArea {
+                background: transparent;
+                border: none;
+            }
+            QScrollBar:horizontal {
+                height: 0px;
+                margin: 0px;
+            }
+        """
+        self.setStyleSheet(self._hidden_style)
+
+    def enterEvent(self, event):
+        super().enterEvent(event)
+        self.setStyleSheet(self._hover_style)
+
+    def leaveEvent(self, event):
+        super().leaveEvent(event)
+        self.setStyleSheet(self._hidden_style)
+
 class DardcorTabBar(QTabBar):
     """Custom tab bar that shows close button only on selected/hovered tabs."""
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._hovered_tab = -1
-        self.setMouseTracking(True)
-        self.setTabsClosable(True)
         self.setMovable(True)
         self.setExpanding(False)
         self.setDrawBase(False)
-        self.setElideMode(Qt.ElideRight)
+        self.setElideMode(Qt.ElideNone)
+        self.setUsesScrollButtons(False)
+        self.setDocumentMode(True)
+        self._hovered_tab = -1
+        self.setMouseTracking(True)
+        self.setTabsClosable(True)
         self.setIconSize(QSize(16, 16))
+        self._init_style()
+        
+    def minimumSizeHint(self):
+        return self.sizeHint()
+        
+    def event(self, event):
+        from PySide6.QtCore import QEvent
+        if event.type() == QEvent.LayoutRequest:
+            self.setMinimumWidth(self.sizeHint().width())
+        return super().event(event)
+        
+    def _init_style(self):
         self.setStyleSheet("""
             QTabBar {
                 background: transparent;
@@ -113,7 +184,6 @@ class DardcorTabBar(QTabBar):
                 border: none;
                 border-right: 1px solid #1a0033;
                 min-width: 0px;
-                max-width: 220px;
                 font-size: 12px;
             }
             QTabBar::tab:selected {
@@ -135,34 +205,6 @@ class DardcorTabBar(QTabBar):
             }
         """)
 
-    def tabSizeHint(self, index):
-        base_size = super().tabSizeHint(index)
-        text = self.tabText(index)
-        fm = self.fontMetrics()
-        if hasattr(fm, 'horizontalAdvance'):
-            text_width = fm.horizontalAdvance(text)
-        else:
-            text_width = fm.boundingRect(text).width()
-        
-        icon = self.tabIcon(index)
-        icon_width = 0
-        if not icon.isNull():
-            icon_width = self.iconSize().width() + 6  # Icon + spacing
-            
-        btn = self.tabButton(index, QTabBar.RightSide)
-        btn_width = 0
-        if btn:
-            btn_width = btn.width() + 4  # Button + spacing
-        else:
-            btn_width = 22 + 4  # Fallback based on 22px button size
-            
-        padding_left = 10
-        padding_right = 6
-        
-        width = padding_left + icon_width + text_width + btn_width + padding_right
-        width = min(max(width, 80), 220)
-        return QSize(width, base_size.height())
-        
     def tabInserted(self, index):
         super().tabInserted(index)
         btn = TabCloseButton(self)
@@ -423,7 +465,25 @@ class EditorGroup(QWidget):
         self._tab_bar = DardcorTabBar()
         self._tab_bar.tabCloseRequested.connect(self._close_tab)
         self._tab_bar.currentChanged.connect(self._on_tab_changed)
-        row_layout.addWidget(self._tab_bar)
+        self._tab_scroll = TabScrollArea()
+        self._tab_scroll.setWidget(self._tab_bar)
+        
+        row_layout.addWidget(self._tab_scroll)
+        
+        # Native-style scroll buttons in the corner
+        from PySide6.QtWidgets import QToolButton
+        self._scroll_left_btn = QToolButton()
+        self._scroll_left_btn.setArrowType(Qt.LeftArrow)
+        self._scroll_left_btn.setStyleSheet("QToolButton { background: transparent; border: none; padding: 4px; } QToolButton:hover { background: #1a0033; }")
+        self._scroll_left_btn.clicked.connect(lambda: self._tab_scroll.horizontalScrollBar().setValue(self._tab_scroll.horizontalScrollBar().value() - 50))
+        
+        self._scroll_right_btn = QToolButton()
+        self._scroll_right_btn.setArrowType(Qt.RightArrow)
+        self._scroll_right_btn.setStyleSheet("QToolButton { background: transparent; border: none; padding: 4px; } QToolButton:hover { background: #1a0033; }")
+        self._scroll_right_btn.clicked.connect(lambda: self._tab_scroll.horizontalScrollBar().setValue(self._tab_scroll.horizontalScrollBar().value() + 50))
+        
+        row_layout.addWidget(self._scroll_left_btn)
+        row_layout.addWidget(self._scroll_right_btn)
 
         layout.addWidget(self._tab_row)
 

@@ -987,10 +987,11 @@ class FileExplorer(QWidget):
                 self._load_directory(path, item)
                 item.setData(0, Qt.UserRole + 4, True)
                 
-            # If truly empty, collapse it immediately so it doesn't enter the bugged Qt state where the chevron vanishes!
+            # If truly empty, add a 0-size child so it doesn't enter the bugged Qt state where the chevron vanishes!
             if item.childCount() == 0:
-                # Prevent expanding empty folders to keep the chevron visible
-                QTimer.singleShot(0, lambda: self._tree.collapseItem(item))
+                dummy = QTreeWidgetItem(item)
+                dummy.setFlags(Qt.NoItemFlags)
+                dummy.setSizeHint(0, QSize(0, 0))
                 
             if not getattr(self, '_is_refreshing', False):
                 self._watcher_timer.start()
@@ -1155,7 +1156,7 @@ class FileExplorer(QWidget):
         self._do_refresh()
 
     def _do_refresh(self):
-        if self._editing_item:
+        if self._editing_item or getattr(self, '_in_inline_edit', False):
             return
 
         if not self._root_path:
@@ -1255,9 +1256,16 @@ class FileExplorer(QWidget):
         # Add root and expanded paths
         if self._root_path and os.path.exists(self._root_path):
             paths_to_watch = {self._root_path}
+            
+            # Skip watching common heavy/temp directories to avoid Access is Denied errors
+            skip_dirs = {'.git', 'node_modules', '.next', '.venv', '__pycache__'}
+            
             for p in expanded_paths:
                 if os.path.exists(p):
-                    paths_to_watch.add(p)
+                    # Check if path contains any of the skipped directories
+                    parts = p.replace('\\', '/').split('/')
+                    if not any(d in parts for d in skip_dirs):
+                        paths_to_watch.add(p)
             
             if paths_to_watch:
                 self._watcher.addPaths(list(paths_to_watch))
@@ -1554,6 +1562,31 @@ class FileExplorer(QWidget):
         msg_box.setWindowTitle("Confirm Delete")
         msg_box.setText(f"Are you sure you want to delete {len(paths)} item(s)?")
         msg_box.setIcon(QMessageBox.Question)
+        msg_box.setStyleSheet("""
+            QMessageBox {
+                background-color: #000000;
+                color: #cccccc;
+            }
+            QLabel {
+                background-color: transparent;
+                color: #cccccc;
+            }
+            QPushButton {
+                background-color: #3c0068;
+                color: #ffffff;
+                border: 1px solid #4a0072;
+                border-radius: 4px;
+                padding: 4px 12px;
+                min-width: 60px;
+                font-size: 11px;
+            }
+            QPushButton:hover {
+                background-color: #4a0072;
+            }
+            QPushButton:pressed {
+                background-color: #2c004a;
+            }
+        """)
         
         try:
             import send2trash
