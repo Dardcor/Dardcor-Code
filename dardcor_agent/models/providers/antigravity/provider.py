@@ -70,7 +70,7 @@ class AntigravityProvider(BaseProvider):
     ) -> ProviderResponse:
         
         if not self._accounts:
-            return ProviderResponse(error="⚠️ Dardcor Code aktif tapi tidak ada akun yang tersedia. Tambahkan akun terlebih dahulu di /models.")
+            return ProviderResponse(error="Dardcor Code aktif tapi tidak ada akun yang tersedia. Tambahkan akun terlebih dahulu di /models.")
 
         # Map display name to API model ID
         _MODEL_MAP = {
@@ -79,13 +79,16 @@ class AntigravityProvider(BaseProvider):
             "Gemini 3 Pro (High)": "gemini-3-pro-high",
             "Gemini 3 Pro (Low)": "gemini-3-pro-low",
             "Gemini 3 Flash": "gemini-3-flash",
-            "Gemini 3.5 Flash (High)": "gemini-3-flash-agent",
+            "Gemini 3.5 Flash (High)": "gemini-3.5-flash-agent",
             "Gemini 3.5 Flash (Low)": "gemini-3.5-flash-extra-low",
             "Gemini 3.5 Flash (Medium)": "gemini-3.5-flash-low",
             "Gemini 2.5 Pro": "gemini-2.5-pro",
             "Claude Sonnet 4.6 (Thinking)": "claude-sonnet-4-6",
             "Claude Sonnet 4.6": "claude-sonnet-4-6",
             "Claude Opus 4.6 (Thinking)": "claude-opus-4-6-thinking",
+            "Gemini 3.1 Flash Thinking": "gemini-3-flash",
+            "Gemini 3.1 Flash Lite": "gemini-3.5-flash-extra-low",
+            "Gemini 3.1 Flash Image": "gemini-3-flash-agent",
         }
         if not model_override:
             model_override = config.model or "gemini-1.5-pro"
@@ -285,7 +288,7 @@ class AntigravityProvider(BaseProvider):
                             "tools": [{"functionDeclarations": google_tools}],
                             "generationConfig": {
                                 "temperature": config.temperature,
-                                "maxOutputTokens": min(config.max_tokens, 65536),
+                                "maxOutputTokens": min(config.max_tokens, 8192),
                                 "topP": 1.0,
                                 "topK": 40
                             },

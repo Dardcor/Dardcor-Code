@@ -321,9 +321,10 @@ class ChatPanel(QWidget):
         # Base path for assets
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         assets_dir = os.path.join(base_dir, "pydardcor", "assets")
+        image_dir = os.path.join(base_dir, "image")
 
         attach_btn = QPushButton()
-        attach_btn.setIcon(QIcon(os.path.join(assets_dir, "plus.svg")))
+        attach_btn.setIcon(QIcon(os.path.join(image_dir, "plus.svg")))
         attach_btn.setIconSize(QSize(14, 14))
         attach_btn.setFixedSize(26, 26)
         attach_btn.setToolTip("Upload File")
@@ -337,7 +338,7 @@ class ChatPanel(QWidget):
         attach_btn.clicked.connect(self.select_file_requested.emit)
         input_bottom_layout.addWidget(attach_btn)
         
-        chevron_path = os.path.join(assets_dir, "chevron-up.svg").replace("\\", "/")
+        chevron_path = os.path.join(image_dir, "chevron-up.svg").replace("\\", "/")
         self.model_dropdown = UpwardComboBox()
         self.model_dropdown.setItemDelegate(QStyledItemDelegate())
         self._dropdown_model = QStandardItemModel(self.model_dropdown)
@@ -421,9 +422,9 @@ class ChatPanel(QWidget):
         self.model_dropdown.currentTextChanged.connect(self._on_model_changed)
         input_bottom_layout.addWidget(self.model_dropdown)
 
-        self._mic_icon = QIcon(os.path.join(assets_dir, "mic.svg"))
-        self._send_icon = QIcon(os.path.join(assets_dir, "send.svg"))
-        self._stop_icon = QIcon(os.path.join(assets_dir, "stop.svg"))
+        self._mic_icon = QIcon(os.path.join(image_dir, "mic.svg"))
+        self._send_icon = QIcon(os.path.join(image_dir, "send.svg"))
+        self._stop_icon = QIcon(os.path.join(image_dir, "stop.svg"))
         self._is_generating = False
 
         self._send_btn = QPushButton()

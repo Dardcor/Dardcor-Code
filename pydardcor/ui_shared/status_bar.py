@@ -127,19 +127,6 @@ class StatusBar(QStatusBar):
         # LEFT SIDE (addWidget = left-aligned)
         self._remote_btn = StatusBarButton()
         self._remote_btn.hide()
-        self._remote_btn.setStyleSheet("""
-            QPushButton {
-                background: #007acc;
-                color: #ffffff;
-                border: none;
-                padding: 0px 10px;
-                font-size: 12px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #0098ff;
-            }
-        """)
         self.addWidget(self._remote_btn)
 
         self._git_btn = StatusBarButton("\uea68 main")
@@ -187,7 +174,7 @@ class StatusBar(QStatusBar):
         self._models_btn.clicked.connect(self.models_requested.emit)
         self.addPermanentWidget(self._models_btn)
 
-        self._ai_btn = StatusBarButton("\ueab2 Dardcor Settings")
+        self._ai_btn = StatusBarButton("\ueab2 Dardcor - Settings")
         self._ai_btn.setToolTip("Dardcor Settings")
         self.addPermanentWidget(self._ai_btn)
 
@@ -209,7 +196,7 @@ class StatusBar(QStatusBar):
 
     def set_connected(self, connected: bool):
         if connected:
-            self._ai_btn.setText("\ueab2 Dardcor Settings")
+            self._ai_btn.setText("\ueab2 Dardcor - Settings")
             self._ai_btn.setToolTip("Settings Ready")
         else:
             self._ai_btn.setText("\uea76 Settings Offline")
@@ -222,7 +209,13 @@ class StatusBar(QStatusBar):
         self._lang_btn.setText(language)
 
     def set_git_branch(self, branch: str):
-        self._git_btn.setText(f"\uea68 {branch}")
+        if not branch:
+            self._git_btn.hide()
+            self._sync_btn.hide()
+        else:
+            self._git_btn.setText(f"\uea68 {branch}")
+            self._git_btn.show()
+            self._sync_btn.show()
 
     def set_encoding(self, encoding: str):
         self._encoding_btn.setText(encoding)

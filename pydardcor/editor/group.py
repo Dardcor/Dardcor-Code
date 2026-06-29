@@ -202,6 +202,13 @@ class DardcorTabBar(QTabBar):
                 else:
                     btn.setVisible(False)
 
+    def mouseReleaseEvent(self, event):
+        super().mouseReleaseEvent(event)
+        if event.button() == Qt.MiddleButton:
+            idx = self.tabAt(event.pos())
+            if idx >= 0:
+                self.tabCloseRequested.emit(idx)
+
     def contextMenuEvent(self, event):
         idx = self.tabAt(event.pos())
         if idx < 0:
@@ -219,6 +226,8 @@ class DardcorTabBar(QTabBar):
             pin_action = menu.addAction("Unpin Tab" if tab_data.is_pinned else "Pin Tab")
             close_action = menu.addAction("Close")
             close_other = menu.addAction("Close Others")
+            close_right = menu.addAction("Close to the Right")
+            close_saved = menu.addAction("Close Saved")
             
             action = menu.exec_(self.mapToGlobal(event.pos()))
             
@@ -229,6 +238,13 @@ class DardcorTabBar(QTabBar):
             elif action == close_other:
                 for i in range(self.count() - 1, -1, -1):
                     if i != idx:
+                        self.tabCloseRequested.emit(i)
+            elif action == close_right:
+                for i in range(self.count() - 1, idx, -1):
+                    self.tabCloseRequested.emit(i)
+            elif action == close_saved:
+                for i in range(self.count() - 1, -1, -1):
+                    if i < len(group._tabs) and not group._tabs[i].editor.is_dirty():
                         self.tabCloseRequested.emit(i)
 
 

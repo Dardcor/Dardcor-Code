@@ -11,6 +11,7 @@ from .outline_panel import SectionHeaderButton
 
 class TimelinePanel(QWidget):
     item_selected = Signal(str)  # Emit commit hash or local history ID
+    toggled = Signal(bool)
     def __init__(self, parent=None):
         super().__init__(parent)
         self._collapsed = True
@@ -58,6 +59,7 @@ class TimelinePanel(QWidget):
         self._collapsed = not self._collapsed
         self._tree.setVisible(not self._collapsed)
         self._update_header_text()
+        self.toggled.emit(self._collapsed)
         
     def update_timeline(self, file_path: str):
         self._tree.clear()

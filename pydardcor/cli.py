@@ -3,7 +3,6 @@ import os
 import argparse
 import threading
 
-# Suppress Qt QPA font warnings on Windows (DirectWrite font database issues with legacy/bitmap fonts)
 if os.name == "nt":
     existing = os.environ.get("QT_LOGGING_RULES", "")
     if "qt.qpa.fonts" not in existing:
@@ -15,6 +14,14 @@ from .core.config import get_config
 
 def cmd_desktop(args):
     try:
+        from .core.config import get_config
+        cfg = get_config()
+        if hasattr(args, 'path') and args.path:
+            target_path = os.path.abspath(args.path)
+            if os.path.exists(target_path):
+                cfg.workspace_path = target_path
+                cfg.save()
+        
         from .app.app import run_desktop_app
         run_desktop_app()
     except ImportError as e:
@@ -35,7 +42,7 @@ def cmd_version(args):
 
 
 def main():
-    # Intercept QtWebEngine internal subprocess arguments to prevent fork bombs!
+    
     if any(arg.startswith("--type=") for arg in sys.argv):
         from PySide6.QtWidgets import QApplication
         app = QApplication(sys.argv)
@@ -50,6 +57,7 @@ def main():
     subparsers = parser.add_subparsers(dest="command", help="Commands")
 
     p = subparsers.add_parser("desktop", help="Launch desktop application")
+    p.add_argument("path", nargs="?", default=None, help="Path to open")
     p.set_defaults(func=cmd_desktop)
 
     p = subparsers.add_parser("status", help="Check installation status")
@@ -64,7 +72,6 @@ def main():
         args.command = "desktop"
         args.func = cmd_desktop
 
-    # Initialize config on startup
     get_config()
 
     args.func(args)

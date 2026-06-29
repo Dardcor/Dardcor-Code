@@ -88,6 +88,7 @@ class OutlinePanel(QWidget):
     """Panel showing symbols (classes, functions, etc) for the active file."""
 
     item_selected = Signal(int)  # Emit line number to jump to
+    toggled = Signal(bool)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -141,6 +142,7 @@ class OutlinePanel(QWidget):
         self._collapsed = not self._collapsed
         self._tree.setVisible(not self._collapsed)
         self._update_header_text()
+        self.toggled.emit(self._collapsed)
 
     def set_symbols(self, symbols: list):
         """

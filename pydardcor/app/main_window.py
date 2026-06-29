@@ -514,19 +514,29 @@ class CustomTitleBar(QWidget):
             QMessageBox.warning(self, "Chrome", msg)
 
     def toggle_max_restore(self):
-        if self.parent.isMaximized():
-            self.parent.showNormal()
+        if getattr(self, "_is_custom_maximized", False) or self.parent.isMaximized():
+            if getattr(self, "_is_custom_maximized", False) and hasattr(self, "_normal_geometry"):
+                self.parent.setGeometry(self._normal_geometry)
+            else:
+                self.parent.showNormal()
+            self._is_custom_maximized = False
+            # Update icon to maximize
+            self.max_btn.setText("\ueab9")
         else:
-            # Fix frameless window covering taskbar on Windows
+            self._normal_geometry = self.parent.geometry()
             if os.name == 'nt':
                 from PySide6.QtWidgets import QApplication
                 screen = QApplication.screenAt(self.parent.geometry().center())
                 if screen:
-                    # Manually set geometry to available geometry to prevent taskbar overlap
                     avail = screen.availableGeometry()
                     self.parent.setGeometry(avail)
-                    return
-            self.parent.showMaximized()
+                    self._is_custom_maximized = True
+                else:
+                    self.parent.showMaximized()
+            else:
+                self.parent.showMaximized()
+            # Update icon to restore
+            self.max_btn.setText("\ueabb") # chrome-restore
             
     # Native event handling in MainWindow takes care of dragging and double click on Windows
     # Fallback for Linux:
@@ -544,11 +554,16 @@ class CustomTitleBar(QWidget):
 
     def mouseMoveEvent(self, event):
         if event.buttons() == Qt.LeftButton and self.start_pos is not None:
-            if not self.parent.isMaximized():
+            from PySide6.QtCore import QPoint
+            if getattr(self, "_is_custom_maximized", False) or self.parent.isMaximized():
+                self.toggle_max_restore()
+                # Recalculate start_pos to be roughly centered relative to new width
+                self.start_pos = QPoint(self.parent.width() // 2, self.start_pos.y())
                 self.parent.move(event.globalPosition().toPoint() - self.start_pos)
                 event.accept()
             else:
-                super().mouseMoveEvent(event)
+                self.parent.move(event.globalPosition().toPoint() - self.start_pos)
+                event.accept()
         else:
             super().mouseMoveEvent(event)
 
@@ -866,6 +881,12 @@ class MainWindow(QMainWindow):
         # ── Activity Bar (leftmost) ──
         self._activity_bar = ActivityBar()
         self._activity_bar.view_changed.connect(self._on_view_changed)
+        
+        # Test badges for Activity Bar
+        from ..ui_shared.activity_bar import VIEW_SOURCE_CONTROL, VIEW_EXTENSIONS
+        self._activity_bar.set_badge(VIEW_SOURCE_CONTROL, "1")
+        self._activity_bar.set_badge(VIEW_EXTENSIONS, "3")
+        
         main_layout.addWidget(self._activity_bar)
 
         # ── Sidebar Stack ──
@@ -901,10 +922,30 @@ class MainWindow(QMainWindow):
         self._file_explorer.add_subpanel(self._open_editors_panel)
         self._file_explorer.setup_explorer_menu(self._open_editors_panel, self._outline_panel, self._timeline_panel)
 
-        explorer_layout.addWidget(self._file_explorer, 1)
-        explorer_layout.addWidget(self._outline_panel, 0)
-        explorer_layout.addWidget(self._timeline_panel, 0)
-        explorer_layout.addStretch(0)
+        self._explorer_layout = explorer_layout
+        self._explorer_layout.addWidget(self._file_explorer, 1)
+        self._explorer_layout.addWidget(self._outline_panel, 0)
+        self._explorer_layout.addWidget(self._timeline_panel, 0)
+        self._explorer_bottom_stretch = QWidget()
+        self._explorer_bottom_stretch.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        self._explorer_layout.addWidget(self._explorer_bottom_stretch)
+
+        def _update_explorer_stretches():
+            exp_open = not getattr(self._file_explorer, '_workspace_collapsed', False)
+            out_open = not getattr(self._outline_panel, '_collapsed', True)
+            tim_open = not getattr(self._timeline_panel, '_collapsed', True)
+            
+            self._explorer_layout.setStretchFactor(self._file_explorer, 1 if exp_open else 0)
+            self._explorer_layout.setStretchFactor(self._outline_panel, 1 if out_open else 0)
+            self._explorer_layout.setStretchFactor(self._timeline_panel, 1 if tim_open else 0)
+            
+            self._explorer_bottom_stretch.setVisible(not exp_open and not out_open and not tim_open)
+            self._explorer_layout.invalidate()
+
+        self._file_explorer.workspace_toggled.connect(lambda _: _update_explorer_stretches())
+        self._outline_panel.toggled.connect(lambda _: _update_explorer_stretches())
+        self._timeline_panel.toggled.connect(lambda _: _update_explorer_stretches())
+        _update_explorer_stretches()
 
         self._sidebar_stack.addWidget(explorer_wrapper)
 
@@ -953,12 +994,12 @@ class MainWindow(QMainWindow):
         # ── Editor Tabs ──
         self._editor_tabs = EditorTabs()
 
-        # ── Breadcrumbs Navigation Bar (Disabled/Hidden) ──
+        # ── Breadcrumbs Navigation Bar ──
         self._breadcrumbs_bar = None
 
         # Container: editor tabs stacked vertically
         self._editor_container = QWidget()
-        self._editor_container.setStyleSheet("background-color: #3c0068;")
+        self._editor_container.setStyleSheet("background: transparent; border: none;")
         self._editor_container_layout = QVBoxLayout(self._editor_container)
         self._editor_container_layout.setSizeConstraint(QVBoxLayout.SetNoConstraint)
         self._editor_container_layout.setContentsMargins(0, 0, 0, 0)
@@ -2362,8 +2403,16 @@ class MainWindow(QMainWindow):
 
     def _show_models_dialog(self):
         try:
+            if hasattr(self, '_models_dialog') and self._models_dialog is not None:
+                try:
+                    if self._models_dialog.isVisible():
+                        self._models_dialog.activateWindow()
+                        self._models_dialog.raise_()
+                        return
+                except RuntimeError:
+                    pass
             from dardcor_agent.models.main_dialog import ModelsQuotaDialog
-            self._models_dialog = ModelsQuotaDialog(parent=self)
+            self._models_dialog = ModelsQuotaDialog(parent=None)
             self._models_dialog.setAttribute(Qt.WA_DeleteOnClose)
             self._models_dialog.show()
         except Exception as e:
@@ -3091,6 +3140,9 @@ class MainWindow(QMainWindow):
         if branch and result.exit_code == 0:
             if hasattr(self, "_status_bar") and self._status_bar:
                 self._status_bar.set_git_branch(branch)
+        else:
+            if hasattr(self, "_status_bar") and self._status_bar:
+                self._status_bar.set_git_branch("")
 
     # ── Dialogs ───────────────────────────────────────────
 
@@ -3548,3 +3600,14 @@ class MainWindow(QMainWindow):
             editor_term.setStretchFactor(0, 1)
             editor_term.setStretchFactor(1, 0)
 
+    def toggle_activity_bar_position(self):
+        """Toggle Activity Bar between left and right side of the main layout."""
+        layout = self.centralWidget().layout()
+        layout.removeWidget(self._activity_bar)
+        
+        if getattr(self, "_activity_bar_on_right", False):
+            layout.insertWidget(0, self._activity_bar)
+            self._activity_bar_on_right = False
+        else:
+            layout.addWidget(self._activity_bar)
+            self._activity_bar_on_right = True

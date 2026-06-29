@@ -456,6 +456,7 @@ class FileExplorer(QWidget):
     find_in_folder_requested = Signal(str)
     open_in_terminal_requested = Signal(str)
     open_to_side_requested = Signal(str)
+    workspace_toggled = Signal(bool)
 
     def __init__(self, root_path: str = None, parent=None):
         super().__init__(parent)
@@ -463,6 +464,7 @@ class FileExplorer(QWidget):
         self._git_status = {}
         self._git_folders = set()
         self._in_inline_edit = False
+        self._editing_item = None
         self._force_expand_root = True  # Flag to force expansion on first load or when root changes
         self._welcome_widget = None
         self._open_editors_panel = None
@@ -684,8 +686,8 @@ class FileExplorer(QWidget):
         ws_layout.addStretch()
         
         for icon_file, icon_text, tooltip, callback in [
-            ("new_file.svg", "+", "New File", self._new_file),
-            ("new_folder.svg", "\U0001F4C1", "New Folder", self._new_folder),
+            ("new_file.svg", "+", "New File", lambda: self._new_file_in(self._root_path, None)),
+            ("new_folder.svg", "\U0001F4C1", "New Folder", lambda: self._new_folder_in(self._root_path, None)),
             ("refresh.svg", "\u21BB", "Refresh", self._refresh),
             ("collapse.svg", "-", "Collapse All", self.collapse_all),
         ]:
@@ -749,6 +751,7 @@ class FileExplorer(QWidget):
 
         # Set Git status delegate
         self._tree.setItemDelegate(GitStatusDelegate(self._tree))
+        self._tree.itemDelegate().closeEditor.connect(self._on_editor_closed)
 
         self._tree.setStyleSheet("""
             QTreeWidget {
@@ -776,24 +779,25 @@ class FileExplorer(QWidget):
                 outline: none;
             }
         """)
-        layout.addWidget(self._tree)
         
-        self._bottom_spacer = QWidget()
-        self._bottom_spacer.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
-        layout.addWidget(self._bottom_spacer)
+        self._tree_container = QWidget()
+        self._tree_container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        tree_layout = QHBoxLayout(self._tree_container)
+        tree_layout.setContentsMargins(12, 0, 0, 0)
+        tree_layout.addWidget(self._tree)
+        layout.addWidget(self._tree_container)
+        
+
 
         self._tree.itemChanged.connect(self._on_item_changed)
         
-        # Only refresh if we have a root path
         if self._root_path:
             self._welcome_widget.hide()
-            self._tree.show()
-            self._bottom_spacer.hide()
+            self._tree_container.show()
             self._refresh()
         else:
             self._welcome_widget.show()
-            self._tree.hide()
-            self._bottom_spacer.show()
+            self._tree_container.hide()
     def _get_compact_folder(self, base_path: str, base_name: str, exclude_patterns: list):
         current_path = os.path.join(base_path, base_name)
         display_name = base_name
@@ -926,8 +930,7 @@ class FileExplorer(QWidget):
                 # Use the last part of the compact path for icon detection (if we want, or just default folder)
                 item.setIcon(0, get_folder_icon(display_name.split('/')[-1], False))
                 item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
-                # Lazy load placeholder
-                QTreeWidgetItem(item)
+                item.setData(0, Qt.UserRole + 4, False) # loaded flag
                 
                 # Color folder if it has changes inside
                 if rel_path_norm in self._git_folders:
@@ -943,8 +946,10 @@ class FileExplorer(QWidget):
                     item.setData(0, Qt.UserRole + 3, status)
                     if status == "M":
                         item.setForeground(0, QColor("#e2c08d"))  # Yellow for modified
-                    elif status in ("A", "?"):
+                    elif status in ("A", "U"):
                         item.setForeground(0, QColor("#73c991"))  # Green for added/untracked
+                    elif status == "D":
+                        item.setForeground(0, QColor("#e51400"))  # Red for deleted
 
             # Visual dimming if item is cut
             if self._clipboard.get("action") == "cut" and full_path in self._clipboard.get("paths", []):
@@ -968,16 +973,25 @@ class FileExplorer(QWidget):
     def _toggle_workspace(self):
         self._workspace_collapsed = not getattr(self, '_workspace_collapsed', False)
         self._workspace_header.set_collapsed(self._workspace_collapsed)
-        self._tree.setVisible(not self._workspace_collapsed)
-        if hasattr(self, '_bottom_spacer'):
-            self._bottom_spacer.setVisible(self._workspace_collapsed)
+        if hasattr(self, '_tree_container'):
+            self._tree_container.setVisible(not self._workspace_collapsed)
+        self.workspace_toggled.emit(self._workspace_collapsed)
 
     def _on_item_expanded(self, item: QTreeWidgetItem):
         path = item.data(0, Qt.UserRole)
+        is_loaded = item.data(0, Qt.UserRole + 4)
         if path and os.path.isdir(path):
-            item.takeChildren()
-            self._load_directory(path, item)
             item.setIcon(0, get_folder_icon(item.text(0), True))
+            
+            if not is_loaded:
+                self._load_directory(path, item)
+                item.setData(0, Qt.UserRole + 4, True)
+                
+            # If truly empty, collapse it immediately so it doesn't enter the bugged Qt state where the chevron vanishes!
+            if item.childCount() == 0:
+                # Prevent expanding empty folders to keep the chevron visible
+                QTimer.singleShot(0, lambda: self._tree.collapseItem(item))
+                
             if not getattr(self, '_is_refreshing', False):
                 self._watcher_timer.start()
 
@@ -1014,50 +1028,97 @@ class FileExplorer(QWidget):
                     self._tree.expandItem(item)
 
     def _refresh_git_status(self):
-        self._git_status = {}
-        self._git_folders = set()
+        if not self._root_path: return
+        cwd = self._root_path if os.path.isdir(self._root_path) else os.path.dirname(self._root_path)
+        if not os.path.exists(os.path.join(cwd, ".git")):
+            return
+
+        import threading
+        def worker():
+            try:
+                import subprocess
+                kwargs = {}
+                if os.name == 'nt':
+                    kwargs['creationflags'] = 0x08000000
+                
+                result = subprocess.run(
+                    ["git", "status", "--porcelain", "-u"],
+                    cwd=cwd,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    timeout=3,
+                    **kwargs
+                )
+                if result.returncode != 0:
+                    return
+                
+                status_dict = {}
+                folders_set = set()
+                for line in result.stdout.splitlines():
+                    if len(line) < 3: continue
+                    xy = line[:2]
+                    path = line[3:].strip().replace("/", os.sep)
+                    if '?' in xy: status = 'U'
+                    elif 'D' in xy: status = 'D'
+                    elif 'A' in xy: status = 'A'
+                    else: status = 'M'
+                    status_dict[path] = status
+                    
+                    parent = os.path.dirname(path)
+                    while parent:
+                        folders_set.add(parent)
+                        parent = os.path.dirname(parent)
+                        
+                from PySide6.QtCore import QTimer
+                QTimer.singleShot(0, lambda: self._apply_git_status(status_dict, folders_set))
+            except Exception as e:
+                pass
+                
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _apply_git_status(self, status_dict, folders_set):
+        self._git_status = status_dict
+        self._git_folders = folders_set
         
-        # Check if it is a git repo
-        try:
-            import subprocess
-            kwargs = {}
-            if os.name == 'nt':
-                kwargs['creationflags'] = 0x08000000  # CREATE_NO_WINDOW
+        def traverse_and_color(item):
+            path = item.data(0, Qt.UserRole)
+            if path:
+                try:
+                    rel_path = os.path.relpath(path, self._root_path)
+                    rel_path_norm = rel_path.replace("/", os.sep).replace("\\", os.sep)
+                except Exception:
+                    rel_path_norm = ""
+                    
+                is_dir = os.path.isdir(path)
                 
-            cwd = self._root_path if os.path.isdir(self._root_path) else os.path.dirname(self._root_path)
-            
-            if not os.path.exists(os.path.join(cwd, ".git")):
-                return
-            
-            result = subprocess.run(
-                ["git", "status", "--porcelain", "-u"],
-                cwd=cwd,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=3,
-                **kwargs
-            )
-            if result.returncode != 0:
-                return
-            
-            for line in result.stdout.splitlines():
-                if len(line) < 3:
-                    continue
-                xy = line[:2]
-                path = line[3:].strip().replace("/", os.sep)
-                # Parse status
-                status = '?' if '?' in xy else ('M' if 'M' in xy or 'R' in xy else 'A')
-                self._git_status[path] = status
+                item.setForeground(0, QColor("#cccccc"))
+                item.setData(0, Qt.UserRole + 3, None)
                 
-                # Add parents to self._git_folders
-                parent = os.path.dirname(path)
-                while parent:
-                    self._git_folders.add(parent)
-                    parent = os.path.dirname(parent)
-        except Exception:
-            pass
+                if is_dir:
+                    if rel_path_norm in self._git_folders:
+                        item.setForeground(0, QColor("#e2c08d"))
+                        item.setData(0, Qt.UserRole + 3, "●")
+                else:
+                    if rel_path_norm in self._git_status:
+                        status = self._git_status[rel_path_norm]
+                        item.setData(0, Qt.UserRole + 3, status)
+                        if status == "M":
+                            item.setForeground(0, QColor("#e2c08d"))
+                        elif status in ("A", "U"):
+                            item.setForeground(0, QColor("#73c991"))
+                        elif status == "D":
+                            item.setForeground(0, QColor("#e51400"))
+                            
+                if self._clipboard.get("action") == "cut" and path in self._clipboard.get("paths", []):
+                    item.setForeground(0, QColor(200, 200, 200, 100))
+                    
+            for i in range(item.childCount()):
+                traverse_and_color(item.child(i))
+
+        for i in range(self._tree.topLevelItemCount()):
+            traverse_and_color(self._tree.topLevelItem(i))
 
     def _get_expanded_paths(self) -> set:
         expanded = set()
@@ -1087,13 +1148,16 @@ class FileExplorer(QWidget):
             restore_item(self._tree.topLevelItem(i))
 
     def _schedule_refresh(self, path=None):
-        if not self._in_inline_edit:
+        if not self._editing_item:
             self._refresh_timer.start()
 
     def _refresh(self):
         self._do_refresh()
 
     def _do_refresh(self):
+        if self._editing_item:
+            return
+
         if not self._root_path:
             self._welcome_widget.show()
             self._tree.hide()
@@ -1111,10 +1175,20 @@ class FileExplorer(QWidget):
         
         if not getattr(self, '_workspace_collapsed', False):
             self._tree.show()
+            if hasattr(self, '_tree_container'):
+                self._tree_container.show()
+            if hasattr(self, '_bottom_spacer'):
+                self._bottom_spacer.hide()
         else:
             self._tree.hide()
+            if hasattr(self, '_tree_container'):
+                self._tree_container.hide()
+            if hasattr(self, '_bottom_spacer'):
+                self._bottom_spacer.show()
 
         self._is_refreshing = True
+        self._tree.setUpdatesEnabled(False)
+        self._tree.blockSignals(True)
         try:
             # Save active expansion states
             expanded = self._get_expanded_paths()
@@ -1154,14 +1228,21 @@ class FileExplorer(QWidget):
                 self._workspace_collapsed = False
                 self._workspace_header.set_collapsed(False)
                 self._tree.show()
+                self.workspace_toggled.emit(False)
                 if hasattr(self, '_bottom_spacer'):
                     self._bottom_spacer.hide()
                 
             self._force_expand_root = False  # Reset force flag
             
+            # Unblock signals before restoring so itemExpanded is emitted!
+            self._tree.blockSignals(False)
+            
             # Restore other expansion states
             self._restore_expanded_paths(expanded)
         finally:
+            # We already unblocked above, but just in case of exception:
+            self._tree.blockSignals(False)
+            self._tree.setUpdatesEnabled(True)
             self._is_refreshing = False
             self._watcher_timer.start()
 
@@ -1566,31 +1647,35 @@ class FileExplorer(QWidget):
         curr = self._tree.currentItem()
         if curr:
             path = curr.data(0, Qt.UserRole)
-            if os.path.isdir(path):
-                self._new_file_in(path, curr)
-                return
-            else:
-                parent = curr.parent()
-                parent_path = parent.data(0, Qt.UserRole) if parent else self._root_path
-                self._new_file_in(parent_path, parent)
-                return
+            if path:
+                if os.path.isdir(path):
+                    self._new_file_in(path, curr)
+                    return
+                else:
+                    parent = curr.parent()
+                    parent_path = parent.data(0, Qt.UserRole) if parent else self._root_path
+                    self._new_file_in(parent_path, parent)
+                    return
         self._new_file_in(self._root_path, None)
 
     def _new_folder(self):
         curr = self._tree.currentItem()
         if curr:
             path = curr.data(0, Qt.UserRole)
-            if os.path.isdir(path):
-                self._new_folder_in(path, curr)
-                return
-            else:
-                parent = curr.parent()
-                parent_path = parent.data(0, Qt.UserRole) if parent else self._root_path
-                self._new_folder_in(parent_path, parent)
-                return
+            if path:
+                if os.path.isdir(path):
+                    self._new_folder_in(path, curr)
+                    return
+                else:
+                    parent = curr.parent()
+                    parent_path = parent.data(0, Qt.UserRole) if parent else self._root_path
+                    self._new_folder_in(parent_path, parent)
+                    return
         self._new_folder_in(self._root_path, None)
 
     def _new_file_in(self, parent_path: str, parent_item: QTreeWidgetItem = None):
+        if self._editing_item:
+            return
         d = parent_path if os.path.isdir(parent_path) else os.path.dirname(parent_path)
         
         item = QTreeWidgetItem()
@@ -1601,23 +1686,29 @@ class FileExplorer(QWidget):
         item.setData(0, Qt.UserRole + 1, "create_file")
         item.setData(0, Qt.UserRole + 2, d)
         
+        self._tree.blockSignals(True)
         if parent_item:
             self._tree.expandItem(parent_item)
-            parent_item.addChild(item)
+            parent_item.insertChild(0, item)
         else:
-            root_item = self._tree.topLevelItem(0) if self._tree.topLevelItemCount() > 0 else None
-            if root_item:
-                self._tree.expandItem(root_item)
-                root_item.addChild(item)
-            else:
-                self._tree.addTopLevelItem(item)
+            self._tree.insertTopLevelItem(0, item)
             
         item.setFlags(item.flags() | Qt.ItemIsEditable)
-        self._in_inline_edit = True
-        self._tree.setCurrentItem(item)
-        self._tree.editItem(item, 0)
+        self._tree.blockSignals(False)
+        self._editing_item = item
+        self._refresh_timer.stop()
+        
+        def start_edit():
+            self._tree.scrollToItem(item)
+            self._tree.setCurrentItem(item)
+            self._tree.setFocus()
+            self._tree.editItem(item, 0)
+            
+        QTimer.singleShot(10, start_edit)
 
     def _new_folder_in(self, parent_path: str, parent_item: QTreeWidgetItem = None):
+        if self._editing_item:
+            return
         d = parent_path if os.path.isdir(parent_path) else os.path.dirname(parent_path)
         
         item = QTreeWidgetItem()
@@ -1628,21 +1719,38 @@ class FileExplorer(QWidget):
         item.setData(0, Qt.UserRole + 1, "create_folder")
         item.setData(0, Qt.UserRole + 2, d)
         
+        self._tree.blockSignals(True)
         if parent_item:
             self._tree.expandItem(parent_item)
-            parent_item.addChild(item)
+            parent_item.insertChild(0, item)
         else:
-            root_item = self._tree.topLevelItem(0) if self._tree.topLevelItemCount() > 0 else None
-            if root_item:
-                self._tree.expandItem(root_item)
-                root_item.addChild(item)
-            else:
-                self._tree.addTopLevelItem(item)
+            self._tree.insertTopLevelItem(0, item)
             
         item.setFlags(item.flags() | Qt.ItemIsEditable)
-        self._in_inline_edit = True
-        self._tree.setCurrentItem(item)
-        self._tree.editItem(item, 0)
+        self._tree.blockSignals(False)
+        self._editing_item = item
+        self._refresh_timer.stop()
+        
+        def start_edit():
+            self._tree.scrollToItem(item)
+            self._tree.setCurrentItem(item)
+            self._tree.setFocus()
+            self._tree.editItem(item, 0)
+            
+        QTimer.singleShot(10, start_edit)
+
+    def _on_editor_closed(self, editor, hint=None):
+        item = self._editing_item
+        self._editing_item = None
+        
+        if item:
+            op = item.data(0, Qt.UserRole + 1)
+            if op in ("create_file", "create_folder") and not item.text(0).strip():
+                parent = item.parent()
+                if parent:
+                    parent.removeChild(item)
+                else:
+                    self._tree.takeTopLevelItem(self._tree.indexOfTopLevelItem(item))
 
     def _on_item_changed(self, item: QTreeWidgetItem, column: int):
         if self._in_inline_edit:
@@ -1703,7 +1811,7 @@ class FileExplorer(QWidget):
                 item.setToolTip(0, full_path)
                 item.setIcon(0, get_folder_icon(new_name, False))
                 item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
-                QTreeWidgetItem(item) # lazy load placeholder
+                item.setData(0, Qt.UserRole + 4, False) # loaded flag
                 self._refresh()
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Failed to perform operation: {str(e)}")
@@ -1725,10 +1833,18 @@ class FileExplorer(QWidget):
         if path:
             self._welcome_widget.hide()
             self._tree.show()
+            if hasattr(self, '_tree_container'):
+                self._tree_container.show()
+            if hasattr(self, '_bottom_spacer'):
+                self._bottom_spacer.hide()
             self._refresh()
         else:
             self._welcome_widget.show()
             self._tree.hide()
+            if hasattr(self, '_tree_container'):
+                self._tree_container.hide()
+            if hasattr(self, '_bottom_spacer'):
+                self._bottom_spacer.show()
 
     def get_root(self) -> str:
         return self._root_path
