@@ -19,35 +19,28 @@ def main():
     is_linux = sys.platform.startswith("linux")
     sep = ";" if is_windows else ":"
 
-    # ── Core PyInstaller command ──────────────────────────────────────────────
     cmd = [
         sys.executable, "-m", "PyInstaller",
         "--name", "Dardcor Code",
         "--noconfirm",
         "--windowed",
         "--onedir",
-        # Data files (always present)
         "--add-data", f"image{sep}image",
-        "--add-data", f"pydardcor/assets{sep}pydardcor/assets",
+        "--add-data", f"assets{sep}assets",
         "--add-data", f"pydardcor/extension_host{sep}pydardcor/extension_host",
         "--add-data", f"pydardcor/settings{sep}pydardcor/settings",
-        "--add-data", f"dardcor_agent/chat/web{sep}dardcor_agent/chat/web",
-        # Hidden imports
+        "--add-data", f"script{sep}script",
         "--hidden-import", "PySide6.QtWebEngineWidgets",
         "--hidden-import", "PySide6.QtWebEngineCore",
         "--hidden-import", "pydardcor.cli",
         "dardcor.py"
     ]
 
-    # ── Platform-specific options ─────────────────────────────────────────────
     if is_windows:
-        # Icon: .ico for Windows
         if os.path.exists("image/dardcor.ico"):
             cmd.extend(["--icon", "image/dardcor.ico"])
-        # Version info: Windows only
         if os.path.exists("version_info.txt"):
             cmd.extend(["--version-file", "version_info.txt"])
-        # winpty: Windows only
         try:
             import winpty
             winpty_dir = os.path.dirname(winpty.__file__)
@@ -57,12 +50,10 @@ def main():
             print("[WARN] winpty not found, skipping.")
 
     elif is_mac:
-        # Icon: .icns for macOS ONLY. PyInstaller crashes/fails with .png on mac.
         if os.path.exists("image/dardcor.icns"):
             cmd.extend(["--icon", "image/dardcor.icns"])
 
     elif is_linux:
-        # Linux: no icon embedding needed
         pass
 
     print("\n[CMD]", " ".join(f'"{c}"' if " " in str(c) else str(c) for c in cmd))

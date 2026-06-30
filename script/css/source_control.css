@@ -1,0 +1,299 @@
+:root {
+    --bg-color: #000000;
+    --text-main: #cccccc;
+    --text-muted: #888888;
+    --hover-bg: #2a2d2e;
+    --border-color: #333333;
+    --commit-bg: #400080;
+    --commit-hover: #500099;
+    --commit-border: rgba(255, 255, 255, 0.2);
+    --status-m: #e2c08d;
+    --status-u: #73c991;
+    --status-d: #f14c4c;
+    --badge-bg: #4d4d4d;
+    --badge-text: #ffffff;
+    --resizer-hover: #007fd4;
+    --menu-bg: #252526;
+    --menu-border: #454545;
+}
+
+body {
+    margin: 0; padding: 0;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    font-family: "Segoe WPC", "Segoe UI", sans-serif;
+    font-size: 13px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    user-select: none;
+}
+
+/* ── Top header: SOURCE CONTROL ... ── */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 8px 0 20px;
+    height: 35px;
+    flex-shrink: 0;
+    position: relative;
+}
+.title {
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 1.2px; color: #bbbbbb;
+}
+
+/* ── Context Menu ── */
+.context-menu {
+    position: absolute;
+    top: 30px;
+    right: 8px;
+    background-color: var(--menu-bg);
+    border: 1px solid var(--menu-border);
+    border-radius: 4px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    z-index: 1000;
+    padding: 4px 0;
+    min-width: 150px;
+}
+.menu-item {
+    display: flex;
+    align-items: center;
+    padding: 6px 12px 6px 8px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-main);
+}
+.menu-item:hover {
+    background-color: #094771;
+    color: white;
+}
+.menu-check {
+    width: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 14px;
+}
+
+/* ── Shared action button ── */
+.action-btn {
+    width: 26px; height: 22px;
+    display: flex; justify-content: center; align-items: center;
+    border-radius: 3px; cursor: pointer; color: var(--text-main);
+}
+.action-btn:hover, .action-btn.active { background-color: var(--hover-bg); }
+.action-btn.small { width: 22px; height: 20px; font-size: 14px; }
+
+/* ── Split View Layout ── */
+.split-view {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.split-pane {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.pane-body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.pane-body::-webkit-scrollbar { width: 10px; }
+.pane-body::-webkit-scrollbar-thumb { background-color: rgba(121,121,121,0.4); }
+.pane-body::-webkit-scrollbar-thumb:active { background-color: rgba(121,121,121,0.7); }
+
+.resizer {
+    height: 1px;
+    background-color: var(--border-color);
+    cursor: ns-resize;
+    position: relative;
+    z-index: 10;
+}
+.resizer:hover, .resizer.dragging {
+    background-color: var(--resizer-hover);
+    height: 2px;
+    margin-top: -1px;
+}
+
+/* ── CHANGES section ── */
+.changes-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 22px;
+    padding: 0 4px 0 2px;
+    cursor: pointer;
+}
+.changes-header:hover { background-color: var(--hover-bg); }
+.changes-header-left { display: flex; align-items: center; gap: 2px; }
+.changes-header-left i { width: 20px; text-align: center; font-size: 14px; }
+.changes-title {
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.5px; color: #bbbbbb;
+}
+.changes-actions {
+    display: flex; gap: 2px;
+}
+
+/* ── Commit section ── */
+.commit-section {
+    padding: 6px 12px 10px 12px;
+    display: flex; flex-direction: column; gap: 6px;
+}
+.commit-input-wrapper {
+    position: relative;
+}
+textarea {
+    width: 100%; height: 32px;
+    background-color: #3c3c3c;
+    border: 1px solid #3c3c3c;
+    color: #cccccc; border-radius: 2px;
+    padding: 6px 28px 6px 12px;
+    font-family: "Segoe UI", sans-serif; font-size: 13px;
+    resize: vertical; box-sizing: border-box; outline: none;
+    overflow-y: auto;
+}
+textarea:focus { border-color: var(--commit-bg); }
+textarea::placeholder { color: #a6a6a6; font-size: 13px; }
+textarea::-webkit-scrollbar { width: 8px; }
+textarea::-webkit-scrollbar-thumb { background-color: rgba(121,121,121,0.4); border-radius: 4px; }
+textarea::-webkit-scrollbar-thumb:active { background-color: rgba(121,121,121,0.7); }
+.sparkle-btn {
+    position: absolute; right: 4px; top: 6px;
+    width: 20px; height: 20px;
+    display: flex; justify-content: center; align-items: center;
+    color: var(--text-muted); cursor: pointer; border-radius: 3px;
+}
+.sparkle-btn:hover { background: var(--hover-bg); color: #fff; }
+
+/* ── Commit button ── */
+.commit-btn-group {
+    display: flex; width: 100%; height: 24px;
+}
+.commit-main {
+    flex: 1; background-color: var(--commit-bg); color: white;
+    border: none; border-top-left-radius: 2px; border-bottom-left-radius: 2px;
+    font-weight: 600; font-size: 12px; cursor: pointer;
+    display: flex; justify-content: center; align-items: center; gap: 4px;
+}
+.commit-main:hover, .commit-more:hover { background-color: var(--commit-hover); }
+.commit-divider { width: 1px; background-color: var(--commit-border); }
+.commit-more {
+    width: 24px; background-color: var(--commit-bg); color: white;
+    border: none; border-top-right-radius: 2px; border-bottom-right-radius: 2px;
+    cursor: pointer; display: flex; justify-content: center; align-items: center;
+}
+
+/* ── Tree groups ── */
+.group-header {
+    display: flex; align-items: center;
+    height: 22px; padding-right: 12px; cursor: pointer;
+}
+.group-header:hover { background-color: var(--hover-bg); }
+.group-header i { width: 22px; text-align: center; font-size: 14px; }
+.group-title { font-size: 11px; font-weight: bold; flex: 1; }
+.badge {
+    background-color: var(--badge-bg); color: var(--badge-text);
+    padding: 1px 6px; border-radius: 10px; font-size: 11px;
+}
+
+/* ── File tree items ── */
+.tree-item {
+    display: flex; align-items: center;
+    height: 22px; padding-left: 22px; padding-right: 12px;
+    cursor: pointer; gap: 4px;
+}
+.tree-item:hover { background-color: var(--hover-bg); }
+
+.file-icon-img { width: 16px; height: 16px; flex-shrink: 0; display:flex; justify-content:center; align-items:center; }
+.file-name { flex-shrink: 0; font-size: 13px; }
+.file-dir {
+    color: var(--text-muted); font-size: 12px;
+    flex: 1; white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; margin-left: 6px;
+}
+.file-status { font-weight: bold; font-size: 12px; width: 14px; text-align: right; flex-shrink: 0; }
+.status-m { color: var(--status-m); }
+.status-u { color: var(--status-u); }
+.status-d { color: var(--status-d); }
+.status-a { color: var(--status-u); }
+
+/* ── Git Graph ── */
+.git-graph-header {
+    display: flex; justify-content: space-between; align-items: center;
+    height: 22px; padding: 0 4px 0 2px;
+    font-size: 11px; font-weight: bold; color: #bbbbbb;
+    cursor: pointer;
+}
+.git-graph-header:hover { background-color: var(--hover-bg); }
+.graph-header-left { display: flex; align-items: center; gap: 2px; }
+.graph-header-left i { width: 20px; text-align: center; font-size: 14px; }
+.graph-toolbar { display: flex; align-items: center; gap: 1px; }
+.graph-auto-btn {
+    display: flex; align-items: center; gap: 4px;
+    padding: 1px 6px; border-radius: 3px; cursor: pointer;
+    font-size: 11px; font-weight: normal; color: var(--text-main);
+}
+.graph-auto-btn:hover { background-color: var(--hover-bg); }
+
+/* Graph rows */
+.graph-row {
+    display: flex; align-items: center;
+    height: 24px; padding: 0 12px 0 8px;
+    font-size: 12px; cursor: pointer; gap: 8px;
+}
+.graph-row:hover { background-color: var(--hover-bg); }
+.graph-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    flex-shrink: 0; border: 2px solid;
+}
+.graph-dot.head { background: transparent; border-color: #e84d4d; }
+.graph-dot.normal { background: #569cd6; border-color: #569cd6; }
+.graph-subject {
+    flex: 1; white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; color: var(--text-main);
+}
+.graph-author { color: var(--text-muted); font-size: 11px; flex-shrink: 0; }
+.graph-refs {
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-left: 4px;
+}
+.ref-tag {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 0 6px; height: 18px; border-radius: 10px;
+    font-size: 10px; font-weight: 600; border: 1px solid;
+}
+.ref-tag.branch { color: #4ec9b0; border-color: #4ec9b0; background: rgba(78,201,176,0.1); }
+.ref-tag.remote { color: #569cd6; border-color: #569cd6; background: rgba(86,156,214,0.08); }
+
+/* ── Git Graph Structure ── */
+.graph-structure {
+    display: flex;
+    font-family: "Cascadia Code", "Consolas", monospace;
+    font-size: 14px;
+    margin-right: 8px;
+    height: 100%;
+    align-items: center;
+}
+.graph-char-box {
+    width: 14px;
+    height: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    font-weight: bold;
+}
+.graph-line-v {
+    width: 2px;
+    height: 24px;
+}

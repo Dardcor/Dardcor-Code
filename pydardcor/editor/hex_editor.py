@@ -115,9 +115,12 @@ class HexEditorWidget(QWidget):
         hex_lines = []
         ascii_lines = []
         bpr = self._bytes_per_row
+        
+        # Limit to first 1MB to avoid hanging on massive files
+        data_to_render = self._data[:1048576] 
 
-        for offset in range(0, len(self._data), bpr):
-            chunk = self._data[offset:offset + bpr]
+        for offset in range(0, len(data_to_render), bpr):
+            chunk = data_to_render[offset:offset + bpr]
 
             # Offset
             offset_str = f"{offset:08X}  "
@@ -143,6 +146,10 @@ class HexEditorWidget(QWidget):
                 else:
                     ascii_parts.append(".")
             ascii_lines.append("".join(ascii_parts))
+            
+        if len(self._data) > 1048576:
+            hex_lines.append("... (Content truncated for performance) ...")
+            ascii_lines.append("...")
 
         self._hex_view.setPlainText("\n".join(hex_lines))
         self._ascii_view.setPlainText("\n".join(ascii_lines))
@@ -157,7 +164,15 @@ class HexEditorWidget(QWidget):
         return "hex"
 
     def save(self):
-        pass
+        if self._file_path:
+            self.save_as(self._file_path)
 
     def save_as(self, path):
-        pass
+        try:
+            with open(path, "wb") as f:
+                f.write(self._data)
+            self._file_path = path
+            self._is_dirty = False
+            self.load_file(path) # update UI
+        except Exception as e:
+            self._info_label.setText(f"Save failed: {e}")

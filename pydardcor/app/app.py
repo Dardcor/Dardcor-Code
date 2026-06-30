@@ -68,7 +68,7 @@ def run_desktop_app():
         app.setWindowIcon(QIcon(logo_path))
 
     # Load codicon font
-    codicon_path = os.path.join(base_dir, "pydardcor", "assets", "codicon.ttf")
+    codicon_path = os.path.join(base_dir, "assets", "codicon.ttf")
     if os.path.exists(codicon_path):
         QFontDatabase.addApplicationFont(codicon_path)
 

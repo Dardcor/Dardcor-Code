@@ -50,3 +50,4 @@ include = ["pydardcor", "pydardcor.*"]
 
 [tool.setuptools.package-data]
 "pydardcor.extensions" = ["*.json", "*.py"]
+

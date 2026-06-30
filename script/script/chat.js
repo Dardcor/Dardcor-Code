@@ -1,4 +1,4 @@
-marked.setOptions({
+﻿marked.setOptions({
     highlight: function (code, lang) {
         const language = hljs.getLanguage(lang) ? lang : 'plaintext';
         return hljs.highlight(code, { language }).value;
@@ -50,7 +50,7 @@ function handleAction(action, payload) {
 }
 
 function appendUserMessage(text, retry_text) {
-    // ── KEY FIX: every new user message ends the previous agent turn ──
+    // â”€â”€ KEY FIX: every new user message ends the previous agent turn â”€â”€
     // Settle any active work panel so the next agent response starts fresh.
     settleCurrentWorkPanel();
 
@@ -60,9 +60,9 @@ function appendUserMessage(text, retry_text) {
     div.innerHTML = `
         <div class="content">${safeText}</div>
         <div class="user-actions">
-            <a onclick="handleAction('copy', '${safeEncode(text)}')"><img src="../../../image/copy.svg" width="14" height="14" alt="Copy"></a>
-            <a onclick="handleAction('retry', '${safeEncode(retry_text)}')"><img src="../../../image/retry.svg" width="14" height="14" alt="Retry"></a>
-            <a onclick="handleAction('revert', '${safeEncode(retry_text)}')"><img src="../../../image/edit.svg" width="14" height="14" alt="Edit"></a>
+            <a onclick="handleAction('copy', '${safeEncode(text)}')"><img src="../../image/copy.svg" width="14" height="14" alt="Copy"></a>
+            <a onclick="handleAction('retry', '${safeEncode(retry_text)}')"><img src="../../image/retry.svg" width="14" height="14" alt="Retry"></a>
+            <a onclick="handleAction('revert', '${safeEncode(retry_text)}')"><img src="../../image/edit.svg" width="14" height="14" alt="Edit"></a>
         </div>
     `;
     chatContainer.appendChild(div);
@@ -77,10 +77,10 @@ function appendAgentMessage(text, isHtml) {
     let processedText = text;
     if (!isHtml) {
         processedText = processedText.replace(/<thought>([\s\S]*?)<\/thought>/gi, function(match, innerContent) {
-            return `\n<details class="thought-block"><summary><span>🧠 Agent is thinking...</span></summary><div class="thought-content">\n\n${innerContent}\n\n</div></details>\n`;
+            return `\n<details class="thought-block"><summary><span>ðŸ§  Agent is thinking...</span></summary><div class="thought-content">\n\n${innerContent}\n\n</div></details>\n`;
         });
         processedText = processedText.replace(/<thought>([\s\S]*)$/gi, function(match, innerContent) {
-            return `\n<details class="thought-block" open><summary><span>🧠 Agent is thinking...</span></summary><div class="thought-content">\n\n${innerContent}\n\n</div></details>\n`;
+            return `\n<details class="thought-block" open><summary><span>ðŸ§  Agent is thinking...</span></summary><div class="thought-content">\n\n${innerContent}\n\n</div></details>\n`;
         });
     }
 
@@ -90,7 +90,7 @@ function appendAgentMessage(text, isHtml) {
     div.innerHTML = `
         <div class="content">${contentHtml}</div>
         <div class="agent-actions">
-            <a onclick="handleAction('copy', '${safeEncode(text)}')"><img src="../../../image/copy.svg" width="14" height="14" alt="Copy"></a>
+            <a onclick="handleAction('copy', '${safeEncode(text)}')"><img src="../../image/copy.svg" width="14" height="14" alt="Copy"></a>
         </div>
     `;
     chatContainer.appendChild(div);
@@ -118,10 +118,10 @@ function toggleTool(headerEl) {
     const isExpanded = bodyEl.classList.contains('open');
     if (isExpanded) {
         bodyEl.classList.remove('open');
-        headerEl.querySelector('.marker').innerHTML = '<img src="../../../image/chevron-right.svg" width="14" height="14" style="vertical-align: middle;">';
+        headerEl.querySelector('.marker').innerHTML = '<img src="../../image/chevron-right.svg" width="14" height="14" style="vertical-align: middle;">';
     } else {
         bodyEl.classList.add('open');
-        headerEl.querySelector('.marker').innerHTML = '<img src="../../../image/chevron-down.svg" width="14" height="14" style="vertical-align: middle;">';
+        headerEl.querySelector('.marker').innerHTML = '<img src="../../image/chevron-down.svg" width="14" height="14" style="vertical-align: middle;">';
     }
 }
 
@@ -131,12 +131,12 @@ function toggleToolList(buttonEl) {
     const isCollapsed = list.classList.contains('collapsed');
     list.classList.toggle('collapsed', !isCollapsed);
     buttonEl.innerHTML = isCollapsed
-        ? '<img src="../../../image/chevron-down.svg" width="14" height="14" style="vertical-align: middle;">'
-        : '<img src="../../../image/chevron-right.svg" width="14" height="14" style="vertical-align: middle;">';
+        ? '<img src="../../image/chevron-down.svg" width="14" height="14" style="vertical-align: middle;">'
+        : '<img src="../../image/chevron-right.svg" width="14" height="14" style="vertical-align: middle;">';
     buttonEl.title = isCollapsed ? 'Hide tool calls' : 'Show tool calls';
 }
 
-// ── Settle helper: marks the current panel as done and detaches it ──
+// â”€â”€ Settle helper: marks the current panel as done and detaches it â”€â”€
 function settleCurrentWorkPanel() {
     if (currentWorkPanel && !currentWorkPanel.classList.contains('settled')) {
         currentWorkPanel.classList.add('settled');
@@ -162,7 +162,7 @@ function createWorkPanel(state) {
                 <span class="work-text">${state === 'thinking' ? 'Dardcor Agent is thinking...' : 'Dardcor Agent is working...'}</span>
             </div>
             <button class="tool-list-toggle" onclick="toggleToolList(this)" title="Hide tool calls">
-                <img src="../../../image/chevron-down.svg" width="14" height="14" style="vertical-align: middle;">
+                <img src="../../image/chevron-down.svg" width="14" height="14" style="vertical-align: middle;">
             </button>
         </div>
         <div class="tool-list"></div>
@@ -243,7 +243,7 @@ function appendToolCall(toolId, toolName, args, status) {
     div.className = `tool-call ${status}`;
     div.innerHTML = `
         <div class="tool-header" onclick="toggleTool(this)">
-            <span class="tool-title"><span class="marker"><img src="../../../image/chevron-right.svg" width="14" height="14" style="vertical-align: middle;"></span><span class="tool-name">${escapeHtml(toolName)}</span></span>
+            <span class="tool-title"><span class="marker"><img src="../../image/chevron-right.svg" width="14" height="14" style="vertical-align: middle;"></span><span class="tool-name">${escapeHtml(toolName)}</span></span>
             <span class="tool-status ${status}">${toolStatusLabel(status)}</span>
         </div>
         <div class="tool-body">${escapeHtml(args)}</div>

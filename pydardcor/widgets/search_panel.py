@@ -89,58 +89,108 @@ class SearchPanel(QWidget):
         search_layout.setContentsMargins(12, 8, 12, 8)
         search_layout.setSpacing(6)
 
-        # Search input row with inline match options
+        # Main layout for search and replace
+        v_container = QVBoxLayout()
+        v_container.setSpacing(4)
+        v_container.setContentsMargins(0, 0, 0, 0)
+        
+        # 1. Search Row
         search_row = QHBoxLayout()
         search_row.setSpacing(4)
-
+        
+        self._toggle_replace_btn = QPushButton("v")
+        self._toggle_replace_btn.setFixedSize(16, 24)
+        self._toggle_replace_btn.setStyleSheet("""
+            QPushButton { background: transparent; border: none; color: #cccccc; font-family: monospace; font-size: 12px; }
+            QPushButton:hover { color: #ffffff; }
+        """)
+        self._toggle_replace_btn.setCheckable(True)
+        self._toggle_replace_btn.setChecked(True)
+        search_row.addWidget(self._toggle_replace_btn)
+        
+        search_wrapper = QFrame()
+        search_wrapper.setStyleSheet("""
+            QFrame { background-color: #3c3c3c; border: 1px solid #3c3c3c; border-radius: 2px; }
+            QFrame:focus-within { border: 1px solid #007fd4; }
+        """)
+        sw_layout = QHBoxLayout(search_wrapper)
+        sw_layout.setContentsMargins(2, 0, 2, 0)
+        sw_layout.setSpacing(0)
+        
         self._query_input = QLineEdit()
         self._query_input.setPlaceholderText("Search")
-        self._query_input.setFixedHeight(28)
-        self._query_input.setStyleSheet(self._input_style())
+        self._query_input.setFixedHeight(24)
+        self._query_input.setStyleSheet("QLineEdit { background: transparent; border: none; color: #cccccc; }")
         self._query_input.returnPressed.connect(self._search)
-        search_row.addWidget(self._query_input, 1)
-        search_row.setStretch(0, 1)
+        sw_layout.addWidget(self._query_input, 1)
+
+        def btn_style():
+            return """
+                QPushButton { background: transparent; border: 1px solid transparent; border-radius: 3px; color: #cccccc; font-size: 11px; font-weight: bold; }
+                QPushButton:hover { background-color: rgba(90, 93, 94, 0.31); }
+                QPushButton:checked { background-color: rgba(51, 153, 255, 0.4); border: 1px solid #007fd4; color: #ffffff; }
+            """
 
         self._case_btn = QPushButton("Aa")
         self._case_btn.setCheckable(True)
-        self._case_btn.setFixedSize(26, 26)
+        self._case_btn.setFixedSize(22, 20)
         self._case_btn.setToolTip("Match Case")
-        self._case_btn.setStyleSheet(self._toggle_btn_style())
-        search_row.addWidget(self._case_btn)
+        self._case_btn.setStyleSheet(btn_style())
+        sw_layout.addWidget(self._case_btn)
 
         self._word_btn = QPushButton("ab")
         self._word_btn.setCheckable(True)
-        self._word_btn.setFixedSize(26, 26)
+        self._word_btn.setFixedSize(22, 20)
         self._word_btn.setToolTip("Match Whole Word")
-        self._word_btn.setStyleSheet(self._toggle_btn_style())
-        search_row.addWidget(self._word_btn)
+        self._word_btn.setStyleSheet(btn_style())
+        sw_layout.addWidget(self._word_btn)
 
         self._regex_btn = QPushButton(".*")
         self._regex_btn.setCheckable(True)
-        self._regex_btn.setFixedSize(26, 26)
+        self._regex_btn.setFixedSize(22, 20)
         self._regex_btn.setToolTip("Use Regular Expression")
-        self._regex_btn.setStyleSheet(self._toggle_btn_style())
-        search_row.addWidget(self._regex_btn)
+        self._regex_btn.setStyleSheet(btn_style())
+        sw_layout.addWidget(self._regex_btn)
 
-        search_layout.addLayout(search_row)
-
-        replace_row = QHBoxLayout()
-        replace_row.setSpacing(4)
-
+        search_row.addWidget(search_wrapper, 1)
+        v_container.addLayout(search_row)
+        
+        # 2. Replace Row
+        self._replace_row = QHBoxLayout()
+        self._replace_row.setSpacing(4)
+        
+        spacer = QWidget()
+        spacer.setFixedSize(16, 24)
+        self._replace_row.addWidget(spacer)
+        
+        replace_wrapper = QFrame()
+        replace_wrapper.setStyleSheet("""
+            QFrame { background-color: #3c3c3c; border: 1px solid #3c3c3c; border-radius: 2px; }
+            QFrame:focus-within { border: 1px solid #007fd4; }
+        """)
+        rw_layout = QHBoxLayout(replace_wrapper)
+        rw_layout.setContentsMargins(2, 0, 2, 0)
+        rw_layout.setSpacing(0)
+        
         self._replace_input = QLineEdit()
         self._replace_input.setPlaceholderText("Replace")
-        self._replace_input.setFixedHeight(28)
-        self._replace_input.setStyleSheet(self._input_style())
-        replace_row.addWidget(self._replace_input, 1)
-
-        replace_btn = QPushButton("\u21b7")
-        replace_btn.setFixedSize(26, 26)
+        self._replace_input.setFixedHeight(24)
+        self._replace_input.setStyleSheet("QLineEdit { background: transparent; border: none; color: #cccccc; }")
+        rw_layout.addWidget(self._replace_input, 1)
+        
+        replace_btn = QPushButton("AB")
+        replace_btn.setFixedSize(22, 20)
         replace_btn.setToolTip("Replace All")
-        replace_btn.setStyleSheet(self._toggle_btn_style())
+        replace_btn.setStyleSheet(btn_style())
         replace_btn.clicked.connect(self._replace_all)
-        replace_row.addWidget(replace_btn)
-
-        search_layout.addLayout(replace_row)
+        rw_layout.addWidget(replace_btn)
+        
+        self._replace_row.addWidget(replace_wrapper, 1)
+        v_container.addLayout(self._replace_row)
+        
+        self._toggle_replace_btn.toggled.connect(self._toggle_replace_visibility)
+        
+        search_layout.addLayout(v_container)
 
         include_widget = QWidget()
         include_layout = QHBoxLayout(include_widget)
@@ -214,17 +264,25 @@ class SearchPanel(QWidget):
         self._results.itemClicked.connect(self._on_result_clicked)
         layout.addWidget(self._results)
 
+    def _toggle_replace_visibility(self, checked):
+        self._toggle_replace_btn.setText("v" if checked else ">")
+        for i in range(self._replace_row.count()):
+            widget = self._replace_row.itemAt(i).widget()
+            if widget:
+                widget.setVisible(checked)
+
     def _input_style(self):
         return """
             QLineEdit {
-                background-color: #2c004a;
+                background-color: #3c3c3c;
                 color: #cccccc;
-                border: 1px solid #2c004a;
+                border: 1px solid #3c3c3c;
                 padding: 2px 8px;
                 font-size: 13px;
+                border-radius: 2px;
             }
             QLineEdit:focus {
-                border: 1px solid #4a0072;
+                border: 1px solid #007fd4;
             }
         """
 

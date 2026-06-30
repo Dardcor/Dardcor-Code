@@ -255,6 +255,7 @@ Configuration is stored at `~/.dardcor-code/config.json`:
 
 ### Run & Debug
 
+
 | Shortcut | Action |
 |----------|--------|
 | `F5` | Start Debugging |

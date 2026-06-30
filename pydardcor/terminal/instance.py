@@ -62,7 +62,7 @@ class TerminalInstance(QWidget):
         self._view.loadFinished.connect(self._on_load_finished)
 
         html_path = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)),
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
             "assets", "xterm", "terminal.html"
         )
         self._view.load(QUrl.fromLocalFile(html_path))

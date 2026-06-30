@@ -71,20 +71,26 @@ class ActivityBarButton(QPushButton):
             painter = QPainter(self)
             painter.setRenderHint(QPainter.Antialiasing)
             
-            # Badge dimensions
-            bw, bh = 16, 16
-            x = self.width() - bw - 6
-            y = 8
+            f = QFont("Segoe UI", 8, QFont.Bold)
+            painter.setFont(f)
             
-            # Draw blue circle
+            from PySide6.QtGui import QFontMetrics
+            fm = QFontMetrics(f)
+            text_width = fm.horizontalAdvance(self._badge_text)
+            
+            # Badge dimensions (pill shape)
+            bh = 16
+            bw = max(16, text_width + 8)
+            x = self.width() - bw - 4
+            y = self.height() - bh - 6
+            
+            # Draw blue pill
             painter.setBrush(QColor("#0078d4"))
             painter.setPen(Qt.NoPen)
-            painter.drawEllipse(x, y, bw, bh)
+            painter.drawRoundedRect(x, y, bw, bh, 8, 8)
             
             # Draw text
             painter.setPen(QColor("#ffffff"))
-            f = QFont("Segoe UI", 8, QFont.Bold)
-            painter.setFont(f)
             painter.drawText(QRect(x, y, bw, bh), Qt.AlignCenter, self._badge_text)
 
     def mousePressEvent(self, event):

@@ -44,10 +44,10 @@ class SettingsSyncManager(QObject):
         """Initiate Settings Sync."""
         self._set_status("syncing")
         
-        # Mock auth process
         def _mock_auth():
-            import time
-            time.sleep(1.5)
+            # Mock actual cloud auth by ensuring cloud dir exists
+            cloud_dir = os.path.expanduser("~/.dardcor-cloud-mock")
+            os.makedirs(cloud_dir, exist_ok=True)
             if not self._sync_id:
                 self._sync_id = str(uuid.uuid4())
                 self._save_sync_id()
@@ -80,14 +80,24 @@ class SettingsSyncManager(QObject):
             return
             
         def _sync_worker():
-            # Mock actual cloud sync by just reading local files
+            import shutil
+            cloud_dir = os.path.expanduser("~/.dardcor-cloud-mock")
             files_to_sync = [
                 CONFIG_FILE,
                 os.path.join(self._user_data_dir, "keybindings.json"),
                 os.path.join(self._user_data_dir, "snippets")
             ]
-            import time
-            time.sleep(0.5)
-            # Emit success
+            
+            try:
+                for f in files_to_sync:
+                    if os.path.exists(f):
+                        if os.path.isdir(f):
+                            dest = os.path.join(cloud_dir, os.path.basename(f))
+                            shutil.copytree(f, dest, dirs_exist_ok=True)
+                        else:
+                            shutil.copy2(f, cloud_dir)
+            except Exception as e:
+                import logging
+                logging.error(f"Sync failed: {e}")
             
         threading.Thread(target=_sync_worker, daemon=True).start()

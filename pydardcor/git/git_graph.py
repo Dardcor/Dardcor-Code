@@ -39,9 +39,10 @@ class GitGraphPanel(QWidget):
         tb_lay.addWidget(title)
         tb_lay.addStretch()
 
-        refresh_btn = QPushButton("↻")
+        refresh_btn = QPushButton("\uea98")
+        refresh_btn.setFont(QFont("codicon", 14))
         refresh_btn.setFixedSize(22, 22)
-        refresh_btn.setStyleSheet("QPushButton { background: transparent; border: none; color: #cccccc; font-size: 14px; } QPushButton:hover { background: #2c004a; }")
+        refresh_btn.setStyleSheet("QPushButton { background: transparent; border: none; color: #cccccc; } QPushButton:hover { background: #2c004a; }")
         refresh_btn.clicked.connect(self.refresh)
         tb_lay.addWidget(refresh_btn)
 
@@ -94,7 +95,7 @@ class GitGraphPanel(QWidget):
                     kwargs['creationflags'] = 0x08000000
                 result = subprocess.run(
                     ["git", "log", "--graph", "--oneline", "--decorate", "--all", "-n", "100",
-                     "--pretty=format:%h|%s|%cd|%an|%d", "--date=short"],
+                     "--pretty=format:%h%x1f%s%x1f%cd%x1f%an%x1f%d", "--date=short"],
                     cwd=self._workspace, capture_output=True, text=True,
                     timeout=5, **kwargs
                 )
@@ -104,30 +105,40 @@ class GitGraphPanel(QWidget):
 
         def _on_done(lines):
             for line in lines:
-                parts = line.split("|")
+                parts = line.split('\x1f')
                 if len(parts) >= 5:
-                    commit_hash = parts[0].strip("*\\|/ ")
-                    graph_part = parts[0].replace(commit_hash, "").strip() if commit_hash else parts[0]
+                    graph_and_hash = parts[0]
+                    # The graph and hash are separated by space, e.g. "* 1234567"
+                    # But could be multiple spaces or graph symbols, e.g. "| * 1234567"
+                    words = graph_and_hash.split()
+                    commit_hash = words[-1] if words else ""
+                    if len(commit_hash) >= 4 and commit_hash.isalnum(): # It's likely a hash
+                        graph_part = graph_and_hash[:graph_and_hash.rfind(commit_hash)].rstrip()
+                    else:
+                        commit_hash = ""
+                        graph_part = graph_and_hash
+
                     subject = parts[1]
                     date = parts[2]
                     author = parts[3]
                     refs = parts[4]
                     
                     desc = subject
-                    if refs:
+                    if refs.strip():
                         desc = f"({refs.strip()}) {subject}"
 
-                    item = QTreeWidgetItem([graph_part + " *", desc, date, author, commit_hash])
-                    
-                    # Colors
-                    if refs:
+                    item = QTreeWidgetItem([graph_part + (" *" if commit_hash and not graph_part.endswith("*") else ""), desc, date, author, commit_hash])
+                    if refs.strip():
                         item.setForeground(1, QColor("#f1d45a"))  # Yellow for refs
                     item.setForeground(0, QColor("#e2c08d"))      # Graph lines
                     item.setForeground(2, QColor("#888888"))      # Date
                     item.setForeground(3, QColor("#569cd6"))      # Author
                     item.setForeground(4, QColor("#888888"))      # Hash
-                    
                     item.setData(0, Qt.UserRole, commit_hash)
+                    self._tree.addTopLevelItem(item)
+                else:
+                    item = QTreeWidgetItem([line, "", "", "", ""])
+                    item.setForeground(0, QColor("#e2c08d"))
                     self._tree.addTopLevelItem(item)
 
         threading.Thread(target=lambda: QTimer.singleShot(0, lambda: _on_done(_fetch_history())), daemon=True).start()

@@ -174,4 +174,4 @@ class RpcBridge:
                 except Exception as e:
                     logger.error(f"Error in notification handler for {method}: {e}")
             else:
-                pass # Unhandled notification
+                logger.warning(f"Unhandled notification method: {method}")

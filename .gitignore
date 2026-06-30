@@ -16,8 +16,4 @@ build/
 *.spec
 .dardcor_chrome_profile/
 /database/
-
-tests
-.omc
-.omo
 .remember

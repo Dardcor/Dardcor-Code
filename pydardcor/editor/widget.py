@@ -67,7 +67,7 @@ class MonacoEditorWidget(QWidget):
 
         # Base path pointing correctly to assets
         html_path = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)),
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
             "assets", "monaco", "monaco_editor.html"
         )
         self._view.load(QUrl.fromLocalFile(html_path))

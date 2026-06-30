@@ -19,7 +19,7 @@ class DiffEditorWidget(QWebEngineView):
         self.page().setWebChannel(self.channel)
         
         # Load the diff editor HTML (assumes assets/monaco/diff.html exists)
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         self.html_path = os.path.join(base_dir, "assets", "monaco", "diff.html")
         
         # If the file doesn't exist yet in assets, we use standard index.html but we'd need JS changes

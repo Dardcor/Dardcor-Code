@@ -883,8 +883,6 @@ class MainWindow(QMainWindow):
         self._activity_bar.view_changed.connect(self._on_view_changed)
         
         # Test badges for Activity Bar
-        from ..ui_shared.activity_bar import VIEW_SOURCE_CONTROL, VIEW_EXTENSIONS
-        self._activity_bar.set_badge(VIEW_SOURCE_CONTROL, "1")
         self._activity_bar.set_badge(VIEW_EXTENSIONS, "3")
         
         main_layout.addWidget(self._activity_bar)
@@ -963,15 +961,16 @@ class MainWindow(QMainWindow):
         git_layout.setSpacing(0)
         
         self._git_panel = GitPanel(root_path="")
-        self._git_panel.file_open_requested.connect(self._open_file_in_editor)
-        self._git_panel.diff_open_requested.connect(self._open_diff_in_editor)
-        self._git_panel.refreshed.connect(self._file_explorer._refresh)
+        self._git_panel.set_app(self)
         
-        self._git_graph_panel = GitGraphPanel(workspace_path="")
-        self._git_graph_panel.commit_selected.connect(lambda commit: self._chat_panel.append_system_message(f"Selected commit: {commit}"))
+        def _update_git_badge(count):
+            if count > 0:
+                self._activity_bar.set_badge(VIEW_SOURCE_CONTROL, str(count))
+            else:
+                self._activity_bar.set_badge(VIEW_SOURCE_CONTROL, "")
+        self._git_panel.bridge.counts_changed.connect(_update_git_badge)
         
-        git_layout.addWidget(self._git_panel, 2)
-        git_layout.addWidget(self._git_graph_panel, 1)
+        git_layout.addWidget(self._git_panel)
         
         self._sidebar_stack.addWidget(git_wrapper)
 

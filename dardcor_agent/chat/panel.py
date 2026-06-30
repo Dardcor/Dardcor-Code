@@ -212,8 +212,11 @@ class ChatPanel(QWidget):
             
             def acceptNavigationRequest(self, url, _type, isMainFrame):
                 # Block all navigations away from the chat interface on the main frame
-                if isMainFrame and not url.toString().endswith("index.html") and not url.scheme() == "qrc":
-                    self.panel.link_clicked.emit(url.toString())
+                url_str = url.toString()
+                scheme = url.scheme()
+                # Allow local file loads (file://), Qt resource loads (qrc://), and data URIs
+                if isMainFrame and scheme not in ("file", "qrc", "data"):
+                    self.panel.link_clicked.emit(url_str)
                     return False
                 return super().acceptNavigationRequest(url, _type, isMainFrame)
 
@@ -252,8 +255,9 @@ class ChatPanel(QWidget):
         except Exception:
             pass
 
-        web_dir = os.path.join(os.path.dirname(__file__), "web")
-        index_path = os.path.join(web_dir, "index.html")
+        # Load chat UI from centralized script directory
+        project_root = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+        index_path = os.path.join(project_root, "script", "index", "chat.html")
         self._web_view.setUrl(QUrl.fromLocalFile(index_path))
         layout.addWidget(self._web_view, 1)
 
@@ -320,7 +324,7 @@ class ChatPanel(QWidget):
 
         # Base path for assets
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        assets_dir = os.path.join(base_dir, "pydardcor", "assets")
+        assets_dir = os.path.join(base_dir, "assets")
         image_dir = os.path.join(base_dir, "image")
 
         attach_btn = QPushButton()

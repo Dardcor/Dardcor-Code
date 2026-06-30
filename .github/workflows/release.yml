@@ -5,9 +5,6 @@ on:
     tags:
       - 'v*'
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Job 1: Create the GitHub Release
-# ─────────────────────────────────────────────────────────────────────────────
 jobs:
   create-release:
     name: Create GitHub Release
@@ -49,11 +46,7 @@ jobs:
             - Multi-language syntax highlighting
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Job 2: Windows Build → .exe Installer + .zip Portable
-# Fix: PySide6 terbaru tersedia, pywinpty opsional, gunakan Inno Setup Action
-# ─────────────────────────────────────────────────────────────────────────────
+   
   build-windows:
     name: Build Windows
     needs: create-release
@@ -113,9 +106,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Job 3: Linux Build → .tar.gz + .AppImage + .deb + .rpm
-# ─────────────────────────────────────────────────────────────────────────────
   build-linux:
     name: Build Linux
     needs: create-release
@@ -296,10 +286,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Job 4: macOS Build → .dmg + .tar.gz
-# Fix: macos-13 (Intel x86_64) untuk PySide6 + PyInstaller compatibility
-# ─────────────────────────────────────────────────────────────────────────────
   build-macos:
     name: Build macOS
     needs: create-release

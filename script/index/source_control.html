@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Source Control</title>
+    <link href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.32/dist/codicon.css" rel="stylesheet" />
+
+    <link rel="stylesheet" href="../css/source_control.css">
+</head>
+<body>
+    <div class="header">
+        <div class="title">SOURCE CONTROL</div>
+        <div class="header-actions">
+            <div class="action-btn" title="Views and More Actions" id="topMenuBtn"><i class="codicon codicon-ellipsis"></i></div>
+            
+            <!-- Context Menu for Top Ellipsis -->
+            <div class="context-menu" id="topContextMenu" style="display: none;">
+                <div class="menu-item"><span class="menu-check"></span> Repositories</div>
+                <div class="menu-item" onclick="toggleSection('changesContainer', this)"><span class="menu-check"><i class="codicon codicon-check"></i></span> Changes</div>
+                <div class="menu-item" onclick="toggleSection('graphContainer', this)"><span class="menu-check"><i class="codicon codicon-check"></i></span> Graph</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="split-view">
+        <!-- TOP SECTION: CHANGES -->
+        <div class="split-pane" id="changesContainer" style="flex: 1; min-height: 100px;">
+            <div class="changes-header" onclick="toggleSectionCollapse('changesBody', 'changesMainChevron')">
+                <div class="changes-header-left">
+                    <i class="codicon codicon-chevron-down" id="changesMainChevron"></i>
+                    <span class="changes-title">CHANGES</span>
+                </div>
+                <div class="changes-actions" onclick="event.stopPropagation()">
+                    <div class="action-btn small" title="Accept All Changes"><i class="codicon codicon-check"></i></div>
+                    <div class="action-btn small" title="Refresh" onclick="if(backend) backend.refreshData()"><i class="codicon codicon-refresh"></i></div>
+                    <div class="action-btn small" title="More Actions"><i class="codicon codicon-ellipsis"></i></div>
+                </div>
+            </div>
+            
+            <div class="pane-body" id="changesBody">
+                <!-- Commit message input -->
+                <div class="commit-section">
+                    <div class="commit-input-wrapper">
+                        <textarea id="commitMsg" placeholder='Message (Ctrl+Enter to commit on "main")'></textarea>
+                        <div class="sparkle-btn" title="Generate Commit Message"><i class="codicon codicon-sparkle"></i></div>
+                    </div>
+                    <div class="commit-btn-group">
+                        <button id="commitBtn" class="commit-main">
+                            <i class="codicon codicon-check"></i> Commit
+                        </button>
+                        <div class="commit-divider"></div>
+                        <button id="commitDropdown" class="commit-more">
+                            <i class="codicon codicon-chevron-down"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="treeContainer">
+                    <!-- Staged Changes -->
+                    <div class="tree-group" id="stagedGroup" style="display: none;">
+                        <div class="group-header" onclick="toggleGroup('stagedItems', 'stagedChevron')">
+                            <i class="codicon codicon-chevron-down" id="stagedChevron"></i>
+                            <span class="group-title">Staged Changes</span>
+                            <span class="badge" id="stagedBadge">0</span>
+                        </div>
+                        <div class="group-items" id="stagedItems"></div>
+                    </div>
+
+                    <!-- Changes -->
+                    <div class="tree-group" id="changesGroup">
+                        <div class="group-header" onclick="toggleGroup('changesItems', 'changesChevron')">
+                            <i class="codicon codicon-chevron-down" id="changesChevron"></i>
+                            <span class="group-title">Changes</span>
+                            <span class="badge" id="changesBadge">0</span>
+                        </div>
+                        <div class="group-items" id="changesItems"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESIZER -->
+        <div class="resizer" id="resizer"></div>
+
+        <!-- BOTTOM SECTION: GRAPH -->
+        <div class="split-pane" id="graphContainer" style="flex: 1; min-height: 100px;">
+            <div class="git-graph-header" onclick="toggleSectionCollapse('graphBody', 'graphMainChevron')">
+                <div class="graph-header-left">
+                    <i class="codicon codicon-chevron-down" id="graphMainChevron"></i>
+                    <span class="changes-title">GRAPH</span>
+                </div>
+                <div class="graph-toolbar" onclick="event.stopPropagation()">
+                    <span class="graph-auto-btn"><i class="codicon codicon-git-branch" style="font-size:12px;"></i> Auto</span>
+                    <div class="action-btn small" title="Target"><i class="codicon codicon-target"></i></div>
+                    <div class="action-btn small" title="Sort Commits"><i class="codicon codicon-git-commit"></i></div>
+                    <div class="action-btn small" title="Filter"><i class="codicon codicon-filter"></i></div>
+                    <div class="action-btn small" title="Search"><i class="codicon codicon-search"></i></div>
+                    <div class="action-btn small" title="Refresh" onclick="requestGraphRefresh()"><i class="codicon codicon-refresh"></i></div>
+                    <div class="action-btn small" title="More Actions"><i class="codicon codicon-ellipsis"></i></div>
+                </div>
+            </div>
+
+            <div class="pane-body" id="graphBody">
+                <div id="gitGraphContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <script src="../script/source_control.js"></script>
+</body>
+</html>

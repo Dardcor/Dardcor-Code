@@ -59,8 +59,9 @@ class TaskManager(QObject):
                 
             for t_data in data.get("tasks", []):
                 self._tasks.append(TaskDefinition(t_data))
-        except Exception:
-            pass
+        except Exception as e:
+            import logging
+            logging.error(f"Failed to load tasks.json: {e}")
 
     def get_tasks(self) -> List[TaskDefinition]:
         return self._tasks
@@ -121,8 +122,9 @@ class TaskManager(QObject):
             proc = self._running_processes[label]
             try:
                 proc.terminate()
-            except Exception:
-                pass
+            except Exception as e:
+                import logging
+                logging.error(f"Failed to terminate task {label}: {e}")
 
     def create_default_tasks(self):
         """Creates a default tasks.json if it doesn't exist."""

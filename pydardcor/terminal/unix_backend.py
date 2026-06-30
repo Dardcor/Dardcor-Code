@@ -25,8 +25,9 @@ class UnixPtyWrapper:
             try:
                 if cwd:
                     os.chdir(cwd)
-            except Exception:
-                pass
+            except Exception as e:
+                import logging
+                logging.error(f"unix_backend: Failed to chdir to {cwd}: {e}")
             
             # Use provided env or parent's env
             process_env = env if env is not None else os.environ.copy()
@@ -68,8 +69,9 @@ class UnixPtyWrapper:
             data = data.encode('utf-8')
         try:
             os.write(self.fd, data)
-        except OSError:
-            pass
+        except OSError as e:
+            import logging
+            logging.error(f"unix_backend: Failed to write to pty: {e}")
 
     def isalive(self):
         if not self._alive:
@@ -87,8 +89,9 @@ class UnixPtyWrapper:
         try:
             winsize = struct.pack("HHHH", rows, cols, 0, 0)
             fcntl.ioctl(self.fd, termios.TIOCSWINSZ, winsize)
-        except OSError:
-            pass
+        except OSError as e:
+            import logging
+            logging.error(f"unix_backend: Failed to set size: {e}")
 
     def cancel_io(self):
         pass
@@ -99,10 +102,12 @@ class UnixPtyWrapper:
             os.kill(self.pid, signal.SIGTERM)
         except ProcessLookupError:
             pass
-        except OSError:
-            pass
+        except OSError as e:
+            import logging
+            logging.error(f"unix_backend: Failed to kill process: {e}")
             
         try:
             os.close(self.fd)
-        except OSError:
-            pass
+        except OSError as e:
+            import logging
+            logging.error(f"unix_backend: Failed to close fd: {e}")

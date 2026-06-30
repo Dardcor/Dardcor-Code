@@ -181,6 +181,33 @@ class OutlinePanel(QWidget):
         add_nodes(None, symbols)
         self._tree.expandAll()
 
+    def parse_and_set_symbols(self, file_path: str):
+        if not file_path.endswith('.py'):
+            self.set_symbols([])
+            return
+            
+        import ast
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            tree = ast.parse(content)
+            
+            symbols = []
+            for node in tree.body:
+                if isinstance(node, ast.ClassDef):
+                    class_sym = {'name': node.name, 'type': 'class', 'line': node.lineno, 'children': []}
+                    for subnode in node.body:
+                        if isinstance(subnode, ast.FunctionDef) or isinstance(subnode, ast.AsyncFunctionDef):
+                            class_sym['children'].append({
+                                'name': subnode.name, 'type': 'method', 'line': subnode.lineno, 'children': []
+                            })
+                    symbols.append(class_sym)
+                elif isinstance(node, ast.FunctionDef) or isinstance(node, ast.AsyncFunctionDef):
+                    symbols.append({'name': node.name, 'type': 'function', 'line': node.lineno, 'children': []})
+            self.set_symbols(symbols)
+        except Exception:
+            self.set_symbols([])
+
     def _on_item_clicked(self, item: QTreeWidgetItem, col: int):
         line = item.data(0, Qt.UserRole)
         if line:
