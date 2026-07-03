@@ -93,10 +93,23 @@ class TestMainWindowOffscreenStartup(unittest.TestCase):
                 with patch("pydardcor.app.main_window.get_config", return_value=cfg):
                     window = MainWindow()
                     self.assertIsNotNone(window._quick_open)
-                    self.assertEqual(window._quick_open_root, tmp)
-                    self.assertEqual(window._quick_open._root_path, tmp)
+                    self.assertIs(cfg.auto_save, True)
 
-        app.processEvents()
+                    from PySide6.QtCore import QTimer
+
+                    loop = MagicMock()
+
+                    def _after_init():
+                        self.assertEqual(window._quick_open_root, tmp)
+                        self.assertEqual(window._quick_open._root_path, tmp)
+                        loop.done = True
+
+                    QTimer.singleShot(300, _after_init)
+                    import time
+                    deadline = time.time() + 2.0
+                    while not getattr(loop, "done", False) and time.time() < deadline:
+                        app.processEvents()
+                    self.assertTrue(getattr(loop, "done", False), "init_workspace timer did not run")
 
 
 if __name__ == "__main__":
