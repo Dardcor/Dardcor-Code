@@ -639,6 +639,8 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self._config = get_config()
+        self._quick_open = None
+        self._quick_open_root = ""
         self._agent = Agent()
         self._chat_generation_active = False
         self._queued_chat_messages = []
@@ -1286,7 +1288,7 @@ class MainWindow(QMainWindow):
 
         auto_save = QAction("Auto Save", self)
         auto_save.setCheckable(True)
-        auto_save.setChecked(self._config.auto_save)
+        auto_save.setChecked(bool(self._config.auto_save))
         auto_save.toggled.connect(self._on_auto_save_toggle)
         file_menu.addAction(auto_save)
 
@@ -2079,7 +2081,11 @@ class MainWindow(QMainWindow):
         self._command_palette = CommandPalette(self)
         self._command_palette.command_selected.connect(self._execute_command)
 
-        root_path = self._config.workspace_path or os.path.expanduser("~")
+        root_path = (
+            getattr(self, "_quick_open_root", None)
+            or self._config.workspace_path
+            or os.path.expanduser("~")
+        )
         self._quick_open = QuickOpenDialog(root_path, self)
         self._quick_open.file_selected.connect(self._open_file_in_editor)
 
@@ -2997,13 +3003,20 @@ class MainWindow(QMainWindow):
 
     def _on_root_changed(self, path: str):
         effective = path or ""
-        self._search_panel.set_root(effective)
-        self._terminal_panel.set_workdir(effective or os.path.expanduser("~"))
-        self._quick_open.set_root(effective)
-        self._quick_open._all_files = []
+        self._quick_open_root = effective
+        if hasattr(self, "_search_panel"):
+            self._search_panel.set_root(effective)
+        if hasattr(self, "_terminal_panel"):
+            self._terminal_panel.set_workdir(effective or os.path.expanduser("~"))
+        quick_open = getattr(self, "_quick_open", None)
+        if quick_open is not None:
+            quick_open.set_root(effective)
+            quick_open._all_files = []
         basename = os.path.basename(effective.rstrip("/\\")) if effective else ""
-        self._chat_panel.set_workspace_name(basename.lower())
-        self._git_panel.set_root(effective)
+        if hasattr(self, "_chat_panel"):
+            self._chat_panel.set_workspace_name(basename.lower())
+        if hasattr(self, "_git_panel"):
+            self._git_panel.set_root(effective)
         self._config.workspace_path = effective
         self._config.save()
         self._update_window_title()

@@ -6,6 +6,48 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Dict, Any, Optional
 
+_TRUE_STRINGS = frozenset({"true", "1", "yes", "on"})
+_FALSE_STRINGS = frozenset({"false", "0", "no", "off", ""})
+
+
+def _coerce_bool(value: Any, default: bool) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return bool(value)
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in _TRUE_STRINGS:
+            return True
+        if normalized in _FALSE_STRINGS:
+            return False
+    return default
+
+
+def _coerce_int(value: Any, default: int) -> int:
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int):
+        return value
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _coerce_config_value(value: Any, default: Any) -> Any:
+    if isinstance(default, bool):
+        return _coerce_bool(value, default)
+    if isinstance(default, int):
+        return _coerce_int(value, default)
+    if isinstance(default, str):
+        if value is None:
+            return default
+        return str(value)
+    if isinstance(default, list):
+        return value if isinstance(value, list) else default
+    return value if isinstance(value, type(default)) else default
+
 def get_user_data_dir() -> str:
     """Return the writable user-data directory for Dardcor Code.
 
@@ -116,7 +158,12 @@ class AppConfig:
             with open(CONFIG_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
             valid_keys = {k for k in cls.__dataclass_fields__}
-            cfg_data = {k: v for k, v in data.items() if k in valid_keys}
+            defaults = cls()
+            cfg_data = {
+                k: _coerce_config_value(v, getattr(defaults, k))
+                for k, v in data.items()
+                if k in valid_keys
+            }
             return cls(**cfg_data)
         except Exception:
             return cls()
