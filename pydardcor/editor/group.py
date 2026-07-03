@@ -788,6 +788,11 @@ class EditorGroup(QWidget):
             if hasattr(tab.editor, "set_theme"):
                 tab.editor.set_theme(is_dark)
 
+    def set_custom_theme(self, theme_data):
+        for tab in self._tabs:
+            if hasattr(tab.editor, "set_custom_theme"):
+                tab.editor.set_custom_theme(theme_data)
+
     def trigger_find(self):
         ed = self.current_editor()
         if ed: ed.trigger_find()

@@ -8,6 +8,7 @@ class EditorBridge(QObject):
     cursor_changed = Signal(int, int)
     save_requested = Signal()
     command_palette_requested = Signal()
+    extension_command_requested = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -45,12 +46,54 @@ class EditorBridge(QObject):
     def request_command_palette(self):
         self.command_palette_requested.emit()
 
+    def _typed_prefix(self, code, line, col) -> str:
+        import re
+        lines = code.splitlines()
+        current_line = lines[line - 1] if 0 < line <= len(lines) else ""
+        if current_line and 0 < col <= len(current_line) + 1:
+            match = re.search(r"([a-zA-Z_][a-zA-Z0-9_\-]*)$", current_line[:col - 1])
+            if match:
+                return match.group(1)
+        return ""
+
+    def _snippet_completions(self, code, line, col) -> list:
+        """Extension-contributed snippets matching the typed prefix."""
+        try:
+            widget = self.parent()
+            language = getattr(widget, "_language", "") or "plaintext"
+
+            from ..core.extension_contributions import get_contribution_parser
+            snippets = get_contribution_parser().get_snippets_for_language(language)
+            if not snippets:
+                return []
+
+            prefix = self._typed_prefix(code, line, col)
+            results = []
+            for snip in snippets:
+                label = snip.get("label", "")
+                if prefix and not label.lower().startswith(prefix.lower()):
+                    continue
+                results.append({
+                    "label": label,
+                    "insertText": snip.get("insertText", label),
+                    "kind": 27,  # Monaco CompletionItemKind.Snippet
+                    "insertTextRules": 4,  # InsertAsSnippet (expands $1, ${1:x})
+                    "detail": snip.get("detail", "snippet"),
+                    "documentation": snip.get("description", ""),
+                    "typedLength": len(prefix),
+                })
+            return results[:30]
+        except Exception:
+            return []
+
     @Slot(str, int, int, result=str)
     def get_completions(self, code, line, col):
+        snippet_items = self._snippet_completions(code, line, col)
+
         if self._lsp_client and self._file_path:
             try:
                 items = self._lsp_client.completion(self._file_path, line - 1, col - 1)
-                results = []
+                results = list(snippet_items)
                 for item in items[:50]:
                     kind_map = {
                         1: 1, 2: 2, 3: 2, 4: 5, 5: 6, 6: 4,
@@ -73,7 +116,11 @@ class EditorBridge(QObject):
             except Exception:
                 pass
 
-        return self._fallback_completions(code, line, col)
+        try:
+            fallback = json.loads(self._fallback_completions(code, line, col) or "[]")
+        except Exception:
+            fallback = []
+        return json.dumps(snippet_items + fallback)
 
     def _fallback_completions(self, code, line, col):
         try:
@@ -244,6 +291,29 @@ class EditorBridge(QObject):
                     "line": i,
                 })
         return json.dumps(symbols)
+
+    @Slot(str, result=str)
+    def get_extension_menu_items(self, menu_id: str) -> str:
+        """Return extension-contributed context menu items as JSON for Monaco."""
+        try:
+            from ..core.extension_contributions import get_contribution_parser
+            items = get_contribution_parser().get_menu_items(menu_id)
+            return json.dumps([
+                {
+                    "command": m.command,
+                    "label": m.label,
+                    "group": m.group,
+                    "order": m.order,
+                }
+                for m in items
+            ])
+        except Exception:
+            return "[]"
+
+    @Slot(str)
+    def execute_extension_command(self, command_id: str):
+        if command_id:
+            self.extension_command_requested.emit(command_id)
 
     def set_file_path(self, path):
         self._file_path = path

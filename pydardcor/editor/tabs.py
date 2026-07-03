@@ -118,9 +118,23 @@ class EditorTabs(QWidget):
     def set_minimap(self, enabled):
         for g in self._groups: g.set_minimap(enabled)
 
+    def refresh_extension_context_menus(self):
+        for g in self._groups:
+            for tab in getattr(g, "_tabs", []):
+                editor = getattr(tab, "editor", None)
+                if editor and hasattr(editor, "refresh_extension_context_menu"):
+                    editor.refresh_extension_context_menu()
+
     def set_theme(self, theme_name: str):
         is_dark = (theme_name != "light")
         for g in self._groups: g.set_theme(is_dark)
+
+    def set_custom_theme(self, theme_data):
+        from .widget import set_global_custom_theme
+        set_global_custom_theme(theme_data)
+        for g in self._groups:
+            if hasattr(g, "set_custom_theme"):
+                g.set_custom_theme(theme_data)
 
     def trigger_find(self):
         g = self.active_group()

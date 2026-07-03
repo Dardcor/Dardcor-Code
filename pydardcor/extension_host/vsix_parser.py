@@ -5,12 +5,15 @@ import shutil
 from pathlib import Path
 from typing import Dict, Any, Optional
 
+from ..core.config import get_extensions_dir
+
+
 class VsixParser:
     """Parser for Visual Studio Code extension (.vsix) files."""
 
     def __init__(self, extensions_dir: str = None):
         if extensions_dir is None:
-            self.extensions_dir = os.path.join(str(Path.home()), ".dardcor-code", "extensions")
+            self.extensions_dir = get_extensions_dir()
         else:
             self.extensions_dir = extensions_dir
         

@@ -64,6 +64,7 @@
         var pendingLanguage = null;
         var pendingFilePath = null;
         var isRemoteUpdate = false;
+        var extensionMenuDisposables = [];
 
         // VS Code Dark+ theme matching Dardcor palette
         var DARDCOR_THEME = {
@@ -223,8 +224,10 @@
                     stickyScroll: { enabled: true, maxLineCount: 5 }
                 });
 
-                // Register python completions provider connected to Python backend
-                monaco.languages.registerCompletionItemProvider('python', {
+                // Completions provider connected to the Python backend
+                // (LSP / Jedi / extension snippets). Registered for every
+                // language so extension snippets work outside Python too.
+                var backendCompletionProvider = {
                     triggerCharacters: ['.', ' ', '_'],
                     provideCompletionItems: function (model, position) {
                         return new Promise(function (resolve, reject) {
@@ -241,7 +244,9 @@
                                                     label: item.label,
                                                     kind: item.kind,
                                                     insertText: item.insertText,
+                                                    insertTextRules: item.insertTextRules || 0,
                                                     detail: item.detail || '',
+                                                    documentation: item.documentation || '',
                                                     range: {
                                                         startLineNumber: position.lineNumber,
                                                         startColumn: position.column - (item.typedLength || 0),
@@ -260,6 +265,9 @@
                             }
                         });
                     }
+                };
+                monaco.languages.getLanguages().forEach(function (lang) {
+                    monaco.languages.registerCompletionItemProvider(lang.id, backendCompletionProvider);
                 });
 
                 // Register hover provider
@@ -336,6 +344,15 @@
 
                 // Initialize web channel
                 initWebChannel();
+
+                // Refresh extension context menu items live on each right-click
+                document.getElementById('container').addEventListener('contextmenu', function () {
+                    if (backend && typeof backend.get_extension_menu_items === 'function') {
+                        backend.get_extension_menu_items('editor/context', function (res) {
+                            setExtensionContextMenuItems(res);
+                        });
+                    }
+                }, true);
             }); // end inner require (language contributions)
         });
 
@@ -424,6 +441,19 @@
             monaco.editor.setTheme(isDark ? 'dardcor-dark' : 'vs');
         }
 
+        // Apply a VS Code extension color theme (converted to Monaco format in Python)
+        function defineCustomTheme(themeJson) {
+            try {
+                var data = typeof themeJson === 'string' ? JSON.parse(themeJson) : themeJson;
+                if (!data) {
+                    monaco.editor.setTheme('dardcor-dark');
+                    return;
+                }
+                monaco.editor.defineTheme('dardcor-custom', data);
+                monaco.editor.setTheme('dardcor-custom');
+            } catch (e) { /* keep current theme on invalid data */ }
+        }
+
         function setFontSize(size) {
             if (editor) editor.updateOptions({ fontSize: size });
         }
@@ -500,6 +530,45 @@
             if (editor) {
                 editor.trigger('source', 'redo', null);
             }
+        }
+
+        function clearExtensionMenuActions() {
+            extensionMenuDisposables.forEach(function (d) {
+                try { d.dispose(); } catch (e) { }
+            });
+            extensionMenuDisposables = [];
+        }
+
+        function setExtensionContextMenuItems(itemsJson) {
+            clearExtensionMenuActions();
+            if (!editor) return;
+            var items = [];
+            try {
+                items = typeof itemsJson === 'string' ? JSON.parse(itemsJson) : itemsJson;
+            } catch (e) {
+                return;
+            }
+            if (!Array.isArray(items)) return;
+
+            items.forEach(function (item, idx) {
+                var cmd = item.command || '';
+                if (!cmd) return;
+                var groupId = item.group || 'extensions';
+                var order = typeof item.order === 'number' ? item.order : idx;
+                var safeId = 'ext.cmd.' + cmd.replace(/[^a-zA-Z0-9_-]/g, '_');
+                var disposable = editor.addAction({
+                    id: safeId,
+                    label: item.label || cmd,
+                    contextMenuGroupId: groupId,
+                    contextMenuOrder: order,
+                    run: function () {
+                        if (backend && typeof backend.execute_extension_command === 'function') {
+                            backend.execute_extension_command(cmd);
+                        }
+                    }
+                });
+                extensionMenuDisposables.push(disposable);
+            });
         }
     </script>
 </body>

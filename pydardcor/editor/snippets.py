@@ -3,6 +3,8 @@ import json
 import logging
 from typing import Dict, List, Optional
 
+from ..core.config import get_snippets_dir
+
 logger = logging.getLogger(__name__)
 
 class SnippetManager:
@@ -17,7 +19,7 @@ class SnippetManager:
             self.load_workspace_snippets()
 
     def load_global_snippets(self):
-        config_dir = os.path.join(os.path.expanduser("~"), ".dardcor-code", "snippets")
+        config_dir = get_snippets_dir()
         if not os.path.exists(config_dir):
             return
             

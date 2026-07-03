@@ -137,6 +137,16 @@ function handleRequest(msg) {
         sendResult(msg.id, { ok: true });
         break;
       }
+      case "treeView.getChildren": {
+        Promise.resolve(
+          vscodeShim.getTreeChildren(msg.params.viewId, msg.params.elementId || null)
+        ).then(children => {
+          sendResult(msg.id, { children: children || [] });
+        }).catch(err => {
+          sendError(msg.id, -32000, err.stack || err.message);
+        });
+        break;
+      }
       default:
         sendError(msg.id, -32601, `Unknown method: ${msg.method}`);
     }

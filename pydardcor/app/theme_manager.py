@@ -1,16 +1,83 @@
 """Theme Manager - VS Code style dynamic theming."""
 
 import os
+import re
 import json
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QPalette, QColor
+
+
+def _load_jsonc(path: str) -> Dict[str, Any]:
+    """Load a VS Code theme JSON file (tolerates comments and trailing commas)."""
+    with open(path, "r", encoding="utf-8") as f:
+        text = f.read()
+    # Strip /* */ and // comments (naive but adequate for theme files)
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
+    text = re.sub(r"^\s*//.*$", "", text, flags=re.MULTILINE)
+    # Trailing commas
+    text = re.sub(r",\s*([}\]])", r"\1", text)
+    return json.loads(text)
+
+
+def _load_vscode_theme(path: str) -> Dict[str, Any]:
+    """Load a VS Code color theme, resolving one level of 'include'."""
+    data = _load_jsonc(path)
+    include = data.get("include")
+    if include:
+        base_path = os.path.normpath(os.path.join(os.path.dirname(path), include))
+        if os.path.exists(base_path):
+            base = _load_jsonc(base_path)
+            merged_colors = dict(base.get("colors", {}))
+            merged_colors.update(data.get("colors", {}))
+            merged_tokens = list(base.get("tokenColors", [])) + list(data.get("tokenColors", []))
+            base.update(data)
+            base["colors"] = merged_colors
+            base["tokenColors"] = merged_tokens
+            return base
+    return data
+
+
+# TextMate scope prefix -> Monaco monarch token (longest prefix wins)
+_SCOPE_TO_MONACO = {
+    "comment": "comment",
+    "punctuation.definition.comment": "comment",
+    "string.regexp": "regexp",
+    "string": "string",
+    "constant.numeric": "number",
+    "constant.character": "string.escape",
+    "constant.language": "keyword",
+    "constant": "constant",
+    "keyword.operator": "operator",
+    "keyword.control": "keyword",
+    "keyword": "keyword",
+    "storage.type": "keyword",
+    "storage": "keyword",
+    "entity.name.type": "type",
+    "entity.name.class": "type",
+    "entity.name.namespace": "namespace",
+    "entity.name.function": "function",
+    "entity.name.tag": "tag",
+    "entity.other.attribute-name": "attribute.name",
+    "support.type": "type",
+    "support.class": "type",
+    "support.function": "function",
+    "variable.parameter": "variable",
+    "variable": "variable",
+    "markup.heading": "strong",
+    "meta.type": "type",
+}
+
 
 class ThemeManager:
     """Manages color themes and dynamically applies stylesheets to QApplication."""
     
     _current_theme = "dark+"
+    # Extension-contributed themes: {"ext:<label>": {"name", "type", "path"}}
+    EXT_THEMES: Dict[str, Dict[str, str]] = {}
+    # Monaco theme data for the active extension theme (None = builtin)
+    _monaco_theme_data: Optional[Dict[str, Any]] = None
     
     # Pre-defined base themes
     THEMES = {
@@ -22,12 +89,12 @@ class ThemeManager:
                 "foreground": "#cccccc",
                 "sidebar": "#000000",
                 "activity_bar": "#000000",
-                "activity_bar_fg": "#cccccc",
-                "selection": "#2c004a",
-                "hover": "#1a0033",
-                "border": "#3c0068",
-                "accent": "#4a0072",
-                "accent_hover": "#5a009c",
+                "activity_bar_fg": "#ffffff",
+                "selection": "#04395e",
+                "hover": "#1a1a1a",
+                "border": "#2b2b2b",
+                "accent": "#ffffff",
+                "accent_hover": "#cccccc",
                 "error": "#f48771"
             }
         },
@@ -153,28 +220,186 @@ class ThemeManager:
     }
 
     @classmethod
+    def register_extension_themes(cls):
+        """Scan installed extensions for contributes.themes and register them."""
+        from ..core.extension_manager import get_extension_manager
+
+        cls.EXT_THEMES = {}
+        try:
+            extensions = get_extension_manager().get_installed_extensions()
+        except Exception:
+            return
+
+        for ext in extensions:
+            if not ext.enabled:
+                continue
+            contributes = (ext.manifest or {}).get("contributes", {})
+            for t in contributes.get("themes", []):
+                rel = t.get("path", "")
+                full = os.path.normpath(os.path.join(ext.path, rel)) if rel else ""
+                if not full or not os.path.exists(full):
+                    continue
+                label = t.get("label") or t.get("id") or os.path.basename(full)
+                ui = t.get("uiTheme", "vs-dark")
+                cls.EXT_THEMES[f"ext:{label}"] = {
+                    "name": label,
+                    "type": "light" if ui == "vs" else "dark",
+                    "path": full,
+                }
+
+    @classmethod
     def get_theme_list(cls) -> List[Dict[str, str]]:
         """Return list of available themes for theme picker UI."""
-        return [
+        result = [
             {"id": tid, "name": data["name"], "type": data["type"]}
             for tid, data in cls.THEMES.items()
         ]
+        result.extend(
+            {"id": tid, "name": data["name"] + "  [Extension]", "type": data["type"]}
+            for tid, data in cls.EXT_THEMES.items()
+        )
+        return result
 
     @classmethod
     def current_theme_id(cls) -> str:
         return cls._current_theme
 
     @classmethod
+    def get_monaco_theme(cls) -> Optional[Dict[str, Any]]:
+        """Monaco defineTheme() data for the active extension theme, or None."""
+        return cls._monaco_theme_data
+
+    @classmethod
+    def _vscode_theme_to_shell_colors(cls, data: Dict[str, Any], is_dark: bool) -> Dict[str, str]:
+        vc = data.get("colors", {})
+
+        def pick(*keys, default=""):
+            for k in keys:
+                v = vc.get(k)
+                if v:
+                    return v[:7] if len(v) == 9 else v  # drop alpha for Qt stylesheets
+            return default
+
+        bg = pick("editor.background", default="#1e1e1e" if is_dark else "#ffffff")
+        fg = pick("foreground", "editor.foreground",
+                  default="#cccccc" if is_dark else "#333333")
+        return {
+            "background": bg,
+            "foreground": fg,
+            "sidebar": pick("sideBar.background", default=bg),
+            "activity_bar": pick("activityBar.background", default=bg),
+            "activity_bar_fg": pick("activityBar.foreground", default=fg),
+            "selection": pick("list.activeSelectionBackground", "editor.selectionBackground",
+                              default="#264f78" if is_dark else "#add6ff"),
+            "hover": pick("list.hoverBackground",
+                          default="#2a2d2e" if is_dark else "#f0f0f0"),
+            "border": pick("panel.border", "editorGroup.border", "contrastBorder",
+                           default="#454545" if is_dark else "#cccccc"),
+            "accent": pick("button.background", "focusBorder", default="#0e639c"),
+            "accent_hover": pick("button.hoverBackground", default="#1177bb"),
+            "error": pick("editorError.foreground", default="#f48771"),
+        }
+
+    @classmethod
+    def _vscode_theme_to_monaco(cls, data: Dict[str, Any], is_dark: bool) -> Dict[str, Any]:
+        rules = []
+        seen_tokens = set()
+        for entry in data.get("tokenColors", []):
+            settings = entry.get("settings", {})
+            fg = settings.get("foreground", "")
+            font_style = settings.get("fontStyle", "")
+            if not fg and not font_style:
+                continue
+
+            scopes = entry.get("scope", [])
+            if isinstance(scopes, str):
+                scopes = [s.strip() for s in scopes.split(",")]
+
+            for scope in scopes:
+                if not scope:
+                    continue
+                # Map TextMate scope to the closest Monaco monarch token
+                token = None
+                for prefix in sorted(_SCOPE_TO_MONACO, key=len, reverse=True):
+                    if scope == prefix or scope.startswith(prefix + "."):
+                        token = _SCOPE_TO_MONACO[prefix]
+                        break
+                for t in {token, scope} - {None}:
+                    if t in seen_tokens:
+                        continue
+                    seen_tokens.add(t)
+                    rule = {"token": t}
+                    if fg:
+                        rule["foreground"] = fg.lstrip("#")
+                    if font_style:
+                        rule["fontStyle"] = font_style
+                    rules.append(rule)
+
+        colors = {}
+        for key, val in data.get("colors", {}).items():
+            if isinstance(val, str) and val.startswith("#"):
+                colors[key] = val
+
+        return {
+            "base": "vs-dark" if is_dark else "vs",
+            "inherit": True,
+            "rules": rules,
+            "colors": colors,
+        }
+
+    @classmethod
     def apply_theme(cls, app: QApplication, theme_id: str):
+        if theme_id in cls.EXT_THEMES:
+            return cls._apply_extension_theme(app, theme_id)
+
         if theme_id not in cls.THEMES:
             theme_id = "dark+"
             
         cls._current_theme = theme_id
+        cls._monaco_theme_data = None
         theme_data = cls.THEMES[theme_id]
         c = theme_data["colors"]
-        
+        cls._apply_shell_colors(app, c)
+
+    @classmethod
+    def _apply_extension_theme(cls, app: QApplication, theme_id: str):
+        """Apply a VS Code color theme contributed by an installed extension."""
+        info = cls.EXT_THEMES[theme_id]
+        try:
+            data = _load_vscode_theme(info["path"])
+        except Exception:
+            return
+
+        is_dark = (data.get("type") or info["type"]) != "light"
+        cls._current_theme = theme_id
+        cls._monaco_theme_data = cls._vscode_theme_to_monaco(data, is_dark)
+        c = cls._vscode_theme_to_shell_colors(data, is_dark)
+        cls._apply_shell_colors(app, c)
+
+    @classmethod
+    def _apply_shell_colors(cls, app: QApplication, c: Dict[str, str]):
         # 1. Update global stylesheet
         tooltip_bg = "#1e1e1e" if c["background"] in ("#000000",) else c["background"]
+        is_dark = c["background"].lower() in (
+            "#000000", "#0d1117", "#010409", "#002b36", "#002129", "#001e27",
+            "#272822", "#1e1f1c", "#282c34", "#21252b",
+        )
+        if is_dark:
+            dialog_bg = "#1e1e1e"
+            btn_bg = "#333333"
+            btn_hover = "#444444"
+            btn_text = "#e6e6e6"
+            btn_border = "#555555"
+            primary_bg = "#0e639c"
+            primary_hover = "#1177bb"
+        else:
+            dialog_bg = c.get("sidebar", "#f3f3f3")
+            btn_bg = "#e8e8e8"
+            btn_hover = "#dadada"
+            btn_text = c["foreground"]
+            btn_border = c["border"]
+            primary_bg = c["accent"]
+            primary_hover = c["accent_hover"]
         stylesheet = f"""
         QMainWindow {{ background-color: {c['background']}; color: {c['foreground']}; }}
         QWidget {{ color: {c['foreground']}; font-family: 'Segoe UI', 'Inter', sans-serif; }}
@@ -210,6 +435,39 @@ class ThemeManager:
             font-size: 12px;
             padding: 4px;
             border-radius: 2px;
+        }}
+
+        QDialog {{
+            background-color: {dialog_bg};
+            color: {btn_text};
+        }}
+        QMessageBox {{
+            background-color: {dialog_bg};
+            color: {btn_text};
+        }}
+        QMessageBox QLabel {{
+            color: {btn_text};
+            background-color: transparent;
+        }}
+        QDialogButtonBox QPushButton, QMessageBox QPushButton {{
+            background-color: {btn_bg};
+            color: {btn_text};
+            border: 1px solid {btn_border};
+            border-radius: 2px;
+            padding: 6px 16px;
+            min-width: 72px;
+            font-size: 13px;
+        }}
+        QDialogButtonBox QPushButton:hover, QMessageBox QPushButton:hover {{
+            background-color: {btn_hover};
+        }}
+        QDialogButtonBox QPushButton:default, QMessageBox QPushButton:default {{
+            background-color: {primary_bg};
+            color: #ffffff;
+            border: 1px solid {primary_bg};
+        }}
+        QDialogButtonBox QPushButton:default:hover, QMessageBox QPushButton:default:hover {{
+            background-color: {primary_hover};
         }}
         """
         

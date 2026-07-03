@@ -30,7 +30,7 @@ class TestExplorerPanel(QWidget):
         # Header
         header = QWidget()
         header.setFixedHeight(36)
-        header.setStyleSheet("background-color: #000000; border-bottom: 1px solid #2c004a;")
+        header.setStyleSheet("background-color: #000000; border-bottom: 1px solid #2b2b2b;")
         h_lay = QHBoxLayout(header)
         h_lay.setContentsMargins(12, 0, 8, 0)
 
@@ -57,7 +57,7 @@ class TestExplorerPanel(QWidget):
 
         # Action bar
         btn_row = QWidget()
-        btn_row.setStyleSheet("background-color: #0d0d0d; border-bottom: 1px solid #1a0033;")
+        btn_row.setStyleSheet("background-color: #000000; border-bottom: 1px solid #2b2b2b;")
         btn_lay = QHBoxLayout(btn_row)
         btn_lay.setContentsMargins(8, 4, 8, 4)
         btn_lay.setSpacing(6)
@@ -72,7 +72,7 @@ class TestExplorerPanel(QWidget):
         # Tree
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setStyleSheet("QScrollArea { border: none; background: #000000; } QScrollBar:vertical { width: 8px; background: #000000; } QScrollBar::handle:vertical { background: #2c004a; }")
+        scroll.setStyleSheet("QScrollArea { border: none; background: #000000; } QScrollBar:vertical { width: 8px; background: #000000; } QScrollBar::handle:vertical { background: #333333; }")
         
         self._tree = QTreeWidget()
         self._tree.setHeaderHidden(True)
@@ -91,7 +91,7 @@ class TestExplorerPanel(QWidget):
                 border: none;
             }
             QTreeWidget::item:selected {
-                background-color: #2c004a;
+                background-color: #1a1a1a;
                 color: #ffffff;
             }
             QTreeWidget::item:hover {
@@ -105,7 +105,7 @@ class TestExplorerPanel(QWidget):
     def _icon_btn(self):
         return """
             QPushButton { background: transparent; border: none; color: #cccccc; font-size: 14px; border-radius: 3px; }
-            QPushButton:hover { background: #2c004a; }
+            QPushButton:hover { background: #1a1a1a; }
         """
 
     def set_root(self, path):

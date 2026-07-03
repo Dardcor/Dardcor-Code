@@ -261,6 +261,76 @@ const _cfgCache = {};
 let _activeEditor = null;
 let _terminals = [];
 
+// TreeDataProvider registry for extension-contributed views
+const _treeProviders = new Map();
+const _treeNodes = new Map();
+let _treeNodeSeq = 0;
+
+function _serializeTreeItem(item, element) {
+  // A TreeItem may be the item itself, or getTreeItem returned an object
+  let label = "";
+  let description = "";
+  let tooltip = "";
+  let collapsibleState = 0;
+  let contextValue = "";
+  let command = null;
+  let iconHint = "";
+
+  if (item && typeof item === "object") {
+    if (typeof item.label === "string") label = item.label;
+    else if (item.label && typeof item.label.label === "string") label = item.label.label;
+    if (!label && typeof item.id === "string") label = item.id;
+    description = typeof item.description === "string" ? item.description : "";
+    tooltip = typeof item.tooltip === "string" ? item.tooltip : (item.tooltip && item.tooltip.value) || "";
+    collapsibleState = item.collapsibleState || 0;
+    contextValue = item.contextValue || "";
+    command = item.command || null;
+    if (item.iconPath) {
+      if (typeof item.iconPath === "string") iconHint = item.iconPath;
+      else if (item.iconPath.id) iconHint = item.iconPath.id;      // ThemeIcon
+      else if (item.iconPath.fsPath) iconHint = item.iconPath.fsPath;
+      else if (item.iconPath.dark) iconHint = (item.iconPath.dark.fsPath || item.iconPath.dark);
+    }
+  } else if (typeof item === "string") {
+    label = item;
+  }
+
+  const nodeId = "node_" + (++_treeNodeSeq);
+  _treeNodes.set(nodeId, element);
+  return {
+    id: nodeId,
+    label: String(label || ""),
+    description: String(description || ""),
+    tooltip: String(tooltip || ""),
+    collapsibleState,
+    contextValue: String(contextValue || ""),
+    icon: String(iconHint || ""),
+    command: command ? {
+      command: command.command || "",
+      title: command.title || "",
+      arguments: command.arguments || []
+    } : null
+  };
+}
+
+async function getTreeChildren(viewId, elementId) {
+  const provider = _treeProviders.get(viewId);
+  if (!provider || typeof provider.getChildren !== "function") return [];
+  let element;
+  if (elementId) element = _treeNodes.get(elementId);
+  let children = await Promise.resolve(provider.getChildren(element));
+  if (!Array.isArray(children)) children = children ? [children] : [];
+  const out = [];
+  for (const child of children) {
+    let item = child;
+    if (typeof provider.getTreeItem === "function") {
+      try { item = await Promise.resolve(provider.getTreeItem(child)); } catch (_) { item = child; }
+    }
+    out.push(_serializeTreeItem(item, child));
+  }
+  return out;
+}
+
 const workspace = {
   get workspaceFolders() { return global.dardcorWorkspaceFolders || []; },
   get name() { const f=this.workspaceFolders; return f.length>0?f[0].name:""; },
@@ -330,7 +400,29 @@ const window = {
   onDidChangeVisibleTextEditors(l) { return {dispose(){}}; },
   onDidCloseTerminal(l) { bridgeEvents.on("terminalClosed",l); return {dispose(){}}; },
   onDidChangeWindowState(l) { return {dispose(){}}; },
-  registerTreeDataProvider(vid, tdp) { sendNotification("window.registerTreeDataProvider",{viewId:vid}); return {dispose(){}}; },
+  registerTreeDataProvider(vid, tdp) {
+    _treeProviders.set(vid, tdp);
+    if (tdp && typeof tdp.onDidChangeTreeData === "function") {
+      try {
+        tdp.onDidChangeTreeData(() => sendNotification("window.treeDataChanged", { viewId: vid }));
+      } catch (_) {}
+    }
+    sendNotification("window.registerTreeDataProvider", { viewId: vid });
+    return { dispose() { _treeProviders.delete(vid); } };
+  },
+  createTreeView(vid, opts) {
+    const tdp = opts && opts.treeDataProvider;
+    if (tdp) window.registerTreeDataProvider(vid, tdp);
+    return {
+      visible: true, selection: [], message: "", title: vid,
+      onDidChangeSelection() { return { dispose() {} }; },
+      onDidChangeVisibility() { return { dispose() {} }; },
+      onDidCollapseElement() { return { dispose() {} }; },
+      onDidExpandElement() { return { dispose() {} }; },
+      reveal() { return Promise.resolve(); },
+      dispose() { _treeProviders.delete(vid); }
+    };
+  },
   registerUriHandler(h) { return {dispose(){}}; },
   withProgress(opts, task) { return sendRequest("window.withProgress",{options:{location:opts.location,title:opts.title}}); },
   createWebviewPanel(vt, title, so, opts) {
@@ -367,6 +459,7 @@ bridgeEvents.on("terminalClosed", (info) => { _terminals = _terminals.filter(t=>
 
 module.exports = {
   commands, window, workspace, languages, tasks, debug, bridgeEvents, sendNotification, sendRequest,
+  getTreeChildren,
   Uri, Position, Range, Selection, TextEdit, Diagnostic, DiagnosticSeverity: DiagnosticSeverityVals,
   SnippetString, CompletionItem, CompletionItemKind, Hover, DocumentLink, CodeAction, CodeActionKind,
   EventEmitter,

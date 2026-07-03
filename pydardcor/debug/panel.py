@@ -30,7 +30,7 @@ class DebugPanel(QWidget):
 
         header = QWidget()
         header.setFixedHeight(35)
-        header.setStyleSheet("background-color: #000000; border-bottom: 1px solid #1a0033;")
+        header.setStyleSheet("background-color: #000000; border-bottom: 1px solid #2b2b2b;")
         h_lay = QHBoxLayout(header)
         h_lay.setContentsMargins(20, 0, 8, 0)
 
@@ -46,9 +46,9 @@ class DebugPanel(QWidget):
         rb_lay = QHBoxLayout(run_bar)
         rb_lay.setContentsMargins(10, 4, 10, 4)
 
-        btn_style = "QPushButton { background: transparent; color: #89d185; font-size: 14px; border: none; } QPushButton:hover { background: #2c004a; border-radius: 3px; }"
-        stop_style = "QPushButton { background: transparent; color: #f14c4c; font-size: 14px; border: none; } QPushButton:hover { background: #2c004a; border-radius: 3px; }"
-        step_style = "QPushButton { background: transparent; color: #cccccc; font-size: 12px; border: none; padding: 2px 6px; } QPushButton:hover { background: #2c004a; border-radius: 3px; }"
+        btn_style = "QPushButton { background: transparent; color: #89d185; font-size: 14px; border: none; } QPushButton:hover { background: #1a1a1a; border-radius: 3px; }"
+        stop_style = "QPushButton { background: transparent; color: #f14c4c; font-size: 14px; border: none; } QPushButton:hover { background: #1a1a1a; border-radius: 3px; }"
+        step_style = "QPushButton { background: transparent; color: #cccccc; font-size: 12px; border: none; padding: 2px 6px; } QPushButton:hover { background: #1a1a1a; border-radius: 3px; }"
 
         self._start_btn = QPushButton("\u25b6")
         self._start_btn.setFixedSize(24, 24)
@@ -99,7 +99,7 @@ class DebugPanel(QWidget):
 
         self._config_combo = QComboBox()
         self._config_combo.addItems(["Python: Current File", "Python: Module"])
-        self._config_combo.setStyleSheet("QComboBox { background: #1a0033; color: #cccccc; border: 1px solid #3c0068; padding: 2px 6px; font-size: 12px; }")
+        self._config_combo.setStyleSheet("QComboBox { background: #0a0a0a; color: #cccccc; border: 1px solid #333333; padding: 2px 6px; font-size: 12px; }")
         rb_lay.addWidget(self._config_combo)
 
         self._status_label = QLabel("")
@@ -138,7 +138,7 @@ class DebugPanel(QWidget):
         tree = QTreeWidget()
         tree.setHeaderHidden(True)
         tree.setRootIsDecorated(True)
-        tree.setStyleSheet("QTreeWidget { background-color: #000000; color: #cccccc; border: none; font-size: 12px; } QTreeWidget::item { padding: 2px; } QTreeWidget::item:selected { background-color: #2c004a; }")
+        tree.setStyleSheet("QTreeWidget { background-color: #000000; color: #cccccc; border: none; font-size: 12px; } QTreeWidget::item { padding: 2px; } QTreeWidget::item:selected { background-color: #04395e; }")
 
         header = QTreeWidgetItem([title])
         header.setForeground(0, QColor("#bbbbbb"))

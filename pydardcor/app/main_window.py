@@ -589,7 +589,7 @@ from dardcor_agent.chat.memory import Conversation
 from ..core.filesystem import parse_python_symbols
 from ..ui_shared.activity_bar import (
     ActivityBar, VIEW_EXPLORER, VIEW_SEARCH, VIEW_SOURCE_CONTROL,
-    VIEW_EXTENSIONS, VIEW_TESTING
+    VIEW_EXTENSIONS, VIEW_TESTING, EXT_VIEW_BASE
 )
 from ..file_explorer.panel import FileExplorer
 from ..file_explorer.open_editors_panel import OpenEditorsPanel
@@ -881,10 +881,6 @@ class MainWindow(QMainWindow):
         # ── Activity Bar (leftmost) ──
         self._activity_bar = ActivityBar()
         self._activity_bar.view_changed.connect(self._on_view_changed)
-        
-        # Test badges for Activity Bar
-        self._activity_bar.set_badge(VIEW_EXTENSIONS, "3")
-        
         main_layout.addWidget(self._activity_bar)
 
         # ── Sidebar Stack ──
@@ -982,7 +978,10 @@ class MainWindow(QMainWindow):
 
         self._extensions_panel = ExtensionsPanel()
         self._extensions_panel.extension_installed.connect(self._on_extension_installed)
+        self._extensions_panel.extensions_changed.connect(self._update_extensions_badge)
+        self._extensions_panel.extensions_changed.connect(self._sync_extension_status_bar)
         self._sidebar_stack.addWidget(self._extensions_panel)
+        self._update_extensions_badge()
         
         self._testing_panel = TestExplorerPanel(root_path="")
         self._testing_panel.file_open_requested.connect(self._open_file_in_editor)
@@ -1128,6 +1127,7 @@ class MainWindow(QMainWindow):
         self._status_bar.go_to_line_requested.connect(self._show_go_to_line)
         self._status_bar.models_requested.connect(self._show_models_dialog)
         self._status_bar.git_branch_requested.connect(self._show_git_branch_menu)
+        self._status_bar.ext_status_clicked.connect(self._execute_command)
         
         # ── Add QSizeGrip for Linux resizing ──
         import platform
@@ -1324,7 +1324,7 @@ class MainWindow(QMainWindow):
         preferences_menu.addAction(color_theme)
         
         file_icon_theme = QAction("File Icon Theme", self)
-        file_icon_theme.triggered.connect(self._show_command_palette)
+        file_icon_theme.triggered.connect(self._show_icon_theme_switcher)
         preferences_menu.addAction(file_icon_theme)
         
         product_icon_theme = QAction("Product Icon Theme", self)
@@ -2329,8 +2329,12 @@ class MainWindow(QMainWindow):
         handler = handlers.get(cmd_id)
         if handler:
             handler()
-        else:
-            self._ext_manager.execute_command(cmd_id)
+        elif not self._ext_manager.execute_command(cmd_id):
+            # Route to the Node extension host (VS Code JS extension commands)
+            from ..core.extension_host import get_extension_host
+            host = get_extension_host()
+            if host._ready:
+                host.execute_command(cmd_id)
 
     def _setup_extensions(self):
         from ..core.lsp_client import get_lsp_manager
@@ -2350,29 +2354,193 @@ class MainWindow(QMainWindow):
 
         from ..core.extension_host import get_extension_host
         host = get_extension_host()
-        host.register_callback("commands.registerCommand", lambda cmd: None)
-        host.register_callback("commands.unregisterCommand", lambda cmd: None)
+        self._node_commands = set()
+        host.register_callback("commands.registerCommand", self._on_node_command_registered)
+        host.register_callback("commands.unregisterCommand", self._on_node_command_unregistered)
         host.register_callback("window.showInformationMessage", lambda msg: QMessageBox.information(self, "Extension", msg))
         host.register_callback("window.showWarningMessage", lambda msg: QMessageBox.warning(self, "Extension", msg))
         host.register_callback("window.showErrorMessage", lambda msg: QMessageBox.critical(self, "Extension", msg))
-        host.register_callback("window.statusBarShow", lambda p: self._status_bar.set_ext_status(p.get("text", ""), p.get("tooltip", "")))
+        host.register_callback("window.statusBarShow", self._on_ext_status_bar_show)
+        host.register_callback("window.statusBarHide", self._on_ext_status_bar_hide)
         host.register_callback("window.createTerminal", lambda p: self._new_terminal())
         host.register_callback("window.createOutputChannel", lambda p: None)
         host.register_callback("window.outputAppend", lambda p: None)
+        host.register_callback("window.registerTreeDataProvider", self._on_tree_provider_registered)
+        host.register_callback("window.treeDataChanged", self._on_tree_data_changed)
+
+        self._ext_view_stack_index = {}
+        self._ext_view_panels = {}
 
         self._ext_manager.activate_all_enabled()
+        self._sync_extension_status_bar()
         self._apply_extension_menu_items()
+
+        # Apply extension contributions: color themes, commands, saved selections
+        from .theme_manager import ThemeManager
+        ThemeManager.register_extension_themes()
+        self._merge_manifest_commands()
+        self._rebuild_extension_view_containers()
+
+        saved_theme = self._config.color_theme
+        if saved_theme and saved_theme.startswith("ext:") and saved_theme in ThemeManager.EXT_THEMES:
+            self._set_theme(saved_theme)
+        elif saved_theme and saved_theme in ThemeManager.THEMES and saved_theme != "dark+":
+            self._set_theme(saved_theme)
+
+    def _merge_manifest_commands(self):
+        """Add commands declared in extension package.json to the command palette."""
+        from ..core.extension_contributions import get_contribution_parser
+        try:
+            for cmd in get_contribution_parser().get_all_commands():
+                if not any(c["id"] == cmd.command for c in self._commands):
+                    label = f"{cmd.category}: {cmd.title}" if cmd.category else cmd.title
+                    self._commands.append({"id": cmd.command, "label": label, "shortcut": ""})
+        except Exception:
+            pass
+
+    def _on_node_command_registered(self, cmd_id: str):
+        """A JS extension registered a command at runtime in the Node host."""
+        self._node_commands.add(cmd_id)
+        if not any(c["id"] == cmd_id for c in self._commands):
+            self._commands.append({"id": cmd_id, "label": cmd_id, "shortcut": ""})
+
+    def _on_node_command_unregistered(self, cmd_id: str):
+        self._node_commands.discard(cmd_id)
+
+    def _on_tree_provider_registered(self, view_id: str):
+        """A JS extension registered a TreeDataProvider; refresh its panel."""
+        for panel in getattr(self, "_ext_view_panels", {}).values():
+            if view_id in getattr(panel, "_sections", {}):
+                panel.refresh()
+
+    def _on_tree_data_changed(self, view_id: str):
+        """The extension fired onDidChangeTreeData; reload the affected view."""
+        for panel in getattr(self, "_ext_view_panels", {}).values():
+            if view_id in getattr(panel, "_sections", {}):
+                panel.refresh()
+
+    def _rebuild_extension_view_containers(self):
+        """Create activity-bar icons + sidebar panels for extension view containers."""
+        if not hasattr(self, "_ext_view_stack_index"):
+            self._ext_view_stack_index = {}
+            self._ext_view_panels = {}
+
+        # Remove previous extension buttons + panels
+        self._activity_bar.clear_extension_buttons()
+        for view_id, panel in list(self._ext_view_panels.items()):
+            self._sidebar_stack.removeWidget(panel)
+            panel.setParent(None)
+            panel.deleteLater()
+        self._ext_view_panels.clear()
+        self._ext_view_stack_index.clear()
+
+        try:
+            from ..core.extension_contributions import get_contribution_parser
+            from ..ui_shared.extension_view_panel import ExtensionViewPanel
+            containers = get_contribution_parser().get_activitybar_containers()
+        except Exception:
+            containers = []
+
+        next_view_id = EXT_VIEW_BASE
+        for info in containers:
+            container = info["container"]
+            panel = ExtensionViewPanel(info, execute_command_cb=self._run_extension_command)
+            stack_index = self._sidebar_stack.addWidget(panel)
+
+            self._ext_view_stack_index[next_view_id] = stack_index
+            self._ext_view_panels[next_view_id] = panel
+            self._activity_bar.add_extension_button(
+                next_view_id,
+                tooltip=getattr(container, "title", "") or info.get("ext_name", "Extension"),
+                icon_path=getattr(container, "icon", ""),
+            )
+            next_view_id += 1
+
+    def _run_extension_command(self, command_id: str, args=None):
+        """Execute an extension command triggered from a tree view item."""
+        try:
+            if self._ext_manager.execute_command(command_id):
+                return
+        except Exception:
+            pass
+        try:
+            from ..core.extension_host import get_extension_host
+            host = get_extension_host()
+            if host._ready:
+                host.execute_command(command_id, args or [])
+        except Exception:
+            pass
+
+    def _on_ext_status_bar_show(self, params: dict):
+        item_id = params.get("id", "default")
+        self._status_bar.set_ext_status_item(
+            item_id,
+            params.get("text", ""),
+            params.get("tooltip", ""),
+            params.get("command", ""),
+        )
+
+    def _on_ext_status_bar_hide(self, params: dict):
+        item_id = params.get("id", "default")
+        self._status_bar.remove_ext_status_item(item_id)
+
+    def _sync_extension_status_bar(self):
+        """Render all Python-registered status bar items from active extensions."""
+        for sid, entry in self._ext_manager.get_status_bar_items().items():
+            self._status_bar.set_ext_status_item(
+                sid, entry.text, entry.tooltip, entry.command_id,
+            )
 
     def _apply_extension_menu_items(self):
         pass  # In VS Code, extensions don't add a top-level "Extensions" menu. They add to command palette or specific menus.
 
     def _on_extension_installed(self, ext_name: str):
         self._ext_manager.activate_extension(ext_name)
+        self._sync_extension_status_bar()
         self._apply_extension_menu_items()
         for cmd_id, cmd in self._ext_manager.get_all_commands().items():
             found = any(c["id"] == cmd_id for c in self._commands)
             if not found:
                 self._commands.append({"id": cmd_id, "label": cmd.label, "shortcut": cmd.shortcut})
+        self._update_extensions_badge()
+
+    def _update_extensions_badge(self):
+        """Show the number of installed extensions on the activity bar icon."""
+        try:
+            count = len(self._ext_manager.get_installed_extensions())
+            self._activity_bar.set_badge(VIEW_EXTENSIONS, str(count) if count > 0 else "")
+        except Exception:
+            pass
+        self._refresh_extension_contributions()
+
+    def _refresh_extension_contributions(self):
+        """Re-apply icon themes, color themes, and commands after extensions change."""
+        try:
+            from ..core.icon_theme_manager import get_icon_theme_manager
+            get_icon_theme_manager().reload()
+            self._refresh_file_icons()
+        except Exception:
+            pass
+        try:
+            from .theme_manager import ThemeManager
+            ThemeManager.register_extension_themes()
+        except Exception:
+            pass
+        try:
+            from ..core.extension_contributions import get_contribution_parser
+            get_contribution_parser().clear_cache()
+            self._merge_manifest_commands()
+        except Exception:
+            pass
+        try:
+            if hasattr(self, "_editor_tabs"):
+                self._editor_tabs.refresh_extension_context_menus()
+        except Exception:
+            pass
+        try:
+            self._rebuild_extension_view_containers()
+        except Exception:
+            pass
 
     def _on_lsp_diagnostics(self, uri: str, diagnostics: list):
         markers = []
@@ -2608,9 +2776,7 @@ class MainWindow(QMainWindow):
         def confirm_theme(cmd_id):
             if cmd_id.startswith("theme:"):
                 tid = cmd_id[6:]
-                self._set_theme(tid)
-                self._config.ui_theme = tid
-                self._config.save()
+                self._set_theme(tid, persist=True)
                 
         def cancel_theme():
             self._set_theme(original_theme_id)
@@ -2619,19 +2785,56 @@ class MainWindow(QMainWindow):
         cmd_palette.rejected.connect(cancel_theme)
         cmd_palette.show_palette()
 
-    def _set_theme(self, theme_id: str):
-        """Apply a theme by its ID from ThemeManager."""
+    def _show_icon_theme_switcher(self):
+        """Pick a file icon theme (builtin or contributed by extensions)."""
+        from ..core.icon_theme_manager import get_icon_theme_manager
+
+        mgr = get_icon_theme_manager()
+        cmd_palette = CommandPalette(self)
+
+        entries = [{"id": "icontheme:builtin", "label": "Dardcor Default Icons", "shortcut": ""}]
+        entries.extend(
+            {"id": f"icontheme:{t['id']}", "label": f"{t['label']}  [Extension]", "shortcut": ""}
+            for t in mgr.available_themes()
+        )
+        cmd_palette.set_commands(entries)
+
+        def confirm(cmd_id):
+            if cmd_id.startswith("icontheme:"):
+                mgr.set_active(cmd_id[len("icontheme:"):])
+                self._refresh_file_icons()
+
+        cmd_palette.command_selected.connect(confirm)
+        cmd_palette.show_palette()
+
+    def _refresh_file_icons(self):
+        """Rebuild explorer tree so file/folder icons reflect the icon theme."""
+        try:
+            self._file_explorer._refresh()
+        except Exception:
+            pass
+
+    def _set_theme(self, theme_id: str, persist: bool = False):
+        """Apply a theme by its ID from ThemeManager (builtin or extension)."""
         from .theme_manager import ThemeManager
         from PySide6.QtWidgets import QApplication
-        
+
         app = QApplication.instance()
         if app:
             ThemeManager.apply_theme(app, theme_id)
-            
-        # Propagate theme changes to Monaco editor instances
-        is_dark = ThemeManager.THEMES.get(theme_id, {}).get("type", "dark") == "dark"
-        theme_name = "dark" if is_dark else "light"
-        self._editor_tabs.set_theme(theme_name)
+
+        monaco_theme = ThemeManager.get_monaco_theme()
+        if monaco_theme is not None:
+            # Extension theme: define + activate custom Monaco theme
+            self._editor_tabs.set_custom_theme(monaco_theme)
+        else:
+            self._editor_tabs.set_custom_theme(None)
+            is_dark = ThemeManager.THEMES.get(theme_id, {}).get("type", "dark") == "dark"
+            self._editor_tabs.set_theme("dark" if is_dark else "light")
+
+        if persist:
+            self._config.color_theme = theme_id
+            self._config.save()
 
     def _toggle_menu_bar(self):
         """Toggle the visibility of the menu bar."""
@@ -2842,15 +3045,32 @@ class MainWindow(QMainWindow):
 
     # ── Sidebar ───────────────────────────────────────────
 
-    def _on_view_changed(self, view_id: int):
+    def _resolve_stack_index(self, view_id: int) -> int:
+        """Map an activity-bar view id to a sidebar stack index.
+
+        Builtin views (0-5) map to their own index; extension view containers
+        are registered in self._ext_view_stack_index.
+        """
+        mapping = getattr(self, "_ext_view_stack_index", {})
+        if view_id in mapping:
+            return mapping[view_id]
         if view_id < self._sidebar_stack.count():
-            self._sidebar_stack.setCurrentIndex(view_id)
+            return view_id
+        return -1
+
+    def _on_view_changed(self, view_id: int):
+        idx = self._resolve_stack_index(view_id)
+        if idx >= 0:
+            self._sidebar_stack.setCurrentIndex(idx)
             if not self._sidebar_stack.isVisible():
                 self._sidebar_stack.show()
             self._activity_bar.set_active(view_id)
 
     def _switch_sidebar(self, view_id: int):
-        self._sidebar_stack.setCurrentIndex(view_id)
+        idx = self._resolve_stack_index(view_id)
+        if idx < 0:
+            return
+        self._sidebar_stack.setCurrentIndex(idx)
         self._activity_bar.set_active(view_id)
         if not self._sidebar_stack.isVisible():
             self._sidebar_stack.show()

@@ -185,7 +185,15 @@ def _render_svg(svg_bytes: bytes) -> QIcon:
 
 
 def get_file_icon(filepath: str) -> QIcon:
-    """Get appropriate SVG icon for a file."""
+    """Get appropriate SVG icon for a file (extension icon theme first)."""
+    try:
+        from ..core.icon_theme_manager import get_icon_theme_manager
+        themed = get_icon_theme_manager().file_icon(filepath)
+        if themed is not None:
+            return themed
+    except Exception:
+        pass
+
     name = os.path.basename(filepath).lower()
     ext = os.path.splitext(name)[1]
 
@@ -248,10 +256,19 @@ def get_file_icon(filepath: str) -> QIcon:
 
 
 def get_folder_icon(foldername: str = "", is_open: bool = False) -> QIcon:
-    """Get appropriate SVG icon for a folder."""
+    """Get appropriate SVG icon for a folder (extension icon theme first)."""
     if isinstance(foldername, bool):
         is_open = foldername
         foldername = ""
+
+    try:
+        from ..core.icon_theme_manager import get_icon_theme_manager
+        themed = get_icon_theme_manager().folder_icon(foldername, is_open)
+        if themed is not None:
+            return themed
+    except Exception:
+        pass
+
     name = foldername.lower()
     if name == "node_modules":
         return _render_svg(SVG_FOLDER_NODE_OPEN if is_open else SVG_FOLDER_NODE)
@@ -516,13 +533,13 @@ class FileExplorer(QWidget):
             QMenu {
                 background-color: #000000;
                 color: #cccccc;
-                border: 1px solid #3c0068;
+                border: 1px solid #333333;
             }
             QMenu::item {
                 padding: 4px 24px 4px 24px;
             }
             QMenu::item:selected {
-                background-color: #3c0068;
+                background-color: #333333;
                 color: #ffffff;
             }
         """)
@@ -663,10 +680,10 @@ class FileExplorer(QWidget):
         open_folder_btn.setCursor(Qt.PointingHandCursor)
         open_folder_btn.setStyleSheet("""
             QPushButton {
-                background-color: #3c0068; color: #ffffff; border: none;
+                background-color: #333333; color: #ffffff; border: none;
                 padding: 8px 16px; border-radius: 4px; font-size: 12px; font-weight: bold;
             }
-            QPushButton:hover { background-color: #4a0072; }
+            QPushButton:hover { background-color: #444444; }
         """)
         open_folder_btn.clicked.connect(self._open_folder)
         welcome_layout.addWidget(open_folder_btn, alignment=Qt.AlignCenter)
@@ -1299,7 +1316,7 @@ class FileExplorer(QWidget):
                 min-width: 150px;
             }
             QMenu::item:selected {
-                background-color: #2c004a;
+                background-color: #1a1a1a;
             }
             QMenu::separator {
                 height: 1px;
@@ -1387,6 +1404,8 @@ class FileExplorer(QWidget):
                     return
 
     def _show_context_menu(self, position):
+        from ..ui_shared.extension_context_menu import append_extension_context_menu
+
         self._refresh_timer.stop()
         self._in_inline_edit = True
         
@@ -1406,7 +1425,7 @@ class FileExplorer(QWidget):
                 min-width: 150px;
             }
             QMenu::item:selected {
-                background-color: #2c004a;
+                background-color: #1a1a1a;
             }
             QMenu::separator {
                 height: 1px;
@@ -1426,6 +1445,7 @@ class FileExplorer(QWidget):
             open_folder = QAction("Open Folder...", self)
             open_folder.triggered.connect(self._open_folder)
             menu.addAction(open_folder)
+            append_extension_context_menu(menu, "explorer/context", parent_widget=self)
             menu.exec(self._tree.viewport().mapToGlobal(position))
             
             self._in_inline_edit = False
@@ -1504,6 +1524,8 @@ class FileExplorer(QWidget):
             copy_rel.triggered.connect(lambda: self._copy_relative_path(path))
             menu.addAction(copy_rel)
 
+        append_extension_context_menu(menu, "explorer/context", parent_widget=self)
+
         menu.exec(self._tree.viewport().mapToGlobal(position))
         
         self._in_inline_edit = False
@@ -1572,19 +1594,19 @@ class FileExplorer(QWidget):
                 color: #cccccc;
             }
             QPushButton {
-                background-color: #3c0068;
+                background-color: #333333;
                 color: #ffffff;
-                border: 1px solid #4a0072;
+                border: 1px solid #555555;
                 border-radius: 4px;
                 padding: 4px 12px;
                 min-width: 60px;
                 font-size: 11px;
             }
             QPushButton:hover {
-                background-color: #4a0072;
+                background-color: #444444;
             }
             QPushButton:pressed {
-                background-color: #2c004a;
+                background-color: #1a1a1a;
             }
         """)
         

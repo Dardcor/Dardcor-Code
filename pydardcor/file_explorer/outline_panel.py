@@ -21,7 +21,7 @@ class SectionHeaderButton(QPushButton):
         bg_color = "#000000"
         fg_color = "#cccccc"
         hover_color = "#1a1a1a"
-        border_color = "#3c0068"
+        border_color = "#2b2b2b"
         try:
             from pydardcor.app.theme_manager import ThemeManager
             theme = ThemeManager.THEMES.get(ThemeManager._current_theme, {})

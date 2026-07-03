@@ -3,10 +3,10 @@
 import os
 import json
 from typing import Dict, List, Optional
-from ..core.config import get_user_data_dir
+from ..core.config import get_snippets_dir
 
 
-SNIPPETS_DIR = os.path.join(get_user_data_dir(), "snippets")
+SNIPPETS_DIR = get_snippets_dir()
 
 
 class Snippet:

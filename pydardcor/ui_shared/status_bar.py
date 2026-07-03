@@ -103,6 +103,7 @@ class StatusBar(QStatusBar):
     go_to_line_requested = Signal()
     models_requested = Signal()
     git_branch_requested = Signal()
+    ext_status_clicked = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -113,9 +114,10 @@ class StatusBar(QStatusBar):
                 background-color: #000000;
                 min-height: 22px;
                 max-height: 22px;
-                border-top: 1px solid #3c0068;
+                border-top: 1px solid #333333;
             }
         """)
+        self._ext_status_items: dict = {}
         self._setup_ui()
 
     def _setup_ui(self):
@@ -174,20 +176,17 @@ class StatusBar(QStatusBar):
         self._models_btn.clicked.connect(self.models_requested.emit)
         self.addPermanentWidget(self._models_btn)
 
+        self._ext_status_container = QWidget()
+        self._ext_status_layout = QHBoxLayout(self._ext_status_container)
+        self._ext_status_layout.setContentsMargins(0, 0, 0, 0)
+        self._ext_status_layout.setSpacing(0)
+        self._ext_status_container.setStyleSheet("background: transparent;")
+        self._ext_status_container.hide()
+        self.addPermanentWidget(self._ext_status_container)
+
         self._ai_btn = StatusBarButton("\ueab2 Dardcor - Settings")
         self._ai_btn.setToolTip("Dardcor Settings")
         self.addPermanentWidget(self._ai_btn)
-
-        self._ext_btn = StatusBarButton("")
-        self._ext_btn.setToolTip("Extension Status")
-        self._ext_btn.setStyleSheet("""
-            QPushButton {
-                background: #007acc; color: #ffffff; border: none;
-                padding: 0px 8px; font-size: 11px;
-            }
-        """)
-        self._ext_btn.hide()
-        self.addPermanentWidget(self._ext_btn)
 
         self._notif_btn = StatusBarButton("\ueaa2")
         self._notif_btn.setFixedWidth(28)
@@ -242,13 +241,59 @@ class StatusBar(QStatusBar):
         else:
             self._remote_btn.hide()
 
+    def set_ext_status_item(self, item_id: str, text: str, tooltip: str = "",
+                            command: str = ""):
+        """Show or update a status bar item keyed by extension-provided id."""
+        if not item_id:
+            item_id = "default"
+        if not text:
+            self.remove_ext_status_item(item_id)
+            return
+        btn = self._ext_status_items.get(item_id)
+        if btn is None:
+            btn = StatusBarButton("")
+            btn.setStyleSheet("""
+                QPushButton {
+                    background: #007acc; color: #ffffff; border: none;
+                    padding: 0px 8px; font-size: 11px;
+                }
+                QPushButton:hover { background-color: rgba(255, 255, 255, 0.12); }
+            """)
+            btn.clicked.connect(lambda _checked=False, i=item_id: self._on_ext_item_clicked(i))
+            self._ext_status_items[item_id] = btn
+            self._ext_status_layout.addWidget(btn)
+        btn.setProperty("_ext_command", command)
+        btn.setText(text)
+        btn.setToolTip(tooltip or text)
+        btn.show()
+        self._ext_status_container.show()
+
+    def remove_ext_status_item(self, item_id: str):
+        btn = self._ext_status_items.pop(item_id, None)
+        if btn is not None:
+            self._ext_status_layout.removeWidget(btn)
+            btn.deleteLater()
+        if not self._ext_status_items:
+            self._ext_status_container.hide()
+
+    def clear_all_ext_status(self):
+        for item_id in list(self._ext_status_items.keys()):
+            self.remove_ext_status_item(item_id)
+
     def set_ext_status(self, text: str, tooltip: str = ""):
-        self._ext_btn.setText(text)
-        self._ext_btn.setToolTip(tooltip)
-        self._ext_btn.show()
+        """Backward-compatible single-item API."""
+        self.set_ext_status_item("default", text, tooltip)
 
     def clear_ext_status(self):
-        self._ext_btn.hide()
+        self.remove_ext_status_item("default")
+
+    def _on_ext_item_clicked(self, item_id: str):
+        btn = self._ext_status_items.get(item_id)
+        if btn is None:
+            return
+        cmd = btn.property("_ext_command") or ""
+        if cmd:
+            self.ext_status_clicked.emit(str(cmd))
 
     def resizeEvent(self, event):
         w = event.size().width()

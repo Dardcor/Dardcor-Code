@@ -22,6 +22,60 @@ def get_user_data_dir() -> str:
     os.makedirs(data_dir, exist_ok=True)
     return data_dir
 
+def get_global_home_dir() -> str:
+    """Return the global Dardcor home directory: ~/.dardcor-code.
+
+    This folder is shared across every workspace (like ~/.vscode) and holds
+    extensions, snippets, themes, caches and logs. It is created automatically
+    on first run/build via ensure_user_dirs().
+    """
+    return os.path.join(os.path.expanduser("~"), ".dardcor-code")
+
+
+def ensure_user_dirs() -> str:
+    """Create the full ~/.dardcor-code directory structure if missing.
+
+    Called automatically at app startup (and from build.py) so the folder
+    always exists without any manual step. Returns the home path.
+    """
+    home = get_global_home_dir()
+    for sub in (
+        "extensions",
+        "snippets",
+        "themes",
+        "logs",
+        os.path.join("cache", "icons"),
+    ):
+        os.makedirs(os.path.join(home, sub), exist_ok=True)
+
+    state_file = os.path.join(home, "extensions", "extensions.json")
+    if not os.path.exists(state_file):
+        try:
+            with open(state_file, "w", encoding="utf-8") as f:
+                json.dump({"disabled": [], "meta": {}}, f, indent=2)
+        except OSError:
+            pass
+
+    keybindings_file = os.path.join(home, "keybindings.json")
+    if not os.path.exists(keybindings_file):
+        try:
+            with open(keybindings_file, "w", encoding="utf-8") as f:
+                json.dump([], f, indent=2)
+        except OSError:
+            pass
+    return home
+
+
+def get_extensions_dir() -> str:
+    """Global extensions directory: ~/.dardcor-code/extensions."""
+    return os.path.join(get_global_home_dir(), "extensions")
+
+
+def get_snippets_dir() -> str:
+    """Global user snippets directory: ~/.dardcor-code/snippets."""
+    return os.path.join(get_global_home_dir(), "snippets")
+
+
 CONFIG_DIR = get_user_data_dir()
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 
@@ -42,6 +96,9 @@ class AppConfig:
     show_folders: bool = True
     show_outline: bool = True
     show_timeline: bool = True
+    file_icon_theme: str = ""
+    color_theme: str = ""
+    extensions_auto_update: bool = True
 
     def save(self):
         os.makedirs(CONFIG_DIR, exist_ok=True)
