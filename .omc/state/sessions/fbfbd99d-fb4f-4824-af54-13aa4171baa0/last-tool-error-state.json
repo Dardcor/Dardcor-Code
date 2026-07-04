@@ -1,7 +1,0 @@
-{
-  "tool_name": "PowerShell",
-  "tool_input_preview": "{\"command\":\"cd D:\\\\Dardcor-Code; python -c \\\"\\nimport ast, sys\\nfiles = [\\n    'dardcor_agent/chat/agent.py',\\n    'dardcor_agent/chat/panel.py',\\n    'dardcor_agent/models/main_dialog.py',\\n    'dard...",
-  "error": "Exit code 1\nTraceback (most recent call last):\r\n  File \"<string>\", line 16, in <module>\r\n  File \"C:\\Users\\FAJAR\\AppData\\Roaming\\uv\\python\\cpython-3.11-windows-x86_64-none\\Lib\\encodings\\cp1252.py\", line 23, in decode\r\n    return codecs.charmap_decode(input,self.errors,decoding_table)[0]\r\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\nUnicodeDecodeError: 'charmap' codec can't decode byte 0x8f in position 35327: character maps to <undefined>\r\nOK  dardcor_agent/chat/agent.py",
-  "timestamp": "2026-06-24T12:12:03.731Z",
-  "retry_count": 1
-}
