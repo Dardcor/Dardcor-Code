@@ -14,16 +14,25 @@ from PySide6.QtCore import Qt, QByteArray
 from PySide6.QtSvg import QSvgRenderer
 
 
+_SVG_ICON_CACHE: Dict[str, Optional[QIcon]] = {}
+
+
 def _render_svg_file(svg_path: str) -> Optional[QIcon]:
+    cached = _SVG_ICON_CACHE.get(svg_path)
+    if cached is not None or svg_path in _SVG_ICON_CACHE:
+        return cached
+
     try:
         with open(svg_path, "rb") as f:
             svg_bytes = f.read()
     except OSError:
+        _SVG_ICON_CACHE[svg_path] = None
         return None
 
     icon = QIcon()
     renderer = QSvgRenderer(QByteArray(svg_bytes))
     if not renderer.isValid():
+        _SVG_ICON_CACHE[svg_path] = None
         return None
 
     # Same size sets the builtin explorer (18px base) and tabs (16px base) use
@@ -38,6 +47,7 @@ def _render_svg_file(svg_path: str) -> Optional[QIcon]:
             pixmap = QPixmap.fromImage(image)
             pixmap.setDevicePixelRatio(size / float(base))
             icon.addPixmap(pixmap)
+    _SVG_ICON_CACHE[svg_path] = icon
     return icon
 
 
@@ -164,6 +174,23 @@ class IconThemeManager:
         self._icon_cache[def_id] = icon
         return icon
 
+    def _first_renderable(self, def_ids: List[str]) -> Optional[QIcon]:
+        """Return the icon for the first definition that actually renders.
+
+        Icon themes routinely map files to font-glyph definitions (which we
+        cannot render) or to stale iconPaths. Walking the candidate chain and
+        skipping the ones that produce no QIcon means a specific match that
+        happens to be unrenderable still falls back to the generic file/folder
+        icon instead of showing nothing.
+        """
+        for def_id in def_ids:
+            if not def_id:
+                continue
+            icon = self._icon_for_definition(def_id)
+            if icon is not None:
+                return icon
+        return None
+
     def file_icon(self, filepath: str) -> Optional[QIcon]:
         """Return the themed icon for a file, or None to use builtin icons."""
         if self._data is None:
@@ -171,23 +198,27 @@ class IconThemeManager:
 
         name = os.path.basename(filepath).lower()
 
-        def_id = self._data.get("fileNames", {}).get(name)
+        candidates: List[str] = []
 
-        if not def_id:
-            # Longest multi-dot suffix wins: "component.spec.ts" tries
-            # "component.spec.ts" -> "spec.ts" -> "ts".
-            file_exts = self._data.get("fileExtensions", {})
-            parts = name.split(".")
-            for i in range(1, len(parts)):
-                suffix = ".".join(parts[i:])
-                if suffix in file_exts:
-                    def_id = file_exts[suffix]
-                    break
+        by_name = self._data.get("fileNames", {}).get(name)
+        if by_name:
+            candidates.append(by_name)
 
-        if not def_id:
-            def_id = self._data.get("file", "")
+        # Longest multi-dot suffix wins: "component.spec.ts" tries
+        # "component.spec.ts" -> "spec.ts" -> "ts".
+        file_exts = self._data.get("fileExtensions", {})
+        parts = name.split(".")
+        for i in range(1, len(parts)):
+            suffix = ".".join(parts[i:])
+            if suffix in file_exts:
+                candidates.append(file_exts[suffix])
+                break
 
-        return self._icon_for_definition(def_id)
+        # Generic default so a glyph-only or stale specific match still yields
+        # a visible icon rather than nothing.
+        candidates.append(self._data.get("file", ""))
+
+        return self._first_renderable(candidates)
 
     def folder_icon(self, foldername: str = "", is_open: bool = False) -> Optional[QIcon]:
         """Return the themed icon for a folder, or None to use builtin icons."""
@@ -195,20 +226,19 @@ class IconThemeManager:
             return None
 
         name = (foldername or "").lower()
-        def_id = None
+        candidates: List[str] = []
 
         if name:
             key = "folderNamesExpanded" if is_open else "folderNames"
-            def_id = self._data.get(key, {}).get(name)
-            if not def_id and is_open:
-                def_id = self._data.get("folderNames", {}).get(name)
+            candidates.append(self._data.get(key, {}).get(name, ""))
+            if is_open:
+                candidates.append(self._data.get("folderNames", {}).get(name, ""))
 
-        if not def_id:
-            def_id = self._data.get("folderExpanded" if is_open else "folder", "")
-            if not def_id and is_open:
-                def_id = self._data.get("folder", "")
+        candidates.append(self._data.get("folderExpanded" if is_open else "folder", ""))
+        if is_open:
+            candidates.append(self._data.get("folder", ""))
 
-        return self._icon_for_definition(def_id)
+        return self._first_renderable(candidates)
 
 
 _instance: Optional[IconThemeManager] = None

@@ -1,6 +1,8 @@
 """Timeline Panel - Shows local history and git commits for the active file."""
 
 import os
+import subprocess
+from datetime import datetime
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem, QLabel
 )
@@ -29,6 +31,7 @@ class TimelinePanel(QWidget):
         self._tree = QTreeWidget()
         self._tree.setHeaderHidden(True)
         self._tree.setIndentation(16)
+        self._tree.itemClicked.connect(self._on_item_clicked)
         self._tree.setStyleSheet("""
             QTreeWidget {
                 background-color: #000000;
@@ -69,17 +72,19 @@ class TimelinePanel(QWidget):
             self._tree.addTopLevelItem(item)
             return
             
-        import subprocess
         try:
             kwargs = {}
             if os.name == 'nt':
                 kwargs['creationflags'] = 0x08000000
-            
-            # Fetch git log for file
-            workdir = os.path.dirname(file_path)
+
+            root = self._git_root(file_path, kwargs)
+            rel_path = os.path.relpath(file_path, root) if root else file_path
+
+            self._add_working_tree_item(file_path, root, rel_path, kwargs)
+
             res = subprocess.run(
-                ["git", "log", "--pretty=format:%h|%an|%ar|%s", "--max-count=10", "--", os.path.basename(file_path)],
-                cwd=workdir,
+                ["git", "log", "--pretty=format:%h|%an|%ar|%s", "--max-count=10", "--", rel_path],
+                cwd=root or os.path.dirname(file_path),
                 capture_output=True,
                 text=True,
                 timeout=2,
@@ -94,18 +99,57 @@ class TimelinePanel(QWidget):
                         hash_, author, time_, msg = parts
                         item = QTreeWidgetItem([f"[{hash_}] {msg} ({time_})"])
                         item.setToolTip(0, f"Author: {author}\nMessage: {msg}")
+                        item.setData(0, Qt.UserRole, hash_)
                         self._tree.addTopLevelItem(item)
             else:
-                item = QTreeWidgetItem(["No Git History"])
-                item.setForeground(0, QColor("#888888"))
-                self._tree.addTopLevelItem(item)
-                
-            # Add Local History mock
-            local_item = QTreeWidgetItem(["Local History (Saved 2 mins ago)"])
-            local_item.setForeground(0, QColor("#e2c08d"))
-            self._tree.addTopLevelItem(local_item)
-            
+                self._add_empty_item("No Git history")
+
         except Exception:
-            item = QTreeWidgetItem(["History unavailable"])
-            item.setForeground(0, QColor("#888888"))
+            self._add_empty_item("History unavailable")
+
+    def _git_root(self, file_path: str, kwargs: dict) -> str:
+        res = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            cwd=os.path.dirname(file_path),
+            capture_output=True,
+            text=True,
+            timeout=2,
+            **kwargs
+        )
+        if res.returncode == 0:
+            return res.stdout.strip()
+        return ""
+
+    def _add_working_tree_item(self, file_path: str, root: str, rel_path: str, kwargs: dict):
+        if root:
+            res = subprocess.run(
+                ["git", "status", "--short", "--", rel_path],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                timeout=2,
+                **kwargs
+            )
+            if res.returncode == 0 and res.stdout.strip():
+                status = res.stdout.strip()[:2].strip() or "modified"
+                item = QTreeWidgetItem([f"Working tree: {status}"])
+                item.setForeground(0, QColor("#e2c08d"))
+                item.setToolTip(0, rel_path)
+                self._tree.addTopLevelItem(item)
+                return
+
+        if os.path.exists(file_path):
+            changed = datetime.fromtimestamp(os.path.getmtime(file_path)).strftime("%Y-%m-%d %H:%M")
+            item = QTreeWidgetItem([f"Last saved: {changed}"])
+            item.setForeground(0, QColor("#e2c08d"))
             self._tree.addTopLevelItem(item)
+
+    def _add_empty_item(self, text: str):
+        item = QTreeWidgetItem([text])
+        item.setForeground(0, QColor("#888888"))
+        self._tree.addTopLevelItem(item)
+
+    def _on_item_clicked(self, item: QTreeWidgetItem, _col: int):
+        commit = item.data(0, Qt.UserRole)
+        if commit:
+            self.item_selected.emit(commit)

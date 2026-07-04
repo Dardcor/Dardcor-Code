@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTreeWidget,
     QTreeWidgetItem, QPushButton, QFrame
 )
-from PySide6.QtCore import Signal, Qt
+from PySide6.QtCore import Signal, Qt, QTimer
 from PySide6.QtGui import QColor, QIcon
 
 
@@ -39,6 +39,10 @@ class ProblemsPanel(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._problems = []  # list of dicts {severity, file, line, col, message}
+        self._rebuild_timer = QTimer(self)
+        self._rebuild_timer.setSingleShot(True)
+        self._rebuild_timer.setInterval(75)
+        self._rebuild_timer.timeout.connect(self._rebuild)
         self._setup_ui()
 
     def _setup_ui(self):
@@ -63,15 +67,18 @@ class ProblemsPanel(QWidget):
         for p in problems:
             p['file'] = file_path
             self._problems.append(p)
-        self._rebuild()
+        self._schedule_rebuild()
 
     def clear_file(self, file_path):
         self._problems = [p for p in self._problems if p.get('file') != file_path]
-        self._rebuild()
+        self._schedule_rebuild()
 
     def clear_all(self):
         self._problems = []
-        self._rebuild()
+        self._schedule_rebuild()
+
+    def _schedule_rebuild(self):
+        self._rebuild_timer.start()
 
     def _rebuild(self):
         self._tree.clear()

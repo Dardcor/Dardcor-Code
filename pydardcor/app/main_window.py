@@ -178,12 +178,13 @@ class CommandCenterWidget(QWidget):
                 background-color: transparent;
             }
             #SearchBox {
-                background-color: rgba(255, 255, 255, 0.08);
-                border: 1px solid rgba(255, 255, 255, 0.1);
+                background-color: #0b0014;
+                border: 1px solid #3c0068;
                 border-radius: 6px;
             }
             #SearchBox:hover {
-                background-color: rgba(255, 255, 255, 0.12);
+                background-color: #1a0033;
+                border: 1px solid #4a0072;
             }
             QPushButton {
                 background: transparent;
@@ -195,7 +196,7 @@ class CommandCenterWidget(QWidget):
                 border-radius: 4px;
             }
             QPushButton:hover {
-                background-color: rgba(255, 255, 255, 0.1);
+                background-color: #1a0033;
                 color: #ffffff;
             }
             QLabel {
@@ -235,11 +236,15 @@ class CommandCenterWidget(QWidget):
         # Copilot/Chat sparkle icon
         copilot_icon = QLabel("\uec4f") # chat-sparkle codicon
         copilot_icon.setFont(QFont("codicon", 12))
+        copilot_icon.setFixedWidth(16)
+        copilot_icon.setAlignment(Qt.AlignCenter)
         copilot_icon.setStyleSheet("color: #cccccc;")
         copilot_icon.setAttribute(Qt.WA_TransparentForMouseEvents)
         
         chevron_down = QLabel("\ueab4") # chevron-down
         chevron_down.setFont(QFont("codicon", 10))
+        chevron_down.setFixedWidth(12)
+        chevron_down.setAlignment(Qt.AlignCenter)
         chevron_down.setStyleSheet("color: #858585;")
         chevron_down.setAttribute(Qt.WA_TransparentForMouseEvents)
         
@@ -414,6 +419,8 @@ class CustomTitleBar(QWidget):
         self.command_center.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         
         # Connect buttons
+        self.command_center.btn_back.clicked.connect(self.parent._navigate_back)
+        self.command_center.btn_forward.clicked.connect(self.parent._navigate_forward)
         self.command_center.search_btn.clicked.connect(self.parent._show_command_center_quick_open)
         self.command_center.search_btn.setToolTip("Search (Ctrl+P)")
         
@@ -586,7 +593,6 @@ class CustomTitleBar(QWidget):
 from dardcor_agent.chat.agent import Agent
 from ..core.config import get_config, CONFIG_FILE
 from dardcor_agent.chat.memory import Conversation
-from ..core.filesystem import parse_python_symbols
 from ..ui_shared.activity_bar import (
     ActivityBar, VIEW_EXPLORER, VIEW_SEARCH, VIEW_SOURCE_CONTROL,
     VIEW_EXTENSIONS, VIEW_TESTING, EXT_VIEW_BASE
@@ -603,7 +609,7 @@ from ..ui_shared.command_palette import CommandPalette, GoToLineDialog, QuickOpe
 from ..git.panel import GitPanel
 from ..ui_shared.problems_panel import ProblemsPanel
 from ..ui_shared.output_panel import OutputPanel
-from ..file_explorer.outline_panel import OutlinePanel
+from ..file_explorer.outline_panel import OutlinePanel, parse_outline_symbols
 from ..file_explorer.timeline_panel import TimelinePanel
 from ..debug.panel import DebugPanel
 from ..ui_shared.bottom_panel import BottomPanel
@@ -623,11 +629,102 @@ from ..workspace.workspace_trust import WorkspaceTrust, WorkspaceTrustDialog
 from ..debug.launch_config import LaunchConfigManager
 from ..git.clone_dialog import GitCloneDialog
 from ..remote.ports_panel import PortForwardingPanel
+from ..remote.live_server import LiveServerManager
 # --- Phase 5 Injections ---
 from ..sync.settings_sync import SettingsSyncManager
 from ..remote.ssh_manager import RemoteSSHManager
 from ..git.git_graph import GitGraphPanel
 # ---------------------------
+
+
+def build_default_commands() -> list:
+    """Default command palette entries for the workbench."""
+    return [
+        {"id": "file.new", "label": "File: New File", "shortcut": "Ctrl+N"},
+        {"id": "file.open", "label": "File: Open File...", "shortcut": "Ctrl+O"},
+        {"id": "file.save", "label": "File: Save", "shortcut": "Ctrl+S"},
+        {"id": "file.saveAs", "label": "File: Save As...", "shortcut": "Ctrl+Shift+S"},
+        {"id": "file.saveAll", "label": "File: Save All", "shortcut": "Ctrl+K S"},
+        {"id": "file.close", "label": "File: Close Editor", "shortcut": "Ctrl+W"},
+        {"id": "workbench.action.showCommands", "label": "Show All Commands", "category": "Preferences"},
+        {"id": "workbench.action.openSettings", "label": "Preferences: Open Settings (UI)", "shortcut": "Ctrl+,"},
+        {"id": "workbench.action.openGlobalKeybindings", "label": "Preferences: Open Keyboard Shortcuts", "shortcut": "Ctrl+K Ctrl+S"},
+        {"id": "workbench.action.selectTheme", "label": "Preferences: Color Theme", "shortcut": "Ctrl+K Ctrl+T"},
+        {"id": "workbench.action.navigateBack", "label": "Go: Back", "shortcut": "Alt+Left"},
+        {"id": "workbench.action.navigateForward", "label": "Go: Forward", "shortcut": "Alt+Right"},
+        {"id": "editor.action.formatDocument", "label": "Format Document", "shortcut": "Shift+Alt+F"},
+        {"id": "editor.action.revealDefinition", "label": "Go to Definition", "shortcut": "F12"},
+        {"id": "editor.action.colorPicker", "label": "Show Color Picker", "category": "Editor"},
+        {"id": "editor.action.commentLine", "label": "Toggle Line Comment", "shortcut": "Ctrl+/"},
+        {"id": "editor.action.blockComment", "label": "Toggle Block Comment", "shortcut": "Shift+Alt+A"},
+        {"id": "editor.action.triggerSuggest", "label": "Trigger Suggest", "shortcut": "Ctrl+Space"},
+        {"id": "editor.action.formatSelection", "label": "Format Selection", "shortcut": "Ctrl+K Ctrl+F"},
+        {"id": "editor.fold", "label": "Fold", "shortcut": "Ctrl+Shift+["},
+        {"id": "editor.unfold", "label": "Unfold", "shortcut": "Ctrl+Shift+]"},
+        {"id": "editor.foldAll", "label": "Fold All", "shortcut": "Ctrl+K Ctrl+0"},
+        {"id": "editor.unfoldAll", "label": "Unfold All", "shortcut": "Ctrl+K Ctrl+J"},
+        {"id": "editor.action.peekDefinition", "label": "Peek Definition", "shortcut": "Alt+F12"},
+        {"id": "editor.action.goToReferences", "label": "Go to References", "shortcut": "Shift+F12"},
+        {"id": "editor.action.rename", "label": "Rename Symbol", "shortcut": "F2"},
+        {"id": "editor.action.changeAll", "label": "Change All Occurrences", "shortcut": "Ctrl+F2"},
+        {"id": "editor.action.addSelectionToNextFindMatch", "label": "Add Selection to Next Find Match", "shortcut": "Ctrl+D"},
+        {"id": "editor.action.copyLinesUpAction", "label": "Copy Line Up", "shortcut": "Shift+Alt+Up"},
+        {"id": "editor.action.copyLinesDownAction", "label": "Copy Line Down", "shortcut": "Shift+Alt+Down"},
+        {"id": "editor.action.moveLinesUpAction", "label": "Move Line Up", "shortcut": "Alt+Up"},
+        {"id": "editor.action.moveLinesDownAction", "label": "Move Line Down", "shortcut": "Alt+Down"},
+        {"id": "editor.action.deleteLines", "label": "Delete Line", "shortcut": "Ctrl+Shift+K"},
+        {"id": "editor.action.insertLineBefore", "label": "Insert Line Above", "shortcut": "Ctrl+Shift+Enter"},
+        {"id": "editor.action.insertLineAfter", "label": "Insert Line Below", "shortcut": "Ctrl+Enter"},
+        {"id": "editor.action.quickFix", "label": "Quick Fix...", "shortcut": "Ctrl+."},
+        {"id": "workbench.action.splitEditor", "label": "View: Split Editor", "shortcut": "Ctrl+\\"},
+        {"id": "view.toggleInlineDiff", "label": "View: Toggle Inline Diff", "category": "View"},
+        {"id": "workbench.action.addRootFolder", "label": "Add Folder to Workspace...", "category": "Workspaces"},
+        {"id": "workbench.action.saveWorkspaceAs", "label": "Save Workspace As...", "category": "Workspaces"},
+        {"id": "workbench.action.duplicateWorkspaceInNewWindow", "label": "Duplicate As Workspace in New Window", "category": "Workspaces"},
+        {"id": "workbench.action.toggleFullScreen", "label": "View: Toggle Full Screen", "shortcut": "F11"},
+        {"id": "workbench.action.toggleCenteredLayout", "label": "View: Toggle Centered Layout", "category": "View"},
+        {"id": "workbench.action.toggleSidebarVisibility", "label": "View: Toggle Primary Side Bar Visibility", "shortcut": "Ctrl+B"},
+        {"id": "workbench.action.toggleSecondarySidebar", "label": "View: Toggle Secondary Side Bar", "category": "View"},
+        {"id": "edit.find", "label": "Edit: Find", "shortcut": "Ctrl+F"},
+        {"id": "edit.replace", "label": "Edit: Find and Replace", "shortcut": "Ctrl+H"},
+        {"id": "edit.format", "label": "Format Document", "shortcut": "Shift+Alt+F"},
+        {"id": "edit.settings", "label": "Preferences: Open Settings", "shortcut": ""},
+        {"id": "view.toggleSidebar", "label": "View: Toggle Sidebar Visibility", "shortcut": "Ctrl+B"},
+        {"id": "view.toggleChat", "label": "View: Toggle Chat Panel", "shortcut": "Ctrl+Shift+J"},
+        {"id": "view.toggleTerminal", "label": "View: Toggle Terminal", "shortcut": "Ctrl+`"},
+        {"id": "view.quickOpen", "label": "Go to File...", "shortcut": "Ctrl+P"},
+        {"id": "view.goToLine", "label": "Go to Line...", "shortcut": "Ctrl+G"},
+        {"id": "view.commandPalette", "label": "Show All Commands", "shortcut": "Ctrl+Shift+P"},
+        {"id": "view.explorer", "label": "View: Show Explorer", "shortcut": "Ctrl+Shift+E"},
+        {"id": "view.search", "label": "View: Show Search", "shortcut": "Ctrl+Shift+F"},
+        {"id": "view.sourceControl", "label": "View: Show Source Control", "shortcut": "Ctrl+Shift+G"},
+        {"id": "view.testing", "label": "View: Show Testing", "shortcut": ""},
+        {"id": "view.models", "label": "View: Models", "shortcut": ""},
+        {"id": "status.gitBranch", "label": "Git: Checkout Branch...", "shortcut": ""},
+        {"id": "view.zoomIn", "label": "View: Zoom In", "shortcut": "Ctrl+="},
+        {"id": "view.zoomOut", "label": "View: Zoom Out", "shortcut": "Ctrl+-"},
+        {"id": "view.wordWrap", "label": "View: Toggle Word Wrap", "shortcut": "Alt+Z"},
+        {"id": "view.splitEditorRight", "label": "View: Split Editor Right", "shortcut": "Ctrl+\\"},
+        {"id": "view.splitEditorDown", "label": "View: Split Editor Down", "shortcut": "Ctrl+K Ctrl+\\"},
+        {"id": "view.splitEditorUp", "label": "View: Split Editor Up", "shortcut": ""},
+        {"id": "view.splitEditorLeft", "label": "View: Split Editor Left", "shortcut": ""},
+        {"id": "view.zenMode", "label": "View: Toggle Zen Mode", "shortcut": "Ctrl+K, Z"},
+        {"id": "view.customizeLayout", "label": "View: Customize Layout...", "shortcut": ""},
+        {"id": "markdown.preview", "label": "Markdown: Open Preview", "shortcut": "Ctrl+Shift+V"},
+        {"id": "terminal.new", "label": "Terminal: Create New Terminal", "shortcut": "Ctrl+Shift+`"},
+        {"id": "terminal.split", "label": "Terminal: Split Terminal", "shortcut": "Ctrl+Shift+5"},
+        {"id": "debug.start", "label": "Debug: Start Debugging", "shortcut": "F5"},
+        {"id": "debug.run", "label": "Run: Run Without Debugging", "shortcut": "Ctrl+F5"},
+        {"id": "debug.toggleBreakpoint", "label": "Debug: Toggle Breakpoint", "shortcut": "F9"},
+        {"id": "git.clone", "label": "Git: Clone", "shortcut": ""},
+        {"id": "git.init", "label": "Git: Initialize Repository", "shortcut": ""},
+        {"id": "screencast.toggle", "label": "Developer: Toggle Screencast Mode", "shortcut": ""},
+        {"id": "task.run", "label": "Tasks: Run Task", "shortcut": ""},
+        {"id": "workspace.trust", "label": "Workspaces: Manage Workspace Trust", "shortcut": ""},
+        {"id": "agent.newConversation", "label": "Dardcor AI: New Conversation", "shortcut": ""},
+        {"id": "help.about", "label": "Help: About Dardcor Code", "shortcut": ""},
+        {"id": "help.shortcuts", "label": "Help: Keyboard Shortcuts Reference", "shortcut": ""},
+    ]
 
 
 class MainWindow(QMainWindow):
@@ -648,6 +745,9 @@ class MainWindow(QMainWindow):
         self._font_size = self._config.font_size
         self._current_active_editor = None
         self._ext_manager = get_extension_manager()
+        self._nav_back_stack: list[str] = []
+        self._nav_forward_stack: list[str] = []
+        self._navigating = False
         
         # --- Phase 13 Instantiations ---
         self._task_manager = TaskManager(self._config.workspace_path or "")
@@ -662,6 +762,8 @@ class MainWindow(QMainWindow):
         # --- Phase 5 Instantiations ---
         self._settings_sync = SettingsSyncManager(self)
         self._ssh_manager = RemoteSSHManager(self)
+        self._live_server = LiveServerManager()
+        self._live_server_preferred_port = 5500
         # -------------------------------
         
         self._setup_agent()
@@ -697,6 +799,11 @@ class MainWindow(QMainWindow):
             else:
                 self._title_bar.max_btn.setText("\ueab9") # chrome-maximize
         super().changeEvent(event)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, "_notifications"):
+            self._notifications.reposition()
 
     def nativeEvent(self, eventType, message):
         if os.name == "nt":
@@ -779,7 +886,7 @@ class MainWindow(QMainWindow):
                     try:
                         selected_model = None
                         if self._chat_panel.model_dropdown.isVisible():
-                            selected_model = self._chat_panel.model_dropdown.currentText()
+                            selected_model = self._chat_panel.selected_model_id()
                         def _on_notification(msg: str):
                             self._chat_panel.show_native_notification(msg)
                         response = self._agent._call_api(
@@ -901,6 +1008,7 @@ class MainWindow(QMainWindow):
         self._file_explorer.find_in_folder_requested.connect(self._find_in_folder)
         self._file_explorer.open_in_terminal_requested.connect(self._open_in_terminal)
         self._file_explorer.open_to_side_requested.connect(self._open_to_side)
+        self._file_explorer.open_with_live_server_requested.connect(self._open_with_live_server)
 
         self._outline_panel = OutlinePanel()
         self._outline_panel.item_selected.connect(self._on_outline_item_selected)
@@ -976,6 +1084,7 @@ class MainWindow(QMainWindow):
         self._debug_panel = DebugPanel(self)
         self._debug_panel.debug_requested.connect(self._start_debugging)
         self._debug_panel.run_requested.connect(self._run_current_file)
+        self._debug_panel.set_config_names(self._launch_config.get_config_names())
         self._sidebar_stack.addWidget(self._debug_panel)
 
         self._extensions_panel = ExtensionsPanel()
@@ -1021,8 +1130,14 @@ class MainWindow(QMainWindow):
         # ── Bottom Panels ──
         self._problems_panel = ProblemsPanel()
         self._problems_panel.problem_selected.connect(self._open_file_at_line)
+        self._diag_pending = {}
+        self._diag_debounce_timer = QTimer(self)
+        self._diag_debounce_timer.setSingleShot(True)
+        self._diag_debounce_timer.setInterval(100)
+        self._diag_debounce_timer.timeout.connect(self._flush_lsp_diagnostics)
         self._output_panel = OutputPanel()
         self._debug_console = OutputPanel()
+        self._debug_console.add_channel("Debug Console")
         self._terminal_panel = TerminalPanel(root_path=os.path.expanduser("~"))
         
         self._ports_panel = PortForwardingPanel(self)
@@ -1129,7 +1244,12 @@ class MainWindow(QMainWindow):
         self._status_bar.go_to_line_requested.connect(self._show_go_to_line)
         self._status_bar.models_requested.connect(self._show_models_dialog)
         self._status_bar.git_branch_requested.connect(self._show_git_branch_menu)
+        self._status_bar.command_palette_requested.connect(self._show_command_palette)
+        self._status_bar.problems_requested.connect(self._open_problems_panel)
         self._status_bar.ext_status_clicked.connect(self._execute_command)
+        self._status_bar._ai_btn.clicked.connect(self._show_settings)
+        self._notifications.count_changed.connect(self._status_bar.set_notifications)
+        self._status_bar.set_notifications(0)
         
         # ── Add QSizeGrip for Linux resizing ──
         import platform
@@ -1172,6 +1292,9 @@ class MainWindow(QMainWindow):
                 self._file_explorer.set_root(self._config.workspace_path)
                 self._on_root_changed(self._config.workspace_path)
             QTimer.singleShot(200, init_workspace)
+        elif self._config.workspace_path:
+            self._config.workspace_path = ""
+            self._config.save()
 
 
 
@@ -1711,12 +1834,12 @@ class MainWindow(QMainWindow):
 
         back_action = QAction("Back", self)
         back_action.setShortcut(QKeySequence("Alt+Left"))
-        back_action.triggered.connect(lambda: self._status_bar.set_connected(True))
+        back_action.triggered.connect(self._navigate_back)
         go_menu.addAction(back_action)
 
         forward_action = QAction("Forward", self)
         forward_action.setShortcut(QKeySequence("Alt+Right"))
-        forward_action.triggered.connect(lambda: self._status_bar.set_connected(True))
+        forward_action.triggered.connect(self._navigate_forward)
         go_menu.addAction(forward_action)
         
         last_edit_location = QAction("Last Edit Location", self)
@@ -1830,7 +1953,7 @@ class MainWindow(QMainWindow):
         
         stop_debug = QAction("Stop Debugging", self)
         stop_debug.setShortcut(QKeySequence("Shift+F5"))
-        stop_debug.triggered.connect(self._show_command_palette)
+        stop_debug.triggered.connect(self._stop_debugging)
         run_menu.addAction(stop_debug)
         
         restart_debug = QAction("Restart Debugging", self)
@@ -1852,22 +1975,22 @@ class MainWindow(QMainWindow):
         
         step_over = QAction("Step Over", self)
         step_over.setShortcut(QKeySequence("F10"))
-        step_over.triggered.connect(self._show_command_palette)
+        step_over.triggered.connect(self._debug_step_over)
         run_menu.addAction(step_over)
         
         step_into = QAction("Step Into", self)
         step_into.setShortcut(QKeySequence("F11"))
-        step_into.triggered.connect(self._show_command_palette)
+        step_into.triggered.connect(self._debug_step_in)
         run_menu.addAction(step_into)
         
         step_out = QAction("Step Out", self)
         step_out.setShortcut(QKeySequence("Shift+F11"))
-        step_out.triggered.connect(self._show_command_palette)
+        step_out.triggered.connect(self._debug_step_out)
         run_menu.addAction(step_out)
         
         continue_debug = QAction("Continue", self)
         continue_debug.setShortcut(QKeySequence("F5"))
-        continue_debug.triggered.connect(self._show_command_palette)
+        continue_debug.triggered.connect(self._debug_continue)
         run_menu.addAction(continue_debug)
 
         run_menu.addSeparator()
@@ -2089,106 +2212,7 @@ class MainWindow(QMainWindow):
         self._quick_open = QuickOpenDialog(root_path, self)
         self._quick_open.file_selected.connect(self._open_file_in_editor)
 
-        self._commands = [
-            {"id": "file.new", "label": "File: New File", "shortcut": "Ctrl+N"},
-            {"id": "file.open", "label": "File: Open File...", "shortcut": "Ctrl+O"},
-            {"id": "file.save", "label": "File: Save", "shortcut": "Ctrl+S"},
-            {"id": "file.saveAs", "label": "File: Save As...", "shortcut": "Ctrl+Shift+S"},
-            {"id": "file.saveAll", "label": "File: Save All", "shortcut": "Ctrl+K S"},
-            {"id": "file.close", "label": "File: Close Editor", "shortcut": "Ctrl+W"},
-            # Preferences
-            {"id": "workbench.action.showCommands", "label": "Show All Commands", "category": "Preferences"},
-            {"id": "workbench.action.openSettings", "label": "Preferences: Open Settings (UI)", "shortcut": "Ctrl+,"},
-            {"id": "workbench.action.openGlobalKeybindings", "label": "Preferences: Open Keyboard Shortcuts", "shortcut": "Ctrl+K Ctrl+S"},
-            {"id": "workbench.action.selectTheme", "label": "Preferences: Color Theme", "shortcut": "Ctrl+K Ctrl+T"},
-            
-            # Editor
-            {"id": "editor.action.formatDocument", "label": "Format Document", "shortcut": "Shift+Alt+F"},
-            {"id": "editor.action.revealDefinition", "label": "Go to Definition", "shortcut": "F12"},
-            {"id": "editor.action.colorPicker", "label": "Show Color Picker", "category": "Editor"},
-            {"id": "editor.action.commentLine", "label": "Toggle Line Comment", "shortcut": "Ctrl+/"},
-            {"id": "editor.action.blockComment", "label": "Toggle Block Comment", "shortcut": "Shift+Alt+A"},
-            {"id": "editor.action.triggerSuggest", "label": "Trigger Suggest", "shortcut": "Ctrl+Space"},
-            {"id": "editor.action.formatSelection", "label": "Format Selection", "shortcut": "Ctrl+K Ctrl+F"},
-            {"id": "editor.fold", "label": "Fold", "shortcut": "Ctrl+Shift+["},
-            {"id": "editor.unfold", "label": "Unfold", "shortcut": "Ctrl+Shift+]"},
-            {"id": "editor.foldAll", "label": "Fold All", "shortcut": "Ctrl+K Ctrl+0"},
-            {"id": "editor.unfoldAll", "label": "Unfold All", "shortcut": "Ctrl+K Ctrl+J"},
-            {"id": "editor.action.peekDefinition", "label": "Peek Definition", "shortcut": "Alt+F12"},
-            {"id": "editor.action.goToReferences", "label": "Go to References", "shortcut": "Shift+F12"},
-            {"id": "editor.action.rename", "label": "Rename Symbol", "shortcut": "F2"},
-            {"id": "editor.action.changeAll", "label": "Change All Occurrences", "shortcut": "Ctrl+F2"},
-            {"id": "editor.action.addSelectionToNextFindMatch", "label": "Add Selection to Next Find Match", "shortcut": "Ctrl+D"},
-            {"id": "editor.action.copyLinesUpAction", "label": "Copy Line Up", "shortcut": "Shift+Alt+Up"},
-            {"id": "editor.action.copyLinesDownAction", "label": "Copy Line Down", "shortcut": "Shift+Alt+Down"},
-            {"id": "editor.action.moveLinesUpAction", "label": "Move Line Up", "shortcut": "Alt+Up"},
-            {"id": "editor.action.moveLinesDownAction", "label": "Move Line Down", "shortcut": "Alt+Down"},
-            {"id": "editor.action.deleteLines", "label": "Delete Line", "shortcut": "Ctrl+Shift+K"},
-            {"id": "editor.action.insertLineBefore", "label": "Insert Line Above", "shortcut": "Ctrl+Shift+Enter"},
-            {"id": "editor.action.insertLineAfter", "label": "Insert Line Below", "shortcut": "Ctrl+Enter"},
-            {"id": "editor.action.quickFix", "label": "Quick Fix...", "shortcut": "Ctrl+."},
-            {"id": "workbench.action.splitEditor", "label": "View: Split Editor", "shortcut": "Ctrl+\\"},
-            {"id": "view.toggleInlineDiff", "label": "View: Toggle Inline Diff", "category": "View"},
-            
-            # Workspace
-            {"id": "workbench.action.addRootFolder", "label": "Add Folder to Workspace...", "category": "Workspaces"},
-            {"id": "workbench.action.saveWorkspaceAs", "label": "Save Workspace As...", "category": "Workspaces"},
-            {"id": "workbench.action.duplicateWorkspaceInNewWindow", "label": "Duplicate As Workspace in New Window", "category": "Workspaces"},
-            
-            # View
-            {"id": "workbench.action.toggleFullScreen", "label": "View: Toggle Full Screen", "shortcut": "F11"},
-            {"id": "workbench.action.toggleCenteredLayout", "label": "View: Toggle Centered Layout", "category": "View"},
-            {"id": "workbench.action.toggleSidebarVisibility", "label": "View: Toggle Primary Side Bar Visibility", "shortcut": "Ctrl+B"},
-            {"id": "workbench.action.toggleSecondarySidebar", "label": "View: Toggle Secondary Side Bar", "category": "View"},
-            {"id": "edit.find", "label": "Edit: Find", "shortcut": "Ctrl+F"},
-            {"id": "edit.replace", "label": "Edit: Find and Replace", "shortcut": "Ctrl+H"},
-            {"id": "edit.format", "label": "Format Document", "shortcut": "Shift+Alt+F"},
-            {"id": "edit.settings", "label": "Preferences: Open Settings", "shortcut": ""},
-            {"id": "view.toggleSidebar", "label": "View: Toggle Sidebar Visibility", "shortcut": "Ctrl+B"},
-            {"id": "view.toggleChat", "label": "View: Toggle Chat Panel", "shortcut": "Ctrl+Shift+J"},
-            {"id": "view.toggleTerminal", "label": "View: Toggle Terminal", "shortcut": "Ctrl+`"},
-            {"id": "view.quickOpen", "label": "Go to File...", "shortcut": "Ctrl+P"},
-            {"id": "view.goToLine", "label": "Go to Line...", "shortcut": "Ctrl+G"},
-            {"id": "view.commandPalette", "label": "Show All Commands", "shortcut": "Ctrl+Shift+P"},
-            {"id": "view.explorer", "label": "View: Show Explorer", "shortcut": "Ctrl+Shift+E"},
-            {"id": "view.search", "label": "View: Show Search", "shortcut": "Ctrl+Shift+F"},
-            {"id": "view.sourceControl", "label": "View: Show Source Control", "shortcut": "Ctrl+Shift+G"},
-            {"id": "view.zoomIn", "label": "View: Zoom In", "shortcut": "Ctrl+="},
-            {"id": "view.zoomOut", "label": "View: Zoom Out", "shortcut": "Ctrl+-"},
-            {"id": "view.wordWrap", "label": "View: Toggle Word Wrap", "shortcut": "Alt+Z"},
-            {"id": "view.splitEditorRight", "label": "View: Split Editor Right", "shortcut": "Ctrl+\\"},
-            {"id": "view.splitEditorDown", "label": "View: Split Editor Down", "shortcut": "Ctrl+K Ctrl+\\"},
-            {"id": "view.splitEditorUp", "label": "View: Split Editor Up", "shortcut": ""},
-            {"id": "view.splitEditorLeft", "label": "View: Split Editor Left", "shortcut": ""},
-            {"id": "view.zenMode", "label": "View: Toggle Zen Mode", "shortcut": "Ctrl+K, Z"},
-            {"id": "view.customizeLayout", "label": "View: Customize Layout...", "shortcut": ""},
-            {"id": "markdown.preview", "label": "Markdown: Open Preview", "shortcut": "Ctrl+Shift+V"},
-            {"id": "terminal.new", "label": "Terminal: Create New Terminal", "shortcut": "Ctrl+Shift+`"},
-            {"id": "terminal.split", "label": "Terminal: Split Terminal", "shortcut": "Ctrl+Shift+5"},
-            
-            # Debug
-            {"id": "debug.start", "label": "Debug: Start Debugging", "shortcut": "F5"},
-            {"id": "debug.run", "label": "Run: Run Without Debugging", "shortcut": "Ctrl+F5"},
-            {"id": "debug.toggleBreakpoint", "label": "Debug: Toggle Breakpoint", "shortcut": "F9"},
-
-            # Git
-            {"id": "git.clone", "label": "Git: Clone", "shortcut": ""},
-            {"id": "git.init", "label": "Git: Initialize Repository", "shortcut": ""},
-
-            # Screencast
-            {"id": "screencast.toggle", "label": "Developer: Toggle Screencast Mode", "shortcut": ""},
-
-            # Task
-            {"id": "task.run", "label": "Tasks: Run Task", "shortcut": ""},
-
-            # Workspace Trust
-            {"id": "workspace.trust", "label": "Workspaces: Manage Workspace Trust", "shortcut": ""},
-
-            # Agent
-            {"id": "agent.newConversation", "label": "Dardcor AI: New Conversation", "shortcut": ""},
-            {"id": "help.about", "label": "Help: About Dardcor Code", "shortcut": ""},
-            {"id": "help.shortcuts", "label": "Help: Keyboard Shortcuts Reference", "shortcut": ""},
-        ]
+        self._commands = build_default_commands()
 
     # ── Breadcrumbs ───────────────────────────────────────
 
@@ -2268,6 +2292,8 @@ class MainWindow(QMainWindow):
             "workbench.action.toggleCenteredLayout": lambda: self._show_command_palette(),
             "workbench.action.toggleSidebarVisibility": self._toggle_sidebar,
             "workbench.action.toggleSecondarySidebar": self._toggle_chat,
+            "workbench.action.navigateBack": self._navigate_back,
+            "workbench.action.navigateForward": self._navigate_forward,
             "view.toggleSidebar": self._toggle_sidebar,
             "view.toggleChat": self._toggle_chat,
             "view.toggleTerminal": self._toggle_terminal,
@@ -2277,6 +2303,9 @@ class MainWindow(QMainWindow):
             "view.explorer": lambda: self._switch_sidebar(VIEW_EXPLORER),
             "view.search": lambda: self._switch_sidebar(VIEW_SEARCH),
             "view.sourceControl": lambda: self._switch_sidebar(VIEW_SOURCE_CONTROL),
+            "view.testing": lambda: self._switch_sidebar(VIEW_TESTING),
+            "view.models": self._show_models_dialog,
+            "status.gitBranch": self._show_git_branch_menu,
             "view.zoomIn": self._zoom_in,
             "view.zoomOut": self._zoom_out,
             "view.wordWrap": self._toggle_word_wrap,
@@ -2309,7 +2338,7 @@ class MainWindow(QMainWindow):
             "view.splitEditorDown": lambda: self._editor_tabs.split_editor("down"),
             "view.splitEditorUp": lambda: self._editor_tabs.split_editor("up"),
             "view.splitEditorLeft": lambda: self._editor_tabs.split_editor("left"),
-            "view.zenMode": self._zen_mode.toggle_zen_mode,
+            "view.zenMode": lambda: self._zen_mode.toggle_zen_mode(),
             "view.customizeLayout": self._show_customize_layout,
             "markdown.preview": self._open_markdown_preview,
             "terminal.new": self._new_terminal,
@@ -2322,7 +2351,7 @@ class MainWindow(QMainWindow):
             "editor.action.blockComment": lambda: self._run_editor_action("editor.action.blockCommentAction"),
             "debug.start": self._start_debugging,
             "debug.run": self._run_current_file,
-            "debug.toggleBreakpoint": self._editor_tabs.toggle_breakpoint,
+            "debug.toggleBreakpoint": lambda: self._editor_tabs.toggle_breakpoint(),
             "git.clone": lambda: GitCloneDialog(self._config.workspace_path or "", self).exec(),
             "git.init": lambda: self._show_command_palette(),
             "screencast.toggle": lambda: self._screencast.toggle(),
@@ -2356,16 +2385,16 @@ class MainWindow(QMainWindow):
         self._ext_manager.set_event_handler("get_config", lambda d: self._config.__dict__.get(d["key"], d["default"]))
         self._ext_manager.set_event_handler("set_config", lambda d: setattr(self._config, d["key"], d["value"]) or self._config.save())
         self._ext_manager.set_event_handler("get_workspace_path", lambda _: self._config.workspace_path or "")
-        self._ext_manager.set_event_handler("notification", lambda d: QMessageBox.information(self, "Extension", d["message"]) if d["type"] == "info" else QMessageBox.warning(self, "Extension", d["message"]))
+        self._ext_manager.set_event_handler("notification", self._on_extension_notification)
 
         from ..core.extension_host import get_extension_host
         host = get_extension_host()
         self._node_commands = set()
         host.register_callback("commands.registerCommand", self._on_node_command_registered)
         host.register_callback("commands.unregisterCommand", self._on_node_command_unregistered)
-        host.register_callback("window.showInformationMessage", lambda msg: QMessageBox.information(self, "Extension", msg))
-        host.register_callback("window.showWarningMessage", lambda msg: QMessageBox.warning(self, "Extension", msg))
-        host.register_callback("window.showErrorMessage", lambda msg: QMessageBox.critical(self, "Extension", msg))
+        host.register_callback("window.showInformationMessage", lambda msg: self._notifications.show_info(msg))
+        host.register_callback("window.showWarningMessage", lambda msg: self._notifications.show_warning(msg))
+        host.register_callback("window.showErrorMessage", lambda msg: self._notifications.show_error(msg))
         host.register_callback("window.statusBarShow", self._on_ext_status_bar_show)
         host.register_callback("window.statusBarHide", self._on_ext_status_bar_hide)
         host.register_callback("window.createTerminal", lambda p: self._new_terminal())
@@ -2477,6 +2506,18 @@ class MainWindow(QMainWindow):
         except Exception:
             pass
 
+    def _on_extension_notification(self, data: dict):
+        """Route Python extension notifications to the toast service."""
+        message = data.get("message", "")
+        severity = data.get("type", "info")
+        actions = data.get("actions")
+        if severity == "warning":
+            self._notifications.show_warning(message, actions=actions)
+        elif severity == "error":
+            self._notifications.show_error(message, actions=actions)
+        else:
+            self._notifications.show_info(message, actions=actions)
+
     def _on_ext_status_bar_show(self, params: dict):
         item_id = params.get("id", "default")
         self._status_bar.set_ext_status_item(
@@ -2548,29 +2589,79 @@ class MainWindow(QMainWindow):
         except Exception:
             pass
 
-    def _on_lsp_diagnostics(self, uri: str, diagnostics: list):
-        markers = []
-        for d in diagnostics:
-            rng = d.get("range", {})
-            start = rng.get("start", {})
-            end = rng.get("end", {})
-            sev = d.get("severity", 1)
-            markers_map = {1: "error", 2: "warning", 3: "information", 4: "hint"}
-            markers.append({
-                "severity": markers_map.get(sev, "warning"),
-                "startLine": start.get("line", 0) + 1,
-                "startColumn": start.get("character", 0),
-                "endLine": end.get("line", 0) + 1,
-                "endColumn": end.get("character", 0),
-                "message": d.get("message", ""),
-                "source": d.get("source", "lsp"),
+    def _uri_to_path(self, uri: str) -> str:
+        if not uri:
+            return ""
+        if uri.startswith("file:///"):
+            path = uri[8:] if os.name == "nt" else uri[7:]
+            return path.replace("/", os.sep)
+        return uri
+
+    def _markers_to_problems(self, markers: list) -> list:
+        problems = []
+        for marker in markers:
+            severity = marker.get("severity", "warning")
+            if severity == "information":
+                severity = "info"
+            if severity not in ("error", "warning", "info"):
+                severity = "warning"
+            problems.append({
+                "severity": severity,
+                "line": marker.get("startLine", 1),
+                "col": marker.get("startColumn", 1),
+                "message": marker.get("message", ""),
+                "source": marker.get("source", ""),
             })
-        editor = self._editor_tabs.current_editor()
-        if editor and uri.replace("\\", "/").endswith((editor.get_file_path() or "").replace("\\", "/").split("/")[-1]):
-            editor.set_diagnostics(markers)
-        errors = sum(1 for m in markers if m["severity"] == "error")
-        warnings = sum(1 for m in markers if m["severity"] == "warning")
+        return problems
+
+    def _refresh_problems_summary(self):
+        errors = self._problems_panel.get_error_count()
+        warnings = self._problems_panel.get_warning_count()
         self._status_bar.set_errors_warnings(errors, warnings)
+        self._bottom_panel.update_problems_badge(errors, warnings)
+
+    def _on_editor_diagnostics(self, markers: list):
+        editor = self._editor_tabs.current_editor()
+        if not editor:
+            return
+        file_path = editor.get_file_path() or ""
+        if not file_path:
+            return
+        self._problems_panel.set_problems(file_path, self._markers_to_problems(markers))
+        self._refresh_problems_summary()
+
+    def _on_lsp_diagnostics(self, uri: str, diagnostics: list):
+        self._diag_pending[uri] = diagnostics
+        self._diag_debounce_timer.start()
+
+    def _flush_lsp_diagnostics(self):
+        pending = dict(self._diag_pending)
+        self._diag_pending.clear()
+        for uri, diagnostics in pending.items():
+            markers = []
+            for d in diagnostics:
+                rng = d.get("range", {})
+                start = rng.get("start", {})
+                end = rng.get("end", {})
+                sev = d.get("severity", 1)
+                markers_map = {1: "error", 2: "warning", 3: "information", 4: "hint"}
+                markers.append({
+                    "severity": markers_map.get(sev, "warning"),
+                    "startLine": start.get("line", 0) + 1,
+                    "startColumn": start.get("character", 0) + 1,
+                    "endLine": end.get("line", 0) + 1,
+                    "endColumn": end.get("character", 0) + 1,
+                    "message": d.get("message", ""),
+                    "source": d.get("source", "lsp"),
+                })
+            editor = self._editor_tabs.current_editor()
+            if editor and uri.replace("\\", "/").endswith((editor.get_file_path() or "").replace("\\", "/").split("/")[-1]):
+                editor.set_diagnostics(markers)
+            file_path = self._uri_to_path(uri) or (editor.get_file_path() if editor else "")
+            if file_path:
+                self._problems_panel.set_problems(file_path, self._markers_to_problems(markers))
+        if pending:
+            self._refresh_problems_summary()
 
     # ── File operations ───────────────────────────────────
 
@@ -2631,7 +2722,46 @@ class MainWindow(QMainWindow):
         if path:
             self._open_file_in_editor(path)
 
-    def _open_file_in_editor(self, path: str):
+    def _current_nav_path(self) -> str | None:
+        editor = getattr(self, "_editor_tabs", None)
+        if not editor:
+            return None
+        current = editor.current_editor()
+        if not current:
+            return None
+        return (
+            getattr(current, "file_path", None)
+            or (current.get_file_path() if hasattr(current, "get_file_path") else None)
+        )
+
+    def _record_file_navigation(self, path: str):
+        if self._navigating:
+            return
+        current = self._current_nav_path()
+        if current and current != path:
+            if not self._nav_back_stack or self._nav_back_stack[-1] != current:
+                self._nav_back_stack.append(current)
+            self._nav_forward_stack.clear()
+
+    def _navigate_back(self):
+        if not self._nav_back_stack:
+            return
+        path = self._nav_back_stack.pop(0)
+        if self._nav_back_stack:
+            self._nav_forward_stack = list(self._nav_back_stack) + list(self._nav_forward_stack)
+            self._nav_back_stack.clear()
+        current = self._current_nav_path()
+        if current and current != path:
+            self._nav_forward_stack.insert(0, current)
+        self._open_file_in_editor(path, False)
+
+    def _navigate_forward(self):
+        if not self._nav_forward_stack:
+            return
+        path = self._nav_forward_stack.pop(0)
+        self._open_file_in_editor(path, False)
+
+    def _open_file_in_editor(self, path: str, record_nav: bool = True):
         if path.startswith("line:"):
             try:
                 line = int(path.split(":")[1])
@@ -2643,12 +2773,24 @@ class MainWindow(QMainWindow):
             return
 
         if os.path.isfile(path):
-            # Track as recently opened file
-            if hasattr(self, '_quick_open'):
-                self._quick_open.add_recent_file(path)
-            editor = self._editor_tabs.open_file(path)
+            if record_nav:
+                self._record_file_navigation(path)
+            self._navigating = True
+            try:
+                # Track as recently opened file
+                if hasattr(self, '_quick_open'):
+                    self._quick_open.add_recent_file(path)
+                editor = self._editor_tabs.open_file(path)
+            finally:
+                self._navigating = False
             if editor:
                 self._status_bar.set_language(editor.get_language())
+                if hasattr(editor, "diagnostics_ready"):
+                    try:
+                        editor.diagnostics_ready.disconnect(self._on_editor_diagnostics)
+                    except (RuntimeError, TypeError):
+                        pass
+                    editor.diagnostics_ready.connect(self._on_editor_diagnostics)
                 lang_id = "python" if path.endswith(".py") else ""
                 if lang_id and hasattr(self, "_lsp_manager"):
                     client = self._lsp_manager.get_client(lang_id)
@@ -2694,9 +2836,15 @@ class MainWindow(QMainWindow):
         self._switch_sidebar(VIEW_SEARCH)
         if hasattr(self._search_panel, '_include_input'):
             import os
-            # Set the 'files to include' input to this specific folder
-            self._search_panel._include_input.setText(path.replace('\\', '/') + "/**")
-            self._search_panel._search_input.setFocus()
+            root = self._config.workspace_path or ""
+            include_path = path
+            if root:
+                try:
+                    include_path = os.path.relpath(path, root)
+                except ValueError:
+                    include_path = path
+            self._search_panel._include_input.setText(include_path.replace('\\', '/') + "/**")
+            self._search_panel._query_input.setFocus()
 
     def _open_in_terminal(self, path: str):
         import os
@@ -2708,6 +2856,44 @@ class MainWindow(QMainWindow):
             self._toggle_terminal()
             
         self._terminal_panel._create_new_terminal(cwd=path)
+
+    def _open_with_live_server(self, path: str):
+        import webbrowser
+        from ..remote.live_server import is_frontend_file, localhost_url, resolve_serve_root
+
+        if not path or not is_frontend_file(path):
+            QMessageBox.information(
+                self,
+                "Live Server",
+                "Live Server works with HTML and other frontend files.",
+            )
+            return
+
+        root = resolve_serve_root(path, self._config.workspace_path)
+        try:
+            port = self._live_server.start(root, preferred_port=self._live_server_preferred_port)
+            self._live_server_preferred_port = port
+        except OSError as exc:
+            QMessageBox.warning(self, "Live Server", f"Could not start server: {exc}")
+            return
+        except FileNotFoundError:
+            QMessageBox.warning(self, "Live Server", f"Serve folder not found: {root}")
+            return
+
+        url = localhost_url(root, path, port)
+        self._ports_panel.register_port(port, source="Live Server", status="Running")
+        if not self._bottom_panel.isVisible():
+            self._toggle_panel_force(True)
+        self._bottom_panel.set_active_view("ports")
+        self._title_bar.btn_bottom_panel.setChecked(True)
+        if hasattr(self, "panel_act"):
+            self.panel_act.setChecked(True)
+
+        self._output_panel.append(f"Live Server started at {url}\n", "Live Server")
+        try:
+            webbrowser.open(url)
+        except Exception:
+            pass
 
     def _open_to_side(self, path: str):
         if not os.path.isfile(path):
@@ -2849,52 +3035,134 @@ class MainWindow(QMainWindow):
 
     def _open_problems_panel(self):
         self._bottom_panel.set_active_view("problems")
-        self._status_bar.set_connected(True)
+        self._title_bar.btn_bottom_panel.setChecked(True)
 
     def _open_output_panel(self):
         self._bottom_panel.set_active_view("output")
+        self._title_bar.btn_bottom_panel.setChecked(True)
 
     def _open_debug_console(self):
         self._bottom_panel.set_active_view("debug")
-        
+        self._title_bar.btn_bottom_panel.setChecked(True)
+
+    def _show_bottom_panel(self):
+        self._bottom_panel.show()
+        self._title_bar.btn_bottom_panel.setChecked(True)
+        if hasattr(self, "panel_act"):
+            self.panel_act.setChecked(True)
+
+    def _build_debug_config(self, file_path: str) -> dict:
+        workspace = self._config.workspace_path or os.path.dirname(file_path)
+        config_name = self._debug_panel.get_selected_config_name()
+        launch_cfg = self._launch_config.get_config_by_name(config_name)
+        if launch_cfg:
+            resolved = launch_cfg.resolve(workspace, file_path)
+            if resolved.get("program") or resolved.get("module"):
+                return resolved
+        return {
+            "type": "python",
+            "request": "launch",
+            "name": "Python: Current File",
+            "program": file_path,
+            "console": "integratedTerminal",
+            "cwd": workspace,
+            "justMyCode": True,
+        }
+
     def _start_debugging(self):
         editor = self._editor_tabs.current_editor()
         if not editor or not editor.get_file_path():
+            self._output_panel.append("No file open to debug.", "Dardcor")
+            self._open_output_panel()
             return
-        self._bottom_panel.set_active_view("debug")
+
         file_path = editor.get_file_path()
+        config = self._build_debug_config(file_path)
+        self._open_debug_console()
+        self._debug_console.append(f"Starting debug session: {config.get('name', 'Debug')}\n", "Debug Console")
+        self._debug_panel._status_label.setText("Starting...")
         self._dap_manager.set_workspace(self._config.workspace_path or os.path.dirname(file_path))
-        self._dap_manager.on_event(self._on_dap_event)
 
         def worker():
-            config = {"type": "python", "request": "launch", "name": "Debug", "program": file_path, "console": "integratedTerminal"}
+            self._dap_manager.on_event(self._on_dap_event)
             client = self._dap_manager.start_python_debug(config)
             if client:
-                self._debug_panel.set_dap_client(client)
+                QTimer.singleShot(0, lambda: self._debug_panel.set_dap_client(client))
             else:
-                self._debug_panel._status_label.setText("Failed to start debugger")
+                def on_fail():
+                    self._debug_panel._status_label.setText("Failed to start debugger")
+                    self._debug_console.append(
+                        "Could not start debugpy adapter. Install debugpy: pip install debugpy\n",
+                        "Debug Console",
+                    )
+                QTimer.singleShot(0, on_fail)
 
         threading.Thread(target=worker, daemon=True).start()
 
     def _on_dap_event(self, event_name: str, body: dict):
-        pass
-        
+        def handle():
+            if event_name == "output":
+                text = body.get("output", "")
+                if not text:
+                    return
+                category = body.get("category", "stdout")
+                prefix = "[stderr] " if category == "stderr" else ""
+                self._debug_console.append(prefix + text, "Debug Console")
+            elif event_name == "terminated":
+                self._debug_console.append("Debug session ended.\n", "Debug Console")
+            elif event_name == "exited":
+                code = body.get("exitCode", 0)
+                self._debug_console.append(f"Process exited with code {code}.\n", "Debug Console")
+
+        QTimer.singleShot(0, handle)
+
+    def _stop_debugging(self):
+        if hasattr(self, "_debug_panel"):
+            self._debug_panel._on_stop()
+        if hasattr(self, "_dap_manager"):
+            self._dap_manager.stop_all()
+        self._debug_console.append("Debug session stopped.\n", "Debug Console")
+
+    def _debug_continue(self):
+        client = getattr(self._debug_panel, "_dap_client", None)
+        if client:
+            threading.Thread(target=client.continue_, daemon=True).start()
+        else:
+            self._start_debugging()
+
+    def _debug_step_over(self):
+        client = getattr(self._debug_panel, "_dap_client", None)
+        if client:
+            threading.Thread(target=client.next, daemon=True).start()
+
+    def _debug_step_in(self):
+        client = getattr(self._debug_panel, "_dap_client", None)
+        if client:
+            threading.Thread(target=client.step_in, daemon=True).start()
+
+    def _debug_step_out(self):
+        client = getattr(self._debug_panel, "_dap_client", None)
+        if client:
+            threading.Thread(target=client.step_out, daemon=True).start()
+
     def _run_current_file(self):
         """Run the currently open file."""
         editor = self._editor_tabs.current_editor()
         if not editor or not editor.get_file_path():
+            self._output_panel.append("No file open to run.", "Dardcor")
+            self._open_output_panel()
             return
         filepath = editor.get_file_path()
         ext = os.path.splitext(filepath)[1]
+        self._show_bottom_panel()
+        self._bottom_panel.set_active_view("terminal")
+        self._terminal_panel._new_terminal()
+        self._output_panel.append(f"Running: {filepath}\n", "Dardcor")
         if ext == ".py":
-            self._terminal_panel._new_terminal()
-            from PySide6.QtCore import QTimer
             QTimer.singleShot(500, lambda: self._terminal_panel._terminals[-1].write_input(
                 f'python "{filepath}"\r\n'
             ))
         else:
-            self._terminal_panel._new_terminal()
-            from PySide6.QtCore import QTimer
             QTimer.singleShot(500, lambda: self._terminal_panel._terminals[-1].write_input(
                 f'start "" "{filepath}"\r\n'
             ))
@@ -2979,14 +3247,14 @@ class MainWindow(QMainWindow):
             editor.focus()
 
     def _update_outline(self, file_path: str):
-        if not file_path or not file_path.endswith(".py"):
+        if not file_path:
             self._outline_panel.set_symbols([])
             return
 
         editor = self._editor_tabs.current_editor()
         if editor:
             content = editor.get_content()
-            symbols = parse_python_symbols(content)
+            symbols = parse_outline_symbols(content, file_path)
             self._outline_panel.set_symbols(symbols)
         else:
             self._outline_panel.set_symbols([])
@@ -2995,8 +3263,8 @@ class MainWindow(QMainWindow):
         editor = self._editor_tabs.current_editor()
         if editor:
             file_path = editor.get_file_path()
-            if file_path and file_path.endswith(".py"):
-                symbols = parse_python_symbols(content)
+            if file_path:
+                symbols = parse_outline_symbols(content, file_path)
                 self._outline_panel.set_symbols(symbols)
 
     # ── Root / workspace ──────────────────────────────────
@@ -3017,7 +3285,20 @@ class MainWindow(QMainWindow):
             self._chat_panel.set_workspace_name(basename.lower())
         if hasattr(self, "_git_panel"):
             self._git_panel.set_root(effective)
+        if hasattr(self, "_launch_config"):
+            self._launch_config.set_workspace(effective)
+            if hasattr(self, "_debug_panel"):
+                self._debug_panel.set_config_names(self._launch_config.get_config_names())
         self._config.workspace_path = effective
+        if effective and os.path.isdir(effective):
+            recent = [
+                os.path.normpath(p)
+                for p in getattr(self._config, "recent_folders", [])
+                if p and os.path.isdir(p)
+            ]
+            norm_effective = os.path.normpath(effective)
+            recent = [p for p in recent if os.path.normcase(p) != os.path.normcase(norm_effective)]
+            self._config.recent_folders = [norm_effective, *recent][:10]
         self._config.save()
         self._update_window_title()
         if effective and hasattr(self, '_agent'):
@@ -3087,6 +3368,10 @@ class MainWindow(QMainWindow):
         self._activity_bar.set_active(view_id)
         if not self._sidebar_stack.isVisible():
             self._sidebar_stack.show()
+        if view_id == VIEW_SEARCH and hasattr(self._search_panel, "focus_query"):
+            QTimer.singleShot(0, self._search_panel.focus_query)
+        elif view_id == VIEW_SOURCE_CONTROL and hasattr(self._git_panel, "bridge"):
+            QTimer.singleShot(0, self._git_panel.bridge.requestRefresh)
 
     # ── Chat / Agent ──────────────────────────────────────
 
@@ -3188,7 +3473,7 @@ class MainWindow(QMainWindow):
 
         selected_model = None
         if self._chat_panel.model_dropdown.isVisible():
-            selected_model = self._chat_panel.model_dropdown.currentText()
+            selected_model = self._chat_panel.selected_model_id()
 
         def _on_notification(msg: str):
             if msg.startswith("ARTIFACT_CREATED:"):
@@ -3654,6 +3939,12 @@ class MainWindow(QMainWindow):
     # ── Close ─────────────────────────────────────────────
 
     def closeEvent(self, event):
+        try:
+            if hasattr(self, "_live_server"):
+                self._live_server.stop()
+        except Exception:
+            pass
+
         # Log session end telemetry
         try:
             from ..core.telemetry import get_telemetry_service

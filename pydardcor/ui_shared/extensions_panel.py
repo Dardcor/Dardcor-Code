@@ -7,8 +7,9 @@ from PySide6.QtWidgets import (
     QLineEdit, QTreeWidget, QTreeWidgetItem, QFileDialog,
     QMessageBox, QCheckBox, QFrame, QSizePolicy, QComboBox,
 )
-from PySide6.QtCore import Signal, Qt, QSize, QTimer
-from PySide6.QtGui import QColor, QFont, QIcon, QPixmap
+from PySide6.QtCore import Signal, Qt, QSize, QTimer, QObject, QEvent
+from PySide6.QtGui import QColor, QFont, QIcon, QPixmap, QFontMetrics
+from PySide6.QtWidgets import QSizePolicy
 
 from ..core.extension_manager import (
     get_extension_manager, InstalledExtension,
@@ -20,6 +21,49 @@ from .extension_icons import (
     installed_extension_icon_path,
 )
 from .extension_detail_page import show_extension_detail
+
+
+class _LabelElider(QObject):
+    """Event filter that keeps a QLabel's text elided with `…` on resize.
+
+    The untruncated text is preserved as the label's tooltip so long extension
+    names stay fully readable on hover, matching VS Code behaviour.
+    """
+
+    def eventFilter(self, obj, event):
+        if event.type() == QEvent.Resize:
+            self._apply(obj)
+        return False
+
+    def _apply(self, label):
+        full = label.property("_full_text") or ""
+        if not full:
+            return
+        metrics = QFontMetrics(label.font())
+        available = max(0, label.width())
+        elided = metrics.elidedText(full, Qt.ElideRight, available) if available else full
+        # setText re-enters resize; guard so we only update when it changes.
+        if label.text() != elided:
+            label.setText(elided)
+
+
+def configure_elided_label(label, text: str):
+    """Set label text so it shows a tooltip and elides with `…` when narrow.
+
+    Keeps the full text as `text()` initially (elision happens once the label
+    is laid out and resized) and always exposes the full text via the tooltip.
+    """
+    label.setProperty("_full_text", text)
+    label.setText(text)
+    label.setToolTip(text)
+    label.setTextInteractionFlags(Qt.NoTextInteraction)
+    label.setSizePolicy(QSizePolicy.Policy.Ignored, label.sizePolicy().verticalPolicy())
+
+    elider = label.findChild(_LabelElider)
+    if elider is None:
+        elider = _LabelElider(label)
+        label.installEventFilter(elider)
+    return label
 
 
 class _ExtensionCardBase(QWidget):
@@ -194,7 +238,9 @@ class OnlineExtensionCard(_ExtensionCardBase):
         info_layout.setSpacing(5)
         info_layout.setContentsMargins(0, 2, 0, 2)
 
-        name_label = QLabel(self._ext.get("display_name", self._ext.get("name", "")))
+        name_label = QLabel()
+        configure_elided_label(
+            name_label, self._ext.get("display_name", self._ext.get("name", "")))
         name_label.setStyleSheet(self._NAME_STYLE)
         info_layout.addWidget(name_label)
 
@@ -269,7 +315,8 @@ class ExtensionCard(_ExtensionCardBase):
         info_layout.setSpacing(5)
         info_layout.setContentsMargins(0, 2, 0, 2)
 
-        name_label = QLabel(self._ext.display_name or self._ext.name)
+        name_label = QLabel()
+        configure_elided_label(name_label, self._ext.display_name or self._ext.name)
         name_label.setStyleSheet(self._NAME_STYLE)
         info_layout.addWidget(name_label)
 

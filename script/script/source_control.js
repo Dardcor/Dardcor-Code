@@ -2,6 +2,8 @@ let backend = null;
 let isResizing = false;
 let startY = 0;
 let startFlex = 1;
+let contextItem = null;
+let contextIsStaged = false;
 
 window.onload = function() {
     new QWebChannel(qt.webChannelTransport, function(channel) {
@@ -11,17 +13,17 @@ window.onload = function() {
         backend.graphUpdated.connect(updateGraph);
         
         // Initial fetch
-        backend.refreshData();
-        backend.refreshGraph();
+        backend.requestRefresh();
     });
 
-    document.getElementById('commitBtn').onclick = () => {
-        const msg = document.getElementById('commitMsg').value;
-        if (backend && msg.trim()) {
-            backend.commit(msg);
-            document.getElementById('commitMsg').value = '';
+    const commitMsg = document.getElementById('commitMsg');
+    document.getElementById('commitBtn').onclick = () => commitChanges();
+    commitMsg.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+            event.preventDefault();
+            commitChanges();
         }
-    };
+    });
 
     // Resizer Logic
     const resizer = document.getElementById('resizer');
@@ -79,8 +81,68 @@ window.onload = function() {
     document.addEventListener('click', () => {
         topContextMenu.style.display = 'none';
         topMenuBtn.classList.remove('active');
+        hideFileContextMenu();
     });
 };
+
+function commitChanges() {
+    const msg = document.getElementById('commitMsg').value;
+    if (backend && msg.trim()) {
+        backend.commit(msg);
+        document.getElementById('commitMsg').value = '';
+    }
+}
+
+function stageAllChanges() {
+    if (backend) {
+        backend.stageAll();
+    }
+}
+
+function hideFileContextMenu() {
+    const menu = document.getElementById('fileContextMenu');
+    if (menu) {
+        menu.style.display = 'none';
+    }
+    contextItem = null;
+}
+
+function showFileContextMenu(event, item, isStaged) {
+    event.preventDefault();
+    event.stopPropagation();
+    contextItem = item;
+    contextIsStaged = isStaged;
+    const menu = document.getElementById('fileContextMenu');
+    const actions = isStaged
+        ? [
+            { label: 'Open File', action: () => backend.openFile(item.path) },
+            { label: 'Open Changes', action: () => backend.openStagedDiff(item.path) },
+            { label: 'Unstage Changes', action: () => backend.unstageFile(item.path) },
+        ]
+        : [
+            { label: 'Open File', action: () => backend.openFile(item.path) },
+            { label: 'Open Changes', action: () => backend.openDiff(item.path) },
+            { label: 'Stage Changes', action: () => backend.stageFile(item.path) },
+            { label: 'Discard Changes', action: () => {
+                if (confirm(`Discard changes in ${item.name}?`)) {
+                    backend.discardFile(item.path);
+                }
+            }},
+        ];
+    menu.innerHTML = actions.map((entry, index) =>
+        `<div class="menu-item" data-action="${index}">${entry.label}</div>`
+    ).join('');
+    menu.style.display = 'block';
+    menu.style.left = `${event.clientX}px`;
+    menu.style.top = `${event.clientY}px`;
+    menu.querySelectorAll('.menu-item').forEach((node, index) => {
+        node.onclick = (clickEvent) => {
+            clickEvent.stopPropagation();
+            actions[index].action();
+            hideFileContextMenu();
+        };
+    });
+}
 
 // Toggle for context menu sections
 function toggleSection(sectionId, menuItem) {
@@ -134,8 +196,8 @@ function updateFiles(stagedStr, unstagedStr) {
     const staged = JSON.parse(stagedStr);
     const unstaged = JSON.parse(unstagedStr);
 
-    renderList('stagedItems', 'stagedBadge', 'stagedGroup', staged);
-    renderList('changesItems', 'changesBadge', 'changesGroup', unstaged);
+    renderList('stagedItems', 'stagedBadge', 'stagedGroup', staged, true);
+    renderList('changesItems', 'changesBadge', 'changesGroup', unstaged, false);
 }
 
 // Mapping extensions to local Dardcor Code icons
@@ -183,7 +245,7 @@ function getIconUrl(filename) {
     return `${baseUrl}${iconName}.svg`;
 }
 
-function renderList(containerId, badgeId, groupId, items) {
+function renderList(containerId, badgeId, groupId, items, isStaged) {
     const container = document.getElementById(containerId);
     const badge = document.getElementById(badgeId);
     const group = document.getElementById(groupId);
@@ -201,7 +263,15 @@ function renderList(containerId, badgeId, groupId, items) {
     items.forEach(item => {
         const div = document.createElement('div');
         div.className = 'tree-item';
-        div.onclick = () => backend.openDiff(item.path);
+        div.onclick = () => {
+            if (!backend) return;
+            if (isStaged) {
+                backend.openStagedDiff(item.path);
+            } else {
+                backend.openDiff(item.path);
+            }
+        };
+        div.oncontextmenu = (event) => showFileContextMenu(event, item, isStaged);
         
         const iconUrl = getIconUrl(item.name);
         const statusClass = (item.status === 'U' || item.status === 'A' || item.status === '??') ? 'status-u' : 
@@ -309,7 +379,7 @@ function updateGraph(graphStr) {
             div.innerHTML = `
                 <div class="graph-structure">${graphHtml}</div>
                 <div class="graph-subject">${line.subject} <span class="graph-refs">${refsHtml}</span></div>
-                <div class="graph-author">Dardcor</div>
+                <div class="graph-author">${line.author || ''}</div>
             `;
         } else {
             div.innerHTML = `

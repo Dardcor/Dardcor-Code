@@ -79,6 +79,15 @@ class TestAppConfigLoad(unittest.TestCase):
         cfg = AppConfig.load()
         self.assertEqual(cfg.workspace_path, "C:/Projects/demo")
 
+    def test_default_model_is_dardcor_v1(self):
+        cfg = AppConfig()
+        self.assertEqual(cfg.default_model, "dardcor-v1")
+
+    def test_default_model_persists_in_config_file(self):
+        self._write_config({"default_model": "gpt-4o"})
+        cfg = AppConfig.load()
+        self.assertEqual(cfg.default_model, "gpt-4o")
+
 
 if __name__ == "__main__":
     unittest.main()

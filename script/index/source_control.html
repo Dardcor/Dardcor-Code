@@ -31,8 +31,8 @@
                     <span class="changes-title">CHANGES</span>
                 </div>
                 <div class="changes-actions" onclick="event.stopPropagation()">
-                    <div class="action-btn small" title="Accept All Changes"><i class="codicon codicon-check"></i></div>
-                    <div class="action-btn small" title="Refresh" onclick="if(backend) backend.refreshData()"><i class="codicon codicon-refresh"></i></div>
+                    <div class="action-btn small" title="Stage All Changes" onclick="stageAllChanges()"><i class="codicon codicon-check"></i></div>
+                    <div class="action-btn small" title="Refresh" onclick="if(backend) backend.requestRefresh()"><i class="codicon codicon-refresh"></i></div>
                     <div class="action-btn small" title="More Actions"><i class="codicon codicon-ellipsis"></i></div>
                 </div>
             </div>
@@ -105,6 +105,8 @@
             </div>
         </div>
     </div>
+
+    <div class="context-menu" id="fileContextMenu" style="display: none;"></div>
 
     <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <script src="../script/source_control.js"></script>

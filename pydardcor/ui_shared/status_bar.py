@@ -32,6 +32,7 @@ class StatusBarButton(QPushButton):
         self.icon_label = QLabel()
         self.icon_label.setStyleSheet("color: #ffffff; background: transparent; border: none; font-size: 12px; font-family: 'codicon';")
         self.icon_label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        self.icon_label.setFixedWidth(14)
         self.icon_label.setAlignment(Qt.AlignCenter)
 
         self.text_label = QLabel()
@@ -103,6 +104,7 @@ class StatusBar(QStatusBar):
     go_to_line_requested = Signal()
     models_requested = Signal()
     git_branch_requested = Signal()
+    problems_requested = Signal()
     ext_status_clicked = Signal(str)
 
     def __init__(self, parent=None):
@@ -114,7 +116,7 @@ class StatusBar(QStatusBar):
                 background-color: #000000;
                 min-height: 22px;
                 max-height: 22px;
-                border-top: 1px solid #333333;
+                border-top: 1px solid #3c0068;
             }
         """)
         self._ext_status_items: dict = {}
@@ -143,6 +145,7 @@ class StatusBar(QStatusBar):
 
         self._errors_btn = StatusBarButton("\uea87 0  \uea6c 0")
         self._errors_btn.setToolTip("No Problems")
+        self._errors_btn.clicked.connect(self.problems_requested.emit)
         self.addWidget(self._errors_btn)
 
         # RIGHT SIDE (addPermanentWidget = right-aligned)
@@ -192,6 +195,15 @@ class StatusBar(QStatusBar):
         self._notif_btn.setFixedWidth(28)
         self._notif_btn.setToolTip("No Notifications")
         self.addPermanentWidget(self._notif_btn)
+
+    def set_notifications(self, count: int):
+        """Update the notification bell tooltip to reflect pending toast count."""
+        if count <= 0:
+            self._notif_btn.setToolTip("No Notifications")
+        elif count == 1:
+            self._notif_btn.setToolTip("1 Notification")
+        else:
+            self._notif_btn.setToolTip(f"{count} Notifications")
 
     def set_connected(self, connected: bool):
         if connected:
@@ -254,10 +266,10 @@ class StatusBar(QStatusBar):
             btn = StatusBarButton("")
             btn.setStyleSheet("""
                 QPushButton {
-                    background: #007acc; color: #ffffff; border: none;
+                    background: #3c0068; color: #ffffff; border: none;
                     padding: 0px 8px; font-size: 11px;
                 }
-                QPushButton:hover { background-color: rgba(255, 255, 255, 0.12); }
+                QPushButton:hover { background-color: #4a0072; }
             """)
             btn.clicked.connect(lambda _checked=False, i=item_id: self._on_ext_item_clicked(i))
             self._ext_status_items[item_id] = btn

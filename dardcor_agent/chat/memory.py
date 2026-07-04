@@ -66,7 +66,12 @@ class Conversation:
         for msg in api_msgs:
             if not merged_msgs:
                 merged_msgs.append(msg)
-            elif merged_msgs[-1]["role"] == msg["role"] and msg["role"] in ("user", "assistant"):
+            elif (
+                merged_msgs[-1]["role"] == msg["role"]
+                and msg["role"] in ("user", "assistant")
+                and not merged_msgs[-1].get("tool_calls")
+                and not msg.get("tool_calls")
+            ):
                 # Append content with a double newline
                 merged_msgs[-1] = dict(merged_msgs[-1])  # avoid mutating original
                 c1 = merged_msgs[-1].get("content", "") or ""
@@ -75,7 +80,7 @@ class Conversation:
             else:
                 merged_msgs.append(msg)
                 
-        api_msgs = merged_msgs
+        api_msgs = self._sanitize_tool_messages(merged_msgs)
 
         if len(api_msgs) <= max_messages:
             return api_msgs
@@ -91,7 +96,26 @@ class Conversation:
                 final_msgs.append(sys)
                 
         final_msgs.extend(recent_msgs)
-        return final_msgs
+        return self._sanitize_tool_messages(final_msgs)
+
+    def _sanitize_tool_messages(self, messages: List[dict]) -> List[dict]:
+        sanitized = []
+        pending_tool_ids = set()
+        for msg in messages:
+            role = msg.get("role")
+            if role == "assistant":
+                tool_calls = msg.get("tool_calls") or []
+                pending_tool_ids = {tc.get("id") for tc in tool_calls if tc.get("id")}
+                sanitized.append(msg)
+            elif role == "tool":
+                tool_call_id = msg.get("tool_call_id")
+                if tool_call_id in pending_tool_ids:
+                    sanitized.append(msg)
+                    pending_tool_ids.discard(tool_call_id)
+            else:
+                pending_tool_ids = set()
+                sanitized.append(msg)
+        return sanitized
 
     def clear(self):
         self.messages.clear()

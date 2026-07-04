@@ -19,6 +19,10 @@ class ProviderFactory:
 
     @staticmethod
     def create(config: Any, model_override: Optional[str]) -> BaseProvider:
+        if model_override == "dardcor-v1":
+            from .dardcor.provider import DardcorV1Provider
+            return DardcorV1Provider()
+
         try:
             import os, json
             from pydardcor.core.config import get_user_data_dir
@@ -33,38 +37,24 @@ class ProviderFactory:
             is_antigravity_active = providers.get("Antigravity", False)
 
             if model_override:
+                # Genuine Antigravity models only route to Antigravity.
                 if model_override in ProviderFactory._ANTIGRAVITY_MODELS:
                     if is_antigravity_active:
                         from .antigravity.provider import AntigravityProvider
                         return AntigravityProvider()
 
-                from .registry import PROVIDER_REGISTRY
-                project_root = os.path.normpath(
-                    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..")
-                )
-                for std_name, pdef in PROVIDER_REGISTRY.items():
-                    if pdef.get("is_special"):
-                        continue
-                    if not providers.get(std_name, False):
-                        continue
-                    config_path = os.path.join(
-                        project_root, "database", "models", std_name, "config.json"
-                    )
-                    if not os.path.exists(config_path):
-                        continue
-                    try:
-                        with open(config_path, "r", encoding="utf-8") as cf:
-                            data = json.load(cf)
-                    except Exception:
-                        continue
-                    model_ids = {m.get("id") for m in data.get("models", []) if m.get("id")}
-                    if data.get("selected_model"):
-                        model_ids.add(data["selected_model"])
-                    if model_override in model_ids:
-                        from .openai.provider import StandardOpenAIProvider
-                        return StandardOpenAIProvider()
+                # Resolve the owning provider straight from the registry so a
+                # model like an OpenCode Zen / Gemini id is NEVER misrouted to
+                # Antigravity (which would 404 on Google's API).
+                from .registry import find_provider_for_model
+                owner, pdef = find_provider_for_model(model_override)
+                if owner and not pdef.get("is_special"):
+                    from .openai.provider import StandardOpenAIProvider
+                    return StandardOpenAIProvider()
 
-            if is_antigravity_active:
+            # Only fall back to Antigravity when we have no concrete model
+            # (or an unknown one) — not when another provider owns the model.
+            if not model_override and is_antigravity_active:
                 from .antigravity.provider import AntigravityProvider
                 return AntigravityProvider()
 

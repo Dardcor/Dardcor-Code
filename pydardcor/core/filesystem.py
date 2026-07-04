@@ -3,6 +3,7 @@
 import os
 import re
 import fnmatch
+import glob as _glob
 from typing import List, Dict, Any, Optional
 
 
@@ -70,9 +71,34 @@ class FileSystem:
         return results
 
     def glob_files(self, pattern: str, root: str) -> List[str]:
-        import glob as _glob
         results = _glob.glob(os.path.join(root, pattern), recursive=True)
         return sorted(results)
+
+    def _match_path_patterns(self, relative_path: str, patterns: str, root: str) -> bool:
+        if not patterns:
+            return False
+        normalized = relative_path.replace(os.sep, "/")
+        filename = os.path.basename(normalized)
+        for raw in re.split(r"[,;]", patterns):
+            pattern = raw.strip().replace("\\", "/")
+            if not pattern:
+                continue
+            if os.path.isabs(pattern):
+                try:
+                    pattern = os.path.relpath(pattern, root).replace(os.sep, "/")
+                except ValueError:
+                    continue
+            if pattern.endswith("/"):
+                pattern += "**"
+            if "/" not in pattern:
+                if fnmatch.fnmatch(filename, pattern) or fnmatch.fnmatch(normalized, pattern):
+                    return True
+                continue
+            if fnmatch.fnmatch(normalized, pattern):
+                return True
+            if pattern.endswith("/**") and normalized.startswith(pattern[:-3]):
+                return True
+        return False
 
     def grep(
         self,
@@ -104,12 +130,12 @@ class FileSystem:
             for filename in filenames:
                 if is_binary(filename):
                     continue
-                if file_pattern and not fnmatch.fnmatch(filename, file_pattern):
-                    continue
-                if exclude_pattern and fnmatch.fnmatch(filename, exclude_pattern):
-                    continue
-
                 filepath = os.path.join(dirpath, filename)
+                relative = os.path.relpath(filepath, root)
+                if file_pattern and not self._match_path_patterns(relative, file_pattern, root):
+                    continue
+                if exclude_pattern and self._match_path_patterns(relative, exclude_pattern, root):
+                    continue
 
                 try:
                     with open(filepath, "r", encoding="utf-8", errors="replace") as f:
@@ -119,7 +145,7 @@ class FileSystem:
                                     "file": filepath,
                                     "line": line_num,
                                     "content": line.rstrip("\n\r"),
-                                    "relative": os.path.relpath(filepath, root),
+                                    "relative": relative,
                                 })
                                 if len(results) >= max_results:
                                     return results

@@ -122,6 +122,16 @@ CONFIG_DIR = get_user_data_dir()
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 
 @dataclass
+class AISettings:
+    provider: str = "openai"
+    model: str = "gpt-4o"
+    base_url: str = ""
+    api_key: str = ""
+    max_tokens: int = 128000
+    temperature: float = 0.7
+
+
+@dataclass
 class AppConfig:
     workspace_path: str = ""
     ui_zoom: int = 0
@@ -141,10 +151,15 @@ class AppConfig:
     file_icon_theme: str = ""
     color_theme: str = ""
     extensions_auto_update: bool = True
+    default_model: str = "dardcor-v1"
+    ai: AISettings = field(default_factory=AISettings)
 
     def save(self):
         os.makedirs(CONFIG_DIR, exist_ok=True)
         data = asdict(self)
+        # Never persist API keys in config.json — use secrets.json or env vars.
+        if isinstance(data.get("ai"), dict):
+            data["ai"] = {**data["ai"], "api_key": ""}
         with open(CONFIG_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
 
@@ -159,11 +174,24 @@ class AppConfig:
                 data = json.load(f)
             valid_keys = {k for k in cls.__dataclass_fields__}
             defaults = cls()
-            cfg_data = {
-                k: _coerce_config_value(v, getattr(defaults, k))
-                for k, v in data.items()
-                if k in valid_keys
-            }
+            cfg_data = {}
+            for k, v in data.items():
+                if k not in valid_keys:
+                    continue
+                if k == "ai":
+                    ai_defaults = AISettings()
+                    if isinstance(v, dict):
+                        ai_fields = set(AISettings.__dataclass_fields__)
+                        ai_data = {
+                            ak: _coerce_config_value(av, getattr(ai_defaults, ak))
+                            for ak, av in v.items()
+                            if ak in ai_fields
+                        }
+                        cfg_data[k] = AISettings(**ai_data)
+                    else:
+                        cfg_data[k] = ai_defaults
+                    continue
+                cfg_data[k] = _coerce_config_value(v, getattr(defaults, k))
             return cls(**cfg_data)
         except Exception:
             return cls()

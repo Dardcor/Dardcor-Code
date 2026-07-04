@@ -69,13 +69,39 @@ def default_extension_icon(size: int = 48) -> QIcon:
     return QIcon(default_extension_pixmap(size))
 
 
+# Common icon locations used by VS Code extensions when `icon` is absent or
+# points at a missing file. Tried in order as a fallback chain.
+_FALLBACK_ICON_CANDIDATES = (
+    "icon.png", "icon.svg",
+    os.path.join("images", "icon.png"), os.path.join("images", "icon.svg"),
+    os.path.join("resources", "icon.png"), os.path.join("resources", "icon.svg"),
+    os.path.join("assets", "icon.png"), os.path.join("assets", "icon.svg"),
+    os.path.join("media", "icon.png"), os.path.join("media", "icon.svg"),
+)
+
+
 def installed_extension_icon_path(ext_path: str, manifest: dict) -> Optional[str]:
-    """Resolve the icon file path from an installed extension manifest."""
-    icon_rel = manifest.get("icon", "")
-    if not icon_rel:
+    """Resolve the icon file path for an installed extension.
+
+    Prefers the manifest `icon` field, then falls back to conventional icon
+    asset locations so extensions that ship an icon without declaring it (or
+    whose declared path is stale) still render an icon instead of the default.
+    """
+    if not ext_path:
         return None
-    full = os.path.normpath(os.path.join(ext_path, icon_rel))
-    return full if os.path.isfile(full) else None
+
+    icon_rel = manifest.get("icon", "") if isinstance(manifest, dict) else ""
+    if icon_rel:
+        full = os.path.normpath(os.path.join(ext_path, icon_rel))
+        if os.path.isfile(full):
+            return full
+
+    for candidate in _FALLBACK_ICON_CANDIDATES:
+        full = os.path.normpath(os.path.join(ext_path, candidate))
+        if os.path.isfile(full):
+            return full
+
+    return None
 
 
 def _cache_path_for_url(url: str) -> str:

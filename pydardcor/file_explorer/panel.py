@@ -154,7 +154,17 @@ SVG_CSHARP = b'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><pa
 
 SVG_VUE = b'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="#41B883" d="M12 2L2 19h4l6-10.4L18 19h4L12 2zm0 5.2L7.5 15h9L12 7.2z"/><path fill="#35495E" d="M12 10.7L9.5 15h5L12 10.7z"/></svg>'''
 
+_SVG_BYTES_ICON_CACHE: dict[int, QIcon] = {}
+_FILE_ICON_CACHE: dict[str, QIcon] = {}
+_FOLDER_ICON_CACHE: dict[tuple[str, bool], QIcon] = {}
+
+
 def _render_svg(svg_bytes: bytes) -> QIcon:
+    cache_key = id(svg_bytes)
+    cached = _SVG_BYTES_ICON_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+
     icon = QIcon()
     renderer = QSvgRenderer(QByteArray(svg_bytes))
     # Render sizes for 18x18 base (explorer)
@@ -180,16 +190,22 @@ def _render_svg(svg_bytes: bytes) -> QIcon:
         pixmap = QPixmap.fromImage(image)
         pixmap.setDevicePixelRatio(size / 16.0)
         icon.addPixmap(pixmap)
-        
+
+    _SVG_BYTES_ICON_CACHE[cache_key] = icon
     return icon
 
 
 def get_file_icon(filepath: str) -> QIcon:
     """Get appropriate SVG icon for a file (extension icon theme first)."""
+    cached = _FILE_ICON_CACHE.get(filepath)
+    if cached is not None:
+        return cached
+
     try:
         from ..core.icon_theme_manager import get_icon_theme_manager
         themed = get_icon_theme_manager().file_icon(filepath)
         if themed is not None:
+            _FILE_ICON_CACHE[filepath] = themed
             return themed
     except Exception:
         pass
@@ -198,61 +214,64 @@ def get_file_icon(filepath: str) -> QIcon:
     ext = os.path.splitext(name)[1]
 
     if name in (".gitignore", ".git"):
-        return _render_svg(SVG_GIT)
-    if name.startswith(".env"):
-        return _render_svg(SVG_ENV)
-    if name in ("package.json", "package-lock.json"):
-        return _render_svg(SVG_NPM)
-    if name in ("tsconfig.json", "tsconfig.node.json") or ext == ".tsbuildinfo":
-        return _render_svg(SVG_TSCONFIG)
-    if name.endswith(".md"):
-        return _render_svg(SVG_MD)
-    if name.endswith(".json"):
-        return _render_svg(SVG_JSON)
-    if name.endswith(".toml"):
-        return _render_svg(SVG_CONFIG)
-    if name in ("dockerfile", "docker-compose.yml", "docker-compose.yaml", ".dockerignore"):
-        return _render_svg(SVG_DOCKER)
-    if ext in (".py", ".pyc", ".pyw"):
-        return _render_svg(SVG_PYTHON)
-    if ext in (".html", ".htm"):
-        return _render_svg(SVG_HTML)
-    if ext in (".css", ".scss", ".sass", ".less"):
-        return _render_svg(SVG_CSS)
-    if ext in (".js", ".mjs", ".cjs"):
-        return _render_svg(SVG_JS)
-    if ext in (".ts", ".mts", ".cts"):
-        return _render_svg(SVG_TS)
-    if ext in (".jsx", ".tsx"):
-        return _render_svg(SVG_REACT)
-    if ext == ".sql":
-        return _render_svg(SVG_SQL)
-    if ext == ".rs":
-        return _render_svg(SVG_RUST)
-    if ext == ".go":
-        return _render_svg(SVG_GO)
-    if ext == ".php":
-        return _render_svg(SVG_PHP)
-    if ext == ".rb":
-        return _render_svg(SVG_RUBY)
-    if ext in (".yaml", ".yml"):
-        return _render_svg(SVG_YAML)
-    if ext == ".xml":
-        return _render_svg(SVG_XML)
-    if ext in (".cpp", ".c", ".hpp", ".h", ".cc", ".cxx"):
-        return _render_svg(SVG_CPP)
-    if ext in (".java", ".class", ".jar"):
-        return _render_svg(SVG_JAVA)
-    if ext == ".cs":
-        return _render_svg(SVG_CSHARP)
-    if ext == ".vue":
-        return _render_svg(SVG_VUE)
-    if ext in (".sh", ".bat", ".cmd", ".ps1", ".bash"):
-        return _render_svg(SVG_SHELL)
-    if ext in (".png", ".jpg", ".jpeg", ".gif", ".svg", ".bmp", ".ico", ".webp"):
-        return _render_svg(SVG_IMAGE)
-    
-    return _render_svg(SVG_FILE)
+        icon = _render_svg(SVG_GIT)
+    elif name.startswith(".env"):
+        icon = _render_svg(SVG_ENV)
+    elif name in ("package.json", "package-lock.json"):
+        icon = _render_svg(SVG_NPM)
+    elif name in ("tsconfig.json", "tsconfig.node.json") or ext == ".tsbuildinfo":
+        icon = _render_svg(SVG_TSCONFIG)
+    elif name.endswith(".md"):
+        icon = _render_svg(SVG_MD)
+    elif name.endswith(".json"):
+        icon = _render_svg(SVG_JSON)
+    elif name.endswith(".toml"):
+        icon = _render_svg(SVG_CONFIG)
+    elif name in ("dockerfile", "docker-compose.yml", "docker-compose.yaml", ".dockerignore"):
+        icon = _render_svg(SVG_DOCKER)
+    elif ext in (".py", ".pyc", ".pyw"):
+        icon = _render_svg(SVG_PYTHON)
+    elif ext in (".html", ".htm"):
+        icon = _render_svg(SVG_HTML)
+    elif ext in (".css", ".scss", ".sass", ".less"):
+        icon = _render_svg(SVG_CSS)
+    elif ext in (".js", ".mjs", ".cjs"):
+        icon = _render_svg(SVG_JS)
+    elif ext in (".ts", ".mts", ".cts"):
+        icon = _render_svg(SVG_TS)
+    elif ext in (".jsx", ".tsx"):
+        icon = _render_svg(SVG_REACT)
+    elif ext == ".sql":
+        icon = _render_svg(SVG_SQL)
+    elif ext == ".rs":
+        icon = _render_svg(SVG_RUST)
+    elif ext == ".go":
+        icon = _render_svg(SVG_GO)
+    elif ext == ".php":
+        icon = _render_svg(SVG_PHP)
+    elif ext == ".rb":
+        icon = _render_svg(SVG_RUBY)
+    elif ext in (".yaml", ".yml"):
+        icon = _render_svg(SVG_YAML)
+    elif ext == ".xml":
+        icon = _render_svg(SVG_XML)
+    elif ext in (".cpp", ".c", ".hpp", ".h", ".cc", ".cxx"):
+        icon = _render_svg(SVG_CPP)
+    elif ext in (".java", ".class", ".jar"):
+        icon = _render_svg(SVG_JAVA)
+    elif ext == ".cs":
+        icon = _render_svg(SVG_CSHARP)
+    elif ext == ".vue":
+        icon = _render_svg(SVG_VUE)
+    elif ext in (".sh", ".bat", ".cmd", ".ps1", ".bash"):
+        icon = _render_svg(SVG_SHELL)
+    elif ext in (".png", ".jpg", ".jpeg", ".gif", ".svg", ".bmp", ".ico", ".webp"):
+        icon = _render_svg(SVG_IMAGE)
+    else:
+        icon = _render_svg(SVG_FILE)
+
+    _FILE_ICON_CACHE[filepath] = icon
+    return icon
 
 
 def get_folder_icon(foldername: str = "", is_open: bool = False) -> QIcon:
@@ -261,29 +280,38 @@ def get_folder_icon(foldername: str = "", is_open: bool = False) -> QIcon:
         is_open = foldername
         foldername = ""
 
+    cache_key = (foldername, is_open)
+    cached = _FOLDER_ICON_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+
     try:
         from ..core.icon_theme_manager import get_icon_theme_manager
         themed = get_icon_theme_manager().folder_icon(foldername, is_open)
         if themed is not None:
+            _FOLDER_ICON_CACHE[cache_key] = themed
             return themed
     except Exception:
         pass
 
     name = foldername.lower()
     if name == "node_modules":
-        return _render_svg(SVG_FOLDER_NODE_OPEN if is_open else SVG_FOLDER_NODE)
+        icon = _render_svg(SVG_FOLDER_NODE_OPEN if is_open else SVG_FOLDER_NODE)
     elif name in ("src", "source"):
-        return _render_svg(SVG_FOLDER_SRC_OPEN if is_open else SVG_FOLDER_SRC)
+        icon = _render_svg(SVG_FOLDER_SRC_OPEN if is_open else SVG_FOLDER_SRC)
     elif name == "public":
-        return _render_svg(SVG_FOLDER_PUBLIC_OPEN if is_open else SVG_FOLDER_PUBLIC)
+        icon = _render_svg(SVG_FOLDER_PUBLIC_OPEN if is_open else SVG_FOLDER_PUBLIC)
     elif name in (".next", "next"):
-        return _render_svg(SVG_FOLDER_NEXT_OPEN if is_open else SVG_FOLDER_NEXT)
+        icon = _render_svg(SVG_FOLDER_NEXT_OPEN if is_open else SVG_FOLDER_NEXT)
     elif name == "components":
-        return _render_svg(SVG_FOLDER_REACT_OPEN if is_open else SVG_FOLDER_REACT)
+        icon = _render_svg(SVG_FOLDER_REACT_OPEN if is_open else SVG_FOLDER_REACT)
+    elif is_open:
+        icon = _render_svg(SVG_FOLDER_OPEN)
+    else:
+        icon = _render_svg(SVG_FOLDER)
 
-    if is_open:
-        return _render_svg(SVG_FOLDER_OPEN)
-    return _render_svg(SVG_FOLDER)
+    _FOLDER_ICON_CACHE[cache_key] = icon
+    return icon
 
 
 class GitStatusDelegate(QStyledItemDelegate):
@@ -473,6 +501,7 @@ class FileExplorer(QWidget):
     find_in_folder_requested = Signal(str)
     open_in_terminal_requested = Signal(str)
     open_to_side_requested = Signal(str)
+    open_with_live_server_requested = Signal(str)
     workspace_toggled = Signal(bool)
 
     def __init__(self, root_path: str = None, parent=None):
@@ -687,6 +716,13 @@ class FileExplorer(QWidget):
         """)
         open_folder_btn.clicked.connect(self._open_folder)
         welcome_layout.addWidget(open_folder_btn, alignment=Qt.AlignCenter)
+
+        self._recent_folders_frame = QWidget()
+        self._recent_folders_layout = QVBoxLayout(self._recent_folders_frame)
+        self._recent_folders_layout.setContentsMargins(0, 12, 0, 0)
+        self._recent_folders_layout.setSpacing(4)
+        welcome_layout.addWidget(self._recent_folders_frame)
+        self._render_recent_folders()
 
         layout.addWidget(self._welcome_widget)
 
@@ -1293,10 +1329,69 @@ class FileExplorer(QWidget):
         if folder:
             self._root_path = folder
             self._force_expand_root = True
+            self._record_recent_folder(folder)
             self._welcome_widget.hide()
             self._tree.show()
             self._refresh()
             self.root_changed.emit(folder)
+
+    def _record_recent_folder(self, folder: str):
+        folder = os.path.normpath(folder)
+        config = get_config()
+        recent = [os.path.normpath(p) for p in getattr(config, "recent_folders", []) if p and os.path.isdir(p)]
+        recent = [p for p in recent if os.path.normcase(p) != os.path.normcase(folder)]
+        recent.insert(0, folder)
+        config.recent_folders = recent[:10]
+        config.workspace_path = folder
+        config.save()
+        self._render_recent_folders()
+
+    def _open_recent_folder(self, folder: str):
+        if not os.path.isdir(folder):
+            self._render_recent_folders()
+            return
+        self.set_root(folder)
+        self.root_changed.emit(folder)
+
+    def _render_recent_folders(self):
+        frame = getattr(self, "_recent_folders_frame", None)
+        layout = getattr(self, "_recent_folders_layout", None)
+        if frame is None or layout is None:
+            return
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+        recent = [p for p in getattr(get_config(), "recent_folders", []) if p and os.path.isdir(p)]
+        frame.setVisible(bool(recent))
+        if not recent:
+            return
+        title = QLabel("Recent folders")
+        title.setStyleSheet("color:#858585;font-size:11px;border:none;background:transparent;")
+        title.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title)
+        for folder in recent[:5]:
+            name = os.path.basename(folder.rstrip("/\\")) or folder
+            btn = QPushButton(name)
+            btn.setToolTip(folder)
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.setStyleSheet("""
+                QPushButton {
+                    background: transparent;
+                    color: #cccccc;
+                    border: none;
+                    padding: 4px 8px;
+                    text-align: left;
+                    font-size: 12px;
+                }
+                QPushButton:hover {
+                    background-color: rgba(168, 85, 247, 0.16);
+                    color: #ffffff;
+                }
+            """)
+            btn.clicked.connect(lambda _, p=folder: self._open_recent_folder(p))
+            layout.addWidget(btn)
 
     def _show_workspace_context_menu(self, position):
         if not self._root_path:
@@ -1467,6 +1562,14 @@ class FileExplorer(QWidget):
             open_side_action = QAction("Open to the Side", self)
             open_side_action.triggered.connect(lambda: self.open_to_side_requested.emit(path))
             menu.addAction(open_side_action)
+            try:
+                from ..remote.live_server import is_frontend_file
+                if is_frontend_file(path):
+                    live_server = QAction("Open with Live Server", self)
+                    live_server.triggered.connect(lambda: self.open_with_live_server_requested.emit(path))
+                    menu.addAction(live_server)
+            except Exception:
+                pass
             menu.addSeparator()
             reveal_action = QAction("Reveal in File Explorer", self)
             reveal_action.triggered.connect(lambda: self._reveal_in_explorer(path))

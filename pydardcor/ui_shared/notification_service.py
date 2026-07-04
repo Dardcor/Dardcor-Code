@@ -1,12 +1,29 @@
 """Notification Service - VS Code style toast notification system."""
 
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QGraphicsOpacityEffect
-)
-from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, Signal
-from PySide6.QtGui import QFont
 from collections import deque
+
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
+
+_MAX_VISIBLE = 3
+
+_SEVERITY_STYLES = {
+    "info": {
+        "border": "#3c0068",
+        "accent": "#c586c0",
+        "icon": "ℹ",
+    },
+    "warning": {
+        "border": "#8a6d00",
+        "accent": "#f1d45a",
+        "icon": "⚠",
+    },
+    "error": {
+        "border": "#8b1a1a",
+        "accent": "#f14c4c",
+        "icon": "✕",
+    },
+}
 
 
 class NotificationToast(QWidget):
@@ -20,18 +37,17 @@ class NotificationToast(QWidget):
         self.setMinimumHeight(50)
         self.setMaximumHeight(120)
         self.setAttribute(Qt.WA_TranslucentBackground, False)
+        self.action_buttons: list[QPushButton] = []
 
-        colors = {
-            "info": ("#0e639c", "#1177bb"),
-            "warning": ("#c9a100", "#ddb100"),
-            "error": ("#b41e1e", "#d42020"),
-        }
-        bg, hover_bg = colors.get(severity, colors["info"])
+        style = _SEVERITY_STYLES.get(severity, _SEVERITY_STYLES["info"])
+        border = style["border"]
+        accent = style["accent"]
 
         self.setStyleSheet(f"""
             NotificationToast {{
-                background-color: #1e1e2e;
-                border: 1px solid {bg};
+                background-color: #0d0d0d;
+                border: 1px solid {border};
+                border-left: 3px solid {accent};
                 border-radius: 6px;
             }}
         """)
@@ -40,21 +56,17 @@ class NotificationToast(QWidget):
         layout.setContentsMargins(12, 8, 8, 8)
         layout.setSpacing(4)
 
-        # Top row: icon + message + close
         top = QHBoxLayout()
         top.setSpacing(8)
 
-        icons = {"info": "ℹ", "warning": "⚠", "error": "✕"}
-        icon_colors = {"info": "#569cd6", "warning": "#f1d45a", "error": "#f14c4c"}
-
-        icon = QLabel(icons.get(severity, "ℹ"))
-        icon.setStyleSheet(f"color: {icon_colors.get(severity, '#569cd6')}; font-size: 14px;")
+        icon = QLabel(style["icon"])
+        icon.setStyleSheet(f"color: {accent}; font-size: 14px;")
         icon.setFixedWidth(18)
         top.addWidget(icon)
 
         msg = QLabel(message)
         msg.setWordWrap(True)
-        msg.setStyleSheet("color: #d4d4d4; font-size: 12px;")
+        msg.setStyleSheet("color: #e0e0e0; font-size: 12px;")
         top.addWidget(msg, 1)
 
         close_btn = QPushButton("✕")
@@ -66,13 +78,12 @@ class NotificationToast(QWidget):
                 color: #888888;
                 font-size: 11px;
             }
-            QPushButton:hover { color: #ffffff; }
+            QPushButton:hover { color: #c586c0; }
         """)
         close_btn.clicked.connect(self._close)
         top.addWidget(close_btn)
         layout.addLayout(top)
 
-        # Action buttons
         if actions:
             btn_row = QHBoxLayout()
             btn_row.setContentsMargins(26, 0, 0, 0)
@@ -82,19 +93,19 @@ class NotificationToast(QWidget):
                 btn.setStyleSheet(f"""
                     QPushButton {{
                         background: transparent;
-                        color: {icon_colors.get(severity, '#569cd6')};
+                        color: {accent};
                         border: none;
                         font-size: 11px;
                         padding: 2px 8px;
                     }}
-                    QPushButton:hover {{ text-decoration: underline; }}
+                    QPushButton:hover {{ color: #ffffff; text-decoration: underline; }}
                 """)
                 btn.clicked.connect(callback)
                 btn.clicked.connect(self._close)
+                self.action_buttons.append(btn)
                 btn_row.addWidget(btn)
             layout.addLayout(btn_row)
 
-        # Auto-dismiss timer
         self._timer = QTimer(self)
         self._timer.setSingleShot(True)
         self._timer.timeout.connect(self._close)
@@ -102,6 +113,7 @@ class NotificationToast(QWidget):
         self._timer.start(timeout)
 
     def _close(self):
+        self._timer.stop()
         self.closed.emit()
         self.hide()
         self.deleteLater()
@@ -110,13 +122,27 @@ class NotificationToast(QWidget):
 class NotificationService(QWidget):
     """Manages a stack of notification toasts in the bottom-right corner."""
 
+    count_changed = Signal(int)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setAttribute(Qt.WA_TransparentForMouseEvents, False)
         self.setAttribute(Qt.WA_TranslucentBackground, True)
         self.setStyleSheet("background: transparent;")
-        self._toasts = []
-        self._queue = deque()
+        self._toasts: list[NotificationToast] = []
+        self._queue: deque = deque()
+
+    @property
+    def visible_count(self) -> int:
+        return len(self._toasts)
+
+    @property
+    def queued_count(self) -> int:
+        return len(self._queue)
+
+    @property
+    def unread_count(self) -> int:
+        return self.visible_count + self.queued_count
 
     def show_info(self, message: str, actions: list = None):
         self._show(message, "info", actions)
@@ -127,9 +153,20 @@ class NotificationService(QWidget):
     def show_error(self, message: str, actions: list = None):
         self._show(message, "error", actions)
 
+    def dismiss_oldest(self):
+        if self._toasts:
+            self._toasts[0]._close()
+
+    def dismiss_all(self):
+        for toast in list(self._toasts):
+            toast._close()
+        self._queue.clear()
+        self._emit_count()
+
     def _show(self, message: str, severity: str, actions: list = None):
-        if len(self._toasts) >= 3:
+        if len(self._toasts) >= _MAX_VISIBLE:
             self._queue.append((message, severity, actions))
+            self._emit_count()
             return
 
         toast = NotificationToast(message, severity, actions, self.parent())
@@ -138,21 +175,27 @@ class NotificationService(QWidget):
         self._reposition()
         toast.show()
         toast.raise_()
+        self._emit_count()
 
     def _on_closed(self, toast):
         if toast in self._toasts:
             self._toasts.remove(toast)
         self._reposition()
-        # Show queued
         if self._queue:
             msg, sev, acts = self._queue.popleft()
             self._show(msg, sev, acts)
+        else:
+            self._emit_count()
+
+    def _emit_count(self):
+        self.count_changed.emit(self.unread_count)
 
     def _reposition(self):
-        if not self.parent():
+        parent = self.parent()
+        if not parent:
             return
-        pw = self.parent().width()
-        ph = self.parent().height()
+        pw = parent.width()
+        ph = parent.height()
         margin = 16
         y = ph - margin
         for toast in reversed(self._toasts):
@@ -161,3 +204,7 @@ class NotificationService(QWidget):
             x = pw - toast.width() - margin
             toast.move(x, y)
             toast.raise_()
+
+    def reposition(self):
+        """Re-stack toasts after the parent window is resized."""
+        self._reposition()

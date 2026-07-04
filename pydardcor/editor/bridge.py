@@ -9,6 +9,7 @@ class EditorBridge(QObject):
     save_requested = Signal()
     command_palette_requested = Signal()
     extension_command_requested = Signal(str)
+    open_with_live_server_requested = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -45,6 +46,11 @@ class EditorBridge(QObject):
     @Slot()
     def request_command_palette(self):
         self.command_palette_requested.emit()
+
+    @Slot()
+    def request_open_with_live_server(self):
+        if self._file_path:
+            self.open_with_live_server_requested.emit(self._file_path)
 
     def _typed_prefix(self, code, line, col) -> str:
         import re

@@ -570,6 +570,27 @@
                 extensionMenuDisposables.push(disposable);
             });
         }
+
+        let liveServerDisposable = null;
+
+        function setLiveServerContextMenu(enabled) {
+            if (liveServerDisposable) {
+                try { liveServerDisposable.dispose(); } catch (e) { }
+                liveServerDisposable = null;
+            }
+            if (!enabled || !editor) return;
+            liveServerDisposable = editor.addAction({
+                id: 'dardcor.openLiveServer',
+                label: 'Open with Live Server',
+                contextMenuGroupId: 'navigation',
+                contextMenuOrder: 1.5,
+                run: function () {
+                    if (backend && typeof backend.request_open_with_live_server === 'function') {
+                        backend.request_open_with_live_server();
+                    }
+                }
+            });
+        }
     </script>
 </body>
 

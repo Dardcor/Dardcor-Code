@@ -57,12 +57,12 @@ class ActivityBarButton(QPushButton):
                 color: #ffffff;
             }
             QPushButton:hover {
-                background-color: rgba(255, 255, 255, 0.08);
+                background-color: rgba(124, 58, 237, 0.16);
                 color: #ffffff;
             }
             QPushButton:checked {
-                border-left: 2px solid #ffffff;
-                background-color: transparent;
+                border-left: 2px solid #a855f7;
+                background-color: rgba(124, 58, 237, 0.12);
                 color: #ffffff;
             }
         """)
@@ -144,8 +144,8 @@ class ActivityBarButton(QPushButton):
             x = self.width() - bw - 4
             y = self.height() - bh - 6
             
-            # Draw blue pill
-            painter.setBrush(QColor("#0078d4"))
+            # Draw purple pill
+            painter.setBrush(QColor("#7c3aed"))
             painter.setPen(Qt.NoPen)
             painter.drawRoundedRect(x, y, bw, bh, 8, 8)
             
@@ -187,7 +187,7 @@ class ActivityBar(QWidget):
         self.setStyleSheet("""
             #activityBar {
                 background-color: #000000;
-                border-right: 1px solid #2b2b2b;
+                border-right: 1px solid #3c0068;
             }
         """)
         self._setup_ui()
@@ -259,9 +259,9 @@ class ActivityBar(QWidget):
     def contextMenuEvent(self, event):
         menu = QMenu(self)
         menu.setStyleSheet("""
-            QMenu { background-color: #252526; color: #cccccc; border: 1px solid #454545; }
+            QMenu { background-color: #000000; color: #cccccc; border: 1px solid #3c0068; }
             QMenu::item { padding: 4px 24px 4px 24px; }
-            QMenu::item:selected { background-color: #094771; color: white; }
+            QMenu::item:selected { background-color: #4a0072; color: white; }
         """)
         
         for btn in self._group.buttons():

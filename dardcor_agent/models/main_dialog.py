@@ -16,6 +16,20 @@ import urllib.parse
 import urllib.error
 import json
 
+from dardcor_agent.models.provider_meta import (
+    DEFAULT_MODELS_PAGE_SIZE,
+    fetch_remote_models,
+    get_registry_models,
+    load_registry_provider_config,
+    paginate_items,
+    provider_card_meta,
+    provider_display_name,
+    provider_key_status,
+    save_registry_provider_config,
+)
+
+MODELS_ACCENT = "#a855f7"
+
 def create_svg_icon(path_data, color="#ffffff", rotation_angle=0):
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">{path_data}</svg>'''
     renderer = QSvgRenderer(QByteArray(svg.encode('utf-8')))
@@ -235,20 +249,33 @@ class ProviderChip(QFrame):
     toggle_requested = Signal(str, bool)
     remove_requested = Signal(str)
 
-    def __init__(self, name: str, is_active: bool, is_current: bool, can_remove: bool = True, parent=None):
+    def __init__(self, name: str, is_active: bool, is_current: bool, provider_def: dict | None = None, can_remove: bool = True, parent=None):
         super().__init__(parent)
         self.name = name
-        self.setFixedHeight(30)
+        self._provider_def = provider_def or {}
+        self.setFixedHeight(32)
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.setCursor(Qt.PointingHandCursor)
 
         row = QHBoxLayout(self)
-        row.setContentsMargins(10, 0, 6 if can_remove else 10, 0)
+        row.setContentsMargins(8, 0, 6 if can_remove else 10, 0)
         row.setSpacing(5)
+
+        icon_text = str(self._provider_def.get("icon", name[:1]))
+        icon_color = self._provider_def.get("color", "#4da3ff")
+        icon_lbl = QLabel(icon_text)
+        icon_lbl.setFixedSize(18, 18)
+        icon_lbl.setAlignment(Qt.AlignCenter)
+        icon_lbl.setStyleSheet(
+            f"color: {icon_color}; font-size: 11px; font-weight: 700;"
+            f"background: #111315; border-radius: 4px; border: none;"
+        )
+        row.addWidget(icon_lbl)
 
         self.name_btn = QPushButton(name)
         self.name_btn.setCursor(Qt.PointingHandCursor)
         self.name_btn.setFlat(True)
+        self.name_btn.setToolTip(provider_card_meta(name, self._provider_def) if self._provider_def else name)
         self.name_btn.clicked.connect(lambda: self.switch_requested.emit(name))
         row.addWidget(self.name_btn)
 
@@ -260,12 +287,15 @@ class ProviderChip(QFrame):
         row.addWidget(self.cb)
 
         if can_remove:
-            rm = QPushButton("✕")
-            rm.setFixedSize(14, 14)
+            rm = QPushButton()
+            rm.setFixedSize(18, 18)
             rm.setCursor(Qt.PointingHandCursor)
+            rm.setToolTip(f"Remove {name}")
+            rm.setIcon(create_svg_icon('<path d="M18 6 6 18M6 6l12 12"/>', "#888888"))
+            rm.setIconSize(QSize(11, 11))
             rm.setStyleSheet(
-                "QPushButton{background:transparent;border:none;color:#555;font-size:9px;padding:0}"
-                "QPushButton:hover{color:#e4e4e7}"
+                "QPushButton{background:transparent;border:none;border-radius:9px;padding:0;}"
+                "QPushButton:hover{background:#3a1020;}"
             )
             rm.clicked.connect(lambda: self.remove_requested.emit(name))
             row.addWidget(rm)
@@ -279,7 +309,7 @@ class ProviderChip(QFrame):
             )
             self.name_btn.setStyleSheet(
                 "QPushButton{background:transparent;border:none;font-size:12px;"
-                "font-weight:600;color:#e4e4e7;padding:0 2px}"
+                "font-weight:bold;color:#e4e4e7;padding-left:2px;padding-right:2px;}"
             )
         else:
             self.setStyleSheet(
@@ -287,9 +317,65 @@ class ProviderChip(QFrame):
             )
             self.name_btn.setStyleSheet(
                 "QPushButton{background:transparent;border:none;font-size:12px;"
-                "color:#868e96;padding:0 2px}"
-                "QPushButton:hover{color:#cccccc}"
+                "color:#868e96;padding-left:2px;padding-right:2px;}"
+                "QPushButton:hover{color:#cccccc;}"
             )
+
+
+class ProviderDropdownRow(QFrame):
+    """Single provider row inside the add-provider popup."""
+    selected = Signal(str)
+
+    def __init__(self, name: str, provider_def: dict, is_enabled: bool, parent=None):
+        super().__init__(parent)
+        self._name = name
+        self.setCursor(Qt.PointingHandCursor)
+        self.setStyleSheet(
+            "ProviderDropdownRow{background:transparent;border:none;border-radius:6px}"
+            "ProviderDropdownRow:hover{background:#1a1d21}"
+        )
+
+        row = QHBoxLayout(self)
+        row.setContentsMargins(10, 8, 10, 8)
+        row.setSpacing(10)
+
+        icon = str(provider_def.get("icon", "•"))
+        accent = provider_def.get("color", "#4da3ff")
+        icon_lbl = QLabel(icon)
+        icon_lbl.setFixedSize(24, 24)
+        icon_lbl.setAlignment(Qt.AlignCenter)
+        icon_lbl.setStyleSheet(
+            f"color: {accent}; font-size: 13px; font-weight: 700;"
+            f"background: #1a1d21; border-radius: 6px; border: none;"
+        )
+        row.addWidget(icon_lbl)
+
+        text_col = QVBoxLayout()
+        text_col.setSpacing(1)
+        name_lbl = QLabel(provider_def.get("name", name))
+        name_lbl.setStyleSheet("color: #e4e4e7; font-size: 12px; font-weight: 600; border: none; background: transparent;")
+        text_col.addWidget(name_lbl)
+        meta_lbl = QLabel(provider_card_meta(name, provider_def))
+        meta_lbl.setStyleSheet("color: #6b7280; font-size: 10px; border: none; background: transparent;")
+        text_col.addWidget(meta_lbl)
+        row.addLayout(text_col, stretch=1)
+
+        key_status = provider_key_status(name, provider_def)
+        dot_color = "#22c55e" if is_enabled else "#555"
+        status_lbl = QLabel("On" if is_enabled else "Off")
+        status_lbl.setStyleSheet(
+            f"color: {dot_color}; font-size: 10px; font-weight: 600;"
+            f"background: #111315; border: 1px solid #2c2e33; border-radius: 5px; padding: 2px 6px;"
+        )
+        status_lbl.setToolTip(key_status)
+        row.addWidget(status_lbl)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.selected.emit(self._name)
+            event.accept()
+        else:
+            super().mousePressEvent(event)
 
 
 class ProviderDropdownPopup(QFrame):
@@ -366,20 +452,12 @@ class ProviderDropdownPopup(QFrame):
             self._list_vbox.addWidget(empty)
             return
 
+        from dardcor_agent.models.providers.registry import PROVIDER_REGISTRY as _PR
         for name, is_enabled in items:
-            dot_color = "#22c55e" if is_enabled else "#555"
-            dot = "●" if is_enabled else "○"
-            btn = QPushButton(f"  {dot}   {name}")
-            btn.setCursor(Qt.PointingHandCursor)
-            btn.setStyleSheet(
-                f"QPushButton{{background:transparent;border:none;text-align:left;"
-                f"color:#c1c2c5;font-size:12px;padding:7px 10px;border-radius:5px}}"
-                f"QPushButton:hover{{background:#1a1d21;color:#e4e4e7}}"
-            )
-            # tint the dot part
-            btn.setToolTip("Enabled" if is_enabled else "Disabled")
-            btn.clicked.connect(lambda _=False, n=name: self._select(n))
-            self._list_vbox.addWidget(btn)
+            pdef = _PR.get(name, {})
+            row = ProviderDropdownRow(name, pdef, is_enabled)
+            row.selected.connect(self._select)
+            self._list_vbox.addWidget(row)
 
         self._list_vbox.addStretch()
 
@@ -402,6 +480,640 @@ class ProviderDropdownPopup(QFrame):
         self.move(x, y)
         self.show()
         self._search.setFocus()
+
+
+class RegistryModelRow(QFrame):
+    """Single model row for registry-backed provider panels."""
+
+    def __init__(self, model: dict, accent: str = MODELS_ACCENT, parent=None):
+        super().__init__(parent)
+        self.setFixedHeight(56)
+        self.setStyleSheet(
+            "RegistryModelRow { background: transparent; border-bottom: 1px solid #1e1e20; }"
+            "RegistryModelRow:hover { background: #0f0a18; }"
+        )
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(16, 8, 16, 8)
+        layout.setSpacing(12)
+
+        info = QVBoxLayout()
+        info.setSpacing(2)
+        name_lbl = QLabel(model.get("display") or model.get("id", ""))
+        name_lbl.setStyleSheet(
+            "color: #e4e4e7; font-size: 13px; font-weight: 600; background: transparent; border: none;"
+        )
+        info.addWidget(name_lbl)
+
+        desc = model.get("description", "")
+        meta_text = desc if desc else model.get("id", "")
+        meta_lbl = QLabel(meta_text)
+        meta_lbl.setStyleSheet(
+            "color: #6b7280; font-size: 11px; background: transparent; border: none;"
+        )
+        meta_lbl.setWordWrap(True)
+        info.addWidget(meta_lbl)
+        layout.addLayout(info, stretch=1)
+
+        badge_text = model.get("id", "")
+        if model.get("free"):
+            badge_text = f"{badge_text} · Free"
+        badge = QLabel(badge_text)
+        badge.setStyleSheet(
+            f"color: {accent}; font-size: 10px; font-family: monospace;"
+            f"background: #140a24; border: 1px solid #3c0068; border-radius: 4px; padding: 2px 6px;"
+        )
+        layout.addWidget(badge)
+
+
+class ModelListPagination(QWidget):
+    """◀ 1 2 3 ▶ pagination bar for provider model lists."""
+
+    page_changed = Signal(int)
+
+    def __init__(self, accent: str = MODELS_ACCENT, parent=None):
+        super().__init__(parent)
+        self._accent = accent
+        self._current_page = 1
+        self._total_pages = 1
+        self._layout = QHBoxLayout(self)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setSpacing(4)
+        self._layout.addStretch()
+
+    def update_pages(self, current_page: int, total_pages: int) -> None:
+        self._current_page = max(1, current_page)
+        self._total_pages = max(1, total_pages)
+        self._rebuild()
+
+    def _rebuild(self) -> None:
+        while self._layout.count():
+            item = self._layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        if self._total_pages <= 1:
+            self._layout.addStretch()
+            return
+
+        def make_btn(text: str, page: int, *, is_nav: bool = False) -> QPushButton:
+            is_current = (not is_nav) and (page == self._current_page)
+            btn = QPushButton(text)
+            btn.setFixedSize(32, 32)
+            btn.setCursor(Qt.PointingHandCursor)
+            if is_current:
+                btn.setStyleSheet(
+                    f"QPushButton{{background:{self._accent};color:#fff;border:none;"
+                    "border-radius:6px;font-size:12px;font-weight:bold}"
+                )
+            elif is_nav:
+                btn.setStyleSheet(
+                    "QPushButton{background:#1a1d21;color:#c1c2c5;border:1px solid #2c2e33;"
+                    "border-radius:6px;font-size:13px;font-weight:bold;}"
+                    "QPushButton:hover{background:#2c2e33;color:#fff;}"
+                )
+            else:
+                btn.setStyleSheet(
+                    "QPushButton{background:#1a1d21;color:#c1c2c5;border:1px solid #2c2e33;"
+                    "border-radius:6px;font-size:12px}"
+                    "QPushButton:hover{background:#2c2e33;color:#fff}"
+                )
+            btn.clicked.connect(lambda _checked=False, pg=page: self.page_changed.emit(pg))
+            return btn
+
+        prev_page = max(1, self._current_page - 1)
+        self._layout.addWidget(make_btn("◀", prev_page, is_nav=True))
+
+        shown: set[int] = set()
+        for page in range(1, self._total_pages + 1):
+            if page == 1 or page == self._total_pages or abs(page - self._current_page) <= 2:
+                if page not in shown:
+                    self._layout.addWidget(make_btn(str(page), page))
+                    shown.add(page)
+            elif page - 1 in shown and page not in shown:
+                dot = QLabel("…")
+                dot.setStyleSheet("color:#555;padding:0 4px;font-size:14px")
+                dot.setAlignment(Qt.AlignCenter)
+                self._layout.addWidget(dot)
+                shown.add(page)
+
+        next_page = min(self._total_pages, self._current_page + 1)
+        self._layout.addWidget(make_btn("▶", next_page, is_nav=True))
+        self._layout.addStretch()
+
+
+
+class RegistryModelFetchWorker(QThread):
+    finished = Signal(list, str)
+
+    def __init__(self, provider_name: str, provider_def: dict, api_key: str, parent=None):
+        super().__init__(parent)
+        self._provider_name = provider_name
+        self._provider_def = provider_def
+        self._api_key = api_key
+
+    def run(self) -> None:
+        models, error = fetch_remote_models(
+            self._provider_name,
+            self._provider_def,
+            api_key=self._api_key,
+        )
+        if models:
+            self.finished.emit(models, "")
+        else:
+            fallback = get_registry_models(self._provider_name, self._provider_def)
+            self.finished.emit(fallback, error)
+
+
+class OAuthLoginWorker(QThread):
+    finished = Signal(str, str)
+
+    def __init__(self, session, server, parent=None):
+        super().__init__(parent)
+        self._session = session
+        self._server = server
+
+    def run(self) -> None:
+        try:
+            from dardcor_agent.models.subscription_oauth import exchange_code_for_token
+
+            code = self._server.wait_for_code()
+            exchange_code_for_token(self._session, code)
+            self.finished.emit(self._session.provider, "")
+        except Exception as exc:
+            self.finished.emit(self._session.provider, str(exc))
+
+
+class RegistryModelsPanel(QWidget):
+    """Paginated model browser backed by PROVIDER_REGISTRY with auth controls."""
+
+    provider_selected = Signal(str)
+    config_saved = Signal(str)
+
+    def __init__(self, provider_name: str, parent=None):
+        super().__init__(parent)
+        self._provider_name = provider_name
+        self._current_page = 1
+        self._page_size = DEFAULT_MODELS_PAGE_SIZE
+        self._models: list[dict] = []
+        self._combo_block = False
+        self._auth_mode = "api_key"
+        self._fetch_worker = None
+        self._setup_ui()
+        self.set_provider(provider_name, reset_page=True)
+
+    def _setup_ui(self) -> None:
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
+
+        header = QFrame()
+        header.setStyleSheet("background:#0d0d0f;border-bottom:1px solid #1e1e20;")
+        header_layout = QVBoxLayout(header)
+        header_layout.setContentsMargins(24, 18, 24, 14)
+        header_layout.setSpacing(10)
+
+        controls = QHBoxLayout()
+        controls.setSpacing(10)
+
+        self._provider_combo = QComboBox()
+        self._provider_combo.setMinimumWidth(220)
+        self._provider_combo.setStyleSheet(
+            "QComboBox{background:#111315;color:#e4e4e7;border:1px solid #2c2e33;"
+            "border-radius:8px;padding:6px 10px;font-size:12px;}"
+            "QComboBox::drop-down{border:none;width:24px;}"
+            "QComboBox QAbstractItemView{background:#111315;color:#e4e4e7;"
+            "selection-background-color:#2a1040;border:1px solid #3c0068;}"
+        )
+        self._populate_provider_combo()
+        self._provider_combo.currentIndexChanged.connect(self._on_provider_combo_changed)
+        controls.addWidget(self._provider_combo, stretch=1)
+
+        self._refresh_btn = QPushButton("  Get Models")
+        self._refresh_btn.setCursor(Qt.PointingHandCursor)
+        self._refresh_btn.setFixedHeight(36)
+        self._refresh_btn.setStyleSheet(
+            f"QPushButton{{background:{MODELS_ACCENT};color:#fff;border:none;border-radius:8px;"
+            "font-size:12px;font-weight:bold;padding-left:14px;padding-right:14px;}"
+            "QPushButton:hover{background:#9333ea;}"
+        )
+        icon_refresh = create_svg_icon(
+            '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
+            "#ffffff",
+        )
+        self._refresh_btn.setIcon(icon_refresh)
+        self._refresh_btn.clicked.connect(self.refresh_models)
+        controls.addWidget(self._refresh_btn)
+        header_layout.addLayout(controls)
+
+        # ── Auth mode toggle (API Key / Login via Web) ──
+        auth_toggle = QHBoxLayout()
+        auth_toggle.setSpacing(6)
+        self._btn_mode_key = QPushButton("API Key")
+        self._btn_mode_web = QPushButton("Login via Web")
+        for b in (self._btn_mode_key, self._btn_mode_web):
+            b.setCursor(Qt.PointingHandCursor)
+            b.setFixedHeight(28)
+            b.setCheckable(True)
+        self._btn_mode_key.clicked.connect(lambda: self._set_auth_mode("api_key"))
+        self._btn_mode_web.clicked.connect(lambda: self._set_auth_mode("web"))
+        auth_toggle.addWidget(self._btn_mode_key)
+        auth_toggle.addWidget(self._btn_mode_web)
+        auth_toggle.addStretch()
+        header_layout.addLayout(auth_toggle)
+
+        # ── API key input row ──
+        self._key_row = QFrame()
+        self._key_row.setStyleSheet("QFrame{background:#111315;border:1px solid #2c2e33;border-radius:8px;}")
+        key_inner = QHBoxLayout(self._key_row)
+        key_inner.setContentsMargins(12, 0, 8, 0)
+        key_inner.setSpacing(8)
+        key_icon = QLabel("\U0001F511")
+        key_icon.setStyleSheet("background:transparent;border:none;font-size:13px;")
+        key_inner.addWidget(key_icon)
+        self._key_input = QLineEdit()
+        self._key_input.setPlaceholderText("Paste your API key…")
+        self._key_input.setEchoMode(QLineEdit.Password)
+        self._key_input.setFixedHeight(36)
+        self._key_input.setStyleSheet("QLineEdit{background:transparent;border:none;color:#e4e4e7;font-size:12px;font-family:monospace;}")
+        key_inner.addWidget(self._key_input, stretch=1)
+        self._show_key_btn = QPushButton("Show")
+        self._show_key_btn.setCursor(Qt.PointingHandCursor)
+        self._show_key_btn.setFixedHeight(28)
+        self._show_key_btn.setStyleSheet(
+            "QPushButton{background:transparent;border:none;color:#94a3b8;font-size:11px;padding-left:6px;padding-right:6px;}"
+            "QPushButton:hover{color:#e4e4e7;}"
+        )
+        self._show_key_btn.clicked.connect(self._toggle_key_visibility)
+        key_inner.addWidget(self._show_key_btn)
+        header_layout.addWidget(self._key_row)
+
+        # ── Base URL input row ──
+        self._url_row = QFrame()
+        self._url_row.setStyleSheet("QFrame{background:#111315;border:1px solid #2c2e33;border-radius:8px;}")
+        url_inner = QHBoxLayout(self._url_row)
+        url_inner.setContentsMargins(12, 0, 8, 0)
+        url_inner.setSpacing(8)
+        url_icon = QLabel("\U0001F310")
+        url_icon.setStyleSheet("background:transparent;border:none;font-size:13px;")
+        url_inner.addWidget(url_icon)
+        self._url_input = QLineEdit()
+        self._url_input.setPlaceholderText("https://api.example.com/v1")
+        self._url_input.setFixedHeight(36)
+        self._url_input.setStyleSheet("QLineEdit{background:transparent;border:none;color:#e4e4e7;font-size:12px;font-family:monospace;}")
+        url_inner.addWidget(self._url_input, stretch=1)
+        header_layout.addWidget(self._url_row)
+
+        # ── Action buttons: Save / Login ──
+        action_row = QHBoxLayout()
+        action_row.setSpacing(8)
+        self._save_cfg_btn = QPushButton("Save")
+        self._save_cfg_btn.setCursor(Qt.PointingHandCursor)
+        self._save_cfg_btn.setFixedHeight(32)
+        self._save_cfg_btn.setStyleSheet(
+            "QPushButton{background:#22c55e;color:#fff;border:none;border-radius:8px;"
+            "font-size:12px;font-weight:bold;padding-left:18px;padding-right:18px;}"
+            "QPushButton:hover{background:#16a34a;}"
+        )
+        self._save_cfg_btn.clicked.connect(self._save_provider_config)
+        action_row.addWidget(self._save_cfg_btn)
+
+        self._login_btn = QPushButton("Open Login Page")
+        self._login_btn.setCursor(Qt.PointingHandCursor)
+        self._login_btn.setFixedHeight(32)
+        self._login_btn.setStyleSheet(
+            f"QPushButton{{background:{MODELS_ACCENT};color:#fff;border:none;border-radius:8px;"
+            "font-size:12px;font-weight:bold;padding-left:18px;padding-right:18px;}"
+            "QPushButton:hover{background:#9333ea;}"
+        )
+        self._login_btn.clicked.connect(self._open_web_login)
+        action_row.addWidget(self._login_btn)
+        action_row.addStretch()
+        header_layout.addLayout(action_row)
+
+        self._meta_lbl = QLabel("")
+        self._meta_lbl.setStyleSheet("color:#6b7280;font-size:11px;border:none;background:transparent;")
+        header_layout.addWidget(self._meta_lbl)
+
+        self._status_lbl = QLabel("")
+        self._status_lbl.setStyleSheet("color:#94a3b8;font-size:11px;border:none;background:transparent;")
+        header_layout.addWidget(self._status_lbl)
+        root.addWidget(header)
+
+        list_header = QFrame()
+        list_header.setStyleSheet("background:#080808;border-bottom:1px solid #1e1e20;")
+        list_header.setFixedHeight(36)
+        list_h = QHBoxLayout(list_header)
+        list_h.setContentsMargins(16, 0, 16, 0)
+        list_h.addWidget(
+            QLabel("MODEL", styleSheet="color:#6b7280;font-size:11px;font-weight:bold;border:none;"),
+            stretch=1,
+        )
+        list_h.addWidget(
+            QLabel("MODEL ID", fixedWidth=240, styleSheet="color:#6b7280;font-size:11px;font-weight:bold;border:none;"),
+        )
+        root.addWidget(list_header)
+
+        self._scroll = QScrollArea()
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setStyleSheet(
+            "QScrollArea{border:none;background:#040406;}"
+            "QScrollBar:vertical{width:8px;background:transparent;}"
+            "QScrollBar::handle:vertical{background:#2c2e33;border-radius:4px;}"
+        )
+        self._list_container = QWidget()
+        self._list_container.setStyleSheet("background:#040406;")
+        self._list_layout = QVBoxLayout(self._list_container)
+        self._list_layout.setContentsMargins(0, 0, 0, 0)
+        self._list_layout.setSpacing(0)
+        self._scroll.setWidget(self._list_container)
+        root.addWidget(self._scroll, stretch=1)
+
+        footer = QFrame()
+        footer.setStyleSheet("background:#080808;border-top:1px solid #3c0068;")
+        footer.setFixedHeight(48)
+        footer_layout = QHBoxLayout(footer)
+        footer_layout.setContentsMargins(20, 0, 20, 0)
+        self._info_lbl = QLabel("")
+        self._info_lbl.setStyleSheet("color:#cccccc;font-size:12px;border:none;")
+        footer_layout.addWidget(self._info_lbl)
+        footer_layout.addStretch()
+        self._pagination = ModelListPagination(MODELS_ACCENT, self)
+        self._pagination.page_changed.connect(self._go_to_page)
+        footer_layout.addWidget(self._pagination)
+        root.addWidget(footer)
+
+    def _populate_provider_combo(self) -> None:
+        from dardcor_agent.models.providers.registry import PROVIDER_REGISTRY
+
+        self._combo_block = True
+        self._provider_combo.clear()
+        for key in sorted(PROVIDER_REGISTRY.keys(), key=lambda k: provider_display_name(k, PROVIDER_REGISTRY[k]).lower()):
+            if key == "Antigravity":
+                continue
+            pdef = PROVIDER_REGISTRY[key]
+            self._provider_combo.addItem(provider_display_name(key, pdef), key)
+        idx = self._provider_combo.findData(self._provider_name)
+        if idx >= 0:
+            self._provider_combo.setCurrentIndex(idx)
+        self._combo_block = False
+
+    def _provider_def(self) -> dict:
+        from dardcor_agent.models.providers.registry import PROVIDER_REGISTRY
+
+        return PROVIDER_REGISTRY.get(self._provider_name, {})
+
+    # ── Auth handling ─────────────────────────────────────────────────
+    def _mode_btn_style(self, active: bool) -> str:
+        if active:
+            return (
+                f"QPushButton{{background:{MODELS_ACCENT};color:#fff;border:none;border-radius:8px;"
+                "font-size:11px;font-weight:bold;padding-left:14px;padding-right:14px;}"
+            )
+        return (
+            "QPushButton{background:#141416;color:#94a3b8;border:1px solid #2c2e33;border-radius:8px;"
+            "font-size:11px;padding-left:14px;padding-right:14px;}"
+            "QPushButton:hover{color:#e4e4e7;}"
+        )
+
+    def _set_auth_mode(self, mode: str) -> None:
+        pdef = self._provider_def()
+        if mode == "web" and not pdef.get("supports_web_login"):
+            mode = "api_key"
+        self._auth_mode = mode
+        self._btn_mode_key.setChecked(mode == "api_key")
+        self._btn_mode_web.setChecked(mode == "web")
+        self._btn_mode_key.setStyleSheet(self._mode_btn_style(mode == "api_key"))
+        self._btn_mode_web.setStyleSheet(self._mode_btn_style(mode == "web"))
+        is_key = mode == "api_key"
+        self._key_row.setVisible(is_key)
+        self._save_cfg_btn.setVisible(is_key)
+        self._login_btn.setVisible(mode == "web")
+
+    def _toggle_key_visibility(self) -> None:
+        if self._key_input.echoMode() == QLineEdit.Password:
+            self._key_input.setEchoMode(QLineEdit.Normal)
+            self._show_key_btn.setText("Hide")
+        else:
+            self._key_input.setEchoMode(QLineEdit.Password)
+            self._show_key_btn.setText("Show")
+
+    def _load_auth_for_provider(self) -> None:
+        pdef = self._provider_def()
+        cfg = load_registry_provider_config(self._provider_name)
+        self._key_input.setText(cfg.get("api_key", ""))
+        saved_base_url = cfg.get("base_url", "")
+        if self._provider_name == "MiMo" and "opencode.ai" in saved_base_url:
+            saved_base_url = ""
+        self._url_input.setText(saved_base_url or pdef.get("base_url", ""))
+        supports_web = bool(pdef.get("supports_web_login"))
+        self._btn_mode_web.setVisible(supports_web)
+        saved_mode = cfg.get("auth_mode", "api_key")
+        if saved_mode == "web" and not supports_web:
+            saved_mode = "api_key"
+        self._set_auth_mode(saved_mode)
+
+    def _save_provider_config(self) -> None:
+        cfg = load_registry_provider_config(self._provider_name)
+        cfg["api_key"] = self._key_input.text().strip()
+        cfg["base_url"] = self._url_input.text().strip() or self._provider_def().get("base_url", "")
+        cfg["auth_mode"] = self._auth_mode
+        save_registry_provider_config(self._provider_name, cfg)
+        self._status_lbl.setText("Saved. API key stored locally.")
+        self._status_lbl.setStyleSheet("color:#22c55e;font-size:11px;border:none;background:transparent;")
+        self.config_saved.emit(self._provider_name)
+
+    def _open_web_login(self) -> None:
+        from PySide6.QtGui import QDesktopServices
+        from PySide6.QtCore import QUrl
+
+        pdef = self._provider_def()
+        oauth_provider = pdef.get("oauth_provider")
+        if oauth_provider:
+            try:
+                from dardcor_agent.models.subscription_oauth import OAuthCallbackServer, build_oauth_session
+
+                session = build_oauth_session(str(oauth_provider))
+                server = OAuthCallbackServer(session)
+                server.start()
+                self._oauth_worker = OAuthLoginWorker(session, server, self)
+                self._oauth_worker.finished.connect(self._oauth_login_finished)
+                self._oauth_worker.start()
+                QDesktopServices.openUrl(QUrl(session.auth_url))
+                self._status_lbl.setText("Browser login opened. Complete OAuth, then return here.")
+                self._status_lbl.setStyleSheet("color:#a855f7;font-size:11px;border:none;background:transparent;")
+            except Exception as exc:
+                QMessageBox.warning(self, "OAuth login failed", str(exc))
+                self._status_lbl.setText("OAuth login could not start.")
+                self._status_lbl.setStyleSheet("color:#ef4444;font-size:11px;border:none;background:transparent;")
+            return
+
+        url = pdef.get("auth_url") or pdef.get("base_url")
+        if url:
+            if url.startswith("http://127.0.0.1") or url.startswith("http://localhost"):
+                try:
+                    with urllib.request.urlopen(url, timeout=1):
+                        pass
+                except urllib.error.HTTPError:
+                    pass
+                except Exception:
+                    help_text = pdef.get("auth_help") or "Start the local auth server first, then retry."
+                    QMessageBox.information(
+                        self,
+                        "Local login not running",
+                        f"{help_text}\n\nOAuth code/OTP URLs are generated per login and cannot be hardcoded.",
+                    )
+                    self._status_lbl.setText("Local login server is not running.")
+                    self._status_lbl.setStyleSheet("color:#f59e0b;font-size:11px;border:none;background:transparent;")
+                    return
+            QDesktopServices.openUrl(QUrl(url))
+            self._status_lbl.setText("Opened login page in your browser.")
+            self._status_lbl.setStyleSheet("color:#a855f7;font-size:11px;border:none;background:transparent;")
+
+    def _oauth_login_finished(self, oauth_provider: str, error: str) -> None:
+        if error:
+            QMessageBox.warning(self, "OAuth login failed", error)
+            self._status_lbl.setText("OAuth login failed.")
+            self._status_lbl.setStyleSheet("color:#ef4444;font-size:11px;border:none;background:transparent;")
+            return
+        self._status_lbl.setText(f"{oauth_provider.title()} OAuth token saved locally.")
+        self._status_lbl.setStyleSheet("color:#22c55e;font-size:11px;border:none;background:transparent;")
+        self.config_saved.emit(self._provider_name)
+        dialog = self.window()
+        if hasattr(dialog, "_activate_provider_after_login"):
+            dialog._activate_provider_after_login(self._provider_name)
+
+    def _update_meta_label(self) -> None:
+        pdef = self._provider_def()
+        meta = provider_card_meta(self._provider_name, pdef)
+        key_status = provider_key_status(self._provider_name, pdef)
+        self._meta_lbl.setText(f"{meta} · {key_status}")
+
+    def set_provider(self, provider_name: str, *, reset_page: bool = True) -> None:
+        self._provider_name = provider_name
+        if reset_page:
+            self._current_page = 1
+        self._combo_block = True
+        idx = self._provider_combo.findData(provider_name)
+        if idx >= 0:
+            self._provider_combo.setCurrentIndex(idx)
+        self._combo_block = False
+        self._models = get_registry_models(provider_name, self._provider_def())
+        self._load_auth_for_provider()
+        self._update_meta_label()
+        self._render_models()
+
+    def refresh_models(self) -> None:
+        self._current_page = 1
+        pdef = self._provider_def()
+        api_key = self._key_input.text().strip()
+        if not api_key:
+            api_key = load_registry_provider_config(self._provider_name).get("api_key", "").strip()
+
+        if pdef.get("models_fetch_url"):
+            self._refresh_btn.setEnabled(False)
+            self._refresh_btn.setText("  Fetching…")
+            self._status_lbl.setText("Fetching latest models from provider API…")
+            self._status_lbl.setStyleSheet(
+                "color:#60a5fa;font-size:11px;border:none;background:transparent;"
+            )
+            self._fetch_worker = RegistryModelFetchWorker(
+                self._provider_name, pdef, api_key, self
+            )
+            self._fetch_worker.finished.connect(self._on_models_fetched)
+            self._fetch_worker.start()
+            return
+
+        self._models = get_registry_models(self._provider_name, pdef)
+        self._update_meta_label()
+        self._render_models()
+        count = len(self._models)
+        self._status_lbl.setText(f"Loaded {count} model{'s' if count != 1 else ''} from registry.")
+        self._status_lbl.setStyleSheet(
+            "color:#22c55e;font-size:11px;border:none;background:transparent;"
+        )
+
+    def _on_models_fetched(self, models: list, error: str) -> None:
+        self._refresh_btn.setEnabled(True)
+        self._refresh_btn.setText("  Get Models")
+        pdef = self._provider_def()
+        if models and len(models) > len(pdef.get("models", [])):
+            self._models = models
+            source = "API"
+        else:
+            self._models = get_registry_models(self._provider_name, pdef)
+            source = "registry"
+        self._update_meta_label()
+        self._render_models()
+        count = len(self._models)
+        if error and source == "registry":
+            self._status_lbl.setText(
+                f"Showing {count} registry models. Remote fetch: {error}"
+            )
+            self._status_lbl.setStyleSheet(
+                "color:#f59e0b;font-size:11px;border:none;background:transparent;"
+            )
+        else:
+            self._status_lbl.setText(
+                f"Loaded {count} model{'s' if count != 1 else ''} from {source}."
+            )
+            self._status_lbl.setStyleSheet(
+                "color:#22c55e;font-size:11px;border:none;background:transparent;"
+            )
+
+    def _on_provider_combo_changed(self, _index: int) -> None:
+        if self._combo_block:
+            return
+        provider_name = self._provider_combo.currentData()
+        if not provider_name or provider_name == self._provider_name:
+            return
+        self._provider_name = provider_name
+        self._current_page = 1
+        self._models = get_registry_models(provider_name, self._provider_def())
+        self._load_auth_for_provider()
+        self._update_meta_label()
+        self._render_models()
+        self.provider_selected.emit(provider_name)
+
+    def _go_to_page(self, page: int) -> None:
+        if page != self._current_page:
+            self._current_page = page
+            self._render_models()
+
+    def _render_models(self) -> None:
+        while self._list_layout.count():
+            item = self._list_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        page_models, total_pages, total = paginate_items(
+            self._models, self._current_page, self._page_size
+        )
+        if self._current_page > total_pages:
+            self._current_page = total_pages
+            page_models, total_pages, total = paginate_items(
+                self._models, self._current_page, self._page_size
+            )
+
+        accent = self._provider_def().get("color", MODELS_ACCENT)
+        if not page_models:
+            empty = QLabel("No models in registry for this provider.")
+            empty.setAlignment(Qt.AlignCenter)
+            empty.setStyleSheet("color:#6b7280;font-size:13px;padding:48px;")
+            self._list_layout.addWidget(empty)
+        else:
+            for model in page_models:
+                self._list_layout.addWidget(RegistryModelRow(model, accent=accent))
+
+        self._list_layout.addStretch()
+
+        if total == 0:
+            self._info_lbl.setText("Showing 0 models")
+        else:
+            start = (self._current_page - 1) * self._page_size + 1
+            end = min(self._current_page * self._page_size, total)
+            self._info_lbl.setText(f"Showing {start}–{end} of {total} models")
+        self._pagination.update_pages(self._current_page, total_pages)
 
 
 class FilterButton(QFrame):
@@ -440,14 +1152,13 @@ class FilterButton(QFrame):
         if event.button() == Qt.LeftButton:
             self.callback(self.text)
             event.accept()
-        self.finished_signal.emit(updated)
 
 class ModelsQuotaDialog(QDialog):
     """The main Dashboard Dialog acting as Antigravity Manager Accounts view."""
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Model Quotas")
+        self.setWindowTitle("Models Dashboard")
         
         # Make window responsive and smaller by default (like Dardcor Code)
         try:
@@ -488,7 +1199,7 @@ class ModelsQuotaDialog(QDialog):
         self.db = AntigravityDB(get_user_data_dir())
         
         # UI State
-        self.current_tab = "Antigravity"
+        self.current_tab = "Dardcor"
         self.current_filter = "All"
         self.viewMode = "list"
         self.searchQuery = ""
@@ -501,6 +1212,7 @@ class ModelsQuotaDialog(QDialog):
         self.totalFiltered = 0
         
         self._setup_ui()
+        self._switch_tab("Dardcor")
         self._load_data()
         
         # Realtime Auto-Update using QFileSystemWatcher
@@ -551,11 +1263,14 @@ class ModelsQuotaDialog(QDialog):
                     chip.set_current(name == tab_name)
         # Show/hide back button
         if hasattr(self, '_back_btn'):
-            self._back_btn.setVisible(tab_name != 'Antigravity')
+            self._back_btn.setVisible(tab_name not in ("Dardcor", "Antigravity"))
         if hasattr(self, 'content_stack'):
             panel_index = getattr(self, "provider_panel_indexes", {}).get(tab_name)
             if panel_index is not None:
                 self.content_stack.setCurrentIndex(panel_index)
+                panel_widget = self.content_stack.widget(panel_index)
+                if isinstance(panel_widget, RegistryModelsPanel):
+                    panel_widget.set_provider(tab_name, reset_page=True)
                 self.pyside_header.setVisible(False)
                 self.pyside_th.setVisible(False)
                 self.pyside_footer.setVisible(False)
@@ -573,6 +1288,35 @@ class ModelsQuotaDialog(QDialog):
 
     # ── Provider-bar helpers ────────────────────────────────────────────────
 
+    def _sync_oauth_provider_states(self):
+        try:
+            from dardcor_agent.models.providers.registry import PROVIDER_REGISTRY
+            from dardcor_agent.models.subscription_oauth import load_oauth_token
+        except Exception:
+            return
+        changed = False
+        for name, pdef in PROVIDER_REGISTRY.items():
+            oauth_provider = pdef.get("oauth_provider")
+            if not oauth_provider:
+                continue
+            has_token = bool(load_oauth_token(str(oauth_provider)).get("access_token"))
+            if self.provider_states.get(name, False) != has_token:
+                self.db.set_provider_active(name, has_token)
+                self.provider_states[name] = has_token
+                changed = True
+            if has_token and name not in self.pinned_providers:
+                self.pinned_providers.append(name)
+                changed = True
+        return changed
+
+    def _activate_provider_after_login(self, name: str):
+        self.db.set_provider_active(name, True)
+        self.provider_states[name] = True
+        if name not in self.pinned_providers:
+            self.pinned_providers.append(name)
+        self._rebuild_chips()
+        self._switch_tab(name)
+
     def _rebuild_chips(self):
         """Recreate all ProviderChip widgets from self.pinned_providers."""
         from dardcor_agent.models.providers.registry import PROVIDER_REGISTRY as _PR
@@ -586,11 +1330,13 @@ class ModelsQuotaDialog(QDialog):
 
         for name in self.pinned_providers:
             is_active = self.provider_states.get(name, False)
+            pdef = _PR.get(name, {})
             chip = ProviderChip(
                 name,
                 is_active=is_active,
                 is_current=(name == current),
-                can_remove=(name != 'Antigravity'),
+                provider_def=pdef,
+                can_remove=(name not in ("Dardcor", "Antigravity")),
             )
             chip.switch_requested.connect(self._switch_tab)
             chip.toggle_requested.connect(self._toggle_provider)
@@ -619,10 +1365,10 @@ class ModelsQuotaDialog(QDialog):
             self._switch_tab(name)
 
     def _unpin_provider(self, name: str):
-        if name in self.pinned_providers and name != 'Antigravity':
+        if name in self.pinned_providers and name not in ("Dardcor", "Antigravity"):
             self.pinned_providers.remove(name)
-            if getattr(self, 'current_tab', 'Antigravity') == name:
-                self._switch_tab('Antigravity')
+            if getattr(self, 'current_tab', 'Dardcor') == name:
+                self._switch_tab('Dardcor')
             else:
                 self._rebuild_chips()
 
@@ -642,7 +1388,7 @@ class ModelsQuotaDialog(QDialog):
         app_icon.setStyleSheet("color: #1c7ed6; font-size: 14px;")
         title_layout.addWidget(app_icon)
         
-        title_lbl = QLabel("  Model Quotas - Dardcor Code")
+        title_lbl = QLabel("  Models Dashboard - Dardcor Code")
         title_lbl.setStyleSheet("color: #cccccc; font-size: 12px; font-weight: 500;")
         title_layout.addWidget(title_lbl)
         title_layout.addStretch()
@@ -673,11 +1419,12 @@ class ModelsQuotaDialog(QDialog):
         self.provider_states = self.db.get_providers()
         self.tab_widgets = {}   # name -> ProviderChip
 
-        # Initially pin Antigravity + any already-enabled providers
-        self.pinned_providers: list = ["Antigravity"]
+        # Initially pin Dardcor + Antigravity + any already-enabled providers
+        self.pinned_providers: list = ["Dardcor", "Antigravity"]
         for _n in _PROV_REG.keys():
-            if _n != "Antigravity" and self.provider_states.get(_n, False):
+            if _n not in ("Dardcor", "Antigravity") and self.provider_states.get(_n, False):
                 self.pinned_providers.append(_n)
+        self._sync_oauth_provider_states()
 
         provider_bar = QFrame()
         provider_bar.setFixedHeight(50)
@@ -700,7 +1447,7 @@ class ModelsQuotaDialog(QDialog):
             "QPushButton:hover{background:#2c2e33}"
         )
         self._back_btn.setVisible(False)
-        self._back_btn.clicked.connect(lambda: self._switch_tab("Antigravity"))
+        self._back_btn.clicked.connect(lambda: self._switch_tab("Dardcor"))
         _bar_row.addWidget(self._back_btn)
 
         # Chips container — plain QWidget, no scroll area (avoids size-hint bugs)
@@ -827,7 +1574,13 @@ class ModelsQuotaDialog(QDialog):
         self.ref_btn.setIcon(icon_refresh)
         self.ref_btn.setCursor(Qt.PointingHandCursor)
         self.ref_btn.setFixedHeight(30)
-        self.ref_btn.setStyleSheet("background-color: #3b82f6; color: white; border: none; border-radius: 6px; padding: 0 10px; font-weight: bold; font-size: 11px;")
+        _action_btn_qss = (
+            "QPushButton {{ background-color: {bg}; color: white; border: none; "
+            "border-radius: 6px; padding-left: 10px; padding-right: 10px; "
+            "font-weight: bold; font-size: 11px; }}"
+            "QPushButton:hover {{ background-color: {hover}; }}"
+        )
+        self.ref_btn.setStyleSheet(_action_btn_qss.format(bg="#3b82f6", hover="#2563eb"))
         self.ref_btn.clicked.connect(self._on_refresh)
         layout_normal.addWidget(self.ref_btn)
         
@@ -836,7 +1589,7 @@ class ModelsQuotaDialog(QDialog):
         self.warm_btn.setIcon(icon_sparkles)
         self.warm_btn.setCursor(Qt.PointingHandCursor)
         self.warm_btn.setFixedHeight(30)
-        self.warm_btn.setStyleSheet("background-color: #f97316; color: white; border: none; border-radius: 6px; padding: 0 10px; font-weight: bold; font-size: 11px;")
+        self.warm_btn.setStyleSheet(_action_btn_qss.format(bg="#f97316", hover="#ea580c"))
         self.warm_btn.clicked.connect(self._on_warmup)
         layout_normal.addWidget(self.warm_btn)
         
@@ -879,7 +1632,7 @@ class ModelsQuotaDialog(QDialog):
         self.btn_batch_delete.setIcon(icon_trash)
         self.btn_batch_delete.setCursor(Qt.PointingHandCursor)
         self.btn_batch_delete.setFixedHeight(30)
-        self.btn_batch_delete.setStyleSheet("background-color: #ef4444; color: white; border: none; border-radius: 6px; padding: 0 10px; font-weight: bold; font-size: 11px;")
+        self.btn_batch_delete.setStyleSheet(_action_btn_qss.format(bg="#ef4444", hover="#dc2626"))
         self.btn_batch_delete.clicked.connect(self._on_batch_delete)
         layout_sel.addWidget(self.btn_batch_delete)
         
@@ -888,7 +1641,7 @@ class ModelsQuotaDialog(QDialog):
         self.btn_batch_disable.setIcon(icon_ban)
         self.btn_batch_disable.setCursor(Qt.PointingHandCursor)
         self.btn_batch_disable.setFixedHeight(30)
-        self.btn_batch_disable.setStyleSheet("background-color: #f97316; color: white; border: none; border-radius: 6px; padding: 0 10px; font-weight: bold; font-size: 11px;")
+        self.btn_batch_disable.setStyleSheet(_action_btn_qss.format(bg="#f97316", hover="#ea580c"))
         self.btn_batch_disable.clicked.connect(lambda: self.show_toast("Disabled accounts", "success"))
         layout_sel.addWidget(self.btn_batch_disable)
         
@@ -897,7 +1650,7 @@ class ModelsQuotaDialog(QDialog):
         self.btn_batch_enable.setIcon(icon_check)
         self.btn_batch_enable.setCursor(Qt.PointingHandCursor)
         self.btn_batch_enable.setFixedHeight(30)
-        self.btn_batch_enable.setStyleSheet("background-color: #22c55e; color: white; border: none; border-radius: 6px; padding: 0 10px; font-weight: bold; font-size: 11px;")
+        self.btn_batch_enable.setStyleSheet(_action_btn_qss.format(bg="#22c55e", hover="#16a34a"))
         self.btn_batch_enable.clicked.connect(lambda: self.show_toast("Enabled accounts", "success"))
         layout_sel.addWidget(self.btn_batch_enable)
         
@@ -906,7 +1659,7 @@ class ModelsQuotaDialog(QDialog):
         self.btn_batch_ref.setIcon(icon_batch_ref)
         self.btn_batch_ref.setCursor(Qt.PointingHandCursor)
         self.btn_batch_ref.setFixedHeight(30)
-        self.btn_batch_ref.setStyleSheet("background-color: #3b82f6; color: white; border: none; border-radius: 6px; padding: 0 10px; font-weight: bold; font-size: 11px;")
+        self.btn_batch_ref.setStyleSheet(_action_btn_qss.format(bg="#3b82f6", hover="#2563eb"))
         self.btn_batch_ref.clicked.connect(self._on_refresh)
         layout_sel.addWidget(self.btn_batch_ref)
         
@@ -914,7 +1667,7 @@ class ModelsQuotaDialog(QDialog):
         self.btn_batch_warm.setIcon(icon_sparkles)
         self.btn_batch_warm.setCursor(Qt.PointingHandCursor)
         self.btn_batch_warm.setFixedHeight(30)
-        self.btn_batch_warm.setStyleSheet("background-color: #f97316; color: white; border: none; border-radius: 6px; padding: 0 10px; font-weight: bold; font-size: 11px;")
+        self.btn_batch_warm.setStyleSheet(_action_btn_qss.format(bg="#f97316", hover="#ea580c"))
         self.btn_batch_warm.clicked.connect(self._on_warmup)
         layout_sel.addWidget(self.btn_batch_warm)
         
@@ -967,16 +1720,16 @@ class ModelsQuotaDialog(QDialog):
         
         self.provider_panel_indexes = {}
 
-        from dardcor_agent.models.providers.gemini.components import GeminiProviderPanel
-        self.gemini_panel = GeminiProviderPanel()
-        self.provider_panel_indexes["Gemini"] = self.content_stack.addWidget(self.gemini_panel)
+        from dardcor_agent.models.providers.dardcor.components import DardcorProviderPanel
+        self.dardcor_panel = DardcorProviderPanel()
+        self.provider_panel_indexes["Dardcor"] = self.content_stack.addWidget(self.dardcor_panel)
 
-        from dardcor_agent.models.providers.openai_compatible.components import OpenAICompatibleProviderPanel, PROVIDER_DEFINITIONS
         for _pname in _PROV_REG.keys():
-            if _pname in ("Antigravity", "Gemini"):
+            if _pname in ("Antigravity", "Dardcor"):
                 continue
-            if _pname in PROVIDER_DEFINITIONS and _pname not in self.provider_panel_indexes:
-                _panel = OpenAICompatibleProviderPanel(_pname)
+            if _pname not in self.provider_panel_indexes:
+                _panel = RegistryModelsPanel(_pname, self)
+                _panel.provider_selected.connect(self._switch_tab)
                 self.provider_panel_indexes[_pname] = self.content_stack.addWidget(_panel)
         
         main_layout.addWidget(self.content_stack, stretch=1)
@@ -1017,10 +1770,15 @@ class ModelsQuotaDialog(QDialog):
         self._load_data()
 
     def _update_view_toggle_styles(self):
-        active_style = "background-color: #1e1e1e; border: none; border-radius: 4px;"
-        inactive_style = "background-color: transparent; border: none; border-radius: 4px;"
-        self.btn_list.setStyleSheet(active_style if self.viewMode == "list" else inactive_style)
-        self.btn_grid.setStyleSheet(active_style if self.viewMode == "grid" else inactive_style)
+        def _toggle_btn_style(active: bool) -> str:
+            bg = "#1e1e1e" if active else "transparent"
+            return (
+                f"QPushButton {{ background-color: {bg}; border: none; border-radius: 4px; }}"
+                "QPushButton:hover { background-color: #2c2e33; }"
+            )
+
+        self.btn_list.setStyleSheet(_toggle_btn_style(self.viewMode == "list"))
+        self.btn_grid.setStyleSheet(_toggle_btn_style(self.viewMode == "grid"))
         # Re-apply colored icons
         col_active = "#4da3ff"
         col_inactive = "#868e96"
@@ -1266,13 +2024,13 @@ class ModelsQuotaDialog(QDialog):
             if is_cur:
                 b.setStyleSheet(
                     "QPushButton{background:#1c7ed6;color:#fff;border:none;"
-                    "border-radius:6px;font-size:12px;font-weight:600}"
+                    "border-radius:6px;font-size:12px;font-weight:bold;}"
                 )
             elif is_nav:
                 b.setStyleSheet(
                     "QPushButton{background:#1a1d21;color:#c1c2c5;border:1px solid #2c2e33;"
-                    "border-radius:6px;font-size:13px;font-weight:600}"
-                    "QPushButton:hover{background:#2c2e33;color:#fff}"
+                    "border-radius:6px;font-size:13px;font-weight:bold;}"
+                    "QPushButton:hover{background:#2c2e33;color:#fff;}"
                 )
             else:
                 b.setStyleSheet(

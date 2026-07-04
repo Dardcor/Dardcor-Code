@@ -76,6 +76,7 @@ class MonacoEditorWidget(QWidget):
         self._bridge.save_requested.connect(self.save_requested)
         self._bridge.command_palette_requested.connect(self.command_palette_requested)
         self._bridge.extension_command_requested.connect(self._on_extension_command)
+        self._bridge.open_with_live_server_requested.connect(self._open_with_live_server)
 
         self._view.loadFinished.connect(self._on_load_finished)
 
@@ -97,6 +98,7 @@ class MonacoEditorWidget(QWidget):
         if _GLOBAL_CUSTOM_THEME is not None:
             QTimer.singleShot(200, lambda: self.set_custom_theme(_GLOBAL_CUSTOM_THEME))
         QTimer.singleShot(250, self.refresh_extension_context_menu)
+        QTimer.singleShot(260, self.refresh_live_server_context_menu)
 
     def _apply_pending_content(self):
         import json
@@ -134,6 +136,8 @@ class MonacoEditorWidget(QWidget):
         if self._view_ready:
             self._apply_pending_content()
         self._bridge.set_file_path(file_path)
+        if self._view_ready:
+            QTimer.singleShot(300, self.refresh_live_server_context_menu)
         if self._lsp_client:
             QTimer.singleShot(300, self._run_lsp_diagnostics)
         elif self._file_path and self._file_path.endswith(".py"):
@@ -349,6 +353,23 @@ class MonacoEditorWidget(QWidget):
                 p._execute_command(command_id)
                 return
             p = p.parentWidget()
+
+    def _open_with_live_server(self, file_path: str):
+        win = self.window()
+        if win and hasattr(win, "_open_with_live_server"):
+            win._open_with_live_server(file_path)
+
+    def refresh_live_server_context_menu(self):
+        """Show built-in Open with Live Server when the open file is a frontend asset."""
+        if not self._view_ready:
+            return
+        try:
+            from ..remote.live_server import is_frontend_file
+            enabled = bool(self._file_path and is_frontend_file(self._file_path))
+        except Exception:
+            enabled = False
+        val = "true" if enabled else "false"
+        self._view.page().runJavaScript(f"setLiveServerContextMenu({val});")
 
     def refresh_extension_context_menu(self):
         """Push latest extension editor/context items into Monaco."""
