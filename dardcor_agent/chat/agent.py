@@ -21,6 +21,8 @@ if sys.platform == "win32":
 from pydardcor.core.config import get_config, AppConfig, get_user_data_dir
 from .memory import Conversation, ConversationStore, Message, CoreMemory, ArchivalMemory
 from .identity import get_identity_prompt
+from dardcor_agent.extensibility.hooks import HookRegistry
+from dardcor_agent.extensibility.rules import load_rules
 from pydardcor.core.commands import CommandExecutor, CommandResult
 from pydardcor.core.filesystem import FileSystem
 
@@ -462,6 +464,62 @@ TOOLS = [
             }
         }
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "git_status",
+            "description": "Show git working tree status for the workspace.",
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "git_diff",
+            "description": "Show git diff for unstaged and staged changes.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "Optional file or directory path"}
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "git_log",
+            "description": "Show recent git commits.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "limit": {"type": "integer", "description": "Number of commits to show, default 10"}
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "check_syntax",
+            "description": "Compile a Python file or package to catch syntax errors.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "File or directory path to check"}
+                },
+                "required": ["path"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "detect_project",
+            "description": "Detect project type, package manager, key config files, and likely test commands.",
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
 ]
 
 def _get_provider_url(provider: str, base_url: str) -> str:
@@ -485,7 +543,27 @@ class Agent:
     def _get_system_prompt(self, workspace_path: str = None) -> str:
         if workspace_path is None:
             workspace_path = self._config.workspace_path
-        return get_identity_prompt(self._core_memory.get_summary(), workspace_path)
+        prompt = get_identity_prompt(self._core_memory.get_summary(), workspace_path)
+        rules = load_rules(workspace_path or os.getcwd())
+        if rules:
+            prompt = f"{prompt}\n\n{rules}"
+        return prompt
+
+    def _hooks_config_path(self) -> str:
+        ws = self._config.workspace_path or os.getcwd()
+        return os.path.join(ws, ".dardcor", "hooks.json")
+
+    def _run_hooks(self, event: str, env: Optional[dict] = None) -> None:
+        registry = getattr(self, "_hook_registry", None)
+        if registry is None:
+            return
+        try:
+            merged = os.environ.copy()
+            if env:
+                merged.update({str(k): str(v) for k, v in env.items()})
+            registry.run(event, merged)
+        except Exception:
+            pass
 
     def __init__(self):
         self._config = get_config()
@@ -502,10 +580,13 @@ class Agent:
         self._lock = threading.Lock()
         self._abort_flag = False
         self._current_process = None
+        self._hook_registry = HookRegistry(self._hooks_config_path())
+        self._hook_registry.load()
 
         # Add system message with Core Memory
         sys_prompt = self._get_system_prompt()
         self._conversation.add_message("system", sys_prompt)
+        self._run_hooks("on_start")
 
     @property
     def config(self) -> AppConfig:
@@ -882,6 +963,21 @@ class Agent:
         return res
 
     def _execute_tool(self, name: str, args: dict, on_tool_call=None, on_tool_output=None, tool_id: str = "") -> str:
+        hook_env = {
+            "DARDCOR_TOOL_NAME": name,
+            "DARDCOR_TOOL_ARGS": json.dumps(args, ensure_ascii=False),
+        }
+        self._run_hooks("before_tool", hook_env)
+        try:
+            result = self._execute_tool_impl(name, args, on_tool_call, on_tool_output, tool_id)
+        except Exception as exc:
+            self._run_hooks("on_error", {**hook_env, "DARDCOR_ERROR": str(exc)})
+            raise
+        hook_env["DARDCOR_TOOL_RESULT"] = result[:2000] if isinstance(result, str) else str(result)[:2000]
+        self._run_hooks("after_tool", hook_env)
+        return result
+
+    def _execute_tool_impl(self, name: str, args: dict, on_tool_call=None, on_tool_output=None, tool_id: str = "") -> str:
         try:
             if name == "read_file":
                 path = args.get("path", "")
@@ -1664,6 +1760,60 @@ class Agent:
                 if not output_lines:
                     return "No matches found."
                 return "\n".join(output_lines[:500])
+
+            elif name in ("git_status", "git_diff", "git_log", "check_syntax"):
+                import subprocess as _subprocess2
+
+                workspace = self._config.workspace_path or os.getcwd()
+                if name == "git_status":
+                    cmd = ["git", "status", "--short"]
+                elif name == "git_diff":
+                    target = args.get("path", "")
+                    cmd = ["git", "diff", "--"] + ([target] if target else [])
+                elif name == "git_log":
+                    limit = str(int(args.get("limit", 10)))
+                    cmd = ["git", "log", f"-{limit}", "--oneline"]
+                else:
+                    target = args.get("path", "")
+                    if not target:
+                        return "Error: No path specified"
+                    if not os.path.isabs(target):
+                        target = os.path.join(workspace, target)
+                    cmd = [sys.executable, "-m", "py_compile", target] if os.path.isfile(target) else [sys.executable, "-m", "compileall", "-q", target]
+
+                proc = _subprocess2.run(
+                    cmd,
+                    cwd=workspace,
+                    text=True,
+                    stdout=_subprocess2.PIPE,
+                    stderr=_subprocess2.STDOUT,
+                    timeout=60,
+                )
+                output = proc.stdout.strip()
+                if proc.returncode != 0:
+                    output = (output + f"\n[exit code: {proc.returncode}]").strip()
+                return output or "(no output)"
+
+            elif name == "detect_project":
+                workspace = self._config.workspace_path or os.getcwd()
+                markers = {
+                    "package.json": "Node/JavaScript",
+                    "pyproject.toml": "Python",
+                    "requirements.txt": "Python",
+                    "Cargo.toml": "Rust",
+                    "go.mod": "Go",
+                    "pom.xml": "Java/Maven",
+                    "build.gradle": "Java/Gradle",
+                }
+                found = [f"{fname}: {kind}" for fname, kind in markers.items() if os.path.exists(os.path.join(workspace, fname))]
+                tests = []
+                if os.path.exists(os.path.join(workspace, "pytest.ini")) or os.path.isdir(os.path.join(workspace, "tests")):
+                    tests.append(f"{sys.executable} -m unittest discover -s tests")
+                if os.path.exists(os.path.join(workspace, "package.json")):
+                    tests.append("npm test")
+                if not found:
+                    return "No common project markers found."
+                return "Project markers:\n" + "\n".join(found) + ("\nLikely tests:\n" + "\n".join(tests) if tests else "")
 
             elif name == "apply_patch":
                 patch_text = args.get("patch", "")

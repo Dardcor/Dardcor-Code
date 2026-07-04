@@ -47,16 +47,14 @@ body {
 
 /* ── Context Menu ── */
 .context-menu {
-    position: absolute;
-    top: 30px;
-    right: 8px;
+    position: fixed;
     background-color: var(--menu-bg);
     border: 1px solid var(--menu-border);
     border-radius: 4px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.3);
     z-index: 1000;
     padding: 4px 0;
-    min-width: 150px;
+    min-width: 180px;
 }
 .menu-item {
     display: flex;
@@ -67,8 +65,13 @@ body {
     color: var(--text-main);
 }
 .menu-item:hover {
-    background-color: #094771;
+    background-color: #400080;
     color: white;
+}
+#topContextMenu {
+    position: absolute;
+    top: 30px;
+    right: 8px;
 }
 .menu-check {
     width: 20px;

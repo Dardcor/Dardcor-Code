@@ -3,10 +3,10 @@
 import threading
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTreeWidget,
-    QTreeWidgetItem, QPushButton, QComboBox, QScrollArea, QFrame
+    QTreeWidgetItem, QPushButton, QComboBox, QScrollArea
 )
-from PySide6.QtCore import Signal, Qt
-from PySide6.QtGui import QColor, QFont
+from PySide6.QtCore import Signal
+from PySide6.QtGui import QColor
 
 
 class DebugPanel(QWidget):
@@ -21,7 +21,24 @@ class DebugPanel(QWidget):
     def set_dap_client(self, client):
         self._dap_client = client
         if client:
-            client.on_event(self._on_dap_event)
+            previous = getattr(client, "_event_handler", None)
+
+            def _chained_handler(event_name, body):
+                if previous and previous is not _chained_handler:
+                    previous(event_name, body)
+                self._on_dap_event(event_name, body)
+
+            client.on_event(_chained_handler)
+
+    def set_config_names(self, names: list):
+        self._config_combo.clear()
+        if names:
+            self._config_combo.addItems(names)
+        else:
+            self._config_combo.addItem("Python: Current File")
+
+    def get_selected_config_name(self) -> str:
+        return self._config_combo.currentText()
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
@@ -30,7 +47,7 @@ class DebugPanel(QWidget):
 
         header = QWidget()
         header.setFixedHeight(35)
-        header.setStyleSheet("background-color: #000000; border-bottom: 1px solid #1a0033;")
+        header.setStyleSheet("background-color: #000000; border-bottom: 1px solid #2b2b2b;")
         h_lay = QHBoxLayout(header)
         h_lay.setContentsMargins(20, 0, 8, 0)
 
@@ -46,16 +63,24 @@ class DebugPanel(QWidget):
         rb_lay = QHBoxLayout(run_bar)
         rb_lay.setContentsMargins(10, 4, 10, 4)
 
-        btn_style = "QPushButton { background: transparent; color: #89d185; font-size: 14px; border: none; } QPushButton:hover { background: #2c004a; border-radius: 3px; }"
-        stop_style = "QPushButton { background: transparent; color: #f14c4c; font-size: 14px; border: none; } QPushButton:hover { background: #2c004a; border-radius: 3px; }"
-        step_style = "QPushButton { background: transparent; color: #cccccc; font-size: 12px; border: none; padding: 2px 6px; } QPushButton:hover { background: #2c004a; border-radius: 3px; }"
+        btn_style = "QPushButton { background: #1a0033; color: #89d185; font-size: 13px; border: 1px solid #3c0068; border-radius: 3px; } QPushButton:hover { background: #2c004a; } QPushButton:disabled { color: #555555; border-color: #1a0033; }"
+        stop_style = "QPushButton { background: transparent; color: #f14c4c; font-size: 13px; border: none; } QPushButton:hover { background: #1a0033; border-radius: 3px; } QPushButton:disabled { color: #555555; }"
+        step_style = "QPushButton { background: transparent; color: #cccccc; font-size: 11px; border: none; padding: 2px 5px; } QPushButton:hover { background: #1a0033; border-radius: 3px; } QPushButton:disabled { color: #555555; }"
 
-        self._start_btn = QPushButton("\u25b6")
-        self._start_btn.setFixedSize(24, 24)
-        self._start_btn.setToolTip("Start Debugging (F5)")
+        self._start_btn = QPushButton("Run")
+        self._start_btn.setFixedHeight(24)
+        self._start_btn.setMinimumWidth(36)
+        self._start_btn.setToolTip("Run Current File")
         self._start_btn.setStyleSheet(btn_style)
-        self._start_btn.clicked.connect(self._on_start)
+        self._start_btn.clicked.connect(self._on_run)
         rb_lay.addWidget(self._start_btn)
+
+        self._debug_btn = QPushButton("Dbg")
+        self._debug_btn.setFixedSize(30, 24)
+        self._debug_btn.setToolTip("Start Debugging (F5)")
+        self._debug_btn.setStyleSheet(btn_style)
+        self._debug_btn.clicked.connect(self._on_start)
+        rb_lay.addWidget(self._debug_btn)
 
         self._stop_btn = QPushButton("\u25a0")
         self._stop_btn.setFixedSize(24, 24)
@@ -99,7 +124,7 @@ class DebugPanel(QWidget):
 
         self._config_combo = QComboBox()
         self._config_combo.addItems(["Python: Current File", "Python: Module"])
-        self._config_combo.setStyleSheet("QComboBox { background: #1a0033; color: #cccccc; border: 1px solid #3c0068; padding: 2px 6px; font-size: 12px; }")
+        self._config_combo.setStyleSheet("QComboBox { background: #0a0a0a; color: #cccccc; border: 1px solid #333333; padding: 2px 6px; font-size: 12px; }")
         rb_lay.addWidget(self._config_combo)
 
         self._status_label = QLabel("")
@@ -138,7 +163,7 @@ class DebugPanel(QWidget):
         tree = QTreeWidget()
         tree.setHeaderHidden(True)
         tree.setRootIsDecorated(True)
-        tree.setStyleSheet("QTreeWidget { background-color: #000000; color: #cccccc; border: none; font-size: 12px; } QTreeWidget::item { padding: 2px; } QTreeWidget::item:selected { background-color: #2c004a; }")
+        tree.setStyleSheet("QTreeWidget { background-color: #000000; color: #cccccc; border: none; font-size: 12px; } QTreeWidget::item { padding: 2px; } QTreeWidget::item:selected { background-color: #04395e; }")
 
         header = QTreeWidgetItem([title])
         header.setForeground(0, QColor("#bbbbbb"))
@@ -164,9 +189,14 @@ class DebugPanel(QWidget):
         self._step_over_btn.setEnabled(active)
         self._step_in_btn.setEnabled(active)
         self._step_out_btn.setEnabled(active)
-        self._start_btn.setEnabled(not active)
+        self._debug_btn.setEnabled(not active)
+
+    def _on_run(self):
+        self.run_requested.emit()
 
     def _on_start(self):
+        self._set_debug_buttons(True)
+        self._status_label.setText("Starting...")
         self.debug_requested.emit()
 
     def _on_stop(self):

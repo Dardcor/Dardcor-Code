@@ -7,6 +7,15 @@ def main():
     print(" Building Dardcor Code with PyInstaller ")
     print("========================================")
 
+    # Auto-create the global user directory (~/.dardcor-code) at build time
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from pydardcor.core.config import ensure_user_dirs
+        home = ensure_user_dirs()
+        print(f"[OK] Global user directory ready: {home}")
+    except Exception as e:
+        print(f"[WARN] Could not create user directory: {e}")
+
     try:
         import PyInstaller
         print(f"[OK] PyInstaller {PyInstaller.__version__} found.")

@@ -135,7 +135,7 @@ class DAPClient:
             "supportsInvalidatedEvent": True,
         }, timeout=15.0)
         if resp and resp.get("success"):
-            self._send_message("event", "initialized")
+            self._send_message("request", "configurationDone")
             return True
         return False
 
@@ -235,34 +235,26 @@ class DAPManager:
 
     def start_python_debug(self, config: Dict[str, Any]) -> Optional[DAPClient]:
         import shutil
-        debugpy_path = None
-        try:
-            import debugpy
-            debugpy_path = debugpy.__file__
-        except ImportError:
-            pass
+        import sys
 
-        if not debugpy_path:
-            python_path = shutil.which("python") or shutil.which("python3")
-            if python_path:
-                cmd = [python_path, "-m", "debugpy", "--listen", "5678", "--wait-for-client"]
-            else:
-                return None
-        else:
-            cmd = ["python", "-m", "debugpy", "--listen", "5678", "--wait-for-client"]
+        python_path = shutil.which("python") or shutil.which("python3") or sys.executable
+        if not python_path:
+            return None
 
-        file_path = config.get("program", "")
-        if file_path:
-            cmd.append(file_path)
+        cmd = [python_path, "-m", "debugpy.adapter"]
+        launch_config = dict(config)
+        program = launch_config.get("program", "")
+        if program and not launch_config.get("cwd"):
+            launch_config["cwd"] = self._workspace_path or os.path.dirname(program)
 
         client = DAPClient("python", cmd, self._workspace_path)
         if self._event_handler:
             client.on_event(self._event_handler)
 
-        if client.start() and client.initialize("debugpy"):
-            client.configuration_done()
+        if client.start() and client.initialize("debugpy") and client.launch(launch_config):
             self._sessions["python"] = client
             return client
+        client.disconnect()
         return None
 
     def start_node_debug(self, config: Dict[str, Any]) -> Optional[DAPClient]:

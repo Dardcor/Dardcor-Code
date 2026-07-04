@@ -18,18 +18,30 @@ class GitBridge(QObject):
         self._last_count = 0
         self._last_graph = None
         self._last_graph_json = "[]"
+        self._refresh_pending = False
         
         # Real-time update timer
         self._poll_timer = QTimer(self)
         self._poll_timer.setInterval(3000)
-        self._poll_timer.timeout.connect(self._auto_refresh)
+        self._poll_timer.timeout.connect(self.requestRefresh)
+        self._refresh_timer = QTimer(self)
+        self._refresh_timer.setSingleShot(True)
+        self._refresh_timer.setInterval(250)
+        self._refresh_timer.timeout.connect(self._auto_refresh)
         
     @Slot()
     def _auto_refresh(self):
+        self._refresh_pending = False
         if self._workspace:
             self.refreshData()
-            # Only refresh graph if panel is visible? For now just refresh both
             self.refreshGraph()
+
+    @Slot()
+    def requestRefresh(self):
+        if not self._workspace:
+            return
+        self._refresh_pending = True
+        self._refresh_timer.start()
         
     def set_app(self, app):
         """Reference to main window to trigger editor actions"""
@@ -41,8 +53,9 @@ class GitBridge(QObject):
             self._poll_timer.start()
         else:
             self._poll_timer.stop()
-        self.refreshData()
-        self.refreshGraph()
+            self._refresh_timer.stop()
+            self._refresh_pending = False
+        self.requestRefresh()
 
     def _run_git(self, args):
         if not self._workspace or not os.path.exists(os.path.join(self._workspace, ".git")):
@@ -61,9 +74,43 @@ class GitBridge(QObject):
                 timeout=5,
                 **kwargs
             )
-            return result.stdout
+            return result.stdout if result.returncode == 0 else result.stderr
         except Exception as e:
             print(f"Git execution error: {e}")
+            return ""
+
+    def _full_path(self, path):
+        return os.path.abspath(os.path.join(self._workspace, path))
+
+    def _read_worktree(self, path):
+        full = self._full_path(path)
+        try:
+            with open(full, encoding="utf-8", errors="replace") as handle:
+                return handle.read()
+        except OSError:
+            return ""
+
+    def _read_git_blob(self, spec):
+        if not self._workspace or not os.path.exists(os.path.join(self._workspace, ".git")):
+            return ""
+        try:
+            kwargs = {}
+            if os.name == "nt":
+                kwargs["creationflags"] = 0x08000000
+            result = subprocess.run(
+                ["git", "show", spec],
+                cwd=self._workspace,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=5,
+                **kwargs,
+            )
+            if result.returncode != 0:
+                return ""
+            return result.stdout
+        except Exception:
             return ""
 
     @Slot()
@@ -173,14 +220,53 @@ class GitBridge(QObject):
         if not message.strip():
             return
         self._run_git(["commit", "-m", message])
+        self.requestRefresh()
+
+    @Slot(str)
+    def stageFile(self, path):
+        self._run_git(["add", "--", path])
+        self.requestRefresh()
+
+    @Slot(str)
+    def unstageFile(self, path):
+        self._run_git(["restore", "--staged", "--", path])
+        self.requestRefresh()
+
+    @Slot(str)
+    def discardFile(self, path):
+        self._run_git(["restore", "--", path])
+        self.requestRefresh()
+
+    @Slot()
+    def stageAll(self):
+        self._run_git(["add", "-A"])
         self.refreshData()
-        self.refreshGraph()
+
+    @Slot()
+    def unstageAll(self):
+        self._run_git(["restore", "--staged", "."])
+        self.refreshData()
         
     @Slot(str)
     def openDiff(self, path):
+        if not self._app:
+            return
+        head = self._read_git_blob(f"HEAD:{path}")
+        modified = self._read_worktree(path)
+        self._app._open_diff_in_editor(self._full_path(path), head, modified)
+
+    @Slot(str)
+    def openStagedDiff(self, path):
+        if not self._app:
+            return
+        head = self._read_git_blob(f"HEAD:{path}")
+        staged = self._read_git_blob(f":{path}")
+        self._app._open_diff_in_editor(self._full_path(path), head, staged)
+
+    @Slot(str)
+    def openFile(self, path):
         if self._app:
-            # Need to call diff open requested on the main app
-            self._app._open_diff_in_editor(path, "Working Tree", "Current")
+            self._app._open_file_in_editor(self._full_path(path))
             
     @Slot(str)
     def openCommit(self, commit_hash):

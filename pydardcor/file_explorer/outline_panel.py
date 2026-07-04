@@ -1,11 +1,116 @@
 """Outline Panel - VS Code style outline view for current file."""
 
+import ast
+import os
+import re
+
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTreeWidget,
     QTreeWidgetItem, QPushButton, QSizePolicy
 )
 from PySide6.QtCore import Signal, Qt, QSize
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen
+
+
+def parse_outline_symbols(content: str, file_path: str = "") -> list:
+    """Parse enough symbols for editor outline across common text files."""
+    ext = os.path.splitext(file_path.lower())[1]
+    if ext == ".py":
+        return _parse_python_symbols(content)
+    if ext in {".js", ".jsx", ".ts", ".tsx"}:
+        return _parse_js_symbols(content)
+    if ext == ".vue":
+        return _parse_vue_symbols(content)
+    return _parse_text_symbols(content)
+
+
+def _parse_python_symbols(content: str) -> list:
+    try:
+        tree = ast.parse(content)
+    except SyntaxError:
+        return _parse_text_symbols(content)
+
+    symbols = []
+
+    def add_children(node, target):
+        for child in getattr(node, "body", []):
+            if isinstance(child, ast.ClassDef):
+                item = {"name": child.name, "type": "class", "line": child.lineno, "children": []}
+                target.append(item)
+                add_children(child, item["children"])
+            elif isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                item = {"name": child.name, "type": "function", "line": child.lineno, "children": []}
+                target.append(item)
+                add_children(child, item["children"])
+            elif isinstance(child, (ast.Assign, ast.AnnAssign)):
+                name = _python_assignment_name(child)
+                if name:
+                    target.append({"name": name, "type": "variable", "line": child.lineno, "children": []})
+
+    add_children(tree, symbols)
+    return symbols
+
+
+def _python_assignment_name(node) -> str:
+    if isinstance(node, ast.AnnAssign):
+        return node.target.id if isinstance(node.target, ast.Name) else ""
+    for target in getattr(node, "targets", []):
+        if isinstance(target, ast.Name):
+            return target.id
+    return ""
+
+
+def _parse_js_symbols(content: str) -> list:
+    patterns = [
+        (r"^\s*(?:export\s+default\s+|export\s+)?class\s+([A-Za-z_$][\w$]*)", "class"),
+        (r"^\s*(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)", "function"),
+        (r"^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?\([^=]*\)\s*=>", "function"),
+        (r"^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s+)?function\b", "function"),
+        (r"^\s*([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*\{", "method"),
+    ]
+    symbols = []
+    for line_no, line in enumerate(content.splitlines(), 1):
+        if line.lstrip().startswith("//"):
+            continue
+        for pattern, kind in patterns:
+            match = re.match(pattern, line)
+            if match:
+                symbols.append({"name": match.group(1), "type": kind, "line": line_no, "children": []})
+                break
+    return symbols or _parse_text_symbols(content)
+
+
+def _parse_vue_symbols(content: str) -> list:
+    symbols = []
+    template = re.search(r"<template\b[^>]*>(.*?)</template>", content, re.IGNORECASE | re.DOTALL)
+    if template:
+        start_line = content[:template.start(1)].count("\n")
+        for offset, line in enumerate(template.group(1).splitlines(), start_line + 1):
+            match = re.search(r"<([A-Z][\w.-]*)\b", line)
+            if match:
+                symbols.append({"name": match.group(1), "type": "class", "line": offset, "children": []})
+
+    for script in re.finditer(r"<script\b[^>]*>(.*?)</script>", content, re.IGNORECASE | re.DOTALL):
+        line_offset = content[:script.start(1)].count("\n")
+        for sym in _parse_js_symbols(script.group(1)):
+            entry = dict(sym)
+            entry["line"] = line_offset + sym["line"]
+            symbols.append(entry)
+    return symbols or _parse_text_symbols(content)
+
+
+def _parse_text_symbols(content: str) -> list:
+    symbols = []
+    for line_no, line in enumerate(content.splitlines(), 1):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        markdown = re.match(r"^(#{1,6})\s+(.+)$", stripped)
+        if markdown:
+            symbols.append({"name": markdown.group(2).strip(), "type": "section", "line": line_no, "children": []})
+        elif stripped.endswith(":") and len(stripped) <= 80:
+            symbols.append({"name": stripped[:-1].strip(), "type": "section", "line": line_no, "children": []})
+    return symbols[:100]
 
 
 class SectionHeaderButton(QPushButton):
@@ -29,7 +134,8 @@ class SectionHeaderButton(QPushButton):
             bg_color = colors.get("background", bg_color)
             fg_color = colors.get("foreground", fg_color)
             hover_color = colors.get("hover", hover_color)
-            border_color = colors.get("border", border_color)
+            # Use fixed purple for section borders
+            border_color = "#3c0068"
         except Exception:
             pass
 
@@ -166,6 +272,8 @@ class OutlinePanel(QWidget):
                     icon_text = "🅼 "
                 elif t == 'variable':
                     icon_text = "🆅 "
+                elif t == 'section':
+                    icon_text = "# "
                 
                 item.setText(0, f"{icon_text}{sym.get('name')}")
                 item.setData(0, Qt.UserRole, sym.get('line', 1))
@@ -182,29 +290,10 @@ class OutlinePanel(QWidget):
         self._tree.expandAll()
 
     def parse_and_set_symbols(self, file_path: str):
-        if not file_path.endswith('.py'):
-            self.set_symbols([])
-            return
-            
-        import ast
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
-            tree = ast.parse(content)
-            
-            symbols = []
-            for node in tree.body:
-                if isinstance(node, ast.ClassDef):
-                    class_sym = {'name': node.name, 'type': 'class', 'line': node.lineno, 'children': []}
-                    for subnode in node.body:
-                        if isinstance(subnode, ast.FunctionDef) or isinstance(subnode, ast.AsyncFunctionDef):
-                            class_sym['children'].append({
-                                'name': subnode.name, 'type': 'method', 'line': subnode.lineno, 'children': []
-                            })
-                    symbols.append(class_sym)
-                elif isinstance(node, ast.FunctionDef) or isinstance(node, ast.AsyncFunctionDef):
-                    symbols.append({'name': node.name, 'type': 'function', 'line': node.lineno, 'children': []})
-            self.set_symbols(symbols)
+            self.set_symbols(parse_outline_symbols(content, file_path))
         except Exception:
             self.set_symbols([])
 

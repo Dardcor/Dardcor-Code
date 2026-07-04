@@ -5,10 +5,11 @@ from datetime import datetime
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTextEdit,
     QPushButton, QLabel, QFrame, QScrollArea, QComboBox,
-    QStyledItemDelegate, QCompleter, QSizePolicy
+    QStyledItemDelegate, QCompleter, QSizePolicy, QMenu, QFileDialog,
+    QTextBrowser, QApplication,
 )
 from PySide6.QtCore import Signal, Qt, QTimer, QSize, QThread, QCoreApplication, QUrl
-from PySide6.QtGui import QColor, QTextCursor, QTextCharFormat, QFont, QKeyEvent, QIcon, QStandardItemModel, QStandardItem
+from PySide6.QtGui import QColor, QTextCursor, QTextCharFormat, QFont, QKeyEvent, QKeySequence, QIcon, QStandardItemModel, QStandardItem, QShortcut
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebChannel import QWebChannel
 import os
@@ -19,24 +20,44 @@ from pydardcor.core.antigravity_db import AntigravityDB
 from dardcor_agent.chat.web_bridge import WebBridge
 
 # ChatHistory has been replaced by QWebEngineView and sliced into dardcor_agent/chat/web/index.html
-    
 
+
+class ChatHistoryView(QTextBrowser):
+    """Read-only history pane with selectable text and link navigation."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setReadOnly(True)
+        self.setTextInteractionFlags(
+            Qt.TextSelectableByMouse
+            | Qt.TextSelectableByKeyboard
+            | Qt.LinksAccessibleByMouse
+            | Qt.LinksAccessibleByKeyboard
+        )
+        self.setFocusPolicy(Qt.StrongFocus)
+        self.viewport().setCursor(Qt.IBeamCursor)
 
 
 class UpwardComboBox(QComboBox):
     """ComboBox that opens its popup upward and constrains width to parent."""
-    
+
+    popup_requested = Signal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMaxVisibleItems(15)  # Limit popup height
-    
+        self._use_custom_popup = False
+
     def showPopup(self):
+        if self._use_custom_popup:
+            self.popup_requested.emit()
+            return
+        self._show_native_popup()
+
+    def _show_native_popup(self):
         # Get the popup view and its container window
         popup = self.view()
         popup_window = popup.window()
-        
-        # Make popup invisible during repositioning to prevent flicker
-        popup_window.setWindowOpacity(0)
         
         # Constrain popup width to match parent panel width (minus margins)
         parent_widget = self.parent()
@@ -45,9 +66,8 @@ class UpwardComboBox(QComboBox):
         else:
             max_width = 350
         popup.setFixedWidth(max(max_width, self.width()))
-        
         super().showPopup()
-        
+
         # Calculate position above the combo box
         global_pos = self.mapToGlobal(self.rect().topLeft())
         popup_height = popup_window.height()
@@ -80,9 +100,175 @@ class UpwardComboBox(QComboBox):
             pass
         
         popup_window.move(target_x, target_y)
+
+
+class _ModelSearchRow(QFrame):
+    """Single selectable model row: name (left) + provider (right)."""
+
+    picked = Signal(str)
+
+    def __init__(self, label: str, name: str, provider_label: str, is_free: bool,
+                 is_current: bool, parent=None):
+        super().__init__(parent)
+        self._label = label
+        self.setCursor(Qt.PointingHandCursor)
+        self.setFixedHeight(30)
+        bg = "#3c0068" if is_current else "transparent"
+        self.setStyleSheet(
+            f"_ModelSearchRow{{background:{bg};border:none;border-radius:5px;}}"
+            "_ModelSearchRow:hover{background:#2a2a2e;}"
+        )
+        row = QHBoxLayout(self)
+        row.setContentsMargins(10, 0, 10, 0)
+        row.setSpacing(8)
+
+        name_color = "#a855f7" if is_current else "#e4e4e7"
+        name_lbl = QLabel(name)
+        name_lbl.setStyleSheet(
+            f"color:{name_color};font-size:12px;border:none;background:transparent;"
+        )
+        row.addWidget(name_lbl)
+
+        if is_free:
+            free_lbl = QLabel("Free")
+            free_lbl.setStyleSheet(
+                "color:#22c55e;font-size:9px;border:1px solid #14532d;border-radius:3px;"
+                "padding:0 4px;background:transparent;"
+            )
+            row.addWidget(free_lbl)
+
+        row.addStretch()
+        prov_lbl = QLabel(provider_label)
+        prov_lbl.setStyleSheet(
+            "color:#6b7280;font-size:11px;border:none;background:transparent;"
+        )
+        row.addWidget(prov_lbl)
+
+    def mousePressEvent(self, event):
+        self.picked.emit(self._label)
+        super().mousePressEvent(event)
+
+
+class ModelSearchPopup(QFrame):
+    """Searchable popup listing every active model, grouped visually flat."""
+
+    picked = Signal(str)
+
+    def __init__(self, entries: list, current_label: str, min_width: int, parent=None):
+        super().__init__(parent, Qt.Popup | Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_StyledBackground, True)
+        self.setStyleSheet(
+            "QFrame{background:#161618;border:1px solid #3c0068;border-radius:10px;}"
+            "QScrollBar:vertical{width:2px;background:transparent;}"
+            "QScrollBar::handle:vertical{background:#3c0068;border-radius:1px;}"
+        )
+        self._entries = entries
+        self._current_label = current_label
+        self.setMinimumWidth(max(min_width, 260))
+        self.setMaximumWidth(max(min_width, 420))
+
+        vbox = QVBoxLayout(self)
+        vbox.setContentsMargins(8, 8, 2, 8)
+        vbox.setSpacing(6)
+
+        search_container = QWidget()
+        search_layout = QHBoxLayout(search_container)
+        search_layout.setContentsMargins(0, 0, 6, 0)
         
-        # Show popup after repositioning (no flicker)
-        popup_window.setWindowOpacity(1)
+        search_frame = QFrame()
+        search_frame.setStyleSheet(
+            "QFrame{background:#0e0e10;border:1px solid #3c0068;border-radius:7px;}"
+        )
+        sf_row = QHBoxLayout(search_frame)
+        sf_row.setContentsMargins(10, 2, 10, 2)
+        sf_row.setSpacing(6)
+        icon = QLabel("\u2315")
+        icon.setStyleSheet("color:#6b7280;font-size:14px;border:none;background:transparent;")
+        sf_row.addWidget(icon)
+        from PySide6.QtWidgets import QLineEdit
+        self._search = QLineEdit()
+        self._search.setPlaceholderText("Search models…")
+        self._search.setStyleSheet(
+            "QLineEdit{background:transparent;border:none;color:#e4e4e7;font-size:12px;}"
+        )
+        self._search.textChanged.connect(self._filter)
+        sf_row.addWidget(self._search)
+        
+        search_layout.addWidget(search_frame)
+        vbox.addWidget(search_container)
+
+        self._scroll = QScrollArea()
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self._scroll.setStyleSheet("QScrollArea{border:none;background:transparent;}")
+        self._scroll.setFixedHeight(320)
+        self._list_w = QWidget()
+        self._list_w.setStyleSheet("background:transparent;")
+        self._list_vbox = QVBoxLayout(self._list_w)
+        self._list_vbox.setContentsMargins(0, 0, 6, 0)
+        self._list_vbox.setSpacing(1)
+        self._scroll.setWidget(self._list_w)
+        vbox.addWidget(self._scroll)
+
+        self._build(entries)
+
+    def _build(self, entries: list):
+        while self._list_vbox.count():
+            item = self._list_vbox.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        if not entries:
+            empty = QLabel("No models found")
+            empty.setAlignment(Qt.AlignCenter)
+            empty.setStyleSheet("color:#555;font-size:12px;padding:16px;border:none;")
+            self._list_vbox.addWidget(empty)
+            return
+
+        for entry in entries:
+            row = _ModelSearchRow(
+                entry["label"],
+                entry["name"],
+                entry["provider_label"],
+                entry.get("free", False),
+                entry["label"] == self._current_label,
+            )
+            row.picked.connect(self._on_pick)
+            self._list_vbox.addWidget(row)
+        self._list_vbox.addStretch()
+
+    def _filter(self, text: str):
+        q = text.strip().lower()
+        if not q:
+            self._build(self._entries)
+            return
+        filtered = [
+            e for e in self._entries
+            if q in e["name"].lower() or q in e["provider_label"].lower()
+            or q in e["model_id"].lower()
+        ]
+        self._build(filtered)
+
+    def _on_pick(self, label: str):
+        self.picked.emit(label)
+        self.close()
+
+    def show_above(self, widget: QWidget):
+        self.adjustSize()
+        from PySide6.QtWidgets import QApplication
+        screen = QApplication.primaryScreen().availableGeometry()
+        top_left = widget.mapToGlobal(widget.rect().topLeft())
+        x = top_left.x()
+        y = top_left.y() - self.height() - 4
+        if y < screen.top() + 4:
+            y = screen.top() + 4
+        if x + self.width() > screen.right():
+            x = screen.right() - self.width() - 4
+        x = max(screen.left() + 4, x)
+        self.move(x, y)
+        self.show()
+        self._search.setFocus()
+
 
 class ChatPanel(QWidget):
     """VS Code Copilot Chat style panel."""
@@ -281,6 +467,9 @@ class ChatPanel(QWidget):
                 border: 1px solid #2c004a;
                 border-radius: 8px;
             }
+            QFrame:focus-within {
+                border-color: #a855f7;
+            }
         """)
         input_box_layout = QVBoxLayout(input_box)
         input_box_layout.setContentsMargins(0, 0, 0, 0)
@@ -329,17 +518,52 @@ class ChatPanel(QWidget):
 
         attach_btn = QPushButton()
         attach_btn.setIcon(QIcon(os.path.join(image_dir, "plus.svg")))
+        if attach_btn.icon().isNull():
+            attach_btn.setText("+")
         attach_btn.setIconSize(QSize(14, 14))
         attach_btn.setFixedSize(26, 26)
-        attach_btn.setToolTip("Upload File")
+        attach_btn.setToolTip("Add attachment")
         attach_btn.setStyleSheet("""
             QPushButton {
                 background: transparent; border: none;
                 border-radius: 13px;
             }
-            QPushButton:hover { background-color: #333333; }
+            QPushButton:hover { background-color: rgba(168, 85, 247, 0.15); }
         """)
-        attach_btn.clicked.connect(self.select_file_requested.emit)
+        self._attach_menu = QMenu(attach_btn)
+        self._attach_menu.setStyleSheet("""
+            QMenu {
+                background-color: #0a0a0a;
+                color: #e4e4e7;
+                border: 1px solid #2c004a;
+                border-radius: 6px;
+                padding: 4px;
+            }
+            QMenu::item {
+                padding: 6px 20px;
+                border-radius: 4px;
+            }
+            QMenu::item:selected {
+                background-color: rgba(168, 85, 247, 0.2);
+                color: #ffffff;
+            }
+        """)
+        self._attach_menu.addAction("Add File", self.select_file_requested.emit)
+        self._attach_menu.addAction("Add Folder", self._select_folder_attachment)
+        
+        self._attach_menu.addSeparator()
+        self._chat_mode = "Agent"
+        from PySide6.QtGui import QActionGroup
+        self._mode_action_group = QActionGroup(self)
+        for mode in ["Agent", "Plan", "Debug", "Multitask", "Ask"]:
+            action = self._attach_menu.addAction(mode)
+            action.setCheckable(True)
+            if mode == self._chat_mode:
+                action.setChecked(True)
+            self._mode_action_group.addAction(action)
+            action.triggered.connect(lambda checked, m=mode: self._set_chat_mode(m))
+            
+        attach_btn.clicked.connect(lambda: self._attach_menu.popup(attach_btn.mapToGlobal(attach_btn.rect().topLeft())))
         input_bottom_layout.addWidget(attach_btn)
         
         chevron_path = os.path.join(image_dir, "chevron-up.svg").replace("\\", "/")
@@ -424,6 +648,9 @@ class ChatPanel(QWidget):
         self.model_dropdown.setMinimumContentsLength(12)
         self.model_dropdown.setFixedHeight(26)
         self.model_dropdown.currentTextChanged.connect(self._on_model_changed)
+        self.model_dropdown._use_custom_popup = True
+        self.model_dropdown.popup_requested.connect(self._show_model_search_popup)
+        self._model_entries = []
         input_bottom_layout.addWidget(self.model_dropdown)
 
         self._mic_icon = QIcon(os.path.join(image_dir, "mic.svg"))
@@ -455,6 +682,9 @@ class ChatPanel(QWidget):
         input_box_layout.addWidget(input_bottom)
         input_layout.addWidget(input_box)
 
+        paste_shortcut = QShortcut(QKeySequence.Paste, self, activated=self._paste_to_input)
+        paste_shortcut.setContext(Qt.WidgetWithChildrenShortcut)
+
         # Disclaimer removed per user request
 
         layout.addWidget(input_container)
@@ -477,73 +707,121 @@ class ChatPanel(QWidget):
             pass
 
     def _provider_config_path(self, provider_name: str) -> str:
-        project_root = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-        return os.path.join(project_root, "database", "models", provider_name, "config.json")
+        from pydardcor.core.config import get_user_data_dir
+        return os.path.join(get_user_data_dir(), "database", "models", provider_name, "config.json")
 
     def _active_model_provider(self, providers: dict) -> str:
         for name in ["Gemini", "OpenRouter", "DeepSeek", "NVIDIA", "Antigravity"]:
             if providers.get(name, False):
                 return name
         return ""
+
+    def _set_chat_mode(self, mode: str):
+        self._chat_mode = mode
+
+    def get_chat_mode(self) -> str:
+        return getattr(self, "_chat_mode", "Agent")
+
+    def _copy_focused_text(self):
+        focused = QApplication.focusWidget()
+        if focused is self._input:
+            self._input.copy()
+            return
+        try:
+            from PySide6.QtWebEngineCore import QWebEnginePage
+            self._web_view.page().triggerAction(QWebEnginePage.WebAction.Copy)
+        except Exception:
+            pass
+
+    def _paste_to_input(self):
+        if QApplication.focusWidget() is not self._input:
+            self._input.setFocus()
+        self._input.paste()
+
+    def selected_model_id(self) -> str:
+        text = self.model_dropdown.currentText()
+        return getattr(self, "_label_to_model_id", {}).get(text, text)
+
+    def _select_folder_attachment(self):
+        folder_path = QFileDialog.getExistingDirectory(self, "Add Folder")
+        if folder_path:
+            self.files_pasted.emit([folder_path])
             
     def _on_model_changed(self, text: str):
         if not text or self._is_populating:
             return
 
+        model_id = getattr(self, "_label_to_model_id", {}).get(text, text)
         provider_name = getattr(self, "_model_to_provider", {}).get(text, "")
         if provider_name and provider_name != "Antigravity":
             try:
                 config_path = self._provider_config_path(provider_name)
+                data = {}
                 if os.path.exists(config_path):
                     with open(config_path, "r", encoding="utf-8") as f:
                         data = json.load(f)
-                    if data.get("selected_model") != text:
-                        data["selected_model"] = text
-                        with open(config_path, "w", encoding="utf-8") as f:
-                            json.dump(data, f, indent=4)
+                if data.get("selected_model") != model_id:
+                    data["selected_model"] = model_id
+                    os.makedirs(os.path.dirname(config_path), exist_ok=True)
+                    with open(config_path, "w", encoding="utf-8") as f:
+                        json.dump(data, f, indent=4)
             except Exception:
                 pass
 
+    def _show_model_search_popup(self):
+        entries = getattr(self, "_model_entries", [])
+        if not entries:
+            self.model_dropdown._show_native_popup()
+            return
+        current_label = self.model_dropdown.currentText()
+        popup = ModelSearchPopup(entries, current_label, self.model_dropdown.width(), self)
+        popup.picked.connect(self._on_model_search_picked)
+        popup.show_above(self.model_dropdown)
+        self._model_search_popup = popup
+
+    def _on_model_search_picked(self, label: str):
+        if self.model_dropdown.currentText() != label:
+            self.model_dropdown.setCurrentText(label)
+
     def _populate_models(self, providers: dict = None):
         from dardcor_agent.models.providers.registry import PROVIDER_REGISTRY
+        from dardcor_agent.models.provider_meta import get_registry_models
+
         providers = providers or self.db.get_providers()
         current_text = self.model_dropdown.currentText()
 
         model_to_provider = {}
+        label_to_model_id = {}
         all_display_items = []
+        model_entries = []
 
         for provider_name, pdef in PROVIDER_REGISTRY.items():
             if not providers.get(provider_name, False):
                 continue
 
-            provider_models = []
+            provider_label = pdef.get("name", provider_name)
+            id_to_model = {}
+
             if pdef.get("is_special"):
-                provider_models = [m["id"] for m in pdef.get("models", [])]
+                for m in pdef.get("models", []):
+                    mid = m.get("id", "")
+                    if mid:
+                        id_to_model[mid] = {"display": m.get("name", mid), "free": bool(m.get("free"))}
+                provider_models = list(id_to_model.keys())
             else:
-                try:
-                    config_path = self._provider_config_path(provider_name)
-                    if os.path.exists(config_path):
-                        with open(config_path, "r", encoding="utf-8") as f:
-                            data = json.load(f)
-                        for m in data.get("models", []):
-                            model_id = m.get("id")
-                            if model_id:
-                                provider_models.append(model_id)
-                        if not provider_models and data.get("selected_model"):
-                            provider_models.append(data.get("selected_model"))
-                except Exception:
-                    pass
-                # Show registry defaults when user enabled provider but hasn't fetched yet
-                if not provider_models:
-                    provider_models = [m["id"] for m in pdef.get("models", [])]
+                registry_models = get_registry_models(provider_name, pdef)
+                cached_models = get_registry_models(provider_name, pdef, prefer_cache=True)
+                merged: dict[str, dict] = {m["id"]: m for m in registry_models}
+                for m in cached_models:
+                    merged[m["id"]] = m
+                for m in merged.values():
+                    id_to_model[m["id"]] = {"display": m.get("display", m["id"]), "free": bool(m.get("free"))}
+                provider_models = list(merged.keys())
 
             if not provider_models:
                 continue
 
-            for m in provider_models:
-                model_to_provider[m] = provider_name
-
-            all_display_items.append(QStandardItem(f"── {provider_name} ──"))
+            all_display_items.append(QStandardItem(f"── {provider_label} ──"))
             all_display_items[-1].setEnabled(False)
             font = all_display_items[-1].font()
             font.setBold(True)
@@ -551,8 +829,25 @@ class ChatPanel(QWidget):
             all_display_items[-1].setForeground(QColor("#858585"))
 
             for model_id in provider_models:
-                item = QStandardItem(model_id)
-                all_display_items.append(item)
+                minfo = id_to_model.get(model_id, {"display": model_id, "free": False})
+                display = minfo["display"]
+                label = f"{display} — {provider_label}"
+                model_to_provider[label] = provider_name
+                # Same upstream model can appear under a native provider and a
+                # gateway. Prefix only the gateway selection so routing keeps
+                # provider/key/base_url distinct, then strip it before sending.
+                routed_model_id = f"opencode/{model_id}" if provider_name == "OpenCodeZen" else model_id
+                label_to_model_id[label] = routed_model_id
+                all_display_items.append(QStandardItem(label))
+                model_entries.append({
+                    "label": label,
+                    "name": display,
+                    "provider_label": provider_label,
+                    "model_id": routed_model_id,
+                    "free": minfo["free"],
+                })
+
+        self._model_entries = model_entries
 
         current_items = [self._dropdown_model.item(i).text() for i in range(self._dropdown_model.rowCount())]
         display_texts = [it.text() for it in all_display_items]
@@ -564,17 +859,31 @@ class ChatPanel(QWidget):
             self._is_populating = False
 
         self._model_to_provider = model_to_provider
+        self._label_to_model_id = label_to_model_id
+
         if current_text and current_text in model_to_provider:
             if self.model_dropdown.currentText() != current_text:
                 self._is_populating = True
                 self.model_dropdown.setCurrentText(current_text)
                 self._is_populating = False
         elif self._dropdown_model.rowCount() > 0:
+            preferred = None
+            try:
+                from pydardcor.core.config import get_config
+                preferred = get_config().default_model
+            except Exception:
+                preferred = "dardcor-flash-free"
             first_selectable = None
             for i in range(self._dropdown_model.rowCount()):
-                if self._dropdown_model.item(i).isEnabled():
-                    first_selectable = self._dropdown_model.item(i).text()
+                item = self._dropdown_model.item(i)
+                if not item.isEnabled():
+                    continue
+                label = item.text()
+                if preferred and label_to_model_id.get(label) == preferred:
+                    first_selectable = label
                     break
+                if first_selectable is None:
+                    first_selectable = label
             if first_selectable and self.model_dropdown.currentText() != first_selectable:
                 self._is_populating = True
                 self.model_dropdown.setCurrentText(first_selectable)
@@ -631,7 +940,7 @@ class ChatPanel(QWidget):
         icon_lbl.move(7, 8)
         icon_lbl.setStyleSheet("border: none; background: transparent;")
 
-        close_btn = QPushButton("✕", pill)
+        close_btn = QPushButton("x", pill)
         close_btn.setFixedSize(14, 14)
         close_btn.move(26, 1)
         close_btn.setStyleSheet("""
@@ -702,7 +1011,7 @@ class ChatPanel(QWidget):
         import os
         for path in attachments:
             filename = os.path.basename(path)
-            display_text += f"\\n📎 {filename}"
+            display_text += f"\\n[Attached] {filename}"
             try:
                 with open(path, "r", encoding="utf-8") as f:
                     content = f.read()
@@ -744,6 +1053,43 @@ class ChatPanel(QWidget):
 
         return base64.urlsafe_b64decode(text).decode("utf-8")
 
+    def _collapsible_block_token(self, block_id: int) -> str:
+        return f"@@COLLAPSIBLE_BLOCK_{block_id}@@"
+
+    def _render_history_html_content(self, entries: list) -> str:
+        """Render history entries with collapsible sections and action links."""
+        parts: list[str] = []
+        for entry in entries:
+            block_id = int(entry.get("block_id", self._next_block_id))
+            self._next_block_id = max(self._next_block_id, block_id + 1)
+            token = self._collapsible_block_token(block_id)
+            block = self._collapsible_blocks.setdefault(
+                block_id, {"expanded": bool(entry.get("expanded", False)), "body": entry.get("body", "")}
+            )
+            title = html.escape(str(entry.get("title", "Section")))
+            expand_icon = "[-]" if block["expanded"] else "[+]"
+            toggle_href = f"toggleblock:{block_id}"
+            body_text = block["body"] or ""
+            encoded = self._encode_action_text(body_text)
+            copy_href = f"copy_msg:{encoded}"
+            retry_href = f"retry_msg:{encoded}"
+            revert_href = f"revert_msg:{encoded}"
+            body_html = html.escape(body_text) if block["expanded"] else ""
+            if block["expanded"]:
+                body_section = f'<div class="history-block-body">{body_html}</div>'
+            else:
+                body_section = ""
+            parts.append(
+                f'<div class="history-block">{token}'
+                f'<a href="{toggle_href}">{expand_icon}</a> '
+                f'<span class="history-block-title">{title}</span> '
+                f'<a href="{copy_href}" title="Copy">&#x1F4CB;</a> '
+                f'<a href="{retry_href}">Retry</a> '
+                f'<a href="{revert_href}">Revert</a>'
+                f"{body_section}</div>"
+            )
+        return "\n".join(parts)
+
     def _append_user_message(self, text: str, retry_text: str = None):
         retry_text = retry_text or text
         self._web_bridge.append_user_message.emit(text, retry_text)
@@ -760,6 +1106,14 @@ class ChatPanel(QWidget):
                 text = base64.b64decode(payload).decode("utf-8")
                 QApplication.clipboard().setText(text)
             except Exception:
+                pass
+        elif action.startswith("toggleblock:"):
+            try:
+                block_id = int(action.split(":", 1)[1])
+                block = self._collapsible_blocks.get(block_id)
+                if block is not None:
+                    block["expanded"] = not block["expanded"]
+            except (ValueError, TypeError):
                 pass
 
     def _retry_message(self, payload: str):
@@ -876,36 +1230,36 @@ class ChatPanel(QWidget):
             if cmd == "/help":
                 html = (
                     "<div style='font-family: \"Segoe UI\", sans-serif; color: #d4d4d4; line-height: 1.4; font-size: 11px;'>"
-                    "  <h3 style='color: #c586c0; margin-top: 0; margin-bottom: 8px; border-bottom: 1px solid #3c0068; padding-bottom: 4px;'>💬 Perintah Slash Dardcor</h3>"
-                    "  <p style='color: #858585; margin-bottom: 12px;'>Ketik perintah berikut langsung di kolom chat untuk mendapatkan info cepat secara offline:</p>"
+                    "  <h3 style='color: #c586c0; margin-top: 0; margin-bottom: 8px; border-bottom: 1px solid #3c0068; padding-bottom: 4px;'>Dardcor Slash Commands</h3>"
+                    "  <p style='color: #858585; margin-bottom: 12px;'>Type these commands in chat for quick offline information:</p>"
                     "  <table style='width: 100%; border-collapse: collapse;'>"
                     "    <tr style='border-bottom: 1px solid #2c004a;'>"
-                    "      <th style='text-align: left; padding: 6px 4px; color: #4fc1ff; width: 30%;'>Perintah</th>"
-                    "      <th style='text-align: left; padding: 6px 4px; color: #4fc1ff;'>Deskripsi</th>"
+                    "      <th style='text-align: left; padding: 6px 4px; color: #4fc1ff; width: 30%;'>Command</th>"
+                    "      <th style='text-align: left; padding: 6px 4px; color: #4fc1ff;'>Description</th>"
                     "    </tr>"
                     "    <tr style='border-bottom: 1px solid #1a0033;'>"
                     "      <td style='padding: 6px 4px; font-weight: bold; color: #ce9178;'>/help</td>"
-                    "      <td style='padding: 6px 4px;'>Menampilkan panduan dan daftar perintah ini.</td>"
+                    "      <td style='padding: 6px 4px;'>Show this command guide.</td>"
                     "    </tr>"
                     "    <tr style='border-bottom: 1px solid #1a0033;'>"
                     "      <td style='padding: 6px 4px; font-weight: bold; color: #ce9178;'>/mcp</td>"
-                    "      <td style='padding: 6px 4px;'>Melihat status Model Context Protocol (MCP) server lokal.</td>"
+                    "      <td style='padding: 6px 4px;'>Show local Model Context Protocol (MCP) server status.</td>"
                     "    </tr>"
                     "    <tr style='border-bottom: 1px solid #1a0033;'>"
                     "      <td style='padding: 6px 4px; font-weight: bold; color: #ce9178;'>/skill</td>"
-                    "      <td style='padding: 6px 4px;'>Daftar kemampuan / tools yang dimiliki oleh agen AI.</td>"
+                    "      <td style='padding: 6px 4px;'>List available agent tools.</td>"
                     "    </tr>"
                     "    <tr style='border-bottom: 1px solid #1a0033;'>"
                     "      <td style='padding: 6px 4px; font-weight: bold; color: #ce9178;'>/git</td>"
-                    "      <td style='padding: 6px 4px;'>Melihat status Git repositori saat ini secara instan.</td>"
+                    "      <td style='padding: 6px 4px;'>Show current Git repository status.</td>"
                     "    </tr>"
                     "    <tr style='border-bottom: 1px solid #1a0033;'>"
                     "      <td style='padding: 6px 4px; font-weight: bold; color: #ce9178;'>/settings</td>"
-                    "      <td style='padding: 6px 4px;'>Menampilkan konfigurasi aktif aplikasi (Font, Size, dll).</td>"
+                    "      <td style='padding: 6px 4px;'>Show active app settings.</td>"
                     "    </tr>"
                     "    <tr style='border-bottom: 1px solid #1a0033;'>"
                     "      <td style='padding: 6px 4px; font-weight: bold; color: #ce9178;'>/clear</td>"
-                    "      <td style='padding: 6px 4px;'>Membersihkan riwayat chat di layar obrolan.</td>"
+                    "      <td style='padding: 6px 4px;'>Clear visible chat history.</td>"
                     "    </tr>"
                     "  </table>"
                     "</div>"
@@ -915,11 +1269,11 @@ class ChatPanel(QWidget):
             elif cmd == "/mcp":
                 html = (
                     "<div style='font-family: \"Segoe UI\", sans-serif; color: #d4d4d4; line-height: 1.4; font-size: 11px;'>"
-                    "  <h3 style='color: #c586c0; margin-top: 0; margin-bottom: 8px; border-bottom: 1px solid #3c0068; padding-bottom: 4px;'>🔌 Model Context Protocol (MCP)</h3>"
-                    "  <p style='color: #f14c4c; font-weight: bold; margin-bottom: 10px;'>Status: Tidak Ada Server MCP Aktif</p>"
-                    "  <p>Dardcor Code mendukung protokol MCP untuk menghubungkan AI dengan tool eksternal (seperti database, API custom, atau sistem lokal).</p>"
+                    "  <h3 style='color: #c586c0; margin-top: 0; margin-bottom: 8px; border-bottom: 1px solid #3c0068; padding-bottom: 4px;'>Model Context Protocol (MCP)</h3>"
+                    "  <p style='color: #f14c4c; font-weight: bold; margin-bottom: 10px;'>Status: No active MCP servers</p>"
+                    "  <p>Dardcor Code supports MCP to connect the agent with external tools such as databases, custom APIs, or local systems.</p>"
                     "  <p style='color: #858585; font-size: 11px; margin-top: 10px;'>"
-                    "    <i>Anda dapat menambahkan server MCP di masa mendatang dengan mengonfigurasinya melalui file konfigurasi atau panel Settings.</i>"
+                    "    <i>You can add MCP servers later through configuration files or the Settings panel.</i>"
                     "  </p>"
                     "</div>"
                 )
@@ -928,36 +1282,36 @@ class ChatPanel(QWidget):
             elif cmd == "/skill":
                 html = (
                     "<div style='font-family: \"Segoe UI\", sans-serif; color: #d4d4d4; line-height: 1.4; font-size: 11px;'>"
-                    "  <h3 style='color: #c586c0; margin-top: 0; margin-bottom: 8px; border-bottom: 1px solid #3c0068; padding-bottom: 4px;'>🛠️ Kemampuan Agen AI (Skills & Tools)</h3>"
-                    "  <p style='margin-bottom: 8px;'>Dardcor Agent memiliki akses langsung ke sistem Anda untuk melakukan tugas coding secara otonom melalui tool berikut:</p>"
+                    "  <h3 style='color: #c586c0; margin-top: 0; margin-bottom: 8px; border-bottom: 1px solid #3c0068; padding-bottom: 4px;'>Agent Skills and Tools</h3>"
+                    "  <p style='margin-bottom: 8px;'>Dardcor Agent can use the following tools to work autonomously on coding tasks:</p>"
                     "  <table style='width: 100%; border-collapse: collapse; font-size: 11px;'>"
                     "    <tr style='border-bottom: 1px solid #2c004a;'>"
-                    "      <th style='text-align: left; padding: 4px; color: #4fc1ff; width: 40%;'>Nama Tool</th>"
-                    "      <th style='text-align: left; padding: 4px; color: #4fc1ff;'>Kegunaan</th>"
+                    "      <th style='text-align: left; padding: 4px; color: #4fc1ff; width: 40%;'>Tool</th>"
+                    "      <th style='text-align: left; padding: 4px; color: #4fc1ff;'>Purpose</th>"
                     "    </tr>"
                     "    <tr style='border-bottom: 1px solid #1a0033;'>"
                     "      <td style='padding: 4px; font-family: monospace; color: #9cdcfe;'>read_file / write_file</td>"
-                    "      <td style='padding: 4px;'>Membaca dan membuat/menulis berkas kode.</td>"
+                    "      <td style='padding: 4px;'>Read and create or update code files.</td>"
                     "    </tr>"
                     "    <tr style='border-bottom: 1px solid #1a0033;'>"
                     "      <td style='padding: 4px; font-family: monospace; color: #9cdcfe;'>replace_file_content</td>"
-                    "      <td style='padding: 4px;'>Mengedit blok kode spesifik dalam berkas secara akurat.</td>"
+                    "      <td style='padding: 4px;'>Apply precise edits to specific code blocks.</td>"
                     "    </tr>"
                     "    <tr style='border-bottom: 1px solid #1a0033;'>"
                     "      <td style='padding: 4px; font-family: monospace; color: #9cdcfe;'>search_files</td>"
-                    "      <td style='padding: 4px;'>Mencari teks di seluruh workspace menggunakan ripgrep.</td>"
+                    "      <td style='padding: 4px;'>Search text across the workspace with ripgrep.</td>"
                     "    </tr>"
                     "    <tr style='border-bottom: 1px solid #1a0033;'>"
                     "      <td style='padding: 4px; font-family: monospace; color: #9cdcfe;'>run_command</td>"
-                    "      <td style='padding: 4px;'>Menjalankan perintah build/test di terminal terintegrasi.</td>"
+                    "      <td style='padding: 4px;'>Run build and test commands in the integrated terminal.</td>"
                     "    </tr>"
                     "    <tr style='border-bottom: 1px solid #1a0033;'>"
                     "      <td style='padding: 4px; font-family: monospace; color: #9cdcfe;'>search_web / read_url</td>"
-                    "      <td style='padding: 4px;'>Mencari jawaban pemrograman dan membaca dokumentasi online.</td>"
+                    "      <td style='padding: 4px;'>Look up programming answers and read online documentation.</td>"
                     "    </tr>"
                     "    <tr style='border-bottom: 1px solid #1a0033;'>"
                     "      <td style='padding: 4px; font-family: monospace; color: #9cdcfe;'>semantic_search</td>"
-                    "      <td style='padding: 4px;'>Mencari berkas dan simbol kode berbasis kecocokan semantik.</td>"
+                    "      <td style='padding: 4px;'>Find files and code symbols by semantic match.</td>"
                     "    </tr>"
                     "  </table>"
                     "</div>"
@@ -971,7 +1325,7 @@ class ChatPanel(QWidget):
                     html = (
                         "<div style='font-family: \"Segoe UI\", sans-serif; color: #d4d4d4; line-height: 1.4; font-size: 11px;'>"
                         "  <h3 style='color: #c586c0; margin-top: 0; margin-bottom: 8px; border-bottom: 1px solid #3c0068; padding-bottom: 4px;'>Git Status</h3>"
-                        "  <p style='color: #f14c4c;'>Error: Workspace path tidak valid atau belum diset.</p>"
+                        "  <p style='color: #f14c4c;'>Error: Workspace path is invalid or not set.</p>"
                         "</div>"
                     )
                 else:
@@ -982,7 +1336,7 @@ class ChatPanel(QWidget):
                         html = (
                             "<div style='font-family: \"Segoe UI\", sans-serif; color: #d4d4d4; line-height: 1.4; font-size: 11px;'>"
                             "  <h3 style='color: #c586c0; margin-top: 0; margin-bottom: 8px; border-bottom: 1px solid #3c0068; padding-bottom: 4px;'>Git Status</h3>"
-                            "  <p style='color: #858585;'>Direktori saat ini bukan merupakan repositori Git aktif.</p>"
+                            "  <p style='color: #858585;'>The current directory is not an active Git repository.</p>"
                             "</div>"
                         )
                     else:
@@ -1008,23 +1362,23 @@ class ChatPanel(QWidget):
                                         
                         html = (
                             "<div style='font-family: \"Segoe UI\", sans-serif; color: #d4d4d4; line-height: 1.4; font-size: 11px;'>"
-                            "  <h3 style='color: #c586c0; margin-top: 0; margin-bottom: 8px; border-bottom: 1px solid #3c0068; padding-bottom: 4px;'>🌿 Git Status</h3>"
-                            f"  <p><b>Cabang Aktif:</b> <span style='color: #4fc1ff; font-weight: bold;'>{branch}</span></p>"
+                            "  <h3 style='color: #c586c0; margin-top: 0; margin-bottom: 8px; border-bottom: 1px solid #3c0068; padding-bottom: 4px;'>Git Status</h3>"
+                            f"  <p><b>Active branch:</b> <span style='color: #4fc1ff; font-weight: bold;'>{branch}</span></p>"
                             "  <table style='width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 11px;'>"
                             "    <tr style='border-bottom: 1px solid #2c004a;'>"
-                            "      <th style='text-align: left; padding: 4px; color: #4fc1ff;'>Status Berkas</th>"
-                            "      <th style='text-align: right; padding: 4px; color: #4fc1ff; width: 30%;'>Jumlah</th>"
+                            "      <th style='text-align: left; padding: 4px; color: #4fc1ff;'>File status</th>"
+                            "      <th style='text-align: right; padding: 4px; color: #4fc1ff; width: 30%;'>Count</th>"
                             "    </tr>"
                             f"    <tr style='border-bottom: 1px solid #1a0033;'>"
-                            "      <td style='padding: 4px;'>Staged Changes (Siap Commit)</td>"
+                            "      <td style='padding: 4px;'>Staged changes</td>"
                             f"      <td style='padding: 4px; text-align: right; color: #4ec9b0; font-weight: bold;'>{staged_count}</td>"
                             "    </tr>"
                             f"    <tr style='border-bottom: 1px solid #1a0033;'>"
-                            "      <td style='padding: 4px;'>Modified Changes (Termodifikasi)</td>"
+                            "      <td style='padding: 4px;'>Modified changes</td>"
                             f"      <td style='padding: 4px; text-align: right; color: #dcdcaa; font-weight: bold;'>{modified_count}</td>"
                             "    </tr>"
                             f"    <tr style='border-bottom: 1px solid #1a0033;'>"
-                            "      <td style='padding: 4px;'>Untracked Files (Belum Dilacak)</td>"
+                            "      <td style='padding: 4px;'>Untracked files</td>"
                             f"      <td style='padding: 4px; text-align: right; color: #858585;'>{untracked_count}</td>"
                             "    </tr>"
                             "  </table>"
@@ -1034,15 +1388,15 @@ class ChatPanel(QWidget):
 
             elif cmd == "/settings":
                 cfg = get_config()
-                ws_path = cfg.workspace_path or "(Belum diatur)"
+                ws_path = cfg.workspace_path or "(Not set)"
                 font_family = cfg.font_family
                 font_size = cfg.font_size
-                word_wrap = "Aktif" if cfg.word_wrap else "Nonaktif"
-                auto_save = "Aktif" if cfg.auto_save else "Nonaktif"
+                word_wrap = "On" if cfg.word_wrap else "Off"
+                auto_save = "On" if cfg.auto_save else "Off"
                 
                 html = (
                     "<div style='font-family: \"Segoe UI\", sans-serif; color: #d4d4d4; line-height: 1.4; font-size: 11px;'>"
-                    "  <h3 style='color: #c586c0; margin-top: 0; margin-bottom: 8px; border-bottom: 1px solid #3c0068; padding-bottom: 4px;'>⚙️ Konfigurasi Editor</h3>"
+                    "  <h3 style='color: #c586c0; margin-top: 0; margin-bottom: 8px; border-bottom: 1px solid #3c0068; padding-bottom: 4px;'>Editor Settings</h3>"
                     "  <table style='width: 100%; border-collapse: collapse; font-size: 11px;'>"
                     "    <tr style='border-bottom: 1px solid #1a0033;'>"
                     "      <td style='padding: 5px 4px; font-weight: bold; color: #4fc1ff; width: 40%;'>Workspace Path:</td>"
@@ -1072,8 +1426,8 @@ class ChatPanel(QWidget):
             else:
                 html = (
                     "<div style='font-family: \"Segoe UI\", sans-serif; color: #d4d4d4; line-height: 1.4; font-size: 11px;'>"
-                    f"  <p style='color: #f14c4c; font-weight: bold;'>Perintah '{cmd}' tidak dikenali.</p>"
-                    "  <p>Silakan ketik <span style='color: #ce9178; font-weight: bold;'>/help</span> untuk melihat daftar perintah slash yang didukung.</p>"
+                    f"  <p style='color: #f14c4c; font-weight: bold;'>Unknown command '{cmd}'.</p>"
+                    "  <p>Type <span style='color: #ce9178; font-weight: bold;'>/help</span> to see supported slash commands.</p>"
                     "</div>"
                 )
                 self.append_agent_message(html, is_html=True)
@@ -1092,7 +1446,7 @@ class ChatPanel(QWidget):
     def _safe_append_system_message(self, text: str):
         if "You are Dardcor Code" in text:
             return
-        if "Batas Token Tercapai" in text or "token" in text.lower():
+        if "Token limit reached" in text or "Batas Token Tercapai" in text or "token" in text.lower():
             self.show_native_notification(text)
         else:
             self._web_bridge.append_system_message.emit(text)
@@ -1211,9 +1565,50 @@ class ChatInput(QTextEdit):
             if not (event.modifiers() & Qt.ShiftModifier):
                 self.submit_pressed.emit()
                 return
+        # Explicitly handle Ctrl+V so paste always works even with rich content.
+        if event.matches(QKeySequence.Paste):
+            self.paste()
+            return
         super().keyPressEvent(event)
 
+    def canInsertFromMimeData(self, source) -> bool:
+        # Accept text, files, and images (base class rejects images when
+        # acceptRichText is False, which silently breaks Ctrl+V for screenshots).
+        if source.hasText() or source.hasUrls() or source.hasImage():
+            return True
+        return super().canInsertFromMimeData(source)
+
+    def _save_clipboard_image(self, source) -> str:
+        try:
+            import os as _os
+            import tempfile
+            from datetime import datetime
+            image = source.imageData()
+            if image is None:
+                return ""
+            from PySide6.QtGui import QImage
+            if not isinstance(image, QImage):
+                image = QImage(image)
+            if image.isNull():
+                return ""
+            tmp_dir = _os.path.join(tempfile.gettempdir(), "dardcor_pasted")
+            _os.makedirs(tmp_dir, exist_ok=True)
+            fname = f"pasted-{datetime.now().strftime('%Y%m%d-%H%M%S-%f')}.png"
+            path = _os.path.join(tmp_dir, fname)
+            if image.save(path, "PNG"):
+                return path
+        except Exception:
+            pass
+        return ""
+
     def insertFromMimeData(self, source):
+        # Pasted image (e.g. screenshot via Ctrl+V) → save and attach as file.
+        if source.hasImage() and not source.hasUrls():
+            path = self._save_clipboard_image(source)
+            if path:
+                self.file_pasted.emit([path])
+                return
+
         # Check if the user pasted actual files from the OS (e.g. from Windows Explorer)
         if source.hasUrls():
             file_paths = []
@@ -1246,5 +1641,10 @@ class ChatInput(QTextEdit):
         if source.hasText():
             self.insertPlainText(source.text())
             return
-            
-        super().insertFromMimeData(source)
+
+        # Last resort: pasted image with no text/urls
+        if source.hasImage():
+            path = self._save_clipboard_image(source)
+            if path:
+                self.file_pasted.emit([path])
+                return

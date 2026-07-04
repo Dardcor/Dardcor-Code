@@ -3,7 +3,7 @@
     --text-color: #e4e4e7;
     --user-bg: #2b2d31;
     --user-border: #3f4147;
-    --accent-color: #d8b4fe;
+    --accent-color: #a855f7;
     --agent-color: #c586c0;
     --font-family: "Segoe UI", "Ubuntu", sans-serif;
 }
@@ -43,7 +43,7 @@ body {
 #chat-container {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
 }
 
 .message {
@@ -140,8 +140,8 @@ body {
 /* Agent Message Styles */
 .agent-msg {
     margin-top: 8px;
-    border-bottom: 1px solid #2a2d32;
-    padding-bottom: 16px;
+    border-bottom: none;
+    padding-bottom: 8px;
 }
 
 .agent-msg .header {
@@ -193,9 +193,9 @@ body {
 }
 
 .agent-work-msg {
-    border-bottom: 1px solid #1f2228;
+    border-bottom: none;
     margin-top: 2px;
-    padding-bottom: 10px;
+    padding-bottom: 0;
 }
 
 .agent-work-msg.settled .work-text {
@@ -204,130 +204,130 @@ body {
 
 .work-header {
     align-items: center;
-    color: #a0a0a0;
-    display: flex;
-    font-size: 11px;
-    font-style: italic;
-    justify-content: space-between;
-    margin: 2px 0 7px 12px;
+    color: #b8b8b8;
+    cursor: pointer;
+    display: inline-flex;
+    font-size: 11.5px;
+    font-style: normal;
+    gap: 4px;
+    margin: 1px 0 1px 0;
+    user-select: none;
 }
 
-.work-left {
-    align-items: center;
-    display: inline-flex;
-    gap: 8px;
-    min-width: 0;
+.work-marker {
+    color: #858585;
+    display: inline-block;
+    flex: 0 0 12px;
+    font-size: 10px;
+    line-height: 1;
+    text-align: center;
+    width: 12px;
 }
 
 .work-text {
+    line-height: 1.3;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.tool-list-toggle {
-    background: #1a1a1a;
-    border: 1px solid #2d2d35;
-    border-radius: 5px;
-    color: #a0a0a0;
-    cursor: pointer;
-    font-size: 13px;
-    height: 22px;
-    line-height: 16px;
-    margin-right: 4px;
+.tool-list {
+    margin: 0 0 0 12px;
     padding: 0;
-    width: 24px;
-}
-
-.tool-list-toggle:hover {
-    background: #24242a;
-    color: #e4e4e7;
 }
 
 .tool-list.collapsed {
     display: none;
 }
 
-.typing-bubble.small {
-    padding: 5px 9px;
+.work-header:hover .work-text,
+.work-header:hover .work-marker {
+    color: #e4e4e7;
 }
 
-.typing-bubble.done .dot {
-    animation: none;
-    background-color: #4ec9b0;
-    transform: scale(1);
+.tool-header:hover .tool-name,
+.tool-header:hover .marker {
+    color: #e4e4e7;
 }
 
 .tool-call {
-    background: linear-gradient(180deg, #171717 0%, #121212 100%);
-    border: 1px solid #2d2d35;
-    border-left: 2px solid #3a3a44;
-    border-radius: 7px;
-    margin: 7px 0 7px 12px;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    margin: 0;
     overflow: hidden;
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset;
+    padding: 0;
 }
 
-.tool-call.running {
-    border-left-color: #dcdcaa;
+.tool-call.running .tool-name {
+    color: #d4d4d4;
 }
 
-.tool-call.success {
-    border-left-color: #4ec9b0;
+.tool-call.success .tool-name {
+    color: #c9d1d9;
 }
 
-.tool-call.error {
-    border-left-color: #f14c4c;
+.tool-call.error .tool-name {
+    color: #f87171;
 }
 
 .tool-header {
-    padding: 9px 11px;
-    font-size: 11.5px;
-    cursor: pointer;
-    user-select: none;
-    display: flex;
     align-items: center;
+    cursor: pointer;
+    display: flex;
+    font-size: 11px;
+    gap: 6px;
     justify-content: space-between;
-    gap: 10px;
+    line-height: 16px;
+    padding: 0 4px;
+    user-select: none;
 }
 
 .tool-title {
-    display: inline-flex;
     align-items: center;
-    gap: 7px;
+    display: inline-flex;
+    gap: 4px;
+    line-height: 16px;
     min-width: 0;
 }
 
 .tool-title .marker {
-    width: 14px;
-    height: 14px;
-    flex: 0 0 auto;
+    color: #858585;
+    display: inline-block;
+    flex: 0 0 12px;
+    font-size: 10px;
+    line-height: 1;
+    text-align: center;
+    width: 12px;
 }
 
 .tool-name {
-    color: #f3f3f3;
+    color: #c9d1d9;
     font-family: "Consolas", monospace;
-    font-weight: 600;
+    font-weight: 400;
+    line-height: 16px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.tool-name::before {
-    content: "Tool · ";
-    color: #858585;
+.tool-action {
+    color: #a1a1aa;
     font-family: var(--font-family);
-    font-weight: 500;
+    font-weight: 400;
 }
 
 .tool-status {
-    border-radius: 999px;
+    display: none;
+    background: transparent !important;
+    border-radius: 0;
     flex: 0 0 auto;
     font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    padding: 2px 7px;
-    text-transform: uppercase;
+    font-weight: 500;
+    letter-spacing: 0;
+    padding: 0;
+    text-transform: none;
 }
 
 .tool-status.running {
@@ -346,19 +346,20 @@ body {
 }
 
 .tool-body {
-    padding: 9px 12px 10px 32px;
-    border-top: 1px solid #2d2d35;
-    font-family: "Consolas", monospace;
-    font-size: 11px;
-    line-height: 1.5;
-    color: #ce9178;
-    background-color: #121212;
+    background-color: transparent;
+    border-top: none;
+    color: #9ca3af;
     display: none;
-    max-height: 320px;
+    font-family: "Consolas", monospace;
+    font-size: 10px;
+    line-height: 1.35;
+    margin: 0 0 2px 28px;
+    max-height: 280px;
     overflow: auto;
-    white-space: pre-wrap;
+    padding: 2px 0 4px 0;
     -webkit-user-select: text;
     user-select: text;
+    white-space: pre-wrap;
 }
 
 .tool-body.open {
@@ -473,18 +474,18 @@ body {
 
 /* Thinking Block Styles */
 .thought-block {
-    margin: 8px 0;
-    border: 1px solid #3c3c44;
-    border-radius: 8px;
-    background-color: #1a1a20;
+    margin: 6px 0;
+    border: 1px solid #2f2f36;
+    border-radius: 6px;
+    background-color: #15151a;
     overflow: hidden;
 }
 
 .thought-block summary {
-    padding: 8px 12px;
+    padding: 6px 10px;
     cursor: pointer;
     background-color: #24242a;
-    font-size: 11.5px;
+    font-size: 11px;
     font-weight: 600;
     color: #a0a0a0;
     user-select: none;
@@ -497,8 +498,8 @@ body {
 }
 
 .thought-content {
-    padding: 12px 14px;
-    font-size: 11.5px;
+    padding: 10px 12px;
+    font-size: 11px;
     color: #b0b0b0;
     font-style: italic;
     border-top: 1px solid #3c3c44;

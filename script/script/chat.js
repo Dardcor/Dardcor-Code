@@ -50,8 +50,7 @@ function handleAction(action, payload) {
 }
 
 function appendUserMessage(text, retry_text) {
-    // â”€â”€ KEY FIX: every new user message ends the previous agent turn â”€â”€
-    // Settle any active work panel so the next agent response starts fresh.
+    // Each user message ends the previous agent turn.
     settleCurrentWorkPanel();
 
     const safeText = escapeHtml(text);
@@ -70,17 +69,14 @@ function appendUserMessage(text, retry_text) {
 }
 
 function appendAgentMessage(text, isHtml) {
-    // Agent message also ends (settles) the current work panel
-    settleCurrentWorkPanel();
-
-    // Preprocess <thought>...</thought> tags into collapsible details blocks
+    // Render <thought>...</thought> tags as collapsed reasoning blocks.
     let processedText = text;
     if (!isHtml) {
         processedText = processedText.replace(/<thought>([\s\S]*?)<\/thought>/gi, function(match, innerContent) {
-            return `\n<details class="thought-block"><summary><span>ðŸ§  Agent is thinking...</span></summary><div class="thought-content">\n\n${innerContent}\n\n</div></details>\n`;
+            return `\n<details class="thought-block"><summary><span>Thoughts</span></summary><div class="thought-content">\n\n${innerContent}\n\n</div></details>\n`;
         });
         processedText = processedText.replace(/<thought>([\s\S]*)$/gi, function(match, innerContent) {
-            return `\n<details class="thought-block" open><summary><span>ðŸ§  Agent is thinking...</span></summary><div class="thought-content">\n\n${innerContent}\n\n</div></details>\n`;
+            return `\n<details class="thought-block" open><summary><span>Thoughts</span></summary><div class="thought-content">\n\n${innerContent}\n\n</div></details>\n`;
         });
     }
 
@@ -113,35 +109,32 @@ function showNotification(text) {
     setTimeout(() => banner.remove(), 10000);
 }
 
+function setCollapseMarker(markerEl, expanded) {
+    if (!markerEl) return;
+    markerEl.textContent = expanded ? '\u25BE' : '\u25B8';
+}
+
 function toggleTool(headerEl) {
     const bodyEl = headerEl.nextElementSibling;
     const isExpanded = bodyEl.classList.contains('open');
-    if (isExpanded) {
-        bodyEl.classList.remove('open');
-        headerEl.querySelector('.marker').innerHTML = '<img src="../../image/chevron-right.svg" width="14" height="14" style="vertical-align: middle;">';
-    } else {
-        bodyEl.classList.add('open');
-        headerEl.querySelector('.marker').innerHTML = '<img src="../../image/chevron-down.svg" width="14" height="14" style="vertical-align: middle;">';
-    }
+    bodyEl.classList.toggle('open', !isExpanded);
+    setCollapseMarker(headerEl.querySelector('.marker'), !isExpanded);
 }
 
-function toggleToolList(buttonEl) {
-    const panel = buttonEl.closest('.agent-work-msg');
+function toggleToolList(headerEl) {
+    const panel = headerEl.closest('.agent-work-msg');
     const list = panel.querySelector('.tool-list');
     const isCollapsed = list.classList.contains('collapsed');
     list.classList.toggle('collapsed', !isCollapsed);
-    buttonEl.innerHTML = isCollapsed
-        ? '<img src="../../image/chevron-down.svg" width="14" height="14" style="vertical-align: middle;">'
-        : '<img src="../../image/chevron-right.svg" width="14" height="14" style="vertical-align: middle;">';
-    buttonEl.title = isCollapsed ? 'Hide tool calls' : 'Show tool calls';
+    setCollapseMarker(headerEl.querySelector('.work-marker'), !isCollapsed);
+    headerEl.title = isCollapsed ? 'Hide tool calls' : 'Show tool calls';
 }
 
-// â”€â”€ Settle helper: marks the current panel as done and detaches it â”€â”€
 function settleCurrentWorkPanel() {
     if (currentWorkPanel && !currentWorkPanel.classList.contains('settled')) {
         currentWorkPanel.classList.add('settled');
         const textEl = currentWorkPanel.querySelector('.work-text');
-        if (textEl) textEl.textContent = 'Done';
+        if (textEl && !currentWorkPanel.querySelector('.tool-call')) textEl.textContent = 'Done';
         const bubble = currentWorkPanel.querySelector('.typing-bubble');
         if (bubble) bubble.classList.add('done');
     }
@@ -152,20 +145,11 @@ function createWorkPanel(state) {
     const div = document.createElement('div');
     div.className = 'agent-work-msg';
     div.innerHTML = `
-        <div class="work-header">
-            <div class="work-left">
-                <div class="typing-bubble small">
-                    <span class="dot"></span>
-                    <span class="dot"></span>
-                    <span class="dot"></span>
-                </div>
-                <span class="work-text">${state === 'thinking' ? 'Dardcor Agent is thinking...' : 'Dardcor Agent is working...'}</span>
-            </div>
-            <button class="tool-list-toggle" onclick="toggleToolList(this)" title="Hide tool calls">
-                <img src="../../image/chevron-down.svg" width="14" height="14" style="vertical-align: middle;">
-            </button>
+        <div class="work-header" onclick="toggleToolList(this)" title="Show tool calls">
+            <span class="work-marker">\u25B8</span>
+            <span class="work-text">${state === 'thinking' ? 'Thinking' : 'Working'}</span>
         </div>
-        <div class="tool-list"></div>
+        <div class="tool-list collapsed"></div>
     `;
     chatContainer.appendChild(div);
     return div;
@@ -177,7 +161,7 @@ function ensureWorkPanel(state) {
         currentWorkPanel = createWorkPanel(state);
     }
     const textEl = currentWorkPanel.querySelector('.work-text');
-    if (textEl) textEl.textContent = state === 'thinking' ? 'Dardcor Agent is thinking...' : 'Dardcor Agent is working...';
+    if (textEl && state === 'thinking') textEl.textContent = 'Thinking';
     currentWorkPanel.classList.remove('hidden', 'settled');
     return currentWorkPanel;
 }
@@ -189,6 +173,56 @@ function toolStatusLabel(status) {
     return status || 'Unknown';
 }
 
+function toolAction(toolName) {
+    const name = String(toolName || '');
+    if (['read_file', 'list_files', 'glob_files', 'grep', 'search_files', 'semantic_search', 'detect_project'].includes(name)) return 'Read';
+    if (['write_file', 'append_to_file', 'replace_file_content', 'multi_replace_file_content', 'apply_patch'].includes(name)) return 'Edit';
+    if (name === 'delete_file') return 'Delete';
+    if (name === 'move_file') return 'Move';
+    if (name.startsWith('git_')) return 'Git';
+    if (['run_command', 'check_syntax', 'manage_task'].includes(name)) return 'Run';
+    if (['search_web', 'read_url'].includes(name)) return 'Fetch';
+    if (name === 'update_core_memory') return 'Memory';
+    return 'Tool';
+}
+
+function compactToolTarget(toolName, args) {
+    try {
+        const parsed = JSON.parse(args || '{}');
+        const target = parsed.path || parsed.pattern || parsed.query || parsed.command || parsed.title || '';
+        if (target) return String(target).split(/[\\/]/).pop() || String(target);
+    } catch (_) {}
+    return String(toolName || '').replace(/_/g, ' ');
+}
+
+function updateWorkSummary(panel) {
+    const textEl = panel.querySelector('.work-text');
+    if (!textEl) return;
+    const calls = Array.from(panel.querySelectorAll('.tool-call'));
+    const exploredFiles = new Set();
+    let changed = 0;
+    for (const call of calls) {
+        const action = call.dataset.action;
+        const tool = call.dataset.toolName;
+        if (action === 'Read') {
+            if (!['grep', 'search_files', 'semantic_search', 'glob_files', 'detect_project'].includes(tool)) {
+                if (call.dataset.target) exploredFiles.add(call.dataset.target);
+            }
+        } else if (['Edit', 'Move', 'Delete'].includes(action)) {
+            changed += 1;
+        }
+    }
+    if (changed > 0) {
+        textEl.textContent = `Changed ${changed} ${changed === 1 ? 'file' : 'files'}`;
+    } else if (exploredFiles.size > 0) {
+        const n = exploredFiles.size;
+        textEl.textContent = `Explored ${n} ${n === 1 ? 'file' : 'files'}`;
+    } else if (calls.length > 0) {
+        const n = calls.length;
+        textEl.textContent = `Explored ${n} ${n === 1 ? 'file' : 'files'}`;
+    }
+}
+
 // Queue for status updates that arrive before the card is created
 const pendingStatusUpdates = new Map();
 
@@ -198,12 +232,6 @@ function applyStatusUpdate(card, status) {
     if (statusEl) {
         statusEl.textContent = toolStatusLabel(status);
         statusEl.className = `tool-status ${status}`;
-    }
-    // Update border-left color via inline style for immediate visual feedback
-    if (status === 'success') {
-        card.style.borderLeftColor = '#4ec9b0';
-    } else if (status === 'error') {
-        card.style.borderLeftColor = '#f14c4c';
     }
 }
 
@@ -241,9 +269,14 @@ function appendToolCall(toolId, toolName, args, status) {
     // CREATE new card
     const div = document.createElement('div');
     div.className = `tool-call ${status}`;
+    const action = toolAction(toolName);
+    const target = compactToolTarget(toolName, args);
+    div.dataset.action = action;
+    div.dataset.toolName = toolName;
+    div.dataset.target = target;
     div.innerHTML = `
         <div class="tool-header" onclick="toggleTool(this)">
-            <span class="tool-title"><span class="marker"><img src="../../image/chevron-right.svg" width="14" height="14" style="vertical-align: middle;"></span><span class="tool-name">${escapeHtml(toolName)}</span></span>
+            <span class="tool-title"><span class="marker">\u25B8</span><span class="tool-name"><span class="tool-action">${escapeHtml(action)}</span> ${escapeHtml(target)}</span></span>
             <span class="tool-status ${status}">${toolStatusLabel(status)}</span>
         </div>
         <div class="tool-body">${escapeHtml(args)}</div>
@@ -251,6 +284,7 @@ function appendToolCall(toolId, toolName, args, status) {
     toolCards.set(toolId, div);
     const panel = ensureWorkPanel('working');
     panel.querySelector('.tool-list').appendChild(div);
+    updateWorkSummary(panel);
     scrollToBottom();
 
     // Check if there's a pending status update for this card (arrived before creation)
@@ -294,8 +328,10 @@ function showTyping(show, state) {
         }
         if (currentWorkPanel) {
             currentWorkPanel.classList.add('settled');
-            currentWorkPanel.querySelector('.work-text').textContent = 'Done';
-            currentWorkPanel.querySelector('.typing-bubble').classList.add('done');
+            const textEl = currentWorkPanel.querySelector('.work-text');
+            if (textEl && !currentWorkPanel.querySelector('.tool-call')) textEl.textContent = 'Done';
+            const bubble = currentWorkPanel.querySelector('.typing-bubble');
+            if (bubble) bubble.classList.add('done');
             currentWorkPanel = null;
         }
     }

@@ -152,6 +152,8 @@ class SettingsDialog(QDialog):
         # Tabs
         tabs = QTabWidget()
         tabs.addTab(self._build_editor_tab(), "Editor")
+        tabs.addTab(self._build_appearance_tab(), "Appearance")
+        tabs.addTab(self._build_ai_tab(), "AI")
         tabs.addTab(self._build_workspace_tab(), "Workspace")
         tabs.addTab(self._build_about_tab(), "About")
         layout.addWidget(tabs)
@@ -253,6 +255,105 @@ class SettingsDialog(QDialog):
         scroll.setWidget(tab)
         return scroll
 
+    def _build_appearance_tab(self) -> QWidget:
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("QScrollArea { border: none; }")
+
+        tab = QWidget()
+        form = QVBoxLayout(tab)
+        form.setContentsMargins(24, 16, 24, 16)
+        form.setSpacing(12)
+
+        explorer_group = QGroupBox("Explorer")
+        explorer_layout = QFormLayout()
+        explorer_layout.setSpacing(10)
+
+        self._show_folders = QCheckBox("Show folders")
+        self._show_folders.setChecked(True)
+        explorer_layout.addRow("", self._show_folders)
+
+        self._show_open_editors = QCheckBox("Show Open Editors section")
+        explorer_layout.addRow("", self._show_open_editors)
+
+        self._show_outline = QCheckBox("Show Outline panel")
+        self._show_outline.setChecked(True)
+        explorer_layout.addRow("", self._show_outline)
+
+        self._show_timeline = QCheckBox("Show Timeline panel")
+        self._show_timeline.setChecked(True)
+        explorer_layout.addRow("", self._show_timeline)
+
+        explorer_group.setLayout(explorer_layout)
+        form.addWidget(explorer_group)
+
+        ui_group = QGroupBox("Interface")
+        ui_layout = QFormLayout()
+        ui_layout.setSpacing(10)
+
+        self._ui_zoom = QSpinBox()
+        self._ui_zoom.setRange(-5, 5)
+        self._ui_zoom.setSuffix("  (0 = default)")
+        ui_layout.addRow("UI Zoom:", self._ui_zoom)
+
+        self._extensions_auto_update = QCheckBox("Auto-update extensions")
+        self._extensions_auto_update.setChecked(True)
+        ui_layout.addRow("", self._extensions_auto_update)
+
+        ui_group.setLayout(ui_layout)
+        form.addWidget(ui_group)
+
+        form.addStretch()
+        scroll.setWidget(tab)
+        return scroll
+
+    def _build_ai_tab(self) -> QWidget:
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("QScrollArea { border: none; }")
+
+        tab = QWidget()
+        form = QVBoxLayout(tab)
+        form.setContentsMargins(24, 16, 24, 16)
+        form.setSpacing(12)
+
+        ai_group = QGroupBox("AI Defaults")
+        ai_layout = QFormLayout()
+        ai_layout.setSpacing(10)
+
+        self._default_model = QComboBox()
+        self._default_model.setEditable(False)
+        try:
+            from dardcor_agent.models.providers.registry import PROVIDER_REGISTRY
+            models = []
+            for provider_name, pdef in PROVIDER_REGISTRY.items():
+                for model in pdef.get("models", []):
+                    model_id = model.get("id")
+                    if model_id:
+                        label = f"{model.get('name', model_id)} ({provider_name})"
+                        models.append((model_id, label))
+            models.sort(key=lambda item: (item[0] != "dardcor-flash-free", item[1].lower()))
+            for model_id, label in models:
+                self._default_model.addItem(label, model_id)
+        except Exception:
+            self._default_model.addItem("Dardcor Flash Free", "dardcor-flash-free")
+
+        ai_layout.addRow("Default model:", self._default_model)
+
+        hint = QLabel(
+            "Used when chat opens or no model is selected. Dardcor Flash Free is the recommended built-in default."
+        )
+        hint.setWordWrap(True)
+        hint.setStyleSheet("color: #858585; font-size: 12px;")
+        ai_layout.addRow("", hint)
+
+        ai_group.setLayout(ai_layout)
+        form.addWidget(ai_group)
+
+        form.addStretch()
+        scroll.setWidget(tab)
+        return scroll
+
     def _build_workspace_tab(self) -> QWidget:
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -333,6 +434,16 @@ class SettingsDialog(QDialog):
         self._word_wrap.setChecked(self._config.word_wrap)
         self._minimap.setChecked(self._config.minimap_enabled)
         self._terminal_shell.setText(self._config.terminal_shell)
+        self._show_folders.setChecked(self._config.show_folders)
+        self._show_open_editors.setChecked(self._config.show_open_editors)
+        self._show_outline.setChecked(self._config.show_outline)
+        self._show_timeline.setChecked(self._config.show_timeline)
+        self._ui_zoom.setValue(self._config.ui_zoom)
+        self._extensions_auto_update.setChecked(self._config.extensions_auto_update)
+        default_model = getattr(self._config, "default_model", "dardcor-flash-free")
+        idx = self._default_model.findData(default_model)
+        if idx >= 0:
+            self._default_model.setCurrentIndex(idx)
 
     def _save_settings(self):
         self._config.workspace_path = self._workspace.text()
@@ -343,5 +454,12 @@ class SettingsDialog(QDialog):
         self._config.word_wrap = self._word_wrap.isChecked()
         self._config.minimap_enabled = self._minimap.isChecked()
         self._config.terminal_shell = self._terminal_shell.text()
+        self._config.show_folders = self._show_folders.isChecked()
+        self._config.show_open_editors = self._show_open_editors.isChecked()
+        self._config.show_outline = self._show_outline.isChecked()
+        self._config.show_timeline = self._show_timeline.isChecked()
+        self._config.ui_zoom = self._ui_zoom.value()
+        self._config.extensions_auto_update = self._extensions_auto_update.isChecked()
+        self._config.default_model = self._default_model.currentData() or "dardcor-flash-free"
         self._config.save()
         self.accept()

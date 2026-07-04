@@ -1,0 +1,20 @@
+{
+  "name": "dardcor-welcome",
+  "displayName": "Dardcor Welcome",
+  "description": "Built-in extension that demonstrates the Dardcor extension API.",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "main": "extension.py",
+  "contributes": {
+    "commands": [
+      {
+        "command": "dardcor.welcome.showInfo",
+        "title": "Dardcor: Show Welcome Message",
+        "category": "Dardcor"
+      }
+    ]
+  }
+}

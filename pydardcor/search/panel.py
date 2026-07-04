@@ -408,6 +408,11 @@ class SearchPanel(QWidget):
         query = self._query_input.text().strip()
         if not query:
             return
+        if not self._root_path or not os.path.isdir(self._root_path):
+            self._results.clear()
+            self._count_label.setText("Open a folder to search")
+            self._count_label.show()
+            return
 
         self._results.clear()
         self._count_label.setText("Searching...")
@@ -542,4 +547,10 @@ class SearchPanel(QWidget):
             self.file_selected.emit(path, line)
 
     def set_root(self, path: str):
-        self._root_path = path
+        self._root_path = path or ""
+        if self._query_input.text().strip():
+            self._search()
+
+    def focus_query(self):
+        self._query_input.setFocus()
+        self._query_input.selectAll()

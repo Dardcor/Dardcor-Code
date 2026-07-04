@@ -280,14 +280,18 @@ class AntigravityDB:
             return 0.0
 
     def get_providers(self) -> Dict[str, bool]:
+        defaults = {"Dardcor": True, "Antigravity": True}
         prov_file = os.path.join(CONFIG_DIR, "database", "models", "provider.json")
         if not os.path.exists(prov_file):
-            return {}
+            return dict(defaults)
         try:
             with open(prov_file, "r", encoding="utf-8") as f:
-                return json.load(f)
+                loaded = json.load(f)
+            if not isinstance(loaded, dict):
+                return dict(defaults)
+            return {**defaults, **loaded}
         except Exception:
-            return {}
+            return dict(defaults)
 
     def set_provider_active(self, provider_name: str, is_active: bool):
         prov_file = os.path.join(CONFIG_DIR, "database", "models", "provider.json")

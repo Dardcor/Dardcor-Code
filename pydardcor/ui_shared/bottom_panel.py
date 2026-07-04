@@ -191,14 +191,19 @@ class BottomPanel(QWidget):
         if idx == 0: return "problems"
         if idx == 1: return "output"
         if idx == 2: return "debug"
-    def current_view_name(self):
-        idx = self._stack.currentIndex()
-        if idx == 0: return "problems"
-        if idx == 1: return "output"
-        if idx == 2: return "debug"
         if idx == 3: return "terminal"
         if idx == 4: return "ports"
         return ""
+
+    def current_widget(self):
+        return self._stack.currentWidget()
+
+    def update_problems_badge(self, errors: int, warnings: int):
+        label = "PROBLEMS"
+        total = errors + warnings
+        if total:
+            label = f"PROBLEMS ({total})"
+        self.btn_problems.setText(label)
 
     def _toggle_maximize(self):
         self._is_maximized = not self._is_maximized

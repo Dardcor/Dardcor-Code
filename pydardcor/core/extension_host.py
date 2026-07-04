@@ -113,6 +113,18 @@ class NodeExtensionHost:
             if "window.statusBarShow" in self._callback_handlers:
                 self._callback_handlers["window.statusBarShow"](params)
 
+        if method == "window.statusBarHide":
+            if "window.statusBarHide" in self._callback_handlers:
+                self._callback_handlers["window.statusBarHide"](params)
+
+        if method == "window.registerTreeDataProvider":
+            if "window.registerTreeDataProvider" in self._callback_handlers:
+                self._callback_handlers["window.registerTreeDataProvider"](params.get("viewId", ""))
+
+        if method == "window.treeDataChanged":
+            if "window.treeDataChanged" in self._callback_handlers:
+                self._callback_handlers["window.treeDataChanged"](params.get("viewId", ""))
+
         if method == "log":
             pass
 
@@ -174,6 +186,18 @@ class NodeExtensionHost:
 
     def load_extension(self, extension_path: str) -> Optional[dict]:
         return self.send_request_sync("loadExtension", {"extensionPath": extension_path})
+
+    def get_tree_children(self, view_id: str, element_id: Optional[str] = None,
+                          timeout: float = 8.0) -> list:
+        """Fetch tree items for an extension view from its TreeDataProvider."""
+        result = self.send_request_sync(
+            "treeView.getChildren",
+            {"viewId": view_id, "elementId": element_id},
+            timeout=timeout,
+        )
+        if isinstance(result, dict):
+            return result.get("children", []) or []
+        return []
 
     def deactivate_extension(self, name: str) -> bool:
         result = self.send_request_sync("deactivateExtension", {"name": name})

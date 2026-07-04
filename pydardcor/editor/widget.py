@@ -9,6 +9,19 @@ from PySide6.QtWebChannel import QWebChannel
 from .bridge import EditorBridge
 from .language import detect_language, LANGUAGE_DISPLAY
 
+# Active extension color theme (Monaco format) shared by every editor instance,
+# so newly opened editors pick it up when their web view finishes loading.
+_GLOBAL_CUSTOM_THEME = None
+
+
+def set_global_custom_theme(theme_data):
+    global _GLOBAL_CUSTOM_THEME
+    _GLOBAL_CUSTOM_THEME = theme_data
+
+
+def get_global_custom_theme():
+    return _GLOBAL_CUSTOM_THEME
+
 
 class MonacoEditorWidget(QWidget):
     content_changed = Signal(str)
@@ -62,6 +75,8 @@ class MonacoEditorWidget(QWidget):
         
         self._bridge.save_requested.connect(self.save_requested)
         self._bridge.command_palette_requested.connect(self.command_palette_requested)
+        self._bridge.extension_command_requested.connect(self._on_extension_command)
+        self._bridge.open_with_live_server_requested.connect(self._open_with_live_server)
 
         self._view.loadFinished.connect(self._on_load_finished)
 
@@ -80,6 +95,10 @@ class MonacoEditorWidget(QWidget):
             QTimer.singleShot(150, self._apply_pending_content)
             if self._file_path and self._file_path.endswith(".py"):
                 QTimer.singleShot(600, self._run_linter)
+        if _GLOBAL_CUSTOM_THEME is not None:
+            QTimer.singleShot(200, lambda: self.set_custom_theme(_GLOBAL_CUSTOM_THEME))
+        QTimer.singleShot(250, self.refresh_extension_context_menu)
+        QTimer.singleShot(260, self.refresh_live_server_context_menu)
 
     def _apply_pending_content(self):
         import json
@@ -117,6 +136,8 @@ class MonacoEditorWidget(QWidget):
         if self._view_ready:
             self._apply_pending_content()
         self._bridge.set_file_path(file_path)
+        if self._view_ready:
+            QTimer.singleShot(300, self.refresh_live_server_context_menu)
         if self._lsp_client:
             QTimer.singleShot(300, self._run_lsp_diagnostics)
         elif self._file_path and self._file_path.endswith(".py"):
@@ -262,6 +283,13 @@ class MonacoEditorWidget(QWidget):
             val = "true" if is_dark else "false"
             self._view.page().runJavaScript(f"setTheme({val});")
 
+    def set_custom_theme(self, theme_data):
+        """Apply a VS Code extension theme (Monaco format dict) or None to reset."""
+        if not self._view_ready:
+            return
+        payload = json.dumps(json.dumps(theme_data) if theme_data is not None else None)
+        self._view.page().runJavaScript(f"defineCustomTheme({payload});")
+
     def trigger_find(self):
         if self._view_ready:
             self._view.page().runJavaScript("triggerFind();")
@@ -314,6 +342,49 @@ class MonacoEditorWidget(QWidget):
         if self._view_ready:
             self._view.page().runJavaScript("focusEditor();")
         self._view.setFocus()
+
+    def _on_extension_command(self, command_id: str):
+        p = self.parentWidget()
+        while p:
+            if hasattr(p, "_run_extension_command"):
+                p._run_extension_command(command_id)
+                return
+            if hasattr(p, "_execute_command"):
+                p._execute_command(command_id)
+                return
+            p = p.parentWidget()
+
+    def _open_with_live_server(self, file_path: str):
+        win = self.window()
+        if win and hasattr(win, "_open_with_live_server"):
+            win._open_with_live_server(file_path)
+
+    def refresh_live_server_context_menu(self):
+        """Show built-in Open with Live Server when the open file is a frontend asset."""
+        if not self._view_ready:
+            return
+        try:
+            from ..remote.live_server import is_frontend_file
+            enabled = bool(self._file_path and is_frontend_file(self._file_path))
+        except Exception:
+            enabled = False
+        val = "true" if enabled else "false"
+        self._view.page().runJavaScript(f"setLiveServerContextMenu({val});")
+
+    def refresh_extension_context_menu(self):
+        """Push latest extension editor/context items into Monaco."""
+        if not self._view_ready:
+            return
+        try:
+            from ..core.extension_contributions import get_contribution_parser
+            items = get_contribution_parser().get_menu_items("editor/context")
+            payload = json.dumps([
+                {"command": m.command, "label": m.label, "group": m.group, "order": m.order}
+                for m in items
+            ])
+            self._view.page().runJavaScript(f"setExtensionContextMenuItems({payload});")
+        except Exception:
+            pass
 
     def _run_linter(self):
         if not self._file_path or not self._file_path.endswith(".py"):

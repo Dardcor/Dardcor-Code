@@ -9,7 +9,7 @@ if os.name == "nt":
         os.environ["QT_LOGGING_RULES"] = f"{existing};qt.qpa.fonts=false;qt.qpa.fonts.warning=false".strip(";")
 
 from . import __version__
-from .core.config import get_config
+from .core.config import get_config, ensure_user_dirs
 
 
 def cmd_desktop(args):
@@ -72,6 +72,7 @@ def main():
         args.command = "desktop"
         args.func = cmd_desktop
 
+    ensure_user_dirs()
     get_config()
 
     args.func(args)

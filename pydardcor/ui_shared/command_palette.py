@@ -86,11 +86,11 @@ class CommandPalette(QDialog):
                 border: none;
             }
             QListWidget::item:selected {
-                background-color: #04395e;
+                background-color: #3c0068;
                 color: #ffffff;
             }
             QListWidget::item:hover:!selected {
-                background-color: #2a2d2e;
+                background-color: #1a0033;
             }
         """)
         self._list.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
@@ -426,10 +426,10 @@ class QuickOpenDialog(QDialog):
                 min-height: 22px;
             }
             QListWidget::item:selected {
-                background-color: #04395e;
+                background-color: #3c0068;
             }
             QListWidget::item:hover:!selected {
-                background-color: #2a2d2e;
+                background-color: #1a0033;
             }
         """)
         self._list.itemActivated.connect(self._on_item_selected)

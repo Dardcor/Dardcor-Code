@@ -15,31 +15,40 @@ class GitPanel(QWidget):
     def __init__(self, root_path=None, parent=None):
         super().__init__(parent)
         self._root = root_path or ""
+        self._webview_loaded = False
         
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
-        
-        self.webview = QWebEngineView(self)
-        
-        # Transparent background trick if supported
-        self.webview.page().setBackgroundColor(0) 
-        
-        self.layout.addWidget(self.webview)
-        
-        # Setup Bridge
-        self.channel = QWebChannel()
+
+        # Bridge is lightweight; defer the heavy QWebEngineView until first show.
         self.bridge = GitBridge(self)
-        self.channel.registerObject("gitBridge", self.bridge)
-        self.webview.page().setWebChannel(self.channel)
-        
-        # Load the custom html from centralized script directory
-        project_root = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-        index_path = os.path.join(project_root, "script", "index", "source_control.html")
-        self.webview.load(QUrl.fromLocalFile(index_path))
+        self.channel = None
+        self.webview = None
         
         if root_path:
             self.set_root(root_path)
+
+    def _ensure_webview(self):
+        if self._webview_loaded:
+            return
+        self._webview_loaded = True
+
+        self.webview = QWebEngineView(self)
+        self.webview.page().setBackgroundColor(0)
+        self.layout.addWidget(self.webview)
+
+        self.channel = QWebChannel()
+        self.channel.registerObject("gitBridge", self.bridge)
+        self.webview.page().setWebChannel(self.channel)
+
+        project_root = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+        index_path = os.path.join(project_root, "script", "index", "source_control.html")
+        self.webview.load(QUrl.fromLocalFile(index_path))
+
+    def showEvent(self, event):
+        self._ensure_webview()
+        super().showEvent(event)
 
     def set_app(self, app):
         """Pass the main app reference to the bridge for openDiff etc."""

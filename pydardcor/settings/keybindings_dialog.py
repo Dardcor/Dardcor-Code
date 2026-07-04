@@ -8,9 +8,12 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal, QEvent
 from PySide6.QtGui import QKeySequence, QKeyEvent
 
+from ..core.config import get_global_home_dir
+
+
 class KeybindingsManager:
     def __init__(self, defaults=None):
-        self.config_dir = os.path.expanduser("~/.dardcor-code")
+        self.config_dir = get_global_home_dir()
         self.config_file = os.path.join(self.config_dir, "keybindings.json")
         self.defaults = defaults or []
         self.keybindings = {}

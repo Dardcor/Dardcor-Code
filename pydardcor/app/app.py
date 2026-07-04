@@ -34,6 +34,10 @@ def run_desktop_app():
     
     setup_crash_reporter()
 
+    # Auto-create the global user directory (~/.dardcor-code) on every run
+    from ..core.config import ensure_user_dirs
+    ensure_user_dirs()
+
     # High DPI support
     if hasattr(Qt, "AA_EnableHighDpiScaling"):
         QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)

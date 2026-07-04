@@ -6,11 +6,9 @@ from PySide6.QtWidgets import *
 from PySide6.QtCore import *
 from PySide6.QtGui import *
 
-# Path ke Gemini config (di dalam project, bukan LOCALAPPDATA)
-_PROJECT_ROOT = os.path.normpath(
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "..")
-)
-GEMINI_CONFIG_PATH = os.path.join(_PROJECT_ROOT, "database", "models", "Gemini", "config.json")
+from pydardcor.core.config import get_user_data_dir as _get_user_data_dir
+_GEMINI_CONFIG_DIR = _get_user_data_dir()
+GEMINI_CONFIG_PATH = os.path.join(_GEMINI_CONFIG_DIR, "database", "models", "Gemini", "config.json")
 
 
 def _load_gemini_config() -> dict:

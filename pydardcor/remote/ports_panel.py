@@ -17,6 +17,7 @@ class PortForwardingPanel(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._ports = []
+        self._registered = {}
         self._setup_ui()
         self._refresh_timer = QTimer(self)
         self._refresh_timer.timeout.connect(self.refresh)
@@ -78,6 +79,49 @@ class PortForwardingPanel(QWidget):
             }
         """)
         layout.addWidget(self._tree)
+
+    def register_port(self, port: int, source: str = "Live Server", status: str = "Running", protocol: str = "TCP"):
+        """Pin a port in the panel (e.g. Live Server) across refreshes."""
+        info = {
+            "port": int(port),
+            "protocol": protocol,
+            "source": source,
+            "status": status,
+        }
+        self._registered[int(port)] = info
+        self._upsert_tree_item(info)
+
+    def _upsert_tree_item(self, info: dict):
+        port_str = str(info["port"])
+        for i in range(self._tree.topLevelItemCount()):
+            item = self._tree.topLevelItem(i)
+            if item.text(0) == port_str:
+                item.setText(1, info["protocol"])
+                item.setText(2, info["source"])
+                item.setText(3, info["status"])
+                item.setForeground(3, self._status_color(info))
+                return
+        item = QTreeWidgetItem([
+            port_str,
+            info["protocol"],
+            info["source"],
+            info["status"],
+        ])
+        item.setForeground(3, self._status_color(info))
+        self._tree.addTopLevelItem(item)
+
+    def _status_color(self, info: dict) -> QColor:
+        if info.get("source") == "Live Server":
+            return QColor("#569cd6")
+        if info.get("status") == "Forwarded":
+            return QColor("#569cd6")
+        return QColor("#73c991")
+
+    def _merge_ports(self, detected: list) -> list:
+        merged = {p["port"]: p for p in detected}
+        for port, info in self._registered.items():
+            merged[port] = info
+        return sorted(merged.values(), key=lambda x: x["port"])
 
     def refresh(self):
         """Detect listening ports on the system."""
@@ -145,22 +189,14 @@ class PortForwardingPanel(QWidget):
             return sorted(unique, key=lambda x: x["port"])[:20]
 
         def _on_done(ports):
-            self._ports = ports
-            for p in ports:
-                item = QTreeWidgetItem([
-                    str(p["port"]),
-                    p["protocol"],
-                    p["source"],
-                    p["status"]
-                ])
-                item.setForeground(3, QColor("#73c991"))
-                self._tree.addTopLevelItem(item)
+            self._ports = self._merge_ports(ports)
+            self._tree.clear()
+            for p in self._ports:
+                self._upsert_tree_item(p)
 
         threading.Thread(target=lambda: QTimer.singleShot(0, lambda: _on_done(_detect())), daemon=True).start()
 
     def _add_port(self):
         port, ok = QInputDialog.getInt(self, "Forward Port", "Port number:", 3000, 1, 65535)
         if ok:
-            item = QTreeWidgetItem([str(port), "TCP", "User", "Forwarded"])
-            item.setForeground(3, QColor("#569cd6"))
-            self._tree.addTopLevelItem(item)
+            self.register_port(port, source="User", status="Forwarded")

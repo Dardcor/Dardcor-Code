@@ -269,7 +269,8 @@ PROVIDER_DEFINITIONS = {
 
 
 def provider_config_path(provider_name: str) -> str:
-    return os.path.join(_PROJECT_ROOT, "database", "models", provider_name, "config.json")
+    from pydardcor.core.config import get_user_data_dir
+    return os.path.join(get_user_data_dir(), "database", "models", provider_name, "config.json")
 
 
 def load_provider_config(provider_name: str) -> dict:

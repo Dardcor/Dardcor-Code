@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton,
     QLabel, QTreeWidget, QTreeWidgetItem, QCheckBox, QMessageBox
 )
-from PySide6.QtCore import Signal, Qt
+from PySide6.QtCore import Signal, Qt, QTimer
 from PySide6.QtGui import QColor, QFont
 
 from ..core.filesystem import FileSystem
@@ -26,6 +26,10 @@ class SearchPanel(QWidget):
         self._results_ready.connect(self._display_results)
         self._total_files = 0
         self.setObjectName("searchPanel")
+        self._search_timer = QTimer(self)
+        self._search_timer.setSingleShot(True)
+        self._search_timer.setInterval(300)
+        self._search_timer.timeout.connect(self._search)
         self._setup_ui()
 
     def _setup_ui(self):
@@ -122,6 +126,7 @@ class SearchPanel(QWidget):
         self._query_input.setFixedHeight(24)
         self._query_input.setStyleSheet("QLineEdit { background: transparent; border: none; color: #cccccc; }")
         self._query_input.returnPressed.connect(self._search)
+        self._query_input.textChanged.connect(self._schedule_search)
         sw_layout.addWidget(self._query_input, 1)
 
         def btn_style():
@@ -136,6 +141,7 @@ class SearchPanel(QWidget):
         self._case_btn.setFixedSize(22, 20)
         self._case_btn.setToolTip("Match Case")
         self._case_btn.setStyleSheet(btn_style())
+        self._case_btn.toggled.connect(self._schedule_search)
         sw_layout.addWidget(self._case_btn)
 
         self._word_btn = QPushButton("ab")
@@ -143,6 +149,7 @@ class SearchPanel(QWidget):
         self._word_btn.setFixedSize(22, 20)
         self._word_btn.setToolTip("Match Whole Word")
         self._word_btn.setStyleSheet(btn_style())
+        self._word_btn.toggled.connect(self._schedule_search)
         sw_layout.addWidget(self._word_btn)
 
         self._regex_btn = QPushButton(".*")
@@ -150,6 +157,7 @@ class SearchPanel(QWidget):
         self._regex_btn.setFixedSize(22, 20)
         self._regex_btn.setToolTip("Use Regular Expression")
         self._regex_btn.setStyleSheet(btn_style())
+        self._regex_btn.toggled.connect(self._schedule_search)
         sw_layout.addWidget(self._regex_btn)
 
         search_row.addWidget(search_wrapper, 1)
@@ -204,6 +212,7 @@ class SearchPanel(QWidget):
         self._include_input.setFixedHeight(22)
         self._include_input.setStyleSheet(self._input_style())
         self._include_input.setFont(QFont("Consolas", 9))
+        self._include_input.textChanged.connect(self._schedule_search)
         include_layout.addWidget(self._include_input, 1)
         search_layout.addWidget(include_widget)
 
@@ -219,6 +228,7 @@ class SearchPanel(QWidget):
         self._exclude_input.setFixedHeight(22)
         self._exclude_input.setStyleSheet(self._input_style())
         self._exclude_input.setFont(QFont("Consolas", 9))
+        self._exclude_input.textChanged.connect(self._schedule_search)
         exclude_layout.addWidget(self._exclude_input, 1)
         search_layout.addWidget(exclude_widget)
 
@@ -304,6 +314,14 @@ class SearchPanel(QWidget):
                 border: 1px solid #4a0072;
             }
         """
+
+    def _schedule_search(self):
+        if self._query_input.text().strip():
+            self._search_timer.start()
+        else:
+            self._search_timer.stop()
+            self._results.clear()
+            self._count_label.hide()
 
     def _search(self):
         query = self._query_input.text().strip()

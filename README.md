@@ -18,23 +18,38 @@
 
 ---
 
-## What is Dardcor Code?
+## What Is Dardcor Code?
 
-Dardcor Code is a **full-featured desktop IDE** built entirely in Python with PySide6 (Qt). It delivers a VS Code-like experience — complete with Monaco Editor, xterm.js terminal, and AI pair programming — as a single `pip install` package with zero external dependencies beyond Python.
+Dardcor Code is an open-source **desktop AI coding assistant** and VS Code-like IDE built entirely in Python with PySide6. It brings together a native desktop shell, Monaco Editor, integrated terminal, file explorer, source control, debugging panels, extension views, and an agentic AI chat assistant in one cohesive development environment.
 
-Unlike browser-based editors or Electron apps, Dardcor Code runs as a **native desktop application** with minimal memory footprint while still providing the full Monaco editing experience through embedded `QWebEngineView`.
+The goal is simple: deliver a fast, hackable, native IDE that feels familiar to developers, stays transparent for contributors, and gives AI agents practical tools to inspect, edit, run, and reason about real projects.
+
+Unlike browser-only editors or Electron apps, Dardcor Code runs as a **native desktop application** while still using Monaco through embedded `QWebEngineView` for the familiar code editing experience.
+
+---
+
+## Why Dardcor Code?
+
+- **Native Python desktop app** — easy to inspect, modify, package, and extend.
+- **VS Code-inspired workflow** — activity bar, sidebar, tabs, terminal, source control, command palette, and quick open.
+- **Agent-first design** — AI can work with the project through structured tools, not only plain chat.
+- **Provider-flexible AI layer** — use API keys, local endpoints, OpenAI-compatible providers, or supported OAuth flows.
+- **Open-source friendly** — clear configuration, local-first storage, and no hardcoded real credentials.
+- **Practical editor core** — Monaco gives modern editing behavior while PySide6 keeps the app native.
 
 ---
 
 ## Features
 
 ### 🖥️ VS Code-Style Interface
+
 - **Custom frameless title bar** with integrated menu bar, Chrome agent launcher, and native window controls (minimize, maximize/restore, close)
 - **Activity bar** with Explorer, Search, Source Control, Debug, and Extensions views
 - **Resizable split panels** — sidebar, editor area, chat panel, and terminal can all be resized independently
 - **Status bar** showing cursor position, language mode, encoding, EOL, git branch, indentation, and AI engine status
 
 ### 📝 Monaco Code Editor
+
 - **Full Monaco Editor** embedded via `QWebEngineView` + `QWebChannel` bridge — the same editor engine used by VS Code
 - **Syntax highlighting for 30+ languages**: Python, JavaScript, TypeScript, Go, Rust, C/C++, C#, Java, HTML, CSS, SCSS, JSON, YAML, Markdown, SQL, Shell, PowerShell, Ruby, PHP, Swift, Kotlin, Dart, Lua, R, GraphQL, HCL, Protocol Buffers, and more
 - **Find & Replace** (Ctrl+F / Ctrl+H) with Monaco's built-in search widget
@@ -46,27 +61,31 @@ Unlike browser-based editors or Electron apps, Dardcor Code runs as a **native d
 - **Tab management** with dirty indicators (● marker), close confirmation for unsaved changes, and draggable tabs
 
 ### 🧠 AI Agent Integration
-- **Built-in AI coding assistant** with tool-calling capabilities (read files, write files, run commands, search code, list files)
+
+- **Built-in AI coding assistant** with tool-calling capabilities for files, commands, search, git, project detection, and syntax checks
 - **Chat panel** (VS Code Copilot Chat style) — type questions, get AI-powered answers and code modifications
-- **Agentic loop** — the AI can chain up to 10 tool calls per request to accomplish complex tasks autonomously
+- **Agentic loop** — the AI can chain tool calls per request to accomplish complex tasks autonomously
 - **Conversation memory** — chat history is persisted to `~/.dardcor-code/conversations/` as JSON files
-- **System prompt** customizable via config
-- **Streaming-ready architecture** with callback support
+- **Direct OAuth login** support for subscription-style Codex/Claude flows where available
+- **Secure token storage** in the user data directory; real API keys and OAuth tokens are not hardcoded
 
 ### 🌐 Multi-Provider AI Support
+
 | Provider | Default Base URL | Example Models |
 |----------|-----------------|----------------|
-| **OpenAI** | `api.openai.com/v1` | `gpt-4o`, `gpt-4`, `gpt-3.5-turbo` |
-| **Anthropic** | `api.anthropic.com/v1` | `claude-sonnet-4-20250514`, `claude-3.5-sonnet` |
-| **Google Gemini** | `generativelanguage.googleapis.com/v1beta/openai` | `gemini-2.0-flash`, `gemini-1.5-pro` |
+| **OpenAI / Codex** | `api.openai.com/v1` / OAuth backend | GPT and Codex models |
+| **Anthropic / Claude** | `api.anthropic.com/v1` / OAuth backend | Claude Sonnet, Opus, Haiku |
+| **Google Gemini** | `generativelanguage.googleapis.com/v1beta/openai` | Gemini Flash, Gemini Pro |
 | **DeepSeek** | `api.deepseek.com/v1` | `deepseek-chat`, `deepseek-coder` |
 | **OpenRouter** | `openrouter.ai/api/v1` | Any model via OpenRouter |
 | **Ollama** | `localhost:11434/v1` | `llama3`, `codellama`, `mistral` |
 | **NVIDIA NIM** | `integrate.api.nvidia.com/v1` | NVIDIA-hosted models |
+| **Groq / Mistral / Cohere / Perplexity / MiMo** | Provider-specific | Registry-backed model lists |
 
-All providers use the **OpenAI-compatible chat completions API** format. Custom base URLs are supported for self-hosted or proxy setups.
+Most API-key providers use an **OpenAI-compatible chat completions** shape. Subscription and OAuth providers use provider-specific adapters where required. Custom base URLs are supported for self-hosted models, local gateways, and proxy setups.
 
 ### 📁 File Explorer
+
 - **Tree view** with lazy loading and VS Code-style expand/collapse chevrons
 - **SVG file icons** — language-specific icons for Python, JSON, Markdown, TOML, Git files, and generic file/folder icons
 - **Context menu** — New File, New Folder, Rename, Delete, Copy Path, Copy Relative Path
@@ -74,6 +93,7 @@ All providers use the **OpenAI-compatible chat completions API** format. Custom 
 - **Auto-filtering** of hidden dirs, `__pycache__`, `node_modules`, `.git`, `.venv`, etc.
 
 ### ⌨️ Integrated Terminal
+
 - **Full PTY terminal** powered by `pywinpty` (Windows) with xterm.js frontend via `QWebEngineView`
 - **Fallback to QProcess** if PTY is not available
 - **Multiple terminal tabs** — create, switch, and close terminal instances
@@ -81,6 +101,7 @@ All providers use the **OpenAI-compatible chat completions API** format. Custom 
 - **Supports all shells**: PowerShell, CMD, Bash, Zsh, etc.
 
 ### 🔍 Full-Text Search
+
 - **Search across all files** in the workspace with regex, case-sensitive, and whole-word options
 - **Replace All** functionality across files
 - **File include/exclude filters** (e.g., `*.py`, `src/`)
@@ -88,6 +109,7 @@ All providers use the **OpenAI-compatible chat completions API** format. Custom 
 - **Performance** — skips binary files and common large directories automatically
 
 ### 🔀 Git Integration
+
 - **Full Source Control panel** — view staged, unstaged, and untracked files
 - **Commit** with message input, **Stage/Unstage** individual files, **Discard** changes
 - **Sync** (pull --rebase + push) with a single click
@@ -96,18 +118,21 @@ All providers use the **OpenAI-compatible chat completions API** format. Custom 
 - **Branch display** in status bar
 
 ### 🎨 Command Palette & Quick Open
+
 - **Command Palette** (Ctrl+Shift+P) — search and execute any command with keyboard shortcut hints
 - **Quick Open** (Ctrl+P) — fuzzy search for files across the workspace (up to 5,000 files indexed)
 - **Go to Line** (Ctrl+G) — jump to a specific line number in the current editor
 
 ### ⚙️ Settings
+
 - **Settings dialog** (Ctrl+,) with tabs for AI Model, Editor, Workspace, and About
 - **Configurable**: AI provider, model, API key, base URL, temperature, max tokens
 - **Editor options**: font family, font size, tab size, word wrap, minimap, auto-save
 - **Persistent config** stored at `~/.dardcor-code/config.json`
-- **Environment variable support**: `DARDCOR_CODE_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`
+- **Environment variable support**: `DARDCOR_CODE_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, and provider-specific keys
 
 ### 🌐 Chrome Agent Launcher
+
 - **Built-in Chrome button** in the title bar opens Google Chrome with an **isolated agent-specific profile**
 - Profile stored in `.dardcor_chrome_profile/` — keeps agent browsing separate from personal Chrome data
 - Auto-detects Chrome installation path on Windows, Linux, and macOS
@@ -200,6 +225,8 @@ Configuration is stored at `~/.dardcor-code/config.json`:
 }
 ```
 
+Secrets are kept out of source control. OAuth tokens are stored under the user data directory, and `.env` files are ignored by git.
+
 ---
 
 ## Keyboard Shortcuts
@@ -278,7 +305,7 @@ Configuration is stored at `~/.dardcor-code/config.json`:
 
 ### AI Agent Tool System
 
-The AI agent has access to **5 tools** that it calls automatically during conversations:
+The AI agent has access to built-in tools that it calls automatically during conversations:
 
 | Tool | Description |
 |------|-------------|
@@ -287,6 +314,9 @@ The AI agent has access to **5 tools** that it calls automatically during conver
 | `run_command` | Execute a shell command with 30s timeout |
 | `search_files` | Grep across files for a text pattern |
 | `list_files` | List files in a directory (optionally recursive) |
+| `git_status` / `git_diff` | Inspect source control state |
+| `check_syntax` | Run quick syntax checks |
+| `detect_project` | Detect project type and tooling |
 
 The agent executes tools in an **agentic loop** — after each tool call, the result is fed back to the LLM, which can then decide to call more tools or provide a final response (up to 10 iterations).
 
@@ -304,6 +334,27 @@ The agent executes tools in an **agentic loop** — after each tool call, the re
 - Native `WM_NCHITTEST` handling for frameless window resizing from all edges and corners
 - `SetCurrentProcessExplicitAppUserModelID` for proper taskbar grouping
 - `SIGBREAK` signal handling for graceful shutdown
+
+---
+
+## Security and Credentials
+
+Dardcor Code is designed to keep credentials local and explicit.
+
+- Real API keys are never hardcoded.
+- `.env`, local databases, OAuth token files, and secret files are ignored by git.
+- OAuth tokens are stored under the user data directory, not in tracked source files.
+- Agent tool execution is visible and should be reviewed like any other code-changing automation.
+
+See [SECURITY.md](SECURITY.md) for vulnerability reporting and secret-handling guidance.
+
+---
+
+## Contributing
+
+Dardcor Code is built for contributors who want a Python-native IDE they can understand and modify. Small focused pull requests are preferred, especially when they improve editor behavior, AI provider support, terminal reliability, performance, accessibility, or documentation.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup steps, test commands, and contribution guidelines.
 
 ---
 
