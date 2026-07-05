@@ -550,6 +550,14 @@ class ChatPanel(QWidget):
         """)
         self._attach_menu.addAction("Add File", self.select_file_requested.emit)
         self._attach_menu.addAction("Add Folder", self._select_folder_attachment)
+        ai_tools_menu = self._attach_menu.addMenu("AI Tools")
+        ai_tools_menu.addAction("Web Search", lambda: self._insert_tool_prompt("Use web_search for: "))
+        ai_tools_menu.addAction("Web Fetch", lambda: self._insert_tool_prompt("Use web_fetch on this URL: "))
+        ai_tools_menu.addAction("Embeddings", lambda: self._insert_tool_prompt("Create an embedding for: "))
+        ai_tools_menu.addAction("Image Generation", lambda: self._insert_tool_prompt("Generate an image: "))
+        ai_tools_menu.addAction("Speech-to-Text", lambda: self._insert_tool_prompt("Transcribe this audio file: "))
+        ai_tools_menu.addAction("Text-to-Speech", lambda: self._insert_tool_prompt("Create speech audio from: "))
+        ai_tools_menu.addAction("Skills", lambda: self._insert_tool_prompt("List built-in skills and recommend one for: "))
         
         self._attach_menu.addSeparator()
         self._chat_mode = "Agent"
@@ -721,6 +729,14 @@ class ChatPanel(QWidget):
 
     def get_chat_mode(self) -> str:
         return getattr(self, "_chat_mode", "Agent")
+
+    def _insert_tool_prompt(self, prefix: str):
+        current = self._input.toPlainText().strip()
+        self._input.setPlainText(f"{prefix}{current}" if current else prefix)
+        self._input.setFocus()
+        cursor = self._input.textCursor()
+        cursor.movePosition(QTextCursor.End)
+        self._input.setTextCursor(cursor)
 
     def _copy_focused_text(self):
         focused = QApplication.focusWidget()

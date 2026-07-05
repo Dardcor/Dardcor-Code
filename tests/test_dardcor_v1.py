@@ -83,6 +83,17 @@ class TestDardcorToolCatalog(unittest.TestCase):
         self.assertIn("detect_project", names)
 
 
+class TestPromptEfficiencyPack(unittest.TestCase):
+    def test_identity_prompt_includes_builtin_efficiency_pack(self):
+        from dardcor_agent.chat.identity import get_identity_prompt
+
+        prompt = get_identity_prompt()
+        self.assertIn("BUILT-IN PROMPT EFFICIENCY PACK", prompt)
+        self.assertIn("CAVEMAN COMPRESSION", prompt)
+        self.assertIn("RTK-STYLE TOKEN DISCIPLINE", prompt)
+        self.assertIn("PONYTAIL ENGINEERING", prompt)
+
+
 class TestToolMessageSanitizer(unittest.TestCase):
     def test_orphan_tool_messages_are_removed_from_api_payload(self):
         from dardcor_agent.chat.memory import Conversation

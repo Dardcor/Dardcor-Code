@@ -17,6 +17,7 @@ PROVIDER_REGISTRY = {
         "is_special": True,
         "built_in": True,
         "tier": "Built-in",
+        "capabilities": ["chat", "web_search", "web_fetch", "embeddings", "image_generation", "speech_to_text", "text_to_speech", "skills"],
         "models": [
             {
                 "id": "dardcor-flash-free",
@@ -105,6 +106,7 @@ PROVIDER_REGISTRY = {
         "api_key_env": "OPENAI_API_KEY",
         "auth_url": "https://platform.openai.com/api-keys",
         "models_fetch_url": "https://api.openai.com/v1/models",
+        "capabilities": ["chat", "embeddings", "image_generation", "speech_to_text", "text_to_speech"],
         "models": [
             {"id": "gpt-5.6-sol",         "name": "GPT-5.6 Sol (Preview, gated)"},
             {"id": "gpt-5.6-terra",       "name": "GPT-5.6 Terra (Preview, gated)"},
@@ -149,6 +151,7 @@ PROVIDER_REGISTRY = {
         "auth_url": "https://aistudio.google.com/apikey",
         "supports_web_login": True,
         "models_fetch_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "capabilities": ["chat", "embeddings", "image_generation"],
         "models": [
             # Stable rolling aliases — always resolve for any key (put first).
             {"id": "gemini-flash-latest",           "name": "Gemini Flash (Latest, Free)"},
@@ -277,6 +280,7 @@ PROVIDER_REGISTRY = {
         "models_fetch_url": "https://openrouter.ai/api/v1/models",
         "auth_url": "https://openrouter.ai/keys",
         "supports_web_login": True,
+        "capabilities": ["chat", "web_search"],
         "models": [
             {"id": "openrouter/free",                                  "name": "Auto Free Router", "free": True},
             {"id": "openrouter/auto",                                  "name": "Auto Best Model"},
@@ -409,6 +413,7 @@ PROVIDER_REGISTRY = {
         "base_url": "https://api.deepinfra.com/v1/openai",
         "api_key_env": "DEEPINFRA_API_KEY",
         "models_fetch_url": "https://api.deepinfra.com/models/list",
+        "capabilities": ["chat", "embeddings"],
         "models": [
             {"id": "Qwen/Qwen3-Max",                          "name": "Qwen 3 Max"},
             {"id": "Qwen/Qwen3-Max-Thinking",                 "name": "Qwen 3 Max Thinking"},

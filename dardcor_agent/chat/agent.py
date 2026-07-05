@@ -217,6 +217,21 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "web_search",
+            "description": "Search the web and return compact result snippets.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "The search query"},
+                    "max_results": {"type": "integer", "description": "Maximum results"}
+                },
+                "required": ["query"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "read_url",
             "description": "Read text content from a web URL/page.",
             "parameters": {
@@ -226,6 +241,83 @@ TOOLS = [
                 },
                 "required": ["url"]
             }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "web_fetch",
+            "description": "Fetch and extract readable text from a web URL.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string", "description": "The URL to fetch"},
+                    "allow_local": {"type": "boolean", "description": "Allow localhost/private URLs"}
+                },
+                "required": ["url"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "create_embedding",
+            "description": "Create an embedding vector for text using configured provider or local hashing fallback.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "text": {"type": "string", "description": "Text to embed"},
+                    "save_as": {"type": "string", "description": "Optional local cache name"}
+                },
+                "required": ["text"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "generate_image",
+            "description": "Generate an image from a prompt using a configured image-capable provider.",
+            "parameters": {
+                "type": "object",
+                "properties": {"prompt": {"type": "string", "description": "Image prompt"}},
+                "required": ["prompt"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "speech_to_text",
+            "description": "Transcribe an audio file with a configured speech-to-text provider.",
+            "parameters": {
+                "type": "object",
+                "properties": {"path": {"type": "string", "description": "Audio file path"}},
+                "required": ["path"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "text_to_speech",
+            "description": "Generate speech audio from text using a configured text-to-speech provider.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "text": {"type": "string", "description": "Text to speak"},
+                    "voice": {"type": "string", "description": "Voice name"}
+                },
+                "required": ["text"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_skills",
+            "description": "List built-in Dardcor skills and prompt helpers.",
+            "parameters": {"type": "object", "properties": {}}
         }
     },
     {
@@ -724,7 +816,7 @@ class Agent:
         self._current_provider = provider
         
         consecutive_read_turns = 0
-        READ_ONLY_TOOLS = {"search_files", "list_files", "read_file", "semantic_search", "search_web", "read_url", "glob_files", "grep"}
+        READ_ONLY_TOOLS = {"search_files", "list_files", "read_file", "semantic_search", "search_web", "web_search", "read_url", "web_fetch", "create_embedding", "list_skills", "glob_files", "grep"}
 
         def abort_check():
             return getattr(self, '_abort_flag', False)
@@ -1507,6 +1599,13 @@ class Agent:
                 except Exception as e:
                     return f"Error applying multi-replace: {str(e)}"
 
+            elif name == "web_search":
+                from dardcor_agent.capabilities.web import web_search
+                query = args.get("query", "")
+                if not query:
+                    return "Error: No query specified"
+                return json.dumps(web_search(query, max_results=int(args.get("max_results", 5) or 5)), indent=2)
+
             elif name == "search_web":
                 query = args.get("query", "")
                 if not query:
@@ -1576,6 +1675,57 @@ class Agent:
                     return body[:12000]
                 except Exception as e:
                     return f"Error reading URL: {str(e)}"
+
+            elif name == "web_fetch":
+                from dardcor_agent.capabilities.web import web_fetch
+                result = web_fetch(args.get("url", ""), allow_local=bool(args.get("allow_local", False)))
+                return json.dumps(result, indent=2)
+
+            elif name == "create_embedding":
+                from dardcor_agent.capabilities.embeddings import create_embedding, save_embedding
+                text = args.get("text", "")
+                if not text:
+                    return "Error: No text specified"
+                result = create_embedding(text)
+                save_as = args.get("save_as", "")
+                if save_as:
+                    result["saved_path"] = save_embedding(save_as, result)
+                return json.dumps(result, indent=2)
+
+            elif name == "generate_image":
+                from dardcor_agent.capabilities.media import generate_image
+                ai = getattr(self._config, "ai", None)
+                result = generate_image(
+                    args.get("prompt", ""),
+                    api_key=getattr(ai, "api_key", ""),
+                    base_url=getattr(ai, "base_url", "") or "https://api.openai.com/v1",
+                )
+                return json.dumps(result, indent=2)
+
+            elif name == "speech_to_text":
+                from dardcor_agent.capabilities.media import speech_to_text
+                ai = getattr(self._config, "ai", None)
+                result = speech_to_text(
+                    args.get("path", ""),
+                    api_key=getattr(ai, "api_key", ""),
+                    base_url=getattr(ai, "base_url", "") or "https://api.openai.com/v1",
+                )
+                return json.dumps(result, indent=2)
+
+            elif name == "text_to_speech":
+                from dardcor_agent.capabilities.media import text_to_speech
+                ai = getattr(self._config, "ai", None)
+                result = text_to_speech(
+                    args.get("text", ""),
+                    api_key=getattr(ai, "api_key", ""),
+                    base_url=getattr(ai, "base_url", "") or "https://api.openai.com/v1",
+                    voice=args.get("voice", "alloy"),
+                )
+                return json.dumps(result, indent=2)
+
+            elif name == "list_skills":
+                from dardcor_agent.capabilities.skills import list_skills
+                return json.dumps(list_skills(), indent=2)
 
             elif name == "semantic_search":
                 query = args.get("query", "")
@@ -1987,8 +2137,6 @@ class Agent:
                 
             elif name == "open_browser":
                 url = args.get("url", "")
-                if on_notification:
-                    pass
                 return f"Browser opened at {url}. BROWSER_OPENED:{url}"
 
             else:
