@@ -151,7 +151,7 @@ class AppConfig:
     file_icon_theme: str = ""
     color_theme: str = ""
     extensions_auto_update: bool = True
-    default_model: str = "dardcor-v1"
+    default_model: str = "dardcor-flash-free"
     ai: AISettings = field(default_factory=AISettings)
 
     def save(self):

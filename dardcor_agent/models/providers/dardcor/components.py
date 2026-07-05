@@ -1,4 +1,4 @@
-"""Dardcor v1 built-in provider panel for the Models dashboard."""
+"""Dardcor Flash Free built-in provider panel for the Models dashboard."""
 
 import os
 
@@ -18,7 +18,7 @@ from dardcor_agent.models.providers.registry import PROVIDER_REGISTRY
 
 
 class DardcorProviderPanel(QWidget):
-    """Read-only overview for the built-in Dardcor v1 orchestrator."""
+    """Read-only overview for the built-in Dardcor Flash Free orchestrator."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -55,7 +55,7 @@ class DardcorProviderPanel(QWidget):
 
         title_col = QVBoxLayout()
         title_col.setSpacing(2)
-        title = QLabel("Dardcor v1")
+        title = QLabel("Dardcor Flash Free")
         title.setStyleSheet("color: #e4e4e7; font-size: 18px; font-weight: 700; border: none; background: transparent;")
         title_col.addWidget(title)
         subtitle = QLabel("Default built-in model · routes across configured free providers")
@@ -72,7 +72,7 @@ class DardcorProviderPanel(QWidget):
         header_layout.addLayout(title_row)
 
         desc = QLabel(
-            "Dardcor v1 is enabled by default. It tries Antigravity accounts first, then free models "
+            "Dardcor Flash Free is enabled by default. It tries Antigravity accounts first, then free models "
             "from providers you configure. Add API keys in provider tabs or place secrets in user-data "
             "secrets.json — keys are never shown here."
         )

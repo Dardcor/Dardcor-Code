@@ -169,7 +169,7 @@ class StandardOpenAIProvider(BaseProvider):
                 return {}
 
             # 3) Read per-provider config for api_key / base_url overrides.
-            config_path = os.path.join(project_root, "database", "models", target_name, "config.json")
+            config_path = os.path.join(get_user_data_dir(), "database", "models", target_name, "config.json")
             data = {}
             if os.path.exists(config_path):
                 with open(config_path, "r", encoding="utf-8") as f:

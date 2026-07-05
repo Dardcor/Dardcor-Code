@@ -40,13 +40,13 @@ def append_extension_context_menu(
     current_group: Optional[str] = None
     added = 0
     for item in items:
-        group = item.get("group", "")
+        group = item.group
         if current_group is not None and group != current_group:
             menu.addSeparator()
         current_group = group
 
-        label = item.get("label", item.get("command", ""))
-        cmd_id = item["command"]
+        label = item.label or item.command
+        cmd_id = item.command
         action = QAction(label, menu)
         action.triggered.connect(lambda checked=False, c=cmd_id: execute_cb(c))
         menu.addAction(action)

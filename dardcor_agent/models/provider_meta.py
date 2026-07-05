@@ -13,10 +13,8 @@ DEFAULT_MODELS_PAGE_SIZE = 12
 
 
 def registry_config_path(provider_name: str) -> str:
-    root = os.path.normpath(
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
-    )
-    return os.path.join(root, "database", "models", provider_name, "config.json")
+    from pydardcor.core.config import get_user_data_dir
+    return os.path.join(get_user_data_dir(), "database", "models", provider_name, "config.json")
 
 
 def load_registry_provider_config(provider_name: str) -> dict:

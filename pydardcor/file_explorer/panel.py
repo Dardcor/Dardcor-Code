@@ -641,7 +641,7 @@ class FileExplorer(QWidget):
         header.setFixedHeight(35)
         header.setStyleSheet("""
             background-color: #000000;
-            border-bottom: 1px solid #000000;
+            border-bottom: 1px solid #3c0068;
         """)
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(20, 0, 8, 0)

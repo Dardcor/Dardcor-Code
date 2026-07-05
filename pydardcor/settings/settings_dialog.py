@@ -332,16 +332,16 @@ class SettingsDialog(QDialog):
                     if model_id:
                         label = f"{model.get('name', model_id)} ({provider_name})"
                         models.append((model_id, label))
-            models.sort(key=lambda item: (item[0] != "dardcor-v1", item[1].lower()))
+            models.sort(key=lambda item: (item[0] != "dardcor-flash-free", item[1].lower()))
             for model_id, label in models:
                 self._default_model.addItem(label, model_id)
         except Exception:
-            self._default_model.addItem("Dardcor v1", "dardcor-v1")
+            self._default_model.addItem("Dardcor Flash Free", "dardcor-flash-free")
 
         ai_layout.addRow("Default model:", self._default_model)
 
         hint = QLabel(
-            "Used when chat opens or no model is selected. Dardcor v1 is the recommended built-in default."
+            "Used when chat opens or no model is selected. Dardcor Flash Free is the recommended built-in default."
         )
         hint.setWordWrap(True)
         hint.setStyleSheet("color: #858585; font-size: 12px;")
@@ -440,7 +440,7 @@ class SettingsDialog(QDialog):
         self._show_timeline.setChecked(self._config.show_timeline)
         self._ui_zoom.setValue(self._config.ui_zoom)
         self._extensions_auto_update.setChecked(self._config.extensions_auto_update)
-        default_model = getattr(self._config, "default_model", "dardcor-v1")
+        default_model = getattr(self._config, "default_model", "dardcor-flash-free")
         idx = self._default_model.findData(default_model)
         if idx >= 0:
             self._default_model.setCurrentIndex(idx)
@@ -460,6 +460,6 @@ class SettingsDialog(QDialog):
         self._config.show_timeline = self._show_timeline.isChecked()
         self._config.ui_zoom = self._ui_zoom.value()
         self._config.extensions_auto_update = self._extensions_auto_update.isChecked()
-        self._config.default_model = self._default_model.currentData() or "dardcor-v1"
+        self._config.default_model = self._default_model.currentData() or "dardcor-flash-free"
         self._config.save()
         self.accept()

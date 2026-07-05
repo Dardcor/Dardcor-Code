@@ -2787,7 +2787,10 @@ class MainWindow(QMainWindow):
                 self._status_bar.set_language(editor.get_language())
                 if hasattr(editor, "diagnostics_ready"):
                     try:
-                        editor.diagnostics_ready.disconnect(self._on_editor_diagnostics)
+                        import warnings
+                        with warnings.catch_warnings():
+                            warnings.simplefilter("ignore", RuntimeWarning)
+                            editor.diagnostics_ready.disconnect(self._on_editor_diagnostics)
                     except (RuntimeError, TypeError):
                         pass
                     editor.diagnostics_ready.connect(self._on_editor_diagnostics)

@@ -77,5 +77,5 @@ print(detect_running_gateways())  # {'NineRouter': True/False, 'OpenCode': True/
 ## Security notes
 
 - Do **not** commit `.env` or real API keys to Git.
-- Avoid opening untrusted workspaces that ship a malicious `.env` — Dardcor v1 may read workspace env files.
+- Avoid opening untrusted workspaces that ship a malicious `.env` — Dardcor Flash Free may read workspace env files.
 - Prefer keys in user-data `secrets.json` or system env vars over project `.env`.

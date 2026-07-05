@@ -217,7 +217,7 @@ class DardcorV1Provider(BaseProvider):
         tried_text = ", ".join(tried[:8]) or "none"
         return ProviderResponse(
             error=(
-                "Dardcor v1 tidak menemukan free model aktif yang bisa dipakai.\n\n"
+                "Dardcor Flash Free tidak menemukan free model aktif yang bisa dipakai.\n\n"
                 "Buat secrets.json di user data Dardcor atau set env var "
                 "OPENROUTER_API_KEY/GROQ_API_KEY/NVIDIA_API_KEY/GOOGLE_API_KEY. Tried: "
                 f"{tried_text}"

@@ -113,7 +113,7 @@ class _ModelSearchRow(QFrame):
         self._label = label
         self.setCursor(Qt.PointingHandCursor)
         self.setFixedHeight(30)
-        bg = "#3a2a12" if is_current else "transparent"
+        bg = "#3c0068" if is_current else "transparent"
         self.setStyleSheet(
             f"_ModelSearchRow{{background:{bg};border:none;border-radius:5px;}}"
             "_ModelSearchRow:hover{background:#2a2a2e;}"
@@ -122,7 +122,7 @@ class _ModelSearchRow(QFrame):
         row.setContentsMargins(10, 0, 10, 0)
         row.setSpacing(8)
 
-        name_color = "#f97316" if is_current else "#e4e4e7"
+        name_color = "#a855f7" if is_current else "#e4e4e7"
         name_lbl = QLabel(name)
         name_lbl.setStyleSheet(
             f"color:{name_color};font-size:12px;border:none;background:transparent;"
@@ -158,9 +158,9 @@ class ModelSearchPopup(QFrame):
         super().__init__(parent, Qt.Popup | Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.setStyleSheet(
-            "QFrame{background:#161618;border:1px solid #2c2e33;border-radius:10px;}"
-            "QScrollBar:vertical{width:6px;background:transparent;}"
-            "QScrollBar::handle:vertical{background:#2c2e33;border-radius:3px;}"
+            "QFrame{background:#161618;border:1px solid #3c0068;border-radius:10px;}"
+            "QScrollBar:vertical{width:2px;background:transparent;}"
+            "QScrollBar::handle:vertical{background:#3c0068;border-radius:1px;}"
         )
         self._entries = entries
         self._current_label = current_label
@@ -168,12 +168,16 @@ class ModelSearchPopup(QFrame):
         self.setMaximumWidth(max(min_width, 420))
 
         vbox = QVBoxLayout(self)
-        vbox.setContentsMargins(8, 8, 8, 8)
+        vbox.setContentsMargins(8, 8, 2, 8)
         vbox.setSpacing(6)
 
+        search_container = QWidget()
+        search_layout = QHBoxLayout(search_container)
+        search_layout.setContentsMargins(0, 0, 6, 0)
+        
         search_frame = QFrame()
         search_frame.setStyleSheet(
-            "QFrame{background:#0e0e10;border:1px solid #2c2e33;border-radius:7px;}"
+            "QFrame{background:#0e0e10;border:1px solid #3c0068;border-radius:7px;}"
         )
         sf_row = QHBoxLayout(search_frame)
         sf_row.setContentsMargins(10, 2, 10, 2)
@@ -189,7 +193,9 @@ class ModelSearchPopup(QFrame):
         )
         self._search.textChanged.connect(self._filter)
         sf_row.addWidget(self._search)
-        vbox.addWidget(search_frame)
+        
+        search_layout.addWidget(search_frame)
+        vbox.addWidget(search_container)
 
         self._scroll = QScrollArea()
         self._scroll.setWidgetResizable(True)
@@ -199,7 +205,7 @@ class ModelSearchPopup(QFrame):
         self._list_w = QWidget()
         self._list_w.setStyleSheet("background:transparent;")
         self._list_vbox = QVBoxLayout(self._list_w)
-        self._list_vbox.setContentsMargins(0, 0, 0, 0)
+        self._list_vbox.setContentsMargins(0, 0, 6, 0)
         self._list_vbox.setSpacing(1)
         self._scroll.setWidget(self._list_w)
         vbox.addWidget(self._scroll)
@@ -544,64 +550,21 @@ class ChatPanel(QWidget):
         """)
         self._attach_menu.addAction("Add File", self.select_file_requested.emit)
         self._attach_menu.addAction("Add Folder", self._select_folder_attachment)
+        
+        self._attach_menu.addSeparator()
+        self._chat_mode = "Agent"
+        from PySide6.QtGui import QActionGroup
+        self._mode_action_group = QActionGroup(self)
+        for mode in ["Agent", "Plan", "Debug", "Multitask", "Ask"]:
+            action = self._attach_menu.addAction(mode)
+            action.setCheckable(True)
+            if mode == self._chat_mode:
+                action.setChecked(True)
+            self._mode_action_group.addAction(action)
+            action.triggered.connect(lambda checked, m=mode: self._set_chat_mode(m))
+            
         attach_btn.clicked.connect(lambda: self._attach_menu.popup(attach_btn.mapToGlobal(attach_btn.rect().topLeft())))
         input_bottom_layout.addWidget(attach_btn)
-
-        self._chat_mode = "Agent"
-        self.mode_dropdown = UpwardComboBox()
-        self.mode_dropdown.addItems(["Agent", "Plan", "Debug", "Multitask", "Ask"])
-        self.mode_dropdown.setFixedHeight(26)
-        self.mode_dropdown.setFixedWidth(96)
-        self.mode_dropdown.setToolTip("Chat mode")
-        self.mode_dropdown.currentTextChanged.connect(self._set_chat_mode)
-        mode_chevron_path = os.path.join(image_dir, "chevron-up.svg").replace("\\", "/")
-        self.mode_dropdown.setStyleSheet("""
-            QComboBox {
-                background-color: transparent;
-                color: #e4e4e7;
-                border: 1px solid #2c004a;
-                border-radius: 4px;
-                padding: 2px 8px;
-                font-family: "Segoe UI", "Ubuntu", sans-serif;
-                font-size: 11.5px;
-                font-weight: 500;
-            }
-            QComboBox:hover {
-                background-color: rgba(168, 85, 247, 0.08);
-                border-color: #a855f7;
-            }
-            QComboBox::drop-down {
-                border: none;
-                width: 18px;
-            }
-            QComboBox::down-arrow {
-                image: url("%s");
-                width: 12px;
-                height: 12px;
-                margin-right: 4px;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #000000;
-                color: #e4e4e7;
-                border: 1px solid #2c004a;
-                border-radius: 4px;
-                outline: 0px;
-                padding: 2px;
-            }
-            QComboBox QAbstractItemView::item {
-                padding: 4px 10px;
-                border-radius: 3px;
-                min-height: 16px;
-            }
-            QComboBox QAbstractItemView::item:hover {
-                background-color: rgba(168, 85, 247, 0.12);
-            }
-            QComboBox QAbstractItemView::item:selected {
-                background-color: rgba(168, 85, 247, 0.25);
-                color: #ffffff;
-            }
-        """ % mode_chevron_path)
-        input_bottom_layout.addWidget(self.mode_dropdown)
         
         chevron_path = os.path.join(image_dir, "chevron-up.svg").replace("\\", "/")
         self.model_dropdown = UpwardComboBox()
@@ -744,8 +707,8 @@ class ChatPanel(QWidget):
             pass
 
     def _provider_config_path(self, provider_name: str) -> str:
-        project_root = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-        return os.path.join(project_root, "database", "models", provider_name, "config.json")
+        from pydardcor.core.config import get_user_data_dir
+        return os.path.join(get_user_data_dir(), "database", "models", provider_name, "config.json")
 
     def _active_model_provider(self, providers: dict) -> str:
         for name in ["Gemini", "OpenRouter", "DeepSeek", "NVIDIA", "Antigravity"]:
@@ -909,7 +872,7 @@ class ChatPanel(QWidget):
                 from pydardcor.core.config import get_config
                 preferred = get_config().default_model
             except Exception:
-                preferred = "dardcor-v1"
+                preferred = "dardcor-flash-free"
             first_selectable = None
             for i in range(self._dropdown_model.rowCount()):
                 item = self._dropdown_model.item(i)

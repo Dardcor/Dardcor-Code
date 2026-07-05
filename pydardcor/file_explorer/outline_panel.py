@@ -134,7 +134,8 @@ class SectionHeaderButton(QPushButton):
             bg_color = colors.get("background", bg_color)
             fg_color = colors.get("foreground", fg_color)
             hover_color = colors.get("hover", hover_color)
-            border_color = colors.get("border", border_color)
+            # Use fixed purple for section borders
+            border_color = "#3c0068"
         except Exception:
             pass
 

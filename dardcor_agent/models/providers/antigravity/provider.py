@@ -79,7 +79,7 @@ class AntigravityProvider(BaseProvider):
             "Gemini 3 Pro (High)": "gemini-3-pro-high",
             "Gemini 3 Pro (Low)": "gemini-3-pro-low",
             "Gemini 3 Flash": "gemini-3-flash",
-            "Gemini 3.5 Flash (High)": "gemini-3.5-flash-agent",
+            "Gemini 3.5 Flash (High)": "gemini-3-flash-agent",
             "Gemini 3.5 Flash (Low)": "gemini-3.5-flash-extra-low",
             "Gemini 3.5 Flash (Medium)": "gemini-3.5-flash-low",
             "Gemini 2.5 Pro": "gemini-2.5-pro",
