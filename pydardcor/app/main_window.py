@@ -3488,8 +3488,8 @@ class MainWindow(QMainWindow):
                 def open_browser_tab():
                     from ..editor.browser_widget import BrowserWidget
                     from PySide6.QtGui import QIcon
-                    browser = BrowserWidget(url, self)
-                    self._editor_tabs.add_custom_tab(browser, "Browser", QIcon())
+                    browser = BrowserWidget(url, self, controlled_by_ai=True)
+                    self._editor_tabs.add_custom_tab(browser, "AI Browser", QIcon())
                 QTimer.singleShot(0, open_browser_tab)
                 return
             self._chat_panel.show_native_notification(msg)

@@ -559,6 +559,73 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "browser_open",
+            "description": "Open an AI-controlled isolated Chrome window for inspecting a URL.",
+            "parameters": {
+                "type": "object",
+                "properties": {"url": {"type": "string", "description": "URL to open"}},
+                "required": ["url"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "browser_observe",
+            "description": "Observe the current AI-controlled Chrome tabs through local DevTools metadata.",
+            "parameters": {"type": "object", "properties": {}}
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "browser_eval",
+            "description": "Evaluate JavaScript in the controlled browser when CDP WebSocket support is available.",
+            "parameters": {
+                "type": "object",
+                "properties": {"script": {"type": "string", "description": "JavaScript source"}},
+                "required": ["script"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "browser_click",
+            "description": "Click coordinates in the AI-controlled Chrome page.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "x": {"type": "integer", "description": "Viewport X coordinate"},
+                    "y": {"type": "integer", "description": "Viewport Y coordinate"}
+                },
+                "required": ["x", "y"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "browser_type",
+            "description": "Type text into the currently focused element in the AI-controlled Chrome page.",
+            "parameters": {
+                "type": "object",
+                "properties": {"text": {"type": "string", "description": "Text to type"}},
+                "required": ["text"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "browser_screenshot",
+            "description": "Capture a PNG screenshot from the AI-controlled Chrome page.",
+            "parameters": {"type": "object", "properties": {}}
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "git_status",
             "description": "Show git working tree status for the workspace.",
             "parameters": {"type": "object", "properties": {}},
@@ -2138,6 +2205,34 @@ class Agent:
             elif name == "open_browser":
                 url = args.get("url", "")
                 return f"Browser opened at {url}. BROWSER_OPENED:{url}"
+
+            elif name == "browser_open":
+                from dardcor_agent.chat.browser_control import open_controlled_browser
+                url = args.get("url", "")
+                if not url:
+                    return "Error: No URL specified"
+                result = open_controlled_browser(url)
+                return json.dumps(result, indent=2) + f"\nBROWSER_OPENED:{url}"
+
+            elif name == "browser_observe":
+                from dardcor_agent.chat.browser_control import observe_browser
+                return json.dumps(observe_browser(), indent=2)
+
+            elif name == "browser_eval":
+                from dardcor_agent.chat.browser_control import browser_eval
+                return json.dumps(browser_eval(args.get("script", "")), indent=2)
+
+            elif name == "browser_click":
+                from dardcor_agent.chat.browser_control import browser_click
+                return json.dumps(browser_click(int(args.get("x", 0)), int(args.get("y", 0))), indent=2)
+
+            elif name == "browser_type":
+                from dardcor_agent.chat.browser_control import browser_type
+                return json.dumps(browser_type(args.get("text", "")), indent=2)
+
+            elif name == "browser_screenshot":
+                from dardcor_agent.chat.browser_control import browser_screenshot
+                return json.dumps(browser_screenshot(), indent=2)
 
             else:
                 return f"Error: Unknown tool {name}"

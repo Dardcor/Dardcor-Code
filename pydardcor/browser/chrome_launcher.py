@@ -12,6 +12,7 @@ _CHROME_PATHS = [
 ]
 
 AGENT_DEFAULT_URL = "about:newtab"
+AGENT_DEBUG_PORT = 9222
 
 
 def _get_agent_profile_dir() -> str:
@@ -39,7 +40,27 @@ def find_chrome() -> str | None:
     return None
 
 
-def open_agent_chrome(url: str = None) -> tuple[bool, str]:
+def build_agent_chrome_args(chrome_path: str, url: str = None, *, controlled: bool = False, debug_port: int = AGENT_DEBUG_PORT) -> list[str]:
+    target_url = url or AGENT_DEFAULT_URL
+    profile_dir = _get_agent_profile_dir()
+    args = [
+        chrome_path,
+        f"--user-data-dir={profile_dir}",
+        "--no-first-run",
+        "--no-default-browser-check",
+        "--new-window",
+    ]
+    if controlled:
+        args.extend([
+            f"--remote-debugging-port={debug_port}",
+            "--remote-debugging-address=127.0.0.1",
+            "--remote-allow-origins=*",
+        ])
+    args.append(target_url)
+    return args
+
+
+def open_agent_chrome(url: str = None, *, controlled: bool = False, debug_port: int = AGENT_DEBUG_PORT) -> tuple[bool, str]:
     """
     Open Chrome with an agent-specific isolated profile.
 
@@ -75,15 +96,7 @@ def open_agent_chrome(url: str = None) -> tuple[bool, str]:
             except Exception as e:
                 return False, f"Chrome not found. Fallback failed: {e}"
 
-    profile_dir = _get_agent_profile_dir()
-    args = [
-        chrome_path,
-        f"--user-data-dir={profile_dir}",
-        "--no-first-run",
-        "--no-default-browser-check",
-        "--new-window",
-        target_url,
-    ]
+    args = build_agent_chrome_args(chrome_path, target_url, controlled=controlled, debug_port=debug_port)
 
     try:
         kwargs = {}
@@ -93,6 +106,8 @@ def open_agent_chrome(url: str = None) -> tuple[bool, str]:
             kwargs["start_new_session"] = True
             
         subprocess.Popen(args, **kwargs)
+        if controlled:
+            return True, f"AI-controlled Chrome opened on 127.0.0.1:{debug_port}."
         return True, "Chrome opened successfully."
     except Exception as e:
         return False, f"Failed to open Chrome: {e}"

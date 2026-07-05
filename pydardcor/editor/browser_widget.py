@@ -1,13 +1,13 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import QUrl, Qt
 from PySide6.QtGui import QIcon
 
 class BrowserWidget(QWidget):
     """
     A simple web browser widget to display localhost or web pages inside the editor.
     """
-    def __init__(self, url=None, parent=None):
+    def __init__(self, url=None, parent=None, controlled_by_ai: bool = False):
         super().__init__(parent)
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -34,6 +34,16 @@ class BrowserWidget(QWidget):
         self.url_bar.setStyleSheet("background-color: #0d0d0d; color: #cccccc; border: 1px solid #3c0068; border-radius: 4px; padding: 2px 5px;")
         nav_layout.addWidget(self.url_bar)
         self.layout.addWidget(self.nav_bar)
+
+        if controlled_by_ai:
+            self.ai_banner = QLabel("This browser is controlled by AI")
+            self.ai_banner.setFixedHeight(24)
+            self.ai_banner.setAlignment(Qt.AlignCenter)
+            self.ai_banner.setStyleSheet(
+                "background:#3c0068;color:#fff;font-size:12px;font-weight:600;"
+                "border-bottom:1px solid #5a009c;"
+            )
+            self.layout.addWidget(self.ai_banner)
         
         # Web View
         self.web_view = QWebEngineView(self)

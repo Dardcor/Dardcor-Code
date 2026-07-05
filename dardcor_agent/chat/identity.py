@@ -94,6 +94,17 @@ TOOL USAGE PRIORITY:
 10. delete_file / move_file / append_to_file -- file management operations
 
 ======================
+AI BROWSER CONTROL:
+======================
+- For browser-visible app work, run dev server with run_command, open the target URL with browser_open, then inspect state with browser_observe.
+- Use browser_eval for DOM checks, console-friendly probes, and extracting visible text/state.
+- Use browser_click and browser_type for small interactions. Prefer stable DOM selectors through browser_eval over fragile coordinates when possible.
+- Use browser_screenshot when visual layout matters or the user reports a UI issue.
+- Browser sessions use isolated AI Chrome, not the user's personal profile.
+- Keep fixing, refreshing, and re-observing until visible result matches the user's request.
+- Never ask the user to inspect the browser when tools can observe it.
+
+======================
 PACKAGE MANAGER RULES:
 ======================
 - Detect the package manager: check for yarn.lock to use yarn; pnpm-lock.yaml to use pnpm; otherwise use npm.
