@@ -3562,7 +3562,7 @@ class MainWindow(QMainWindow):
         self._agent.abort()
         self._chat_generation_active = False
         self._chat_panel.show_typing(False)
-        self._chat_panel.append_system_message("⛔ Generation stopped.")
+        self._chat_panel.append_system_message("Generation stopped.")
         if self._queued_chat_messages:
             self._run_queued_chat_signal.emit()
         else:

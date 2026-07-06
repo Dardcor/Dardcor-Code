@@ -289,6 +289,7 @@ class ChatPanel(QWidget):
     _set_enabled_signal = Signal(bool)
     _show_typing_signal = Signal(bool, str)
     _show_native_notification_signal = Signal(str)
+    _title_changed_signal = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -308,6 +309,7 @@ class ChatPanel(QWidget):
         self._set_enabled_signal.connect(self._safe_set_enabled)
         self._show_typing_signal.connect(self._safe_show_typing)
         self._show_native_notification_signal.connect(self._safe_show_native_notification)
+        self._title_changed_signal.connect(self.set_conversation_title)
         self._history_entries = []
         self._collapsible_blocks = {}
         self._next_block_id = 1
@@ -1174,33 +1176,33 @@ class ChatPanel(QWidget):
             self._agent_msg_buffer = []
             self._agent_msg_timer = QTimer(self)
             self._agent_msg_timer.setInterval(50)
-            
-            def flush_buffer():
-                if not self._agent_msg_buffer:
-                    self._agent_msg_timer.stop()
-                    return
-                
-                combined_text = ""
-                last_is_html = self._agent_msg_buffer[0][1]
-                
-                for t, h in self._agent_msg_buffer:
-                    if h == last_is_html:
-                        combined_text += t
-                    else:
-                        self._web_bridge.append_agent_message.emit(combined_text, last_is_html)
-                        combined_text = t
-                        last_is_html = h
-                        
-                if combined_text:
-                    self._web_bridge.append_agent_message.emit(combined_text, last_is_html)
-                    
-                self._agent_msg_buffer.clear()
-                
-            self._agent_msg_timer.timeout.connect(flush_buffer)
+            self._agent_msg_timer.timeout.connect(self._flush_agent_messages)
             
         self._agent_msg_buffer.append((text, is_html))
         if not self._agent_msg_timer.isActive():
             self._agent_msg_timer.start()
+
+    def _flush_agent_messages(self):
+        if not hasattr(self, '_agent_msg_buffer') or not self._agent_msg_buffer:
+            if hasattr(self, '_agent_msg_timer'):
+                self._agent_msg_timer.stop()
+            return
+        
+        combined_text = ""
+        last_is_html = self._agent_msg_buffer[0][1]
+        
+        for t, h in self._agent_msg_buffer:
+            if h == last_is_html:
+                combined_text += t
+            else:
+                self._web_bridge.append_agent_message.emit(combined_text, last_is_html)
+                combined_text = t
+                last_is_html = h
+                
+        if combined_text:
+            self._web_bridge.append_agent_message.emit(combined_text, last_is_html)
+            
+        self._agent_msg_buffer.clear()
 
     def show_native_notification(self, msg: str):
         self._show_native_notification_signal.emit(msg)
@@ -1507,6 +1509,7 @@ class ChatPanel(QWidget):
             self._safe_append_tool_call(tool_id, tool_name, args, status)
 
     def _safe_append_tool_call(self, tool_id: str, tool_name: str, args: str, status: str = "running"):
+        self._flush_agent_messages()
         if status != "running":
             # For status updates (success/error), use a small delay to ensure
             # the QWebChannel has processed the initial "running" card creation first.
@@ -1527,6 +1530,7 @@ class ChatPanel(QWidget):
             self._safe_update_tool_output(tool_id, chunk)
 
     def _safe_update_tool_output(self, tool_id: str, chunk: str):
+        self._flush_agent_messages()
         self._web_bridge.update_tool_output.emit(tool_id, chunk)
 
     def _scroll_to_bottom(self):
@@ -1584,6 +1588,10 @@ class ChatPanel(QWidget):
 
     def set_conversation_title(self, text: str):
         """Smoothly transitions the chat title label to a new text."""
+        if QThread.currentThread() != QCoreApplication.instance().thread():
+            self._title_changed_signal.emit(text)
+            return
+
         if not hasattr(self, '_title_lbl') or self._title_lbl.text() == text:
             return
         

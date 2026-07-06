@@ -429,6 +429,7 @@ body {
     -webkit-user-select: text;
     user-select: text;
     white-space: pre-wrap;
+    overflow: hidden;
 }
 
 .tool-body.open {
@@ -544,16 +545,15 @@ body {
 /* Thinking Block Styles */
 .thought-block {
     margin: 6px 0;
-    border: 1px solid #2f2f36;
-    border-radius: 6px;
-    background-color: #15151a;
     overflow: hidden;
+    border: none;
+    background: transparent;
 }
 
-.thought-block summary {
-    padding: 6px 10px;
+.thought-block .thought-header {
+    padding: 2px 0;
     cursor: pointer;
-    background-color: #24242a;
+    background: transparent;
     font-size: 11px;
     font-weight: 600;
     color: #a0a0a0;
@@ -561,18 +561,23 @@ body {
     outline: none;
 }
 
-.thought-block summary:hover {
-    background-color: #2a2a32;
+.thought-block .thought-header:hover {
+    background: transparent;
     color: #e4e4e7;
 }
 
 .thought-content {
-    padding: 10px 12px;
+    display: none;
+    padding: 4px 0 10px 12px;
     font-size: 11px;
     color: #b0b0b0;
     font-style: italic;
-    border-top: 1px solid #3c3c44;
-    background-color: #141418;
+    border-top: none;
+    overflow: hidden;
+}
+
+.thought-content.open {
+    display: block;
 }
 
 .thought-content p {

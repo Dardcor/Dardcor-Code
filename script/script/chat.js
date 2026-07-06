@@ -90,10 +90,10 @@ function appendAgentMessage(text, isHtml) {
     let processedText = text;
     if (!isHtml) {
         processedText = processedText.replace(/<thought>([\s\S]*?)<\/thought>/gi, function(match, innerContent) {
-            return `\n<details class="thought-block"><summary><span>Thoughts</span></summary><div class="thought-content">\n\n${innerContent}\n\n</div></details>\n`;
+            return `\n<div class="thought-block"><div class="thought-header" onclick="toggleThought(this)"><span class="marker">\u25B8</span><span>Thoughts</span></div><div class="thought-content">\n\n${innerContent}\n\n</div></div>\n`;
         });
         processedText = processedText.replace(/<thought>([\s\S]*)$/gi, function(match, innerContent) {
-            return `\n<details class="thought-block" open><summary><span>Thoughts</span></summary><div class="thought-content">\n\n${innerContent}\n\n</div></details>\n`;
+            return `\n<div class="thought-block"><div class="thought-header" onclick="toggleThought(this)"><span class="marker">\u25BE</span><span>Thoughts</span></div><div class="thought-content open">\n\n${innerContent}\n\n</div></div>\n`;
         });
     }
 
@@ -107,6 +107,9 @@ function appendAgentMessage(text, isHtml) {
         </div>
     `;
     chatContainer.appendChild(div);
+    if (currentWorkPanel) {
+        chatContainer.appendChild(currentWorkPanel);
+    }
     scrollToBottom();
 }
 
@@ -115,6 +118,9 @@ function appendSystemMessage(text) {
     div.className = 'system-msg';
     div.textContent = text;
     chatContainer.appendChild(div);
+    if (currentWorkPanel) {
+        chatContainer.appendChild(currentWorkPanel);
+    }
     scrollToBottom();
 }
 
@@ -131,11 +137,35 @@ function setCollapseMarker(markerEl, expanded) {
     markerEl.textContent = expanded ? '\u25BE' : '\u25B8';
 }
 
-function toggleTool(headerEl) {
-    const bodyEl = headerEl.nextElementSibling;
+function toggleExpandable(headerEl, bodyEl) {
     const isExpanded = bodyEl.classList.contains('open');
-    bodyEl.classList.toggle('open', !isExpanded);
-    setCollapseMarker(headerEl.querySelector('.marker'), !isExpanded);
+    if (!isExpanded) {
+        closeOtherExpandables(bodyEl);
+        bodyEl.classList.add('open');
+        setCollapseMarker(headerEl.querySelector('.marker'), true);
+        if (window.gsap) {
+            gsap.fromTo(bodyEl, {height: 0, opacity: 0}, {height: "auto", opacity: 1, duration: 0.3, ease: "power2.out"});
+        }
+    } else {
+        setCollapseMarker(headerEl.querySelector('.marker'), false);
+        if (window.gsap) {
+            gsap.to(bodyEl, {height: 0, opacity: 0, duration: 0.3, ease: "power2.in", onComplete: () => {
+                bodyEl.classList.remove('open');
+                bodyEl.style.height = "";
+                bodyEl.style.opacity = "";
+            }});
+        } else {
+            bodyEl.classList.remove('open');
+        }
+    }
+}
+
+function toggleThought(headerEl) {
+    toggleExpandable(headerEl, headerEl.nextElementSibling);
+}
+
+function toggleTool(headerEl) {
+    toggleExpandable(headerEl, headerEl.nextElementSibling);
 }
 
 function toggleToolList(headerEl) {
@@ -147,11 +177,39 @@ function toggleToolList(headerEl) {
     headerEl.title = isCollapsed ? 'Hide tool calls' : 'Show tool calls';
 }
 
+function closeOtherExpandables(exceptElement) {
+    document.querySelectorAll('.thought-content.open, .tool-body.open').forEach(body => {
+        if (body !== exceptElement) {
+            const header = body.previousElementSibling;
+            if (header) {
+                setCollapseMarker(header.querySelector('.marker'), false);
+            }
+            if (window.gsap) {
+                gsap.to(body, {height: 0, opacity: 0, duration: 0.3, ease: "power2.in", onComplete: () => {
+                    body.classList.remove('open');
+                    body.style.height = "";
+                    body.style.opacity = "";
+                }});
+            } else {
+                body.classList.remove('open');
+            }
+        }
+    });
+}
+
 function settleCurrentWorkPanel() {
     if (currentWorkPanel && !currentWorkPanel.classList.contains('settled')) {
         currentWorkPanel.classList.add('settled');
         const textEl = currentWorkPanel.querySelector('.work-text');
-        if (textEl && !currentWorkPanel.querySelector('.tool-call')) textEl.textContent = 'Done';
+        if (textEl) {
+            if (window.gsap) gsap.killTweensOf(textEl);
+            textEl.style.opacity = 1;
+            if (!currentWorkPanel.querySelector('.tool-call')) {
+                textEl.textContent = 'Done';
+            } else {
+                textEl.textContent = textEl.textContent.replace('Dardcor Agent Working...', 'Dardcor Agent Finished');
+            }
+        }
         const bubble = currentWorkPanel.querySelector('.typing-bubble');
         if (bubble) bubble.classList.add('done');
     }
@@ -161,24 +219,31 @@ function settleCurrentWorkPanel() {
 function createWorkPanel(state) {
     const div = document.createElement('div');
     div.className = 'agent-work-msg';
+    const text = state === 'thinking' ? 'Dardcor Agent Thinking...' : 'Dardcor Agent Working...';
     div.innerHTML = `
         <div class="work-header" onclick="toggleToolList(this)" title="Show tool calls">
             <span class="work-marker">\u25B8</span>
-            <span class="work-text">${state === 'thinking' ? 'Thinking' : 'Working'}</span>
+            <span class="work-text">${text}</span>
         </div>
         <div class="tool-list collapsed"></div>
     `;
     chatContainer.appendChild(div);
+    
+    const textEl = div.querySelector('.work-text');
+    if (window.gsap) {
+        gsap.to(textEl, { opacity: 0.4, yoyo: true, repeat: -1, duration: 0.8, ease: "power1.inOut" });
+    }
     return div;
 }
 
 function ensureWorkPanel(state) {
-    // Create a fresh panel if none exists, or if the current one is already settled/done
     if (!currentWorkPanel || currentWorkPanel.classList.contains('settled')) {
         currentWorkPanel = createWorkPanel(state);
     }
     const textEl = currentWorkPanel.querySelector('.work-text');
-    if (textEl && state === 'thinking') textEl.textContent = 'Thinking';
+    if (textEl && state === 'thinking' && !textEl.textContent.includes('Working')) {
+        textEl.textContent = 'Dardcor Agent Thinking...';
+    }
     currentWorkPanel.classList.remove('hidden', 'settled');
     return currentWorkPanel;
 }
@@ -229,15 +294,19 @@ function updateWorkSummary(panel) {
             changed += 1;
         }
     }
+    
+    let summary = '';
     if (changed > 0) {
-        textEl.textContent = `Changed ${changed} ${changed === 1 ? 'file' : 'files'}`;
+        summary = ` (Changed ${changed} ${changed === 1 ? 'file' : 'files'})`;
     } else if (exploredFiles.size > 0) {
         const n = exploredFiles.size;
-        textEl.textContent = `Explored ${n} ${n === 1 ? 'file' : 'files'}`;
+        summary = ` (Explored ${n} ${n === 1 ? 'file' : 'files'})`;
     } else if (calls.length > 0) {
         const n = calls.length;
-        textEl.textContent = `Explored ${n} ${n === 1 ? 'file' : 'files'}`;
+        summary = ` (Explored ${n} ${n === 1 ? 'file' : 'files'})`;
     }
+    
+    textEl.textContent = `Dardcor Agent Working...${summary}`;
 }
 
 // Queue for status updates that arrive before the card is created
@@ -293,11 +362,14 @@ function appendToolCall(toolId, toolName, args, status) {
     div.dataset.target = target;
     div.innerHTML = `
         <div class="tool-header" onclick="toggleTool(this)">
-            <span class="tool-title"><span class="marker">\u25B8</span><span class="tool-name"><span class="tool-action">${escapeHtml(action)}</span> ${escapeHtml(target)}</span></span>
+            <span class="tool-title"><span class="marker">\u25BE</span><span class="tool-name"><span class="tool-action">${escapeHtml(action)}</span> ${escapeHtml(target)}</span></span>
             <span class="tool-status ${status}">${toolStatusLabel(status)}</span>
         </div>
-        <div class="tool-body">${escapeHtml(args)}</div>
+        <div class="tool-body open">${escapeHtml(args)}</div>
     `;
+
+    // Automatically close other expandables when a new one appears
+    closeOtherExpandables(div.querySelector('.tool-body'));
     toolCards.set(toolId, div);
     const panel = ensureWorkPanel('working');
     panel.querySelector('.tool-list').appendChild(div);
