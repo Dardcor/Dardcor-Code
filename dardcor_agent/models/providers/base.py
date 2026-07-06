@@ -2,10 +2,17 @@ from typing import List, Dict, Any, Optional
 
 class ProviderResponse:
     """Standardized response from an API provider."""
-    def __init__(self, content: str = "", tool_calls: List[Dict[str, Any]] = None, error: str = None):
+    def __init__(
+        self,
+        content: str = "",
+        tool_calls: List[Dict[str, Any]] = None,
+        error: str = None,
+        usage: Dict[str, Any] = None,
+    ):
         self.content = content
         self.tool_calls = tool_calls or []
         self.error = error
+        self.usage = usage or {}
 
 class BaseProvider:
     """Abstract base class for all AI model providers."""

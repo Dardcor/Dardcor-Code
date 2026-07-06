@@ -1,4 +1,4 @@
-"""Dardcor Flash Free built-in provider panel for the Models dashboard."""
+"""Dardcor built-in provider panel for the Models dashboard."""
 
 import os
 
@@ -18,7 +18,7 @@ from dardcor_agent.models.providers.registry import PROVIDER_REGISTRY
 
 
 class DardcorProviderPanel(QWidget):
-    """Read-only overview for the built-in Dardcor Flash Free orchestrator."""
+    """Read-only overview for the built-in Dardcor orchestrators."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -55,15 +55,15 @@ class DardcorProviderPanel(QWidget):
 
         title_col = QVBoxLayout()
         title_col.setSpacing(2)
-        title = QLabel("Dardcor Flash Free")
+        title = QLabel("Dardcor MAX")
         title.setStyleSheet("color: #e4e4e7; font-size: 18px; font-weight: 700; border: none; background: transparent;")
         title_col.addWidget(title)
-        subtitle = QLabel("Default built-in model · routes across configured free providers")
+        subtitle = QLabel("Strongest built-in orchestrator · multi-provider reasoning · advanced coding mode")
         subtitle.setStyleSheet("color: #94a3b8; font-size: 12px; border: none; background: transparent;")
         title_col.addWidget(subtitle)
         title_row.addLayout(title_col, stretch=1)
 
-        badge = QLabel("Built-in")
+        badge = QLabel("Max 2.5x")
         badge.setStyleSheet(
             "color: #86efac; font-size: 11px; font-weight: 600;"
             "background: #14532d; border: 1px solid #166534; border-radius: 6px; padding: 4px 10px;"
@@ -72,9 +72,9 @@ class DardcorProviderPanel(QWidget):
         header_layout.addLayout(title_row)
 
         desc = QLabel(
-            "Dardcor Flash Free is enabled by default. It tries Antigravity accounts first, then free models "
-            "from providers you configure. Add API keys in provider tabs or place secrets in user-data "
-            "secrets.json — keys are never shown here."
+            "Dardcor MAX combines your active AI providers into one high-power coding engine. It selects the "
+            "strongest available route for difficult tasks, coordinates tools, browser control, web research, "
+            "and verification, then keeps the experience clean with compact usage feedback."
         )
         desc.setWordWrap(True)
         desc.setStyleSheet("color: #cbd5e1; font-size: 12px; line-height: 1.5; border: none; background: transparent;")
@@ -114,7 +114,7 @@ class DardcorProviderPanel(QWidget):
 
         layout.addWidget(secrets_card)
 
-        backends_title = QLabel("Preferred free backends")
+        backends_title = QLabel("Dardcor MAX backend order")
         backends_title.setStyleSheet("color: #e4e4e7; font-size: 13px; font-weight: 600; border: none; background: transparent;")
         layout.addWidget(backends_title)
 
@@ -176,8 +176,10 @@ class DardcorProviderPanel(QWidget):
         text_col.addWidget(meta_lbl)
         row_layout.addLayout(text_col, stretch=1)
 
-        status = provider_key_status(provider_name, provider_def)
-        status_color = "#22c55e" if status == "Key set" else "#94a3b8"
+        states = DardcorV1Provider()._load_provider_states()
+        active = bool(states.get(provider_name))
+        status = "Active" if active else provider_key_status(provider_name, provider_def)
+        status_color = "#22c55e" if active or status == "Key set" else "#94a3b8"
         if status in ("Built-in", "OAuth accounts"):
             status_color = "#60a5fa"
         status_lbl = QLabel(status)

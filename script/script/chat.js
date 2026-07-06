@@ -1,5 +1,13 @@
-﻿marked.setOptions({
+﻿const markdown = window.marked || {
+    parse: function (text) {
+        return escapeHtml(text).replace(/\n/g, "<br>");
+    },
+    setOptions: function () {}
+};
+
+markdown.setOptions({
     highlight: function (code, lang) {
+        if (!window.hljs) return code;
         const language = hljs.getLanguage(lang) ? lang : 'plaintext';
         return hljs.highlight(code, { language }).value;
     },
@@ -82,7 +90,7 @@ function appendAgentMessage(text, isHtml) {
 
     const div = document.createElement('div');
     div.className = 'message agent-msg';
-    let contentHtml = isHtml ? processedText : marked.parse(processedText);
+    let contentHtml = isHtml ? processedText : markdown.parse(processedText);
     div.innerHTML = `
         <div class="content">${contentHtml}</div>
         <div class="agent-actions">
@@ -104,7 +112,7 @@ function appendSystemMessage(text) {
 function showNotification(text) {
     const banner = document.createElement('div');
     banner.className = 'top-notification';
-    banner.innerHTML = marked.parse(text);
+    banner.innerHTML = markdown.parse(text);
     document.body.insertBefore(banner, document.body.firstChild);
     setTimeout(() => banner.remove(), 10000);
 }

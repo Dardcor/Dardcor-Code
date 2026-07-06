@@ -332,16 +332,18 @@ class SettingsDialog(QDialog):
                     if model_id:
                         label = f"{model.get('name', model_id)} ({provider_name})"
                         models.append((model_id, label))
-            models.sort(key=lambda item: (item[0] != "dardcor-flash-free", item[1].lower()))
+            priority = {"dardcor-v1-max": 0, "dardcor-flash-free": 1}
+            models.sort(key=lambda item: (priority.get(item[0], 9), item[1].lower()))
             for model_id, label in models:
                 self._default_model.addItem(label, model_id)
         except Exception:
+            self._default_model.addItem("Dardcor MAX", "dardcor-v1-max")
             self._default_model.addItem("Dardcor Flash Free", "dardcor-flash-free")
 
         ai_layout.addRow("Default model:", self._default_model)
 
         hint = QLabel(
-            "Used when chat opens or no model is selected. Dardcor Flash Free is the recommended built-in default."
+            "Used when chat opens or no model is selected. Dardcor MAX uses active providers with 2.5x usage weight."
         )
         hint.setWordWrap(True)
         hint.setStyleSheet("color: #858585; font-size: 12px;")

@@ -8,7 +8,9 @@ class TestDardcorV1Registry(unittest.TestCase):
 
         entry = PROVIDER_REGISTRY["Dardcor"]
         self.assertTrue(entry["is_special"])
-        self.assertEqual(entry["models"][0]["id"], "dardcor-v1")
+        ids = {model["id"] for model in entry["models"]}
+        self.assertIn("dardcor-flash-free", ids)
+        self.assertIn("dardcor-v1-max", ids)
         self.assertTrue(entry["built_in"])
         self.assertEqual(entry["tier"], "Built-in")
 
@@ -16,8 +18,63 @@ class TestDardcorV1Registry(unittest.TestCase):
         from dardcor_agent.models.providers.dardcor.provider import DardcorV1Provider
         from dardcor_agent.models.providers.factory import ProviderFactory
 
-        provider = ProviderFactory.create(None, "dardcor-v1")
+        provider = ProviderFactory.create(None, "dardcor-v1-max")
         self.assertIsInstance(provider, DardcorV1Provider)
+
+    def test_max_prompt_loader_has_fallback(self):
+        from unittest.mock import patch
+
+        from dardcor_agent.models.providers.dardcor.provider import DardcorV1Provider
+
+        with patch("os.path.exists", return_value=False):
+            prompt = DardcorV1Provider()._load_max_prompts()
+        self.assertIn("Claude Fable 5", prompt)
+        self.assertIn("adversarial_self_review", prompt)
+        self.assertEqual(DardcorV1Provider.MAX_USAGE_WEIGHT, 2.5)
+
+    def test_max_prompt_includes_dardcor_tool_overlay(self):
+        from dardcor_agent.models.providers.dardcor.provider import DardcorV1Provider
+
+        messages = DardcorV1Provider()._with_max_prompt([{"role": "user", "content": "hi"}])
+        prompt = messages[0]["content"]
+        self.assertIn("<dardcor_v1_max_overdrive>", prompt)
+        self.assertIn("browser_open", prompt)
+        self.assertIn("provider routing", prompt)
+        self.assertIn("target #1 quality", prompt)
+
+    def test_max_model_score_prefers_stronger_models(self):
+        from dardcor_agent.models.providers.dardcor.provider import DardcorV1Provider
+
+        opus = DardcorV1Provider._max_model_score("Anthropic", {"id": "claude-opus-4-8", "name": "Claude Opus"})
+        small = DardcorV1Provider._max_model_score("Groq", {"id": "llama-3.1-8b-instant", "name": "8B"})
+        self.assertGreater(opus, small)
+
+    def test_max_candidates_keep_registry_provider_names(self):
+        from dardcor_agent.models.providers.dardcor.provider import DardcorV1Provider
+
+        candidates = DardcorV1Provider()._candidate_models(max_mode=True, states={"OpenRouter": True})
+        self.assertTrue(any(provider == "OpenRouter" for provider, _base, _model in candidates))
+
+    def test_max_candidates_pick_one_best_model_per_provider(self):
+        from dardcor_agent.models.providers.dardcor.provider import DardcorV1Provider
+
+        candidates = DardcorV1Provider()._candidate_models(max_mode=True, states={"Groq": True})
+        groq_models = [model for provider, _base, model in candidates if provider == "Groq"]
+        self.assertEqual(len(groq_models), 1)
+
+    def test_keyless_provider_detection(self):
+        from dardcor_agent.models.providers.dardcor.provider import DardcorV1Provider
+
+        provider = DardcorV1Provider()
+        self.assertTrue(provider._is_keyless_provider({"tier": "Free"}))
+        self.assertFalse(provider._is_keyless_provider({"tier": "Paid"}))
+
+    def test_max_response_dedupes_repeated_content(self):
+        from dardcor_agent.models.providers.dardcor.provider import DardcorV1Provider
+
+        provider = DardcorV1Provider()
+        block = "Hello from Dardcor MAX.\n\nI can inspect, edit, run tests, and verify your app."
+        self.assertEqual(provider._dedupe_response_text(block + block), block)
 
     def test_provider_card_meta_shows_builtin_and_free_counts(self):
         from dardcor_agent.models.provider_meta import provider_card_meta

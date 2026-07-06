@@ -24,6 +24,11 @@ PROVIDER_REGISTRY = {
                 "name": "Dardcor Flash Free",
                 "description": "Virtual orchestrator that routes to configured free/provider models.",
             },
+            {
+                "id": "dardcor-v1-max",
+                "name": "Dardcor MAX",
+                "description": "Max orchestrator using active user providers with Fable-style reasoning prompts and 2.5x usage weight.",
+            },
         ],
     },
 

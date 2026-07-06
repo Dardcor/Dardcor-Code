@@ -219,13 +219,15 @@ class StandardOpenAIProvider(BaseProvider):
         conversation_callback: callable
     ) -> ProviderResponse:
 
-        dashboard_provider = self._load_dashboard_provider(model_override if model_override else "")
+        dashboard_provider = {}
+        if not getattr(config, "skip_dashboard_provider", False):
+            dashboard_provider = self._load_dashboard_provider(model_override if model_override else "")
         api_key = dashboard_provider.get("api_key") or config.api_key
         provider = dashboard_provider.get("provider") or config.provider
         model = dashboard_provider.get("model") or model_override or config.model
-        api_key_header = dashboard_provider.get("api_key_header", "Authorization")
-        single_endpoint = bool(dashboard_provider.get("single_endpoint"))
-        oauth_provider = dashboard_provider.get("oauth_provider", "")
+        api_key_header = dashboard_provider.get("api_key_header") or getattr(config, "api_key_header", "Authorization")
+        single_endpoint = bool(dashboard_provider.get("single_endpoint") or getattr(config, "single_endpoint", False))
+        oauth_provider = dashboard_provider.get("oauth_provider") or getattr(config, "oauth_provider", "")
         
         # Resolve base_url
         base_url = dashboard_provider.get("base_url") or config.base_url

@@ -19,7 +19,7 @@ class ProviderFactory:
 
     @staticmethod
     def create(config: Any, model_override: Optional[str]) -> BaseProvider:
-        if model_override == "dardcor-flash-free":
+        if model_override in {"dardcor-flash-free", "dardcor-v1-max"}:
             from .dardcor.provider import DardcorV1Provider
             return DardcorV1Provider()
 

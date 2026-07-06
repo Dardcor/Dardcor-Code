@@ -99,6 +99,10 @@ def _send_ws_text(sock: socket.socket, text: str) -> None:
 
 
 def _cdp_call(method: str, params: Dict[str, Any] | None = None, debug_port: int = AGENT_DEBUG_PORT) -> Dict[str, Any]:
+    return _cdp_call_many([(method, params or {})], debug_port)[0]
+
+
+def _cdp_call_many(calls: List[tuple[str, Dict[str, Any]]], debug_port: int = AGENT_DEBUG_PORT) -> List[Dict[str, Any]]:
     tab = _active_tab(debug_port)
     ws_url = tab.get("webSocketDebuggerUrl")
     if not ws_url:
@@ -118,12 +122,14 @@ def _cdp_call(method: str, params: Dict[str, Any] | None = None, debug_port: int
         response = sock.recv(4096)
         if b" 101 " not in response:
             raise RuntimeError("Chrome DevTools WebSocket handshake failed.")
-        message = {"id": 1, "method": method, "params": params or {}}
-        _send_ws_text(sock, json.dumps(message))
-        while True:
+        results = {}
+        for idx, (method, params) in enumerate(calls, start=1):
+            _send_ws_text(sock, json.dumps({"id": idx, "method": method, "params": params}))
+        while len(results) < len(calls):
             data = json.loads(_read_ws_frame(sock))
-            if data.get("id") == 1:
-                return data
+            if data.get("id") in range(1, len(calls) + 1):
+                results[data["id"]] = data
+        return [results[idx] for idx in range(1, len(calls) + 1)]
 
 
 def browser_eval(script: str, debug_port: int = AGENT_DEBUG_PORT) -> Dict[str, Any]:
@@ -135,8 +141,10 @@ def browser_eval(script: str, debug_port: int = AGENT_DEBUG_PORT) -> Dict[str, A
 
 
 def browser_click(x: int, y: int, debug_port: int = AGENT_DEBUG_PORT) -> Dict[str, Any]:
-    down = _cdp_call("Input.dispatchMouseEvent", {"type": "mousePressed", "x": x, "y": y, "button": "left", "clickCount": 1}, debug_port)
-    up = _cdp_call("Input.dispatchMouseEvent", {"type": "mouseReleased", "x": x, "y": y, "button": "left", "clickCount": 1}, debug_port)
+    down, up = _cdp_call_many([
+        ("Input.dispatchMouseEvent", {"type": "mousePressed", "x": x, "y": y, "button": "left", "clickCount": 1}),
+        ("Input.dispatchMouseEvent", {"type": "mouseReleased", "x": x, "y": y, "button": "left", "clickCount": 1}),
+    ], debug_port)
     return {"down": down, "up": up}
 
 

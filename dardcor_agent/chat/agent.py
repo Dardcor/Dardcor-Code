@@ -1041,6 +1041,14 @@ class Agent:
                 # Loop again with the new tool results
                 continue
             else:
+                if getattr(response, "usage", None):
+                    usage = response.usage
+                    response.content = (
+                        f"{response.content}\n\n"
+                        f"`{usage.get('model', 'Model')}` usage: "
+                        f"{usage.get('attempts', 0)} call(s), "
+                        f"{usage.get('billed_units', 0):.1f}x strongest mode."
+                    )
                 self._conversation.add_message("assistant", response.content)
                 self._store.save(self._conversation)
                 return response.content
