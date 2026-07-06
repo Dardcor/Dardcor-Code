@@ -8,16 +8,16 @@ from dardcor_agent.models.providers.dardcor.fable_prompt import FABLE_PROMPT
 from dardcor_agent.models.providers.openai.provider import StandardOpenAIProvider
 
 
-class DardcorV1Provider(BaseProvider):
+class DardcorProvider(BaseProvider):
     """Virtual model: one Dardcor name, configured provider models behind it."""
 
-    MAX_MODEL_ID = "dardcor-v1-max"
+    MAX_MODEL_ID = "dardcor-max"
     MAX_USAGE_WEIGHT = 2.5
     _MAX_PROMPT_CACHE = ""
     _DARDCORE_MAX_OVERLAY = """
-<dardcor_v1_max_overdrive>
+<dardcor_max_overdrive>
 Identity:
-- You are Dardcor MAX: Dardcor's highest-power coding orchestrator mode.
+- You are Dardcor Max: Dardcor's highest-power coding orchestrator mode.
 - Your job is not to sound powerful; your job is to finish difficult software work with verified results.
 - Fable/Mythos doctrine is the reasoning substrate. Dardcor adds tool mastery, provider routing, IDE awareness, and browser control.
 
@@ -50,7 +50,7 @@ Answer protocol:
 - Be direct. Lead with result, bug, or next action.
 - Do not expose hidden reasoning. Show assumptions, checks, and residual risk only.
 - Never claim impossible certainty or that you are literally above all models. Earn trust through verified work.
-</dardcor_v1_max_overdrive>
+</dardcor_max_overdrive>
 """.strip()
 
     _PREFERRED_PROVIDERS = (
@@ -153,52 +153,25 @@ Answer protocol:
 
     def _load_secrets(self) -> Dict[str, List[str]]:
         raw: Dict[str, Any] = {}
-        for dotenv_path in self._dotenv_paths():
-            try:
-                if os.path.exists(dotenv_path):
-                    with open(dotenv_path, "r", encoding="utf-8") as f:
-                        parsed = self._parse_dotenv(f.read())
-                    for provider, values in parsed.items():
-                        raw.setdefault(provider, [])
-                        if isinstance(raw[provider], list):
-                            raw[provider].extend(values)
-            except Exception:
-                pass
-
+        
+        # Load directly from our structured JSON configuration per provider
         try:
-            from pydardcor.core.config import get_user_data_dir
-
-            secrets_path = os.path.join(get_user_data_dir(), "secrets.json")
-            if os.path.exists(secrets_path):
-                with open(secrets_path, "r", encoding="utf-8") as f:
-                    raw.update(json.load(f))
+            from dardcor_agent.models.provider_meta import load_registry_provider_config
+            providers_to_check = [
+                "OpenRouter", "Groq", "Nvidia", "Gemini", 
+                "DeepSeek", "MiMo", "OpencodeZen", "NineRouter", "xAI", "Cerebras", "Anthropic"
+            ]
+            for pname in providers_to_check:
+                cfg = load_registry_provider_config(pname)
+                api_key = cfg.get("api_key", "").strip()
+                if api_key:
+                    raw[pname.lower()] = api_key
         except Exception:
             pass
 
-        env_map = {
-            "openrouter": "OPENROUTER_API_KEY",
-            "groq": "GROQ_API_KEY",
-            "nvidia": "NVIDIA_API_KEY",
-            "gemini": "GOOGLE_API_KEY",
-            "deepseek": "DEEPSEEK_API_KEY",
-            "mimo": "MIMO_API_KEY",
-            "opencodezen": "OPENCODE_ZEN_API_KEY",
-            "ninerouter": "NINEROUTER_API_KEY",
-        }
-        for provider, env_name in env_map.items():
-            value = os.environ.get(env_name, "")
-            if value and provider not in raw:
-                raw[provider] = value
         return self._normalize_secrets(raw)
 
-    def _dotenv_paths(self) -> List[str]:
-        """Load .env only from user data — never from workspace (security)."""
-        try:
-            from pydardcor.core.config import get_user_data_dir
 
-            return [os.path.join(get_user_data_dir(), ".env")]
-        except Exception:
-            return []
 
     def _is_provider_active(self, provider_name: str) -> bool:
         return bool(self._load_provider_states().get(provider_name))
@@ -281,7 +254,7 @@ Answer protocol:
     def _with_max_prompt(self, messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         if not self._MAX_PROMPT_CACHE:
             self.__class__._MAX_PROMPT_CACHE = (
-                "You are Dardcor MAX, the strongest Dardcor orchestrator mode. "
+                "You are Dardcor Max, the strongest Dardcor orchestrator mode. "
                 "Use all active user-configured provider capacity responsibly. "
                 f"Usage accounting weight: {self.MAX_USAGE_WEIGHT}x per turn.\n\n"
                 f"{self._DARDCORE_MAX_OVERLAY}\n\n"
@@ -334,7 +307,7 @@ Answer protocol:
         states = self._load_provider_states()
         tried = []
         max_mode = model_override == self.MAX_MODEL_ID
-        usage = {"model": "Dardcor MAX" if max_mode else "Dardcor Flash Free", "weight": self.MAX_USAGE_WEIGHT if max_mode else 1.0, "attempts": 0}
+        usage = {"model": "Dardcor Max" if max_mode else "Dardcor Flash Free", "weight": self.MAX_USAGE_WEIGHT if max_mode else 1.0, "attempts": 0}
         routed_messages = self._with_max_prompt(messages) if max_mode else messages
         successful_responses: List[Tuple[str, ProviderResponse]] = []
 

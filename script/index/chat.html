@@ -2,15 +2,31 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Dardcor Chat</title>
     <link rel="stylesheet" href="../css/chat.css">
     <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script>
+        // Block zoom gestures
+        document.addEventListener('wheel', function(e) {
+            if(e.ctrlKey) { e.preventDefault(); }
+        }, { passive: false });
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && (e.key === '=' || e.key === '-' || e.key === '0')) {
+                e.preventDefault();
+            }
+        });
+    </script>
 </head>
 <body>
+    <div id="welcome-banner">
+        <div class="welcome-icon">⬡</div>
+        <h1 class="welcome-title">Build With Dardcor Agent</h1>
+        <p class="welcome-sub">Your intelligent coding assistant. Start a conversation below.</p>
+    </div>
     <div id="chat-container">
     </div>
     <div id="typing-indicator" class="hidden">

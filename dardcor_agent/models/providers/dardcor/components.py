@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
 )
 
 from dardcor_agent.models.provider_meta import provider_card_meta, provider_key_status
-from dardcor_agent.models.providers.dardcor.provider import DardcorV1Provider
+from dardcor_agent.models.providers.dardcor.provider import DardcorProvider
 from dardcor_agent.models.providers.registry import PROVIDER_REGISTRY
 
 
@@ -55,7 +55,7 @@ class DardcorProviderPanel(QWidget):
 
         title_col = QVBoxLayout()
         title_col.setSpacing(2)
-        title = QLabel("Dardcor MAX")
+        title = QLabel("Dardcor Max")
         title.setStyleSheet("color: #e4e4e7; font-size: 18px; font-weight: 700; border: none; background: transparent;")
         title_col.addWidget(title)
         subtitle = QLabel("Strongest built-in orchestrator · multi-provider reasoning · advanced coding mode")
@@ -72,7 +72,7 @@ class DardcorProviderPanel(QWidget):
         header_layout.addLayout(title_row)
 
         desc = QLabel(
-            "Dardcor MAX combines your active AI providers into one high-power coding engine. It selects the "
+            "Dardcor Max combines your active AI providers into one high-power coding engine. It selects the "
             "strongest available route for difficult tasks, coordinates tools, browser control, web research, "
             "and verification, then keeps the experience clean with compact usage feedback."
         )
@@ -114,11 +114,11 @@ class DardcorProviderPanel(QWidget):
 
         layout.addWidget(secrets_card)
 
-        backends_title = QLabel("Dardcor MAX backend order")
+        backends_title = QLabel("Dardcor Max backend order")
         backends_title.setStyleSheet("color: #e4e4e7; font-size: 13px; font-weight: 600; border: none; background: transparent;")
         layout.addWidget(backends_title)
 
-        for provider_name in DardcorV1Provider._PREFERRED_PROVIDERS:
+        for provider_name in DardcorProvider._PREFERRED_PROVIDERS:
             pdef = PROVIDER_REGISTRY.get(provider_name)
             if not pdef:
                 continue
@@ -133,7 +133,7 @@ class DardcorProviderPanel(QWidget):
 
     def _secret_provider_counts(self) -> dict[str, int]:
         try:
-            secrets = DardcorV1Provider()._load_secrets()
+            secrets = DardcorProvider()._load_secrets()
             return {name: len(values) for name, values in secrets.items() if values}
         except Exception:
             return {}
@@ -176,7 +176,7 @@ class DardcorProviderPanel(QWidget):
         text_col.addWidget(meta_lbl)
         row_layout.addLayout(text_col, stretch=1)
 
-        states = DardcorV1Provider()._load_provider_states()
+        states = DardcorProvider()._load_provider_states()
         active = bool(states.get(provider_name))
         status = "Active" if active else provider_key_status(provider_name, provider_def)
         status_color = "#22c55e" if active or status == "Key set" else "#94a3b8"

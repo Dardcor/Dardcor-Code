@@ -343,15 +343,16 @@ class ChatPanel(QWidget):
         header_layout.setContentsMargins(12, 0, 8, 0)
         header_layout.setSpacing(4)
 
-        title = QLabel("Dardcor Agent")
-        title.setStyleSheet("""
+        self._title_lbl = QLabel("Dardcor Agent")
+        self._title_lbl.setStyleSheet("""
             color: #cccccc;
             font-size: 13px;
             font-weight: bold;
             border-bottom: 2px solid #3c0068;
             padding-bottom: 2px;
         """)
-        header_layout.addWidget(title)
+        header_layout.addWidget(self._title_lbl)
+
 
         header_layout.addStretch()
 
@@ -1169,7 +1170,37 @@ class ChatPanel(QWidget):
             self._safe_append_agent_message(text, is_html)
 
     def _safe_append_agent_message(self, text: str, is_html: bool = False):
-        self._web_bridge.append_agent_message.emit(text, is_html)
+        if not hasattr(self, '_agent_msg_buffer'):
+            self._agent_msg_buffer = []
+            self._agent_msg_timer = QTimer(self)
+            self._agent_msg_timer.setInterval(50)
+            
+            def flush_buffer():
+                if not self._agent_msg_buffer:
+                    self._agent_msg_timer.stop()
+                    return
+                
+                combined_text = ""
+                last_is_html = self._agent_msg_buffer[0][1]
+                
+                for t, h in self._agent_msg_buffer:
+                    if h == last_is_html:
+                        combined_text += t
+                    else:
+                        self._web_bridge.append_agent_message.emit(combined_text, last_is_html)
+                        combined_text = t
+                        last_is_html = h
+                        
+                if combined_text:
+                    self._web_bridge.append_agent_message.emit(combined_text, last_is_html)
+                    
+                self._agent_msg_buffer.clear()
+                
+            self._agent_msg_timer.timeout.connect(flush_buffer)
+            
+        self._agent_msg_buffer.append((text, is_html))
+        if not self._agent_msg_timer.isActive():
+            self._agent_msg_timer.start()
 
     def show_native_notification(self, msg: str):
         self._show_native_notification_signal.emit(msg)
@@ -1551,6 +1582,38 @@ class ChatPanel(QWidget):
             self._on_input_changed()
 
 
+    def set_conversation_title(self, text: str):
+        """Smoothly transitions the chat title label to a new text."""
+        if not hasattr(self, '_title_lbl') or self._title_lbl.text() == text:
+            return
+        
+        from PySide6.QtWidgets import QGraphicsOpacityEffect
+        from PySide6.QtCore import QPropertyAnimation, QEasingCurve
+        
+        if not hasattr(self, '_title_effect') or self._title_lbl.graphicsEffect() is None:
+            self._title_effect = QGraphicsOpacityEffect(self._title_lbl)
+            self._title_lbl.setGraphicsEffect(self._title_effect)
+            self._title_effect.setOpacity(1.0)
+            
+        self._fade_out = QPropertyAnimation(self._title_effect, b"opacity", self)
+        self._fade_out.setDuration(150)
+        self._fade_out.setStartValue(self._title_effect.opacity())
+        self._fade_out.setEndValue(0.0)
+        self._fade_out.setEasingCurve(QEasingCurve.InOutQuad)
+        
+        def on_fade_out_finished():
+            self._title_lbl.setText(text)
+            self._fade_in = QPropertyAnimation(self._title_effect, b"opacity", self)
+            self._fade_in.setDuration(250)
+            self._fade_in.setStartValue(0.0)
+            self._fade_in.setEndValue(1.0)
+            self._fade_in.setEasingCurve(QEasingCurve.InOutQuad)
+            self._fade_in.start()
+            
+        self._fade_out.finished.connect(on_fade_out_finished)
+        self._fade_out.start()
+        
+
 class ChatInput(QTextEdit):
     """Custom text input that submits on Enter and auto-grows with content."""
 
@@ -1664,3 +1727,6 @@ class ChatInput(QTextEdit):
             if path:
                 self.file_pasted.emit([path])
                 return
+
+
+

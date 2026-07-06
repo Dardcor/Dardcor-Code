@@ -529,6 +529,7 @@ class CustomTitleBar(QWidget):
             self._is_custom_maximized = False
             # Update icon to maximize
             self.max_btn.setText("\ueab9")
+            self.parent.setStyleSheet("#MainWindow { border: 1px solid #3c0068; }")
         else:
             self._normal_geometry = self.parent.geometry()
             if os.name == 'nt':
@@ -544,6 +545,7 @@ class CustomTitleBar(QWidget):
                 self.parent.showMaximized()
             # Update icon to restore
             self.max_btn.setText("\ueabb") # chrome-restore
+            self.parent.setStyleSheet("#MainWindow { border: none; }")
             
     # Native event handling in MainWindow takes care of dragging and double click on Windows
     # Fallback for Linux:
@@ -746,6 +748,9 @@ class MainWindow(QMainWindow):
         self._current_active_editor = None
         self._ext_manager = get_extension_manager()
         self._nav_back_stack: list[str] = []
+        
+        import concurrent.futures
+        self._thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=5)
         self._nav_forward_stack: list[str] = []
         self._navigating = False
         
@@ -1324,6 +1329,14 @@ class MainWindow(QMainWindow):
         if not self._bottom_panel.isVisible():
             self._bottom_panel.show()
 
+
+    def changeEvent(self, event):
+        if event.type() == QEvent.WindowStateChange:
+            if self.isMaximized():
+                self.setStyleSheet("#MainWindow { border: none; }")
+            else:
+                self.setStyleSheet("#MainWindow { border: 1px solid #3c0068; }")
+        super().changeEvent(event)
 
     # ── Menu Bar ──────────────────────────────────────────
 
@@ -3517,6 +3530,7 @@ class MainWindow(QMainWindow):
                     on_tool_output=self._chat_panel.append_tool_output,
                     on_notification=_on_notification,
                     on_agent_message=self._chat_panel.append_agent_message,
+                    on_title_changed=self._chat_panel.set_conversation_title,
                     ephemeral_state=ephemeral_state,
                 )
                 if getattr(self, "_current_chat_exec_id", None) != current_exec_id:
@@ -3535,7 +3549,7 @@ class MainWindow(QMainWindow):
                     else:
                         self._chat_panel.set_enabled(True)
 
-        threading.Thread(target=process, daemon=True).start()
+        self._thread_pool.submit(process)
 
     def _run_next_queued_chat_message(self):
         if self._chat_generation_active or not self._queued_chat_messages:
@@ -3563,6 +3577,7 @@ class MainWindow(QMainWindow):
         self._chat_generation_active = False
         self._agent.new_conversation()
         self._chat_panel.clear()
+        self._chat_panel.set_conversation_title("Dardcor Agent")
 
     def _show_chat_history(self):
         convs = self._agent.list_conversations()
@@ -3579,7 +3594,9 @@ class MainWindow(QMainWindow):
         def on_conversation_selected(conv_id: str):
             if self._agent.load_conversation(conv_id):
                 self._chat_panel.clear()
-                for msg in self._agent.get_conversation().messages:
+                conv = self._agent.get_conversation()
+                self._chat_panel.set_conversation_title(conv.title if conv.title else "Dardcor Agent")
+                for msg in conv.messages:
                     if msg.role == "user":
                         self._chat_panel._append_user_message(msg.content)
                     elif msg.role == "assistant":
@@ -3947,6 +3964,9 @@ class MainWindow(QMainWindow):
                 self._live_server.stop()
         except Exception:
             pass
+            
+        if hasattr(self, '_thread_pool'):
+            self._thread_pool.shutdown(wait=False)
 
         # Log session end telemetry
         try:

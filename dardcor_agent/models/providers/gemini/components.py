@@ -52,17 +52,14 @@ class GeminiModelFetchWorker(QThread):
                 desc = m.get("description", "")
                 input_token = m.get("inputTokenLimit", 0)
                 output_token = m.get("outputTokenLimit", 0)
-                # supportedGenerationMethods is a list of STRINGS, e.g. ["generateContent", "countTokens"]
                 methods = m.get("supportedGenerationMethods", [])
-                # Only include models that support generateContent
-                if "generateContent" in methods:
-                    models.append({
-                        "id": name.replace("models/", ""),
-                        "display": display,
-                        "description": desc,
-                        "input_tokens": input_token,
-                        "output_tokens": output_token,
-                    })
+                models.append({
+                    "id": name.replace("models/", ""),
+                    "display": display,
+                    "description": desc,
+                    "input_tokens": input_token,
+                    "output_tokens": output_token,
+                })
             # Sort alphabetically
             models.sort(key=lambda x: x["id"])
             self.finished.emit(models, "")

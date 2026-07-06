@@ -176,10 +176,6 @@ class StandardOpenAIProvider(BaseProvider):
                     data = json.load(f)
 
             api_key = data.get("api_key", "")
-            if not api_key:
-                env_name = (target_pdef or {}).get("api_key_env", "")
-                if env_name:
-                    api_key = os.environ.get(env_name, "")
             oauth_provider = (target_pdef or {}).get("oauth_provider", "")
             if not api_key and oauth_provider:
                 try:

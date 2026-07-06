@@ -48,17 +48,19 @@ def create_svg_icon(path_data, color="#ffffff", rotation_angle=0):
 
 import os
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-CHECK_SVG_PATH = os.path.join(CURRENT_DIR, "check.svg")
+PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "..", ".."))
+CHECK_SVG_PATH = os.path.join(PROJECT_ROOT, "image", "check.svg")
 if not os.path.exists(CHECK_SVG_PATH):
+    os.makedirs(os.path.dirname(CHECK_SVG_PATH), exist_ok=True)
     with open(CHECK_SVG_PATH, "w", encoding="utf-8") as f:
         f.write("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'/></svg>")
 
 CHECK_URL = CHECK_SVG_PATH.replace("\\", "/")
 
 CHECKBOX_STYLE = f"""
-QCheckBox::indicator {{ width: 16px; height: 16px; border: 1px solid #495057; border-radius: 4px; background-color: transparent; }}
-QCheckBox::indicator:hover {{ border: 1px solid #5c1b8b; }}
-QCheckBox::indicator:checked {{ background-color: #5c1b8b; border: 1px solid #5c1b8b; image: url("{CHECK_URL}"); }}
+QCheckBox::indicator {{ width: 14px; height: 14px; border: 2px solid #6b7280; border-radius: 4px; background-color: #1a1d21; }}
+QCheckBox::indicator:hover {{ border: 2px solid #a855f7; background-color: #1f1035; }}
+QCheckBox::indicator:checked {{ background-color: #7c3aed; border: 2px solid #a855f7; image: url("{CHECK_URL}"); }}
 """
 
 class ToastWidget(QFrame):
@@ -840,6 +842,7 @@ class RegistryModelsPanel(QWidget):
         footer_layout.addStretch()
         self._pagination = ModelListPagination(MODELS_ACCENT, self)
         self._pagination.page_changed.connect(self._go_to_page)
+        self._pagination.setVisible(False)
         footer_layout.addWidget(self._pagination)
         root.addWidget(footer)
 
@@ -1110,10 +1113,8 @@ class RegistryModelsPanel(QWidget):
         if total == 0:
             self._info_lbl.setText("Showing 0 models")
         else:
-            start = (self._current_page - 1) * self._page_size + 1
-            end = min(self._current_page * self._page_size, total)
-            self._info_lbl.setText(f"Showing {start}–{end} of {total} models")
-        self._pagination.update_pages(self._current_page, total_pages)
+            self._info_lbl.setText(f"Showing {total} models")
+        self._pagination.setVisible(False)
 
 
 class FilterButton(QFrame):
@@ -1336,7 +1337,7 @@ class ModelsQuotaDialog(QDialog):
                 is_active=is_active,
                 is_current=(name == current),
                 provider_def=pdef,
-                can_remove=(name not in ("Dardcor", "Antigravity")),
+                can_remove=False,
             )
             chip.switch_requested.connect(self._switch_tab)
             chip.toggle_requested.connect(self._toggle_provider)
@@ -1419,11 +1420,8 @@ class ModelsQuotaDialog(QDialog):
         self.provider_states = self.db.get_providers()
         self.tab_widgets = {}   # name -> ProviderChip
 
-        # Initially pin Dardcor + Antigravity + any already-enabled providers
-        self.pinned_providers: list = ["Dardcor", "Antigravity"]
-        for _n in _PROV_REG.keys():
-            if _n not in ("Dardcor", "Antigravity") and self.provider_states.get(_n, False):
-                self.pinned_providers.append(_n)
+        # Pin all providers directly to tabs
+        self.pinned_providers: list = list(_PROV_REG.keys())
         self._sync_oauth_provider_states()
 
         provider_bar = QFrame()
@@ -1435,51 +1433,36 @@ class ModelsQuotaDialog(QDialog):
         _bar_row.setContentsMargins(12, 0, 12, 0)
         _bar_row.setSpacing(6)
 
-        # ← Back button (hidden on Antigravity tab)
-        _back_icon = create_svg_icon('<path d="m15 18-6-6 6-6"/>', "#e4e4e7")
-        self._back_btn = QPushButton()
-        self._back_btn.setIcon(_back_icon)
-        self._back_btn.setFixedSize(32, 32)
-        self._back_btn.setCursor(Qt.PointingHandCursor)
-        self._back_btn.setToolTip("Back to account list")
-        self._back_btn.setStyleSheet(
-            "QPushButton{background:#1a1d21;border:1px solid #2c2e33;border-radius:6px}"
-            "QPushButton:hover{background:#2c2e33}"
-        )
-        self._back_btn.setVisible(False)
-        self._back_btn.clicked.connect(lambda: self._switch_tab("Dardcor"))
-        _bar_row.addWidget(self._back_btn)
+        # Back button removed as requested
 
-        # Chips container — plain QWidget, no scroll area (avoids size-hint bugs)
+        # Chips container — wrapped in QScrollArea
+        self._chips_scroll = QScrollArea()
+        self._chips_scroll.setWidgetResizable(True)
+        self._chips_scroll.setFrameShape(QFrame.NoFrame)
+        self._chips_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self._chips_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self._chips_scroll.setStyleSheet(
+            "QScrollArea { background: transparent; border: none; }"
+            "QScrollBar:horizontal { height: 3px; background: transparent; margin: 0px; }"
+            "QScrollBar::handle:horizontal { background: #5c1b8b; border-radius: 1px; }"
+            "QScrollBar::handle:horizontal:hover { background: #a855f7; }"
+            "QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0px; }"
+            "QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal { background: none; }"
+        )
+
         self._chips_frame = QWidget()
         self._chips_frame.setStyleSheet("background:transparent")
         self._chips_layout = QHBoxLayout(self._chips_frame)
-        self._chips_layout.setContentsMargins(0, 0, 0, 0)
+        self._chips_layout.setContentsMargins(0, 7, 0, 7)
         self._chips_layout.setSpacing(6)
-        _bar_row.addWidget(self._chips_frame, stretch=1)
+        
+        # Force layout to maintain natural size to prevent squishing
+        self._chips_layout.setSizeConstraint(QLayout.SetMinAndMaxSize)
 
-        # Divider
-        _div = QFrame()
-        _div.setFrameShape(QFrame.VLine)
-        _div.setFixedWidth(1)
-        _div.setStyleSheet("background:#2c2e33;border:none")
-        _bar_row.addWidget(_div)
+        self._chips_scroll.setWidget(self._chips_frame)
+        _bar_row.addWidget(self._chips_scroll, stretch=1)
 
-        # "+ Providers" dropdown button
-        _prov_icon = create_svg_icon(
-            '<path d="M5 12h14"/><path d="M12 5v14"/>', "#868e96"
-        )
-        self._add_prov_btn = QPushButton("  Providers")
-        self._add_prov_btn.setIcon(_prov_icon)
-        self._add_prov_btn.setFixedHeight(30)
-        self._add_prov_btn.setCursor(Qt.PointingHandCursor)
-        self._add_prov_btn.setStyleSheet(
-            "QPushButton{background:#1a1d21;border:1px solid #2c2e33;border-radius:6px;"
-            "color:#868e96;font-size:12px;padding:0 10px}"
-            "QPushButton:hover{background:#2c2e33;color:#e4e4e7}"
-        )
-        self._add_prov_btn.clicked.connect(self._show_provider_dropdown)
-        _bar_row.addWidget(self._add_prov_btn)
+        # "+ Providers" button and divider removed to show all providers inline directly
 
         main_layout.addWidget(provider_bar)
 
@@ -2116,7 +2099,7 @@ class ModelsQuotaDialog(QDialog):
 
         # 4. Create proper layout
         if self.viewMode == "list":
-            self.pyside_th.setVisible(True)
+            self.pyside_th.setVisible(getattr(self, 'current_tab', 'Antigravity') == 'Antigravity')
             layout = QVBoxLayout(self.content_w)
             layout.setContentsMargins(0, 0, 0, 0)
             layout.setSpacing(0)

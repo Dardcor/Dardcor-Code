@@ -30,14 +30,14 @@ class StatusBarButton(QPushButton):
         self._layout.setAlignment(Qt.AlignCenter)
 
         self.icon_label = QLabel()
-        self.icon_label.setStyleSheet("color: #ffffff; background: transparent; border: none; font-size: 12px; font-family: 'codicon';")
+        self.icon_label.setStyleSheet("color: #ffffff; background: transparent; border: none; font-size: 14px; font-family: 'codicon';")
         self.icon_label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-        self.icon_label.setFixedWidth(14)
+        self.icon_label.setMinimumWidth(20)
         self.icon_label.setAlignment(Qt.AlignCenter)
 
         self.text_label = QLabel()
         # Add 'codicon' to fallback font-family to avoid DirectWrite fallback failure to raster font '8514oem'
-        self.text_label.setStyleSheet("color: #ffffff; background: transparent; border: none; font-size: 12px; font-family: 'Inter', 'Segoe UI', 'Ubuntu', 'codicon', sans-serif;")
+        self.text_label.setStyleSheet("color: #ffffff; background: transparent; border: none; font-size: 12px; font-family: 'Inter', 'Segoe UI', 'Ubuntu', 'codicon', sans-serif; padding-right: 2px;")
         self.text_label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         self.text_label.setAlignment(Qt.AlignCenter)
 
@@ -53,9 +53,9 @@ class StatusBarButton(QPushButton):
         height = margins.top() + margins.bottom()
 
         visible_widgets = []
-        if self.icon_label.isVisible() and self.icon_label.text():
+        if not self.icon_label.isHidden() and self.icon_label.text():
             visible_widgets.append(self.icon_label)
-        if self.text_label.isVisible() and self.text_label.text():
+        if not self.text_label.isHidden() and self.text_label.text():
             visible_widgets.append(self.text_label)
 
         for i, widget in enumerate(visible_widgets):
@@ -127,6 +127,7 @@ class StatusBar(QStatusBar):
         self.setContentsMargins(0, 0, 0, 0)
 
         self.setSizeGripEnabled(True)
+        self._has_git = False
 
         # LEFT SIDE (addWidget = left-aligned)
         self._remote_btn = StatusBarButton()
@@ -179,6 +180,10 @@ class StatusBar(QStatusBar):
         self._models_btn.clicked.connect(self.models_requested.emit)
         self.addPermanentWidget(self._models_btn)
 
+        self._ai_btn = StatusBarButton("\ueab2 Dardcor - Settings")
+        self._ai_btn.setToolTip("Dardcor Settings")
+        self.addPermanentWidget(self._ai_btn)
+
         self._ext_status_container = QWidget()
         self._ext_status_layout = QHBoxLayout(self._ext_status_container)
         self._ext_status_layout.setContentsMargins(0, 0, 0, 0)
@@ -186,10 +191,6 @@ class StatusBar(QStatusBar):
         self._ext_status_container.setStyleSheet("background: transparent;")
         self._ext_status_container.hide()
         self.addPermanentWidget(self._ext_status_container)
-
-        self._ai_btn = StatusBarButton("\ueab2 Dardcor - Settings")
-        self._ai_btn.setToolTip("Dardcor Settings")
-        self.addPermanentWidget(self._ai_btn)
 
         self._notif_btn = StatusBarButton("\ueaa2")
         self._notif_btn.setFixedWidth(28)
@@ -221,9 +222,11 @@ class StatusBar(QStatusBar):
 
     def set_git_branch(self, branch: str):
         if not branch:
+            self._has_git = False
             self._git_btn.hide()
             self._sync_btn.hide()
         else:
+            self._has_git = True
             self._git_btn.setText(f"\uea68 {branch}")
             self._git_btn.show()
             self._sync_btn.show()
@@ -315,7 +318,7 @@ class StatusBar(QStatusBar):
         self._eol_btn.setVisible(w > 700)
         self._indent_btn.setVisible(w > 600)
         self._lang_btn.setVisible(w > 500)
-        self._git_btn.setVisible(w > 400)
+        self._git_btn.setVisible(w > 400 and self._has_git)
         self._errors_btn.setVisible(w > 300)
         
         super().resizeEvent(event)

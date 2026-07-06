@@ -9,7 +9,7 @@ import urllib.request
 from typing import Any, Dict, List, Sequence, Tuple
 
 
-DEFAULT_MODELS_PAGE_SIZE = 12
+DEFAULT_MODELS_PAGE_SIZE = 9999
 
 
 def registry_config_path(provider_name: str) -> str:
@@ -61,13 +61,9 @@ def provider_key_status(provider_name: str, provider_def: Dict[str, Any]) -> str
         except Exception:
             pass
         return "OAuth login required"
-    api_key_env = provider_def.get("api_key_env", "")
-    if not api_key_env:
-        return "No key required"
-    if os.environ.get(api_key_env, "").strip():
-        return "Key set"
+
     try:
-        from dardcor_agent.models.providers.openai_compatible.components import load_provider_config
+        from dardcor_agent.models.provider_panel import load_provider_config
 
         if load_provider_config(provider_name).get("api_key", "").strip():
             return "Key set"
@@ -131,10 +127,8 @@ def normalize_registry_model(model: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _models_cache_path(provider_name: str) -> str:
-    root = os.path.normpath(
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
-    )
-    return os.path.join(root, "database", "models", provider_name, "models_cache.json")
+    from pydardcor.core.config import get_user_data_dir
+    return os.path.join(get_user_data_dir(), "database", "models", provider_name, "models_cache.json")
 
 
 def _load_models_cache(provider_name: str) -> List[Dict[str, Any]]:
@@ -181,9 +175,42 @@ def fetch_remote_models(
         headers["X-Title"] = "Dardcor Code"
 
     try:
-        req = urllib.request.Request(fetch_url, headers=headers)
+        # Gemini uses ?key=API_KEY query param instead of Bearer token
+        actual_fetch_url = fetch_url
+        is_gemini = provider_def.get("is_gemini") or "generativelanguage.googleapis.com" in fetch_url
+        if is_gemini and api_key:
+            sep = "&" if "?" in fetch_url else "?"
+            actual_fetch_url = f"{fetch_url}{sep}key={api_key}&pageSize=1000"
+            # Remove Bearer from headers for Gemini
+            headers.pop("Authorization", None)
+
+        req = urllib.request.Request(actual_fetch_url, headers=headers)
         with urllib.request.urlopen(req, timeout=25) as res:
             data = json.loads(res.read().decode("utf-8"))
+
+        # Gemini returns {"models": [...]} with "name" field like "models/gemini-1.5-pro"
+        if is_gemini:
+            raw_models = data.get("models", [])
+            models: List[Dict[str, Any]] = []
+            for item in raw_models:
+                if not isinstance(item, dict):
+                    continue
+                name = item.get("name", "")
+                model_id = name.replace("models/", "") if name else ""
+                if not model_id:
+                    continue
+                display = item.get("displayName") or model_id
+                desc = item.get("description", "")
+                models.append(normalize_registry_model({
+                    "id": model_id,
+                    "name": display,
+                    "description": desc,
+                    "free": False,
+                }))
+            models.sort(key=lambda m: m["display"].lower())
+            if models:
+                save_models_cache(provider_name, models)
+            return models, ""
 
         raw_models = data if isinstance(data, list) else data.get("data", data.get("models", []))
         if not isinstance(raw_models, list):

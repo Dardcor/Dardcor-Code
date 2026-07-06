@@ -19,12 +19,15 @@ class FocusFilter(QObject):
         super().__init__(line_edit)
         self.container = container
         self.line_edit = line_edit
+        self._focused = False
 
     def eventFilter(self, obj, event):
         if obj == self.line_edit:
-            if event.type() == QEvent.FocusIn:
+            if event.type() == QEvent.FocusIn and not self._focused:
+                self._focused = True
                 self.container.update_style(True)
-            elif event.type() == QEvent.FocusOut:
+            elif event.type() == QEvent.FocusOut and self._focused:
+                self._focused = False
                 self.container.update_style(False)
         return super().eventFilter(obj, event)
 

@@ -33,7 +33,7 @@ class ActivityBarButton(QPushButton):
         
         from PySide6.QtGui import QFont
         font = QFont("codicon")
-        font.setPixelSize(24)
+        font.setPixelSize(26)
         self.setFont(font)
         
         icon_map = {
@@ -55,6 +55,9 @@ class ActivityBarButton(QPushButton):
                 border: none;
                 border-left: 2px solid transparent;
                 color: #ffffff;
+                font-size: 26px;
+                padding: 0px;
+                margin: 0px;
             }
             QPushButton:hover {
                 background-color: rgba(124, 58, 237, 0.16);
@@ -75,7 +78,7 @@ class ActivityBarButton(QPushButton):
 
         if not path or not os.path.exists(path):
             return None
-        size = 24
+        size = 26
         try:
             if path.lower().endswith(".svg"):
                 from PySide6.QtSvg import QSvgRenderer

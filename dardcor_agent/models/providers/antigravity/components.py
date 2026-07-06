@@ -43,16 +43,14 @@ class ModelBadge(QFrame):
         
         rect = self.rect()
         
-        # Draw base border and faint background
         painter.setPen(QPen(QColor("#1e1e20"), 1))
         bg_color = QColor("#ffffff")
         bg_color.setAlphaF(0.03)
         painter.setBrush(QBrush(bg_color)) 
         painter.drawRoundedRect(rect, 4, 4)
         
-        # Draw the progress bar fill
         fill_color = QColor(self.color_hex)
-        fill_color.setAlphaF(0.4) # Increased alpha to make token color more visible
+        fill_color.setAlphaF(0.4)
         painter.setPen(Qt.NoPen)
         painter.setBrush(QBrush(fill_color))
         
@@ -82,7 +80,7 @@ class ActionButtons(QWidget):
         
         self.anim_timer = QTimer(self)
         self.anim_timer.timeout.connect(self._update_animations)
-        self.anim_timer.setInterval(50) # 20fps for smooth spinning
+        self.anim_timer.setInterval(50)
         
         actions = [
             ("Details", '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>', "#868e96", "#3b82f6"),

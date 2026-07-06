@@ -12,7 +12,7 @@ def activate(api):
   )
   api.add_status_bar_item(
       "welcome",
-      "$(heart) Dardcor",
+      "Dardcor",
       "Built-in welcome extension",
       "showInfo",
       priority=50,

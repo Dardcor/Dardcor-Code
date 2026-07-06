@@ -1,4 +1,4 @@
-﻿const markdown = window.marked || {
+const markdown = window.marked || {
     parse: function (text) {
         return escapeHtml(text).replace(/\n/g, "<br>");
     },
@@ -39,6 +39,13 @@ new QWebChannel(qt.webChannelTransport, function (channel) {
 });
 
 const chatContainer = document.getElementById('chat-container');
+const welcomeBanner = document.getElementById('welcome-banner');
+
+function hideWelcome() {
+    if (welcomeBanner && !welcomeBanner.classList.contains('hidden')) {
+        welcomeBanner.classList.add('hidden');
+    }
+}
 
 function scrollToBottom() {
     window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
@@ -58,6 +65,7 @@ function handleAction(action, payload) {
 }
 
 function appendUserMessage(text, retry_text) {
+    hideWelcome();
     // Each user message ends the previous agent turn.
     settleCurrentWorkPanel();
 
@@ -77,6 +85,7 @@ function appendUserMessage(text, retry_text) {
 }
 
 function appendAgentMessage(text, isHtml) {
+    hideWelcome();
     // Render <thought>...</thought> tags as collapsed reasoning blocks.
     let processedText = text;
     if (!isHtml) {
@@ -349,4 +358,8 @@ function clearChat() {
     chatContainer.innerHTML = '';
     toolCards.clear();
     currentWorkPanel = null;
+    // Restore welcome banner on new chat
+    if (welcomeBanner) {
+        welcomeBanner.classList.remove('hidden');
+    }
 }

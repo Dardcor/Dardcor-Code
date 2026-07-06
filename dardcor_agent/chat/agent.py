@@ -832,11 +832,14 @@ class Agent:
         on_tool_output: Optional[Callable[[str, str], None]] = None,
         on_notification: Optional[Callable[[str], None]] = None,
         on_agent_message: Optional[Callable[[str], None]] = None,
+        on_title_changed: Optional[Callable[[str], None]] = None,
         ephemeral_state: str = "",
     ) -> str:
         with self._lock:
             self._abort_flag = False
             self._conversation.add_message("user", message)
+            if on_title_changed:
+                on_title_changed(self._conversation.title)
 
             try:
                 response_text = self._call_api(

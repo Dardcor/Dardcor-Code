@@ -19,9 +19,9 @@ class ProviderFactory:
 
     @staticmethod
     def create(config: Any, model_override: Optional[str]) -> BaseProvider:
-        if model_override in {"dardcor-flash-free", "dardcor-v1-max"}:
-            from .dardcor.provider import DardcorV1Provider
-            return DardcorV1Provider()
+        if model_override in {"dardcor-flash-free", "dardcor-max"}:
+            from .dardcor.provider import DardcorProvider
+            return DardcorProvider()
 
         try:
             import os, json
@@ -37,23 +37,25 @@ class ProviderFactory:
             is_antigravity_active = providers.get("Antigravity", False)
 
             if model_override:
-                # Genuine Antigravity models only route to Antigravity.
                 if model_override in ProviderFactory._ANTIGRAVITY_MODELS:
                     if is_antigravity_active:
                         from .antigravity.provider import AntigravityProvider
                         return AntigravityProvider()
 
-                # Resolve the owning provider straight from the registry so a
-                # model like an OpenCode Zen / Gemini id is NEVER misrouted to
-                # Antigravity (which would 404 on Google's API).
                 from .registry import find_provider_for_model
                 owner, pdef = find_provider_for_model(model_override)
                 if owner and not pdef.get("is_special"):
-                    from .openai.provider import StandardOpenAIProvider
-                    return StandardOpenAIProvider()
+                    owner_folder = owner.lower().replace(" ", "_").replace("-", "_")
+                    owner_class = owner.replace(" ", "").replace("-", "") + "Provider"
+                    try:
+                        import importlib
+                        module = importlib.import_module(f"dardcor_agent.models.providers.{owner_folder}.provider")
+                        ProviderClass = getattr(module, owner_class)
+                        return ProviderClass()
+                    except (ImportError, AttributeError) as e:
+                        from .openai.provider import StandardOpenAIProvider
+                        return StandardOpenAIProvider()
 
-            # Only fall back to Antigravity when we have no concrete model
-            # (or an unknown one) — not when another provider owns the model.
             if not model_override and is_antigravity_active:
                 from .antigravity.provider import AntigravityProvider
                 return AntigravityProvider()
