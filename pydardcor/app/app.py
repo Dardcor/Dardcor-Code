@@ -62,8 +62,9 @@ def run_desktop_app():
     default_font.setStyleHint(QFont.SansSerif)
     app.setFont(default_font)
 
-    # Apply VS Code dark theme stylesheet via ThemeManager
-    ThemeManager.apply_theme(app, "dark+")
+    # Apply saved theme before creating windows to avoid first-paint flicker.
+    ThemeManager.register_extension_themes()
+    ThemeManager.apply_theme(app, cfg.color_theme or "dardcor-purple")
 
     # Set app icon globally
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -78,9 +79,6 @@ def run_desktop_app():
 
     # Heavy initialization happens here
     window = MainWindow()
-    
-    # Force the OS to not paint a white background before Qt renders
-    window.setAttribute(Qt.WA_NoSystemBackground, True)
     
     # Once main window is ready to paint, show it
     window.show()

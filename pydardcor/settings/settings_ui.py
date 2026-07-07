@@ -4,12 +4,19 @@ import os
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
     QCheckBox, QComboBox, QSpinBox, QScrollArea, QFrame,
-    QPushButton, QSizePolicy, QGroupBox, QFormLayout
+    QPushButton, QSizePolicy, QGroupBox, QFormLayout, QMessageBox
 )
 from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtGui import QColor, QFont
 
 from ..core.config import get_config
+
+
+def _theme_colors():
+    from ..app.theme_manager import ThemeManager
+
+    theme = ThemeManager.THEMES.get(ThemeManager.current_theme_id(), ThemeManager.THEMES["dardcor-purple"])
+    return theme["colors"]
 
 
 class SettingRow(QWidget):
@@ -22,6 +29,7 @@ class SettingRow(QWidget):
         self._setup_ui(label, description, widget_type, value, options)
 
     def _setup_ui(self, label, description, widget_type, value, options):
+        c = _theme_colors()
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 8, 0, 8)
         layout.setSpacing(4)
@@ -47,13 +55,13 @@ class SettingRow(QWidget):
             self._input.setValue(int(value))
             self._input.valueChanged.connect(lambda: self.changed.emit())
             self._input.setFixedWidth(200)
-            self._input.setStyleSheet("""
-                QSpinBox {
-                    background-color: #2c004a; color: #cccccc;
-                    border: 1px solid #2c004a; border-radius: 2px;
+            self._input.setStyleSheet(f"""
+                QSpinBox {{
+                    background-color: {c['selection']}; color: {c['foreground']};
+                    border: 1px solid {c['selection']}; border-radius: 2px;
                     padding: 4px 8px; font-size: 13px;
-                }
-                QSpinBox:focus { border: 1px solid #4a0072; }
+                }}
+                QSpinBox:focus {{ border: 1px solid {c['accent']}; }}
             """)
             layout.addWidget(self._input)
         elif widget_type == "combo":
@@ -64,19 +72,19 @@ class SettingRow(QWidget):
             self._input.setEditable(options.get("editable", False))
             self._input.currentTextChanged.connect(lambda: self.changed.emit())
             self._input.setFixedWidth(300)
-            self._input.setStyleSheet("""
-                QComboBox {
-                    background-color: #2c004a; color: #cccccc;
-                    border: 1px solid #2c004a; border-radius: 2px;
+            self._input.setStyleSheet(f"""
+                QComboBox {{
+                    background-color: {c['selection']}; color: {c['foreground']};
+                    border: 1px solid {c['selection']}; border-radius: 2px;
                     padding: 4px 8px; font-size: 13px;
-                }
-                QComboBox:focus { border: 1px solid #4a0072; }
-                QComboBox::drop-down { border: none; width: 20px; }
-                QComboBox QAbstractItemView {
-                    background-color: #000000; color: #cccccc;
-                    border: 1px solid #454545;
-                    selection-background-color: #04395e;
-                }
+                }}
+                QComboBox:focus {{ border: 1px solid {c['accent']}; }}
+                QComboBox::drop-down {{ border: none; width: 20px; }}
+                QComboBox QAbstractItemView {{
+                    background-color: {c['background']}; color: {c['foreground']};
+                    border: 1px solid {c['border']};
+                    selection-background-color: {c['selection']};
+                }}
             """)
             layout.addWidget(self._input)
         elif widget_type == "text":
@@ -85,13 +93,13 @@ class SettingRow(QWidget):
             self._input.setPlaceholderText(options.get("placeholder", "") if options else "")
             self._input.textChanged.connect(lambda: self.changed.emit())
             self._input.setFixedWidth(400)
-            self._input.setStyleSheet("""
-                QLineEdit {
-                    background-color: #2c004a; color: #cccccc;
-                    border: 1px solid #2c004a; border-radius: 2px;
+            self._input.setStyleSheet(f"""
+                QLineEdit {{
+                    background-color: {c['selection']}; color: {c['foreground']};
+                    border: 1px solid {c['selection']}; border-radius: 2px;
                     padding: 4px 8px; font-size: 13px;
-                }
-                QLineEdit:focus { border: 1px solid #4a0072; }
+                }}
+                QLineEdit:focus {{ border: 1px solid {c['accent']}; }}
             """)
             layout.addWidget(self._input)
 
@@ -116,28 +124,30 @@ class SettingsUIWidget(QWidget):
         self._config = get_config()
         self._rows = []
         self._category_labels = []
+        self._dirty = False
         self._setup_ui()
 
     # Duck-typing for editor tab compatibility
     def get_file_path(self):
         return ""
     def is_dirty(self):
-        return False
+        return self._dirty
     def get_language(self):
         return "settings"
     def get_content(self):
         return ""
 
     def _setup_ui(self):
+        c = _theme_colors()
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
-        self.setStyleSheet("background-color: #000000;")
+        self.setStyleSheet(f"background-color: {c['background']};")
 
         # Header
         header = QWidget()
         header.setFixedHeight(50)
-        header.setStyleSheet("background-color: #000000; border-bottom: 1px solid #1a0033;")
+        header.setStyleSheet(f"background-color: {c['background']}; border-bottom: 1px solid {c['border']};")
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(24, 0, 24, 0)
 
@@ -162,24 +172,46 @@ class SettingsUIWidget(QWidget):
         self._scope_user.setStyleSheet(self._scope_user.styleSheet().replace("color: #858585", "color: #cccccc; border-bottom: 2px solid #4a0072"))
         header_layout.addWidget(self._scope_user)
         header_layout.addWidget(self._scope_ws)
+
+        self._save_btn = QPushButton("Save")
+        self._save_btn.setEnabled(False)
+        self._save_btn.setCursor(Qt.PointingHandCursor)
+        self._save_btn.clicked.connect(self._save_settings)
+        self._save_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['accent']};
+                color: #ffffff;
+                border: none;
+                border-radius: 3px;
+                padding: 5px 14px;
+                font-size: 12px;
+                font-weight: 600;
+            }}
+            QPushButton:hover:enabled {{ background-color: {c['accent_hover']}; }}
+            QPushButton:disabled {{
+                background-color: {c['hover']};
+                color: #666666;
+            }}
+        """)
+        header_layout.addWidget(self._save_btn)
         layout.addWidget(header)
 
         # Search
         search_bar = QWidget()
         search_bar.setFixedHeight(40)
-        search_bar.setStyleSheet("background-color: #000000;")
+        search_bar.setStyleSheet(f"background-color: {c['background']};")
         search_layout = QHBoxLayout(search_bar)
         search_layout.setContentsMargins(24, 8, 24, 8)
 
         self._search = QLineEdit()
         self._search.setPlaceholderText("Search settings")
-        self._search.setStyleSheet("""
-            QLineEdit {
-                background-color: #2c004a; color: #cccccc;
-                border: 1px solid #2c004a; border-radius: 4px;
+        self._search.setStyleSheet(f"""
+            QLineEdit {{
+                background-color: {c['selection']}; color: {c['foreground']};
+                border: 1px solid {c['selection']}; border-radius: 4px;
                 padding: 6px 12px; font-size: 13px;
-            }
-            QLineEdit:focus { border: 1px solid #4a0072; }
+            }}
+            QLineEdit:focus {{ border: 1px solid {c['accent']}; }}
         """)
         self._search.textChanged.connect(self._filter_settings)
         search_layout.addWidget(self._search)
@@ -188,16 +220,16 @@ class SettingsUIWidget(QWidget):
         # Scroll area
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setStyleSheet("""
-            QScrollArea { border: none; background-color: #000000; }
-            QScrollBar:vertical {
-                background-color: #000000; width: 10px;
-            }
-            QScrollBar::handle:vertical {
-                background-color: #424242; border-radius: 5px; min-height: 30px;
-            }
-            QScrollBar::handle:vertical:hover { background-color: #4f4f4f; }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+        scroll.setStyleSheet(f"""
+            QScrollArea {{ border: none; background-color: {c['background']}; }}
+            QScrollBar:vertical {{
+                background-color: {c['background']}; width: 10px;
+            }}
+            QScrollBar::handle:vertical {{
+                background-color: {c['border']}; border-radius: 5px; min-height: 30px;
+            }}
+            QScrollBar::handle:vertical:hover {{ background-color: {c['accent']}; }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0; }}
         """)
 
         self._content = QWidget()
@@ -212,10 +244,11 @@ class SettingsUIWidget(QWidget):
         layout.addWidget(scroll)
 
     def _add_category(self, title):
+        c = _theme_colors()
         lbl = QLabel(title)
-        lbl.setStyleSheet("""
-            color: #cccccc; font-size: 14px; font-weight: bold;
-            padding: 16px 0 8px 0; border-bottom: 1px solid #1a0033;
+        lbl.setStyleSheet(f"""
+            color: {c['foreground']}; font-size: 14px; font-weight: bold;
+            padding: 16px 0 8px 0; border-bottom: 1px solid {c['border']};
         """)
         self._content_layout.addWidget(lbl)
         self._category_labels.append((lbl, title))
@@ -223,12 +256,12 @@ class SettingsUIWidget(QWidget):
 
     def _add_setting(self, key, label, description, widget_type, value, options=None, category=None):
         row = SettingRow(key, label, description, widget_type, value, options)
-        row.changed.connect(self._on_setting_changed)
+        row.changed.connect(self._mark_dirty)
         self._rows.append((row, category))
         
         sep = QFrame()
         sep.setFixedHeight(1)
-        sep.setStyleSheet("background-color: #1a0033;")
+        sep.setStyleSheet(f"background-color: {_theme_colors()['border']};")
         
         self._content_layout.addWidget(row)
         self._content_layout.addWidget(sep)
@@ -315,40 +348,17 @@ class SettingsUIWidget(QWidget):
             "Configures font ligatures or font features.",
             "checkbox", getattr(c, "font_ligatures", False), None, "editor")
 
-        # ── AI ──
-        self._add_category("AI Provider")
-
-        self._add_setting("ai.provider", "AI: Provider",
-            "The AI service provider to use for code assistance.",
-            "combo", c.ai.provider,
-            {"items": ["openai", "anthropic", "gemini", "deepseek", "openrouter", "ollama", "nvidia"], "editable": True},
-            "ai")
-
-        self._add_setting("ai.model", "AI: Model",
-            "The model name to use (e.g., gpt-4o, claude-sonnet-4-20250514, gemini-2.0-flash).",
-            "text", c.ai.model, {"placeholder": "Model name"}, "ai")
-
-        self._add_setting("ai.base_url", "AI: Base URL",
-            "Custom base URL for the AI provider. Leave empty for default.",
-            "text", c.ai.base_url, {"placeholder": "Leave empty for default"}, "ai")
-
-        self._add_setting("ai.max_tokens", "AI: Max Tokens",
-            "Maximum number of tokens in AI responses.",
-            "spinbox", c.ai.max_tokens, {"min": 1024, "max": 256000}, "ai")
-
-        self._add_setting("ai.temperature", "AI: Temperature",
-            "Controls randomness. Lower = more focused (0.0 - 2.0). Value is x10 (e.g., 7 = 0.7).",
-            "spinbox", int(getattr(c.ai, "temperature", 0.7) * 10),
-            {"min": 0, "max": 20}, "ai")
-
         # ── Workbench ──
         self._add_category("Workbench")
 
-        self._add_setting("ui_theme", "Workbench: Color Theme",
-            "Specifies the color theme used in the workbench.",
-            "combo", getattr(c, "ui_theme", "dark+"),
-            {"items": ["dark+", "light+", "high-contrast", "monokai", "solarized-dark",
-                       "solarized-light", "github-dark", "one-dark-pro"]},
+        from ..app.theme_manager import ThemeManager
+        ThemeManager.register_extension_themes()
+        theme_ids = [t["id"] for t in ThemeManager.get_theme_list()]
+
+        self._add_setting("color_theme", "Workbench: Color Theme",
+            "Workbench color theme. Includes built-in and extension themes.",
+            "combo", getattr(c, "color_theme", "") or "dardcor-purple",
+            {"items": theme_ids},
             "workbench")
 
         self._add_setting("sidebar_position", "Workbench: Side Bar Location",
@@ -415,8 +425,14 @@ class SettingsUIWidget(QWidget):
             "Enable usage data and errors to be sent to Dardcor.",
             "checkbox", getattr(c, "telemetry_enableTelemetry", True), None, "telemetry")
 
-    def _on_setting_changed(self):
+    def _mark_dirty(self):
+        self._dirty = True
+        if hasattr(self, "_save_btn"):
+            self._save_btn.setEnabled(True)
+
+    def _save_settings(self):
         c = self._config
+        old_theme = getattr(c, "color_theme", "")
         for row, _ in self._rows:
             k = row.key
             v = row.get_value()
@@ -436,12 +452,9 @@ class SettingsUIWidget(QWidget):
             elif k == "format_on_paste": c.format_on_paste = v
             elif k == "line_numbers": c.line_numbers = v
             elif k == "font_ligatures": c.font_ligatures = v
-            elif k == "ai.provider": c.ai.provider = v
-            elif k == "ai.model": c.ai.model = v
-            elif k == "ai.base_url": c.ai.base_url = v
-            elif k == "ai.max_tokens": c.ai.max_tokens = v
-            elif k == "ai.temperature": c.ai.temperature = v / 10.0
-            elif k == "ui_theme": c.ui_theme = v
+            elif k == "color_theme":
+                c.color_theme = v
+                self._apply_color_theme(v)
             elif k == "sidebar_position": c.sidebar_position = v
             elif k == "breadcrumbs_enabled": c.breadcrumbs_enabled = v
             elif k == "files_encoding": c.files_encoding = v
@@ -454,6 +467,59 @@ class SettingsUIWidget(QWidget):
             elif k == "terminal_cursor_style": c.terminal_cursor_style = v
             elif k == "telemetry_enabled": c.telemetry_enableTelemetry = v
         c.save()
+        self._dirty = False
+        if hasattr(self, "_save_btn"):
+            self._save_btn.setEnabled(False)
+        if getattr(c, "color_theme", "") != old_theme:
+            reply = QMessageBox.information(
+                self,
+                "Restart Dardcor IDE",
+                "Theme saved. Restart Dardcor IDE now to apply all colors cleanly?",
+                QMessageBox.Ok | QMessageBox.Cancel,
+                QMessageBox.Ok,
+            )
+            if reply == QMessageBox.Ok:
+                self._restart_ide()
+
+    def _restart_ide(self):
+        import sys
+        from PySide6.QtCore import QCoreApplication, QProcess
+
+        args = sys.argv[:]
+        if args:
+            program = os.path.abspath(args[0])
+            restart_args = args[1:]
+        else:
+            program = sys.executable
+            restart_args = []
+
+        if program.endswith(".py"):
+            restart_args = [program, *restart_args]
+            program = sys.executable
+
+        QProcess.startDetached(program, restart_args)
+        QCoreApplication.quit()
+
+    def _apply_color_theme(self, theme_id: str):
+        from PySide6.QtWidgets import QApplication
+        from ..app.theme_manager import ThemeManager
+
+        p = self.parentWidget()
+        while p:
+            if hasattr(p, "_set_theme"):
+                p._set_theme(theme_id)
+                return
+            p = p.parentWidget()
+
+        app = QApplication.instance()
+        if not app:
+            return
+        window = app.activeWindow()
+        if window and hasattr(window, "_set_theme"):
+            window._set_theme(theme_id)
+            return
+        ThemeManager.register_extension_themes()
+        ThemeManager.apply_theme(app, theme_id)
 
     def _filter_settings(self, text):
         text = text.lower()

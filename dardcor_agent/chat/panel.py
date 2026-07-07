@@ -448,6 +448,7 @@ class ChatPanel(QWidget):
         project_root = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
         index_path = os.path.join(project_root, "script", "index", "chat.html")
         self._web_view.setUrl(QUrl.fromLocalFile(index_path))
+        self._web_view.loadFinished.connect(lambda _ok: self.apply_theme())
         layout.addWidget(self._web_view, 1)
 
 
@@ -702,6 +703,62 @@ class ChatPanel(QWidget):
 
         # Show welcome message
         self._show_welcome()
+
+    def apply_theme(self):
+        try:
+            from pydardcor.app.theme_manager import ThemeManager
+            colors = ThemeManager.THEMES.get(ThemeManager.current_theme_id(), ThemeManager.THEMES["dardcor-purple"])["colors"]
+        except Exception:
+            return
+
+        self.setStyleSheet(f"#chatPanel {{ background-color: {colors['background']}; }}")
+        self._header.setStyleSheet(
+            f"#chatHeader {{ background-color: {colors['background']}; border-bottom: 1px solid {colors['border']}; }}"
+        )
+        self._title_lbl.setStyleSheet(f"""
+            color: {colors['foreground']};
+            font-size: 13px;
+            font-weight: bold;
+            border-bottom: 2px solid {colors['accent']};
+            padding-bottom: 2px;
+        """)
+        self._input.setStyleSheet(f"""
+            QTextEdit {{
+                background-color: transparent;
+                color: {colors['foreground']};
+                border: none;
+                padding: 12px;
+                font-family: "Segoe UI", "Ubuntu", sans-serif;
+                font-size: 13px;
+                selection-background-color: {colors['selection']};
+            }}
+        """)
+
+        js = f"""
+        (() => {{
+            const r = document.documentElement.style;
+            r.setProperty('--bg-color', {json.dumps(colors['background'])});
+            r.setProperty('--text-color', {json.dumps(colors['foreground'])});
+            r.setProperty('--user-bg', {json.dumps(colors['hover'])});
+            r.setProperty('--user-border', {json.dumps(colors['border'])});
+            r.setProperty('--accent-color', {json.dumps(colors['accent'])});
+            r.setProperty('--agent-color', {json.dumps(colors['accent'])});
+            const style = document.getElementById('dardcor-theme-overrides') || document.createElement('style');
+            style.id = 'dardcor-theme-overrides';
+            style.textContent = `
+                ::-webkit-scrollbar-thumb {{ background: {colors['border']} !important; }}
+                ::-webkit-scrollbar-thumb:hover {{ background: {colors['accent']} !important; }}
+                .welcome-icon {{ color: {colors['accent']} !important; filter: drop-shadow(0 0 18px {colors['accent']}88) !important; }}
+                .welcome-title {{ background: none !important; -webkit-text-fill-color: {colors['accent']} !important; color: {colors['accent']} !important; }}
+                .content blockquote {{ border-left-color: {colors['border']} !important; }}
+            `;
+            document.head.appendChild(style);
+        }})();
+        """
+        try:
+            self._web_view.page().runJavaScript(js)
+        except Exception:
+            pass
 
     def _check_provider_status(self):
         try:

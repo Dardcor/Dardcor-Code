@@ -851,6 +851,26 @@ class FileExplorer(QWidget):
         else:
             self._welcome_widget.show()
             self._tree_container.hide()
+
+    def _show_no_folder(self):
+        self._root_path = None
+        self._force_expand_root = True
+        self._workspace_collapsed = False
+        self._workspace_header.setText("")
+        self._workspace_header.set_collapsed(False)
+        self._workspace_header.hide()
+        self._tree.clear()
+        self._tree.hide()
+        if hasattr(self, '_tree_container'):
+            self._tree_container.hide()
+        if hasattr(self, '_bottom_spacer'):
+            self._bottom_spacer.hide()
+        current_paths = self._watcher.directories()
+        if current_paths:
+            self._watcher.removePaths(current_paths)
+        self._render_recent_folders()
+        self._welcome_widget.show()
+
     def _get_compact_folder(self, base_path: str, base_name: str, exclude_patterns: list):
         current_path = os.path.join(base_path, base_name)
         display_name = base_name
@@ -1213,8 +1233,7 @@ class FileExplorer(QWidget):
             return
 
         if not self._root_path:
-            self._welcome_widget.show()
-            self._tree.hide()
+            self._show_no_folder()
             return
 
         self._welcome_widget.hide()
@@ -1997,12 +2016,7 @@ class FileExplorer(QWidget):
                 self._bottom_spacer.hide()
             self._refresh()
         else:
-            self._welcome_widget.show()
-            self._tree.hide()
-            if hasattr(self, '_tree_container'):
-                self._tree_container.hide()
-            if hasattr(self, '_bottom_spacer'):
-                self._bottom_spacer.show()
+            self._show_no_folder()
 
     def get_root(self) -> str:
         return self._root_path

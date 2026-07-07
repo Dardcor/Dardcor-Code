@@ -49,25 +49,37 @@ class ActivityBarButton(QPushButton):
         if self._ext_pixmap is None:
             self.setText(icon_map.get(icon_type, "\ueae6"))
 
-        self.setStyleSheet("""
-            QPushButton {
+        try:
+            from ..app.theme_manager import ThemeManager
+            c = ThemeManager.THEMES.get(ThemeManager.current_theme_id(), ThemeManager.THEMES["dardcor-purple"])["colors"]
+            fg = c["activity_bar_fg"]
+            accent = c["accent"]
+            hover = c["hover"]
+            selection = c["selection"]
+        except Exception:
+            fg = "#ffffff"
+            accent = "#a855f7"
+            hover = "rgba(124, 58, 237, 0.16)"
+            selection = "rgba(124, 58, 237, 0.12)"
+        self.setStyleSheet(f"""
+            QPushButton {{
                 background-color: transparent;
                 border: none;
                 border-left: 2px solid transparent;
-                color: #ffffff;
+                color: {fg};
                 font-size: 26px;
                 padding: 0px;
                 margin: 0px;
-            }
-            QPushButton:hover {
-                background-color: rgba(124, 58, 237, 0.16);
-                color: #ffffff;
-            }
-            QPushButton:checked {
-                border-left: 2px solid #a855f7;
-                background-color: rgba(124, 58, 237, 0.12);
-                color: #ffffff;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {hover};
+                color: {fg};
+            }}
+            QPushButton:checked {{
+                border-left: 2px solid {accent};
+                background-color: {selection};
+                color: {fg};
+            }}
         """)
 
     def _load_icon_pixmap(self, path):
@@ -123,7 +135,13 @@ class ActivityBarButton(QPushButton):
             tp = QPainter(tinted)
             tp.drawPixmap(0, 0, pm)
             tp.setCompositionMode(QPainter.CompositionMode_SourceIn)
-            tp.fillRect(tinted.rect(), QColor("#ffffff"))
+            try:
+                from ..app.theme_manager import ThemeManager
+                c = ThemeManager.THEMES.get(ThemeManager.current_theme_id(), ThemeManager.THEMES["dardcor-purple"])["colors"]
+                icon_color = c["activity_bar_fg"]
+            except Exception:
+                icon_color = "#ffffff"
+            tp.fillRect(tinted.rect(), QColor(icon_color))
             tp.end()
             painter.setOpacity(1.0 if self.isChecked() or self.underMouse() else 0.75)
             painter.drawPixmap(x, y, tinted)
@@ -147,13 +165,21 @@ class ActivityBarButton(QPushButton):
             x = self.width() - bw - 4
             y = self.height() - bh - 6
             
-            # Draw purple pill
-            painter.setBrush(QColor("#7c3aed"))
+            # Badge follows active workbench theme.
+            try:
+                from ..app.theme_manager import ThemeManager
+                c = ThemeManager.THEMES.get(ThemeManager.current_theme_id(), ThemeManager.THEMES["dardcor-purple"])["colors"]
+                badge_bg = c["accent"]
+                badge_fg = "#ffffff" if QColor(c["accent"]).lightness() < 150 else "#000000"
+            except Exception:
+                badge_bg = "#7c3aed"
+                badge_fg = "#ffffff"
+            painter.setBrush(QColor(badge_bg))
             painter.setPen(Qt.NoPen)
             painter.drawRoundedRect(x, y, bw, bh, 8, 8)
             
             # Draw text
-            painter.setPen(QColor("#ffffff"))
+            painter.setPen(QColor(badge_fg))
             painter.drawText(QRect(x, y, bw, bh), Qt.AlignCenter, self._badge_text)
 
     def mousePressEvent(self, event):

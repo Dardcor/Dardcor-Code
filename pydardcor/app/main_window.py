@@ -1040,7 +1040,10 @@ class MainWindow(QMainWindow):
         self._explorer_layout.addWidget(self._explorer_bottom_stretch)
 
         def _update_explorer_stretches():
-            exp_open = not getattr(self._file_explorer, '_workspace_collapsed', False)
+            exp_open = bool(
+                self._file_explorer.get_root()
+                and not getattr(self._file_explorer, '_workspace_collapsed', False)
+            )
             out_open = not getattr(self._outline_panel, '_collapsed', True)
             tim_open = not getattr(self._timeline_panel, '_collapsed', True)
             
@@ -1293,10 +1296,8 @@ class MainWindow(QMainWindow):
         self._title_bar.btn_customize.clicked.connect(self._show_customize_layout)
 
         if self._config.workspace_path and os.path.exists(self._config.workspace_path):
-            def init_workspace():
-                self._file_explorer.set_root(self._config.workspace_path)
-                self._on_root_changed(self._config.workspace_path)
-            QTimer.singleShot(200, init_workspace)
+            self._file_explorer.set_root(self._config.workspace_path)
+            self._on_root_changed(self._config.workspace_path)
         elif self._config.workspace_path:
             self._config.workspace_path = ""
             self._config.save()
@@ -2791,6 +2792,16 @@ class MainWindow(QMainWindow):
             self._navigating = True
             try:
                 # Track as recently opened file
+                recent = [
+                    os.path.normpath(p)
+                    for p in getattr(self._config, "recent_files", [])
+                    if p and os.path.isfile(p)
+                ]
+                norm_path = os.path.normpath(path)
+                recent = [p for p in recent if os.path.normcase(p) != os.path.normcase(norm_path)]
+                self._config.recent_files = [norm_path, *recent][:20]
+                self._config.save()
+                self._editor_tabs.refresh_welcome_recent()
                 if hasattr(self, '_quick_open'):
                     self._quick_open.add_recent_file(path)
                 editor = self._editor_tabs.open_file(path)
@@ -2946,6 +2957,8 @@ class MainWindow(QMainWindow):
         self._editor_tabs.close_current()
 
     def _close_folder(self):
+        if not self._editor_tabs.close_all():
+            return
         self._config.workspace_path = ""
         self._config.save()
         self._file_explorer.set_root(None)
@@ -3039,6 +3052,9 @@ class MainWindow(QMainWindow):
             self._editor_tabs.set_custom_theme(None)
             is_dark = ThemeManager.THEMES.get(theme_id, {}).get("type", "dark") == "dark"
             self._editor_tabs.set_theme("dark" if is_dark else "light")
+
+        if hasattr(self, "_chat_panel") and hasattr(self._chat_panel, "apply_theme"):
+            self._chat_panel.apply_theme()
 
         if persist:
             self._config.color_theme = theme_id
@@ -3316,6 +3332,8 @@ class MainWindow(QMainWindow):
             recent = [p for p in recent if os.path.normcase(p) != os.path.normcase(norm_effective)]
             self._config.recent_folders = [norm_effective, *recent][:10]
         self._config.save()
+        if hasattr(self, "_editor_tabs"):
+            self._editor_tabs.refresh_welcome_recent()
         self._update_window_title()
         if effective and hasattr(self, '_agent'):
             self._agent.set_workspace(effective)

@@ -81,8 +81,59 @@ class ThemeManager:
     
     # Pre-defined base themes
     THEMES = {
+        "dardcor-purple": {
+            "name": "Dardcor Purple",
+            "type": "dark",
+            "colors": {
+                "background": "#000000",
+                "foreground": "#d6d0e8",
+                "sidebar": "#000000",
+                "activity_bar": "#000000",
+                "activity_bar_fg": "#ffffff",
+                "selection": "#3c0068",
+                "hover": "#1a0033",
+                "border": "#3c0068",
+                "accent": "#6d00b8",
+                "accent_hover": "#8b2cff",
+                "error": "#f48771"
+            }
+        },
+        "cursor-dark": {
+            "name": "Cursor Dark",
+            "type": "dark",
+            "colors": {
+                "background": "#0f0f10",
+                "foreground": "#d6d6d6",
+                "sidebar": "#09090a",
+                "activity_bar": "#080809",
+                "activity_bar_fg": "#f2f2f2",
+                "selection": "#263340",
+                "hover": "#1b1b1d",
+                "border": "#2a2a2d",
+                "accent": "#8a5cf6",
+                "accent_hover": "#a78bfa",
+                "error": "#ff6b6b"
+            }
+        },
+        "antigravity-dark": {
+            "name": "Antigravity Dark",
+            "type": "dark",
+            "colors": {
+                "background": "#0b0d12",
+                "foreground": "#d7dde8",
+                "sidebar": "#070910",
+                "activity_bar": "#06080d",
+                "activity_bar_fg": "#f7f8ff",
+                "selection": "#24364f",
+                "hover": "#141824",
+                "border": "#20283a",
+                "accent": "#4f8cff",
+                "accent_hover": "#78a6ff",
+                "error": "#ff6b7a"
+            }
+        },
         "dark+": {
-            "name": "Dark+ (default dark)",
+            "name": "VS Code Dark+",
             "type": "dark",
             "colors": {
                 "background": "#000000",
@@ -472,6 +523,7 @@ class ThemeManager:
         """
         
         app.setStyleSheet(stylesheet)
+        cls._patch_existing_widget_styles(app, c)
         
         # 2. Update Qt Palette for native controls
         palette = QPalette()
@@ -489,3 +541,37 @@ class ThemeManager:
         palette.setColor(QPalette.ToolTipText, QColor(c["foreground"]))
         
         app.setPalette(palette)
+
+    @classmethod
+    def _patch_existing_widget_styles(cls, app: QApplication, c: Dict[str, str]):
+        replacements = {
+            "#000000": c["background"],
+            "#080808": c.get("sidebar", c["background"]),
+            "#0d0d0d": c.get("sidebar", c["background"]),
+            "#1a1a1a": c["hover"],
+            "#1a0033": c["hover"],
+            "#2c004a": c["selection"],
+            "#3c0068": c["border"],
+            "#4a0072": c["accent"],
+            "#6d00b8": c["accent"],
+            "#8b2cff": c["accent_hover"],
+            "#a855f7": c["accent"],
+            "#04395e": c["selection"],
+            "#cccccc": c["foreground"],
+            "#ffffff": c["foreground"],
+            "rgba(124, 58, 237, 0.16)": c["hover"],
+            "rgba(124, 58, 237, 0.12)": c["selection"],
+        }
+        replacements[c["foreground"]] = c["foreground"]
+        replacements[c["background"]] = c["background"]
+
+        for widget in app.allWidgets():
+            style = widget.styleSheet()
+            if not style:
+                continue
+            patched = style
+            for old, new in replacements.items():
+                patched = patched.replace(old, new)
+            if patched != style:
+                widget.setStyleSheet(patched)
+            widget.update()

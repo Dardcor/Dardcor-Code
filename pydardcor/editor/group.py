@@ -254,14 +254,16 @@ class DardcorTabBar(QTabBar):
     def contextMenuEvent(self, event):
         idx = self.tabAt(event.pos())
         if idx < 0:
-            super().contextMenuEvent(event)
+            self._show_empty_tab_menu(event.globalPos())
             return
             
         from PySide6.QtWidgets import QMenu
         menu = QMenu(self)
         
-        # We need a reference to the EditorGroup to pin the tab
-        group = self.parent().parent()
+        # TabBar can be wrapped by a scroll area/viewport; walk up to EditorGroup.
+        group = self.parentWidget()
+        while group is not None and not hasattr(group, "_tabs"):
+            group = group.parentWidget()
         if hasattr(group, "_tabs") and idx < len(group._tabs):
             tab_data = group._tabs[idx]
             
@@ -288,6 +290,92 @@ class DardcorTabBar(QTabBar):
                 for i in range(self.count() - 1, -1, -1):
                     if i < len(group._tabs) and not group._tabs[i].editor.is_dirty():
                         self.tabCloseRequested.emit(i)
+
+    def _execute_cmd(self, cmd_id):
+        p = self.parentWidget()
+        while p:
+            if hasattr(p, "_execute_command"):
+                p._execute_command(cmd_id)
+                return
+            p = p.parentWidget()
+
+    def _show_empty_tab_menu(self, global_pos):
+        from PySide6.QtGui import QAction
+        from PySide6.QtWidgets import QMenu
+
+        menu = QMenu(self)
+        menu.setStyleSheet("""
+            QMenu {
+                background-color: #1f1f1f;
+                color: #cccccc;
+                border: 1px solid #3c3c3c;
+                padding: 4px 0px;
+                font-size: 12px;
+            }
+            QMenu::item {
+                padding: 5px 28px 5px 12px;
+                min-width: 210px;
+            }
+            QMenu::item:selected {
+                background-color: #04395e;
+                color: #ffffff;
+            }
+            QMenu::item:disabled {
+                color: #666666;
+            }
+            QMenu::separator {
+                height: 1px;
+                background: #343434;
+                margin: 4px 0px;
+            }
+        """)
+
+        for label, shortcut, cmd_id in [
+            ("New Text File", "Ctrl+N", "file.new"),
+            ("Open File...", "Ctrl+P", "file.open"),
+        ]:
+            action = QAction(label, self)
+            action.setShortcut(shortcut)
+            action.triggered.connect(lambda checked=False, c=cmd_id: self._execute_cmd(c))
+            menu.addAction(action)
+
+        menu.addSeparator()
+        terminal = QAction("New Terminal", self)
+        terminal.triggered.connect(lambda: self._execute_cmd("terminal.new"))
+        menu.addAction(terminal)
+
+        menu.addSeparator()
+        for label, shortcut, cmd_id in [
+            ("Split Up", "Ctrl+K Ctrl+\\", "view.splitEditorUp"),
+            ("Split Down", "", "view.splitEditorDown"),
+            ("Split Left", "", "view.splitEditorLeft"),
+            ("Split Right", "", "view.splitEditorRight"),
+        ]:
+            action = QAction(label, self)
+            if shortcut:
+                action.setShortcut(shortcut)
+            action.setEnabled(False)
+            action.triggered.connect(lambda checked=False, c=cmd_id: self._execute_cmd(c))
+            menu.addAction(action)
+
+        menu.addSeparator()
+        for label in ("Move into New Window", "Copy into New Window"):
+            action = QAction(label, self)
+            action.setEnabled(False)
+            menu.addAction(action)
+
+        menu.addSeparator()
+        tab_bar_menu = menu.addMenu("Tab Bar")
+        tab_bar_menu.setEnabled(False)
+        editor_actions_menu = menu.addMenu("Editor Actions Position")
+        editor_actions_menu.setEnabled(False)
+
+        menu.addSeparator()
+        configure_tabs = QAction("Configure Tabs", self)
+        configure_tabs.setEnabled(False)
+        menu.addAction(configure_tabs)
+
+        menu.exec(global_pos)
 
 
 class WelcomeWidget(QScrollArea):
@@ -359,10 +447,18 @@ class WelcomeWidget(QScrollArea):
             btn.clicked.connect(lambda checked=False, c=cmd: self._execute_cmd(c))
             btn_layout.addWidget(btn)
 
+        self._recent_widget = QWidget()
+        self._recent_widget.setFixedWidth(220)
+        self._recent_layout = QVBoxLayout(self._recent_widget)
+        self._recent_layout.setContentsMargins(0, 14, 0, 0)
+        self._recent_layout.setSpacing(4)
+        btn_layout.addWidget(self._recent_widget)
+
         h_layout.addWidget(btn_container)
         h_layout.addStretch()
 
         vl.addWidget(wrapper)
+        self.refresh_recent()
         self.setWidget(self.container)
 
     def _execute_cmd(self, cmd_id):
@@ -372,6 +468,66 @@ class WelcomeWidget(QScrollArea):
                 p._execute_command(cmd_id)
                 break
             p = p.parentWidget()
+
+    def _open_recent_path(self, path):
+        p = self.parentWidget()
+        while p:
+            if os.path.isfile(path) and hasattr(p, "_open_file_in_editor"):
+                p._open_file_in_editor(path)
+                return
+            if os.path.isdir(path) and hasattr(p, "_file_explorer"):
+                p._file_explorer.set_root(path)
+                p._on_root_changed(path)
+                return
+            p = p.parentWidget()
+
+    def refresh_recent(self):
+        from ..core.config import get_config
+
+        while self._recent_layout.count():
+            item = self._recent_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+
+        config = get_config()
+        if getattr(config, "workspace_path", ""):
+            self._recent_widget.hide()
+            return
+        recent_files = [p for p in getattr(config, "recent_files", []) if p and os.path.isfile(p)]
+        recent_folders = [p for p in getattr(config, "recent_folders", []) if p and os.path.isdir(p)]
+        recent = [("file", p) for p in recent_files[:5]] + [("folder", p) for p in recent_folders[:5]]
+        self._recent_widget.setVisible(bool(recent))
+        if not recent:
+            return
+
+        heading = QLabel("Recent")
+        heading.setStyleSheet("color:#858585;font-size:11px;border:none;background:transparent;")
+        heading.setAlignment(Qt.AlignCenter)
+        self._recent_layout.addWidget(heading)
+
+        for kind, path in recent[:8]:
+            name = os.path.basename(path.rstrip("/\\")) or path
+            btn = QPushButton(f"{name}  {kind}")
+            btn.setFixedWidth(220)
+            btn.setToolTip(path)
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.setStyleSheet("""
+                QPushButton {
+                    background: transparent;
+                    color: #cccccc;
+                    border: none;
+                    padding: 3px 8px;
+                    text-align: left;
+                    font-size: 12px;
+                }
+                QPushButton:hover {
+                    background-color: rgba(168, 85, 247, 0.16);
+                    color: #ffffff;
+                }
+            """)
+            btn.clicked.connect(lambda checked=False, p=path: self._open_recent_path(p))
+            self._recent_layout.addWidget(btn)
             
     def contextMenuEvent(self, event):
         from PySide6.QtWidgets import QMenu
@@ -379,19 +535,30 @@ class WelcomeWidget(QScrollArea):
         menu = QMenu(self)
         menu.setStyleSheet("""
             QMenu {
-                background-color: #000000;
+                background-color: #1f1f1f;
                 color: #cccccc;
-                border: 1px solid #3c0068;
+                border: 1px solid #3c3c3c;
+                padding: 4px 0px;
+                font-size: 12px;
             }
             QMenu::item {
-                padding: 6px 20px;
+                padding: 5px 28px 5px 12px;
+                min-width: 170px;
             }
             QMenu::item:selected {
-                background-color: #3c0068;
+                background-color: #04395e;
                 color: #ffffff;
             }
+            QMenu::item:disabled {
+                color: #666666;
+            }
+            QMenu::separator {
+                height: 1px;
+                background: #343434;
+                margin: 4px 0px;
+            }
         """)
-        new_file = QAction("New File", self)
+        new_file = QAction("New Text File", self)
         new_file.triggered.connect(lambda: self._execute_cmd("file.new"))
         menu.addAction(new_file)
         
@@ -408,6 +575,22 @@ class WelcomeWidget(QScrollArea):
         open_terminal = QAction("Open Terminal", self)
         open_terminal.triggered.connect(lambda: self._execute_cmd("terminal.new"))
         menu.addAction(open_terminal)
+
+        menu.addSeparator()
+        for label in ("Split Up", "Split Down", "Split Left", "Split Right"):
+            action = QAction(label, self)
+            action.setEnabled(False)
+            menu.addAction(action)
+
+        menu.addSeparator()
+        new_window = QAction("New Window", self)
+        new_window.setEnabled(False)
+        menu.addAction(new_window)
+
+        menu.addSeparator()
+        lock_group = QAction("Lock Group", self)
+        lock_group.setEnabled(False)
+        menu.addAction(lock_group)
         
         menu.exec(event.globalPos())
 
@@ -457,6 +640,10 @@ class EditorGroup(QWidget):
         self._tab_row = QWidget()
         self._tab_row.setFixedHeight(35)
         self._tab_row.setStyleSheet("background-color: #000000; border-bottom: 1px solid #3c0068;")
+        self._tab_row.setContextMenuPolicy(Qt.CustomContextMenu)
+        self._tab_row.customContextMenuRequested.connect(
+            lambda pos: self._tab_bar._show_empty_tab_menu(self._tab_row.mapToGlobal(pos))
+        )
         self._tab_row.hide()
         row_layout = QHBoxLayout(self._tab_row)
         row_layout.setContentsMargins(0, 0, 0, 0)
@@ -467,6 +654,14 @@ class EditorGroup(QWidget):
         self._tab_bar.currentChanged.connect(self._on_tab_changed)
         self._tab_scroll = TabScrollArea()
         self._tab_scroll.setWidget(self._tab_bar)
+        self._tab_scroll.setContextMenuPolicy(Qt.CustomContextMenu)
+        self._tab_scroll.customContextMenuRequested.connect(
+            lambda pos: self._tab_bar._show_empty_tab_menu(self._tab_scroll.mapToGlobal(pos))
+        )
+        self._tab_scroll.viewport().setContextMenuPolicy(Qt.CustomContextMenu)
+        self._tab_scroll.viewport().customContextMenuRequested.connect(
+            lambda pos: self._tab_bar._show_empty_tab_menu(self._tab_scroll.viewport().mapToGlobal(pos))
+        )
         
         row_layout.addWidget(self._tab_scroll)
         
@@ -516,6 +711,10 @@ class EditorGroup(QWidget):
     def _update_tab_row_visibility(self):
         has_tabs = len(self._tabs) > 0
         self._tab_row.setVisible(has_tabs)
+
+    def refresh_welcome_recent(self):
+        if hasattr(self, "_welcome") and hasattr(self._welcome, "refresh_recent"):
+            self._welcome.refresh_recent()
 
     def toggle_pin_tab(self, idx: int):
         if 0 <= idx < len(self._tabs):
@@ -679,7 +878,7 @@ class EditorGroup(QWidget):
 
     def _close_tab(self, idx):
         if idx < 0 or idx >= len(self._tabs):
-            return
+            return False
         tab = self._tabs[idx]
         if tab.editor.is_dirty():
             result = QMessageBox.question(
@@ -688,7 +887,7 @@ class EditorGroup(QWidget):
                 QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel
             )
             if result == QMessageBox.Cancel:
-                return
+                return False
             if result == QMessageBox.Save:
                 self._save_editor(tab.editor)
 
@@ -700,9 +899,11 @@ class EditorGroup(QWidget):
 
         if not self._tabs:
             self._breadcrumb_bar.hide()
+            self.refresh_welcome_recent()
             self._stack.setCurrentWidget(self._welcome)
             self._current_idx = -1
             self.tab_changed.emit("", "")
+        return True
 
     def _on_tab_changed(self, idx):
         self._switch_tab(idx)
@@ -762,6 +963,12 @@ class EditorGroup(QWidget):
     def close_current(self):
         if self._current_idx >= 0:
             self._close_tab(self._current_idx)
+
+    def close_all(self):
+        while self._tabs:
+            if not self._close_tab(len(self._tabs) - 1):
+                return False
+        return True
 
     def open_file_at_line(self, file_path, line):
         ed = self.open_file(file_path)

@@ -105,6 +105,17 @@ class EditorTabs(QWidget):
         g = self.active_group()
         if g: g.close_current()
 
+    def close_all(self):
+        for g in list(self._groups):
+            if hasattr(g, "close_all") and not g.close_all():
+                return False
+        return True
+
+    def refresh_welcome_recent(self):
+        for g in self._groups:
+            if hasattr(g, "refresh_welcome_recent"):
+                g.refresh_welcome_recent()
+
     def open_file_at_line(self, file_path, line):
         g = self.active_group()
         if g: g.open_file_at_line(file_path, line)

@@ -2,6 +2,7 @@
 
 import os
 import json
+import shiboken6
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 from PySide6.QtCore import Qt, QTimer, QUrl
 from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -25,6 +26,7 @@ class TerminalInstance(QWidget):
         self._process = None
         self._frontend_ready = False
         self._pending_data = []          # buffer while frontend loads
+        self.destroyed.connect(lambda: self.kill())
         self._setup_ui()
         
         from PySide6.QtCore import QTimer
@@ -151,11 +153,7 @@ class TerminalInstance(QWidget):
         self._process.setProcessEnvironment(qenv)
 
         self._process.readyReadStandardOutput.connect(self._on_qprocess_data)
-        self._process.finished.connect(
-            lambda code, _: self._write_to_frontend(
-                f"\r\n\x1b[90m[Process exited with code {code}]\x1b[0m\r\n"
-            )
-        )
+        self._process.finished.connect(self._on_process_finished)
 
         exe = cmd if isinstance(cmd, str) else cmd[0]
         args = []
@@ -170,6 +168,8 @@ class TerminalInstance(QWidget):
 
     def _write_to_frontend(self, data: str):
         """Send PTY output to xterm.js using JSON encoding (safe for all chars)."""
+        if not hasattr(self, "_view") or not shiboken6.isValid(self._view):
+            return
         if not self._frontend_ready:
             self._pending_data.append(data)
             return
@@ -177,7 +177,12 @@ class TerminalInstance(QWidget):
         # json.dumps produces a properly escaped JS string literal
         encoded = json.dumps(data)
         js = f"if (typeof writeToTerminal === 'function') {{ writeToTerminal({encoded}); }}"
-        self._view.page().runJavaScript(js)
+        page = self._view.page()
+        if page and shiboken6.isValid(page):
+            page.runJavaScript(js)
+
+    def _on_process_finished(self, code, _status):
+        self._write_to_frontend(f"\r\n\x1b[90m[Process exited with code {code}]\x1b[0m\r\n")
 
     def _on_qprocess_data(self):
         raw = self._process.readAllStandardOutput().data()
@@ -227,8 +232,10 @@ class TerminalInstance(QWidget):
         self._resize_timer.start()
 
     def _do_fit(self):
-        if hasattr(self, '_view') and self._view.page():
-            self._view.page().runJavaScript("if (typeof scheduleFit === 'function') { scheduleFit(); }")
+        if hasattr(self, '_view') and shiboken6.isValid(self._view):
+            page = self._view.page()
+            if page and shiboken6.isValid(page):
+                page.runJavaScript("if (typeof scheduleFit === 'function') { scheduleFit(); }")
 
     def set_workdir(self, path: str):
         self._workdir = path
