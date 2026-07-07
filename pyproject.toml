@@ -46,8 +46,10 @@ Issues = "https://github.com/Dardcor/dardcor-code/issues"
 dardcor = "pydardcor.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["pydardcor", "pydardcor.*"]
+include = ["pydardcor", "pydardcor.*", "dardcor_agent", "dardcor_agent.*"]
 
 [tool.setuptools.package-data]
 "pydardcor.extensions" = ["*.json", "*.py"]
+"pydardcor.extension_host" = ["*.js"]
+"assets" = ["*.js", "*.css", "*.html", "*.png", "*.ttf", "*.svg", "*.json", "*.wasm"]
 

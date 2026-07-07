@@ -4,12 +4,8 @@ import os
 import sys
 import site
 
-# Ensure user site-packages in path so pywinpty is importable
-user_site = site.getusersitepackages()
-if user_site not in sys.path:
-    sys.path.append(user_site)
-
 HAS_WINPTY = False
+# Try direct import first; fall back to appending user site-packages only if missing
 try:
     try:
         from pywinpty import PTY
@@ -17,7 +13,24 @@ try:
         from winpty import PTY
     HAS_WINPTY = True
 except ImportError:
-    pass
+    user_site = site.getusersitepackages()
+    _appended = user_site not in sys.path
+    if _appended:
+        sys.path.append(user_site)
+    try:
+        try:
+            from pywinpty import PTY
+        except ImportError:
+            from winpty import PTY
+        HAS_WINPTY = True
+    except ImportError:
+        PTY = None
+    finally:
+        if _appended and os.environ.get("DARDCOR_KEEP_PATHS") is None:
+            try:
+                sys.path.remove(user_site)
+            except ValueError:
+                pass
 
 class WinPtyWrapper:
     def __init__(self, cols: int, rows: int, cmd: str, cwd: str, env: dict = None):

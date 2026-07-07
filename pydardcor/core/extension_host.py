@@ -29,7 +29,7 @@ class NodeExtensionHost:
                 [node_cmd, self._host_js],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
                 text=True,
                 encoding="utf-8",
                 errors="replace",

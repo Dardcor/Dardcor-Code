@@ -1,4 +1,4 @@
-from dardcor_agent.models.providers.openai_compatible.provider import StandardOpenAIProvider
+from dardcor_agent.models.providers.openai.provider import StandardOpenAIProvider
 
 class AnthropicProvider(StandardOpenAIProvider):
     def __init__(self):

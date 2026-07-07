@@ -1176,11 +1176,9 @@ class ChatPanel(QWidget):
         elif action == "revert":
             self._revert_message(payload)
         elif action == "copy":
-            import base64
             try:
                 from PySide6.QtWidgets import QApplication
-                text = base64.b64decode(payload).decode("utf-8")
-                QApplication.clipboard().setText(text)
+                QApplication.clipboard().setText(payload)
             except Exception:
                 pass
         elif action.startswith("toggleblock:"):
@@ -1193,22 +1191,13 @@ class ChatPanel(QWidget):
                 pass
 
     def _retry_message(self, payload: str):
-        import base64
-        try:
-            text = base64.b64decode(payload).decode("utf-8")
-        except Exception:
-            text = payload
+        text = payload
         self._append_user_message(text, text)
         self.show_typing(True)
         self.message_sent.emit(text)
 
     def _revert_message(self, payload: str):
-        import base64
-        try:
-            text = base64.b64decode(payload).decode("utf-8")
-        except Exception:
-            text = payload
-        self._input.setPlainText(text)
+        self._input.setPlainText(payload)
         self._input.setFocus()
         self._on_input_changed()
 

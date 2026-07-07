@@ -44,11 +44,17 @@ class KeybindingsManager:
     def save(self):
         if not os.path.exists(self.config_dir):
             os.makedirs(self.config_dir, exist_ok=True)
+        tmp = self.config_file + ".tmp"
         try:
-            with open(self.config_file, 'w', encoding='utf-8') as f:
+            with open(tmp, 'w', encoding='utf-8') as f:
                 json.dump(self.keybindings, f, indent=4)
+            os.replace(tmp, self.config_file)
         except Exception:
-            pass
+            if os.path.exists(tmp):
+                try:
+                    os.remove(tmp)
+                except OSError:
+                    pass
 
     def get_shortcut(self, command_id):
         return self.keybindings.get(command_id, '')

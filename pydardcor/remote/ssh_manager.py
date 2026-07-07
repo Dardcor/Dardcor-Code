@@ -43,10 +43,10 @@ class RemoteSSHManager(QObject):
             
         def _on_done(success):
             if success:
-                self._set_status("connected")
+                self._set_state("connected")
             else:
                 self._current_host = None
-                self._set_status("disconnected")
+                self._set_state("disconnected")
                 
         threading.Thread(target=lambda: QTimer.singleShot(0, lambda: _on_done(_connector())), daemon=True).start()
 

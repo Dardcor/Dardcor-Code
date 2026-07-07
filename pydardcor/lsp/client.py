@@ -26,7 +26,7 @@ class LspClient:
                 self.command,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
             )
             self._is_running = True
             
@@ -40,10 +40,27 @@ class LspClient:
             logger.error(f"Failed to start LSP server {self.command}: {e}")
 
     def stop(self):
+        if not self._is_running:
+            return
+        
+        # Graceful shutdown sequence
+        try:
+            if self._process and self._process.poll() is None:
+                try:
+                    self.send_request("shutdown", timeout=1.0)
+                except Exception:
+                    pass
+                self.send_notification("exit")
+        except Exception:
+            pass
+            
         self._is_running = False
         if self._process and self._process.poll() is None:
-            self.send_notification("exit")
             self._process.terminate()
+            try:
+                self._process.wait(timeout=2.0)
+            except subprocess.TimeoutExpired:
+                self._process.kill()
 
     def _initialize(self):
         params = {
@@ -139,29 +156,36 @@ class LspClient:
             logger.error(f"Error writing to LSP server: {e}")
 
     def _read_loop(self):
-        while self._is_running and self._process.poll() is None:
-            try:
-                # Read header
-                content_length = 0
-                while True:
-                    line = self._process.stdout.readline()
-                    if not line or line == b'\r\n':
-                        break
-                    line_str = line.decode('utf-8').strip()
-                    if line_str.startswith("Content-Length:"):
-                        content_length = int(line_str.split(":")[1].strip())
-                
-                if content_length == 0:
-                    continue
+        try:
+            while self._is_running and self._process and self._process.poll() is None:
+                try:
+                    # Read header
+                    content_length = 0
+                    while True:
+                        line = self._process.stdout.readline()
+                        if not line or line == b'\r\n':
+                            break
+                        line_str = line.decode('utf-8').strip()
+                        if line_str.startswith("Content-Length:"):
+                            content_length = int(line_str.split(":")[1].strip())
                     
-                # Read content
-                content = self._process.stdout.read(content_length)
-                msg = json.loads(content.decode('utf-8'))
-                
-                self._handle_message(msg)
-                
-            except Exception as e:
-                logger.error(f"Error reading from LSP server: {e}")
+                    if content_length == 0:
+                        if not line: # EOF
+                            break
+                        continue
+                        
+                    # Read content
+                    content = self._process.stdout.read(content_length)
+                    if not content:
+                        break
+                    msg = json.loads(content.decode('utf-8'))
+                    
+                    self._handle_message(msg)
+                    
+                except Exception as e:
+                    logger.error(f"Error reading from LSP server: {e}")
+        finally:
+            self._is_running = False
                 
     def _handle_message(self, msg: dict):
         # Is it a response?

@@ -31,8 +31,10 @@ class WorkspaceTrust:
 
     def _save(self):
         os.makedirs(os.path.dirname(TRUST_FILE), exist_ok=True)
-        with open(TRUST_FILE, "w", encoding="utf-8") as f:
+        tmp = TRUST_FILE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
             json.dump({"trusted": list(self._trusted_paths)}, f, indent=2)
+        os.replace(tmp, TRUST_FILE)
 
     def is_trusted(self, workspace_path: str) -> bool:
         norm = os.path.normpath(workspace_path)

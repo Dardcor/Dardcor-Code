@@ -75,8 +75,10 @@ class MultiRootWorkspace:
                 "folders": [{"path": f.path, "name": f.name} for f in self.folders],
                 "settings": self.settings
             }
-            with open(save_path, 'w', encoding='utf-8') as f:
+            tmp = save_path + ".tmp"
+            with open(tmp, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=4)
+            os.replace(tmp, save_path)
             self.workspace_file = os.path.abspath(save_path)
             return True
         except Exception as e:

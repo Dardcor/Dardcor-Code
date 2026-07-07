@@ -4,7 +4,7 @@ import os
 import threading
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton,
-    QLabel, QTreeWidget, QTreeWidgetItem, QCheckBox, QMessageBox
+    QLabel, QTreeWidget, QTreeWidgetItem, QCheckBox, QMessageBox, QFrame
 )
 from PySide6.QtCore import Signal, Qt, QTimer
 from PySide6.QtGui import QColor, QFont

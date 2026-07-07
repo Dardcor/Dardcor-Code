@@ -152,5 +152,7 @@ class SSHFileSystem(VirtualFileSystem):
             pass
 
     def close(self):
-        self.sftp.close()
-        self.ssh.close()
+        try:
+            self.sftp.close()
+        finally:
+            self.ssh.close()

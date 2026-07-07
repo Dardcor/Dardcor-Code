@@ -2,12 +2,22 @@
 
 import os
 import subprocess
-import win32gui
-import win32process
-import win32con
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel
 from PySide6.QtGui import QWindow
 from PySide6.QtCore import Qt, QTimer
+
+if os.name == "nt":
+    try:
+        import win32gui
+        import win32process
+        import win32con
+        _HAS_WIN32 = True
+    except ImportError:
+        win32gui = win32process = win32con = None
+        _HAS_WIN32 = False
+else:
+    win32gui = win32process = win32con = None
+    _HAS_WIN32 = False
 
 class EmbeddedTauriWidget(QWidget):
     """Embeds a running Tauri application directly into a PySide6 widget."""

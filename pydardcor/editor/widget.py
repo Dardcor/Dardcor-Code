@@ -127,8 +127,16 @@ class MonacoEditorWidget(QWidget):
             self._bridge.notify_closed()
         self._file_path = file_path
         self._language = detect_language(file_path)
+        self._encoding = "utf-8"
         try:
-            with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+            import tokenize
+            try:
+                with open(file_path, "rb") as f:
+                    self._encoding, _ = tokenize.detect_encoding(f.readline)
+            except Exception:
+                self._encoding = "utf-8"
+                
+            with open(file_path, "r", encoding=self._encoding, errors="replace") as f:
                 self._content = f.read()
         except Exception as e:
             self._content = f"# Error opening file: {e}"
@@ -157,7 +165,8 @@ class MonacoEditorWidget(QWidget):
         if not self._file_path:
             return False
         try:
-            with open(self._file_path, "w", encoding="utf-8") as f:
+            enc = getattr(self, "_encoding", "utf-8")
+            with open(self._file_path, "w", encoding=enc) as f:
                 f.write(self._content)
             self._dirty = False
             
