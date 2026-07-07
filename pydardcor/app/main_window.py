@@ -1032,9 +1032,17 @@ class MainWindow(QMainWindow):
         self._file_explorer.setup_explorer_menu(self._open_editors_panel, self._outline_panel, self._timeline_panel)
 
         self._explorer_layout = explorer_layout
-        self._explorer_layout.addWidget(self._file_explorer, 1)
+        self._explorer_layout.addWidget(self._file_explorer, 0)
         self._explorer_layout.addWidget(self._outline_panel, 0)
         self._explorer_layout.addWidget(self._timeline_panel, 0)
+
+        # Bottom spacer absorbs leftover space when all collapsible sections are closed
+        # so headers stick together with no empty gaps between them.
+        self._bottom_spacer = QWidget()
+        self._bottom_spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self._bottom_spacer.setStyleSheet("background: transparent;")
+        self._explorer_layout.addWidget(self._bottom_spacer, 0)
+        self._explorer_layout.setStretchFactor(self._bottom_spacer, 1)
 
         def _update_explorer_stretches():
             exp_open = bool(
@@ -1043,17 +1051,20 @@ class MainWindow(QMainWindow):
             )
             out_open = not getattr(self._outline_panel, '_collapsed', True)
             tim_open = not getattr(self._timeline_panel, '_collapsed', True)
-            
-            # When no folder is opened and other panels are closed, 
-            # File Explorer should take the remaining space to push them to the bottom.
-            file_stretch = 1 if (exp_open or (not out_open and not tim_open)) else 0
-            
-            self._explorer_layout.setStretchFactor(self._file_explorer, file_stretch)
+
+            any_open = exp_open or out_open or tim_open
+
+            # Stretch only the open section(s). Spacer stays at 0 stretch when something
+            # is open, and takes 1 stretch when everything is collapsed to push the headers
+            # to the bottom of the panel.
+            self._explorer_layout.setStretchFactor(self._file_explorer, 1 if exp_open else 0)
             self._explorer_layout.setStretchFactor(self._outline_panel, 1 if out_open else 0)
             self._explorer_layout.setStretchFactor(self._timeline_panel, 1 if tim_open else 0)
+            self._explorer_layout.setStretchFactor(self._bottom_spacer, 0 if any_open else 1)
             
 
         self._file_explorer.workspace_toggled.connect(lambda _: _update_explorer_stretches())
+        self._file_explorer.root_changed.connect(lambda _: _update_explorer_stretches())
         self._outline_panel.toggled.connect(lambda _: _update_explorer_stretches())
         self._timeline_panel.toggled.connect(lambda _: _update_explorer_stretches())
         _update_explorer_stretches()
