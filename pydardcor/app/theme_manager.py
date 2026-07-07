@@ -5,7 +5,7 @@ import re
 import json
 from typing import Dict, Any, List, Optional
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QWidget
 from PySide6.QtGui import QPalette, QColor
 
 
@@ -407,9 +407,21 @@ class ThemeManager:
             theme_id = "dark+"
             
         cls._current_theme = theme_id
-        cls._monaco_theme_data = None
         theme_data = cls.THEMES[theme_id]
         c = theme_data["colors"]
+        
+        is_dark = theme_data.get("type", "dark") != "light"
+        cls._monaco_theme_data = {
+            "base": "vs-dark" if is_dark else "vs",
+            "inherit": True,
+            "rules": [],
+            "colors": {
+                "editor.background": c["background"],
+                "editor.foreground": c["foreground"],
+                "editor.selectionBackground": c["selection"],
+            }
+        }
+        
         cls._apply_shell_colors(app, c)
 
     @classmethod
@@ -543,7 +555,7 @@ class ThemeManager:
         app.setPalette(palette)
 
     @classmethod
-    def _patch_existing_widget_styles(cls, app: QApplication, c: Dict[str, str]):
+    def _get_replacements(cls, c: Dict[str, str]) -> Dict[str, str]:
         replacements = {
             "#000000": c["background"],
             "#080808": c.get("sidebar", c["background"]),
@@ -564,14 +576,64 @@ class ThemeManager:
         }
         replacements[c["foreground"]] = c["foreground"]
         replacements[c["background"]] = c["background"]
+        return replacements
 
-        for widget in app.allWidgets():
-            style = widget.styleSheet()
-            if not style:
+    @classmethod
+    def get_canonical_colors(cls) -> Dict[str, str]:
+        """Return the base color strings used for dynamic stylesheet replacement."""
+        return {
+            "background": "#000000",
+            "sidebar": "#080808",
+            "hover": "#1a0033",
+            "selection": "#2c004a",
+            "border": "#3c0068",
+            "accent": "#6d00b8",
+            "accent_hover": "#8b2cff",
+            "foreground": "#cccccc",
+        }
+
+    @classmethod
+    def patch_widget(cls, widget: QWidget):
+        if not cls._current_theme: return
+        c = cls.THEMES.get(cls._current_theme, {}).get("colors")
+        if not c: return
+        
+        replacements = cls._get_replacements(c)
+        widgets = [widget] + widget.findChildren(QWidget)
+        for w in widgets:
+            original_style = w.property("original_stylesheet")
+            if original_style is None:
+                original_style = w.styleSheet()
+                if not original_style:
+                    continue
+                w.setProperty("original_stylesheet", original_style)
+            elif not original_style:
                 continue
-            patched = style
+
+            patched = original_style
             for old, new in replacements.items():
                 patched = patched.replace(old, new)
-            if patched != style:
+            if patched != w.styleSheet():
+                w.setStyleSheet(patched)
+            w.update()
+
+    @classmethod
+    def _patch_existing_widget_styles(cls, app: QApplication, c: Dict[str, str]):
+        replacements = cls._get_replacements(c)
+
+        for widget in app.allWidgets():
+            original_style = widget.property("original_stylesheet")
+            if original_style is None:
+                original_style = widget.styleSheet()
+                if not original_style:
+                    continue
+                widget.setProperty("original_stylesheet", original_style)
+            elif not original_style:
+                continue
+
+            patched = original_style
+            for old, new in replacements.items():
+                patched = patched.replace(old, new)
+            if patched != widget.styleSheet():
                 widget.setStyleSheet(patched)
             widget.update()

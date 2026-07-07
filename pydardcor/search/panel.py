@@ -165,8 +165,7 @@ class SearchPanel(QWidget):
 
         # Get Theme Colors
         from ..app.theme_manager import ThemeManager
-        theme = ThemeManager.THEMES.get(ThemeManager._current_theme, ThemeManager.THEMES["dark+"])
-        colors = theme["colors"]
+        colors = ThemeManager.get_canonical_colors()
 
         # Search inputs area
         search_area = QWidget()
@@ -368,6 +367,9 @@ class SearchPanel(QWidget):
         """)
         self._results.itemClicked.connect(self._on_result_clicked)
         layout.addWidget(self._results)
+
+        from ..app.theme_manager import ThemeManager
+        ThemeManager.patch_widget(self)
 
     def _toggle_replace(self):
         visible = not self._replace_widget.isVisible()

@@ -178,7 +178,7 @@ class CommandCenterWidget(QWidget):
                 background-color: transparent;
             }
             #SearchBox {
-                background-color: #0b0014;
+                background-color: #080808;
                 border: 1px solid #3c0068;
                 border-radius: 6px;
             }
@@ -729,6 +729,63 @@ def build_default_commands() -> list:
     ]
 
 
+class ThemeLoadingOverlay(QWidget):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setAttribute(Qt.WA_TransparentForMouseEvents, False)
+        self.setStyleSheet("background-color: rgba(0, 0, 0, 150);")
+        
+        layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignCenter)
+        
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self._animate_spinner)
+        self.angle = 0
+        self.hide()
+        
+    def _animate_spinner(self):
+        self.angle = (self.angle + 15) % 360
+        self.update()
+        
+    def showEvent(self, event):
+        super().showEvent(event)
+        if self.parentWidget():
+            self.setGeometry(self.parentWidget().rect())
+        self.angle = 0
+        self.timer.start(30)
+        
+    def hideEvent(self, event):
+        super().hideEvent(event)
+        self.timer.stop()
+
+    def paintEvent(self, event):
+        from PySide6.QtWidgets import QStyleOption, QStyle
+        from PySide6.QtGui import QPainter, QColor, QPen
+        from PySide6.QtCore import QRectF, Qt
+        
+        opt = QStyleOption()
+        opt.initFrom(self)
+        painter = QPainter(self)
+        self.style().drawPrimitive(QStyle.PE_Widget, opt, painter, self)
+        
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        rect_size = 40
+        x = (self.width() - rect_size) / 2
+        y = (self.height() - rect_size) / 2
+        rect = QRectF(x, y, rect_size, rect_size)
+        
+        pen = QPen(QColor(255, 255, 255, 40))
+        pen.setWidth(4)
+        pen.setCapStyle(Qt.RoundCap)
+        painter.setPen(pen)
+        painter.drawArc(rect, 0, 360 * 16)
+        
+        pen.setColor(QColor(168, 85, 247)) # Purple accent
+        painter.setPen(pen)
+        painter.drawArc(rect, -self.angle * 16, 120 * 16)
+
+
 class MainWindow(QMainWindow):
     """Main application window matching VS Code layout exactly."""
 
@@ -777,12 +834,17 @@ class MainWindow(QMainWindow):
         self._zen_mode = ZenModeManager(self)
         self._centered_layout = CenteredLayoutManager(self)
         self._focus_manager = FocusManager(self)
+        self._theme_overlay = ThemeLoadingOverlay(self)
         self._setup_breadcrumbs()
         self._setup_keybindings()
         self._setup_menu()
         self._setup_shortcuts()
         self._setup_command_palette()
         self._setup_extensions()
+        
+        # Apply theme again now that all panels (search, git, etc) are instantiated
+        # so they get patched from their hardcoded styles and editors are updated
+        self._set_theme(self._config.color_theme or "dardcor-purple")
 
         # Log session start telemetry
         try:
@@ -3047,6 +3109,15 @@ class MainWindow(QMainWindow):
 
     def _set_theme(self, theme_id: str, persist: bool = False):
         """Apply a theme by its ID from ThemeManager (builtin or extension)."""
+        if hasattr(self, "_theme_overlay") and self.isVisible():
+            self._theme_overlay.show()
+            self._theme_overlay.raise_()
+            QApplication.processEvents()
+            QTimer.singleShot(600, lambda: self._do_set_theme(theme_id, persist))
+        else:
+            self._do_set_theme(theme_id, persist)
+
+    def _do_set_theme(self, theme_id: str, persist: bool):
         from .theme_manager import ThemeManager
         from PySide6.QtWidgets import QApplication
 
@@ -3066,9 +3137,17 @@ class MainWindow(QMainWindow):
         if hasattr(self, "_chat_panel") and hasattr(self._chat_panel, "apply_theme"):
             self._chat_panel.apply_theme()
 
+        if hasattr(self, "_git_panel") and hasattr(self._git_panel, "apply_theme"):
+            colors = ThemeManager.THEMES.get(theme_id, {}).get("colors", {})
+            if colors:
+                self._git_panel.apply_theme(colors)
+
         if persist:
             self._config.color_theme = theme_id
             self._config.save()
+            
+        if hasattr(self, "_theme_overlay"):
+            self._theme_overlay.hide()
 
     def _toggle_menu_bar(self):
         """Toggle the visibility of the menu bar."""

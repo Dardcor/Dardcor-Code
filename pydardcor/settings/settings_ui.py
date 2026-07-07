@@ -14,9 +14,7 @@ from ..core.config import get_config
 
 def _theme_colors():
     from ..app.theme_manager import ThemeManager
-
-    theme = ThemeManager.THEMES.get(ThemeManager.current_theme_id(), ThemeManager.THEMES["dardcor-purple"])
-    return theme["colors"]
+    return ThemeManager.get_canonical_colors()
 
 
 class SettingRow(QWidget):
@@ -238,6 +236,9 @@ class SettingsUIWidget(QWidget):
         self._content_layout.setSpacing(0)
 
         self._build_settings()
+        
+        from ..app.theme_manager import ThemeManager
+        ThemeManager.patch_widget(self)
 
         self._content_layout.addStretch()
         scroll.setWidget(self._content)
@@ -470,16 +471,6 @@ class SettingsUIWidget(QWidget):
         self._dirty = False
         if hasattr(self, "_save_btn"):
             self._save_btn.setEnabled(False)
-        if getattr(c, "color_theme", "") != old_theme:
-            reply = QMessageBox.information(
-                self,
-                "Restart Dardcor IDE",
-                "Theme saved. Restart Dardcor IDE now to apply all colors cleanly?",
-                QMessageBox.Ok | QMessageBox.Cancel,
-                QMessageBox.Ok,
-            )
-            if reply == QMessageBox.Ok:
-                self._restart_ide()
 
     def _restart_ide(self):
         import sys

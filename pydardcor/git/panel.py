@@ -44,7 +44,22 @@ class GitPanel(QWidget):
 
         project_root = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
         index_path = os.path.join(project_root, "script", "index", "source_control.html")
+        self.webview.loadFinished.connect(self._on_load_finished)
         self.webview.load(QUrl.fromLocalFile(index_path))
+
+    def _on_load_finished(self, ok):
+        if ok:
+            from ..app.theme_manager import ThemeManager
+            theme = ThemeManager.THEMES.get(ThemeManager._current_theme, {})
+            colors = theme.get("colors", {})
+            if colors:
+                self.apply_theme(colors)
+
+    def apply_theme(self, colors: dict):
+        if self.webview and self._webview_loaded:
+            import json
+            script = f"if(typeof setTheme === 'function') setTheme({json.dumps(colors)});"
+            self.webview.page().runJavaScript(script)
 
     def showEvent(self, event):
         self._ensure_webview()

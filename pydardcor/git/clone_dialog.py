@@ -13,7 +13,7 @@ from PySide6.QtCore import Signal, Qt, QTimer
 class GitCloneDialog(QDialog):
     """Dialog for cloning a git repository."""
 
-    clone_complete = Signal(str)  # emits the cloned path
+    clone_complete = Signal(str)  
 
     def __init__(self, parent=None):
         super().__init__(parent)

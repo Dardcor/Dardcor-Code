@@ -14,7 +14,7 @@ from PySide6.QtGui import QColor, QFont
 class GitGraphPanel(QWidget):
     """A visual representation of git history."""
 
-    commit_selected = Signal(str)  # emits commit hash
+    commit_selected = Signal(str)  
 
     def __init__(self, workspace_path: str = "", parent=None):
         super().__init__(parent)
@@ -27,7 +27,6 @@ class GitGraphPanel(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        # Toolbar
         toolbar = QWidget()
         toolbar.setFixedHeight(30)
         toolbar.setStyleSheet("background-color: #0d0d0d; border-bottom: 1px solid #2c004a;")
@@ -48,7 +47,6 @@ class GitGraphPanel(QWidget):
 
         layout.addWidget(toolbar)
 
-        # Tree
         self._tree = QTreeWidget()
         self._tree.setHeaderLabels(["Graph", "Description", "Date", "Author", "Commit"])
         self._tree.setColumnWidth(0, 80)
@@ -108,11 +106,9 @@ class GitGraphPanel(QWidget):
                 parts = line.split('\x1f')
                 if len(parts) >= 5:
                     graph_and_hash = parts[0]
-                    # The graph and hash are separated by space, e.g. "* 1234567"
-                    # But could be multiple spaces or graph symbols, e.g. "| * 1234567"
                     words = graph_and_hash.split()
                     commit_hash = words[-1] if words else ""
-                    if len(commit_hash) >= 4 and commit_hash.isalnum(): # It's likely a hash
+                    if len(commit_hash) >= 4 and commit_hash.isalnum(): 
                         graph_part = graph_and_hash[:graph_and_hash.rfind(commit_hash)].rstrip()
                     else:
                         commit_hash = ""
@@ -129,11 +125,11 @@ class GitGraphPanel(QWidget):
 
                     item = QTreeWidgetItem([graph_part + (" *" if commit_hash and not graph_part.endswith("*") else ""), desc, date, author, commit_hash])
                     if refs.strip():
-                        item.setForeground(1, QColor("#f1d45a"))  # Yellow for refs
-                    item.setForeground(0, QColor("#e2c08d"))      # Graph lines
-                    item.setForeground(2, QColor("#888888"))      # Date
-                    item.setForeground(3, QColor("#569cd6"))      # Author
-                    item.setForeground(4, QColor("#888888"))      # Hash
+                        item.setForeground(1, QColor("#f1d45a"))
+                    item.setForeground(0, QColor("#e2c08d")) 
+                    item.setForeground(2, QColor("#888888"))
+                    item.setForeground(3, QColor("#569cd6"))
+                    item.setForeground(4, QColor("#888888"))
                     item.setData(0, Qt.UserRole, commit_hash)
                     self._tree.addTopLevelItem(item)
                 else:

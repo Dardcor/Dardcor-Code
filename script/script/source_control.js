@@ -5,6 +5,20 @@ let startFlex = 1;
 let contextItem = null;
 let contextIsStaged = false;
 
+function setTheme(colors) {
+    document.documentElement.style.setProperty('--bg-color', colors.background);
+    document.documentElement.style.setProperty('--text-main', colors.foreground);
+    document.documentElement.style.setProperty('--text-muted', '#858585');
+    document.documentElement.style.setProperty('--hover-bg', colors.hover || colors.background);
+    document.documentElement.style.setProperty('--border-color', colors.border);
+    document.documentElement.style.setProperty('--commit-bg', colors.accent);
+    document.documentElement.style.setProperty('--commit-hover', colors.accent_hover || colors.accent);
+    document.documentElement.style.setProperty('--badge-bg', colors.accent);
+    document.documentElement.style.setProperty('--badge-text', '#ffffff');
+    document.documentElement.style.setProperty('--menu-bg', colors.background);
+    document.documentElement.style.setProperty('--menu-border', colors.border);
+}
+
 window.onload = function() {
     new QWebChannel(qt.webChannelTransport, function(channel) {
         backend = channel.objects.gitBridge;
