@@ -1035,9 +1035,6 @@ class MainWindow(QMainWindow):
         self._explorer_layout.addWidget(self._file_explorer, 1)
         self._explorer_layout.addWidget(self._outline_panel, 0)
         self._explorer_layout.addWidget(self._timeline_panel, 0)
-        self._explorer_bottom_stretch = QWidget()
-        self._explorer_bottom_stretch.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
-        self._explorer_layout.addWidget(self._explorer_bottom_stretch)
 
         def _update_explorer_stretches():
             exp_open = bool(
@@ -1047,12 +1044,14 @@ class MainWindow(QMainWindow):
             out_open = not getattr(self._outline_panel, '_collapsed', True)
             tim_open = not getattr(self._timeline_panel, '_collapsed', True)
             
-            self._explorer_layout.setStretchFactor(self._file_explorer, 1 if exp_open else 0)
+            # When no folder is opened and other panels are closed, 
+            # File Explorer should take the remaining space to push them to the bottom.
+            file_stretch = 1 if (exp_open or (not out_open and not tim_open)) else 0
+            
+            self._explorer_layout.setStretchFactor(self._file_explorer, file_stretch)
             self._explorer_layout.setStretchFactor(self._outline_panel, 1 if out_open else 0)
             self._explorer_layout.setStretchFactor(self._timeline_panel, 1 if tim_open else 0)
             
-            self._explorer_bottom_stretch.setVisible(not exp_open and not out_open and not tim_open)
-            self._explorer_layout.invalidate()
 
         self._file_explorer.workspace_toggled.connect(lambda _: _update_explorer_stretches())
         self._outline_panel.toggled.connect(lambda _: _update_explorer_stretches())
