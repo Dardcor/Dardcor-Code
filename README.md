@@ -377,3 +377,4 @@ MIT License — see [LICENSE](LICENSE) for details.
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:3d006e,50:1a0033,100:0d0017&height=140&section=footer" width="100%"/>
 
 </div>
+

@@ -641,7 +641,6 @@ class FileExplorer(QWidget):
         header.setFixedHeight(35)
         header.setStyleSheet("""
             background-color: #000000;
-            border-bottom: 1px solid #3c0068;
         """)
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(20, 0, 8, 0)
@@ -689,7 +688,7 @@ class FileExplorer(QWidget):
         layout.addWidget(header)
 
         self._welcome_widget = QWidget()
-        self._welcome_widget.setStyleSheet("background-color: #000000;")
+        self._welcome_widget.setStyleSheet("background-color: #000000; border-top: 1px solid #3c0068;")
         welcome_layout = QVBoxLayout(self._welcome_widget)
         welcome_layout.setAlignment(Qt.AlignCenter)
         welcome_layout.setContentsMargins(20, 20, 20, 20)

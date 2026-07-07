@@ -822,7 +822,7 @@ class Agent:
         self._conversation = Conversation()
         sys_prompt = self._get_system_prompt()
         self._conversation.add_message("system", sys_prompt)
-        # Do not save to disk until there is an actual user message
+
     def send_message(
         self,
         message: str,
@@ -838,7 +838,42 @@ class Agent:
         with self._lock:
             self._abort_flag = False
             self._conversation.add_message("user", message)
-            if on_title_changed:
+            
+            user_msgs = [m for m in self._conversation.messages if m.role == "user"]
+            if len(user_msgs) == 1:
+                def _generate_title():
+                    try:
+                        import os
+                        from dataclasses import dataclass
+                        @dataclass
+                        class _DummyAIConfig:
+                            provider: str = "openai"
+                            model: str = "gpt-4o"
+                            api_key: str = os.environ.get("DARDCOR_CODE_API_KEY", os.environ.get("OPENAI_API_KEY", ""))
+                            base_url: str = ""
+                            max_tokens: int = 15
+                            temperature: float = 0.3
+                            system_prompt: str = ""
+                        
+                        from dardcor_agent.models.providers.factory import ProviderFactory
+                        dummy = _DummyAIConfig()
+                        provider = ProviderFactory.create(dummy, model_override=model_override)
+                        msgs = [
+                            {"role": "system", "content": "You are a title generator. Generate a concise 3-5 word title for this prompt. No quotes."},
+                            {"role": "user", "content": message}
+                        ]
+                        res = provider.generate_turn(msgs, [], config=dummy, model_override=model_override, abort_check_fn=lambda: False, conversation_callback=lambda r, m: None)
+                        if res and res.content:
+                            title = res.content.strip().strip('"').strip("'")
+                            if title:
+                                self.rename_conversation(self._conversation.id, title)
+                                if on_title_changed:
+                                    on_title_changed(title)
+                    except Exception as e:
+                        print("Background title generation failed:", e)
+                import threading
+                threading.Thread(target=_generate_title, daemon=True).start()
+            elif on_title_changed:
                 on_title_changed(self._conversation.title)
 
             try:

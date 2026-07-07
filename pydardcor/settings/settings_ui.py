@@ -55,8 +55,8 @@ class SettingRow(QWidget):
             self._input.setFixedWidth(200)
             self._input.setStyleSheet(f"""
                 QSpinBox {{
-                    background-color: {c['selection']}; color: {c['foreground']};
-                    border: 1px solid {c['selection']}; border-radius: 2px;
+                    background-color: {c['sidebar']}; color: {c['foreground']};
+                    border: 1px solid {c['border']}; border-radius: 2px;
                     padding: 4px 8px; font-size: 13px;
                 }}
                 QSpinBox:focus {{ border: 1px solid {c['accent']}; }}
@@ -72,14 +72,14 @@ class SettingRow(QWidget):
             self._input.setFixedWidth(300)
             self._input.setStyleSheet(f"""
                 QComboBox {{
-                    background-color: {c['selection']}; color: {c['foreground']};
-                    border: 1px solid {c['selection']}; border-radius: 2px;
+                    background-color: {c['sidebar']}; color: {c['foreground']};
+                    border: 1px solid {c['border']}; border-radius: 2px;
                     padding: 4px 8px; font-size: 13px;
                 }}
                 QComboBox:focus {{ border: 1px solid {c['accent']}; }}
                 QComboBox::drop-down {{ border: none; width: 20px; }}
                 QComboBox QAbstractItemView {{
-                    background-color: {c['background']}; color: {c['foreground']};
+                    background-color: {c['sidebar']}; color: {c['foreground']};
                     border: 1px solid {c['border']};
                     selection-background-color: {c['selection']};
                 }}
@@ -93,8 +93,8 @@ class SettingRow(QWidget):
             self._input.setFixedWidth(400)
             self._input.setStyleSheet(f"""
                 QLineEdit {{
-                    background-color: {c['selection']}; color: {c['foreground']};
-                    border: 1px solid {c['selection']}; border-radius: 2px;
+                    background-color: {c['sidebar']}; color: {c['foreground']};
+                    border: 1px solid {c['border']}; border-radius: 2px;
                     padding: 4px 8px; font-size: 13px;
                 }}
                 QLineEdit:focus {{ border: 1px solid {c['accent']}; }}
@@ -205,8 +205,8 @@ class SettingsUIWidget(QWidget):
         self._search.setPlaceholderText("Search settings")
         self._search.setStyleSheet(f"""
             QLineEdit {{
-                background-color: {c['selection']}; color: {c['foreground']};
-                border: 1px solid {c['selection']}; border-radius: 4px;
+                background-color: {c['sidebar']}; color: {c['foreground']};
+                border: 1px solid {c['border']}; border-radius: 4px;
                 padding: 6px 12px; font-size: 13px;
             }}
             QLineEdit:focus {{ border: 1px solid {c['accent']}; }}
@@ -221,10 +221,10 @@ class SettingsUIWidget(QWidget):
         scroll.setStyleSheet(f"""
             QScrollArea {{ border: none; background-color: {c['background']}; }}
             QScrollBar:vertical {{
-                background-color: {c['background']}; width: 10px;
+                background-color: {c['background']}; width: 4px; margin: 0px;
             }}
             QScrollBar::handle:vertical {{
-                background-color: {c['border']}; border-radius: 5px; min-height: 30px;
+                background-color: {c['border']}; border-radius: 2px; min-height: 30px;
             }}
             QScrollBar::handle:vertical:hover {{ background-color: {c['accent']}; }}
             QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0; }}
@@ -237,12 +237,12 @@ class SettingsUIWidget(QWidget):
 
         self._build_settings()
         
-        from ..app.theme_manager import ThemeManager
-        ThemeManager.patch_widget(self)
-
         self._content_layout.addStretch()
         scroll.setWidget(self._content)
         layout.addWidget(scroll)
+
+        from ..app.theme_manager import ThemeManager
+        ThemeManager.patch_widget(self)
 
     def _add_category(self, title):
         c = _theme_colors()

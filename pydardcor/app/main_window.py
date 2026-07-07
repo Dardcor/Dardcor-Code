@@ -387,7 +387,7 @@ class CustomTitleBar(QWidget):
             pixmap = QPixmap(logo_path)
             if not pixmap.isNull():
                 self.app_icon.setPixmap(pixmap.scaled(20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-                self.app_icon.setContentsMargins(0, 0, 10, 0)
+                self.app_icon.setContentsMargins(0, 0, 4, 0)
             else:
                 self.app_icon.setText("D")
         else:
@@ -400,7 +400,7 @@ class CustomTitleBar(QWidget):
             QMenuBar {
                 background-color: transparent;
                 color: #cccccc;
-                padding: 8px 0px 0px 0px;
+                padding: 4px 0px 0px 0px;
             }
             QMenuBar::item {
                 padding: 2px 6px;
@@ -1417,7 +1417,7 @@ class MainWindow(QMainWindow):
         menubar = self._title_bar.menu_bar
 
         # ── File menu ──
-        file_menu = menubar.addMenu("&File")
+        file_menu = menubar.addMenu("File")
 
         new_file = QAction("New Text File", self)
         new_file.setShortcut(QKeySequence("Ctrl+N"))
@@ -1570,7 +1570,7 @@ class MainWindow(QMainWindow):
         file_menu.addAction(exit_action)
 
         # ── Edit menu ──
-        edit_menu = menubar.addMenu("&Edit")
+        edit_menu = menubar.addMenu("Edit")
         
         undo_action = QAction("Undo", self)
         undo_action.setShortcut(QKeySequence("Ctrl+Z"))
@@ -1650,7 +1650,7 @@ class MainWindow(QMainWindow):
         edit_menu.addSeparator()
 
         # ── Selection menu ──
-        sel_menu = menubar.addMenu("&Selection")
+        sel_menu = menubar.addMenu("Selection")
 
         select_all = QAction("Select All", self)
         select_all.setShortcut(QKeySequence("Ctrl+A"))
@@ -1735,7 +1735,7 @@ class MainWindow(QMainWindow):
         sel_menu.addAction(column_sel_mode)
 
         # ── View menu ──
-        view_menu = menubar.addMenu("&View")
+        view_menu = menubar.addMenu("View")
 
         cmd_palette = QAction("Command Palette...", self)
         cmd_palette.setShortcut(QKeySequence("Ctrl+Shift+P"))
@@ -1916,7 +1916,7 @@ class MainWindow(QMainWindow):
         view_menu.addAction(md_preview_action)
 
         # ── Go menu ──
-        go_menu = menubar.addMenu("&Go")
+        go_menu = menubar.addMenu("Go")
 
         back_action = QAction("Back", self)
         back_action.setShortcut(QKeySequence("Alt+Left"))
@@ -2025,7 +2025,7 @@ class MainWindow(QMainWindow):
         go_menu.addAction(prev_change)
 
         # ── Run menu ──
-        run_menu = menubar.addMenu("&Run")
+        run_menu = menubar.addMenu("Run")
 
         start_debug = QAction("Start Debugging", self)
         start_debug.setShortcut(QKeySequence("F5"))
@@ -2109,7 +2109,7 @@ class MainWindow(QMainWindow):
         run_menu.addAction(remove_all_breakpoints)
 
         # ── Terminal menu ──
-        terminal_menu = menubar.addMenu("&Terminal")
+        terminal_menu = menubar.addMenu("Terminal")
 
         new_terminal = QAction("New Terminal", self)
         new_terminal.setShortcuts([QKeySequence("Ctrl+Shift+`"), QKeySequence("Ctrl+Shift+~")])
@@ -2141,7 +2141,7 @@ class MainWindow(QMainWindow):
         terminal_menu.addAction(run_selected_text)
 
         # ── Help menu ──
-        help_menu = menubar.addMenu("&Help")
+        help_menu = menubar.addMenu("Help")
 
         welcome_action = QAction("Welcome", self)
         welcome_action.triggered.connect(lambda: self._new_conversation())

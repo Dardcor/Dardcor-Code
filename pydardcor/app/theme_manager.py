@@ -441,6 +441,7 @@ class ThemeManager:
 
     @classmethod
     def _apply_shell_colors(cls, app: QApplication, c: Dict[str, str]):
+        cls._current_shell_colors = c
         # 1. Update global stylesheet
         tooltip_bg = "#1e1e1e" if c["background"] in ("#000000",) else c["background"]
         is_dark = c["background"].lower() in (
@@ -595,7 +596,9 @@ class ThemeManager:
     @classmethod
     def patch_widget(cls, widget: QWidget):
         if not cls._current_theme: return
-        c = cls.THEMES.get(cls._current_theme, {}).get("colors")
+        c = getattr(cls, "_current_shell_colors", None)
+        if not c:
+            c = cls.THEMES.get(cls._current_theme, {}).get("colors")
         if not c: return
         
         replacements = cls._get_replacements(c)

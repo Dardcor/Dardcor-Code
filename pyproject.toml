@@ -53,3 +53,4 @@ include = ["pydardcor", "pydardcor.*", "dardcor_agent", "dardcor_agent.*"]
 "pydardcor.extension_host" = ["*.js"]
 "assets" = ["*.js", "*.css", "*.html", "*.png", "*.ttf", "*.svg", "*.json", "*.wasm"]
 
+

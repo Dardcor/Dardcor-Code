@@ -12,9 +12,7 @@ build/
 .dardcor_chrome_profile/
 /database/
 .remember
-.env
-.env.*
-!.env.example
+
 secrets.json
 *.secrets.json
 oauth_tokens.json

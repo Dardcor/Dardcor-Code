@@ -68,7 +68,7 @@ class ChatHistoryDialog(QDialog):
     def __init__(self, agent, parent=None):
         super().__init__(parent)
         self._agent = agent
-        self.setWindowTitle("Riwayat Percakapan AI")
+        self.setWindowTitle("AI Conversation History")
         self.setMinimumSize(500, 400)
         self.setStyleSheet("QDialog { background-color: #1e1b2e; color: #d4d4d4; }")
 
@@ -76,7 +76,7 @@ class ChatHistoryDialog(QDialog):
 
         # Header Row
         header_layout = QHBoxLayout()
-        title_lbl = QLabel("Riwayat Percakapan")
+        title_lbl = QLabel("Conversation History")
         title_lbl.setStyleSheet("font-size: 16px; font-weight: bold; color: #e0e0e0;")
         header_layout.addWidget(title_lbl)
         
@@ -126,6 +126,10 @@ class ChatHistoryDialog(QDialog):
         layout.addWidget(self.list_widget)
 
         self._load_data()
+        
+        # Apply current theme
+        from pydardcor.app.theme_manager import ThemeManager
+        ThemeManager.patch_widget(self)
 
     def _load_data(self):
         self.list_widget.clear()
@@ -157,15 +161,15 @@ class ChatHistoryDialog(QDialog):
         self.accept()
 
     def _on_edit_clicked(self, cid, old_title):
-        new_title, ok = QInputDialog.getText(self, "Ubah Judul", "Judul Percakapan Baru:", text=old_title)
+        new_title, ok = QInputDialog.getText(self, "Rename Title", "New Conversation Title:", text=old_title)
         if ok and new_title.strip():
             self._agent.rename_conversation(cid, new_title.strip())
             self._load_data()
 
     def _on_delete_clicked(self, cid, title):
         reply = QMessageBox.question(
-            self, 'Konfirmasi Hapus',
-            f"Apakah Anda yakin ingin menghapus percakapan '{title}'?",
+            self, 'Confirm Deletion',
+            f"Are you sure you want to delete conversation '{title}'?",
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No
         )
         
@@ -175,8 +179,8 @@ class ChatHistoryDialog(QDialog):
 
     def _on_delete_all_clicked(self):
         reply = QMessageBox.question(
-            self, 'Konfirmasi Hapus Semua',
-            "Apakah Anda yakin ingin menghapus SEMUA riwayat percakapan? Tindakan ini tidak dapat dibatalkan.",
+            self, 'Confirm Delete All',
+            "Are you sure you want to delete ALL conversation history? This action cannot be undone.",
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No
         )
         
