@@ -199,36 +199,6 @@ Set your API key using **one** of these methods:
 2. **Environment variable** — set `DARDCOR_CODE_API_KEY` (or `OPENAI_API_KEY` / `ANTHROPIC_API_KEY`)
 3. **Config file** — edit `~/.dardcor-code/config.json` directly
 
-### Config File
-
-Configuration is stored at `~/.dardcor-code/config.json`:
-
-```json
-{
-  "ai": {
-    "provider": "openai",
-    "model": "gpt-4o",
-    "api_key": "",
-    "base_url": "",
-    "max_tokens": 128000,
-    "temperature": 0.7,
-    "system_prompt": "You are Dardcor Code, an expert AI coding assistant..."
-  },
-  "workspace_path": "",
-  "auto_save": true,
-  "font_family": "Cascadia Code",
-  "font_size": 13,
-  "tab_size": 4,
-  "word_wrap": false,
-  "minimap_enabled": true,
-  "terminal_shell": ""
-}
-```
-
-Secrets are kept out of source control. OAuth tokens are stored under the user data directory, and `.env` files are ignored by git.
-
----
-
 ## Keyboard Shortcuts
 
 ### General
@@ -377,4 +347,3 @@ MIT License — see [LICENSE](LICENSE) for details.
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:3d006e,50:1a0033,100:0d0017&height=140&section=footer" width="100%"/>
 
 </div>
-

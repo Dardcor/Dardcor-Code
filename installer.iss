@@ -32,5 +32,3 @@ Name: "{autodesktop}\Dardcor Code"; Filename: "{app}\Dardcor Code.exe"; Tasks: d
 
 [Run]
 Filename: "{app}\Dardcor Code.exe"; Description: "{cm:LaunchProgram,Dardcor Code}"; Flags: nowait postinstall skipifsilent
-
-

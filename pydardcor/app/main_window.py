@@ -1509,7 +1509,6 @@ class MainWindow(QMainWindow):
         preferences_menu.addAction(settings_action)
         
         extensions_action = QAction("Extensions", self)
-        extensions_action.setShortcut(QKeySequence("Ctrl+Shift+X"))
         extensions_action.triggered.connect(lambda: self._switch_sidebar(VIEW_EXTENSIONS))
         preferences_menu.addAction(extensions_action)
 

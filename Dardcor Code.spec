@@ -44,4 +44,3 @@ coll = COLLECT(
     upx_exclude=[],
     name='Dardcor Code',
 )
-

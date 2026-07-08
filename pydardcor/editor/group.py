@@ -608,6 +608,26 @@ class EditorGroup(QWidget):
         self._current_idx = -1
         self._untitled_counter = 0
         self._setup_ui()
+        self.setAcceptDrops(True)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            super().dragEnterEvent(event)
+
+    def dropEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+            for url in event.mimeData().urls():
+                local_path = url.toLocalFile()
+                if local_path and os.path.exists(local_path):
+                    if os.path.isfile(local_path):
+                        self.open_file(local_path)
+                    elif os.path.isdir(local_path):
+                        win = self.window()
+                        if win and hasattr(win, "_open_folder"):
+                            win._open_folder(local_path)
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
@@ -926,6 +946,8 @@ class EditorGroup(QWidget):
             parts = fp.replace('\\', '/').split('/')
             display_parts = parts[-4:] if len(parts) >= 4 else parts
             bc_text = " › ".join(display_parts)
+            if isinstance(editor, MonacoDiffEditorWidget):
+                bc_text += " (Diff)"
             self._breadcrumb_label.setText(bc_text)
         elif self._tabs:
             self._breadcrumb_bar.show()

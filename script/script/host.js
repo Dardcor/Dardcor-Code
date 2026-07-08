@@ -8,7 +8,7 @@ const fs = require("fs");
 const path = require("path");
 const Module = require("module");
 
-const vscodeShim = require("./vscode_shim.js");
+const dardcorShim = require("./dardcor_shim.js");
 
 const loadedExtensions = new Map();
 let workspaceFolders = [];
@@ -18,7 +18,7 @@ let extensionRoot = "";
 const originalRequire = Module.prototype.require;
 Module.prototype.require = function patchedRequire(request) {
   if (request === "vscode") {
-    return vscodeShim;
+    return dardcorShim;
   }
   return originalRequire.apply(this, arguments);
 };
@@ -128,18 +128,18 @@ function handleRequest(msg) {
         break;
       }
       case "fireEvent": {
-        vscodeShim.events.emit(msg.params.event, msg.params.data);
+        dardcorShim.events.emit(msg.params.event, msg.params.data);
         sendResult(msg.id, { ok: true });
         break;
       }
       case "executeCommand": {
-        vscodeShim.commands.executeRegisteredCommand(msg.params.command, msg.params.args || []);
+        dardcorShim.commands.executeRegisteredCommand(msg.params.command, msg.params.args || []);
         sendResult(msg.id, { ok: true });
         break;
       }
       case "treeView.getChildren": {
         Promise.resolve(
-          vscodeShim.getTreeChildren(msg.params.viewId, msg.params.elementId || null)
+          dardcorShim.getTreeChildren(msg.params.viewId, msg.params.elementId || null)
         ).then(children => {
           sendResult(msg.id, { children: children || [] });
         }).catch(err => {

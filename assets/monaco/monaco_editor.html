@@ -49,11 +49,76 @@
             background: rgba(229, 20, 0, 0.15) !important;
             border-left: 3px solid #e51400 !important;
         }
+
+        #floating-menu {
+            display: none;
+            position: absolute;
+            background-color: #120022;
+            border: 1px solid #5a009c;
+            border-radius: 4px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            z-index: 99999;
+            padding: 3px;
+            flex-direction: row;
+            gap: 3px;
+            align-items: center;
+        }
+
+        #floating-menu button {
+            background: transparent;
+            border: none;
+            color: #cccccc;
+            cursor: pointer;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            transition: background 0.1s ease, color 0.1s ease;
+        }
+
+        #floating-menu button:hover {
+            background-color: #3c0068;
+            color: #ffffff;
+        }
+
+        #floating-menu button.ai-btn {
+            background-color: #5a009c;
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        #floating-menu button.ai-btn:hover {
+            background-color: #7b00d6;
+        }
+
+        #editor-progress {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            z-index: 1000;
+            background: linear-gradient(90deg, #3c0068 25%, #a855f7 50%, #3c0068 75%);
+            background-size: 200% 100%;
+            animation: progress-slide 1.5s infinite linear;
+        }
+
+        @keyframes progress-slide {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
     </style>
 </head>
 
 <body>
+    <div id="editor-progress"></div>
     <div id="container"></div>
+    <div id="floating-menu">
+        <button onclick="triggerFloatingAction('copy')">Copy</button>
+        <button onclick="triggerFloatingAction('format')">Format</button>
+        <button class="ai-btn" onclick="triggerFloatingAction('ai')">Ask AI</button>
+    </div>
     <script src="qwebchannel.js"></script>
     <script src="vs/loader.js"></script>
     <script>
@@ -197,6 +262,12 @@
                     insertSpaces: true,
                     detectIndentation: true,
                     wordWrap: 'off',
+                    folding: true,
+                    showFoldingControls: 'mouseover',
+                    mouseWheelZoom: true,
+                    inlayHints: { enabled: 'on' },
+                    linkedEditing: true,
+                    links: true,
                     bracketPairColorization: { enabled: true, independentColorPoolPerBracketType: true },
                     guides: { bracketPairs: true, indentation: true, highlightActiveIndentation: true },
                     renderWhitespace: 'selection',
@@ -206,6 +277,7 @@
                     mouseWheelZoom: true,
                     contextmenu: true,
                     copyWithSyntaxHighlighting: true,
+                    emptySelectionClipboard: true,
                     links: true,
                     occurrencesHighlight: true,
                     selectionHighlight: true,
@@ -270,6 +342,57 @@
                     monaco.languages.registerCompletionItemProvider(lang.id, backendCompletionProvider);
                 });
 
+                // Register code action (Quick Fix) provider linked to diagnostics/markers
+                monaco.languages.getLanguages().forEach(function (lang) {
+                    monaco.languages.registerCodeActionProvider(lang.id, {
+                        provideCodeActions: function (model, range, context, token) {
+                            var actions = [];
+                            context.markers.forEach(function (marker) {
+                                if (/unused|Unused/i.test(marker.message)) {
+                                    actions.push({
+                                        title: "Remove unused element",
+                                        diagnostics: [marker],
+                                        kind: "quickfix",
+                                        edit: {
+                                            edits: [{
+                                                resource: model.uri,
+                                                textEdit: {
+                                                    range: marker,
+                                                    text: ""
+                                                }
+                                            }]
+                                        },
+                                        isPreferred: true
+                                    });
+                                }
+
+                                var commentPrefix = "#";
+                                if (lang.id === "javascript" || lang.id === "typescript" || lang.id === "html" || lang.id === "css") {
+                                    commentPrefix = "//";
+                                }
+                                actions.push({
+                                    title: "Disable warning line in code",
+                                    diagnostics: [marker],
+                                    kind: "quickfix",
+                                    edit: {
+                                        edits: [{
+                                            resource: model.uri,
+                                            textEdit: {
+                                                range: new monaco.Range(marker.startLineNumber, model.getLineMaxColumn(marker.startLineNumber), marker.startLineNumber, model.getLineMaxColumn(marker.startLineNumber)),
+                                                text: " " + commentPrefix + " ignore"
+                                            }
+                                        }]
+                                    }
+                                });
+                            });
+                            return {
+                                actions: actions,
+                                dispose: function () {}
+                            };
+                        }
+                    });
+                });
+
                 // Register hover provider
                 monaco.languages.registerHoverProvider('python', {
                     provideHover: function (model, position) {
@@ -293,6 +416,119 @@
                     }
                 });
 
+                // Register CodeLens provider for Python definitions
+                monaco.languages.registerCodeLensProvider('python', {
+                    provideCodeLenses: function (model, token) {
+                        var lenses = [];
+                        var lines = model.getLinesContent();
+                        for (var i = 0; i < lines.length; i++) {
+                            var line = lines[i];
+                            var match = /^\s*(def|class)\s+([a-zA-Z_][a-zA-Z0-9_]*)/.exec(line);
+                            if (match) {
+                                lenses.push({
+                                    range: new monaco.Range(i + 1, 1, i + 1, 1),
+                                    id: "references." + i,
+                                    command: {
+                                        id: "editor.action.referenceSearch.trigger",
+                                        title: "Go to References"
+                                    }
+                                });
+                            }
+                            if (/^\s*if\s+__name__\s*==\s*['"]__main__['"]\s*:\s*$/.test(line)) {
+                                lenses.push({
+                                    range: new monaco.Range(i + 1, 1, i + 1, 1),
+                                    id: "run." + i,
+                                    command: {
+                                        id: "editor.action.run",
+                                        title: "Run Main Block"
+                                    }
+                                });
+                            }
+                        }
+                        return {
+                            lenses: lenses,
+                            dispose: function () {}
+                        };
+                    },
+                    resolveCodeLens: function (model, codeLens, token) {
+                        return codeLens;
+                    }
+                });
+
+                // Register DocumentSymbolProvider for Python
+                monaco.languages.registerDocumentSymbolProvider('python', {
+                    provideDocumentSymbols: function (model, token) {
+                        var symbols = [];
+                        var lines = model.getLinesContent();
+                        for (var i = 0; i < lines.length; i++) {
+                            var line = lines[i];
+                            var matchDef = /^\s*(def|class)\s+([a-zA-Z_][a-zA-Z0-9_]*)/.exec(line);
+                            if (matchDef) {
+                                var kind = matchDef[1] === "class" ? monaco.languages.SymbolKind.Class : monaco.languages.SymbolKind.Function;
+                                symbols.push({
+                                    name: matchDef[2],
+                                    detail: matchDef[1],
+                                    kind: kind,
+                                    range: new monaco.Range(i + 1, 1, i + 1, line.length + 1),
+                                    selectionRange: new monaco.Range(i + 1, 1, i + 1, line.length + 1)
+                                });
+                            }
+                        }
+                        return symbols;
+                    }
+                });
+
+                // Register InlayHintsProvider for Python return types
+                monaco.languages.registerInlayHintsProvider('python', {
+                    provideInlayHints: function (model, range, token) {
+                        var hints = [];
+                        var lines = model.getLinesContent();
+                        for (var i = range.startLineNumber - 1; i < range.endLineNumber; i++) {
+                            var line = lines[i];
+                            if (!line) continue;
+                            var matchDef = /^\s*def\s+[a-zA-Z_][a-zA-Z0-9_]*\s*\([^)]*\)\s*:/.exec(line);
+                            if (matchDef) {
+                                var col = line.indexOf(':');
+                                if (col !== -1) {
+                                    hints.push({
+                                        label: ' -> None',
+                                        kind: monaco.languages.InlayHintKind.Type,
+                                        position: new monaco.Position(i + 1, col + 1),
+                                        paddingLeft: true
+                                    });
+                                }
+                            }
+                        }
+                        return {
+                            hints: hints,
+                            dispose: function () {}
+                        };
+                    }
+                });
+
+                // View state saving/restoring functions
+                var viewStateTimeout = null;
+                function queueSaveViewState() {
+                    if (viewStateTimeout) clearTimeout(viewStateTimeout);
+                    viewStateTimeout = setTimeout(function () {
+                        if (editor && backend && typeof backend.save_view_state === 'function') {
+                            var state = editor.saveViewState();
+                            if (state) {
+                                backend.save_view_state(JSON.stringify(state));
+                            }
+                        }
+                    }, 500);
+                }
+
+                window.restoreViewState = function (stateJson) {
+                    if (editor && stateJson) {
+                        try {
+                            var state = typeof stateJson === 'string' ? JSON.parse(stateJson) : stateJson;
+                            editor.restoreViewState(state);
+                        } catch (e) { }
+                    }
+                };
+
                 // Listen for content changes
                 editor.onDidChangeModelContent(function (e) {
                     if (isRemoteUpdate) return;
@@ -306,6 +542,39 @@
                     if (backend) {
                         backend.on_cursor_changed(e.position.lineNumber, e.position.column);
                     }
+                    queueSaveViewState();
+                });
+
+                // Listen for scroll changes
+                editor.onDidScrollChange(function (e) {
+                    queueSaveViewState();
+                });
+
+                // Listen for selection change to show floating menu
+                editor.onDidChangeCursorSelection(function (e) {
+                    var selection = e.selection;
+                    var floatingMenu = document.getElementById('floating-menu');
+                    if (!floatingMenu) return;
+
+                    if (selection.isEmpty()) {
+                        floatingMenu.style.display = 'none';
+                        return;
+                    }
+
+                    var startPosition = selection.getStartPosition();
+                    var coord = editor.getScrolledVisiblePosition(startPosition);
+                    if (coord) {
+                        var containerRect = document.getElementById('container').getBoundingClientRect();
+                        var top = containerRect.top + coord.top - 38;
+                        var left = containerRect.left + coord.left;
+
+                        if (top < 5) top = 5;
+                        if (left < 5) left = 5;
+
+                        floatingMenu.style.top = top + 'px';
+                        floatingMenu.style.left = left + 'px';
+                        floatingMenu.style.display = 'flex';
+                    }
                 });
 
                 // Listen for save command (Ctrl+S)
@@ -318,14 +587,147 @@
                     editor.getAction('actions.find').run();
                 });
 
+                // Selection Anchor commands
+                editor.addCommand(monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyB), function () {
+                    editor.trigger('keyboard', 'editor.action.setSelectionAnchor', null);
+                });
+                editor.addCommand(monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK), function () {
+                    editor.trigger('keyboard', 'editor.action.selectFromAnchorToCursor', null);
+                });
+                editor.addCommand(monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, monaco.KeyCode.Escape), function () {
+                    editor.trigger('keyboard', 'editor.action.cancelSelectionAnchor', null);
+                });
+
                 // Listen for command palette
                 editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyP, function () {
                     if (backend) backend.request_command_palette();
                 });
 
+                // Transpose Letters (Ctrl+T)
+                editor.addCommand(monaco.KeyMod.WinCtrl | monaco.KeyCode.KeyT, function () {
+                    editor.trigger('keyboard', 'editor.action.transposeLetters', null);
+                });
+
+                // Expand Line Selection (Ctrl+L)
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL, function () {
+                    editor.trigger('keyboard', 'expandLineSelection', null);
+                });
+
+                // Move Line Up (Alt+Up)
+                editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.UpArrow, function () {
+                    editor.trigger('keyboard', 'editor.action.moveLinesUpAction', null);
+                });
+
+                // Move Line Down (Alt+Down)
+                editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.DownArrow, function () {
+                    editor.trigger('keyboard', 'editor.action.moveLinesDownAction', null);
+                });
+
+                // Copy Line Up (Shift+Alt+Up)
+                editor.addCommand(monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.UpArrow, function () {
+                    editor.trigger('keyboard', 'editor.action.copyLinesUpAction', null);
+                });
+
+                // Copy Line Down (Shift+Alt+Down)
+                editor.addCommand(monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.DownArrow, function () {
+                    editor.trigger('keyboard', 'editor.action.copyLinesDownAction', null);
+                });
+
+                // Cursor Undo (Ctrl+U)
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyU, function () {
+                    editor.trigger('keyboard', 'cursorUndo', null);
+                });
+
+                // Toggle Line Comment (Ctrl+/)
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Slash, function () {
+                    editor.trigger('keyboard', 'editor.action.commentLine', null);
+                });
+
+                // Toggle Block Comment (Ctrl+Shift+/)
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Slash, function () {
+                    editor.trigger('keyboard', 'editor.action.blockComment', null);
+                });
+
+                // Go to Next Error (F8)
+                editor.addCommand(monaco.KeyCode.F8, function () {
+                    editor.trigger('keyboard', 'editor.action.marker.next', null);
+                });
+
+                // Go to Previous Error (Shift+F8)
+                editor.addCommand(monaco.KeyMod.Shift | monaco.KeyCode.F8, function () {
+                    editor.trigger('keyboard', 'editor.action.marker.prev', null);
+                });
+
+                // Go to Symbol (Ctrl+Shift+O)
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyO, function () {
+                    editor.trigger('keyboard', 'editor.action.quickOutline', null);
+                });
+
+                // Inline suggestion show next (Alt + ])
+                editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.US_CLOSE_SQUARE_BRACKET, function () {
+                    editor.trigger('keyboard', 'editor.action.inlineSuggest.showNext', null);
+                });
+
+                // Inline suggestion show prev (Alt + [)
+                editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.US_OPEN_SQUARE_BRACKET, function () {
+                    editor.trigger('keyboard', 'editor.action.inlineSuggest.showPrevious', null);
+                });
+
                 // Handle window resize
                 window.addEventListener('resize', function () {
                     editor.layout();
+                });
+
+                // Drop and Paste Into handlers
+                document.addEventListener('dragover', function (e) {
+                    e.preventDefault();
+                }, true);
+
+                document.addEventListener('drop', function (e) {
+                    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        var files = e.dataTransfer.files;
+                        for (var i = 0; i < files.length; i++) {
+                            var file = files[i];
+                            var isImage = file.type.startsWith('image/');
+                            var filePath = file.path || file.name;
+                            var textToInsert = "";
+                            if (isImage) {
+                                textToInsert = '![' + file.name + '](file:///' + filePath.replace(/\\/g, '/') + ')';
+                            } else {
+                                textToInsert = filePath;
+                            }
+
+                            if (editor) {
+                                var position = editor.getPosition();
+                                var range = new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column);
+                                var id = { major: 1, minor: 1 };
+                                var op = { identifier: id, range: range, text: textToInsert, forceMoveMarkers: true };
+                                editor.executeEdits("drag-drop-source", [op]);
+                            }
+                        }
+                    }
+                }, true);
+
+                document.addEventListener('paste', function (e) {
+                    if (e.clipboardData && e.clipboardData.items) {
+                        var items = e.clipboardData.items;
+                        for (var i = 0; i < items.length; i++) {
+                            var item = items[i];
+                            if (item.type.indexOf("image") !== -1) {
+                                var blob = item.getAsFile();
+                                var reader = new FileReader();
+                                reader.onload = function (event) {
+                                    if (backend && typeof backend.handle_image_paste === 'function') {
+                                        backend.handle_image_paste(event.target.result);
+                                    }
+                                };
+                                reader.readAsDataURL(blob);
+                                e.preventDefault();
+                            }
+                        }
+                    }
                 });
 
                 monaco.languages.registerInlineCompletionsProvider('*', {
@@ -419,8 +821,45 @@
             return editor ? editor.getValue() : '';
         }
 
+        function insertTextAtCursor(text) {
+            if (editor && text) {
+                var position = editor.getPosition();
+                var range = new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column);
+                var id = { major: 1, minor: 1 };
+                var op = { identifier: id, range: range, text: text, forceMoveMarkers: true };
+                editor.executeEdits("my-source", [op]);
+                editor.focus();
+            }
+        }
+
+        function triggerFloatingAction(action) {
+            var floatingMenu = document.getElementById('floating-menu');
+            if (floatingMenu) floatingMenu.style.display = 'none';
+
+            if (action === 'copy') {
+                if (editor) {
+                    var selectedText = editor.getModel().getValueInRange(editor.getSelection());
+                    navigator.clipboard.writeText(selectedText);
+                }
+            } else if (action === 'format') {
+                if (editor) editor.getAction('editor.action.formatDocument').run();
+            } else if (action === 'ai') {
+                if (editor && backend && typeof backend.request_ai_chat === 'function') {
+                    var selectedText = editor.getModel().getValueInRange(editor.getSelection());
+                    backend.request_ai_chat(selectedText);
+                }
+            }
+        }
+
         function setReadOnly(readOnly) {
             if (editor) editor.updateOptions({ readOnly: readOnly });
+        }
+
+        function showProgress(visible) {
+            var progress = document.getElementById('editor-progress');
+            if (progress) {
+                progress.style.display = visible ? 'block' : 'none';
+            }
         }
 
         function setCursorPosition(line, column) {

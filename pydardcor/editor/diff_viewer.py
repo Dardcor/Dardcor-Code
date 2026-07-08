@@ -61,6 +61,13 @@ class MonacoDiffEditorWidget(QWidget):
     def _on_bridge_ready(self):
         self._view_ready = True
         self._apply_diff_content()
+        try:
+            from .widget import get_global_custom_theme
+            theme = get_global_custom_theme()
+            if theme is not None:
+                QTimer.singleShot(200, lambda: self.set_custom_theme(theme))
+        except Exception:
+            pass
 
     def set_diff(self, original, modified, file_path):
         self._original_content = original
@@ -97,6 +104,13 @@ class MonacoDiffEditorWidget(QWidget):
         if self._view_ready:
             val = "true" if is_dark else "false"
             self._view.page().runJavaScript(f"setTheme({val});")
+
+    def set_custom_theme(self, theme_data):
+        if not self._view_ready:
+            return
+        import json
+        payload = json.dumps(json.dumps(theme_data) if theme_data is not None else None)
+        self._view.page().runJavaScript(f"defineCustomTheme({payload});")
 
     def toggle_inline_view(self, inline: bool):
         if self._view_ready:

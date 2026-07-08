@@ -11,7 +11,7 @@ class NodeExtensionHost:
     def __init__(self):
         self._process: Optional[subprocess.Popen] = None
         self._handlers: Dict[str, Callable] = {}
-        self._host_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "extension_host")
+        self._host_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "script", "script")
         self._host_js = os.path.join(self._host_dir, "host.js")
         self._pending_requests: Dict[int, Any] = {}
         self._request_lock = threading.Lock()

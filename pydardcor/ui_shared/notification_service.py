@@ -36,17 +36,27 @@ class NotificationToast(QWidget):
         self.setFixedWidth(380)
         self.setMinimumHeight(50)
         self.setMaximumHeight(120)
-        self.setAttribute(Qt.WA_TranslucentBackground, False)
+        self.setAttribute(Qt.WA_StyledBackground, True)
         self.action_buttons: list[QPushButton] = []
 
         style = _SEVERITY_STYLES.get(severity, _SEVERITY_STYLES["info"])
-        border = style["border"]
         accent = style["accent"]
+
+        try:
+            from pydardcor.app.theme_manager import ThemeManager
+            c = getattr(ThemeManager, '_current_shell_colors', {})
+            bg_color = c.get('background', '#0d0d0d')
+            theme_border = c.get('border', style['border'])
+            fg_color = c.get('foreground', '#e0e0e0')
+        except Exception:
+            bg_color = '#0d0d0d'
+            theme_border = style['border']
+            fg_color = '#e0e0e0'
 
         self.setStyleSheet(f"""
             NotificationToast {{
-                background-color: #0d0d0d;
-                border: 1px solid {border};
+                background-color: {bg_color};
+                border: 1px solid {theme_border};
                 border-left: 3px solid {accent};
                 border-radius: 6px;
             }}
@@ -66,7 +76,7 @@ class NotificationToast(QWidget):
 
         msg = QLabel(message)
         msg.setWordWrap(True)
-        msg.setStyleSheet("color: #e0e0e0; font-size: 12px;")
+        msg.setStyleSheet(f"color: {fg_color}; font-size: 12px;")
         top.addWidget(msg, 1)
 
         close_btn = QPushButton("✕")

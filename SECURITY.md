@@ -32,4 +32,3 @@ OAuth tokens are stored in the user data directory, not in tracked source files.
 ## Local Security Notes
 
 The app includes agent tools that can read files, write files, and run commands. Treat enabled AI providers and model outputs as untrusted until reviewed. Do not run commands suggested by an AI model unless you understand the effect.
-

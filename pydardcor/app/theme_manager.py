@@ -419,6 +419,17 @@ class ThemeManager:
                 "editor.background": c["background"],
                 "editor.foreground": c["foreground"],
                 "editor.selectionBackground": c["selection"],
+                "editor.lineHighlightBackground": c["hover"] + "22" if c["hover"].startswith("#") else c["hover"],
+                "editorCursor.foreground": c["accent"],
+                "editorBracketMatch.background": c["selection"] + "40" if c["selection"].startswith("#") else c["selection"],
+                "editorBracketMatch.border": c["border"],
+                "editorWidget.background": c["background"],
+                "editorWidget.border": c["border"],
+                "editorSuggestWidget.background": c["background"],
+                "editorSuggestWidget.border": c["border"],
+                "editorSuggestWidget.selectedBackground": c["selection"],
+                "editorHoverWidget.background": c["background"],
+                "editorHoverWidget.border": c["border"],
             }
         }
         

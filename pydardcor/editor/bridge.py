@@ -37,6 +37,58 @@ class EditorBridge(QObject):
     def on_cursor_changed(self, line, col):
         self.cursor_changed.emit(line, col)
 
+    @Slot(str)
+    def save_view_state(self, state_json):
+        widget = self.parent()
+        if widget and hasattr(widget, "persist_view_state"):
+            widget.persist_view_state(state_json)
+
+    @Slot(str)
+    def handle_image_paste(self, base64_image):
+        widget = self.parent()
+        if not widget:
+            return
+
+        if "," in base64_image:
+            _, data_str = base64_image.split(",", 1)
+        else:
+            data_str = base64_image
+
+        import base64
+        try:
+            img_data = base64.b64decode(data_str)
+        except Exception:
+            return
+
+        from ..core.config import get_config
+        config = get_config()
+        ws = config.workspace_path
+
+        import datetime
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"pasted_image_{timestamp}.png"
+
+        if ws and os.path.isdir(ws):
+            dest_dir = os.path.join(ws, "images")
+            os.makedirs(dest_dir, exist_ok=True)
+            filepath = os.path.join(dest_dir, filename)
+            rel_path = f"images/{filename}"
+        else:
+            from ..core.config import get_user_data_dir
+            dest_dir = os.path.join(get_user_data_dir(), "temp_images")
+            os.makedirs(dest_dir, exist_ok=True)
+            filepath = os.path.join(dest_dir, filename)
+            rel_path = filepath
+
+        try:
+            with open(filepath, "wb") as f:
+                f.write(img_data)
+        except Exception:
+            return
+
+        markdown_link = f"![Pasted Image]({rel_path})"
+        widget.insert_text(markdown_link)
+
     @Slot()
     def request_save(self):
         if self._lsp_client and self._file_path:
@@ -51,6 +103,14 @@ class EditorBridge(QObject):
     def request_open_with_live_server(self):
         if self._file_path:
             self.open_with_live_server_requested.emit(self._file_path)
+
+    @Slot(str)
+    def request_ai_chat(self, text):
+        widget = self.parent()
+        if widget:
+            main_win = widget.window()
+            if main_win and hasattr(main_win, "_chat_panel") and main_win._chat_panel:
+                main_win._chat_panel.new_chat_with_text(text)
 
     def _typed_prefix(self, code, line, col) -> str:
         import re

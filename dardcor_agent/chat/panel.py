@@ -110,19 +110,27 @@ class _ModelSearchRow(QFrame):
     def __init__(self, label: str, name: str, provider_label: str, is_free: bool,
                  is_current: bool, parent=None):
         super().__init__(parent)
+        from pydardcor.app.theme_manager import ThemeManager
+        c = getattr(ThemeManager, '_current_shell_colors', {})
+        selection = c.get('selection', '#3c0068')
+        hover = c.get('hover', '#2a2a2e')
+        fg = c.get('foreground', '#e4e4e7')
+        accent = c.get('accent', '#a855f7')
+        muted = "#888888"
+
         self._label = label
         self.setCursor(Qt.PointingHandCursor)
         self.setFixedHeight(30)
-        bg = "#3c0068" if is_current else "transparent"
+        bg = selection if is_current else "transparent"
         self.setStyleSheet(
             f"_ModelSearchRow{{background:{bg};border:none;border-radius:5px;}}"
-            "_ModelSearchRow:hover{background:#2a2a2e;}"
+            f"_ModelSearchRow:hover{{background:{hover};}}"
         )
         row = QHBoxLayout(self)
         row.setContentsMargins(10, 0, 10, 0)
         row.setSpacing(8)
 
-        name_color = "#a855f7" if is_current else "#e4e4e7"
+        name_color = accent if is_current else fg
         name_lbl = QLabel(name)
         name_lbl.setStyleSheet(
             f"color:{name_color};font-size:12px;border:none;background:transparent;"
@@ -140,7 +148,7 @@ class _ModelSearchRow(QFrame):
         row.addStretch()
         prov_lbl = QLabel(provider_label)
         prov_lbl.setStyleSheet(
-            "color:#6b7280;font-size:11px;border:none;background:transparent;"
+            f"color:{muted};font-size:11px;border:none;background:transparent;"
         )
         row.addWidget(prov_lbl)
 
@@ -156,11 +164,19 @@ class ModelSearchPopup(QFrame):
 
     def __init__(self, entries: list, current_label: str, min_width: int, parent=None):
         super().__init__(parent, Qt.Popup | Qt.FramelessWindowHint)
+        from pydardcor.app.theme_manager import ThemeManager
+        c = getattr(ThemeManager, '_current_shell_colors', {})
+        bg_color = c.get('background', '#161618')
+        border = c.get('border', '#3c0068')
+        selection = c.get('selection', '#3c0068')
+        fg = c.get('foreground', '#e4e4e7')
+        muted = "#888888"
+
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.setStyleSheet(
-            "QFrame{background:#161618;border:1px solid #3c0068;border-radius:10px;}"
-            "QScrollBar:vertical{width:2px;background:transparent;}"
-            "QScrollBar::handle:vertical{background:#3c0068;border-radius:1px;}"
+            f"QFrame{{background:{bg_color};border:1px solid {border};border-radius:10px;}}"
+            f"QScrollBar:vertical{{width:2px;background:transparent;}}"
+            f"QScrollBar::handle:vertical{{background:{selection};border-radius:1px;}}"
         )
         self._entries = entries
         self._current_label = current_label
@@ -177,19 +193,19 @@ class ModelSearchPopup(QFrame):
         
         search_frame = QFrame()
         search_frame.setStyleSheet(
-            "QFrame{background:#0e0e10;border:1px solid #3c0068;border-radius:7px;}"
+            f"QFrame{{background:transparent;border:1px solid {border};border-radius:7px;}}"
         )
         sf_row = QHBoxLayout(search_frame)
         sf_row.setContentsMargins(10, 2, 10, 2)
         sf_row.setSpacing(6)
         icon = QLabel("\u2315")
-        icon.setStyleSheet("color:#6b7280;font-size:14px;border:none;background:transparent;")
+        icon.setStyleSheet(f"color:{muted};font-size:14px;border:none;background:transparent;")
         sf_row.addWidget(icon)
         from PySide6.QtWidgets import QLineEdit
         self._search = QLineEdit()
         self._search.setPlaceholderText("Search models…")
         self._search.setStyleSheet(
-            "QLineEdit{background:transparent;border:none;color:#e4e4e7;font-size:12px;}"
+            f"QLineEdit{{background:transparent;border:none;color:{fg};font-size:12px;}}"
         )
         self._search.textChanged.connect(self._filter)
         sf_row.addWidget(self._search)
@@ -793,6 +809,16 @@ class ChatPanel(QWidget):
     def _insert_tool_prompt(self, prefix: str):
         current = self._input.toPlainText().strip()
         self._input.setPlainText(f"{prefix}{current}" if current else prefix)
+        self._input.setFocus()
+        cursor = self._input.textCursor()
+        cursor.movePosition(QTextCursor.End)
+        self._input.setTextCursor(cursor)
+
+    def new_chat_with_text(self, text: str):
+        main_win = self.window()
+        if main_win and hasattr(main_win, "_toggle_chat") and not self.isVisible():
+            main_win._toggle_chat()
+        self._input.setPlainText(text)
         self._input.setFocus()
         cursor = self._input.textCursor()
         cursor.movePosition(QTextCursor.End)

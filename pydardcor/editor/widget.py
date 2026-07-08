@@ -23,6 +23,31 @@ def get_global_custom_theme():
     return _GLOBAL_CUSTOM_THEME
 
 
+def get_editor_states_file() -> str:
+    from ..core.config import get_user_data_dir
+    return os.path.join(get_user_data_dir(), "editor_states.json")
+
+
+def load_editor_states() -> dict:
+    path = get_editor_states_file()
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def save_editor_states(states: dict):
+    path = get_editor_states_file()
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(states, f, indent=2)
+    except Exception:
+        pass
+
+
 class MonacoEditorWidget(QWidget):
     content_changed = Signal(str)
     cursor_position_changed = Signal(int, int)
@@ -55,6 +80,8 @@ class MonacoEditorWidget(QWidget):
         settings = self._view.page().profile().settings()
         settings.setAttribute(QWebEngineSettings.LocalContentCanAccessFileUrls, True)
         settings.setAttribute(QWebEngineSettings.LocalContentCanAccessRemoteUrls, True)
+        settings.setAttribute(QWebEngineSettings.WebGLEnabled, True)
+        settings.setAttribute(QWebEngineSettings.Accelerated2dCanvasEnabled, True)
 
         self._channel = QWebChannel()
         self._bridge = EditorBridge(self)
@@ -106,7 +133,24 @@ class MonacoEditorWidget(QWidget):
         lang_js = json.dumps(self._language)
         fpath_js = json.dumps(self._file_path or "")
         js = f"setEditorContent({safe_content_js}, {lang_js}, {fpath_js});"
+        if self._file_path:
+            states = load_editor_states()
+            state = states.get(self._file_path)
+            if state:
+                js += f" setTimeout(function() {{ restoreViewState({json.dumps(state)}); }}, 50);"
         self._view.page().runJavaScript(js)
+
+    def persist_view_state(self, state_json):
+        if not self._file_path:
+            return
+        states = load_editor_states()
+        states[self._file_path] = state_json
+        save_editor_states(states)
+
+    def insert_text(self, text):
+        import json
+        safe_text = json.dumps(text)
+        self._view.page().runJavaScript(f"insertTextAtCursor({safe_text});")
 
     def _on_content_changed(self, content):
         self._content = content
@@ -165,6 +209,16 @@ class MonacoEditorWidget(QWidget):
         if not self._file_path:
             return False
         try:
+            # Auto-insert final newline
+            content_to_save = self._content
+            if content_to_save and not content_to_save.endswith("\n"):
+                content_to_save += "\n"
+                self._content = content_to_save
+                if self._view_ready:
+                    import json
+                    safe_content = json.dumps(self._content)
+                    self._view.page().runJavaScript(f"if (editor && editor.getValue() !== {safe_content}) {{ var pos = editor.getPosition(); editor.setValue({safe_content}); if (pos) editor.setPosition(pos); }}")
+
             enc = getattr(self, "_encoding", "utf-8")
             with open(self._file_path, "w", encoding=enc) as f:
                 f.write(self._content)
@@ -299,6 +353,11 @@ class MonacoEditorWidget(QWidget):
         payload = json.dumps(json.dumps(theme_data) if theme_data is not None else None)
         self._view.page().runJavaScript(f"defineCustomTheme({payload});")
 
+    def show_progress(self, visible):
+        if self._view_ready:
+            val = "true" if visible else "false"
+            self._view.page().runJavaScript(f"showProgress({val});")
+
     def trigger_find(self):
         if self._view_ready:
             self._view.page().runJavaScript("triggerFind();")
@@ -309,6 +368,9 @@ class MonacoEditorWidget(QWidget):
 
     def trigger_format(self):
         if self._view_ready:
+            self.show_progress(True)
+            from PySide6.QtCore import QTimer
+            QTimer.singleShot(1000, lambda: self.show_progress(False))
             self._view.page().runJavaScript("triggerFormat();")
 
     def reveal_line(self, line):
@@ -316,6 +378,7 @@ class MonacoEditorWidget(QWidget):
             self._view.page().runJavaScript(f"revealLine({line});")
 
     def set_diagnostics(self, markers):
+        self.show_progress(False)
         if self._view_ready:
             import json
             js_markers = json.dumps(markers)
@@ -399,6 +462,7 @@ class MonacoEditorWidget(QWidget):
         if not self._file_path or not self._file_path.endswith(".py"):
             return
 
+        self.show_progress(True)
         import threading
         def worker():
             markers = []

@@ -178,6 +178,18 @@
             monaco.editor.setTheme(isDark ? 'dardcor-dark' : 'vs');
         }
 
+        function defineCustomTheme(themeJson) {
+            try {
+                var data = typeof themeJson === 'string' ? JSON.parse(themeJson) : themeJson;
+                if (!data) {
+                    monaco.editor.setTheme('dardcor-dark');
+                    return;
+                }
+                monaco.editor.defineTheme('dardcor-custom', data);
+                monaco.editor.setTheme('dardcor-custom');
+            } catch (e) { }
+        }
+
         function toggleInline(inline) {
             if (diffEditor) {
                 diffEditor.updateOptions({
