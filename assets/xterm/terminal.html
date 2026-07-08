@@ -140,7 +140,7 @@
             term.open(container);
 
             if (typeof SearchAddon !== 'undefined') {
-                searchAddon = new SearchAddon();
+                searchAddon = typeof SearchAddon === 'function' ? new SearchAddon() : new SearchAddon.SearchAddon();
                 if (typeof term.loadAddon === 'function') {
                     term.loadAddon(searchAddon);
                 } else {

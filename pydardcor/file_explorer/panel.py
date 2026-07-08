@@ -1612,8 +1612,6 @@ class FileExplorer(QWidget):
             self._tree.setUpdatesEnabled(True)
             self._is_refreshing = False
             self._watcher_timer.start()
-            if self._type_filter:
-                self._apply_type_filter()
 
     def _update_watcher(self, expanded_paths):
         # Clear existing paths

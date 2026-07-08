@@ -1082,7 +1082,7 @@ class EditorGroup(QWidget):
         layout.addWidget(self._breadcrumbs_slot)
 
         self._stack = QStackedWidget()
-        layout.addWidget(self._stack)
+        layout.addWidget(self._stack, 1)
 
         # Welcome screen
         self._welcome = WelcomeWidget(self)
@@ -1108,7 +1108,8 @@ class EditorGroup(QWidget):
         wrap_tabs = getattr(config, "wrap_tabs", False)
         
         self._tab_bar.blockSignals(True)
-        self._tab_bar.clear()
+        while self._tab_bar.count() > 0:
+            self._tab_bar.removeTab(0)
         self._flow_tab_container.clear()
         
         if show_tabs == "none":

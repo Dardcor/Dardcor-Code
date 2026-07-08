@@ -3524,19 +3524,17 @@ class MainWindow(QMainWindow):
             self._file_explorer.reveal_and_select_file(file_path)
 
         if self._current_active_editor:
-            try:
-                if hasattr(self._current_active_editor, "cursor_position_changed"):
-                    self._current_active_editor.cursor_position_changed.disconnect(self._on_cursor_moved)
-                if hasattr(self._current_active_editor, "selection_changed"):
-                    self._current_active_editor.selection_changed.disconnect(self._on_selection_changed)
-                if hasattr(self._current_active_editor, "indent_changed"):
-                    self._current_active_editor.indent_changed.disconnect(self._on_indent_changed)
-                if hasattr(self._current_active_editor, "content_changed"):
-                    self._current_active_editor.content_changed.disconnect(self._on_editor_content_changed)
-                if hasattr(self._current_active_editor, "selection_changed"):
-                    self._current_active_editor.selection_changed.disconnect(self._on_selection_changed)
-            except (TypeError, RuntimeError):
-                pass
+            for sig, slot in [
+                ("cursor_position_changed", self._on_cursor_moved),
+                ("selection_changed", self._on_selection_changed),
+                ("indent_changed", self._on_indent_changed),
+                ("content_changed", self._on_editor_content_changed),
+            ]:
+                try:
+                    if hasattr(self._current_active_editor, sig):
+                        getattr(self._current_active_editor, sig).disconnect(slot)
+                except (TypeError, RuntimeError, RuntimeWarning):
+                    pass
 
         self._timeline_panel.update_timeline(file_path)
         self._update_outline(file_path)
@@ -3576,7 +3574,7 @@ class MainWindow(QMainWindow):
         if hasattr(editor, "get_cursor_position"):
             line, col = editor.get_cursor_position()
             self._status_bar.set_cursor_position(line, col)
-        self._status_bar.set_selection_count(0, 0)
+        self._status_bar.set_selection(0, 0)
 
     def _on_cursor_moved(self, line: int, col: int):
         self._status_bar.set_cursor_position(line, col)
@@ -3599,7 +3597,7 @@ class MainWindow(QMainWindow):
             return
 
         editor = self._editor_tabs.current_editor()
-        if editor:
+        if editor and hasattr(editor, 'get_content'):
             content = editor.get_content()
             symbols = parse_outline_symbols(content, file_path)
             self._outline_panel.set_symbols(symbols)

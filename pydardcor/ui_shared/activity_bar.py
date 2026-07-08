@@ -263,7 +263,7 @@ class ActivityBar(QWidget):
     def _add_button(self, icon_type: str, tooltip: str, view_id: int):
         btn = ActivityBarButton(icon_type, tooltip)
         self._group.addButton(btn, view_id)
-        self.layout().insertWidget(self.layout().count() - 3, btn) # Insert before stretch and global bar
+        self.layout().addWidget(btn)
 
     def _show_context_menu(self, pos: QPoint):
         """Activity Bar Context Menu - right-click to hide/show views"""

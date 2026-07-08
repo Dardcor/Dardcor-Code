@@ -188,7 +188,7 @@
                 { token: 'operator', foreground: 'd4d4d4' },
             ],
             colors: {
-                'editor.background': '#000000',
+                'editor.background': '#1e1e1e',
                 'editor.foreground': '#d4d4d4',
                 'editor.lineHighlightBackground': '#1a1a1a',
                 'editor.selectionBackground': '#264f78',
@@ -208,7 +208,7 @@
                 'scrollbarSlider.background': '#2c004a88',
                 'scrollbarSlider.hoverBackground': '#3c006888',
                 'scrollbarSlider.activeBackground': '#4a007288',
-                'editorGutter.background': '#000000',
+                'editorGutter.background': '#1e1e1e',
                 'editorWidget.background': '#1a0033',
                 'editorWidget.border': '#3c0068',
                 'editorSuggestWidget.background': '#1a0033',
@@ -802,6 +802,12 @@
                     }, 500);
                 }
 
+                window.addEventListener('resize', function() {
+                    if (editor) {
+                        editor.layout();
+                    }
+                });
+
                 window.restoreViewState = function (stateJson) {
                     if (editor && stateJson) {
                         try {
@@ -834,7 +840,6 @@
 
                 // Listen for selection change to show floating menu and report selection count
                 editor.onDidChangeCursorSelection(function (e) {
-                    notifySelectionChanged();
 
                     var selection = e.selection;
                     var floatingMenu = document.getElementById('floating-menu');
@@ -877,7 +882,7 @@
                 editor.onDidChangeConfiguration(function (e) {
                     if (e.hasChanged(monaco.editor.EditorOption.tabSize) ||
                         e.hasChanged(monaco.editor.EditorOption.insertSpaces)) {
-                        notifyIndentChanged();
+                        // indent changed
                     }
                 });
 
@@ -1181,8 +1186,6 @@
                 editor.setModel(newModel);
             }
             isRemoteUpdate = false;
-            setTimeout(notifyIndentChanged, 0);
-            notifySelectionChanged();
         }
 
         function getEditorContent() {
@@ -1466,6 +1469,7 @@
                     }
                 }
             });
+        }
         // Middle click auto-scroll implementation
         (function () {
             var isScrolling = false;
