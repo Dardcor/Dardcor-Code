@@ -22,6 +22,21 @@ class StatusBarButton(QPushButton):
                 background-color: rgba(255, 255, 255, 0.12);
             }
         """)
+        self._bg_color = "transparent"
+
+    def set_background_color(self, color: str):
+        self._bg_color = color
+        self.setStyleSheet(f"""
+            QPushButton {{
+                background: {color};
+                border: none;
+                padding: 0px;
+                margin: 0px;
+            }}
+            QPushButton:hover {{
+                background-color: rgba(255, 255, 255, 0.12);
+            }}
+        """)
 
         # Internal layout to align icon and text perfectly
         self._layout = QHBoxLayout(self)
@@ -122,6 +137,24 @@ class StatusBar(QStatusBar):
         """)
         self._ext_status_items: dict = {}
         self._setup_ui()
+
+    def set_debug_mode(self, active: bool):
+        if active:
+            self.setStyleSheet("""
+                #statusBar {
+                    background-color: #cc6633;
+                    min-height: 22px; max-height: 22px;
+                    border-top: 1px solid #cc6633;
+                }
+            """)
+        else:
+            self.setStyleSheet("""
+                #statusBar {
+                    background-color: #000000;
+                    min-height: 22px; max-height: 22px;
+                    border-top: 1px solid #3c0068;
+                }
+            """)
 
     def _setup_ui(self):
         # Remove default margins and spacing

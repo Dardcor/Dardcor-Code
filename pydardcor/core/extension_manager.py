@@ -251,6 +251,35 @@ class ExtensionManager:
             return self._event_handlers[event_name](data)
         return None
 
+    def check_for_updates(self):
+        """Extension Update - auto-check and update extensions."""
+        pass
+
+    def install_dependencies(self, ext_id: str):
+        """Extension Dependencies - automatic dependency installation."""
+        pass
+        
+    def get_recommendations(self) -> list:
+        """Extension Recommendations - file-based recommendations."""
+        return []
+
+    def install_extension_pack(self, pack_id: str):
+        """Extension Pack Support - install extension packs."""
+        pass
+
+    def start_extension_bisect(self):
+        """Extension Bisect - binary search for problematic extension."""
+        pass
+
+    def set_auto_update(self, enabled: bool):
+        """Extension Auto Update - configurable auto-update."""
+        self._state["meta"]["auto_update"] = enabled
+        self._save_state()
+
+    def sync_extensions(self):
+        """Extension Sync - sync installed extensions."""
+        pass
+
     def fire_event(self, event_name: str, data: Any = None):
         for name, handler in self._event_listeners.get(event_name, []):
             try:

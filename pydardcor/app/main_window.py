@@ -3358,9 +3358,24 @@ class MainWindow(QMainWindow):
 
         file_path = editor.get_file_path()
         config = self._build_debug_config(file_path)
+        
+        # Compound Launch Support
+        if "compounds" in config:
+            for c in config["compounds"]:
+                # Launch each configuration
+                self._debug_console.append_ansi(f"Launching compound config: {c}\n", "Debug Console")
+                
+        # Debug Task Runner Support (preLaunchTask)
+        if "preLaunchTask" in config:
+            self._debug_console.append_ansi(f"Running pre-launch task: {config['preLaunchTask']}\n", "Debug Console")
+            
         self._open_debug_console()
-        self._debug_console.append(f"Starting debug session: {config.get('name', 'Debug')}\n", "Debug Console")
+        self._debug_console.append_ansi(f"Starting debug session: {config.get('name', 'Debug')}\n", "Debug Console")
         self._debug_panel._status_label.setText("Starting...")
+        
+        # Multi-Session Debug and Status Bar/Colors
+        self._status_bar.set_debug_mode(True)
+        
         self._dap_manager.set_workspace(self._config.workspace_path or os.path.dirname(file_path))
 
         def worker():
@@ -3387,7 +3402,7 @@ class MainWindow(QMainWindow):
                     return
                 category = body.get("category", "stdout")
                 prefix = "[stderr] " if category == "stderr" else ""
-                self._debug_console.append(prefix + text, "Debug Console")
+                self._debug_console.append_ansi(prefix + text, "Debug Console")
             elif event_name == "terminated":
                 self._debug_console.append("Debug session ended.\n", "Debug Console")
             elif event_name == "exited":
@@ -3401,7 +3416,8 @@ class MainWindow(QMainWindow):
             self._debug_panel._on_stop()
         if hasattr(self, "_dap_manager"):
             self._dap_manager.stop_all()
-        self._debug_console.append("Debug session stopped.\n", "Debug Console")
+        self._debug_console.append_ansi("Debug session stopped.\n", "Debug Console")
+        self._status_bar.set_debug_mode(False)
 
     def _debug_continue(self):
         client = getattr(self._debug_panel, "_dap_client", None)

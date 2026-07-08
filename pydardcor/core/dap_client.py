@@ -159,6 +159,29 @@ class DAPClient:
         resp = self._send_request("setFunctionBreakpoints", {"breakpoints": breakpoints})
         return resp.get("body") if resp else None
 
+    def set_data_breakpoints(self, breakpoints: List[Dict[str, Any]]) -> Optional[Dict]:
+        resp = self._send_request("setDataBreakpoints", {"breakpoints": breakpoints})
+        return resp.get("body") if resp else None
+
+    def set_exception_breakpoints(self, filters: List[str], filter_options: List[Dict[str, Any]] = None) -> Optional[Dict]:
+        args = {"filters": filters}
+        if filter_options:
+            args["filterOptions"] = filter_options
+        resp = self._send_request("setExceptionBreakpoints", args)
+        return resp.get("body") if resp else None
+
+    def disassembly(self, memory_reference: str, offset: int = 0, instruction_count: int = 50) -> Optional[Dict]:
+        resp = self._send_request("disassemble", {
+            "memoryReference": memory_reference,
+            "offset": offset,
+            "instructionCount": instruction_count
+        })
+        return resp.get("body") if resp else None
+
+    def loaded_sources(self) -> Optional[Dict]:
+        resp = self._send_request("loadedSources", {})
+        return resp.get("body") if resp else None
+
     def continue_(self, thread_id: int = 0) -> bool:
         resp = self._send_request("continue", {"threadId": thread_id})
         return resp.get("success", False) if resp else False

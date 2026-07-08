@@ -12,12 +12,22 @@ class GitBridge(QObject):
         super().__init__(parent)
         self._workspace = ""
         self._app = None
+        
+        # Register as SCM Provider
+        try:
+            from ..core.scm import SCMProvider, get_scm_service
+            self.provider = SCMProvider("git", "Git")
+            get_scm_service().register_provider(self.provider)
+        except ImportError:
+            self.provider = None
         self._last_status = None
         self._last_staged_json = "[]"
         self._last_unstaged_json = "[]"
         self._last_count = 0
         self._last_graph = None
         self._last_graph_json = "[]"
+        self._working_sets = {"Default": []}
+        self._active_working_set = "Default"
         self._refresh_pending = False
         
         # Real-time update timer
@@ -242,6 +252,53 @@ class GitBridge(QObject):
     def unstageFile(self, path):
         self._run_git(["restore", "--staged", "--", path])
         self.requestRefresh()
+
+    @Slot(str)
+    def pushBranch(self, remote):
+        self._run_git(["push", remote, "HEAD"])
+        self.requestRefresh()
+        
+    @Slot()
+    def stashChanges(self):
+        self._run_git(["stash", "save", "Dardcor Stash"])
+        self.requestRefresh()
+        
+    @Slot()
+    def popStash(self):
+        self._run_git(["stash", "pop"])
+        self.requestRefresh()
+
+    @Slot(str)
+    def mergeBranch(self, branch_name):
+        self._run_git(["merge", branch_name])
+        self.requestRefresh()
+
+    @Slot(str, str)
+    def addRemote(self, name, url):
+        self._run_git(["remote", "add", name, url])
+        
+    @Slot(str)
+    def removeRemote(self, name):
+        self._run_git(["remote", "remove", name])
+        
+    @Slot(str)
+    def renameRemote(self, old_name, new_name):
+        self._run_git(["remote", "rename", old_name, new_name])
+
+    @Slot(str)
+    def createWorkingSet(self, name):
+        if name not in self._working_sets:
+            self._working_sets[name] = []
+            
+    @Slot(str)
+    def switchWorkingSet(self, name):
+        if name in self._working_sets:
+            self._active_working_set = name
+            
+    @Slot(str)
+    def addToWorkingSet(self, path):
+        if path not in self._working_sets[self._active_working_set]:
+            self._working_sets[self._active_working_set].append(path)
 
     @Slot(str)
     def discardFile(self, path):

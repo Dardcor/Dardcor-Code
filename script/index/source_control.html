@@ -23,7 +23,19 @@
     </div>
 
     <div class="split-view">
-        <!-- TOP SECTION: CHANGES -->
+        <!-- TOP SECTION: REPOSITORIES -->
+        <div class="tree-group" id="reposGroup">
+            <div class="group-header" onclick="toggleGroup('reposItems', 'reposChevron')">
+                <i class="codicon codicon-chevron-right" id="reposChevron"></i>
+                <span class="group-title">SOURCE CONTROL REPOSITORIES</span>
+            </div>
+            <div class="group-items" id="reposItems" style="display: none;">
+                <!-- Repositories will be populated here -->
+                <div class="tree-item"><i class="codicon codicon-repo"></i> Dardcor-Code</div>
+            </div>
+        </div>
+
+        <!-- MIDDLE SECTION: CHANGES -->
         <div class="split-pane" id="changesContainer" style="flex: 1; min-height: 100px;">
             <div class="changes-header" onclick="toggleSectionCollapse('changesBody', 'changesMainChevron')">
                 <div class="changes-header-left">
@@ -32,6 +44,8 @@
                 </div>
                 <div class="changes-actions" onclick="event.stopPropagation()">
                     <div class="action-btn small" title="Stage All Changes" onclick="stageAllChanges()"><i class="codicon codicon-check"></i></div>
+                    <div class="action-btn small" title="Stash Changes" onclick="if(backend) backend.stashChanges()"><i class="codicon codicon-archive"></i></div>
+                    <div class="action-btn small" title="Pop Stash" onclick="if(backend) backend.popStash()"><i class="codicon codicon-reply"></i></div>
                     <div class="action-btn small" title="Refresh" onclick="if(backend) backend.requestRefresh()"><i class="codicon codicon-refresh"></i></div>
                     <div class="action-btn small" title="More Actions"><i class="codicon codicon-ellipsis"></i></div>
                 </div>
@@ -83,7 +97,7 @@
         <div class="resizer" id="resizer"></div>
 
         <!-- BOTTOM SECTION: GRAPH -->
-        <div class="split-pane" id="graphContainer" style="flex: 1; min-height: 100px;">
+        <div class="split-pane" id="graphContainer" style="flex: 1; min-height: 100px; display: none;">
             <div class="git-graph-header" onclick="toggleSectionCollapse('graphBody', 'graphMainChevron')">
                 <div class="graph-header-left">
                     <i class="codicon codicon-chevron-down" id="graphMainChevron"></i>
@@ -104,11 +118,27 @@
                 <div id="gitGraphContainer"></div>
             </div>
         </div>
+
+        <!-- HISTORY SECTION -->
+        <div class="tree-group" id="historyGroup">
+            <div class="group-header" onclick="toggleGroup('historyItems', 'historyChevron')">
+                <i class="codicon codicon-chevron-right" id="historyChevron"></i>
+                <span class="group-title">TIMELINE / HISTORY</span>
+            </div>
+            <div class="group-items" id="historyItems" style="display: none;">
+                <!-- History will be populated here -->
+                <div class="tree-item" style="color: #858585; font-style: italic;">No history available</div>
+            </div>
+        </div>
     </div>
 
-    <div class="context-menu" id="fileContextMenu" style="display: none;"></div>
-
-    <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
-    <script src="../script/source_control.js"></script>
+    <!-- Context Menu for Files -->
+    <div class="context-menu" id="fileContextMenu">
+        <div class="menu-item" onclick="openFileFromMenu()">Open File</div>
+        <div class="menu-item" onclick="discardFileFromMenu()">Discard Changes</div>
+    </div>
+    
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <script src="../js/source_control.js"></script>
 </body>
 </html>

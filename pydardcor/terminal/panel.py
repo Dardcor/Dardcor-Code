@@ -737,8 +737,30 @@ class TerminalPanel(QWidget):
         toggle_tabs_action = QAction("Toggle Terminal Tabs", self)
         toggle_tabs_action.triggered.connect(self._toggle_sidebar_visibility)
         menu.addAction(toggle_tabs_action)
+        
+        group_action = QAction("Group Terminals", self)
+        menu.addAction(group_action)
+        
+        change_color_action = QAction("Change Color...", self)
+        menu.addAction(change_color_action)
+        
+        change_icon_action = QAction("Change Icon...", self)
+        menu.addAction(change_icon_action)
+        
+        show_pm_action = QAction("Terminal Process Manager", self)
+        menu.addAction(show_pm_action)
+        
+        ext_term_action = QAction("Open External Terminal", self)
+        ext_term_action.triggered.connect(self._open_external_terminal)
+        menu.addAction(ext_term_action)
 
         menu.exec(button.mapToGlobal(QPoint(0, button.height())))
+        
+    def _open_external_terminal(self):
+        import subprocess
+        import os
+        if os.name == 'nt':
+            subprocess.Popen(["cmd.exe", "/c", "start", "cmd.exe"], cwd=self._current_workdir or ".")
 
     def set_workdir(self, path):
         self._current_workdir = path

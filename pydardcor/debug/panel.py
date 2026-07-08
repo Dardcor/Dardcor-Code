@@ -127,6 +127,12 @@ class DebugPanel(QWidget):
         self._config_combo.setStyleSheet("QComboBox { background: #0a0a0a; color: #cccccc; border: 1px solid #333333; padding: 2px 6px; font-size: 12px; }")
         rb_lay.addWidget(self._config_combo)
 
+        self._session_combo = QComboBox()
+        self._session_combo.addItems(["Session 1"])
+        self._session_combo.setStyleSheet("QComboBox { background: #0a0a0a; color: #cccccc; border: 1px solid #333333; padding: 2px 6px; font-size: 12px; }")
+        self._session_combo.hide()
+        rb_lay.addWidget(self._session_combo)
+
         self._status_label = QLabel("")
         self._status_label.setStyleSheet("color: #89d185; font-size: 11px; padding-left: 8px;")
         rb_lay.addWidget(self._status_label)
@@ -154,6 +160,9 @@ class DebugPanel(QWidget):
 
         self._breakpoints = self._make_section("BREAKPOINTS")
         c_lay.addWidget(self._breakpoints)
+
+        self._loaded_scripts = self._make_section("LOADED SCRIPTS")
+        c_lay.addWidget(self._loaded_scripts)
 
         c_lay.addStretch()
         scroll.setWidget(content)
@@ -288,10 +297,24 @@ class DebugPanel(QWidget):
             item = QTreeWidgetItem([line])
             item.setForeground(0, QColor("#cccccc"))
             self._variables._header.addChild(item)
-        if not var_lines:
-            ph = QTreeWidgetItem(["No variables"])
+        
+        self._watch.clear()
+        self._watch.addTopLevelItem(self._watch._header)
+        
+        self._call_stack.clear()
+        self._call_stack.addTopLevelItem(self._call_stack._header)
+        
+        self._breakpoints.clear()
+        self._breakpoints.addTopLevelItem(self._breakpoints._header)
+        
+        self._loaded_scripts.clear()
+        self._loaded_scripts.addTopLevelItem(self._loaded_scripts._header)
+
+        for tree in [self._variables, self._watch, self._call_stack, self._breakpoints, self._loaded_scripts]:
+            ph = QTreeWidgetItem(["Not debugging"])
             ph.setForeground(0, QColor("#888888"))
-            self._variables._header.addChild(ph)
+            tree._header.addChild(ph)
+            tree.expandItem(tree._header)
 
     def _clear_sections(self):
         for tree in [self._variables, self._watch, self._call_stack, self._breakpoints]:

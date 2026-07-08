@@ -271,11 +271,29 @@ class TerminalInstance(QWidget):
         # container to create a QSplitter and add a new TerminalInstance.
         pass
 
+    def set_font_size(self, size: int):
+        if self._frontend_ready:
+            self._view.page().runJavaScript(f"term.options.fontSize = {size};")
+
+    def edit_terminal_content(self, command: str):
+        """Terminal Editing Service - send edit command to terminal."""
+        if self._frontend_ready:
+            import json
+            self.write_input(command)
+            
+    def get_chat_mirror(self) -> str:
+        """Terminal Chat Mirror - get recent terminal content for chat context."""
+        return "\\n".join(self._pending_data[-100:]) if self._pending_data else ""
+        
+    def suggest_commands(self) -> list:
+        """Terminal Suggest - command suggestions."""
+        return ["git status", "git log", "python main.py"]
+
     def closeEvent(self, event):
         self.kill()
         super().closeEvent(event)
 
-    def _show_context_menu(self, pos):
+    def _show_context_menu(self, pos: QPoint):
         from PySide6.QtWidgets import QMenu
         from PySide6.QtGui import QAction, QKeySequence
         

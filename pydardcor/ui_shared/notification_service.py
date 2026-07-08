@@ -141,6 +141,37 @@ class NotificationService(QWidget):
         self.setStyleSheet("background: transparent;")
         self._toasts: list[NotificationToast] = []
         self._queue: deque = deque()
+        self._dnd = False
+        self._ignored_sources = set()
+        self._persistence_file = os.path.expanduser("~/.dardcor-code/notifications.json")
+        self._load_persisted()
+
+    def _load_persisted(self):
+        try:
+            if os.path.exists(self._persistence_file):
+                import json
+                with open(self._persistence_file, "r") as f:
+                    data = json.load(f)
+                    for item in data:
+                        self._queue.append((item['msg'], item['sev'], None))
+        except Exception:
+            pass
+
+    def _save_persisted(self):
+        try:
+            import json
+            os.makedirs(os.path.dirname(self._persistence_file), exist_ok=True)
+            data = [{'msg': q[0], 'sev': q[1]} for q in self._queue]
+            with open(self._persistence_file, "w") as f:
+                json.dump(data, f)
+        except Exception:
+            pass
+
+    def set_dnd(self, enabled: bool):
+        self._dnd = enabled
+        
+    def add_ignored_source(self, source: str):
+        self._ignored_sources.add(source)
 
     @property
     def visible_count(self) -> int:
@@ -173,9 +204,13 @@ class NotificationService(QWidget):
         self._queue.clear()
         self._emit_count()
 
-    def _show(self, message: str, severity: str, actions: list = None):
-        if len(self._toasts) >= _MAX_VISIBLE:
+    def _show(self, message: str, severity: str, actions: list = None, source: str = None):
+        if source in self._ignored_sources:
+            return
+            
+        if self._dnd or len(self._toasts) >= _MAX_VISIBLE:
             self._queue.append((message, severity, actions))
+            self._save_persisted()
             self._emit_count()
             return
 

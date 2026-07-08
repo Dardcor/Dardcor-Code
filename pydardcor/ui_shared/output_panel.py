@@ -81,13 +81,22 @@ class OutputPanel(QWidget):
         self._output.setPlainText("\n".join(lines))
         self._output.moveCursor(self._output.textCursor().MoveOperation.End)
 
-    def append(self, text, channel=None):
-        ch = channel or self._current
-        if ch not in self._channels:
-            self.add_channel(ch)
-        self._channels[ch].append(text)
-        if ch == self._current:
+    def append(self, text: str, category: str = "Dardcor"):
+        if category not in self._channels:
+            self.add_channel(category)
+        
+        self._channels[category].append(text)
+        if category == self._current:
             self._output.appendPlainText(text)
+
+    def append_ansi(self, text: str, category: str = "Dardcor"):
+        if category not in self._channels:
+            self.add_channel(category)
+        
+        self._channels[category].append(text)
+        if category == self._current:
+            html_text = text.replace('\n', '<br>').replace('\033[31m', '<span style="color:red">').replace('\033[0m', '</span>')
+            self._output.appendHtml(html_text)
 
     def clear(self):
         self._channels[self._current] = []

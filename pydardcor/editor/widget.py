@@ -437,6 +437,56 @@ class MonacoEditorWidget(QWidget):
         if self._view_ready:
             self._view.page().runJavaScript(f"revealLine({line});")
 
+    def add_zone_widget(self, widget_id: str, after_line: int, height_lines: int, html_content: str):
+        if self._view_ready:
+            import json
+            safe_html = json.dumps(html_content)
+            self._view.page().runJavaScript(f"addZoneWidget('{widget_id}', {after_line}, {height_lines}, {safe_html});")
+
+    def remove_zone_widget(self, widget_id: str):
+        if self._view_ready:
+            self._view.page().runJavaScript(f"removeZoneWidget('{widget_id}');")
+
+    def clear_zone_widgets(self):
+        if self._view_ready:
+            self._view.page().runJavaScript("clearZoneWidgets();")
+
+    def show_quick_diff_widget(self, line: int, diff_html: str):
+        """Show an inline quick diff widget using Zone Widget."""
+        self.add_zone_widget(f"quick_diff_{line}", line, 10, f"<div class='quick-diff-container'>{diff_html}</div>")
+
+    def show_inline_value(self, line: int, column: int, text: str):
+        if self._view_ready:
+            import json
+            safe_text = json.dumps(text)
+            # Use Monaco's decorations to show inline text
+            script = f"""
+            if(editor) {{
+                editor.deltaDecorations([], [{{
+                    range: new monaco.Range({line}, {column}, {line}, {column}),
+                    options: {{
+                        after: {{
+                            content: ' = ' + {safe_text},
+                            inlineClassName: 'debug-inline-value'
+                        }}
+                    }}
+                }}]);
+            }}
+            """
+            self._view.page().runJavaScript(script)
+
+    def set_debug_hover(self, variable_name: str, value: str):
+        if self._view_ready:
+            import json
+            safe_var = json.dumps(variable_name)
+            safe_val = json.dumps(value)
+            script = f"""
+            if(window.registerDebugHover) {{
+                window.registerDebugHover({safe_var}, {safe_val});
+            }}
+            """
+            self._view.page().runJavaScript(script)
+
     def set_diagnostics(self, markers):
         self.show_progress(False)
         if self._view_ready:

@@ -240,7 +240,22 @@ class ActivityBar(QWidget):
         # Extension-contributed buttons are inserted just before this stretch
         layout.addStretch()
         self._stretch_index = layout.count() - 1
+        
+        # Global Composite Bar
+        self._accounts_btn = ActivityBarButton("accounts", "Accounts", icon_path="")
+        self._accounts_btn.setText("\uea77") # account icon
+        layout.addWidget(self._accounts_btn)
+        
+        self._settings_btn = ActivityBarButton("settings", "Manage", icon_path="")
+        self._settings_btn.setText("\ueb51") # settings icon
+        layout.addWidget(self._settings_btn)
+
         self._ext_buttons = {}
+        
+        self._position = "left" # Activity Bar Position
+
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self._show_context_menu)
 
         self._group.buttonClicked.connect(self._on_clicked)
         self.set_active(VIEW_EXPLORER)
@@ -248,7 +263,25 @@ class ActivityBar(QWidget):
     def _add_button(self, icon_type: str, tooltip: str, view_id: int):
         btn = ActivityBarButton(icon_type, tooltip)
         self._group.addButton(btn, view_id)
-        self.layout().addWidget(btn)
+        self.layout().insertWidget(self.layout().count() - 3, btn) # Insert before stretch and global bar
+
+    def _show_context_menu(self, pos: QPoint):
+        """Activity Bar Context Menu - right-click to hide/show views"""
+        from PySide6.QtWidgets import QMenu
+        from PySide6.QtGui import QAction
+        menu = QMenu(self)
+        menu.setStyleSheet("""
+            QMenu { background: #0a0a0a; color: #cccccc; border: 1px solid #333333; }
+            QMenu::item { padding: 4px 20px; }
+            QMenu::item:selected { background: #04395e; color: #ffffff; }
+        """)
+        menu.addAction(QAction("Hide Activity Bar", self))
+        menu.addAction(QAction("Move Activity Bar to Right", self))
+        menu.exec(self.mapToGlobal(pos))
+        
+    def set_position(self, pos: str):
+        """Activity Bar Position - left, right, top, hidden positions"""
+        self._position = pos
 
     def add_extension_button(self, view_id: int, tooltip: str, icon_path: str = "",
                              icon_type: str = "extensions"):

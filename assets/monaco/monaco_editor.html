@@ -167,6 +167,7 @@
         var currentFilePath = '';
         var isRemoteUpdate = false;
         var extensionMenuDisposables = [];
+        var activeZoneWidgets = {};
 
         // VS Code Dark+ theme matching Dardcor palette
         var DARDCOR_THEME = {
@@ -1226,6 +1227,49 @@
                 editor.revealLineInCenter(lineNumber);
                 editor.setPosition({ lineNumber: lineNumber, column: 1 });
             }
+        }
+
+        function addZoneWidget(widgetId, afterLineNumber, heightInLines, htmlContent) {
+            if (!editor) return;
+            editor.changeViewZones(function(accessor) {
+                var domNode = document.createElement('div');
+                domNode.innerHTML = htmlContent;
+                domNode.style.background = '#1a0033';
+                domNode.style.borderTop = '1px solid #5a009c';
+                domNode.style.borderBottom = '1px solid #5a009c';
+                domNode.style.color = '#d4d4d4';
+                domNode.style.padding = '10px';
+                domNode.style.boxSizing = 'border-box';
+                domNode.style.overflow = 'auto';
+
+                var zoneId = accessor.addZone({
+                    afterLineNumber: afterLineNumber,
+                    heightInLines: heightInLines,
+                    domNode: domNode,
+                    marginDomNode: null
+                });
+                activeZoneWidgets[widgetId] = { zoneId: zoneId, domNode: domNode };
+            });
+        }
+
+        function removeZoneWidget(widgetId) {
+            if (!editor || !activeZoneWidgets[widgetId]) return;
+            editor.changeViewZones(function(accessor) {
+                accessor.removeZone(activeZoneWidgets[widgetId].zoneId);
+                delete activeZoneWidgets[widgetId];
+            });
+        }
+
+        function clearZoneWidgets() {
+            if (!editor) return;
+            editor.changeViewZones(function(accessor) {
+                for (var key in activeZoneWidgets) {
+                    if (activeZoneWidgets.hasOwnProperty(key)) {
+                        accessor.removeZone(activeZoneWidgets[key].zoneId);
+                    }
+                }
+                activeZoneWidgets = {};
+            });
         }
 
         function setTheme(isDark) {

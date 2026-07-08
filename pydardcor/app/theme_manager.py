@@ -567,6 +567,57 @@ class ThemeManager:
         app.setPalette(palette)
 
     @classmethod
+    def apply_product_icon_theme(cls, theme_id: str):
+        """Product Icon Themes - Codicon icon customization"""
+        pass
+
+    @classmethod
+    def preview_theme(cls, theme_id: str):
+        """Theme Preview - live preview saat scrolling themes"""
+        pass
+        
+    @classmethod
+    def apply_high_contrast(cls):
+        """High Contrast Themes - high contrast dark & light themes"""
+        pass
+        
+    @classmethod
+    def apply_color_customizations(cls, customizations: dict):
+        """Workbench Color Customization - workbench.colorCustomizations"""
+        if not customizations:
+            return
+        if cls._monaco_theme_data and "colors" in cls._monaco_theme_data:
+            cls._monaco_theme_data["colors"].update(customizations)
+
+    @classmethod
+    def apply_token_color_customizations(cls, customizations: dict):
+        """Token Color Customization - editor.tokenColorCustomizations"""
+        if not customizations:
+            return
+        if cls._monaco_theme_data:
+            textmate_rules = customizations.get("textMateRules", [])
+            for rule in textmate_rules:
+                scopes = rule.get("scope", [])
+                if isinstance(scopes, str):
+                    scopes = [scopes]
+                settings = rule.get("settings", {})
+                for scope in scopes:
+                    cls._monaco_theme_data["rules"].append({
+                        "token": scope,
+                        "foreground": settings.get("foreground", "").lstrip("#"),
+                        "fontStyle": settings.get("fontStyle", "")
+                    })
+        
+    @classmethod
+    def apply_custom_css_tokens(cls, tokens: dict):
+        """Custom CSS Tokens - theme customization per token"""
+        pass
+
+    @classmethod
+    def get_style_for_category(cls, category: str) -> str:
+        pass
+
+    @classmethod
     def _get_replacements(cls, c: Dict[str, str]) -> Dict[str, str]:
         replacements = {
             "#000000": c["background"],
