@@ -108,11 +108,47 @@
             0% { background-position: 200% 0; }
             100% { background-position: -200% 0; }
         }
+
+        #editor-message {
+            display: none;
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #1a0033e6;
+            color: #d4d4d4;
+            border: 1px solid #5a009c;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            z-index: 10000;
+            padding: 8px 16px;
+            font-size: 12px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #editor-message .close-btn {
+            background: transparent;
+            border: none;
+            color: #858585;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        #editor-message .close-btn:hover {
+            color: #ffffff;
+        }
     </style>
 </head>
 
 <body>
     <div id="editor-progress"></div>
+    <div id="editor-message">
+        <span id="message-text"></span>
+        <button class="close-btn" onclick="hideEditorMessage()">×</button>
+    </div>
     <div id="container"></div>
     <div id="floating-menu">
         <button onclick="triggerFloatingAction('copy')">Copy</button>
@@ -268,6 +304,17 @@
                     inlayHints: { enabled: 'on' },
                     linkedEditing: true,
                     links: true,
+                    stopRenderingLineAfter: 10000,
+                    maxTokenizationLineLength: 20000,
+                    multiCursorModifier: 'alt',
+                    columnSelection: true,
+                    placeholder: 'Type code here, drag & drop files, or ask AI...',
+                    'semanticHighlighting.enabled': true,
+                    unicodeHighlight: {
+                        ambiguousCharacters: true,
+                        invisibleCharacters: true
+                    },
+                    unusualLineTerminators: 'prompt',
                     bracketPairColorization: { enabled: true, independentColorPoolPerBracketType: true },
                     guides: { bracketPairs: true, indentation: true, highlightActiveIndentation: true },
                     renderWhitespace: 'selection',
@@ -294,6 +341,13 @@
                     lightbulb: { enabled: true },
                     inlayHints: { enabled: 'on' },
                     stickyScroll: { enabled: true, maxLineCount: 5 }
+                });
+
+                // Read Only Message handler
+                editor.onDidAttemptReadOnlyEdit(function () {
+                    if (typeof showEditorMessage === 'function') {
+                        showEditorMessage('Cannot edit in read-only editor', 3000);
+                    }
                 });
 
                 // Completions provider connected to the Python backend
@@ -506,6 +560,40 @@
                     }
                 });
 
+                // Register RenameProvider for Python
+                monaco.languages.registerRenameProvider('python', {
+                    provideRenameEdits: function (model, position, newName, token) {
+                        return new Promise(function (resolve, reject) {
+                            var word = model.getWordAtPosition(position);
+                            if (!word) {
+                                resolve(null);
+                                return;
+                            }
+                            var oldName = word.word;
+                            var edits = [];
+                            var lines = model.getLinesContent();
+                            var regex = new RegExp('\\b' + oldName + '\\b', 'g');
+                            for (var i = 0; i < lines.length; i++) {
+                                var line = lines[i];
+                                var match;
+                                while ((match = regex.exec(line)) !== null) {
+                                    edits.push({
+                                        resource: model.uri,
+                                        versionId: model.getVersionId(),
+                                        textEdit: {
+                                            range: new monaco.Range(i + 1, match.index + 1, i + 1, match.index + 1 + oldName.length),
+                                            text: newName
+                                        }
+                                    });
+                                }
+                            }
+                            resolve({
+                                edits: edits
+                            });
+                        });
+                    }
+                });
+
                 // View state saving/restoring functions
                 var viewStateTimeout = null;
                 function queueSaveViewState() {
@@ -550,7 +638,7 @@
                     queueSaveViewState();
                 });
 
-                // Listen for selection change to show floating menu
+                // Listen for selection change to show floating menu and report selection count
                 editor.onDidChangeCursorSelection(function (e) {
                     var selection = e.selection;
                     var floatingMenu = document.getElementById('floating-menu');
@@ -558,7 +646,20 @@
 
                     if (selection.isEmpty()) {
                         floatingMenu.style.display = 'none';
+                        // Report zero selection to Python (clears status bar indicator)
+                        if (backend && typeof backend.on_selection_changed === 'function') {
+                            backend.on_selection_changed(0, 0);
+                        }
                         return;
+                    }
+
+                    // Report selection count to Python for status bar
+                    if (backend && typeof backend.on_selection_changed === 'function') {
+                        var model = editor.getModel();
+                        var selectedText = model ? model.getValueInRange(selection) : '';
+                        var charCount = selectedText.length;
+                        var lineCount = selection.endLineNumber - selection.startLineNumber + 1;
+                        backend.on_selection_changed(charCount, lineCount);
                     }
 
                     var startPosition = selection.getStartPosition();
@@ -636,6 +737,26 @@
                 // Cursor Undo (Ctrl+U)
                 editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyU, function () {
                     editor.trigger('keyboard', 'cursorUndo', null);
+                });
+
+                // Peek Definition (Alt+F12)
+                editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.F12, function () {
+                    editor.trigger('keyboard', 'editor.action.peekDefinition', null);
+                });
+
+                // Smart Select - Expand (Shift+Alt+Right)
+                editor.addCommand(monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.RightArrow, function () {
+                    editor.trigger('keyboard', 'editor.action.smartSelect.expand', null);
+                });
+
+                // Smart Select - Shrink (Shift+Alt+Left)
+                editor.addCommand(monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.LeftArrow, function () {
+                    editor.trigger('keyboard', 'editor.action.smartSelect.shrink', null);
+                });
+
+                // Toggle Tab Focus Mode (Ctrl+M)
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyM, function () {
+                    editor.trigger('keyboard', 'editor.action.toggleTabFocusMode', null);
                 });
 
                 // Toggle Line Comment (Ctrl+/)
@@ -862,6 +983,28 @@
             }
         }
 
+        var messageTimeout = null;
+        function showEditorMessage(text, duration) {
+            var msgDiv = document.getElementById('editor-message');
+            var msgText = document.getElementById('message-text');
+            if (msgDiv && msgText) {
+                msgText.innerText = text;
+                msgDiv.style.display = 'flex';
+                if (messageTimeout) clearTimeout(messageTimeout);
+                if (duration) {
+                    messageTimeout = setTimeout(function () {
+                        msgDiv.style.display = 'none';
+                    }, duration);
+                }
+            }
+        }
+
+        function hideEditorMessage() {
+            var msgDiv = document.getElementById('editor-message');
+            if (msgDiv) msgDiv.style.display = 'none';
+            if (messageTimeout) clearTimeout(messageTimeout);
+        }
+
         function setCursorPosition(line, column) {
             if (editor) {
                 editor.setPosition({ lineNumber: line, column: column });
@@ -1029,7 +1172,70 @@
                     }
                 }
             });
-        }
+        // Middle click auto-scroll implementation
+        (function () {
+            var isScrolling = false;
+            var startX = 0, startY = 0;
+            var scrollIcon = null;
+            var animFrame = null;
+            var speedX = 0, speedY = 0;
+
+            document.addEventListener('mousedown', function (e) {
+                if (e.button === 1) { // Middle click
+                    e.preventDefault();
+                    isScrolling = true;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    speedX = 0;
+                    speedY = 0;
+
+                    if (!scrollIcon) {
+                        scrollIcon = document.createElement('div');
+                        scrollIcon.style.position = 'fixed';
+                        scrollIcon.style.width = '20px';
+                        scrollIcon.style.height = '20px';
+                        scrollIcon.style.border = '2px solid #5a009c';
+                        scrollIcon.style.borderRadius = '50%';
+                        scrollIcon.style.background = 'rgba(26, 0, 51, 0.8)';
+                        scrollIcon.style.zIndex = '999999';
+                        scrollIcon.style.pointerEvents = 'none';
+                        document.body.appendChild(scrollIcon);
+                    }
+                    scrollIcon.style.left = (startX - 10) + 'px';
+                    scrollIcon.style.top = (startY - 10) + 'px';
+                    scrollIcon.style.display = 'block';
+
+                    function autoScrollLoop() {
+                        if (!isScrolling || !editor) return;
+                        var currentScrollTop = editor.getScrollTop();
+                        var currentScrollLeft = editor.getScrollLeft();
+                        editor.setScrollTop(currentScrollTop + speedY);
+                        editor.setScrollLeft(currentScrollLeft + speedX);
+                        animFrame = requestAnimationFrame(autoScrollLoop);
+                    }
+                    animFrame = requestAnimationFrame(autoScrollLoop);
+                }
+            });
+
+            document.addEventListener('mousemove', function (e) {
+                if (isScrolling) {
+                    var diffX = e.clientX - startX;
+                    var diffY = e.clientY - startY;
+                    speedX = diffX * 0.15;
+                    speedY = diffY * 0.15;
+                    if (Math.abs(speedX) < 1) speedX = 0;
+                    if (Math.abs(speedY) < 1) speedY = 0;
+                }
+            });
+
+            document.addEventListener('mouseup', function (e) {
+                if (e.button === 1 && isScrolling) {
+                    isScrolling = false;
+                    if (scrollIcon) scrollIcon.style.display = 'none';
+                    if (animFrame) cancelAnimationFrame(animFrame);
+                }
+            });
+        })();
     </script>
 </body>
 

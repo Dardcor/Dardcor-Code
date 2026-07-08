@@ -726,6 +726,14 @@ def build_default_commands() -> list:
         {"id": "agent.newConversation", "label": "Dardcor AI: New Conversation", "shortcut": ""},
         {"id": "help.about", "label": "Help: About Dardcor Code", "shortcut": ""},
         {"id": "help.shortcuts", "label": "Help: Keyboard Shortcuts Reference", "shortcut": ""},
+        {"id": "localHistory.open", "label": "Local History: Open Local History", "shortcut": ""},
+        {"id": "localHistory.restore", "label": "Local History: Restore File", "shortcut": ""},
+        {"id": "workbench.action.editorLayoutSingle", "label": "View: Single Editor Layout", "shortcut": ""},
+        {"id": "workbench.action.editorLayoutTwoColumns", "label": "View: Two Columns Editor Layout", "shortcut": ""},
+        {"id": "workbench.action.editorLayoutThreeColumns", "label": "View: Three Columns Editor Layout", "shortcut": ""},
+        {"id": "workbench.action.editorLayoutTwoRows", "label": "View: Two Rows Editor Layout", "shortcut": ""},
+        {"id": "workbench.action.editorLayoutThreeRows", "label": "View: Three Rows Editor Layout", "shortcut": ""},
+        {"id": "workbench.action.editorLayoutGrid", "label": "View: Grid (2x2) Editor Layout", "shortcut": ""},
     ]
 
 
@@ -2279,9 +2287,84 @@ class MainWindow(QMainWindow):
         # Focus Management
         f6_shortcut = QShortcut(QKeySequence("F6"), self)
         f6_shortcut.activated.connect(self._focus_manager.cycle_focus)
-        
-        # Additional shortcuts not covered by menu
-        pass
+
+        # Ctrl+Tab — cycle to next editor tab (VS Code Editor Quick Access)
+        ctrl_tab = QShortcut(QKeySequence("Ctrl+Tab"), self)
+        ctrl_tab.activated.connect(self._editor_quick_access_next)
+
+        # Ctrl+Shift+Tab — cycle to previous editor tab
+        ctrl_shift_tab = QShortcut(QKeySequence("Ctrl+Shift+Tab"), self)
+        ctrl_shift_tab.activated.connect(self._editor_quick_access_prev)
+
+        # Ctrl+I — Inline Chat (VS Code parity)
+        ctrl_i = QShortcut(QKeySequence("Ctrl+I"), self)
+        ctrl_i.activated.connect(self._show_inline_chat)
+
+    # ── Editor Quick Access (Ctrl+Tab) ──────────────────────
+
+    def _editor_quick_access_next(self):
+        """Cycle to the next tab (Ctrl+Tab), identical to VS Code behavior."""
+        self._cycle_editor_tab(direction=1)
+
+    def _editor_quick_access_prev(self):
+        """Cycle to the previous tab (Ctrl+Shift+Tab)."""
+        self._cycle_editor_tab(direction=-1)
+
+    def _cycle_editor_tab(self, direction: int = 1):
+        """Cycle through editor tabs in the active group."""
+        group = self._editor_tabs.active_group()
+        if not group or len(group._tabs) < 2:
+            return
+        current = group._current_idx
+        n = len(group._tabs)
+        new_idx = (current + direction) % n
+        group._tab_bar.setCurrentIndex(new_idx)
+
+    # ── Inline Chat (Ctrl+I) ─────────────────────────────
+
+    def _show_inline_chat(self):
+        """Open VS Code-style Ctrl+I inline chat overlay attached to editor."""
+        from ..editor.inline_chat import InlineChatWidget
+        editor = self._editor_tabs.current_editor()
+        if not editor:
+            return
+        if not hasattr(self, "_inline_chat") or self._inline_chat is None:
+            self._inline_chat = InlineChatWidget(editor, self)
+            self._inline_chat.prompt_submitted.connect(self._on_inline_chat_submit)
+        else:
+            self._inline_chat._editor = editor
+        self._inline_chat.show_anchored()
+
+    def _on_inline_chat_submit(self, prompt: str, editor):
+        """Handle inline chat prompt: ask AI to edit the code in the active editor."""
+        if not editor:
+            return
+        selected = editor.get_selection()
+        content = editor.get_content()
+        file_path = editor.get_file_path() or "(untitled)"
+
+        if selected and selected.strip():
+            context = f"Selected code from {file_path}:\n```\n{selected}\n```"
+        else:
+            context = f"Current file: {file_path}\n```\n{content[:3000]}\n```"
+
+        full_prompt = f"{prompt}\n\n{context}"
+
+        self._notifications.show_info(f"Dardcor AI (Inline): {prompt}")
+
+        import threading
+        def _run():
+            try:
+                response = self._agent.ask_once(full_prompt)
+                if response:
+                    from PySide6.QtCore import QTimer
+                    QTimer.singleShot(0, lambda: self._notifications.show_info(
+                        f"AI: {response[:200]}{'...' if len(response) > 200 else ''}"
+                    ))
+            except Exception as e:
+                from PySide6.QtCore import QTimer
+                QTimer.singleShot(0, lambda: self._notifications.show_error(f"Inline chat error: {e}"))
+        threading.Thread(target=_run, daemon=True).start()
 
     # ── Command Palette ───────────────────────────────────
 
@@ -2445,6 +2528,15 @@ class MainWindow(QMainWindow):
             "agent.newConversation": self._new_conversation,
             "help.about": self._show_about,
             "help.shortcuts": self._show_keyboard_shortcuts,
+            "localHistory.open": self._show_local_history,
+            "localHistory.restore": self._show_local_history,
+            "workbench.action.editorLayoutSingle": lambda: self._editor_tabs.set_grid_layout("single"),
+            "workbench.action.editorLayoutTwoColumns": lambda: self._editor_tabs.set_grid_layout("two_columns"),
+            "workbench.action.editorLayoutThreeColumns": lambda: self._editor_tabs.set_grid_layout("three_columns"),
+            "workbench.action.editorLayoutTwoRows": lambda: self._editor_tabs.set_grid_layout("two_rows"),
+            "workbench.action.editorLayoutThreeRows": lambda: self._editor_tabs.set_grid_layout("three_rows"),
+            "workbench.action.editorLayoutGrid": lambda: self._editor_tabs.set_grid_layout("grid"),
+            "search.action.openNewEditor": self._open_search_editor,
         }
         handler = handlers.get(cmd_id)
         if handler:
@@ -2906,11 +2998,19 @@ class MainWindow(QMainWindow):
             self._status_bar.set_language(editor.get_language())
         self._status_bar.set_cursor_position(1, 1)
 
-    def _open_file_at_line(self, path: str, line: int):
+    def _open_file_at_line(self, path: str, line):
         self._open_file_in_editor(path)
         editor = self._editor_tabs.current_editor()
         if editor:
-            QTimer.singleShot(300, lambda: editor.reveal_line(line))
+            if isinstance(line, str) and "Cell" in line:
+                if hasattr(editor, "reveal_cell_line"):
+                    QTimer.singleShot(300, lambda: editor.reveal_cell_line(line))
+            else:
+                try:
+                    val = int(line)
+                    QTimer.singleShot(300, lambda: editor.reveal_line(val))
+                except Exception:
+                    pass
 
     def _save_current_file(self):
         self._editor_tabs.save_current()
@@ -3332,6 +3432,8 @@ class MainWindow(QMainWindow):
                     self._current_active_editor.cursor_position_changed.disconnect(self._on_cursor_moved)
                 if hasattr(self._current_active_editor, "content_changed"):
                     self._current_active_editor.content_changed.disconnect(self._on_editor_content_changed)
+                if hasattr(self._current_active_editor, "selection_changed"):
+                    self._current_active_editor.selection_changed.disconnect(self._on_selection_changed)
             except (TypeError, RuntimeError):
                 pass
 
@@ -3353,12 +3455,20 @@ class MainWindow(QMainWindow):
                 editor.cursor_position_changed.connect(self._on_cursor_moved)
             if hasattr(editor, "content_changed"):
                 editor.content_changed.connect(self._on_editor_content_changed)
+            if hasattr(editor, "selection_changed"):
+                editor.selection_changed.connect(self._on_selection_changed)
+                # Clear selection indicator when switching tabs
+                self._status_bar.set_selection(0, 0)
             self._ext_manager.fire_event("active_editor_changed", file_path)
 
     def _on_cursor_moved(self, line: int, col: int):
         self._status_bar.set_cursor_position(line, col)
         if self._breadcrumbs_bar:
             self._breadcrumbs_bar.update_current_symbol(line)
+
+    def _on_selection_changed(self, char_count: int, line_count: int):
+        """Update status bar selection count display (VS Code style)."""
+        self._status_bar.set_selection(char_count, line_count)
 
     def _on_outline_item_selected(self, line: int):
         editor = self._editor_tabs.current_editor()
@@ -3876,11 +3986,14 @@ class MainWindow(QMainWindow):
             self._editor_tabs.set_font_size(self._config.font_size)
             self._editor_tabs.set_word_wrap(self._config.word_wrap)
             self._editor_tabs.set_minimap(self._config.minimap_enabled)
+            self._editor_tabs.set_show_tabs(getattr(self._config, "show_tabs", "multiple"))
+            self._editor_tabs.set_wrap_tabs(getattr(self._config, "wrap_tabs", False))
             
         # Apply to file explorer (to pick up files.exclude changes)
         if hasattr(self, '_sidebar') and hasattr(self._sidebar, '_explorer'):
             if self._sidebar._explorer._root_path:
                 self._sidebar._explorer.set_root(self._sidebar._explorer._root_path)
+
 
     def _show_about(self):
         QMessageBox.about(
@@ -3898,6 +4011,26 @@ class MainWindow(QMainWindow):
         from ..settings.keybindings_ui import KeybindingsUIWidget
         widget = KeybindingsUIWidget(self)
         self._editor_tabs.add_custom_tab(widget, "⌨ Keyboard Shortcuts")
+
+    def _show_local_history(self):
+        """Open Local History panel for the current editor (VS Code parity)."""
+        from ..editor.local_history import LocalHistoryPanel
+        editor = self._editor_tabs.current_editor()
+        if not editor or not editor.get_file_path():
+            self._notifications.show_warning("No file open to show local history.")
+            return
+        file_path = editor.get_file_path()
+        current_content = editor.get_content()
+        workspace_root = self._config.workspace_path or ""
+        dlg = LocalHistoryPanel(file_path, current_content, workspace_root, self)
+        dlg.restore_requested.connect(lambda content: self._restore_from_history(editor, content))
+        dlg.exec()
+
+    def _restore_from_history(self, editor, content: str):
+        """Restore editor content from a local history version."""
+        if editor and content is not None:
+            editor.set_content(content, editor.get_language())
+            self._notifications.show_info("File restored from local history.")
 
     # ── Markdown Preview ──────────────────────────────────
 
@@ -3922,6 +4055,19 @@ class MainWindow(QMainWindow):
         layout.addWidget(preview)
         dialog.setStyleSheet("QDialog { background-color: #1e1b2e; }")
         dialog.exec()
+
+    def _open_search_editor(self):
+        """Open a dedicated Search Editor tab (VS Code search editor parity)."""
+        from ..search.panel import SearchPanel
+        ws_path = self._config.workspace_path or os.path.expanduser("~")
+        
+        editor_panel = SearchPanel(ws_path, self)
+        editor_panel.file_selected.connect(
+            lambda f, l: self._open_file_at_line(f, l)
+        )
+        
+        self._editor_tabs.add_custom_tab(editor_panel, "Search: results")
+
 
     # ── Show/hide Git status ──────────────────────────────
 

@@ -51,6 +51,7 @@ def save_editor_states(states: dict):
 class MonacoEditorWidget(QWidget):
     content_changed = Signal(str)
     cursor_position_changed = Signal(int, int)
+    selection_changed = Signal(int, int)  # selected_chars, selected_lines
     save_requested = Signal()
     command_palette_requested = Signal()
     diagnostics_ready = Signal(list)
@@ -99,6 +100,7 @@ class MonacoEditorWidget(QWidget):
             self.cursor_position_changed.emit(line, col)
         
         self._bridge.cursor_changed.connect(_handle_cursor_changed)
+        self._bridge.selection_changed.connect(self.selection_changed.emit)
         
         self._bridge.save_requested.connect(self.save_requested)
         self._bridge.command_palette_requested.connect(self.command_palette_requested)
@@ -205,6 +207,10 @@ class MonacoEditorWidget(QWidget):
     def get_content(self):
         return self._content
 
+    def get_selection(self) -> str:
+        """Return the currently selected text in the editor (empty string if none)."""
+        return getattr(self, "_selected_text", "")
+
     def save(self):
         if not self._file_path:
             return False
@@ -223,14 +229,30 @@ class MonacoEditorWidget(QWidget):
             with open(self._file_path, "w", encoding=enc) as f:
                 f.write(self._content)
             self._dirty = False
-            
+            self.show_message("File saved successfully", 2000)
+
+            # Save a local history snapshot (VS Code Local History parity)
+            try:
+                from .local_history import save_version
+                workspace_root = getattr(self, "_workspace_root", "")
+                save_version(self._file_path, self._content, workspace_root)
+            except Exception:
+                pass
+
             # Run linter on save
             if self._file_path.endswith(".py"):
                 self._run_linter()
-                
+
             return True
         except Exception:
             return False
+
+
+    def show_message(self, text, duration=3000):
+        if self._view_ready:
+            import json
+            safe_text = json.dumps(text)
+            self._view.page().runJavaScript(f"showEditorMessage({safe_text}, {duration});")
 
     def save_as(self, path):
         self._file_path = path

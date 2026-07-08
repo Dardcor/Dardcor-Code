@@ -146,3 +146,16 @@ class NotebookEditor(QWidget):
     def save_as(self, path):
         self._file_path = path
         self._is_dirty = False
+
+    def reveal_cell_line(self, cell_line: str):
+        try:
+            parts = cell_line.split(":")
+            cell_idx = int(parts[0].replace("Cell ", "")) - 1
+            if 0 <= cell_idx < self.cells_layout.count():
+                cell = self.cells_layout.itemAt(cell_idx).widget()
+                if cell:
+                    cell.editor.setFocus()
+                    self.scroll.ensureWidgetVisible(cell)
+        except Exception:
+            pass
+

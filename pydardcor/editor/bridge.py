@@ -6,6 +6,7 @@ from PySide6.QtCore import QObject, Signal, Slot
 class EditorBridge(QObject):
     content_changed = Signal(str)
     cursor_changed = Signal(int, int)
+    selection_changed = Signal(int, int)  # selected_chars, selected_lines
     save_requested = Signal()
     command_palette_requested = Signal()
     extension_command_requested = Signal(str)
@@ -36,6 +37,11 @@ class EditorBridge(QObject):
     @Slot(int, int)
     def on_cursor_changed(self, line, col):
         self.cursor_changed.emit(line, col)
+
+    @Slot(int, int)
+    def on_selection_changed(self, selected_chars, selected_lines):
+        """Called from JS when the user changes selection in the editor."""
+        self.selection_changed.emit(selected_chars, selected_lines)
 
     @Slot(str)
     def save_view_state(self, state_json):

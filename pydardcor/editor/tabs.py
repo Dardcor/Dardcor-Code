@@ -1,8 +1,7 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 from PySide6.QtCore import Signal, Qt
-
 from .group import EditorGroup
-from ..windows.grid_layout import GridLayoutSystem
+from ..windows.grid_layout import GridLayoutSystem, GridNode
 
 class EditorTabs(QWidget):
     """Manager for multiple EditorGroups, allowing grid layout split views."""
@@ -129,6 +128,17 @@ class EditorTabs(QWidget):
     def set_minimap(self, enabled):
         for g in self._groups: g.set_minimap(enabled)
 
+    def set_show_tabs(self, show_tabs: str):
+        for g in self._groups:
+            if hasattr(g, "_sync_tab_bar"):
+                g._sync_tab_bar()
+
+    def set_wrap_tabs(self, wrap_tabs: bool):
+        for g in self._groups:
+            if hasattr(g, "_sync_tab_bar"):
+                g._sync_tab_bar()
+
+
     def refresh_extension_context_menus(self):
         for g in self._groups:
             for tab in getattr(g, "_tabs", []):
@@ -192,3 +202,63 @@ class EditorTabs(QWidget):
                 from .diff_viewer import MonacoDiffEditorWidget
                 if isinstance(tab.editor, MonacoDiffEditorWidget):
                     tab.editor.toggle_inline_view(inline)
+
+    def set_grid_layout(self, config_type: str):
+        """Sets the editor layout to a preset configuration (VS Code style).
+        config_type: 'single', 'two_columns', 'three_columns', 'two_rows', 'three_rows', 'grid'
+        """
+        needed = {
+            'single': 1,
+            'two_columns': 2,
+            'three_columns': 3,
+            'two_rows': 2,
+            'three_rows': 3,
+            'grid': 4
+        }.get(config_type, 1)
+        
+        while len(self._groups) < needed:
+            self._add_group()
+            
+        for g in self._groups:
+            g.setParent(None)
+            
+        self.grid_system.layout.removeWidget(self.grid_system.root_node)
+        self.grid_system.root_node.deleteLater()
+        
+        if config_type == 'single':
+            self.grid_system.root_node = GridNode(Qt.Horizontal)
+            self.grid_system.root_node.addWidget(self._groups[0])
+        elif config_type == 'two_columns':
+            self.grid_system.root_node = GridNode(Qt.Horizontal)
+            self.grid_system.root_node.addWidget(self._groups[0])
+            self.grid_system.root_node.addWidget(self._groups[1])
+        elif config_type == 'three_columns':
+            self.grid_system.root_node = GridNode(Qt.Horizontal)
+            self.grid_system.root_node.addWidget(self._groups[0])
+            self.grid_system.root_node.addWidget(self._groups[1])
+            self.grid_system.root_node.addWidget(self._groups[2])
+        elif config_type == 'two_rows':
+            self.grid_system.root_node = GridNode(Qt.Vertical)
+            self.grid_system.root_node.addWidget(self._groups[0])
+            self.grid_system.root_node.addWidget(self._groups[1])
+        elif config_type == 'three_rows':
+            self.grid_system.root_node = GridNode(Qt.Vertical)
+            self.grid_system.root_node.addWidget(self._groups[0])
+            self.grid_system.root_node.addWidget(self._groups[1])
+            self.grid_system.root_node.addWidget(self._groups[2])
+        elif config_type == 'grid':
+            self.grid_system.root_node = GridNode(Qt.Horizontal)
+            col1 = GridNode(Qt.Vertical, self.grid_system.root_node)
+            col2 = GridNode(Qt.Vertical, self.grid_system.root_node)
+            
+            col1.addWidget(self._groups[0])
+            col1.addWidget(self._groups[1])
+            col2.addWidget(self._groups[2])
+            col2.addWidget(self._groups[3])
+            
+            self.grid_system.root_node.addWidget(col1)
+            self.grid_system.root_node.addWidget(col2)
+            
+        self.grid_system.layout.addWidget(self.grid_system.root_node)
+        self._active_group_idx = 0
+

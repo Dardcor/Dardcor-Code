@@ -155,6 +155,11 @@ class StatusBar(QStatusBar):
         self._cursor_btn.clicked.connect(self.go_to_line_requested.emit)
         self.addPermanentWidget(self._cursor_btn)
 
+        self._selection_btn = StatusBarButton("")
+        self._selection_btn.setToolTip("Selection Info")
+        self._selection_btn.hide()
+        self.addPermanentWidget(self._selection_btn)
+
         self._indent_btn = StatusBarButton("Spaces: 4")
         self._indent_btn.setToolTip("Select Indentation")
         self._indent_btn.clicked.connect(self.command_palette_requested.emit)
@@ -197,6 +202,45 @@ class StatusBar(QStatusBar):
         self._notif_btn.setToolTip("No Notifications")
         self.addPermanentWidget(self._notif_btn)
 
+        self._feedback_btn = StatusBarButton("\ueab6")
+        self._feedback_btn.setFixedWidth(24)
+        self._feedback_btn.setToolTip("Feedback")
+        self._feedback_btn.clicked.connect(self._show_feedback_dialog)
+        self.addPermanentWidget(self._feedback_btn)
+
+    def _show_feedback_dialog(self):
+        from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QTextEdit, QPushButton, QHBoxLayout, QMessageBox
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Send Feedback")
+        dlg.setMinimumSize(400, 250)
+        dlg.setStyleSheet("""
+            QDialog { background-color: #1e1e2e; color: #cccccc; }
+            QLabel { font-size: 12px; }
+            QTextEdit { background-color: #0d0d1a; border: 1px solid #3c0068; color: #cccccc; font-size: 12px; }
+            QPushButton { background-color: #7c3aed; border: none; border-radius: 4px; color: white; padding: 6px 12px; font-size: 12px; }
+            QPushButton:hover { background-color: #6d28d9; }
+        """)
+        lay = QVBoxLayout(dlg)
+        lay.addWidget(QLabel("We'd love to hear your feedback on Dardcor Code!"))
+        
+        txt = QTextEdit()
+        txt.setPlaceholderText("Tell us what you like or what we can improve...")
+        lay.addWidget(txt)
+        
+        btn_lay = QHBoxLayout()
+        submit = QPushButton("Submit Feedback")
+        submit.clicked.connect(lambda: (QMessageBox.information(dlg, "Feedback Submitted", "Thank you for your feedback!"), dlg.accept()))
+        cancel = QPushButton("Cancel")
+        cancel.setStyleSheet("background-color: #2a2a3c;")
+        cancel.clicked.connect(dlg.reject)
+        
+        btn_lay.addStretch()
+        btn_lay.addWidget(submit)
+        btn_lay.addWidget(cancel)
+        lay.addLayout(btn_lay)
+        dlg.exec()
+
+
     def set_notifications(self, count: int):
         """Update the notification bell tooltip to reflect pending toast count."""
         if count <= 0:
@@ -216,6 +260,17 @@ class StatusBar(QStatusBar):
 
     def set_cursor_position(self, line: int, col: int):
         self._cursor_btn.setText(f"Ln {line}, Col {col}")
+
+    def set_selection(self, char_count: int, line_count: int):
+        """Show or hide selection count indicator exactly like VS Code."""
+        if char_count <= 0:
+            self._selection_btn.hide()
+        else:
+            if line_count > 1:
+                self._selection_btn.setText(f"({line_count} lines, {char_count} chars selected)")
+            else:
+                self._selection_btn.setText(f"({char_count} selected)")
+            self._selection_btn.show()
 
     def set_language(self, language: str):
         self._lang_btn.setText(language)
@@ -314,12 +369,79 @@ class StatusBar(QStatusBar):
         w = event.size().width()
         
         # Hide items progressively as the window gets smaller
-        self._encoding_btn.setVisible(w > 800)
-        self._eol_btn.setVisible(w > 700)
-        self._indent_btn.setVisible(w > 600)
-        self._lang_btn.setVisible(w > 500)
-        self._git_btn.setVisible(w > 400 and self._has_git)
-        self._errors_btn.setVisible(w > 300)
+        self._encoding_btn.setVisible(w > 800 and self._item_visible("encoding"))
+        self._eol_btn.setVisible(w > 700 and self._item_visible("eol"))
+        self._indent_btn.setVisible(w > 600 and self._item_visible("indent"))
+        self._lang_btn.setVisible(w > 500 and self._item_visible("language"))
+        self._git_btn.setVisible(w > 400 and self._has_git and self._item_visible("git"))
+        self._errors_btn.setVisible(w > 300 and self._item_visible("problems"))
         
         super().resizeEvent(event)
+
+    # ── Status Bar Context Menu (VS Code right-click) ──────
+
+    def _item_visible(self, key: str) -> bool:
+        """Check if an item is toggled on (default: True)."""
+        if not hasattr(self, "_hidden_items"):
+            self._hidden_items = set()
+        return key not in self._hidden_items
+
+    def contextMenuEvent(self, event):
+        """Right-click on status bar → toggle item visibility menu (VS Code parity)."""
+        from PySide6.QtWidgets import QMenu, QAction
+
+        if not hasattr(self, "_hidden_items"):
+            self._hidden_items = set()
+
+        menu = QMenu(self)
+        menu.setStyleSheet("""
+            QMenu {
+                background-color: #1e1e2e;
+                border: 1px solid #3c0068;
+                color: #cccccc;
+                font-size: 12px;
+                padding: 4px 0;
+            }
+            QMenu::item { padding: 4px 20px 4px 28px; }
+            QMenu::item:selected { background-color: #3c0068; }
+            QMenu::item:checked::before { content: '✓'; }
+            QMenu::separator { height: 1px; background: #3c0068; margin: 2px 0; }
+        """)
+
+        title = menu.addAction("Status Bar Items")
+        title.setEnabled(False)
+        menu.addSeparator()
+
+        items = [
+            ("problems",  "Problems",         self._errors_btn),
+            ("git",       "Source Control",   self._git_btn),
+            ("cursor",    "Ln, Col",          self._cursor_btn),
+            ("selection", "Selection",        self._selection_btn),
+            ("indent",    "Indentation",      self._indent_btn),
+            ("encoding",  "Encoding",         self._encoding_btn),
+            ("eol",       "End of Line",      self._eol_btn),
+            ("language",  "Language Mode",    self._lang_btn),
+            ("notif",     "Notifications",    self._notif_btn),
+            ("feedback",  "Feedback",         self._feedback_btn),
+        ]
+
+        for key, label, widget in items:
+            act = QAction(label, menu)
+            act.setCheckable(True)
+            act.setChecked(self._item_visible(key))
+            act.triggered.connect(lambda checked, k=key, w=widget: self._toggle_item(k, w, checked))
+            menu.addAction(act)
+
+        menu.exec(event.globalPos())
+
+    def _toggle_item(self, key: str, widget, visible: bool):
+        """Toggle a status bar item on/off and persist the state."""
+        if not hasattr(self, "_hidden_items"):
+            self._hidden_items = set()
+        if visible:
+            self._hidden_items.discard(key)
+        else:
+            self._hidden_items.add(key)
+        # Force widget visibility (respecting resize logic for width-dependent items)
+        widget.setVisible(visible)
 

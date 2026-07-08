@@ -110,19 +110,26 @@ class FileSystem:
         max_results: int = 500,
         file_pattern: str = None,
         exclude_pattern: str = None,
+        ai_search: bool = False,
     ) -> List[Dict[str, Any]]:
-        """Search file contents for a query string."""
+        """Search file contents for a query string, with optional AI semantic ranker."""
         results = []
         flags = 0 if case_sensitive else re.IGNORECASE
 
-        try:
-            if not is_regex:
-                query = re.escape(query)
-            if whole_word:
-                query = rf"\b{query}\b"
-            pattern = re.compile(query, flags)
-        except re.error:
-            return results
+        query_terms = []
+        if ai_search:
+            query_terms = [t.lower() for t in re.split(r'\W+', query) if len(t) > 1]
+            if not query_terms:
+                query_terms = [query.lower()]
+        else:
+            try:
+                if not is_regex:
+                    query = re.escape(query)
+                if whole_word:
+                    query = rf"\b{query}\b"
+                pattern = re.compile(query, flags)
+            except re.error:
+                return results
 
         for dirpath, dirnames, filenames in os.walk(root):
             dirnames[:] = [d for d in dirnames if not should_skip_dir(d)]
@@ -137,21 +144,71 @@ class FileSystem:
                 if exclude_pattern and self._match_path_patterns(relative, exclude_pattern, root):
                     continue
 
+                if filepath.lower().endswith(".ipynb"):
+                    try:
+                        import json
+                        with open(filepath, "r", encoding="utf-8", errors="replace") as f:
+                            nb = json.load(f)
+                        for cell_idx, cell in enumerate(nb.get("cells", []), 1):
+                            source = cell.get("source", [])
+                            if isinstance(source, str):
+                                source = source.splitlines()
+                            for line_num, line in enumerate(source, 1):
+                                if ai_search:
+                                    line_lower = line.lower()
+                                    matches = sum(1 for t in query_terms if t in line_lower)
+                                    if matches > 0:
+                                        results.append({
+                                            "file": filepath,
+                                            "line": f"Cell {cell_idx}:{line_num}",
+                                            "content": line.rstrip("\n\r"),
+                                            "relative": relative,
+                                            "score": matches
+                                        })
+                                else:
+                                    if pattern.search(line):
+                                        results.append({
+                                            "file": filepath,
+                                            "line": f"Cell {cell_idx}:{line_num}",
+                                            "content": line.rstrip("\n\r"),
+                                            "relative": relative,
+                                        })
+                                        if len(results) >= max_results:
+                                            return results
+                    except Exception:
+                        pass
+                    continue
+
                 try:
                     with open(filepath, "r", encoding="utf-8", errors="replace") as f:
                         for line_num, line in enumerate(f, 1):
-                            if pattern.search(line):
-                                results.append({
-                                    "file": filepath,
-                                    "line": line_num,
-                                    "content": line.rstrip("\n\r"),
-                                    "relative": relative,
-                                })
-                                if len(results) >= max_results:
-                                    return results
+                            if ai_search:
+                                line_lower = line.lower()
+                                matches = sum(1 for t in query_terms if t in line_lower)
+                                if matches > 0:
+                                    results.append({
+                                        "file": filepath,
+                                        "line": line_num,
+                                        "content": line.rstrip("\n\r"),
+                                        "relative": relative,
+                                        "score": matches
+                                    })
+                            else:
+                                if pattern.search(line):
+                                    results.append({
+                                        "file": filepath,
+                                        "line": line_num,
+                                        "content": line.rstrip("\n\r"),
+                                        "relative": relative,
+                                    })
+                                    if len(results) >= max_results:
+                                        return results
                 except (PermissionError, OSError, UnicodeDecodeError):
                     continue
 
+        if ai_search:
+            results.sort(key=lambda x: x.get("score", 0), reverse=True)
+            return results[:max_results]
         return results
 
     def find_files(self, name_pattern: str, root: str, max_results: int = 200) -> List[str]:

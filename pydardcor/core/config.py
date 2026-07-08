@@ -141,6 +141,9 @@ class AppConfig:
     tab_size: int = 4
     word_wrap: bool = False
     minimap_enabled: bool = True
+    line_numbers_enabled: bool = True
+    sticky_scroll_enabled: bool = True
+    insert_spaces: bool = True
     terminal_shell: str = ""
     recent_files: list = field(default_factory=list)
     recent_folders: list = field(default_factory=list)
@@ -148,6 +151,8 @@ class AppConfig:
     show_folders: bool = True
     show_outline: bool = True
     show_timeline: bool = True
+    show_tabs: str = "multiple"
+    wrap_tabs: bool = False
     file_icon_theme: str = ""
     color_theme: str = ""
     extensions_auto_update: bool = True

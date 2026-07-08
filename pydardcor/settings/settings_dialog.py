@@ -244,6 +244,18 @@ class SettingsDialog(QDialog):
         self._minimap.setChecked(True)
         editor_layout.addRow("", self._minimap)
 
+        self._show_line_numbers = QCheckBox("Show Line Numbers")
+        self._show_line_numbers.setChecked(True)
+        editor_layout.addRow("", self._show_line_numbers)
+
+        self._sticky_scroll = QCheckBox("Show Sticky Scroll")
+        self._sticky_scroll.setChecked(True)
+        editor_layout.addRow("", self._sticky_scroll)
+
+        self._insert_spaces = QCheckBox("Insert Spaces (Use spaces instead of tabs)")
+        self._insert_spaces.setChecked(True)
+        editor_layout.addRow("", self._insert_spaces)
+
         self._auto_save_cb = QCheckBox("Auto-save files")
         self._auto_save_cb.setChecked(True)
         editor_layout.addRow("", self._auto_save_cb)
@@ -435,6 +447,9 @@ class SettingsDialog(QDialog):
         self._tab_size.setValue(self._config.tab_size)
         self._word_wrap.setChecked(self._config.word_wrap)
         self._minimap.setChecked(self._config.minimap_enabled)
+        self._show_line_numbers.setChecked(self._config.line_numbers_enabled)
+        self._sticky_scroll.setChecked(self._config.sticky_scroll_enabled)
+        self._insert_spaces.setChecked(self._config.insert_spaces)
         self._terminal_shell.setText(self._config.terminal_shell)
         self._show_folders.setChecked(self._config.show_folders)
         self._show_open_editors.setChecked(self._config.show_open_editors)
@@ -455,6 +470,9 @@ class SettingsDialog(QDialog):
         self._config.tab_size = self._tab_size.value()
         self._config.word_wrap = self._word_wrap.isChecked()
         self._config.minimap_enabled = self._minimap.isChecked()
+        self._config.line_numbers_enabled = self._show_line_numbers.isChecked()
+        self._config.sticky_scroll_enabled = self._sticky_scroll.isChecked()
+        self._config.insert_spaces = self._insert_spaces.isChecked()
         self._config.terminal_shell = self._terminal_shell.text()
         self._config.show_folders = self._show_folders.isChecked()
         self._config.show_open_editors = self._show_open_editors.isChecked()

@@ -84,6 +84,24 @@ class VSCodeInputBox(QWidget):
         return self.line_edit
 
 
+class SearchTreeWidget(QTreeWidget):
+    """Custom tree widget for search results supporting dismiss (Delete key) and multi-selection."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setSelectionMode(QTreeWidget.ExtendedSelection)
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Delete:
+            panel = self.parent()
+            while panel and not hasattr(panel, "dismiss_selected_results"):
+                panel = panel.parent()
+            if panel and hasattr(panel, "dismiss_selected_results"):
+                panel.dismiss_selected_results()
+                event.accept()
+                return
+        super().keyPressEvent(event)
+
+
 class SearchPanel(QWidget):
     """VS Code style search panel for searching across files."""
 
@@ -96,6 +114,7 @@ class SearchPanel(QWidget):
         self._root_path = root_path or os.path.expanduser("~")
         self._total_matches = 0
         self._total_files = 0
+        self._last_results = []
         self.setObjectName("searchPanel")
 
         # Debounce timer for real-time search
@@ -132,6 +151,22 @@ class SearchPanel(QWidget):
         """)
         header_layout.addWidget(title)
         header_layout.addStretch()
+
+        # Context lines button (VS Code show context parity)
+        self._context_lines_btn = QPushButton(" {} ")
+        self._context_lines_btn.setCheckable(True)
+        self._context_lines_btn.setFixedSize(24, 22)
+        self._context_lines_btn.setToolTip("Show Context Lines")
+        self._context_lines_btn.setStyleSheet("""
+            QPushButton {
+                background: transparent; border: none; color: #bbbbbb;
+                padding: 0px; font-size: 12px; border-radius: 3px; font-weight: bold;
+            }
+            QPushButton:hover { background-color: rgba(90,93,94,0.31); color: #ffffff; }
+            QPushButton:checked { background-color: #7c3aed; color: #ffffff; }
+        """)
+        self._context_lines_btn.clicked.connect(self._toggle_context_lines)
+        header_layout.addWidget(self._context_lines_btn)
 
         # Refresh button
         refresh_btn = QPushButton("\u21BB")
@@ -227,6 +262,15 @@ class SearchPanel(QWidget):
         self._regex_btn.toggled.connect(self._search)
         self._query_input_box.add_button(self._regex_btn)
 
+        # AI Semantic Search
+        self._ai_search_btn = QPushButton("AI")
+        self._ai_search_btn.setCheckable(True)
+        self._ai_search_btn.setFixedSize(22, 20)
+        self._ai_search_btn.setToolTip("AI Semantic Search")
+        self._ai_search_btn.setStyleSheet(self._toggle_btn_style(colors))
+        self._ai_search_btn.toggled.connect(self._search)
+        self._query_input_box.add_button(self._ai_search_btn)
+
         # Details button (...) on the far right
         self._details_btn = QPushButton("...")
         self._details_btn.setCheckable(True)
@@ -260,7 +304,7 @@ class SearchPanel(QWidget):
         # Replace input container
         self._replace_input_box = VSCodeInputBox("Replace", colors)
         self._replace_input = self._replace_input_box.lineEdit()
-        self._replace_input.textChanged.connect(self._on_query_changed)
+        self._replace_input.textChanged.connect(self._on_replace_changed)
         replace_row.addWidget(self._replace_input_box)
 
         # Replace All button inside the input container on the far right
@@ -340,7 +384,7 @@ class SearchPanel(QWidget):
         layout.addWidget(self._count_label)
 
         # Results tree
-        self._results = QTreeWidget()
+        self._results = SearchTreeWidget(self)
         self._results.setHeaderHidden(True)
         self._results.setIndentation(16)
         self._results.setAnimated(False)
@@ -434,7 +478,9 @@ class SearchPanel(QWidget):
                 whole_word=self._word_btn.isChecked(),
                 file_pattern=file_pattern,
                 exclude_pattern=exclude_pattern,
+                ai_search=self._ai_search_btn.isChecked(),
             )
+            self._last_results = results
             self.search_finished.emit(query, results)
 
         threading.Thread(target=do_search, daemon=True).start()
@@ -500,6 +546,22 @@ class SearchPanel(QWidget):
         files = {}
         total_matches = 0
 
+        show_context = self._context_lines_btn.isChecked()
+        replacement = self._replace_input.text()
+
+        pattern = None
+        if replacement and query:
+            try:
+                flags = 0 if self._case_btn.isChecked() else re.IGNORECASE
+                q_pat = query
+                if not self._regex_btn.isChecked():
+                    q_pat = re.escape(q_pat)
+                if self._word_btn.isChecked():
+                    q_pat = rf"\b{q_pat}\b"
+                pattern = re.compile(q_pat, flags)
+            except Exception:
+                pass
+
         for r in results[:500]:
             fpath = r["file"]
             if fpath not in files:
@@ -517,15 +579,70 @@ class SearchPanel(QWidget):
                 files[fpath] = {"item": file_item, "count": 0}
                 self._results.addTopLevelItem(file_item)
 
-            line_item = QTreeWidgetItem()
+            # Pre-calculate match & replacement preview if applicable
             content = r["content"][:150].strip()
-            line_item.setText(0, f"  {r['line']}:  {content}")
-            line_item.setData(0, Qt.UserRole, fpath)
-            line_item.setData(0, Qt.UserRole + 1, r["line"])
-            line_item.setForeground(0, QColor("#bbbbbb"))
-            files[fpath]["item"].addChild(line_item)
-            files[fpath]["count"] += 1
-            total_matches += 1
+            replaced_text = None
+            if pattern:
+                try:
+                    replaced_text, count = pattern.subn(replacement, content)
+                except Exception:
+                    pass
+
+            if show_context:
+                try:
+                    with open(fpath, "r", encoding="utf-8", errors="replace") as f:
+                        lines = f.readlines()
+                    match_idx = r["line"] - 1
+                    
+                    if match_idx > 0:
+                        prev_num = match_idx
+                        prev_content = lines[match_idx - 1].rstrip("\n\r")
+                        prev_item = QTreeWidgetItem()
+                        prev_item.setText(0, f"  {prev_num}:  {prev_content}")
+                        prev_item.setData(0, Qt.UserRole, fpath)
+                        prev_item.setData(0, Qt.UserRole + 1, prev_num)
+                        prev_item.setForeground(0, QColor("#666666"))
+                        files[fpath]["item"].addChild(prev_item)
+                        
+                    line_item = QTreeWidgetItem()
+                    if replaced_text and replaced_text != content:
+                        line_item.setText(0, f"  {r['line']}:  {content}   \u2794   {replaced_text}")
+                        line_item.setForeground(0, QColor("#73c991"))
+                    else:
+                        line_item.setText(0, f"  {r['line']}:  {content}")
+                        line_item.setForeground(0, QColor("#bbbbbb"))
+                    
+                    font = line_item.font(0)
+                    font.setBold(True)
+                    line_item.setFont(0, font)
+                    files[fpath]["item"].addChild(line_item)
+                    files[fpath]["count"] += 1
+                    total_matches += 1
+                    
+                    if match_idx < len(lines) - 1:
+                        next_num = match_idx + 2
+                        next_content = lines[match_idx + 1].rstrip("\n\r")
+                        next_item = QTreeWidgetItem()
+                        next_item.setText(0, f"  {next_num}:  {next_content}")
+                        next_item.setData(0, Qt.UserRole, fpath)
+                        next_item.setData(0, Qt.UserRole + 1, next_num)
+                        next_item.setForeground(0, QColor("#666666"))
+                        files[fpath]["item"].addChild(next_item)
+                except Exception:
+                    show_context = False # Fallback to no context
+                    
+            if not show_context:
+                line_item = QTreeWidgetItem()
+                if replaced_text and replaced_text != content:
+                    line_item.setText(0, f"  {r['line']}:  {content}   \u2794   {replaced_text}")
+                    line_item.setForeground(0, QColor("#73c991"))
+                else:
+                    line_item.setText(0, f"  {r['line']}:  {content}")
+                    line_item.setForeground(0, QColor("#bbbbbb"))
+                
+                files[fpath]["item"].addChild(line_item)
+                files[fpath]["count"] += 1
+                total_matches += 1
 
         # Update file item text with count
         for fpath, data in files.items():
@@ -542,8 +659,53 @@ class SearchPanel(QWidget):
             no_item.setForeground(0, QColor("#888888"))
             self._results.addTopLevelItem(no_item)
 
-        # Expand all
         self._results.expandAll()
+
+    def _toggle_context_lines(self):
+        query = self._query_input.text().strip()
+        if query and hasattr(self, "_last_results") and self._last_results:
+            self._display_results(query, self._last_results)
+
+    def _on_replace_changed(self):
+        query = self._query_input.text().strip()
+        if query and hasattr(self, "_last_results") and self._last_results:
+            self._display_results(query, self._last_results)
+
+    def dismiss_selected_results(self):
+        selected = self._results.selectedItems()
+        if not selected:
+            return
+            
+        for item in selected:
+            parent = item.parent()
+            if parent:
+                parent.removeChild(item)
+                count = parent.childCount()
+                base_text = parent.text(0).split("  (")[0]
+                if count > 0:
+                    parent.setText(0, f"{base_text}  ({count} matches)")
+                else:
+                    idx = self._results.indexOfTopLevelItem(parent)
+                    if idx >= 0:
+                        self._results.takeTopLevelItem(idx)
+            else:
+                idx = self._results.indexOfTopLevelItem(item)
+                if idx >= 0:
+                    self._results.takeTopLevelItem(idx)
+                    
+        # Update total matches label
+        total_matches = 0
+        total_files = 0
+        for i in range(self._results.topLevelItemCount()):
+            item = self._results.topLevelItem(i)
+            if item.data(0, Qt.UserRole):
+                total_files += 1
+                total_matches += item.childCount()
+                
+        if total_matches > 0:
+            self._count_label.setText(f"{total_matches} results in {total_files} files")
+        else:
+            self._count_label.setText("No results found")
 
     def _on_result_clicked(self, item: QTreeWidgetItem, column: int):
         path = item.data(0, Qt.UserRole)

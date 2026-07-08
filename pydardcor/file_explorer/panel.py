@@ -341,9 +341,77 @@ class GitStatusDelegate(QStyledItemDelegate):
             painter.restore()
 
 
+from PySide6.QtWidgets import QLineEdit, QFrame
+
+class ExplorerFilterWidget(QWidget):
+    """Floating filter input widget for the Explorer tree (VS Code 'Filter on Type' behavior)."""
+    text_changed = Signal(str)
+    closed = Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowFlags(Qt.SubWindow | Qt.FramelessWindowHint)
+        self._init_ui()
+
+    def _init_ui(self):
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(4, 2, 4, 2)
+        layout.setSpacing(4)
+        
+        self.setStyleSheet("""
+            ExplorerFilterWidget {
+                background-color: #1e1e2e;
+                border: 1px solid #7c3aed;
+                border-radius: 4px;
+            }
+            QLineEdit {
+                background: #0d0d1a;
+                border: none;
+                color: #cccccc;
+                font-size: 11px;
+                padding: 2px 4px;
+            }
+            QPushButton {
+                background: transparent;
+                border: none;
+                color: #8b8b8b;
+                font-size: 10px;
+                font-family: 'codicon';
+            }
+            QPushButton:hover { color: #ffffff; }
+        """)
+
+        self.input = QLineEdit()
+        self.input.setPlaceholderText("Filter on Type...")
+        self.input.textChanged.connect(self.text_changed.emit)
+        layout.addWidget(self.input)
+
+        self.close_btn = QPushButton("\uea76")  # codicon close
+        self.close_btn.setFixedSize(14, 14)
+        self.close_btn.clicked.connect(self.hide_and_clear)
+        layout.addWidget(self.close_btn)
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            self.hide_and_clear()
+            event.accept()
+        else:
+            super().keyPressEvent(event)
+
+    def hide_and_clear(self):
+        self.input.clear()
+        self.hide()
+        self.closed.emit()
+
+
 class ExplorerTreeWidget(QTreeWidget):
     """Custom tree widget to handle actual file moving on drag and drop."""
     file_dropped = Signal(str, str) # source_path, target_folder
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.verticalScrollBar().valueChanged.connect(lambda: self.update_sticky_scroll())
+
 
     def keyPressEvent(self, event):
         parent_explorer = self.parent()
@@ -393,7 +461,41 @@ class ExplorerTreeWidget(QTreeWidget):
                 event.accept()
                 return
 
+        # Alphanumeric trigger for Filter on Type (VS Code Keyboard Navigation parity)
+        if not event.modifiers() and len(event.text()) == 1 and event.text().isalnum():
+            if hasattr(parent_explorer, "_show_filter"):
+                parent_explorer._show_filter(event.text())
+                event.accept()
+                return
+
         super().keyPressEvent(event)
+
+    def filter_tree(self, query: str):
+        query = query.lower().strip()
+        
+        def _filter_item(item) -> bool:
+            item_text = item.text(0).lower()
+            matches = (query in item_text)
+            
+            any_child_matches = False
+            for i in range(item.childCount()):
+                child = item.child(i)
+                child_matches = _filter_item(child)
+                if child_matches:
+                    any_child_matches = True
+            
+            if not query:
+                item.setHidden(False)
+                return True
+                
+            should_show = matches or any_child_matches
+            item.setHidden(not should_show)
+            if any_child_matches:
+                item.setExpanded(True)
+            return should_show
+
+        for i in range(self.topLevelItemCount()):
+            _filter_item(self.topLevelItem(i))
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
@@ -494,6 +596,46 @@ class ExplorerTreeWidget(QTreeWidget):
             
         super().dropEvent(event)
 
+    def scrollContentsBy(self, dx, dy):
+        super().scrollContentsBy(dx, dy)
+        self.update_sticky_scroll()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, "_sticky_label") and self._sticky_label.isVisible():
+            self._sticky_label.setFixedWidth(self.viewport().width())
+
+    def update_sticky_scroll(self):
+        if not self.topLevelItemCount():
+            if hasattr(self, "_sticky_label"):
+                self._sticky_label.hide()
+            return
+            
+        if not hasattr(self, "_sticky_label"):
+            self._sticky_label = QLabel(self.viewport())
+            self._sticky_label.setStyleSheet("""
+                background-color: #1a0033;
+                color: #bbbbbb;
+                font-weight: bold;
+                font-size: 11px;
+                border-bottom: 1px solid #3c0068;
+                padding: 4px 8px;
+            """)
+            self._sticky_label.hide()
+            
+        top_item = self.itemAt(0, 0)
+        if not top_item:
+            self._sticky_label.hide()
+            return
+            
+        parent = top_item.parent()
+        if parent:
+            self._sticky_label.setText(parent.text(0))
+            self._sticky_label.setGeometry(0, 0, self.viewport().width(), 22)
+            self._sticky_label.show()
+        else:
+            self._sticky_label.hide()
+
 
 class FileExplorer(QWidget):
     file_selected = Signal(str)
@@ -515,6 +657,7 @@ class FileExplorer(QWidget):
         self._welcome_widget = None
         self._open_editors_panel = None
         self._clipboard = {"action": None, "paths": []}
+        self._filter_widget = None
         self.setObjectName("fileExplorer")
 
         self._watcher = QFileSystemWatcher(self)
@@ -533,6 +676,28 @@ class FileExplorer(QWidget):
         self._refresh_timer.timeout.connect(self._do_refresh)
 
         self._setup_ui()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._update_filter_position()
+
+    def _show_filter(self, initial_text: str):
+        if not self._filter_widget:
+            self._filter_widget = ExplorerFilterWidget(self._tree)
+            self._filter_widget.text_changed.connect(self._tree.filter_tree)
+            self._filter_widget.closed.connect(lambda: self._tree.setFocus())
+            
+        self._filter_widget.show()
+        self._filter_widget.raise_()
+        self._filter_widget.input.setText(initial_text)
+        self._filter_widget.input.setFocus()
+        self._update_filter_position()
+
+    def _update_filter_position(self):
+        if self._filter_widget and self._filter_widget.isVisible():
+            x = self._tree.width() - self._filter_widget.width() - 25
+            self._filter_widget.move(max(10, x), 10)
+
 
     def setup_explorer_menu(self, open_editors_panel, outline_panel=None, timeline_panel=None):
         self._open_editors_panel = open_editors_panel
@@ -943,8 +1108,14 @@ class FileExplorer(QWidget):
         # VS Code only grays them out.
 
         # File Nesting Config
-        nesting_enabled = False # Disabled by default as it disrupts sorting and VS Code parity
-        nesting_patterns = {}
+        nesting_enabled = h_config.get("explorer.fileNesting.enabled", False)
+        nesting_patterns = h_config.get("explorer.fileNesting.patterns", {
+            "package.json": "package-lock.json, yarn.lock, pnpm-lock.yaml, bun.lockb",
+            "tsconfig.json": "tsconfig.*.json",
+            "*.ts": "$(capture).js, $(capture).d.ts, $(capture).js.map",
+            "*.tsx": "$(capture).ts, $(capture).tsx, $(capture).js, $(capture).js.map",
+            "*.py": "$(capture).pyc, $(capture).pyo"
+        })
 
         valid_names = []
         for name in entries:
@@ -1555,6 +1726,11 @@ class FileExplorer(QWidget):
             new_folder.triggered.connect(self._new_folder)
             menu.addAction(new_folder)
             menu.addSeparator()
+            
+            import_files = QAction("Import Files...", self)
+            import_files.triggered.connect(lambda: self._import_files(self._root_path))
+            menu.addAction(import_files)
+            
             open_folder = QAction("Open Folder...", self)
             open_folder.triggered.connect(self._open_folder)
             menu.addAction(open_folder)
@@ -1592,6 +1768,11 @@ class FileExplorer(QWidget):
             reveal_action = QAction("Reveal in File Explorer", self)
             reveal_action.triggered.connect(lambda: self._reveal_in_explorer(path))
             menu.addAction(reveal_action)
+            
+            export_action = QAction("Export File...", self)
+            export_action.triggered.connect(lambda: self._export_file(path))
+            menu.addAction(export_action)
+            
             menu.addSeparator()
 
         if os.path.isdir(path):
@@ -1611,6 +1792,14 @@ class FileExplorer(QWidget):
             reveal_dir_action = QAction("Reveal in File Explorer", self)
             reveal_dir_action.triggered.connect(lambda: self._reveal_in_explorer(path))
             menu.addAction(reveal_dir_action)
+            
+            import_files = QAction("Import Files...", self)
+            import_files.triggered.connect(lambda: self._import_files(path))
+            menu.addAction(import_files)
+            export_action = QAction("Export Folder...", self)
+            export_action.triggered.connect(lambda: self._export_file(path))
+            menu.addAction(export_action)
+            
             menu.addSeparator()
 
         if not is_root:
@@ -1661,6 +1850,46 @@ class FileExplorer(QWidget):
         rel = os.path.relpath(path, self._root_path)
         from PySide6.QtWidgets import QApplication
         QApplication.clipboard().setText(rel)
+
+    def _import_files(self, target_dir: str):
+        if not os.path.isdir(target_dir):
+            target_dir = os.path.dirname(target_dir)
+            
+        files, _ = QFileDialog.getOpenFileNames(self, "Import Files", os.path.expanduser("~"))
+        if files:
+            import shutil
+            for f in files:
+                try:
+                    dest = os.path.join(target_dir, os.path.basename(f))
+                    if os.path.isdir(f):
+                        shutil.copytree(f, dest)
+                    else:
+                        shutil.copy2(f, dest)
+                except Exception as e:
+                    print(f"Error importing file: {e}")
+            self._refresh()
+
+    def _export_file(self, source_path: str):
+        if os.path.isdir(source_path):
+            dest_dir = QFileDialog.getExistingDirectory(self, "Export Folder To", os.path.expanduser("~"))
+            if dest_dir:
+                import shutil
+                dest = os.path.join(dest_dir, os.path.basename(source_path))
+                try:
+                    shutil.copytree(source_path, dest)
+                    QMessageBox.information(self, "Export Successful", f"Folder exported successfully to {dest}")
+                except Exception as e:
+                    QMessageBox.critical(self, "Export Error", f"Error exporting folder: {e}")
+        else:
+            dest, _ = QFileDialog.getSaveFileName(self, "Export File As", os.path.join(os.path.expanduser("~"), os.path.basename(source_path)))
+            if dest:
+                import shutil
+                try:
+                    shutil.copy2(source_path, dest)
+                    QMessageBox.information(self, "Export Successful", f"File exported successfully to {dest}")
+                except Exception as e:
+                    QMessageBox.critical(self, "Export Error", f"Error exporting file: {e}")
+
         
     def _trigger_rename(self):
         item = self._tree.currentItem()

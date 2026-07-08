@@ -7,12 +7,12 @@ from PySide6.QtGui import QAction
 from PySide6.QtCore import Signal, Qt
 
 def _parse_symbols_from_file(file_path):
-    """Read a Python file and return parsed symbols (class/function names + lines)."""
+    """Read a file and return parsed outline symbols for languages like Python, JS, TS, etc."""
     try:
-        from pydardcor.core.filesystem import parse_python_symbols
+        from pydardcor.file_explorer.outline_panel import parse_outline_symbols
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
-        return parse_python_symbols(content)
+        return parse_outline_symbols(content, file_path)
     except Exception:
         return []
 
@@ -145,20 +145,25 @@ class BreadcrumbsBar(QWidget):
             return
             
         self.symbol_btn.setDisabled(False)
+        best_symbol = None
         
-        # Default to first symbol
-        current_sym = self.symbols[0]
+        def find_best(syms):
+            nonlocal best_symbol
+            for sym in syms:
+                sym_line = sym.get('line', 0)
+                if sym_line <= line_number:
+                    if not best_symbol or sym_line > best_symbol.get('line', 0):
+                        best_symbol = sym
+                if sym.get('children'):
+                    find_best(sym['children'])
+                    
+        find_best(self.symbols)
         
-        for sym in self.symbols:
-            # Handle both dictionary and object formats gracefully
-            sym_line = sym.get('line', 0) if isinstance(sym, dict) else getattr(sym, 'line', 0)
-            if sym_line <= line_number:
-                current_sym = sym
-            else:
-                break
-                
-        sym_name = current_sym.get('name', '{}') if isinstance(current_sym, dict) else getattr(current_sym, 'name', '{}')
-        self.symbol_btn.setText(sym_name)
+        if best_symbol:
+            sym_name = best_symbol.get('name', '{}')
+            self.symbol_btn.setText(sym_name)
+        else:
+            self.symbol_btn.setText("{}")
 
     def _show_symbol_menu(self):
         """Shows a dropdown menu with all parsed symbols for the current file."""
@@ -166,16 +171,23 @@ class BreadcrumbsBar(QWidget):
             return
             
         menu = QMenu(self)
-        for sym in self.symbols:
-            sym_name = sym.get('name', 'Unknown') if isinstance(sym, dict) else getattr(sym, 'name', 'Unknown')
-            sym_line = sym.get('line', 0) if isinstance(sym, dict) else getattr(sym, 'line', 0)
-            
-            action = QAction(sym_name, self)
-            action.triggered.connect(lambda checked=False, l=sym_line: self.symbol_selected.emit(l))
-            menu.addAction(action)
-            
-        # Display the menu right below the symbol button
+        
+        def populate_menu(syms, prefix=""):
+            for sym in syms:
+                sym_name = sym.get('name', 'Unknown')
+                sym_line = sym.get('line', 0)
+                display_name = f"{prefix}{sym_name}"
+                
+                action = QAction(display_name, self)
+                action.triggered.connect(lambda checked=False, l=sym_line: self.symbol_selected.emit(l))
+                menu.addAction(action)
+                
+                if sym.get('children'):
+                    populate_menu(sym['children'], prefix + "  ")
+                    
+        populate_menu(self.symbols)
         menu.exec(self.symbol_btn.mapToGlobal(self.symbol_btn.rect().bottomLeft()))
+
 
     def on_file_changed(self, file_path: str):
         """Slot to handle external file_changed signals and update breadcrumbs."""
