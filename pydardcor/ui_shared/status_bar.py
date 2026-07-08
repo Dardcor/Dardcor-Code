@@ -122,6 +122,7 @@ class StatusBar(QStatusBar):
     sync_requested = Signal()
     problems_requested = Signal()
     ext_status_clicked = Signal(str)
+    notifications_requested = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -239,6 +240,7 @@ class StatusBar(QStatusBar):
         self._notif_btn = StatusBarButton("\ueaa2")
         self._notif_btn.setFixedWidth(28)
         self._notif_btn.setToolTip("No Notifications")
+        self._notif_btn.clicked.connect(self.notifications_requested.emit)
         self._notif_badge = QLabel("0", self._notif_btn)
         self._notif_badge.setAlignment(Qt.AlignCenter)
         self._notif_badge.setFixedSize(14, 14)

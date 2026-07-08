@@ -1236,13 +1236,20 @@ class MainWindow(QMainWindow):
         
         self._ports_panel = PortForwardingPanel(self)
 
+        from ..comments.service import CommentService
+        from ..comments.panel import CommentsPanel
+        self._comment_service = CommentService(self)
+        self._comments_panel = CommentsPanel(self._comment_service, self)
+        self._comments_panel.comment_selected.connect(self._open_file_at_line)
+
         self._bottom_panel = BottomPanel()
         self._bottom_panel.set_panels(
             self._problems_panel,
             self._output_panel,
             self._debug_console,
             self._terminal_panel,
-            self._ports_panel
+            self._ports_panel,
+            self._comments_panel
         )
         self._bottom_panel.hide()
         
@@ -1343,6 +1350,7 @@ class MainWindow(QMainWindow):
         self._status_bar.problems_requested.connect(self._open_problems_panel)
         self._status_bar.ext_status_clicked.connect(self._execute_command)
         self._status_bar._ai_btn.clicked.connect(self._show_settings)
+        self._status_bar.notifications_requested.connect(self._show_notification_center)
         self._notifications.count_changed.connect(self._status_bar.set_notifications)
         self._status_bar.set_notifications(0)
         
@@ -1369,6 +1377,7 @@ class MainWindow(QMainWindow):
 
         # Detect git branch
         QTimer.singleShot(1000, self._detect_git_branch)
+        QTimer.singleShot(1000, self._show_welcome_page)
 
         self._title_bar.btn_left_sidebar.setChecked(True)
         self._title_bar.btn_right_sidebar.setChecked(True)
@@ -1376,6 +1385,15 @@ class MainWindow(QMainWindow):
         self._chat_panel.show()
 
         QTimer.singleShot(100, self._sync_toggle_states)
+
+        from ..core.url_handler import URLHandler
+        self._url_handler = URLHandler(self)
+        self._url_handler.open_file_requested.connect(
+            lambda path, line, col: self._open_file_at_line(path, line)
+        )
+        self._url_handler.install_extension_requested.connect(
+            lambda ext_id: self._ext_manager.install_from_marketplace(ext_id)
+        )
 
         # ── Customize Layout popup (lazy, created once) ──
         self._primary_sidebar_position = 'left'
@@ -2020,12 +2038,12 @@ class MainWindow(QMainWindow):
         
         go_to_symbol_ws = QAction("Go to Symbol in Workspace...", self)
         go_to_symbol_ws.setShortcut(QKeySequence("Ctrl+T"))
-        go_to_symbol_ws.triggered.connect(self._show_command_palette)
+        go_to_symbol_ws.triggered.connect(self._show_go_to_symbol_workspace)
         go_menu.addAction(go_to_symbol_ws)
 
         go_to_symbol = QAction("Go to Symbol in Editor...", self)
         go_to_symbol.setShortcut(QKeySequence("Ctrl+Shift+O"))
-        go_to_symbol.triggered.connect(self._show_command_palette)
+        go_to_symbol.triggered.connect(self._show_go_to_symbol_editor)
         go_menu.addAction(go_to_symbol)
         
         go_menu.addSeparator()
@@ -2204,7 +2222,7 @@ class MainWindow(QMainWindow):
         help_menu = menubar.addMenu("Help")
 
         welcome_action = QAction("Welcome", self)
-        welcome_action.triggered.connect(lambda: self._new_conversation())
+        welcome_action.triggered.connect(self._show_welcome_page)
         help_menu.addAction(welcome_action)
         
         show_all_commands = QAction("Show All Commands", self)
@@ -2524,6 +2542,8 @@ class MainWindow(QMainWindow):
             "view.toggleTerminal": self._toggle_terminal,
             "view.quickOpen": self._show_quick_open,
             "view.goToLine": self._show_go_to_line,
+            "workbench.action.gotoSymbol": self._show_go_to_symbol_editor,
+            "workbench.action.showAllSymbols": self._show_go_to_symbol_workspace,
             "view.commandPalette": self._show_command_palette,
             "view.explorer": lambda: self._switch_sidebar(VIEW_EXPLORER),
             "view.search": lambda: self._switch_sidebar(VIEW_SEARCH),
@@ -4021,12 +4041,13 @@ class MainWindow(QMainWindow):
         self._quick_open.show_dialog(from_command_center=True)
 
     def _show_go_to_line(self):
-        editor = self._editor_tabs.current_editor()
-        if not editor:
-            return
-        dialog = GoToLineDialog(9999, self)
-        dialog.line_selected.connect(lambda line: editor.reveal_line(line))
-        dialog.show_dialog()
+        self._quick_open.show_dialog(from_command_center=False, initial_text=":")
+
+    def _show_go_to_symbol_editor(self):
+        self._quick_open.show_dialog(from_command_center=False, initial_text="@")
+
+    def _show_go_to_symbol_workspace(self):
+        self._quick_open.show_dialog(from_command_center=False, initial_text="#")
 
     def _record_editor_tab_mru(self, file_path: str):
         key = file_path or ""
@@ -4122,6 +4143,32 @@ class MainWindow(QMainWindow):
         from ..settings.settings_ui import SettingsUIWidget
         widget = SettingsUIWidget(self)
         self._editor_tabs.add_custom_tab(widget, "⚙ Settings")
+
+    def _show_notification_center(self):
+        from ..ui_shared.notification_center import NotificationCenter
+        center = NotificationCenter(self._notifications, self)
+        center.show_above_widget(self._status_bar._notif_btn)
+
+    def _show_welcome_page(self):
+        from .welcome_page import WelcomePageWidget
+        widget = WelcomePageWidget(self)
+        
+        def on_action(action_type):
+            if action_type == "new":
+                self._new_file()
+            elif action_type == "open_file":
+                self._open_file_dialog()
+            elif action_type == "open_folder":
+                self._open_folder_dialog()
+            elif action_type == "clone":
+                from PySide6.QtWidgets import QInputDialog
+                url, ok = QInputDialog.getText(self, "Clone Repository", "Git URL:")
+                if ok and url:
+                    self._notifications.show_info(f"Cloning {url}...")
+                    self._git_panel.bridge._run_git(["clone", url])
+                    
+        widget.file_action_requested.connect(on_action)
+        self._editor_tabs.add_custom_tab(widget, "Get Started")
 
     def _apply_settings(self):
         from ..core.config import get_config

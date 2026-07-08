@@ -50,16 +50,18 @@ class PtyReaderThread(QThread):
                 break
 
             try:
-                # blocking=True waits until data is available or timeout
-                raw = self.pty.read(blocking=True)
+                # BUG-004 FIX: Use non-blocking reads to prevent Win32 named pipe
+                # deadlock/hang after 5 minutes of terminal inactivity.
+                raw = self.pty.read(blocking=False)
             except Exception:
-                time.sleep(0.005)
+                time.sleep(0.01)
                 continue
 
             if not raw:
                 if not self.pty.isalive():
                     break
-                time.sleep(0.001)
+                # No data available: sleep briefly to avoid busy-wait spinning
+                time.sleep(0.01)
                 continue
 
             if isinstance(raw, bytes):

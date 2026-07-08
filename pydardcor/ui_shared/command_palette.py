@@ -1023,7 +1023,7 @@ class QuickOpenDialog(QDialog):
         super().keyPressEvent(event)
 
 
-    def show_dialog(self, from_command_center=False):
+    def show_dialog(self, from_command_center=False, initial_text: str = ""):
         self._title_bar.hide()
         self._input.show()
         
@@ -1035,15 +1035,21 @@ class QuickOpenDialog(QDialog):
             x = parent_geo.x() + (parent_geo.width() - self.width()) // 2
             y = parent_geo.y() + 50
             self.move(x, y)
-        self._input.clear()
-        
-        if from_command_center:
-            self._show_help_picks()
-        else:
-            self._filtered = self._all_files[:50]
-            self._populate_list()
             
         self.show()
+        
+        if initial_text:
+            self._input.setText(initial_text)
+            self._input.setCursorPosition(len(initial_text))
+            self._on_filter(initial_text)
+        else:
+            self._input.clear()
+            if from_command_center:
+                self._show_help_picks()
+            else:
+                self._filtered = self._all_files[:50]
+                self._populate_list()
+            
         self._input.setFocus()
         
     def show_customize_layout(self):

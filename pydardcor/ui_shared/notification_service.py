@@ -131,10 +131,14 @@ class NotificationToast(QWidget):
         self.deleteLater()
 
 
+from datetime import datetime
+from .notification_sound import play_notification_sound
+
 class NotificationService(QWidget):
     """Manages a stack of notification toasts in the bottom-right corner."""
 
     count_changed = Signal(int)
+    history_changed = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -143,6 +147,7 @@ class NotificationService(QWidget):
         self.setStyleSheet("background: transparent;")
         self._toasts: list[NotificationToast] = []
         self._queue: deque = deque()
+        self._history = []
         self._dnd = False
         self._ignored_sources = set()
         self._persistence_file = os.path.expanduser("~/.dardcor-code/notifications.json")
@@ -156,6 +161,15 @@ class NotificationService(QWidget):
                     data = json.load(f)
                     for item in data:
                         self._queue.append((item['msg'], item['sev'], None))
+                        self._history.append({
+                            "id": len(self._history),
+                            "message": item['msg'],
+                            "severity": item['sev'],
+                            "actions": None,
+                            "source": "Restored",
+                            "timestamp": datetime.now().strftime("%H:%M:%S"),
+                            "read": False
+                        })
         except Exception:
             pass
 
@@ -204,12 +218,30 @@ class NotificationService(QWidget):
         for toast in list(self._toasts):
             toast._close()
         self._queue.clear()
+        self._history.clear()
         self._emit_count()
+        self.history_changed.emit()
 
     def _show(self, message: str, severity: str, actions: list = None, source: str = None):
         if source in self._ignored_sources:
             return
             
+        # Add to history
+        self._history.append({
+            "id": len(self._history),
+            "message": message,
+            "severity": severity,
+            "actions": actions,
+            "source": source or "System",
+            "timestamp": datetime.now().strftime("%H:%M:%S"),
+            "read": False
+        })
+        self.history_changed.emit()
+
+        # Play audio cue
+        if not self._dnd:
+            play_notification_sound()
+
         if self._dnd or len(self._toasts) >= _MAX_VISIBLE:
             self._queue.append((message, severity, actions))
             self._save_persisted()
