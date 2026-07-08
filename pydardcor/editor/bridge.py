@@ -158,9 +158,109 @@ class EditorBridge(QObject):
         except Exception:
             return []
 
+    def _user_snippet_completions(self, code, line, col) -> list:
+        """User-defined snippets from snippet_manager."""
+        try:
+            widget = self.parent()
+            language = getattr(widget, "_language", "") or "plaintext"
+            prefix = self._typed_prefix(code, line, col)
+
+            from .snippet_manager import get_snippet_manager
+            snippets = get_snippet_manager().get_completions_for_prefix(language, prefix)
+            results = []
+            for snip in snippets:
+                results.append({
+                    "label": snip.prefix,
+                    "insertText": snip.get_insert_text(),
+                    "kind": 27,
+                    "insertTextRules": 4,
+                    "detail": snip.description or snip.name,
+                    "documentation": snip.description,
+                    "typedLength": len(prefix),
+                })
+            return results[:30]
+        except Exception:
+            return []
+
+    def _resolve_file_path(self, file_path: str) -> str:
+        return file_path or self._file_path or ""
+
+    def _lsp_location_to_json(self, loc: dict) -> dict:
+        uri = loc.get("uri", "")
+        rng = loc.get("range", {})
+        start = rng.get("start", {})
+        end = rng.get("end", start)
+        return {
+            "uri": uri,
+            "line": start.get("line", 0) + 1,
+            "character": start.get("character", 0) + 1,
+            "endLine": end.get("line", start.get("line", 0)) + 1,
+            "endCharacter": end.get("character", start.get("character", 0)) + 1,
+        }
+
+    def _lsp_workspace_edit_to_json(self, edit: dict) -> list:
+        edits = []
+        if not edit:
+            return edits
+        changes = edit.get("changes") or {}
+        for uri, text_edits in changes.items():
+            for te in text_edits or []:
+                rng = te.get("range", {})
+                start = rng.get("start", {})
+                end = rng.get("end", start)
+                edits.append({
+                    "uri": uri,
+                    "startLine": start.get("line", 0) + 1,
+                    "startColumn": start.get("character", 0) + 1,
+                    "endLine": end.get("line", start.get("line", 0)) + 1,
+                    "endColumn": end.get("character", start.get("character", 0)) + 1,
+                    "text": te.get("newText", ""),
+                })
+        for doc_change in edit.get("documentChanges") or []:
+            uri = doc_change.get("textDocument", {}).get("uri", "")
+            for te in doc_change.get("edits") or []:
+                if "range" in te:
+                    rng = te.get("range", {})
+                    start = rng.get("start", {})
+                    end = rng.get("end", start)
+                    edits.append({
+                        "uri": uri,
+                        "startLine": start.get("line", 0) + 1,
+                        "startColumn": start.get("character", 0) + 1,
+                        "endLine": end.get("line", start.get("line", 0)) + 1,
+                        "endColumn": end.get("character", start.get("character", 0)) + 1,
+                        "text": te.get("newText", ""),
+                    })
+        return edits
+
+    def _lsp_signature_help_to_json(self, result: dict) -> dict:
+        signatures = []
+        for sig in result.get("signatures") or []:
+            label = sig.get("label", "")
+            if isinstance(label, list):
+                label = "".join(str(part) for part in label)
+            params = []
+            for param in sig.get("parameters") or []:
+                plabel = param.get("label", "")
+                if isinstance(plabel, list) and len(plabel) == 2:
+                    plabel = label[plabel[0]:plabel[1]] if isinstance(label, str) else str(plabel)
+                doc = param.get("documentation", "")
+                if isinstance(doc, dict):
+                    doc = doc.get("value", "")
+                params.append({"label": plabel, "documentation": doc})
+            doc = sig.get("documentation", "")
+            if isinstance(doc, dict):
+                doc = doc.get("value", "")
+            signatures.append({"label": label, "documentation": doc, "parameters": params})
+        return {
+            "signatures": signatures,
+            "activeSignature": result.get("activeSignature", 0),
+            "activeParameter": result.get("activeParameter", 0),
+        }
+
     @Slot(str, int, int, result=str)
     def get_completions(self, code, line, col):
-        snippet_items = self._snippet_completions(code, line, col)
+        snippet_items = self._snippet_completions(code, line, col) + self._user_snippet_completions(code, line, col)
 
         if self._lsp_client and self._file_path:
             try:
@@ -306,49 +406,66 @@ class EditorBridge(QObject):
         return ""
 
     @Slot(str, int, int, result=str)
-    def get_definition(self, code, line, col):
-        if self._lsp_client and self._file_path:
+    def get_definition(self, file, line, col):
+        file_path = self._resolve_file_path(file)
+        if self._lsp_client and file_path:
             try:
-                result = self._lsp_client.definition(self._file_path, line - 1, col - 1)
-                if result:
-                    if isinstance(result, dict):
-                        uri = result.get("uri", "")
-                        rng = result.get("range", {})
-                        start = rng.get("start", {})
-                        return json.dumps({"uri": uri, "line": start.get("line", 0) + 1, "character": start.get("character", 0) + 1})
+                result = self._lsp_client.definition(file_path, line - 1, col - 1)
+                if isinstance(result, dict) and result.get("uri"):
+                    return json.dumps(self._lsp_location_to_json(result))
                 if isinstance(result, list) and result:
-                    loc = result[0]
-                    uri = loc.get("uri", "")
-                    rng = loc.get("range", {})
-                    start = rng.get("start", {})
-                    return json.dumps({"uri": uri, "line": start.get("line", 0) + 1, "character": start.get("character", 0) + 1})
+                    return json.dumps(self._lsp_location_to_json(result[0]))
             except Exception:
                 pass
         return ""
 
-    @Slot(int, int, result=str)
-    def get_hover(self, line, col):
-        """Called by Monaco to get hover documentation."""
-        widget = self.parent()
-        if widget and hasattr(widget, "_lsp_client") and widget._lsp_client:
-            lsp = widget._lsp_client
-            from pathlib import Path
-            uri = Path(self._file_path).as_uri() if self._file_path else "untitled:Untitled-1"
-            
-            resp = lsp.send_request_sync("textDocument/hover", {
-                "textDocument": {"uri": uri},
-                "position": {"line": line - 1, "character": col - 1}
-            }, timeout=1.0)
-            
-            if "result" in resp and resp["result"]:
-                contents = resp["result"].get("contents", "")
-                if isinstance(contents, dict):
-                    return contents.get("value", "")
-                elif isinstance(contents, list):
-                    return "\n\n".join([c.get("value", "") if isinstance(c, dict) else c for c in contents])
-                elif isinstance(contents, str):
-                    return contents
+    @Slot(str, int, int, str, result=str)
+    def get_rename(self, file, line, col, new_name):
+        file_path = self._resolve_file_path(file)
+        if self._lsp_client and file_path and new_name:
+            try:
+                result = self._lsp_client.rename(file_path, line - 1, col - 1, new_name)
+                edits = self._lsp_workspace_edit_to_json(result)
+                if edits:
+                    return json.dumps({"edits": edits})
+            except Exception:
+                pass
         return ""
+
+    @Slot(str, int, int, result=str)
+    def get_signature_help(self, file, line, col):
+        file_path = self._resolve_file_path(file)
+        if self._lsp_client and file_path:
+            try:
+                result = self._lsp_client.signature_help(file_path, line - 1, col - 1)
+                if result and result.get("signatures"):
+                    return json.dumps(self._lsp_signature_help_to_json(result))
+            except Exception:
+                pass
+        return ""
+
+    @Slot(str, result=str)
+    def get_semantic_tokens(self, file):
+        file_path = self._resolve_file_path(file)
+        if not self._lsp_client or not file_path:
+            return ""
+        try:
+            if not self._lsp_client.supports_semantic_tokens():
+                return ""
+            result = self._lsp_client.semantic_tokens_full(file_path)
+            if not result or not result.get("data"):
+                return ""
+            legend = self._lsp_client.semantic_tokens_legend() or {}
+            return json.dumps({
+                "data": result.get("data", []),
+                "resultId": result.get("resultId"),
+                "legend": {
+                    "tokenTypes": legend.get("tokenTypes", []),
+                    "tokenModifiers": legend.get("tokenModifiers", []),
+                },
+            })
+        except Exception:
+            return ""
 
     @Slot(str, result=str)
     def get_document_symbols(self, code):

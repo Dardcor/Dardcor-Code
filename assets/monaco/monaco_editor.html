@@ -164,6 +164,7 @@
         var pendingContent = null;
         var pendingLanguage = null;
         var pendingFilePath = null;
+        var currentFilePath = '';
         var isRemoteUpdate = false;
         var extensionMenuDisposables = [];
 
@@ -340,7 +341,17 @@
                     glyphMargin: true,
                     lightbulb: { enabled: true },
                     inlayHints: { enabled: 'on' },
-                    stickyScroll: { enabled: true, maxLineCount: 5 }
+                    stickyScroll: { enabled: true, maxLineCount: 5 },
+                    placeholder: '',
+                    readOnlyMessage: { value: 'Cannot edit in read-only editor.' },
+                    unicodeHighlight: {
+                        nonBasicASCII: true,
+                        invisibleCharacters: true,
+                        ambiguousCharacters: true,
+                        includeComments: true,
+                        includeStrings: true
+                    },
+                    unusualLineTerminators: 'auto'
                 });
 
                 // Read Only Message handler
@@ -394,6 +405,188 @@
                 };
                 monaco.languages.getLanguages().forEach(function (lang) {
                     monaco.languages.registerCompletionItemProvider(lang.id, backendCompletionProvider);
+                });
+
+                function uriFromPath(pathOrUri) {
+                    if (!pathOrUri) return null;
+                    if (pathOrUri.indexOf('://') !== -1) {
+                        return monaco.Uri.parse(pathOrUri);
+                    }
+                    var normalized = pathOrUri.replace(/\\/g, '/');
+                    if (normalized.charAt(0) !== '/') {
+                        normalized = '/' + normalized;
+                    }
+                    return monaco.Uri.parse('file://' + normalized);
+                }
+
+                var backendDefinitionProvider = {
+                    provideDefinition: function (model, position) {
+                        return new Promise(function (resolve) {
+                            if (!backend || typeof backend.get_definition !== 'function') {
+                                resolve(null);
+                                return;
+                            }
+                            backend.get_definition(currentFilePath, position.lineNumber, position.column, function (res) {
+                                if (!res) {
+                                    resolve(null);
+                                    return;
+                                }
+                                try {
+                                    var data = JSON.parse(res);
+                                    var uri = uriFromPath(data.uri);
+                                    if (!uri) {
+                                        resolve(null);
+                                        return;
+                                    }
+                                    resolve({
+                                        uri: uri,
+                                        range: new monaco.Range(
+                                            data.line, data.character,
+                                            data.endLine || data.line, data.endCharacter || data.character
+                                        )
+                                    });
+                                } catch (e) {
+                                    resolve(null);
+                                }
+                            });
+                        });
+                    }
+                };
+
+                var backendRenameProvider = {
+                    provideRenameEdits: function (model, position, newName) {
+                        return new Promise(function (resolve) {
+                            if (!backend || typeof backend.get_rename !== 'function') {
+                                resolve(null);
+                                return;
+                            }
+                            backend.get_rename(currentFilePath, position.lineNumber, position.column, newName, function (res) {
+                                if (!res) {
+                                    resolve(null);
+                                    return;
+                                }
+                                try {
+                                    var data = JSON.parse(res);
+                                    var edits = (data.edits || []).map(function (edit) {
+                                        var uri = uriFromPath(edit.uri);
+                                        if (!uri) return null;
+                                        return {
+                                            resource: uri,
+                                            textEdit: {
+                                                range: new monaco.Range(
+                                                    edit.startLine, edit.startColumn,
+                                                    edit.endLine, edit.endColumn
+                                                ),
+                                                text: edit.text
+                                            }
+                                        };
+                                    }).filter(function (e) { return e !== null; });
+                                    resolve(edits.length ? { edits: edits } : null);
+                                } catch (e) {
+                                    resolve(null);
+                                }
+                            });
+                        });
+                    }
+                };
+
+                var backendSignatureHelpProvider = {
+                    signatureHelpTriggerCharacters: ['(', ','],
+                    provideSignatureHelp: function (model, position) {
+                        return new Promise(function (resolve) {
+                            if (!backend || typeof backend.get_signature_help !== 'function') {
+                                resolve(null);
+                                return;
+                            }
+                            backend.get_signature_help(currentFilePath, position.lineNumber, position.column, function (res) {
+                                if (!res) {
+                                    resolve(null);
+                                    return;
+                                }
+                                try {
+                                    var data = JSON.parse(res);
+                                    resolve({
+                                        value: {
+                                            signatures: (data.signatures || []).map(function (sig) {
+                                                return {
+                                                    label: sig.label,
+                                                    documentation: sig.documentation ? { value: sig.documentation } : undefined,
+                                                    parameters: (sig.parameters || []).map(function (param) {
+                                                        return {
+                                                            label: param.label,
+                                                            documentation: param.documentation ? { value: param.documentation } : undefined
+                                                        };
+                                                    })
+                                                };
+                                            }),
+                                            activeSignature: data.activeSignature || 0,
+                                            activeParameter: data.activeParameter || 0
+                                        },
+                                        dispose: function () {}
+                                    });
+                                } catch (e) {
+                                    resolve(null);
+                                }
+                            });
+                        });
+                    }
+                };
+
+                var semanticLegendCache = {
+                    tokenTypes: [
+                        'namespace', 'type', 'class', 'enum', 'interface', 'struct',
+                        'typeParameter', 'parameter', 'variable', 'property', 'enumMember',
+                        'event', 'function', 'method', 'macro', 'keyword', 'modifier',
+                        'comment', 'string', 'number', 'regexp', 'operator', 'decorator'
+                    ],
+                    tokenModifiers: [
+                        'declaration', 'definition', 'readonly', 'static', 'deprecated',
+                        'abstract', 'async', 'modification', 'documentation', 'defaultLibrary'
+                    ]
+                };
+
+                var backendSemanticTokensProvider = {
+                    getLegend: function () {
+                        return semanticLegendCache;
+                    },
+                    provideDocumentSemanticTokens: function (model, lastResultId, token) {
+                        return new Promise(function (resolve) {
+                            if (!backend || typeof backend.get_semantic_tokens !== 'function') {
+                                resolve(null);
+                                return;
+                            }
+                            backend.get_semantic_tokens(currentFilePath, function (res) {
+                                if (!res) {
+                                    resolve(null);
+                                    return;
+                                }
+                                try {
+                                    var parsed = JSON.parse(res);
+                                    if (parsed.legend) {
+                                        semanticLegendCache = parsed.legend;
+                                    }
+                                    if (!parsed.data || !parsed.data.length) {
+                                        resolve(null);
+                                        return;
+                                    }
+                                    resolve({
+                                        data: new Uint32Array(parsed.data),
+                                        resultId: parsed.resultId || undefined
+                                    });
+                                } catch (e) {
+                                    resolve(null);
+                                }
+                            });
+                        });
+                    },
+                    releaseDocumentSemanticTokens: function () {}
+                };
+
+                monaco.languages.getLanguages().forEach(function (lang) {
+                    monaco.languages.registerDefinitionProvider(lang.id, backendDefinitionProvider);
+                    monaco.languages.registerRenameProvider(lang.id, backendRenameProvider);
+                    monaco.languages.registerSignatureHelpProvider(lang.id, backendSignatureHelpProvider);
+                    monaco.languages.registerDocumentSemanticTokensProvider(lang.id, backendSemanticTokensProvider);
                 });
 
                 // Register code action (Quick Fix) provider linked to diagnostics/markers
@@ -640,6 +833,8 @@
 
                 // Listen for selection change to show floating menu and report selection count
                 editor.onDidChangeCursorSelection(function (e) {
+                    notifySelectionChanged();
+
                     var selection = e.selection;
                     var floatingMenu = document.getElementById('floating-menu');
                     if (!floatingMenu) return;
@@ -675,6 +870,13 @@
                         floatingMenu.style.top = top + 'px';
                         floatingMenu.style.left = left + 'px';
                         floatingMenu.style.display = 'flex';
+                    }
+                });
+
+                editor.onDidChangeConfiguration(function (e) {
+                    if (e.hasChanged(monaco.editor.EditorOption.tabSize) ||
+                        e.hasChanged(monaco.editor.EditorOption.insertSpaces)) {
+                        notifyIndentChanged();
                     }
                 });
 
@@ -920,6 +1122,7 @@
         // --- End Inline AI ---
 
         function setEditorContent(content, language, filePath) {
+            currentFilePath = filePath || '';
             if (!editor) {
                 pendingContent = content;
                 pendingLanguage = language;
@@ -936,6 +1139,8 @@
                 editor.setModel(newModel);
             }
             isRemoteUpdate = false;
+            setTimeout(notifyIndentChanged, 0);
+            notifySelectionChanged();
         }
 
         function getEditorContent() {
@@ -973,7 +1178,11 @@
         }
 
         function setReadOnly(readOnly) {
-            if (editor) editor.updateOptions({ readOnly: readOnly });
+            if (editor) editor.updateOptions({ readOnly: !!readOnly });
+        }
+
+        function setPlaceholder(text) {
+            if (editor) editor.updateOptions({ placeholder: text || '' });
         }
 
         function showProgress(visible) {

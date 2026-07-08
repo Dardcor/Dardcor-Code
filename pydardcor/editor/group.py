@@ -462,10 +462,25 @@ class DardcorTabBar(QTabBar):
         self._hovered_tab = -1
         self._update_close_buttons()
         
+    def _editor_group(self):
+        group = self.parentWidget()
+        while group is not None and not hasattr(group, "_tabs"):
+            group = group.parentWidget()
+        return group if group is not None and hasattr(group, "_tabs") else None
+
+    def _is_tab_pinned(self, idx):
+        group = self._editor_group()
+        return group is not None and 0 <= idx < len(group._tabs) and group._tabs[idx].is_pinned
+
+    def _request_close_tab(self, idx):
+        if idx < 0 or self._is_tab_pinned(idx):
+            return
+        self.tabCloseRequested.emit(idx)
+
     def _handle_close_clicked(self, btn):
         for i in range(self.count()):
             if self.tabButton(i, QTabBar.RightSide) is btn or self.tabButton(i, QTabBar.LeftSide) is btn:
-                self.tabCloseRequested.emit(i)
+                self._request_close_tab(i)
                 return
                 
     def _update_close_buttons(self):
@@ -473,7 +488,9 @@ class DardcorTabBar(QTabBar):
         for i in range(self.count()):
             btn = self.tabButton(i, QTabBar.RightSide) or self.tabButton(i, QTabBar.LeftSide)
             if btn and isinstance(btn, TabCloseButton):
-                if i == current or i == self._hovered_tab:
+                if self._is_tab_pinned(i):
+                    btn.setVisible(False)
+                elif i == current or i == self._hovered_tab:
                     btn.setVisible(True)
                 else:
                     btn.setVisible(False)
@@ -490,7 +507,7 @@ class DardcorTabBar(QTabBar):
         if event.button() == Qt.MiddleButton:
             idx = self.tabAt(event.pos())
             if idx >= 0:
-                self.tabCloseRequested.emit(idx)
+                self._request_close_tab(idx)
 
     def contextMenuEvent(self, event):
         idx = self.tabAt(event.pos())
@@ -1054,21 +1071,15 @@ class EditorGroup(QWidget):
 
         layout.addWidget(self._tab_row)
 
-        # Breadcrumbs bar (VS Code style)
-        self._breadcrumb_bar = QWidget()
-        self._breadcrumb_bar.setFixedHeight(22)
-        self._breadcrumb_bar.setStyleSheet("background-color: #0d0d0d; border-bottom: 1px solid #1a0033;")
-        self._breadcrumb_bar.hide()
-        bc_layout = QHBoxLayout(self._breadcrumb_bar)
-        bc_layout.setContentsMargins(15, 0, 10, 0)
-        bc_layout.setSpacing(4)
-        
-        self._breadcrumb_label = QLabel("No file open")
-        self._breadcrumb_label.setStyleSheet("color: #969696; font-size: 11px; font-family: 'Segoe UI', sans-serif;")
-        bc_layout.addWidget(self._breadcrumb_label)
-        bc_layout.addStretch()
-        
-        layout.addWidget(self._breadcrumb_bar)
+        # Breadcrumbs slot (populated by main_window via mount_breadcrumbs)
+        self._breadcrumbs_bar = None
+        self._breadcrumbs_slot = QWidget()
+        self._breadcrumbs_slot.setFixedHeight(24)
+        self._breadcrumbs_slot.hide()
+        self._breadcrumbs_slot_layout = QVBoxLayout(self._breadcrumbs_slot)
+        self._breadcrumbs_slot_layout.setContentsMargins(0, 0, 0, 0)
+        self._breadcrumbs_slot_layout.setSpacing(0)
+        layout.addWidget(self._breadcrumbs_slot)
 
         self._stack = QStackedWidget()
         layout.addWidget(self._stack)
@@ -1181,6 +1192,26 @@ class EditorGroup(QWidget):
                 if i < len(self._tabs) and not self._tabs[i].editor.is_dirty():
                     self._close_tab(i)
 
+    def mount_breadcrumbs(self, bar):
+        """Mount a shared BreadcrumbsBar below the tab row."""
+        if self._breadcrumbs_bar is bar:
+            return
+        if self._breadcrumbs_bar is not None:
+            self._breadcrumbs_slot_layout.removeWidget(self._breadcrumbs_bar)
+            self._breadcrumbs_bar.hide()
+        self._breadcrumbs_bar = bar
+        if bar is not None:
+            self._breadcrumbs_slot_layout.addWidget(bar)
+            self._breadcrumbs_slot.show()
+        else:
+            self._breadcrumbs_slot.hide()
+
+    def set_breadcrumbs_visible(self, visible: bool):
+        if self._breadcrumbs_bar is None:
+            return
+        self._breadcrumbs_slot.setVisible(visible)
+        self._breadcrumbs_bar.setVisible(visible)
+
     def refresh_welcome_recent(self):
         if hasattr(self, "_welcome") and hasattr(self._welcome, "refresh_recent"):
             self._welcome.refresh_recent()
@@ -1250,10 +1281,16 @@ class EditorGroup(QWidget):
             editor = ImageViewer(self)
             editor.load_image(file_path)
         else:
-            editor = MonacoEditorWidget(self)
-            editor.open_file(file_path)
-            editor.content_changed.connect(lambda c: self._on_content_changed(editor))
-            editor.save_requested.connect(lambda: self._save_editor(editor))
+            from ..core.filesystem import is_binary
+            if is_binary(file_path):
+                from .hex_editor import HexEditorWidget
+                editor = HexEditorWidget(self)
+                editor.load_file(file_path)
+            else:
+                editor = MonacoEditorWidget(self)
+                editor.open_file(file_path)
+                editor.content_changed.connect(lambda c: self._on_content_changed(editor))
+                editor.save_requested.connect(lambda: self._save_editor(editor))
 
         tab = EditorTab(editor, file_path)
         self._tabs.append(tab)
@@ -1375,6 +1412,8 @@ class EditorGroup(QWidget):
         if idx < 0 or idx >= len(self._tabs):
             return False
         tab = self._tabs[idx]
+        if tab.is_pinned:
+            return False
         if tab.editor.is_dirty():
             result = QMessageBox.question(
                 self, "Unsaved Changes",
@@ -1396,7 +1435,7 @@ class EditorGroup(QWidget):
         self._sync_tab_bar()
 
         if not self._tabs:
-            self._breadcrumb_bar.hide()
+            self.set_breadcrumbs_visible(False)
             self.refresh_welcome_recent()
             self._stack.setCurrentWidget(self._welcome)
             self._current_idx = -1
@@ -1425,24 +1464,6 @@ class EditorGroup(QWidget):
     def _emit_tab_changed(self, editor):
         fp = editor.get_file_path() or ""
         lang = editor.get_language()
-        
-        # Update VS Code Breadcrumbs
-        if fp:
-            self._breadcrumb_bar.show()
-            parts = fp.replace('\\', '/').split('/')
-            display_parts = parts[-4:] if len(parts) >= 4 else parts
-            bc_text = " › ".join(display_parts)
-            if isinstance(editor, MonacoDiffEditorWidget):
-                bc_text += " (Diff)"
-            self._breadcrumb_label.setText(bc_text)
-        elif self._tabs:
-            self._breadcrumb_bar.show()
-            idx = self._editor_index(editor)
-            title = self._tabs[idx].title.replace("● ", "") if idx >= 0 else "Untitled"
-            self._breadcrumb_label.setText(title)
-        else:
-            self._breadcrumb_bar.hide()
-            
         self.tab_changed.emit(fp, lang)
 
     def _editor_index(self, editor):

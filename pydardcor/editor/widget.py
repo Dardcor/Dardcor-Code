@@ -65,6 +65,7 @@ class MonacoEditorWidget(QWidget):
         self._content = ""
         self._view_ready = False
         self._lsp_client = None
+        self._read_only = False
         self.diagnostics_ready.connect(self.set_diagnostics)
         self._setup_ui()
 
@@ -141,6 +142,24 @@ class MonacoEditorWidget(QWidget):
             if state:
                 js += f" setTimeout(function() {{ restoreViewState({json.dumps(state)}); }}, 50);"
         self._view.page().runJavaScript(js)
+        self._apply_editor_options()
+
+    def _is_file_read_only(self, file_path: str) -> bool:
+        try:
+            return not os.access(file_path, os.W_OK)
+        except OSError:
+            return True
+
+    def _apply_editor_options(self):
+        if not self._view_ready:
+            return
+        import json
+        placeholder = ""
+        if not self._file_path and not (self._content or "").strip():
+            placeholder = "Start typing, or press Ctrl+Space for suggestions"
+        self._view.page().runJavaScript(f"setPlaceholder({json.dumps(placeholder)});")
+        ro = "true" if self._read_only else "false"
+        self._view.page().runJavaScript(f"setReadOnly({ro});")
 
     def persist_view_state(self, state_json):
         if not self._file_path:
@@ -158,6 +177,8 @@ class MonacoEditorWidget(QWidget):
         self._content = content
         self._dirty = True
         self.content_changed.emit(content)
+        if not self._file_path and self._view_ready:
+            self._apply_editor_options()
         
         # Send didChange to LSP
         if self._lsp_client and self._file_path:
@@ -184,9 +205,17 @@ class MonacoEditorWidget(QWidget):
                 
             with open(file_path, "r", encoding=self._encoding, errors="replace") as f:
                 self._content = f.read()
+            if "\r\n" in self._content:
+                self._eol = "CRLF"
+            elif "\r" in self._content:
+                self._eol = "CR"
+            else:
+                self._eol = "LF"
         except Exception as e:
             self._content = f"# Error opening file: {e}"
+            self._eol = "LF"
         self._dirty = False
+        self._read_only = self._is_file_read_only(file_path)
         if self._view_ready:
             self._apply_pending_content()
         self._bridge.set_file_path(file_path)
@@ -200,7 +229,10 @@ class MonacoEditorWidget(QWidget):
     def set_content(self, content, language="plaintext"):
         self._content = content
         self._language = language
+        self._encoding = "utf-8"
+        self._eol = "LF"
         self._dirty = False
+        self._read_only = False
         if self._view_ready:
             QTimer.singleShot(50, self._apply_pending_content)
 
@@ -310,7 +342,7 @@ class MonacoEditorWidget(QWidget):
                 if result[0]:
                     parts = result[0].split(",")
                     line, col = int(parts[0]), int(parts[1])
-                    def_result = self._bridge.get_definition(self._content, line, col)
+                    def_result = self._bridge.get_definition(self._file_path or "", line, col)
                     if def_result:
                         data = json.loads(def_result)
                         uri = data.get("uri", "")
@@ -345,6 +377,12 @@ class MonacoEditorWidget(QWidget):
 
     def get_cursor_position(self):
         return getattr(self, "_cursor_line", 1), getattr(self, "_cursor_col", 1)
+
+    def get_encoding(self):
+        return getattr(self, "_encoding", "utf-8").upper().replace("_", "-")
+
+    def get_eol(self):
+        return getattr(self, "_eol", "LF")
 
     def get_language(self):
         return LANGUAGE_DISPLAY.get(self._language, self._language.capitalize())

@@ -14,7 +14,20 @@ from PySide6.QtSvg import QSvgRenderer
 import shutil
 import fnmatch
 from .outline_panel import SectionHeaderButton
-from ..core.config import get_config, get_hierarchical_config
+from ..core.config import get_config, get_hierarchical_config, _coerce_bool
+
+# VS Code default file nesting patterns (subset)
+_DEFAULT_NESTING_PATTERNS = {
+    "package.json": "package-lock.json, yarn.lock, pnpm-lock.yaml, bun.lockb, bun.lock",
+    "*.js": "${capture}.js.map, ${capture}.min.js, ${capture}.d.ts",
+    "*.jsx": "${capture}.js",
+    "*.ts": "${capture}.js, ${capture}.d.ts",
+    "*.tsx": "${capture}.ts",
+    "tsconfig.json": "tsconfig.*.json",
+    "Cargo.toml": "Cargo.lock",
+    "*.css": "${capture}.css.map",
+    "*.scss": "${capture}.css.map, ${capture}.css",
+}
 
 # Fix Qt locale float parsing bugs in QSvgRenderer (e.g. for European/Indonesian locales using comma as decimal point)
 QLocale.setDefault(QLocale.c())
@@ -415,6 +428,10 @@ class ExplorerTreeWidget(QTreeWidget):
 
     def keyPressEvent(self, event):
         parent_explorer = self.parent()
+
+        if hasattr(parent_explorer, '_handle_type_filter_key'):
+            if parent_explorer._handle_type_filter_key(event):
+                return
         
         # Handle Delete
         if event.key() == Qt.Key_Delete:
@@ -997,6 +1014,16 @@ class FileExplorer(QWidget):
             }
         """)
         
+        self._filter_label = QLabel("")
+        self._filter_label.setStyleSheet("""
+            color: #858585;
+            font-size: 11px;
+            padding: 2px 12px 0 12px;
+            background: transparent;
+        """)
+        self._filter_label.hide()
+        layout.addWidget(self._filter_label)
+
         self._tree_container = QWidget()
         self._tree_container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         tree_layout = QHBoxLayout(self._tree_container)
@@ -1015,6 +1042,93 @@ class FileExplorer(QWidget):
         else:
             self._welcome_widget.show()
             self._tree_container.hide()
+
+    def _handle_type_filter_key(self, event) -> bool:
+        """VS Code-style type-to-filter when explorer tree has focus."""
+        if self._editing_item or self._in_inline_edit:
+            return False
+        if event.modifiers() & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier):
+            return False
+
+        key = event.key()
+        if key == Qt.Key_Escape:
+            if self._type_filter:
+                self._clear_type_filter()
+                event.accept()
+                return True
+            return False
+        if key == Qt.Key_Backspace:
+            if self._type_filter:
+                self._type_filter = self._type_filter[:-1]
+                self._apply_type_filter()
+                self._type_filter_timer.start()
+                event.accept()
+                return True
+            return False
+        if key in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Tab,
+                   Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right,
+                   Qt.Key_Home, Qt.Key_End, Qt.Key_PageUp, Qt.Key_PageDown,
+                   Qt.Key_Delete, Qt.Key_F2):
+            return False
+
+        text = event.text()
+        if text and text.isprintable() and not text.isspace():
+            self._type_filter += text
+            self._apply_type_filter()
+            self._type_filter_timer.start()
+            event.accept()
+            return True
+        return False
+
+    def _clear_type_filter(self):
+        self._type_filter = ""
+        self._type_filter_timer.stop()
+        self._filter_label.hide()
+        self._show_all_tree_items()
+
+    def _show_all_tree_items(self):
+        def unhide(item):
+            item.setHidden(False)
+            for i in range(item.childCount()):
+                unhide(item.child(i))
+        for i in range(self._tree.topLevelItemCount()):
+            unhide(self._tree.topLevelItem(i))
+
+    def _apply_type_filter(self):
+        pattern = self._type_filter.lower()
+        if not pattern:
+            self._clear_type_filter()
+            return
+
+        self._filter_label.setText(f"Filter: {self._type_filter}")
+        self._filter_label.show()
+
+        first_match = [None]
+
+        def apply_item(item):
+            child_match = False
+            for i in range(item.childCount()):
+                if apply_item(item.child(i)):
+                    child_match = True
+
+            name = item.text(0).lower()
+            path = item.data(0, Qt.UserRole) or ""
+            basename = os.path.basename(path).lower()
+            self_match = pattern in name or pattern in basename
+            visible = self_match or child_match
+            item.setHidden(not visible)
+            if child_match and not self_match:
+                item.setExpanded(True)
+            if self_match and first_match[0] is None:
+                first_match[0] = item
+            return visible
+
+        for i in range(self._tree.topLevelItemCount()):
+            apply_item(self._tree.topLevelItem(i))
+
+        if first_match[0]:
+            self._tree.setCurrentItem(first_match[0])
+            self._tree.scrollToItem(first_match[0])
 
     def _show_no_folder(self):
         self._root_path = None
@@ -1084,6 +1198,16 @@ class FileExplorer(QWidget):
                 entries.sort(key=lambda x: (not os.path.isdir(os.path.join(path, x)), os.path.splitext(x)[1].lower(), x.lower()))
             elif sort_order == "modified":
                 entries.sort(key=lambda x: -os.path.getmtime(os.path.join(path, x)))
+            elif sort_order == "size":
+                def _size_key(name):
+                    full = os.path.join(path, name)
+                    try:
+                        if os.path.isdir(full):
+                            return (0, 0, name.lower())
+                        return (1, os.path.getsize(full), name.lower())
+                    except OSError:
+                        return (1, 0, name.lower())
+                entries.sort(key=_size_key)
             else: # default (folders first)
                 entries.sort(key=lambda x: (not os.path.isdir(os.path.join(path, x)), x.lower()))
                 
@@ -1488,6 +1612,8 @@ class FileExplorer(QWidget):
             self._tree.setUpdatesEnabled(True)
             self._is_refreshing = False
             self._watcher_timer.start()
+            if self._type_filter:
+                self._apply_type_filter()
 
     def _update_watcher(self, expanded_paths):
         # Clear existing paths

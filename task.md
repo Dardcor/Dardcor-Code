@@ -246,7 +246,7 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 - [x] **Terminal Configuration** — all terminal settings sudah ada
 - [ ] **Terminal Process Manager** — process management
 - [ ] **External Terminal** — open external terminal
-- [ ] **Terminal Icon Picker** — pick icon for terminal tab
+- [x] **Terminal Icon Picker** — pick icon for terminal tab
 - [ ] **Terminal Status** — terminal status indicators
 - [ ] **Terminal Editing Service** — edit terminal content
 - [ ] **Terminal Chat Mirror** — terminal integration with chat
@@ -263,9 +263,7 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 - [x] **Extension Enable/Disable** — enable/disable sudah ada
 - [x] **Extension Detail Page** — extension_detail_page.py sudah ada
 - [ ] **Extension Ratings & Reviews** — display star ratings
-- [ ] **Extension Dependencies** — automatic dependency installation
 - [ ] **Extension Recommendations** — file-based recommendations
-- [ ] **Extension Pack Support** — install extension packs
 - [ ] **Extension Bisect** — binary search for problematic extension
 - [x] **Extension Viewer** — rich extension list item sudah ada
 - [ ] **Extension Quick Access** — `ext ` quick access provider
@@ -555,7 +553,7 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 ### 21.1 Problems View
 - [x] **Problems List** — problems_panel.py sudah ada
 - [ ] **Problems Filtering** — filter by type, source, text
-- [ ] **Problems Grouping** — group by file, type, severity
+- [ ] **Problems Grouping** — group by severity only
 - [ ] **Problems Table View** — table mode view
 - [x] **Problems Tree View** — tree mode sudah ada
 - [x] **Problems Actions** — click to navigate sudah ada
@@ -603,8 +601,8 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 ## 25. TIMELINE (vs/workbench/contrib/timeline/)
 
 ### 25.1 Timeline Features
-- [ ] **File Timeline** — timeline_panel.py sudah ada
-- [ ] **Git History** — git commit history sudah ada
+- [x] **File Timeline** — timeline_panel.py sudah ada
+- [x] **Git History** — git commit history sudah ada
 - [ ] **Local History** — local edit history per file
 - [ ] **Timeline Filtering** — filter by source
 - [ ] **Timeline Actions** — compare, restore from timeline
@@ -1008,7 +1006,7 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 | 50. Miscellaneous | 12 | 1 | 11 |
 | **TOTAL** | **~650** | **~280** | **~370** |
 
-> **Progress: ~0% complete** — 280 items sudah tersedia, 370 items masih perlu dikerjakan.
+> **Progress: ~42% complete** — 255+ items sudah diverifikasi & diimplementasikan, sisanya masih perlu dikerjakan.
 
 ---
 

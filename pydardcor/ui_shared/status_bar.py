@@ -104,6 +104,7 @@ class StatusBar(QStatusBar):
     go_to_line_requested = Signal()
     models_requested = Signal()
     git_branch_requested = Signal()
+    sync_requested = Signal()
     problems_requested = Signal()
     ext_status_clicked = Signal(str)
 
@@ -142,6 +143,7 @@ class StatusBar(QStatusBar):
         self._sync_btn = StatusBarButton("\uea77")
         self._sync_btn.setToolTip("Synchronize Changes")
         self._sync_btn.setFixedWidth(24)
+        self._sync_btn.clicked.connect(self.sync_requested.emit)
         self.addWidget(self._sync_btn)
 
         self._errors_btn = StatusBarButton("\uea87 0  \uea6c 0")
@@ -150,6 +152,10 @@ class StatusBar(QStatusBar):
         self.addWidget(self._errors_btn)
 
         # RIGHT SIDE (addPermanentWidget = right-aligned)
+        self._selection_btn = StatusBarButton("")
+        self._selection_btn.hide()
+        self.addPermanentWidget(self._selection_btn)
+
         self._cursor_btn = StatusBarButton("Ln 1, Col 1")
         self._cursor_btn.setToolTip("Go to Line/Column")
         self._cursor_btn.clicked.connect(self.go_to_line_requested.emit)
@@ -200,6 +206,21 @@ class StatusBar(QStatusBar):
         self._notif_btn = StatusBarButton("\ueaa2")
         self._notif_btn.setFixedWidth(28)
         self._notif_btn.setToolTip("No Notifications")
+        self._notif_badge = QLabel("0", self._notif_btn)
+        self._notif_badge.setAlignment(Qt.AlignCenter)
+        self._notif_badge.setFixedSize(14, 14)
+        self._notif_badge.move(14, 2)
+        self._notif_badge.setStyleSheet("""
+            QLabel {
+                background-color: #007acc;
+                color: #ffffff;
+                border-radius: 7px;
+                font-size: 9px;
+                font-weight: bold;
+                padding: 0px;
+            }
+        """)
+        self._notif_badge.hide()
         self.addPermanentWidget(self._notif_btn)
 
         self._feedback_btn = StatusBarButton("\ueab6")
@@ -242,13 +263,18 @@ class StatusBar(QStatusBar):
 
 
     def set_notifications(self, count: int):
-        """Update the notification bell tooltip to reflect pending toast count."""
+        """Update notification bell tooltip and badge count."""
         if count <= 0:
             self._notif_btn.setToolTip("No Notifications")
-        elif count == 1:
-            self._notif_btn.setToolTip("1 Notification")
+            self._notif_badge.hide()
         else:
-            self._notif_btn.setToolTip(f"{count} Notifications")
+            if count == 1:
+                self._notif_btn.setToolTip("1 Notification")
+            else:
+                self._notif_btn.setToolTip(f"{count} Notifications")
+            self._notif_badge.setText(str(count) if count <= 99 else "99+")
+            self._notif_badge.show()
+            self._notif_badge.raise_()
 
     def set_connected(self, connected: bool):
         if connected:
@@ -292,8 +318,11 @@ class StatusBar(QStatusBar):
     def set_eol(self, eol: str):
         self._eol_btn.setText(eol)
 
-    def set_indent(self, spaces: int):
-        self._indent_btn.setText(f"Spaces: {spaces}")
+    def set_indent(self, tab_size: int, use_spaces: bool = True):
+        if use_spaces:
+            self._indent_btn.setText(f"Spaces: {tab_size}")
+        else:
+            self._indent_btn.setText(f"Tab Size: {tab_size}")
 
     def set_errors_warnings(self, errors: int, warnings: int):
         self._errors_btn.setText(f"\uea87 {errors}  \uea6c {warnings}")

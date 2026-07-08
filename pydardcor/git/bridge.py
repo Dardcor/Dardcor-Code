@@ -57,13 +57,20 @@ class GitBridge(QObject):
             self._refresh_pending = False
         self.requestRefresh()
 
+    def _git_subprocess_kwargs(self):
+        kwargs = {}
+        if os.name == 'nt':
+            kwargs['creationflags'] = 0x08000000
+        return kwargs
+
     def _run_git(self, args):
+        ok, stdout, _stderr = self._run_git_cmd(args)
+        return stdout if ok else _stderr
+
+    def _run_git_cmd(self, args, timeout=5):
         if not self._workspace or not os.path.exists(os.path.join(self._workspace, ".git")):
-            return ""
+            return False, "", "Not a git repository"
         try:
-            kwargs = {}
-            if os.name == 'nt':
-                kwargs['creationflags'] = 0x08000000
             result = subprocess.run(
                 ["git"] + args,
                 cwd=self._workspace,
@@ -71,13 +78,17 @@ class GitBridge(QObject):
                 text=True,
                 encoding="utf-8",
                 errors="replace",
-                timeout=5,
-                **kwargs
+                timeout=timeout,
+                **self._git_subprocess_kwargs(),
             )
-            return result.stdout if result.returncode == 0 else result.stderr
+            stdout = result.stdout or ""
+            stderr = result.stderr or ""
+            if result.returncode == 0:
+                return True, stdout, stderr
+            return False, stdout, stderr or stdout or f"git {' '.join(args)} failed"
         except Exception as e:
             print(f"Git execution error: {e}")
-            return ""
+            return False, "", str(e)
 
     def _full_path(self, path):
         return os.path.abspath(os.path.join(self._workspace, path))
@@ -272,3 +283,54 @@ class GitBridge(QObject):
     def openCommit(self, commit_hash):
         if self._app:
             self._app._chat_panel.append_system_message(f"Selected commit: {commit_hash}")
+
+    @Slot(result=str)
+    def fetch(self):
+        ok, stdout, stderr = self._run_git_cmd(["fetch"], timeout=60)
+        self.requestRefresh()
+        return stdout.strip() if ok else stderr.strip()
+
+    @Slot(result=str)
+    def pull(self):
+        ok, stdout, stderr = self._run_git_cmd(["pull", "--rebase"], timeout=120)
+        self.requestRefresh()
+        if self._app and hasattr(self._app, "_detect_git_branch"):
+            self._app._detect_git_branch()
+        return stdout.strip() if ok else stderr.strip()
+
+    @Slot(result=str)
+    def push(self):
+        ok, stdout, stderr = self._run_git_cmd(["push"], timeout=120)
+        self.requestRefresh()
+        return stdout.strip() if ok else stderr.strip()
+
+    @Slot(result=str)
+    def sync(self):
+        """Fetch, pull with rebase, then push (VS Code Synchronize Changes)."""
+        messages = []
+        ok, stdout, stderr = self._run_git_cmd(["fetch"], timeout=60)
+        if stdout.strip():
+            messages.append(stdout.strip())
+        if not ok and stderr.strip():
+            messages.append(stderr.strip())
+            return "\n".join(messages)
+
+        ok, stdout, stderr = self._run_git_cmd(["pull", "--rebase"], timeout=120)
+        if stdout.strip():
+            messages.append(stdout.strip())
+        if not ok:
+            if stderr.strip():
+                messages.append(stderr.strip())
+            self.requestRefresh()
+            return "\n".join(messages)
+
+        ok, stdout, stderr = self._run_git_cmd(["push"], timeout=120)
+        if stdout.strip():
+            messages.append(stdout.strip())
+        if not ok and stderr.strip():
+            messages.append(stderr.strip())
+
+        self.requestRefresh()
+        if self._app and hasattr(self._app, "_detect_git_branch"):
+            self._app._detect_git_branch()
+        return "\n".join(messages) if messages else "Already up to date."
