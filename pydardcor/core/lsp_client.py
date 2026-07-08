@@ -20,6 +20,7 @@ class LSPClient:
         self._diagnostics_handler: Optional[Callable] = None
         self._completion_handler: Optional[Callable] = None
         self._hover_handler: Optional[Callable] = None
+        self._server_capabilities: Dict[str, Any] = {}
 
     def start(self) -> bool:
         if self._process and self._process.poll() is None:
@@ -56,6 +57,10 @@ class LSPClient:
                     "definition": {"dynamicRegistration": False},
                     "references": {"dynamicRegistration": False},
                     "publishDiagnostics": {"relatedInformation": True},
+                    "semanticTokens": {
+                        "dynamicRegistration": False,
+                        "requests": {"full": True},
+                    },
                 },
                 "workspace": {"workspaceFolders": True},
             },
@@ -64,6 +69,8 @@ class LSPClient:
         resp = self._send_request_sync("initialize", params)
         if resp is not None:
             self._initialized = True
+            if isinstance(resp, dict):
+                self._server_capabilities = resp.get("capabilities", {})
             self._send_notification("initialized", {})
 
     def _read_loop(self):
@@ -216,6 +223,25 @@ class LSPClient:
             "position": {"line": line, "character": character},
         })
 
+    def rename(self, file_path: str, line: int, character: int, new_name: str) -> Any:
+        if not self._initialized:
+            return None
+        uri = f"file:///{file_path}".replace("\\", "/")
+        return self._send_request_sync("textDocument/rename", {
+            "textDocument": {"uri": uri},
+            "position": {"line": line, "character": character},
+            "newName": new_name,
+        })
+
+    def signature_help(self, file_path: str, line: int, character: int) -> Any:
+        if not self._initialized:
+            return None
+        uri = f"file:///{file_path}".replace("\\", "/")
+        return self._send_request_sync("textDocument/signatureHelp", {
+            "textDocument": {"uri": uri},
+            "position": {"line": line, "character": character},
+        })
+
     def references(self, file_path: str, line: int, character: int) -> List[Dict[str, Any]]:
         if not self._initialized:
             return []
@@ -234,6 +260,25 @@ class LSPClient:
             "textDocument": {"uri": uri},
             "options": {"tabSize": 4, "insertSpaces": True},
         }) or []
+
+    def send_request_sync(self, method: str, params: Any = None, timeout: float = 10.0) -> Any:
+        return self._send_request_sync(method, params, timeout)
+
+    def supports_semantic_tokens(self) -> bool:
+        provider = self._server_capabilities.get("semanticTokensProvider") or {}
+        return bool(provider.get("full") or provider.get("range"))
+
+    def semantic_tokens_legend(self) -> Optional[Dict[str, Any]]:
+        provider = self._server_capabilities.get("semanticTokensProvider") or {}
+        return provider.get("legend")
+
+    def semantic_tokens_full(self, file_path: str) -> Optional[Dict[str, Any]]:
+        if not self._initialized or not self.supports_semantic_tokens():
+            return None
+        uri = f"file:///{file_path}".replace("\\", "/")
+        return self._send_request_sync("textDocument/semanticTokens/full", {
+            "textDocument": {"uri": uri},
+        })
 
     def on_diagnostics(self, handler: Callable):
         self._diagnostics_handler = handler

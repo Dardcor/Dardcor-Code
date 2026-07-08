@@ -5,7 +5,8 @@ import threading
 import re
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton,
-    QLabel, QTreeWidget, QTreeWidgetItem, QMessageBox
+    QLabel, QTreeWidget, QTreeWidgetItem, QMessageBox,
+    QStyledItemDelegate, QStyleOptionViewItem, QStyle,
 )
 from PySide6.QtCore import Signal, Qt, QObject, QEvent, QTimer
 from PySide6.QtGui import QColor
@@ -30,6 +31,88 @@ class FocusFilter(QObject):
                 self._focused = False
                 self.container.update_style(False)
         return super().eventFilter(obj, event)
+
+
+class SearchHighlightDelegate(QStyledItemDelegate):
+    """Paint search result lines with query-term background highlights."""
+
+    HIGHLIGHT_COLOR = QColor(234, 92, 0, 102)
+
+    def __init__(self, pattern_getter, parent=None):
+        super().__init__(parent)
+        self._get_pattern = pattern_getter
+
+    def paint(self, painter, option, index):
+        text = index.data(Qt.DisplayRole) or ""
+        line_num = index.data(Qt.UserRole + 1)
+        pattern = self._get_pattern() if line_num else None
+
+        opt = QStyleOptionViewItem(option)
+        self.initStyleOption(opt, index)
+
+        painter.save()
+
+        if opt.state & QStyle.State_Selected:
+            painter.fillRect(opt.rect, opt.palette.highlight())
+            fg = opt.palette.highlightedText().color()
+        else:
+            fg = index.data(Qt.ForegroundRole) or QColor("#bbbbbb")
+            if opt.state & QStyle.State_MouseOver:
+                painter.fillRect(opt.rect, QColor("#2a2d2e"))
+
+        if not pattern or not text:
+            painter.setPen(fg)
+            painter.drawText(opt.rect.adjusted(4, 0, -4, 0), Qt.AlignVCenter, text)
+            painter.restore()
+            return
+
+        marker = ":  "
+        split_at = text.find(marker)
+        if split_at < 0:
+            painter.setPen(fg)
+            painter.drawText(opt.rect.adjusted(4, 0, -4, 0), Qt.AlignVCenter, text)
+            painter.restore()
+            return
+
+        prefix = text[: split_at + len(marker)]
+        body = text[split_at + len(marker) :]
+
+        fm = opt.fontMetrics
+        x = opt.rect.x() + 4
+        y = opt.rect.y() + (opt.rect.height() + fm.ascent() - fm.descent()) // 2
+
+        painter.setPen(fg)
+        painter.drawText(x, y, prefix)
+        x += fm.horizontalAdvance(prefix)
+
+        pos = 0
+        for match in pattern.finditer(body):
+            if match.start() > pos:
+                plain = body[pos : match.start()]
+                painter.setPen(fg)
+                painter.drawText(x, y, plain)
+                x += fm.horizontalAdvance(plain)
+
+            matched = body[match.start() : match.end()]
+            w = fm.horizontalAdvance(matched)
+            h = fm.height()
+            painter.fillRect(
+                x,
+                opt.rect.y() + (opt.rect.height() - h) // 2,
+                w,
+                h,
+                self.HIGHLIGHT_COLOR,
+            )
+            painter.setPen(QColor("#ffffff"))
+            painter.drawText(x, y, matched)
+            x += w
+            pos = match.end()
+
+        if pos < len(body):
+            painter.setPen(fg)
+            painter.drawText(x, y, body[pos:])
+
+        painter.restore()
 
 
 class VSCodeInputBox(QWidget):
@@ -96,6 +179,7 @@ class SearchPanel(QWidget):
         self._root_path = root_path or os.path.expanduser("~")
         self._total_matches = 0
         self._total_files = 0
+        self._highlight_pattern = None
         self.setObjectName("searchPanel")
 
         # Debounce timer for real-time search
@@ -366,6 +450,9 @@ class SearchPanel(QWidget):
             }
         """)
         self._results.itemClicked.connect(self._on_result_clicked)
+        self._results.setItemDelegate(
+            SearchHighlightDelegate(lambda: self._highlight_pattern, self._results)
+        )
         layout.addWidget(self._results)
 
         from ..app.theme_manager import ThemeManager
@@ -495,8 +582,21 @@ class SearchPanel(QWidget):
         QMessageBox.information(self, "Replace All", f"Replaced {replaced_count} occurrences.")
         self._search()  # Refresh results
 
+    def _build_highlight_pattern(self, query: str):
+        flags = 0 if self._case_btn.isChecked() else re.IGNORECASE
+        pattern_str = query
+        try:
+            if not self._regex_btn.isChecked():
+                pattern_str = re.escape(query)
+            if self._word_btn.isChecked():
+                pattern_str = rf"\b{pattern_str}\b"
+            return re.compile(pattern_str, flags)
+        except re.error:
+            return None
+
     def _display_results(self, query: str, results: list):
         self._results.clear()
+        self._highlight_pattern = self._build_highlight_pattern(query)
         files = {}
         total_matches = 0
 

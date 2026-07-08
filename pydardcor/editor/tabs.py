@@ -111,6 +111,12 @@ class EditorTabs(QWidget):
                 return False
         return True
 
+    def mount_breadcrumbs(self, bar):
+        """Mount the shared BreadcrumbsBar into the active editor group."""
+        group = self.active_group()
+        if group:
+            group.mount_breadcrumbs(bar)
+
     def refresh_welcome_recent(self):
         for g in self._groups:
             if hasattr(g, "refresh_welcome_recent"):
@@ -119,6 +125,26 @@ class EditorTabs(QWidget):
     def open_file_at_line(self, file_path, line):
         g = self.active_group()
         if g: g.open_file_at_line(file_path, line)
+
+    def activate_tab_by_key(self, tab_key: str) -> bool:
+        for gi, g in enumerate(self._groups):
+            for ti, tab in enumerate(g._tabs):
+                key = tab.file_path or f"__untitled__:{gi}:{ti}"
+                if key == tab_key:
+                    self._active_group_idx = gi
+                    g._tab_bar.setCurrentIndex(ti)
+                    return True
+        return False
+
+    def get_tab_entries(self) -> list:
+        entries = []
+        for gi, g in enumerate(self._groups):
+            for ti, tab in enumerate(g._tabs):
+                entries.append({
+                    "key": tab.file_path or f"__untitled__:{gi}:{ti}",
+                    "title": tab.title or "Untitled",
+                })
+        return entries
 
     def set_font_size(self, size):
         for g in self._groups: g.set_font_size(size)

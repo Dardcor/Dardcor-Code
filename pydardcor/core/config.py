@@ -152,6 +152,11 @@ class AppConfig:
     color_theme: str = ""
     extensions_auto_update: bool = True
     default_model: str = "dardcor-flash-free"
+    window_x: int = -1
+    window_y: int = -1
+    window_width: int = 0
+    window_height: int = 0
+    window_maximized: bool = False
     ai: AISettings = field(default_factory=AISettings)
 
     def save(self):

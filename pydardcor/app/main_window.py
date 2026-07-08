@@ -607,7 +607,7 @@ from ..ui_shared.status_bar import StatusBar
 from ..terminal import TerminalPanel
 from ..search.panel import SearchPanel
 from ..settings.settings_dialog import SettingsDialog
-from ..ui_shared.command_palette import CommandPalette, GoToLineDialog, QuickOpenDialog
+from ..ui_shared.command_palette import CommandPalette, GoToLineDialog, QuickOpenDialog, EditorTabSwitcherDialog
 from ..git.panel import GitPanel
 from ..ui_shared.problems_panel import ProblemsPanel
 from ..ui_shared.output_panel import OutputPanel
@@ -678,6 +678,7 @@ def build_default_commands() -> list:
         {"id": "editor.action.insertLineBefore", "label": "Insert Line Above", "shortcut": "Ctrl+Shift+Enter"},
         {"id": "editor.action.insertLineAfter", "label": "Insert Line Below", "shortcut": "Ctrl+Enter"},
         {"id": "editor.action.quickFix", "label": "Quick Fix...", "shortcut": "Ctrl+."},
+        {"id": "editor.action.toggleTabFocusMode", "label": "Toggle Tab Key Moves Focus", "shortcut": "Ctrl+M"},
         {"id": "workbench.action.splitEditor", "label": "View: Split Editor", "shortcut": "Ctrl+\\"},
         {"id": "view.toggleInlineDiff", "label": "View: Toggle Inline Diff", "category": "View"},
         {"id": "workbench.action.addRootFolder", "label": "Add Folder to Workspace...", "category": "Workspaces"},
@@ -805,6 +806,8 @@ class MainWindow(QMainWindow):
         self._current_active_editor = None
         self._ext_manager = get_extension_manager()
         self._nav_back_stack: list[str] = []
+        self._editor_tab_mru: list[str] = []
+        self._tab_switcher = None
         
         import concurrent.futures
         self._thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=5)
@@ -841,6 +844,7 @@ class MainWindow(QMainWindow):
         self._setup_shortcuts()
         self._setup_command_palette()
         self._setup_extensions()
+        self._restore_window_geometry()
         
         # Apply theme again now that all panels (search, git, etc) are instantiated
         # so they get patched from their hardcoded styles and editors are updated
@@ -1024,7 +1028,7 @@ class MainWindow(QMainWindow):
             self.move(avail.x() + (avail.width() - width) // 2, avail.y() + (avail.height() - height) // 2)
         else:
             self.resize(1000, 700)
-        
+
         # Set frameless window hint to hide native OS title bar, but keep system menu and minimize/maximize buttons hints so Windows taskbar clicks and Aero Snap work
         self.setWindowFlags(
             Qt.Window |
@@ -1183,9 +1187,6 @@ class MainWindow(QMainWindow):
         # ── Editor Tabs ──
         self._editor_tabs = EditorTabs()
 
-        # ── Breadcrumbs Navigation Bar ──
-        self._breadcrumbs_bar = None
-
         # Container: editor tabs stacked vertically
         self._editor_container = QWidget()
         self._editor_container.setStyleSheet("background: transparent; border: none;")
@@ -1194,6 +1195,11 @@ class MainWindow(QMainWindow):
         self._editor_container_layout.setContentsMargins(0, 0, 0, 0)
         self._editor_container_layout.setSpacing(0)
         self._editor_container_layout.addWidget(self._editor_tabs)
+
+        # ── Breadcrumbs Navigation Bar ──
+        self._breadcrumbs_bar = BreadcrumbsBar(self)
+        self._breadcrumbs_bar.hide()
+        self._editor_tabs.mount_breadcrumbs(self._breadcrumbs_bar)
 
         # ── Chat Panel ──
         self._chat_panel = ChatPanel()
@@ -1324,6 +1330,7 @@ class MainWindow(QMainWindow):
         self._status_bar.go_to_line_requested.connect(self._show_go_to_line)
         self._status_bar.models_requested.connect(self._show_models_dialog)
         self._status_bar.git_branch_requested.connect(self._show_git_branch_menu)
+        self._status_bar.sync_requested.connect(self._sync_git_changes)
         self._status_bar.command_palette_requested.connect(self._show_command_palette)
         self._status_bar.problems_requested.connect(self._open_problems_panel)
         self._status_bar.ext_status_clicked.connect(self._execute_command)
@@ -1401,6 +1408,45 @@ class MainWindow(QMainWindow):
         self._panel_position = position
         if not self._bottom_panel.isVisible():
             self._bottom_panel.show()
+
+    def _restore_window_geometry(self):
+        cfg = self._config
+        if cfg.window_maximized:
+            if os.name == "nt":
+                from PySide6.QtWidgets import QApplication
+                screen = QApplication.primaryScreen()
+                if screen and hasattr(self, "_title_bar"):
+                    self._title_bar._normal_geometry = self.geometry()
+                    self.setGeometry(screen.availableGeometry())
+                    self._title_bar._is_custom_maximized = True
+                    self._title_bar.max_btn.setText("\ueabb")
+                    self.setStyleSheet("#MainWindow { border: none; }")
+                    return
+            self.showMaximized()
+            return
+
+        w = cfg.window_width
+        h = cfg.window_height
+        if w >= self.minimumWidth() and h >= self.minimumHeight():
+            self.resize(w, h)
+        if cfg.window_x >= 0 and cfg.window_y >= 0:
+            self.move(cfg.window_x, cfg.window_y)
+
+    def _save_window_geometry(self):
+        title_bar = getattr(self, "_title_bar", None)
+        is_maximized = (
+            self.isMaximized()
+            or getattr(title_bar, "_is_custom_maximized", False)
+        )
+        self._config.window_maximized = is_maximized
+
+        geo = getattr(title_bar, "_normal_geometry", None) if is_maximized else self.geometry()
+        if geo is None:
+            geo = self.geometry()
+        self._config.window_x = geo.x()
+        self._config.window_y = geo.y()
+        self._config.window_width = geo.width()
+        self._config.window_height = geo.height()
 
 
     def changeEvent(self, event):
@@ -1740,6 +1786,13 @@ class MainWindow(QMainWindow):
         cmd_palette.setShortcut(QKeySequence("Ctrl+Shift+P"))
         cmd_palette.triggered.connect(self._show_command_palette)
         view_menu.addAction(cmd_palette)
+
+        toggle_tab_focus = QAction("Toggle Tab Key Moves Focus", self)
+        toggle_tab_focus.setShortcut(QKeySequence("Ctrl+M"))
+        toggle_tab_focus.triggered.connect(
+            lambda: self._run_editor_action("editor.action.toggleTabFocusMode")
+        )
+        view_menu.addAction(toggle_tab_focus)
 
         open_view = QAction("Open View...", self)
         open_view.triggered.connect(self._show_command_palette)
@@ -2279,9 +2332,9 @@ class MainWindow(QMainWindow):
         # Focus Management
         f6_shortcut = QShortcut(QKeySequence("F6"), self)
         f6_shortcut.activated.connect(self._focus_manager.cycle_focus)
-        
-        # Additional shortcuts not covered by menu
-        pass
+
+        tab_switch = QShortcut(QKeySequence("Ctrl+Tab"), self)
+        tab_switch.activated.connect(self._show_editor_tab_switcher)
 
     # ── Command Palette ───────────────────────────────────
 
@@ -2308,16 +2361,20 @@ class MainWindow(QMainWindow):
             self._breadcrumbs_bar.symbol_selected.connect(self._on_breadcrumb_symbol)
 
     def _on_breadcrumb_clicked(self, path: str):
-        """Open QuickOpen filtered to the clicked breadcrumb path."""
-        editor = self._editor_tabs.current_editor()
-        if editor:
-            editor.show_quick_open(path)
+        """Reveal folder or open file for the clicked breadcrumb segment."""
+        path = os.path.normpath(path.rstrip(os.sep))
+        if os.path.isdir(path):
+            self._file_explorer.reveal_and_select_file(path)
+        elif os.path.isfile(path):
+            self._open_file_in_editor(path)
 
     def _on_breadcrumb_symbol(self, line: int):
         """Jump to the selected symbol line in the editor."""
         editor = self._editor_tabs.current_editor()
-        if editor:
+        if editor and hasattr(editor, "reveal_line"):
             editor.reveal_line(line)
+            if hasattr(editor, "focus"):
+                editor.focus()
 
     # ── Keybindings ────────────────────────────────────────
 
@@ -2418,6 +2475,7 @@ class MainWindow(QMainWindow):
             "editor.action.insertLineBefore": lambda: self._run_editor_action("editor.action.insertLineBefore"),
             "editor.action.insertLineAfter": lambda: self._run_editor_action("editor.action.insertLineAfter"),
             "editor.action.quickFix": lambda: self._run_editor_action("editor.action.quickFix"),
+            "editor.action.toggleTabFocusMode": lambda: self._run_editor_action("editor.action.toggleTabFocusMode"),
             "workbench.action.zoomIn": self._zoom_in,
             "view.splitEditorRight": lambda: self._editor_tabs.split_editor("right"),
             "view.splitEditorDown": lambda: self._editor_tabs.split_editor("down"),
@@ -2880,6 +2938,7 @@ class MainWindow(QMainWindow):
                 self._navigating = False
             if editor:
                 self._status_bar.set_language(editor.get_language())
+                self._update_editor_status_bar(editor)
                 if hasattr(editor, "diagnostics_ready"):
                     try:
                         import warnings
@@ -2904,6 +2963,7 @@ class MainWindow(QMainWindow):
         editor = self._editor_tabs.open_diff(path, original, modified)
         if editor:
             self._status_bar.set_language(editor.get_language())
+            self._update_editor_status_bar(editor)
         self._status_bar.set_cursor_position(1, 1)
 
     def _open_file_at_line(self, path: str, line: int):
@@ -3317,6 +3377,7 @@ class MainWindow(QMainWindow):
     def _on_tab_changed(self, file_path: str, language: str):
         self._status_bar.set_language(language)
         self._update_window_title(file_path)
+        self._record_editor_tab_mru(file_path)
         
         # Sync Open Editors Panel
         open_files = self._editor_tabs.get_open_files()
@@ -3330,6 +3391,10 @@ class MainWindow(QMainWindow):
             try:
                 if hasattr(self._current_active_editor, "cursor_position_changed"):
                     self._current_active_editor.cursor_position_changed.disconnect(self._on_cursor_moved)
+                if hasattr(self._current_active_editor, "selection_changed"):
+                    self._current_active_editor.selection_changed.disconnect(self._on_selection_changed)
+                if hasattr(self._current_active_editor, "indent_changed"):
+                    self._current_active_editor.indent_changed.disconnect(self._on_indent_changed)
                 if hasattr(self._current_active_editor, "content_changed"):
                     self._current_active_editor.content_changed.disconnect(self._on_editor_content_changed)
             except (TypeError, RuntimeError):
@@ -3340,25 +3405,48 @@ class MainWindow(QMainWindow):
 
         # Update Breadcrumbs
         if self._breadcrumbs_bar:
-            if file_path:
-                self._breadcrumbs_bar.show()
-                self._breadcrumbs_bar.update_breadcrumbs(file_path)
-            else:
-                self._breadcrumbs_bar.hide()
+            group = self._editor_tabs.active_group()
+            if group:
+                if file_path:
+                    group.set_breadcrumbs_visible(True)
+                    self._breadcrumbs_bar.update_breadcrumbs(file_path)
+                else:
+                    group.set_breadcrumbs_visible(False)
 
         editor = self._editor_tabs.current_editor()
         self._current_active_editor = editor
         if editor:
             if hasattr(editor, "cursor_position_changed"):
                 editor.cursor_position_changed.connect(self._on_cursor_moved)
+            if hasattr(editor, "selection_changed"):
+                editor.selection_changed.connect(self._on_selection_changed)
+            if hasattr(editor, "indent_changed"):
+                editor.indent_changed.connect(self._on_indent_changed)
             if hasattr(editor, "content_changed"):
                 editor.content_changed.connect(self._on_editor_content_changed)
+            self._update_editor_status_bar(editor)
             self._ext_manager.fire_event("active_editor_changed", file_path)
+
+    def _update_editor_status_bar(self, editor):
+        if hasattr(editor, "get_encoding"):
+            self._status_bar.set_encoding(editor.get_encoding())
+        if hasattr(editor, "get_eol"):
+            self._status_bar.set_eol(editor.get_eol())
+        if hasattr(editor, "get_cursor_position"):
+            line, col = editor.get_cursor_position()
+            self._status_bar.set_cursor_position(line, col)
+        self._status_bar.set_selection_count(0, 0)
 
     def _on_cursor_moved(self, line: int, col: int):
         self._status_bar.set_cursor_position(line, col)
         if self._breadcrumbs_bar:
             self._breadcrumbs_bar.update_current_symbol(line)
+
+    def _on_selection_changed(self, chars: int, lines: int):
+        self._status_bar.set_selection_count(chars, lines)
+
+    def _on_indent_changed(self, tab_size: int, use_spaces: bool):
+        self._status_bar.set_indent(tab_size, use_spaces)
 
     def _on_outline_item_selected(self, line: int):
         editor = self._editor_tabs.current_editor()
@@ -3787,6 +3875,19 @@ class MainWindow(QMainWindow):
             if hasattr(self, "_status_bar") and self._status_bar:
                 self._status_bar.set_git_branch("")
 
+    def _sync_git_changes(self):
+        """Pull/push remote changes via the git bridge (Synchronize Changes)."""
+        if not hasattr(self, "_git_panel") or not self._git_panel:
+            return
+        bridge = self._git_panel.bridge
+        if not bridge._workspace:
+            return
+        self._output_panel.append("> git fetch\n", "Git")
+        result = bridge.sync()
+        if result:
+            self._output_panel.append(result + "\n", "Git")
+        self._detect_git_branch()
+
     # ── Dialogs ───────────────────────────────────────────
 
     def _show_command_palette(self):
@@ -3807,6 +3908,42 @@ class MainWindow(QMainWindow):
         dialog = GoToLineDialog(9999, self)
         dialog.line_selected.connect(lambda line: editor.reveal_line(line))
         dialog.show_dialog()
+
+    def _record_editor_tab_mru(self, file_path: str):
+        key = file_path or ""
+        for gi, g in enumerate(self._editor_tabs._groups):
+            for ti, tab in enumerate(g._tabs):
+                if tab.editor is self._editor_tabs.current_editor():
+                    key = tab.file_path or f"__untitled__:{gi}:{ti}"
+                    break
+            else:
+                continue
+            break
+        self._editor_tab_mru = [k for k in self._editor_tab_mru if k != key]
+        self._editor_tab_mru.insert(0, key)
+
+    def _get_editor_tabs_mru(self) -> list:
+        entries = {entry["key"]: entry for entry in self._editor_tabs.get_tab_entries()}
+        ordered = []
+        for key in self._editor_tab_mru:
+            if key in entries:
+                ordered.append(entries[key])
+        for key, entry in entries.items():
+            if key not in self._editor_tab_mru:
+                ordered.append(entry)
+        return ordered
+
+    def _show_editor_tab_switcher(self):
+        tabs = self._get_editor_tabs_mru()
+        if len(tabs) < 2:
+            return
+        if self._tab_switcher is None:
+            self._tab_switcher = EditorTabSwitcherDialog(self)
+            self._tab_switcher.tab_selected.connect(self._activate_editor_tab)
+        self._tab_switcher.show_switcher(tabs)
+
+    def _activate_editor_tab(self, tab_key: str):
+        self._editor_tabs.activate_tab_by_key(tab_key)
 
     def _show_find(self):
         editor = self._editor_tabs.current_editor()
@@ -4116,6 +4253,7 @@ class MainWindow(QMainWindow):
             self._lsp_manager.stop_all()
 
         # Save config
+        self._save_window_geometry()
         self._config.save()
         super().closeEvent(event)
 

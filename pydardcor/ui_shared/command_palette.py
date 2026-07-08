@@ -283,6 +283,128 @@ class GoToLineDialog(QDialog):
         self._input.setFocus()
 
 
+class EditorTabSwitcherDialog(QDialog):
+    """VS Code style editor quick access (Ctrl+Tab)."""
+
+    tab_selected = Signal(str)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowFlags(Qt.Popup | Qt.FramelessWindowHint)
+        self._tabs = []
+        self._setup_ui()
+
+    def _setup_ui(self):
+        self.setFixedWidth(520)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        container = QFrame()
+        container.setObjectName("DialogContainer")
+        container.setStyleSheet("""
+            #DialogContainer {
+                background-color: #000000;
+                border: 1px solid #3c0068;
+                border-radius: 6px;
+            }
+        """)
+        container_layout = QVBoxLayout(container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
+        container_layout.setSpacing(0)
+
+        header = QLabel("Switch Editor")
+        header.setFixedHeight(28)
+        header.setStyleSheet(
+            "color: #858585; font-size: 11px; padding: 4px 14px; background: #2c004a; border-bottom: 1px solid #3c0068;"
+        )
+        container_layout.addWidget(header)
+
+        self._list = QListWidget()
+        self._list.setStyleSheet("""
+            QListWidget {
+                background-color: #000000;
+                border: none;
+                color: #cccccc;
+                font-size: 13px;
+                outline: none;
+                padding: 4px 0px;
+                border-bottom-left-radius: 6px;
+                border-bottom-right-radius: 6px;
+            }
+            QListWidget::item {
+                padding: 4px 14px;
+                min-height: 24px;
+            }
+            QListWidget::item:selected {
+                background-color: #3c0068;
+                color: #ffffff;
+            }
+            QListWidget::item:hover:!selected {
+                background-color: #1a0033;
+            }
+        """)
+        self._list.itemActivated.connect(self._on_item_selected)
+        self._list.itemClicked.connect(self._on_item_selected)
+        container_layout.addWidget(self._list)
+        layout.addWidget(container)
+
+    def show_switcher(self, tabs: list):
+        """Show open editors in MRU order. Each tab dict has 'key' and 'title'."""
+        self._tabs = tabs
+        self._list.clear()
+        for tab in tabs:
+            item = QListWidgetItem(tab.get("title") or "Untitled")
+            item.setData(Qt.UserRole, tab.get("key", ""))
+            self._list.addItem(item)
+
+        if self._list.count() > 1:
+            self._list.setCurrentRow(1)
+        elif self._list.count() == 1:
+            self._list.setCurrentRow(0)
+
+        visible = min(self._list.count(), 12)
+        list_height = max(50, visible * 28 + 8)
+        self._list.setFixedHeight(list_height)
+        self.setFixedHeight(list_height + 28)
+
+        parent = self.parent()
+        if parent:
+            parent_geo = parent.geometry()
+            x = parent_geo.x() + (parent_geo.width() - self.width()) // 2
+            y = parent_geo.y() + 80
+            self.move(x, y)
+
+        self.show()
+        self._list.setFocus()
+
+    def _on_item_selected(self, item):
+        key = item.data(Qt.UserRole)
+        if key:
+            self.tab_selected.emit(key)
+        self.close()
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            self.close()
+            return
+        if event.key() == Qt.Key_Down:
+            row = self._list.currentRow()
+            if row < self._list.count() - 1:
+                self._list.setCurrentRow(row + 1)
+            return
+        if event.key() == Qt.Key_Up:
+            row = self._list.currentRow()
+            if row > 0:
+                self._list.setCurrentRow(row - 1)
+            return
+        if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+            item = self._list.currentItem()
+            if item:
+                self._on_item_selected(item)
+            return
+        super().keyPressEvent(event)
+
+
 class QuickOpenDialog(QDialog):
     """VS Code style Quick Open / Command Center unified dialog (Ctrl+P).
     
@@ -294,6 +416,7 @@ class QuickOpenDialog(QDialog):
     Prefix '>' switches to command palette mode.
     Prefix ':' switches to go-to-line mode.
     Prefix '@' switches to go-to-symbol mode.
+    Prefix '#' switches to workspace symbol search.
     """
 
     file_selected = Signal(str)
@@ -304,6 +427,7 @@ class QuickOpenDialog(QDialog):
         {"label": "Show and Run Commands", "prefix": ">", "shortcut": "Ctrl+Shift+P", "icon": "\ueaef"},  # terminal
         {"label": "Go to Line/Column...", "prefix": ":", "shortcut": "Ctrl+G", "icon": "\uea9e"},  # symbol-method 
         {"label": "Go to Symbol in Editor...", "prefix": "@", "shortcut": "Ctrl+Shift+O", "icon": "\ueb1d"},  # symbol-class
+        {"label": "Go to Symbol in Workspace...", "prefix": "#", "shortcut": "Ctrl+T", "icon": "\uea91"},
         {"label": "Search Files by Content", "prefix": "% ", "shortcut": "", "icon": "\ueb1c"},  # search
         {"label": "Ask Dardcor", "prefix": "", "shortcut": "", "icon": "\uec4f"},  # chat-sparkle
     ]
@@ -316,6 +440,11 @@ class QuickOpenDialog(QDialog):
         self._filtered = []
         self._recent_files = []  # Track recently opened files
         self._from_command_center = False  # Whether opened from Command Center click
+        self._workspace_symbols = None
+        self._symbol_filter_timer = QTimer(self)
+        self._symbol_filter_timer.setSingleShot(True)
+        self._symbol_filter_timer.timeout.connect(self._populate_workspace_symbols)
+        self._pending_symbol_query = ""
         self._setup_ui()
 
     def _setup_ui(self):
@@ -441,6 +570,97 @@ class QuickOpenDialog(QDialog):
     def set_root(self, root_path: str):
         self._root_path = root_path
         self._all_files = []  # Reset cache when root changes
+        self._workspace_symbols = None
+
+    def _scan_workspace_symbols(self):
+        if self._workspace_symbols is not None:
+            return self._workspace_symbols
+
+        symbols = []
+        if not self._root_path or not os.path.isdir(self._root_path):
+            self._workspace_symbols = symbols
+            return symbols
+
+        from ..core.filesystem import FileSystem, parse_python_symbols, is_binary
+
+        skip_dirs = {".git", "__pycache__", "node_modules", ".venv", "venv",
+                     "dist", "build", ".next", ".nuxt", "target"}
+        fs = FileSystem()
+
+        def flatten(syms, fpath, rel, prefix=""):
+            for sym in syms:
+                fullname = f"{prefix}{sym['name']}"
+                symbols.append((fullname, sym["type"], sym["line"], fpath, rel))
+                if sym.get("children"):
+                    flatten(sym["children"], fpath, rel, f"{fullname}.")
+
+        for dirpath, dirnames, filenames in os.walk(self._root_path):
+            dirnames[:] = [d for d in dirnames if d not in skip_dirs and not d.startswith(".")]
+            for fname in filenames:
+                if is_binary(fname) or not fname.endswith(".py"):
+                    continue
+                full = os.path.join(dirpath, fname)
+                rel = os.path.relpath(full, self._root_path)
+                try:
+                    content = fs.read_file(full)
+                except Exception:
+                    continue
+                flatten(parse_python_symbols(content), full, rel)
+                if len(symbols) >= 5000:
+                    self._workspace_symbols = symbols
+                    return symbols
+
+        self._workspace_symbols = symbols
+        return symbols
+
+    def _populate_workspace_symbols(self):
+        query_sym = self._pending_symbol_query
+        self._list.clear()
+
+        symbols = self._scan_workspace_symbols()
+        filtered_syms = [
+            s for s in symbols
+            if not query_sym or query_sym in s[0].lower() or query_sym in s[4].lower()
+        ]
+
+        for name, sym_type, line, fpath, rel in filtered_syms[:30]:
+            item = QListWidgetItem()
+            widget = QWidget()
+            layout = QHBoxLayout(widget)
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.setSpacing(8)
+
+            icon_text = "\U0001F4E6" if sym_type == "class" else "\u0192"
+            icon_label = QLabel(icon_text)
+            icon_label.setStyleSheet("color: #858585; font-size: 13px; font-weight: bold; background: transparent;")
+            layout.addWidget(icon_label)
+
+            name_label = QLabel(name)
+            name_label.setStyleSheet("color: #cccccc; font-size: 13px; background: transparent;")
+            layout.addWidget(name_label)
+
+            path_label = QLabel(rel)
+            path_label.setStyleSheet("color: #858585; font-size: 11px; background: transparent;")
+            layout.addWidget(path_label)
+
+            layout.addStretch()
+
+            line_label = QLabel(f"line {line}")
+            line_label.setStyleSheet("color: #858585; font-size: 11px; background: transparent;")
+            layout.addWidget(line_label)
+
+            item.setSizeHint(QSize(0, 26))
+            item.setData(Qt.UserRole, ("wsymbol", fpath, line))
+            self._list.addItem(item)
+            self._list.setItemWidget(item, widget)
+
+        if filtered_syms:
+            self._list.setCurrentRow(0)
+
+        visible = min(max(len(filtered_syms), 1), 12)
+        list_height = max(50, visible * 26 + 8)
+        self._list.setFixedHeight(list_height)
+        self.setFixedHeight(list_height + 38)
 
     def add_recent_file(self, file_path: str):
         """Track a file as recently opened."""
@@ -703,7 +923,16 @@ class QuickOpenDialog(QDialog):
                     self.setFixedHeight(list_height + 38)
                     return
 
-        # 4. Prefix "% " - Search file content
+        # 4. Prefix "#" - Go to Symbol in Workspace
+        if text_stripped.startswith("#"):
+            query_sym = text_stripped[1:].strip().lower()
+            self._pending_symbol_query = query_sym
+            self._list.clear()
+            self._symbol_filter_timer.stop()
+            self._symbol_filter_timer.start(150)
+            return
+
+        # 5. Prefix "% " - Search file content
         if text_stripped.startswith("% ") or text_stripped.startswith("%"):
             query_content = text_stripped.lstrip("% ").strip().lower()
             self._list.clear()
@@ -730,7 +959,7 @@ class QuickOpenDialog(QDialog):
                     parent._switch_sidebar(1)  # VIEW_SEARCH
             return
 
-        # 5. Default File Search
+        # 6. Default File Search
         text = text.strip().lower()
         if not text:
             self._filtered = self._all_files[:50]
@@ -810,6 +1039,14 @@ class QuickOpenDialog(QDialog):
                 editor = parent._editor_tabs.current_editor()
                 if editor:
                     editor.reveal_line(line)
+            self.close()
+            return
+
+        if isinstance(data, tuple) and len(data) == 3 and data[0] == "wsymbol":
+            _, fpath, line = data
+            parent = self.parent()
+            if parent and hasattr(parent, "_editor_tabs"):
+                parent._editor_tabs.open_file_at_line(fpath, line)
             self.close()
             return
 

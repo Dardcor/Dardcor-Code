@@ -14,22 +14,88 @@
         ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border: 4px solid transparent; background-clip: padding-box; min-height: 20px; }
         ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); border: 4px solid transparent; background-clip: padding-box; }
         ::-webkit-scrollbar-corner { background: transparent; }
+
+        #terminal-wrap { position: relative; width: 100%; height: 100%; }
+        #find-bar {
+            display: none;
+            position: absolute;
+            top: 4px;
+            right: 8px;
+            z-index: 10;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 6px;
+            background: #252526;
+            border: 1px solid #454545;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.36);
+        }
+        #find-bar.visible { display: flex; }
+        #find-bar input {
+            width: 180px;
+            background: #3c3c3c;
+            color: #cccccc;
+            border: 1px solid #3c3c3c;
+            border-radius: 2px;
+            padding: 2px 6px;
+            font-size: 12px;
+            font-family: "Segoe UI", sans-serif;
+            outline: none;
+        }
+        #find-bar input:focus { border-color: #007acc; }
+        #find-bar button {
+            background: transparent;
+            color: #cccccc;
+            border: none;
+            border-radius: 2px;
+            padding: 2px 6px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        #find-bar button:hover { background: rgba(255, 255, 255, 0.1); }
+        #find-count {
+            color: #858585;
+            font-size: 11px;
+            min-width: 40px;
+            text-align: center;
+        }
+        .xterm-find-result-decoration { background-color: rgba(234, 92, 0, 0.33); }
+        .xterm-find-active-result-decoration { background-color: rgba(234, 92, 0, 0.55); outline: 1px solid #ea5c00; }
     </style>
 </head>
 <body>
-    <div id="terminal"></div>
+    <div id="terminal-wrap">
+        <div id="find-bar">
+            <input id="find-input" type="text" placeholder="Find" spellcheck="false" />
+            <span id="find-count"></span>
+            <button id="find-prev" title="Previous Match (Shift+Enter)">&#9650;</button>
+            <button id="find-next" title="Next Match (Enter)">&#9660;</button>
+            <button id="find-close" title="Close (Escape)">&#10005;</button>
+        </div>
+        <div id="terminal"></div>
+    </div>
 
     <script src="qwebchannel.js"></script>
     <script src="xterm.js"></script>
+    <script src="xterm-addon-search.js"></script>
 
     <script>
     (function () {
         'use strict';
 
         var term       = null;
+        var searchAddon = null;
         var backend    = null;
         var resizeObs  = null;
         var fitPending = false;
+        var findDecorations = {
+            matchBackground: '#ea5c004d',
+            matchBorder: '#ea5c00',
+            matchOverviewRuler: '#ea5c00',
+            activeMatchBackground: '#ea5c0088',
+            activeMatchBorder: '#ea5c00',
+            activeMatchColorOverviewRuler: '#ea5c00'
+        };
 
         /* ── VS Code exact color theme ─────────────────────────── */
         var VSCODE_THEME = {
@@ -73,6 +139,17 @@
             var container = document.getElementById('terminal');
             term.open(container);
 
+            if (typeof SearchAddon !== 'undefined') {
+                searchAddon = new SearchAddon();
+                if (typeof term.loadAddon === 'function') {
+                    term.loadAddon(searchAddon);
+                } else {
+                    searchAddon.activate(term);
+                }
+            }
+
+            setupFindBar();
+
             /* Fit terminal to container — no FitAddon needed */
             scheduleFit();
 
@@ -102,8 +179,12 @@
                 if (backend) { backend.receive_data(data); }
             });
 
-            /* Attach custom key handlers for copy/paste */
+            /* Attach custom key handlers for copy/paste and find */
             term.attachCustomKeyEventHandler(function (e) {
+                if ((e.ctrlKey || e.metaKey) && e.code === 'KeyF' && e.type === 'keydown') {
+                    if (typeof window.showFindBar === 'function') { window.showFindBar(); }
+                    return false;
+                }
                 if ((e.ctrlKey || e.metaKey) && e.code === 'KeyC' && e.type === 'keydown') {
                     var selection = term.getSelection();
                     if (selection) {
@@ -133,6 +214,64 @@
 
             /* Initial fit + notify Python of size */
             doFit();
+        }
+
+        function setupFindBar() {
+            var bar = document.getElementById('find-bar');
+            var input = document.getElementById('find-input');
+            var countEl = document.getElementById('find-count');
+            if (!bar || !input || !searchAddon) { return; }
+
+            function runFind(backward) {
+                var text = input.value;
+                if (!text || !searchAddon) { return; }
+                var opts = { decorations: findDecorations };
+                var found = backward
+                    ? searchAddon.findPrevious(text, opts)
+                    : searchAddon.findNext(text, opts);
+                if (countEl) {
+                    countEl.textContent = found ? '' : 'No results';
+                }
+            }
+
+            window.showFindBar = function () {
+                bar.classList.add('visible');
+                input.focus();
+                input.select();
+            };
+
+            window.hideFindBar = function () {
+                bar.classList.remove('visible');
+                if (searchAddon) { searchAddon.clearDecorations(); }
+                if (countEl) { countEl.textContent = ''; }
+                term.focus();
+            };
+
+            input.addEventListener('input', function () { runFind(false); });
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    runFind(e.shiftKey);
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    hideFindBar();
+                }
+            });
+
+            document.getElementById('find-prev').addEventListener('click', function () { runFind(true); });
+            document.getElementById('find-next').addEventListener('click', function () { runFind(false); });
+            document.getElementById('find-close').addEventListener('click', hideFindBar);
+
+            if (searchAddon.onDidChangeResults) {
+                searchAddon.onDidChangeResults(function (e) {
+                    if (!countEl || !input.value) { return; }
+                    if (e.resultCount > 0) {
+                        countEl.textContent = (e.resultIndex + 1) + ' of ' + e.resultCount;
+                    } else {
+                        countEl.textContent = 'No results';
+                    }
+                });
+            }
         }
 
         /* ── Fit logic: compute cols/rows from DOM pixel size ──── */

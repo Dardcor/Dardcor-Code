@@ -50,120 +50,120 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 - [x] **Line Selection** — bawaan Monaco (Ctrl+L)
 - [x] **Lines Operations** — copy_line_up/down & move_line_up/down keybindings aktif
 - [x] **Linked Editing** — `linkedEditing: true` sudah aktif
-- [ ] **Links** — `links: true` sudah aktif
-- [ ] **Long Lines Helper** — performance helper untuk file panjang
-- [ ] **Editor Messages** — pesan overlay di editor
-- [ ] **Middle Scroll** — middle mouse button scroll
-- [ ] **Multi Cursor** — `multiCursorModifier: 'alt', columnSelection: true` sudah aktif
-- [ ] **Parameter Hints** — `parameterHints: { enabled: true }` sudah aktif
-- [ ] **Peek View** — bawaan Monaco (Alt+F12)
-- [ ] **Placeholder Text** — placeholder text di empty editor
-- [ ] **Quick Access** — command_palette.py sudah diimplementasikan (Ctrl+P)
-- [ ] **Read Only Message** — pesan saat edit read-only file
-- [ ] **Rename** — bawaan Monaco (F2)
-- [ ] **Section Headers** — visual section separators
-- [ ] **Semantic Tokens** — semantic highlighting dari language server
-- [ ] **Smart Select** — expand_selection/shrink_selection sudah di widget.py
-- [ ] **Snippets** — snippet_manager.py + extension snippets via bridge.py sudah ada
-- [ ] **Sticky Scroll** — `stickyScroll: { enabled: true, maxLineCount: 5 }` sudah aktif
-- [ ] **Suggest (Autocomplete)** — backendCompletionProvider + LSP completions sudah ada
-- [ ] **Symbol Icons** — bawaan Monaco
-- [ ] **Toggle Tab Focus Mode** — tab key focus mode toggle
-- [ ] **Tokenization** — Monaco + `vs/basic-languages/monaco.contribution` sudah dimuat
-- [ ] **Unicode Highlighter** — highlight invisible unicode characters
-- [ ] **Unusual Line Terminators** — detect CRLF/LF/mixed
-- [ ] **Word Highlighter** — `occurrencesHighlight: true, selectionHighlight: true` sudah aktif
-- [ ] **Word Operations** — bawaan Monaco
-- [ ] **Word Part Operations** — bawaan Monaco
-- [ ] **Zone Widget** — base class untuk inline editor widgets
+- [x] **Links** — `links: true` sudah aktif
+- [x] **Long Lines Helper** — performance helper untuk file panjang
+- [x] **Editor Messages** — pesan overlay di editor
+- [x] **Middle Scroll** — middle mouse button scroll
+- [x] **Multi Cursor** — `multiCursorModifier: 'alt', columnSelection: true` sudah aktif
+- [x] **Parameter Hints** — `parameterHints: { enabled: true }` + LSP SignatureHelpProvider
+- [x] **Peek View** — DefinitionProvider + `editor.action.peekDefinition`
+- [x] **Placeholder Text** — placeholder text di empty editor
+- [x] **Quick Access** — command_palette.py sudah diimplementasikan (Ctrl+P)
+- [x] **Read Only Message** — pesan saat edit read-only file
+- [x] **Rename** — RenameProvider + LSP rename (F2)
+- [x] **Section Headers** — visual section separators
+- [x] **Semantic Tokens** — DocumentSemanticTokensProvider + LSP
+- [x] **Smart Select** — expand_selection/shrink_selection sudah di widget.py
+- [x] **Snippets** — snippet_manager.py + extension snippets via bridge.py sudah ada
+- [x] **Sticky Scroll** — `stickyScroll: { enabled: true, maxLineCount: 5 }` sudah aktif
+- [x] **Suggest (Autocomplete)** — backendCompletionProvider + LSP completions sudah ada
+- [x] **Symbol Icons** — bawaan Monaco
+- [x] **Toggle Tab Focus Mode** — Ctrl+M toggle tab focus mode
+- [x] **Tokenization** — Monaco + `vs/basic-languages/monaco.contribution` sudah dimuat
+- [x] **Unicode Highlighter** — `unicodeHighlight` aktif di Monaco
+- [x] **Unusual Line Terminators** — `unusualLineTerminators: 'auto'` aktif
+- [x] **Word Highlighter** — `occurrencesHighlight: true, selectionHighlight: true` sudah aktif
+- [x] **Word Operations** — bawaan Monaco
+- [x] **Word Part Operations** — bawaan Monaco
+- [x] **Zone Widget** — base class untuk inline editor widgets
 
 ### 1.2 Editor Tabs & Groups
 - [ ] **Multi-Row Tabs** — opsi menampilkan tabs di beberapa baris
 - [ ] **Tab Wrapping** — tab wrap ketika overflow
-- [ ] **Pinned Tabs** — pin tab agar tidak bisa ditutup/dipindah
+- [x] **Pinned Tabs** — pin tab + enforcement (tidak bisa ditutup/drag ke unpinned)
 - [ ] **Tab Preview Mode** — single-click hanya preview, double-click baru buka
-- [ ] **Tab Close on Middle Click** — middle mouse click menutup tab
-- [ ] **Tab Drag Reorder** — sudah ada di tabs.py (drag-and-drop reorder)
+- [x] **Tab Close on Middle Click** — middle mouse click menutup tab
+- [x] **Tab Drag Reorder** — tabMoved sync dengan `_tabs` list di group.py
 - [ ] **Tab Drag to New Group** — drag tab ke sisi lain untuk split editor
-- [ ] **Editor Group Splitting** — split editor sudah ada di group.py
-- [ ] **Editor Grid Layout** — 2x2 atau custom grid layout
-- [ ] **Diff Editor Side-by-Side** — diff_editor.html + diff_viewer.py sudah ada
-- [ ] **Editor Group Watermark** — welcome watermark saat group kosong
-- [ ] **Editor Drop Target** — visual indicator saat drag file
-- [ ] **Editor Auto Save** — auto save setelah delay / on focus change
-- [ ] **Editor Quick Access** — Ctrl+Tab switch antar editor tabs
+- [x] **Editor Group Splitting** — split editor sudah ada di tabs.py + grid_layout.py
+- [ ] **Editor Grid Layout** — 2x2 atau custom grid layout (partial: nested splits only)
+- [x] **Diff Editor Side-by-Side** — diff_editor.html + diff_viewer.py sudah ada
+- [x] **Editor Group Watermark** — welcome watermark saat group kosong
+- [ ] **Editor Drop Target** — visual indicator saat drag file (drop works, no indicator)
+- [ ] **Editor Auto Save** — auto save delay ada; save on focus change belum
+- [x] **Editor Quick Access** — Ctrl+Tab switch antar editor tabs
 - [ ] **No Tab Mode** — mode tanpa tabs
 - [ ] **Single Tab Mode** — mode single tab
 
 ### 1.3 Editor Status Bar Items
-- [ ] **Line/Column indicator** — status_bar.py sudah menampilkan Ln/Col
-- [ ] **Selection count** — jumlah karakter/baris yang diseleksi
-- [ ] **Indentation indicator** — Spaces:4 sudah di status_bar.py
-- [ ] **Encoding indicator** — UTF-8 sudah di status_bar.py
-- [ ] **End of Line indicator** — LF/CRLF sudah di status_bar.py
-- [ ] **Language Mode indicator** — language mode sudah di status_bar.py
+- [x] **Line/Column indicator** — status_bar.py sudah menampilkan Ln/Col
+- [x] **Selection count** — jumlah karakter/baris yang diseleksi dari Monaco
+- [x] **Indentation indicator** — Spaces/Tab Size dari Monaco tabSize/insertSpaces
+- [x] **Encoding indicator** — encoding terdeteksi saat file dibuka
+- [x] **End of Line indicator** — LF/CRLF terdeteksi dari konten file
+- [x] **Language Mode indicator** — language mode sudah di status_bar.py
 - [ ] **Feedback icon** — smiley face feedback icon
-- [ ] **Notification bell** — notification bell sudah di status_bar.py
-- [ ] **Remote indicator** — remote connection indicator
+- [x] **Notification bell** — notification bell + badge count di status_bar.py
+- [ ] **Remote indicator** — remote connection indicator (UI stub, belum wired)
 
 ---
 
 ## 2. FILE EXPLORER (vs/workbench/contrib/files/)
 
 ### 2.1 Explorer Tree View
-- [ ] **File/Folder drag-and-drop** — drag file/folder untuk move/copy
-- [ ] **Rename inline** — F2 rename sudah ada di panel.py (explorer)
-- [ ] **Multi-select** — Ctrl+Click / Shift+Click multi-select di tree
-- [ ] **Filter on Type** — type to filter tree items
-- [ ] **Compact Folders** — tampilkan single-child folders secara compact
-- [ ] **File Nesting** — nest related files
-- [ ] **File Decorations** — git status decorations sudah ada di panel.py
-- [ ] **Explorer Sort Order** — sort by name, type, modified date, size
+- [x] **File/Folder drag-and-drop** — drag file/folder untuk move/copy
+- [x] **Rename inline** — F2 rename sudah ada di panel.py (explorer)
+- [x] **Multi-select** — Ctrl+Click / Shift+Click multi-select di tree
+- [x] **Filter on Type** — type to filter tree items saat explorer fokus
+- [x] **Compact Folders** — tampilkan single-child folders secara compact
+- [x] **File Nesting** — nest related files (enabled by default)
+- [x] **File Decorations** — git status decorations sudah ada di panel.py
+- [x] **Explorer Sort Order** — sort by name, type, modified date, size
 - [ ] **Sticky Scroll di Explorer** — sticky parent folder saat scroll
-- [ ] **New File/Folder** — tombol new file/folder sudah ada di explorer header
-- [ ] **Collapse All** — tombol collapse all sudah ada
-- [ ] **Refresh Explorer** — tombol refresh sudah ada
-- [ ] **Open Editors Section** — open_editors_panel.py sudah ada
-- [ ] **Outline Section** — outline_panel.py sudah ada
-- [ ] **Timeline Section** — timeline_panel.py sudah ada
-- [ ] **Explorer Context Menu** — right-click context menu sudah ada di panel.py
-- [ ] **Excluded Files** — settings files.exclude
+- [x] **New File/Folder** — tombol new file/folder sudah ada di explorer header
+- [x] **Collapse All** — tombol collapse all sudah ada
+- [x] **Refresh Explorer** — tombol refresh sudah ada
+- [x] **Open Editors Section** — open_editors_panel.py sudah ada
+- [x] **Outline Section** — outline_panel.py sudah ada
+- [x] **Timeline Section** — timeline_panel.py sudah ada
+- [x] **Explorer Context Menu** — right-click context menu sudah ada di panel.py
+- [x] **Excluded Files** — settings files.exclude
 
 ### 2.2 File Operations
-- [ ] **File Watcher** — QFileSystemWatcher sudah ada di panel.py
-- [ ] **Workspace Watcher** — workspace-level file watching
+- [x] **File Watcher** — QFileSystemWatcher sudah ada di panel.py
+- [ ] **Workspace Watcher** — workspace-level file watching (partial)
 - [ ] **File Import/Export** — import/export files
-- [ ] **Binary File Viewer** — hex_editor.py sudah ada
-- [ ] **File Associations** — language.py detect_language sudah ada
+- [x] **Binary File Viewer** — hex_editor.py wired untuk file binary
+- [x] **File Associations** — language.py detect_language sudah ada
 
 ---
 
 ## 3. SEARCH (vs/workbench/contrib/search/)
 
 ### 3.1 Search View
-- [ ] **Search Input** — search panel sudah ada dengan regex, case, whole word toggles
-- [ ] **Replace Input** — replace sudah ada di search panel
-- [ ] **Files to Include** — glob pattern include sudah ada
-- [ ] **Files to Exclude** — glob pattern exclude sudah ada
-- [ ] **Search Results Tree** — hierarchical tree view sudah ada
-- [ ] **Match Highlighting** — sudah ada di search results
+- [x] **Search Input** — search panel sudah ada dengan regex, case, whole word toggles
+- [x] **Replace Input** — replace sudah ada di search panel
+- [x] **Files to Include** — glob pattern include sudah ada
+- [x] **Files to Exclude** — glob pattern exclude sudah ada
+- [x] **Search Results Tree** — hierarchical tree view sudah ada
+- [x] **Match Highlighting** — highlight query terms di search results
 - [ ] **Match Context Lines** — show surrounding lines
 - [ ] **Replace Preview** — preview replace changes
 - [ ] **Search History** — recent search terms dropdown
 - [ ] **Dismiss Search Result** — dismiss individual results
 - [ ] **Collapse/Expand Results** — collapse/expand sudah ada
-- [ ] **Open in Editor** — click result jump ke file:line sudah ada
+- [x] **Open in Editor** — click result jump ke file:line sudah ada
 - [ ] **Search Editor** — dedicated search results editor tab
 - [ ] **AI Search** — semantic/AI-powered search
 - [ ] **Notebook Search** — search inside notebook cells
 
 ### 3.2 Quick Open (Ctrl+P)
-- [ ] **File Quick Open** — command_palette.py sudah ada (Ctrl+P fuzzy search)
-- [ ] **Symbol Quick Open** — `@` symbol search sudah ada
-- [ ] **Global Symbol Search** — `#` symbol search across workspace
-- [ ] **Go to Line** — `:` go to line sudah ada
-- [ ] **Command Quick Open** — `>` command palette sudah ada
-- [ ] **Recent Files** — MRU file list sudah ada
+- [x] **File Quick Open** — command_palette.py sudah ada (Ctrl+P fuzzy search)
+- [ ] **Symbol Quick Open** — `@` symbol search (current file Python only)
+- [x] **Global Symbol Search** — `#` symbol search across workspace
+- [x] **Go to Line** — `:` go to line sudah ada
+- [x] **Command Quick Open** — `>` command palette sudah ada
+- [x] **Recent Files** — MRU file list sudah ada
 - [ ] **Quick Access Providers** — extensible quick access system
 
 ---
@@ -172,17 +172,17 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 
 ### 4.1 SCM View
 - [ ] **Source Control Providers** — pluggable SCM provider interface
-- [ ] **Changed Files List** — git panel sudah menampilkan changed files
-- [ ] **Inline Diff Preview** — click file to see diff sudah ada
-- [ ] **Stage/Unstage** — stage/unstage sudah ada di git bridge
-- [ ] **Commit Message Input** — commit message editor sudah ada
-- [ ] **Commit Actions** — commit sudah ada
-- [ ] **Branch Indicator** — branch name di status bar sudah ada
-- [ ] **Branch Operations** — create, switch branch sudah ada di clone_dialog/bridge
+- [x] **Changed Files List** — git panel sudah menampilkan changed files
+- [x] **Inline Diff Preview** — click file to see diff sudah ada
+- [x] **Stage/Unstage** — stage/unstage sudah ada di git bridge
+- [x] **Commit Message Input** — commit message editor sudah ada
+- [x] **Commit Actions** — commit sudah ada
+- [x] **Branch Indicator** — branch name di status bar sudah ada
+- [ ] **Branch Operations** — create, switch branch (status bar menu, bukan clone_dialog)
 - [ ] **Merge** — merge branches with conflict resolution
-- [ ] **Pull/Push** — pull/push sudah ada di git bridge
+- [x] **Pull/Push** — pull/push/fetch/sync di git bridge + status bar sync button
 - [ ] **Stash** — stash/unstash changes
-- [ ] **Sync Changes** — sync indicator sudah ada
+- [x] **Sync Changes** — sync button wired ke git bridge.sync()
 - [ ] **Remote Management** — add/remove/rename remotes
 - [ ] **Git Graph/History** — git_graph.py sudah ada
 - [ ] **Gutter Indicators** — green/blue/red gutter marks
@@ -197,12 +197,12 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 ## 5. DEBUG (vs/workbench/contrib/debug/)
 
 ### 5.1 Debug View
-- [ ] **Debug Configuration Manager** — launch_config.py sudah ada
-- [ ] **Debug Toolbar** — debug_toolbar.py sudah ada (Continue, Step, Stop)
-- [ ] **Variables View** — variables view di debug panel sudah ada
-- [ ] **Watch Expressions** — watch expressions sudah ada
-- [ ] **Call Stack View** — call stack view sudah ada
-- [ ] **Breakpoints View** — breakpoints view di debug panel
+- [x] **Debug Configuration Manager** — launch_config.py sudah ada
+- [x] **Debug Toolbar** — debug controls di debug/panel.py (Continue, Step, Stop)
+- [x] **Variables View** — variables view di debug panel sudah ada
+- [ ] **Watch Expressions** — watch section UI only, belum functional
+- [x] **Call Stack View** — call stack view sudah ada
+- [ ] **Breakpoints View** — breakpoints view UI shell only
 - [ ] **Conditional Breakpoints** — breakpoints with conditions
 - [ ] **Logpoint** — breakpoint yang logs tanpa stopping
 - [ ] **Function Breakpoints** — break on function name
@@ -220,33 +220,33 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 - [ ] **Debug Colors** — theme colors untuk debug decorations
 - [ ] **Multi-Session Debug** — concurrent debug sessions
 - [ ] **Compound Launch** — launch multiple debug configs
-- [ ] **Raw Debug Session (DAP)** — dap_client.py sudah ada
+- [x] **Raw Debug Session (DAP)** — dap_client.py sudah ada
 
 ---
 
 ## 6. TERMINAL (vs/workbench/contrib/terminal/)
 
 ### 6.1 Terminal Features
-- [ ] **Multiple Terminal Instances** — terminal panel sudah support multiple instances
-- [ ] **Terminal Tabs** — terminal tabs sudah ada di panel.py
-- [ ] **Split Terminal** — split terminal sudah ada
+- [x] **Multiple Terminal Instances** — terminal panel sudah support multiple instances
+- [x] **Terminal Tabs** — terminal tabs sudah ada di panel.py
+- [x] **Split Terminal** — split terminal sudah ada
 - [ ] **Terminal Groups** — group terminals together
-- [ ] **Terminal Profiles** — terminal profiles (PowerShell, CMD, Bash) sudah ada
-- [ ] **Terminal Profile Picker** — dropdown select profile sudah ada
-- [ ] **Terminal Rename** — rename terminal sudah ada
-- [ ] **Terminal Color/Icon** — custom color & icon per terminal tab
-- [ ] **Terminal Find** — Ctrl+F find di terminal sudah ada
-- [ ] **Terminal Selection** — text selection sudah ada
-- [ ] **Terminal Copy/Paste** — copy/paste sudah ada
+- [x] **Terminal Profiles** — terminal profiles (PowerShell, CMD, Bash) sudah ada
+- [x] **Terminal Profile Picker** — dropdown select profile sudah ada
+- [x] **Terminal Rename** — rename terminal sudah ada
+- [x] **Terminal Color/Icon** — custom color & icon per terminal tab
+- [x] **Terminal Find** — Ctrl+F find di terminal via SearchAddon
+- [x] **Terminal Selection** — text selection sudah ada
+- [x] **Terminal Copy/Paste** — copy/paste sudah ada
 - [ ] **Terminal Links** — clickable URLs and file paths
-- [ ] **Terminal Context Menu** — right-click context menu sudah ada
-- [ ] **Terminal Resize** — resize terminal panel sudah ada
-- [ ] **Terminal Scrollback** — scrollback buffer sudah ada
-- [ ] **Terminal Escape Sequences** — ANSI escape handling sudah ada
-- [ ] **Terminal Configuration** — all terminal settings
+- [x] **Terminal Context Menu** — right-click context menu sudah ada
+- [x] **Terminal Resize** — resize terminal panel sudah ada
+- [x] **Terminal Scrollback** — scrollback buffer sudah ada
+- [x] **Terminal Escape Sequences** — ANSI escape handling sudah ada
+- [ ] **Terminal Configuration** — settings exist but not all applied
 - [ ] **Terminal Process Manager** — process management
 - [ ] **External Terminal** — open external terminal
-- [ ] **Terminal Icon Picker** — pick icon for terminal tab
+- [x] **Terminal Icon Picker** — pick icon for terminal tab
 - [ ] **Terminal Status** — terminal status indicators
 - [ ] **Terminal Editing Service** — edit terminal content
 - [ ] **Terminal Chat Mirror** — terminal integration with chat
@@ -257,21 +257,21 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 ## 7. EXTENSIONS (vs/workbench/contrib/extensions/)
 
 ### 7.1 Extensions Marketplace
-- [ ] **Extension Search** — extensions_panel.py sudah ada dengan search
-- [ ] **Extension Install/Uninstall** — install/uninstall sudah ada di extension_manager.py
-- [ ] **Extension Update** — auto-check and update extensions
-- [ ] **Extension Enable/Disable** — enable/disable sudah ada
-- [ ] **Extension Detail Page** — extension_detail_page.py sudah ada
+- [x] **Extension Search** — extensions_panel.py sudah ada dengan search
+- [x] **Extension Install/Uninstall** — install/uninstall sudah ada di extension_manager.py
+- [x] **Extension Update** — auto-check and update extensions
+- [x] **Extension Enable/Disable** — enable/disable sudah ada
+- [x] **Extension Detail Page** — extension_detail_page.py sudah ada
+- [x] **Extension Dependencies** — automatic dependency installation
+- [x] **Extension Pack Support** — install extension packs
+- [x] **Extension Viewer** — rich extension list item sudah ada
 - [ ] **Extension Ratings & Reviews** — display star ratings
-- [ ] **Extension Dependencies** — automatic dependency installation
 - [ ] **Extension Recommendations** — file-based recommendations
-- [ ] **Extension Pack Support** — install extension packs
 - [ ] **Extension Bisect** — binary search for problematic extension
-- [ ] **Extension Viewer** — rich extension list item sudah ada
 - [ ] **Extension Quick Access** — `ext ` quick access provider
 - [ ] **Extension Features Tab** — view extension contributions
 - [ ] **Workspace Trust for Extensions** — extension trust management
-- [ ] **Extension Auto Update** — configurable auto-update
+- [x] **Extension Auto Update** — configurable auto-update
 - [ ] **Extension Sync** — sync installed extensions
 
 ---
@@ -279,13 +279,13 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 ## 8. NOTIFICATIONS (vs/workbench/browser/parts/notifications/)
 
 ### 8.1 Notification System
-- [ ] **Notification Toasts** — notification_service.py NotificationToast sudah ada
+- [x] **Notification Toasts** — notification_service.py NotificationToast sudah ada
 - [ ] **Notification Center** — expandable notification center
-- [ ] **Notification Actions** — actionable buttons sudah ada
+- [x] **Notification Actions** — actionable buttons sudah ada
 - [ ] **Notification Progress** — progress indicator
 - [ ] **Notification Source Filter** — filter by source
 - [ ] **Do Not Disturb** — DND mode
-- [ ] **Notification Status Bar** — notification count badge
+- [x] **Notification Status Bar** — notification count badge di bell icon
 - [ ] **Notification Persistence** — persist across sessions
 
 ---
@@ -293,14 +293,14 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 ## 9. STATUS BAR (vs/workbench/browser/parts/statusbar/)
 
 ### 9.1 Status Bar Items
-- [ ] **Left-aligned items** — branch, errors/warnings sudah ada
-- [ ] **Right-aligned items** — line/col, encoding, EOL, language sudah ada
-- [ ] **Status Bar Model** — dynamic add/remove status bar items sudah ada
-- [ ] **Status Bar Actions** — click handlers sudah ada
+- [x] **Left-aligned items** — branch, errors/warnings sudah ada
+- [x] **Right-aligned items** — line/col, encoding, EOL, language sudah ada
+- [ ] **Status Bar Model** — dynamic add/remove status bar items (partial: ext items only)
+- [x] **Status Bar Actions** — click handlers sudah ada
 - [ ] **Status Bar Colors** — background color per item (debug mode)
-- [ ] **Remote Status** — remote connection status
-- [ ] **Extension Status Items** — extension-contributed items sudah ada
-- [ ] **Status Bar Hover** — tooltip sudah ada
+- [ ] **Remote Status** — remote connection status (UI stub)
+- [x] **Extension Status Items** — extension-contributed items sudah ada
+- [x] **Status Bar Hover** — tooltip sudah ada
 - [ ] **Status Bar Context Menu** — right-click to show/hide items
 
 ---
@@ -308,25 +308,25 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 ## 10. TITLE BAR (vs/workbench/browser/parts/titlebar/)
 
 ### 10.1 Title Bar Features
-- [ ] **Custom Title Bar** — custom title bar sudah ada di main_window.py
-- [ ] **Menu Bar Integration** — menubar sudah ada
-- [ ] **Command Center** — centered command input di title bar
-- [ ] **Window Controls** — min/max/close buttons sudah ada
-- [ ] **Window Title** — dynamic title sudah ada
+- [x] **Custom Title Bar** — custom title bar sudah ada di main_window.py
+- [x] **Menu Bar Integration** — menubar sudah ada
+- [x] **Command Center** — centered command input di title bar
+- [x] **Window Controls** — min/max/close buttons sudah ada
+- [x] **Window Title** — dynamic title sudah ada
 - [ ] **Window Title Variables** — `${activeEditorShort}` dll
-- [ ] **Title Bar Actions** — layout toggle, activity bar toggle
+- [x] **Title Bar Actions** — layout toggle, activity bar toggle
 
 ---
 
 ## 11. ACTIVITY BAR (vs/workbench/browser/parts/activitybar/)
 
 ### 11.1 Activity Bar Features
-- [ ] **Activity Bar Icons** — Explorer, Search, Git, Debug, Extensions, Testing sudah ada
-- [ ] **Activity Bar Badge** — notification badge count sudah ada
-- [ ] **Activity Bar Context Menu** — right-click to hide/show views
-- [ ] **Activity Bar Reorder** — drag-and-drop reorder sudah ada di activity_bar.py
-- [ ] **Activity Bar Position** — left, right, top, hidden positions
-- [ ] **Activity Bar Extension Buttons** — extension view containers sudah ada
+- [x] **Activity Bar Icons** — Explorer, Search, Git, Debug, Extensions, Testing sudah ada
+- [x] **Activity Bar Badge** — notification badge count sudah ada
+- [x] **Activity Bar Context Menu** — right-click to hide/show views
+- [x] **Activity Bar Reorder** — drag-and-drop reorder sudah ada di activity_bar.py
+- [ ] **Activity Bar Position** — left, right (ada); top/hidden belum
+- [x] **Activity Bar Extension Buttons** — extension view containers sudah ada
 - [ ] **Global Composite Bar** — accounts, settings gear di bawah
 
 ---
@@ -334,68 +334,68 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 ## 12. SIDEBAR / PANEL LAYOUT (vs/workbench/browser/parts/)
 
 ### 12.1 Layout Features
-- [ ] **Side Bar** — primary sidebar sudah ada
-- [ ] **Auxiliary Side Bar** — secondary sidebar (right)
-- [ ] **Panel (Bottom)** — bottom panel (terminal, output, problems) sudah ada
-- [ ] **Panel Position** — bottom, right, left positions
-- [ ] **Panel Maximize** — maximize/restore panel
+- [x] **Side Bar** — primary sidebar sudah ada
+- [ ] **Auxiliary Side Bar** — secondary sidebar (right) partial
+- [x] **Panel (Bottom)** — bottom panel (terminal, output, problems) sudah ada
+- [x] **Panel Position** — bottom, right, left positions
+- [x] **Panel Maximize** — maximize/restore panel
 - [ ] **Layout Persistence** — save/restore layout across sessions
-- [ ] **Layout Reset** — reset layout to default
-- [ ] **Zen Mode** — zen_mode.py sudah ada
-- [ ] **Centered Editor Layout** — centered_layout.py sudah ada
-- [ ] **Side Bar Toggle** — Ctrl+B toggle sidebar sudah ada
-- [ ] **Panel Toggle** — Ctrl+J toggle bottom panel sudah ada
-- [ ] **Drag Sash** — resizable splitters sudah ada
+- [x] **Layout Reset** — reset layout to default
+- [x] **Zen Mode** — zen_mode.py sudah ada
+- [x] **Centered Editor Layout** — centered_layout.py sudah ada
+- [x] **Side Bar Toggle** — Ctrl+B toggle sidebar sudah ada
+- [x] **Panel Toggle** — Ctrl+J toggle bottom panel sudah ada
+- [x] **Drag Sash** — resizable splitters sudah ada
 
 ---
 
 ## 13. COMMAND PALETTE (vs/workbench/contrib/quickaccess/)
 
 ### 13.1 Command Palette Features
-- [ ] **Fuzzy Search** — fuzzy matching sudah ada di command_palette.py
-- [ ] **Keybinding Display** — shortcut display sudah ada
-- [ ] **Recently Used** — recent commands sudah ada
-- [ ] **Command Categories** — grouped by category sudah ada
+- [ ] **Fuzzy Search** — substring match (bukan fuzzy scoring)
+- [x] **Keybinding Display** — shortcut display sudah ada
+- [ ] **Recently Used** — recent files ada; recent commands belum
+- [ ] **Command Categories** — category di label, tanpa grouping UI
 - [ ] **Parameterized Commands** — commands that accept input
 - [ ] **Command Alias** — multiple names untuk same command
-- [ ] **Extension Commands** — extension-contributed commands sudah ada
+- [x] **Extension Commands** — extension-contributed commands sudah ada
 
 ---
 
 ## 14. SETTINGS (vs/workbench/contrib/preferences/)
 
 ### 14.1 Settings Editor
-- [ ] **Settings UI** — settings_ui.py rich settings editor sudah ada
-- [ ] **Settings Search** — search settings sudah ada
-- [ ] **Settings Categories** — categories sudah ada
-- [ ] **Settings Scopes** — User / Workspace / Folder scope tabs
-- [ ] **Setting Types** — boolean, text, number, enum sudah ada
+- [x] **Settings UI** — settings_ui.py rich settings editor sudah ada
+- [x] **Settings Search** — search settings sudah ada
+- [x] **Settings Categories** — categories sudah ada
+- [ ] **Settings Scopes** — User / Workspace tabs UI only
+- [x] **Setting Types** — boolean, text, number, enum sudah ada
 - [ ] **Setting Indicators** — modified indicator, default reset
-- [ ] **Setting Descriptions** — markdown descriptions per setting
+- [ ] **Setting Descriptions** — plain text (bukan markdown)
 - [ ] **settings.json** — raw JSON settings editor
 - [ ] **Default Settings** — view all default settings
-- [ ] **Settings Sync** — sync settings across devices
+- [ ] **Settings Sync** — mock sync only
 
 ### 14.2 Keyboard Shortcuts Editor
-- [ ] **Keyboard Shortcuts UI** — keybindings_ui.py sudah ada
-- [ ] **Keybinding Search** — search by key/command sudah ada
-- [ ] **Record Keys** — record key combination sudah ada
-- [ ] **When Clause** — context (when) conditions
-- [ ] **keybindings.json** — raw JSON keybindings editor
-- [ ] **Default Keybindings** — view all default keybindings
-- [ ] **Conflict Detection** — detect conflicting keybindings
+- [x] **Keyboard Shortcuts UI** — keybindings_ui.py sudah ada
+- [x] **Keybinding Search** — search by key/command sudah ada
+- [ ] **Record Keys** — recorder ada di dialog, tidak di UI utama
+- [ ] **When Clause** — displayed only, tidak dievaluasi
+- [ ] **keybindings.json** — file ada, editor JSON belum wired
+- [x] **Default Keybindings** — view all default keybindings
+- [ ] **Conflict Detection** — visual warning only
 
 ---
 
 ## 15. THEMES (vs/workbench/contrib/themes/)
 
 ### 15.1 Theme System
-- [ ] **Color Themes** — theme_manager.py + defineCustomTheme sudah ada
-- [ ] **File Icon Themes** — icon_theme_manager.py sudah ada
+- [x] **Color Themes** — theme_manager.py + defineCustomTheme sudah ada
+- [x] **File Icon Themes** — icon_theme_manager.py sudah ada
 - [ ] **Product Icon Themes** — Codicon icon customization
-- [ ] **Theme Quick Picker** — theme picker di command palette sudah ada
-- [ ] **Theme Preview** — live preview saat scrolling themes
-- [ ] **High Contrast Themes** — high contrast dark & light themes
+- [x] **Theme Quick Picker** — theme picker di command palette sudah ada
+- [x] **Theme Preview** — live preview saat scrolling themes
+- [ ] **High Contrast Themes** — high contrast dark only
 - [ ] **Custom CSS Tokens** — theme customization per token
 - [ ] **Workbench Color Customization** — `workbench.colorCustomizations`
 - [ ] **Token Color Customization** — `editor.tokenColorCustomizations`
@@ -541,10 +541,10 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 ## 20. OUTPUT PANEL (vs/workbench/contrib/output/)
 
 ### 20.1 Output Features
-- [ ] **Output Channels** — output_panel.py sudah ada
-- [ ] **Output Channel Dropdown** — dropdown select channel sudah ada
-- [ ] **Clear Output** — clear output sudah ada
-- [ ] **Output Scrolling** — auto-scroll sudah ada
+- [x] **Output Channels** — output_panel.py sudah ada
+- [x] **Output Channel Dropdown** — dropdown select channel sudah ada
+- [x] **Clear Output** — clear output sudah ada
+- [x] **Output Scrolling** — auto-scroll sudah ada
 - [ ] **Output Link Provider** — clickable links in output
 - [ ] **Output Syntax Highlighting** — log/output syntax highlighting
 
@@ -553,13 +553,13 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 ## 21. PROBLEMS PANEL (vs/workbench/contrib/markers/)
 
 ### 21.1 Problems View
-- [ ] **Problems List** — problems_panel.py sudah ada
+- [x] **Problems List** — problems_panel.py sudah ada
 - [ ] **Problems Filtering** — filter by type, source, text
-- [ ] **Problems Grouping** — group by file, type, severity
+- [ ] **Problems Grouping** — group by severity only
 - [ ] **Problems Table View** — table mode view
-- [ ] **Problems Tree View** — tree mode sudah ada
-- [ ] **Problems Actions** — click to navigate sudah ada
-- [ ] **Problems Status Bar** — error/warning count di status bar sudah ada
+- [x] **Problems Tree View** — tree mode sudah ada
+- [x] **Problems Actions** — double-click to navigate sudah ada
+- [x] **Problems Status Bar** — error/warning count di status bar sudah ada
 - [ ] **File Decorations** — error/warning badges on files
 - [ ] **Problems Quick Fix** — quick fix actions
 
@@ -568,10 +568,10 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 ## 22. BREADCRUMBS (vs/workbench/browser/parts/editor/breadcrumbs*)
 
 ### 22.1 Breadcrumbs Bar
-- [ ] **File Path Breadcrumbs** — breadcrumbs.py sudah ada
-- [ ] **Symbol Breadcrumbs** — symbol breadcrumbs sudah ada
-- [ ] **Breadcrumb Navigation** — click breadcrumb navigate sudah ada
-- [ ] **Breadcrumb Dropdown** — dropdown picker sudah ada
+- [x] **File Path Breadcrumbs** — breadcrumbs.py wired di main_window
+- [x] **Symbol Breadcrumbs** — symbol breadcrumbs sudah ada
+- [x] **Breadcrumb Navigation** — click breadcrumb navigate sudah ada
+- [x] **Breadcrumb Dropdown** — dropdown picker sudah ada
 - [ ] **Breadcrumb Keyboard Nav** — Ctrl+Shift+; to focus breadcrumbs
 
 ---
@@ -579,13 +579,13 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 ## 23. MINIMAP
 
 ### 23.1 Minimap Features
-- [ ] **Code Minimap** — `minimap: { enabled: true }` sudah aktif
-- [ ] **Minimap Slider** — `showSlider: 'mouseover'` sudah aktif
-- [ ] **Minimap Highlighting** — bawaan Monaco
+- [x] **Code Minimap** — `minimap: { enabled: true }` sudah aktif
+- [x] **Minimap Slider** — `showSlider: 'mouseover'` sudah aktif
+- [x] **Minimap Highlighting** — bawaan Monaco
 - [ ] **Minimap Git Decorations** — show git changes di minimap
 - [ ] **Minimap Scale** — configurable minimap scale
-- [ ] **Minimap Position** — `side: 'right'` sudah dikonfigurasi
-- [ ] **Minimap Render** — `renderCharacters: true` sudah aktif
+- [x] **Minimap Position** — `side: 'right'` sudah dikonfigurasi
+- [x] **Minimap Render** — `renderCharacters: true` sudah aktif
 
 ---
 
@@ -603,8 +603,8 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 ## 25. TIMELINE (vs/workbench/contrib/timeline/)
 
 ### 25.1 Timeline Features
-- [ ] **File Timeline** — timeline_panel.py sudah ada
-- [ ] **Git History** — git commit history sudah ada
+- [x] **File Timeline** — timeline_panel.py sudah ada
+- [x] **Git History** — git commit history sudah ada
 - [ ] **Local History** — local edit history per file
 - [ ] **Timeline Filtering** — filter by source
 - [ ] **Timeline Actions** — compare, restore from timeline
@@ -625,11 +625,11 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 ## 27. SNIPPETS (vs/workbench/contrib/snippets/)
 
 ### 27.1 Snippet System
-- [ ] **Built-in Snippets** — snippet_manager.py sudah ada
+- [ ] **Built-in Snippets** — snippet_manager seeds on first run
+- [x] **Snippet Syntax** — tabstops, placeholders (InsertAsSnippet) sudah ada
+- [x] **Snippet Completion** — snippet items di autocomplete via bridge.py
 - [ ] **User Snippets** — user-defined snippet files
 - [ ] **Workspace Snippets** — workspace-scoped snippets
-- [ ] **Snippet Syntax** — tabstops, placeholders (InsertAsSnippet) sudah ada
-- [ ] **Snippet Completion** — snippet items di autocomplete sudah ada via bridge.py
 - [ ] **Insert Snippet Command** — dedicated insert snippet picker
 - [ ] **Snippet Scope** — language-scoped and global snippets
 
@@ -663,13 +663,13 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 ## 30. CHAT PANEL (vs/workbench/contrib/chat/)
 
 ### 30.1 Chat Features
-- [ ] **Chat Input** — dardcor_agent/chat/panel.py sudah ada
-- [ ] **Chat History** — conversation history sudah ada
+- [x] **Chat Input** — dardcor_agent/chat/panel.py sudah ada
+- [x] **Chat History** — conversation history sudah ada
 - [ ] **Chat Participants** — @workspace, @terminal, dll
 - [ ] **Chat Variables** — #file, #selection, #editor context
-- [ ] **Chat Code Blocks** — syntax-highlighted code sudah ada
-- [ ] **Chat Actions** — copy code, insert at cursor sudah ada
-- [ ] **Chat Models** — model selection sudah ada
+- [x] **Chat Code Blocks** — syntax-highlighted code sudah ada
+- [ ] **Chat Actions** — copy code ada; insert at cursor belum
+- [x] **Chat Models** — model selection sudah ada
 - [ ] **Chat Slash Commands** — /fix, /explain, /tests, dll
 - [ ] **Chat Attachments** — attach files/images to chat
 - [ ] **Chat Edit Mode** — edit mode for multi-file changes
@@ -679,16 +679,16 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 ## 31. STORAGE & PERSISTENCE
 
 ### 31.1 Local Storage
-- [ ] **Window State** — save/restore window size/position sudah ada di config.py
-- [ ] **Open Files State** — save/restore open editor tabs sudah ada
-- [ ] **Explorer State** — save/restore expanded folders
-- [ ] **Recently Opened** — MRU file/folder list sudah ada
+- [x] **Window State** — save/restore window size/position di config.py
+- [ ] **Open Files State** — editor view state ada; open tabs restore belum
+- [x] **Recently Opened** — MRU file/folder list sudah ada
+- [x] **Global Storage** — config.py global storage sudah ada
+- [x] **Editor History** — navigation back/forward history (Alt+Left/Right)
+- [ ] **Explorer State** — save/restore expanded folders (session only)
 - [ ] **Workspace Storage** — per-workspace storage
-- [ ] **Global Storage** — config.py global storage sudah ada
-- [ ] **Memento Storage** — view state mementos
+- [ ] **Memento Storage** — view state mementos (editor_states.json partial)
 - [ ] **Backups** — unsaved file backup/recovery
 - [ ] **Hot Exit** — save dirty files state on exit
-- [ ] **Editor History** — navigation back/forward history
 - [ ] **Search History** — persist search terms
 - [ ] **Terminal History** — persist terminal command history
 - [ ] **Settings Migration** — migrate settings between versions
@@ -700,17 +700,13 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 
 ### 32.1 Codicon Icon Set
 - [ ] **Codicon Font** — full Codicon icon font (~500+ icons)
-- [ ] **Activity Bar Icons** — Explorer, Search, Git, Debug, Extensions sudah ada
-- [ ] **Editor Icons** — close, dirty indicator sudah ada
-- [ ] **Status Bar Icons** — git branch, error, warning sudah ada
-- [ ] **Tree View Icons** — file/folder icons, chevrons sudah ada
-- [ ] **Context Menu Icons** — icons di context menu items
-- [ ] **Debug Icons** — play, step, stop sudah ada
-- [ ] **Notification Icons** — info, warning, error sudah ada
-- [ ] **Terminal Icons** — plus, split sudah ada
-- [ ] **Search Icons** — regex, case, whole word toggles sudah ada
-- [ ] **Settings Icons** — gear, edit, reset icons
-- [ ] **File Icon Theme (Seti)** — icon_theme_manager.py sudah ada
+- [x] **Activity Bar Icons** — Explorer, Search, Git, Debug, Extensions sudah ada
+- [x] **Editor Icons** — close, dirty indicator sudah ada
+- [x] **Status Bar Icons** — git branch, error, warning sudah ada
+- [x] **Tree View Icons** — file/folder icons, chevrons sudah ada
+- [x] **Terminal Icons** — plus, split sudah ada
+- [x] **Search Icons** — regex, case, whole word toggles sudah ada
+- [x] **File Icon Theme (Seti)** — icon_theme_manager.py sudah ada
 - [ ] **Product Icons** — all product-specific icons
 
 ### 32.2 SVG Assets
@@ -723,16 +719,16 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 ## 33. KEYBOARD SHORTCUTS
 
 ### 33.1 All Default Keybindings
-- [ ] **File Operations** — Ctrl+N, Ctrl+O, Ctrl+S sudah ada
-- [ ] **Edit Operations** — Ctrl+Z, Ctrl+Y, Ctrl+X, Ctrl+C, Ctrl+V sudah ada
-- [ ] **Selection** — Ctrl+D, Ctrl+Shift+L sudah ada via Monaco
-- [ ] **Navigation** — Ctrl+G, Ctrl+P, F12 sudah ada
-- [ ] **View Toggles** — Ctrl+B, Ctrl+J, Ctrl+Shift+E/F/G/D/X sudah ada
-- [ ] **Multi-Cursor** — Alt+Click sudah aktif via Monaco
-- [ ] **Editor Groups** — Ctrl+1/2/3, Ctrl+\ sudah ada
-- [ ] **Terminal** — Ctrl+` sudah ada
-- [ ] **Debug** — F5, F9, F10, F11 sudah ada
-- [ ] **Fold/Unfold** — bawaan Monaco
+- [x] **File Operations** — Ctrl+N, Ctrl+O, Ctrl+S sudah ada
+- [x] **Edit Operations** — Ctrl+Z, Ctrl+Y, Ctrl+X, Ctrl+C, Ctrl+V sudah ada
+- [x] **Selection** — Ctrl+D, Ctrl+Shift+L sudah ada via Monaco
+- [x] **Navigation** — Ctrl+G, Ctrl+P, F12 sudah ada
+- [x] **View Toggles** — Ctrl+B, Ctrl+J, Ctrl+Shift+E/F/G/D/X sudah ada
+- [x] **Multi-Cursor** — Alt+Click sudah aktif via Monaco
+- [ ] **Editor Groups** — Ctrl+\ ada; Ctrl+1/2/3 belum wired
+- [x] **Terminal** — Ctrl+` sudah ada
+- [x] **Debug** — F5, F9, F10, F11 sudah ada
+- [x] **Fold/Unfold** — bawaan Monaco
 - [ ] **Chord Keybindings** — Ctrl+K Ctrl+C dll
 - [ ] **When Contexts** — keybinding context conditions
 - [ ] **Keybinding Resolver** — proper conflict resolution
@@ -743,20 +739,18 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 
 ### 34.1 Menu Bar
 - [ ] **File Menu** — New, Open, Save, Save As, Recent, Exit sudah ada
-- [ ] **Edit Menu** — Undo, Redo, Cut, Copy, Paste, Find sudah ada
-- [ ] **Selection Menu** — Select All, Expand/Shrink sudah ada
-- [ ] **View Menu** — Command Palette, Appearance, Editor Layout sudah ada
-- [ ] **Go Menu** — Go to File/Symbol/Line/Definition sudah ada
-- [ ] **Run Menu** — Start Debugging, Run Without Debugging sudah ada
-- [ ] **Terminal Menu** — New Terminal, Split Terminal sudah ada
-- [ ] **Help Menu** — Welcome, About sudah ada
+- [x] **Edit Menu** — Undo, Redo, Cut, Copy, Paste, Find sudah ada
+- [x] **Selection Menu** — Select All, Expand/Shrink sudah ada
+- [x] **View Menu** — Command Palette, Appearance, Editor Layout sudah ada
+- [ ] **Go Menu** — Go to File/Symbol/Line/Definition (partial stubs)
+- [x] **Run Menu** — Start Debugging, Run Without Debugging sudah ada
+- [x] **Terminal Menu** — New Terminal, Split Terminal sudah ada
+- [x] **Help Menu** — Welcome, About sudah ada
 
 ### 34.2 Context Menus
-- [ ] **Editor Context Menu** — Cut, Copy, Paste, Format, Go to Definition sudah ada
-- [ ] **Editor Title Context Menu** — Close, Close Others sudah ada
-- [ ] **Tab Context Menu** — Close, Copy Path sudah ada
-- [ ] **Explorer Context Menu** — New File, Rename, Delete, Copy Path sudah ada
-- [ ] **Terminal Context Menu** — Copy, Paste sudah ada
+- [x] **Editor Context Menu** — Monaco contextmenu + extension items
+- [x] **Explorer Context Menu** — New File, Rename, Delete, Copy Path sudah ada
+- [x] **Terminal Context Menu** — Copy, Paste sudah ada
 - [ ] **Status Bar Context Menu** — toggle individual status items
 
 ---
@@ -769,7 +763,7 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 - [ ] **Tab Focus Mode** — tab key moves focus
 - [ ] **High Contrast Themes** — high contrast dark/light
 - [ ] **Keyboard Navigation** — full keyboard-only navigation
-- [ ] **Zoom Level** — Ctrl+= / Ctrl+- sudah ada di menu
+- [x] **Zoom Level** — Ctrl+= / Ctrl+- sudah ada di menu
 - [ ] **Accessible View** — accessible alternatives
 
 ---
@@ -789,11 +783,9 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 ## 37. WORKSPACES
 
 ### 37.1 Workspace Features
-- [ ] **Multi-Root Workspaces** — multi_root.py sudah ada
-- [ ] **Workspace Trust** — workspace_trust.py sudah ada
-- [ ] **Workspace Settings** — `.vscode/settings.json`
-- [ ] **Workspace Recommendations** — `.vscode/extensions.json`
-- [ ] **Workspace Launch Configs** — launch_config.py sudah ada
+- [x] **Multi-Root Workspaces** — multi_root.py sudah ada
+- [x] **Workspace Trust** — workspace_trust.py sudah ada
+- [x] **Workspace Launch Configs** — launch_config.py sudah ada
 - [ ] **Workspace Tasks** — `.vscode/tasks.json`
 - [ ] **Workspace Folders** — add/remove workspace folders
 - [ ] **Workspace Storage** — persistent per-workspace state
@@ -806,7 +798,7 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 - [ ] **Remote SSH** — ssh_connection.py + ssh_manager.py sudah ada
 - [ ] **Remote Containers** — container_manager.py sudah ada
 - [ ] **Remote Tunnels** — remote tunnel connections
-- [ ] **Port Forwarding** — ports_panel.py sudah ada
+- [x] **Port Forwarding** — ports_panel.py sudah ada
 - [ ] **Remote Explorer** — view remote targets
 - [ ] **Remote Status** — remote connection status indicator
 
@@ -885,9 +877,9 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 ## 45. LANGUAGE DETECTION
 
 ### 45.1 Language Detection
-- [ ] **Auto Language Detection** — language.py detect_language sudah ada
-- [ ] **Language Override** — change language mode sudah ada
-- [ ] **File Extension Mapping** — LANGUAGE_MAP sudah ada di language.py
+- [x] **Auto Language Detection** — language.py detect_language sudah ada
+- [ ] **Language Override** — display only, no mode picker
+- [x] **File Extension Mapping** — LANGUAGE_MAP sudah ada di language.py
 - [ ] **First Line Detection** — detect language from shebang
 
 ---
@@ -895,12 +887,12 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 ## 46. FOLDING (vs/workbench/contrib/folding/)
 
 ### 46.1 Folding Features
-- [ ] **Syntax Folding** — `folding: true` via Monaco
-- [ ] **Region Folding** — `#region` support via Monaco
-- [ ] **Folding Ranges** — bawaan Monaco
-- [ ] **Fold All / Unfold All** — bawaan Monaco
-- [ ] **Fold Level** — bawaan Monaco
-- [ ] **Fold Indicator** — `showFoldingControls: 'mouseover'` via Monaco
+- [x] **Syntax Folding** — `folding: true` via Monaco
+- [x] **Region Folding** — `#region` support via Monaco
+- [x] **Folding Ranges** — bawaan Monaco
+- [x] **Fold All / Unfold All** — bawaan Monaco
+- [x] **Fold Level** — bawaan Monaco
+- [x] **Fold Indicator** — `showFoldingControls: 'mouseover'` via Monaco
 
 ---
 
@@ -927,9 +919,9 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 ## 49. IMAGE HANDLING
 
 ### 49.1 Image Preview
-- [ ] **Image Viewer** — image_viewer.py sudah ada (PNG, JPEG, GIF, SVG)
-- [ ] **Image Zoom** — zoom in/out sudah ada
-- [ ] **Image Info** — show image dimensions sudah ada
+- [x] **Image Viewer** — image_viewer.py sudah ada (PNG, JPEG, GIF, SVG)
+- [ ] **Image Zoom** — zoom in/out belum
+- [x] **Image Info** — show image dimensions sudah ada
 - [ ] **Image Transparency Grid** — checkerboard background
 
 ---
@@ -937,7 +929,7 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 ## 50. MISCELLANEOUS FEATURES
 
 ### 50.1 Miscellaneous
-- [ ] **Screencast Mode** — screencast_mode.py sudah ada
+- [x] **Screencast Mode** — screencast_mode.py sudah ada
 - [ ] **Scroll Locking** — lock scroll across splits
 - [ ] **Language Status** — language server status indicator
 - [ ] **Limit Indicator** — token/request limit indicators
@@ -1008,7 +1000,7 @@ Baca lengkap Project asli Visual Studio Code C:\Users\Dardcor\Documents\Code Edi
 | 50. Miscellaneous | 12 | 1 | 11 |
 | **TOTAL** | **~650** | **~280** | **~370** |
 
-> **Progress: ~0% complete** — 280 items sudah tersedia, 370 items masih perlu dikerjakan.
+> **Progress: ~42% complete** — 255+ items sudah diverifikasi & diimplementasikan, sisanya masih perlu dikerjakan.
 
 ---
 
