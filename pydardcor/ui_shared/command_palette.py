@@ -1304,3 +1304,167 @@ class QuickOpenDialog(QDialog):
                 if hasattr(parent, '_zen_mode'):
                     parent._zen_mode.toggle_zen_mode()
         self._populate_customize_layout()
+
+
+class EditorTabSwitcherDialog(QDialog):
+    """VS Code style Ctrl+Tab editor tab switcher dialog.
+
+    Shows a list of open tabs in MRU (most recently used) order.
+    The user selects one and the editor switches to that tab.
+    """
+
+    tab_selected = Signal(str)  # Emits the tab key
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowFlags(Qt.Popup | Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground, False)
+        self._tabs = []
+        self._setup_ui()
+
+    def _setup_ui(self):
+        self.setFixedWidth(420)
+        self.setMaximumHeight(360)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        container = QFrame()
+        container.setObjectName("TabSwitcherContainer")
+        container.setStyleSheet("""
+            #TabSwitcherContainer {
+                background-color: #000000;
+                border: 1px solid #3c0068;
+                border-radius: 6px;
+            }
+        """)
+        container_layout = QVBoxLayout(container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
+        container_layout.setSpacing(0)
+
+        self._list = QListWidget()
+        self._list.setStyleSheet("""
+            QListWidget {
+                background-color: #000000;
+                border: none;
+                color: #cccccc;
+                font-size: 13px;
+                font-family: "Segoe UI", "Ubuntu", sans-serif;
+                outline: none;
+                padding: 4px 0px;
+                border-radius: 6px;
+            }
+            QListWidget::item {
+                padding: 4px 14px;
+                min-height: 24px;
+                border: none;
+            }
+            QListWidget::item:selected {
+                background-color: #3c0068;
+                color: #ffffff;
+            }
+            QListWidget::item:hover:!selected {
+                background-color: #1a0033;
+            }
+        """)
+        self._list.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self._list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self._list.itemActivated.connect(self._on_item_selected)
+        self._list.itemClicked.connect(self._on_item_selected)
+        container_layout.addWidget(self._list)
+
+        layout.addWidget(container)
+
+    def show_switcher(self, tabs: list):
+        """Show the switcher with the given tab entries.
+
+        Each entry is a dict: {"key": str, "title": str}
+        """
+        self._tabs = tabs
+        self._list.clear()
+
+        for entry in tabs:
+            title = entry.get("title", "Untitled")
+            key = entry.get("key", "")
+            item = QListWidgetItem()
+            widget = QWidget()
+            h_layout = QHBoxLayout(widget)
+            h_layout.setContentsMargins(0, 0, 0, 0)
+            h_layout.setSpacing(8)
+
+            # File icon (codicon file)
+            icon_label = QLabel("\uea7b")
+            icon_label.setFont(QFont("codicon", 14))
+            icon_label.setStyleSheet("color: #858585; background: transparent;")
+            icon_label.setFixedWidth(20)
+            h_layout.addWidget(icon_label)
+
+            name_label = QLabel(title)
+            name_label.setStyleSheet(
+                "color: #cccccc; font-size: 13px; background: transparent;"
+            )
+            h_layout.addWidget(name_label)
+
+            # Show directory in grey
+            if key and not key.startswith("__untitled__"):
+                dir_part = os.path.dirname(key)
+                if dir_part:
+                    dir_label = QLabel(dir_part)
+                    dir_label.setStyleSheet(
+                        "color: #858585; font-size: 11px; background: transparent;"
+                    )
+                    h_layout.addWidget(dir_label)
+
+            h_layout.addStretch()
+
+            item.setSizeHint(QSize(0, 28))
+            item.setData(Qt.UserRole, key)
+            self._list.addItem(item)
+            self._list.setItemWidget(item, widget)
+
+        if self._tabs:
+            # Pre-select the second item (switch away from current)
+            self._list.setCurrentRow(min(1, len(self._tabs) - 1))
+
+        visible = min(len(self._tabs), 12)
+        list_height = max(50, visible * 28 + 8)
+        self._list.setFixedHeight(list_height)
+        self.setFixedHeight(list_height + 4)
+
+        parent = self.parent()
+        if parent:
+            parent_geo = parent.geometry()
+            x = parent_geo.x() + (parent_geo.width() - self.width()) // 2
+            y = parent_geo.y() + 80
+            self.move(x, y)
+
+        self.show()
+        self._list.setFocus()
+
+    def _on_item_selected(self, item):
+        key = item.data(Qt.UserRole)
+        if key:
+            self.tab_selected.emit(key)
+        self.close()
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            self.close()
+            return
+        if event.key() == Qt.Key_Down:
+            row = self._list.currentRow()
+            if row < self._list.count() - 1:
+                self._list.setCurrentRow(row + 1)
+            return
+        if event.key() == Qt.Key_Up:
+            row = self._list.currentRow()
+            if row > 0:
+                self._list.setCurrentRow(row - 1)
+            return
+        if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+            item = self._list.currentItem()
+            if item:
+                self._on_item_selected(item)
+            return
+        super().keyPressEvent(event)

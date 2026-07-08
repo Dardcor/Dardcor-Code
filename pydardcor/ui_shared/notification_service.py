@@ -1,5 +1,7 @@
 """Notification Service - VS Code style toast notification system."""
 
+import json
+import os
 from collections import deque
 
 from PySide6.QtCore import Qt, QTimer, Signal

@@ -22,6 +22,13 @@ class EditorBridge(QObject):
     def set_lsp_client(self, client):
         self._lsp_client = client
 
+    @Slot(result=str)
+    def get_file_content(self) -> str:
+        widget = self.parent()
+        if widget:
+            return getattr(widget, "_content", "")
+        return ""
+
     @Slot(str)
     def on_content_changed(self, content):
         self._content = content

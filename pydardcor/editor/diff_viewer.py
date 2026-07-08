@@ -116,3 +116,26 @@ class MonacoDiffEditorWidget(QWidget):
         if self._view_ready:
             val = "true" if inline else "false"
             self._view.page().runJavaScript(f"toggleInline({val});")
+
+    def closeEvent(self, event):
+        self.cleanup()
+        super().closeEvent(event)
+
+    def cleanup(self):
+        try:
+            self._bridge.ready.disconnect(self._on_bridge_ready)
+        except Exception:
+            pass
+        if hasattr(self, "_view") and self._view:
+            self._view.stop()
+            page = self._view.page()
+            if page:
+                page.setWebChannel(None)
+            self._view.setParent(None)
+            self._view.deleteLater()
+            self._view = None
+        if hasattr(self, "_channel") and self._channel:
+            if hasattr(self, "_bridge") and self._bridge:
+                self._channel.deregisterObject(self._bridge)
+            self._channel = None
+        self._bridge = None

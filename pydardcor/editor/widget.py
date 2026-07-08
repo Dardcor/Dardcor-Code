@@ -132,15 +132,14 @@ class MonacoEditorWidget(QWidget):
 
     def _apply_pending_content(self):
         import json
-        safe_content_js = json.dumps(self._content)
         lang_js = json.dumps(self._language)
         fpath_js = json.dumps(self._file_path or "")
-        js = f"setEditorContent({safe_content_js}, {lang_js}, {fpath_js});"
+        js = f"requestContentFromBackend({lang_js}, {fpath_js});"
         if self._file_path:
             states = load_editor_states()
             state = states.get(self._file_path)
             if state:
-                js += f" setTimeout(function() {{ restoreViewState({json.dumps(state)}); }}, 50);"
+                js += f" setTimeout(function() {{ restoreViewState({json.dumps(state)}); }}, 200);"
         self._view.page().runJavaScript(js)
         self._apply_editor_options()
 
@@ -247,19 +246,16 @@ class MonacoEditorWidget(QWidget):
         if not self._file_path:
             return False
         try:
-            # Auto-insert final newline
+            # Auto-insert final newline for the saved file on disk,
+            # but do not force-update the Monaco value via setValue,
+            # to preserve Monaco's undo/redo history.
             content_to_save = self._content
             if content_to_save and not content_to_save.endswith("\n"):
                 content_to_save += "\n"
-                self._content = content_to_save
-                if self._view_ready:
-                    import json
-                    safe_content = json.dumps(self._content)
-                    self._view.page().runJavaScript(f"if (editor && editor.getValue() !== {safe_content}) {{ var pos = editor.getPosition(); editor.setValue({safe_content}); if (pos) editor.setPosition(pos); }}")
 
             enc = getattr(self, "_encoding", "utf-8")
             with open(self._file_path, "w", encoding=enc) as f:
-                f.write(self._content)
+                f.write(content_to_save)
             self._dirty = False
             self.show_message("File saved successfully", 2000)
 
@@ -658,3 +654,32 @@ class MonacoEditorWidget(QWidget):
                 }
             """
             self._view.page().runJavaScript(js)
+
+    def closeEvent(self, event):
+        self.cleanup()
+        super().closeEvent(event)
+
+    def cleanup(self):
+        if self._file_path and self._lsp_client:
+            try:
+                self._bridge.notify_closed()
+            except Exception:
+                pass
+        try:
+            self._view.loadFinished.disconnect(self._on_load_finished)
+        except Exception:
+            pass
+        if hasattr(self, "_view") and self._view:
+            self._view.stop()
+            page = self._view.page()
+            if page:
+                page.setWebChannel(None)
+            self._view.setParent(None)
+            self._view.deleteLater()
+            self._view = None
+        if hasattr(self, "_channel") and self._channel:
+            if hasattr(self, "_bridge") and self._bridge:
+                self._channel.deregisterObject(self._bridge)
+            self._channel = None
+        self._bridge = None
+        self._lsp_client = None

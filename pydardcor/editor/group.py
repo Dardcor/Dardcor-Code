@@ -1237,6 +1237,8 @@ class EditorGroup(QWidget):
             old_preview = self._tabs[self._preview_idx]
             if old_preview.is_preview and not old_preview.editor.is_dirty():
                 self._stack.removeWidget(old_preview.editor)
+                if hasattr(old_preview.editor, "cleanup"):
+                    old_preview.editor.cleanup()
                 old_preview.editor.deleteLater()
                 self._tabs.pop(self._preview_idx)
                 self._preview_idx = -1
@@ -1426,6 +1428,8 @@ class EditorGroup(QWidget):
                 self._save_editor(tab.editor)
 
         self._stack.removeWidget(tab.editor)
+        if hasattr(tab.editor, "cleanup"):
+            tab.editor.cleanup()
         tab.editor.deleteLater()
         self._tabs.pop(idx)
         

@@ -1122,6 +1122,19 @@
 
         // --- End Inline AI ---
 
+        function requestContentFromBackend(language, filePath) {
+            currentFilePath = filePath || '';
+            if (!backend) {
+                pendingLanguage = language;
+                pendingFilePath = filePath;
+                setTimeout(function() { requestContentFromBackend(language, filePath); }, 50);
+                return;
+            }
+            backend.get_file_content(function(content) {
+                setEditorContent(content, language, filePath);
+            });
+        }
+
         function setEditorContent(content, language, filePath) {
             currentFilePath = filePath || '';
             if (!editor) {
@@ -1131,6 +1144,34 @@
                 return;
             }
             isRemoteUpdate = true;
+
+            // Check if file is large (>10MB)
+            var isLargeFile = content && content.length > 10 * 1024 * 1024;
+            if (isLargeFile) {
+                editor.updateOptions({
+                    folding: false,
+                    links: false,
+                    colorDecorators: false,
+                    bracketPairColorization: { enabled: false },
+                    guides: { bracketPairs: false, indentation: false },
+                    lightbulb: { enabled: false },
+                    inlayHints: { enabled: 'off' },
+                    stickyScroll: { enabled: false }
+                });
+                showEditorMessage("Large file opened. Heavy features disabled for performance.", 5000);
+            } else {
+                editor.updateOptions({
+                    folding: true,
+                    links: true,
+                    colorDecorators: true,
+                    bracketPairColorization: { enabled: true, independentColorPoolPerBracketType: true },
+                    guides: { bracketPairs: true, indentation: true, highlightActiveIndentation: true },
+                    lightbulb: { enabled: true },
+                    inlayHints: { enabled: 'on' },
+                    stickyScroll: { enabled: true, maxLineCount: 5 }
+                });
+            }
+
             var model = editor.getModel();
             if (model) {
                 model.setValue(content);
