@@ -3527,7 +3527,6 @@ class MainWindow(QMainWindow):
             for sig, slot in [
                 ("cursor_position_changed", self._on_cursor_moved),
                 ("selection_changed", self._on_selection_changed),
-                ("indent_changed", self._on_indent_changed),
                 ("content_changed", self._on_editor_content_changed),
             ]:
                 try:
@@ -3556,14 +3555,10 @@ class MainWindow(QMainWindow):
                 editor.cursor_position_changed.connect(self._on_cursor_moved)
             if hasattr(editor, "selection_changed"):
                 editor.selection_changed.connect(self._on_selection_changed)
-            if hasattr(editor, "indent_changed"):
-                editor.indent_changed.connect(self._on_indent_changed)
-            if hasattr(editor, "content_changed"):
-                editor.content_changed.connect(self._on_editor_content_changed)
-            if hasattr(editor, "selection_changed"):
-                editor.selection_changed.connect(self._on_selection_changed)
                 # Clear selection indicator when switching tabs
                 self._status_bar.set_selection(0, 0)
+            if hasattr(editor, "content_changed"):
+                editor.content_changed.connect(self._on_editor_content_changed)
             self._ext_manager.fire_event("active_editor_changed", file_path)
 
     def _update_editor_status_bar(self, editor):
