@@ -17,6 +17,8 @@ class MCPServerDef:
     args: list[str] = field(default_factory=list)
     url: Optional[str] = None
     enabled: bool = True
+    env: dict[str, Any] = field(default_factory=dict)
+    headers: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {"enabled": self.enabled}
@@ -26,6 +28,10 @@ class MCPServerDef:
             data["args"] = list(self.args)
         if self.url is not None:
             data["url"] = self.url
+        if self.env:
+            data["env"] = dict(self.env)
+        if self.headers:
+            data["headers"] = dict(self.headers)
         return data
 
     @classmethod
@@ -34,8 +40,10 @@ class MCPServerDef:
             name=name,
             command=data.get("command"),
             args=list(data.get("args") or []),
-            url=data.get("url"),
+            url=data.get("url") or data.get("serverUrl"),
             enabled=bool(data.get("enabled", True)),
+            env=dict(data.get("env") or {}),
+            headers=dict(data.get("headers") or {}),
         )
 
 

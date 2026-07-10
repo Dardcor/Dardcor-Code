@@ -1,15 +1,17 @@
 """Settings UI - VS Code style interactive settings editor (opens as an editor tab)."""
 
 import os
+import json
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
     QCheckBox, QComboBox, QSpinBox, QScrollArea, QFrame,
-    QPushButton, QSizePolicy, QGroupBox, QFormLayout, QMessageBox
+    QPushButton, QSizePolicy, QGroupBox, QFormLayout, QMessageBox,
+    QPlainTextEdit
 )
 from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtGui import QColor, QFont
 
-from ..core.config import get_config
+from ..core.config import ensure_user_dirs, get_config, get_global_home_dir
 
 
 def _theme_colors():
@@ -112,6 +114,70 @@ class SettingRow(QWidget):
         elif isinstance(w, QLineEdit):
             return w.text()
         return None
+
+
+class RegistrySettingRow(QWidget):
+    """JSON-backed registry editor stored in ~/.dardcor-code."""
+    changed = Signal()
+
+    def __init__(self, key, label, description, path, root_key, parent=None):
+        super().__init__(parent)
+        self.key = key
+        self.path = path
+        self.root_key = root_key
+        self._setup_ui(label, description)
+
+    def _setup_ui(self, label, description):
+        c = _theme_colors()
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 8, 0, 8)
+        layout.setSpacing(8)
+
+        title = QLabel(label)
+        title.setStyleSheet("color: #e0e0e0; font-size: 13px; font-weight: 600;")
+        layout.addWidget(title)
+
+        desc = QLabel(f"{description}\nFile: {self.path}")
+        desc.setStyleSheet("color: #858585; font-size: 12px;")
+        desc.setWordWrap(True)
+        layout.addWidget(desc)
+
+        self._input = QPlainTextEdit()
+        self._input.setPlainText(self._read_pretty_json())
+        self._input.textChanged.connect(lambda: self.changed.emit())
+        self._input.setMinimumHeight(180)
+        self._input.setStyleSheet(f"""
+            QPlainTextEdit {{
+                background-color: {c['sidebar']}; color: {c['foreground']};
+                border: 1px solid {c['border']}; border-radius: 3px;
+                padding: 8px; font-family: Consolas, 'Cascadia Code', monospace;
+                font-size: 12px;
+            }}
+            QPlainTextEdit:focus {{ border: 1px solid {c['accent']}; }}
+        """)
+        layout.addWidget(self._input)
+
+    def _read_pretty_json(self) -> str:
+        try:
+            with open(self.path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            data = {self.root_key: {}}
+        return json.dumps(data, indent=2, ensure_ascii=False)
+
+    def get_value(self):
+        text = self._input.toPlainText().strip() or f'{{"{self.root_key}": {{}}}}'
+        data = json.loads(text)
+        if not isinstance(data, dict) or not isinstance(data.get(self.root_key), dict):
+            raise ValueError(f"JSON must be an object with '{self.root_key}' object")
+        return data
+
+    def save(self):
+        data = self.get_value()
+        os.makedirs(os.path.dirname(self.path), exist_ok=True)
+        with open(self.path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+            f.write("\n")
 
 
 class SettingsUIWidget(QWidget):
@@ -268,6 +334,20 @@ class SettingsUIWidget(QWidget):
         self._content_layout.addWidget(sep)
         return row
 
+    def _add_registry_setting(self, key, label, description, relative_path, root_key, category=None):
+        path = os.path.join(get_global_home_dir(), relative_path)
+        row = RegistrySettingRow(key, label, description, path, root_key)
+        row.changed.connect(self._mark_dirty)
+        self._rows.append((row, category))
+
+        sep = QFrame()
+        sep.setFixedHeight(1)
+        sep.setStyleSheet(f"background-color: {_theme_colors()['border']};")
+
+        self._content_layout.addWidget(row)
+        self._content_layout.addWidget(sep)
+        return row
+
     def _build_settings(self):
         c = self._config
 
@@ -419,6 +499,22 @@ class SettingsUIWidget(QWidget):
             "The root folder path for the current workspace.",
             "text", c.workspace_path, {"placeholder": "Path to workspace"}, "workspace")
 
+        # ── Dardcor Agent ──
+        ensure_user_dirs()
+        self._add_category("Dardcor Agent")
+
+        self._add_registry_setting("mcp_servers", "MCP: Servers",
+            "Edit MCP server list. Add new entries under the servers object.",
+            os.path.join("mcp", "servers.json"), "servers", "dardcor agent")
+
+        self._add_registry_setting("lsp_servers", "LSP: Servers",
+            "Edit language server list. Add commands under the servers object.",
+            os.path.join("lsp", "servers.json"), "servers", "dardcor agent")
+
+        self._add_registry_setting("skills", "Skills: Registry",
+            "Edit skill registry. Add source and skill name under the skills object.",
+            os.path.join("skills", "skills.json"), "skills", "dardcor agent")
+
         # ── Telemetry ──
         self._add_category("Telemetry")
 
@@ -434,39 +530,44 @@ class SettingsUIWidget(QWidget):
     def _save_settings(self):
         c = self._config
         old_theme = getattr(c, "color_theme", "")
-        for row, _ in self._rows:
-            k = row.key
-            v = row.get_value()
-            if k == "font_family": c.font_family = v
-            elif k == "font_size": c.font_size = v
-            elif k == "tab_size": c.tab_size = v
-            elif k == "word_wrap": c.word_wrap = v
-            elif k == "minimap_enabled": c.minimap_enabled = v
-            elif k == "auto_save": c.auto_save = v
-            elif k == "render_whitespace": c.render_whitespace = v
-            elif k == "cursor_style": c.cursor_style = v
-            elif k == "cursor_blinking": c.cursor_blinking = v
-            elif k == "bracket_pair_colorization": c.bracket_pair_colorization = v
-            elif k == "smooth_scrolling": c.smooth_scrolling = v
-            elif k == "sticky_scroll": c.sticky_scroll = v
-            elif k == "format_on_save": c.format_on_save = v
-            elif k == "format_on_paste": c.format_on_paste = v
-            elif k == "line_numbers": c.line_numbers = v
-            elif k == "font_ligatures": c.font_ligatures = v
-            elif k == "color_theme":
-                c.color_theme = v
-                self._apply_color_theme(v)
-            elif k == "sidebar_position": c.sidebar_position = v
-            elif k == "breadcrumbs_enabled": c.breadcrumbs_enabled = v
-            elif k == "files_encoding": c.files_encoding = v
-            elif k == "files_eol": c.files_eol = v
-            elif k == "files_trim_trailing_whitespace": c.files_trim_trailing_whitespace = v
-            elif k == "files_insert_final_newline": c.files_insert_final_newline = v
-            elif k == "workspace_path": c.workspace_path = v
-            elif k == "terminal_shell": c.terminal_shell = v
-            elif k == "terminal_font_size": c.terminal_font_size = v
-            elif k == "terminal_cursor_style": c.terminal_cursor_style = v
-            elif k == "telemetry_enabled": c.telemetry_enableTelemetry = v
+        try:
+            for row, _ in self._rows:
+                k = row.key
+                v = row.get_value()
+                if k == "font_family": c.font_family = v
+                elif k == "font_size": c.font_size = v
+                elif k == "tab_size": c.tab_size = v
+                elif k == "word_wrap": c.word_wrap = v
+                elif k == "minimap_enabled": c.minimap_enabled = v
+                elif k == "auto_save": c.auto_save = v
+                elif k == "render_whitespace": c.render_whitespace = v
+                elif k == "cursor_style": c.cursor_style = v
+                elif k == "cursor_blinking": c.cursor_blinking = v
+                elif k == "bracket_pair_colorization": c.bracket_pair_colorization = v
+                elif k == "smooth_scrolling": c.smooth_scrolling = v
+                elif k == "sticky_scroll": c.sticky_scroll = v
+                elif k == "format_on_save": c.format_on_save = v
+                elif k == "format_on_paste": c.format_on_paste = v
+                elif k == "line_numbers": c.line_numbers = v
+                elif k == "font_ligatures": c.font_ligatures = v
+                elif k == "color_theme":
+                    c.color_theme = v
+                    self._apply_color_theme(v)
+                elif k == "sidebar_position": c.sidebar_position = v
+                elif k == "breadcrumbs_enabled": c.breadcrumbs_enabled = v
+                elif k == "files_encoding": c.files_encoding = v
+                elif k == "files_eol": c.files_eol = v
+                elif k == "files_trim_trailing_whitespace": c.files_trim_trailing_whitespace = v
+                elif k == "files_insert_final_newline": c.files_insert_final_newline = v
+                elif k == "workspace_path": c.workspace_path = v
+                elif k == "terminal_shell": c.terminal_shell = v
+                elif k == "terminal_font_size": c.terminal_font_size = v
+                elif k == "terminal_cursor_style": c.terminal_cursor_style = v
+                elif k == "telemetry_enabled": c.telemetry_enableTelemetry = v
+                elif isinstance(row, RegistrySettingRow): row.save()
+        except (json.JSONDecodeError, ValueError) as exc:
+            QMessageBox.warning(self, "Invalid registry JSON", str(exc))
+            return
         c.save()
         self._dirty = False
         if hasattr(self, "_save_btn"):
