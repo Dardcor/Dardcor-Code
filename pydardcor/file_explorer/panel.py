@@ -1515,9 +1515,76 @@ class FileExplorer(QWidget):
         for i in range(self._tree.topLevelItemCount()):
             restore_item(self._tree.topLevelItem(i))
 
+    def _find_item_by_path(self, path):
+        path = os.path.normpath(path)
+        
+        def search(item):
+            item_path = item.data(0, Qt.UserRole)
+            if item_path and os.path.normpath(item_path) == path:
+                return item
+            for idx in range(item.childCount()):
+                res = search(item.child(idx))
+                if res:
+                    return res
+            return None
+
+        for idx in range(self._tree.topLevelItemCount()):
+            item = self._tree.topLevelItem(idx)
+            res = search(item)
+            if res:
+                return res
+        return None
+
     def _schedule_refresh(self, path=None):
-        if not self._editing_item:
-            self._refresh_timer.start()
+        if self._editing_item or getattr(self, '_in_inline_edit', False):
+            return
+            
+        if path:
+            path = os.path.normpath(path)
+            if path == os.path.normpath(self._root_path):
+                self._refresh_timer.start()
+                return
+                
+            if self._refresh_timer.isActive():
+                return
+                
+            item = self._find_item_by_path(path)
+            if item:
+                # Store the expansion states of children
+                expanded_paths = self._get_expanded_paths()
+                
+                # Turn off updates and block signals for safety
+                self._tree.setUpdatesEnabled(False)
+                self._tree.blockSignals(True)
+                
+                if self._tree.model():
+                    self._tree.model().layoutAboutToBeChanged.emit()
+                
+                # Incremental refresh: reload only the changed folder's children
+                item.takeChildren()
+                self._load_directory(path, item)
+                item.setData(0, Qt.UserRole + 4, True) # loaded flag
+                
+                # Restore subfolder expansions
+                def restore_expanded(itm):
+                    itm_path = itm.data(0, Qt.UserRole)
+                    if itm_path and itm_path in expanded_paths:
+                        self._tree.expandItem(itm)
+                    for idx in range(itm.childCount()):
+                        restore_expanded(itm.child(idx))
+                restore_expanded(item)
+                
+                if self._tree.model():
+                    self._tree.model().layoutChanged.emit()
+                    
+                self._tree.blockSignals(False)
+                self._tree.setUpdatesEnabled(True)
+                
+                # Dynamic watcher updates for newly added subdirectories
+                self._watcher_timer.start()
+                return
+                
+        self._refresh_timer.start()
 
     def _refresh(self):
         self._do_refresh()
@@ -1557,6 +1624,9 @@ class FileExplorer(QWidget):
         self._tree.setUpdatesEnabled(False)
         self._tree.blockSignals(True)
         try:
+            if self._tree.model():
+                self._tree.model().layoutAboutToBeChanged.emit()
+                
             # Save active expansion states
             expanded = self._get_expanded_paths()
             
@@ -1606,6 +1676,9 @@ class FileExplorer(QWidget):
             
             # Restore other expansion states
             self._restore_expanded_paths(expanded)
+            
+            if self._tree.model():
+                self._tree.model().layoutChanged.emit()
         finally:
             # We already unblocked above, but just in case of exception:
             self._tree.blockSignals(False)

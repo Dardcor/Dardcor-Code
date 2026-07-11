@@ -66,6 +66,13 @@ class MonacoEditorWidget(QWidget):
         self._view_ready = False
         self._lsp_client = None
         self._read_only = False
+        
+        # Debounce timer for LSP didChange notifications (BUG-041)
+        self._lsp_debounce_timer = QTimer(self)
+        self._lsp_debounce_timer.setSingleShot(True)
+        self._lsp_debounce_timer.setInterval(300)
+        self._lsp_debounce_timer.timeout.connect(self._flush_lsp_did_change)
+        
         self.diagnostics_ready.connect(self.set_diagnostics)
         self._setup_ui()
 
@@ -179,14 +186,21 @@ class MonacoEditorWidget(QWidget):
         if not self._file_path and self._view_ready:
             self._apply_editor_options()
         
-        # Send didChange to LSP
+        # Debounce didChange to LSP
         if self._lsp_client and self._file_path:
+            self._lsp_debounce_timer.start()
+
+    def _flush_lsp_did_change(self):
+        if self._lsp_client and self._file_path and self._content is not None:
             from pathlib import Path
             uri = Path(self._file_path).as_uri()
-            self._lsp_client.send_notification("textDocument/didChange", {
-                "textDocument": {"uri": uri, "version": 2},
-                "contentChanges": [{"text": content}]
-            })
+            try:
+                self._lsp_client.send_notification("textDocument/didChange", {
+                    "textDocument": {"uri": uri, "version": 2},
+                    "contentChanges": [{"text": self._content}]
+                })
+            except Exception:
+                pass
 
     def open_file(self, file_path):
         if self._file_path and self._lsp_client:

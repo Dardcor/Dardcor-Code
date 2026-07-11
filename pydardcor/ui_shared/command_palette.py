@@ -195,9 +195,10 @@ class CommandPalette(QDialog):
         """Show the command palette centered at top of parent window."""
         parent = self.parent()
         if parent:
-            parent_geo = parent.geometry()
-            x = parent_geo.x() + (parent_geo.width() - self.width()) // 2
-            y = parent_geo.y() + 50
+            from PySide6.QtCore import QPoint
+            global_pos = parent.mapToGlobal(QPoint(0, 0))
+            x = global_pos.x() + (parent.width() - self.width()) // 2
+            y = global_pos.y() + 50
             self.move(x, y)
         self._input.clear()
         self._input.setText("> ")
@@ -269,14 +270,18 @@ class GoToLineDialog(QDialog):
         if event.key() == Qt.Key_Escape:
             self.close()
             return
+        if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+            self._on_submit()
+            return
         super().keyPressEvent(event)
 
     def show_dialog(self):
         parent = self.parent()
         if parent:
-            parent_geo = parent.geometry()
-            x = parent_geo.x() + (parent_geo.width() - self.width()) // 2
-            y = parent_geo.y() + 50
+            from PySide6.QtCore import QPoint
+            global_pos = parent.mapToGlobal(QPoint(0, 0))
+            x = global_pos.x() + (parent.width() - self.width()) // 2
+            y = global_pos.y() + 50
             self.move(x, y)
         self._input.clear()
         self.show()
@@ -456,34 +461,47 @@ class QuickOpenDialog(QDialog):
     def set_root(self, root_path: str):
         self._root_path = root_path
         self._all_files = []  # Reset cache when root changes
+        self._start_async_scan()
 
     def add_recent_file(self, file_path: str):
         """Track a file as recently opened."""
-        # Remove if already in list, add to front
         if file_path in self._recent_files:
             self._recent_files.remove(file_path)
         self._recent_files.insert(0, file_path)
-        # Keep max 20 recent files
         self._recent_files = self._recent_files[:20]
 
-    def _scan_files(self):
-        """Scan directory for files (cached)."""
-        if self._all_files:
+    def _start_async_scan(self):
+        if not self._root_path or not os.path.exists(self._root_path):
             return
+        import threading
+        def worker(root):
+            from ..core.filesystem import is_binary
+            skip_dirs = {".git", "__pycache__", "node_modules", ".venv", "venv",
+                         "dist", "build", ".next", ".nuxt", "target"}
+            files = []
+            for dirpath, dirnames, filenames in os.walk(root):
+                dirnames[:] = [d for d in dirnames if d not in skip_dirs and not d.startswith(".")]
+                for fname in filenames:
+                    if not is_binary(fname):
+                        full = os.path.join(dirpath, fname)
+                        try:
+                            rel = os.path.relpath(full, root)
+                            files.append((fname, rel, full))
+                        except Exception:
+                            pass
+                    if len(files) >= 8000:
+                        break
+                if len(files) >= 8000:
+                    break
+            self._all_files = files
 
-        from ..core.filesystem import FileSystem, should_skip_dir, is_binary
-        skip_dirs = {".git", "__pycache__", "node_modules", ".venv", "venv",
-                     "dist", "build", ".next", ".nuxt", "target"}
+        t = threading.Thread(target=worker, args=(self._root_path,), daemon=True)
+        t.start()
 
-        for dirpath, dirnames, filenames in os.walk(self._root_path):
-            dirnames[:] = [d for d in dirnames if d not in skip_dirs and not d.startswith(".")]
-            for fname in filenames:
-                if not is_binary(fname):
-                    full = os.path.join(dirpath, fname)
-                    rel = os.path.relpath(full, self._root_path)
-                    self._all_files.append((fname, rel, full))
-                    if len(self._all_files) >= 5000:
-                        return
+    def _scan_files(self):
+        """No-op or start scan if empty."""
+        if not self._all_files:
+            self._start_async_scan()
 
     def _show_help_picks(self):
         """Show the VS Code-style help picks (search modes) + recently opened files."""
@@ -579,7 +597,7 @@ class QuickOpenDialog(QDialog):
 
                 h_layout.addStretch()
 
-                item.setSizeHint(QSize(0, 26))
+                item.setSizeHint(QSize(0, 28))
                 item.setData(Qt.UserRole, fpath)
                 self._list.addItem(item)
                 self._list.setItemWidget(item, widget)
@@ -587,9 +605,17 @@ class QuickOpenDialog(QDialog):
         if self._list.count() > 0:
             self._list.setCurrentRow(0)
 
+        self._adjust_popup_size()
+
+    def _adjust_popup_size(self):
         total = self._list.count()
         visible = min(total, 14)
-        list_height = max(50, visible * 27 + 8)
+        list_height = 8
+        for i in range(visible):
+            it = self._list.item(i)
+            if it:
+                list_height += it.sizeHint().height()
+        list_height = max(50, list_height)
         self._list.setFixedHeight(list_height)
         self.setFixedHeight(list_height + 38)
 
@@ -630,7 +656,7 @@ class QuickOpenDialog(QDialog):
             item = QListWidgetItem()
             widget = QWidget()
             layout = QHBoxLayout(widget)
-            layout.setContentsMargins(0, 0, 0, 0)
+            layout.setContentsMargins(8, 0, 8, 0)
             
             if line_str:
                 try:
@@ -652,12 +678,11 @@ class QuickOpenDialog(QDialog):
             label.setStyleSheet("color: #cccccc; font-size: 13px; background: transparent;")
             layout.addWidget(label)
             layout.addStretch()
-            item.setSizeHint(QSize(0, 26))
+            item.setSizeHint(QSize(0, 28))
             self._list.addItem(item)
             self._list.setItemWidget(item, widget)
             self._list.setCurrentRow(0)
-            self._list.setFixedHeight(40)
-            self.setFixedHeight(78)
+            self._adjust_popup_size()
             return
             
         # 3. Prefix "@" - Go to Symbol
@@ -670,8 +695,9 @@ class QuickOpenDialog(QDialog):
                 editor = parent._editor_tabs.current_editor()
                 if editor:
                     content = editor.get_content()
-                    from ..core.filesystem import parse_python_symbols
-                    symbols = parse_python_symbols(content)
+                    from ..file_explorer.outline_panel import parse_outline_symbols
+                    fpath = editor.get_file_path() or ""
+                    symbols = parse_outline_symbols(content, fpath)
                     
                     flat_symbols = []
                     def flatten(syms, prefix=""):
@@ -691,7 +717,7 @@ class QuickOpenDialog(QDialog):
                         item = QListWidgetItem()
                         widget = QWidget()
                         layout = QHBoxLayout(widget)
-                        layout.setContentsMargins(0, 0, 0, 0)
+                        layout.setContentsMargins(8, 0, 8, 0)
                         layout.setSpacing(8)
                         
                         icon_text = "\U0001F4E6" if sym_type == "class" else "\u0192"
@@ -709,7 +735,7 @@ class QuickOpenDialog(QDialog):
                         line_label.setStyleSheet("color: #858585; font-size: 11px; background: transparent;")
                         layout.addWidget(line_label)
                         
-                        item.setSizeHint(QSize(0, 26))
+                        item.setSizeHint(QSize(0, 28))
                         item.setData(Qt.UserRole, f"line:{line}")
                         self._list.addItem(item)
                         self._list.setItemWidget(item, widget)
@@ -717,10 +743,7 @@ class QuickOpenDialog(QDialog):
                     if filtered_syms:
                         self._list.setCurrentRow(0)
                     
-                    visible = min(max(1, len(filtered_syms)), 12)
-                    list_height = max(50, visible * 26 + 8)
-                    self._list.setFixedHeight(list_height)
-                    self.setFixedHeight(list_height + 38)
+                    self._adjust_popup_size()
                     return
 
         # 3.5 Prefix "#" - Global Symbol Search
@@ -728,17 +751,17 @@ class QuickOpenDialog(QDialog):
             query_sym = text_stripped[1:].strip().lower()
             self._list.clear()
             
-            from ..core.filesystem import parse_python_symbols
+            from ..file_explorer.outline_panel import parse_outline_symbols
             import time
             start_time = time.time()
             flat_symbols = []
-            
+
             for fname, rel, full in self._all_files:
-                if full.endswith(".py"):
+                if full.lower().endswith((".py", ".js", ".jsx", ".ts", ".tsx", ".vue")):
                     try:
                         with open(full, "r", encoding="utf-8", errors="replace") as f:
                             content = f.read()
-                        symbols = parse_python_symbols(content)
+                        symbols = parse_outline_symbols(content, full)
                         def flatten(syms, prefix=""):
                             for sym in syms:
                                 fullname = f"{prefix}{sym['name']}"
@@ -760,7 +783,7 @@ class QuickOpenDialog(QDialog):
                 item = QListWidgetItem()
                 widget = QWidget()
                 layout = QHBoxLayout(widget)
-                layout.setContentsMargins(0, 0, 0, 0)
+                layout.setContentsMargins(8, 0, 8, 0)
                 layout.setSpacing(8)
                 
                 icon_text = "\U0001F4E6" if sym_type == "class" else "\u0192"
@@ -778,7 +801,7 @@ class QuickOpenDialog(QDialog):
                 path_label.setStyleSheet("color: #858585; font-size: 11px; background: transparent;")
                 layout.addWidget(path_label)
                 
-                item.setSizeHint(QSize(0, 26))
+                item.setSizeHint(QSize(0, 28))
                 item.setData(Qt.UserRole, f"sym_goto:{full}:{line}")
                 self._list.addItem(item)
                 self._list.setItemWidget(item, widget)
@@ -789,18 +812,16 @@ class QuickOpenDialog(QDialog):
                 item = QListWidgetItem()
                 widget = QWidget()
                 layout = QHBoxLayout(widget)
+                layout.setContentsMargins(8, 0, 8, 0)
                 label = QLabel("No workspace symbols found" if not query_sym else "No matching symbols")
                 label.setStyleSheet("color: #858585; font-size: 13px; background: transparent;")
                 layout.addWidget(label)
-                item.setSizeHint(QSize(0, 26))
+                item.setSizeHint(QSize(0, 28))
                 item.setData(Qt.UserRole, None)
                 self._list.addItem(item)
                 self._list.setItemWidget(item, widget)
             
-            visible = min(max(1, len(filtered_syms)), 12)
-            list_height = max(50, visible * 26 + 8)
-            self._list.setFixedHeight(list_height)
-            self.setFixedHeight(list_height + 38)
+            self._adjust_popup_size()
             return
 
         # 4. Prefix "% " - Search file content
@@ -841,7 +862,7 @@ class QuickOpenDialog(QDialog):
                     item = QListWidgetItem()
                     widget = QWidget()
                     layout = QHBoxLayout(widget)
-                    layout.setContentsMargins(0, 0, 0, 0)
+                    layout.setContentsMargins(8, 0, 8, 0)
                     layout.setSpacing(8)
                     
                     if res.get("icon"):
@@ -861,7 +882,7 @@ class QuickOpenDialog(QDialog):
                         detail_label.setStyleSheet("color: #858585; font-size: 11px; background: transparent;")
                         layout.addWidget(detail_label)
                         
-                    item.setSizeHint(QSize(0, 26))
+                    item.setSizeHint(QSize(0, 28))
                     item.setData(Qt.UserRole, res.get("data"))
                     self._list.addItem(item)
                     self._list.setItemWidget(item, widget)
@@ -872,18 +893,16 @@ class QuickOpenDialog(QDialog):
                     item = QListWidgetItem()
                     widget = QWidget()
                     layout = QHBoxLayout(widget)
+                    layout.setContentsMargins(8, 0, 8, 0)
                     label = QLabel("No matches found")
                     label.setStyleSheet("color: #858585; font-size: 13px; background: transparent;")
                     layout.addWidget(label)
-                    item.setSizeHint(QSize(0, 26))
+                    item.setSizeHint(QSize(0, 28))
                     item.setData(Qt.UserRole, None)
                     self._list.addItem(item)
                     self._list.setItemWidget(item, widget)
                     
-                visible = min(max(1, len(results)), 12)
-                list_height = max(50, visible * 26 + 8)
-                self._list.setFixedHeight(list_height)
-                self.setFixedHeight(list_height + 38)
+                self._adjust_popup_size()
                 return
 
         # 6. Default File Search
@@ -903,7 +922,7 @@ class QuickOpenDialog(QDialog):
             item = QListWidgetItem()
             widget = QWidget()
             layout = QHBoxLayout(widget)
-            layout.setContentsMargins(0, 0, 0, 0)
+            layout.setContentsMargins(8, 0, 8, 0)
             layout.setSpacing(8)
 
             name_label = QLabel(fname)
@@ -916,7 +935,7 @@ class QuickOpenDialog(QDialog):
 
             layout.addStretch()
 
-            item.setSizeHint(QSize(0, 26))
+            item.setSizeHint(QSize(0, 28))
             item.setData(Qt.UserRole, full)
             self._list.addItem(item)
             self._list.setItemWidget(item, widget)
@@ -924,10 +943,7 @@ class QuickOpenDialog(QDialog):
         if self._filtered:
             self._list.setCurrentRow(0)
 
-        visible = min(len(self._filtered), 12)
-        list_height = max(50, visible * 26 + 8)
-        self._list.setFixedHeight(list_height)
-        self.setFixedHeight(list_height + 38)
+        self._adjust_popup_size()
 
     def _on_item_selected(self, item):
         data = item.data(Qt.UserRole)
@@ -1031,9 +1047,10 @@ class QuickOpenDialog(QDialog):
         self._from_command_center = from_command_center
         parent = self.parent()
         if parent:
-            parent_geo = parent.geometry()
-            x = parent_geo.x() + (parent_geo.width() - self.width()) // 2
-            y = parent_geo.y() + 50
+            from PySide6.QtCore import QPoint
+            global_pos = parent.mapToGlobal(QPoint(0, 0))
+            x = global_pos.x() + (parent.width() - self.width()) // 2
+            y = global_pos.y() + 50
             self.move(x, y)
             
         self.show()

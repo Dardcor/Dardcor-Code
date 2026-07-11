@@ -36,7 +36,11 @@ class TimelinePanel(QWidget):
             import os
             cwd = os.path.dirname(self.current_file)
             
-            result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
+            kwargs = {}
+            if os.name == 'nt':
+                kwargs['creationflags'] = 0x08000000
+                
+            result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=5, **kwargs)
             if result.returncode == 0 and result.stdout:
                 for line in result.stdout.split('\n'):
                     parts = line.split('|')

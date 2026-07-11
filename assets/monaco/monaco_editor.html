@@ -1002,10 +1002,51 @@
                     editor.trigger('keyboard', 'editor.action.inlineSuggest.showPrevious', null);
                 });
 
+                // Trigger Parameter Hints (Ctrl+Shift+Space) - VS Code parity
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Space, function () {
+                    editor.trigger('keyboard', 'editor.action.triggerParameterHints', null);
+                });
+
+                // Format Selection (Ctrl+K Ctrl+F) - VS Code parity
+                editor.addCommand(monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyF), function () {
+                    editor.trigger('keyboard', 'editor.action.formatSelection', null);
+                });
+
+                // Quick Fix / Code Action lightbulb (Ctrl+.) - VS Code parity
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Period, function () {
+                    editor.trigger('keyboard', 'editor.action.quickFix', null);
+                });
+
+                // Change All Occurrences (Ctrl+F2) - VS Code parity
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.F2, function () {
+                    editor.trigger('keyboard', 'editor.action.changeAll', null);
+                });
+
+                // Go to Matching Bracket (Ctrl+Shift+\) - VS Code parity
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Backslash, function () {
+                    editor.trigger('keyboard', 'editor.action.jumpToBracket', null);
+                });
+
+                // Show Hover (Ctrl+K Ctrl+I) - VS Code parity
+                editor.addCommand(monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyI), function () {
+                    editor.trigger('keyboard', 'editor.action.showHover', null);
+                });
+
+                // Go to Implementation (Ctrl+F12) - VS Code parity
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12, function () {
+                    editor.trigger('keyboard', 'editor.action.goToImplementation', null);
+                });
+
+                // Go to References (Shift+F12) - VS Code parity
+                editor.addCommand(monaco.KeyMod.Shift | monaco.KeyCode.F12, function () {
+                    editor.trigger('keyboard', 'editor.action.goToReferences', null);
+                });
+
                 // Handle window resize
                 window.addEventListener('resize', function () {
                     editor.layout();
                 });
+
 
                 // Drop and Paste Into handlers
                 document.addEventListener('dragover', function (e) {

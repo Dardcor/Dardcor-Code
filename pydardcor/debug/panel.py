@@ -318,7 +318,11 @@ class DebugPanel(QWidget):
 
     def _clear_sections(self):
         for tree in [self._variables, self._watch, self._call_stack, self._breakpoints]:
-            tree._header.takeChildren()
-            ph = QTreeWidgetItem(["Not debugging"])
-            ph.setForeground(0, QColor("#888888"))
-            tree._header.addChild(ph)
+            try:
+                if hasattr(tree, '_header') and tree._header is not None:
+                    tree._header.takeChildren()
+                    ph = QTreeWidgetItem(["Not debugging"])
+                    ph.setForeground(0, QColor("#888888"))
+                    tree._header.addChild(ph)
+            except (RuntimeError, AttributeError, ValueError):
+                pass

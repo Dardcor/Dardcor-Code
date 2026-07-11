@@ -74,6 +74,7 @@ class ThemeManager:
     """Manages color themes and dynamically applies stylesheets to QApplication."""
     
     _current_theme = "dark+"
+    _extension_themes_registered = False
     # Extension-contributed themes: {"ext:<label>": {"name", "type", "path"}}
     EXT_THEMES: Dict[str, Dict[str, str]] = {}
     # Monaco theme data for the active extension theme (None = builtin)
@@ -273,6 +274,8 @@ class ThemeManager:
     @classmethod
     def register_extension_themes(cls):
         """Scan installed extensions for contributes.themes and register them."""
+        if cls._extension_themes_registered:
+            return
         from ..core.extension_manager import get_extension_manager
 
         cls.EXT_THEMES = {}
@@ -297,6 +300,7 @@ class ThemeManager:
                     "type": "light" if ui == "vs" else "dark",
                     "path": full,
                 }
+        cls._extension_themes_registered = True
 
     @classmethod
     def get_theme_list(cls) -> List[Dict[str, str]]:
@@ -543,6 +547,10 @@ class ThemeManager:
         }}
         QDialogButtonBox QPushButton:default:hover, QMessageBox QPushButton:default:hover {{
             background-color: {primary_hover};
+        }}
+        QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus, QComboBox:focus, QListWidget:focus, QTreeWidget:focus, QPushButton:focus {{
+            border: 1px solid {c['accent']};
+            outline: none;
         }}
         """
         

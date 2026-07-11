@@ -752,6 +752,15 @@ class ThemeLoadingOverlay(QWidget):
         self.angle = 0
         self.hide()
         
+        if parent:
+            parent.installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        from PySide6.QtCore import QEvent
+        if obj == self.parentWidget() and event.type() == QEvent.Resize:
+            self.setGeometry(self.parentWidget().rect())
+        return super().eventFilter(obj, event)
+        
     def _animate_spinner(self):
         self.angle = (self.angle + 15) % 360
         self.update()
@@ -1234,6 +1243,12 @@ class MainWindow(QMainWindow):
         self._debug_console.add_channel("Debug Console")
         self._terminal_panel = TerminalPanel(root_path=os.path.expanduser("~"))
         
+        # Outline debounce timer (BUG-038 fix)
+        self._outline_debounce_timer = QTimer(self)
+        self._outline_debounce_timer.setSingleShot(True)
+        self._outline_debounce_timer.setInterval(500)
+        self._outline_debounce_timer.timeout.connect(self._flush_outline_update)
+        
         self._ports_panel = PortForwardingPanel(self)
 
         from ..comments.service import CommentService
@@ -1281,13 +1296,15 @@ class MainWindow(QMainWindow):
         self._editor_tabs.setMinimumHeight(1)
         self._editor_container.setMinimumHeight(1)
         self._bottom_panel.setMinimumHeight(80)
-        self._editor_term_split.setHandleWidth(1)
+        self._editor_term_split.setHandleWidth(4)
         self._editor_term_split.setStyleSheet("""
-            QSplitter::handle {
-                background-color: #3c0068;
+            QSplitter::handle:vertical {
+                background: transparent;
+                border-top: 1px solid #3c0068;
             }
-            QSplitter::handle:hover {
+            QSplitter::handle:vertical:hover, QSplitter::handle:vertical:pressed {
                 background-color: #4a0072;
+                border: none;
             }
         """)
 
@@ -1306,13 +1323,15 @@ class MainWindow(QMainWindow):
         self._center_chat_split.setStretchFactor(1, 0)
         self._center_chat_split.setCollapsible(0, False)
         self._center_chat_split.setCollapsible(1, True)
-        self._center_chat_split.setHandleWidth(1)
+        self._center_chat_split.setHandleWidth(4)
         self._center_chat_split.setStyleSheet("""
-            QSplitter::handle {
-                background-color: #3c0068;
+            QSplitter::handle:horizontal {
+                background: transparent;
+                border-left: 1px solid #3c0068;
             }
-            QSplitter::handle:hover {
+            QSplitter::handle:horizontal:hover, QSplitter::handle:horizontal:pressed {
                 background-color: #4a0072;
+                border: none;
             }
         """)
 
@@ -1328,13 +1347,15 @@ class MainWindow(QMainWindow):
         self._main_split.setCollapsible(0, True)
         self._main_split.setCollapsible(1, False)
         self._main_split.setSizes([250, 800])
-        self._main_split.setHandleWidth(1)
+        self._main_split.setHandleWidth(4)
         self._main_split.setStyleSheet("""
-            QSplitter::handle {
-                background-color: #3c0068;
+            QSplitter::handle:horizontal {
+                background: transparent;
+                border-left: 1px solid #3c0068;
             }
-            QSplitter::handle:hover {
+            QSplitter::handle:horizontal:hover, QSplitter::handle:horizontal:pressed {
                 background-color: #4a0072;
+                border: none;
             }
         """)
         main_layout.addWidget(self._main_split, 1)
@@ -2359,6 +2380,10 @@ class MainWindow(QMainWindow):
         f6_shortcut = QShortcut(QKeySequence("F6"), self)
         f6_shortcut.activated.connect(self._focus_manager.cycle_focus)
 
+        # F1 = Command Palette (VS Code parity)
+        f1_shortcut = QShortcut(QKeySequence("F1"), self)
+        f1_shortcut.activated.connect(self._show_command_palette)
+
         # Ctrl+Tab — cycle to next editor tab (VS Code Editor Quick Access)
         ctrl_tab = QShortcut(QKeySequence("Ctrl+Tab"), self)
         ctrl_tab.activated.connect(self._editor_quick_access_next)
@@ -2367,9 +2392,40 @@ class MainWindow(QMainWindow):
         ctrl_shift_tab = QShortcut(QKeySequence("Ctrl+Shift+Tab"), self)
         ctrl_shift_tab.activated.connect(self._editor_quick_access_prev)
 
+        # Ctrl+K Ctrl+W — close all editors
+        ctrl_k_ctrl_w = QShortcut(QKeySequence("Ctrl+K, Ctrl+W"), self)
+        ctrl_k_ctrl_w.activated.connect(lambda: self._editor_tabs.close_all())
+
+        # Ctrl+1/2/3 — Focus editor group 1/2/3
+        for i in range(1, 4):
+            sc = QShortcut(QKeySequence(f"Ctrl+{i}"), self)
+            sc.activated.connect(lambda idx=i - 1: self._focus_editor_group(idx))
+
+        # Ctrl+K Ctrl+Left/Right — focus adjacent editor group
+        ctrl_k_left = QShortcut(QKeySequence("Ctrl+K, Ctrl+Left"), self)
+        ctrl_k_left.activated.connect(lambda: self._focus_editor_group_rel(-1))
+        ctrl_k_right = QShortcut(QKeySequence("Ctrl+K, Ctrl+Right"), self)
+        ctrl_k_right.activated.connect(lambda: self._focus_editor_group_rel(1))
+
         # Ctrl+I — Inline Chat (VS Code parity)
         ctrl_i = QShortcut(QKeySequence("Ctrl+I"), self)
         ctrl_i.activated.connect(self._show_inline_chat)
+
+        # Ctrl+Shift+I — Toggle Developer Tools (WebEngineView)
+        ctrl_shift_i = QShortcut(QKeySequence("Ctrl+Shift+I"), self)
+        ctrl_shift_i.activated.connect(self._toggle_devtools)
+
+        # Ctrl+Numpad0 — Reset Zoom
+        ctrl_num0 = QShortcut(QKeySequence("Ctrl+0"), self)
+        ctrl_num0.activated.connect(self._zoom_reset)
+
+        # F11 — Full Screen
+        f11_shortcut = QShortcut(QKeySequence("F11"), self)
+        f11_shortcut.activated.connect(self._toggle_fullscreen)
+
+        # Ctrl+K V — Markdown Preview to Side
+        ctrl_k_v = QShortcut(QKeySequence("Ctrl+K, V"), self)
+        ctrl_k_v.activated.connect(self._open_markdown_preview_side)
 
     # ── Editor Quick Access (Ctrl+Tab) ──────────────────────
 
@@ -2592,9 +2648,6 @@ class MainWindow(QMainWindow):
             "file.close": self._close_current_editor,
             "file.saveAll": self._save_all,
             "workbench.action.selectTheme": self._show_theme_switcher,
-            "editor.action.formatDocument": lambda: self._editor_tabs.trigger_format() if self._editor_tabs.current_editor() else None,
-            "editor.action.commentLine": lambda: self._run_editor_action("editor.action.commentLine"),
-            "editor.action.blockComment": lambda: self._run_editor_action("editor.action.blockCommentAction"),
             "debug.start": self._start_debugging,
             "debug.run": self._run_current_file,
             "debug.toggleBreakpoint": lambda: self._editor_tabs.toggle_breakpoint(),
@@ -2999,21 +3052,26 @@ class MainWindow(QMainWindow):
             self._nav_forward_stack.clear()
 
     def _navigate_back(self):
+        """Navigate to the previous file (VS Code Alt+Left behavior)."""
         if not self._nav_back_stack:
             return
-        path = self._nav_back_stack.pop(0)
-        if self._nav_back_stack:
-            self._nav_forward_stack = list(self._nav_back_stack) + list(self._nav_forward_stack)
-            self._nav_back_stack.clear()
+        # Push current location to forward stack before navigating back
         current = self._current_nav_path()
-        if current and current != path:
-            self._nav_forward_stack.insert(0, current)
+        if current:
+            self._nav_forward_stack.append(current)
+        # Pop from back stack using LIFO (correct stack behavior)
+        path = self._nav_back_stack.pop()
         self._open_file_in_editor(path, False)
 
     def _navigate_forward(self):
+        """Navigate to the next file (VS Code Alt+Right behavior)."""
         if not self._nav_forward_stack:
             return
-        path = self._nav_forward_stack.pop(0)
+        # Push current location to back stack before navigating forward
+        current = self._current_nav_path()
+        if current:
+            self._nav_back_stack.append(current)
+        path = self._nav_forward_stack.pop()
         self._open_file_in_editor(path, False)
 
     def _open_file_in_editor(self, path: str, record_nav: bool = True):
@@ -3189,10 +3247,13 @@ class MainWindow(QMainWindow):
         self._editor_tabs.save_all()
 
     def _on_editor_dirty_changed(self, is_dirty: bool):
+        """Restart the auto-save debounce timer when content becomes dirty."""
         if is_dirty and getattr(self._config, 'auto_save', False):
+            # Restart timer so it fires once, 1 second after the LAST edit
             self._auto_save_timer.start()
 
     def _save_all_dirty_if_auto_save(self):
+        """Triggered by the auto-save timer: save all dirty editors once."""
         if getattr(self._config, 'auto_save', False):
             self._editor_tabs.save_all(is_auto_save=True)
 
@@ -3291,7 +3352,6 @@ class MainWindow(QMainWindow):
         if hasattr(self, "_theme_overlay") and self.isVisible():
             self._theme_overlay.show()
             self._theme_overlay.raise_()
-            QApplication.processEvents()
             QTimer.singleShot(600, lambda: self._do_set_theme(theme_id, persist))
         else:
             self._do_set_theme(theme_id, persist)
@@ -3600,6 +3660,26 @@ class MainWindow(QMainWindow):
             self._outline_panel.set_symbols([])
 
     def _on_editor_content_changed(self, content: str):
+        """Called on every keystroke - schedule debounced outline update."""
+        self._outline_debounce_pending_content = content
+        self._outline_debounce_timer.start()
+
+        # Update any side-by-side markdown previews in real time (BUG-017)
+        editor = self._editor_tabs.current_editor()
+        if editor:
+            file_path = editor.get_file_path()
+            if file_path and file_path.lower().endswith(('.md', '.markdown')):
+                for group in getattr(self._editor_tabs, '_groups', []):
+                    for i in range(group.count()):
+                        widget = group.widget(i)
+                        if isinstance(widget, MarkdownPreviewWidget) and widget.file_path == file_path:
+                            widget.update_live_content(content)
+
+    def _flush_outline_update(self):
+        """Debounced: parse outline symbols after 500ms of inactivity."""
+        content = getattr(self, '_outline_debounce_pending_content', None)
+        if content is None:
+            return
         editor = self._editor_tabs.current_editor()
         if editor:
             file_path = editor.get_file_path()
@@ -3988,10 +4068,22 @@ class MainWindow(QMainWindow):
         if self._agent and self._agent.config:
             self._status_bar.set_connected(True)
 
-    def _detect_git_branch(self):
-        """Detect current git branch and update status bar."""
+    def _detect_git_branch(self, force=False):
+        """Detect current git branch and update status bar with caching (BUG-040)."""
+        import time
+        now = time.time()
+        
+        # Rate-limiting / caching: skip subprocess execution if checked recently (< 5s ago) and not forced
+        if not force and hasattr(self, "_last_git_check_time") and (now - self._last_git_check_time) < 5.0:
+            if hasattr(self, "_last_git_branch"):
+                if hasattr(self, "_status_bar") and self._status_bar:
+                    self._status_bar.set_git_branch(self._last_git_branch)
+                return
+
+        self._last_git_check_time = now
         root = self._config.workspace_path or os.path.expanduser("~")
         if not os.path.exists(os.path.join(root, ".git")):
+            self._last_git_branch = ""
             if hasattr(self, "_status_bar") and self._status_bar:
                 self._status_bar.set_git_branch("")
             return
@@ -4001,11 +4093,20 @@ class MainWindow(QMainWindow):
         result = cmd.run("git rev-parse --abbrev-ref HEAD", timeout=5)
         branch = result.value.strip() if result.value else "main"
         if branch and result.success:
+            self._last_git_branch = branch
             if hasattr(self, "_status_bar") and self._status_bar:
                 self._status_bar.set_git_branch(branch)
         else:
+            self._last_git_branch = ""
             if hasattr(self, "_status_bar") and self._status_bar:
                 self._status_bar.set_git_branch("")
+
+        # Schedule subsequent checks every 5 seconds dynamically
+        if not hasattr(self, "_git_branch_timer"):
+            self._git_branch_timer = QTimer(self)
+            self._git_branch_timer.setInterval(5000)
+            self._git_branch_timer.timeout.connect(lambda: self._detect_git_branch(force=False))
+            self._git_branch_timer.start()
 
     def _sync_git_changes(self):
         """Pull/push remote changes via the git bridge (Synchronize Changes)."""
@@ -4153,6 +4254,13 @@ class MainWindow(QMainWindow):
                 self._open_file_dialog()
             elif action_type == "open_folder":
                 self._open_folder_dialog()
+            elif action_type.startswith("open_file_path:"):
+                path = action_type[len("open_file_path:"):]
+                self._open_file_in_editor(path)
+            elif action_type.startswith("open_folder_path:"):
+                path = action_type[len("open_folder_path:"):]
+                self._file_explorer.set_root(path)
+                self._on_root_changed(path)
             elif action_type == "clone":
                 from PySide6.QtWidgets import QInputDialog
                 url, ok = QInputDialog.getText(self, "Clone Repository", "Git URL:")
@@ -4394,6 +4502,86 @@ class MainWindow(QMainWindow):
         self._diff_inline_view = not getattr(self, '_diff_inline_view', False)
         self._editor_tabs.toggle_inline_diff(self._diff_inline_view)
 
+    def _focus_editor_group(self, idx: int):
+        """Focus the editor group at index idx (Ctrl+1, Ctrl+2, Ctrl+3)."""
+        groups = getattr(self._editor_tabs, '_groups', [])
+        if 0 <= idx < len(groups):
+            editor = groups[idx].current_editor()
+            if editor and hasattr(editor, 'focus'):
+                editor.focus()
+
+    def _focus_editor_group_rel(self, delta: int):
+        """Focus adjacent editor group (Ctrl+K Ctrl+Left/Right)."""
+        groups = getattr(self._editor_tabs, '_groups', [])
+        if not groups:
+            return
+        active = self._editor_tabs.active_group()
+        if active and active in groups:
+            idx = groups.index(active)
+            new_idx = max(0, min(len(groups) - 1, idx + delta))
+            if new_idx != idx:
+                editor = groups[new_idx].current_editor()
+                if editor and hasattr(editor, 'focus'):
+                    editor.focus()
+
+    def _toggle_devtools(self):
+        """Toggle WebEngine DevTools for the active Monaco editor (Ctrl+Shift+I)."""
+        editor = self._editor_tabs.current_editor()
+        if editor and hasattr(editor, '_view'):
+            page = editor._view.page()
+            if not getattr(self, '_devtools_window', None):
+                from PySide6.QtWebEngineWidgets import QWebEngineView
+                self._devtools_window = QWebEngineView()
+                self._devtools_window.setWindowTitle("DevTools")
+                self._devtools_window.resize(800, 600)
+            page.setDevToolsPage(self._devtools_window.page())
+            self._devtools_window.show()
+            self._devtools_window.raise_()
+
+    def _zoom_reset(self):
+        """Reset zoom level to default (Ctrl+0)."""
+        self._config.ui_zoom = 0
+        app = QApplication.instance()
+        font = app.font()
+        font.setPointSize(9)
+        app.setFont(font)
+        self._font_size = 14
+        self._apply_font_size_to_all(self._font_size)
+        self._config.font_size = self._font_size
+        self._config.save()
+
+    def _toggle_fullscreen(self):
+        """Toggle full screen mode (F11)."""
+        if self.isFullScreen():
+            self.showNormal()
+        else:
+            self.showFullScreen()
+
+    def _open_markdown_preview_side(self):
+        """Open Markdown Preview to the side (Ctrl+K V)."""
+        editor = self._editor_tabs.current_editor()
+        if not editor:
+            return
+        file_path = editor.get_file_path()
+        if not file_path or not file_path.lower().endswith(('.md', '.markdown')):
+            return
+        # Ensure we have 2 groups (split right if only 1)
+        if len(self._editor_tabs._groups) == 1:
+            self._editor_tabs.split_editor("right")
+        # Open the preview in the second group
+        from ..editor.markdown_preview import MarkdownPreviewWidget
+        preview = MarkdownPreviewWidget(file_path)
+        import os
+        self._editor_tabs._groups[-1].add_custom_tab(preview, f"Preview: {os.path.basename(file_path)}")
+
+    def _open_folder_dialog(self):
+        """Open a folder/workspace via dialog."""
+        from PySide6.QtWidgets import QFileDialog
+        folder = QFileDialog.getExistingDirectory(self, "Open Folder")
+        if folder:
+            self._file_explorer.set_root(folder)
+            self._on_root_changed(folder)
+
     # ── Close ─────────────────────────────────────────────
 
     def closeEvent(self, event):
@@ -4508,9 +4696,9 @@ class MainWindow(QMainWindow):
     def _set_primary_sidebar_position(self, position: str):
         """Move the Primary Sidebar to 'left' or 'right'."""
         self._primary_sidebar_position = position
-        # _horiz_split has [sidebar_stack, center_chat_split]
+        # _main_split has [sidebar_stack, center_chat_split]
         # For 'right' we swap the order; for 'left' we restore it.
-        splitter = self._horiz_split
+        splitter = self._main_split
         sidebar = self._sidebar_stack
         center = self._center_chat_split
         activity = self._activity_bar

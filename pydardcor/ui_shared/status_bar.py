@@ -432,13 +432,24 @@ class StatusBar(QStatusBar):
     def resizeEvent(self, event):
         w = event.size().width()
         
-        # Hide items progressively as the window gets smaller
+        # Hide items progressively as the window gets smaller (BUG-021)
         self._encoding_btn.setVisible(w > 800 and self._item_visible("encoding"))
-        self._eol_btn.setVisible(w > 700 and self._item_visible("eol"))
-        self._indent_btn.setVisible(w > 600 and self._item_visible("indent"))
-        self._lang_btn.setVisible(w > 500 and self._item_visible("language"))
+        self._eol_btn.setVisible(w > 750 and self._item_visible("eol"))
+        self._indent_btn.setVisible(w > 700 and self._item_visible("indent"))
+        self._lang_btn.setVisible(w > 650 and self._item_visible("language"))
+        
+        self._models_btn.setVisible(w > 600 and self._item_visible("models"))
+        self._ai_btn.setVisible(w > 550 and self._item_visible("ai"))
+        self._cursor_btn.setVisible(w > 480 and self._item_visible("cursor"))
+        
         self._git_btn.setVisible(w > 400 and self._has_git and self._item_visible("git"))
-        self._errors_btn.setVisible(w > 300 and self._item_visible("problems"))
+        self._sync_btn.setVisible(w > 400 and self._item_visible("sync"))
+        self._errors_btn.setVisible(w > 320 and self._item_visible("problems"))
+        
+        # Notification badge responsive alignment (BUG-034)
+        if hasattr(self, '_notif_badge') and hasattr(self, '_notif_btn'):
+            btn_w = self._notif_btn.width()
+            self._notif_badge.move(max(0, btn_w - 14), 2)
         
         super().resizeEvent(event)
 
@@ -458,19 +469,6 @@ class StatusBar(QStatusBar):
             self._hidden_items = set()
 
         menu = QMenu(self)
-        menu.setStyleSheet("""
-            QMenu {
-                background-color: #1e1e2e;
-                border: 1px solid #3c0068;
-                color: #cccccc;
-                font-size: 12px;
-                padding: 4px 0;
-            }
-            QMenu::item { padding: 4px 20px 4px 28px; }
-            QMenu::item:selected { background-color: #3c0068; }
-            QMenu::item:checked::before { content: '✓'; }
-            QMenu::separator { height: 1px; background: #3c0068; margin: 2px 0; }
-        """)
 
         title = menu.addAction("Status Bar Items")
         title.setEnabled(False)
@@ -479,12 +477,15 @@ class StatusBar(QStatusBar):
         items = [
             ("problems",  "Problems",         self._errors_btn),
             ("git",       "Source Control",   self._git_btn),
+            ("sync",      "Synchronize",      self._sync_btn),
             ("cursor",    "Ln, Col",          self._cursor_btn),
             ("selection", "Selection",        self._selection_btn),
             ("indent",    "Indentation",      self._indent_btn),
             ("encoding",  "Encoding",         self._encoding_btn),
             ("eol",       "End of Line",      self._eol_btn),
             ("language",  "Language Mode",    self._lang_btn),
+            ("models",    "Models Status",    self._models_btn),
+            ("ai",        "AI Assistant",     self._ai_btn),
             ("notif",     "Notifications",    self._notif_btn),
             ("feedback",  "Feedback",         self._feedback_btn),
         ]

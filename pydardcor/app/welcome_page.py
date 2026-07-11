@@ -63,9 +63,9 @@ class WelcomePageWidget(QWidget):
         layout.setContentsMargins(40, 40, 40, 40)
         layout.setSpacing(24)
 
-        scroll = QScrollArea(self)
-        scroll.setWidgetResizable(True)
-        scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
+        self._scroll = QScrollArea(self)
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
         
         content = QWidget()
         content.setStyleSheet("background: transparent;")
@@ -89,7 +89,7 @@ class WelcomePageWidget(QWidget):
         grid.setSpacing(40)
 
         left_col = QVBoxLayout()
-        left_col.setSpacing(20)
+        left_col.setSpacing(10)
         left_col.setAlignment(Qt.AlignTop)
 
         # Start Section
@@ -97,29 +97,65 @@ class WelcomePageWidget(QWidget):
         start_label.setStyleSheet("font-size: 18px; color: #ffffff; font-weight: bold;")
         left_col.addWidget(start_label)
 
-        new_btn = QPushButton("📄 New File...")
+        new_btn = QPushButton("New File...")
         new_btn.setCursor(Qt.PointingHandCursor)
         new_btn.setProperty("class", "LinkButton")
         new_btn.clicked.connect(lambda: self.file_action_requested.emit("new"))
         left_col.addWidget(new_btn)
 
-        open_file_btn = QPushButton("📂 Open File...")
+        open_file_btn = QPushButton("Open File...")
         open_file_btn.setCursor(Qt.PointingHandCursor)
         open_file_btn.setProperty("class", "LinkButton")
         open_file_btn.clicked.connect(lambda: self.file_action_requested.emit("open_file"))
         left_col.addWidget(open_file_btn)
 
-        open_folder_btn = QPushButton("📁 Open Folder...")
+        open_folder_btn = QPushButton("Open Folder...")
         open_folder_btn.setCursor(Qt.PointingHandCursor)
         open_folder_btn.setProperty("class", "LinkButton")
         open_folder_btn.clicked.connect(lambda: self.file_action_requested.emit("open_folder"))
         left_col.addWidget(open_folder_btn)
 
-        clone_btn = QPushButton("📥 Clone Git Repository...")
+        clone_btn = QPushButton("Clone Git Repository...")
         clone_btn.setCursor(Qt.PointingHandCursor)
         clone_btn.setProperty("class", "LinkButton")
         clone_btn.clicked.connect(lambda: self.file_action_requested.emit("clone"))
         left_col.addWidget(clone_btn)
+
+        # Recent Section (BUG-026 & VS Code parity)
+        recent_lbl = QLabel("Recent")
+        recent_lbl.setStyleSheet("font-size: 18px; color: #ffffff; font-weight: bold; margin-top: 24px;")
+        left_col.addWidget(recent_lbl)
+
+        from ..core.config import get_config
+        config = get_config()
+        recent_folders = getattr(config, "recent_folders", [])
+        recent_files = getattr(config, "recent_files", [])
+
+        recent_items = []
+        for f in recent_folders:
+            if os.path.exists(f):
+                recent_items.append(("folder", f))
+        for f in recent_files:
+            if os.path.exists(f):
+                recent_items.append(("file", f))
+
+        if not recent_items:
+            no_recent = QLabel("No recent items")
+            no_recent.setStyleSheet("color: #666666; font-size: 13px; font-style: italic;")
+            left_col.addWidget(no_recent)
+        else:
+            for item_type, path in recent_items[:7]:
+                name = os.path.basename(path) or path
+                display_text = f"{name}  —  {path}"
+                btn = QPushButton(display_text)
+                btn.setCursor(Qt.PointingHandCursor)
+                btn.setProperty("class", "LinkButton")
+                btn.setStyleSheet("text-align: left; font-size: 12px; color: #aaaaaa; padding: 2px 0px;")
+                if item_type == "folder":
+                    btn.clicked.connect(lambda checked=False, p=path: self.file_action_requested.emit(f"open_folder_path:{p}"))
+                else:
+                    btn.clicked.connect(lambda checked=False, p=path: self.file_action_requested.emit(f"open_file_path:{p}"))
+                left_col.addWidget(btn)
 
         grid.addLayout(left_col, 1)
 
@@ -137,7 +173,7 @@ class WelcomePageWidget(QWidget):
         card_lay = QVBoxLayout(card)
         card_lay.setSpacing(10)
 
-        theme_lbl = QLabel("🎨 Pick a Color Theme")
+        theme_lbl = QLabel("Pick a Color Theme")
         theme_lbl.setStyleSheet("font-size: 13px; font-weight: bold; color: #ffffff;")
         card_lay.addWidget(theme_lbl)
 
@@ -153,7 +189,7 @@ class WelcomePageWidget(QWidget):
         card_lay.addWidget(self._theme_combo)
 
         # Shortcuts Playground
-        play_lbl = QLabel("⌨ Interactive Shortcuts Playground")
+        play_lbl = QLabel("Interactive Shortcuts Playground")
         play_lbl.setStyleSheet("font-size: 13px; font-weight: bold; color: #ffffff; margin-top: 10px;")
         card_lay.addWidget(play_lbl)
         
@@ -177,8 +213,13 @@ class WelcomePageWidget(QWidget):
         grid.addLayout(right_col, 1)
 
         c_lay.addLayout(grid)
-        scroll.setWidget(content)
-        layout.addWidget(scroll)
+        self._scroll.setWidget(content)
+        layout.addWidget(self._scroll)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(100, lambda: self._scroll.verticalScrollBar().setValue(0))
 
     def _change_theme(self, theme_name: str):
         from .theme_manager import ThemeManager

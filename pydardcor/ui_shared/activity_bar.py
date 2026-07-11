@@ -68,6 +68,7 @@ class ActivityBarButton(QPushButton):
                 border-left: 2px solid transparent;
                 color: {fg};
                 font-size: 26px;
+                text-align: center;
                 padding: 0px;
                 margin: 0px;
             }}
@@ -270,11 +271,6 @@ class ActivityBar(QWidget):
         from PySide6.QtWidgets import QMenu
         from PySide6.QtGui import QAction
         menu = QMenu(self)
-        menu.setStyleSheet("""
-            QMenu { background: #0a0a0a; color: #cccccc; border: 1px solid #333333; }
-            QMenu::item { padding: 4px 20px; }
-            QMenu::item:selected { background: #04395e; color: #ffffff; }
-        """)
         menu.addAction(QAction("Hide Activity Bar", self))
         menu.addAction(QAction("Move Activity Bar to Right", self))
         menu.exec(self.mapToGlobal(pos))
@@ -320,11 +316,6 @@ class ActivityBar(QWidget):
 
     def contextMenuEvent(self, event):
         menu = QMenu(self)
-        menu.setStyleSheet("""
-            QMenu { background-color: #000000; color: #cccccc; border: 1px solid #3c0068; }
-            QMenu::item { padding: 4px 24px 4px 24px; }
-            QMenu::item:selected { background-color: #4a0072; color: white; }
-        """)
         
         for btn in self._group.buttons():
             tooltip = btn.toolTip()

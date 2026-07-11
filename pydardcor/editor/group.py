@@ -56,6 +56,7 @@ class FlowTabButton(QWidget):
         self.index = index
         self.is_active = is_active
         self.is_preview = is_preview
+        self.setAttribute(Qt.WA_StyledBackground, True)
         self.setCursor(Qt.PointingHandCursor)
         self.setMouseTracking(True)
         self._init_ui(icon, title)
@@ -125,6 +126,10 @@ class FlowTabButton(QWidget):
 
     def leaveEvent(self, event):
         super().leaveEvent(event)
+        from PySide6.QtGui import QCursor
+        if self.rect().contains(self.mapFromGlobal(QCursor.pos())):
+            return # Cursor is still inside tab (e.g. over close button)
+
         if not self.is_active:
             self.setStyleSheet("""
                 FlowTabButton {
@@ -1082,6 +1087,8 @@ class EditorGroup(QWidget):
         layout.addWidget(self._breadcrumbs_slot)
 
         self._stack = QStackedWidget()
+        from PySide6.QtWidgets import QStackedLayout
+        self._stack.layout().setStackingMode(QStackedLayout.StackAll)
         layout.addWidget(self._stack, 1)
 
         # Welcome screen

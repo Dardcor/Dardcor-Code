@@ -145,18 +145,41 @@ class SettingsDialog(QDialog):
         title = QLabel("Settings")
         title.setStyleSheet("font-size: 14px; font-weight: bold; color: #cccccc;")
         header_layout.addWidget(title)
+        
+        header_layout.addSpacing(40)
+
+        # Search Bar
+        self._search_input = QLineEdit()
+        self._search_input.setPlaceholderText("Search settings...")
+        self._search_input.setFixedWidth(240)
+        self._search_input.setStyleSheet("""
+            QLineEdit {
+                background-color: #161616;
+                color: #cccccc;
+                border: 1px solid #3c0068;
+                border-radius: 4px;
+                padding: 4px 10px;
+                font-size: 12px;
+            }
+            QLineEdit:focus {
+                border-color: #5a009c;
+            }
+        """)
+        self._search_input.textChanged.connect(self._on_search_changed)
+        header_layout.addWidget(self._search_input)
+
         header_layout.addStretch()
 
         layout.addWidget(header)
 
         # Tabs
-        tabs = QTabWidget()
-        tabs.addTab(self._build_editor_tab(), "Editor")
-        tabs.addTab(self._build_appearance_tab(), "Appearance")
-        tabs.addTab(self._build_ai_tab(), "AI")
-        tabs.addTab(self._build_workspace_tab(), "Workspace")
-        tabs.addTab(self._build_about_tab(), "About")
-        layout.addWidget(tabs)
+        self._tabs = QTabWidget()
+        self._tabs.addTab(self._build_editor_tab(), "Editor")
+        self._tabs.addTab(self._build_appearance_tab(), "Appearance")
+        self._tabs.addTab(self._build_ai_tab(), "AI")
+        self._tabs.addTab(self._build_workspace_tab(), "Workspace")
+        self._tabs.addTab(self._build_about_tab(), "About")
+        layout.addWidget(self._tabs)
 
         # Buttons
         btn_container = QWidget()
@@ -483,3 +506,70 @@ class SettingsDialog(QDialog):
         self._config.default_model = self._default_model.currentData() or "dardcor-flash-free"
         self._config.save()
         self.accept()
+
+    def _on_search_changed(self, text: str):
+        query = text.strip().lower()
+
+        # Helper to recursively filter layouts/widgets
+        def filter_layout(layout, q):
+            visible_count = 0
+            if layout is None:
+                return 0
+
+            # If it is a QFormLayout, process row by row
+            if isinstance(layout, QFormLayout):
+                for row in range(layout.rowCount()):
+                    label_item = layout.itemAt(row, QFormLayout.LabelRole)
+                    field_item = layout.itemAt(row, QFormLayout.FieldRole)
+
+                    label_widget = label_item.widget() if label_item else None
+                    field_widget = field_item.widget() if field_item else None
+
+                    text_to_match = ""
+                    if label_widget and isinstance(label_widget, QLabel):
+                        text_to_match += label_widget.text()
+                    if field_widget:
+                        if isinstance(field_widget, (QCheckBox, QPushButton, QLabel)):
+                            text_to_match += field_widget.text()
+
+                    match = (not q) or (q in text_to_match.lower())
+
+                    if label_widget:
+                        label_widget.setVisible(match)
+                    if field_widget:
+                        field_widget.setVisible(match)
+
+                    if match:
+                        visible_count += 1
+                return visible_count
+
+            # Standard layout traversal
+            for i in range(layout.count()):
+                item = layout.itemAt(i)
+                widget = item.widget()
+                if widget:
+                    if isinstance(widget, QGroupBox):
+                        sub_visible = filter_layout(widget.layout(), q)
+                        widget.setVisible(sub_visible > 0)
+                        if sub_visible > 0:
+                            visible_count += 1
+                    elif isinstance(widget, (QLabel, QCheckBox, QPushButton)):
+                        match = (not q) or (q in widget.text().lower())
+                        widget.setVisible(match)
+                        if match:
+                            visible_count += 1
+                    else:
+                        widget.setVisible(True)
+                        visible_count += 1
+                elif item.layout():
+                    sub_visible = filter_layout(item.layout(), q)
+                    visible_count += sub_visible
+            return visible_count
+
+        # Traverse and filter tabs
+        for idx in range(self._tabs.count()):
+            tab_widget = self._tabs.widget(idx)
+            if isinstance(tab_widget, QScrollArea):
+                inner = tab_widget.widget()
+                if inner and inner.layout():
+                    filter_layout(inner.layout(), query)

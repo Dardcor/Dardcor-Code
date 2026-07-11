@@ -25,14 +25,15 @@ class GitPanel(QWidget):
         self.bridge = GitBridge(self)
         self.channel = None
         self.webview = None
+        self._webview_created = False
         
         if root_path:
             self.set_root(root_path)
 
     def _ensure_webview(self):
-        if self._webview_loaded:
+        if self._webview_created:
             return
-        self._webview_loaded = True
+        self._webview_created = True
 
         self.webview = QWebEngineView(self)
         self.webview.page().setBackgroundColor(0)
@@ -49,13 +50,19 @@ class GitPanel(QWidget):
 
     def _on_load_finished(self, ok):
         if ok:
-            from ..app.theme_manager import ThemeManager
-            theme = ThemeManager.THEMES.get(ThemeManager._current_theme, {})
-            colors = theme.get("colors", {})
-            if colors:
-                self.apply_theme(colors)
+            self._webview_loaded = True
+            if hasattr(self, "_pending_theme") and self._pending_theme:
+                self.apply_theme(self._pending_theme)
+            else:
+                from ..app.theme_manager import ThemeManager
+                theme = ThemeManager.THEMES.get(ThemeManager._current_theme, {})
+                colors = theme.get("colors", {})
+                if colors:
+                    self.apply_theme(colors)
+            self.bridge.requestRefresh()
 
     def apply_theme(self, colors: dict):
+        self._pending_theme = colors
         if self.webview and self._webview_loaded:
             import json
             script = f"if(typeof setTheme === 'function') setTheme({json.dumps(colors)});"

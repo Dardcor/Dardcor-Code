@@ -196,6 +196,29 @@ class TerminalTabItemWidget(QWidget):
             self.close_btn.clicked.connect(on_close)
         layout.addWidget(self.close_btn)
 
+    def update_info(self, index, name):
+        display_name = name
+        if getattr(self.container, "custom_name", None):
+            display_name = self.container.custom_name
+        else:
+            if display_name.lower() == "powershell" or display_name.lower() == "pwsh":
+                display_name = "powershell"
+            elif display_name.lower() == "cmd":
+                display_name = "Command Prompt"
+            else:
+                display_name = display_name.capitalize()
+        self.text_label.setText(display_name)
+        
+        self.icon_char = "\uea85"
+        if getattr(self.container, "custom_icon", None):
+            self.icon_char = self.container.custom_icon
+        self.icon_label.setText(self.icon_char)
+        
+        color_style = "color: #cccccc;"
+        if getattr(self.container, "custom_color", None):
+            color_style = f"color: {self.container.custom_color};"
+        self.icon_label.setStyleSheet(f"{color_style} background: transparent;")
+
     def enterEvent(self, event):
         self.split_btn.show()
         self.close_btn.show()
@@ -211,25 +234,6 @@ class TerminalTabItemWidget(QWidget):
         from PySide6.QtGui import QAction
         
         menu = QMenu(self)
-        menu.setStyleSheet("""
-            QMenu {
-                background-color: #000000;
-                color: #cccccc;
-                border: 1px solid #3c0068;
-            }
-            QMenu::item {
-                padding: 6px 20px;
-            }
-            QMenu::item:selected {
-                background-color: #3c0068;
-                color: #ffffff;
-            }
-            QMenu::separator {
-                height: 1px;
-                background: #3c0068;
-                margin: 4px 0px;
-            }
-        """)
 
         rename_action = QAction("Rename...", self)
         rename_action.triggered.connect(self._rename_tab)
@@ -449,6 +453,8 @@ class TerminalPanel(QWidget):
                 btn.clicked.connect(lambda checked=False, b=btn: self._show_more_actions_menu(b))
             tb_layout.addWidget(btn)
 
+        tb_layout.addWidget(self._combo_box)
+
         # Main splitter (Terminals | Tabs sidebar)
         self._main_splitter = QSplitter(Qt.Horizontal)
         self._main_splitter.setHandleWidth(1)
@@ -647,9 +653,12 @@ class TerminalPanel(QWidget):
             p = p.parentWidget()
 
     def _update_sidebar_list(self):
-        self._list_widget.clear()
+        self._list_widget.blockSignals(True)
         self._combo_box.blockSignals(True)
-        self._combo_box.clear()
+
+        # 1. Update combo box items incrementally
+        while self._combo_box.count() > len(self._terminals):
+            self._combo_box.removeItem(self._combo_box.count() - 1)
 
         for i, container in enumerate(self._terminals):
             shell = container.shell
@@ -663,21 +672,47 @@ class TerminalPanel(QWidget):
                     default_shell = get_shell_cmd()
                     shell_name = os.path.basename(default_shell).replace(".exe", "").lower()
 
-            self._combo_box.addItem(f"{i + 1}: {shell_name}")
+            text = f"{i + 1}: {shell_name}"
+            if i < self._combo_box.count():
+                if self._combo_box.itemText(i) != text:
+                    self._combo_box.setItemText(i, text)
+            else:
+                self._combo_box.addItem(text)
 
-            item = QListWidgetItem(self._list_widget)
-            item.setSizeHint(QSize(0, 32))
+        # 2. Update list widget items incrementally
+        while self._list_widget.count() > len(self._terminals):
+            self._list_widget.takeItem(self._list_widget.count() - 1)
 
-            widget = TerminalTabItemWidget(
-                index=i,
-                name=shell_name,
-                container=container,
-                parent=self._list_widget,
-                on_split=lambda checked=False, idx=i: self._split_terminal_at(idx),
-                on_close=lambda checked=False, idx=i: self._close_tab(idx)
-            )
-            self._list_widget.addItem(item)
-            self._list_widget.setItemWidget(item, widget)
+        for i, container in enumerate(self._terminals):
+            shell = container.shell
+            if getattr(container, "custom_name", None):
+                shell_name = container.custom_name
+            else:
+                shell_name = "powershell"
+                if shell:
+                    shell_name = os.path.basename(shell).replace(".exe", "").lower()
+                else:
+                    default_shell = get_shell_cmd()
+                    shell_name = os.path.basename(default_shell).replace(".exe", "").lower()
+
+            if i < self._list_widget.count():
+                item = self._list_widget.item(i)
+                widget = self._list_widget.itemWidget(item)
+                if widget:
+                    widget.update_info(i, shell_name)
+            else:
+                item = QListWidgetItem(self._list_widget)
+                item.setSizeHint(QSize(0, 32))
+                widget = TerminalTabItemWidget(
+                    index=i,
+                    name=shell_name,
+                    container=container,
+                    parent=self._list_widget,
+                    on_split=lambda checked=False, idx=i: self._split_terminal_at(idx),
+                    on_close=lambda checked=False, idx=i: self._close_tab(idx)
+                )
+                self._list_widget.addItem(item)
+                self._list_widget.setItemWidget(item, widget)
 
         curr_idx = self._stack.currentIndex()
         if 0 <= curr_idx < len(self._terminals):
@@ -685,24 +720,11 @@ class TerminalPanel(QWidget):
             self._list_widget.setCurrentRow(curr_idx)
 
         self._combo_box.blockSignals(False)
+        self._list_widget.blockSignals(False)
 
     def _show_profiles_menu(self, button):
         from PySide6.QtWidgets import QMenu
         menu = QMenu(self)
-        menu.setStyleSheet("""
-            QMenu {
-                background-color: #000000;
-                color: #cccccc;
-                border: 1px solid #3c0068;
-            }
-            QMenu::item {
-                padding: 6px 20px;
-            }
-            QMenu::item:selected {
-                background-color: #3c0068;
-                color: #ffffff;
-            }
-        """)
         
         shells = get_available_shells()
         for s in shells:
@@ -715,20 +737,6 @@ class TerminalPanel(QWidget):
     def _show_more_actions_menu(self, button):
         from PySide6.QtWidgets import QMenu
         menu = QMenu(self)
-        menu.setStyleSheet("""
-            QMenu {
-                background-color: #000000;
-                color: #cccccc;
-                border: 1px solid #3c0068;
-            }
-            QMenu::item {
-                padding: 6px 20px;
-            }
-            QMenu::item:selected {
-                background-color: #3c0068;
-                color: #ffffff;
-            }
-        """)
 
         clear_action = QAction("Clear Terminal", self)
         clear_action.triggered.connect(self.clear)

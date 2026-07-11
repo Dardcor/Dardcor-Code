@@ -5,20 +5,38 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 
 class BottomPanelButton(QPushButton):
-    def __init__(self, text, parent=None):
-        super().__init__(text, parent)
+    def __init__(self, icon_char, text, parent=None):
+        super().__init__(parent)
         self.setFixedHeight(35)
         self.setCursor(Qt.PointingHandCursor)
+        self.setCheckable(True)
+        
+        # Internal layout to align icon and text perfectly
+        from PySide6.QtWidgets import QHBoxLayout, QLabel
+        self._layout = QHBoxLayout(self)
+        self._layout.setContentsMargins(10, 0, 10, 0)
+        self._layout.setSpacing(6)
+        self._layout.setAlignment(Qt.AlignCenter)
+        
+        self.icon_label = QLabel(icon_char)
+        self.icon_label.setStyleSheet("color: inherit; background: transparent; border: none; font-size: 13px; font-family: 'codicon';")
+        self.icon_label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        
+        self.text_label = QLabel(text)
+        self.text_label.setStyleSheet("color: inherit; background: transparent; border: none; font-family: 'Segoe UI', 'Inter', sans-serif; font-size: 11px; font-weight: 600;")
+        self.text_label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        
+        self._layout.addWidget(self.icon_label)
+        self._layout.addWidget(self.text_label)
+        
         self.setStyleSheet("""
             QPushButton {
                 background: transparent;
                 color: #969696;
                 border: none;
                 border-bottom: 2px solid transparent;
-                padding: 0px 16px;
-                font-family: "Segoe UI", sans-serif;
-                font-size: 11px;
-                font-weight: 600;
+                padding: 0px;
+                margin: 0px;
             }
             QPushButton:hover {
                 color: #e7e7e7;
@@ -28,7 +46,12 @@ class BottomPanelButton(QPushButton):
                 border-bottom: 2px solid #3c0068; /* Purple accent */
             }
         """)
-        self.setCheckable(True)
+
+    def setText(self, text):
+        if hasattr(self, "text_label"):
+            self.text_label.setText(text)
+        else:
+            super().setText(text)
 
 class BottomPanel(QWidget):
     def __init__(self, parent=None):
@@ -46,12 +69,12 @@ class BottomPanel(QWidget):
         self._prev_sizes = None
         
         self._setup_ui()
-
+ 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
-
+ 
         # Header bar styled like VS Code
         self.header = QWidget()
         self.header.setFixedHeight(35)
@@ -62,24 +85,24 @@ class BottomPanel(QWidget):
         self.header_layout = QHBoxLayout(self.header)
         self.header_layout.setContentsMargins(0, 0, 4, 0)
         self.header_layout.setSpacing(0)
-
+ 
         # Left tabs (Uppercase like VS Code)
         self.tabs_container = QWidget()
         self.tabs_layout = QHBoxLayout(self.tabs_container)
         self.tabs_layout.setContentsMargins(0, 0, 0, 0)
         self.tabs_layout.setSpacing(0)
         
-        self.btn_problems = BottomPanelButton("PROBLEMS")
+        self.btn_problems = BottomPanelButton("\uea87", "PROBLEMS")
         self.btn_problems.setObjectName("btnProblems")
-        self.btn_output = BottomPanelButton("OUTPUT")
+        self.btn_output = BottomPanelButton("\uea79", "OUTPUT")
         self.btn_output.setObjectName("btnOutput")
-        self.btn_debug = BottomPanelButton("DEBUG CONSOLE")
+        self.btn_debug = BottomPanelButton("\uead8", "DEBUG CONSOLE")
         self.btn_debug.setObjectName("btnDebugConsole")
-        self.btn_terminal = BottomPanelButton("TERMINAL")
+        self.btn_terminal = BottomPanelButton("\uea85", "TERMINAL")
         self.btn_terminal.setObjectName("btnTerminal")
-        self.btn_ports = BottomPanelButton("PORTS")
+        self.btn_ports = BottomPanelButton("\ueb1c", "PORTS")
         self.btn_ports.setObjectName("btnPorts")
-        self.btn_comments = BottomPanelButton("COMMENTS")
+        self.btn_comments = BottomPanelButton("\ueab2", "COMMENTS")
         self.btn_comments.setObjectName("btnComments")
         
         self.tabs_layout.addWidget(self.btn_problems)

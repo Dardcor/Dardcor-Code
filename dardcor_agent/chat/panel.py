@@ -1603,7 +1603,25 @@ class ChatPanel(QWidget):
 
     def _safe_update_tool_output(self, tool_id: str, chunk: str):
         self._flush_agent_messages()
-        self._web_bridge.update_tool_output.emit(tool_id, chunk)
+        if not hasattr(self, '_tool_output_buffers'):
+            self._tool_output_buffers = {}
+            self._tool_output_timer = QTimer(self)
+            self._tool_output_timer.setInterval(50)
+            self._tool_output_timer.timeout.connect(self._flush_tool_outputs)
+            
+        self._tool_output_buffers[tool_id] = chunk
+        if not self._tool_output_timer.isActive():
+            self._tool_output_timer.start()
+
+    def _flush_tool_outputs(self):
+        if not hasattr(self, '_tool_output_buffers') or not self._tool_output_buffers:
+            if hasattr(self, '_tool_output_timer'):
+                self._tool_output_timer.stop()
+            return
+            
+        for tool_id, last_chunk in list(self._tool_output_buffers.items()):
+            self._web_bridge.update_tool_output.emit(tool_id, last_chunk)
+        self._tool_output_buffers.clear()
 
     def _scroll_to_bottom(self):
         # Scrolling is now handled automatically by JS
@@ -1624,6 +1642,7 @@ class ChatPanel(QWidget):
         self._is_generating = not enabled
         if enabled:
             self._pending_user_texts.clear()
+            self.show_typing(False)
         self._input.setEnabled(True)
         self._send_btn.setEnabled(True)  # always clickable (send OR stop)
         if not enabled:

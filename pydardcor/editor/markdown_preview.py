@@ -43,6 +43,16 @@ class MarkdownPreviewWidget(QWidget):
         # QPointF from scrollPositionChanged, emitting Y coordinate
         self.scroll_synced.emit(pos.y())
 
+    def update_live_content(self, content):
+        """Live update from Monaco editor content changes in real time."""
+        html_content = self._render_markdown(content)
+        styled_html = self._apply_theme(html_content)
+        if self.file_path:
+            base_url = QUrl.fromLocalFile(os.path.dirname(self.file_path) + "/")
+        else:
+            base_url = QUrl.fromLocalFile(os.path.expanduser("~") + "/")
+        self.web_view.setHtml(styled_html, base_url)
+
     def load_file(self, file_path):
         self.file_path = file_path
         if os.path.exists(file_path):

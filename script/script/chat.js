@@ -405,10 +405,21 @@ function updateToolOutput(toolId, chunk) {
 }
 
 function showTyping(show, state) {
+    const indicator = document.getElementById('typing-indicator');
     if (show) {
         ensureWorkPanel(state);
+        if (indicator) {
+            indicator.classList.remove('hidden');
+            const textEl = document.getElementById('typing-text');
+            if (textEl) {
+                textEl.textContent = state === 'working' ? 'Working' : 'Thinking';
+            }
+        }
         scrollToBottom();
     } else {
+        if (indicator) {
+            indicator.classList.add('hidden');
+        }
         // Mark all still-running tool cards as error/stopped
         for (const [toolId, card] of toolCards.entries()) {
             if (card.classList.contains('running')) {
