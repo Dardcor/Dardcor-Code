@@ -3997,10 +3997,10 @@ class MainWindow(QMainWindow):
             return
 
         from ..core.commands import CommandExecutor
-        cmd = CommandExecutor()
-        result = cmd.execute("git rev-parse --abbrev-ref HEAD", workdir=root, timeout=5)
-        branch = result.stdout.strip() if result.stdout else "main"
-        if branch and result.exit_code == 0:
+        cmd = CommandExecutor(workspace_path=root)
+        result = cmd.run("git rev-parse --abbrev-ref HEAD", timeout=5)
+        branch = result.value.strip() if result.value else "main"
+        if branch and result.success:
             if hasattr(self, "_status_bar") and self._status_bar:
                 self._status_bar.set_git_branch(branch)
         else:
@@ -4259,11 +4259,11 @@ class MainWindow(QMainWindow):
 
     def _show_git_status(self):
         from ..core.commands import CommandExecutor
-        cmd = CommandExecutor()
         root = self._config.workspace_path or os.path.expanduser("~")
-        result = cmd.execute("git status", workdir=root, timeout=10)
-        if result.stdout:
-            self._chat_panel.append_system_message(f"Git Status:\n{result.stdout}")
+        cmd = CommandExecutor(workspace_path=root)
+        result = cmd.run("git status", timeout=10)
+        if result.success and result.value:
+            self._chat_panel.append_system_message(f"Git Status:\n{result.value}")
         else:
             self._chat_panel.append_system_message(
                 "Not a git repository or git not available."

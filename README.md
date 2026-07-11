@@ -14,6 +14,10 @@
 
 **AI Pair Programming · Monaco Editor · Integrated PTY Terminal · Native Desktop**
 
+<br/>
+
+<img src="image/showcase.png" alt="Dardcor Code Showcase" width="100%"/>
+
 </div>
 
 ---
