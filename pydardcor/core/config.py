@@ -48,6 +48,64 @@ def _coerce_config_value(value: Any, default: Any) -> Any:
         return value if isinstance(value, list) else default
     return value if isinstance(value, type(default)) else default
 
+def _write_json_if_missing(path: str, payload: dict[str, Any]) -> None:
+    if os.path.exists(path):
+        return
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2, ensure_ascii=False)
+            f.write("\n")
+    except OSError:
+        pass
+
+
+DEFAULT_MCP_SERVERS: dict[str, dict[str, Any]] = {
+    "context7": {"enabled": True, "url": "https://mcp.context7.com/mcp"},
+    "playwright": {"enabled": True, "command": "npx", "args": ["-y", "@playwright/mcp@latest"]},
+    "chrome-devtools-mcp": {"enabled": True, "command": "npx", "args": ["-y", "chrome-devtools-mcp@latest"]},
+    "filesystem": {"enabled": True, "command": "npx", "args": ["-y", "@modelcontextprotocol/server-filesystem", "D:\\"]},
+    "sequential-thinking": {"enabled": True, "command": "npx", "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]},
+    "memory": {"enabled": True, "command": "npx", "args": ["-y", "@modelcontextprotocol/server-memory"]},
+    "firecrawl": {"enabled": False, "url": "https://mcp.firecrawl.dev/v2/mcp"},
+    "exa": {"enabled": False, "url": "https://mcp.exa.ai/mcp"},
+    "docker": {"enabled": False, "command": "npx", "args": ["-y", "@docker/mcp-server"]},
+    "dart-mcp-server": {"enabled": False, "command": "dart", "args": ["mcp-server"]},
+    "genkit-mcp-server": {
+        "enabled": False,
+        "command": "npx",
+        "args": ["-y", "genkit-cli@^1.28.0", "mcp", "--explicitProjectRoot", "--no-update-notification", "--non-interactive"],
+    },
+}
+
+DEFAULT_SKILLS: dict[str, dict[str, Any]] = {
+    "frontend-design": {"source": "https://github.com/anthropics/skills", "skill": "frontend-design"},
+    "ui-ux-pro-max": {"source": "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill", "skill": "ui-ux-pro-max"},
+    "redux-toolkit": {"source": "https://github.com/mindrally/skills", "skill": "redux-toolkit"},
+    "react-state-management": {"source": "https://github.com/wshobson/agents", "skill": "react-state-management"},
+    "supabase": {"source": "https://github.com/supabase/agent-skills", "skill": "supabase"},
+    "supabase-postgres-best-practices": {"source": "https://github.com/supabase/agent-skills", "skill": "supabase-postgres-best-practices"},
+    "mcp-builder": {"source": "https://github.com/anthropics/skills", "skill": "mcp-builder"},
+    "skill-creator": {"source": "https://github.com/anthropics/skills", "skill": "skill-creator"},
+    "webapp-testing": {"source": "https://github.com/anthropics/skills", "skill": "webapp-testing"},
+    "playwright-best-practices": {"source": "https://github.com/currents-dev/playwright-best-practices-skill", "skill": "playwright-best-practices"},
+    "deploy-to-vercel": {"source": "https://github.com/vercel-labs/agent-skills", "skill": "deploy-to-vercel"},
+}
+
+DEFAULT_LSP_SERVERS: dict[str, dict[str, Any]] = {
+    "python": {"enabled": True, "commands": [["pyright-langserver", "--stdio"], ["pylsp"]]},
+    "typescript": {"enabled": True, "commands": [["typescript-language-server", "--stdio"]]},
+    "javascript": {"enabled": True, "commands": [["typescript-language-server", "--stdio"]]},
+    "typescriptreact": {"enabled": True, "commands": [["typescript-language-server", "--stdio"]]},
+    "javascriptreact": {"enabled": True, "commands": [["typescript-language-server", "--stdio"]]},
+    "html": {"enabled": True, "commands": [["vscode-html-language-server", "--stdio"]]},
+    "css": {"enabled": True, "commands": [["vscode-css-language-server", "--stdio"]]},
+    "json": {"enabled": True, "commands": [["vscode-json-language-server", "--stdio"]]},
+    "sql": {"enabled": True, "commands": [["sql-language-server", "up", "--method", "stdio"]]},
+    "dart": {"enabled": True, "commands": [["dart", "language-server"]]},
+}
+
+
 def get_user_data_dir() -> str:
     """Return the writable user-data directory for Dardcor Code.
 
@@ -86,6 +144,9 @@ def ensure_user_dirs() -> str:
         "snippets",
         "themes",
         "logs",
+        "mcp",
+        "skills",
+        "lsp",
         os.path.join("cache", "icons"),
     ):
         os.makedirs(os.path.join(home, sub), exist_ok=True)
@@ -105,6 +166,10 @@ def ensure_user_dirs() -> str:
                 json.dump([], f, indent=2)
         except OSError:
             pass
+
+    _write_json_if_missing(os.path.join(home, "mcp", "servers.json"), {"servers": DEFAULT_MCP_SERVERS})
+    _write_json_if_missing(os.path.join(home, "skills", "skills.json"), {"skills": DEFAULT_SKILLS})
+    _write_json_if_missing(os.path.join(home, "lsp", "servers.json"), {"servers": DEFAULT_LSP_SERVERS})
     return home
 
 

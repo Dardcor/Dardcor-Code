@@ -6,6 +6,8 @@ import subprocess
 import threading
 from typing import Optional, Dict, Any, List, Callable
 
+from .config import get_global_home_dir
+
 
 class LSPClient:
     def __init__(self, language_id: str, server_cmd: List[str], workspace_path: str = ""):
@@ -342,6 +344,16 @@ class LSPManager:
             return client
         return None
 
+    def start_default_lsp(self, language_id: str) -> Optional[LSPClient]:
+        if language_id in self._clients and self._clients[language_id]._initialized:
+            return self._clients[language_id]
+
+        for cmd in self._configured_lsp_commands(language_id):
+            client = self.start_generic_lsp(language_id, cmd)
+            if client:
+                return client
+        return None
+
     def get_client(self, language_id: str) -> Optional[LSPClient]:
         return self._clients.get(language_id)
 
@@ -372,6 +384,26 @@ class LSPManager:
         if flutter_path:
             return flutter_path
         return None
+
+    def _configured_lsp_commands(self, language_id: str) -> list[list[str]]:
+        servers_path = os.path.join(get_global_home_dir(), "lsp", "servers.json")
+        try:
+            with open(servers_path, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            return []
+        servers = raw.get("servers", raw) if isinstance(raw, dict) else {}
+        entry = servers.get(language_id) if isinstance(servers, dict) else None
+        if not isinstance(entry, dict) or not entry.get("enabled", True):
+            return []
+        commands = entry.get("commands") or []
+        return [cmd for cmd in commands if self._is_command_available(cmd)]
+
+    def _is_command_available(self, cmd: Any) -> bool:
+        if not isinstance(cmd, list) or not cmd or not all(isinstance(part, str) for part in cmd):
+            return False
+        import shutil
+        return shutil.which(cmd[0]) is not None
 
 
 _lsp_manager_instance: Optional[LSPManager] = None
