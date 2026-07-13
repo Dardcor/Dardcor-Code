@@ -1,10 +1,8 @@
-"""Terminal Instance - Single PTY-backed xterm.js terminal."""
-
 import os
 import json
 import shiboken6
 from PySide6.QtWidgets import QWidget, QVBoxLayout
-from PySide6.QtCore import Qt, QTimer, QUrl
+from PySide6.QtCore import Qt, QTimer, QUrl, QPoint
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEngineSettings
 from PySide6.QtWebChannel import QWebChannel
@@ -15,21 +13,30 @@ import pydardcor.terminal.backend as backend
 
 
 class TerminalInstance(QWidget):
-    """Single terminal instance backed by pywinpty + xterm.js via QWebEngineView."""
-
-    def __init__(self, workdir: str = None, shell: str = None, parent=None):
+    def __init__(self, workdir: str = None, shell: str = None,
+                 env_vars: dict = None, parent=None):
         super().__init__(parent)
         self._workdir = workdir or os.path.expanduser("~")
         self._shell = shell
+        self._env_vars = env_vars or {}
         self._pty = None
         self._reader_thread = None
         self._process = None
         self._frontend_ready = False
-        self._pending_data = []          # buffer while frontend loads
+        self._pending_data = []
+        self._custom_title = None
         self.destroyed.connect(lambda: self.kill())
+
+        self._font_family = '"Cascadia Code", "Cascadia Mono", Consolas, "Courier New", monospace'
+        self._font_size = 13
+        self._line_height = 1.2
+        self._cursor_style = 'block'
+        self._cursor_blink = True
+        self._scrollback = 10000
+        self._copy_on_select = False
+
         self._setup_ui()
-        
-        from PySide6.QtCore import QTimer
+
         self._resize_timer = QTimer(self)
         self._resize_timer.setSingleShot(True)
         self._resize_timer.setInterval(50)
@@ -47,12 +54,13 @@ class TerminalInstance(QWidget):
         self._view.page().setBackgroundColor(QColor(0, 0, 0, 0))
         self._view.setContextMenuPolicy(Qt.CustomContextMenu)
         self._view.customContextMenuRequested.connect(self._show_context_menu)
-        
+
         settings = self._view.page().profile().settings()
         settings.setAttribute(QWebEngineSettings.LocalContentCanAccessFileUrls, True)
         settings.setAttribute(QWebEngineSettings.LocalContentCanAccessRemoteUrls, True)
+        settings.setAttribute(QWebEngineSettings.JavascriptEnabled, True)
+        settings.setAttribute(QWebEngineSettings.JavascriptCanOpenWindows, True)
 
-        # Disable right-click default menu; allow copy/paste via xterm.js
         self._channel = QWebChannel()
         self._bridge = TerminalBridge(self)
         self._channel.registerObject("backend", self._bridge)
@@ -60,14 +68,24 @@ class TerminalInstance(QWidget):
 
         self._bridge.data_from_frontend.connect(self._on_frontend_data)
         self._bridge.resize_requested.connect(self._on_resize)
+        self._bridge.selection_changed.connect(self._on_selection_changed)
+        self._bridge.title_changed.connect(self._on_title_changed)
 
         self._view.loadFinished.connect(self._on_load_finished)
 
+        import time
         html_path = os.path.join(
             os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
             "assets", "xterm", "terminal.html"
         )
-        self._view.load(QUrl.fromLocalFile(html_path))
+        self._view.page().profile().clearHttpCache()
+        url = QUrl.fromLocalFile(html_path)
+        url.setQuery(f"v={time.time()}")
+        self._view.load(url)
+        
+        from pydardcor.app.theme_manager import ThemeManager
+        self._view.setZoomFactor(1.1 ** ThemeManager._current_zoom_level)
+        
         layout.addWidget(self._view)
 
     # ── Load / shell start ─────────────────────────────────────────────────
@@ -77,19 +95,46 @@ class TerminalInstance(QWidget):
             return
         self._frontend_ready = True
 
-        # Flush buffered data
         if self._pending_data:
             combined = "".join(self._pending_data)
             self._pending_data.clear()
             self._write_to_frontend(combined)
 
-        # Apply current theme colors
+        self._apply_all_settings()
+
+        QTimer.singleShot(150, self._start_shell)
+
+    def _apply_all_settings(self):
+        if not self._frontend_ready:
+            return
+
+        font_js = (
+            f"if (typeof setFont === 'function') {{ "
+            f"setFont({json.dumps(self._font_family)}, {self._font_size}, {self._line_height}); }}"
+        )
+        self._view.page().runJavaScript(font_js)
+
+        cursor_js = (
+            f"if (typeof setCursorStyle === 'function') {{ "
+            f"setCursorStyle({json.dumps(self._cursor_style)}, {str(self._cursor_blink).lower()}); }}"
+        )
+        self._view.page().runJavaScript(cursor_js)
+
+        scrollback_js = (
+            f"if (typeof setScrollback === 'function') {{ "
+            f"setScrollback({self._scrollback}); }}"
+        )
+        self._view.page().runJavaScript(scrollback_js)
+
+        if self._copy_on_select:
+            self._view.page().runJavaScript("if (typeof setCopyOnSelect === 'function') { setCopyOnSelect(true); }")
+
         try:
             from ..app.theme_manager import ThemeManager
             theme_data = ThemeManager.THEMES.get(ThemeManager._current_theme, ThemeManager.THEMES["dark+"])
             c = theme_data["colors"]
             is_dark = (theme_data.get("type", "dark") == "dark")
-            
+
             xt_theme = {
                 "background": c["background"],
                 "foreground": c["foreground"],
@@ -101,28 +146,28 @@ class TerminalInstance(QWidget):
                     "black": "#000000", "white": "#ffffff",
                     "brightBlack": "#666666", "brightWhite": "#333333"
                 })
-            
+
             encoded = json.dumps(xt_theme)
-            js = f"if (typeof setTheme === 'function') {{ setTheme({json.dumps(encoded)}); }}"
+            js = f"if (typeof setTheme === 'function') {{ setTheme({encoded}); }}"
             self._view.page().runJavaScript(js)
         except Exception:
             pass
 
-        # Small delay so WebChannel handshake completes before shell starts
-        QTimer.singleShot(150, self._start_shell)
-
     def _start_shell(self):
-        """Spawn the shell: pywinpty PTY → fallback to QProcess."""
         cmd = self._shell or get_shell_cmd()
         env = os.environ.copy()
+        env.update(self._env_vars)
 
         if backend.HAS_PTY:
             try:
-                # Add robust arguments for powershell to ensure it stays interactive
                 if "powershell" in cmd.lower() or "pwsh" in cmd.lower():
                     if "-NoLogo" not in cmd:
-                        cmd = f'{cmd} -NoExit -NoLogo -ExecutionPolicy Bypass'
-                
+                        ps_init = "Clear-Host; function cmd { if ($args.Count -eq 0) { cmd.exe /k cls } else { cmd.exe @args } }"
+                        cmd = f'{cmd} -NoExit -NoLogo -ExecutionPolicy Bypass -Command "{ps_init}"'
+                elif "cmd.exe" in cmd.lower() or cmd.strip().lower() == "cmd":
+                    if "/k" not in cmd.lower() and "/c" not in cmd.lower():
+                        cmd = f'{cmd} /k cls'
+
                 self._pty = backend.create_pty(120, 30, cmd, self._workdir, env=env)
 
                 self._reader_thread = PtyReaderThread(self._pty, self)
@@ -140,16 +185,17 @@ class TerminalInstance(QWidget):
                 )
                 backend.HAS_PTY = False
 
-        # ── QProcess fallback ──────────────────────────────────────────────
         from PySide6.QtCore import QProcess, QProcessEnvironment
         self._process = QProcess(self)
         self._process.setProcessChannelMode(QProcess.MergedChannels)
         self._process.setWorkingDirectory(self._workdir)
 
         qenv = QProcessEnvironment.systemEnvironment()
-        qenv.insert("TERM",    "xterm-256color")
+        qenv.insert("TERM", "xterm-256color")
         qenv.insert("COLUMNS", "120")
-        qenv.insert("LINES",   "30")
+        qenv.insert("LINES", "30")
+        for k, v in self._env_vars.items():
+            qenv.insert(k, v)
         self._process.setProcessEnvironment(qenv)
 
         self._process.readyReadStandardOutput.connect(self._on_qprocess_data)
@@ -167,14 +213,12 @@ class TerminalInstance(QWidget):
     # ── Data flow: backend → frontend ─────────────────────────────────────
 
     def _write_to_frontend(self, data: str):
-        """Send PTY output to xterm.js using JSON encoding (safe for all chars)."""
         if not hasattr(self, "_view") or not shiboken6.isValid(self._view):
             return
         if not self._frontend_ready:
             self._pending_data.append(data)
             return
 
-        # json.dumps produces a properly escaped JS string literal
         encoded = json.dumps(data)
         js = f"if (typeof writeToTerminal === 'function') {{ writeToTerminal({encoded}); }}"
         page = self._view.page()
@@ -192,13 +236,10 @@ class TerminalInstance(QWidget):
     # ── Data flow: frontend → backend ─────────────────────────────────────
 
     def _on_frontend_data(self, data: str):
-        """Receive keystrokes/paste from xterm.js → send to shell."""
         if self._pty:
             try:
-                # pywinpty 3.x write() accepts str
                 self._pty.write(data)
             except TypeError:
-                # Some builds expect bytes
                 try:
                     self._pty.write(data.encode("utf-8"))
                 except Exception:
@@ -208,6 +249,20 @@ class TerminalInstance(QWidget):
         elif self._process and self._process.state() != 0:
             self._process.write(data.encode("utf-8"))
 
+    # ── Events from bridge ────────────────────────────────────────────────
+
+    def _on_selection_changed(self, text: str):
+        pass
+
+    def _on_title_changed(self, title: str):
+        self._custom_title = title
+        p = self.parentWidget()
+        while p:
+            if hasattr(p, '_on_instance_title_changed'):
+                p._on_instance_title_changed(self, title)
+                break
+            p = p.parentWidget()
+
     # ── Resize ────────────────────────────────────────────────────────────
 
     def _on_resize(self, cols: int, rows: int):
@@ -216,10 +271,6 @@ class TerminalInstance(QWidget):
                 self._pty.set_size(cols, rows)
             except Exception:
                 pass
-        elif self._process:
-            # Send COLUMNS/LINES via environment is not dynamic;
-            # for QProcess fallback we can't resize the pseudoterminal.
-            pass
 
     # ── Public API ────────────────────────────────────────────────────────
 
@@ -240,11 +291,25 @@ class TerminalInstance(QWidget):
     def set_workdir(self, path: str):
         self._workdir = path
 
+    def get_workdir(self) -> str:
+        return self._workdir
+
+    def set_env_vars(self, env_vars: dict):
+        self._env_vars = env_vars
+
+    def get_env_vars(self) -> dict:
+        return dict(self._env_vars)
+
+    def get_custom_title(self):
+        return self._custom_title
+
     def clear(self):
         self._write_to_frontend("\x1b[2J\x1b[H")
 
     def send_text(self, text: str):
-        """Send text programmatically to the shell (e.g. from Run menu)."""
+        self._on_frontend_data(text)
+
+    def write_input(self, text: str):
         self._on_frontend_data(text)
 
     def kill(self):
@@ -265,38 +330,65 @@ class TerminalInstance(QWidget):
                 pass
             self._process = None
 
-    def split(self, direction="horizontal"):
-        """Stub for splitting this terminal instance."""
-        # In a full implementation, this would emit a signal to the parent
-        # container to create a QSplitter and add a new TerminalInstance.
-        pass
+    # ── Font customization ────────────────────────────────────────────────
+
+    def set_font_family(self, family: str):
+        self._font_family = family
+        if self._frontend_ready:
+            js = f"if (typeof setFont === 'function') {{ setFont({json.dumps(family)}, null, null); }}"
+            self._view.page().runJavaScript(js)
+            self._do_fit()
 
     def set_font_size(self, size: int):
+        self._font_size = size
         if self._frontend_ready:
-            self._view.page().runJavaScript(f"term.options.fontSize = {size};")
+            js = f"if (typeof setFont === 'function') {{ setFont(null, {size}, null); }}"
+            self._view.page().runJavaScript(js)
+            self._do_fit()
 
-    def edit_terminal_content(self, command: str):
-        """Terminal Editing Service - send edit command to terminal."""
+    def set_line_height(self, height: float):
+        self._line_height = height
         if self._frontend_ready:
-            import json
-            self.write_input(command)
-            
-    def get_chat_mirror(self) -> str:
-        """Terminal Chat Mirror - get recent terminal content for chat context."""
-        return "\\n".join(self._pending_data[-100:]) if self._pending_data else ""
-        
-    def suggest_commands(self) -> list:
-        """Terminal Suggest - command suggestions."""
-        return ["git status", "git log", "python main.py"]
+            js = f"if (typeof setFont === 'function') {{ setFont(null, null, {height}); }}"
+            self._view.page().runJavaScript(js)
+            self._do_fit()
 
-    def closeEvent(self, event):
-        self.kill()
-        super().closeEvent(event)
+    def set_cursor_style(self, style: str, blink: bool = True):
+        self._cursor_style = style
+        self._cursor_blink = blink
+        if self._frontend_ready:
+            js = f"if (typeof setCursorStyle === 'function') {{ setCursorStyle({json.dumps(style)}, {str(blink).lower()}); }}"
+            self._view.page().runJavaScript(js)
+
+    def set_scrollback(self, lines: int):
+        self._scrollback = lines
+        if self._frontend_ready:
+            js = f"if (typeof setScrollback === 'function') {{ setScrollback({lines}); }}"
+            self._view.page().runJavaScript(js)
+
+    def set_copy_on_select(self, enabled: bool):
+        self._copy_on_select = enabled
+        self._bridge.set_copy_on_select(enabled)
+        if self._frontend_ready:
+            js = f"if (typeof setCopyOnSelect === 'function') {{ setCopyOnSelect({str(enabled).lower()}); }}"
+            self._view.page().runJavaScript(js)
+
+    def set_theme(self, theme_colors: dict):
+        if self._frontend_ready:
+            encoded = json.dumps(theme_colors)
+            js = f"if (typeof setTheme === 'function') {{ setTheme({json.dumps(encoded)}); }}"
+            self._view.page().runJavaScript(js)
+
+    def toggle_find(self):
+        if self._frontend_ready:
+            self._view.page().runJavaScript("if (typeof toggleFindBar === 'function') { toggleFindBar(); }")
+
+    # ── Context menu ──────────────────────────────────────────────────────
 
     def _show_context_menu(self, pos: QPoint):
         from PySide6.QtWidgets import QMenu
         from PySide6.QtGui import QAction, QKeySequence
-        
+
         menu = QMenu(self)
         menu.setStyleSheet("""
             QMenu {
@@ -327,47 +419,58 @@ class TerminalInstance(QWidget):
         paste_action.setShortcut(QKeySequence("Ctrl+V"))
         paste_action.triggered.connect(lambda: self._view.page().triggerAction(self._view.page().WebAction.Paste))
         menu.addAction(paste_action)
-        
+
         select_all_action = QAction("Select All", self)
         select_all_action.setShortcut(QKeySequence("Ctrl+A"))
         select_all_action.triggered.connect(lambda: self._view.page().triggerAction(self._view.page().WebAction.SelectAll))
         menu.addAction(select_all_action)
-        
+
         menu.addSeparator()
-        
+
+        find_action = QAction("Find...", self)
+        find_action.setShortcut(QKeySequence("Ctrl+F"))
+        find_action.triggered.connect(self.toggle_find)
+        menu.addAction(find_action)
+
+        menu.addSeparator()
+
         clear_action = QAction("Clear", self)
         clear_action.setShortcut(QKeySequence("Ctrl+L"))
         clear_action.triggered.connect(self.clear)
         menu.addAction(clear_action)
-        
+
         menu.addSeparator()
-        
+
+        copy_on_select_action = QAction("Copy on Selection", self)
+        copy_on_select_action.setCheckable(True)
+        copy_on_select_action.setChecked(self._copy_on_select)
+        copy_on_select_action.triggered.connect(lambda checked: self.set_copy_on_select(checked))
+        menu.addAction(copy_on_select_action)
+
+        menu.addSeparator()
+
         split_action = QAction("Split Terminal", self)
         split_action.triggered.connect(lambda: self.split())
         menu.addAction(split_action)
-        
+
         kill_action = QAction("Kill Terminal", self)
         kill_action.triggered.connect(self._request_kill)
         menu.addAction(kill_action)
-        
+
         menu.exec(self._view.mapToGlobal(pos))
 
     def _request_kill(self):
-        """Request the parent to kill this specific instance, effectively acting like the trash button."""
         p = self.parentWidget()
         while p:
-            if hasattr(p, 'kill_all'): # It's a SplitContainer
-                # Find TerminalPanel
+            if hasattr(p, 'kill_all'):
                 tp = p.parentWidget()
                 while tp:
                     if hasattr(tp, '_kill_current'):
-                        # Hacky way to let it know we want to kill this specific instance
                         if len(p.instances) > 1:
                             self.kill()
                             p.instances.remove(self)
                             self.deleteLater()
                         else:
-                            # It's the only one in the split, kill the whole tab
                             idx = tp._stack.indexOf(p)
                             if idx >= 0:
                                 tp._close_tab(idx)
@@ -375,3 +478,24 @@ class TerminalInstance(QWidget):
                     tp = tp.parentWidget()
                 break
             p = p.parentWidget()
+
+    def split(self, direction="horizontal"):
+        p = self.parentWidget()
+        while p:
+            if hasattr(p, 'add_instance'):
+                if direction == "vertical":
+                    new_inst = p.add_instance(shell=self._shell, direction=Qt.Vertical)
+                else:
+                    new_inst = p.add_instance(shell=self._shell, direction=Qt.Horizontal)
+                return new_inst
+            p = p.parentWidget()
+
+    def get_chat_mirror(self) -> str:
+        return "\\n".join(self._pending_data[-100:]) if self._pending_data else ""
+
+    def suggest_commands(self) -> list:
+        return ["git status", "git log", "python main.py"]
+
+    def closeEvent(self, event):
+        self.kill()
+        super().closeEvent(event)

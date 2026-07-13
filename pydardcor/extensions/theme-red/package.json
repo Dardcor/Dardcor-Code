@@ -1,0 +1,28 @@
+{
+  "name": "dardcor-theme-red",
+  "displayName": "Red",
+  "description": "Red color theme",
+  "version": "1.68.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "main": "extension.py",
+  "contributes": {
+    "themes": [
+      {
+        "label": "Red",
+        "uiTheme": "vs-dark",
+        "path": "./themes/red-color-theme.json"
+      }
+    ]
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes",
+    "Formatters",
+    "Linters",
+    "Language Packs"
+  ]
+}

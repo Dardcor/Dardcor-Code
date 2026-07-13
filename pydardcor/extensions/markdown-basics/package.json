@@ -1,0 +1,43 @@
+{
+  "name": "dardcor-markdown-basics",
+  "displayName": "Markdown",
+  "description": "Markdown language grammar for Dardcor Code",
+  "version": "1.68.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "main": "extension.py",
+  "contributes": {
+    "languages": [
+      {
+        "id": "markdown",
+        "aliases": [
+          "Markdown",
+          "markdown"
+        ],
+        "extensions": [
+          "md",
+          "markdown",
+          "mdown"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "markdown",
+        "scopeName": "source.markdown",
+        "path": "./syntaxes/markdown.tmLanguage.json"
+      }
+    ]
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes",
+    "Formatters",
+    "Linters",
+    "Language Packs"
+  ]
+}

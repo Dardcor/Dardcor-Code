@@ -1,0 +1,13 @@
+{
+  "scopeName": "source.less",
+  "name": "Less",
+  "fileTypes": [
+    "less"
+  ],
+  "patterns": [
+    {
+      "include": "source.less"
+    }
+  ],
+  "repository": {}
+}

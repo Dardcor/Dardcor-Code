@@ -1,0 +1,45 @@
+{
+  "name": "dardcor-powershell",
+  "displayName": "PowerShell",
+  "description": "PowerShell language grammar for Dardcor Code",
+  "version": "1.68.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "main": "extension.py",
+  "contributes": {
+    "languages": [
+      {
+        "id": "powershell",
+        "aliases": [
+          "PowerShell",
+          "powershell"
+        ],
+        "extensions": [
+          "ps1",
+          "psm1",
+          "psd1",
+          "pssc",
+          "psrc"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "powershell",
+        "scopeName": "source.powershell",
+        "path": "./syntaxes/powershell.tmLanguage.json"
+      }
+    ]
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes",
+    "Formatters",
+    "Linters",
+    "Language Packs"
+  ]
+}

@@ -154,6 +154,16 @@ class EditorTabs(QWidget):
     def set_minimap(self, enabled):
         for g in self._groups: g.set_minimap(enabled)
 
+    def set_tab_sizing(self, mode: str):
+        for g in self._groups:
+            if hasattr(g, "set_tab_sizing"):
+                g.set_tab_sizing(mode)
+
+    def set_orientation(self, orientation: str):
+        for g in self._groups:
+            if hasattr(g, "set_orientation"):
+                g.set_orientation(orientation)
+
     def set_show_tabs(self, show_tabs: str):
         for g in self._groups:
             if hasattr(g, "_sync_tab_bar"):

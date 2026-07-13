@@ -1,0 +1,13 @@
+{
+  "scopeName": "source.javascript",
+  "name": "Gulp",
+  "fileTypes": [
+    "Gulpfile"
+  ],
+  "patterns": [
+    {
+      "include": "source.javascript"
+    }
+  ],
+  "repository": {}
+}

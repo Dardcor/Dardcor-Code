@@ -14,7 +14,7 @@ from PySide6.QtSvg import QSvgRenderer
 import shutil
 import fnmatch
 from .outline_panel import SectionHeaderButton
-from ..core.config import get_config, get_hierarchical_config, _coerce_bool
+from ..core.config import get_config, get_hierarchical_config, _coerce_bool, CONFIG_DIR
 
 # VS Code default file nesting patterns (subset)
 _DEFAULT_NESTING_PATTERNS = {
@@ -31,6 +31,8 @@ _DEFAULT_NESTING_PATTERNS = {
 
 # Fix Qt locale float parsing bugs in QSvgRenderer (e.g. for European/Indonesian locales using comma as decimal point)
 QLocale.setDefault(QLocale.c())
+
+_COMPARE_SOURCE_PATH = None
 
 
 class TreeBranchStyle(QProxyStyle):
@@ -429,6 +431,23 @@ class ExplorerTreeWidget(QTreeWidget):
     def keyPressEvent(self, event):
         parent_explorer = self.parent()
 
+        # Handle Enter / Return to open file
+        if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+            selected = self.selectedItems()
+            if len(selected) == 1:
+                path = selected[0].data(0, Qt.UserRole)
+                if path and os.path.isfile(path) and hasattr(parent_explorer, 'file_selected'):
+                    parent_explorer.file_selected.emit(path)
+                    event.accept()
+                    return
+
+        # Handle Ctrl+F (Focus Filter)
+        if event.modifiers() & Qt.ControlModifier and event.key() == Qt.Key_F:
+            if hasattr(parent_explorer, "_show_filter"):
+                parent_explorer._show_filter("")
+                event.accept()
+                return
+
         if hasattr(parent_explorer, '_handle_type_filter_key'):
             if parent_explorer._handle_type_filter_key(event):
                 return
@@ -530,12 +549,12 @@ class ExplorerTreeWidget(QTreeWidget):
         target_item = self.itemAt(event.position().toPoint())
         
         target_path = None
+        parent_explorer = self.parent()
         if target_item:
             target_path = target_item.data(0, Qt.UserRole)
             if target_path and not os.path.isdir(target_path):
                 target_path = os.path.dirname(target_path)
         else:
-            parent_explorer = self.parent()
             if hasattr(parent_explorer, '_root_path'):
                 target_path = parent_explorer._root_path
                 
@@ -605,6 +624,8 @@ class ExplorerTreeWidget(QTreeWidget):
                         else:
                             shutil.move(source_path, dest)
                         moved_any = True
+                        if hasattr(parent_explorer, '_refresh'):
+                            parent_explorer._refresh()
                     except Exception as e:
                         print(f"Error moving/copying file: {e}")
         if moved_any:
@@ -662,6 +683,7 @@ class FileExplorer(QWidget):
     open_to_side_requested = Signal(str)
     open_with_live_server_requested = Signal(str)
     workspace_toggled = Signal(bool)
+    compare_files_requested = Signal(str, str)
 
     def __init__(self, root_path: str = None, parent=None):
         super().__init__(parent)
@@ -675,6 +697,11 @@ class FileExplorer(QWidget):
         self._open_editors_panel = None
         self._clipboard = {"action": None, "paths": []}
         self._filter_widget = None
+        self._type_filter = ""
+        self._type_filter_timer = QTimer(self)
+        self._type_filter_timer.setSingleShot(True)
+        self._type_filter_timer.setInterval(2000)
+        self._type_filter_timer.timeout.connect(self._clear_type_filter)
         self.setObjectName("fileExplorer")
 
         self._watcher = QFileSystemWatcher(self)
@@ -762,6 +789,15 @@ class FileExplorer(QWidget):
             toggle_oe.setChecked(not self._open_editors_panel.isHidden())
             def _toggle_oe(checked):
                 self._open_editors_panel.setVisible(checked)
+                if checked:
+                    # Sync Open Editors Panel when toggled on
+                    if hasattr(self, "window"):
+                        win = self.window()
+                        if hasattr(win, "_editor_tabs"):
+                            open_files = win._editor_tabs.get_open_files()
+                            current_editor = win._editor_tabs.current_editor()
+                            active_path = current_editor.get_file_path() if current_editor and hasattr(current_editor, "get_file_path") else None
+                            self._open_editors_panel.update_editors(open_files, active_path)
                 config.show_open_editors = checked
                 config.save()
             toggle_oe.triggered.connect(_toggle_oe)
@@ -780,6 +816,47 @@ class FileExplorer(QWidget):
             config.save()
         toggle_folders.triggered.connect(_toggle_folders)
         menu.addAction(toggle_folders)
+
+        # Sort Order Submenu
+        sort_menu = menu.addMenu("Sort Order")
+        sort_options = [
+            ("default", "Default (Folders First)"),
+            ("mixed", "Mixed"),
+            ("filesFirst", "Files First"),
+            ("type", "Type"),
+            ("modified", "Modified"),
+            ("size", "Size")
+        ]
+        h_config = get_hierarchical_config(self._root_path)
+        current_sort = h_config.get("explorer.sortOrder", "default")
+        for opt_val, opt_label in sort_options:
+            act = QAction(opt_label, self)
+            act.setCheckable(True)
+            act.setChecked(current_sort == opt_val)
+            def make_sort_callback(val):
+                return lambda: self._change_sort_order(val)
+            act.triggered.connect(make_sort_callback(opt_val))
+            sort_menu.addAction(act)
+
+        # Compact Folders Toggle
+        toggle_compact = QAction("Compact Folders", self)
+        toggle_compact.setCheckable(True)
+        current_compact = h_config.get("explorer.compactFolders", True)
+        toggle_compact.setChecked(current_compact)
+        def _toggle_compact_folders(checked):
+            self._change_compact_folders(checked)
+        toggle_compact.triggered.connect(_toggle_compact_folders)
+        menu.addAction(toggle_compact)
+
+        # File Nesting Toggle
+        toggle_nesting = QAction("File Nesting", self)
+        toggle_nesting.setCheckable(True)
+        current_nesting = h_config.get("explorer.fileNesting.enabled", True)
+        toggle_nesting.setChecked(current_nesting)
+        def _toggle_file_nesting(checked):
+            self._change_file_nesting(checked)
+        toggle_nesting.triggered.connect(_toggle_file_nesting)
+        menu.addAction(toggle_nesting)
         
         if hasattr(self, '_outline_panel') and self._outline_panel:
             toggle_outline = QAction("Outline", self)
@@ -804,6 +881,63 @@ class FileExplorer(QWidget):
             menu.addAction(toggle_timeline)
             
         menu.exec(self.mapToGlobal(self._explorer_menu_btn.pos() + self._explorer_menu_btn.rect().bottomLeft()))
+
+    def _read_settings_file(self, path: str) -> dict:
+        if not os.path.exists(path):
+            return {}
+        try:
+            import json
+            with open(path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                lines = [line for line in content.split('\n') if not line.strip().startswith('//')]
+                return json.loads('\n'.join(lines))
+        except Exception:
+            return {}
+
+    def _write_settings_file(self, path: str, settings: dict):
+        try:
+            import json
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(settings, f, indent=2)
+        except Exception as e:
+            print(f"Error writing settings file: {e}")
+
+    def _change_sort_order(self, val: str):
+        user_settings_path = os.path.join(CONFIG_DIR, "settings.json")
+        try:
+            settings = self._read_settings_file(user_settings_path)
+            settings["explorer.sortOrder"] = val
+            self._write_settings_file(user_settings_path, settings)
+        except Exception as e:
+            print(f"Error saving sort order setting: {e}")
+        from ..core.config import reset_config
+        reset_config()
+        self._refresh()
+
+    def _change_compact_folders(self, checked: bool):
+        user_settings_path = os.path.join(CONFIG_DIR, "settings.json")
+        try:
+            settings = self._read_settings_file(user_settings_path)
+            settings["explorer.compactFolders"] = checked
+            self._write_settings_file(user_settings_path, settings)
+        except Exception as e:
+            print(f"Error saving compact folders setting: {e}")
+        from ..core.config import reset_config
+        reset_config()
+        self._refresh()
+
+    def _change_file_nesting(self, checked: bool):
+        user_settings_path = os.path.join(CONFIG_DIR, "settings.json")
+        try:
+            settings = self._read_settings_file(user_settings_path)
+            settings["explorer.fileNesting.enabled"] = checked
+            self._write_settings_file(user_settings_path, settings)
+        except Exception as e:
+            print(f"Error saving file nesting setting: {e}")
+        from ..core.config import reset_config
+        reset_config()
+        self._refresh()
 
     def add_subpanel(self, panel):
         """Insert a subpanel (like OpenEditors or NpmScripts) right after the main EXPLORER header."""
@@ -969,6 +1103,13 @@ class FileExplorer(QWidget):
         from PySide6.QtGui import QShortcut, QKeySequence
         f2_shortcut = QShortcut(QKeySequence("F2"), self._tree)
         f2_shortcut.activated.connect(self._trigger_rename)
+
+        # Ctrl+Shift+- to collapse all
+        collapse_all_shortcut = QShortcut(QKeySequence("Ctrl+Shift+-"), self._tree)
+        collapse_all_shortcut.activated.connect(self.collapse_all)
+        # Ctrl+Shift+= to expand all (no built-in, but can be used)
+        expand_all_shortcut = QShortcut(QKeySequence("Ctrl+Shift+="), self._tree)
+        expand_all_shortcut.activated.connect(lambda: self._tree.expandAll())
 
         self._tree.itemExpanded.connect(self._on_item_expanded)
         self._tree.itemCollapsed.connect(self._on_item_collapsed)
@@ -1236,9 +1377,9 @@ class FileExplorer(QWidget):
         nesting_patterns = h_config.get("explorer.fileNesting.patterns", {
             "package.json": "package-lock.json, yarn.lock, pnpm-lock.yaml, bun.lockb",
             "tsconfig.json": "tsconfig.*.json",
-            "*.ts": "$(capture).js, $(capture).d.ts, $(capture).js.map",
-            "*.tsx": "$(capture).ts, $(capture).tsx, $(capture).js, $(capture).js.map",
-            "*.py": "$(capture).pyc, $(capture).pyo"
+            "*.ts": "${capture}.js, ${capture}.d.ts, ${capture}.js.map",
+            "*.tsx": "${capture}.ts, ${capture}.tsx, ${capture}.js, ${capture}.js.map",
+            "*.py": "${capture}.pyc, ${capture}.pyo"
         })
 
         valid_names = []
@@ -1267,11 +1408,10 @@ class FileExplorer(QWidget):
                                     if fnmatch.fnmatch(c_name, c_pat_real):
                                         nested_under[c_name] = p_name
 
+        compact_enabled = h_config.get("explorer.compactFolders", True)
         added_any = False
         item_map = {}
         for name in valid_names:
-            added_any = True
-
             added_any = True
             full_path = os.path.join(path, name)
             
@@ -1279,7 +1419,10 @@ class FileExplorer(QWidget):
             display_name = name
             
             if is_dir:
-                display_name, full_path = self._get_compact_folder(path, name, exclude_patterns)
+                if compact_enabled:
+                    display_name, full_path = self._get_compact_folder(path, name, exclude_patterns)
+                else:
+                    display_name, full_path = name, os.path.join(path, name)
                 
             item = QTreeWidgetItem()
             item.setText(0, display_name)
@@ -1603,7 +1746,7 @@ class FileExplorer(QWidget):
         if is_workspace_file:
             self._workspace_header.setText("WORKSPACE")
         else:
-            self._workspace_header.setText(os.path.basename(self._root_path))
+            self._workspace_header.setText(os.path.basename(self._root_path).upper())
             
         self._workspace_header.show()
         
@@ -1838,6 +1981,10 @@ class FileExplorer(QWidget):
         else:
             subprocess.Popen(['xdg-open', os.path.dirname(path)])
 
+    def _select_for_compare(self, path: str):
+        global _COMPARE_SOURCE_PATH
+        _COMPARE_SOURCE_PATH = path
+
     def reveal_and_select_file(self, target_path: str):
         if not target_path or not self._root_path:
             return
@@ -1857,8 +2004,9 @@ class FileExplorer(QWidget):
                 elif target_path.startswith(item_path + os.sep):
                     if not child.isExpanded():
                         child.setExpanded(True)
-                        if child.childCount() == 1 and child.child(0).text(0) == "Loading...":
-                            self._load_directory(item_path, child)
+                    if not child.data(0, Qt.UserRole + 4):
+                        self._load_directory(item_path, child)
+                        child.setData(0, Qt.UserRole + 4, True)
                     found = find_item(child)
                     if found: return found
             return None
@@ -1876,8 +2024,9 @@ class FileExplorer(QWidget):
             elif target_path.startswith(item_path + os.sep):
                 if not top_item.isExpanded():
                     top_item.setExpanded(True)
-                    if top_item.childCount() == 1 and top_item.child(0).text(0) == "Loading...":
-                        self._load_directory(item_path, top_item)
+                if not top_item.data(0, Qt.UserRole + 4):
+                    self._load_directory(item_path, top_item)
+                    top_item.setData(0, Qt.UserRole + 4, True)
                 found = find_item(top_item)
                 if found:
                     self._tree.setCurrentItem(found)
@@ -1962,6 +2111,20 @@ class FileExplorer(QWidget):
             except Exception:
                 pass
             menu.addSeparator()
+            
+            # Compare actions
+            global _COMPARE_SOURCE_PATH
+            select_compare = QAction("Select for Compare", self)
+            select_compare.triggered.connect(lambda p=path: self._select_for_compare(p))
+            menu.addAction(select_compare)
+            
+            if _COMPARE_SOURCE_PATH and _COMPARE_SOURCE_PATH != path and os.path.exists(_COMPARE_SOURCE_PATH):
+                compare_with = QAction(f"Compare with '{os.path.basename(_COMPARE_SOURCE_PATH)}'", self)
+                compare_with.triggered.connect(lambda p=path: self.compare_files_requested.emit(_COMPARE_SOURCE_PATH, p))
+                menu.addAction(compare_with)
+                
+            menu.addSeparator()
+            
             reveal_action = QAction("Reveal in File Explorer", self)
             reveal_action.triggered.connect(lambda: self._reveal_in_explorer(path))
             menu.addAction(reveal_action)
@@ -2193,10 +2356,24 @@ class FileExplorer(QWidget):
 
     def _copy_selected(self, paths: list):
         self._clipboard = {"action": "copy", "paths": paths}
+        # Copy to system clipboard as file URLs
+        from PySide6.QtCore import QMimeData, QUrl
+        from PySide6.QtWidgets import QApplication
+        mime_data = QMimeData()
+        urls = [QUrl.fromLocalFile(p) for p in paths]
+        mime_data.setUrls(urls)
+        QApplication.clipboard().setMimeData(mime_data)
         self._refresh()
 
     def _cut_selected(self, paths: list):
         self._clipboard = {"action": "cut", "paths": paths}
+        # Copy to system clipboard as file URLs
+        from PySide6.QtCore import QMimeData, QUrl
+        from PySide6.QtWidgets import QApplication
+        mime_data = QMimeData()
+        urls = [QUrl.fromLocalFile(p) for p in paths]
+        mime_data.setUrls(urls)
+        QApplication.clipboard().setMimeData(mime_data)
         self._refresh()
 
     def _paste_files(self, target_dir: str):
@@ -2204,11 +2381,22 @@ class FileExplorer(QWidget):
             target_dir = os.path.dirname(target_dir) if target_dir else getattr(self, '_root_path', None)
             if not target_dir: return
 
-        if not self._clipboard["paths"]:
+        # Check system clipboard first
+        from PySide6.QtWidgets import QApplication
+        cb = QApplication.clipboard()
+        mime_data = cb.mimeData()
+        
+        paths = []
+        if mime_data.hasUrls():
+            paths = [url.toLocalFile() for url in mime_data.urls() if url.isLocalFile()]
+            
+        if not paths:
+            paths = self._clipboard.get("paths", [])
+            
+        if not paths:
             return
 
-        action = self._clipboard["action"]
-        paths = self._clipboard["paths"]
+        action = self._clipboard.get("action", "copy")
         moved_any = False
         try:
             import shutil
@@ -2239,6 +2427,8 @@ class FileExplorer(QWidget):
             if action == "cut" and moved_any:
                 self._clipboard = {"action": None, "paths": []}
                 
+            if moved_any:
+                self._refresh()
         except Exception as e:
             print(f"Error pasting files: {e}")
 
@@ -2344,6 +2534,8 @@ class FileExplorer(QWidget):
     def _on_editor_closed(self, editor, hint=None):
         item = self._editing_item
         self._editing_item = None
+        self._in_inline_edit = False
+        self._schedule_refresh()
         
         if item:
             op = item.data(0, Qt.UserRole + 1)

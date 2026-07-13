@@ -1,0 +1,16 @@
+{
+  "scopeName": "source.html",
+  "name": "HTML",
+  "fileTypes": [
+    "html",
+    "htm",
+    "shtml",
+    "xhtml"
+  ],
+  "patterns": [
+    {
+      "include": "source.html"
+    }
+  ],
+  "repository": {}
+}

@@ -1,0 +1,13 @@
+{
+  "scopeName": "source.julia",
+  "name": "Julia",
+  "fileTypes": [
+    "jl"
+  ],
+  "patterns": [
+    {
+      "include": "source.julia"
+    }
+  ],
+  "repository": {}
+}

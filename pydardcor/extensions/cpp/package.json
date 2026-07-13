@@ -1,0 +1,48 @@
+{
+  "name": "dardcor-cpp",
+  "displayName": "C++",
+  "description": "C++ language grammar for Dardcor Code",
+  "version": "1.68.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "main": "extension.py",
+  "contributes": {
+    "languages": [
+      {
+        "id": "cpp",
+        "aliases": [
+          "C++",
+          "cpp"
+        ],
+        "extensions": [
+          "cpp",
+          "cxx",
+          "cc",
+          "c",
+          "h",
+          "hpp",
+          "hxx",
+          "hh"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "cpp",
+        "scopeName": "source.cpp",
+        "path": "./syntaxes/cpp.tmLanguage.json"
+      }
+    ]
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes",
+    "Formatters",
+    "Linters",
+    "Language Packs"
+  ]
+}

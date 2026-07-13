@@ -1,0 +1,16 @@
+{
+  "scopeName": "source.groovy",
+  "name": "Groovy",
+  "fileTypes": [
+    "groovy",
+    "gvy",
+    "gy",
+    "gsh"
+  ],
+  "patterns": [
+    {
+      "include": "source.groovy"
+    }
+  ],
+  "repository": {}
+}

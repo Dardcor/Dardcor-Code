@@ -1,0 +1,37 @@
+{
+  "name": "dardcor-simple-browser",
+  "displayName": "Simple Browser",
+  "description": "Preview URLs",
+  "version": "1.68.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "main": "extension.py",
+  "contributes": {
+    "commands": [
+      {
+        "command": "simple-browser.hello",
+        "title": "Simple Browser: Show Info"
+      }
+    ],
+    "configuration": {
+      "title": "Simple Browser",
+      "properties": {
+        "simple-browser.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Simple Browser"
+        }
+      }
+    }
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes",
+    "Formatters",
+    "Linters",
+    "Language Packs"
+  ]
+}

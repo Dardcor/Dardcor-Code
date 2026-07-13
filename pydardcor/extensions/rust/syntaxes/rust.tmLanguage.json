@@ -1,0 +1,14 @@
+{
+  "scopeName": "source.rust",
+  "name": "Rust",
+  "fileTypes": [
+    "rs",
+    "rlib"
+  ],
+  "patterns": [
+    {
+      "include": "source.rust"
+    }
+  ],
+  "repository": {}
+}

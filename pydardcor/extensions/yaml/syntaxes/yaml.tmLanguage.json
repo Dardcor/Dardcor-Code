@@ -1,0 +1,14 @@
+{
+  "scopeName": "source.yaml",
+  "name": "YAML",
+  "fileTypes": [
+    "yaml",
+    "yml"
+  ],
+  "patterns": [
+    {
+      "include": "source.yaml"
+    }
+  ],
+  "repository": {}
+}

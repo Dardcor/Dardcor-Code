@@ -24,12 +24,6 @@ from .extension_detail_page import show_extension_detail
 
 
 class _LabelElider(QObject):
-    """Event filter that keeps a QLabel's text elided with `…` on resize.
-
-    The untruncated text is preserved as the label's tooltip so long extension
-    names stay fully readable on hover, matching VS Code behaviour.
-    """
-
     def eventFilter(self, obj, event):
         if event.type() == QEvent.Resize:
             self._apply(obj)
@@ -42,17 +36,11 @@ class _LabelElider(QObject):
         metrics = QFontMetrics(label.font())
         available = max(0, label.width())
         elided = metrics.elidedText(full, Qt.ElideRight, available) if available else full
-        # setText re-enters resize; guard so we only update when it changes.
         if label.text() != elided:
             label.setText(elided)
 
 
 def configure_elided_label(label, text: str):
-    """Set label text so it shows a tooltip and elides with `…` when narrow.
-
-    Keeps the full text as `text()` initially (elision happens once the label
-    is laid out and resized) and always exposes the full text via the tooltip.
-    """
     label.setProperty("_full_text", text)
     label.setText(text)
     label.setToolTip(text)
@@ -245,7 +233,7 @@ class OnlineExtensionCard(_ExtensionCardBase):
         info_layout.addWidget(name_label)
 
         version_label = QLabel(
-            f"v{self._ext.get('version', '0.0.0')}  ·  {self._ext.get('publisher', '')}"
+            f"v{self._ext.get('version', '0.0.0')}  \u00b7  {self._ext.get('publisher', '')}"
         )
         version_label.setStyleSheet(self._VERSION_STYLE)
         info_layout.addWidget(version_label)
@@ -263,12 +251,22 @@ class OnlineExtensionCard(_ExtensionCardBase):
         btn_layout.setAlignment(Qt.AlignTop | Qt.AlignRight)
 
         count = self._ext.get("download_count", 0)
+        rating = self._ext.get("rating", 0.0)
+        rating_text = f"\u2605 {rating:.1f}" if rating > 0 else ""
         installs_label = QLabel(f"\u2193  {count:,}")
         installs_label.setStyleSheet(
             "color: #6a6a6a; font-size: 10px; border: none; background: transparent;"
         )
         installs_label.setAlignment(Qt.AlignRight)
         btn_layout.addWidget(installs_label)
+
+        if rating > 0:
+            rating_label = QLabel(rating_text)
+            rating_label.setStyleSheet(
+                "color: #ffcc00; font-size: 10px; border: none; background: transparent;"
+            )
+            rating_label.setAlignment(Qt.AlignRight)
+            btn_layout.addWidget(rating_label)
 
         self.action_btn = QPushButton("Install" if not self._is_installed else "Installed")
         self.action_btn.setEnabled(not self._is_installed)
@@ -320,7 +318,7 @@ class ExtensionCard(_ExtensionCardBase):
         name_label.setStyleSheet(self._NAME_STYLE)
         info_layout.addWidget(name_label)
 
-        version_label = QLabel(f"v{self._ext.version}  ·  {self._ext.publisher}")
+        version_label = QLabel(f"v{self._ext.version}  \u00b7  {self._ext.publisher}")
         version_label.setStyleSheet(self._VERSION_STYLE)
         info_layout.addWidget(version_label)
 
@@ -373,6 +371,7 @@ class ExtensionsPanel(QWidget):
     _status_signal = Signal(str)
     _install_done = Signal(bool, str)
     _updates_done = Signal(list)
+    _recommendations_ready = Signal(list)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -391,6 +390,7 @@ class ExtensionsPanel(QWidget):
         self._status_signal.connect(self._set_status)
         self._install_done.connect(self._on_install_done)
         self._updates_done.connect(self._on_updates_done)
+        self._recommendations_ready.connect(self._render_recommendations)
         self._setup_ui()
         self._refresh_extensions()
         if get_config().extensions_auto_update:
@@ -535,6 +535,19 @@ class ExtensionsPanel(QWidget):
         self._tab_marketplace.clicked.connect(self._show_marketplace)
         tab_layout.addWidget(self._tab_marketplace)
 
+        self._tab_recommendations = QPushButton("Recommendations")
+        self._tab_recommendations.setCheckable(True)
+        self._tab_recommendations.setStyleSheet("""
+            QPushButton {
+                background: transparent; color: #888888; border: none;
+                border-bottom: 2px solid transparent; padding: 4px 12px; font-size: 11px;
+            }
+            QPushButton:checked { color: #ffffff; border-bottom: 2px solid #ffffff; font-weight: bold; }
+            QPushButton:hover:!checked { color: #aaaaaa; }
+        """)
+        self._tab_recommendations.clicked.connect(self._show_recommendations)
+        tab_layout.addWidget(self._tab_recommendations)
+
         tab_layout.addStretch()
         layout.addWidget(tab_bar)
 
@@ -593,7 +606,6 @@ class ExtensionsPanel(QWidget):
         layout.addWidget(self._path_footer)
 
     def _reload_installed(self):
-        """Rescan ~/.dardcor-code/extensions for manually added folders."""
         self._ext_manager.reload_extensions()
         self._refresh_extensions()
         self.extensions_changed.emit()
@@ -615,18 +627,68 @@ class ExtensionsPanel(QWidget):
     def _show_installed(self):
         self._tab_installed.setChecked(True)
         self._tab_marketplace.setChecked(False)
+        self._tab_recommendations.setChecked(False)
         self._search_input.setPlaceholderText("\U0001F50D  Search Installed Extensions...")
         self._refresh_extensions()
 
     def _show_marketplace(self):
         self._tab_installed.setChecked(False)
         self._tab_marketplace.setChecked(True)
+        self._tab_recommendations.setChecked(False)
         self._search_input.setPlaceholderText("\U0001F50D  Search Extensions in Marketplace...")
         query = self._search_input.text().strip()
         if len(query) >= 2:
             self._do_marketplace_search()
         else:
             self._load_featured()
+
+    def _show_recommendations(self):
+        self._tab_installed.setChecked(False)
+        self._tab_marketplace.setChecked(False)
+        self._tab_recommendations.setChecked(True)
+        self._search_input.setPlaceholderText("\U0001F50D  Search Recommendations...")
+        self._load_recommendations()
+
+    def _load_recommendations(self):
+        self._empty_state.hide()
+        self._tree.show()
+        self._tree.clear()
+        self._count_label.setText("Loading recommendations...")
+
+        def fetch():
+            recs = self._ext_manager.get_recommendations()
+            self._recommendations_ready.emit(recs)
+
+        threading.Thread(target=fetch, daemon=True).start()
+
+    def _render_recommendations(self, recs: list):
+        self._tree.clear()
+        self._cards.clear()
+
+        if not recs:
+            self._count_label.setText("No recommendations available")
+            self._empty_state.hide()
+            self._tree.show()
+            return
+
+        self._empty_state.hide()
+        self._tree.show()
+        self._count_label.setText(f"{len(recs)} recommendations")
+
+        installed_names = {ext.name for ext in self._ext_manager.get_installed_extensions()}
+
+        for rec in recs:
+            card = OnlineExtensionCard(rec, self._icon_loader,
+                                       is_installed=rec.get("id", "").split("/")[-1].split(".")[-1] in installed_names)
+            card.install_requested.connect(self._install_from_marketplace)
+            card.detail_requested.connect(self._open_detail)
+
+            item = QTreeWidgetItem()
+            item.setSizeHint(0, QSize(0, _ExtensionCardBase.CARD_HEIGHT + 6))
+            item.setData(0, Qt.UserRole, rec.get("id", ""))
+            self._tree.addTopLevelItem(item)
+            self._tree.setItemWidget(item, 0, card)
+            self._cards.append(card)
 
     def _on_source_changed(self, _index: int):
         if self._tab_marketplace.isChecked():
@@ -637,7 +699,6 @@ class ExtensionsPanel(QWidget):
                 self._load_featured()
 
     def _load_featured(self):
-        """Show popular extensions when no search query is entered."""
         self._empty_state.hide()
         self._tree.show()
         self._tree.clear()
@@ -661,6 +722,8 @@ class ExtensionsPanel(QWidget):
                 self._search_timer.start()
             else:
                 self._load_featured()
+        elif self._tab_recommendations.isChecked():
+            self._filter_recommendations(text)
         else:
             self._filter_local(text)
 
@@ -676,6 +739,21 @@ class ExtensionsPanel(QWidget):
                 count += 1
         if text:
             self._count_label.setText(f"{count} extension(s) match")
+        else:
+            self._count_label.setText("")
+
+    def _filter_recommendations(self, text: str):
+        text = text.lower()
+        count = 0
+        for i in range(self._tree.topLevelItemCount()):
+            item = self._tree.topLevelItem(i)
+            ext_id = item.data(0, Qt.UserRole) or ""
+            visible = text in ext_id.lower() if text else True
+            item.setHidden(not visible)
+            if visible:
+                count += 1
+        if text:
+            self._count_label.setText(f"{count} recommendation(s) match")
         else:
             self._count_label.setText("")
 
@@ -726,10 +804,14 @@ class ExtensionsPanel(QWidget):
             self._refresh_extensions()
             self.extension_installed.emit(ext.name)
             self.extensions_changed.emit()
-            QMessageBox.information(
-                self, "Extension Installed",
-                f"'{ext.display_name}' v{ext.version} installed successfully!"
-            )
+
+            deps = ext.manifest.get("extensionDependencies", []) if ext.manifest else []
+            pack = ext.manifest.get("extensionPack", []) if ext.manifest else []
+            msg = f"'{ext.display_name}' v{ext.version} installed successfully!"
+            if deps or pack:
+                all_deps = deps + pack
+                msg += f"\n\nDependencies installed: {len(all_deps)} extension(s)"
+            QMessageBox.information(self, "Extension Installed", msg)
         except Exception as e:
             QMessageBox.warning(self, "Installation Failed", f"Failed to install extension:\n{str(e)}")
 
@@ -758,6 +840,7 @@ class ExtensionsPanel(QWidget):
         if not self._tab_marketplace.isChecked():
             self._tab_installed.setChecked(False)
             self._tab_marketplace.setChecked(True)
+            self._tab_recommendations.setChecked(False)
 
         self._count_label.setText("Searching marketplace...")
         self._count_label.show()
@@ -835,7 +918,7 @@ class ExtensionsPanel(QWidget):
             self._ext_manager.activate_extension(ext_name)
             self.extension_installed.emit(ext_name)
             self.extensions_changed.emit()
-            if self._tab_marketplace.isChecked():
+            if self._tab_marketplace.isChecked() or self._tab_recommendations.isChecked():
                 installed_names = {e.name for e in self._ext_manager.get_installed_extensions()}
                 for card in self._cards:
                     if isinstance(card, OnlineExtensionCard) and card._ext.get("name") in installed_names:

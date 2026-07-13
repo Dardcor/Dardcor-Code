@@ -1,40 +1,57 @@
-from PySide6.QtCore import QObject, Slot, Signal
+from PySide6.QtCore import QObject, Slot, Signal, Property
+
 
 class TerminalBridge(QObject):
-    """Bridge for communication between Python and xterm.js inside QWebEngineView."""
-    
-    # Emitted when the frontend JavaScript sends data (keystrokes) to Python
     data_from_frontend = Signal(str)
-    
-    # Emitted when the frontend JavaScript resizes the terminal
     resize_requested = Signal(int, int)
+    selection_changed = Signal(str)
+    bell_ringed = Signal()
+    title_changed = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._copy_on_select = False
 
     @Slot(str)
     def receive_data(self, data):
-        """Called by xterm.js via QWebChannel when user types."""
         self.data_from_frontend.emit(data)
 
     @Slot(int, int)
     def resize_pty(self, cols, rows):
-        """Called by xterm.js via QWebChannel when terminal resizes."""
         self.resize_requested.emit(cols, rows)
 
     @Slot(str)
     def copy_to_clipboard(self, text):
-        """Called by xterm.js to copy text to system clipboard."""
         from PySide6.QtWidgets import QApplication
         clipboard = QApplication.clipboard()
         clipboard.setText(text)
 
     @Slot()
     def request_paste(self):
-        """Called by xterm.js to paste text from system clipboard."""
         from PySide6.QtWidgets import QApplication
         clipboard = QApplication.clipboard()
         text = clipboard.text()
         if text:
-            # We treat pasted text exactly like typed data
             self.data_from_frontend.emit(text)
+
+    @Slot(str)
+    def on_selection_change(self, text):
+        self.selection_changed.emit(text)
+        if self._copy_on_select and text:
+            self.copy_to_clipboard(text)
+
+    @Slot()
+    def on_bell(self):
+        self.bell_ringed.emit()
+
+    @Slot(str)
+    def on_title_change(self, title):
+        self.title_changed.emit(title)
+
+    @Slot(bool)
+    def set_copy_on_select(self, enabled):
+        self._copy_on_select = enabled
+
+    @Slot(result=bool)
+    def get_copy_on_select(self):
+        return self._copy_on_select

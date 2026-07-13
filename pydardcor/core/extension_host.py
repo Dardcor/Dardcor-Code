@@ -4,6 +4,7 @@ import os
 import json
 import subprocess
 import threading
+import time
 from typing import Optional, Dict, Any, Callable
 
 
@@ -18,6 +19,15 @@ class NodeExtensionHost:
         self._request_seq = 0
         self._ready = False
         self._callback_handlers: Dict[str, Callable] = {}
+        self._crash_count = 0
+        self._max_restarts = 3
+        self._health_check_timer: Optional[threading.Timer] = None
+        self._health_interval = 30.0
+        self._loaded_extensions: list = []
+        self._crash_handlers: List[Callable] = []
+
+    def on_crash(self, handler: Callable):
+        self._crash_handlers.append(handler)
 
     def start(self, workspace_path: str = ""):
         if self._process and self._process.poll() is None:
@@ -25,19 +35,27 @@ class NodeExtensionHost:
 
         node_cmd = "node"
         try:
+            import os
+            kwargs = {}
+            if os.name == 'nt':
+                kwargs['creationflags'] = 0x08000000
             self._process = subprocess.Popen(
                 [node_cmd, self._host_js],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
                 text=True,
                 encoding="utf-8",
                 errors="replace",
                 bufsize=1,
+                cwd=workspace_path or None,
+                **kwargs
             )
-
             self._reader_thread = threading.Thread(target=self._read_loop, daemon=True)
             self._reader_thread.start()
+
+            self._stderr_thread = threading.Thread(target=self._read_stderr_loop, daemon=True)
+            self._stderr_thread.start()
 
             self._send_request("initialize", {
                 "workspaceFolders": [workspace_path] if workspace_path else [],
@@ -45,6 +63,8 @@ class NodeExtensionHost:
             })
 
             self._ready = True
+            self._crash_count = 0
+            self._start_health_checks()
         except Exception:
             self._ready = False
 
@@ -72,6 +92,13 @@ class NodeExtensionHost:
                         self._handle_notification(msg)
                 except json.JSONDecodeError:
                     pass
+        except Exception:
+            pass
+
+    def _read_stderr_loop(self):
+        try:
+            for line in self._process.stderr:
+                pass
         except Exception:
             pass
 
@@ -166,7 +193,6 @@ class NodeExtensionHost:
             def set_result(self, r):
                 result_holder[0] = r
                 event.set()
-
             def set_exception(self, e):
                 exception_holder[0] = e
                 event.set()
@@ -189,7 +215,6 @@ class NodeExtensionHost:
 
     def get_tree_children(self, view_id: str, element_id: Optional[str] = None,
                           timeout: float = 8.0) -> list:
-        """Fetch tree items for an extension view from its TreeDataProvider."""
         result = self.send_request_sync(
             "treeView.getChildren",
             {"viewId": view_id, "elementId": element_id},
@@ -212,16 +237,51 @@ class NodeExtensionHost:
     def register_callback(self, event_name: str, handler: Callable):
         self._callback_handlers[event_name] = handler
 
+    def _start_health_checks(self):
+        def check():
+            while self._process and self._process.poll() is None:
+                import time
+                time.sleep(self._health_interval)
+                if self._process and self._process.poll() is None:
+                    self.send_request_sync("ping", {}, timeout=2.0)
+        thread = threading.Thread(target=check, daemon=True)
+        thread.start()
+
+    def _handle_crash(self):
+        self._ready = False
+        self._crash_count += 1
+        for handler in self._crash_handlers:
+            try:
+                handler()
+            except Exception:
+                pass
+        if self._crash_count <= self._max_restarts:
+            import time
+            time.sleep(1)
+            self.start()
+            for ext_path in self._loaded_extensions:
+                self.load_extension(ext_path)
+
     def stop(self):
+        self._ready = False
+        if self._health_check_timer:
+            self._health_check_timer.cancel()
+            self._health_check_timer = None
         if self._process and self._process.poll() is None:
-            self._process.stdin.close()
+            try:
+                self._process.stdin.close()
+            except Exception:
+                pass
             self._process.terminate()
             try:
                 self._process.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 self._process.kill()
             self._process = None
-            self._ready = False
+        self._pending_requests.clear()
+        self._loaded_extensions.clear()
+        self._handlers.clear()
+        self._callback_handlers.clear()
 
 
 _host_instance: Optional[NodeExtensionHost] = None

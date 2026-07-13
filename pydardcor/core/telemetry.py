@@ -4,18 +4,41 @@ import os
 import json
 import uuid
 import datetime
+import hashlib
 from typing import Dict, Any
 from ..core.config import get_user_data_dir
 
 
-class TelemetryService:
+class TelemetryManager:
     """Mocks telemetry reporting to local log files."""
 
     def __init__(self):
-        self._machine_id = str(uuid.uuid4())
+        self._machine_id = self._generate_anonymized_id()
         self._session_id = str(uuid.uuid4())
         self._enabled = self._check_enabled()
         self._log_path = os.path.join(get_user_data_dir(), "telemetry.log")
+
+    def _generate_anonymized_id(self) -> str:
+        raw = str(uuid.uuid4())
+        return hashlib.sha256(raw.encode()).hexdigest()[:16]
+
+    def _anonymize_properties(self, properties: Dict[str, Any]) -> Dict[str, Any]:
+        anonymized = {}
+        blocked_keys = {"username", "email", "name", "password", "token", "api_key", "secret",
+                        "user", "login", "fullName", "displayName", "homeDirectory"}
+        for k, v in properties.items():
+            if k.lower() in blocked_keys:
+                anonymized[k] = "[REDACTED]"
+            elif isinstance(v, str) and any(c in v for c in ("/", "\\", "@")):
+                if "@" in v:
+                    anonymized[k] = "[EMAIL_REDACTED]"
+                elif any(v.startswith(p) for p in ("/", "C:\\", "D:\\", "~")):
+                    anonymized[k] = "[PATH_REDACTED]"
+                else:
+                    anonymized[k] = v
+            else:
+                anonymized[k] = v
+        return anonymized
 
     def _check_enabled(self) -> bool:
         """Check if telemetry is enabled in settings."""
@@ -39,7 +62,7 @@ class TelemetryService:
             "machineId": self._machine_id,
             "sessionId": self._session_id,
             "eventName": event_name,
-            "properties": properties
+            "properties": self._anonymize_properties(properties)
         }
 
         try:
@@ -57,6 +80,8 @@ class TelemetryService:
             "context": context
         })
 
+
+TelemetryService = TelemetryManager
 
 _telemetry_service = None
 

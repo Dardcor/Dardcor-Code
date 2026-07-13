@@ -1,0 +1,37 @@
+{
+  "name": "dardcor-markdown-math",
+  "displayName": "Markdown Math",
+  "description": "KaTeX math support in Markdown",
+  "version": "1.68.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "main": "extension.py",
+  "contributes": {
+    "commands": [
+      {
+        "command": "markdown-math.hello",
+        "title": "Markdown Math: Show Info"
+      }
+    ],
+    "configuration": {
+      "title": "Markdown Math",
+      "properties": {
+        "markdown-math.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Markdown Math"
+        }
+      }
+    }
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes",
+    "Formatters",
+    "Linters",
+    "Language Packs"
+  ]
+}

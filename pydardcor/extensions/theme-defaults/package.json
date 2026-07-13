@@ -1,0 +1,38 @@
+{
+  "name": "dardcor-theme-defaults",
+  "displayName": "Default",
+  "description": "Default light+dark themes",
+  "version": "1.68.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "main": "extension.py",
+  "contributes": {
+    "themes": [
+      {
+        "label": "Default",
+        "uiTheme": "vs-light",
+        "path": "./themes/defaults-color-theme.json"
+      },
+      {
+        "label": "Dark+",
+        "uiTheme": "vs-dark",
+        "path": "./themes/dark-plus-color-theme.json"
+      },
+      {
+        "label": "Light+",
+        "uiTheme": "vs",
+        "path": "./themes/default-color-theme.json"
+      }
+    ]
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes",
+    "Formatters",
+    "Linters",
+    "Language Packs"
+  ]
+}

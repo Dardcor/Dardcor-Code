@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTextEdit,
     QPushButton, QLabel, QFrame, QScrollArea, QComboBox,
     QStyledItemDelegate, QCompleter, QSizePolicy, QMenu, QFileDialog,
-    QTextBrowser, QApplication,
+    QTextBrowser, QApplication, QLineEdit,
 )
 from PySide6.QtCore import Signal, Qt, QTimer, QSize, QThread, QCoreApplication, QUrl
 from PySide6.QtGui import QColor, QTextCursor, QTextCharFormat, QFont, QKeyEvent, QKeySequence, QIcon, QStandardItemModel, QStandardItem, QShortcut
@@ -18,6 +18,7 @@ import html
 from pydardcor.core.config import get_config
 from pydardcor.core.antigravity_db import AntigravityDB
 from dardcor_agent.chat.web_bridge import WebBridge
+from dardcor_agent.chat.participants import ChatParticipant, BUILTIN_PARTICIPANTS
 
 # ChatHistory has been replaced by QWebEngineView and sliced into dardcor_agent/chat/web/index.html
 
@@ -339,6 +340,7 @@ class ChatPanel(QWidget):
         self._provider_timer.timeout.connect(self._check_provider_status)
         self._provider_timer.start(1500)
         self._is_populating = False
+        self._mode_extra_prompt = ""
 
         self._setup_ui()
 
@@ -372,6 +374,9 @@ class ChatPanel(QWidget):
         header_layout.addWidget(self._title_lbl)
 
 
+
+
+
         header_layout.addStretch()
 
         from PySide6.QtGui import QFont
@@ -396,9 +401,13 @@ class ChatPanel(QWidget):
         new_btn.clicked.connect(self.new_chat_requested.emit)
         header_layout.addWidget(new_btn)
 
-        hist_btn = create_header_btn("\uea82", "History")
-        hist_btn.clicked.connect(self.history_requested.emit)
-        header_layout.addWidget(hist_btn)
+        self._history_btn = create_header_btn("\uea82", "View Chat History")
+        self._history_btn.clicked.connect(self.history_requested.emit)
+        header_layout.addWidget(self._history_btn)
+
+        mcp_btn = create_header_btn("\uea7c", "MCP Server Manager")
+        mcp_btn.clicked.connect(self._show_mcp_manager)
+        header_layout.addWidget(mcp_btn)
 
         close_btn = create_header_btn("\uea76", "Close Chat")
         close_btn.clicked.connect(self._request_close)
@@ -854,6 +863,14 @@ class ChatPanel(QWidget):
             return
 
         model_id = getattr(self, "_label_to_model_id", {}).get(text, text)
+        
+        try:
+            from pydardcor.core.config import get_config
+            cfg = get_config()
+            cfg.default_model = model_id
+            cfg.save()
+        except Exception:
+            pass
         provider_name = getattr(self, "_model_to_provider", {}).get(text, "")
         if provider_name and provider_name != "Antigravity":
             try:
@@ -1324,6 +1341,31 @@ class ChatPanel(QWidget):
         # Show for 2 seconds then auto-hide
         self._notification_timer.start(2000)
 
+    def get_participant(self) -> ChatParticipant | None:
+        return BUILTIN_PARTICIPANTS.get("assistant")
+
+
+
+    def _show_mcp_manager(self):
+        from pydardcor.mcp.manager_dialog import MCPManagerDialog
+        from dardcor_agent.extensibility.mcp_registry import MCPRegistry
+        from pydardcor.core.config import get_user_data_dir
+        import os
+        config_path = os.path.join(get_user_data_dir(), "mcp_servers.json")
+        registry = MCPRegistry(config_path)
+        registry.load()
+        dialog = MCPManagerDialog(registry, self.window())
+        dialog.exec()
+        registry.save()
+
+
+
+    def _on_voice_text(self, text: str):
+        self._input.setPlainText(text)
+        self._input.setFocus()
+        self._on_input_changed()
+        QTimer.singleShot(100, self._send_message)
+
     def resizeEvent(self, event):
         super().resizeEvent(event)
         if hasattr(self, "_notification_label") and self._notification_label.isVisible():
@@ -1344,6 +1386,33 @@ class ChatPanel(QWidget):
         if cmd == "/clear":
             self.clear()
             self.append_system_message("Chat history cleared.")
+            return
+
+        if cmd == "/participants" or cmd == "/agents":
+            rows = "".join(
+                f"<tr style='border-bottom: 1px solid #1a0033;'>"
+                f"  <td style='padding: 4px;'>{p.icon}</td>"
+                f"  <td style='padding: 4px; font-weight: bold; color: #ce9178;'>{p.name}</td>"
+                f"  <td style='padding: 4px; color: #858585;'>{p.description}</td>"
+                f"</tr>"
+                for p in BUILTIN_PARTICIPANTS.values()
+            )
+            html = (
+                "<div style='font-family: \"Segoe UI\", sans-serif; color: #d4d4d4; line-height: 1.4; font-size: 11px;'>"
+                "  <h3 style='color: #c586c0; margin-top: 0; margin-bottom: 8px; border-bottom: 1px solid #3c0068; padding-bottom: 4px;'>AI Participants</h3>"
+                "  <p style='color: #858585; margin-bottom: 10px;'>Select a participant from the dropdown to change the AI's behavior:</p>"
+                f"  <table style='width: 100%; border-collapse: collapse;'>{rows}</table>"
+                "</div>"
+            )
+            self.append_agent_message(html, is_html=True)
+            self.set_enabled(True)
+            self._scroll_to_bottom()
+            return
+
+        if cmd == "/commit":
+            self.message_sent.emit("/commit")
+            self.set_enabled(True)
+            self._scroll_to_bottom()
             return
 
         self.set_enabled(False)

@@ -1,7 +1,8 @@
 import os
+import json
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem,
-    QPushButton, QLabel, QInputDialog, QMessageBox, QWidget
+    QPushButton, QLabel, QInputDialog, QMessageBox, QWidget, QLineEdit
 )
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QIcon
@@ -61,15 +62,17 @@ class ChatHistoryItemWidget(QWidget):
 
 
 class ChatHistoryDialog(QDialog):
-    """A robust dialog to view, edit, and delete chat history."""
+    """A robust dialog to view, edit, and delete chat history with search."""
 
     conversation_selected = Signal(str)
 
-    def __init__(self, agent, parent=None):
+    def __init__(self, agent, initial_query: str = "", parent=None):
         super().__init__(parent)
         self._agent = agent
+        self._initial_query = initial_query
+        self._all_convs = []
         self.setWindowTitle("AI Conversation History")
-        self.setMinimumSize(500, 400)
+        self.setMinimumSize(550, 450)
         self.setStyleSheet("QDialog { background-color: #1e1b2e; color: #d4d4d4; }")
 
         layout = QVBoxLayout(self)
@@ -102,6 +105,35 @@ class ChatHistoryDialog(QDialog):
         
         layout.addLayout(header_layout)
 
+        # Search bar
+        search_layout = QHBoxLayout()
+        self._search_input = QLineEdit()
+        self._search_input.setPlaceholderText("Search conversations by title or content...")
+        self._search_input.setStyleSheet("""
+            QLineEdit {
+                background-color: #111315; color: #e4e4e7;
+                border: 1px solid #2c2e33; border-radius: 6px;
+                padding: 6px 10px; font-size: 12px;
+            }
+            QLineEdit:focus { border-color: #a855f7; }
+        """)
+        self._search_input.textChanged.connect(self._filter_conversations)
+        search_layout.addWidget(self._search_input)
+
+        search_btn = QPushButton("Search")
+        search_btn.setFixedHeight(30)
+        search_btn.setStyleSheet("""
+            QPushButton {
+                background: #7c3aed; color: white; border: none;
+                border-radius: 6px; font-size: 11px; font-weight: bold;
+                padding: 0 12px;
+            }
+            QPushButton:hover { background: #6d28d9; }
+        """)
+        search_btn.clicked.connect(self._filter_conversations)
+        search_layout.addWidget(search_btn)
+        layout.addLayout(search_layout)
+
         # List Widget
         self.list_widget = QListWidget()
         self.list_widget.setStyleSheet("""
@@ -126,32 +158,54 @@ class ChatHistoryDialog(QDialog):
         layout.addWidget(self.list_widget)
 
         self._load_data()
-        
+
+        if self._initial_query:
+            self._search_input.setText(self._initial_query)
+            self._filter_conversations()
+
         # Apply current theme
         from pydardcor.app.theme_manager import ThemeManager
         ThemeManager.patch_widget(self)
 
     def _load_data(self):
         self.list_widget.clear()
-        convs = self._agent.list_conversations()
-        
+        self._all_convs = self._agent.list_conversations()
+        self._render_convs(self._all_convs)
+
+    def _filter_conversations(self):
+        query = self._search_input.text().strip().lower()
+        if not query:
+            self._render_convs(self._all_convs)
+            return
+        filtered = []
+        for c in self._all_convs:
+            title = c.get("title", "").lower()
+            cid = c.get("id", "")
+            # Also search in conversation content for this query
+            if query in title or query in cid.lower():
+                filtered.append(c)
+                continue
+            # Search content
+            conv = self._agent._store.load(cid)
+            if conv:
+                for msg in conv.messages:
+                    if query in msg.content.lower():
+                        filtered.append(c)
+                        break
+        self._render_convs(filtered)
+
+    def _render_convs(self, convs: list):
+        self.list_widget.clear()
         self.btn_delete_all.setVisible(len(convs) > 0)
-        
         for c in convs:
             title = c.get("title", "Untitled")
             cid = c.get("id")
-            
             item = QListWidgetItem(self.list_widget)
             item.setData(Qt.UserRole, cid)
-            
-            # Create custom widget
             widget = ChatHistoryItemWidget(cid, title, self.list_widget)
             widget.edit_clicked.connect(self._on_edit_clicked)
             widget.delete_clicked.connect(self._on_delete_clicked)
-            
-            # Set size hint properly
             item.setSizeHint(widget.sizeHint())
-            
             self.list_widget.addItem(item)
             self.list_widget.setItemWidget(item, widget)
 

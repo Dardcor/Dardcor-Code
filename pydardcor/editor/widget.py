@@ -51,8 +51,12 @@ def save_editor_states(states: dict):
 class MonacoEditorWidget(QWidget):
     content_changed = Signal(str)
     cursor_position_changed = Signal(int, int)
-    selection_changed = Signal(int, int)  # selected_chars, selected_lines
+    selection_changed = Signal(int, int)
+    multi_cursor_changed = Signal(str)
+    selection_state_changed = Signal(str)
     save_requested = Signal()
+    format_on_save_requested = Signal()
+    code_actions_on_save_requested = Signal(str)
     command_palette_requested = Signal()
     diagnostics_ready = Signal(list)
     definition_found = Signal(str, int, int)
@@ -99,6 +103,14 @@ class MonacoEditorWidget(QWidget):
 
         # Wire bridge signals
         self._bridge.content_changed.connect(self._on_content_changed)
+        self._bridge.content_changed_incremental.connect(self._on_content_changed_incremental)
+        self._bridge.multi_cursor_changed.connect(self.multi_cursor_changed.emit)
+        self._bridge.selection_state_changed.connect(self.selection_state_changed.emit)
+        self._bridge.format_on_save_requested.connect(self._on_format_on_save)
+        self._bridge.code_actions_on_save_requested.connect(self._on_code_actions_on_save)
+        self._bridge.language_changed.connect(self._on_editor_language_changed)
+        self._bridge.view_state_changed.connect(self._on_view_state_changed)
+        self._bridge.undo_stack_available.connect(self._on_undo_stack_available)
         
         self._cursor_line = 1
         self._cursor_col = 1
@@ -117,12 +129,18 @@ class MonacoEditorWidget(QWidget):
 
         self._view.loadFinished.connect(self._on_load_finished)
 
-        # Base path pointing correctly to assets
-        html_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-            "assets", "monaco", "monaco_editor.html"
-        )
+        settings.setAttribute(QWebEngineSettings.ScrollAnimatorEnabled, True)
+
+        self._view.page().profile().clearHttpCache()
+        
+        # We need absolute path for local files in QWebEngine
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        html_path = os.path.join(base_dir, "assets", "monaco", "monaco_editor.html")
         self._view.load(QUrl.fromLocalFile(html_path))
+        
+        from pydardcor.app.theme_manager import ThemeManager
+        self._view.setZoomFactor(1.1 ** ThemeManager._current_zoom_level)
+        
         layout.addWidget(self._view)
 
     def _on_load_finished(self, ok):
@@ -186,9 +204,29 @@ class MonacoEditorWidget(QWidget):
         if not self._file_path and self._view_ready:
             self._apply_editor_options()
         
-        # Debounce didChange to LSP
         if self._lsp_client and self._file_path:
             self._lsp_debounce_timer.start()
+
+    def _on_content_changed_incremental(self, file_path, start_line, start_col, end_line, end_col, text):
+        pass
+
+    def _on_format_on_save(self):
+        self.format_on_save_requested.emit()
+        if self._view_ready and self._file_path:
+            self._view.page().runJavaScript("editor.getAction('editor.action.formatDocument').run();")
+
+    def _on_code_actions_on_save(self, file_path):
+        self.code_actions_on_save_requested.emit(file_path)
+        self._view.page().runJavaScript("editor.trigger('keyboard', 'editor.action.quickFix', null);")
+
+    def _on_editor_language_changed(self, language):
+        self._language = language
+
+    def _on_view_state_changed(self, state_json):
+        pass
+
+    def _on_undo_stack_available(self, stack_json):
+        pass
 
     def _flush_lsp_did_change(self):
         if self._lsp_client and self._file_path and self._content is not None:
@@ -669,6 +707,17 @@ class MonacoEditorWidget(QWidget):
             """
             self._view.page().runJavaScript(js)
 
+    def set_comment_markers(self, markers: dict):
+        """Set comment gutter markers. markers: {line_number: [thread_summary, ...]}"""
+        if self._view_ready:
+            import json
+            js_markers = json.dumps(markers)
+            self._view.page().runJavaScript(f"setCommentMarkers({js_markers});")
+
+    def clear_comment_markers(self):
+        if self._view_ready:
+            self._view.page().runJavaScript("clearCommentMarkers();")
+
     def closeEvent(self, event):
         self.cleanup()
         super().closeEvent(event)
@@ -679,21 +728,74 @@ class MonacoEditorWidget(QWidget):
                 self._bridge.notify_closed()
             except Exception:
                 pass
+
+        try:
+            self._lsp_debounce_timer.stop()
+            self._lsp_debounce_timer.timeout.disconnect()
+        except Exception:
+            pass
+
+        try:
+            self.diagnostics_ready.disconnect()
+        except Exception:
+            pass
+
         try:
             self._view.loadFinished.disconnect(self._on_load_finished)
         except Exception:
             pass
+
+        if hasattr(self, "_bridge") and self._bridge:
+            try:
+                self._bridge.content_changed.disconnect()
+                self._bridge.content_changed_incremental.disconnect()
+                self._bridge.cursor_changed.disconnect()
+                self._bridge.selection_changed.disconnect()
+                self._bridge.multi_cursor_changed.disconnect()
+                self._bridge.selection_state_changed.disconnect()
+                self._bridge.save_requested.disconnect()
+                self._bridge.format_on_save_requested.disconnect()
+                self._bridge.code_actions_on_save_requested.disconnect()
+                self._bridge.command_palette_requested.disconnect()
+                self._bridge.extension_command_requested.disconnect()
+                self._bridge.open_with_live_server_requested.disconnect()
+                self._bridge.language_changed.disconnect()
+                self._bridge.view_state_changed.disconnect()
+                self._bridge.undo_stack_available.disconnect()
+            except Exception:
+                pass
+
+        if hasattr(self, "_channel") and self._channel:
+            try:
+                self._channel.disconnect()
+            except TypeError:
+                pass
+            if hasattr(self, "_bridge") and self._bridge:
+                try:
+                    self._channel.deregisterObject(self._bridge)
+                except Exception:
+                    pass
+            self._channel.deleteLater()
+            self._channel = None
+
         if hasattr(self, "_view") and self._view:
             self._view.stop()
             page = self._view.page()
             if page:
-                page.setWebChannel(None)
+                try:
+                    channel = page.webChannel()
+                    if channel:
+                        try:
+                            channel.disconnect()
+                        except TypeError:
+                            pass
+                    page.setWebChannel(None)
+                except Exception:
+                    pass
             self._view.setParent(None)
+            self._view.setAttribute(Qt.WA_DeleteOnClose, True)
             self._view.deleteLater()
             self._view = None
-        if hasattr(self, "_channel") and self._channel:
-            if hasattr(self, "_bridge") and self._bridge:
-                self._channel.deregisterObject(self._bridge)
-            self._channel = None
+
         self._bridge = None
         self._lsp_client = None

@@ -1,0 +1,17 @@
+{
+  "scopeName": "source.python",
+  "name": "Python",
+  "fileTypes": [
+    "py",
+    "pyw",
+    "pyx",
+    "pxd",
+    "pxi"
+  ],
+  "patterns": [
+    {
+      "include": "source.python"
+    }
+  ],
+  "repository": {}
+}

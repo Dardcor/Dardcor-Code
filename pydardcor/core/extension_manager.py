@@ -13,9 +13,14 @@ import gzip
 import zipfile
 import importlib.util
 import re
+import shutil
+import tempfile
+import urllib.request
+import urllib.parse
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any, Callable, Tuple
+from pathlib import Path
 
 from .config import ensure_user_dirs, get_global_home_dir, get_extensions_dir
 
@@ -35,7 +40,6 @@ _USER_AGENT = "DardcorCode/1.0 (VSCode-compatible)"
 
 
 def _load_package_nls(ext_path: str) -> Dict[str, str]:
-    """Load package.nls.json used by VS Code for %key% localization."""
     nls_path = os.path.join(ext_path, "package.nls.json")
     if not os.path.isfile(nls_path):
         return {}
@@ -49,7 +53,6 @@ def _load_package_nls(ext_path: str) -> Dict[str, str]:
 
 
 def _resolve_nls_string(value: str, nls: Dict[str, str], fallback: str = "") -> str:
-    """Resolve a manifest string that may be a %key% NLS placeholder."""
     if not isinstance(value, str) or not value:
         return fallback
     if len(value) > 2 and value.startswith("%") and value.endswith("%"):
@@ -64,7 +67,6 @@ def _resolve_nls_string(value: str, nls: Dict[str, str], fallback: str = "") -> 
 
 
 def _resolved_manifest_fields(ext_dir: str, manifest: Dict[str, Any]) -> Tuple[str, str, str]:
-    """Return (display_name, description, publisher) with NLS placeholders resolved."""
     name = manifest.get("name", "")
     nls = _load_package_nls(ext_dir)
     display_name = _resolve_nls_string(manifest.get("displayName", name), nls, fallback=name)
@@ -113,9 +115,21 @@ class StatusBarEntry:
     color: str = ""
 
 
-class DardcorAPI:
-    """API object passed to extensions during activation."""
+@dataclass
+class ActivationEvent:
+    event: str
+    extension: str
 
+
+@dataclass
+class ProviderRegistration:
+    provider_type: str
+    extension: str
+    selector: Any = None
+    handler: Optional[Callable] = None
+
+
+class DardcorAPI:
     def __init__(self, ext_name: str, manager: "ExtensionManager"):
         self._ext_name = ext_name
         self._manager = manager
@@ -193,8 +207,6 @@ class DardcorAPI:
 
 
 class ExtensionManager:
-    """Manages extension discovery, installation, lifecycle, and event dispatch."""
-
     def __init__(self):
         ensure_user_dirs()
         self._extensions: Dict[str, InstalledExtension] = {}
@@ -207,10 +219,11 @@ class ExtensionManager:
         self._event_handlers: Dict[str, Callable] = {}
         self._node_extensions: set = set()
         self._change_listeners: List[Callable] = []
+        self._activation_events: Dict[str, List[str]] = {}
+        self._providers: Dict[str, List[ProviderRegistration]] = {}
+        self._bisect_state: Optional[Dict[str, Any]] = None
         self._state = self._load_state()
         self._load_installed_extensions()
-
-    # ── Persistent state (~/.dardcor-code/extensions/extensions.json) ──
 
     def _load_state(self) -> Dict[str, Any]:
         try:
@@ -219,10 +232,12 @@ class ExtensionManager:
             if isinstance(data, dict):
                 data.setdefault("disabled", [])
                 data.setdefault("meta", {})
+                data.setdefault("bisect", {})
+                data.setdefault("sync_token", "")
                 return data
         except Exception:
             pass
-        return {"disabled": [], "meta": {}}
+        return {"disabled": [], "meta": {}, "bisect": {}, "sync_token": ""}
 
     def _save_state(self):
         try:
@@ -233,7 +248,6 @@ class ExtensionManager:
             pass
 
     def on_extensions_changed(self, listener: Callable):
-        """Register a callback fired whenever extensions are installed/removed/toggled."""
         self._change_listeners.append(listener)
 
     def _notify_changed(self):
@@ -250,35 +264,6 @@ class ExtensionManager:
         if event_name in self._event_handlers:
             return self._event_handlers[event_name](data)
         return None
-
-    def check_for_updates(self):
-        """Extension Update - auto-check and update extensions."""
-        pass
-
-    def install_dependencies(self, ext_id: str):
-        """Extension Dependencies - automatic dependency installation."""
-        pass
-        
-    def get_recommendations(self) -> list:
-        """Extension Recommendations - file-based recommendations."""
-        return []
-
-    def install_extension_pack(self, pack_id: str):
-        """Extension Pack Support - install extension packs."""
-        pass
-
-    def start_extension_bisect(self):
-        """Extension Bisect - binary search for problematic extension."""
-        pass
-
-    def set_auto_update(self, enabled: bool):
-        """Extension Auto Update - configurable auto-update."""
-        self._state["meta"]["auto_update"] = enabled
-        self._save_state()
-
-    def sync_extensions(self):
-        """Extension Sync - sync installed extensions."""
-        pass
 
     def fire_event(self, event_name: str, data: Any = None):
         for name, handler in self._event_listeners.get(event_name, []):
@@ -321,7 +306,6 @@ class ExtensionManager:
                         pass
 
     def reload_extensions(self):
-        """Rescan the global extensions directory (picks up externally added folders)."""
         self._extensions.clear()
         self._load_installed_extensions()
         self._notify_changed()
@@ -331,7 +315,6 @@ class ExtensionManager:
 
     @staticmethod
     def _install_folder_name(manifest: Dict[str, Any]) -> str:
-        """VS Code style folder: publisher.name-version."""
         publisher = manifest.get("publisher", "unknown")
         name = manifest.get("name", "extension")
         version = manifest.get("version", "0.0.0")
@@ -343,7 +326,6 @@ class ExtensionManager:
 
         with zipfile.ZipFile(vsix_path, "r") as zf:
             names = zf.namelist()
-            # Standard VSIX layout puts the extension under "extension/".
             manifest_path = None
             if "extension/package.json" in names:
                 manifest_path = "extension/package.json"
@@ -365,7 +347,6 @@ class ExtensionManager:
             ext_dir = os.path.join(EXTENSIONS_DIR, self._install_folder_name(manifest_data))
 
             if os.path.exists(ext_dir):
-                import shutil
                 shutil.rmtree(ext_dir, ignore_errors=True)
 
             os.makedirs(ext_dir, exist_ok=True)
@@ -418,22 +399,18 @@ class ExtensionManager:
             self._state["disabled"].remove(ext.name)
         self._save_state()
 
-        # VS Code behavior: auto-install extensionDependencies / extensionPack
         self._install_dependencies(manifest_data)
+        self._install_extension_pack(manifest_data)
 
         self._notify_changed()
         return ext
 
     def _install_dependencies(self, manifest: Dict[str, Any]):
-        """Install marketplace dependencies declared in the manifest."""
         deps = list(manifest.get("extensionDependencies") or [])
-        deps += list(manifest.get("extensionPack") or [])
         if not deps:
             return
-
         if not hasattr(self, "_deps_in_progress"):
             self._deps_in_progress = set()
-
         installed_ids = {
             f"{e.publisher}.{e.name}".lower() for e in self._extensions.values()
         }
@@ -449,13 +426,33 @@ class ExtensionManager:
             finally:
                 self._deps_in_progress.discard(key)
 
+    def _install_extension_pack(self, manifest: Dict[str, Any]):
+        pack = list(manifest.get("extensionPack") or [])
+        if not pack:
+            return
+        if not hasattr(self, "_pack_in_progress"):
+            self._pack_in_progress = set()
+        installed_ids = {
+            f"{e.publisher}.{e.name}".lower() for e in self._extensions.values()
+        }
+        for pack_id in pack:
+            key = pack_id.lower()
+            if key in installed_ids or key in self._pack_in_progress:
+                continue
+            self._pack_in_progress.add(key)
+            try:
+                self.install_from_marketplace(pack_id, source=SOURCE_VSCODE)
+            except Exception:
+                pass
+            finally:
+                self._pack_in_progress.discard(key)
+
     def uninstall_extension(self, ext_name: str) -> bool:
         if ext_name not in self._extensions:
             return False
         self.deactivate_extension(ext_name)
         ext = self._extensions[ext_name]
         if os.path.exists(ext.path):
-            import shutil
             shutil.rmtree(ext.path, ignore_errors=True)
         del self._extensions[ext_name]
         self._state["meta"].pop(ext_name, None)
@@ -468,11 +465,9 @@ class ExtensionManager:
     def activate_extension(self, ext_name: str) -> Optional[DardcorAPI]:
         if ext_name not in self._extensions:
             return None
-
         ext = self._extensions[ext_name]
         if not ext.enabled:
             return None
-
         if ext_name in self._apis:
             return self._apis[ext_name]
 
@@ -547,6 +542,7 @@ class ExtensionManager:
         self._commands = {k: v for k, v in self._commands.items() if not k.startswith(ext_name + ".")}
         self._menu_items = [m for m in self._menu_items if not m.command_id.startswith(ext_name + ".")]
         self._status_bar_items = {k: v for k, v in self._status_bar_items.items() if not k.startswith(ext_name + ".")}
+        self._providers = {k: [p for p in v if p.extension != ext_name] for k, v in self._providers.items()}
 
     def toggle_extension(self, ext_name: str, enabled: bool):
         if ext_name in self._extensions:
@@ -584,12 +580,8 @@ class ExtensionManager:
             if ext.enabled:
                 self.activate_extension(name)
 
-    # ── Marketplace: VS Code Marketplace + Open VSX ─────────────────────
-
     def search_marketplace(self, query: str, limit: int = 20,
                            source: str = SOURCE_VSCODE) -> List[Dict[str, Any]]:
-        """Search extensions. Tries the requested source first, falls back
-        to the other so search keeps working even if one registry is down."""
         primary = (self.search_vscode_marketplace if source == SOURCE_VSCODE
                    else self.search_open_vsx)
         fallback = (self.search_open_vsx if source == SOURCE_VSCODE
@@ -601,7 +593,6 @@ class ExtensionManager:
 
     def get_featured_extensions(self, limit: int = 20,
                                 source: str = SOURCE_VSCODE) -> List[Dict[str, Any]]:
-        """Most-installed extensions, shown when the search box is empty."""
         if source == SOURCE_VSCODE:
             results = self._query_vscode_gallery("", limit, sort_by=4)
             if results:
@@ -609,12 +600,9 @@ class ExtensionManager:
         return self.search_open_vsx("", limit)
 
     def search_vscode_marketplace(self, query: str, limit: int = 20) -> List[Dict[str, Any]]:
-        """Search the official VS Code Marketplace (marketplace.visualstudio.com)."""
         return self._query_vscode_gallery(query, limit, sort_by=0)
 
     def _query_vscode_gallery(self, query: str, limit: int, sort_by: int = 0) -> List[Dict[str, Any]]:
-        import urllib.request
-
         criteria = [{"filterType": 8, "value": "Microsoft.VisualStudio.Code"}]
         if query:
             criteria.append({"filterType": 10, "value": query})
@@ -628,7 +616,6 @@ class ExtensionManager:
                 "sortOrder": 0,
             }],
             "assetTypes": [],
-            # files + versionProperties + assetUri + statistics + latestVersionOnly
             "flags": 914,
         }
 
@@ -643,7 +630,9 @@ class ExtensionManager:
                 },
                 method="POST",
             )
-            with urllib.request.urlopen(req, timeout=15) as resp:
+            proxy_handler = urllib.request.ProxyHandler(urllib.request.getproxies())
+            opener = urllib.request.build_opener(proxy_handler)
+            with opener.open(req, timeout=15) as resp:
                 raw = resp.read()
                 if raw[:2] == b"\x1f\x8b":
                     raw = gzip.decompress(raw)
@@ -657,10 +646,16 @@ class ExtensionManager:
                 version = versions[0].get("version", "0.0.0") if versions else "0.0.0"
 
                 installs = 0
+                rating = 0.0
+                rating_count = 0
                 for stat in ext.get("statistics", []):
-                    if stat.get("statisticName") == "install":
+                    sn = stat.get("statisticName", "")
+                    if sn == "install":
                         installs = int(stat.get("value", 0))
-                        break
+                    elif sn == "averagerating":
+                        rating = float(stat.get("value", 0))
+                    elif sn == "ratingcount":
+                        rating_count = int(stat.get("value", 0))
 
                 icon_url = ""
                 if versions:
@@ -677,6 +672,8 @@ class ExtensionManager:
                     "publisher": publisher,
                     "version": version,
                     "download_count": installs,
+                    "rating": rating,
+                    "rating_count": rating_count,
                     "download_url": _VSCODE_DOWNLOAD_URL.format(
                         publisher=publisher, name=name, version=version),
                     "icon_url": icon_url,
@@ -687,9 +684,6 @@ class ExtensionManager:
             return []
 
     def search_open_vsx(self, query: str, limit: int = 20) -> List[Dict[str, Any]]:
-        import urllib.request
-        import urllib.parse
-
         try:
             encoded_query = urllib.parse.quote(query)
             url = f"https://open-vsx.org/api/-/search?query={encoded_query}&size={limit}"
@@ -707,6 +701,8 @@ class ExtensionManager:
                     "publisher": ext.get("namespace", ""),
                     "version": ext.get("version", "0.0.0"),
                     "download_count": ext.get("downloadCount", 0),
+                    "rating": ext.get("averageRating", 0.0),
+                    "rating_count": ext.get("ratingCount", 0),
                     "download_url": ext.get("files", {}).get("download", ""),
                     "icon_url": ext.get("files", {}).get("icon", ""),
                     "source": SOURCE_OPENVSX,
@@ -718,24 +714,15 @@ class ExtensionManager:
     def install_from_marketplace(self, ext_id: str,
                                  source: str = SOURCE_VSCODE,
                                  download_url: str = "") -> Optional[InstalledExtension]:
-        """Install an extension by ID from the given registry."""
         if source == SOURCE_VSCODE:
             ext = self.install_from_vscode_marketplace(ext_id, download_url)
             if ext:
                 return ext
-            # Fall back to Open VSX with the same publisher/name
             return self.install_from_open_vsx(ext_id.replace(".", "/", 1))
         return self.install_from_open_vsx(ext_id)
 
     def install_from_vscode_marketplace(self, ext_id: str,
                                         download_url: str = "") -> Optional[InstalledExtension]:
-        """Download a .vsix from the official VS Code Marketplace and install it.
-
-        ext_id format: "publisher.name" (like VS Code's extension IDs).
-        """
-        import urllib.request
-        import tempfile
-
         try:
             if not download_url:
                 if "." not in ext_id:
@@ -753,7 +740,6 @@ class ExtensionManager:
             with urllib.request.urlopen(req, timeout=120) as resp:
                 payload = resp.read()
 
-            # The gallery serves vspackage gzip-compressed
             if payload[:2] == b"\x1f\x8b":
                 payload = gzip.decompress(payload)
 
@@ -780,14 +766,9 @@ class ExtensionManager:
             self._save_state()
 
     def install_from_open_vsx(self, ext_id: str) -> Optional[InstalledExtension]:
-        import urllib.request
-        import urllib.parse
-        import tempfile
-
         try:
             if "/" not in ext_id:
                 return None
-
             parts = ext_id.split("/", 1)
             namespace, name = parts[0], parts[1]
             encoded_id = urllib.parse.quote(f"{namespace}/{name}")
@@ -820,15 +801,11 @@ class ExtensionManager:
         except Exception:
             return None
 
-    # ── Extension details (README / changelog / metadata) ─────────────
-
     @staticmethod
     def compare_versions(current: str, latest: str) -> int:
-        """Return -1 if current < latest, 0 if equal, 1 if current > latest."""
         def _parts(v: str) -> Tuple[int, ...]:
             nums = re.findall(r"\d+", v or "")
             return tuple(int(n) for n in nums) if nums else (0,)
-
         a, b = _parts(current), _parts(latest)
         length = max(len(a), len(b))
         a = a + (0,) * (length - len(a))
@@ -881,7 +858,6 @@ class ExtensionManager:
         deps = list(manifest.get("extensionDependencies") or [])
         deps += list(manifest.get("extensionPack") or [])
         meta = self._state.get("meta", {}).get(ext.name, {})
-        from pathlib import Path
         asset_base = Path(ext.path).as_uri() + "/"
         return {
             "id": f"{ext.publisher}.{ext.name}",
@@ -898,6 +874,7 @@ class ExtensionManager:
             "changelog": changelog,
             "dependencies": deps,
             "categories": manifest.get("categories", []),
+            "keywords": manifest.get("keywords", []),
             "license": manifest.get("license", ""),
             "repository": (manifest.get("repository") or {}).get("url", "")
             if isinstance(manifest.get("repository"), dict)
@@ -912,6 +889,13 @@ class ExtensionManager:
             "source": meta.get("source", SOURCE_VSCODE),
             "icon_path": os.path.join(ext.path, manifest["icon"])
             if manifest.get("icon") else "",
+            "extensionPack": manifest.get("extensionPack", []),
+            "extensionDependencies": manifest.get("extensionDependencies", []),
+            "activationEvents": manifest.get("activationEvents", []),
+            "keywords": manifest.get("keywords", []),
+            "engines": manifest.get("engines", {}),
+            "main": manifest.get("main", ""),
+            "contributes": manifest.get("contributes", {}),
         }
 
     def get_marketplace_extension_details(self, ext_id: str,
@@ -921,8 +905,6 @@ class ExtensionManager:
         return self._fetch_vscode_extension_details(ext_id)
 
     def _fetch_vscode_extension_details(self, ext_id: str) -> Optional[Dict[str, Any]]:
-        import urllib.request
-
         if "." not in ext_id:
             return None
         publisher, name = ext_id.split(".", 1)
@@ -986,10 +968,16 @@ class ExtensionManager:
                     released = val
 
             installs = 0
+            rating = 0.0
+            rating_count = 0
             for stat in ext.get("statistics", []):
-                if stat.get("statisticName") == "install":
+                sn = stat.get("statisticName", "")
+                if sn == "install":
                     installs = int(stat.get("value", 0))
-                    break
+                elif sn == "averagerating":
+                    rating = float(stat.get("value", 0))
+                elif sn == "ratingcount":
+                    rating_count = int(stat.get("value", 0))
 
             readme = self._fetch_text_url(readme_url) if readme_url else ""
             changelog = self._fetch_text_url(changelog_url) if changelog_url else ""
@@ -1019,6 +1007,8 @@ class ExtensionManager:
                 "publisher": ext.get("publisher", {}).get("publisherName", publisher),
                 "version": version,
                 "download_count": installs,
+                "rating": rating,
+                "rating_count": rating_count,
                 "download_url": _VSCODE_DOWNLOAD_URL.format(
                     publisher=publisher, name=name, version=version),
                 "icon_url": icon_url,
@@ -1044,9 +1034,6 @@ class ExtensionManager:
             return None
 
     def _fetch_openvsx_details(self, ext_id: str) -> Optional[Dict[str, Any]]:
-        import urllib.request
-        import urllib.parse
-
         if "/" not in ext_id:
             ext_id = ext_id.replace(".", "/", 1)
         parts = ext_id.split("/", 1)
@@ -1079,6 +1066,8 @@ class ExtensionManager:
                 "publisher": namespace,
                 "version": data.get("version", "0.0.0"),
                 "download_count": data.get("downloadCount", 0),
+                "rating": data.get("averageRating", 0.0),
+                "rating_count": data.get("ratingCount", 0),
                 "download_url": files.get("download", ""),
                 "icon_url": files.get("icon", ""),
                 "source": SOURCE_OPENVSX,
@@ -1103,8 +1092,6 @@ class ExtensionManager:
 
     @staticmethod
     def _fetch_text_url(url: str) -> str:
-        import urllib.request
-
         if not url:
             return ""
         try:
@@ -1115,7 +1102,6 @@ class ExtensionManager:
             return ""
 
     def check_for_updates(self) -> List[Dict[str, Any]]:
-        """Compare installed versions against marketplace; return outdated list."""
         outdated = []
         for ext in self.get_installed_extensions():
             ext_id = f"{ext.publisher}.{ext.name}"
@@ -1141,7 +1127,6 @@ class ExtensionManager:
 
     def update_extension(self, ext_name: str, download_url: str = "",
                          source: str = SOURCE_VSCODE) -> Optional[InstalledExtension]:
-        """Uninstall then reinstall the latest marketplace version."""
         ext = self._extensions.get(ext_name)
         if not ext:
             return None
@@ -1158,7 +1143,6 @@ class ExtensionManager:
         return result
 
     def auto_update_all(self) -> List[str]:
-        """Update every extension that has a newer marketplace version."""
         updated = []
         for item in self.check_for_updates():
             ext = self.update_extension(
@@ -1169,6 +1153,156 @@ class ExtensionManager:
             if ext:
                 updated.append(ext.name)
         return updated
+
+    def get_recommendations(self) -> List[Dict[str, Any]]:
+        recommendations = []
+        workspace_path = self._emit("get_workspace_path", "") or ""
+        if workspace_path:
+            ext_file = os.path.join(workspace_path, ".vscode", "extensions.json")
+            if os.path.isfile(ext_file):
+                try:
+                    with open(ext_file, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    for rec in data.get("recommendations", []):
+                        if isinstance(rec, str):
+                            recommendations.append({"id": rec, "reason": "workspace recommendation"})
+                except Exception:
+                    pass
+
+        installed_ids = {f"{e.publisher}.{e.name}".lower() for e in self._extensions.values()}
+        try:
+            results = self.get_featured_extensions(limit=30)
+            for r in results:
+                if r["id"].lower() not in installed_ids:
+                    recommendations.append({
+                        "id": r["id"],
+                        "name": r["name"],
+                        "display_name": r.get("display_name", r["name"]),
+                        "description": r.get("description", ""),
+                        "publisher": r.get("publisher", ""),
+                        "version": r.get("version", ""),
+                        "download_count": r.get("download_count", 0),
+                        "rating": r.get("rating", 0.0),
+                        "icon_url": r.get("icon_url", ""),
+                        "source": r.get("source", SOURCE_VSCODE),
+                        "reason": "popular",
+                    })
+                    if len(recommendations) >= 10:
+                        break
+        except Exception:
+            pass
+        return recommendations
+
+    def install_extension_pack(self, pack_id: str):
+        self.install_from_marketplace(pack_id, source=SOURCE_VSCODE)
+
+    def start_extension_bisect(self):
+        self._bisect_state = {
+            "active": True,
+            "step": 0,
+            "original_extensions": list(self._extensions.keys()),
+            "disabled_half": [],
+            "current_range": list(self._extensions.keys()),
+        }
+        self._state["bisect"] = {"active": True, "step": 0}
+        self._save_state()
+
+    def bisect_step(self, good: bool) -> Optional[Dict[str, Any]]:
+        if not self._bisect_state or not self._bisect_state.get("active"):
+            return None
+        state = self._bisect_state
+        current = state.get("current_range", [])
+        if not current:
+            state["active"] = False
+            self._state["bisect"]["active"] = False
+            self._save_state()
+            return {"done": True, "result": None}
+        mid = len(current) // 2
+        if good:
+            state["current_range"] = current[mid:]
+        else:
+            state["current_range"] = current[:mid]
+        state["step"] += 1
+        self._state["bisect"]["step"] = state["step"]
+        self._save_state()
+        if len(state["current_range"]) <= 1:
+            state["active"] = False
+            self._state["bisect"]["active"] = False
+            self._save_state()
+            return {"done": True, "result": state["current_range"][0] if state["current_range"] else None}
+        return {"done": False, "step": state["step"], "remaining": len(state["current_range"])}
+
+    def set_auto_update(self, enabled: bool):
+        self._state["meta"]["auto_update"] = enabled
+        self._save_state()
+
+    def sync_extensions(self):
+        token = self._state.get("sync_token", "")
+        if not token:
+            return
+        try:
+            req = urllib.request.Request(
+                f"https://api.dardcor.dev/extensions/sync?token={token}",
+                headers={"User-Agent": _USER_AGENT},
+            )
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            for ext_id in data.get("extensions", []):
+                if ext_id not in {f"{e.publisher}.{e.name}" for e in self._extensions.values()}:
+                    self.install_from_marketplace(ext_id, source=SOURCE_VSCODE)
+        except Exception:
+            pass
+
+    def register_provider(self, ext_name: str, provider_type: str, selector: Any = None, handler: Optional[Callable] = None):
+        reg = ProviderRegistration(provider_type, ext_name, selector, handler)
+        self._providers.setdefault(provider_type, []).append(reg)
+
+    def get_providers(self, provider_type: str) -> List[ProviderRegistration]:
+        return self._providers.get(provider_type, [])
+
+    def get_activation_events(self) -> Dict[str, List[str]]:
+        return self._activation_events.copy()
+
+    def parse_activation_events(self, ext_name: str, manifest: Dict[str, Any]):
+        events = manifest.get("activationEvents", [])
+        if isinstance(events, str):
+            events = [events]
+        if isinstance(events, list):
+            self._activation_events[ext_name] = events
+            for event in events:
+                self._activation_events.setdefault(event, []).append(ext_name)
+
+    def check_activation_event(self, event: str) -> List[str]:
+        return self._activation_events.get(event, [])
+
+    def get_extension_pack_members(self, ext_name: str) -> List[str]:
+        ext = self._extensions.get(ext_name)
+        if not ext or not ext.manifest:
+            return []
+        return list(ext.manifest.get("extensionPack", []))
+
+    def get_extension_dependencies(self, ext_name: str) -> List[str]:
+        ext = self._extensions.get(ext_name)
+        if not ext or not ext.manifest:
+            return []
+        return list(ext.manifest.get("extensionDependencies", []))
+
+
+    def cleanup(self):
+        """Unload all extensions and release resources."""
+        ext_names = list(self._extensions.keys())
+        for name in ext_names:
+            self.deactivate_extension(name)
+        self._modules.clear()
+        self._apis.clear()
+        self._commands.clear()
+        self._menu_items.clear()
+        self._status_bar_items.clear()
+        self._event_listeners.clear()
+        self._event_handlers.clear()
+        self._change_listeners.clear()
+        self._activation_events.clear()
+        self._providers.clear()
 
 
 _instance = None

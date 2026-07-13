@@ -1,0 +1,37 @@
+{
+  "name": "dardcor-ipynb",
+  "displayName": "ipynb",
+  "description": "Jupyter notebook support",
+  "version": "1.68.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "main": "extension.py",
+  "contributes": {
+    "commands": [
+      {
+        "command": "ipynb.hello",
+        "title": "ipynb: Show Info"
+      }
+    ],
+    "configuration": {
+      "title": "ipynb",
+      "properties": {
+        "ipynb.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable ipynb"
+        }
+      }
+    }
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes",
+    "Formatters",
+    "Linters",
+    "Language Packs"
+  ]
+}

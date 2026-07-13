@@ -1,5 +1,6 @@
 """Focus Manager for Dardcor Code.
-Handles cycling focus between different workbench parts (Editor, Terminal, Sidebar) using F6.
+Handles cycling focus between different workbench parts (Editor, Terminal, Sidebar) using F6,
+and Focus Mode which toggles sidebar/panel visibility for distraction-free editing.
 """
 
 from PySide6.QtCore import QObject
@@ -9,6 +10,9 @@ class FocusManager(QObject):
         super().__init__(main_window)
         self.main_window = main_window
         self.current_index = -1
+        self._focus_mode = False
+        self._saved_sidebar_visible = True
+        self._saved_panel_visible = True
 
     def cycle_focus(self):
         """Cycle focus through the main UI components."""
@@ -50,3 +54,49 @@ class FocusManager(QObject):
                 
         self.current_index = (self.current_index + 1) % len(cycle)
         cycle[self.current_index].setFocus()
+
+    def toggle_focus_mode(self):
+        """Toggle Focus Mode - hide sidebar and panel for distraction-free editing."""
+        self._focus_mode = not self._focus_mode
+        
+        if self._focus_mode:
+            self._enter_focus_mode()
+        else:
+            self._exit_focus_mode()
+
+    def _enter_focus_mode(self):
+        """Save visibility states and hide sidebar and panel."""
+        mw = self.main_window
+        
+        if hasattr(mw, '_sidebar_stack'):
+            self._saved_sidebar_visible = mw._sidebar_stack.isVisible()
+            mw._sidebar_stack.hide()
+        
+        if hasattr(mw, '_bottom_panel'):
+            self._saved_panel_visible = mw._bottom_panel.isVisible()
+            mw._bottom_panel.hide()
+        
+        if hasattr(mw, '_activity_bar'):
+            mw._activity_bar.hide()
+        
+        if hasattr(mw, '_status_bar'):
+            mw._status_bar.hide()
+
+    def _exit_focus_mode(self):
+        """Restore saved visibility states."""
+        mw = self.main_window
+        
+        if hasattr(mw, '_sidebar_stack'):
+            mw._sidebar_stack.setVisible(self._saved_sidebar_visible)
+        
+        if hasattr(mw, '_bottom_panel'):
+            mw._bottom_panel.setVisible(self._saved_panel_visible)
+        
+        if hasattr(mw, '_activity_bar'):
+            mw._activity_bar.show()
+        
+        if hasattr(mw, '_status_bar'):
+            mw._status_bar.show()
+
+    def is_focus_mode(self) -> bool:
+        return self._focus_mode

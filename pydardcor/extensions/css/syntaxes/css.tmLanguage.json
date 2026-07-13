@@ -1,0 +1,13 @@
+{
+  "scopeName": "source.css",
+  "name": "CSS",
+  "fileTypes": [
+    "css"
+  ],
+  "patterns": [
+    {
+      "include": "source.css"
+    }
+  ],
+  "repository": {}
+}

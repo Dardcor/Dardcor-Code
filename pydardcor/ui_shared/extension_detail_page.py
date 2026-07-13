@@ -24,12 +24,10 @@ from .markdown_html import markdown_to_html, wrap_html_document
 
 
 class ExtensionDetailPage(QDialog):
-    """Modal dialog showing extension README, changelog, dependencies, and metadata."""
-
     _detail_ready = Signal(object)
     install_requested = Signal(dict)
 
-    def __init__(self, ext_ref: Union[InstalledExtension, dict], parent=None):
+    def __init__(self, ext_ref, parent=None):
         super().__init__(parent)
         self._ext_ref = ext_ref
         self._is_installed = isinstance(ext_ref, InstalledExtension)
@@ -37,7 +35,7 @@ class ExtensionDetailPage(QDialog):
         self._icon_loader = ExtensionIconLoader(self)
         self._icon_loader.icon_ready.connect(self._on_icon_ready)
         self._detail_ready.connect(self._apply_details)
-        self._details: Optional[dict] = None
+        self._details = None
         self.setWindowTitle("Extension Details")
         self.setMinimumSize(720, 520)
         self.resize(860, 600)
@@ -72,15 +70,15 @@ class ExtensionDetailPage(QDialog):
         self._title_label.setStyleSheet("font-size: 24px; color: #ffffff; font-weight: 300;")
         self._info_layout.addWidget(self._title_label)
 
-        self._desc_label = QLabel()
-        self._desc_label.setStyleSheet("font-size: 13px; color: #aaaaaa;")
-        self._desc_label.setWordWrap(True)
-        self._info_layout.addWidget(self._desc_label)
+        self._subtitle_label = QLabel()
+        self._subtitle_label.setStyleSheet("font-size: 13px; color: #aaaaaa;")
+        self._subtitle_label.setWordWrap(True)
+        self._info_layout.addWidget(self._subtitle_label)
 
         self._meta_label = QLabel()
         self._meta_label.setStyleSheet("font-size: 11px; color: #888888;")
         self._info_layout.addWidget(self._meta_label)
-        
+
         self._rating_label = QLabel()
         self._rating_label.setStyleSheet("font-size: 11px; color: #ffcc00;")
         self._info_layout.addWidget(self._rating_label)
@@ -130,11 +128,13 @@ class ExtensionDetailPage(QDialog):
         self._changelog_view = self._make_markdown_view()
         self._deps_view = self._make_markdown_view()
         self._features_view = self._make_markdown_view()
+        self._pack_view = self._make_markdown_view()
 
         self._tabs.addTab(self._readme_view, "DETAILS")
         self._tabs.addTab(self._changelog_view, "CHANGELOG")
         self._tabs.addTab(self._deps_view, "DEPENDENCIES")
         self._tabs.addTab(self._features_view, "FEATURES")
+        self._tabs.addTab(self._pack_view, "EXTENSION PACK")
         body.addWidget(self._tabs, 1)
 
         sidebar = QScrollArea()
@@ -182,7 +182,7 @@ class ExtensionDetailPage(QDialog):
 
     def _load_details(self):
         if self._is_installed:
-            ext: InstalledExtension = self._ext_ref
+            ext = self._ext_ref
             details = self._ext_manager.get_installed_extension_details(ext.name)
             if details:
                 icon_path = installed_extension_icon_path(ext.path, ext.manifest or {})
@@ -193,7 +193,7 @@ class ExtensionDetailPage(QDialog):
             self._apply_details(details or {})
             return
 
-        ext_dict: dict = self._ext_ref
+        ext_dict = self._ext_ref
         ext_id = ext_dict.get("id", "")
         source = ext_dict.get("source", SOURCE_VSCODE)
         icon_url = ext_dict.get("icon_url", "")
@@ -227,6 +227,12 @@ class ExtensionDetailPage(QDialog):
         else:
             deps_text = "No dependencies."
 
+        pack = details.get("extensionPack") or []
+        if pack:
+            pack_text = "\n".join(f"- `{p}`" for p in pack)
+        else:
+            pack_text = "No extension pack members."
+
         base_url = details.get("asset_base_url", "")
         if not base_url and details.get("path"):
             from pathlib import Path
@@ -235,6 +241,7 @@ class ExtensionDetailPage(QDialog):
         self._set_markdown_view(self._readme_view, readme, base_url)
         self._set_markdown_view(self._changelog_view, changelog, base_url)
         self._set_markdown_view(self._deps_view, deps_text, base_url)
+        self._set_markdown_view(self._pack_view, pack_text, base_url)
 
         self._rebuild_sidebar(details)
 
@@ -255,15 +262,20 @@ class ExtensionDetailPage(QDialog):
         self._sidebar_layout.addWidget(self._section_title("Installation"))
         self._sidebar_layout.addWidget(self._info_row("Identifier", d.get("id", "")))
         self._sidebar_layout.addWidget(self._info_row("Version", d.get("version", "")))
-        self._sidebar_layout.addWidget(self._info_row("Last Updated", d.get("last_updated") or d.get("last_released", "—")))
+        self._sidebar_layout.addWidget(self._info_row("Last Updated", d.get("last_updated") or d.get("last_released", "\u2014")))
         if d.get("size"):
             self._sidebar_layout.addWidget(self._info_row("Size", d.get("size", "")))
 
         self._sidebar_layout.addWidget(self._section_title("Marketplace"))
-        self._sidebar_layout.addWidget(self._info_row("Published", d.get("published", "—")))
-        self._sidebar_layout.addWidget(self._info_row("Last Released", d.get("last_released", "—")))
+        self._sidebar_layout.addWidget(self._info_row("Published", d.get("published", "\u2014")))
+        self._sidebar_layout.addWidget(self._info_row("Last Released", d.get("last_released", "\u2014")))
         cats = d.get("categories") or []
-        self._sidebar_layout.addWidget(self._info_row("Categories", ", ".join(cats) if cats else "—"))
+        self._sidebar_layout.addWidget(self._info_row("Categories", ", ".join(cats) if cats else "\u2014"))
+
+        rating = d.get("rating", 0.0)
+        rating_count = d.get("rating_count", 0)
+        if rating > 0:
+            self._sidebar_layout.addWidget(self._info_row("Rating", f"\u2605 {rating:.1f} ({rating_count} reviews)"))
 
         self._sidebar_layout.addWidget(self._section_title("Resources"))
         for label, url in (
@@ -282,7 +294,7 @@ class ExtensionDetailPage(QDialog):
         return lbl
 
     def _info_row(self, label: str, value: str) -> QLabel:
-        lbl = QLabel(f"<span style='color:#858585'>{label}</span><br><span style='color:#cccccc'>{value or '—'}</span>")
+        lbl = QLabel(f"<span style='color:#858585'>{label}</span><br><span style='color:#cccccc'>{value or '\u2014'}</span>")
         lbl.setWordWrap(True)
         lbl.setTextFormat(Qt.RichText)
         lbl.setStyleSheet("font-size: 11px; padding: 2px 0;")
@@ -313,9 +325,7 @@ class ExtensionDetailPage(QDialog):
         self.accept()
 
 
-def show_extension_detail(ext_ref: Union[InstalledExtension, dict], parent=None,
-                          on_install=None) -> None:
-    """Open the extension detail dialog for an installed extension or marketplace dict."""
+def show_extension_detail(ext_ref, parent=None, on_install=None):
     dlg = ExtensionDetailPage(ext_ref, parent)
     if on_install:
         dlg.install_requested.connect(on_install)

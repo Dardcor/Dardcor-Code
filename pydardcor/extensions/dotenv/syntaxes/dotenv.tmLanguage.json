@@ -1,0 +1,14 @@
+{
+  "scopeName": "source.dotenv",
+  "name": "Dotenv",
+  "fileTypes": [
+    "env",
+    ".env"
+  ],
+  "patterns": [
+    {
+      "include": "source.dotenv"
+    }
+  ],
+  "repository": {}
+}

@@ -79,6 +79,7 @@ class ThemeManager:
     EXT_THEMES: Dict[str, Dict[str, str]] = {}
     # Monaco theme data for the active extension theme (None = builtin)
     _monaco_theme_data: Optional[Dict[str, Any]] = None
+    _current_zoom_level: int = 0
     
     # Pre-defined base themes
     THEMES = {
@@ -403,6 +404,54 @@ class ThemeManager:
         }
 
     @classmethod
+    def set_zoom_level(cls, app: QApplication, zoom_level: int):
+        cls._current_zoom_level = zoom_level
+        scale = 1.1 ** zoom_level
+        import re
+
+        def repl(m):
+            prop = m.group(1)
+            val = int(m.group(2))
+            if val <= 2: return m.group(0) # Keep borders unscaled
+            
+            new_val = int(val * scale)
+            if "font-size" in prop:
+                new_val = max(6, new_val)
+            else:
+                new_val = max(1, new_val)
+                
+            return f"{prop}: {new_val}px"
+
+        pattern = re.compile(r'([a-zA-Z-]+)\s*:\s*(\d+)px')
+
+        # 1. Scale global stylesheet
+        orig_global = app.property("original_stylesheet")
+        if not orig_global:
+            orig_global = app.styleSheet()
+            app.setProperty("original_stylesheet", orig_global)
+            
+        if orig_global:
+            app.setStyleSheet(pattern.sub(repl, orig_global))
+
+        # 2. Scale all widgets
+        for w in app.allWidgets():
+            if w.inherits("QWebEngineView"):
+                # Use QWebEngineView's native zoom factor
+                w.setZoomFactor(scale)
+                continue
+                
+            orig = w.property("original_stylesheet")
+            if not orig:
+                orig = w.styleSheet()
+                if not orig: continue
+                w.setProperty("original_stylesheet", orig)
+                
+            if orig:
+                scaled = pattern.sub(repl, orig)
+                if scaled != w.styleSheet():
+                    w.setStyleSheet(scaled)
+
+    @classmethod
     def apply_theme(cls, app: QApplication, theme_id: str):
         if theme_id in cls.EXT_THEMES:
             return cls._apply_extension_theme(app, theme_id)
@@ -554,8 +603,12 @@ class ThemeManager:
         }}
         """
         
-        app.setStyleSheet(stylesheet)
+        app.setProperty("original_stylesheet", stylesheet)
+        app.setProperty("color_patched_stylesheet", stylesheet)
         cls._patch_existing_widget_styles(app, c)
+        
+        # Apply zoom which handles setting the final stylesheets
+        cls.set_zoom_level(app, cls._current_zoom_level)
         
         # 2. Update Qt Palette for native controls
         palette = QPalette()
@@ -707,6 +760,6 @@ class ThemeManager:
             patched = original_style
             for old, new in replacements.items():
                 patched = patched.replace(old, new)
-            if patched != widget.styleSheet():
-                widget.setStyleSheet(patched)
-            widget.update()
+            
+            widget.setProperty("color_patched_stylesheet", patched)
+            

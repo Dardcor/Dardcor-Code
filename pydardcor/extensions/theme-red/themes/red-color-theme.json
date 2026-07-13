@@ -1,0 +1,26 @@
+{
+  "name": "red-color-theme",
+  "type": "dark",
+  "colors": {
+    "editor.background": "#390000",
+    "editor.foreground": "#ffb0b0",
+    "editor.selectionBackground": "#660000",
+    "editor.lineHighlightBackground": "#4a0000",
+    "editorCursor.foreground": "#ff0000",
+    "editorWhitespace.foreground": "#550000",
+    "editorLineNumber.foreground": "#880000",
+    "editorIndentGuide.background": "#4a0000"
+  },
+  "tokenColors": [
+    {
+      "scope": [
+        "comment",
+        "punctuation.definition.comment"
+      ],
+      "settings": {
+        "fontStyle": "italic",
+        "foreground": "#6a9955"
+      }
+    }
+  ]
+}

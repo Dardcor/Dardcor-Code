@@ -1,0 +1,37 @@
+{
+  "name": "dardcor-references-view",
+  "displayName": "References View",
+  "description": "Reference search results",
+  "version": "1.68.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "main": "extension.py",
+  "contributes": {
+    "commands": [
+      {
+        "command": "references-view.hello",
+        "title": "References View: Show Info"
+      }
+    ],
+    "configuration": {
+      "title": "References View",
+      "properties": {
+        "references-view.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable References View"
+        }
+      }
+    }
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes",
+    "Formatters",
+    "Linters",
+    "Language Packs"
+  ]
+}

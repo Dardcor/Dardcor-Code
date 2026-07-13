@@ -1,0 +1,13 @@
+{
+  "scopeName": "source.swift",
+  "name": "Swift",
+  "fileTypes": [
+    "swift"
+  ],
+  "patterns": [
+    {
+      "include": "source.swift"
+    }
+  ],
+  "repository": {}
+}

@@ -1,0 +1,26 @@
+{
+  "name": "solarized-dark-color-theme",
+  "type": "dark",
+  "colors": {
+    "editor.background": "#002b36",
+    "editor.foreground": "#839496",
+    "editor.selectionBackground": "#073642",
+    "editor.lineHighlightBackground": "#073642",
+    "editorCursor.foreground": "#d30102",
+    "editorWhitespace.foreground": "#073642",
+    "editorLineNumber.foreground": "#586e75",
+    "editorIndentGuide.background": "#073642"
+  },
+  "tokenColors": [
+    {
+      "scope": [
+        "comment",
+        "punctuation.definition.comment"
+      ],
+      "settings": {
+        "fontStyle": "italic",
+        "foreground": "#6a9955"
+      }
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "name": "dardcor-debug-auto-launch",
+  "displayName": "Debug Auto Launch",
+  "description": "Auto-attach debugger to Node.js processes",
+  "version": "1.68.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "main": "extension.py",
+  "contributes": {
+    "commands": [
+      {
+        "command": "debug-auto-launch.hello",
+        "title": "Debug Auto Launch: Show Info"
+      }
+    ],
+    "configuration": {
+      "title": "Debug Auto Launch",
+      "properties": {
+        "debug-auto-launch.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Debug Auto Launch"
+        }
+      }
+    }
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes",
+    "Formatters",
+    "Linters",
+    "Language Packs"
+  ]
+}

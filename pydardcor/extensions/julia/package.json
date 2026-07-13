@@ -1,0 +1,41 @@
+{
+  "name": "dardcor-julia",
+  "displayName": "Julia",
+  "description": "Julia language grammar for Dardcor Code",
+  "version": "1.68.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "main": "extension.py",
+  "contributes": {
+    "languages": [
+      {
+        "id": "julia",
+        "aliases": [
+          "Julia",
+          "julia"
+        ],
+        "extensions": [
+          "jl"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "julia",
+        "scopeName": "source.julia",
+        "path": "./syntaxes/julia.tmLanguage.json"
+      }
+    ]
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes",
+    "Formatters",
+    "Linters",
+    "Language Packs"
+  ]
+}

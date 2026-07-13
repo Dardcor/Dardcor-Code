@@ -1,0 +1,15 @@
+{
+  "scopeName": "source.fsharp",
+  "name": "F#",
+  "fileTypes": [
+    "fs",
+    "fsx",
+    "fsi"
+  ],
+  "patterns": [
+    {
+      "include": "source.fsharp"
+    }
+  ],
+  "repository": {}
+}

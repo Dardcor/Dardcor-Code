@@ -1,0 +1,14 @@
+{
+  "scopeName": "source.java",
+  "name": "Java",
+  "fileTypes": [
+    "java",
+    "class"
+  ],
+  "patterns": [
+    {
+      "include": "source.java"
+    }
+  ],
+  "repository": {}
+}

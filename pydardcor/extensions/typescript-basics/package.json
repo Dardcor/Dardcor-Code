@@ -1,0 +1,44 @@
+{
+  "name": "dardcor-typescript-basics",
+  "displayName": "TypeScript",
+  "description": "TypeScript language grammar for Dardcor Code",
+  "version": "1.68.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "main": "extension.py",
+  "contributes": {
+    "languages": [
+      {
+        "id": "typescript",
+        "aliases": [
+          "TypeScript",
+          "typescript"
+        ],
+        "extensions": [
+          "ts",
+          "tsx",
+          "mts",
+          "cts"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "typescript",
+        "scopeName": "source.typescript",
+        "path": "./syntaxes/typescript.tmLanguage.json"
+      }
+    ]
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes",
+    "Formatters",
+    "Linters",
+    "Language Packs"
+  ]
+}

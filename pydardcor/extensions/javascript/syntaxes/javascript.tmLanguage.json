@@ -1,0 +1,16 @@
+{
+  "scopeName": "source.javascript",
+  "name": "JavaScript",
+  "fileTypes": [
+    "js",
+    "jsx",
+    "mjs",
+    "cjs"
+  ],
+  "patterns": [
+    {
+      "include": "source.javascript"
+    }
+  ],
+  "repository": {}
+}

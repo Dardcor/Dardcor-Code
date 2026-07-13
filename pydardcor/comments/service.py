@@ -11,7 +11,7 @@ class Comment:
         self.author = author
         self.body = body
         self.timestamp = timestamp or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.reactions = reactions or {}  # emoji -> count
+        self.reactions = reactions or {}
 
 class CommentThread:
     def __init__(self, thread_id: str, file_path: str, line: int, resolved: bool = False, replies: list = None):
@@ -19,16 +19,17 @@ class CommentThread:
         self.file_path = file_path
         self.line = line
         self.resolved = resolved
-        self.replies = replies or []  # list of Comment objects
+        self.replies = replies or []
 
 class CommentService(QObject):
-    """Core service managing inline code review comments and PR threads."""
+    """Core service managing inline code review comments and threads."""
     comments_updated = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._threads = {}  # thread_id -> CommentThread
+        self._threads = {}
         self._persistence_file = os.path.expanduser("~/.dardcor-code/comments.json")
+        self._current_file = None
         self.load_comments()
 
     def load_comments(self):
@@ -77,15 +78,39 @@ class CommentService(QObject):
         except Exception:
             pass
 
+    def set_current_file(self, file_path: str):
+        self._current_file = file_path
+
+    def get_current_file(self) -> str:
+        return self._current_file
+
     def get_threads_for_file(self, file_path: str) -> list[CommentThread]:
         norm = os.path.normpath(file_path).lower()
         return [t for t in self._threads.values() if os.path.normpath(t.file_path).lower() == norm]
 
+    def get_all_threads(self) -> list[CommentThread]:
+        return list(self._threads.values())
+
+    def get_comment_lines_for_file(self, file_path: str) -> dict[int, list[dict]]:
+        """Return a dict mapping line_number -> list of thread summaries for gutter markers."""
+        result = {}
+        for thread in self.get_threads_for_file(file_path):
+            if not thread.replies:
+                continue
+            first = thread.replies[0]
+            result.setdefault(thread.line, []).append({
+                "thread_id": thread.id,
+                "resolved": thread.resolved,
+                "reply_count": len(thread.replies),
+                "preview": first.body[:60] if first.body else "",
+                "author": first.author,
+            })
+        return result
+
     def add_comment(self, file_path: str, line: int, author: str, body: str) -> str:
-        # Check if thread exists for this line
         norm_path = os.path.normpath(file_path)
         existing = [t for t in self._threads.values() if os.path.normpath(t.file_path).lower() == norm_path.lower() and t.line == line]
-        
+
         if existing:
             thread = existing[0]
             cid = f"{thread.id}_{len(thread.replies)}"
@@ -99,7 +124,7 @@ class CommentService(QObject):
             thread = CommentThread(tid, norm_path, line)
             thread.replies.append(comment)
             self._threads[tid] = thread
-            
+
         self.save_comments()
         self.comments_updated.emit()
         return tid
@@ -131,5 +156,34 @@ class CommentService(QObject):
     def delete_thread(self, thread_id: str):
         if thread_id in self._threads:
             self._threads.pop(thread_id)
+            self.save_comments()
+            self.comments_updated.emit()
+
+    def delete_reply(self, thread_id: str, comment_index: int):
+        if thread_id in self._threads:
+            thread = self._threads[thread_id]
+            if 0 <= comment_index < len(thread.replies):
+                thread.replies.pop(comment_index)
+                if not thread.replies:
+                    self._threads.pop(thread_id)
+                self.save_comments()
+                self.comments_updated.emit()
+
+    def edit_comment(self, thread_id: str, comment_index: int, new_body: str):
+        if thread_id in self._threads:
+            thread = self._threads[thread_id]
+            if 0 <= comment_index < len(thread.replies):
+                thread.replies[comment_index].body = new_body
+                self.save_comments()
+                self.comments_updated.emit()
+
+    def rename_file(self, old_path: str, new_path: str):
+        old_norm = os.path.normpath(old_path).lower()
+        changed = False
+        for thread in self._threads.values():
+            if os.path.normpath(thread.file_path).lower() == old_norm:
+                thread.file_path = os.path.normpath(new_path)
+                changed = True
+        if changed:
             self.save_comments()
             self.comments_updated.emit()

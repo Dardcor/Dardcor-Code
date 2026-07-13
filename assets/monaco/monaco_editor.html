@@ -25,7 +25,6 @@
             height: 100%;
         }
 
-        /* Scrollbar theme */
         ::-webkit-scrollbar {
             width: 10px;
             height: 10px;
@@ -44,10 +43,18 @@
             background: #3c0068;
         }
 
-        /* Breakpoint styling in gutter */
         .breakpoint-margin {
             background: rgba(229, 20, 0, 0.15) !important;
             border-left: 3px solid #e51400 !important;
+        }
+
+        .comment-margin {
+            background: rgba(168, 85, 247, 0.12) !important;
+            border-left: 3px solid #a855f7 !important;
+        }
+        .comment-margin-resolved {
+            background: rgba(76, 175, 80, 0.08) !important;
+            border-left: 3px solid #4caf50 !important;
         }
 
         #floating-menu {
@@ -140,6 +147,11 @@
         #editor-message .close-btn:hover {
             color: #ffffff;
         }
+
+        .editor-ghost-text {
+            font-style: italic;
+            opacity: 0.6;
+        }
     </style>
 </head>
 
@@ -168,8 +180,15 @@
         var isRemoteUpdate = false;
         var extensionMenuDisposables = [];
         var activeZoneWidgets = {};
+        var _pendingBackendCalls = [];
+        var _batchTimer = null;
+        var _viewStateTimer = null;
+        var _undoStackTimer = null;
+        var _undoStack = [];
+        var _redoStack = [];
+        var _maxUndoStack = 200;
+        var _languageConfigs = {};
 
-        // VS Code Dark+ theme matching Dardcor palette
         var DARDCOR_THEME = {
             base: 'vs-dark',
             inherit: true,
@@ -234,10 +253,20 @@
             getWorker: function (workerId, label) {
                 var basePath = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
                 var workerUrl = basePath + '/vs/base/worker/workerMain.js';
-                // Build a blob that imports the real worker via importScripts with the correct base URL
+
+                var languagePaths = {
+                    json: basePath + '/vs/language/json/jsonWorker.js',
+                    css: basePath + '/vs/language/css/cssWorker.js',
+                    html: basePath + '/vs/language/html/htmlWorker.js',
+                    typescript: basePath + '/vs/language/typescript/tsWorker.js',
+                    javascript: basePath + '/vs/language/typescript/tsWorker.js'
+                };
+
+                var workerSrc = languagePaths[label] || workerUrl;
+
                 var blob = new Blob([
                     'self.MonacoEnvironment = { baseUrl: "' + basePath + '/" };' +
-                    'importScripts("' + workerUrl + '");'
+                    'importScripts("' + workerSrc + '");'
                 ], { type: 'application/javascript' });
                 return new Worker(URL.createObjectURL(blob));
             }
@@ -246,7 +275,6 @@
         require.config({ paths: { 'vs': 'vs' } });
 
         require(['vs/editor/editor.main'], function () {
-            // Load all language tokenizers for syntax highlighting
             require([
                 'vs/basic-languages/monaco.contribution',
                 'vs/language/json/monaco.contribution',
@@ -277,6 +305,8 @@
                         enabled: true,
                         maxColumn: 120,
                         renderCharacters: true,
+                        showRegionSectionHeaders: true,
+                        showMarkSectionHeaders: true,
                         showSlider: 'mouseover',
                         side: 'right'
                     },
@@ -323,48 +353,152 @@
                     renderControlCharacters: true,
                     cursorStyle: 'line',
                     cursorWidth: 2,
-                    mouseWheelZoom: true,
                     contextmenu: true,
                     copyWithSyntaxHighlighting: true,
                     emptySelectionClipboard: true,
-                    links: true,
                     occurrencesHighlight: true,
                     selectionHighlight: true,
                     codeLens: true,
-                    folding: true,
-                    showFoldingControls: 'mouseover',
                     foldingHighlight: true,
                     matchBrackets: 'always',
-                    multiCursorModifier: 'alt',
                     dragAndDrop: true,
-                    columnSelection: true,
                     accessibilitySupport: 'off',
                     glyphMargin: true,
                     lightbulb: { enabled: true },
-                    inlayHints: { enabled: 'on' },
                     stickyScroll: { enabled: true, maxLineCount: 5 },
-                    placeholder: '',
                     readOnlyMessage: { value: 'Cannot edit in read-only editor.' },
-                    unicodeHighlight: {
-                        nonBasicASCII: true,
-                        invisibleCharacters: true,
-                        ambiguousCharacters: true,
-                        includeComments: true,
-                        includeStrings: true
-                    },
-                    unusualLineTerminators: 'auto'
+                    unusualLineTerminators: 'auto',
+                    multiCursorPaste: 'spread',
+                    suggestSelectionMode: 'recentlyUsedByPrefix',
+                    snippetSuggestions: 'inline',
+                    trimAutoWhitespace: true,
+                    autoClosingDelete: 'always',
+                    autoClosingOvertype: 'always',
+                    autoSurround: 'languageDefined',
+                    comments: { insertSpace: true },
+                    padding: { top: 4, bottom: 4 },
+                    fixedOverflowWidgets: true,
+                    overviewRulerBorder: true,
+                    hideCursorInOverviewRuler: false,
+                    cursorSmoothCaretAnimation: 'on',
+                    cursorBlinking: 'smooth',
+                    cursorStyle: 'line',
+                    smoothScrolling: true,
+                    mouseWheelZoom: true,
+                    multiCursorPaste: 'spread',
+                    suggest: {
+                        showMethods: true,
+                        showFunctions: true,
+                        showConstructors: true,
+                        showFields: true,
+                        showVariables: true,
+                        showClasses: true,
+                        showStructs: true,
+                        showInterfaces: true,
+                        showModules: true,
+                        showProperties: true,
+                        showEvents: true,
+                        showOperators: true,
+                        showUnits: true,
+                        showValues: true,
+                        showConstants: true,
+                        showEnums: true,
+                        showEnumMembers: true,
+                        showKeywords: true,
+                        showWords: true,
+                        showColors: true,
+                        showFiles: true,
+                        showReferences: true,
+                        showSnippets: true,
+                        showUsers: true,
+                        showIssues: true,
+                        showInlineDetails: true,
+                        showDeprecated: true,
+                        filterGraceful: true,
+                        snippetsPreventQuickSuggestions: false
+                    }
                 });
 
-                // Read Only Message handler
                 editor.onDidAttemptReadOnlyEdit(function () {
                     if (typeof showEditorMessage === 'function') {
                         showEditorMessage('Cannot edit in read-only editor', 3000);
                     }
                 });
 
-                // Completions provider connected to the Python backend
-                // (LSP / Jedi / extension snippets). Registered for every
-                // language so extension snippets work outside Python too.
+                function queueBackendCall(fn) {
+                    _pendingBackendCalls.push(fn);
+                    if (_batchTimer) clearTimeout(_batchTimer);
+                    _batchTimer = setTimeout(function () {
+                        flushBackendCalls();
+                    }, 0);
+                }
+
+                function flushBackendCalls() {
+                    if (_batchTimer) {
+                        clearTimeout(_batchTimer);
+                        _batchTimer = null;
+                    }
+                    var calls = _pendingBackendCalls.slice();
+                    _pendingBackendCalls = [];
+                    for (var i = 0; i < calls.length; i++) {
+                        try { calls[i](); } catch (e) { }
+                    }
+                }
+
+                function reportMultiCursors() {
+                    if (!editor || !backend) return;
+                    var selections = editor.getSelections() || [];
+                    if (selections.length <= 1) return;
+                    var cursors = [];
+                    for (var i = 0; i < selections.length; i++) {
+                        var pos = selections[i].getPosition();
+                        cursors.push({ line: pos.lineNumber, column: pos.column });
+                    }
+                    var json = JSON.stringify(cursors);
+                    queueBackendCall(function () {
+                        if (backend && typeof backend.on_multi_cursor_changed === 'function') {
+                            backend.on_multi_cursor_changed(json);
+                        }
+                    });
+                }
+
+                function reportSelectionState() {
+                    if (!editor || !backend) return;
+                    var selections = editor.getSelections() || [];
+                    var selList = [];
+                    for (var i = 0; i < selections.length; i++) {
+                        var s = selections[i];
+                        selList.push({
+                            startLine: s.startLineNumber,
+                            startColumn: s.startColumn,
+                            endLine: s.endLineNumber,
+                            endColumn: s.endColumn,
+                            primary: i === 0
+                        });
+                    }
+                    var json = JSON.stringify(selList);
+                    queueBackendCall(function () {
+                        if (backend && typeof backend.on_selection_state_changed === 'function') {
+                            backend.on_selection_state_changed(json);
+                        }
+                    });
+                }
+
+                function saveUndoStack() {
+                    if (!editor || !backend) return;
+                    var model = editor.getModel();
+                    if (!model) return;
+                    queueBackendCall(function () {
+                        if (backend && typeof backend.persist_undo_stack === 'function') {
+                            var stack = {
+                                undo: _undoStack.slice(-_maxUndoStack),
+                                redo: _redoStack.slice(-_maxUndoStack)
+                            };
+                            backend.persist_undo_stack(JSON.stringify(stack));
+                        }
+                    });
+                }
+
                 var backendCompletionProvider = {
                     triggerCharacters: ['.', ' ', '_'],
                     provideCompletionItems: function (model, position) {
@@ -462,30 +596,10 @@
                                 return;
                             }
                             backend.get_rename(currentFilePath, position.lineNumber, position.column, newName, function (res) {
-                                if (!res) {
-                                    resolve(null);
-                                    return;
+                                if (res && backend.apply_workspace_edit) {
+                                    backend.apply_workspace_edit(res);
                                 }
-                                try {
-                                    var data = JSON.parse(res);
-                                    var edits = (data.edits || []).map(function (edit) {
-                                        var uri = uriFromPath(edit.uri);
-                                        if (!uri) return null;
-                                        return {
-                                            resource: uri,
-                                            textEdit: {
-                                                range: new monaco.Range(
-                                                    edit.startLine, edit.startColumn,
-                                                    edit.endLine, edit.endColumn
-                                                ),
-                                                text: edit.text
-                                            }
-                                        };
-                                    }).filter(function (e) { return e !== null; });
-                                    resolve(edits.length ? { edits: edits } : null);
-                                } catch (e) {
-                                    resolve(null);
-                                }
+                                resolve({ edits: [] });
                             });
                         });
                     }
@@ -583,14 +697,146 @@
                     releaseDocumentSemanticTokens: function () {}
                 };
 
+                var colorRegex = /(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b)|(rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+(?:\s*,\s*[\d.]+)?\s*\))/g;
+                var basicColorProvider = {
+                    provideDocumentColors: function(model, token) {
+                        var colors = [];
+                        var lines = model.getLinesContent();
+                        for (var i = 0; i < lines.length; i++) {
+                            var line = lines[i];
+                            var match;
+                            while ((match = colorRegex.exec(line)) !== null) {
+                                var colorStr = match[0];
+                                var color = null;
+                                if (colorStr.charAt(0) === '#') {
+                                    var hex = colorStr.substring(1);
+                                    if (hex.length === 3) {
+                                        color = { red: parseInt(hex[0]+hex[0], 16) / 255, green: parseInt(hex[1]+hex[1], 16) / 255, blue: parseInt(hex[2]+hex[2], 16) / 255, alpha: 1 };
+                                    } else if (hex.length === 6) {
+                                        color = { red: parseInt(hex.substring(0,2), 16) / 255, green: parseInt(hex.substring(2,4), 16) / 255, blue: parseInt(hex.substring(4,6), 16) / 255, alpha: 1 };
+                                    } else if (hex.length === 8) {
+                                        color = { red: parseInt(hex.substring(0,2), 16) / 255, green: parseInt(hex.substring(2,4), 16) / 255, blue: parseInt(hex.substring(4,6), 16) / 255, alpha: parseInt(hex.substring(6,8), 16) / 255 };
+                                    }
+                                } else if (colorStr.indexOf('rgb') === 0) {
+                                    var parts = colorStr.match(/[\d.]+/g);
+                                    if (parts && parts.length >= 3) {
+                                        color = { red: parseInt(parts[0]) / 255, green: parseInt(parts[1]) / 255, blue: parseInt(parts[2]) / 255, alpha: parts.length > 3 ? parseFloat(parts[3]) : 1 };
+                                    }
+                                }
+                                if (color) {
+                                    colors.push({
+                                        color: color,
+                                        range: new monaco.Range(i + 1, match.index + 1, i + 1, match.index + 1 + colorStr.length)
+                                    });
+                                }
+                            }
+                            colorRegex.lastIndex = 0;
+                        }
+                        return colors;
+                    },
+                    provideColorPresentations: function(model, colorInfo, token) {
+                        var c = colorInfo.color;
+                        var r = Math.round(c.red * 255);
+                        var g = Math.round(c.green * 255);
+                        var b = Math.round(c.blue * 255);
+                        var a = c.alpha;
+                        var toHex = function(n) { var h = n.toString(16); return h.length === 1 ? '0' + h : h; };
+                        var hex = '#' + toHex(r) + toHex(g) + toHex(b);
+                        if (a !== 1) hex += toHex(Math.round(a * 255));
+                        var rgb = a === 1 ? 'rgb(' + r + ', ' + g + ', ' + b + ')' : 'rgba(' + r + ', ' + g + ', ' + b + ', ' + a.toFixed(2) + ')';
+                        return [{ label: hex }, { label: rgb }];
+                    }
+                };
+
+                var backendInlineCompletionsProvider = {
+                    provideInlineCompletions: function (model, position, context, token) {
+                        return new Promise(function (resolve) {
+                            if (!backend || typeof backend.get_inline_completions !== 'function') {
+                                resolve({ items: [] });
+                                return;
+                            }
+                            backend.get_inline_completions(currentFilePath, position.lineNumber, position.column, function (res) {
+                                if (!res) {
+                                    resolve({ items: [] });
+                                    return;
+                                }
+                                try {
+                                    var data = JSON.parse(res);
+                                    resolve({ items: data.items || [] });
+                                } catch (e) {
+                                    resolve({ items: [] });
+                                }
+                            });
+                        });
+                    },
+                    freeInlineCompletions: function (completions) {}
+                };
+
+                var backendReferenceProvider = {
+                    provideReferences: function (model, position, context, token) {
+                        return new Promise(function (resolve) {
+                            if (!backend || typeof backend.get_references !== 'function') {
+                                resolve([]);
+                                return;
+                            }
+                            backend.get_references(currentFilePath, position.lineNumber, position.column, function (res) {
+                                if (!res) {
+                                    resolve([]);
+                                    return;
+                                }
+                                try {
+                                    var data = JSON.parse(res);
+                                    var refs = (data || []).map(function (ref) {
+                                        var uri = uriFromPath(ref.uri);
+                                        if (!uri) return null;
+                                        return {
+                                            uri: uri,
+                                            range: new monaco.Range(
+                                                ref.startLine, ref.startColumn,
+                                                ref.endLine, ref.endColumn
+                                            )
+                                        };
+                                    }).filter(function(e) { return e !== null; });
+                                    resolve(refs);
+                                } catch (e) {
+                                    resolve([]);
+                                }
+                            });
+                        });
+                    }
+                };
+
+                var backendCallHierarchyProvider = {
+                    prepareCallHierarchy: function(model, position, token) {
+                        return new Promise(function(resolve) { resolve(null); });
+                    }
+                };
+
+                var backendTypeHierarchyProvider = {
+                    prepareTypeHierarchy: function(model, position, token) {
+                        return new Promise(function(resolve) { resolve(null); });
+                    }
+                };
+
+                var backendPasteEditProvider = {
+                    provideDocumentPasteEdits: function(model, ranges, dataTransfer, token) {
+                        return new Promise(function(resolve) { resolve(null); });
+                    }
+                };
+
                 monaco.languages.getLanguages().forEach(function (lang) {
                     monaco.languages.registerDefinitionProvider(lang.id, backendDefinitionProvider);
                     monaco.languages.registerRenameProvider(lang.id, backendRenameProvider);
                     monaco.languages.registerSignatureHelpProvider(lang.id, backendSignatureHelpProvider);
                     monaco.languages.registerDocumentSemanticTokensProvider(lang.id, backendSemanticTokensProvider);
+                    monaco.languages.registerInlineCompletionsProvider(lang.id, backendInlineCompletionsProvider);
+                    monaco.languages.registerReferenceProvider(lang.id, backendReferenceProvider);
+                    if (monaco.languages.registerCallHierarchyProvider) monaco.languages.registerCallHierarchyProvider(lang.id, backendCallHierarchyProvider);
+                    if (monaco.languages.registerTypeHierarchyProvider) monaco.languages.registerTypeHierarchyProvider(lang.id, backendTypeHierarchyProvider);
+                    if (monaco.languages.registerDocumentPasteEditProvider) monaco.languages.registerDocumentPasteEditProvider(lang.id, backendPasteEditProvider);
+                    monaco.languages.registerColorProvider(lang.id, basicColorProvider);
                 });
 
-                // Register code action (Quick Fix) provider linked to diagnostics/markers
                 monaco.languages.getLanguages().forEach(function (lang) {
                     monaco.languages.registerCodeActionProvider(lang.id, {
                         provideCodeActions: function (model, range, context, token) {
@@ -641,7 +887,6 @@
                     });
                 });
 
-                // Register hover provider
                 monaco.languages.registerHoverProvider('python', {
                     provideHover: function (model, position) {
                         return new Promise(function (resolve, reject) {
@@ -664,7 +909,6 @@
                     }
                 });
 
-                // Register CodeLens provider for Python definitions
                 monaco.languages.registerCodeLensProvider('python', {
                     provideCodeLenses: function (model, token) {
                         var lenses = [];
@@ -703,7 +947,6 @@
                     }
                 });
 
-                // Register DocumentSymbolProvider for Python
                 monaco.languages.registerDocumentSymbolProvider('python', {
                     provideDocumentSymbols: function (model, token) {
                         var symbols = [];
@@ -726,7 +969,6 @@
                     }
                 });
 
-                // Register InlayHintsProvider for Python return types
                 monaco.languages.registerInlayHintsProvider('python', {
                     provideInlayHints: function (model, range, token) {
                         var hints = [];
@@ -754,41 +996,6 @@
                     }
                 });
 
-                // Register RenameProvider for Python
-                monaco.languages.registerRenameProvider('python', {
-                    provideRenameEdits: function (model, position, newName, token) {
-                        return new Promise(function (resolve, reject) {
-                            var word = model.getWordAtPosition(position);
-                            if (!word) {
-                                resolve(null);
-                                return;
-                            }
-                            var oldName = word.word;
-                            var edits = [];
-                            var lines = model.getLinesContent();
-                            var regex = new RegExp('\\b' + oldName + '\\b', 'g');
-                            for (var i = 0; i < lines.length; i++) {
-                                var line = lines[i];
-                                var match;
-                                while ((match = regex.exec(line)) !== null) {
-                                    edits.push({
-                                        resource: model.uri,
-                                        versionId: model.getVersionId(),
-                                        textEdit: {
-                                            range: new monaco.Range(i + 1, match.index + 1, i + 1, match.index + 1 + oldName.length),
-                                            text: newName
-                                        }
-                                    });
-                                }
-                            }
-                            resolve({
-                                edits: edits
-                            });
-                        });
-                    }
-                });
-
-                // View state saving/restoring functions
                 var viewStateTimeout = null;
                 function queueSaveViewState() {
                     if (viewStateTimeout) clearTimeout(viewStateTimeout);
@@ -800,6 +1007,14 @@
                             }
                         }
                     }, 500);
+                }
+
+                var undoStackTimeout = null;
+                function queueSaveUndoStack() {
+                    if (undoStackTimeout) clearTimeout(undoStackTimeout);
+                    undoStackTimeout = setTimeout(function () {
+                        saveUndoStack();
+                    }, 2000);
                 }
 
                 window.addEventListener('resize', function() {
@@ -817,44 +1032,87 @@
                     }
                 };
 
-                // Listen for content changes
+                window.restoreUndoStack = function (stackJson) {
+                    if (stackJson) {
+                        try {
+                            var stack = typeof stackJson === 'string' ? JSON.parse(stackJson) : stackJson;
+                            if (stack.undo) _undoStack = stack.undo;
+                            if (stack.redo) _redoStack = stack.redo;
+                        } catch (e) { }
+                    }
+                };
+
                 editor.onDidChangeModelContent(function (e) {
                     if (isRemoteUpdate) return;
-                    if (backend) {
-                        backend.on_content_changed(editor.getValue());
+
+                    for (var i = 0; i < e.changes.length; i++) {
+                        var change = e.changes[i];
+                        var range = change.range;
+                        if (backend && typeof backend.on_content_changed_incremental === 'function') {
+                            queueBackendCall((function(r, t) {
+                                return function() {
+                                    backend.on_content_changed_incremental(
+                                        r.startLineNumber, r.startColumn,
+                                        r.endLineNumber, r.endColumn, t
+                                    );
+                                };
+                            })(range, change.text));
+                        }
+                    }
+
+                    if (backend && typeof backend.on_content_changed === 'function') {
+                        queueBackendCall(function() {
+                            backend.on_content_changed(editor.getValue());
+                        });
+                    }
+
+                    var content = editor.getValue();
+                    var prevLineCount = content.split('\n').length;
+                    if (prevLineCount < 500 && content.length > 0) {
+                        var undoItem = {
+                            content: content,
+                            cursor: editor.getPosition()
+                        };
+                        _undoStack.push(undoItem);
+                        if (_undoStack.length > _maxUndoStack) {
+                            _undoStack.shift();
+                        }
+                        _redoStack = [];
+                        queueSaveUndoStack();
                     }
                 });
 
-                // Listen for cursor position changes
                 editor.onDidChangeCursorPosition(function (e) {
                     if (backend) {
                         backend.on_cursor_changed(e.position.lineNumber, e.position.column);
                     }
+                    reportMultiCursors();
                     queueSaveViewState();
                 });
 
-                // Listen for scroll changes
                 editor.onDidScrollChange(function (e) {
+                    if (backend && typeof backend.on_editor_scroll === 'function') {
+                        backend.on_editor_scroll(e.scrollTop, e.scrollLeft);
+                    }
                     queueSaveViewState();
                 });
 
-                // Listen for selection change to show floating menu and report selection count
                 editor.onDidChangeCursorSelection(function (e) {
-
                     var selection = e.selection;
                     var floatingMenu = document.getElementById('floating-menu');
                     if (!floatingMenu) return;
 
+                    reportSelectionState();
+                    reportMultiCursors();
+
                     if (selection.isEmpty()) {
                         floatingMenu.style.display = 'none';
-                        // Report zero selection to Python (clears status bar indicator)
                         if (backend && typeof backend.on_selection_changed === 'function') {
                             backend.on_selection_changed(0, 0);
                         }
                         return;
                     }
 
-                    // Report selection count to Python for status bar
                     if (backend && typeof backend.on_selection_changed === 'function') {
                         var model = editor.getModel();
                         var selectedText = model ? model.getValueInRange(selection) : '';
@@ -879,24 +1137,57 @@
                     }
                 });
 
-                editor.onDidChangeConfiguration(function (e) {
-                    if (e.hasChanged(monaco.editor.EditorOption.tabSize) ||
-                        e.hasChanged(monaco.editor.EditorOption.insertSpaces)) {
-                        // indent changed
+                editor.onMouseDown(function (e) {
+                    if (e.target && e.target.type === monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN) {
+                        var line = e.target.position.lineNumber;
+                        if (backend && typeof backend.on_comment_gutter_clicked === 'function') {
+                            backend.on_comment_gutter_clicked(line);
+                        }
                     }
                 });
 
-                // Listen for save command (Ctrl+S)
-                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, function () {
-                    if (backend) backend.request_save();
+                editor.onDidChangeConfiguration(function (e) {
+                    if (e.hasChanged(monaco.editor.EditorOption.tabSize) ||
+                        e.hasChanged(monaco.editor.EditorOption.insertSpaces)) {
+                    }
                 });
 
-                // Listen for find command (Ctrl+F)
+                editor.onDidChangeModelLanguage(function (e) {
+                    var lang = e.newLanguage;
+                    if (backend && typeof backend.on_language_changed === 'function') {
+                        backend.on_language_changed(lang);
+                    }
+                    applyLanguageConfig(lang);
+                });
+
+                function applyLanguageConfig(language) {
+                    var config = _languageConfigs[language];
+                    if (!config) return;
+                    var opts = {};
+                    if (config.tabSize !== undefined) opts.tabSize = config.tabSize;
+                    if (config.insertSpaces !== undefined) opts.insertSpaces = config.insertSpaces;
+                    if (config.quickSuggestions !== undefined) opts.quickSuggestions = config.quickSuggestions;
+                    if (Object.keys(opts).length > 0) {
+                        editor.updateOptions(opts);
+                    }
+                }
+
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, function () {
+                    if (backend) {
+                        backend.request_save();
+                        if (backend && typeof backend.request_format_on_save === 'function') {
+                            backend.request_format_on_save();
+                        }
+                        if (backend && typeof backend.request_code_actions_on_save === 'function') {
+                            backend.request_code_actions_on_save();
+                        }
+                    }
+                });
+
                 editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyF, function () {
                     editor.getAction('actions.find').run();
                 });
 
-                // Selection Anchor commands
                 editor.addCommand(monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyB), function () {
                     editor.trigger('keyboard', 'editor.action.setSelectionAnchor', null);
                 });
@@ -907,148 +1198,134 @@
                     editor.trigger('keyboard', 'editor.action.cancelSelectionAnchor', null);
                 });
 
-                // Listen for command palette
                 editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyP, function () {
                     if (backend) backend.request_command_palette();
                 });
 
-                // Transpose Letters (Ctrl+T)
                 editor.addCommand(monaco.KeyMod.WinCtrl | monaco.KeyCode.KeyT, function () {
                     editor.trigger('keyboard', 'editor.action.transposeLetters', null);
                 });
 
-                // Expand Line Selection (Ctrl+L)
                 editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL, function () {
                     editor.trigger('keyboard', 'expandLineSelection', null);
                 });
 
-                // Move Line Up (Alt+Up)
                 editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.UpArrow, function () {
                     editor.trigger('keyboard', 'editor.action.moveLinesUpAction', null);
                 });
 
-                // Move Line Down (Alt+Down)
                 editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.DownArrow, function () {
                     editor.trigger('keyboard', 'editor.action.moveLinesDownAction', null);
                 });
 
-                // Copy Line Up (Shift+Alt+Up)
                 editor.addCommand(monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.UpArrow, function () {
                     editor.trigger('keyboard', 'editor.action.copyLinesUpAction', null);
                 });
 
-                // Copy Line Down (Shift+Alt+Down)
                 editor.addCommand(monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.DownArrow, function () {
                     editor.trigger('keyboard', 'editor.action.copyLinesDownAction', null);
                 });
 
-                // Cursor Undo (Ctrl+U)
                 editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyU, function () {
                     editor.trigger('keyboard', 'cursorUndo', null);
                 });
 
-                // Peek Definition (Alt+F12)
                 editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.F12, function () {
                     editor.trigger('keyboard', 'editor.action.peekDefinition', null);
                 });
 
-                // Smart Select - Expand (Shift+Alt+Right)
                 editor.addCommand(monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.RightArrow, function () {
                     editor.trigger('keyboard', 'editor.action.smartSelect.expand', null);
                 });
 
-                // Smart Select - Shrink (Shift+Alt+Left)
                 editor.addCommand(monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.LeftArrow, function () {
                     editor.trigger('keyboard', 'editor.action.smartSelect.shrink', null);
                 });
 
-                // Toggle Tab Focus Mode (Ctrl+M)
                 editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyM, function () {
                     editor.trigger('keyboard', 'editor.action.toggleTabFocusMode', null);
                 });
 
-                // Toggle Line Comment (Ctrl+/)
                 editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Slash, function () {
                     editor.trigger('keyboard', 'editor.action.commentLine', null);
                 });
 
-                // Toggle Block Comment (Ctrl+Shift+/)
                 editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Slash, function () {
                     editor.trigger('keyboard', 'editor.action.blockComment', null);
                 });
 
-                // Go to Next Error (F8)
                 editor.addCommand(monaco.KeyCode.F8, function () {
                     editor.trigger('keyboard', 'editor.action.marker.next', null);
                 });
 
-                // Go to Previous Error (Shift+F8)
                 editor.addCommand(monaco.KeyMod.Shift | monaco.KeyCode.F8, function () {
                     editor.trigger('keyboard', 'editor.action.marker.prev', null);
                 });
 
-                // Go to Symbol (Ctrl+Shift+O)
                 editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyO, function () {
                     editor.trigger('keyboard', 'editor.action.quickOutline', null);
                 });
 
-                // Inline suggestion show next (Alt + ])
                 editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.US_CLOSE_SQUARE_BRACKET, function () {
                     editor.trigger('keyboard', 'editor.action.inlineSuggest.showNext', null);
                 });
 
-                // Inline suggestion show prev (Alt + [)
                 editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.US_OPEN_SQUARE_BRACKET, function () {
                     editor.trigger('keyboard', 'editor.action.inlineSuggest.showPrevious', null);
                 });
 
-                // Trigger Parameter Hints (Ctrl+Shift+Space) - VS Code parity
                 editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Space, function () {
                     editor.trigger('keyboard', 'editor.action.triggerParameterHints', null);
                 });
 
-                // Format Selection (Ctrl+K Ctrl+F) - VS Code parity
                 editor.addCommand(monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyF), function () {
                     editor.trigger('keyboard', 'editor.action.formatSelection', null);
                 });
 
-                // Quick Fix / Code Action lightbulb (Ctrl+.) - VS Code parity
                 editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Period, function () {
                     editor.trigger('keyboard', 'editor.action.quickFix', null);
                 });
 
-                // Change All Occurrences (Ctrl+F2) - VS Code parity
                 editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.F2, function () {
                     editor.trigger('keyboard', 'editor.action.changeAll', null);
                 });
 
-                // Go to Matching Bracket (Ctrl+Shift+\) - VS Code parity
                 editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Backslash, function () {
                     editor.trigger('keyboard', 'editor.action.jumpToBracket', null);
                 });
 
-                // Show Hover (Ctrl+K Ctrl+I) - VS Code parity
                 editor.addCommand(monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyI), function () {
                     editor.trigger('keyboard', 'editor.action.showHover', null);
                 });
 
-                // Go to Implementation (Ctrl+F12) - VS Code parity
                 editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12, function () {
                     editor.trigger('keyboard', 'editor.action.goToImplementation', null);
                 });
 
-                // Go to References (Shift+F12) - VS Code parity
                 editor.addCommand(monaco.KeyMod.Shift | monaco.KeyCode.F12, function () {
                     editor.trigger('keyboard', 'editor.action.goToReferences', null);
                 });
 
-                // Handle window resize
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt | monaco.KeyCode.DownArrow, function () {
+                    editor.trigger('keyboard', 'editor.action.insertCursorBelow', null);
+                });
+
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt | monaco.KeyCode.UpArrow, function () {
+                    editor.trigger('keyboard', 'editor.action.insertCursorAbove', null);
+                });
+
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyD, function () {
+                    editor.trigger('keyboard', 'editor.action.addSelectionToNextFindMatch', null);
+                });
+
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyU, function () {
+                    editor.trigger('keyboard', 'editor.action.cancelSelection', null);
+                });
+
                 window.addEventListener('resize', function () {
                     editor.layout();
                 });
 
-
-                // Drop and Paste Into handlers
                 document.addEventListener('dragover', function (e) {
                     e.preventDefault();
                 }, true);
@@ -1103,7 +1380,6 @@
                 monaco.languages.registerInlineCompletionsProvider('*', {
                     provideInlineCompletions: function (model, position, context, token) {
                         if (!aiSuggestion) return { items: [] };
-
                         return {
                             items: [{
                                 insertText: aiSuggestion,
@@ -1114,10 +1390,8 @@
                     freeInlineCompletions(completions) { }
                 });
 
-                // Initialize web channel
                 initWebChannel();
 
-                // Refresh extension context menu items live on each right-click
                 document.getElementById('container').addEventListener('contextmenu', function () {
                     if (backend && typeof backend.get_extension_menu_items === 'function') {
                         backend.get_extension_menu_items('editor/context', function (res) {
@@ -1125,7 +1399,7 @@
                         });
                     }
                 }, true);
-            }); // end inner require (language contributions)
+            });
         });
 
         function initWebChannel() {
@@ -1137,7 +1411,6 @@
             new QWebChannel(qt.webChannelTransport, function (channel) {
                 backend = channel.objects.editor_backend;
 
-                // Apply any pending content
                 if (pendingContent !== null) {
                     setEditorContent(pendingContent, pendingLanguage || 'plaintext', pendingFilePath || '');
                     pendingContent = null;
@@ -1145,28 +1418,15 @@
             });
         }
 
-        // === Functions called from Python ===
-
-        // --- Inline AI Suggestions (Ghost Text) ---
         let aiSuggestion = null;
-        let aiSuggestionRange = null;
 
-
-
-        // Trigger AI Suggestion externally
         function setAISuggestion(text) {
             aiSuggestion = text;
-            if (editor) {
-                // Trigger inline completion manually if possible, or wait for typing
-                // Monaco triggers it automatically as you type when provider is registered
-            }
         }
 
         function clearAISuggestion() {
             aiSuggestion = null;
         }
-
-        // --- End Inline AI ---
 
         function requestContentFromBackend(language, filePath) {
             currentFilePath = filePath || '';
@@ -1191,7 +1451,6 @@
             }
             isRemoteUpdate = true;
 
-            // Check if file is large (>10MB)
             var isLargeFile = content && content.length > 10 * 1024 * 1024;
             if (isLargeFile) {
                 editor.updateOptions({
@@ -1361,7 +1620,6 @@
             monaco.editor.setTheme(isDark ? 'dardcor-dark' : 'vs');
         }
 
-        // Apply a VS Code extension color theme (converted to Monaco format in Python)
         function defineCustomTheme(themeJson) {
             try {
                 var data = typeof themeJson === 'string' ? JSON.parse(themeJson) : themeJson;
@@ -1371,19 +1629,224 @@
                 }
                 monaco.editor.defineTheme('dardcor-custom', data);
                 monaco.editor.setTheme('dardcor-custom');
-            } catch (e) { /* keep current theme on invalid data */ }
+            } catch (e) { }
         }
 
         function setFontSize(size) {
             if (editor) editor.updateOptions({ fontSize: size });
         }
 
-        function setWordWrap(enabled) {
-            if (editor) editor.updateOptions({ wordWrap: enabled ? 'on' : 'off' });
+        function setFontFamily(family) {
+            if (editor) editor.updateOptions({ fontFamily: family });
+        }
+
+        function setFontLigatures(enabled) {
+            if (editor) editor.updateOptions({ fontLigatures: enabled });
+        }
+
+        function setLineNumbers(setting) {
+            if (editor) editor.updateOptions({ lineNumbers: setting });
+        }
+
+        function setCursorStyle(style) {
+            if (editor) editor.updateOptions({ cursorStyle: style });
+        }
+
+        function setCursorBlinking(style) {
+            if (editor) editor.updateOptions({ cursorBlinking: style });
+        }
+
+        function setCursorSmoothCaretAnimation(enabled) {
+            if (editor) editor.updateOptions({ cursorSmoothCaretAnimation: enabled ? 'on' : 'off' });
+        }
+
+        function setSmoothScrolling(enabled) {
+            if (editor) editor.updateOptions({ smoothScrolling: enabled });
+        }
+
+        function setMouseWheelZoom(enabled) {
+            if (editor) editor.updateOptions({ mouseWheelZoom: enabled });
+        }
+
+        function setWordWrap(setting) {
+            if (editor) editor.updateOptions({ wordWrap: setting });
+        }
+
+        function setWordWrapColumn(column) {
+            if (editor) editor.updateOptions({ wordWrapColumn: column });
         }
 
         function setMinimap(enabled) {
             if (editor) editor.updateOptions({ minimap: { enabled: enabled } });
+        }
+
+        function setMinimapSide(side) {
+            if (editor) editor.updateOptions({ minimap: { side: side } });
+        }
+
+        function setRulers(rulersJson) {
+            if (editor) {
+                var rulers = [];
+                try {
+                    rulers = typeof rulersJson === 'string' ? JSON.parse(rulersJson) : rulersJson;
+                } catch (e) { }
+                if (Array.isArray(rulers)) {
+                    var config = rulers.map(function(c) {
+                        return typeof c === 'number' ? { column: c, color: '#5a009c80' } : c;
+                    });
+                    editor.updateOptions({ rulers: config });
+                }
+            }
+        }
+
+        function setTabSize(size) {
+            if (editor) editor.updateOptions({ tabSize: size });
+        }
+
+        function setInsertSpaces(enabled) {
+            if (editor) editor.updateOptions({ insertSpaces: enabled });
+        }
+
+        function setDetectIndentation(enabled) {
+            if (editor) editor.updateOptions({ detectIndentation: enabled });
+        }
+
+        function setFormatOnPaste(enabled) {
+            if (editor) editor.updateOptions({ formatOnPaste: enabled });
+        }
+
+        function setFormatOnType(enabled) {
+            if (editor) editor.updateOptions({ formatOnType: enabled });
+        }
+
+        function setAutoIndent(enabled) {
+            if (editor) editor.updateOptions({ autoIndent: enabled ? 'full' : 'none' });
+        }
+
+        function setAutoClosingBrackets(setting) {
+            if (editor) editor.updateOptions({ autoClosingBrackets: setting });
+        }
+
+        function setAutoClosingQuotes(setting) {
+            if (editor) editor.updateOptions({ autoClosingQuotes: setting });
+        }
+
+        function setBracketPairColorization(enabled) {
+            if (editor) editor.updateOptions({ bracketPairColorization: { enabled: enabled } });
+        }
+
+        function setGuides(bracketPairs, indentation, highlightActive) {
+            if (editor) editor.updateOptions({
+                guides: {
+                    bracketPairs: bracketPairs,
+                    indentation: indentation,
+                    highlightActiveIndentation: highlightActive
+                }
+            });
+        }
+
+        function setFolding(enabled) {
+            if (editor) editor.updateOptions({ folding: enabled });
+        }
+
+        function setFoldingHighlight(enabled) {
+            if (editor) editor.updateOptions({ foldingHighlight: enabled });
+        }
+
+        function setGlyphMargin(enabled) {
+            if (editor) editor.updateOptions({ glyphMargin: enabled });
+        }
+
+        function setColorDecorators(enabled) {
+            if (editor) editor.updateOptions({ colorDecorators: enabled });
+        }
+
+        function setSemanticHighlighting(enabled) {
+            if (editor) editor.updateOptions({ 'semanticHighlighting.enabled': enabled });
+        }
+
+        function setUnicodeHighlight(enabled) {
+            if (editor) {
+                editor.updateOptions({
+                    unicodeHighlight: {
+                        nonBasicASCII: enabled,
+                        invisibleCharacters: enabled,
+                        ambiguousCharacters: enabled,
+                        includeComments: enabled,
+                        includeStrings: enabled
+                    }
+                });
+            }
+        }
+
+        function setUnicodeHighlightOptions(options) {
+            if (editor) {
+                var opts = typeof options === 'string' ? JSON.parse(options) : options;
+                editor.updateOptions({ unicodeHighlight: opts });
+            }
+        }
+
+        function setRenderWhitespace(setting) {
+            if (editor) editor.updateOptions({ renderWhitespace: setting });
+        }
+
+        function setTrimAutoWhitespace(enabled) {
+            if (editor) editor.updateOptions({ trimAutoWhitespace: enabled });
+        }
+
+        function setDragAndDrop(enabled) {
+            if (editor) editor.updateOptions({ dragAndDrop: enabled });
+        }
+
+        function setMultiCursorModifier(modifier) {
+            if (editor) editor.updateOptions({ multiCursorModifier: modifier });
+        }
+
+        function setMultiCursorPaste(setting) {
+            if (editor) editor.updateOptions({ multiCursorPaste: setting });
+        }
+
+        function setSuggestSelectionMode(mode) {
+            if (editor) editor.updateOptions({ suggestSelectionMode: mode });
+        }
+
+        function setSnippetSuggestions(setting) {
+            if (editor) editor.updateOptions({ snippetSuggestions: setting });
+        }
+
+        function setQuickSuggestions(other, comments, strings) {
+            if (editor) editor.updateOptions({
+                quickSuggestions: { other: other, comments: comments, strings: strings }
+            });
+        }
+
+        function setQuickSuggestionsDelay(ms) {
+            if (editor) editor.updateOptions({ quickSuggestionsDelay: ms });
+        }
+
+        function setLanguageTabSize(language, size) {
+            if (!_languageConfigs[language]) _languageConfigs[language] = {};
+            _languageConfigs[language].tabSize = size;
+            var model = editor.getModel();
+            if (model && model.getLanguageId() === language) {
+                editor.updateOptions({ tabSize: size });
+            }
+        }
+
+        function setLanguageInsertSpaces(language, enabled) {
+            if (!_languageConfigs[language]) _languageConfigs[language] = {};
+            _languageConfigs[language].insertSpaces = enabled;
+            var model = editor.getModel();
+            if (model && model.getLanguageId() === language) {
+                editor.updateOptions({ insertSpaces: enabled });
+            }
+        }
+
+        function applyEditorOptions(options) {
+            if (editor) {
+                var opts = typeof options === 'string' ? JSON.parse(options) : options;
+                editor.updateOptions(opts);
+            }
         }
 
         function triggerFind() {
@@ -1402,6 +1865,18 @@
             if (!editor) return;
             var model = editor.getModel();
             if (!model) return;
+            
+            if (typeof markers === 'string') {
+                try {
+                    markers = JSON.parse(markers);
+                } catch (e) {
+                    markers = [];
+                }
+            }
+            if (!Array.isArray(markers)) {
+                markers = [];
+            }
+            
             monaco.editor.setModelMarkers(model, 'python', markers.map(function (m) {
                 return {
                     severity: m.severity === 'error' ? monaco.MarkerSeverity.Error :
@@ -1421,6 +1896,46 @@
             if (!editor) return;
             var model = editor.getModel();
             if (model) monaco.editor.setModelMarkers(model, 'python', []);
+        }
+
+        var commentDecorationIds = [];
+        var commentData = {};
+
+        function setCommentMarkers(markers) {
+            if (!editor) return;
+            clearCommentMarkers();
+
+            commentData = markers || {};
+            var decorations = [];
+            var lines = Object.keys(commentData);
+            for (var i = 0; i < lines.length; i++) {
+                var line = parseInt(lines[i]);
+                var threads = commentData[lines[i]];
+                var hasUnresolved = false;
+                var previews = [];
+                for (var j = 0; j < threads.length; j++) {
+                    if (!threads[j].resolved) hasUnresolved = true;
+                    previews.push("[" + threads[j].author + "] " + threads[j].preview);
+                }
+                var resolved = !hasUnresolved;
+                var cls = resolved ? 'comment-margin-resolved' : 'comment-margin';
+                var tooltip = (resolved ? "✓ " : "") + previews.join(" | ");
+                decorations.push({
+                    range: new monaco.Range(line, 1, line, 1),
+                    options: {
+                        isWholeLine: false,
+                        marginClassName: cls,
+                        glyphMarginHoverMessage: { value: tooltip }
+                    }
+                });
+            }
+            commentDecorationIds = editor.deltaDecorations([], decorations);
+        }
+
+        function clearCommentMarkers() {
+            if (!editor) return;
+            commentDecorationIds = editor.deltaDecorations(commentDecorationIds, []);
+            commentData = {};
         }
 
         function addBreakpoint(lineNumber) {
@@ -1511,7 +2026,7 @@
                 }
             });
         }
-        // Middle click auto-scroll implementation
+
         (function () {
             var isScrolling = false;
             var startX = 0, startY = 0;
@@ -1520,7 +2035,7 @@
             var speedX = 0, speedY = 0;
 
             document.addEventListener('mousedown', function (e) {
-                if (e.button === 1) { // Middle click
+                if (e.button === 1) {
                     e.preventDefault();
                     isScrolling = true;
                     startX = e.clientX;

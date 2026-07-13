@@ -1,0 +1,42 @@
+{
+  "name": "dardcor-docker",
+  "displayName": "Docker",
+  "description": "Docker language grammar for Dardcor Code",
+  "version": "1.68.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "main": "extension.py",
+  "contributes": {
+    "languages": [
+      {
+        "id": "dockerfile",
+        "aliases": [
+          "Docker",
+          "dockerfile"
+        ],
+        "extensions": [
+          "dockerfile",
+          "Dockerfile"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "dockerfile",
+        "scopeName": "source.dockerfile",
+        "path": "./syntaxes/dockerfile.tmLanguage.json"
+      }
+    ]
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes",
+    "Formatters",
+    "Linters",
+    "Language Packs"
+  ]
+}

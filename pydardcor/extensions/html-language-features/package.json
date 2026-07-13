@@ -1,0 +1,27 @@
+{
+  "name": "dardcor-html-language-features",
+  "displayName": "HTML Language Features",
+  "description": "Rich HTML language support",
+  "version": "1.68.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "main": "extension.py",
+  "contributes": {
+    "commands": [
+      {
+        "command": "html-language-features.hello",
+        "title": "HTML Language Features: Show Info"
+      }
+    ]
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes",
+    "Formatters",
+    "Linters",
+    "Language Packs"
+  ]
+}

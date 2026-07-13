@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>Source Control</title>
     <link href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.32/dist/codicon.css" rel="stylesheet" />
-
     <link rel="stylesheet" href="../css/source_control.css">
 </head>
 <body>
@@ -12,30 +11,38 @@
         <div class="title">SOURCE CONTROL</div>
         <div class="header-actions">
             <div class="action-btn" title="Views and More Actions" id="topMenuBtn"><i class="codicon codicon-ellipsis"></i></div>
-            
-            <!-- Context Menu for Top Ellipsis -->
             <div class="context-menu" id="topContextMenu" style="display: none;">
-                <div class="menu-item"><span class="menu-check"></span> Repositories</div>
                 <div class="menu-item" onclick="toggleSection('changesContainer', this)"><span class="menu-check"><i class="codicon codicon-check"></i></span> Changes</div>
                 <div class="menu-item" onclick="toggleSection('graphContainer', this)"><span class="menu-check"><i class="codicon codicon-check"></i></span> Graph</div>
+                <div class="menu-item" onclick="toggleSection('branchesContainer', this)"><span class="menu-check"><i class="codicon codicon-check"></i></span> Branches</div>
+                <div class="menu-item" onclick="toggleSection('stashContainer', this)"><span class="menu-check"><i class="codicon codicon-check"></i></span> Stashes</div>
+                <div class="menu-item" onclick="toggleSection('blameContainer', this)"><span class="menu-check"></span> Blame</div>
+                <div class="menu-item" onclick="toggleSection('remotesContainer', this)"><span class="menu-check"></span> Remotes</div>
+                <div class="menu-item" onclick="toggleSection('tagsContainer', this)"><span class="menu-check"></span> Tags</div>
             </div>
         </div>
     </div>
 
-    <div class="split-view">
-        <!-- TOP SECTION: REPOSITORIES -->
-        <div class="tree-group" id="reposGroup">
-            <div class="group-header" onclick="toggleGroup('reposItems', 'reposChevron')">
-                <i class="codicon codicon-chevron-right" id="reposChevron"></i>
-                <span class="group-title">SOURCE CONTROL REPOSITORIES</span>
-            </div>
-            <div class="group-items" id="reposItems" style="display: none;">
-                <!-- Repositories will be populated here -->
-                <div class="tree-item"><i class="codicon codicon-repo"></i> Dardcor-Code</div>
-            </div>
+    <!-- BRANCH BAR -->
+    <div id="branchBar" class="branch-bar">
+        <i class="codicon codicon-git-branch"></i>
+        <span id="currentBranch" class="current-branch">main</span>
+        <div class="branch-actions">
+            <div class="action-btn small" title="Create Branch" onclick="showCreateBranchDialog()"><i class="codicon codicon-plus"></i></div>
+            <div class="action-btn small" title="Merge Branch" onclick="showMergeDialog()"><i class="codicon codicon-git-merge"></i></div>
+            <div class="action-btn small" title="Fetch" onclick="doFetch()"><i class="codicon codicon-cloud-download"></i></div>
+            <div class="action-btn small" title="Pull" onclick="doPull()"><i class="codicon codicon-pull-request"></i></div>
+            <div class="action-btn small" title="Push" onclick="doPush()"><i class="codicon codicon-cloud-upload"></i></div>
+            <div class="action-btn small" title="Sync" onclick="doSync()"><i class="codicon codicon-sync"></i></div>
+            <div class="action-btn small" title="Auto-Fetch" id="autoFetchBtn" onclick="toggleAutoFetch()"><i class="codicon codicon-clock"></i></div>
         </div>
+    </div>
 
-        <!-- MIDDLE SECTION: CHANGES -->
+    <!-- SYNC STATUS -->
+    <div id="syncStatus" class="sync-status" style="display: none;"></div>
+
+    <div class="split-view">
+        <!-- CHANGES -->
         <div class="split-pane" id="changesContainer" style="flex: 1; min-height: 100px;">
             <div class="changes-header" onclick="toggleSectionCollapse('changesBody', 'changesMainChevron')">
                 <div class="changes-header-left">
@@ -44,32 +51,70 @@
                 </div>
                 <div class="changes-actions" onclick="event.stopPropagation()">
                     <div class="action-btn small" title="Stage All Changes" onclick="stageAllChanges()"><i class="codicon codicon-check"></i></div>
-                    <div class="action-btn small" title="Stash Changes" onclick="if(backend) backend.stashChanges()"><i class="codicon codicon-archive"></i></div>
-                    <div class="action-btn small" title="Pop Stash" onclick="if(backend) backend.popStash()"><i class="codicon codicon-reply"></i></div>
+                    <div class="action-btn small" title="Unstage All" onclick="unstageAllChanges()"><i class="codicon codicon-arrow-left"></i></div>
+                    <div class="action-btn small" title="Stash Changes" onclick="showStashDialog()"><i class="codicon codicon-archive"></i></div>
                     <div class="action-btn small" title="Refresh" onclick="if(backend) backend.requestRefresh()"><i class="codicon codicon-refresh"></i></div>
                     <div class="action-btn small" title="More Actions"><i class="codicon codicon-ellipsis"></i></div>
                 </div>
             </div>
-            
+
             <div class="pane-body" id="changesBody">
                 <!-- Commit message input -->
                 <div class="commit-section">
                     <div class="commit-input-wrapper">
-                        <textarea id="commitMsg" placeholder='Message (Ctrl+Enter to commit on "main")'></textarea>
-                        <div class="sparkle-btn" title="Generate Commit Message"><i class="codicon codicon-sparkle"></i></div>
+                        <textarea id="commitMsg" placeholder='Message (Ctrl+Enter to commit)'></textarea>
+                    </div>
+                    <!-- Commit options -->
+                    <div id="commitOptions" class="commit-options">
+                        <label class="commit-option" title="Amend last commit">
+                            <input type="checkbox" id="amendCheck"> <i class="codicon codicon-edit"></i> Amend
+                        </label>
+                        <label class="commit-option" title="Sign-off this commit">
+                            <input type="checkbox" id="signoffCheck"> <i class="codicon codicon-verified"></i> Sign-off
+                        </label>
+                    </div>
+                    <div class="commit-type-row" id="convCommitRow" style="display: none;">
+                        <select id="commitType" class="commit-select">
+                            <option value="feat">feat</option>
+                            <option value="fix">fix</option>
+                            <option value="docs">docs</option>
+                            <option value="style">style</option>
+                            <option value="refactor">refactor</option>
+                            <option value="perf">perf</option>
+                            <option value="test">test</option>
+                            <option value="build">build</option>
+                            <option value="ci">ci</option>
+                            <option value="chore">chore</option>
+                            <option value="revert">revert</option>
+                        </select>
+                        <input type="text" id="commitScope" class="commit-scope-input" placeholder="scope (optional)">
+                        <label class="commit-option commit-breaking" title="Breaking change">
+                            <input type="checkbox" id="breakingCheck"> <i class="codicon codicon-warning"></i> breaking
+                        </label>
+                        <button class="conv-toggle" id="convToggle" title="Toggle Conventional Commit" onclick="toggleConvCommit()">CC</button>
                     </div>
                     <div class="commit-btn-group">
                         <button id="commitBtn" class="commit-main">
-                            <i class="codicon codicon-check"></i> Commit
+                            <i class="codicon codicon-check"></i> <span id="commitBtnText">Commit</span>
                         </button>
                         <div class="commit-divider"></div>
-                        <button id="commitDropdown" class="commit-more">
+                        <button id="commitDropdown" class="commit-more" onclick="showCommitMenu(event)">
                             <i class="codicon codicon-chevron-down"></i>
                         </button>
                     </div>
                 </div>
 
                 <div id="treeContainer">
+                    <!-- Conflicted files -->
+                    <div class="tree-group" id="conflictedGroup" style="display: none;">
+                        <div class="group-header" onclick="toggleGroup('conflictedItems', 'conflictedChevron')">
+                            <i class="codicon codicon-chevron-down" id="conflictedChevron"></i>
+                            <span class="group-title" style="color: #f14c4c;">Merge Conflicts</span>
+                            <span class="badge" id="conflictedBadge" style="background:#f14c4c;">0</span>
+                        </div>
+                        <div class="group-items" id="conflictedItems"></div>
+                    </div>
+
                     <!-- Staged Changes -->
                     <div class="tree-group" id="stagedGroup" style="display: none;">
                         <div class="group-header" onclick="toggleGroup('stagedItems', 'stagedChevron')">
@@ -96,7 +141,7 @@
         <!-- RESIZER -->
         <div class="resizer" id="resizer"></div>
 
-        <!-- BOTTOM SECTION: GRAPH -->
+        <!-- GRAPH -->
         <div class="split-pane" id="graphContainer" style="flex: 1; min-height: 100px; display: none;">
             <div class="git-graph-header" onclick="toggleSectionCollapse('graphBody', 'graphMainChevron')">
                 <div class="graph-header-left">
@@ -104,40 +149,146 @@
                     <span class="changes-title">GRAPH</span>
                 </div>
                 <div class="graph-toolbar" onclick="event.stopPropagation()">
-                    <span class="graph-auto-btn"><i class="codicon codicon-git-branch" style="font-size:12px;"></i> Auto</span>
-                    <div class="action-btn small" title="Target"><i class="codicon codicon-target"></i></div>
-                    <div class="action-btn small" title="Sort Commits"><i class="codicon codicon-git-commit"></i></div>
-                    <div class="action-btn small" title="Filter"><i class="codicon codicon-filter"></i></div>
-                    <div class="action-btn small" title="Search"><i class="codicon codicon-search"></i></div>
                     <div class="action-btn small" title="Refresh" onclick="requestGraphRefresh()"><i class="codicon codicon-refresh"></i></div>
-                    <div class="action-btn small" title="More Actions"><i class="codicon codicon-ellipsis"></i></div>
                 </div>
             </div>
-
             <div class="pane-body" id="graphBody">
                 <div id="gitGraphContainer"></div>
             </div>
         </div>
 
-        <!-- HISTORY SECTION -->
+        <!-- BRANCHES -->
+        <div class="tree-group" id="branchesContainer" style="display: none;">
+            <div class="group-header" onclick="toggleGroup('branchesItems', 'branchesChevron')">
+                <i class="codicon codicon-chevron-right" id="branchesChevron"></i>
+                <span class="group-title">BRANCHES</span>
+            </div>
+            <div class="group-items" id="branchesItems" style="display: none;">
+                <div class="branch-filter-row">
+                    <input type="text" id="branchFilter" class="filter-input" placeholder="Filter branches..." oninput="filterBranches()">
+                </div>
+                <div id="branchesList"></div>
+            </div>
+        </div>
+
+        <!-- STASHES -->
+        <div class="tree-group" id="stashContainer" style="display: none;">
+            <div class="group-header" onclick="toggleGroup('stashItems', 'stashChevron')">
+                <i class="codicon codicon-chevron-right" id="stashChevron"></i>
+                <span class="group-title">STASHES</span>
+                <span class="badge" id="stashBadge">0</span>
+            </div>
+            <div class="group-items" id="stashItems" style="display: none;">
+                <div id="stashList"></div>
+            </div>
+        </div>
+
+        <!-- BLAME -->
+        <div class="tree-group" id="blameContainer" style="display: none;">
+            <div class="group-header" onclick="toggleGroup('blameItems', 'blameChevron')">
+                <i class="codicon codicon-chevron-right" id="blameChevron"></i>
+                <span class="group-title">BLAME</span>
+            </div>
+            <div class="group-items" id="blameItems" style="display: none;">
+                <div class="blame-controls">
+                    <input type="text" id="blamePath" class="filter-input" placeholder="File path for blame...">
+                    <button class="mini-btn" onclick="doBlame()"><i class="codicon codicon-search"></i> Blame</button>
+                </div>
+                <div id="blameResult" class="blame-result"></div>
+            </div>
+        </div>
+
+        <!-- REMOTES -->
+        <div class="tree-group" id="remotesContainer" style="display: none;">
+            <div class="group-header" onclick="toggleGroup('remotesItems', 'remotesChevron')">
+                <i class="codicon codicon-chevron-right" id="remotesChevron"></i>
+                <span class="group-title">REMOTES</span>
+            </div>
+            <div class="group-items" id="remotesItems" style="display: none;">
+                <div id="remotesList"></div>
+                <div class="remote-add-row">
+                    <input type="text" id="remoteName" class="filter-input" placeholder="name" style="width:80px;">
+                    <input type="text" id="remoteUrl" class="filter-input" placeholder="url" style="flex:1;">
+                    <button class="mini-btn" onclick="addRemote()">+</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAGS -->
+        <div class="tree-group" id="tagsContainer" style="display: none;">
+            <div class="group-header" onclick="toggleGroup('tagsItems', 'tagsChevron')">
+                <i class="codicon codicon-chevron-right" id="tagsChevron"></i>
+                <span class="group-title">TAGS</span>
+            </div>
+            <div class="group-items" id="tagsItems" style="display: none;">
+                <div id="tagsList"></div>
+                <div class="tag-add-row">
+                    <input type="text" id="tagName" class="filter-input" placeholder="tag name" style="width:120px;">
+                    <input type="text" id="tagRef" class="filter-input" placeholder="hash (optional)" style="flex:1;">
+                    <button class="mini-btn" onclick="createTag()">+</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- HISTORY -->
         <div class="tree-group" id="historyGroup">
             <div class="group-header" onclick="toggleGroup('historyItems', 'historyChevron')">
                 <i class="codicon codicon-chevron-right" id="historyChevron"></i>
                 <span class="group-title">TIMELINE / HISTORY</span>
             </div>
             <div class="group-items" id="historyItems" style="display: none;">
-                <!-- History will be populated here -->
                 <div class="tree-item" style="color: #858585; font-style: italic;">No history available</div>
             </div>
         </div>
     </div>
 
     <!-- Context Menu for Files -->
-    <div class="context-menu" id="fileContextMenu">
-        <div class="menu-item" onclick="openFileFromMenu()">Open File</div>
-        <div class="menu-item" onclick="discardFileFromMenu()">Discard Changes</div>
+    <div class="context-menu" id="fileContextMenu"></div>
+
+    <!-- Commit Context Menu -->
+    <div class="context-menu" id="commitContextMenu" style="display: none;">
+        <div class="menu-item" onclick="toggleConvCommit()">Conventional Commit</div>
+        <div class="menu-item" onclick="toggleAmend()">Amend Last Commit</div>
+        <div class="menu-item" onclick="toggleSignoff()">Toggle Sign-off</div>
     </div>
-    
+
+    <!-- Create Branch Dialog -->
+    <div class="dialog-overlay" id="createBranchDialog" style="display: none;">
+        <div class="dialog-box">
+            <div class="dialog-title">Create Branch</div>
+            <input type="text" id="newBranchName" class="dialog-input" placeholder="Branch name...">
+            <div class="dialog-label">From: <span id="branchFrom">main</span></div>
+            <div class="dialog-actions">
+                <button class="dialog-btn" onclick="hideDialog('createBranchDialog')">Cancel</button>
+                <button class="dialog-btn primary" onclick="doCreateBranch()">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Merge Dialog -->
+    <div class="dialog-overlay" id="mergeDialog" style="display: none;">
+        <div class="dialog-box">
+            <div class="dialog-title">Merge Branch</div>
+            <select id="mergeBranchSelect" class="dialog-select"></select>
+            <div class="dialog-actions">
+                <button class="dialog-btn" onclick="hideDialog('mergeDialog')">Cancel</button>
+                <button class="dialog-btn primary" onclick="doMerge()">Merge</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stash Dialog -->
+    <div class="dialog-overlay" id="stashDialog" style="display: none;">
+        <div class="dialog-box">
+            <div class="dialog-title">Stash Changes</div>
+            <input type="text" id="stashMsg" class="dialog-input" placeholder="Stash message...">
+            <div class="dialog-actions">
+                <button class="dialog-btn" onclick="hideDialog('stashDialog')">Cancel</button>
+                <button class="dialog-btn primary" onclick="doStashPush()">Stash</button>
+            </div>
+        </div>
+    </div>
+
     <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <script src="../script/source_control.js"></script>
 </body>

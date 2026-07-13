@@ -8,7 +8,6 @@
         html, body { width: 100%; height: 100%; overflow: hidden; background: #000000; }
         #terminal { width: 100%; height: 100%; padding: 4px 0px 4px 8px; }
 
-        /* VS Code-style scrollbar */
         ::-webkit-scrollbar { width: 14px; height: 14px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border: 4px solid transparent; background-clip: padding-box; min-height: 20px; }
@@ -61,6 +60,24 @@
         }
         .xterm-find-result-decoration { background-color: rgba(234, 92, 0, 0.33); }
         .xterm-find-active-result-decoration { background-color: rgba(234, 92, 0, 0.55); outline: 1px solid #ea5c00; }
+
+        #link-hover {
+            display: none;
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            background: #252526;
+            color: #cccccc;
+            border: 1px solid #454545;
+            border-radius: 3px;
+            padding: 2px 8px;
+            font-size: 11px;
+            font-family: "Segoe UI", sans-serif;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 20;
+        }
+        #link-hover.visible { display: block; }
     </style>
 </head>
 <body>
@@ -73,21 +90,26 @@
             <button id="find-close" title="Close (Escape)">&#10005;</button>
         </div>
         <div id="terminal"></div>
+        <div id="link-hover"></div>
     </div>
 
     <script src="qwebchannel.js"></script>
     <script src="xterm.js"></script>
     <script src="xterm-addon-search.js"></script>
+    <script src="xterm-addon-web-links.js"></script>
 
     <script>
     (function () {
         'use strict';
 
-        var term       = null;
-        var searchAddon = null;
-        var backend    = null;
-        var resizeObs  = null;
-        var fitPending = false;
+        var term            = null;
+        var searchAddon     = null;
+        var webLinksAddon   = null;
+        var backend         = null;
+        var resizeObs       = null;
+        var fitPending      = false;
+        var copyOnSelect    = false;
+
         var findDecorations = {
             matchBackground: '#ea5c004d',
             matchBorder: '#ea5c00',
@@ -97,8 +119,8 @@
             activeMatchColorOverviewRuler: '#ea5c00'
         };
 
-        /* ── VS Code exact color theme ─────────────────────────── */
-        var VSCODE_THEME = {
+        /* ── Default theme (VS Code Dark+) ──────────────────── */
+        var DEFAULT_THEME = {
             background:         '#000000',
             foreground:         '#cccccc',
             cursor:             '#aeafad',
@@ -122,7 +144,26 @@
             brightWhite:        '#e5e5e5'
         };
 
-        /* ── Create xterm.js terminal ──────────────────────────── */
+        var currentTheme = DEFAULT_THEME;
+
+        /* ── URL detection from terminal output ─────────────── */
+        var URL_REGEX = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/gi;
+        var linkHoverTimer = null;
+
+        window.showLinkHover = function (text) {
+            var el = document.getElementById('link-hover');
+            if (el) {
+                el.textContent = text;
+                el.classList.add('visible');
+            }
+        };
+
+        window.hideLinkHover = function () {
+            var el = document.getElementById('link-hover');
+            if (el) { el.classList.remove('visible'); }
+        };
+
+        /* ── Create xterm.js terminal ──────────────────────── */
         function createTerminal() {
             term = new Terminal({
                 fontFamily: '"Cascadia Code", "Cascadia Mono", Consolas, "Courier New", monospace',
@@ -133,12 +174,13 @@
                 scrollback:        10000,
                 convertEol:        false,
                 allowProposedApi:  true,
-                theme: VSCODE_THEME
+                theme: currentTheme
             });
 
             var container = document.getElementById('terminal');
             term.open(container);
 
+            /* ── Load SearchAddon ──────────────────────────── */
             if (typeof SearchAddon !== 'undefined') {
                 searchAddon = typeof SearchAddon === 'function' ? new SearchAddon() : new SearchAddon.SearchAddon();
                 if (typeof term.loadAddon === 'function') {
@@ -150,36 +192,99 @@
 
             setupFindBar();
 
-            /* Fit terminal to container — no FitAddon needed */
+            /* ── Load WebLinksAddon ────────────────────────── */
+            if (typeof WebLinksAddon !== 'undefined') {
+                webLinksAddon = typeof WebLinksAddon === 'function' ? new WebLinksAddon() : new WebLinksAddon.WebLinksAddon();
+                if (typeof term.loadAddon === 'function') {
+                    term.loadAddon(webLinksAddon);
+                } else {
+                    webLinksAddon.activate(term);
+                }
+            }
+
+            /* ── Fit terminal ────────────────────────────── */
             scheduleFit();
 
-            /* ResizeObserver — fires when panel is resized */
             if (typeof ResizeObserver !== 'undefined') {
                 resizeObs = new ResizeObserver(function () { scheduleFit(); });
                 resizeObs.observe(container);
             }
             window.addEventListener('resize', function () { scheduleFit(); });
 
-            /* Expose write function for Python → xterm */
+            /* ── Expose write function for Python → xterm ───── */
             window.writeToTerminal = function (data) {
-                if (term) { term.write(data); }
+                if (term) {
+                    term.write(data);
+                    // Scroll to bottom on new output
+                    term.scrollToBottom();
+                }
             };
 
             window.setTheme = function (themeJson) {
                 if (!term) return;
                 try {
-                    var colors = JSON.parse(themeJson);
-                    term.options.theme = colors;
-                    document.body.style.background = colors.background || '#000000';
-                } catch(e) {}
+                    var colors = typeof themeJson === 'string' ? JSON.parse(themeJson) : themeJson;
+                    if (typeof colors === 'string') {
+                        colors = JSON.parse(colors);
+                    }
+                    var newTheme = Object.assign({}, DEFAULT_THEME, colors);
+                    currentTheme = newTheme;
+                    term.options.theme = newTheme;
+                    document.body.style.background = newTheme.background || '#000000';
+                } catch (e) {
+                    console.error("Theme set error:", e);
+                }
             };
 
-            /* Forward keystrokes xterm → Python */
+            window.setFont = function (family, size, lineHeight) {
+                if (!term) return;
+                if (family !== undefined && family !== null) {
+                    term.options.fontFamily = family;
+                }
+                if (size !== undefined && size !== null) {
+                    term.options.fontSize = size;
+                }
+                if (lineHeight !== undefined && lineHeight !== null) {
+                    term.options.lineHeight = lineHeight;
+                }
+                scheduleFit();
+            };
+
+            window.setCursorStyle = function (style, blink) {
+                if (!term) return;
+                if (style !== undefined) { term.options.cursorStyle = style; }
+                if (blink !== undefined) { term.options.cursorBlink = blink; }
+            };
+
+            window.setScrollback = function (lines) {
+                if (!term) return;
+                term.options.scrollback = lines;
+            };
+
+            window.setCopyOnSelect = function (enabled) {
+                copyOnSelect = enabled;
+            };
+
+            window.toggleFindBar = function () {
+                if (typeof window.showFindBar === 'function') {
+                    window.showFindBar();
+                }
+            };
+
+            /* ── Forward keystrokes xterm → Python ──────────── */
             term.onData(function (data) {
                 if (backend) { backend.receive_data(data); }
             });
 
-            /* Attach custom key handlers for copy/paste and find */
+            /* ── Handle selection changes ─────────────────── */
+            term.onSelectionChange(function () {
+                var selection = term.getSelection();
+                if (backend) {
+                    backend.on_selection_change(selection);
+                }
+            });
+
+            /* ── Attach custom key handlers ────────────────── */
             term.attachCustomKeyEventHandler(function (e) {
                 if ((e.ctrlKey || e.metaKey) && e.code === 'KeyF' && e.type === 'keydown') {
                     if (typeof window.showFindBar === 'function') { window.showFindBar(); }
@@ -190,18 +295,24 @@
                     if (selection) {
                         if (backend) { backend.copy_to_clipboard(selection); }
                         term.clearSelection();
-                        return false; // Prevent sending SIGINT (Ctrl+C) if text is selected
+                        return false;
                     }
                 }
                 if ((e.ctrlKey || e.metaKey) && e.code === 'KeyV' && e.type === 'keydown') {
                     if (backend) { backend.request_paste(); }
                     return false;
                 }
+                if ((e.ctrlKey || e.metaKey) && e.code === 'KeyL' && e.type === 'keydown') {
+                    if (term) {
+                        term.clear();
+                        return false;
+                    }
+                }
                 return true;
             });
 
-            /* VS Code style right click: copy if selection, paste otherwise */
-            document.getElementById('terminal').addEventListener('contextmenu', function (e) {
+            /* ── VS Code style right click ────────────────── */
+            container.addEventListener('contextmenu', function (e) {
                 e.preventDefault();
                 var selection = term.getSelection();
                 if (selection) {
@@ -212,10 +323,24 @@
                 }
             });
 
-            /* Initial fit + notify Python of size */
+            /* ── Handle title change from shell ────────────── */
+            if (term.onTitleChange) {
+                term.onTitleChange(function (title) {
+                    if (backend) { backend.on_title_change(title); }
+                });
+            }
+
+            /* ── Bell handling ───────────────────────────── */
+            if (term.onBell) {
+                term.onBell(function () {
+                    if (backend) { backend.on_bell(); }
+                });
+            }
+
             doFit();
         }
 
+        /* ── Find Bar ──────────────────────────────────────── */
         function setupFindBar() {
             var bar = document.getElementById('find-bar');
             var input = document.getElementById('find-input');
@@ -244,7 +369,7 @@
                 bar.classList.remove('visible');
                 if (searchAddon) { searchAddon.clearDecorations(); }
                 if (countEl) { countEl.textContent = ''; }
-                term.focus();
+                if (term) { term.focus(); }
             };
 
             input.addEventListener('input', function () { runFind(false); });
@@ -274,7 +399,7 @@
             }
         }
 
-        /* ── Fit logic: compute cols/rows from DOM pixel size ──── */
+        /* ── Fit logic ─────────────────────────────────────── */
         function scheduleFit() {
             if (fitPending) { return; }
             fitPending = true;
@@ -287,7 +412,6 @@
         function doFit() {
             if (!term || !term.element) { return; }
 
-            /* Access xterm.js internal renderer to get cell pixel size */
             var core = term._core;
             if (!core) { return; }
 
@@ -297,8 +421,6 @@
             var dims = renderService.dimensions;
             if (!dims) { return; }
 
-            /* xterm.js 4.x uses dims.actualCellWidth/Height
-               xterm.js 5.x uses dims.css.cell.width/height */
             var cellW, cellH;
             if (dims.css && dims.css.cell) {
                 cellW = dims.css.cell.width;
@@ -311,24 +433,17 @@
             if (!cellW || !cellH || cellW <= 0 || cellH <= 0) { return; }
 
             var container = document.getElementById('terminal');
-            var availW = container.clientWidth  - 8; /* left padding only, scrollbar handled by xterm */
+            var availW = container.clientWidth  - 8;
             var availH = container.clientHeight - 8;
 
-            // Prevent wrapping issues during initial layout sizing
-            if (availW < 300) {
-                availW = 1000;
-            }
-            if (availH < 100) {
-                availH = 400;
-            }
+            if (availW < 300) { availW = 1000; }
+            if (availH < 100) { availH = 400; }
 
             var cols = Math.max(10, Math.floor(availW / cellW));
             var rows = Math.max(3,  Math.floor(availH / cellH));
 
             if (cols !== term.cols || rows !== term.rows) {
-                try {
-                    term.resize(cols, rows);
-                } catch (e) { /* ignore */ }
+                try { term.resize(cols, rows); } catch (e) { }
             }
 
             if (backend) {
@@ -336,7 +451,7 @@
             }
         }
 
-        /* ── QWebChannel init — poll until Qt transport is ready ─ */
+        /* ── QWebChannel init ────────────────────────────── */
         function initWebChannel() {
             if (typeof qt === 'undefined' || !qt.webChannelTransport) {
                 setTimeout(initWebChannel, 50);
@@ -349,7 +464,6 @@
             });
         }
 
-        /* Start */
         initWebChannel();
 
     }());

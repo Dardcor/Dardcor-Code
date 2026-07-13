@@ -1,0 +1,26 @@
+{
+  "name": "abyss-color-theme",
+  "type": "dark",
+  "colors": {
+    "editor.background": "#000c18",
+    "editor.foreground": "#6699cc",
+    "editor.selectionBackground": "#002060",
+    "editor.lineHighlightBackground": "#0a1a2a",
+    "editorCursor.foreground": "#ff6600",
+    "editorWhitespace.foreground": "#223344",
+    "editorLineNumber.foreground": "#335577",
+    "editorIndentGuide.background": "#0a1a2a"
+  },
+  "tokenColors": [
+    {
+      "scope": [
+        "comment",
+        "punctuation.definition.comment"
+      ],
+      "settings": {
+        "fontStyle": "italic",
+        "foreground": "#6a9955"
+      }
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "scopeName": "source.json",
+  "name": "JSON",
+  "fileTypes": [
+    "json",
+    "jsonc"
+  ],
+  "patterns": [
+    {
+      "include": "source.json"
+    }
+  ],
+  "repository": {}
+}

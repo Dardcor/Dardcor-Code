@@ -1,0 +1,42 @@
+{
+  "name": "dardcor-shaderlab",
+  "displayName": "ShaderLab",
+  "description": "ShaderLab language grammar for Dardcor Code",
+  "version": "1.68.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "main": "extension.py",
+  "contributes": {
+    "languages": [
+      {
+        "id": "shaderlab",
+        "aliases": [
+          "ShaderLab",
+          "shaderlab"
+        ],
+        "extensions": [
+          "shader",
+          "cginc"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "shaderlab",
+        "scopeName": "source.shaderlab",
+        "path": "./syntaxes/shaderlab.tmLanguage.json"
+      }
+    ]
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes",
+    "Formatters",
+    "Linters",
+    "Language Packs"
+  ]
+}

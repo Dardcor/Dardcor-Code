@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QSplitter, QStackedWidget, QMessageBox, QApplication,
     QFileDialog, QInputDialog, QLabel, QMenuBar, QPushButton,
     QPlainTextEdit, QTextEdit, QLineEdit, QDialog, QFontDialog, QSizePolicy,
+    QListWidget, QListWidgetItem,
 )
 from PySide6.QtCore import Qt, QTimer, QPoint, QEvent, Signal
 
@@ -597,7 +598,7 @@ from ..core.config import get_config, CONFIG_FILE
 from dardcor_agent.chat.memory import Conversation
 from ..ui_shared.activity_bar import (
     ActivityBar, VIEW_EXPLORER, VIEW_SEARCH, VIEW_SOURCE_CONTROL,
-    VIEW_EXTENSIONS, VIEW_TESTING, EXT_VIEW_BASE
+    VIEW_EXTENSIONS, VIEW_TESTING, VIEW_COMMENTS, EXT_VIEW_BASE
 )
 from ..file_explorer.panel import FileExplorer
 from ..file_explorer.open_editors_panel import OpenEditorsPanel
@@ -620,7 +621,8 @@ from ..core.extension_manager import get_extension_manager
 
 # --- Phase 13 Injections ---
 from ..workspace.multi_root import MultiRootWorkspace
-from ..tasks.task_manager import TaskManager
+from ..tasks.task_manager import TaskManager, TaskDefinition, TaskGroup, TaskPresentationOptions, TaskInput, resolve_variables, get_variable_context
+from ..tasks.problem_matcher import ProblemMatcher
 from ..testing.panel import TestExplorerPanel
 # --- Phase 14 Injections ---
 from ..ui_shared.screencast_mode import ScreencastMode
@@ -642,13 +644,14 @@ from ..git.git_graph import GitGraphPanel
 def build_default_commands() -> list:
     """Default command palette entries for the workbench."""
     return [
-        {"id": "file.new", "label": "File: New File", "shortcut": "Ctrl+N"},
-        {"id": "file.open", "label": "File: Open File...", "shortcut": "Ctrl+O"},
+        {"id": "file.newFile", "label": "File: New File", "shortcut": "Ctrl+N"},
         {"id": "file.save", "label": "File: Save", "shortcut": "Ctrl+S"},
-        {"id": "file.saveAs", "label": "File: Save As...", "shortcut": "Ctrl+Shift+S"},
         {"id": "file.saveAll", "label": "File: Save All", "shortcut": "Ctrl+K S"},
         {"id": "file.close", "label": "File: Close Editor", "shortcut": "Ctrl+W"},
+        {"id": "auth.github", "label": "Accounts: Sign In with GitHub", "category": "Accounts"},
+        {"id": "auth.microsoft", "label": "Accounts: Sign In with Microsoft", "category": "Accounts"},
         {"id": "workbench.action.showCommands", "label": "Show All Commands", "category": "Preferences"},
+        {"id": "workbench.action.reloadWindow", "label": "Developer: Reload Window", "category": "Developer"},
         {"id": "workbench.action.openSettings", "label": "Preferences: Open Settings (UI)", "shortcut": "Ctrl+,"},
         {"id": "workbench.action.openGlobalKeybindings", "label": "Preferences: Open Keyboard Shortcuts", "shortcut": "Ctrl+K Ctrl+S"},
         {"id": "workbench.action.selectTheme", "label": "Preferences: Color Theme", "shortcut": "Ctrl+K Ctrl+T"},
@@ -657,6 +660,9 @@ def build_default_commands() -> list:
         {"id": "editor.action.formatDocument", "label": "Format Document", "shortcut": "Shift+Alt+F"},
         {"id": "editor.action.revealDefinition", "label": "Go to Definition", "shortcut": "F12"},
         {"id": "editor.action.colorPicker", "label": "Show Color Picker", "category": "Editor"},
+        {"id": "editor.action.inPlaceReplace.up", "label": "Replace with Previous Value", "category": "Editor"},
+        {"id": "editor.action.inPlaceReplace.down", "label": "Replace with Next Value", "category": "Editor"},
+        {"id": "python.interactive", "label": "Jupyter: Create Interactive Window", "category": "Jupyter"},
         {"id": "editor.action.commentLine", "label": "Toggle Line Comment", "shortcut": "Ctrl+/"},
         {"id": "editor.action.blockComment", "label": "Toggle Block Comment", "shortcut": "Shift+Alt+A"},
         {"id": "editor.action.triggerSuggest", "label": "Trigger Suggest", "shortcut": "Ctrl+Space"},
@@ -723,6 +729,10 @@ def build_default_commands() -> list:
         {"id": "git.init", "label": "Git: Initialize Repository", "shortcut": ""},
         {"id": "screencast.toggle", "label": "Developer: Toggle Screencast Mode", "shortcut": ""},
         {"id": "task.run", "label": "Tasks: Run Task", "shortcut": ""},
+        {"id": "task.build", "label": "Tasks: Run Build Task", "shortcut": "Ctrl+Shift+B"},
+        {"id": "task.rerun", "label": "Tasks: Rerun Last Task", "shortcut": ""},
+        {"id": "task.terminate", "label": "Tasks: Terminate Task", "shortcut": ""},
+        {"id": "task.revealProblems", "label": "Tasks: Reveal Problems Output", "shortcut": ""},
         {"id": "workspace.trust", "label": "Workspaces: Manage Workspace Trust", "shortcut": ""},
         {"id": "agent.newConversation", "label": "Dardcor AI: New Conversation", "shortcut": ""},
         {"id": "help.about", "label": "Help: About Dardcor Code", "shortcut": ""},
@@ -824,6 +834,8 @@ class MainWindow(QMainWindow):
         self._ext_manager = get_extension_manager()
         self._nav_back_stack: list[str] = []
         self._editor_tab_mru: list[str] = []
+        self._last_run_task_label: Optional[str] = None
+        self._active_task_matcher_name: str = ""
         self._tab_switcher = None
         
         import concurrent.futures
@@ -833,6 +845,7 @@ class MainWindow(QMainWindow):
         
         # --- Phase 13 Instantiations ---
         self._task_manager = TaskManager(self._config.workspace_path or "")
+        self._problem_matcher = ProblemMatcher(workspace_path=self._config.workspace_path or "")
         
         # --- Phase 14 Instantiations ---
         self._screencast = ScreencastMode(self)
@@ -878,6 +891,18 @@ class MainWindow(QMainWindow):
         except Exception:
             pass
 
+    def _reload_window(self):
+        """Reload the application window."""
+        import sys
+        import os
+        from PySide6.QtWidgets import QApplication
+        
+        # Store current state if needed
+        self._save_window_geometry()
+        
+        python = sys.executable
+        os.execl(python, python, *sys.argv)
+        
     # ── Window Events (Native Resizing & Maximize Icon) ──
 
     def changeEvent(self, event):
@@ -1064,16 +1089,48 @@ class MainWindow(QMainWindow):
         if os.path.exists(logo_path):
             self.setWindowIcon(QIcon(logo_path))
         
+        # Central widget
+        self._central_widget = QWidget()
+        self.setCentralWidget(self._central_widget)
+        self._layout = QVBoxLayout(self._central_widget)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setSpacing(0)
+
+        # Main Subsystems
+        from ..core.audio_cues import AudioCueManager
+        from ..core.telemetry import TelemetryManager
+        from ..core.update import UpdateManager
+        from ..core.url_handler import URLHandler
+        from ..core.sessions import SessionManager
+        from ..core.extension_api import ExtensionAPI
+        
+        self._audio_cues = AudioCueManager()
+        self._telemetry = TelemetryManager()
+        self._updater = UpdateManager()
+        self._url_handler = URLHandler()
+        self._session_manager = SessionManager(self)
+        self._extension_api = ExtensionAPI(self)
+
+        # Auth Manager
+        from ..core.auth import AuthManager
+        self._auth_manager = AuthManager(self)
+        self._auth_manager.auth_changed.connect(lambda provider: print(f"Auth changed for {provider}"))
+
         # Add custom title bar
         self._title_bar = CustomTitleBar(self)
         self.setMenuWidget(self._title_bar)
 
-        # Central widget
-        central = QWidget()
-        self.setCentralWidget(central)
-        main_layout = QHBoxLayout(central)
+        # Banner widget (between title bar and main content)
+        from ..ui_shared.banner import BannerWidget
+        self._banner = BannerWidget(self)
+        self._layout.addWidget(self._banner)
+
+        # Main Layout Container (under title bar)
+        self._main_container = QWidget()
+        main_layout = QHBoxLayout(self._main_container)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
+        self._layout.addWidget(self._main_container, 1)
 
         # ── Activity Bar (leftmost) ──
         self._activity_bar = ActivityBar()
@@ -1097,6 +1154,12 @@ class MainWindow(QMainWindow):
         self._file_explorer.open_in_terminal_requested.connect(self._open_in_terminal)
         self._file_explorer.open_to_side_requested.connect(self._open_to_side)
         self._file_explorer.open_with_live_server_requested.connect(self._open_with_live_server)
+        self._file_explorer.compare_files_requested.connect(self._compare_files)
+
+        from ..core.event_bus import EventBus
+        from ..core.error_boundary import ErrorBoundary
+        EventBus.instance().subscribe("workspace.edit_requested", self._apply_workspace_edit)
+        EventBus.instance().subscribe("search_editor_requested", self._on_search_editor_requested)
 
         self._outline_panel = OutlinePanel()
         self._outline_panel.item_selected.connect(self._on_outline_item_selected)
@@ -1128,10 +1191,7 @@ class MainWindow(QMainWindow):
         self._explorer_layout.setStretchFactor(self._bottom_spacer, 1)
 
         def _update_explorer_stretches():
-            exp_open = bool(
-                self._file_explorer.get_root()
-                and not getattr(self._file_explorer, '_workspace_collapsed', False)
-            )
+            exp_open = not getattr(self._file_explorer, '_workspace_collapsed', False)
             out_open = not getattr(self._outline_panel, '_collapsed', True)
             tim_open = not getattr(self._timeline_panel, '_collapsed', True)
 
@@ -1251,12 +1311,15 @@ class MainWindow(QMainWindow):
         
         self._ports_panel = PortForwardingPanel(self)
 
+        # ── Comments Panel (sidebar) ──
         from ..comments.service import CommentService
         from ..comments.panel import CommentsPanel
         self._comment_service = CommentService(self)
         self._comments_panel = CommentsPanel(self._comment_service, self)
         self._comments_panel.comment_selected.connect(self._open_file_at_line)
+        self._sidebar_stack.addWidget(self._comments_panel)
 
+        # ── Bottom Panels ──
         self._bottom_panel = BottomPanel()
         self._bottom_panel.set_panels(
             self._problems_panel,
@@ -1264,7 +1327,6 @@ class MainWindow(QMainWindow):
             self._debug_console,
             self._terminal_panel,
             self._ports_panel,
-            self._comments_panel
         )
         self._bottom_panel.hide()
         
@@ -1273,10 +1335,24 @@ class MainWindow(QMainWindow):
             lambda name: self._output_panel.append(f"> Executing task: {name} <\n", "Tasks")
         )
         self._task_manager.task_output.connect(
-            lambda name, out: self._output_panel.append(out, "Tasks")
+            lambda name, out: self._process_task_output(name, out)
         )
         self._task_manager.task_finished.connect(
-            lambda name, code: self._output_panel.append(f"Terminal will be reused by tasks, press any key to close it.\n", "Tasks")
+            lambda name, code: self._on_task_finished(name, code)
+        )
+        self._task_manager.task_problem.connect(
+            lambda problem: self._problems_panel.add_problem(
+                problem.get("file", ""),
+                problem
+            )
+        )
+
+        # Connect Problem Matcher to Problems Panel
+        self._problem_matcher.on_problem_found.append(
+            lambda problem: self._problems_panel.add_problem(
+                problem.get("file", ""),
+                problem
+            )
         )
 
         # ── Layout assembly ──
@@ -1364,6 +1440,7 @@ class MainWindow(QMainWindow):
         self._status_bar = StatusBar()
         self.setStatusBar(self._status_bar)
         self._status_bar.go_to_line_requested.connect(self._show_go_to_line)
+        self._status_bar.indent_requested.connect(self._show_indent_options)
         self._status_bar.models_requested.connect(self._show_models_dialog)
         self._status_bar.git_branch_requested.connect(self._show_git_branch_menu)
         self._status_bar.sync_requested.connect(self._sync_git_changes)
@@ -1966,6 +2043,11 @@ class MainWindow(QMainWindow):
         ext_view.triggered.connect(lambda: self._switch_sidebar(VIEW_EXTENSIONS))
         view_menu.addAction(ext_view)
 
+        comments_view = QAction("Comments", self)
+        comments_view.setShortcut(QKeySequence("Ctrl+Shift+C"))
+        comments_view.triggered.connect(lambda: self._switch_sidebar(VIEW_COMMENTS))
+        view_menu.addAction(comments_view)
+
         view_menu.addSeparator()
 
         problems_panel = QAction("Problems", self)
@@ -2228,7 +2310,7 @@ class MainWindow(QMainWindow):
         
         run_build_task = QAction("Run Build Task...", self)
         run_build_task.setShortcut(QKeySequence("Ctrl+Shift+B"))
-        run_build_task.triggered.connect(self._show_command_palette)
+        run_build_task.triggered.connect(self._show_run_build_task)
         terminal_menu.addAction(run_build_task)
         
         run_active_file = QAction("Run Active File", self)
@@ -2427,6 +2509,26 @@ class MainWindow(QMainWindow):
         ctrl_k_v = QShortcut(QKeySequence("Ctrl+K, V"), self)
         ctrl_k_v.activated.connect(self._open_markdown_preview_side)
 
+        # Ctrl+Shift+B — Run Build Task
+        ctrl_shift_b = QShortcut(QKeySequence("Ctrl+Shift+B"), self)
+        ctrl_shift_b.activated.connect(self._show_run_build_task)
+
+        # Ctrl+Shift+F — Inline Fix / Explain
+        ctrl_shift_f = QShortcut(QKeySequence("Ctrl+Shift+F"), self)
+        ctrl_shift_f.activated.connect(lambda: self._show_inline_chat())
+
+        # Alt+V — Voice toggle
+        alt_v = QShortcut(QKeySequence("Alt+V"), self)
+        alt_v.activated.connect(self._toggle_voice)
+
+        # Ctrl+Shift+M — MCP manager
+        ctrl_shift_m = QShortcut(QKeySequence("Ctrl+Shift+M"), self)
+        ctrl_shift_m.activated.connect(self._show_mcp_manager)
+
+        # Ctrl+Shift+C — Generate commit message
+        ctrl_shift_c = QShortcut(QKeySequence("Ctrl+Shift+C"), self)
+        ctrl_shift_c.activated.connect(self._generate_commit_message)
+
     # ── Editor Quick Access (Ctrl+Tab) ──────────────────────
 
     def _editor_quick_access_next(self):
@@ -2458,6 +2560,7 @@ class MainWindow(QMainWindow):
         if not hasattr(self, "_inline_chat") or self._inline_chat is None:
             self._inline_chat = InlineChatWidget(editor, self)
             self._inline_chat.prompt_submitted.connect(self._on_inline_chat_submit)
+            self._inline_chat.commit_message_requested.connect(self._generate_commit_message)
         else:
             self._inline_chat._editor = editor
         self._inline_chat.show_anchored()
@@ -2581,7 +2684,13 @@ class MainWindow(QMainWindow):
             "edit.format": lambda: self._editor_tabs.trigger_format() if self._editor_tabs.current_editor() else None,
             "editor.action.revealDefinition": lambda: self._editor_tabs.go_to_definition() if self._editor_tabs.current_editor() else None,
             "editor.action.colorPicker": self._show_color_picker,
+            "editor.action.inPlaceReplace.up": lambda: self._execute_monaco_action('editor.action.inPlaceReplace.up'),
+            "editor.action.inPlaceReplace.down": lambda: self._execute_monaco_action('editor.action.inPlaceReplace.down'),
+            "auth.github": lambda: self._auth_manager.login("github"),
+            "auth.microsoft": lambda: self._auth_manager.login("microsoft"),
             "workbench.action.showCommands": self._show_command_palette,
+            "workbench.action.reloadWindow": self._reload_window,
+            "python.interactive": self._create_interactive_window,
             "workbench.action.openSettings": self._show_settings,
             "workbench.action.openGlobalKeybindings": self._show_keyboard_shortcuts,
             "workbench.action.addRootFolder": lambda: self._show_command_palette(),
@@ -2605,6 +2714,7 @@ class MainWindow(QMainWindow):
             "view.search": lambda: self._switch_sidebar(VIEW_SEARCH),
             "view.sourceControl": lambda: self._switch_sidebar(VIEW_SOURCE_CONTROL),
             "view.testing": lambda: self._switch_sidebar(VIEW_TESTING),
+            "view.comments": lambda: self._switch_sidebar(VIEW_COMMENTS),
             "view.models": self._show_models_dialog,
             "status.gitBranch": self._show_git_branch_menu,
             "view.zoomIn": self._zoom_in,
@@ -2636,6 +2746,9 @@ class MainWindow(QMainWindow):
             "editor.action.quickFix": lambda: self._run_editor_action("editor.action.quickFix"),
             "editor.action.toggleTabFocusMode": lambda: self._run_editor_action("editor.action.toggleTabFocusMode"),
             "workbench.action.zoomIn": self._zoom_in,
+            "terminal.new": self._new_terminal,
+            "workbench.action.createTerminalEditor": self._create_terminal_editor,
+            "terminal.focus": self._focus_terminal,
             "view.splitEditorRight": lambda: self._editor_tabs.split_editor("right"),
             "view.splitEditorDown": lambda: self._editor_tabs.split_editor("down"),
             "view.splitEditorUp": lambda: self._editor_tabs.split_editor("up"),
@@ -2655,6 +2768,10 @@ class MainWindow(QMainWindow):
             "git.init": lambda: self._show_command_palette(),
             "screencast.toggle": lambda: self._screencast.toggle(),
             "task.run": self._show_run_task,
+            "task.build": self._show_run_build_task,
+            "task.rerun": self._rerun_last_task,
+            "task.terminate": self._terminate_task_prompt,
+            "task.revealProblems": self._open_problems_panel,
             "workspace.trust": lambda: WorkspaceTrustDialog(self._workspace_trust, self._config.workspace_path or "", self).exec(),
             "agent.newConversation": self._new_conversation,
             "help.about": self._show_about,
@@ -2668,6 +2785,14 @@ class MainWindow(QMainWindow):
             "workbench.action.editorLayoutThreeRows": lambda: self._editor_tabs.set_grid_layout("three_rows"),
             "workbench.action.editorLayoutGrid": lambda: self._editor_tabs.set_grid_layout("grid"),
             "search.action.openNewEditor": self._open_search_editor,
+            "workbench.action.toggleFocusMode": self._toggle_focus_mode,
+            "workbench.action.openProfileManagement": self._show_profile_management,
+            "workbench.action.openAccounts": self._show_account_keychain,
+            "workbench.action.openProductIconTheme": self._show_product_icon_theme_picker,
+            "workbench.action.openWizard": self._show_wizard_demo,
+            "workbench.action.openQuickPickMulti": self._show_quick_pick_multi,
+            "workbench.action.showInputBox": self._show_input_box,
+            "workbench.action.panel.maximize": lambda: self._bottom_panel._toggle_maximize() if hasattr(self, '_bottom_panel') else None,
         }
         handler = handlers.get(cmd_id)
         if handler:
@@ -3011,7 +3136,7 @@ class MainWindow(QMainWindow):
             
             flags = 0
             if sys.platform == "win32":
-                flags = subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS
+                flags = subprocess.CREATE_NO_WINDOW
                 
             # Disconnect standard I/O to prevent blocking/lagging the current process
             subprocess.Popen(
@@ -3135,6 +3260,18 @@ class MainWindow(QMainWindow):
             self._status_bar.set_language(editor.get_language())
             self._update_editor_status_bar(editor)
         self._status_bar.set_cursor_position(1, 1)
+
+    def _compare_files(self, original_path: str, modified_path: str):
+        try:
+            with open(original_path, "r", encoding="utf-8", errors="replace") as f:
+                original_content = f.read()
+            with open(modified_path, "r", encoding="utf-8", errors="replace") as f:
+                modified_content = f.read()
+            title = f"{os.path.basename(original_path)} ↔ {os.path.basename(modified_path)}"
+            self._open_diff_in_editor(title, original_content, modified_content)
+        except Exception as e:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.warning(self, "Compare Error", f"Could not compare files: {e}")
 
     def _open_file_at_line(self, path: str, line):
         self._open_file_in_editor(path)
@@ -3506,6 +3643,25 @@ class MainWindow(QMainWindow):
         else:
             self._start_debugging()
 
+    def _focus_terminal(self):
+        self._bottom_panel.set_active_view("terminal")
+        self._terminal_panel.focus_terminal()
+
+    def _create_terminal_editor(self):
+        from pydardcor.terminal.instance import TerminalInstance
+        term = TerminalInstance(
+            workdir=self._config.workspace_path or os.path.expanduser("~"),
+            parent=self
+        )
+        # Assuming we can just add a custom tab to the active editor group
+        group = self._editor_tabs.active_group()
+        if group:
+            from pydardcor.file_explorer.panel import get_file_icon
+            group.add_custom_tab(term, "Terminal")
+
+    def _zoom_in(self):
+        self._config.zoom_level += 1
+
     def _debug_step_over(self):
         client = getattr(self._debug_panel, "_dap_client", None)
         if client:
@@ -3594,6 +3750,15 @@ class MainWindow(QMainWindow):
                         getattr(self._current_active_editor, sig).disconnect(slot)
                 except (TypeError, RuntimeError, RuntimeWarning):
                     pass
+            # Disconnect old comment gutter click
+            bridge = getattr(self._current_active_editor, "_bridge", None)
+            if bridge:
+                sig = getattr(bridge, "comment_gutter_clicked", None)
+                if sig:
+                    try:
+                        sig.disconnect(self._on_comment_gutter_clicked)
+                    except (TypeError, RuntimeError, RuntimeWarning):
+                        pass
 
         self._timeline_panel.update_timeline(file_path)
         self._update_outline(file_path)
@@ -3615,11 +3780,49 @@ class MainWindow(QMainWindow):
                 editor.cursor_position_changed.connect(self._on_cursor_moved)
             if hasattr(editor, "selection_changed"):
                 editor.selection_changed.connect(self._on_selection_changed)
-                # Clear selection indicator when switching tabs
                 self._status_bar.set_selection(0, 0)
             if hasattr(editor, "content_changed"):
                 editor.content_changed.connect(self._on_editor_content_changed)
             self._ext_manager.fire_event("active_editor_changed", file_path)
+            # Connect comment gutter click handler
+            bridge = getattr(editor, "_bridge", None)
+            if bridge:
+                sig = getattr(bridge, "comment_gutter_clicked", None)
+                if sig:
+                    try:
+                        sig.connect(self._on_comment_gutter_clicked)
+                    except (TypeError, RuntimeError, AttributeError):
+                        pass
+
+        # Update comments panel for current file and refresh gutter markers
+        self._comments_panel.set_current_file(file_path or "")
+        self._refresh_comment_markers(file_path)
+
+    def _refresh_comment_markers(self, file_path: str):
+        if not file_path:
+            return
+        editor = self._editor_tabs.current_editor()
+        if editor and hasattr(editor, "set_comment_markers"):
+            markers = self._comment_service.get_comment_lines_for_file(file_path)
+            editor.set_comment_markers(markers)
+
+    def _on_comment_gutter_clicked(self, file_path: str, line: int):
+        """Handle click on a comment marker in the editor gutter."""
+        if not file_path:
+            return
+        self._comments_panel.set_current_file(file_path)
+        self._switch_sidebar(VIEW_COMMENTS)
+        self._open_file_at_line(file_path, line)
+        # Check if there's already a thread on this line
+        existing = self._comment_service.get_threads_for_file(file_path)
+        has_thread = any(t.line == line for t in existing)
+        if not has_thread:
+            from PySide6.QtWidgets import QInputDialog
+            body, ok = QInputDialog.getMultiLineText(
+                self, "Add Comment", f"New comment at line {line}:"
+            )
+            if ok and body.strip():
+                self._comments_panel.add_comment_at_line(file_path, line, body.strip())
 
     def _update_editor_status_bar(self, editor):
         if hasattr(editor, "get_encoding"):
@@ -3675,6 +3878,21 @@ class MainWindow(QMainWindow):
                         if isinstance(widget, MarkdownPreviewWidget) and widget.file_path == file_path:
                             widget.update_live_content(content)
 
+        # Debounced comment gutter markers refresh
+        if not hasattr(self, '_comment_marker_debounce'):
+            from PySide6.QtCore import QTimer
+            self._comment_marker_debounce = QTimer(self)
+            self._comment_marker_debounce.setSingleShot(True)
+            self._comment_marker_debounce.setInterval(500)
+            self._comment_marker_debounce.timeout.connect(self._refresh_comment_markers_debounced)
+        self._comment_debounce_file = editor.get_file_path() if editor else None
+        self._comment_marker_debounce.start()
+
+    def _refresh_comment_markers_debounced(self):
+        file_path = getattr(self, '_comment_debounce_file', None)
+        if file_path:
+            self._refresh_comment_markers(file_path)
+
     def _flush_outline_update(self):
         """Debounced: parse outline symbols after 500ms of inactivity."""
         content = getattr(self, '_outline_debounce_pending_content', None)
@@ -3709,6 +3927,10 @@ class MainWindow(QMainWindow):
             self._launch_config.set_workspace(effective)
             if hasattr(self, "_debug_panel"):
                 self._debug_panel.set_config_names(self._launch_config.get_config_names())
+        if hasattr(self, "_task_manager"):
+            self._task_manager.set_workspace(effective)
+        if hasattr(self, "_problem_matcher"):
+            self._problem_matcher.set_workspace(effective)
         self._config.workspace_path = effective
         if effective and os.path.isdir(effective):
             recent = [
@@ -3877,6 +4099,21 @@ class MainWindow(QMainWindow):
 
 
     def _start_chat_message(self, message: str):
+        # Handle special slash commands that have UI effects
+        if message.startswith("/commit"):
+            self._generate_commit_message()
+            self._chat_generation_active = False
+            self._chat_panel.set_enabled(True)
+            self._chat_panel.show_typing(False)
+            return
+
+        if message.startswith("/mcp-ui"):
+            self._show_mcp_manager()
+            self._chat_generation_active = False
+            self._chat_panel.set_enabled(True)
+            self._chat_panel.show_typing(False)
+            return
+
         self._chat_generation_active = True
         self._chat_panel.set_enabled(False)
         import uuid
@@ -3891,7 +4128,18 @@ class MainWindow(QMainWindow):
             message = "Tolong jelaskan kode di file aktif saya secara mendetail. " + message[8:].strip()
         elif message.startswith("/plan"):
             message = "Tolong buatkan rencana arsitektur untuk fitur ini: " + message[5:].strip()
+        elif message.startswith("/test"):
+            message = "Buatkan unit test untuk kode di file aktif saya. " + message[5:].strip()
+        elif message.startswith("/review"):
+            message = "Review kode di file aktif saya. Berikan feedback tentang kualitas, keamanan, dan best practices. " + message[7:].strip()
+        elif message.startswith("/agent"):
+            message = message[6:].strip() or "Jelaskan apa yang bisa kamu lakukan sebagai AI coding agent."
         self._current_chat_exec_id = current_exec_id
+
+        # Inject participant system prompt if set
+        participant = self._chat_panel.get_participant()
+        if participant and participant.system_prompt_extra:
+            self._agent._conversation.add_message("system", participant.system_prompt_extra)
 
         selected_model = None
         if self._chat_panel.model_dropdown.isVisible():
@@ -3994,8 +4242,8 @@ class MainWindow(QMainWindow):
         import sys
         sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
         from dardcor_agent.chat.history_dialog import ChatHistoryDialog
-        
-        dialog = ChatHistoryDialog(self._agent, self)
+
+        dialog = ChatHistoryDialog(self._agent, initial_query="", parent=self)
         
         def on_conversation_selected(conv_id: str):
             if self._agent.load_conversation(conv_id):
@@ -4122,6 +4370,69 @@ class MainWindow(QMainWindow):
         self._detect_git_branch()
 
     # ── Dialogs ───────────────────────────────────────────
+
+    def _apply_workspace_edit(self, edits_json):
+        import json
+        try:
+            data = json.loads(edits_json)
+            edits = data.get("edits", [])
+            for edit in edits:
+                uri = edit.get("uri")
+                if not uri: continue
+                path = uri
+                if uri.startswith("file://"):
+                    path = uri[7:]
+                    if path.startswith("/") and ":" in path:  # Windows C:/
+                        path = path[1:]
+                
+                # Open the file in editor tabs
+                editor = self._editor_tabs.open_file(path)
+                if not editor: continue
+                
+                # Apply the edit via Monaco
+                new_text = json.dumps(edit.get("newText", ""))
+                js = f"""
+                var model = editor.getModel();
+                if (model) {{
+                    editor.executeEdits("rename", [{{
+                        range: new monaco.Range({edit['startLine']}, {edit['startColumn']}, {edit['endLine']}, {edit['endColumn']}),
+                        text: {new_text}
+                    }}]);
+                }}
+                """
+                if hasattr(editor, "_view") and editor._view:
+                    editor._view.page().runJavaScript(js)
+        except Exception as e:
+            print(f"[Workspace Edit] Error applying: {e}")
+
+    def _on_search_editor_requested(self, payload):
+        query = payload.get("query", "")
+        content = payload.get("content", "")
+        editor = self._editor_tabs.new_file()
+        if editor:
+            editor.set_content(content, "plaintext")
+
+    def _create_interactive_window(self):
+        from ..notebooks.editor import NotebookEditor
+        editor = NotebookEditor(self)
+        editor.add_cell("code", "")
+        self._editor_tabs.add_custom_tab(editor, "Interactive Window")
+        
+    def _show_indent_options(self):
+        opts = [
+            {"id": "indent.spaces", "title": "Indent Using Spaces", "action": lambda: self._execute_monaco_action('editor.action.indentUsingSpaces')},
+            {"id": "indent.tabs", "title": "Indent Using Tabs", "action": lambda: self._execute_monaco_action('editor.action.indentUsingTabs')},
+            {"id": "indent.convertSpaces", "title": "Convert Indentation to Spaces", "action": lambda: self._execute_monaco_action('editor.action.indentationToSpaces')},
+            {"id": "indent.convertTabs", "title": "Convert Indentation to Tabs", "action": lambda: self._execute_monaco_action('editor.action.indentationToTabs')},
+            {"id": "indent.detect", "title": "Detect Indentation from Content", "action": lambda: self._execute_monaco_action('editor.action.detectIndentation')}
+        ]
+        self._command_palette.set_commands(opts)
+        self._command_palette.show_palette("Select Action")
+
+    def _execute_monaco_action(self, action_id: str):
+        editor = self._editor_tabs.current_editor()
+        if hasattr(editor, "_view") and editor._view:
+            editor._view.page().runJavaScript(f"if(editor) editor.getAction('{action_id}').run();")
 
     def _show_command_palette(self):
         self._command_palette.set_commands(self._commands)
@@ -4342,8 +4653,8 @@ class MainWindow(QMainWindow):
             return
         dialog = QDialog(self)
         dialog.setWindowTitle(f"Preview: {os.path.basename(file_path)}")
-        dialog.resize(800, 600)
-        preview = MarkdownPreviewWidget(file_path, dialog)
+        dialog.resize(900, 650)
+        preview = MarkdownPreviewWidget(file_path, dialog, editor=editor)
         layout = QVBoxLayout(dialog)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(preview)
@@ -4418,6 +4729,68 @@ class MainWindow(QMainWindow):
         self._toggle_secondary_sidebar_force(not self._chat_panel.isVisible())
         self._refresh_customize_popup()
 
+    def _toggle_voice(self):
+        """Toggle voice input for the chat panel."""
+        self._chat_panel._toggle_voice()
+
+    def _show_mcp_manager(self):
+        """Show MCP server manager dialog."""
+        from pydardcor.mcp.manager_dialog import MCPManagerDialog
+        from dardcor_agent.extensibility.mcp_registry import MCPRegistry
+        from pydardcor.core.config import get_user_data_dir
+        import os
+        config_path = os.path.join(get_user_data_dir(), "mcp_servers.json")
+        registry = MCPRegistry(config_path)
+        registry.load()
+        dialog = MCPManagerDialog(registry, self)
+        dialog.exec()
+        registry.save()
+
+    def _generate_commit_message(self):
+        """Generate AI commit message from git diff."""
+        ws = self._config.workspace_path
+        if not ws:
+            QMessageBox.information(self, "Commit Message", "No workspace opened.")
+            return
+
+        from pydardcor.git.commit_ai import AICommitGenerator
+        self._commit_gen = AICommitGenerator(self)
+        self._commit_gen.message_ready.connect(self._on_commit_message_ready)
+        self._commit_gen.generation_started.connect(
+            lambda: self._notifications.show_info("Generating commit message...")
+        )
+        self._commit_gen.generate(ws)
+
+    def _on_commit_message_ready(self, message: str):
+        """Insert generated commit message into git panel."""
+        self._notifications.show_info(f"Commit message: {message}")
+        # If git panel is open, fill the commit message input
+        try:
+            if hasattr(self, '_git_panel'):
+                self._git_panel.set_commit_message(message)
+        except Exception:
+            pass
+        QApplication.clipboard().setText(message)
+        self._notifications.show_success("Commit message copied to clipboard!")
+
+    def _create_interactive_window_python(self):
+        """Open an interactive Python REPL window for AI-assisted coding."""
+        from ..editor.interactive import InteractiveExecutor
+        if not hasattr(self, '_interactive_executor'):
+            self._interactive_executor = InteractiveExecutor(self)
+        editor = self._editor_tabs.current_editor()
+        if not editor:
+            return
+        code = editor.get_selection()
+        if not code:
+            code = editor.get_content()
+        if code:
+            self._interactive_executor.execute_python(code)
+            self._notifications.show_info("Executing Python code...")
+            self._interactive_executor.result_ready.connect(
+                lambda c, r: self._notifications.show_info(f"Result: {r[:200]}")
+            )
+
     def _toggle_terminal(self):
         if self._bottom_panel.isVisible():
             if self._bottom_panel.current_view_name() != "terminal":
@@ -4435,6 +4808,72 @@ class MainWindow(QMainWindow):
     def _refresh_customize_popup(self):
         """If the popup is open, update its toggle states."""
 
+    def _toggle_focus_mode(self):
+        if hasattr(self, '_focus_manager'):
+            self._focus_manager.toggle_focus_mode()
+
+    def _show_profile_management(self):
+        from ..ui_shared.profile_management import ProfileManagementDialog
+        from ..settings.profile import ProfileManager
+        mgr = ProfileManager()
+        dialog = ProfileManagementDialog(mgr, self)
+        dialog.profile_switched.connect(lambda name: self._notifications.show_info(f"Switched to profile: {name}"))
+        dialog.exec()
+
+    def _show_account_keychain(self):
+        from ..ui_shared.account_keychain_panel import AccountKeychainPanel, KeychainManager
+        panel = AccountKeychainPanel(KeychainManager(), self)
+        panel.setWindowTitle("Accounts")
+        panel.setFixedSize(400, 500)
+        panel.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint)
+        panel.setAttribute(Qt.WA_StyledBackground, True)
+        panel.show()
+
+    def _show_product_icon_theme_picker(self):
+        from ..ui_shared.product_icon_theme_picker import ProductIconThemePicker
+        current = getattr(self._config, "product_icon_theme", "default")
+        dialog = ProductIconThemePicker(current, self)
+        dialog.theme_changed.connect(lambda tid, name: self._on_product_icon_theme_changed(tid, name))
+        dialog.exec()
+
+    def _on_product_icon_theme_changed(self, theme_id: str, theme_name: str):
+        self._config.product_icon_theme = theme_id
+        self._notifications.show_info(f"Icon Theme: {theme_name}")
+        self._refresh_file_icons()
+
+    def _show_wizard_demo(self):
+        from ..ui_shared.wizard_dialog import WizardDialog, WizardStep, TextInputStep, CheckboxListStep
+        wiz = WizardDialog("New Project Wizard", self)
+        step1 = TextInputStep("Project Name", "Enter project name...", field_key="name")
+        s1 = WizardStep("Name", "Choose a name for your project")
+        s1.widget = step1
+        wiz.add_step(s1)
+        step2 = CheckboxListStep("Features", [
+            {"label": "TypeScript", "checked": True},
+            {"label": "React", "checked": True},
+            {"label": "Node.js"},
+            {"label": "Docker"},
+            {"label": "ESLint", "checked": True},
+        ], field_key="features")
+        s2 = WizardStep("Features", "Select project features")
+        s2.widget = step2
+        wiz.add_step(s2)
+        wiz.finished.connect(lambda data: self._notifications.show_info(f"Wizard done: {data}"))
+        wiz.show_dialog()
+
+    def _show_quick_pick_multi(self):
+        from ..ui_shared.quick_pick import QuickPickDialog
+        items = ["item1", "item2", "item3", "item4", "item5", "item6"]
+        dialog = QuickPickDialog("Select items", items, self)
+        if dialog.exec():
+            selected = dialog.get_selected_items()
+            self._notifications.show_info(f"Selected: {', '.join(selected)}")
+
+    def _show_input_box(self):
+        from ..ui_shared.quick_pick import InputBox
+        box = InputBox("Enter value:", self, validator=lambda v: len(v) >= 3 or "Minimum 3 characters")
+        if box.exec():
+            self._notifications.show_info(f"Got: {box.get_value()}")
 
     def _new_terminal(self):
         if not self._bottom_panel.isVisible() or self._bottom_panel.current_view_name() != "terminal":
@@ -4442,28 +4881,253 @@ class MainWindow(QMainWindow):
             self._title_bar.btn_bottom_panel.setChecked(True)
         self._terminal_panel._new_terminal()
 
+    def _on_task_finished(self, name: str, code: int):
+        self._output_panel.append(f"Terminal will be reused by tasks, press any key to close it.\n", "Tasks")
+        self._refresh_problems_summary()
+        if code == 0:
+            self._notifications.show_info(f"Task '{name}' completed successfully")
+        else:
+            self._notifications.show_warning(f"Task '{name}' failed with exit code {code}")
+
     def _show_run_task(self):
         if not self._task_manager:
             QMessageBox.information(self, "Tasks", "No workspace opened for tasks.")
             return
-            
-        tasks = self._task_manager.get_tasks()
-        if not tasks:
-            QMessageBox.information(self, "Tasks", "No tasks found in .vscode/tasks.json.")
+
+        all_tasks = self._task_manager.get_all_tasks()
+        if not all_tasks:
+            QMessageBox.information(self, "Tasks", "No tasks found.")
             return
-            
-        labels = [t.get("label", "Unknown Task") for t in tasks]
+
+        labels = [t.get("label", "Unknown Task") for t in all_tasks]
+        if not labels:
+            return
+
+        from PySide6.QtWidgets import QInputDialog, QDialog, QVBoxLayout, QListWidget, QListWidgetItem
+        from PySide6.QtCore import Qt
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Run Task")
+        dialog.resize(500, 400)
+        layout = QVBoxLayout(dialog)
+
+        search_box = QLineEdit()
+        search_box.setPlaceholderText("Type to filter tasks...")
+        search_box.setStyleSheet("""
+            QLineEdit {
+                background-color: #2c004a; color: #cccccc;
+                border: 1px solid #3c0068; padding: 6px 12px;
+                font-size: 13px;
+            } QLineEdit:focus { border: 1px solid #4a0072; }
+        """)
+        layout.addWidget(search_box)
+
+        task_list = QListWidget()
+        task_list.setStyleSheet("""
+            QListWidget {
+                background-color: #000000; color: #cccccc;
+                border: 1px solid #3c0068; font-size: 13px;
+            }
+            QListWidget::item { padding: 6px 12px; min-height: 28px; }
+            QListWidget::item:selected { background-color: #3c0068; }
+            QListWidget::item:hover:!selected { background-color: #1a0033; }
+        """)
+        layout.addWidget(task_list)
+
+        def populate(filter_text=""):
+            task_list.clear()
+            flt = filter_text.lower()
+            for t in all_tasks:
+                label = t.get("label", "")
+                detail = t.get("detail", "")
+                source = t.get("source", "")
+                group = t.get("group", "")
+                if flt and flt not in label.lower() and flt not in detail.lower():
+                    continue
+                item = QListWidgetItem()
+                display = label
+                if detail:
+                    display += f"  ({detail})"
+                item.setText(display)
+                item.setData(Qt.UserRole, label)
+                item.setToolTip(f"Source: {source}\nType: {t.get('type', 'shell')}\nCommand: {t.get('command', '')}")
+                task_list.addItem(item)
+
+        search_box.textChanged.connect(populate)
+        populate()
+
+        def on_item_activated(item):
+            label = item.data(Qt.UserRole)
+            if label:
+                self._do_run_task(label)
+            dialog.accept()
+
+        task_list.itemActivated.connect(on_item_activated)
+        task_list.itemClicked.connect(on_item_activated)
+
+        def on_key(event):
+            from PySide6.QtGui import QKeyEvent
+            if event.key() == Qt.Key_Escape:
+                dialog.reject()
+            elif event.key() == Qt.Key_Down:
+                row = task_list.currentRow()
+                if row < task_list.count() - 1:
+                    task_list.setCurrentRow(row + 1)
+            elif event.key() == Qt.Key_Up:
+                row = task_list.currentRow()
+                if row > 0:
+                    task_list.setCurrentRow(row - 1)
+            elif event.key() in (Qt.Key_Return, Qt.Key_Enter):
+                item = task_list.currentItem()
+                if item:
+                    on_item_activated(item)
+        dialog.keyPressEvent = on_key
+
+        dialog.exec()
+
+    def _show_run_build_task(self):
+        """Run Build Task - VS Code Ctrl+Shift+B behavior."""
+        if not self._task_manager:
+            QMessageBox.information(self, "Tasks", "No workspace opened.")
+            return
+
+        build_tasks = self._task_manager.get_build_tasks()
+        all_tasks = self._task_manager.get_all_tasks()
+
+        build_labels = [t.label for t in build_tasks]
+        auto_build = [
+            t for t in all_tasks if t.get("_auto_detected") and t.get("group") == "build"
+        ]
+        build_labels.extend(t.get("label", "") for t in auto_build)
+
+        # Find default build task
+        default_build = next(
+            (t for t in build_tasks if t.group and t.group.is_default),
+            None
+        )
+
+        if default_build:
+            self._do_run_task(default_build.label)
+            return
+
+        if len(build_labels) == 1:
+            self._do_run_task(build_labels[0])
+            return
+
+        if not build_labels:
+            # No build tasks - prompt to create default
+            reply = QMessageBox.question(
+                self, "No Build Task",
+                "No build task configured. Configure a build task?",
+                QMessageBox.Yes | QMessageBox.Cancel
+            )
+            if reply == QMessageBox.Yes:
+                self._task_manager.create_default_tasks()
+                self._task_manager.reload_tasks()
+                bt = self._task_manager.get_build_tasks()
+                if bt:
+                    self._do_run_task(bt[0].label)
+            return
+
         from PySide6.QtWidgets import QInputDialog
-        task_label, ok = QInputDialog.getItem(self, "Run Task", "Select a task to run:", labels, 0, False)
-        if ok and task_label:
-            task = next((t for t in tasks if t.get("label") == task_label), None)
-            if task:
-                self._new_terminal()
-                # Run via terminal output (placeholder logic for task)
-                cmd = self._task_manager._build_command(task)
-                if cmd:
-                    from PySide6.QtCore import QTimer
-                    QTimer.singleShot(500, lambda: self._terminal_panel._terminals[-1].write_input(f"{cmd}\r\n"))
+        label, ok = QInputDialog.getItem(self, "Run Build Task", "Select build task:", build_labels, 0, False)
+        if ok and label:
+            self._do_run_task(label)
+
+    def _do_run_task(self, label: str):
+        """Execute a task by label, handling dependsOn and inputs."""
+        task = self._task_manager.get_task_by_label(label)
+        if not task:
+            self._notifications.show_warning(f"Task '{label}' not found.")
+            return
+
+        # Show bottom panel with output
+        if not self._bottom_panel.isVisible():
+            self._toggle_panel_force(True)
+        self._bottom_panel.set_active_view("output")
+        self._title_bar.btn_bottom_panel.setChecked(True)
+
+        # Collect inputs if needed
+        def on_input(inp: TaskInput):
+            from PySide6.QtWidgets import QInputDialog
+            if inp.type == "pickString":
+                value, ok = QInputDialog.getItem(
+                    self, inp.description or inp.id,
+                    inp.description or "Select value:",
+                    list(inp.options.values()) if inp.options else [],
+                    0, False
+                )
+                return value if ok else inp.default
+            elif inp.type == "promptString":
+                value, ok = QInputDialog.getText(
+                    self, inp.description or inp.id,
+                    inp.description or "Enter value:",
+                    text=inp.default
+                )
+                return value if ok else inp.default
+            elif inp.type == "command":
+                if inp.command:
+                    self._execute_command(inp.command)
+                return inp.default
+            return inp.default
+
+        # Update variable context before running
+        editor = self._editor_tabs.current_editor()
+        if editor:
+            fp = editor.get_file_path() or ""
+            line, col = 1, 1
+            if hasattr(editor, "get_cursor_position"):
+                try:
+                    line, col = editor.get_cursor_position()
+                except Exception:
+                    pass
+            sel = ""
+            if hasattr(editor, "get_selection"):
+                try:
+                    sel = editor.get_selection() or ""
+                except Exception:
+                    pass
+            self._task_manager.set_active_file_context(fp, line, sel)
+
+        # Register problem matchers from the task
+        if task.problem_matcher:
+            self._problem_matcher.register_matchers_from_task(task._raw)
+
+        self._last_run_task_label = label
+        self._active_task_matcher_name = task.problem_matcher[0] if task.problem_matcher else ""
+        self._task_manager.run_task(task, on_input_request=on_input)
+
+    def _process_task_output(self, task_name: str, line: str):
+        """Process a line of task output - append to panel and run problem matchers."""
+        self._output_panel.append(line, "Tasks")
+
+        # Run problem matchers on the output
+        matcher_name = getattr(self, "_active_task_matcher_name", "")
+        if matcher_name:
+            problems = self._problem_matcher.process_line(line, matcher_name, task_name)
+            if problems:
+                self._refresh_problems_summary()
+
+    def _rerun_last_task(self):
+        """Re-run the last finished task."""
+        if not hasattr(self, "_last_run_task_label") or not self._last_run_task_label:
+            self._notifications.show_info("No task has been run yet.")
+            return
+        self._do_run_task(self._last_run_task_label)
+
+    def _terminate_task_prompt(self):
+        """Show a dialog to terminate a running task."""
+        running = self._task_manager.get_running_tasks()
+        if not running:
+            self._notifications.show_info("No tasks are currently running.")
+            return
+        from PySide6.QtWidgets import QInputDialog
+        label, ok = QInputDialog.getItem(self, "Terminate Task",
+                                          "Select running task to terminate:",
+                                          running, 0, False)
+        if ok and label:
+            self._task_manager.terminate_task(label)
+            self._notifications.show_info(f"Task '{label}' terminated.")
 
     def _toggle_word_wrap(self):
         self._word_wrap = not getattr(self, '_word_wrap', False)
@@ -4474,28 +5138,33 @@ class MainWindow(QMainWindow):
         self._editor_tabs.set_font_size(size)
 
     def _zoom_in(self):
-        self._config.ui_zoom = getattr(self._config, 'ui_zoom', 0) + 1
+        # Limit zoom level to +20
+        new_zoom = min(20, getattr(self._config, 'ui_zoom', 0) + 1)
+        if new_zoom == self._config.ui_zoom: return
+        self._config.ui_zoom = new_zoom
+        
         app = QApplication.instance()
         font = app.font()
         font.setPointSize(9 + self._config.ui_zoom)
         app.setFont(font)
         
-        self._font_size = min(self._font_size + 1, 32)
-        self._apply_font_size_to_all(self._font_size)
-        self._config.font_size = self._font_size
+        from pydardcor.app.theme_manager import ThemeManager
+        ThemeManager.set_zoom_level(app, self._config.ui_zoom)
         self._config.save()
 
     def _zoom_out(self):
-        self._config.ui_zoom = getattr(self._config, 'ui_zoom', 0) - 1
+        # Limit zoom level to -8
+        new_zoom = max(-8, getattr(self._config, 'ui_zoom', 0) - 1)
+        if new_zoom == self._config.ui_zoom: return
+        self._config.ui_zoom = new_zoom
+        
         app = QApplication.instance()
         font = app.font()
-        new_size = max(6, 9 + self._config.ui_zoom)
-        font.setPointSize(new_size)
+        font.setPointSize(max(6, 9 + self._config.ui_zoom))
         app.setFont(font)
         
-        self._font_size = max(self._font_size - 1, 8)
-        self._apply_font_size_to_all(self._font_size)
-        self._config.font_size = self._font_size
+        from pydardcor.app.theme_manager import ThemeManager
+        ThemeManager.set_zoom_level(app, self._config.ui_zoom)
         self._config.save()
 
     def _toggle_inline_diff(self):
@@ -4545,9 +5214,9 @@ class MainWindow(QMainWindow):
         font = app.font()
         font.setPointSize(9)
         app.setFont(font)
-        self._font_size = 14
-        self._apply_font_size_to_all(self._font_size)
-        self._config.font_size = self._font_size
+        
+        from pydardcor.app.theme_manager import ThemeManager
+        ThemeManager.set_zoom_level(app, 0)
         self._config.save()
 
     def _toggle_fullscreen(self):
@@ -4570,7 +5239,7 @@ class MainWindow(QMainWindow):
             self._editor_tabs.split_editor("right")
         # Open the preview in the second group
         from ..editor.markdown_preview import MarkdownPreviewWidget
-        preview = MarkdownPreviewWidget(file_path)
+        preview = MarkdownPreviewWidget(file_path, editor=editor)
         import os
         self._editor_tabs._groups[-1].add_custom_tab(preview, f"Preview: {os.path.basename(file_path)}")
 
@@ -4784,3 +5453,15 @@ class MainWindow(QMainWindow):
         else:
             layout.addWidget(self._activity_bar)
             self._activity_bar_on_right = True
+
+    # --- Banner helper ---
+
+    def show_banner(self, message: str, icon: str = "ℹ", color: str = "#0e639c", actions: list = None):
+        if hasattr(self, '_banner'):
+            from ..ui_shared.banner import BannerAction
+            banner_actions = [BannerAction(a["label"], a["handler"]) for a in (actions or [])]
+            self._banner.show_message(message, icon=icon, color=color, actions=banner_actions)
+
+    def dismiss_banner(self):
+        if hasattr(self, '_banner'):
+            self._banner.dismiss()

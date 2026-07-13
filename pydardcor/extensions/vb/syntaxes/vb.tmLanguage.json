@@ -1,0 +1,14 @@
+{
+  "scopeName": "source.vb",
+  "name": "Visual Basic",
+  "fileTypes": [
+    "vb",
+    "vbs"
+  ],
+  "patterns": [
+    {
+      "include": "source.vb"
+    }
+  ],
+  "repository": {}
+}

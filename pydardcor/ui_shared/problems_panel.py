@@ -57,6 +57,12 @@ class ProblemsPanel(QWidget):
         self._tree.itemDoubleClicked.connect(self._on_item_clicked)
         layout.addWidget(self._tree)
 
+    def add_problem(self, file_path, problem):
+        """Add a single problem."""
+        problem['file'] = file_path
+        self._problems.append(problem)
+        self._schedule_rebuild()
+
     def set_problems(self, file_path, problems):
         """
         problems: list of dicts with keys:

@@ -57,17 +57,88 @@ class ThemeContribution:
 class ViewContainerContribution:
     id: str = ""
     title: str = ""
-    icon: str = ""            # absolute path to svg/png icon
-    location: str = "activitybar"  # activitybar | panel
+    icon: str = ""
+    location: str = "activitybar"
 
 
 @dataclass
 class ViewContribution:
-    container_id: str = ""    # which viewsContainer (or builtin: explorer/scm/debug/test)
+    container_id: str = ""
     id: str = ""
     name: str = ""
     when: str = ""
-    type: str = "tree"        # tree | webview
+    type: str = "tree"
+
+
+@dataclass
+class ColorContribution:
+    id: str = ""
+    description: str = ""
+    defaults: Dict[str, str] = field(default_factory=dict)
+
+
+@dataclass
+class IconContribution:
+    id: str = ""
+    description: str = ""
+    default: Dict[str, str] = field(default_factory=dict)
+
+
+@dataclass
+class ProblemPatternContribution:
+    name: str = ""
+    regexp: str = ""
+    file: int = 1
+    line: int = 1
+    column: int = 0
+    severity: int = 4
+    message: int = 1
+
+
+@dataclass
+class ProblemMatcherContribution:
+    name: str = ""
+    label: str = ""
+    owner: str = ""
+    source: str = ""
+    severity: str = "error"
+    pattern: Optional[ProblemPatternContribution] = None
+
+
+@dataclass
+class TaskDefinitionContribution:
+    type: str = ""
+    required: List[str] = field(default_factory=list)
+    properties: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class AuthenticationContribution:
+    id: str = ""
+    label: str = ""
+
+
+@dataclass
+class NotebookRendererContribution:
+    id: str = ""
+    displayName: str = ""
+    entrypoint: str = ""
+
+
+@dataclass
+class NotebookTypeContribution:
+    type: str = ""
+    displayName: str = ""
+    selector: List[Dict[str, str]] = field(default_factory=list)
+    priority: str = "default"
+
+
+@dataclass
+class CustomEditorContribution:
+    viewType: str = ""
+    displayName: str = ""
+    selector: List[Dict[str, str]] = field(default_factory=list)
+    priority: str = "default"
 
 
 @dataclass
@@ -82,6 +153,15 @@ class ExtensionContributions:
     configuration: Any = None
     menus: Dict[str, Any] = field(default_factory=dict)
     keybindings: List[Dict[str, Any]] = field(default_factory=list)
+    colors: List[ColorContribution] = field(default_factory=list)
+    icons: List[IconContribution] = field(default_factory=list)
+    problem_matchers: List[ProblemMatcherContribution] = field(default_factory=list)
+    problem_patterns: List[ProblemPatternContribution] = field(default_factory=list)
+    task_definitions: List[TaskDefinitionContribution] = field(default_factory=list)
+    authentication: List[AuthenticationContribution] = field(default_factory=list)
+    notebook_renderers: List[NotebookRendererContribution] = field(default_factory=list)
+    notebook_types: List[NotebookTypeContribution] = field(default_factory=list)
+    custom_editors: List[CustomEditorContribution] = field(default_factory=list)
 
 
 class ContributionParser:
@@ -95,7 +175,6 @@ class ContributionParser:
 
     @staticmethod
     def _load_nls(ext_path: str) -> Dict[str, str]:
-        """Load package.nls.json used by VS Code for %key% localization."""
         nls_path = os.path.join(ext_path, "package.nls.json")
         if not os.path.exists(nls_path):
             return {}
@@ -158,7 +237,6 @@ class ContributionParser:
             scope = grammar.get("scopeName", "")
             grammar_path = grammar.get("path", "")
             embedded = grammar.get("embeddedLanguages", {})
-
             full_path = os.path.join(ext_path, grammar_path) if grammar_path else ""
             result.grammars.append(GrammarContribution(
                 language=lang_id,
@@ -186,7 +264,6 @@ class ContributionParser:
                 path=full_path,
             ))
 
-        # View containers (activity bar / panel icons contributed by extensions)
         vc_root = contributes.get("viewsContainers", {})
         for location in ("activitybar", "panel"):
             for vc in vc_root.get(location, []):
@@ -199,7 +276,6 @@ class ContributionParser:
                     location=location,
                 ))
 
-        # Views (tree/webview panels shown inside a container)
         views_root = contributes.get("views", {})
         if isinstance(views_root, dict):
             for container_id, view_list in views_root.items():
@@ -219,6 +295,188 @@ class ContributionParser:
 
         for kb in contributes.get("keybindings", []):
             result.keybindings.append(kb)
+
+        for color in contributes.get("colors", []):
+            result.colors.append(ColorContribution(
+                id=color.get("id", ""),
+                description=color.get("description", ""),
+                defaults=color.get("defaults", {}),
+            ))
+
+        for icon in contributes.get("productIconThemes", []):
+            result.icons.append(IconContribution(
+                id=icon.get("id", ""),
+                description=icon.get("description", ""),
+                default=icon.get("default", {}),
+            ))
+
+        for pm in contributes.get("problemMatchers", []):
+            pattern_data = pm.get("pattern", {})
+            pattern = ProblemPatternContribution(
+                name=pattern_data.get("regexp", ""),
+                regexp=pattern_data.get("regexp", ""),
+                file=int(pattern_data.get("file", 1)),
+                line=int(pattern_data.get("line", 1)),
+                column=int(pattern_data.get("column", 0)),
+                severity=int(pattern_data.get("severity", 4)),
+                message=int(pattern_data.get("message", 1)),
+            ) if pattern_data else None
+            result.problem_matchers.append(ProblemMatcherContribution(
+                name=pm.get("name", ""),
+                label=pm.get("label", ""),
+                owner=pm.get("owner", ""),
+                source=pm.get("source", ""),
+                severity=pm.get("severity", "error"),
+                pattern=pattern,
+            ))
+
+        for pp in contributes.get("problemPatterns", []):
+            result.problem_patterns.append(ProblemPatternContribution(
+                name=pp.get("name", ""),
+                regexp=pp.get("regexp", ""),
+                file=int(pp.get("file", 1)),
+                line=int(pp.get("line", 1)),
+                column=int(pp.get("column", 0)),
+                severity=int(pp.get("severity", 4)),
+                message=int(pp.get("message", 1)),
+            ))
+
+        for td in contributes.get("taskDefinitions", []):
+            result.task_definitions.append(TaskDefinitionContribution(
+                type=td.get("type", ""),
+                required=list(td.get("required", [])),
+                properties=td.get("properties", {}),
+            ))
+
+        for auth in contributes.get("authentication", []):
+            result.authentication.append(AuthenticationContribution(
+                id=auth.get("id", ""),
+                label=auth.get("label", ""),
+            ))
+
+        for nr in contributes.get("notebookRenderer", []):
+            result.notebook_renderers.append(NotebookRendererContribution(
+                id=nr.get("id", ""),
+                displayName=nr.get("displayName", ""),
+                entrypoint=nr.get("entrypoint", ""),
+            ))
+
+        for nt in contributes.get("notebooks", []):
+            result.notebook_types.append(NotebookTypeContribution(
+                type=nt.get("type", ""),
+                displayName=nt.get("displayName", ""),
+                selector=nt.get("selector", []),
+                priority=nt.get("priority", "default"),
+            ))
+
+        for ce in contributes.get("customEditors", []):
+            result.custom_editors.append(CustomEditorContribution(
+                viewType=ce.get("viewType", ""),
+                displayName=ce.get("displayName", ""),
+                selector=ce.get("selector", []),
+                priority=ce.get("priority", "default"),
+            ))
+
+        for auth in contributes.get("authentication", []):
+            result.authentication.append(AuthenticationContribution(
+                id=auth.get("id", ""),
+                label=auth.get("label", ""),
+            ))
+
+        for color in contributes.get("colors", []):
+            result.colors.append(ColorContribution(
+                id=color.get("id", ""),
+                description=color.get("description", ""),
+                defaults=color.get("defaults", {}),
+            ))
+
+        for icon in contributes.get("productIconThemes", []):
+            result.icons.append(IconContribution(
+                id=icon.get("id", ""),
+                description=icon.get("description", ""),
+                default=icon.get("default", {}),
+            ))
+
+        for pm in contributes.get("problemMatchers", []):
+            pattern_data = pm.get("pattern", {})
+            pattern = ProblemPatternContribution(
+                name=pattern_data.get("regexp", ""),
+                regexp=pattern_data.get("regexp", ""),
+                file=int(pattern_data.get("file", 1)),
+                line=int(pattern_data.get("line", 1)),
+                column=int(pattern_data.get("column", 0)),
+                severity=int(pattern_data.get("severity", 4)),
+                message=int(pattern_data.get("message", 1)),
+            ) if pattern_data else None
+            result.problem_matchers.append(ProblemMatcherContribution(
+                name=pm.get("name", ""),
+                label=pm.get("label", ""),
+                owner=pm.get("owner", ""),
+                source=pm.get("source", ""),
+                severity=pm.get("severity", "error"),
+                pattern=pattern,
+            ))
+
+        for pp in contributes.get("problemPatterns", []):
+            result.problem_patterns.append(ProblemPatternContribution(
+                name=pp.get("name", ""),
+                regexp=pp.get("regexp", ""),
+                file=int(pp.get("file", 1)),
+                line=int(pp.get("line", 1)),
+                column=int(pp.get("column", 0)),
+                severity=int(pp.get("severity", 4)),
+                message=int(pp.get("message", 1)),
+            ))
+
+        for td in contributes.get("taskDefinitions", []):
+            result.task_definitions.append(TaskDefinitionContribution(
+                type=td.get("type", ""),
+                required=list(td.get("required", [])),
+                properties=td.get("properties", {}),
+            ))
+
+        for auth in contributes.get("authentication", []):
+            result.authentication.append(AuthenticationContribution(
+                id=auth.get("id", ""),
+                label=auth.get("label", ""),
+            ))
+
+        for nr in contributes.get("notebookRenderer", []):
+            result.notebook_renderers.append(NotebookRendererContribution(
+                id=nr.get("id", ""),
+                displayName=nr.get("displayName", ""),
+                entrypoint=nr.get("entrypoint", ""),
+            ))
+
+        for nt in contributes.get("notebooks", []):
+            result.notebook_types.append(NotebookTypeContribution(
+                type=nt.get("type", ""),
+                displayName=nt.get("displayName", ""),
+                selector=nt.get("selector", []),
+                priority=nt.get("priority", "default"),
+            ))
+
+        for ce in contributes.get("customEditors", []):
+            result.custom_editors.append(CustomEditorContribution(
+                viewType=ce.get("viewType", ""),
+                displayName=ce.get("displayName", ""),
+                selector=ce.get("selector", []),
+                priority=ce.get("priority", "default"),
+            ))
+
+        for color in contributes.get("colors", []):
+            result.colors.append(ColorContribution(
+                id=color.get("id", ""),
+                description=color.get("description", ""),
+                defaults=color.get("defaults", {}),
+            ))
+
+        for icon in contributes.get("productIconThemes", []):
+            result.icons.append(IconContribution(
+                id=icon.get("id", ""),
+                description=icon.get("description", ""),
+                default=icon.get("default", {}),
+            ))
 
         self._cache[ext_path] = result
         return result
@@ -275,7 +533,6 @@ class ContributionParser:
         return ""
 
     def get_menu_items(self, menu_id: str) -> List[MenuItemContribution]:
-        """Aggregate contributed menu items for *menu_id* across enabled extensions."""
         from .extension_manager import get_extension_manager
 
         results: List[MenuItemContribution] = []
@@ -352,7 +609,6 @@ class ContributionParser:
             return []
 
     def get_snippets_for_language(self, language_id: str) -> List[Dict[str, Any]]:
-        """Aggregate snippets from all installed extensions for a language."""
         if language_id in self._snippet_cache:
             return self._snippet_cache[language_id]
 
@@ -382,13 +638,6 @@ class ContributionParser:
             return {}
 
     def get_activitybar_containers(self) -> List[Dict[str, Any]]:
-        """Return extension-contributed activity-bar view containers.
-
-        Each entry: {container, views, ext_name, ext_path}. Only enabled
-        extensions are considered. Views declared for a container that has no
-        explicit viewsContainer entry (e.g. contributed directly into builtin
-        containers) are ignored here since those go into builtin panels.
-        """
         from .extension_manager import get_extension_manager
 
         containers: List[Dict[str, Any]] = []
@@ -415,6 +664,90 @@ class ContributionParser:
                     "ext_path": ext.path,
                 })
         return containers
+
+    def get_all_themes(self) -> List[ThemeContribution]:
+        from .extension_manager import get_extension_manager
+        themes = []
+        seen = set()
+        for ext in get_extension_manager().get_installed_extensions():
+            if not ext.enabled:
+                continue
+            contribs = self.parse_extension(ext.path)
+            for theme in contribs.themes:
+                if theme.id and theme.id not in seen:
+                    seen.add(theme.id)
+                    themes.append(theme)
+        return themes
+
+    def get_all_colors(self) -> List[ColorContribution]:
+        from .extension_manager import get_extension_manager
+        colors = []
+        seen = set()
+        for ext in get_extension_manager().get_installed_extensions():
+            if not ext.enabled:
+                continue
+            contribs = self.parse_extension(ext.path)
+            for color in contribs.colors:
+                if color.id and color.id not in seen:
+                    seen.add(color.id)
+                    colors.append(color)
+        return colors
+
+    def get_all_task_definitions(self) -> List[TaskDefinitionContribution]:
+        from .extension_manager import get_extension_manager
+        tasks = []
+        seen = set()
+        for ext in get_extension_manager().get_installed_extensions():
+            if not ext.enabled:
+                continue
+            contribs = self.parse_extension(ext.path)
+            for td in contribs.task_definitions:
+                if td.type and td.type not in seen:
+                    seen.add(td.type)
+                    tasks.append(td)
+        return tasks
+
+    def get_all_authentication_providers(self) -> List[AuthenticationContribution]:
+        from .extension_manager import get_extension_manager
+        auths = []
+        seen = set()
+        for ext in get_extension_manager().get_installed_extensions():
+            if not ext.enabled:
+                continue
+            contribs = self.parse_extension(ext.path)
+            for a in contribs.authentication:
+                if a.id and a.id not in seen:
+                    seen.add(a.id)
+                    auths.append(a)
+        return auths
+
+    def get_all_custom_editors(self) -> List[CustomEditorContribution]:
+        from .extension_manager import get_extension_manager
+        editors = []
+        seen = set()
+        for ext in get_extension_manager().get_installed_extensions():
+            if not ext.enabled:
+                continue
+            contribs = self.parse_extension(ext.path)
+            for ce in contribs.custom_editors:
+                if ce.viewType and ce.viewType not in seen:
+                    seen.add(ce.viewType)
+                    editors.append(ce)
+        return editors
+
+    def get_all_notebook_types(self) -> List[NotebookTypeContribution]:
+        from .extension_manager import get_extension_manager
+        types = []
+        seen = set()
+        for ext in get_extension_manager().get_installed_extensions():
+            if not ext.enabled:
+                continue
+            contribs = self.parse_extension(ext.path)
+            for nt in contribs.notebook_types:
+                if nt.type and nt.type not in seen:
+                    seen.add(nt.type)
+                    types.append(nt)
+        return types
 
 
 _parser_instance: Optional[ContributionParser] = None

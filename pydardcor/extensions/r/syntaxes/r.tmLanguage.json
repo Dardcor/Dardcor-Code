@@ -1,0 +1,15 @@
+{
+  "scopeName": "source.r",
+  "name": "R",
+  "fileTypes": [
+    "r",
+    "R",
+    "Rmd"
+  ],
+  "patterns": [
+    {
+      "include": "source.r"
+    }
+  ],
+  "repository": {}
+}

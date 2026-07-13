@@ -81,7 +81,22 @@ class TimelinePanel(QWidget):
             rel_path = os.path.relpath(file_path, root) if root else file_path
 
             self._add_working_tree_item(file_path, root, rel_path, kwargs)
+            
+            # 1. Load Local History
+            try:
+                from ..editor.local_history import list_versions
+                versions = list_versions(file_path, root or "")
+                for v in versions:
+                    time_str = v.get("timestamp_str", "Unknown")
+                    item = QTreeWidgetItem([f"[Local] Saved at {time_str}"])
+                    item.setForeground(0, QColor("#e2c08d"))
+                    item.setToolTip(0, f"Local history snapshot\nSize: {v.get('size_bytes', 0)} bytes")
+                    item.setData(0, Qt.UserRole, f"local:{v.get('timestamp')}")
+                    self._tree.addTopLevelItem(item)
+            except Exception as e:
+                pass # Local history not available or failed
 
+            # 2. Load Git History
             res = subprocess.run(
                 ["git", "log", "--pretty=format:%h|%an|%ar|%s", "--max-count=10", "--", rel_path],
                 cwd=root or os.path.dirname(file_path),

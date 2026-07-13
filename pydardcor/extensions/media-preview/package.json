@@ -1,0 +1,37 @@
+{
+  "name": "dardcor-media-preview",
+  "displayName": "Media Preview",
+  "description": "Preview for images, audio, video",
+  "version": "1.68.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "main": "extension.py",
+  "contributes": {
+    "commands": [
+      {
+        "command": "media-preview.hello",
+        "title": "Media Preview: Show Info"
+      }
+    ],
+    "configuration": {
+      "title": "Media Preview",
+      "properties": {
+        "media-preview.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Media Preview"
+        }
+      }
+    }
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes",
+    "Formatters",
+    "Linters",
+    "Language Packs"
+  ]
+}

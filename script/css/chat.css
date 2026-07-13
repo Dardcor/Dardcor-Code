@@ -52,6 +52,34 @@ body {
     padding-top: 16px;
 }
 
+/* Feature badges */
+.welcome-features {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 14px;
+    max-width: 400px;
+}
+
+.feature-badge {
+    background: rgba(168, 85, 247, 0.1);
+    border: 1px solid rgba(168, 85, 247, 0.25);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 10px;
+    color: #c084fc;
+    font-weight: 500;
+    animation: fadeInUp 0.5s ease both;
+    transition: all 0.2s ease;
+}
+
+.feature-badge:hover {
+    background: rgba(168, 85, 247, 0.2);
+    border-color: #a855f7;
+    transform: translateY(-1px);
+}
+
 /* Welcome / empty state banner */
 #welcome-banner {
     position: fixed;

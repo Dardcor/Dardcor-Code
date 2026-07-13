@@ -1,5 +1,5 @@
 import os
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QListWidget, QListWidgetItem
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QListWidget, QListWidgetItem, QSizePolicy
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtGui import QColor
 
@@ -16,6 +16,7 @@ class OpenEditorsPanel(QWidget):
         self._open_files = [] # list of (path, is_active)
         self.setObjectName("openEditorsPanel")
 
+        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
@@ -60,17 +61,24 @@ class OpenEditorsPanel(QWidget):
         self._header.set_collapsed(self._collapsed)
         self._adjust_height()
 
+    def showEvent(self, event):
+        super().showEvent(event)
+        # Force a refresh to ensure our list is updated if it was changed while hidden
+        from ..core.config import get_config
+        # We can trigger main_window to push the update, or we can just try to re-apply height
+        self._adjust_height()
+
     def _adjust_height(self):
         count = self._list.count()
         if self._collapsed or count == 0:
             self._list.setVisible(False)
-            self.setMaximumHeight(16777215) # Let layout naturally shrink it to header size
+            self.setFixedHeight(24) # Ensure it shrinks strictly to the header height
         else:
             self._list.setVisible(True)
             # Calculate height needed for list items (approx 22px each)
             h = (count * 22) + 4
             self._list.setFixedHeight(min(h, 200))
-            self.setMaximumHeight(16777215)
+            self.setFixedHeight(24 + min(h, 200))
 
     def update_editors(self, open_files: list, active_path: str = None):
         """open_files is a list of file paths"""

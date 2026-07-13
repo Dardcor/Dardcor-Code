@@ -1,0 +1,14 @@
+{
+  "scopeName": "source.handlebars",
+  "name": "Handlebars",
+  "fileTypes": [
+    "handlebars",
+    "hbs"
+  ],
+  "patterns": [
+    {
+      "include": "source.handlebars"
+    }
+  ],
+  "repository": {}
+}

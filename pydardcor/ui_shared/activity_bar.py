@@ -11,6 +11,7 @@ VIEW_SOURCE_CONTROL = 2
 VIEW_DEBUG = 3
 VIEW_EXTENSIONS = 4
 VIEW_TESTING = 5
+VIEW_COMMENTS = 6
 
 # Extension-contributed view containers use ids starting here
 EXT_VIEW_BASE = 1000
@@ -27,14 +28,20 @@ class ActivityBarButton(QPushButton):
         self._ext_pixmap = None
         self.setToolTip(tooltip)
         self.setCheckable(True)
-        self.setFixedSize(48, 48)
         self.setCursor(Qt.PointingHandCursor)
         self._badge_text = ""
         
-        from PySide6.QtGui import QFont
-        font = QFont("codicon")
-        font.setPixelSize(26)
-        self.setFont(font)
+        # Use QSS for sizes so ThemeManager can scale them on zoom
+        self.setStyleSheet("""
+            QPushButton {
+                min-width: 48px;
+                max-width: 48px;
+                min-height: 48px;
+                max-height: 48px;
+                font-size: 26px;
+                font-family: 'codicon';
+            }
+        """)
         
         icon_map = {
             "explorer": "\ueaf0",
@@ -42,7 +49,8 @@ class ActivityBarButton(QPushButton):
             "git": "\uea68",
             "debug": "\uead8",
             "extensions": "\ueae6",
-            "testing": "\uebfc"
+            "testing": "\uebfc",
+            "comment": "\ueab2"
         }
         if self._icon_path:
             self._ext_pixmap = self._load_icon_pixmap(self._icon_path)
@@ -165,23 +173,17 @@ class ActivityBarButton(QPushButton):
             bw = max(16, text_width + 8)
             x = self.width() - bw - 4
             y = self.height() - bh - 6
-            
-            # Badge follows active workbench theme.
-            try:
-                from ..app.theme_manager import ThemeManager
-                c = ThemeManager.THEMES.get(ThemeManager.current_theme_id(), ThemeManager.THEMES["dardcor-purple"])["colors"]
-                badge_bg = c["accent"]
-                badge_fg = "#ffffff" if QColor(c["accent"]).lightness() < 150 else "#000000"
-            except Exception:
-                badge_bg = "#7c3aed"
-                badge_fg = "#ffffff"
-            painter.setBrush(QColor(badge_bg))
             painter.setPen(Qt.NoPen)
-            painter.drawRoundedRect(x, y, bw, bh, 8, 8)
+            painter.setBrush(QColor("#007acc"))
+            badge_rect = QRect(self.width() - 18, self.height() - 18, 16, 16)
+            painter.drawRoundedRect(badge_rect, 8, 8)
             
-            # Draw text
-            painter.setPen(QColor(badge_fg))
-            painter.drawText(QRect(x, y, bw, bh), Qt.AlignCenter, self._badge_text)
+            painter.setPen(QColor("#ffffff"))
+            font = painter.font()
+            font.setPointSize(8)
+            font.setBold(True)
+            painter.setFont(font)
+            painter.drawText(badge_rect, Qt.AlignCenter, self._badge_text)
 
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
@@ -237,6 +239,7 @@ class ActivityBar(QWidget):
         self._add_button("debug", "Run and Debug (Ctrl+Shift+D)", VIEW_DEBUG)
         self._add_button("extensions", "Extensions (Ctrl+Shift+X)", VIEW_EXTENSIONS)
         self._add_button("testing", "Testing", VIEW_TESTING)
+        self._add_button("comment", "Comments (Ctrl+Shift+C)", VIEW_COMMENTS)
 
         # Extension-contributed buttons are inserted just before this stretch
         layout.addStretch()

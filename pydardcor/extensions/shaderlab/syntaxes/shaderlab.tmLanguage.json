@@ -1,0 +1,14 @@
+{
+  "scopeName": "source.shaderlab",
+  "name": "ShaderLab",
+  "fileTypes": [
+    "shader",
+    "cginc"
+  ],
+  "patterns": [
+    {
+      "include": "source.shaderlab"
+    }
+  ],
+  "repository": {}
+}

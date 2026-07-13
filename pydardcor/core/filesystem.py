@@ -43,7 +43,10 @@ class FileSystem:
     """Filesystem operations: read, write, list, search, grep."""
 
     def read_file(self, path: str, encoding: str = "utf-8") -> str:
-        with open(path, "r", encoding=encoding, errors="replace") as f:
+        safe_path = os.path.normpath(os.path.abspath(path))
+        if ".." in safe_path.split(os.sep):
+            raise PermissionError(f"Path traversal detected: {path}")
+        with open(safe_path, "r", encoding=encoding, errors="replace") as f:
             return f.read()
 
     def write_file(self, path: str, content: str, encoding: str = "utf-8"):

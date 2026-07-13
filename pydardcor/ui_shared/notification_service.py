@@ -160,15 +160,19 @@ class NotificationService(QWidget):
                 with open(self._persistence_file, "r") as f:
                     data = json.load(f)
                     for item in data:
-                        self._queue.append((item['msg'], item['sev'], None))
+                        msg = item.get('msg', item.get('message', ''))
+                        sev = item.get('sev', item.get('severity', 'info'))
+                        src = item.get('source', 'Restored')
+                        ts = item.get('timestamp', datetime.now().strftime("%H:%M:%S"))
+                        self._queue.append((msg, sev, None))
                         self._history.append({
                             "id": len(self._history),
-                            "message": item['msg'],
-                            "severity": item['sev'],
+                            "message": msg,
+                            "severity": sev,
                             "actions": None,
-                            "source": "Restored",
-                            "timestamp": datetime.now().strftime("%H:%M:%S"),
-                            "read": False
+                            "source": src,
+                            "timestamp": ts,
+                            "read": item.get('read', True)
                         })
         except Exception:
             pass
@@ -177,7 +181,15 @@ class NotificationService(QWidget):
         try:
             import json
             os.makedirs(os.path.dirname(self._persistence_file), exist_ok=True)
-            data = [{'msg': q[0], 'sev': q[1]} for q in self._queue]
+            data = []
+            for q in self._queue:
+                data.append({'msg': q[0], 'sev': q[1], 'source': 'System',
+                             'timestamp': datetime.now().strftime("%H:%M:%S")})
+            for h in self._history[-50:]:
+                data.append({'message': h['message'], 'severity': h['severity'],
+                             'source': h.get('source', 'System'),
+                             'timestamp': h.get('timestamp', datetime.now().strftime("%H:%M:%S")),
+                             'read': h.get('read', True)})
             with open(self._persistence_file, "w") as f:
                 json.dump(data, f)
         except Exception:

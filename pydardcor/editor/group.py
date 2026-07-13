@@ -66,6 +66,14 @@ class FlowTabButton(QWidget):
         layout.setContentsMargins(10, 4, 6, 4)
         layout.setSpacing(6)
 
+        # Pin icon for pinned tabs
+        self._pin_label = QLabel('\ueb5a')
+        self._pin_label.setFont(QFont('codicon', 10))
+        self._pin_label.setStyleSheet("color: #7c3aed; background: transparent;")
+        self._pin_label.setFixedWidth(14)
+        self._pin_label.setVisible(False)
+        layout.addWidget(self._pin_label)
+
         # Icon
         self.icon_label = QLabel()
         if not icon.isNull():
@@ -183,10 +191,10 @@ class FlowTabContainer(QWidget):
             title = tab.title
             if tab.editor.is_dirty() and not title.startswith("● "):
                 title = "● " + title
-            if tab.is_pinned and not title.startswith("📌 "):
-                title = "📌 " + title
             
             btn = FlowTabButton(i, icon, title, i == active_idx, tab.is_preview, self)
+            if tab.is_pinned:
+                btn._pin_label.setVisible(True)
             btn.clicked.connect(self.tab_changed.emit)
             btn.close_requested.connect(self.tab_close_requested.emit)
             btn.middle_clicked.connect(self.tab_close_requested.emit)
@@ -388,6 +396,10 @@ class DardcorTabBar(QTabBar):
                 background: #1a0033;
                 color: #cccccc;
             }
+            QTabBar::tab:pinned {
+                border-left: 2px solid #7c3aed;
+                color: #7c3aed;
+            }
             /* Style native close button to be hidden completely */
             QTabBar::close-button {
                 image: none;
@@ -539,32 +551,34 @@ class DardcorTabBar(QTabBar):
     def _show_empty_tab_menu(self, global_pos):
         from PySide6.QtGui import QAction
         from PySide6.QtWidgets import QMenu
+        from ..app.theme_manager import ThemeManager
 
         menu = QMenu(self)
-        menu.setStyleSheet("""
-            QMenu {
-                background-color: #1f1f1f;
-                color: #cccccc;
-                border: 1px solid #3c3c3c;
+        c = ThemeManager.THEMES.get(ThemeManager.current_theme_id(), ThemeManager.THEMES["dardcor-purple"])["colors"]
+        menu.setStyleSheet(f"""
+            QMenu {{
+                background-color: {c["background"]};
+                color: {c["foreground"]};
+                border: 1px solid {c["border"]};
                 padding: 4px 0px;
                 font-size: 12px;
-            }
-            QMenu::item {
+            }}
+            QMenu::item {{
                 padding: 5px 28px 5px 12px;
                 min-width: 210px;
-            }
-            QMenu::item:selected {
-                background-color: #04395e;
-                color: #ffffff;
-            }
-            QMenu::item:disabled {
+            }}
+            QMenu::item:selected {{
+                background-color: {c["selection"]};
+                color: {c["activity_bar_fg"]};
+            }}
+            QMenu::item:disabled {{
                 color: #666666;
-            }
-            QMenu::separator {
+            }}
+            QMenu::separator {{
                 height: 1px;
-                background: #343434;
+                background: {c["border"]};
                 margin: 4px 0px;
-            }
+            }}
         """)
 
         for label, shortcut, cmd_id in [
@@ -578,7 +592,7 @@ class DardcorTabBar(QTabBar):
 
         menu.addSeparator()
         terminal = QAction("New Terminal", self)
-        terminal.triggered.connect(lambda: self._execute_cmd("terminal.new"))
+        terminal.triggered.connect(lambda: self._execute_cmd("workbench.action.createTerminalEditor"))
         menu.addAction(terminal)
 
         menu.addSeparator()
@@ -591,7 +605,6 @@ class DardcorTabBar(QTabBar):
             action = QAction(label, self)
             if shortcut:
                 action.setShortcut(shortcut)
-            action.setEnabled(False)
             action.triggered.connect(lambda checked=False, c=cmd_id: self._execute_cmd(c))
             menu.addAction(action)
 
@@ -684,18 +697,10 @@ class WelcomeWidget(QScrollArea):
             btn.clicked.connect(lambda checked=False, c=cmd: self._execute_cmd(c))
             btn_layout.addWidget(btn)
 
-        self._recent_widget = QWidget()
-        self._recent_widget.setFixedWidth(220)
-        self._recent_layout = QVBoxLayout(self._recent_widget)
-        self._recent_layout.setContentsMargins(0, 14, 0, 0)
-        self._recent_layout.setSpacing(4)
-        btn_layout.addWidget(self._recent_widget)
-
         h_layout.addWidget(btn_container)
         h_layout.addStretch()
 
         vl.addWidget(wrapper)
-        self.refresh_recent()
         self.setWidget(self.container)
 
     def _execute_cmd(self, cmd_id):
@@ -719,52 +724,7 @@ class WelcomeWidget(QScrollArea):
             p = p.parentWidget()
 
     def refresh_recent(self):
-        from ..core.config import get_config
-
-        while self._recent_layout.count():
-            item = self._recent_layout.takeAt(0)
-            widget = item.widget()
-            if widget:
-                widget.deleteLater()
-
-        config = get_config()
-        if getattr(config, "workspace_path", ""):
-            self._recent_widget.hide()
-            return
-        recent_files = [p for p in getattr(config, "recent_files", []) if p and os.path.isfile(p)]
-        recent_folders = [p for p in getattr(config, "recent_folders", []) if p and os.path.isdir(p)]
-        recent = [("file", p) for p in recent_files[:5]] + [("folder", p) for p in recent_folders[:5]]
-        self._recent_widget.setVisible(bool(recent))
-        if not recent:
-            return
-
-        heading = QLabel("Recent")
-        heading.setStyleSheet("color:#858585;font-size:11px;border:none;background:transparent;")
-        heading.setAlignment(Qt.AlignCenter)
-        self._recent_layout.addWidget(heading)
-
-        for kind, path in recent[:8]:
-            name = os.path.basename(path.rstrip("/\\")) or path
-            btn = QPushButton(f"{name}  {kind}")
-            btn.setFixedWidth(220)
-            btn.setToolTip(path)
-            btn.setCursor(Qt.PointingHandCursor)
-            btn.setStyleSheet("""
-                QPushButton {
-                    background: transparent;
-                    color: #cccccc;
-                    border: none;
-                    padding: 3px 8px;
-                    text-align: left;
-                    font-size: 12px;
-                }
-                QPushButton:hover {
-                    background-color: rgba(168, 85, 247, 0.16);
-                    color: #ffffff;
-                }
-            """)
-            btn.clicked.connect(lambda checked=False, p=path: self._open_recent_path(p))
-            self._recent_layout.addWidget(btn)
+        pass
             
     def contextMenuEvent(self, event):
         from PySide6.QtWidgets import QMenu
@@ -809,10 +769,9 @@ class WelcomeWidget(QScrollArea):
         
         menu.addSeparator()
         
-        open_terminal = QAction("Open Terminal", self)
-        open_terminal.triggered.connect(lambda: self._execute_cmd("terminal.new"))
-        menu.addAction(open_terminal)
-
+        open_terminal = menu.addAction("New Terminal")
+        open_terminal.triggered.connect(lambda: self._execute_cmd("workbench.action.createTerminalEditor"))
+        
         menu.addSeparator()
         for label in ("Split Up", "Split Down", "Split Left", "Split Right"):
             action = QAction(label, self)
@@ -1141,11 +1100,12 @@ class EditorGroup(QWidget):
                     title = tab.title
                     if tab.editor.is_dirty() and not title.startswith("● "):
                         title = "● " + title
-                    if tab.is_pinned and not title.startswith("📌 "):
-                        title = "📌 " + title
                     idx = self._tab_bar.addTab(icon, title)
                     self._tab_bar.setCurrentIndex(idx)
-                    if tab.is_preview:
+                    if tab.is_pinned:
+                        self._tab_bar.setTabIcon(idx, get_file_icon("pin"))  # placeholder, text style follows
+                        self._tab_bar.setTabTextColor(idx, QColor("#7c3aed"))
+                    elif tab.is_preview:
                         font = self._tab_bar.tabFont(idx)
                         font.setItalic(True)
                         self._tab_bar.setTabFont(idx, font)
@@ -1155,10 +1115,11 @@ class EditorGroup(QWidget):
                     title = tab.title
                     if tab.editor.is_dirty() and not title.startswith("● "):
                         title = "● " + title
-                    if tab.is_pinned and not title.startswith("📌 "):
-                        title = "📌 " + title
                     idx = self._tab_bar.addTab(icon, title)
-                    if tab.is_preview:
+                    if tab.is_pinned:
+                        self._tab_bar.setTabIcon(idx, icon)
+                        self._tab_bar.setTabTextColor(idx, QColor("#7c3aed"))
+                    elif tab.is_preview:
                         font = self._tab_bar.tabFont(idx)
                         font.setItalic(True)
                         self._tab_bar.setTabFont(idx, font)
@@ -1173,7 +1134,33 @@ class EditorGroup(QWidget):
             return
         from PySide6.QtWidgets import QMenu
         from PySide6.QtGui import QAction
+        from ..app.theme_manager import ThemeManager
+
         menu = QMenu(self)
+        c = ThemeManager.THEMES.get(ThemeManager.current_theme_id(), ThemeManager.THEMES["dardcor-purple"])["colors"]
+        menu.setStyleSheet(f"""
+            QMenu {{
+                background-color: {c["background"]};
+                color: {c["foreground"]};
+                border: 1px solid {c["border"]};
+                padding: 4px 0px;
+                font-size: 12px;
+            }}
+            QMenu::item {{
+                padding: 5px 28px 5px 12px;
+                min-width: 150px;
+            }}
+            QMenu::item:selected {{
+                background-color: {c["selection"]};
+                color: {c["activity_bar_fg"]};
+            }}
+            QMenu::separator {{
+                height: 1px;
+                background: {c["border"]};
+                margin: 4px 0px;
+            }}
+        """)
+        
         tab_data = self._tabs[idx]
         
         pin_action = menu.addAction("Unpin Tab" if tab_data.is_pinned else "Pin Tab")
@@ -1181,6 +1168,12 @@ class EditorGroup(QWidget):
         close_other = menu.addAction("Close Others")
         close_right = menu.addAction("Close to the Right")
         close_saved = menu.addAction("Close Saved")
+        
+        menu.addSeparator()
+        split_up = menu.addAction("Split Up")
+        split_down = menu.addAction("Split Down")
+        split_left = menu.addAction("Split Left")
+        split_right = menu.addAction("Split Right")
         
         action = menu.exec_(global_pos)
         
@@ -1199,6 +1192,14 @@ class EditorGroup(QWidget):
             for i in range(len(self._tabs) - 1, -1, -1):
                 if i < len(self._tabs) and not self._tabs[i].editor.is_dirty():
                     self._close_tab(i)
+        elif action == split_up:
+            self._execute_cmd("view.splitEditorUp")
+        elif action == split_down:
+            self._execute_cmd("view.splitEditorDown")
+        elif action == split_left:
+            self._execute_cmd("view.splitEditorLeft")
+        elif action == split_right:
+            self._execute_cmd("view.splitEditorRight")
 
     def mount_breadcrumbs(self, bar):
         """Mount a shared BreadcrumbsBar below the tab row."""
@@ -1356,7 +1357,7 @@ class EditorGroup(QWidget):
                 self._sync_tab_bar()
                 self._switch_tab(i)
                 return tab.editor
-
+        from .diff_viewer import MonacoDiffEditorWidget
         editor = MonacoDiffEditorWidget(self)
         editor.set_diff(original_content, modified_content, file_path)
 
@@ -1368,7 +1369,7 @@ class EditorGroup(QWidget):
         self._current_idx = len(self._tabs) - 1
         self._sync_tab_bar()
         self._switch_tab(self._current_idx)
-        self._update_breadcrumb("")
+        self._update_breadcrumb(file_path)
         return editor
 
     def new_file(self):
@@ -1449,6 +1450,7 @@ class EditorGroup(QWidget):
         if not self._tabs:
             self.set_breadcrumbs_visible(False)
             self.refresh_welcome_recent()
+            self._welcome.show()
             self._stack.setCurrentWidget(self._welcome)
             self._current_idx = -1
             self.tab_changed.emit("", "")
@@ -1469,6 +1471,7 @@ class EditorGroup(QWidget):
         if 0 <= idx < len(self._tabs):
             self._current_idx = idx
             editor = self._tabs[idx].editor
+            self._welcome.hide()
             self._stack.setCurrentWidget(editor)
             self._emit_tab_changed(editor)
             self._sync_tab_bar()
@@ -1519,7 +1522,8 @@ class EditorGroup(QWidget):
 
     def set_font_size(self, size):
         for tab in self._tabs:
-            tab.editor.set_font_size(size)
+            if hasattr(tab.editor, "set_font_size"):
+                tab.editor.set_font_size(size)
 
     def set_word_wrap(self, enabled):
         for tab in self._tabs:
@@ -1530,6 +1534,25 @@ class EditorGroup(QWidget):
         for tab in self._tabs:
             if hasattr(tab.editor, "set_minimap"):
                 tab.editor.set_minimap(enabled)
+
+    def set_tab_sizing(self, mode: str):
+        """Set tab sizing mode: 'fit' (equal width) or 'shrink' (compact)."""
+        if mode == 'fit':
+            self._tab_bar.setExpanding(True)
+            self._tab_bar.setUsesScrollButtons(True)
+        else:
+            self._tab_bar.setExpanding(False)
+            self._tab_bar.setUsesScrollButtons(False)
+        self._sync_tab_bar()
+
+    def set_orientation(self, orientation: str):
+        """Set editor group orientation: 'horizontal' or 'vertical'."""
+        if orientation == 'vertical':
+            self._scroll_tab_widget.setFixedHeight(1000)
+            self._tab_bar.setShape(QTabBar.RoundedWest)
+        else:
+            self._scroll_tab_widget.setFixedHeight(35)
+            self._tab_bar.setShape(QTabBar.RoundedNorth)
 
     def set_theme(self, is_dark: bool):
         for tab in self._tabs:

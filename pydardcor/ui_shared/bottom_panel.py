@@ -5,53 +5,46 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 
 class BottomPanelButton(QPushButton):
-    def __init__(self, icon_char, text, parent=None):
-        super().__init__(parent)
+    def __init__(self, text, parent=None):
+        super().__init__(text, parent)
         self.setFixedHeight(35)
         self.setCursor(Qt.PointingHandCursor)
         self.setCheckable(True)
         
-        # Internal layout to align icon and text perfectly
-        from PySide6.QtWidgets import QHBoxLayout, QLabel
-        self._layout = QHBoxLayout(self)
-        self._layout.setContentsMargins(10, 0, 10, 0)
-        self._layout.setSpacing(6)
-        self._layout.setAlignment(Qt.AlignCenter)
-        
-        self.icon_label = QLabel(icon_char)
-        self.icon_label.setStyleSheet("color: inherit; background: transparent; border: none; font-size: 13px; font-family: 'codicon';")
-        self.icon_label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-        
-        self.text_label = QLabel(text)
-        self.text_label.setStyleSheet("color: inherit; background: transparent; border: none; font-family: 'Segoe UI', 'Inter', sans-serif; font-size: 11px; font-weight: 600;")
-        self.text_label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-        
-        self._layout.addWidget(self.icon_label)
-        self._layout.addWidget(self.text_label)
-        
-        self.setStyleSheet("""
-            QPushButton {
+        self._update_colors()
+        self.toggled.connect(lambda _: self._update_colors())
+
+    def _update_colors(self):
+        if self.isChecked():
+            color = "#ffffff"
+        elif self.underMouse():
+            color = "#e7e7e7"
+        else:
+            color = "#969696"
+            
+        border_color = "#3c0068" if self.isChecked() else "transparent"
+            
+        self.setStyleSheet(f"""
+            QPushButton {{
                 background: transparent;
-                color: #969696;
+                color: {color};
                 border: none;
-                border-bottom: 2px solid transparent;
-                padding: 0px;
+                border-bottom: 2px solid {border_color};
+                padding: 0px 10px;
                 margin: 0px;
-            }
-            QPushButton:hover {
-                color: #e7e7e7;
-            }
-            QPushButton:checked {
-                color: #ffffff;
-                border-bottom: 2px solid #3c0068; /* Purple accent */
-            }
+                font-family: 'Segoe UI', 'Inter', sans-serif;
+                font-size: 11px;
+                font-weight: 600;
+            }}
         """)
 
-    def setText(self, text):
-        if hasattr(self, "text_label"):
-            self.text_label.setText(text)
-        else:
-            super().setText(text)
+    def enterEvent(self, event):
+        super().enterEvent(event)
+        self._update_colors()
+
+    def leaveEvent(self, event):
+        super().leaveEvent(event)
+        self._update_colors()
 
 class BottomPanel(QWidget):
     def __init__(self, parent=None):
@@ -64,7 +57,6 @@ class BottomPanel(QWidget):
         self._debug_widget = None
         self._terminal_widget = None
         self._ports_widget = None
-        self._comments_widget = None
         self._is_maximized = False
         self._prev_sizes = None
         
@@ -92,25 +84,22 @@ class BottomPanel(QWidget):
         self.tabs_layout.setContentsMargins(0, 0, 0, 0)
         self.tabs_layout.setSpacing(0)
         
-        self.btn_problems = BottomPanelButton("\uea87", "PROBLEMS")
+        self.btn_problems = BottomPanelButton("PROBLEMS")
         self.btn_problems.setObjectName("btnProblems")
-        self.btn_output = BottomPanelButton("\uea79", "OUTPUT")
+        self.btn_output = BottomPanelButton("OUTPUT")
         self.btn_output.setObjectName("btnOutput")
-        self.btn_debug = BottomPanelButton("\uead8", "DEBUG CONSOLE")
+        self.btn_debug = BottomPanelButton("DEBUG CONSOLE")
         self.btn_debug.setObjectName("btnDebugConsole")
-        self.btn_terminal = BottomPanelButton("\uea85", "TERMINAL")
+        self.btn_terminal = BottomPanelButton("TERMINAL")
         self.btn_terminal.setObjectName("btnTerminal")
-        self.btn_ports = BottomPanelButton("\ueb1c", "PORTS")
+        self.btn_ports = BottomPanelButton("PORTS")
         self.btn_ports.setObjectName("btnPorts")
-        self.btn_comments = BottomPanelButton("\ueab2", "COMMENTS")
-        self.btn_comments.setObjectName("btnComments")
         
         self.tabs_layout.addWidget(self.btn_problems)
         self.tabs_layout.addWidget(self.btn_output)
         self.tabs_layout.addWidget(self.btn_debug)
         self.tabs_layout.addWidget(self.btn_terminal)
         self.tabs_layout.addWidget(self.btn_ports)
-        self.tabs_layout.addWidget(self.btn_comments)
         
         self.header_layout.addWidget(self.tabs_container)
         self.header_layout.addStretch(1) # push terminal controls and actions to the right
@@ -174,26 +163,22 @@ class BottomPanel(QWidget):
         self.btn_debug.clicked.connect(lambda: self.switch_view(2))
         self.btn_terminal.clicked.connect(lambda: self.switch_view(3))
         self.btn_ports.clicked.connect(lambda: self.switch_view(4))
-        self.btn_comments.clicked.connect(lambda: self.switch_view(5))
 
         # Default to Terminal
         self.switch_view(3)
 
-    def set_panels(self, problems, output, debug, terminal, ports, comments=None):
+    def set_panels(self, problems, output, debug, terminal, ports):
         self._problems_widget = problems
         self._output_widget = output
         self._debug_widget = debug
         self._terminal_widget = terminal
         self._ports_widget = ports
-        self._comments_widget = comments
         
         self._stack.addWidget(problems)
         self._stack.addWidget(output)
         self._stack.addWidget(debug)
         self._stack.addWidget(terminal)
         self._stack.addWidget(ports)
-        if comments:
-            self._stack.addWidget(comments)
         
         # Move terminal controls (QTabBar + actions) into the right controls container
         if hasattr(terminal, "get_toolbar"):
@@ -208,13 +193,12 @@ class BottomPanel(QWidget):
         self.btn_debug.setChecked(index == 2)
         self.btn_terminal.setChecked(index == 3)
         self.btn_ports.setChecked(index == 4)
-        self.btn_comments.setChecked(index == 5)
         
         # Only show terminal toolbar when Terminal is active
         self.right_controls.setVisible(index == 3)
 
     def set_active_view(self, name: str):
-        mapping = {"problems": 0, "output": 1, "debug": 2, "terminal": 3, "ports": 4, "comments": 5}
+        mapping = {"problems": 0, "output": 1, "debug": 2, "terminal": 3, "ports": 4}
         if name in mapping:
             self.switch_view(mapping[name])
             self.show()
@@ -226,7 +210,6 @@ class BottomPanel(QWidget):
         if idx == 2: return "debug"
         if idx == 3: return "terminal"
         if idx == 4: return "ports"
-        if idx == 5: return "comments"
         return ""
 
     def current_widget(self):

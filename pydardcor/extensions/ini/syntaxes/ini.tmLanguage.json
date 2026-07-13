@@ -1,0 +1,15 @@
+{
+  "scopeName": "source.ini",
+  "name": "Ini",
+  "fileTypes": [
+    "ini",
+    "cfg",
+    "conf"
+  ],
+  "patterns": [
+    {
+      "include": "source.ini"
+    }
+  ],
+  "repository": {}
+}

@@ -1,0 +1,14 @@
+{
+  "scopeName": "source.batch",
+  "name": "Batch",
+  "fileTypes": [
+    "bat",
+    "cmd"
+  ],
+  "patterns": [
+    {
+      "include": "source.batch"
+    }
+  ],
+  "repository": {}
+}

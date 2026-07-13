@@ -1,0 +1,44 @@
+{
+  "name": "dardcor-clojure",
+  "displayName": "Clojure",
+  "description": "Clojure language grammar for Dardcor Code",
+  "version": "1.68.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "main": "extension.py",
+  "contributes": {
+    "languages": [
+      {
+        "id": "clojure",
+        "aliases": [
+          "Clojure",
+          "clojure"
+        ],
+        "extensions": [
+          "clj",
+          "cljs",
+          "cljc",
+          "edn"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "clojure",
+        "scopeName": "source.clojure",
+        "path": "./syntaxes/clojure.tmLanguage.json"
+      }
+    ]
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes",
+    "Formatters",
+    "Linters",
+    "Language Packs"
+  ]
+}

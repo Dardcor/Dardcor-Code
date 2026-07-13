@@ -1,0 +1,13 @@
+{
+  "scopeName": "source.log",
+  "name": "Log",
+  "fileTypes": [
+    "log"
+  ],
+  "patterns": [
+    {
+      "include": "source.log"
+    }
+  ],
+  "repository": {}
+}

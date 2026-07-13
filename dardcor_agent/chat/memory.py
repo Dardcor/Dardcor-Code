@@ -53,7 +53,15 @@ class Conversation:
         self.messages.append(msg)
         self.updated_at = datetime.now().isoformat()
         if role == "user" and self.title == "New Conversation" and len(self.messages) <= 2:
-            self.title = content[:60].strip()
+            first_line = content.split('\n')[0].strip()
+            if len(first_line) > 40:
+                truncated = first_line[:40]
+                last_space = truncated.rfind(' ')
+                if last_space > 0:
+                    truncated = truncated[:last_space]
+                self.title = truncated + "..."
+            else:
+                self.title = first_line
         return msg
 
     def get_api_messages(self, max_messages: int = 100) -> List[dict]:

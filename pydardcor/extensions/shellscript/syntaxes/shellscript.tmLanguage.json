@@ -1,0 +1,16 @@
+{
+  "scopeName": "source.shellscript",
+  "name": "Shell Script",
+  "fileTypes": [
+    "sh",
+    "bash",
+    "zsh",
+    "ksh"
+  ],
+  "patterns": [
+    {
+      "include": "source.shellscript"
+    }
+  ],
+  "repository": {}
+}

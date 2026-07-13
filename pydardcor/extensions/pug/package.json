@@ -1,0 +1,42 @@
+{
+  "name": "dardcor-pug",
+  "displayName": "Pug",
+  "description": "Pug language grammar for Dardcor Code",
+  "version": "1.68.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "main": "extension.py",
+  "contributes": {
+    "languages": [
+      {
+        "id": "pug",
+        "aliases": [
+          "Pug",
+          "pug"
+        ],
+        "extensions": [
+          "pug",
+          "jade"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "pug",
+        "scopeName": "source.pug",
+        "path": "./syntaxes/pug.tmLanguage.json"
+      }
+    ]
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes",
+    "Formatters",
+    "Linters",
+    "Language Packs"
+  ]
+}

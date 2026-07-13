@@ -1,0 +1,42 @@
+{
+  "name": "dardcor-scss",
+  "displayName": "SCSS",
+  "description": "SCSS language grammar for Dardcor Code",
+  "version": "1.68.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "main": "extension.py",
+  "contributes": {
+    "languages": [
+      {
+        "id": "scss",
+        "aliases": [
+          "SCSS",
+          "scss"
+        ],
+        "extensions": [
+          "scss",
+          "sass"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "scss",
+        "scopeName": "source.scss",
+        "path": "./syntaxes/scss.tmLanguage.json"
+      }
+    ]
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes",
+    "Formatters",
+    "Linters",
+    "Language Packs"
+  ]
+}

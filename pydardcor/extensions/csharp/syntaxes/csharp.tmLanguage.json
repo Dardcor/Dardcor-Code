@@ -1,0 +1,14 @@
+{
+  "scopeName": "source.csharp",
+  "name": "C#",
+  "fileTypes": [
+    "cs",
+    "csx"
+  ],
+  "patterns": [
+    {
+      "include": "source.csharp"
+    }
+  ],
+  "repository": {}
+}

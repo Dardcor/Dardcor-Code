@@ -1,0 +1,17 @@
+{
+  "scopeName": "source.powershell",
+  "name": "PowerShell",
+  "fileTypes": [
+    "ps1",
+    "psm1",
+    "psd1",
+    "pssc",
+    "psrc"
+  ],
+  "patterns": [
+    {
+      "include": "source.powershell"
+    }
+  ],
+  "repository": {}
+}

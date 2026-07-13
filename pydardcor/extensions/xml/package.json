@@ -1,0 +1,45 @@
+{
+  "name": "dardcor-xml",
+  "displayName": "XML",
+  "description": "XML language grammar for Dardcor Code",
+  "version": "1.68.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "main": "extension.py",
+  "contributes": {
+    "languages": [
+      {
+        "id": "xml",
+        "aliases": [
+          "XML",
+          "xml"
+        ],
+        "extensions": [
+          "xml",
+          "xsd",
+          "xslt",
+          "xsl",
+          "svg"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "xml",
+        "scopeName": "source.xml",
+        "path": "./syntaxes/xml.tmLanguage.json"
+      }
+    ]
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes",
+    "Formatters",
+    "Linters",
+    "Language Packs"
+  ]
+}

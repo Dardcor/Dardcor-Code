@@ -1,0 +1,15 @@
+{
+  "scopeName": "source.objective-c",
+  "name": "Objective-C",
+  "fileTypes": [
+    "m",
+    "mm",
+    "h"
+  ],
+  "patterns": [
+    {
+      "include": "source.objective-c"
+    }
+  ],
+  "repository": {}
+}

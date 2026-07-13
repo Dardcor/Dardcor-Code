@@ -1,0 +1,27 @@
+{
+  "name": "dardcor-typescript-language-features",
+  "displayName": "TypeScript Language Features",
+  "description": "Rich TypeScript/JavaScript language support",
+  "version": "1.68.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "main": "extension.py",
+  "contributes": {
+    "commands": [
+      {
+        "command": "typescript-language-features.hello",
+        "title": "TypeScript Language Features: Show Info"
+      }
+    ]
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes",
+    "Formatters",
+    "Linters",
+    "Language Packs"
+  ]
+}

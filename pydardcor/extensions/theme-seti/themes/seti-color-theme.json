@@ -1,0 +1,26 @@
+{
+  "name": "seti-color-theme",
+  "type": "dark",
+  "colors": {
+    "editor.background": "#151718",
+    "editor.foreground": "#c0c5ce",
+    "editor.selectionBackground": "#2a2d2e",
+    "editor.lineHighlightBackground": "#1c1f20",
+    "editorCursor.foreground": "#a6e22e",
+    "editorWhitespace.foreground": "#2c2f30",
+    "editorLineNumber.foreground": "#555555",
+    "editorIndentGuide.background": "#1f2223"
+  },
+  "tokenColors": [
+    {
+      "scope": [
+        "comment",
+        "punctuation.definition.comment"
+      ],
+      "settings": {
+        "fontStyle": "italic",
+        "foreground": "#6a9955"
+      }
+    }
+  ]
+}

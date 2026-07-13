@@ -1,0 +1,13 @@
+{
+  "scopeName": "source.javascript",
+  "name": "Grunt",
+  "fileTypes": [
+    "Gruntfile"
+  ],
+  "patterns": [
+    {
+      "include": "source.javascript"
+    }
+  ],
+  "repository": {}
+}

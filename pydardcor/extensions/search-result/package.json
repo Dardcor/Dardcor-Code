@@ -1,0 +1,37 @@
+{
+  "name": "dardcor-search-result",
+  "displayName": "Search Result",
+  "description": "Syntax highlighting for search results",
+  "version": "1.68.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "main": "extension.py",
+  "contributes": {
+    "commands": [
+      {
+        "command": "search-result.hello",
+        "title": "Search Result: Show Info"
+      }
+    ],
+    "configuration": {
+      "title": "Search Result",
+      "properties": {
+        "search-result.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Search Result"
+        }
+      }
+    }
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes",
+    "Formatters",
+    "Linters",
+    "Language Packs"
+  ]
+}

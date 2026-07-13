@@ -117,6 +117,7 @@ class StatusBar(QStatusBar):
 
     command_palette_requested = Signal()
     go_to_line_requested = Signal()
+    indent_requested = Signal()
     models_requested = Signal()
     git_branch_requested = Signal()
     sync_requested = Signal()
@@ -202,7 +203,7 @@ class StatusBar(QStatusBar):
 
         self._indent_btn = StatusBarButton("Spaces: 4")
         self._indent_btn.setToolTip("Select Indentation")
-        self._indent_btn.clicked.connect(self.command_palette_requested.emit)
+        self._indent_btn.clicked.connect(self.indent_requested.emit)
         self.addPermanentWidget(self._indent_btn)
 
         self._encoding_btn = StatusBarButton("UTF-8")

@@ -1,0 +1,13 @@
+{
+  "scopeName": "source.lua",
+  "name": "Lua",
+  "fileTypes": [
+    "lua"
+  ],
+  "patterns": [
+    {
+      "include": "source.lua"
+    }
+  ],
+  "repository": {}
+}

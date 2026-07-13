@@ -1,0 +1,26 @@
+{
+  "name": "tomorrow-night-blue-color-theme",
+  "type": "dark",
+  "colors": {
+    "editor.background": "#002451",
+    "editor.foreground": "#ffffff",
+    "editor.selectionBackground": "#003f8e",
+    "editor.lineHighlightBackground": "#00346e",
+    "editorCursor.foreground": "#ffffff",
+    "editorWhitespace.foreground": "#003f8e",
+    "editorLineNumber.foreground": "#335577",
+    "editorIndentGuide.background": "#00346e"
+  },
+  "tokenColors": [
+    {
+      "scope": [
+        "comment",
+        "punctuation.definition.comment"
+      ],
+      "settings": {
+        "fontStyle": "italic",
+        "foreground": "#6a9955"
+      }
+    }
+  ]
+}

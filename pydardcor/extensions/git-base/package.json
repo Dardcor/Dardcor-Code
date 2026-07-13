@@ -1,0 +1,45 @@
+{
+  "name": "dardcor-git-base",
+  "displayName": "Git Base",
+  "description": "Base git implementation",
+  "version": "1.68.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "main": "extension.py",
+  "contributes": {
+    "commands": [
+      {
+        "command": "git-base.hello",
+        "title": "Git Base: Show Info"
+      }
+    ],
+    "languages": [
+      {
+        "id": "git-commit",
+        "extensions": [
+          ".git/COMMIT_EDITMSG"
+        ],
+        "aliases": [
+          "Git Commit"
+        ]
+      }
+    ],
+    "grammars": [
+      {
+        "language": "git-commit",
+        "scopeName": "text.git-commit",
+        "path": "./syntaxes/git-commit.tmLanguage.json"
+      }
+    ]
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes",
+    "Formatters",
+    "Linters",
+    "Language Packs"
+  ]
+}

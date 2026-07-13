@@ -1,0 +1,37 @@
+{
+  "name": "dardcor-npm",
+  "displayName": "npm",
+  "description": "npm support for VS Code",
+  "version": "1.68.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "main": "extension.py",
+  "contributes": {
+    "commands": [
+      {
+        "command": "npm.hello",
+        "title": "npm: Show Info"
+      }
+    ],
+    "configuration": {
+      "title": "npm",
+      "properties": {
+        "npm.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable npm"
+        }
+      }
+    }
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes",
+    "Formatters",
+    "Linters",
+    "Language Packs"
+  ]
+}

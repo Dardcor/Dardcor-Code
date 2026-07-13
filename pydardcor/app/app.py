@@ -44,6 +44,9 @@ def run_desktop_app():
     if hasattr(Qt, "AA_UseHighDpiPixmaps"):
         QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
 
+    # Tune GPU acceleration for WebEngine (Monaco)
+    os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--enable-gpu-rasterization --enable-oop-rasterization --enable-zero-copy --ignore-gpu-blocklist"
+
     app = QApplication(sys.argv)
     # Fix Qt locale float parsing bugs in QSvgRenderer (e.g. for European/Indonesian locales using comma as decimal point)
     QLocale.setDefault(QLocale.c())
@@ -57,13 +60,14 @@ def run_desktop_app():
     from ..core.config import get_config
     cfg = get_config()
     ui_zoom = getattr(cfg, "ui_zoom", 0)
-    
-    default_font = QFont("Inter", 9 + ui_zoom)
+    # Ensure point size doesn't drop below 6 to prevent QFont <= 0 warnings
+    default_font = QFont("Inter", max(6, 9 + ui_zoom))
     default_font.setStyleHint(QFont.SansSerif)
     app.setFont(default_font)
 
     # Apply saved theme before creating windows to avoid first-paint flicker.
     ThemeManager.register_extension_themes()
+    ThemeManager._current_zoom_level = getattr(cfg, "ui_zoom", 0)
     ThemeManager.apply_theme(app, cfg.color_theme or "dardcor-purple")
 
     # Set app icon globally
@@ -84,27 +88,28 @@ def run_desktop_app():
     window.show()
 
     # ── Ctrl+C / SIGINT graceful + force-exit ────────────────────────────
+    _signal_registered = set()
+
     def _handle_sigint(sig, frame):
-        """
-        Called when user presses Ctrl+C.
-        1. Ask Qt to quit gracefully (closes windows, runs closeEvent).
-        2. If it doesn't fully exit within 1.5 s, force-kill the process.
-           This is needed because PTY reader threads can block on read().
-        """
+        if sig in _signal_registered:
+            return
+        _signal_registered.add(sig)
+
         import threading
 
         def _force_exit():
             import time
             time.sleep(1.5)
-            os._exit(0)   # hard kill — guaranteed to stop everything
+            os._exit(0)
 
         threading.Thread(target=_force_exit, daemon=True).start()
         app.quit()
 
-    signal.signal(signal.SIGINT,  _handle_sigint)
+    signal.signal(signal.SIGINT, _handle_sigint)
     signal.signal(signal.SIGTERM, _handle_sigint)
-    if hasattr(signal, "SIGBREAK"):
-        signal.signal(signal.SIGBREAK, _handle_sigint)
+    for sig_name in ("SIGBREAK", "SIGHUP", "SIGQUIT"):
+        if hasattr(signal, sig_name):
+            signal.signal(getattr(signal, sig_name), _handle_sigint)
 
     # Keep a timer alive on the app object (not a local var) so Python's
     # signal handler gets a chance to run every 200 ms inside the Qt loop.

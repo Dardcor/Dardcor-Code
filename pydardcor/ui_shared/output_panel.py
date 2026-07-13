@@ -95,7 +95,33 @@ class OutputPanel(QWidget):
         
         self._channels[category].append(text)
         if category == self._current:
-            html_text = text.replace('\n', '<br>').replace('\033[31m', '<span style="color:red">').replace('\033[0m', '</span>')
+            # Better ANSI color parsing
+            import re
+            html_text = text.replace('\n', '<br>')
+            html_text = html_text.replace(' ', '&nbsp;')
+            
+            # Map basic ANSI codes
+            ansi_mapping = {
+                '30': 'black', '31': '#f14c4c', '32': '#73c991',
+                '33': '#cca700', '34': '#3794ff', '35': '#c586c0',
+                '36': '#56b6c2', '37': '#cccccc', '90': '#888888'
+            }
+            
+            def replace_ansi(match):
+                code = match.group(1)
+                if code == '0':
+                    return '</span>'
+                color = ansi_mapping.get(code, '')
+                if color:
+                    return f'<span style="color:{color}">'
+                return ''
+                
+            html_text = re.sub(r'\033\[(\d+)m', replace_ansi, html_text)
+            
+            # Close any unclosed span tags if needed, simple approach
+            if '<span' in html_text and '</span>' not in html_text:
+                html_text += '</span>'
+                
             self._output.appendHtml(html_text)
 
     def clear(self):

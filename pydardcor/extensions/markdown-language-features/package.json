@@ -1,0 +1,27 @@
+{
+  "name": "dardcor-markdown-language-features",
+  "displayName": "Markdown Language Features",
+  "description": "Rich Markdown language support",
+  "version": "1.68.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "main": "extension.py",
+  "contributes": {
+    "commands": [
+      {
+        "command": "markdown-language-features.hello",
+        "title": "Markdown Language Features: Show Info"
+      }
+    ]
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes",
+    "Formatters",
+    "Linters",
+    "Language Packs"
+  ]
+}

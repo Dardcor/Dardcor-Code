@@ -1,0 +1,50 @@
+{
+  "name": "dardcor-copilot",
+  "displayName": "Dardcor Copilot",
+  "description": "AI-powered code completion, chat, and assistance",
+  "version": "1.68.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "main": "extension.py",
+  "contributes": {
+    "commands": [
+      {
+        "command": "copilot.hello",
+        "title": "Copilot: Show Info"
+      },
+      {
+        "command": "copilot.inline",
+        "title": "Copilot: Trigger Inline Completion"
+      },
+      {
+        "command": "copilot.chat",
+        "title": "Copilot: Open Chat"
+      }
+    ],
+    "configuration": {
+      "title": "Copilot",
+      "properties": {
+        "copilot.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Copilot"
+        },
+        "copilot.model": {
+          "type": "string",
+          "default": "deepseek-v4",
+          "description": "AI model to use"
+        }
+      }
+    }
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes",
+    "Formatters",
+    "Linters",
+    "Language Packs"
+  ]
+}

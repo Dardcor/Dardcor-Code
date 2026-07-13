@@ -1,0 +1,20 @@
+{
+  "scopeName": "source.cpp",
+  "name": "C++",
+  "fileTypes": [
+    "cpp",
+    "cxx",
+    "cc",
+    "c",
+    "h",
+    "hpp",
+    "hxx",
+    "hh"
+  ],
+  "patterns": [
+    {
+      "include": "source.cpp"
+    }
+  ],
+  "repository": {}
+}
