@@ -76,6 +76,11 @@ class MonacoEditorWidget(QWidget):
         self._lsp_debounce_timer.setSingleShot(True)
         self._lsp_debounce_timer.setInterval(300)
         self._lsp_debounce_timer.timeout.connect(self._flush_lsp_did_change)
+
+        self._git_diff_timer = QTimer(self)
+        self._git_diff_timer.setSingleShot(True)
+        self._git_diff_timer.setInterval(1000)
+        self._git_diff_timer.timeout.connect(self._update_git_diff)
         
         self.diagnostics_ready.connect(self.set_diagnostics)
         self._setup_ui()
@@ -150,6 +155,8 @@ class MonacoEditorWidget(QWidget):
             QTimer.singleShot(150, self._apply_pending_content)
             if self._file_path and self._file_path.endswith(".py"):
                 QTimer.singleShot(600, self._run_linter)
+            if self._file_path:
+                self._update_git_diff()
         if _GLOBAL_CUSTOM_THEME is not None:
             QTimer.singleShot(200, lambda: self.set_custom_theme(_GLOBAL_CUSTOM_THEME))
         QTimer.singleShot(250, self.refresh_extension_context_menu)
@@ -204,6 +211,8 @@ class MonacoEditorWidget(QWidget):
         if not self._file_path and self._view_ready:
             self._apply_editor_options()
         
+        if self._file_path:
+            self._git_diff_timer.start()
         if self._lsp_client and self._file_path:
             self._lsp_debounce_timer.start()
 
@@ -240,6 +249,70 @@ class MonacoEditorWidget(QWidget):
             except Exception:
                 pass
 
+    def _update_git_diff(self):
+        if not self._file_path or not os.path.exists(self._file_path):
+            return
+        try:
+            import subprocess
+            import json
+            file_dir = os.path.dirname(self._file_path)
+            file_name = os.path.basename(self._file_path)
+            kwargs = {}
+            if os.name == 'nt':
+                kwargs['creationflags'] = 0x08000000
+            
+            res = subprocess.run(
+                ["git", "diff", "-U0", "--", file_name],
+                cwd=file_dir,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=2,
+                **kwargs
+            )
+            if res.returncode == 0 and res.stdout:
+                changes = []
+                for line in res.stdout.splitlines():
+                    if line.startswith('@@'):
+                        parts = line.split()
+                        if len(parts) >= 3:
+                            old_info = parts[1].lstrip('-')
+                            old_parts = old_info.split(',')
+                            try:
+                                old_count = int(old_parts[1]) if len(old_parts) > 1 else (1 if old_parts[0] else 0)
+                            except ValueError:
+                                old_count = 1
+                            if not old_parts[0]:
+                                old_count = 0
+                            
+                            new_info = parts[2].lstrip('+')
+                            new_parts = new_info.split(',')
+                            try:
+                                start = int(new_parts[0])
+                                count = int(new_parts[1]) if len(new_parts) > 1 else (1 if new_parts[0] else 0)
+                            except ValueError:
+                                start = 1
+                                count = 1
+                            if not new_parts[0]:
+                                count = 0
+                            
+                            change_type = "modified"
+                            if count == 0:
+                                change_type = "deleted"
+                            elif old_count == 0:
+                                change_type = "added"
+                            
+                            changes.append({"start": start, "count": count, "type": change_type})
+                
+                if self._view_ready:
+                    self._view.page().runJavaScript(f"updateGitDiffDecorations({json.dumps(changes)});")
+            else:
+                if self._view_ready:
+                    self._view.page().runJavaScript("updateGitDiffDecorations([]);")
+        except Exception:
+            pass
+        
     def open_file(self, file_path):
         if self._file_path and self._lsp_client:
             self._bridge.notify_closed()
@@ -276,6 +349,8 @@ class MonacoEditorWidget(QWidget):
             QTimer.singleShot(300, self._run_lsp_diagnostics)
         elif self._file_path and self._file_path.endswith(".py"):
             QTimer.singleShot(600, self._run_linter)
+        if self._file_path:
+            QTimer.singleShot(500, self._update_git_diff)
 
     def set_content(self, content, language="plaintext"):
         self._content = content

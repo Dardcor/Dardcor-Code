@@ -952,3 +952,67 @@ class EditorBridge(QObject):
     @Slot(int)
     def on_comment_gutter_clicked(self, line: int):
         self.comment_gutter_clicked.emit(self._file_path or "", line)
+
+    @Slot(str, int, int, int, int, result=str)
+    def get_inlay_hints(self, file, start_line, start_col, end_line, end_col):
+        file_path = self._resolve_file_path(file)
+        if self._lsp_client and file_path:
+            try:
+                range_param = {
+                    "start": {"line": start_line - 1, "character": start_col - 1},
+                    "end": {"line": end_line - 1, "character": end_col - 1}
+                }
+                result = self._lsp_client.inlay_hints(file_path, range_param)
+                if result:
+                    formatted = []
+                    for item in result:
+                        pos = item.get("position", {})
+                        lbl = item.get("label", "")
+                        if isinstance(lbl, list):
+                            lbl = "".join(p.get("value", "") for p in lbl)
+                        formatted.append({
+                            "label": lbl,
+                            "position": {
+                                "lineNumber": pos.get("line", 0) + 1,
+                                "column": pos.get("character", 0) + 1
+                            },
+                            "kind": item.get("kind", 0),
+                            "tooltip": item.get("tooltip", ""),
+                            "paddingLeft": item.get("paddingLeft", False),
+                            "paddingRight": item.get("paddingRight", False)
+                        })
+                    return json.dumps(formatted)
+            except Exception as e:
+                pass
+        return "[]"
+
+    @Slot(str, result=str)
+    def get_code_lens(self, file):
+        file_path = self._resolve_file_path(file)
+        if self._lsp_client and file_path:
+            try:
+                result = self._lsp_client.code_lens(file_path)
+                if result:
+                    formatted = []
+                    for item in result:
+                        rng = item.get("range", {})
+                        start = rng.get("start", {})
+                        end = rng.get("end", {})
+                        cmd = item.get("command", {})
+                        formatted.append({
+                            "range": {
+                                "startLineNumber": start.get("line", 0) + 1,
+                                "startColumn": start.get("character", 0) + 1,
+                                "endLineNumber": end.get("line", 0) + 1,
+                                "endColumn": end.get("character", 0) + 1
+                            },
+                            "command": {
+                                "id": cmd.get("command", ""),
+                                "title": cmd.get("title", ""),
+                                "arguments": cmd.get("arguments", [])
+                            } if cmd else None
+                        })
+                    return json.dumps(formatted)
+            except Exception as e:
+                pass
+        return "[]"

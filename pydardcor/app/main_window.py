@@ -3752,6 +3752,24 @@ class MainWindow(QMainWindow):
     def _save_current_file(self):
         self._editor_tabs.save_current()
 
+    def _revert_current_file(self):
+        import os
+        editor = self._editor_tabs.current_editor()
+        if editor and hasattr(editor, "get_file_path") and hasattr(editor, "open_file"):
+            path = editor.get_file_path()
+            if path and os.path.exists(path):
+                if hasattr(editor, "is_dirty") and editor.is_dirty():
+                    reply = QMessageBox.question(
+                        self,
+                        "Revert File",
+                        f"Are you sure you want to revert '{os.path.basename(path)}'?\nAll unsaved changes will be lost.",
+                        QMessageBox.Yes | QMessageBox.No,
+                        QMessageBox.No
+                    )
+                    if reply == QMessageBox.No:
+                        return
+                editor.open_file(path)
+
     def _save_as(self):
         editor = self._editor_tabs.current_editor()
         if not editor:
@@ -5863,27 +5881,97 @@ class MainWindow(QMainWindow):
             self.activity_bar_act.setChecked(show)
         self._refresh_customize_popup()
 
+    def _animate_panel(self, panel_widget, show: bool, default_size: int = 300, is_horizontal: bool = True):
+        from PySide6.QtCore import QPropertyAnimation, QEasingCurve
+        
+        if hasattr(panel_widget, "_anim") and panel_widget._anim:
+            try:
+                panel_widget._anim.stop()
+            except Exception:
+                pass
+            
+        prop = b"maximumWidth" if is_horizontal else b"maximumHeight"
+        anim = QPropertyAnimation(panel_widget, prop, self)
+        panel_widget._anim = anim
+        anim.setDuration(200)
+        anim.setEasingCurve(QEasingCurve.InOutQuad)
+        
+        if is_horizontal:
+            panel_widget.setMinimumWidth(0)
+        else:
+            panel_widget.setMinimumHeight(0)
+            
+        target_size = getattr(panel_widget, "_last_size", default_size)
+        if target_size < 50:
+            target_size = default_size
+            
+        if show:
+            if not panel_widget.isVisible():
+                if is_horizontal:
+                    panel_widget.setMaximumWidth(0)
+                else:
+                    panel_widget.setMaximumHeight(0)
+                panel_widget.setVisible(True)
+                
+            start_val = panel_widget.width() if is_horizontal else panel_widget.height()
+            anim.setStartValue(start_val)
+            anim.setEndValue(target_size)
+            
+            def on_show_finished():
+                if is_horizontal:
+                    panel_widget.setMaximumWidth(16777215)
+                    panel_widget.setMinimumWidth(200)
+                else:
+                    panel_widget.setMaximumHeight(16777215)
+                    panel_widget.setMinimumHeight(80)
+                panel_widget._anim = None
+                
+            anim.finished.connect(on_show_finished)
+            anim.start()
+        else:
+            start_val = panel_widget.width() if is_horizontal else panel_widget.height()
+            if start_val > 50:
+                panel_widget._last_size = start_val
+                
+            anim.setStartValue(start_val)
+            anim.setEndValue(0)
+            
+            def on_hide_finished():
+                panel_widget.setVisible(False)
+                if is_horizontal:
+                    panel_widget.setMaximumWidth(16777215)
+                    panel_widget.setMinimumWidth(200)
+                else:
+                    panel_widget.setMaximumHeight(16777215)
+                    panel_widget.setMinimumHeight(80)
+                panel_widget._anim = None
+                
+            anim.finished.connect(on_hide_finished)
+            anim.start()
+
+    def _toggle_activity_bar_force(self, show: bool):
+        self._activity_bar.setVisible(show)
+        if hasattr(self, 'activity_bar_act'):
+            self.activity_bar_act.setChecked(show)
+        self._refresh_customize_popup()
+
     def _toggle_primary_sidebar_force(self, show: bool):
-        self._sidebar_stack.setVisible(show)
+        self._animate_panel(self._sidebar_stack, show, 280, True)
         self._title_bar.btn_left_sidebar.setChecked(show)
         if hasattr(self, 'primary_sidebar_act'):
             self.primary_sidebar_act.setChecked(show)
         self._refresh_customize_popup()
 
     def _toggle_secondary_sidebar_force(self, show: bool):
-        self._chat_panel.setVisible(show)
+        self._animate_panel(self._chat_panel, show, 300, True)
         self._title_bar.btn_right_sidebar.setChecked(show)
         if hasattr(self, 'secondary_sidebar_act'):
             self.secondary_sidebar_act.setChecked(show)
         self._refresh_customize_popup()
 
     def _toggle_panel_force(self, show: bool):
-        if show:
-            self._bottom_panel.show()
-            self._title_bar.btn_bottom_panel.setChecked(True)
-        else:
-            self._bottom_panel.hide()
-            self._title_bar.btn_bottom_panel.setChecked(False)
+        self._animate_panel(self._bottom_panel, show, 250, False)
+        self._title_bar.btn_bottom_panel.setChecked(show)
         if hasattr(self, 'panel_act'):
             self.panel_act.setChecked(show)
         self._refresh_customize_popup()

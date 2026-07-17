@@ -210,11 +210,119 @@ def _render_svg(svg_bytes: bytes) -> QIcon:
     return icon
 
 
+_seti_font_loaded = False
+_seti_font_family = ""
+
+def load_seti_font():
+    global _seti_font_loaded, _seti_font_family
+    if _seti_font_loaded:
+        return True
+    
+    from PySide6.QtGui import QFontDatabase
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    font_path = os.path.normpath(os.path.join(base_dir, "assets", "seti", "seti.woff"))
+    if not os.path.exists(font_path):
+        return False
+        
+    font_id = QFontDatabase.addApplicationFont(font_path)
+    if font_id != -1:
+        families = QFontDatabase.applicationFontFamilies(font_id)
+        if families:
+            _seti_font_family = families[0]
+            _seti_font_loaded = True
+            return True
+    return False
+
+def render_seti_icon(char: str, color_hex: str) -> QIcon:
+    if not load_seti_font():
+        return QIcon()
+        
+    icon = QIcon()
+    from PySide6.QtCore import QRect
+    for size in (16, 24, 32, 48, 64):
+        image = QImage(size, size, QImage.Format_ARGB32)
+        image.fill(Qt.transparent)
+        
+        painter = QPainter(image)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setRenderHint(QPainter.TextAntialiasing)
+        
+        font = QFont(_seti_font_family)
+        font.setPixelSize(int(size * 0.9))
+        painter.setFont(font)
+        
+        painter.setPen(QColor(color_hex))
+        
+        rect = QRect(0, 0, size, size)
+        painter.drawText(rect, Qt.AlignCenter, char)
+        painter.end()
+        
+        pixmap = QPixmap.fromImage(image)
+        icon.addPixmap(pixmap)
+        
+    return icon
+
+def get_seti_file_icon(filepath: str) -> QIcon:
+    from .file_icons import SETI_THEME
+    
+    name = os.path.basename(filepath).lower()
+    def_id = SETI_THEME["file_names"].get(name)
+    
+    if not def_id:
+        parts = name.split(".")
+        for i in range(1, len(parts)):
+            suffix = ".".join(parts[i:])
+            if suffix in SETI_THEME["file_extensions"]:
+                def_id = SETI_THEME["file_extensions"][suffix]
+                break
+                
+    if not def_id:
+        def_id = SETI_THEME["default_file"]
+        
+    definition = SETI_THEME["icon_definitions"].get(def_id)
+    if definition:
+        char = definition["character"]
+        color = definition["color"]
+        return render_seti_icon(char, color)
+        
+    return QIcon()
+
+def get_seti_folder_icon(foldername: str = "", is_open: bool = False) -> QIcon:
+    from .file_icons import SETI_THEME
+    
+    name = (foldername or "").lower()
+    
+    key = "folder_names_open" if is_open else "folder_names"
+    def_id = SETI_THEME[key].get(name)
+    if not def_id and is_open:
+        def_id = SETI_THEME["folder_names"].get(name)
+        
+    if not def_id:
+        def_id = SETI_THEME["default_folder_open"] if is_open else SETI_THEME["default_folder"]
+        
+    definition = SETI_THEME["icon_definitions"].get(def_id)
+    if definition:
+        char = definition["character"]
+        color = definition["color"]
+        return render_seti_icon(char, color)
+        
+    return QIcon()
+
+
 def get_file_icon(filepath: str) -> QIcon:
     """Get appropriate SVG icon for a file (extension icon theme first)."""
     cached = _FILE_ICON_CACHE.get(filepath)
     if cached is not None:
         return cached
+
+    # Try Seti icon theme
+    try:
+        icon = get_seti_file_icon(filepath)
+        if not icon.isNull():
+            _FILE_ICON_CACHE[filepath] = icon
+            return icon
+    except Exception:
+        pass
 
     try:
         from ..core.icon_theme_manager import get_icon_theme_manager
@@ -299,6 +407,15 @@ def get_folder_icon(foldername: str = "", is_open: bool = False) -> QIcon:
     cached = _FOLDER_ICON_CACHE.get(cache_key)
     if cached is not None:
         return cached
+
+    # Try Seti folder icon theme
+    try:
+        icon = get_seti_folder_icon(foldername, is_open)
+        if not icon.isNull():
+            _FOLDER_ICON_CACHE[cache_key] = icon
+            return icon
+    except Exception:
+        pass
 
     try:
         from ..core.icon_theme_manager import get_icon_theme_manager

@@ -1,0 +1,56 @@
+# pydardcor/ui_shared/codicons.py
+# File pemetaan ikon Codicons asli dari VS Code (src/vs/base/common/codiconsLibrary.ts)
+
+class Codicons:
+    ADD = "\uea60"
+    PLUS = "\uea60"
+    GIST_NEW = "\uea60"
+    REPO_CREATE = "\uea60"
+    LIGHTBULB = "\uea61"
+    LIGHT_BULB = "\uea61"
+    REPO = "\uea62"
+    REPO_DELETE = "\uea62"
+    GIST_FORK = "\uea63"
+    REPO_FORKED = "\uea63"
+    GIT_PULL_REQUEST = "\uea64"
+    KEYBOARD = "\uea65"
+    TAG = "\uea66"
+    PERSON = "\uea67"
+    SOURCE_CONTROL = "\uea68"
+    STAR = "\uea6a"
+    COMMENT = "\uea6b"
+    WARNING = "\uea6c"
+    SEARCH = "\uea6d"
+    SIGN_OUT = "\uea6e"
+    SIGN_IN = "\uea6f"
+    EYE = "\uea70"
+    CLOSE = "\uea76"
+    SYNC = "\uea77"
+    CLONE = "\uea78"
+    BEAKER = "\uea79"
+    FOLDER = "\uea83"
+    TERMINAL = "\uea85"
+    ERROR = "\uea87"
+    CHEVRON_DOWN = "\ueab4"
+    CHEVRON_LEFT = "\ueab5"
+    CHEVRON_RIGHT = "\ueab6"
+    CHEVRON_UP = "\ueab7"
+    CHROME_CLOSE = "\ueab8"
+    CHROME_MAXIMIZE = "\ueab9"
+    CHROME_MINIMIZE = "\ueaba"
+    CHROME_RESTORE = "\ueabb"
+    NEW_FILE = "\uea7f"
+    NEW_FOLDER = "\uea80"
+    COLLAPSE_ALL = "\ueab1"
+    REFRESH = "\ueb37"
+    SETTINGS = "\ueb51"
+    PLAY = "\ueb70"
+    DEBUG_ALT = "\ueb75"
+    TERMINAL_DECORATION_ERROR = "\ueb92"
+    TERMINAL_DECORATION_SUCCESS = "\ueb93"
+
+    @classmethod
+    def get(cls, name: str, default: str = "") -> str:
+        # Mengubah format 'git-pull-request' menjadi 'GIT_PULL_REQUEST'
+        key = name.upper().replace("-", "_")
+        return getattr(cls, key, default)

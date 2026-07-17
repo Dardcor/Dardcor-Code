@@ -1397,6 +1397,10 @@ class EditorGroup(QWidget):
             if tab.is_preview:
                 self._make_tab_permanent(idx)
             self._sync_tab_bar()
+            if tab.file_path:
+                for other_tab in self._tabs:
+                    if other_tab.file_path == tab.file_path and isinstance(other_tab.editor, MonacoDiffEditorWidget):
+                        other_tab.editor.set_diff(other_tab.editor._original_content, editor.get_content(), tab.file_path)
         self.dirty_changed.emit(True)
 
     def _save_editor(self, editor):

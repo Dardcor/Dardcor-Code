@@ -57,6 +57,19 @@
             border-left: 3px solid #4caf50 !important;
         }
 
+        .git-diff-added {
+            border-left: 3px solid #10b981 !important;
+            margin-left: 2px;
+        }
+        .git-diff-modified {
+            border-left: 3px solid #3b82f6 !important;
+            margin-left: 2px;
+        }
+        .git-diff-deleted {
+            border-left: 3px solid #ef4444 !important;
+            margin-left: 2px;
+        }
+
         #floating-menu {
             display: none;
             position: absolute;
@@ -880,6 +893,142 @@
                     }
                 };
 
+                var backendInlayHintsProvider = {
+                    provideInlayHints: function (model, range, token) {
+                        return new Promise(function (resolve) {
+                            if (!backend || typeof backend.get_inlay_hints !== 'function') {
+                                resolve({ hints: [], dispose: function() {} });
+                                return;
+                            }
+                            backend.get_inlay_hints(
+                                currentFilePath,
+                                range.startLineNumber,
+                                range.startColumn,
+                                range.endLineNumber,
+                                range.endColumn,
+                                function (res) {
+                                    if (!res) {
+                                        resolve({ hints: [], dispose: function() {} });
+                                        return;
+                                    }
+                                    try {
+                                        var hints = JSON.parse(res);
+                                        var monacoHints = hints.map(function (h) {
+                                            return {
+                                                label: h.label,
+                                                position: new monaco.Position(h.position.lineNumber, h.position.column),
+                                                kind: h.kind === 1 ? monaco.languages.InlayHintKind.Type : (h.kind === 2 ? monaco.languages.InlayHintKind.Parameter : undefined),
+                                                tooltip: h.tooltip,
+                                                paddingLeft: h.paddingLeft,
+                                                paddingRight: h.paddingRight
+                                            };
+                                        });
+                                        if (monacoHints.length === 0 && model.getLanguageId() === 'python') {
+                                            var fallbackHints = [];
+                                            var lines = model.getLinesContent();
+                                            for (var i = range.startLineNumber - 1; i < range.endLineNumber; i++) {
+                                                var line = lines[i];
+                                                if (!line) continue;
+                                                var matchDef = /^\s*def\s+[a-zA-Z_][a-zA-Z0-9_]*\s*\([^)]*\)\s*:/.exec(line);
+                                                if (matchDef) {
+                                                    var col = line.indexOf(':');
+                                                    if (col !== -1) {
+                                                        fallbackHints.push({
+                                                            label: ' -> None',
+                                                            kind: monaco.languages.InlayHintKind.Type,
+                                                            position: new monaco.Position(i + 1, col + 1),
+                                                            paddingLeft: true
+                                                        });
+                                                    }
+                                                }
+                                            }
+                                            resolve({ hints: fallbackHints, dispose: function() {} });
+                                            return;
+                                        }
+                                        resolve({
+                                            hints: monacoHints,
+                                            dispose: function () {}
+                                        });
+                                    } catch (e) {
+                                        resolve({ hints: [], dispose: function() {} });
+                                    }
+                                }
+                            );
+                        });
+                    }
+                };
+
+                var backendCodeLensProvider = {
+                    provideCodeLenses: function (model, token) {
+                        return new Promise(function (resolve) {
+                            if (!backend || typeof backend.get_code_lens !== 'function') {
+                                resolve({ lenses: [], dispose: function() {} });
+                                return;
+                            }
+                            backend.get_code_lens(currentFilePath, function (res) {
+                                if (!res) {
+                                    resolve({ lenses: [], dispose: function() {} });
+                                    return;
+                                }
+                                try {
+                                    var lenses = JSON.parse(res);
+                                    var monacoLenses = lenses.map(function (l) {
+                                        return {
+                                            range: new monaco.Range(
+                                                l.range.startLineNumber,
+                                                l.range.startColumn,
+                                                l.range.endLineNumber,
+                                                l.range.endColumn
+                                            ),
+                                            id: l.id || ("codelens." + Math.random()),
+                                            command: l.command
+                                        };
+                                    });
+                                    if (monacoLenses.length === 0 && model.getLanguageId() === 'python') {
+                                        var fallbackLenses = [];
+                                        var lines = model.getLinesContent();
+                                        for (var i = 0; i < lines.length; i++) {
+                                            var line = lines[i];
+                                            var match = /^\s*(def|class)\s+([a-zA-Z_][a-zA-Z0-9_]*)/.exec(line);
+                                            if (match) {
+                                                fallbackLenses.push({
+                                                    range: new monaco.Range(i + 1, 1, i + 1, 1),
+                                                    id: "references." + i,
+                                                    command: {
+                                                        id: "editor.action.referenceSearch.trigger",
+                                                        title: "Go to References"
+                                                    }
+                                                });
+                                            }
+                                            if (/^\s*if\s+__name__\s*==\s*['"]__main__['"]\s*:\s*$/.test(line)) {
+                                                fallbackLenses.push({
+                                                    range: new monaco.Range(i + 1, 1, i + 1, 1),
+                                                    id: "run." + i,
+                                                    command: {
+                                                        id: "editor.action.run",
+                                                        title: "Run Main Block"
+                                                    }
+                                                });
+                                            }
+                                        }
+                                        resolve({ lenses: fallbackLenses, dispose: function() {} });
+                                        return;
+                                    }
+                                    resolve({
+                                        lenses: monacoLenses,
+                                        dispose: function () {}
+                                    });
+                                } catch (e) {
+                                    resolve({ lenses: [], dispose: function() {} });
+                                }
+                            });
+                        });
+                    },
+                    resolveCodeLens: function (model, codeLens, token) {
+                        return codeLens;
+                    }
+                };
+
                 monaco.languages.getLanguages().forEach(function (lang) {
                     monaco.languages.registerDefinitionProvider(lang.id, backendDefinitionProvider);
                     monaco.languages.registerRenameProvider(lang.id, backendRenameProvider);
@@ -891,6 +1040,8 @@
                     if (monaco.languages.registerTypeHierarchyProvider) monaco.languages.registerTypeHierarchyProvider(lang.id, backendTypeHierarchyProvider);
                     if (monaco.languages.registerDocumentPasteEditProvider) monaco.languages.registerDocumentPasteEditProvider(lang.id, backendPasteEditProvider);
                     monaco.languages.registerColorProvider(lang.id, basicColorProvider);
+                    monaco.languages.registerInlayHintsProvider(lang.id, backendInlayHintsProvider);
+                    monaco.languages.registerCodeLensProvider(lang.id, backendCodeLensProvider);
                 });
 
                 monaco.languages.getLanguages().forEach(function (lang) {
@@ -965,44 +1116,6 @@
                     }
                 });
 
-                monaco.languages.registerCodeLensProvider('python', {
-                    provideCodeLenses: function (model, token) {
-                        var lenses = [];
-                        var lines = model.getLinesContent();
-                        for (var i = 0; i < lines.length; i++) {
-                            var line = lines[i];
-                            var match = /^\s*(def|class)\s+([a-zA-Z_][a-zA-Z0-9_]*)/.exec(line);
-                            if (match) {
-                                lenses.push({
-                                    range: new monaco.Range(i + 1, 1, i + 1, 1),
-                                    id: "references." + i,
-                                    command: {
-                                        id: "editor.action.referenceSearch.trigger",
-                                        title: "Go to References"
-                                    }
-                                });
-                            }
-                            if (/^\s*if\s+__name__\s*==\s*['"]__main__['"]\s*:\s*$/.test(line)) {
-                                lenses.push({
-                                    range: new monaco.Range(i + 1, 1, i + 1, 1),
-                                    id: "run." + i,
-                                    command: {
-                                        id: "editor.action.run",
-                                        title: "Run Main Block"
-                                    }
-                                });
-                            }
-                        }
-                        return {
-                            lenses: lenses,
-                            dispose: function () {}
-                        };
-                    },
-                    resolveCodeLens: function (model, codeLens, token) {
-                        return codeLens;
-                    }
-                });
-
                 monaco.languages.registerDocumentSymbolProvider('python', {
                     provideDocumentSymbols: function (model, token) {
                         var symbols = [];
@@ -1022,33 +1135,6 @@
                             }
                         }
                         return symbols;
-                    }
-                });
-
-                monaco.languages.registerInlayHintsProvider('python', {
-                    provideInlayHints: function (model, range, token) {
-                        var hints = [];
-                        var lines = model.getLinesContent();
-                        for (var i = range.startLineNumber - 1; i < range.endLineNumber; i++) {
-                            var line = lines[i];
-                            if (!line) continue;
-                            var matchDef = /^\s*def\s+[a-zA-Z_][a-zA-Z0-9_]*\s*\([^)]*\)\s*:/.exec(line);
-                            if (matchDef) {
-                                var col = line.indexOf(':');
-                                if (col !== -1) {
-                                    hints.push({
-                                        label: ' -> None',
-                                        kind: monaco.languages.InlayHintKind.Type,
-                                        position: new monaco.Position(i + 1, col + 1),
-                                        paddingLeft: true
-                                    });
-                                }
-                            }
-                        }
-                        return {
-                            hints: hints,
-                            dispose: function () {}
-                        };
                     }
                 });
 
@@ -2146,6 +2232,48 @@
                 }
             });
         })();
+
+        var gitDiffDecorations = [];
+        window.updateGitDiffDecorations = function(changesJson) {
+            if (!editor) return;
+            var changes = [];
+            try {
+                changes = typeof changesJson === 'string' ? JSON.parse(changesJson) : changesJson;
+            } catch (e) { }
+            if (!changes || !Array.isArray(changes)) changes = [];
+            
+            var newDecorations = [];
+            changes.forEach(function(c) {
+                var start = c.start;
+                var count = c.count;
+                var type = c.type || 'modified';
+                
+                var cls = 'git-diff-modified';
+                if (type === 'added') cls = 'git-diff-added';
+                else if (type === 'deleted') cls = 'git-diff-deleted';
+                
+                if (type === 'deleted') {
+                    newDecorations.push({
+                        range: new monaco.Range(start, 1, start, 1),
+                        options: {
+                            isWholeLine: false,
+                            lineDecorationsClassName: cls
+                        }
+                    });
+                } else {
+                    for (var line = start; line < start + count; line++) {
+                        newDecorations.push({
+                            range: new monaco.Range(line, 1, line, 1),
+                            options: {
+                                isWholeLine: false,
+                                lineDecorationsClassName: cls
+                            }
+                        });
+                    }
+                }
+            });
+            gitDiffDecorations = editor.deltaDecorations(gitDiffDecorations, newDecorations);
+        };
     </script>
 </body>
 

@@ -28,6 +28,7 @@ class BreadcrumbsBar(QWidget):
         super().__init__(parent)
         self.current_file = None
         self.symbols = []
+        self.symbol_btn = None
         
         self.setFixedHeight(24)
         self.setObjectName("BreadcrumbsBar")
@@ -81,6 +82,7 @@ class BreadcrumbsBar(QWidget):
 
     def _clear_layout(self):
         """Clears existing path and symbol segments from the layout."""
+        self.symbol_btn = None
         while self.layout.count():
             item = self.layout.takeAt(0)
             widget = item.widget()
@@ -139,6 +141,9 @@ class BreadcrumbsBar(QWidget):
 
     def update_current_symbol(self, line_number: int):
         """Finds and displays the most relevant symbol based on the line number."""
+        if not hasattr(self, "symbol_btn") or self.symbol_btn is None:
+            return
+            
         if not self.symbols:
             self.symbol_btn.setText("{}")
             self.symbol_btn.setDisabled(True)

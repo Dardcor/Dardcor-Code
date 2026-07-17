@@ -1,8 +1,8 @@
 """Activity Bar - VS Code style vertical icon bar."""
 
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QButtonGroup, QMenu
-from PySide6.QtCore import Signal, Qt, QSize, QRect, QPoint
-from PySide6.QtGui import QPainter, QColor, QPen, QPolygon, QPainterPath, QAction
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QButtonGroup, QMenu, QLabel, QGraphicsOpacityEffect
+from PySide6.QtCore import Signal, Qt, QSize, QRect, QPoint, QPropertyAnimation, QEasingCurve, QTimer
+from PySide6.QtGui import QPainter, QColor, QPen, QPolygon, QPainterPath, QAction, QFont
 
 
 VIEW_EXPLORER = 0
@@ -15,6 +15,64 @@ VIEW_COMMENTS = 6
 
 # Extension-contributed view containers use ids starting here
 EXT_VIEW_BASE = 1000
+
+
+class SmoothTooltip(QWidget):
+    """Custom frameless floating tooltip with a fade-in animation."""
+    
+    def __init__(self, text: str, parent=None):
+        super().__init__(parent, Qt.ToolTip | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setAttribute(Qt.WA_ShowWithoutActivating)
+        
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        
+        self.label = QLabel(text)
+        self.label.setStyleSheet("""
+            QLabel {
+                color: #cccccc;
+                background-color: #1a1a1a;
+                border: 1px solid #3c3c3c;
+                border-radius: 4px;
+                padding: 4px 8px;
+                font-size: 11px;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            }
+        """)
+        layout.addWidget(self.label)
+        
+        self.opacity_effect = QGraphicsOpacityEffect(self)
+        self.setGraphicsEffect(self.opacity_effect)
+        self.opacity_effect.setOpacity(0.0)
+        
+        self.anim = QPropertyAnimation(self.opacity_effect, b"opacity")
+        self.anim.setDuration(150)
+        self.anim.setStartValue(0.0)
+        self.anim.setEndValue(1.0)
+        self.anim.setEasingCurve(QEasingCurve.OutQuad)
+        
+        self._is_hiding = False
+        self.anim.finished.connect(self._on_anim_finished)
+        
+    def _on_anim_finished(self):
+        if self._is_hiding:
+            self.hide()
+            self.opacity_effect.setOpacity(0.0)
+            
+    def show_at(self, global_pos: QPoint):
+        self._is_hiding = False
+        self.move(global_pos)
+        self.show()
+        self.anim.start()
+        
+    def hide_smooth(self):
+        self.anim.stop()
+        self._is_hiding = True
+        self.anim.setStartValue(self.opacity_effect.opacity())
+        self.anim.setEndValue(0.0)
+        self.anim.start()
 
 
 
@@ -73,7 +131,7 @@ class ActivityBarButton(QPushButton):
             QPushButton {{
                 background-color: transparent;
                 border: none;
-                border-left: 2px solid transparent;
+                border-left: 3px solid transparent;
                 color: {fg};
                 font-size: 26px;
                 text-align: center;
@@ -85,7 +143,7 @@ class ActivityBarButton(QPushButton):
                 color: {fg};
             }}
             QPushButton:checked {{
-                border-left: 2px solid {accent};
+                border-left: 3px solid {accent};
                 background-color: {selection};
                 color: {fg};
             }}
@@ -191,7 +249,35 @@ class ActivityBarButton(QPushButton):
             painter.setFont(font)
             painter.drawText(badge_rect, Qt.AlignCenter, self._badge_text)
 
+    def enterEvent(self, event):
+        super().enterEvent(event)
+        text = self.toolTip()
+        if not text:
+            return
+        self.setToolTip("")
+        self._stored_tooltip_text = text
+        
+        if not hasattr(self, "_custom_tooltip") or self._custom_tooltip is None:
+            self._custom_tooltip = SmoothTooltip(text, self.window())
+            
+        button_global_pos = self.mapToGlobal(QPoint(0, 0))
+        x = button_global_pos.x() + self.width() + 6
+        y = button_global_pos.y() + (self.height() - self._custom_tooltip.sizeHint().height()) // 2
+        self._custom_tooltip.show_at(QPoint(x, y))
+
+    def leaveEvent(self, event):
+        super().leaveEvent(event)
+        if hasattr(self, "_stored_tooltip_text") and self._stored_tooltip_text:
+            self.setToolTip(self._stored_tooltip_text)
+            
+        if hasattr(self, "_custom_tooltip") and self._custom_tooltip:
+            self._custom_tooltip.hide_smooth()
+            self._custom_tooltip = None
+
     def mousePressEvent(self, event):
+        if hasattr(self, "_custom_tooltip") and self._custom_tooltip:
+            self._custom_tooltip.hide()
+            self._custom_tooltip = None
         super().mousePressEvent(event)
         if event.button() == Qt.LeftButton:
             self.drag_start_pos = event.pos()
