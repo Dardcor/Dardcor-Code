@@ -25,6 +25,7 @@ class EditorTabs(QWidget):
         first_group = EditorGroup(self)
         first_group.tab_changed.connect(self.tab_changed.emit)
         first_group.dirty_changed.connect(self.dirty_changed.emit)
+        first_group.group_empty.connect(self._on_group_empty)
         self._groups.append(first_group)
         self.grid_system.set_central_widget(first_group)
 
@@ -32,8 +33,22 @@ class EditorTabs(QWidget):
         group = EditorGroup(self)
         group.tab_changed.connect(self.tab_changed.emit)
         group.dirty_changed.connect(self.dirty_changed.emit)
+        group.group_empty.connect(self._on_group_empty)
         self._groups.append(group)
         return group
+
+    def _on_group_empty(self, group):
+        if len(self._groups) > 1:
+            if group in self._groups:
+                idx = self._groups.index(group)
+                self._groups.remove(group)
+                if self._active_group_idx >= len(self._groups):
+                    self._active_group_idx = max(0, len(self._groups) - 1)
+                elif self._active_group_idx > idx:
+                    self._active_group_idx -= 1
+            self.grid_system.remove_widget(group)
+            group.setParent(None)
+            group.deleteLater()
 
     def split_editor(self, direction="right"):
         """Split the current editor group in the specified direction ('up', 'down', 'left', 'right')."""

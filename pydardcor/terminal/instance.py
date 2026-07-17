@@ -10,6 +10,7 @@ from PySide6.QtWebChannel import QWebChannel
 from .bridge import TerminalBridge
 from .backend import get_shell_cmd, PtyReaderThread
 import pydardcor.terminal.backend as backend
+from pydardcor.workspace.workspace_trust import WorkspaceTrust
 
 
 class TerminalInstance(QWidget):
@@ -154,6 +155,15 @@ class TerminalInstance(QWidget):
             pass
 
     def _start_shell(self):
+        trust_manager = WorkspaceTrust()
+        if not trust_manager.is_trusted(self._workdir):
+            self._write_to_frontend(
+                "\x1b[33m[Restricted Mode]\x1b[0m\r\n"
+                "Terminal execution is disabled because this workspace is untrusted.\r\n"
+                "Please trust this workspace to enable the terminal.\r\n"
+            )
+            return
+
         cmd = self._shell or get_shell_cmd()
         env = os.environ.copy()
         env.update(self._env_vars)

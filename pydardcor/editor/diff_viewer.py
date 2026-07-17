@@ -1,5 +1,6 @@
 import os
-from PySide6.QtWidgets import QWidget, QVBoxLayout
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton
+from PySide6.QtGui import QIcon, QFont
 from PySide6.QtCore import Signal, Qt, QTimer, QUrl, QObject, Slot
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEngineSettings
@@ -35,6 +36,32 @@ class MonacoDiffEditorWidget(QWidget):
         layout.setSpacing(0)
 
         self._view = QWebEngineView(self)
+        
+        # Add Toolbar
+        toolbar_layout = QHBoxLayout()
+        toolbar_layout.setContentsMargins(10, 4, 10, 4)
+        toolbar_layout.setSpacing(8)
+        
+        # We assume codicon is loaded, but using text for safety
+        self.btn_prev = QPushButton("Previous Diff")
+        self.btn_next = QPushButton("Next Diff")
+        self.btn_revert = QPushButton("Revert Block")
+        self.btn_stage = QPushButton("Stage Block")
+        
+        for btn in [self.btn_prev, self.btn_next, self.btn_revert, self.btn_stage]:
+            btn.setStyleSheet("""
+                QPushButton { background: #333333; color: white; border: none; padding: 4px 8px; border-radius: 2px; }
+                QPushButton:hover { background: #444444; }
+            """)
+            toolbar_layout.addWidget(btn)
+        toolbar_layout.addStretch()
+        
+        self.btn_prev.clicked.connect(self._prev_diff)
+        self.btn_next.clicked.connect(self._next_diff)
+        self.btn_revert.clicked.connect(self._revert_block)
+        self.btn_stage.clicked.connect(self._stage_block)
+        
+        layout.addLayout(toolbar_layout)
         from PySide6.QtGui import QColor
         self._view.page().setBackgroundColor(QColor(0, 0, 0, 0))
         self._view.setContextMenuPolicy(Qt.NoContextMenu)
@@ -84,6 +111,23 @@ class MonacoDiffEditorWidget(QWidget):
         lang_js = json.dumps(self._language)
         js = f"setDiffContent({orig_js}, {mod_js}, {lang_js});"
         self._view.page().runJavaScript(js)
+
+    def _prev_diff(self):
+        if self._view_ready:
+            self._view.page().runJavaScript("if (typeof diffEditor !== 'undefined') diffEditor.goToDiff('previous');")
+            
+    def _next_diff(self):
+        if self._view_ready:
+            self._view.page().runJavaScript("if (typeof diffEditor !== 'undefined') diffEditor.goToDiff('next');")
+            
+    def _revert_block(self):
+        if self._view_ready:
+            # We trigger a JS function that grabs the current diff block and reverts it
+            self._view.page().runJavaScript("if (typeof revertCurrentBlock !== 'undefined') revertCurrentBlock();")
+            
+    def _stage_block(self):
+        if self._view_ready:
+            self._view.page().runJavaScript("if (typeof stageCurrentBlock !== 'undefined') stageCurrentBlock();")
 
     def get_file_path(self):
         return self._file_path

@@ -413,6 +413,27 @@ class CustomTitleBar(QWidget):
             }
         """)
         self.layout.addWidget(self.menu_bar)
+        
+        # Remote Connection Indicator (Tasks 291-295)
+        self.remote_indicator = QPushButton("\uea3a") # codicon-remote
+        self.remote_indicator.setToolTip("Remote Connection (SSH/WSL/DevContainers)")
+        self.remote_indicator.setStyleSheet("""
+            QPushButton {
+                background-color: #007acc;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 4px 8px;
+                font-family: codicon;
+                font-size: 14px;
+                margin-left: 8px;
+            }
+            QPushButton:hover {
+                background-color: #005999;
+            }
+        """)
+        self.remote_indicator.hide() # Hidden by default
+        self.layout.addWidget(self.remote_indicator, 0, Qt.AlignVCenter)
 
         # Command Center
         self.command_center = CommandCenterWidget()
@@ -518,8 +539,25 @@ class CustomTitleBar(QWidget):
         """Open Chrome with agent-specific profile."""
         success, msg = open_agent_chrome()
         if not success:
-            from PySide6.QtWidgets import QMessageBox
-            QMessageBox.warning(self, "Chrome", msg)
+            QMessageBox.warning(self, "Chrome Launch Failed", msg)
+
+    def set_theme_colors(self, bg_color: str, fg_color: str):
+        """Menyelaraskan warna background custom title bar dengan tema aktif (Tasks 296-300)."""
+        self.setStyleSheet(f"""
+            #CustomTitleBar {{
+                background-color: {bg_color}; 
+                color: {fg_color};
+                border-bottom: 1px solid #3c0068;
+            }}
+        """)
+        
+    def set_remote_status(self, is_connected: bool, status_text: str = ""):
+        """Update remote connection indicator status."""
+        if is_connected:
+            self.remote_indicator.show()
+            self.remote_indicator.setToolTip(status_text)
+        else:
+            self.remote_indicator.hide()
 
     def toggle_max_restore(self):
         if getattr(self, "_is_custom_maximized", False) or self.parent.isMaximized():
@@ -621,6 +659,7 @@ from ..core.extension_manager import get_extension_manager
 
 # --- Phase 13 Injections ---
 from ..workspace.multi_root import MultiRootWorkspace
+from ..core.workspace_session import WorkspaceSessionManager
 from ..tasks.task_manager import TaskManager, TaskDefinition, TaskGroup, TaskPresentationOptions, TaskInput, resolve_variables, get_variable_context
 from ..tasks.problem_matcher import ProblemMatcher
 from ..testing.panel import TestExplorerPanel
@@ -693,6 +732,7 @@ def build_default_commands() -> list:
         {"id": "workbench.action.toggleFullScreen", "label": "View: Toggle Full Screen", "shortcut": "F11"},
         {"id": "workbench.action.toggleCenteredLayout", "label": "View: Toggle Centered Layout", "category": "View"},
         {"id": "workbench.action.toggleSidebarVisibility", "label": "View: Toggle Primary Side Bar Visibility", "shortcut": "Ctrl+B"},
+        {"id": "workbench.action.toggleActivityBarVisibility", "label": "View: Toggle Activity Bar Visibility", "category": "View"},
         {"id": "workbench.action.toggleSecondarySidebar", "label": "View: Toggle Secondary Side Bar", "category": "View"},
         {"id": "edit.find", "label": "Edit: Find", "shortcut": "Ctrl+F"},
         {"id": "edit.replace", "label": "Edit: Find and Replace", "shortcut": "Ctrl+H"},
@@ -745,6 +785,7 @@ def build_default_commands() -> list:
         {"id": "workbench.action.editorLayoutTwoRows", "label": "View: Two Rows Editor Layout", "shortcut": ""},
         {"id": "workbench.action.editorLayoutThreeRows", "label": "View: Three Rows Editor Layout", "shortcut": ""},
         {"id": "workbench.action.editorLayoutGrid", "label": "View: Grid (2x2) Editor Layout", "shortcut": ""},
+        {"id": "workbench.action.focusNextGroup", "label": "View: Focus Next Editor Group", "shortcut": "Ctrl+K Ctrl+Right"},
     ]
 
 
@@ -860,7 +901,12 @@ class MainWindow(QMainWindow):
         self._live_server = LiveServerManager()
         self._live_server_preferred_port = 5500
         # -------------------------------
+        # -------------------------------
         
+        self._workspace_session_manager = WorkspaceSessionManager(self)
+        self._workspace_session_manager.capture_current_state = self._capture_session_state
+        self._workspace_session_manager.start_auto_save()
+
         self._setup_agent()
         self._run_queued_chat_signal.connect(self._run_next_queued_chat_message)
         self._setup_ui()
@@ -874,6 +920,9 @@ class MainWindow(QMainWindow):
         self._setup_command_palette()
         QTimer.singleShot(50, self._setup_extensions)
         self._restore_window_geometry()
+        
+        # Restore session state (Tasks 201-235)
+        self._restore_session_state()
         
         self._set_theme(self._config.color_theme or "dardcor-purple")
 
@@ -2650,6 +2699,7 @@ class MainWindow(QMainWindow):
             "workbench.action.toggleFullScreen": lambda: self.showNormal() if self.isFullScreen() else self.showFullScreen(),
             "workbench.action.toggleCenteredLayout": lambda: self._show_command_palette(),
             "workbench.action.toggleSidebarVisibility": self._toggle_sidebar,
+            "workbench.action.toggleActivityBarVisibility": self._toggle_activity_bar_force,
             "workbench.action.toggleSecondarySidebar": self._toggle_chat,
             "workbench.action.navigateBack": self._navigate_back,
             "workbench.action.navigateForward": self._navigate_forward,
@@ -2704,6 +2754,7 @@ class MainWindow(QMainWindow):
             "view.splitEditorDown": lambda: self._editor_tabs.split_editor("down"),
             "view.splitEditorUp": lambda: self._editor_tabs.split_editor("up"),
             "view.splitEditorLeft": lambda: self._editor_tabs.split_editor("left"),
+            "workbench.action.focusNextGroup": lambda: self._focus_editor_group_rel(1),
             "view.zenMode": lambda: self._zen_mode.toggle_zen_mode(),
             "view.customizeLayout": self._show_customize_layout,
             "markdown.preview": self._open_markdown_preview,
@@ -3283,6 +3334,44 @@ class MainWindow(QMainWindow):
                         self._load_workspace_file(ws_file)
                     except Exception as e:
                         QMessageBox.warning(self, "Error", f"Failed to create workspace: {e}")
+
+    def _remove_folder_from_workspace(self, folder_path: str):
+        current_path = self._config.workspace_path or ""
+        is_workspace = current_path.endswith(".code-workspace") and os.path.isfile(current_path)
+        if not is_workspace:
+            QMessageBox.information(self, "Remove Folder", "You must be in a workspace to remove folders.")
+            return
+
+        try:
+            import json
+            with open(current_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            folders = data.get("folders", [])
+            ws_dir = os.path.dirname(os.path.abspath(current_path))
+            abs_target = os.path.abspath(folder_path)
+            
+            new_folders = []
+            removed = False
+            for f in folders:
+                p_val = f.get("path", "")
+                abs_p = p_val if os.path.isabs(p_val) else os.path.abspath(os.path.join(ws_dir, p_val))
+                if os.path.normcase(abs_p) == os.path.normcase(abs_target):
+                    removed = True
+                else:
+                    new_folders.append(f)
+                    
+            if not removed:
+                QMessageBox.information(self, "Remove Folder", "Folder is not in the workspace.")
+                return
+                
+            data["folders"] = new_folders
+            with open(current_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            
+            self._load_workspace_file(current_path)
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Failed to remove folder: {e}")
 
     def _save_workspace_as(self):
         ws_file, _ = QFileDialog.getSaveFileName(self, "Save Workspace As", "", "Workspace Files (*.code-workspace)")
@@ -3993,6 +4082,12 @@ class MainWindow(QMainWindow):
             if colors:
                 self._git_panel.apply_theme(colors)
 
+        colors = ThemeManager.THEMES.get(theme_id, {}).get("colors", {})
+        bg = colors.get("titleBar.activeBackground", "#1e1e1e")
+        fg = colors.get("titleBar.activeForeground", "#cccccc")
+        if hasattr(self, '_title_bar') and hasattr(self._title_bar, 'set_theme_colors'):
+            self._title_bar.set_theme_colors(bg, fg)
+
         if persist:
             self._config.color_theme = theme_id
             self._config.save()
@@ -4258,7 +4353,9 @@ class MainWindow(QMainWindow):
         if self._breadcrumbs_bar:
             group = self._editor_tabs.active_group()
             if group:
-                if file_path:
+                from ..core.settings_manager import SettingsManager
+                breadcrumbs_enabled = SettingsManager().get("breadcrumbs.enabled", True)
+                if file_path and breadcrumbs_enabled:
                     group.set_breadcrumbs_visible(True)
                     self._breadcrumbs_bar.update_breadcrumbs(file_path)
                 else:
@@ -5773,6 +5870,83 @@ class MainWindow(QMainWindow):
         from pydardcor.app.theme_manager import ThemeManager
         ThemeManager.set_zoom_level(app, 0)
         self._config.save()
+
+    def closeEvent(self, event):
+        """Handle application exit, including hot exit without prompt save."""
+        # Capture and save state before exit (Tasks 236-240)
+        state = self._capture_session_state()
+        self._workspace_session_manager.save_session(state)
+        
+        # We don't prompt for save because of Hot Exit (drafts are saved)
+        event.accept()
+
+    def _capture_session_state(self) -> dict:
+        """Captures the current UI state for session restore."""
+        state = {
+            "folders": [self._config.workspace_path] if self._config.workspace_path else [],
+            "groups": [],
+            "sidebar_visible": self._sidebar_dock.isVisible() if hasattr(self, '_sidebar_dock') else True,
+            "terminal_visible": self._panel_dock.isVisible() if hasattr(self, '_panel_dock') else True,
+            "active_group_index": self._editor_tabs._active_group_idx,
+        }
+        for g_idx, group in enumerate(self._editor_tabs._groups):
+            group_state = {
+                "active_tab_index": group._current_idx,
+                "open_files": []
+            }
+            for tab in group._tabs:
+                if tab.file_path:
+                    group_state["open_files"].append(tab.file_path)
+                    if hasattr(tab.editor, "is_dirty") and tab.editor.is_dirty():
+                        self._workspace_session_manager.save_draft(tab.file_path, tab.editor.get_content())
+                    else:
+                        self._workspace_session_manager.remove_draft(tab.file_path)
+            state["groups"].append(group_state)
+        return state
+
+    def _restore_session_state(self):
+        """Restores the UI state from session.json."""
+        state = self._workspace_session_manager.load_session()
+        if not state:
+            return
+            
+        groups = state.get("groups", [])
+        if groups:
+            for g_idx, group_state in enumerate(groups):
+                if g_idx >= len(self._editor_tabs._groups):
+                    self._editor_tabs.split_editor("right")
+                group = self._editor_tabs._groups[g_idx]
+                
+                for f in group_state.get("open_files", []):
+                    if os.path.exists(f):
+                        group.open_file(f)
+                        draft = self._workspace_session_manager.load_draft(f)
+                        if draft:
+                            for tab in group._tabs:
+                                if tab.file_path == f:
+                                    if hasattr(tab.editor, "set_content"):
+                                        tab.editor.set_content(draft, tab.editor.get_language())
+                                    if hasattr(tab.editor, "_is_dirty"):
+                                        tab.editor._is_dirty = True
+                                    group._sync_tab_bar()
+                                    break
+                
+                idx = group_state.get("active_tab_index", -1)
+                if 0 <= idx < len(group._tabs):
+                    group._switch_tab(idx)
+                    
+            self._editor_tabs._active_group_idx = state.get("active_group_index", 0)
+        else:
+            # Fallback for old session state format
+            for f in state.get("open_files", []):
+                if os.path.exists(f):
+                    self._open_file(f)
+                    
+        # Restore panels
+        if hasattr(self, '_sidebar_dock') and not state.get("sidebar_visible", True):
+            self._sidebar_dock.hide()
+        if hasattr(self, '_panel_dock') and not state.get("terminal_visible", True):
+            self._panel_dock.hide()
 
     def _toggle_fullscreen(self):
         """Toggle full screen mode (F11)."""

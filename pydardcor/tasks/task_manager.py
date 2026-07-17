@@ -10,6 +10,7 @@ import glob
 from typing import List, Dict, Optional, Any, Tuple
 from pathlib import Path
 from PySide6.QtCore import QObject, Signal
+from pydardcor.workspace.workspace_trust import WorkspaceTrust
 
 
 VARIABLE_PATTERN = re.compile(r'\$\{([^}]+)\}')
@@ -597,6 +598,12 @@ class TaskManager(QObject):
 
     def run_task(self, task: TaskDefinition, on_input_request=None):
         """Run a task, handling dependsOn, compound, and inputs."""
+        trust_manager = WorkspaceTrust()
+        if not trust_manager.is_trusted(self._workspace):
+            self.task_output.emit(task.label, "Task execution is disabled because this workspace is untrusted.")
+            self.task_finished.emit(task.label, 1)
+            return
+
         if task.label in self._running_tasks:
             return
 

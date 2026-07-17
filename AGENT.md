@@ -7,1047 +7,1047 @@ Dokumen ini berisi daftar wajib 1000 tugas terperinci untuk mencapai parity fitu
 ## 1. SISTEM CORE, KONFIGURASI, DAN PENYIMPANAN (CORE SYSTEM & STORAGE)
 
 ### 1.1. Konfigurasi Settings & Schema Parser
-- [ ] **1**. Membaca file settings.json utama dan memuatnya saat inisialisasi aplikasi - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **2**. Membaca file settings.json utama dan memuatnya saat inisialisasi aplikasi - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **3**. Membaca file settings.json utama dan memuatnya saat inisialisasi aplikasi - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **4**. Membaca file settings.json utama dan memuatnya saat inisialisasi aplikasi - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **5**. Membaca file settings.json utama dan memuatnya saat inisialisasi aplikasi - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **6**. Menulis perubahan settings ke settings.json secara otomatis saat settings UI diubah - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **7**. Menulis perubahan settings ke settings.json secara otomatis saat settings UI diubah - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **8**. Menulis perubahan settings ke settings.json secara otomatis saat settings UI diubah - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **9**. Menulis perubahan settings ke settings.json secara otomatis saat settings UI diubah - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **10**. Menulis perubahan settings ke settings.json secara otomatis saat settings UI diubah - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **11**. Memvalidasi tipe data settings berdasarkan settings schema resmi VS Code - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **12**. Memvalidasi tipe data settings berdasarkan settings schema resmi VS Code - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **13**. Memvalidasi tipe data settings berdasarkan settings schema resmi VS Code - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **14**. Memvalidasi tipe data settings berdasarkan settings schema resmi VS Code - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **15**. Memvalidasi tipe data settings berdasarkan settings schema resmi VS Code - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **16**. Mendukung deteksi otomatis modifikasi setting untuk memunculkan indikator modifikasi garis biru di settings UI - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **17**. Mendukung deteksi otomatis modifikasi setting untuk memunculkan indikator modifikasi garis biru di settings UI - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **18**. Mendukung deteksi otomatis modifikasi setting untuk memunculkan indikator modifikasi garis biru di settings UI - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **19**. Mendukung deteksi otomatis modifikasi setting untuk memunculkan indikator modifikasi garis biru di settings UI - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **20**. Mendukung deteksi otomatis modifikasi setting untuk memunculkan indikator modifikasi garis biru di settings UI - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **21**. Mengimplementasikan setting inheritance dari User settings ke Workspace settings - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **22**. Mengimplementasikan setting inheritance dari User settings ke Workspace settings - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **23**. Mengimplementasikan setting inheritance dari User settings ke Workspace settings - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **24**. Mengimplementasikan setting inheritance dari User settings ke Workspace settings - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **25**. Mengimplementasikan setting inheritance dari User settings ke Workspace settings - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **26**. Mengimplementasikan setting inheritance dari Workspace settings ke Folder settings (Multi-Root) - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **27**. Mengimplementasikan setting inheritance dari Workspace settings ke Folder settings (Multi-Root) - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **28**. Mengimplementasikan setting inheritance dari Workspace settings ke Folder settings (Multi-Root) - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **29**. Mengimplementasikan setting inheritance dari Workspace settings ke Folder settings (Multi-Root) - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **30**. Mengimplementasikan setting inheritance dari Workspace settings ke Folder settings (Multi-Root) - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **31**. Mendukung default settings fallback jika key settings tidak ditemukan di settings.json - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **32**. Mendukung default settings fallback jika key settings tidak ditemukan di settings.json - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **33**. Mendukung default settings fallback jika key settings tidak ditemukan di settings.json - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **34**. Mendukung default settings fallback jika key settings tidak ditemukan di settings.json - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **35**. Mendukung default settings fallback jika key settings tidak ditemukan di settings.json - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **36**. Menambahkan QFileSystemWatcher untuk mendeteksi perubahan settings.json dari editor eksternal - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **37**. Menambahkan QFileSystemWatcher untuk mendeteksi perubahan settings.json dari editor eksternal - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **38**. Menambahkan QFileSystemWatcher untuk mendeteksi perubahan settings.json dari editor eksternal - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **39**. Menambahkan QFileSystemWatcher untuk mendeteksi perubahan settings.json dari editor eksternal - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **40**. Menambahkan QFileSystemWatcher untuk mendeteksi perubahan settings.json dari editor eksternal - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **41**. Mengimplementasikan sinkronisasi settings otomatis saat file settings.json diperbarui - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **42**. Mengimplementasikan sinkronisasi settings otomatis saat file settings.json diperbarui - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **43**. Mengimplementasikan sinkronisasi settings otomatis saat file settings.json diperbarui - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **44**. Mengimplementasikan sinkronisasi settings otomatis saat file settings.json diperbarui - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **45**. Mengimplementasikan sinkronisasi settings otomatis saat file settings.json diperbarui - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **46**. Menambahkan reset settings option untuk memulihkan settings default per key - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **47**. Menambahkan reset settings option untuk memulihkan settings default per key - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **48**. Menambahkan reset settings option untuk memulihkan settings default per key - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **49**. Menambahkan reset settings option untuk memulihkan settings default per key - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **50**. Menambahkan reset settings option untuk memulihkan settings default per key - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **1**. Membaca file settings.json utama dan memuatnya saat inisialisasi aplikasi - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **2**. Membaca file settings.json utama dan memuatnya saat inisialisasi aplikasi - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **3**. Membaca file settings.json utama dan memuatnya saat inisialisasi aplikasi - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **4**. Membaca file settings.json utama dan memuatnya saat inisialisasi aplikasi - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **5**. Membaca file settings.json utama dan memuatnya saat inisialisasi aplikasi - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **6**. Menulis perubahan settings ke settings.json secara otomatis saat settings UI diubah - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **7**. Menulis perubahan settings ke settings.json secara otomatis saat settings UI diubah - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **8**. Menulis perubahan settings ke settings.json secara otomatis saat settings UI diubah - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **9**. Menulis perubahan settings ke settings.json secara otomatis saat settings UI diubah - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **10**. Menulis perubahan settings ke settings.json secara otomatis saat settings UI diubah - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **11**. Memvalidasi tipe data settings berdasarkan settings schema resmi VS Code - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **12**. Memvalidasi tipe data settings berdasarkan settings schema resmi VS Code - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **13**. Memvalidasi tipe data settings berdasarkan settings schema resmi VS Code - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **14**. Memvalidasi tipe data settings berdasarkan settings schema resmi VS Code - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **15**. Memvalidasi tipe data settings berdasarkan settings schema resmi VS Code - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **16**. Mendukung deteksi otomatis modifikasi setting untuk memunculkan indikator modifikasi garis biru di settings UI - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **17**. Mendukung deteksi otomatis modifikasi setting untuk memunculkan indikator modifikasi garis biru di settings UI - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **18**. Mendukung deteksi otomatis modifikasi setting untuk memunculkan indikator modifikasi garis biru di settings UI - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **19**. Mendukung deteksi otomatis modifikasi setting untuk memunculkan indikator modifikasi garis biru di settings UI - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **20**. Mendukung deteksi otomatis modifikasi setting untuk memunculkan indikator modifikasi garis biru di settings UI - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **21**. Mengimplementasikan setting inheritance dari User settings ke Workspace settings - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **22**. Mengimplementasikan setting inheritance dari User settings ke Workspace settings - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **23**. Mengimplementasikan setting inheritance dari User settings ke Workspace settings - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **24**. Mengimplementasikan setting inheritance dari User settings ke Workspace settings - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **25**. Mengimplementasikan setting inheritance dari User settings ke Workspace settings - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **26**. Mengimplementasikan setting inheritance dari Workspace settings ke Folder settings (Multi-Root) - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **27**. Mengimplementasikan setting inheritance dari Workspace settings ke Folder settings (Multi-Root) - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **28**. Mengimplementasikan setting inheritance dari Workspace settings ke Folder settings (Multi-Root) - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **29**. Mengimplementasikan setting inheritance dari Workspace settings ke Folder settings (Multi-Root) - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **30**. Mengimplementasikan setting inheritance dari Workspace settings ke Folder settings (Multi-Root) - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **31**. Mendukung default settings fallback jika key settings tidak ditemukan di settings.json - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **32**. Mendukung default settings fallback jika key settings tidak ditemukan di settings.json - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **33**. Mendukung default settings fallback jika key settings tidak ditemukan di settings.json - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **34**. Mendukung default settings fallback jika key settings tidak ditemukan di settings.json - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **35**. Mendukung default settings fallback jika key settings tidak ditemukan di settings.json - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **36**. Menambahkan QFileSystemWatcher untuk mendeteksi perubahan settings.json dari editor eksternal - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **37**. Menambahkan QFileSystemWatcher untuk mendeteksi perubahan settings.json dari editor eksternal - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **38**. Menambahkan QFileSystemWatcher untuk mendeteksi perubahan settings.json dari editor eksternal - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **39**. Menambahkan QFileSystemWatcher untuk mendeteksi perubahan settings.json dari editor eksternal - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **40**. Menambahkan QFileSystemWatcher untuk mendeteksi perubahan settings.json dari editor eksternal - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **41**. Mengimplementasikan sinkronisasi settings otomatis saat file settings.json diperbarui - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **42**. Mengimplementasikan sinkronisasi settings otomatis saat file settings.json diperbarui - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **43**. Mengimplementasikan sinkronisasi settings otomatis saat file settings.json diperbarui - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **44**. Mengimplementasikan sinkronisasi settings otomatis saat file settings.json diperbarui - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **45**. Mengimplementasikan sinkronisasi settings otomatis saat file settings.json diperbarui - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **46**. Menambahkan reset settings option untuk memulihkan settings default per key - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **47**. Menambahkan reset settings option untuk memulihkan settings default per key - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **48**. Menambahkan reset settings option untuk memulihkan settings default per key - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **49**. Menambahkan reset settings option untuk memulihkan settings default per key - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **50**. Menambahkan reset settings option untuk memulihkan settings default per key - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
 
 ### 1.2. Workspace Trust & Restricted Mode
-- [ ] **51**. Membuat Workspace Trust state manager yang memantau folder mana saja yang di-trust - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **52**. Membuat Workspace Trust state manager yang memantau folder mana saja yang di-trust - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **53**. Membuat Workspace Trust state manager yang memantau folder mana saja yang di-trust - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **54**. Membuat Workspace Trust state manager yang memantau folder mana saja yang di-trust - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **55**. Membuat Workspace Trust state manager yang memantau folder mana saja yang di-trust - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **56**. Menyimpan trusted folder database secara persisten di app data directory - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **57**. Menyimpan trusted folder database secara persisten di app data directory - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **58**. Menyimpan trusted folder database secara persisten di app data directory - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **59**. Menyimpan trusted folder database secara persisten di app data directory - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **60**. Menyimpan trusted folder database secara persisten di app data directory - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **61**. Menampilkan Restricted Mode Warning Banner saat membuka folder untrusted - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **62**. Menampilkan Restricted Mode Warning Banner saat membuka folder untrusted - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **63**. Menampilkan Restricted Mode Warning Banner saat membuka folder untrusted - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **64**. Menampilkan Restricted Mode Warning Banner saat membuka folder untrusted - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **65**. Menampilkan Restricted Mode Warning Banner saat membuka folder untrusted - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **66**. Menyediakan button 'Trust Workspace' di Restricted Mode Warning Banner - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **67**. Menyediakan button 'Trust Workspace' di Restricted Mode Warning Banner - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **68**. Menyediakan button 'Trust Workspace' di Restricted Mode Warning Banner - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **69**. Menyediakan button 'Trust Workspace' di Restricted Mode Warning Banner - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **70**. Menyediakan button 'Trust Workspace' di Restricted Mode Warning Banner - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **71**. Menyediakan button 'Learn More' untuk menjelaskan implikasi Workspace Trust - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **72**. Menyediakan button 'Learn More' untuk menjelaskan implikasi Workspace Trust - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **73**. Menyediakan button 'Learn More' untuk menjelaskan implikasi Workspace Trust - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **74**. Menyediakan button 'Learn More' untuk menjelaskan implikasi Workspace Trust - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **75**. Menyediakan button 'Learn More' untuk menjelaskan implikasi Workspace Trust - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **76**. Memblokir eksekusi PTY terminal saat restricted mode aktif - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **77**. Memblokir eksekusi PTY terminal saat restricted mode aktif - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **78**. Memblokir eksekusi PTY terminal saat restricted mode aktif - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **79**. Memblokir eksekusi PTY terminal saat restricted mode aktif - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **80**. Memblokir eksekusi PTY terminal saat restricted mode aktif - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **81**. Memblokir aktivasi debugger adapters saat restricted mode aktif - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **82**. Memblokir aktivasi debugger adapters saat restricted mode aktif - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **83**. Memblokir aktivasi debugger adapters saat restricted mode aktif - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **84**. Memblokir aktivasi debugger adapters saat restricted mode aktif - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **85**. Memblokir aktivasi debugger adapters saat restricted mode aktif - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **86**. Memblokir build/run tasks saat restricted mode aktif - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **87**. Memblokir build/run tasks saat restricted mode aktif - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **88**. Memblokir build/run tasks saat restricted mode aktif - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **89**. Memblokir build/run tasks saat restricted mode aktif - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **90**. Memblokir build/run tasks saat restricted mode aktif - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **91**. Memblokir aktivasi extension backend berbahaya saat restricted mode aktif - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **92**. Memblokir aktivasi extension backend berbahaya saat restricted mode aktif - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **93**. Memblokir aktivasi extension backend berbahaya saat restricted mode aktif - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **94**. Memblokir aktivasi extension backend berbahaya saat restricted mode aktif - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **95**. Memblokir aktivasi extension backend berbahaya saat restricted mode aktif - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **96**. Menyediakan settings 'security.workspace.trust.enabled' untuk menonaktifkan trust model global - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **97**. Menyediakan settings 'security.workspace.trust.enabled' untuk menonaktifkan trust model global - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **98**. Menyediakan settings 'security.workspace.trust.enabled' untuk menonaktifkan trust model global - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **99**. Menyediakan settings 'security.workspace.trust.enabled' untuk menonaktifkan trust model global - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **100**. Menyediakan settings 'security.workspace.trust.enabled' untuk menonaktifkan trust model global - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **51**. Membuat Workspace Trust state manager yang memantau folder mana saja yang di-trust - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **52**. Membuat Workspace Trust state manager yang memantau folder mana saja yang di-trust - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **53**. Membuat Workspace Trust state manager yang memantau folder mana saja yang di-trust - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **54**. Membuat Workspace Trust state manager yang memantau folder mana saja yang di-trust - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **55**. Membuat Workspace Trust state manager yang memantau folder mana saja yang di-trust - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **56**. Menyimpan trusted folder database secara persisten di app data directory - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **57**. Menyimpan trusted folder database secara persisten di app data directory - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **58**. Menyimpan trusted folder database secara persisten di app data directory - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **59**. Menyimpan trusted folder database secara persisten di app data directory - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **60**. Menyimpan trusted folder database secara persisten di app data directory - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **61**. Menampilkan Restricted Mode Warning Banner saat membuka folder untrusted - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **62**. Menampilkan Restricted Mode Warning Banner saat membuka folder untrusted - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **63**. Menampilkan Restricted Mode Warning Banner saat membuka folder untrusted - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **64**. Menampilkan Restricted Mode Warning Banner saat membuka folder untrusted - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **65**. Menampilkan Restricted Mode Warning Banner saat membuka folder untrusted - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **66**. Menyediakan button 'Trust Workspace' di Restricted Mode Warning Banner - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **67**. Menyediakan button 'Trust Workspace' di Restricted Mode Warning Banner - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **68**. Menyediakan button 'Trust Workspace' di Restricted Mode Warning Banner - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **69**. Menyediakan button 'Trust Workspace' di Restricted Mode Warning Banner - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **70**. Menyediakan button 'Trust Workspace' di Restricted Mode Warning Banner - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **71**. Menyediakan button 'Learn More' untuk menjelaskan implikasi Workspace Trust - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **72**. Menyediakan button 'Learn More' untuk menjelaskan implikasi Workspace Trust - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **73**. Menyediakan button 'Learn More' untuk menjelaskan implikasi Workspace Trust - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **74**. Menyediakan button 'Learn More' untuk menjelaskan implikasi Workspace Trust - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **75**. Menyediakan button 'Learn More' untuk menjelaskan implikasi Workspace Trust - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **76**. Memblokir eksekusi PTY terminal saat restricted mode aktif - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **77**. Memblokir eksekusi PTY terminal saat restricted mode aktif - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **78**. Memblokir eksekusi PTY terminal saat restricted mode aktif - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **79**. Memblokir eksekusi PTY terminal saat restricted mode aktif - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **80**. Memblokir eksekusi PTY terminal saat restricted mode aktif - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **81**. Memblokir aktivasi debugger adapters saat restricted mode aktif - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **82**. Memblokir aktivasi debugger adapters saat restricted mode aktif - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **83**. Memblokir aktivasi debugger adapters saat restricted mode aktif - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **84**. Memblokir aktivasi debugger adapters saat restricted mode aktif - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **85**. Memblokir aktivasi debugger adapters saat restricted mode aktif - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **86**. Memblokir build/run tasks saat restricted mode aktif - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **87**. Memblokir build/run tasks saat restricted mode aktif - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **88**. Memblokir build/run tasks saat restricted mode aktif - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **89**. Memblokir build/run tasks saat restricted mode aktif - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **90**. Memblokir build/run tasks saat restricted mode aktif - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **91**. Memblokir aktivasi extension backend berbahaya saat restricted mode aktif - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **92**. Memblokir aktivasi extension backend berbahaya saat restricted mode aktif - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **93**. Memblokir aktivasi extension backend berbahaya saat restricted mode aktif - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **94**. Memblokir aktivasi extension backend berbahaya saat restricted mode aktif - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **95**. Memblokir aktivasi extension backend berbahaya saat restricted mode aktif - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **96**. Menyediakan settings 'security.workspace.trust.enabled' untuk menonaktifkan trust model global - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **97**. Menyediakan settings 'security.workspace.trust.enabled' untuk menonaktifkan trust model global - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **98**. Menyediakan settings 'security.workspace.trust.enabled' untuk menonaktifkan trust model global - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **99**. Menyediakan settings 'security.workspace.trust.enabled' untuk menonaktifkan trust model global - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **100**. Menyediakan settings 'security.workspace.trust.enabled' untuk menonaktifkan trust model global - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
 
 ### 1.3. Multi-Root Workspaces & File .code-workspace
-- [ ] **101**. Membaca file konfigurasi .code-workspace berbasis JSON - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **102**. Membaca file konfigurasi .code-workspace berbasis JSON - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **103**. Membaca file konfigurasi .code-workspace berbasis JSON - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **104**. Membaca file konfigurasi .code-workspace berbasis JSON - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **105**. Membaca file konfigurasi .code-workspace berbasis JSON - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **106**. Mengekstrak array 'folders' dari .code-workspace untuk menentukan root directories - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **107**. Mengekstrak array 'folders' dari .code-workspace untuk menentukan root directories - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **108**. Mengekstrak array 'folders' dari .code-workspace untuk menentukan root directories - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **109**. Mengekstrak array 'folders' dari .code-workspace untuk menentukan root directories - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **110**. Mengekstrak array 'folders' dari .code-workspace untuk menentukan root directories - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **111**. Mengekstrak dictionary 'settings' dari .code-workspace untuk konfigurasi workspace - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **112**. Mengekstrak dictionary 'settings' dari .code-workspace untuk konfigurasi workspace - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **113**. Mengekstrak dictionary 'settings' dari .code-workspace untuk konfigurasi workspace - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **114**. Mengekstrak dictionary 'settings' dari .code-workspace untuk konfigurasi workspace - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **115**. Mengekstrak dictionary 'settings' dari .code-workspace untuk konfigurasi workspace - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **116**. Mengekstrak dictionary 'extensions' dari .code-workspace untuk rekomendasi extension - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **117**. Mengekstrak dictionary 'extensions' dari .code-workspace untuk rekomendasi extension - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **118**. Mengekstrak dictionary 'extensions' dari .code-workspace untuk rekomendasi extension - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **119**. Mengekstrak dictionary 'extensions' dari .code-workspace untuk rekomendasi extension - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **120**. Mengekstrak dictionary 'extensions' dari .code-workspace untuk rekomendasi extension - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **121**. Mengekstrak dictionary 'launch' dari .code-workspace untuk konfigurasi debug - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **122**. Mengekstrak dictionary 'launch' dari .code-workspace untuk konfigurasi debug - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **123**. Mengekstrak dictionary 'launch' dari .code-workspace untuk konfigurasi debug - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **124**. Mengekstrak dictionary 'launch' dari .code-workspace untuk konfigurasi debug - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **125**. Mengekstrak dictionary 'launch' dari .code-workspace untuk konfigurasi debug - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **126**. Mendukung penambahan folder secara dinamis via File -> Add Folder to Workspace - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **127**. Mendukung penambahan folder secara dinamis via File -> Add Folder to Workspace - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **128**. Mendukung penambahan folder secara dinamis via File -> Add Folder to Workspace - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **129**. Mendukung penambahan folder secara dinamis via File -> Add Folder to Workspace - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **130**. Mendukung penambahan folder secara dinamis via File -> Add Folder to Workspace - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **131**. Mendukung penghapusan folder secara dinamis dari workspace explorer - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **132**. Mendukung penghapusan folder secara dinamis dari workspace explorer - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **133**. Mendukung penghapusan folder secara dinamis dari workspace explorer - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **134**. Mendukung penghapusan folder secara dinamis dari workspace explorer - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **135**. Mendukung penghapusan folder secara dinamis dari workspace explorer - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **136**. Menyimpan status workspace saat ini ke file .code-workspace baru - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **137**. Menyimpan status workspace saat ini ke file .code-workspace baru - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **138**. Menyimpan status workspace saat ini ke file .code-workspace baru - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **139**. Menyimpan status workspace saat ini ke file .code-workspace baru - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **140**. Menyimpan status workspace saat ini ke file .code-workspace baru - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **141**. Memperbarui model File Explorer secara dinamis ketika multi-root workspace dimuat - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **142**. Memperbarui model File Explorer secara dinamis ketika multi-root workspace dimuat - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **143**. Memperbarui model File Explorer secara dinamis ketika multi-root workspace dimuat - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **144**. Memperbarui model File Explorer secara dinamis ketika multi-root workspace dimuat - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **145**. Memperbarui model File Explorer secara dinamis ketika multi-root workspace dimuat - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **146**. Mendukung watch file .code-workspace untuk mendeteksi perubahan array folder - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **147**. Mendukung watch file .code-workspace untuk mendeteksi perubahan array folder - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **148**. Mendukung watch file .code-workspace untuk mendeteksi perubahan array folder - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **149**. Mendukung watch file .code-workspace untuk mendeteksi perubahan array folder - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **150**. Mendukung watch file .code-workspace untuk mendeteksi perubahan array folder - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **101**. Membaca file konfigurasi .code-workspace berbasis JSON - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **102**. Membaca file konfigurasi .code-workspace berbasis JSON - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **103**. Membaca file konfigurasi .code-workspace berbasis JSON - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **104**. Membaca file konfigurasi .code-workspace berbasis JSON - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **105**. Membaca file konfigurasi .code-workspace berbasis JSON - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **106**. Mengekstrak array 'folders' dari .code-workspace untuk menentukan root directories - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **107**. Mengekstrak array 'folders' dari .code-workspace untuk menentukan root directories - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **108**. Mengekstrak array 'folders' dari .code-workspace untuk menentukan root directories - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **109**. Mengekstrak array 'folders' dari .code-workspace untuk menentukan root directories - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **110**. Mengekstrak array 'folders' dari .code-workspace untuk menentukan root directories - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **111**. Mengekstrak dictionary 'settings' dari .code-workspace untuk konfigurasi workspace - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **112**. Mengekstrak dictionary 'settings' dari .code-workspace untuk konfigurasi workspace - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **113**. Mengekstrak dictionary 'settings' dari .code-workspace untuk konfigurasi workspace - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **114**. Mengekstrak dictionary 'settings' dari .code-workspace untuk konfigurasi workspace - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **115**. Mengekstrak dictionary 'settings' dari .code-workspace untuk konfigurasi workspace - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **116**. Mengekstrak dictionary 'extensions' dari .code-workspace untuk rekomendasi extension - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **117**. Mengekstrak dictionary 'extensions' dari .code-workspace untuk rekomendasi extension - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **118**. Mengekstrak dictionary 'extensions' dari .code-workspace untuk rekomendasi extension - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **119**. Mengekstrak dictionary 'extensions' dari .code-workspace untuk rekomendasi extension - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **120**. Mengekstrak dictionary 'extensions' dari .code-workspace untuk rekomendasi extension - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **121**. Mengekstrak dictionary 'launch' dari .code-workspace untuk konfigurasi debug - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **122**. Mengekstrak dictionary 'launch' dari .code-workspace untuk konfigurasi debug - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **123**. Mengekstrak dictionary 'launch' dari .code-workspace untuk konfigurasi debug - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **124**. Mengekstrak dictionary 'launch' dari .code-workspace untuk konfigurasi debug - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **125**. Mengekstrak dictionary 'launch' dari .code-workspace untuk konfigurasi debug - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **126**. Mendukung penambahan folder secara dinamis via File -> Add Folder to Workspace - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **127**. Mendukung penambahan folder secara dinamis via File -> Add Folder to Workspace - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **128**. Mendukung penambahan folder secara dinamis via File -> Add Folder to Workspace - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **129**. Mendukung penambahan folder secara dinamis via File -> Add Folder to Workspace - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **130**. Mendukung penambahan folder secara dinamis via File -> Add Folder to Workspace - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **131**. Mendukung penghapusan folder secara dinamis dari workspace explorer - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **132**. Mendukung penghapusan folder secara dinamis dari workspace explorer - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **133**. Mendukung penghapusan folder secara dinamis dari workspace explorer - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **134**. Mendukung penghapusan folder secara dinamis dari workspace explorer - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **135**. Mendukung penghapusan folder secara dinamis dari workspace explorer - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **136**. Menyimpan status workspace saat ini ke file .code-workspace baru - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **137**. Menyimpan status workspace saat ini ke file .code-workspace baru - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **138**. Menyimpan status workspace saat ini ke file .code-workspace baru - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **139**. Menyimpan status workspace saat ini ke file .code-workspace baru - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **140**. Menyimpan status workspace saat ini ke file .code-workspace baru - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **141**. Memperbarui model File Explorer secara dinamis ketika multi-root workspace dimuat - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **142**. Memperbarui model File Explorer secara dinamis ketika multi-root workspace dimuat - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **143**. Memperbarui model File Explorer secara dinamis ketika multi-root workspace dimuat - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **144**. Memperbarui model File Explorer secara dinamis ketika multi-root workspace dimuat - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **145**. Memperbarui model File Explorer secara dinamis ketika multi-root workspace dimuat - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **146**. Mendukung watch file .code-workspace untuk mendeteksi perubahan array folder - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **147**. Mendukung watch file .code-workspace untuk mendeteksi perubahan array folder - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **148**. Mendukung watch file .code-workspace untuk mendeteksi perubahan array folder - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **149**. Mendukung watch file .code-workspace untuk mendeteksi perubahan array folder - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **150**. Mendukung watch file .code-workspace untuk mendeteksi perubahan array folder - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
 
 ### 1.4. Keybindings Registry & Shortcut Listening
-- [ ] **151**. Membaca file konfigurasi keybindings.json untuk custom shortcuts - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **152**. Membaca file konfigurasi keybindings.json untuk custom shortcuts - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **153**. Membaca file konfigurasi keybindings.json untuk custom shortcuts - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **154**. Membaca file konfigurasi keybindings.json untuk custom shortcuts - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **155**. Membaca file konfigurasi keybindings.json untuk custom shortcuts - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **156**. Mendaftarkan default keybindings bawaan aplikasi Dardcor Code - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **157**. Mendaftarkan default keybindings bawaan aplikasi Dardcor Code - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **158**. Mendaftarkan default keybindings bawaan aplikasi Dardcor Code - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **159**. Mendaftarkan default keybindings bawaan aplikasi Dardcor Code - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **160**. Mendaftarkan default keybindings bawaan aplikasi Dardcor Code - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **161**. Menerjemahkan string shortcut format VS Code (seperti 'ctrl+shift+p') menjadi QKeySequence - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **162**. Menerjemahkan string shortcut format VS Code (seperti 'ctrl+shift+p') menjadi QKeySequence - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **163**. Menerjemahkan string shortcut format VS Code (seperti 'ctrl+shift+p') menjadi QKeySequence - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **164**. Menerjemahkan string shortcut format VS Code (seperti 'ctrl+shift+p') menjadi QKeySequence - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **165**. Menerjemahkan string shortcut format VS Code (seperti 'ctrl+shift+p') menjadi QKeySequence - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **166**. Mendukung chord shortcuts / multi-stroke shortcut (seperti 'ctrl+k ctrl+s') - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **167**. Mendukung chord shortcuts / multi-stroke shortcut (seperti 'ctrl+k ctrl+s') - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **168**. Mendukung chord shortcuts / multi-stroke shortcut (seperti 'ctrl+k ctrl+s') - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **169**. Mendukung chord shortcuts / multi-stroke shortcut (seperti 'ctrl+k ctrl+s') - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **170**. Mendukung chord shortcuts / multi-stroke shortcut (seperti 'ctrl+k ctrl+s') - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **171**. Mengimplementasikan timeout interval (1.0 detik) untuk mendeteksi stroke shortcut kedua - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **172**. Mengimplementasikan timeout interval (1.0 detik) untuk mendeteksi stroke shortcut kedua - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **173**. Mengimplementasikan timeout interval (1.0 detik) untuk mendeteksi stroke shortcut kedua - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **174**. Mengimplementasikan timeout interval (1.0 detik) untuk mendeteksi stroke shortcut kedua - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **175**. Mengimplementasikan timeout interval (1.0 detik) untuk mendeteksi stroke shortcut kedua - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **176**. Menyediakan global key event filter untuk menangkap shortcut sebelum diteruskan ke active widget - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **177**. Menyediakan global key event filter untuk menangkap shortcut sebelum diteruskan ke active widget - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **178**. Menyediakan global key event filter untuk menangkap shortcut sebelum diteruskan ke active widget - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **179**. Menyediakan global key event filter untuk menangkap shortcut sebelum diteruskan ke active widget - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **180**. Menyediakan global key event filter untuk menangkap shortcut sebelum diteruskan ke active widget - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **181**. Menangani trigger command palette via shortcut default 'ctrl+shift+p' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **182**. Menangani trigger command palette via shortcut default 'ctrl+shift+p' - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **183**. Menangani trigger command palette via shortcut default 'ctrl+shift+p' - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **184**. Menangani trigger command palette via shortcut default 'ctrl+shift+p' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **185**. Menangani trigger command palette via shortcut default 'ctrl+shift+p' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **186**. Menangani trigger global search panel via shortcut default 'ctrl+shift+f' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **187**. Menangani trigger global search panel via shortcut default 'ctrl+shift+f' - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **188**. Menangani trigger global search panel via shortcut default 'ctrl+shift+f' - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **189**. Menangani trigger global search panel via shortcut default 'ctrl+shift+f' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **190**. Menangani trigger global search panel via shortcut default 'ctrl+shift+f' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **191**. Menangani trigger toggle sidebar via shortcut default 'ctrl+b' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **192**. Menangani trigger toggle sidebar via shortcut default 'ctrl+b' - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **193**. Menangani trigger toggle sidebar via shortcut default 'ctrl+b' - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **194**. Menangani trigger toggle sidebar via shortcut default 'ctrl+b' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **195**. Menangani trigger toggle sidebar via shortcut default 'ctrl+b' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **196**. Menangani trigger toggle terminal panel via shortcut default 'ctrl+`' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **197**. Menangani trigger toggle terminal panel via shortcut default 'ctrl+`' - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **198**. Menangani trigger toggle terminal panel via shortcut default 'ctrl+`' - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **199**. Menangani trigger toggle terminal panel via shortcut default 'ctrl+`' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **200**. Menangani trigger toggle terminal panel via shortcut default 'ctrl+`' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **151**. Membaca file konfigurasi keybindings.json untuk custom shortcuts - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **152**. Membaca file konfigurasi keybindings.json untuk custom shortcuts - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **153**. Membaca file konfigurasi keybindings.json untuk custom shortcuts - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **154**. Membaca file konfigurasi keybindings.json untuk custom shortcuts - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **155**. Membaca file konfigurasi keybindings.json untuk custom shortcuts - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **156**. Mendaftarkan default keybindings bawaan aplikasi Dardcor Code - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **157**. Mendaftarkan default keybindings bawaan aplikasi Dardcor Code - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **158**. Mendaftarkan default keybindings bawaan aplikasi Dardcor Code - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **159**. Mendaftarkan default keybindings bawaan aplikasi Dardcor Code - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **160**. Mendaftarkan default keybindings bawaan aplikasi Dardcor Code - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **161**. Menerjemahkan string shortcut format VS Code (seperti 'ctrl+shift+p') menjadi QKeySequence - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **162**. Menerjemahkan string shortcut format VS Code (seperti 'ctrl+shift+p') menjadi QKeySequence - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **163**. Menerjemahkan string shortcut format VS Code (seperti 'ctrl+shift+p') menjadi QKeySequence - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **164**. Menerjemahkan string shortcut format VS Code (seperti 'ctrl+shift+p') menjadi QKeySequence - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **165**. Menerjemahkan string shortcut format VS Code (seperti 'ctrl+shift+p') menjadi QKeySequence - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **166**. Mendukung chord shortcuts / multi-stroke shortcut (seperti 'ctrl+k ctrl+s') - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **167**. Mendukung chord shortcuts / multi-stroke shortcut (seperti 'ctrl+k ctrl+s') - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **168**. Mendukung chord shortcuts / multi-stroke shortcut (seperti 'ctrl+k ctrl+s') - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **169**. Mendukung chord shortcuts / multi-stroke shortcut (seperti 'ctrl+k ctrl+s') - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **170**. Mendukung chord shortcuts / multi-stroke shortcut (seperti 'ctrl+k ctrl+s') - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **171**. Mengimplementasikan timeout interval (1.0 detik) untuk mendeteksi stroke shortcut kedua - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **172**. Mengimplementasikan timeout interval (1.0 detik) untuk mendeteksi stroke shortcut kedua - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **173**. Mengimplementasikan timeout interval (1.0 detik) untuk mendeteksi stroke shortcut kedua - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **174**. Mengimplementasikan timeout interval (1.0 detik) untuk mendeteksi stroke shortcut kedua - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **175**. Mengimplementasikan timeout interval (1.0 detik) untuk mendeteksi stroke shortcut kedua - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **176**. Menyediakan global key event filter untuk menangkap shortcut sebelum diteruskan ke active widget - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **177**. Menyediakan global key event filter untuk menangkap shortcut sebelum diteruskan ke active widget - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **178**. Menyediakan global key event filter untuk menangkap shortcut sebelum diteruskan ke active widget - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **179**. Menyediakan global key event filter untuk menangkap shortcut sebelum diteruskan ke active widget - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **180**. Menyediakan global key event filter untuk menangkap shortcut sebelum diteruskan ke active widget - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **181**. Menangani trigger command palette via shortcut default 'ctrl+shift+p' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **182**. Menangani trigger command palette via shortcut default 'ctrl+shift+p' - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **183**. Menangani trigger command palette via shortcut default 'ctrl+shift+p' - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **184**. Menangani trigger command palette via shortcut default 'ctrl+shift+p' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **185**. Menangani trigger command palette via shortcut default 'ctrl+shift+p' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **186**. Menangani trigger global search panel via shortcut default 'ctrl+shift+f' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **187**. Menangani trigger global search panel via shortcut default 'ctrl+shift+f' - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **188**. Menangani trigger global search panel via shortcut default 'ctrl+shift+f' - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **189**. Menangani trigger global search panel via shortcut default 'ctrl+shift+f' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **190**. Menangani trigger global search panel via shortcut default 'ctrl+shift+f' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **191**. Menangani trigger toggle sidebar via shortcut default 'ctrl+b' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **192**. Menangani trigger toggle sidebar via shortcut default 'ctrl+b' - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **193**. Menangani trigger toggle sidebar via shortcut default 'ctrl+b' - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **194**. Menangani trigger toggle sidebar via shortcut default 'ctrl+b' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **195**. Menangani trigger toggle sidebar via shortcut default 'ctrl+b' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **196**. Menangani trigger toggle terminal panel via shortcut default 'ctrl+`' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **197**. Menangani trigger toggle terminal panel via shortcut default 'ctrl+`' - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **198**. Menangani trigger toggle terminal panel via shortcut default 'ctrl+`' - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **199**. Menangani trigger toggle terminal panel via shortcut default 'ctrl+`' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **200**. Menangani trigger toggle terminal panel via shortcut default 'ctrl+`' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
 
 ### 1.5. Session Restore & Hot Exit (Session Manager)
-- [ ] **201**. Menyimpan daftar folder dan file yang terbuka saat aplikasi ditutup ke session.json - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **202**. Menyimpan daftar folder dan file yang terbuka saat aplikasi ditutup ke session.json - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **203**. Menyimpan daftar folder dan file yang terbuka saat aplikasi ditutup ke session.json - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **204**. Menyimpan daftar folder dan file yang terbuka saat aplikasi ditutup ke session.json - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **205**. Menyimpan daftar folder dan file yang terbuka saat aplikasi ditutup ke session.json - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **206**. Menyimpan file active tab index untuk masing-masing editor group ke session.json - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **207**. Menyimpan file active tab index untuk masing-masing editor group ke session.json - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **208**. Menyimpan file active tab index untuk masing-masing editor group ke session.json - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **209**. Menyimpan file active tab index untuk masing-masing editor group ke session.json - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **210**. Menyimpan file active tab index untuk masing-masing editor group ke session.json - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **211**. Menyimpan ukuran ratio splitter pane ke session.json - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **212**. Menyimpan ukuran ratio splitter pane ke session.json - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **213**. Menyimpan ukuran ratio splitter pane ke session.json - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **214**. Menyimpan ukuran ratio splitter pane ke session.json - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **215**. Menyimpan ukuran ratio splitter pane ke session.json - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **216**. Menyimpan backup draft content untuk tab berstatus dirty (belum disimpan) - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **217**. Menyimpan backup draft content untuk tab berstatus dirty (belum disimpan) - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **218**. Menyimpan backup draft content untuk tab berstatus dirty (belum disimpan) - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **219**. Menyimpan backup draft content untuk tab berstatus dirty (belum disimpan) - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **220**. Menyimpan backup draft content untuk tab berstatus dirty (belum disimpan) - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **221**. Memulihkan semua tab editor secara otomatis saat startup aplikasi - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **222**. Memulihkan semua tab editor secara otomatis saat startup aplikasi - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **223**. Memulihkan semua tab editor secara otomatis saat startup aplikasi - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **224**. Memulihkan semua tab editor secara otomatis saat startup aplikasi - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **225**. Memulihkan semua tab editor secara otomatis saat startup aplikasi - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **226**. Memulihkan status dirty dan backup content tab editor saat startup - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **227**. Memulihkan status dirty dan backup content tab editor saat startup - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **228**. Memulihkan status dirty dan backup content tab editor saat startup - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **229**. Memulihkan status dirty dan backup content tab editor saat startup - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **230**. Memulihkan status dirty dan backup content tab editor saat startup - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **231**. Memulihkan state split-screen editor groups saat startup - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **232**. Memulihkan state split-screen editor groups saat startup - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **233**. Memulihkan state split-screen editor groups saat startup - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **234**. Memulihkan state split-screen editor groups saat startup - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **235**. Memulihkan state split-screen editor groups saat startup - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **236**. Menyediakan settings 'files.hotExit' untuk mengaktifkan/menonaktifkan hot exit session - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **237**. Menyediakan settings 'files.hotExit' untuk mengaktifkan/menonaktifkan hot exit session - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **238**. Menyediakan settings 'files.hotExit' untuk mengaktifkan/menonaktifkan hot exit session - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **239**. Menyediakan settings 'files.hotExit' untuk mengaktifkan/menonaktifkan hot exit session - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **240**. Menyediakan settings 'files.hotExit' untuk mengaktifkan/menonaktifkan hot exit session - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **241**. Mencegah aplikasi menanyakan konfirmasi save jika hotExit diaktifkan - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **242**. Mencegah aplikasi menanyakan konfirmasi save jika hotExit diaktifkan - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **243**. Mencegah aplikasi menanyakan konfirmasi save jika hotExit diaktifkan - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **244**. Mencegah aplikasi menanyakan konfirmasi save jika hotExit diaktifkan - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **245**. Mencegah aplikasi menanyakan konfirmasi save jika hotExit diaktifkan - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **246**. Membersihkan session backup files setelah file berhasil disimpan secara sukses - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **247**. Membersihkan session backup files setelah file berhasil disimpan secara sukses - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **248**. Membersihkan session backup files setelah file berhasil disimpan secara sukses - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **249**. Membersihkan session backup files setelah file berhasil disimpan secara sukses - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **250**. Membersihkan session backup files setelah file berhasil disimpan secara sukses - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **201**. Menyimpan daftar folder dan file yang terbuka saat aplikasi ditutup ke session.json - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **202**. Menyimpan daftar folder dan file yang terbuka saat aplikasi ditutup ke session.json - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **203**. Menyimpan daftar folder dan file yang terbuka saat aplikasi ditutup ke session.json - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **204**. Menyimpan daftar folder dan file yang terbuka saat aplikasi ditutup ke session.json - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **205**. Menyimpan daftar folder dan file yang terbuka saat aplikasi ditutup ke session.json - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **206**. Menyimpan file active tab index untuk masing-masing editor group ke session.json - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **207**. Menyimpan file active tab index untuk masing-masing editor group ke session.json - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **208**. Menyimpan file active tab index untuk masing-masing editor group ke session.json - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **209**. Menyimpan file active tab index untuk masing-masing editor group ke session.json - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **210**. Menyimpan file active tab index untuk masing-masing editor group ke session.json - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **211**. Menyimpan ukuran ratio splitter pane ke session.json - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **212**. Menyimpan ukuran ratio splitter pane ke session.json - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **213**. Menyimpan ukuran ratio splitter pane ke session.json - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **214**. Menyimpan ukuran ratio splitter pane ke session.json - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **215**. Menyimpan ukuran ratio splitter pane ke session.json - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **216**. Menyimpan backup draft content untuk tab berstatus dirty (belum disimpan) - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **217**. Menyimpan backup draft content untuk tab berstatus dirty (belum disimpan) - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **218**. Menyimpan backup draft content untuk tab berstatus dirty (belum disimpan) - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **219**. Menyimpan backup draft content untuk tab berstatus dirty (belum disimpan) - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **220**. Menyimpan backup draft content untuk tab berstatus dirty (belum disimpan) - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **221**. Memulihkan semua tab editor secara otomatis saat startup aplikasi - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **222**. Memulihkan semua tab editor secara otomatis saat startup aplikasi - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **223**. Memulihkan semua tab editor secara otomatis saat startup aplikasi - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **224**. Memulihkan semua tab editor secara otomatis saat startup aplikasi - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **225**. Memulihkan semua tab editor secara otomatis saat startup aplikasi - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **226**. Memulihkan status dirty dan backup content tab editor saat startup - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **227**. Memulihkan status dirty dan backup content tab editor saat startup - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **228**. Memulihkan status dirty dan backup content tab editor saat startup - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **229**. Memulihkan status dirty dan backup content tab editor saat startup - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **230**. Memulihkan status dirty dan backup content tab editor saat startup - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **231**. Memulihkan state split-screen editor groups saat startup - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **232**. Memulihkan state split-screen editor groups saat startup - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **233**. Memulihkan state split-screen editor groups saat startup - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **234**. Memulihkan state split-screen editor groups saat startup - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **235**. Memulihkan state split-screen editor groups saat startup - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **236**. Menyediakan settings 'files.hotExit' untuk mengaktifkan/menonaktifkan hot exit session - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **237**. Menyediakan settings 'files.hotExit' untuk mengaktifkan/menonaktifkan hot exit session - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **238**. Menyediakan settings 'files.hotExit' untuk mengaktifkan/menonaktifkan hot exit session - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **239**. Menyediakan settings 'files.hotExit' untuk mengaktifkan/menonaktifkan hot exit session - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **240**. Menyediakan settings 'files.hotExit' untuk mengaktifkan/menonaktifkan hot exit session - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **241**. Mencegah aplikasi menanyakan konfirmasi save jika hotExit diaktifkan - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **242**. Mencegah aplikasi menanyakan konfirmasi save jika hotExit diaktifkan - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **243**. Mencegah aplikasi menanyakan konfirmasi save jika hotExit diaktifkan - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **244**. Mencegah aplikasi menanyakan konfirmasi save jika hotExit diaktifkan - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **245**. Mencegah aplikasi menanyakan konfirmasi save jika hotExit diaktifkan - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **246**. Membersihkan session backup files setelah file berhasil disimpan secara sukses - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **247**. Membersihkan session backup files setelah file berhasil disimpan secara sukses - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **248**. Membersihkan session backup files setelah file berhasil disimpan secara sukses - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **249**. Membersihkan session backup files setelah file berhasil disimpan secara sukses - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **250**. Membersihkan session backup files setelah file berhasil disimpan secara sukses - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
 
 ## 2. TATA LETAK WORKBENCH, ANIMASI, & ANTARMUKA (WORKBENCH LAYOUT & UI)
 
 ### 2.1. Title Bar Kustom & Custom Window Controls
-- [ ] **251**. Membuat frameless window menggunakan Qt.FramelessWindowHint - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **252**. Membuat frameless window menggunakan Qt.FramelessWindowHint - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **253**. Membuat frameless window menggunakan Qt.FramelessWindowHint - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **254**. Membuat frameless window menggunakan Qt.FramelessWindowHint - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **255**. Membuat frameless window menggunakan Qt.FramelessWindowHint - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **256**. Membuat custom title bar widget di bagian paling atas aplikasi - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **257**. Membuat custom title bar widget di bagian paling atas aplikasi - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **258**. Membuat custom title bar widget di bagian paling atas aplikasi - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **259**. Membuat custom title bar widget di bagian paling atas aplikasi - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **260**. Membuat custom title bar widget di bagian paling atas aplikasi - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **261**. Menambahkan window control buttons (Minimize, Maximize, Close) kustom - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **262**. Menambahkan window control buttons (Minimize, Maximize, Close) kustom - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **263**. Menambahkan window control buttons (Minimize, Maximize, Close) kustom - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **264**. Menambahkan window control buttons (Minimize, Maximize, Close) kustom - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **265**. Menambahkan window control buttons (Minimize, Maximize, Close) kustom - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **266**. Mengimplementasikan double-click pada custom title bar untuk maximize/restore window - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **267**. Mengimplementasikan double-click pada custom title bar untuk maximize/restore window - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **268**. Mengimplementasikan double-click pada custom title bar untuk maximize/restore window - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **269**. Mengimplementasikan double-click pada custom title bar untuk maximize/restore window - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **270**. Mengimplementasikan double-click pada custom title bar untuk maximize/restore window - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **271**. Mengimplementasikan window dragging dengan mouse drag pada custom title bar - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **272**. Mengimplementasikan window dragging dengan mouse drag pada custom title bar - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **273**. Mengimplementasikan window dragging dengan mouse drag pada custom title bar - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **274**. Mengimplementasikan window dragging dengan mouse drag pada custom title bar - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **275**. Mengimplementasikan window dragging dengan mouse drag pada custom title bar - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **276**. Menambahkan layout toggle buttons (sidebar, panel, secondary sidebar) di title bar - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **277**. Menambahkan layout toggle buttons (sidebar, panel, secondary sidebar) di title bar - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **278**. Menambahkan layout toggle buttons (sidebar, panel, secondary sidebar) di title bar - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **279**. Menambahkan layout toggle buttons (sidebar, panel, secondary sidebar) di title bar - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **280**. Menambahkan layout toggle buttons (sidebar, panel, secondary sidebar) di title bar - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **281**. Menambahkan search box global di bagian tengah title bar untuk memicu quick open - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **282**. Menambahkan search box global di bagian tengah title bar untuk memicu quick open - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **283**. Menambahkan search box global di bagian tengah title bar untuk memicu quick open - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **284**. Menambahkan search box global di bagian tengah title bar untuk memicu quick open - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **285**. Menambahkan search box global di bagian tengah title bar untuk memicu quick open - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **286**. Menambahkan file navigation history buttons (Back / Forward) di title bar - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **287**. Menambahkan file navigation history buttons (Back / Forward) di title bar - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **288**. Menambahkan file navigation history buttons (Back / Forward) di title bar - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **289**. Menambahkan file navigation history buttons (Back / Forward) di title bar - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **290**. Menambahkan file navigation history buttons (Back / Forward) di title bar - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **291**. Menambahkan remote connection status indicator di sisi kiri title bar - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **292**. Menambahkan remote connection status indicator di sisi kiri title bar - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **293**. Menambahkan remote connection status indicator di sisi kiri title bar - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **294**. Menambahkan remote connection status indicator di sisi kiri title bar - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **295**. Menambahkan remote connection status indicator di sisi kiri title bar - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **296**. Menyelaraskan warna background custom title bar dengan tema aktif - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **297**. Menyelaraskan warna background custom title bar dengan tema aktif - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **298**. Menyelaraskan warna background custom title bar dengan tema aktif - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **299**. Menyelaraskan warna background custom title bar dengan tema aktif - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **300**. Menyelaraskan warna background custom title bar dengan tema aktif - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **251**. Membuat frameless window menggunakan Qt.FramelessWindowHint - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **252**. Membuat frameless window menggunakan Qt.FramelessWindowHint - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **253**. Membuat frameless window menggunakan Qt.FramelessWindowHint - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **254**. Membuat frameless window menggunakan Qt.FramelessWindowHint - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **255**. Membuat frameless window menggunakan Qt.FramelessWindowHint - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **256**. Membuat custom title bar widget di bagian paling atas aplikasi - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **257**. Membuat custom title bar widget di bagian paling atas aplikasi - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **258**. Membuat custom title bar widget di bagian paling atas aplikasi - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **259**. Membuat custom title bar widget di bagian paling atas aplikasi - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **260**. Membuat custom title bar widget di bagian paling atas aplikasi - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **261**. Menambahkan window control buttons (Minimize, Maximize, Close) kustom - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **262**. Menambahkan window control buttons (Minimize, Maximize, Close) kustom - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **263**. Menambahkan window control buttons (Minimize, Maximize, Close) kustom - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **264**. Menambahkan window control buttons (Minimize, Maximize, Close) kustom - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **265**. Menambahkan window control buttons (Minimize, Maximize, Close) kustom - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **266**. Mengimplementasikan double-click pada custom title bar untuk maximize/restore window - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **267**. Mengimplementasikan double-click pada custom title bar untuk maximize/restore window - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **268**. Mengimplementasikan double-click pada custom title bar untuk maximize/restore window - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **269**. Mengimplementasikan double-click pada custom title bar untuk maximize/restore window - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **270**. Mengimplementasikan double-click pada custom title bar untuk maximize/restore window - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **271**. Mengimplementasikan window dragging dengan mouse drag pada custom title bar - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **272**. Mengimplementasikan window dragging dengan mouse drag pada custom title bar - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **273**. Mengimplementasikan window dragging dengan mouse drag pada custom title bar - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **274**. Mengimplementasikan window dragging dengan mouse drag pada custom title bar - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **275**. Mengimplementasikan window dragging dengan mouse drag pada custom title bar - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **276**. Menambahkan layout toggle buttons (sidebar, panel, secondary sidebar) di title bar - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **277**. Menambahkan layout toggle buttons (sidebar, panel, secondary sidebar) di title bar - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **278**. Menambahkan layout toggle buttons (sidebar, panel, secondary sidebar) di title bar - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **279**. Menambahkan layout toggle buttons (sidebar, panel, secondary sidebar) di title bar - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **280**. Menambahkan layout toggle buttons (sidebar, panel, secondary sidebar) di title bar - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **281**. Menambahkan search box global di bagian tengah title bar untuk memicu quick open - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **282**. Menambahkan search box global di bagian tengah title bar untuk memicu quick open - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **283**. Menambahkan search box global di bagian tengah title bar untuk memicu quick open - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **284**. Menambahkan search box global di bagian tengah title bar untuk memicu quick open - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **285**. Menambahkan search box global di bagian tengah title bar untuk memicu quick open - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **286**. Menambahkan file navigation history buttons (Back / Forward) di title bar - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **287**. Menambahkan file navigation history buttons (Back / Forward) di title bar - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **288**. Menambahkan file navigation history buttons (Back / Forward) di title bar - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **289**. Menambahkan file navigation history buttons (Back / Forward) di title bar - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **290**. Menambahkan file navigation history buttons (Back / Forward) di title bar - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **291**. Menambahkan remote connection status indicator di sisi kiri title bar - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **292**. Menambahkan remote connection status indicator di sisi kiri title bar - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **293**. Menambahkan remote connection status indicator di sisi kiri title bar - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **294**. Menambahkan remote connection status indicator di sisi kiri title bar - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **295**. Menambahkan remote connection status indicator di sisi kiri title bar - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **296**. Menyelaraskan warna background custom title bar dengan tema aktif - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **297**. Menyelaraskan warna background custom title bar dengan tema aktif - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **298**. Menyelaraskan warna background custom title bar dengan tema aktif - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **299**. Menyelaraskan warna background custom title bar dengan tema aktif - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **300**. Menyelaraskan warna background custom title bar dengan tema aktif - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
 
 ### 2.2. Activity Bar & Ikon Navigasi
-- [ ] **301**. Membuat vertical Activity Bar widget di sisi kiri/kanan aplikasi - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **302**. Membuat vertical Activity Bar widget di sisi kiri/kanan aplikasi - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **303**. Membuat vertical Activity Bar widget di sisi kiri/kanan aplikasi - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **304**. Membuat vertical Activity Bar widget di sisi kiri/kanan aplikasi - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **305**. Membuat vertical Activity Bar widget di sisi kiri/kanan aplikasi - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **306**. Menambahkan button navigasi Explorer dengan icon codicon - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **307**. Menambahkan button navigasi Explorer dengan icon codicon - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **308**. Menambahkan button navigasi Explorer dengan icon codicon - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **309**. Menambahkan button navigasi Explorer dengan icon codicon - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **310**. Menambahkan button navigasi Explorer dengan icon codicon - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **311**. Menambahkan button navigasi Search dengan icon codicon - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **312**. Menambahkan button navigasi Search dengan icon codicon - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **313**. Menambahkan button navigasi Search dengan icon codicon - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **314**. Menambahkan button navigasi Search dengan icon codicon - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **315**. Menambahkan button navigasi Search dengan icon codicon - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **316**. Menambahkan button navigasi Source Control dengan icon codicon - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **317**. Menambahkan button navigasi Source Control dengan icon codicon - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **318**. Menambahkan button navigasi Source Control dengan icon codicon - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **319**. Menambahkan button navigasi Source Control dengan icon codicon - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **320**. Menambahkan button navigasi Source Control dengan icon codicon - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **321**. Menambahkan button navigasi Run and Debug dengan icon codicon - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **322**. Menambahkan button navigasi Run and Debug dengan icon codicon - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **323**. Menambahkan button navigasi Run and Debug dengan icon codicon - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **324**. Menambahkan button navigasi Run and Debug dengan icon codicon - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **325**. Menambahkan button navigasi Run and Debug dengan icon codicon - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **326**. Menambahkan button navigasi Extensions dengan icon codicon - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **327**. Menambahkan button navigasi Extensions dengan icon codicon - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **328**. Menambahkan button navigasi Extensions dengan icon codicon - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **329**. Menambahkan button navigasi Extensions dengan icon codicon - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **330**. Menambahkan button navigasi Extensions dengan icon codicon - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **331**. Menambahkan button navigasi Settings Gear di bagian bawah Activity Bar - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **332**. Menambahkan button navigasi Settings Gear di bagian bawah Activity Bar - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **333**. Menambahkan button navigasi Settings Gear di bagian bawah Activity Bar - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **334**. Menambahkan button navigasi Settings Gear di bagian bawah Activity Bar - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **335**. Menambahkan button navigasi Settings Gear di bagian bawah Activity Bar - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **336**. Menambahkan button navigasi Accounts Profile di bagian bawah Activity Bar - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **337**. Menambahkan button navigasi Accounts Profile di bagian bawah Activity Bar - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **338**. Menambahkan button navigasi Accounts Profile di bagian bawah Activity Bar - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **339**. Menambahkan button navigasi Accounts Profile di bagian bawah Activity Bar - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **340**. Menambahkan button navigasi Accounts Profile di bagian bawah Activity Bar - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **341**. Mendukung reordering button Activity Bar menggunakan drag-and-drop - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **342**. Mendukung reordering button Activity Bar menggunakan drag-and-drop - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **343**. Mendukung reordering button Activity Bar menggunakan drag-and-drop - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **344**. Mendukung reordering button Activity Bar menggunakan drag-and-drop - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **345**. Mendukung reordering button Activity Bar menggunakan drag-and-drop - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **346**. Mendukung penyembunyian button Activity Bar melalui context menu - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **347**. Mendukung penyembunyian button Activity Bar melalui context menu - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **348**. Mendukung penyembunyian button Activity Bar melalui context menu - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **349**. Mendukung penyembunyian button Activity Bar melalui context menu - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **350**. Mendukung penyembunyian button Activity Bar melalui context menu - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **301**. Membuat vertical Activity Bar widget di sisi kiri/kanan aplikasi - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **302**. Membuat vertical Activity Bar widget di sisi kiri/kanan aplikasi - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **303**. Membuat vertical Activity Bar widget di sisi kiri/kanan aplikasi - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **304**. Membuat vertical Activity Bar widget di sisi kiri/kanan aplikasi - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **305**. Membuat vertical Activity Bar widget di sisi kiri/kanan aplikasi - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **306**. Menambahkan button navigasi Explorer dengan icon codicon - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **307**. Menambahkan button navigasi Explorer dengan icon codicon - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **308**. Menambahkan button navigasi Explorer dengan icon codicon - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **309**. Menambahkan button navigasi Explorer dengan icon codicon - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **310**. Menambahkan button navigasi Explorer dengan icon codicon - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **311**. Menambahkan button navigasi Search dengan icon codicon - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **312**. Menambahkan button navigasi Search dengan icon codicon - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **313**. Menambahkan button navigasi Search dengan icon codicon - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **314**. Menambahkan button navigasi Search dengan icon codicon - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **315**. Menambahkan button navigasi Search dengan icon codicon - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **316**. Menambahkan button navigasi Source Control dengan icon codicon - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **317**. Menambahkan button navigasi Source Control dengan icon codicon - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **318**. Menambahkan button navigasi Source Control dengan icon codicon - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **319**. Menambahkan button navigasi Source Control dengan icon codicon - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **320**. Menambahkan button navigasi Source Control dengan icon codicon - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **321**. Menambahkan button navigasi Run and Debug dengan icon codicon - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **322**. Menambahkan button navigasi Run and Debug dengan icon codicon - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **323**. Menambahkan button navigasi Run and Debug dengan icon codicon - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **324**. Menambahkan button navigasi Run and Debug dengan icon codicon - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **325**. Menambahkan button navigasi Run and Debug dengan icon codicon - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **326**. Menambahkan button navigasi Extensions dengan icon codicon - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **327**. Menambahkan button navigasi Extensions dengan icon codicon - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **328**. Menambahkan button navigasi Extensions dengan icon codicon - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **329**. Menambahkan button navigasi Extensions dengan icon codicon - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **330**. Menambahkan button navigasi Extensions dengan icon codicon - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **331**. Menambahkan button navigasi Settings Gear di bagian bawah Activity Bar - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **332**. Menambahkan button navigasi Settings Gear di bagian bawah Activity Bar - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **333**. Menambahkan button navigasi Settings Gear di bagian bawah Activity Bar - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **334**. Menambahkan button navigasi Settings Gear di bagian bawah Activity Bar - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **335**. Menambahkan button navigasi Settings Gear di bagian bawah Activity Bar - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **336**. Menambahkan button navigasi Accounts Profile di bagian bawah Activity Bar - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **337**. Menambahkan button navigasi Accounts Profile di bagian bawah Activity Bar - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **338**. Menambahkan button navigasi Accounts Profile di bagian bawah Activity Bar - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **339**. Menambahkan button navigasi Accounts Profile di bagian bawah Activity Bar - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **340**. Menambahkan button navigasi Accounts Profile di bagian bawah Activity Bar - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **341**. Mendukung reordering button Activity Bar menggunakan drag-and-drop - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **342**. Mendukung reordering button Activity Bar menggunakan drag-and-drop - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **343**. Mendukung reordering button Activity Bar menggunakan drag-and-drop - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **344**. Mendukung reordering button Activity Bar menggunakan drag-and-drop - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **345**. Mendukung reordering button Activity Bar menggunakan drag-and-drop - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **346**. Mendukung penyembunyian button Activity Bar melalui context menu - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **347**. Mendukung penyembunyian button Activity Bar melalui context menu - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **348**. Mendukung penyembunyian button Activity Bar melalui context menu - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **349**. Mendukung penyembunyian button Activity Bar melalui context menu - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **350**. Mendukung penyembunyian button Activity Bar melalui context menu - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
 
 ### 2.3. Dynamic Editor Split & Grid System
-- [ ] **351**. Membuat layout container berbasis QSplitter untuk membagi editor groups - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **352**. Membuat layout container berbasis QSplitter untuk membagi editor groups - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **353**. Membuat layout container berbasis QSplitter untuk membagi editor groups - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **354**. Membuat layout container berbasis QSplitter untuk membagi editor groups - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **355**. Membuat layout container berbasis QSplitter untuk membagi editor groups - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **356**. Mengimplementasikan split editor horizontal via command 'View: Split Editor' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **357**. Mengimplementasikan split editor horizontal via command 'View: Split Editor' - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **358**. Mengimplementasikan split editor horizontal via command 'View: Split Editor' - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **359**. Mengimplementasikan split editor horizontal via command 'View: Split Editor' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **360**. Mengimplementasikan split editor horizontal via command 'View: Split Editor' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **361**. Mengimplementasikan split editor vertikal via command 'View: Split Editor Orthogonal' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **362**. Mengimplementasikan split editor vertikal via command 'View: Split Editor Orthogonal' - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **363**. Mengimplementasikan split editor vertikal via command 'View: Split Editor Orthogonal' - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **364**. Mengimplementasikan split editor vertikal via command 'View: Split Editor Orthogonal' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **365**. Mengimplementasikan split editor vertikal via command 'View: Split Editor Orthogonal' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **366**. Mendukung layout grid editor groups dinamis (seperti 2x2 grid layout) - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **367**. Mendukung layout grid editor groups dinamis (seperti 2x2 grid layout) - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **368**. Mendukung layout grid editor groups dinamis (seperti 2x2 grid layout) - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **369**. Mendukung layout grid editor groups dinamis (seperti 2x2 grid layout) - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **370**. Mendukung layout grid editor groups dinamis (seperti 2x2 grid layout) - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **371**. Mendukung tab drag-and-drop antarkelompok editor (editor groups) - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **372**. Mendukung tab drag-and-drop antarkelompok editor (editor groups) - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **373**. Mendukung tab drag-and-drop antarkelompok editor (editor groups) - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **374**. Mendukung tab drag-and-drop antarkelompok editor (editor groups) - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **375**. Mendukung tab drag-and-drop antarkelompok editor (editor groups) - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **376**. Menampilkan overlay drop zone semi-transparan saat tab diseret mendekati tepi editor - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **377**. Menampilkan overlay drop zone semi-transparan saat tab diseret mendekati tepi editor - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **378**. Menampilkan overlay drop zone semi-transparan saat tab diseret mendekati tepi editor - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **379**. Menampilkan overlay drop zone semi-transparan saat tab diseret mendekati tepi editor - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **380**. Menampilkan overlay drop zone semi-transparan saat tab diseret mendekati tepi editor - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **381**. Melakukan split otomatis ketika tab dilepas di drop zone tepi (atas, bawah, kiri, kanan) - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **382**. Melakukan split otomatis ketika tab dilepas di drop zone tepi (atas, bawah, kiri, kanan) - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **383**. Melakukan split otomatis ketika tab dilepas di drop zone tepi (atas, bawah, kiri, kanan) - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **384**. Melakukan split otomatis ketika tab dilepas di drop zone tepi (atas, bawah, kiri, kanan) - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **385**. Melakukan split otomatis ketika tab dilepas di drop zone tepi (atas, bawah, kiri, kanan) - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **386**. Menggabungkan editor group kembali ketika tab terakhir ditutup - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **387**. Menggabungkan editor group kembali ketika tab terakhir ditutup - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **388**. Menggabungkan editor group kembali ketika tab terakhir ditutup - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **389**. Menggabungkan editor group kembali ketika tab terakhir ditutup - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **390**. Menggabungkan editor group kembali ketika tab terakhir ditutup - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **391**. Menyediakan fungsi 'Focus Next Editor Group' via shortcut - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **392**. Menyediakan fungsi 'Focus Next Editor Group' via shortcut - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **393**. Menyediakan fungsi 'Focus Next Editor Group' via shortcut - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **394**. Menyediakan fungsi 'Focus Next Editor Group' via shortcut - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **395**. Menyediakan fungsi 'Focus Next Editor Group' via shortcut - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **396**. Menyimpan grid layout state secara dinamis ke session file - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **397**. Menyimpan grid layout state secara dinamis ke session file - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **398**. Menyimpan grid layout state secara dinamis ke session file - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **399**. Menyimpan grid layout state secara dinamis ke session file - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **400**. Menyimpan grid layout state secara dinamis ke session file - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **351**. Membuat layout container berbasis QSplitter untuk membagi editor groups - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **352**. Membuat layout container berbasis QSplitter untuk membagi editor groups - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **353**. Membuat layout container berbasis QSplitter untuk membagi editor groups - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **354**. Membuat layout container berbasis QSplitter untuk membagi editor groups - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **355**. Membuat layout container berbasis QSplitter untuk membagi editor groups - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **356**. Mengimplementasikan split editor horizontal via command 'View: Split Editor' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **357**. Mengimplementasikan split editor horizontal via command 'View: Split Editor' - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **358**. Mengimplementasikan split editor horizontal via command 'View: Split Editor' - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **359**. Mengimplementasikan split editor horizontal via command 'View: Split Editor' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **360**. Mengimplementasikan split editor horizontal via command 'View: Split Editor' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **361**. Mengimplementasikan split editor vertikal via command 'View: Split Editor Orthogonal' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **362**. Mengimplementasikan split editor vertikal via command 'View: Split Editor Orthogonal' - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **363**. Mengimplementasikan split editor vertikal via command 'View: Split Editor Orthogonal' - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **364**. Mengimplementasikan split editor vertikal via command 'View: Split Editor Orthogonal' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **365**. Mengimplementasikan split editor vertikal via command 'View: Split Editor Orthogonal' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **366**. Mendukung layout grid editor groups dinamis (seperti 2x2 grid layout) - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **367**. Mendukung layout grid editor groups dinamis (seperti 2x2 grid layout) - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **368**. Mendukung layout grid editor groups dinamis (seperti 2x2 grid layout) - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **369**. Mendukung layout grid editor groups dinamis (seperti 2x2 grid layout) - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **370**. Mendukung layout grid editor groups dinamis (seperti 2x2 grid layout) - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **371**. Mendukung tab drag-and-drop antarkelompok editor (editor groups) - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **372**. Mendukung tab drag-and-drop antarkelompok editor (editor groups) - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **373**. Mendukung tab drag-and-drop antarkelompok editor (editor groups) - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **374**. Mendukung tab drag-and-drop antarkelompok editor (editor groups) - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **375**. Mendukung tab drag-and-drop antarkelompok editor (editor groups) - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **376**. Menampilkan overlay drop zone semi-transparan saat tab diseret mendekati tepi editor - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **377**. Menampilkan overlay drop zone semi-transparan saat tab diseret mendekati tepi editor - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **378**. Menampilkan overlay drop zone semi-transparan saat tab diseret mendekati tepi editor - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **379**. Menampilkan overlay drop zone semi-transparan saat tab diseret mendekati tepi editor - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **380**. Menampilkan overlay drop zone semi-transparan saat tab diseret mendekati tepi editor - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **381**. Melakukan split otomatis ketika tab dilepas di drop zone tepi (atas, bawah, kiri, kanan) - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **382**. Melakukan split otomatis ketika tab dilepas di drop zone tepi (atas, bawah, kiri, kanan) - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **383**. Melakukan split otomatis ketika tab dilepas di drop zone tepi (atas, bawah, kiri, kanan) - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **384**. Melakukan split otomatis ketika tab dilepas di drop zone tepi (atas, bawah, kiri, kanan) - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **385**. Melakukan split otomatis ketika tab dilepas di drop zone tepi (atas, bawah, kiri, kanan) - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **386**. Menggabungkan editor group kembali ketika tab terakhir ditutup - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **387**. Menggabungkan editor group kembali ketika tab terakhir ditutup - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **388**. Menggabungkan editor group kembali ketika tab terakhir ditutup - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **389**. Menggabungkan editor group kembali ketika tab terakhir ditutup - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **390**. Menggabungkan editor group kembali ketika tab terakhir ditutup - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **391**. Menyediakan fungsi 'Focus Next Editor Group' via shortcut - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **392**. Menyediakan fungsi 'Focus Next Editor Group' via shortcut - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **393**. Menyediakan fungsi 'Focus Next Editor Group' via shortcut - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **394**. Menyediakan fungsi 'Focus Next Editor Group' via shortcut - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **395**. Menyediakan fungsi 'Focus Next Editor Group' via shortcut - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **396**. Menyimpan grid layout state secara dinamis ke session file - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **397**. Menyimpan grid layout state secara dinamis ke session file - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **398**. Menyimpan grid layout state secara dinamis ke session file - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **399**. Menyimpan grid layout state secara dinamis ke session file - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **400**. Menyimpan grid layout state secara dinamis ke session file - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
 
 ### 2.4. Custom Tab Bar & Flow Tab Container
-- [ ] **401**. Membuat custom tab widget yang mewakili dokumen yang terbuka di editor group - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **402**. Membuat custom tab widget yang mewakili dokumen yang terbuka di editor group - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **403**. Membuat custom tab widget yang mewakili dokumen yang terbuka di editor group - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **404**. Membuat custom tab widget yang mewakili dokumen yang terbuka di editor group - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **405**. Membuat custom tab widget yang mewakili dokumen yang terbuka di editor group - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **406**. Menampilkan file icon yang sesuai di sebelah judul tab - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **407**. Menampilkan file icon yang sesuai di sebelah judul tab - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **408**. Menampilkan file icon yang sesuai di sebelah judul tab - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **409**. Menampilkan file icon yang sesuai di sebelah judul tab - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **410**. Menampilkan file icon yang sesuai di sebelah judul tab - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **411**. Menampilkan dirty indicator (lingkaran bulat kecil) di sebelah nama file jika file dimodifikasi - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **412**. Menampilkan dirty indicator (lingkaran bulat kecil) di sebelah nama file jika file dimodifikasi - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **413**. Menampilkan dirty indicator (lingkaran bulat kecil) di sebelah nama file jika file dimodifikasi - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **414**. Menampilkan dirty indicator (lingkaran bulat kecil) di sebelah nama file jika file dimodifikasi - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **415**. Menampilkan dirty indicator (lingkaran bulat kecil) di sebelah nama file jika file dimodifikasi - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **416**. Menampilkan tombol close (x) di tab yang hanya muncul saat tab di-hover atau aktif - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **417**. Menampilkan tombol close (x) di tab yang hanya muncul saat tab di-hover atau aktif - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **418**. Menampilkan tombol close (x) di tab yang hanya muncul saat tab di-hover atau aktif - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **419**. Menampilkan tombol close (x) di tab yang hanya muncul saat tab di-hover atau aktif - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **420**. Menampilkan tombol close (x) di tab yang hanya muncul saat tab di-hover atau aktif - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **421**. Mendukung status preview tab (judul tab miring / italic) saat membuka file dengan single-click - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **422**. Mendukung status preview tab (judul tab miring / italic) saat membuka file dengan single-click - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **423**. Mendukung status preview tab (judul tab miring / italic) saat membuka file dengan single-click - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **424**. Mendukung status preview tab (judul tab miring / italic) saat membuka file dengan single-click - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **425**. Mendukung status preview tab (judul tab miring / italic) saat membuka file dengan single-click - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **426**. Mengubah preview tab menjadi permanent tab saat file didouble-click atau diedit - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **427**. Mengubah preview tab menjadi permanent tab saat file didouble-click atau diedit - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **428**. Mengubah preview tab menjadi permanent tab saat file didouble-click atau diedit - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **429**. Mengubah preview tab menjadi permanent tab saat file didouble-click atau diedit - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **430**. Mengubah preview tab menjadi permanent tab saat file didouble-click atau diedit - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **431**. Mendukung pinning tab (menyematkan tab ke posisi kiri) dengan indikator pin - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **432**. Mendukung pinning tab (menyematkan tab ke posisi kiri) dengan indikator pin - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **433**. Mendukung pinning tab (menyematkan tab ke posisi kiri) dengan indikator pin - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **434**. Mendukung pinning tab (menyematkan tab ke posisi kiri) dengan indikator pin - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **435**. Mendukung pinning tab (menyematkan tab ke posisi kiri) dengan indikator pin - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **436**. Mengimplementasikan multi-row tab wrapping jika jumlah tab melebihi lebar layar - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **437**. Mengimplementasikan multi-row tab wrapping jika jumlah tab melebihi lebar layar - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **438**. Mengimplementasikan multi-row tab wrapping jika jumlah tab melebihi lebar layar - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **439**. Mengimplementasikan multi-row tab wrapping jika jumlah tab melebihi lebar layar - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **440**. Mengimplementasikan multi-row tab wrapping jika jumlah tab melebihi lebar layar - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **441**. Menyediakan tombol scroll tab ke kiri dan kanan untuk navigasi tab horizontal - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **442**. Menyediakan tombol scroll tab ke kiri dan kanan untuk navigasi tab horizontal - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **443**. Menyediakan tombol scroll tab ke kiri dan kanan untuk navigasi tab horizontal - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **444**. Menyediakan tombol scroll tab ke kiri dan kanan untuk navigasi tab horizontal - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **445**. Menyediakan tombol scroll tab ke kiri dan kanan untuk navigasi tab horizontal - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **446**. Menyediakan context menu tab (Close, Close Others, Close Saved, Close to the Right, Pin) - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **447**. Menyediakan context menu tab (Close, Close Others, Close Saved, Close to the Right, Pin) - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **448**. Menyediakan context menu tab (Close, Close Others, Close Saved, Close to the Right, Pin) - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **449**. Menyediakan context menu tab (Close, Close Others, Close Saved, Close to the Right, Pin) - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **450**. Menyediakan context menu tab (Close, Close Others, Close Saved, Close to the Right, Pin) - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **401**. Membuat custom tab widget yang mewakili dokumen yang terbuka di editor group - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **402**. Membuat custom tab widget yang mewakili dokumen yang terbuka di editor group - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **403**. Membuat custom tab widget yang mewakili dokumen yang terbuka di editor group - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **404**. Membuat custom tab widget yang mewakili dokumen yang terbuka di editor group - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **405**. Membuat custom tab widget yang mewakili dokumen yang terbuka di editor group - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **406**. Menampilkan file icon yang sesuai di sebelah judul tab - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **407**. Menampilkan file icon yang sesuai di sebelah judul tab - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **408**. Menampilkan file icon yang sesuai di sebelah judul tab - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **409**. Menampilkan file icon yang sesuai di sebelah judul tab - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **410**. Menampilkan file icon yang sesuai di sebelah judul tab - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **411**. Menampilkan dirty indicator (lingkaran bulat kecil) di sebelah nama file jika file dimodifikasi - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **412**. Menampilkan dirty indicator (lingkaran bulat kecil) di sebelah nama file jika file dimodifikasi - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **413**. Menampilkan dirty indicator (lingkaran bulat kecil) di sebelah nama file jika file dimodifikasi - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **414**. Menampilkan dirty indicator (lingkaran bulat kecil) di sebelah nama file jika file dimodifikasi - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **415**. Menampilkan dirty indicator (lingkaran bulat kecil) di sebelah nama file jika file dimodifikasi - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **416**. Menampilkan tombol close (x) di tab yang hanya muncul saat tab di-hover atau aktif - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **417**. Menampilkan tombol close (x) di tab yang hanya muncul saat tab di-hover atau aktif - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **418**. Menampilkan tombol close (x) di tab yang hanya muncul saat tab di-hover atau aktif - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **419**. Menampilkan tombol close (x) di tab yang hanya muncul saat tab di-hover atau aktif - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **420**. Menampilkan tombol close (x) di tab yang hanya muncul saat tab di-hover atau aktif - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **421**. Mendukung status preview tab (judul tab miring / italic) saat membuka file dengan single-click - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **422**. Mendukung status preview tab (judul tab miring / italic) saat membuka file dengan single-click - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **423**. Mendukung status preview tab (judul tab miring / italic) saat membuka file dengan single-click - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **424**. Mendukung status preview tab (judul tab miring / italic) saat membuka file dengan single-click - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **425**. Mendukung status preview tab (judul tab miring / italic) saat membuka file dengan single-click - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **426**. Mengubah preview tab menjadi permanent tab saat file didouble-click atau diedit - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **427**. Mengubah preview tab menjadi permanent tab saat file didouble-click atau diedit - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **428**. Mengubah preview tab menjadi permanent tab saat file didouble-click atau diedit - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **429**. Mengubah preview tab menjadi permanent tab saat file didouble-click atau diedit - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **430**. Mengubah preview tab menjadi permanent tab saat file didouble-click atau diedit - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **431**. Mendukung pinning tab (menyematkan tab ke posisi kiri) dengan indikator pin - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **432**. Mendukung pinning tab (menyematkan tab ke posisi kiri) dengan indikator pin - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **433**. Mendukung pinning tab (menyematkan tab ke posisi kiri) dengan indikator pin - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **434**. Mendukung pinning tab (menyematkan tab ke posisi kiri) dengan indikator pin - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **435**. Mendukung pinning tab (menyematkan tab ke posisi kiri) dengan indikator pin - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **436**. Mengimplementasikan multi-row tab wrapping jika jumlah tab melebihi lebar layar - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **437**. Mengimplementasikan multi-row tab wrapping jika jumlah tab melebihi lebar layar - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **438**. Mengimplementasikan multi-row tab wrapping jika jumlah tab melebihi lebar layar - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **439**. Mengimplementasikan multi-row tab wrapping jika jumlah tab melebihi lebar layar - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **440**. Mengimplementasikan multi-row tab wrapping jika jumlah tab melebihi lebar layar - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **441**. Menyediakan tombol scroll tab ke kiri dan kanan untuk navigasi tab horizontal - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **442**. Menyediakan tombol scroll tab ke kiri dan kanan untuk navigasi tab horizontal - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **443**. Menyediakan tombol scroll tab ke kiri dan kanan untuk navigasi tab horizontal - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **444**. Menyediakan tombol scroll tab ke kiri dan kanan untuk navigasi tab horizontal - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **445**. Menyediakan tombol scroll tab ke kiri dan kanan untuk navigasi tab horizontal - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **446**. Menyediakan context menu tab (Close, Close Others, Close Saved, Close to the Right, Pin) - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **447**. Menyediakan context menu tab (Close, Close Others, Close Saved, Close to the Right, Pin) - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **448**. Menyediakan context menu tab (Close, Close Others, Close Saved, Close to the Right, Pin) - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **449**. Menyediakan context menu tab (Close, Close Others, Close Saved, Close to the Right, Pin) - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **450**. Menyediakan context menu tab (Close, Close Others, Close Saved, Close to the Right, Pin) - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
 
 ### 2.5. Status Bar Dinamis
-- [ ] **451**. Membuat horizontal Status Bar widget di bagian paling bawah aplikasi - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **452**. Membuat horizontal Status Bar widget di bagian paling bawah aplikasi - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **453**. Membuat horizontal Status Bar widget di bagian paling bawah aplikasi - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **454**. Membuat horizontal Status Bar widget di bagian paling bawah aplikasi - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **455**. Membuat horizontal Status Bar widget di bagian paling bawah aplikasi - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **456**. Menampilkan status git branch di sebelah kiri status bar - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **457**. Menampilkan status git branch di sebelah kiri status bar - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **458**. Menampilkan status git branch di sebelah kiri status bar - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **459**. Menampilkan status git branch di sebelah kiri status bar - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **460**. Menampilkan status git branch di sebelah kiri status bar - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **461**. Menampilkan problems indicator (ikon warning/error dengan hitungan) di sebelah kiri - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **462**. Menampilkan problems indicator (ikon warning/error dengan hitungan) di sebelah kiri - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **463**. Menampilkan problems indicator (ikon warning/error dengan hitungan) di sebelah kiri - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **464**. Menampilkan problems indicator (ikon warning/error dengan hitungan) di sebelah kiri - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **465**. Menampilkan problems indicator (ikon warning/error dengan hitungan) di sebelah kiri - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **466**. Menampilkan language mode selector (seperti Python, JavaScript) di sebelah kanan - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **467**. Menampilkan language mode selector (seperti Python, JavaScript) di sebelah kanan - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **468**. Menampilkan language mode selector (seperti Python, JavaScript) di sebelah kanan - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **469**. Menampilkan language mode selector (seperti Python, JavaScript) di sebelah kanan - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **470**. Menampilkan language mode selector (seperti Python, JavaScript) di sebelah kanan - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **471**. Menampilkan cursor position indicator (Line, Column) di sebelah kanan - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **472**. Menampilkan cursor position indicator (Line, Column) di sebelah kanan - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **473**. Menampilkan cursor position indicator (Line, Column) di sebelah kanan - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **474**. Menampilkan cursor position indicator (Line, Column) di sebelah kanan - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **475**. Menampilkan cursor position indicator (Line, Column) di sebelah kanan - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **476**. Menampilkan indentation status indicator (Spaces: 4 / Tab Size: 4) di sebelah kanan - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **477**. Menampilkan indentation status indicator (Spaces: 4 / Tab Size: 4) di sebelah kanan - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **478**. Menampilkan indentation status indicator (Spaces: 4 / Tab Size: 4) di sebelah kanan - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **479**. Menampilkan indentation status indicator (Spaces: 4 / Tab Size: 4) di sebelah kanan - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **480**. Menampilkan indentation status indicator (Spaces: 4 / Tab Size: 4) di sebelah kanan - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **481**. Menampilkan encoding status indicator (UTF-8) di sebelah kanan - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **482**. Menampilkan encoding status indicator (UTF-8) di sebelah kanan - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **483**. Menampilkan encoding status indicator (UTF-8) di sebelah kanan - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **484**. Menampilkan encoding status indicator (UTF-8) di sebelah kanan - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **485**. Menampilkan encoding status indicator (UTF-8) di sebelah kanan - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **486**. Menampilkan line ending status indicator (LF / CRLF) di sebelah kanan - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **487**. Menampilkan line ending status indicator (LF / CRLF) di sebelah kanan - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **488**. Menampilkan line ending status indicator (LF / CRLF) di sebelah kanan - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **489**. Menampilkan line ending status indicator (LF / CRLF) di sebelah kanan - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **490**. Menampilkan line ending status indicator (LF / CRLF) di sebelah kanan - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **491**. Menampilkan feedback bell icon untuk memicu notifications panel - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **492**. Menampilkan feedback bell icon untuk memicu notifications panel - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **493**. Menampilkan feedback bell icon untuk memicu notifications panel - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **494**. Menampilkan feedback bell icon untuk memicu notifications panel - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **495**. Menampilkan feedback bell icon untuk memicu notifications panel - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **496**. Menyelaraskan warna background status bar berdasarkan tema aktif - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **497**. Menyelaraskan warna background status bar berdasarkan tema aktif - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **498**. Menyelaraskan warna background status bar berdasarkan tema aktif - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **499**. Menyelaraskan warna background status bar berdasarkan tema aktif - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **500**. Menyelaraskan warna background status bar berdasarkan tema aktif - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **451**. Membuat horizontal Status Bar widget di bagian paling bawah aplikasi - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **452**. Membuat horizontal Status Bar widget di bagian paling bawah aplikasi - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **453**. Membuat horizontal Status Bar widget di bagian paling bawah aplikasi - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **454**. Membuat horizontal Status Bar widget di bagian paling bawah aplikasi - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **455**. Membuat horizontal Status Bar widget di bagian paling bawah aplikasi - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **456**. Menampilkan status git branch di sebelah kiri status bar - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **457**. Menampilkan status git branch di sebelah kiri status bar - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **458**. Menampilkan status git branch di sebelah kiri status bar - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **459**. Menampilkan status git branch di sebelah kiri status bar - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **460**. Menampilkan status git branch di sebelah kiri status bar - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **461**. Menampilkan problems indicator (ikon warning/error dengan hitungan) di sebelah kiri - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **462**. Menampilkan problems indicator (ikon warning/error dengan hitungan) di sebelah kiri - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **463**. Menampilkan problems indicator (ikon warning/error dengan hitungan) di sebelah kiri - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **464**. Menampilkan problems indicator (ikon warning/error dengan hitungan) di sebelah kiri - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **465**. Menampilkan problems indicator (ikon warning/error dengan hitungan) di sebelah kiri - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **466**. Menampilkan language mode selector (seperti Python, JavaScript) di sebelah kanan - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **467**. Menampilkan language mode selector (seperti Python, JavaScript) di sebelah kanan - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **468**. Menampilkan language mode selector (seperti Python, JavaScript) di sebelah kanan - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **469**. Menampilkan language mode selector (seperti Python, JavaScript) di sebelah kanan - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **470**. Menampilkan language mode selector (seperti Python, JavaScript) di sebelah kanan - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **471**. Menampilkan cursor position indicator (Line, Column) di sebelah kanan - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **472**. Menampilkan cursor position indicator (Line, Column) di sebelah kanan - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **473**. Menampilkan cursor position indicator (Line, Column) di sebelah kanan - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **474**. Menampilkan cursor position indicator (Line, Column) di sebelah kanan - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **475**. Menampilkan cursor position indicator (Line, Column) di sebelah kanan - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **476**. Menampilkan indentation status indicator (Spaces: 4 / Tab Size: 4) di sebelah kanan - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **477**. Menampilkan indentation status indicator (Spaces: 4 / Tab Size: 4) di sebelah kanan - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **478**. Menampilkan indentation status indicator (Spaces: 4 / Tab Size: 4) di sebelah kanan - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **479**. Menampilkan indentation status indicator (Spaces: 4 / Tab Size: 4) di sebelah kanan - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **480**. Menampilkan indentation status indicator (Spaces: 4 / Tab Size: 4) di sebelah kanan - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **481**. Menampilkan encoding status indicator (UTF-8) di sebelah kanan - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **482**. Menampilkan encoding status indicator (UTF-8) di sebelah kanan - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **483**. Menampilkan encoding status indicator (UTF-8) di sebelah kanan - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **484**. Menampilkan encoding status indicator (UTF-8) di sebelah kanan - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **485**. Menampilkan encoding status indicator (UTF-8) di sebelah kanan - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **486**. Menampilkan line ending status indicator (LF / CRLF) di sebelah kanan - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **487**. Menampilkan line ending status indicator (LF / CRLF) di sebelah kanan - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **488**. Menampilkan line ending status indicator (LF / CRLF) di sebelah kanan - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **489**. Menampilkan line ending status indicator (LF / CRLF) di sebelah kanan - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **490**. Menampilkan line ending status indicator (LF / CRLF) di sebelah kanan - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **491**. Menampilkan feedback bell icon untuk memicu notifications panel - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **492**. Menampilkan feedback bell icon untuk memicu notifications panel - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **493**. Menampilkan feedback bell icon untuk memicu notifications panel - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **494**. Menampilkan feedback bell icon untuk memicu notifications panel - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **495**. Menampilkan feedback bell icon untuk memicu notifications panel - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **496**. Menyelaraskan warna background status bar berdasarkan tema aktif - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **497**. Menyelaraskan warna background status bar berdasarkan tema aktif - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **498**. Menyelaraskan warna background status bar berdasarkan tema aktif - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **499**. Menyelaraskan warna background status bar berdasarkan tema aktif - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **500**. Menyelaraskan warna background status bar berdasarkan tema aktif - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
 
 ## 3. EDITOR BAHASA & INTEGRASI LSP (EDITOR & LANGUAGE PROTOCOL)
 
 ### 3.1. Jembatan WebChannel Monaco & Event Synchronization
-- [ ] **501**. Menginisialisasi QWebEngineView yang memuat Monaco Editor lokal - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **502**. Menginisialisasi QWebEngineView yang memuat Monaco Editor lokal - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **503**. Menginisialisasi QWebEngineView yang memuat Monaco Editor lokal - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **504**. Menginisialisasi QWebEngineView yang memuat Monaco Editor lokal - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **505**. Menginisialisasi QWebEngineView yang memuat Monaco Editor lokal - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **506**. Menghubungkan QWebChannel untuk komunikasi dua arah antara Python dan JavaScript - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **507**. Menghubungkan QWebChannel untuk komunikasi dua arah antara Python dan JavaScript - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **508**. Menghubungkan QWebChannel untuk komunikasi dua arah antara Python dan JavaScript - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **509**. Menghubungkan QWebChannel untuk komunikasi dua arah antara Python dan JavaScript - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **510**. Menghubungkan QWebChannel untuk komunikasi dua arah antara Python dan JavaScript - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **511**. Mengirimkan isi dokumen kode dari Python ke Monaco Editor saat membuka file - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **512**. Mengirimkan isi dokumen kode dari Python ke Monaco Editor saat membuka file - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **513**. Mengirimkan isi dokumen kode dari Python ke Monaco Editor saat membuka file - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **514**. Mengirimkan isi dokumen kode dari Python ke Monaco Editor saat membuka file - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **515**. Mengirimkan isi dokumen kode dari Python ke Monaco Editor saat membuka file - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **516**. Menerima notifikasi perubahan teks kode secara real-time dari Monaco ke Python - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **517**. Menerima notifikasi perubahan teks kode secara real-time dari Monaco ke Python - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **518**. Menerima notifikasi perubahan teks kode secara real-time dari Monaco ke Python - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **519**. Menerima notifikasi perubahan teks kode secara real-time dari Monaco ke Python - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **520**. Menerima notifikasi perubahan teks kode secara real-time dari Monaco ke Python - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **521**. Mengimplementasikan debounce timer (300ms) untuk sinkronisasi teks didChange ke LSP server - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **522**. Mengimplementasikan debounce timer (300ms) untuk sinkronisasi teks didChange ke LSP server - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **523**. Mengimplementasikan debounce timer (300ms) untuk sinkronisasi teks didChange ke LSP server - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **524**. Mengimplementasikan debounce timer (300ms) untuk sinkronisasi teks didChange ke LSP server - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **525**. Mengimplementasikan debounce timer (300ms) untuk sinkronisasi teks didChange ke LSP server - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **526**. Mendeteksi posisi kursor aktif di Monaco dan mengirimkannya ke status bar Python - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **527**. Mendeteksi posisi kursor aktif di Monaco dan mengirimkannya ke status bar Python - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **528**. Mendeteksi posisi kursor aktif di Monaco dan mengirimkannya ke status bar Python - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **529**. Mendeteksi posisi kursor aktif di Monaco dan mengirimkannya ke status bar Python - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **530**. Mendeteksi posisi kursor aktif di Monaco dan mengirimkannya ke status bar Python - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **531**. Mengatur format indentasi Monaco Editor berdasarkan konfigurasi settings.json - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **532**. Mengatur format indentasi Monaco Editor berdasarkan konfigurasi settings.json - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **533**. Mengatur format indentasi Monaco Editor berdasarkan konfigurasi settings.json - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **534**. Mengatur format indentasi Monaco Editor berdasarkan konfigurasi settings.json - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **535**. Mengatur format indentasi Monaco Editor berdasarkan konfigurasi settings.json - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **536**. Mengatur word wrap Monaco Editor berdasarkan konfigurasi settings.json - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **537**. Mengatur word wrap Monaco Editor berdasarkan konfigurasi settings.json - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **538**. Mengatur word wrap Monaco Editor berdasarkan konfigurasi settings.json - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **539**. Mengatur word wrap Monaco Editor berdasarkan konfigurasi settings.json - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **540**. Mengatur word wrap Monaco Editor berdasarkan konfigurasi settings.json - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **541**. Mengatur visibilitas minimap Monaco Editor berdasarkan konfigurasi settings.json - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **542**. Mengatur visibilitas minimap Monaco Editor berdasarkan konfigurasi settings.json - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **543**. Mengatur visibilitas minimap Monaco Editor berdasarkan konfigurasi settings.json - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **544**. Mengatur visibilitas minimap Monaco Editor berdasarkan konfigurasi settings.json - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **545**. Mengatur visibilitas minimap Monaco Editor berdasarkan konfigurasi settings.json - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **546**. Menerapkan tema warna custom Monaco Editor melalui API monaco.editor.defineTheme - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **547**. Menerapkan tema warna custom Monaco Editor melalui API monaco.editor.defineTheme - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **548**. Menerapkan tema warna custom Monaco Editor melalui API monaco.editor.defineTheme - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **549**. Menerapkan tema warna custom Monaco Editor melalui API monaco.editor.defineTheme - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **550**. Menerapkan tema warna custom Monaco Editor melalui API monaco.editor.defineTheme - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **501**. Menginisialisasi QWebEngineView yang memuat Monaco Editor lokal - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **502**. Menginisialisasi QWebEngineView yang memuat Monaco Editor lokal - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **503**. Menginisialisasi QWebEngineView yang memuat Monaco Editor lokal - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **504**. Menginisialisasi QWebEngineView yang memuat Monaco Editor lokal - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **505**. Menginisialisasi QWebEngineView yang memuat Monaco Editor lokal - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **506**. Menghubungkan QWebChannel untuk komunikasi dua arah antara Python dan JavaScript - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **507**. Menghubungkan QWebChannel untuk komunikasi dua arah antara Python dan JavaScript - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **508**. Menghubungkan QWebChannel untuk komunikasi dua arah antara Python dan JavaScript - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **509**. Menghubungkan QWebChannel untuk komunikasi dua arah antara Python dan JavaScript - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **510**. Menghubungkan QWebChannel untuk komunikasi dua arah antara Python dan JavaScript - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **511**. Mengirimkan isi dokumen kode dari Python ke Monaco Editor saat membuka file - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **512**. Mengirimkan isi dokumen kode dari Python ke Monaco Editor saat membuka file - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **513**. Mengirimkan isi dokumen kode dari Python ke Monaco Editor saat membuka file - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **514**. Mengirimkan isi dokumen kode dari Python ke Monaco Editor saat membuka file - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **515**. Mengirimkan isi dokumen kode dari Python ke Monaco Editor saat membuka file - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **516**. Menerima notifikasi perubahan teks kode secara real-time dari Monaco ke Python - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **517**. Menerima notifikasi perubahan teks kode secara real-time dari Monaco ke Python - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **518**. Menerima notifikasi perubahan teks kode secara real-time dari Monaco ke Python - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **519**. Menerima notifikasi perubahan teks kode secara real-time dari Monaco ke Python - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **520**. Menerima notifikasi perubahan teks kode secara real-time dari Monaco ke Python - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **521**. Mengimplementasikan debounce timer (300ms) untuk sinkronisasi teks didChange ke LSP server - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **522**. Mengimplementasikan debounce timer (300ms) untuk sinkronisasi teks didChange ke LSP server - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **523**. Mengimplementasikan debounce timer (300ms) untuk sinkronisasi teks didChange ke LSP server - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **524**. Mengimplementasikan debounce timer (300ms) untuk sinkronisasi teks didChange ke LSP server - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **525**. Mengimplementasikan debounce timer (300ms) untuk sinkronisasi teks didChange ke LSP server - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **526**. Mendeteksi posisi kursor aktif di Monaco dan mengirimkannya ke status bar Python - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **527**. Mendeteksi posisi kursor aktif di Monaco dan mengirimkannya ke status bar Python - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **528**. Mendeteksi posisi kursor aktif di Monaco dan mengirimkannya ke status bar Python - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **529**. Mendeteksi posisi kursor aktif di Monaco dan mengirimkannya ke status bar Python - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **530**. Mendeteksi posisi kursor aktif di Monaco dan mengirimkannya ke status bar Python - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **531**. Mengatur format indentasi Monaco Editor berdasarkan konfigurasi settings.json - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **532**. Mengatur format indentasi Monaco Editor berdasarkan konfigurasi settings.json - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **533**. Mengatur format indentasi Monaco Editor berdasarkan konfigurasi settings.json - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **534**. Mengatur format indentasi Monaco Editor berdasarkan konfigurasi settings.json - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **535**. Mengatur format indentasi Monaco Editor berdasarkan konfigurasi settings.json - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **536**. Mengatur word wrap Monaco Editor berdasarkan konfigurasi settings.json - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **537**. Mengatur word wrap Monaco Editor berdasarkan konfigurasi settings.json - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **538**. Mengatur word wrap Monaco Editor berdasarkan konfigurasi settings.json - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **539**. Mengatur word wrap Monaco Editor berdasarkan konfigurasi settings.json - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **540**. Mengatur word wrap Monaco Editor berdasarkan konfigurasi settings.json - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **541**. Mengatur visibilitas minimap Monaco Editor berdasarkan konfigurasi settings.json - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **542**. Mengatur visibilitas minimap Monaco Editor berdasarkan konfigurasi settings.json - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **543**. Mengatur visibilitas minimap Monaco Editor berdasarkan konfigurasi settings.json - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **544**. Mengatur visibilitas minimap Monaco Editor berdasarkan konfigurasi settings.json - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **545**. Mengatur visibilitas minimap Monaco Editor berdasarkan konfigurasi settings.json - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **546**. Menerapkan tema warna custom Monaco Editor melalui API monaco.editor.defineTheme - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **547**. Menerapkan tema warna custom Monaco Editor melalui API monaco.editor.defineTheme - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **548**. Menerapkan tema warna custom Monaco Editor melalui API monaco.editor.defineTheme - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **549**. Menerapkan tema warna custom Monaco Editor melalui API monaco.editor.defineTheme - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **550**. Menerapkan tema warna custom Monaco Editor melalui API monaco.editor.defineTheme - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
 
 ### 3.2. LSP Client Initialization & Lifecycle
-- [ ] **551**. Mendeteksi ketersediaan bahasa file aktif untuk menentukan LSP server yang tepat - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **552**. Mendeteksi ketersediaan bahasa file aktif untuk menentukan LSP server yang tepat - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **553**. Mendeteksi ketersediaan bahasa file aktif untuk menentukan LSP server yang tepat - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **554**. Mendeteksi ketersediaan bahasa file aktif untuk menentukan LSP server yang tepat - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **555**. Mendeteksi ketersediaan bahasa file aktif untuk menentukan LSP server yang tepat - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **556**. Memulai proses LSP server backend secara asinkron menggunakan QProcess - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **557**. Memulai proses LSP server backend secara asinkron menggunakan QProcess - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **558**. Memulai proses LSP server backend secara asinkron menggunakan QProcess - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **559**. Memulai proses LSP server backend secara asinkron menggunakan QProcess - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **560**. Memulai proses LSP server backend secara asinkron menggunakan QProcess - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **561**. Mengirimkan pesan LSP request 'initialize' dengan capabilities client - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **562**. Mengirimkan pesan LSP request 'initialize' dengan capabilities client - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **563**. Mengirimkan pesan LSP request 'initialize' dengan capabilities client - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **564**. Mengirimkan pesan LSP request 'initialize' dengan capabilities client - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **565**. Mengirimkan pesan LSP request 'initialize' dengan capabilities client - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **566**. Menerima response LSP 'initialize' dan menyimpan capabilities server - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **567**. Menerima response LSP 'initialize' dan menyimpan capabilities server - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **568**. Menerima response LSP 'initialize' dan menyimpan capabilities server - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **569**. Menerima response LSP 'initialize' dan menyimpan capabilities server - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **570**. Menerima response LSP 'initialize' dan menyimpan capabilities server - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **571**. Mengirimkan LSP notification 'initialized' untuk memulai session komunikasi - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **572**. Mengirimkan LSP notification 'initialized' untuk memulai session komunikasi - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **573**. Mengirimkan LSP notification 'initialized' untuk memulai session komunikasi - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **574**. Mengirimkan LSP notification 'initialized' untuk memulai session komunikasi - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **575**. Mengirimkan LSP notification 'initialized' untuk memulai session komunikasi - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **576**. Mengirimkan LSP notification 'textDocument/didOpen' saat file dimuat di Monaco - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **577**. Mengirimkan LSP notification 'textDocument/didOpen' saat file dimuat di Monaco - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **578**. Mengirimkan LSP notification 'textDocument/didOpen' saat file dimuat di Monaco - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **579**. Mengirimkan LSP notification 'textDocument/didOpen' saat file dimuat di Monaco - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **580**. Mengirimkan LSP notification 'textDocument/didOpen' saat file dimuat di Monaco - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **581**. Mengirimkan LSP notification 'textDocument/didChange' saat teks dokumen dimodifikasi - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **582**. Mengirimkan LSP notification 'textDocument/didChange' saat teks dokumen dimodifikasi - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **583**. Mengirimkan LSP notification 'textDocument/didChange' saat teks dokumen dimodifikasi - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **584**. Mengirimkan LSP notification 'textDocument/didChange' saat teks dokumen dimodifikasi - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **585**. Mengirimkan LSP notification 'textDocument/didChange' saat teks dokumen dimodifikasi - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **586**. Mengirimkan LSP notification 'textDocument/didSave' saat file disimpan ke disk - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **587**. Mengirimkan LSP notification 'textDocument/didSave' saat file disimpan ke disk - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **588**. Mengirimkan LSP notification 'textDocument/didSave' saat file disimpan ke disk - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **589**. Mengirimkan LSP notification 'textDocument/didSave' saat file disimpan ke disk - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **590**. Mengirimkan LSP notification 'textDocument/didSave' saat file disimpan ke disk - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **591**. Mengirimkan LSP notification 'textDocument/didClose' saat file ditutup di editor group - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **592**. Mengirimkan LSP notification 'textDocument/didClose' saat file ditutup di editor group - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **593**. Mengirimkan LSP notification 'textDocument/didClose' saat file ditutup di editor group - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **594**. Mengirimkan LSP notification 'textDocument/didClose' saat file ditutup di editor group - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **595**. Mengirimkan LSP notification 'textDocument/didClose' saat file ditutup di editor group - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **596**. Menangani penutupan LSP server secara bersih saat aplikasi keluar - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **597**. Menangani penutupan LSP server secara bersih saat aplikasi keluar - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **598**. Menangani penutupan LSP server secara bersih saat aplikasi keluar - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **599**. Menangani penutupan LSP server secara bersih saat aplikasi keluar - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **600**. Menangani penutupan LSP server secara bersih saat aplikasi keluar - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **551**. Mendeteksi ketersediaan bahasa file aktif untuk menentukan LSP server yang tepat - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **552**. Mendeteksi ketersediaan bahasa file aktif untuk menentukan LSP server yang tepat - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **553**. Mendeteksi ketersediaan bahasa file aktif untuk menentukan LSP server yang tepat - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **554**. Mendeteksi ketersediaan bahasa file aktif untuk menentukan LSP server yang tepat - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **555**. Mendeteksi ketersediaan bahasa file aktif untuk menentukan LSP server yang tepat - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **556**. Memulai proses LSP server backend secara asinkron menggunakan QProcess - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **557**. Memulai proses LSP server backend secara asinkron menggunakan QProcess - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **558**. Memulai proses LSP server backend secara asinkron menggunakan QProcess - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **559**. Memulai proses LSP server backend secara asinkron menggunakan QProcess - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **560**. Memulai proses LSP server backend secara asinkron menggunakan QProcess - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **561**. Mengirimkan pesan LSP request 'initialize' dengan capabilities client - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **562**. Mengirimkan pesan LSP request 'initialize' dengan capabilities client - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **563**. Mengirimkan pesan LSP request 'initialize' dengan capabilities client - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **564**. Mengirimkan pesan LSP request 'initialize' dengan capabilities client - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **565**. Mengirimkan pesan LSP request 'initialize' dengan capabilities client - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **566**. Menerima response LSP 'initialize' dan menyimpan capabilities server - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **567**. Menerima response LSP 'initialize' dan menyimpan capabilities server - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **568**. Menerima response LSP 'initialize' dan menyimpan capabilities server - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **569**. Menerima response LSP 'initialize' dan menyimpan capabilities server - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **570**. Menerima response LSP 'initialize' dan menyimpan capabilities server - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **571**. Mengirimkan LSP notification 'initialized' untuk memulai session komunikasi - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **572**. Mengirimkan LSP notification 'initialized' untuk memulai session komunikasi - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **573**. Mengirimkan LSP notification 'initialized' untuk memulai session komunikasi - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **574**. Mengirimkan LSP notification 'initialized' untuk memulai session komunikasi - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **575**. Mengirimkan LSP notification 'initialized' untuk memulai session komunikasi - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **576**. Mengirimkan LSP notification 'textDocument/didOpen' saat file dimuat di Monaco - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **577**. Mengirimkan LSP notification 'textDocument/didOpen' saat file dimuat di Monaco - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **578**. Mengirimkan LSP notification 'textDocument/didOpen' saat file dimuat di Monaco - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **579**. Mengirimkan LSP notification 'textDocument/didOpen' saat file dimuat di Monaco - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **580**. Mengirimkan LSP notification 'textDocument/didOpen' saat file dimuat di Monaco - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **581**. Mengirimkan LSP notification 'textDocument/didChange' saat teks dokumen dimodifikasi - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **582**. Mengirimkan LSP notification 'textDocument/didChange' saat teks dokumen dimodifikasi - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **583**. Mengirimkan LSP notification 'textDocument/didChange' saat teks dokumen dimodifikasi - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **584**. Mengirimkan LSP notification 'textDocument/didChange' saat teks dokumen dimodifikasi - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **585**. Mengirimkan LSP notification 'textDocument/didChange' saat teks dokumen dimodifikasi - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **586**. Mengirimkan LSP notification 'textDocument/didSave' saat file disimpan ke disk - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **587**. Mengirimkan LSP notification 'textDocument/didSave' saat file disimpan ke disk - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **588**. Mengirimkan LSP notification 'textDocument/didSave' saat file disimpan ke disk - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **589**. Mengirimkan LSP notification 'textDocument/didSave' saat file disimpan ke disk - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **590**. Mengirimkan LSP notification 'textDocument/didSave' saat file disimpan ke disk - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **591**. Mengirimkan LSP notification 'textDocument/didClose' saat file ditutup di editor group - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **592**. Mengirimkan LSP notification 'textDocument/didClose' saat file ditutup di editor group - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **593**. Mengirimkan LSP notification 'textDocument/didClose' saat file ditutup di editor group - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **594**. Mengirimkan LSP notification 'textDocument/didClose' saat file ditutup di editor group - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **595**. Mengirimkan LSP notification 'textDocument/didClose' saat file ditutup di editor group - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **596**. Menangani penutupan LSP server secara bersih saat aplikasi keluar - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **597**. Menangani penutupan LSP server secara bersih saat aplikasi keluar - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **598**. Menangani penutupan LSP server secara bersih saat aplikasi keluar - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **599**. Menangani penutupan LSP server secara bersih saat aplikasi keluar - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **600**. Menangani penutupan LSP server secara bersih saat aplikasi keluar - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
 
 ### 3.3. Fitur Cerdas LSP (Definitions, Completion, Diagnostics)
-- [ ] **601**. Menyediakan navigasi 'Go to Definition' via request 'textDocument/definition' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **602**. Menyediakan navigasi 'Go to Definition' via request 'textDocument/definition' - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **603**. Menyediakan navigasi 'Go to Definition' via request 'textDocument/definition' - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **604**. Menyediakan navigasi 'Go to Definition' via request 'textDocument/definition' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **605**. Menyediakan navigasi 'Go to Definition' via request 'textDocument/definition' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **606**. Menyediakan pencarian referensi 'Find References' via request 'textDocument/references' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **607**. Menyediakan pencarian referensi 'Find References' via request 'textDocument/references' - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **608**. Menyediakan pencarian referensi 'Find References' via request 'textDocument/references' - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **609**. Menyediakan pencarian referensi 'Find References' via request 'textDocument/references' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **610**. Menyediakan pencarian referensi 'Find References' via request 'textDocument/references' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **611**. Menyediakan fitur auto-complete popup via request 'textDocument/completion' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **612**. Menyediakan fitur auto-complete popup via request 'textDocument/completion' - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **613**. Menyediakan fitur auto-complete popup via request 'textDocument/completion' - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **614**. Menyediakan fitur auto-complete popup via request 'textDocument/completion' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **615**. Menyediakan fitur auto-complete popup via request 'textDocument/completion' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **616**. Menampilkan dokumentasi dan tanda tipe data pada suggestion completion - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **617**. Menampilkan dokumentasi dan tanda tipe data pada suggestion completion - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **618**. Menampilkan dokumentasi dan tanda tipe data pada suggestion completion - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **619**. Menampilkan dokumentasi dan tanda tipe data pada suggestion completion - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **620**. Menampilkan dokumentasi dan tanda tipe data pada suggestion completion - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **621**. Menyediakan informasi parameter hint via request 'textDocument/signatureHelp' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **622**. Menyediakan informasi parameter hint via request 'textDocument/signatureHelp' - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **623**. Menyediakan informasi parameter hint via request 'textDocument/signatureHelp' - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **624**. Menyediakan informasi parameter hint via request 'textDocument/signatureHelp' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **625**. Menyediakan informasi parameter hint via request 'textDocument/signatureHelp' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **626**. Menampilkan hover info tooltip via request 'textDocument/hover' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **627**. Menampilkan hover info tooltip via request 'textDocument/hover' - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **628**. Menampilkan hover info tooltip via request 'textDocument/hover' - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **629**. Menampilkan hover info tooltip via request 'textDocument/hover' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **630**. Menampilkan hover info tooltip via request 'textDocument/hover' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **631**. Menyediakan rename symbol refactoring via request 'textDocument/rename' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **632**. Menyediakan rename symbol refactoring via request 'textDocument/rename' - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **633**. Menyediakan rename symbol refactoring via request 'textDocument/rename' - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **634**. Menyediakan rename symbol refactoring via request 'textDocument/rename' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **635**. Menyediakan rename symbol refactoring via request 'textDocument/rename' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **636**. Menerima diagnosis error/warning dari server via notification 'textDocument/publishDiagnostics' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **637**. Menerima diagnosis error/warning dari server via notification 'textDocument/publishDiagnostics' - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **638**. Menerima diagnosis error/warning dari server via notification 'textDocument/publishDiagnostics' - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **639**. Menerima diagnosis error/warning dari server via notification 'textDocument/publishDiagnostics' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **640**. Menerima diagnosis error/warning dari server via notification 'textDocument/publishDiagnostics' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **641**. Menggambar squiggly lines error/warning secara visual di Monaco Editor berdasarkan diagnosis - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **642**. Menggambar squiggly lines error/warning secara visual di Monaco Editor berdasarkan diagnosis - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **643**. Menggambar squiggly lines error/warning secara visual di Monaco Editor berdasarkan diagnosis - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **644**. Menggambar squiggly lines error/warning secara visual di Monaco Editor berdasarkan diagnosis - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **645**. Menggambar squiggly lines error/warning secara visual di Monaco Editor berdasarkan diagnosis - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **646**. Menyediakan quick fix suggestions via request 'textDocument/codeAction' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **647**. Menyediakan quick fix suggestions via request 'textDocument/codeAction' - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **648**. Menyediakan quick fix suggestions via request 'textDocument/codeAction' - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **649**. Menyediakan quick fix suggestions via request 'textDocument/codeAction' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **650**. Menyediakan quick fix suggestions via request 'textDocument/codeAction' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **601**. Menyediakan navigasi 'Go to Definition' via request 'textDocument/definition' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **602**. Menyediakan navigasi 'Go to Definition' via request 'textDocument/definition' - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **603**. Menyediakan navigasi 'Go to Definition' via request 'textDocument/definition' - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **604**. Menyediakan navigasi 'Go to Definition' via request 'textDocument/definition' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **605**. Menyediakan navigasi 'Go to Definition' via request 'textDocument/definition' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **606**. Menyediakan pencarian referensi 'Find References' via request 'textDocument/references' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **607**. Menyediakan pencarian referensi 'Find References' via request 'textDocument/references' - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **608**. Menyediakan pencarian referensi 'Find References' via request 'textDocument/references' - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **609**. Menyediakan pencarian referensi 'Find References' via request 'textDocument/references' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **610**. Menyediakan pencarian referensi 'Find References' via request 'textDocument/references' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **611**. Menyediakan fitur auto-complete popup via request 'textDocument/completion' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **612**. Menyediakan fitur auto-complete popup via request 'textDocument/completion' - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **613**. Menyediakan fitur auto-complete popup via request 'textDocument/completion' - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **614**. Menyediakan fitur auto-complete popup via request 'textDocument/completion' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **615**. Menyediakan fitur auto-complete popup via request 'textDocument/completion' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **616**. Menampilkan dokumentasi dan tanda tipe data pada suggestion completion - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **617**. Menampilkan dokumentasi dan tanda tipe data pada suggestion completion - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **618**. Menampilkan dokumentasi dan tanda tipe data pada suggestion completion - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **619**. Menampilkan dokumentasi dan tanda tipe data pada suggestion completion - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **620**. Menampilkan dokumentasi dan tanda tipe data pada suggestion completion - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **621**. Menyediakan informasi parameter hint via request 'textDocument/signatureHelp' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **622**. Menyediakan informasi parameter hint via request 'textDocument/signatureHelp' - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **623**. Menyediakan informasi parameter hint via request 'textDocument/signatureHelp' - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **624**. Menyediakan informasi parameter hint via request 'textDocument/signatureHelp' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **625**. Menyediakan informasi parameter hint via request 'textDocument/signatureHelp' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **626**. Menampilkan hover info tooltip via request 'textDocument/hover' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **627**. Menampilkan hover info tooltip via request 'textDocument/hover' - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **628**. Menampilkan hover info tooltip via request 'textDocument/hover' - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **629**. Menampilkan hover info tooltip via request 'textDocument/hover' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **630**. Menampilkan hover info tooltip via request 'textDocument/hover' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **631**. Menyediakan rename symbol refactoring via request 'textDocument/rename' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **632**. Menyediakan rename symbol refactoring via request 'textDocument/rename' - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **633**. Menyediakan rename symbol refactoring via request 'textDocument/rename' - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **634**. Menyediakan rename symbol refactoring via request 'textDocument/rename' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **635**. Menyediakan rename symbol refactoring via request 'textDocument/rename' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **636**. Menerima diagnosis error/warning dari server via notification 'textDocument/publishDiagnostics' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **637**. Menerima diagnosis error/warning dari server via notification 'textDocument/publishDiagnostics' - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **638**. Menerima diagnosis error/warning dari server via notification 'textDocument/publishDiagnostics' - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **639**. Menerima diagnosis error/warning dari server via notification 'textDocument/publishDiagnostics' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **640**. Menerima diagnosis error/warning dari server via notification 'textDocument/publishDiagnostics' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **641**. Menggambar squiggly lines error/warning secara visual di Monaco Editor berdasarkan diagnosis - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **642**. Menggambar squiggly lines error/warning secara visual di Monaco Editor berdasarkan diagnosis - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **643**. Menggambar squiggly lines error/warning secara visual di Monaco Editor berdasarkan diagnosis - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **644**. Menggambar squiggly lines error/warning secara visual di Monaco Editor berdasarkan diagnosis - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **645**. Menggambar squiggly lines error/warning secara visual di Monaco Editor berdasarkan diagnosis - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **646**. Menyediakan quick fix suggestions via request 'textDocument/codeAction' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **647**. Menyediakan quick fix suggestions via request 'textDocument/codeAction' - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **648**. Menyediakan quick fix suggestions via request 'textDocument/codeAction' - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **649**. Menyediakan quick fix suggestions via request 'textDocument/codeAction' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **650**. Menyediakan quick fix suggestions via request 'textDocument/codeAction' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
 
 ### 3.4. Gutter indicators Git Diff & Inline Diff Editor
-- [ ] **651**. Menghitung perubahan file (git diff) secara asinkron menggunakan subprocess git - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **652**. Menghitung perubahan file (git diff) secara asinkron menggunakan subprocess git - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **653**. Menghitung perubahan file (git diff) secara asinkron menggunakan subprocess git - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **654**. Menghitung perubahan file (git diff) secara asinkron menggunakan subprocess git - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **655**. Menghitung perubahan file (git diff) secara asinkron menggunakan subprocess git - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **656**. Mengirim hasil koordinat baris yang berubah (add, change, delete) ke Monaco Editor - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **657**. Mengirim hasil koordinat baris yang berubah (add, change, delete) ke Monaco Editor - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **658**. Mengirim hasil koordinat baris yang berubah (add, change, delete) ke Monaco Editor - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **659**. Mengirim hasil koordinat baris yang berubah (add, change, delete) ke Monaco Editor - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **660**. Mengirim hasil koordinat baris yang berubah (add, change, delete) ke Monaco Editor - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **661**. Menggambar gutter indicators hijau (add), biru (change), merah (delete) di Monaco - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **662**. Menggambar gutter indicators hijau (add), biru (change), merah (delete) di Monaco - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **663**. Menggambar gutter indicators hijau (add), biru (change), merah (delete) di Monaco - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **664**. Menggambar gutter indicators hijau (add), biru (change), merah (delete) di Monaco - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **665**. Menggambar gutter indicators hijau (add), biru (change), merah (delete) di Monaco - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **666**. Mendukung pembukaan inline diff editor split view secara dinamis untuk file terpilih - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **667**. Mendukung pembukaan inline diff editor split view secara dinamis untuk file terpilih - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **668**. Mendukung pembukaan inline diff editor split view secara dinamis untuk file terpilih - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **669**. Mendukung pembukaan inline diff editor split view secara dinamis untuk file terpilih - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **670**. Mendukung pembukaan inline diff editor split view secara dinamis untuk file terpilih - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **671**. Menggunakan monaco.editor.createDiffEditor untuk visualisasi split pembandingan kode - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **672**. Menggunakan monaco.editor.createDiffEditor untuk visualisasi split pembandingan kode - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **673**. Menggunakan monaco.editor.createDiffEditor untuk visualisasi split pembandingan kode - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **674**. Menggunakan monaco.editor.createDiffEditor untuk visualisasi split pembandingan kode - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **675**. Menggunakan monaco.editor.createDiffEditor untuk visualisasi split pembandingan kode - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **676**. Menghubungkan scrollbar pembandingan split view agar bergerak selaras secara real-time - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **677**. Menghubungkan scrollbar pembandingan split view agar bergerak selaras secara real-time - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **678**. Menghubungkan scrollbar pembandingan split view agar bergerak selaras secara real-time - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **679**. Menghubungkan scrollbar pembandingan split view agar bergerak selaras secara real-time - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **680**. Menghubungkan scrollbar pembandingan split view agar bergerak selaras secara real-time - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **681**. Menyediakan button untuk berpindah ke perubahan berikutnya/sebelumnya (next/prev diff) - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **682**. Menyediakan button untuk berpindah ke perubahan berikutnya/sebelumnya (next/prev diff) - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **683**. Menyediakan button untuk berpindah ke perubahan berikutnya/sebelumnya (next/prev diff) - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **684**. Menyediakan button untuk berpindah ke perubahan berikutnya/sebelumnya (next/prev diff) - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **685**. Menyediakan button untuk berpindah ke perubahan berikutnya/sebelumnya (next/prev diff) - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **686**. Menyediakan aksi 'Revert Block' langsung dari inline diff view - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **687**. Menyediakan aksi 'Revert Block' langsung dari inline diff view - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **688**. Menyediakan aksi 'Revert Block' langsung dari inline diff view - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **689**. Menyediakan aksi 'Revert Block' langsung dari inline diff view - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **690**. Menyediakan aksi 'Revert Block' langsung dari inline diff view - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **691**. Menyediakan aksi 'Stage Block' langsung dari inline diff view - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **692**. Menyediakan aksi 'Stage Block' langsung dari inline diff view - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **693**. Menyediakan aksi 'Stage Block' langsung dari inline diff view - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **694**. Menyediakan aksi 'Stage Block' langsung dari inline diff view - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **695**. Menyediakan aksi 'Stage Block' langsung dari inline diff view - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **696**. Mengupdate indicators gutter git diff secara otomatis setiap kali dokumen disimpan - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **697**. Mengupdate indicators gutter git diff secara otomatis setiap kali dokumen disimpan - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **698**. Mengupdate indicators gutter git diff secara otomatis setiap kali dokumen disimpan - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **699**. Mengupdate indicators gutter git diff secara otomatis setiap kali dokumen disimpan - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **700**. Mengupdate indicators gutter git diff secara otomatis setiap kali dokumen disimpan - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **651**. Menghitung perubahan file (git diff) secara asinkron menggunakan subprocess git - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **652**. Menghitung perubahan file (git diff) secara asinkron menggunakan subprocess git - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **653**. Menghitung perubahan file (git diff) secara asinkron menggunakan subprocess git - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **654**. Menghitung perubahan file (git diff) secara asinkron menggunakan subprocess git - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **655**. Menghitung perubahan file (git diff) secara asinkron menggunakan subprocess git - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **656**. Mengirim hasil koordinat baris yang berubah (add, change, delete) ke Monaco Editor - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **657**. Mengirim hasil koordinat baris yang berubah (add, change, delete) ke Monaco Editor - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **658**. Mengirim hasil koordinat baris yang berubah (add, change, delete) ke Monaco Editor - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **659**. Mengirim hasil koordinat baris yang berubah (add, change, delete) ke Monaco Editor - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **660**. Mengirim hasil koordinat baris yang berubah (add, change, delete) ke Monaco Editor - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **661**. Menggambar gutter indicators hijau (add), biru (change), merah (delete) di Monaco - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **662**. Menggambar gutter indicators hijau (add), biru (change), merah (delete) di Monaco - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **663**. Menggambar gutter indicators hijau (add), biru (change), merah (delete) di Monaco - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **664**. Menggambar gutter indicators hijau (add), biru (change), merah (delete) di Monaco - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **665**. Menggambar gutter indicators hijau (add), biru (change), merah (delete) di Monaco - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **666**. Mendukung pembukaan inline diff editor split view secara dinamis untuk file terpilih - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **667**. Mendukung pembukaan inline diff editor split view secara dinamis untuk file terpilih - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **668**. Mendukung pembukaan inline diff editor split view secara dinamis untuk file terpilih - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **669**. Mendukung pembukaan inline diff editor split view secara dinamis untuk file terpilih - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **670**. Mendukung pembukaan inline diff editor split view secara dinamis untuk file terpilih - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **671**. Menggunakan monaco.editor.createDiffEditor untuk visualisasi split pembandingan kode - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **672**. Menggunakan monaco.editor.createDiffEditor untuk visualisasi split pembandingan kode - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **673**. Menggunakan monaco.editor.createDiffEditor untuk visualisasi split pembandingan kode - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **674**. Menggunakan monaco.editor.createDiffEditor untuk visualisasi split pembandingan kode - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **675**. Menggunakan monaco.editor.createDiffEditor untuk visualisasi split pembandingan kode - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **676**. Menghubungkan scrollbar pembandingan split view agar bergerak selaras secara real-time - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **677**. Menghubungkan scrollbar pembandingan split view agar bergerak selaras secara real-time - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **678**. Menghubungkan scrollbar pembandingan split view agar bergerak selaras secara real-time - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **679**. Menghubungkan scrollbar pembandingan split view agar bergerak selaras secara real-time - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **680**. Menghubungkan scrollbar pembandingan split view agar bergerak selaras secara real-time - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **681**. Menyediakan button untuk berpindah ke perubahan berikutnya/sebelumnya (next/prev diff) - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **682**. Menyediakan button untuk berpindah ke perubahan berikutnya/sebelumnya (next/prev diff) - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **683**. Menyediakan button untuk berpindah ke perubahan berikutnya/sebelumnya (next/prev diff) - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **684**. Menyediakan button untuk berpindah ke perubahan berikutnya/sebelumnya (next/prev diff) - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **685**. Menyediakan button untuk berpindah ke perubahan berikutnya/sebelumnya (next/prev diff) - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **686**. Menyediakan aksi 'Revert Block' langsung dari inline diff view - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **687**. Menyediakan aksi 'Revert Block' langsung dari inline diff view - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **688**. Menyediakan aksi 'Revert Block' langsung dari inline diff view - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **689**. Menyediakan aksi 'Revert Block' langsung dari inline diff view - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **690**. Menyediakan aksi 'Revert Block' langsung dari inline diff view - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **691**. Menyediakan aksi 'Stage Block' langsung dari inline diff view - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **692**. Menyediakan aksi 'Stage Block' langsung dari inline diff view - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **693**. Menyediakan aksi 'Stage Block' langsung dari inline diff view - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **694**. Menyediakan aksi 'Stage Block' langsung dari inline diff view - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **695**. Menyediakan aksi 'Stage Block' langsung dari inline diff view - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **696**. Mengupdate indicators gutter git diff secara otomatis setiap kali dokumen disimpan - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **697**. Mengupdate indicators gutter git diff secara otomatis setiap kali dokumen disimpan - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **698**. Mengupdate indicators gutter git diff secara otomatis setiap kali dokumen disimpan - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **699**. Mengupdate indicators gutter git diff secara otomatis setiap kali dokumen disimpan - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **700**. Mengupdate indicators gutter git diff secara otomatis setiap kali dokumen disimpan - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
 
 ### 3.5. Breadcrumbs Bar & Symbols Navigation
-- [ ] **701**. Membuat horizontal Breadcrumbs Bar widget di atas editor tabs - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **702**. Membuat horizontal Breadcrumbs Bar widget di atas editor tabs - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **703**. Membuat horizontal Breadcrumbs Bar widget di atas editor tabs - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **704**. Membuat horizontal Breadcrumbs Bar widget di atas editor tabs - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **705**. Membuat horizontal Breadcrumbs Bar widget di atas editor tabs - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **706**. Mengekstrak direktori path dari file aktif dan merendernya sebagai segment-segment tombol - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **707**. Mengekstrak direktori path dari file aktif dan merendernya sebagai segment-segment tombol - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **708**. Mengekstrak direktori path dari file aktif dan merendernya sebagai segment-segment tombol - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **709**. Mengekstrak direktori path dari file aktif dan merendernya sebagai segment-segment tombol - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **710**. Mengekstrak direktori path dari file aktif dan merendernya sebagai segment-segment tombol - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **711**. Mendukung navigasi folder via click segment folder breadcrumbs untuk memicu file explorer dropdown - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **712**. Mendukung navigasi folder via click segment folder breadcrumbs untuk memicu file explorer dropdown - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **713**. Mendukung navigasi folder via click segment folder breadcrumbs untuk memicu file explorer dropdown - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **714**. Mendukung navigasi folder via click segment folder breadcrumbs untuk memicu file explorer dropdown - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **715**. Mendukung navigasi folder via click segment folder breadcrumbs untuk memicu file explorer dropdown - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **716**. Meminta daftar symbol struktur file aktif dari LSP server menggunakan 'textDocument/documentSymbol' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **717**. Meminta daftar symbol struktur file aktif dari LSP server menggunakan 'textDocument/documentSymbol' - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **718**. Meminta daftar symbol struktur file aktif dari LSP server menggunakan 'textDocument/documentSymbol' - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **719**. Meminta daftar symbol struktur file aktif dari LSP server menggunakan 'textDocument/documentSymbol' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **720**. Meminta daftar symbol struktur file aktif dari LSP server menggunakan 'textDocument/documentSymbol' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **721**. Menampilkan segment symbol aktif saat kursor berada di dalam cakupan symbol (class/method) - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **722**. Menampilkan segment symbol aktif saat kursor berada di dalam cakupan symbol (class/method) - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **723**. Menampilkan segment symbol aktif saat kursor berada di dalam cakupan symbol (class/method) - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **724**. Menampilkan segment symbol aktif saat kursor berada di dalam cakupan symbol (class/method) - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **725**. Menampilkan segment symbol aktif saat kursor berada di dalam cakupan symbol (class/method) - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **726**. Menampilkan ikon symbol (class, method, function, variable) di segment symbol - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **727**. Menampilkan ikon symbol (class, method, function, variable) di segment symbol - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **728**. Menampilkan ikon symbol (class, method, function, variable) di segment symbol - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **729**. Menampilkan ikon symbol (class, method, function, variable) di segment symbol - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **730**. Menampilkan ikon symbol (class, method, function, variable) di segment symbol - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **731**. Menyediakan dropdown symbol picker saat mengklik segment symbol breadcrumbs - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **732**. Menyediakan dropdown symbol picker saat mengklik segment symbol breadcrumbs - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **733**. Menyediakan dropdown symbol picker saat mengklik segment symbol breadcrumbs - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **734**. Menyediakan dropdown symbol picker saat mengklik segment symbol breadcrumbs - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **735**. Menyediakan dropdown symbol picker saat mengklik segment symbol breadcrumbs - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **736**. Mendukung penyaringan pencarian symbol di dropdown symbol picker secara real-time - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **737**. Mendukung penyaringan pencarian symbol di dropdown symbol picker secara real-time - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **738**. Mendukung penyaringan pencarian symbol di dropdown symbol picker secara real-time - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **739**. Mendukung penyaringan pencarian symbol di dropdown symbol picker secara real-time - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **740**. Mendukung penyaringan pencarian symbol di dropdown symbol picker secara real-time - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **741**. Melompat ke baris symbol saat symbol dipilih di picker - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **742**. Melompat ke baris symbol saat symbol dipilih di picker - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **743**. Melompat ke baris symbol saat symbol dipilih di picker - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **744**. Melompat ke baris symbol saat symbol dipilih di picker - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **745**. Melompat ke baris symbol saat symbol dipilih di picker - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **746**. Menyembunyikan breadcrumbs bar jika settings 'breadcrumbs.enabled' bernilai false - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **747**. Menyembunyikan breadcrumbs bar jika settings 'breadcrumbs.enabled' bernilai false - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **748**. Menyembunyikan breadcrumbs bar jika settings 'breadcrumbs.enabled' bernilai false - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **749**. Menyembunyikan breadcrumbs bar jika settings 'breadcrumbs.enabled' bernilai false - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **750**. Menyembunyikan breadcrumbs bar jika settings 'breadcrumbs.enabled' bernilai false - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **701**. Membuat horizontal Breadcrumbs Bar widget di atas editor tabs - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **702**. Membuat horizontal Breadcrumbs Bar widget di atas editor tabs - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **703**. Membuat horizontal Breadcrumbs Bar widget di atas editor tabs - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **704**. Membuat horizontal Breadcrumbs Bar widget di atas editor tabs - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **705**. Membuat horizontal Breadcrumbs Bar widget di atas editor tabs - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **706**. Mengekstrak direktori path dari file aktif dan merendernya sebagai segment-segment tombol - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **707**. Mengekstrak direktori path dari file aktif dan merendernya sebagai segment-segment tombol - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **708**. Mengekstrak direktori path dari file aktif dan merendernya sebagai segment-segment tombol - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **709**. Mengekstrak direktori path dari file aktif dan merendernya sebagai segment-segment tombol - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **710**. Mengekstrak direktori path dari file aktif dan merendernya sebagai segment-segment tombol - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **711**. Mendukung navigasi folder via click segment folder breadcrumbs untuk memicu file explorer dropdown - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **712**. Mendukung navigasi folder via click segment folder breadcrumbs untuk memicu file explorer dropdown - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **713**. Mendukung navigasi folder via click segment folder breadcrumbs untuk memicu file explorer dropdown - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **714**. Mendukung navigasi folder via click segment folder breadcrumbs untuk memicu file explorer dropdown - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **715**. Mendukung navigasi folder via click segment folder breadcrumbs untuk memicu file explorer dropdown - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **716**. Meminta daftar symbol struktur file aktif dari LSP server menggunakan 'textDocument/documentSymbol' - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **717**. Meminta daftar symbol struktur file aktif dari LSP server menggunakan 'textDocument/documentSymbol' - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **718**. Meminta daftar symbol struktur file aktif dari LSP server menggunakan 'textDocument/documentSymbol' - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **719**. Meminta daftar symbol struktur file aktif dari LSP server menggunakan 'textDocument/documentSymbol' - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **720**. Meminta daftar symbol struktur file aktif dari LSP server menggunakan 'textDocument/documentSymbol' - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **721**. Menampilkan segment symbol aktif saat kursor berada di dalam cakupan symbol (class/method) - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **722**. Menampilkan segment symbol aktif saat kursor berada di dalam cakupan symbol (class/method) - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **723**. Menampilkan segment symbol aktif saat kursor berada di dalam cakupan symbol (class/method) - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **724**. Menampilkan segment symbol aktif saat kursor berada di dalam cakupan symbol (class/method) - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **725**. Menampilkan segment symbol aktif saat kursor berada di dalam cakupan symbol (class/method) - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **726**. Menampilkan ikon symbol (class, method, function, variable) di segment symbol - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **727**. Menampilkan ikon symbol (class, method, function, variable) di segment symbol - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **728**. Menampilkan ikon symbol (class, method, function, variable) di segment symbol - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **729**. Menampilkan ikon symbol (class, method, function, variable) di segment symbol - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **730**. Menampilkan ikon symbol (class, method, function, variable) di segment symbol - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **731**. Menyediakan dropdown symbol picker saat mengklik segment symbol breadcrumbs - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **732**. Menyediakan dropdown symbol picker saat mengklik segment symbol breadcrumbs - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **733**. Menyediakan dropdown symbol picker saat mengklik segment symbol breadcrumbs - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **734**. Menyediakan dropdown symbol picker saat mengklik segment symbol breadcrumbs - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **735**. Menyediakan dropdown symbol picker saat mengklik segment symbol breadcrumbs - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **736**. Mendukung penyaringan pencarian symbol di dropdown symbol picker secara real-time - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **737**. Mendukung penyaringan pencarian symbol di dropdown symbol picker secara real-time - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **738**. Mendukung penyaringan pencarian symbol di dropdown symbol picker secara real-time - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **739**. Mendukung penyaringan pencarian symbol di dropdown symbol picker secara real-time - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **740**. Mendukung penyaringan pencarian symbol di dropdown symbol picker secara real-time - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **741**. Melompat ke baris symbol saat symbol dipilih di picker - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **742**. Melompat ke baris symbol saat symbol dipilih di picker - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **743**. Melompat ke baris symbol saat symbol dipilih di picker - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **744**. Melompat ke baris symbol saat symbol dipilih di picker - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **745**. Melompat ke baris symbol saat symbol dipilih di picker - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **746**. Menyembunyikan breadcrumbs bar jika settings 'breadcrumbs.enabled' bernilai false - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **747**. Menyembunyikan breadcrumbs bar jika settings 'breadcrumbs.enabled' bernilai false - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **748**. Menyembunyikan breadcrumbs bar jika settings 'breadcrumbs.enabled' bernilai false - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **749**. Menyembunyikan breadcrumbs bar jika settings 'breadcrumbs.enabled' bernilai false - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **750**. Menyembunyikan breadcrumbs bar jika settings 'breadcrumbs.enabled' bernilai false - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
 
 ## 4. INTEGRASI TOOLS & PANEL LAYOUT (INTEGRATED TOOLS & PANELS)
 
 ### 4.1. Terminal Terintegrasi & Process Manager
-- [ ] **751**. Membuat Terminal Panel widget di bagian panel bawah workbench - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **752**. Membuat Terminal Panel widget di bagian panel bawah workbench - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **753**. Membuat Terminal Panel widget di bagian panel bawah workbench - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **754**. Membuat Terminal Panel widget di bagian panel bawah workbench - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **755**. Membuat Terminal Panel widget di bagian panel bawah workbench - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **756**. Menginisialisasi proses shell system (PowerShell/CMD di Windows, Bash/Zsh di UNIX) di background - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **757**. Menginisialisasi proses shell system (PowerShell/CMD di Windows, Bash/Zsh di UNIX) di background - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **758**. Menginisialisasi proses shell system (PowerShell/CMD di Windows, Bash/Zsh di UNIX) di background - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **759**. Menginisialisasi proses shell system (PowerShell/CMD di Windows, Bash/Zsh di UNIX) di background - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **760**. Menginisialisasi proses shell system (PowerShell/CMD di Windows, Bash/Zsh di UNIX) di background - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **761**. Menghubungkan input keyboard ke proses shell backend secara PTY - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **762**. Menghubungkan input keyboard ke proses shell backend secara PTY - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **763**. Menghubungkan input keyboard ke proses shell backend secara PTY - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **764**. Menghubungkan input keyboard ke proses shell backend secara PTY - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **765**. Menghubungkan input keyboard ke proses shell backend secara PTY - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **766**. Menghubungkan stream output shell backend ke terminal emulator frontend - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **767**. Menghubungkan stream output shell backend ke terminal emulator frontend - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **768**. Menghubungkan stream output shell backend ke terminal emulator frontend - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **769**. Menghubungkan stream output shell backend ke terminal emulator frontend - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **770**. Menghubungkan stream output shell backend ke terminal emulator frontend - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **771**. Mendukung pembuatan multi-instance terminal tab - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **772**. Mendukung pembuatan multi-instance terminal tab - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **773**. Mendukung pembuatan multi-instance terminal tab - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **774**. Mendukung pembuatan multi-instance terminal tab - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **775**. Mendukung pembuatan multi-instance terminal tab - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **776**. Menampilkan daftar terminal active instances di vertical tabs sidebar sebelah kanan terminal panel - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **777**. Menampilkan daftar terminal active instances di vertical tabs sidebar sebelah kanan terminal panel - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **778**. Menampilkan daftar terminal active instances di vertical tabs sidebar sebelah kanan terminal panel - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **779**. Menampilkan daftar terminal active instances di vertical tabs sidebar sebelah kanan terminal panel - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **780**. Menampilkan daftar terminal active instances di vertical tabs sidebar sebelah kanan terminal panel - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **781**. Menyediakan aksi ganti nama tab terminal secara dinamis - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **782**. Menyediakan aksi ganti nama tab terminal secara dinamis - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **783**. Menyediakan aksi ganti nama tab terminal secara dinamis - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **784**. Menyediakan aksi ganti nama tab terminal secara dinamis - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **785**. Menyediakan aksi ganti nama tab terminal secara dinamis - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **786**. Menyediakan terminal search buffer untuk mencari string teks di output terminal - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **787**. Menyediakan terminal search buffer untuk mencari string teks di output terminal - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **788**. Menyediakan terminal search buffer untuk mencari string teks di output terminal - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **789**. Menyediakan terminal search buffer untuk mencari string teks di output terminal - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **790**. Menyediakan terminal search buffer untuk mencari string teks di output terminal - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **791**. Menyesuaikan ukuran terminal buffer (rows/columns) saat panel bawah di-drag/resize - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **792**. Menyesuaikan ukuran terminal buffer (rows/columns) saat panel bawah di-drag/resize - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **793**. Menyesuaikan ukuran terminal buffer (rows/columns) saat panel bawah di-drag/resize - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **794**. Menyesuaikan ukuran terminal buffer (rows/columns) saat panel bawah di-drag/resize - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **795**. Menyesuaikan ukuran terminal buffer (rows/columns) saat panel bawah di-drag/resize - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **796**. Menyelaraskan tema warna terminal dengan tema workbench aktif - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **797**. Menyelaraskan tema warna terminal dengan tema workbench aktif - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **798**. Menyelaraskan tema warna terminal dengan tema workbench aktif - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **799**. Menyelaraskan tema warna terminal dengan tema workbench aktif - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **800**. Menyelaraskan tema warna terminal dengan tema workbench aktif - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **751**. Membuat Terminal Panel widget di bagian panel bawah workbench - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **752**. Membuat Terminal Panel widget di bagian panel bawah workbench - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **753**. Membuat Terminal Panel widget di bagian panel bawah workbench - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **754**. Membuat Terminal Panel widget di bagian panel bawah workbench - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **755**. Membuat Terminal Panel widget di bagian panel bawah workbench - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **756**. Menginisialisasi proses shell system (PowerShell/CMD di Windows, Bash/Zsh di UNIX) di background - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **757**. Menginisialisasi proses shell system (PowerShell/CMD di Windows, Bash/Zsh di UNIX) di background - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **758**. Menginisialisasi proses shell system (PowerShell/CMD di Windows, Bash/Zsh di UNIX) di background - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **759**. Menginisialisasi proses shell system (PowerShell/CMD di Windows, Bash/Zsh di UNIX) di background - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **760**. Menginisialisasi proses shell system (PowerShell/CMD di Windows, Bash/Zsh di UNIX) di background - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **761**. Menghubungkan input keyboard ke proses shell backend secara PTY - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **762**. Menghubungkan input keyboard ke proses shell backend secara PTY - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **763**. Menghubungkan input keyboard ke proses shell backend secara PTY - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **764**. Menghubungkan input keyboard ke proses shell backend secara PTY - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **765**. Menghubungkan input keyboard ke proses shell backend secara PTY - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **766**. Menghubungkan stream output shell backend ke terminal emulator frontend - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **767**. Menghubungkan stream output shell backend ke terminal emulator frontend - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **768**. Menghubungkan stream output shell backend ke terminal emulator frontend - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **769**. Menghubungkan stream output shell backend ke terminal emulator frontend - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **770**. Menghubungkan stream output shell backend ke terminal emulator frontend - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **771**. Mendukung pembuatan multi-instance terminal tab - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **772**. Mendukung pembuatan multi-instance terminal tab - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **773**. Mendukung pembuatan multi-instance terminal tab - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **774**. Mendukung pembuatan multi-instance terminal tab - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **775**. Mendukung pembuatan multi-instance terminal tab - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **776**. Menampilkan daftar terminal active instances di vertical tabs sidebar sebelah kanan terminal panel - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **777**. Menampilkan daftar terminal active instances di vertical tabs sidebar sebelah kanan terminal panel - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **778**. Menampilkan daftar terminal active instances di vertical tabs sidebar sebelah kanan terminal panel - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **779**. Menampilkan daftar terminal active instances di vertical tabs sidebar sebelah kanan terminal panel - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **780**. Menampilkan daftar terminal active instances di vertical tabs sidebar sebelah kanan terminal panel - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **781**. Menyediakan aksi ganti nama tab terminal secara dinamis - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **782**. Menyediakan aksi ganti nama tab terminal secara dinamis - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **783**. Menyediakan aksi ganti nama tab terminal secara dinamis - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **784**. Menyediakan aksi ganti nama tab terminal secara dinamis - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **785**. Menyediakan aksi ganti nama tab terminal secara dinamis - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **786**. Menyediakan terminal search buffer untuk mencari string teks di output terminal - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **787**. Menyediakan terminal search buffer untuk mencari string teks di output terminal - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **788**. Menyediakan terminal search buffer untuk mencari string teks di output terminal - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **789**. Menyediakan terminal search buffer untuk mencari string teks di output terminal - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **790**. Menyediakan terminal search buffer untuk mencari string teks di output terminal - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **791**. Menyesuaikan ukuran terminal buffer (rows/columns) saat panel bawah di-drag/resize - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **792**. Menyesuaikan ukuran terminal buffer (rows/columns) saat panel bawah di-drag/resize - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **793**. Menyesuaikan ukuran terminal buffer (rows/columns) saat panel bawah di-drag/resize - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **794**. Menyesuaikan ukuran terminal buffer (rows/columns) saat panel bawah di-drag/resize - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **795**. Menyesuaikan ukuran terminal buffer (rows/columns) saat panel bawah di-drag/resize - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **796**. Menyelaraskan tema warna terminal dengan tema workbench aktif - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **797**. Menyelaraskan tema warna terminal dengan tema workbench aktif - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **798**. Menyelaraskan tema warna terminal dengan tema workbench aktif - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **799**. Menyelaraskan tema warna terminal dengan tema workbench aktif - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **800**. Menyelaraskan tema warna terminal dengan tema workbench aktif - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
 
 ### 4.2. Global Search & Replace ripgrep Client
-- [ ] **801**. Membuat Search Panel widget di primary sidebar area - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **802**. Membuat Search Panel widget di primary sidebar area - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **803**. Membuat Search Panel widget di primary sidebar area - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **804**. Membuat Search Panel widget di primary sidebar area - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **805**. Membuat Search Panel widget di primary sidebar area - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **806**. Menyediakan search input box untuk mengetik kata kunci pencarian - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **807**. Menyediakan search input box untuk mengetik kata kunci pencarian - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **808**. Menyediakan search input box untuk mengetik kata kunci pencarian - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **809**. Menyediakan search input box untuk mengetik kata kunci pencarian - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **810**. Menyediakan search input box untuk mengetik kata kunci pencarian - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **811**. Menyediakan replace input box untuk mengganti kata kunci yang ditemukan - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **812**. Menyediakan replace input box untuk mengganti kata kunci yang ditemukan - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **813**. Menyediakan replace input box untuk mengganti kata kunci yang ditemukan - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **814**. Menyediakan replace input box untuk mengganti kata kunci yang ditemukan - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **815**. Menyediakan replace input box untuk mengganti kata kunci yang ditemukan - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **816**. Mengeksekusi program ripgrep secara asinkron untuk mencari kata kunci di workspace - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **817**. Mengeksekusi program ripgrep secara asinkron untuk mencari kata kunci di workspace - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **818**. Mengeksekusi program ripgrep secara asinkron untuk mencari kata kunci di workspace - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **819**. Mengeksekusi program ripgrep secara asinkron untuk mencari kata kunci di workspace - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **820**. Mengeksekusi program ripgrep secara asinkron untuk mencari kata kunci di workspace - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **821**. Mendukung filter pencarian case-sensitive, whole word, dan regular expression - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **822**. Mendukung filter pencarian case-sensitive, whole word, dan regular expression - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **823**. Mendukung filter pencarian case-sensitive, whole word, dan regular expression - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **824**. Mendukung filter pencarian case-sensitive, whole word, dan regular expression - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **825**. Mendukung filter pencarian case-sensitive, whole word, dan regular expression - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **826**. Menyediakan input box 'files to include' untuk membatasi ruang pencarian dengan glob patterns - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **827**. Menyediakan input box 'files to include' untuk membatasi ruang pencarian dengan glob patterns - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **828**. Menyediakan input box 'files to include' untuk membatasi ruang pencarian dengan glob patterns - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **829**. Menyediakan input box 'files to include' untuk membatasi ruang pencarian dengan glob patterns - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **830**. Menyediakan input box 'files to include' untuk membatasi ruang pencarian dengan glob patterns - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **831**. Menyediakan input box 'files to exclude' untuk mengabaikan direktori tertentu (seperti node_modules) - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **832**. Menyediakan input box 'files to exclude' untuk mengabaikan direktori tertentu (seperti node_modules) - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **833**. Menyediakan input box 'files to exclude' untuk mengabaikan direktori tertentu (seperti node_modules) - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **834**. Menyediakan input box 'files to exclude' untuk mengabaikan direktori tertentu (seperti node_modules) - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **835**. Menyediakan input box 'files to exclude' untuk mengabaikan direktori tertentu (seperti node_modules) - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **836**. Merender hasil pencarian dalam bentuk tree view interaktif dikelompokkan per file - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **837**. Merender hasil pencarian dalam bentuk tree view interaktif dikelompokkan per file - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **838**. Merender hasil pencarian dalam bentuk tree view interaktif dikelompokkan per file - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **839**. Merender hasil pencarian dalam bentuk tree view interaktif dikelompokkan per file - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **840**. Merender hasil pencarian dalam bentuk tree view interaktif dikelompokkan per file - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **841**. Mendukung preview baris kode yang cocok dengan sorotan highlight teks - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **842**. Mendukung preview baris kode yang cocok dengan sorotan highlight teks - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **843**. Mendukung preview baris kode yang cocok dengan sorotan highlight teks - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **844**. Mendukung preview baris kode yang cocok dengan sorotan highlight teks - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **845**. Mendukung preview baris kode yang cocok dengan sorotan highlight teks - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **846**. Melompat ke file dan baris yang cocok saat item hasil pencarian diklik di tree view - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **847**. Melompat ke file dan baris yang cocok saat item hasil pencarian diklik di tree view - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **848**. Melompat ke file dan baris yang cocok saat item hasil pencarian diklik di tree view - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **849**. Melompat ke file dan baris yang cocok saat item hasil pencarian diklik di tree view - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **850**. Melompat ke file dan baris yang cocok saat item hasil pencarian diklik di tree view - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **801**. Membuat Search Panel widget di primary sidebar area - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **802**. Membuat Search Panel widget di primary sidebar area - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **803**. Membuat Search Panel widget di primary sidebar area - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **804**. Membuat Search Panel widget di primary sidebar area - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **805**. Membuat Search Panel widget di primary sidebar area - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **806**. Menyediakan search input box untuk mengetik kata kunci pencarian - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **807**. Menyediakan search input box untuk mengetik kata kunci pencarian - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **808**. Menyediakan search input box untuk mengetik kata kunci pencarian - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **809**. Menyediakan search input box untuk mengetik kata kunci pencarian - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **810**. Menyediakan search input box untuk mengetik kata kunci pencarian - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **811**. Menyediakan replace input box untuk mengganti kata kunci yang ditemukan - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **812**. Menyediakan replace input box untuk mengganti kata kunci yang ditemukan - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **813**. Menyediakan replace input box untuk mengganti kata kunci yang ditemukan - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **814**. Menyediakan replace input box untuk mengganti kata kunci yang ditemukan - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **815**. Menyediakan replace input box untuk mengganti kata kunci yang ditemukan - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **816**. Mengeksekusi program ripgrep secara asinkron untuk mencari kata kunci di workspace - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **817**. Mengeksekusi program ripgrep secara asinkron untuk mencari kata kunci di workspace - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **818**. Mengeksekusi program ripgrep secara asinkron untuk mencari kata kunci di workspace - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **819**. Mengeksekusi program ripgrep secara asinkron untuk mencari kata kunci di workspace - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **820**. Mengeksekusi program ripgrep secara asinkron untuk mencari kata kunci di workspace - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **821**. Mendukung filter pencarian case-sensitive, whole word, dan regular expression - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **822**. Mendukung filter pencarian case-sensitive, whole word, dan regular expression - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **823**. Mendukung filter pencarian case-sensitive, whole word, dan regular expression - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **824**. Mendukung filter pencarian case-sensitive, whole word, dan regular expression - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **825**. Mendukung filter pencarian case-sensitive, whole word, dan regular expression - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **826**. Menyediakan input box 'files to include' untuk membatasi ruang pencarian dengan glob patterns - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **827**. Menyediakan input box 'files to include' untuk membatasi ruang pencarian dengan glob patterns - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **828**. Menyediakan input box 'files to include' untuk membatasi ruang pencarian dengan glob patterns - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **829**. Menyediakan input box 'files to include' untuk membatasi ruang pencarian dengan glob patterns - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **830**. Menyediakan input box 'files to include' untuk membatasi ruang pencarian dengan glob patterns - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **831**. Menyediakan input box 'files to exclude' untuk mengabaikan direktori tertentu (seperti node_modules) - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **832**. Menyediakan input box 'files to exclude' untuk mengabaikan direktori tertentu (seperti node_modules) - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **833**. Menyediakan input box 'files to exclude' untuk mengabaikan direktori tertentu (seperti node_modules) - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **834**. Menyediakan input box 'files to exclude' untuk mengabaikan direktori tertentu (seperti node_modules) - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **835**. Menyediakan input box 'files to exclude' untuk mengabaikan direktori tertentu (seperti node_modules) - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **836**. Merender hasil pencarian dalam bentuk tree view interaktif dikelompokkan per file - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **837**. Merender hasil pencarian dalam bentuk tree view interaktif dikelompokkan per file - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **838**. Merender hasil pencarian dalam bentuk tree view interaktif dikelompokkan per file - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **839**. Merender hasil pencarian dalam bentuk tree view interaktif dikelompokkan per file - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **840**. Merender hasil pencarian dalam bentuk tree view interaktif dikelompokkan per file - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **841**. Mendukung preview baris kode yang cocok dengan sorotan highlight teks - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **842**. Mendukung preview baris kode yang cocok dengan sorotan highlight teks - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **843**. Mendukung preview baris kode yang cocok dengan sorotan highlight teks - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **844**. Mendukung preview baris kode yang cocok dengan sorotan highlight teks - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **845**. Mendukung preview baris kode yang cocok dengan sorotan highlight teks - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **846**. Melompat ke file dan baris yang cocok saat item hasil pencarian diklik di tree view - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **847**. Melompat ke file dan baris yang cocok saat item hasil pencarian diklik di tree view - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **848**. Melompat ke file dan baris yang cocok saat item hasil pencarian diklik di tree view - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **849**. Melompat ke file dan baris yang cocok saat item hasil pencarian diklik di tree view - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **850**. Melompat ke file dan baris yang cocok saat item hasil pencarian diklik di tree view - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
 
 ### 4.3. Git SCM Panel & Command Helper
-- [ ] **851**. Membuat Source Control (SCM) Panel widget di primary sidebar area - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **852**. Membuat Source Control (SCM) Panel widget di primary sidebar area - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **853**. Membuat Source Control (SCM) Panel widget di primary sidebar area - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **854**. Membuat Source Control (SCM) Panel widget di primary sidebar area - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **855**. Membuat Source Control (SCM) Panel widget di primary sidebar area - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **856**. Mendeteksi status git repository di workspace aktif secara otomatis saat startup - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **857**. Mendeteksi status git repository di workspace aktif secara otomatis saat startup - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **858**. Mendeteksi status git repository di workspace aktif secara otomatis saat startup - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **859**. Mendeteksi status git repository di workspace aktif secara otomatis saat startup - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **860**. Mendeteksi status git repository di workspace aktif secara otomatis saat startup - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **861**. Memanggil perintah git status secara berkala untuk mendeteksi file yang termodifikasi - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **862**. Memanggil perintah git status secara berkala untuk mendeteksi file yang termodifikasi - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **863**. Memanggil perintah git status secara berkala untuk mendeteksi file yang termodifikasi - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **864**. Memanggil perintah git status secara berkala untuk mendeteksi file yang termodifikasi - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **865**. Memanggil perintah git status secara berkala untuk mendeteksi file yang termodifikasi - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **866**. Merender daftar file berubah dalam kelompok: Staged Changes, Changes, dan Untracked Changes - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **867**. Merender daftar file berubah dalam kelompok: Staged Changes, Changes, dan Untracked Changes - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **868**. Merender daftar file berubah dalam kelompok: Staged Changes, Changes, dan Untracked Changes - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **869**. Merender daftar file berubah dalam kelompok: Staged Changes, Changes, dan Untracked Changes - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **870**. Merender daftar file berubah dalam kelompok: Staged Changes, Changes, dan Untracked Changes - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **871**. Menyediakan tombol '+' (Stage) di sebelah nama file untuk memicu git add - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **872**. Menyediakan tombol '+' (Stage) di sebelah nama file untuk memicu git add - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **873**. Menyediakan tombol '+' (Stage) di sebelah nama file untuk memicu git add - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **874**. Menyediakan tombol '+' (Stage) di sebelah nama file untuk memicu git add - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **875**. Menyediakan tombol '+' (Stage) di sebelah nama file untuk memicu git add - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **876**. Menyediakan tombol '-' (Unstage) di sebelah nama file untuk memicu git reset - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **877**. Menyediakan tombol '-' (Unstage) di sebelah nama file untuk memicu git reset - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **878**. Menyediakan tombol '-' (Unstage) di sebelah nama file untuk memicu git reset - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **879**. Menyediakan tombol '-' (Unstage) di sebelah nama file untuk memicu git reset - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **880**. Menyediakan tombol '-' (Unstage) di sebelah nama file untuk memicu git reset - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **881**. Menyediakan tombol 'Discard' (ikon arrow revert) untuk mengabaikan perubahan file - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **882**. Menyediakan tombol 'Discard' (ikon arrow revert) untuk mengabaikan perubahan file - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **883**. Menyediakan tombol 'Discard' (ikon arrow revert) untuk mengabaikan perubahan file - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **884**. Menyediakan tombol 'Discard' (ikon arrow revert) untuk mengabaikan perubahan file - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **885**. Menyediakan tombol 'Discard' (ikon arrow revert) untuk mengabaikan perubahan file - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **886**. Menyediakan input text box untuk menulis Git commit message - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **887**. Menyediakan input text box untuk menulis Git commit message - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **888**. Menyediakan input text box untuk menulis Git commit message - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **889**. Menyediakan input text box untuk menulis Git commit message - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **890**. Menyediakan input text box untuk menulis Git commit message - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **891**. Menyediakan button Commit untuk memicu git commit -m - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **892**. Menyediakan button Commit untuk memicu git commit -m - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **893**. Menyediakan button Commit untuk memicu git commit -m - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **894**. Menyediakan button Commit untuk memicu git commit -m - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **895**. Menyediakan button Commit untuk memicu git commit -m - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **896**. Menyediakan submenu sync (Pull/Push) di bagian header panel - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **897**. Menyediakan submenu sync (Pull/Push) di bagian header panel - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **898**. Menyediakan submenu sync (Pull/Push) di bagian header panel - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **899**. Menyediakan submenu sync (Pull/Push) di bagian header panel - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **900**. Menyediakan submenu sync (Pull/Push) di bagian header panel - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **851**. Membuat Source Control (SCM) Panel widget di primary sidebar area - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **852**. Membuat Source Control (SCM) Panel widget di primary sidebar area - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **853**. Membuat Source Control (SCM) Panel widget di primary sidebar area - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **854**. Membuat Source Control (SCM) Panel widget di primary sidebar area - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **855**. Membuat Source Control (SCM) Panel widget di primary sidebar area - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **856**. Mendeteksi status git repository di workspace aktif secara otomatis saat startup - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **857**. Mendeteksi status git repository di workspace aktif secara otomatis saat startup - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **858**. Mendeteksi status git repository di workspace aktif secara otomatis saat startup - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **859**. Mendeteksi status git repository di workspace aktif secara otomatis saat startup - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **860**. Mendeteksi status git repository di workspace aktif secara otomatis saat startup - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **861**. Memanggil perintah git status secara berkala untuk mendeteksi file yang termodifikasi - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **862**. Memanggil perintah git status secara berkala untuk mendeteksi file yang termodifikasi - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **863**. Memanggil perintah git status secara berkala untuk mendeteksi file yang termodifikasi - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **864**. Memanggil perintah git status secara berkala untuk mendeteksi file yang termodifikasi - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **865**. Memanggil perintah git status secara berkala untuk mendeteksi file yang termodifikasi - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **866**. Merender daftar file berubah dalam kelompok: Staged Changes, Changes, dan Untracked Changes - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **867**. Merender daftar file berubah dalam kelompok: Staged Changes, Changes, dan Untracked Changes - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **868**. Merender daftar file berubah dalam kelompok: Staged Changes, Changes, dan Untracked Changes - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **869**. Merender daftar file berubah dalam kelompok: Staged Changes, Changes, dan Untracked Changes - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **870**. Merender daftar file berubah dalam kelompok: Staged Changes, Changes, dan Untracked Changes - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **871**. Menyediakan tombol '+' (Stage) di sebelah nama file untuk memicu git add - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **872**. Menyediakan tombol '+' (Stage) di sebelah nama file untuk memicu git add - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **873**. Menyediakan tombol '+' (Stage) di sebelah nama file untuk memicu git add - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **874**. Menyediakan tombol '+' (Stage) di sebelah nama file untuk memicu git add - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **875**. Menyediakan tombol '+' (Stage) di sebelah nama file untuk memicu git add - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **876**. Menyediakan tombol '-' (Unstage) di sebelah nama file untuk memicu git reset - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **877**. Menyediakan tombol '-' (Unstage) di sebelah nama file untuk memicu git reset - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **878**. Menyediakan tombol '-' (Unstage) di sebelah nama file untuk memicu git reset - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **879**. Menyediakan tombol '-' (Unstage) di sebelah nama file untuk memicu git reset - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **880**. Menyediakan tombol '-' (Unstage) di sebelah nama file untuk memicu git reset - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **881**. Menyediakan tombol 'Discard' (ikon arrow revert) untuk mengabaikan perubahan file - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **882**. Menyediakan tombol 'Discard' (ikon arrow revert) untuk mengabaikan perubahan file - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **883**. Menyediakan tombol 'Discard' (ikon arrow revert) untuk mengabaikan perubahan file - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **884**. Menyediakan tombol 'Discard' (ikon arrow revert) untuk mengabaikan perubahan file - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **885**. Menyediakan tombol 'Discard' (ikon arrow revert) untuk mengabaikan perubahan file - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **886**. Menyediakan input text box untuk menulis Git commit message - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **887**. Menyediakan input text box untuk menulis Git commit message - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **888**. Menyediakan input text box untuk menulis Git commit message - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **889**. Menyediakan input text box untuk menulis Git commit message - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **890**. Menyediakan input text box untuk menulis Git commit message - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **891**. Menyediakan button Commit untuk memicu git commit -m - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **892**. Menyediakan button Commit untuk memicu git commit -m - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **893**. Menyediakan button Commit untuk memicu git commit -m - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **894**. Menyediakan button Commit untuk memicu git commit -m - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **895**. Menyediakan button Commit untuk memicu git commit -m - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **896**. Menyediakan submenu sync (Pull/Push) di bagian header panel - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **897**. Menyediakan submenu sync (Pull/Push) di bagian header panel - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **898**. Menyediakan submenu sync (Pull/Push) di bagian header panel - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **899**. Menyediakan submenu sync (Pull/Push) di bagian header panel - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **900**. Menyediakan submenu sync (Pull/Push) di bagian header panel - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
 
 ### 4.4. DAP Debugger & Console REPL
-- [ ] **901**. Membuat Run & Debug Panel widget di primary sidebar area - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **902**. Membuat Run & Debug Panel widget di primary sidebar area - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **903**. Membuat Run & Debug Panel widget di primary sidebar area - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **904**. Membuat Run & Debug Panel widget di primary sidebar area - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **905**. Membuat Run & Debug Panel widget di primary sidebar area - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **906**. Membaca konfigurasi launch.json di folder .vscode workspace - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **907**. Membaca konfigurasi launch.json di folder .vscode workspace - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **908**. Membaca konfigurasi launch.json di folder .vscode workspace - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **909**. Membaca konfigurasi launch.json di folder .vscode workspace - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **910**. Membaca konfigurasi launch.json di folder .vscode workspace - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **911**. Menginisialisasi DAP (Debug Adapter Protocol) connection via socket/STDIO - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **912**. Menginisialisasi DAP (Debug Adapter Protocol) connection via socket/STDIO - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **913**. Menginisialisasi DAP (Debug Adapter Protocol) connection via socket/STDIO - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **914**. Menginisialisasi DAP (Debug Adapter Protocol) connection via socket/STDIO - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **915**. Menginisialisasi DAP (Debug Adapter Protocol) connection via socket/STDIO - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **916**. Menampilkan Debug Control Toolbar mengambang (Play, Step Over, Step Into, Step Out, Restart, Stop) - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **917**. Menampilkan Debug Control Toolbar mengambang (Play, Step Over, Step Into, Step Out, Restart, Stop) - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **918**. Menampilkan Debug Control Toolbar mengambang (Play, Step Over, Step Into, Step Out, Restart, Stop) - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **919**. Menampilkan Debug Control Toolbar mengambang (Play, Step Over, Step Into, Step Out, Restart, Stop) - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **920**. Menampilkan Debug Control Toolbar mengambang (Play, Step Over, Step Into, Step Out, Restart, Stop) - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **921**. Menampilkan daftar variables (Local, Global) yang aktif saat breakpoint terpicu - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **922**. Menampilkan daftar variables (Local, Global) yang aktif saat breakpoint terpicu - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **923**. Menampilkan daftar variables (Local, Global) yang aktif saat breakpoint terpicu - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **924**. Menampilkan daftar variables (Local, Global) yang aktif saat breakpoint terpicu - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **925**. Menampilkan daftar variables (Local, Global) yang aktif saat breakpoint terpicu - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **926**. Menampilkan Call Stack panel yang memperlihatkan thread status - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **927**. Menampilkan Call Stack panel yang memperlihatkan thread status - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **928**. Menampilkan Call Stack panel yang memperlihatkan thread status - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **929**. Menampilkan Call Stack panel yang memperlihatkan thread status - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **930**. Menampilkan Call Stack panel yang memperlihatkan thread status - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **931**. Menampilkan list Breakpoints yang aktif dengan checkbox untuk enable/disable - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **932**. Menampilkan list Breakpoints yang aktif dengan checkbox untuk enable/disable - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **933**. Menampilkan list Breakpoints yang aktif dengan checkbox untuk enable/disable - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **934**. Menampilkan list Breakpoints yang aktif dengan checkbox untuk enable/disable - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **935**. Menampilkan list Breakpoints yang aktif dengan checkbox untuk enable/disable - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **936**. Mendukung penambahan breakpoint baru dengan mengklik margin kiri Monaco Editor - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **937**. Mendukung penambahan breakpoint baru dengan mengklik margin kiri Monaco Editor - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **938**. Mendukung penambahan breakpoint baru dengan mengklik margin kiri Monaco Editor - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **939**. Mendukung penambahan breakpoint baru dengan mengklik margin kiri Monaco Editor - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **940**. Mendukung penambahan breakpoint baru dengan mengklik margin kiri Monaco Editor - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **941**. Membuat Debug Console panel yang berfungsi sebagai REPL evaluasi kode - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **942**. Membuat Debug Console panel yang berfungsi sebagai REPL evaluasi kode - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **943**. Membuat Debug Console panel yang berfungsi sebagai REPL evaluasi kode - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **944**. Membuat Debug Console panel yang berfungsi sebagai REPL evaluasi kode - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **945**. Membuat Debug Console panel yang berfungsi sebagai REPL evaluasi kode - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **946**. Menghubungkan stream output debug console untuk mencetak log program - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **947**. Menghubungkan stream output debug console untuk mencetak log program - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **948**. Menghubungkan stream output debug console untuk mencetak log program - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **949**. Menghubungkan stream output debug console untuk mencetak log program - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **950**. Menghubungkan stream output debug console untuk mencetak log program - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **901**. Membuat Run & Debug Panel widget di primary sidebar area - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **902**. Membuat Run & Debug Panel widget di primary sidebar area - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **903**. Membuat Run & Debug Panel widget di primary sidebar area - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **904**. Membuat Run & Debug Panel widget di primary sidebar area - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **905**. Membuat Run & Debug Panel widget di primary sidebar area - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **906**. Membaca konfigurasi launch.json di folder .vscode workspace - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **907**. Membaca konfigurasi launch.json di folder .vscode workspace - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **908**. Membaca konfigurasi launch.json di folder .vscode workspace - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **909**. Membaca konfigurasi launch.json di folder .vscode workspace - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **910**. Membaca konfigurasi launch.json di folder .vscode workspace - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **911**. Menginisialisasi DAP (Debug Adapter Protocol) connection via socket/STDIO - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **912**. Menginisialisasi DAP (Debug Adapter Protocol) connection via socket/STDIO - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **913**. Menginisialisasi DAP (Debug Adapter Protocol) connection via socket/STDIO - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **914**. Menginisialisasi DAP (Debug Adapter Protocol) connection via socket/STDIO - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **915**. Menginisialisasi DAP (Debug Adapter Protocol) connection via socket/STDIO - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **916**. Menampilkan Debug Control Toolbar mengambang (Play, Step Over, Step Into, Step Out, Restart, Stop) - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **917**. Menampilkan Debug Control Toolbar mengambang (Play, Step Over, Step Into, Step Out, Restart, Stop) - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **918**. Menampilkan Debug Control Toolbar mengambang (Play, Step Over, Step Into, Step Out, Restart, Stop) - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **919**. Menampilkan Debug Control Toolbar mengambang (Play, Step Over, Step Into, Step Out, Restart, Stop) - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **920**. Menampilkan Debug Control Toolbar mengambang (Play, Step Over, Step Into, Step Out, Restart, Stop) - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **921**. Menampilkan daftar variables (Local, Global) yang aktif saat breakpoint terpicu - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **922**. Menampilkan daftar variables (Local, Global) yang aktif saat breakpoint terpicu - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **923**. Menampilkan daftar variables (Local, Global) yang aktif saat breakpoint terpicu - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **924**. Menampilkan daftar variables (Local, Global) yang aktif saat breakpoint terpicu - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **925**. Menampilkan daftar variables (Local, Global) yang aktif saat breakpoint terpicu - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **926**. Menampilkan Call Stack panel yang memperlihatkan thread status - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **927**. Menampilkan Call Stack panel yang memperlihatkan thread status - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **928**. Menampilkan Call Stack panel yang memperlihatkan thread status - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **929**. Menampilkan Call Stack panel yang memperlihatkan thread status - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **930**. Menampilkan Call Stack panel yang memperlihatkan thread status - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **931**. Menampilkan list Breakpoints yang aktif dengan checkbox untuk enable/disable - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **932**. Menampilkan list Breakpoints yang aktif dengan checkbox untuk enable/disable - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **933**. Menampilkan list Breakpoints yang aktif dengan checkbox untuk enable/disable - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **934**. Menampilkan list Breakpoints yang aktif dengan checkbox untuk enable/disable - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **935**. Menampilkan list Breakpoints yang aktif dengan checkbox untuk enable/disable - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **936**. Mendukung penambahan breakpoint baru dengan mengklik margin kiri Monaco Editor - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **937**. Mendukung penambahan breakpoint baru dengan mengklik margin kiri Monaco Editor - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **938**. Mendukung penambahan breakpoint baru dengan mengklik margin kiri Monaco Editor - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **939**. Mendukung penambahan breakpoint baru dengan mengklik margin kiri Monaco Editor - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **940**. Mendukung penambahan breakpoint baru dengan mengklik margin kiri Monaco Editor - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **941**. Membuat Debug Console panel yang berfungsi sebagai REPL evaluasi kode - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **942**. Membuat Debug Console panel yang berfungsi sebagai REPL evaluasi kode - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **943**. Membuat Debug Console panel yang berfungsi sebagai REPL evaluasi kode - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **944**. Membuat Debug Console panel yang berfungsi sebagai REPL evaluasi kode - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **945**. Membuat Debug Console panel yang berfungsi sebagai REPL evaluasi kode - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **946**. Menghubungkan stream output debug console untuk mencetak log program - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **947**. Menghubungkan stream output debug console untuk mencetak log program - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **948**. Menghubungkan stream output debug console untuk mencetak log program - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **949**. Menghubungkan stream output debug console untuk mencetak log program - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **950**. Menghubungkan stream output debug console untuk mencetak log program - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
 
 ### 4.5. Problems, Output & Extensions Panel
-- [ ] **951**. Membuat Problems Panel widget di panel bawah area - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **952**. Membuat Problems Panel widget di panel bawah area - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **953**. Membuat Problems Panel widget di panel bawah area - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **954**. Membuat Problems Panel widget di panel bawah area - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **955**. Membuat Problems Panel widget di panel bawah area - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **956**. Merender daftar diagnostik error/warning dari LSP server dikelompokkan per file - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **957**. Merender daftar diagnostik error/warning dari LSP server dikelompokkan per file - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **958**. Merender daftar diagnostik error/warning dari LSP server dikelompokkan per file - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **959**. Merender daftar diagnostik error/warning dari LSP server dikelompokkan per file - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **960**. Merender daftar diagnostik error/warning dari LSP server dikelompokkan per file - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **961**. Menampilkan kode baris dan deskripsi error di problems list - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **962**. Menampilkan kode baris dan deskripsi error di problems list - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **963**. Menampilkan kode baris dan deskripsi error di problems list - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **964**. Menampilkan kode baris dan deskripsi error di problems list - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **965**. Menampilkan kode baris dan deskripsi error di problems list - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **966**. Melompat ke file dan memposisikan kursor di baris error saat item problem diklik - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **967**. Melompat ke file dan memposisikan kursor di baris error saat item problem diklik - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **968**. Melompat ke file dan memposisikan kursor di baris error saat item problem diklik - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **969**. Melompat ke file dan memposisikan kursor di baris error saat item problem diklik - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **970**. Melompat ke file dan memposisikan kursor di baris error saat item problem diklik - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **971**. Membuat Output Panel widget di panel bawah area - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **972**. Membuat Output Panel widget di panel bawah area - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **973**. Membuat Output Panel widget di panel bawah area - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **974**. Membuat Output Panel widget di panel bawah area - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **975**. Membuat Output Panel widget di panel bawah area - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **976**. Menyediakan channel selector dropdown di output panel (misal output Git, output LSP) - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **977**. Menyediakan channel selector dropdown di output panel (misal output Git, output LSP) - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **978**. Menyediakan channel selector dropdown di output panel (misal output Git, output LSP) - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **979**. Menyediakan channel selector dropdown di output panel (misal output Git, output LSP) - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **980**. Menyediakan channel selector dropdown di output panel (misal output Git, output LSP) - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **981**. Membuat Extensions Panel widget di primary sidebar area - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **982**. Membuat Extensions Panel widget di primary sidebar area - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **983**. Membuat Extensions Panel widget di primary sidebar area - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **984**. Membuat Extensions Panel widget di primary sidebar area - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **985**. Membuat Extensions Panel widget di primary sidebar area - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **986**. Membaca database extension lokal yang terpasang di folder .extensions - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **987**. Membaca database extension lokal yang terpasang di folder .extensions - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **988**. Membaca database extension lokal yang terpasang di folder .extensions - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **989**. Membaca database extension lokal yang terpasang di folder .extensions - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **990**. Membaca database extension lokal yang terpasang di folder .extensions - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **991**. Menyediakan antarmuka pencarian marketplace extension - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **992**. Menyediakan antarmuka pencarian marketplace extension - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **993**. Menyediakan antarmuka pencarian marketplace extension - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **994**. Menyediakan antarmuka pencarian marketplace extension - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **995**. Menyediakan antarmuka pencarian marketplace extension - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
-- [ ] **996**. Mendukung install, uninstall, enable, dan disable extension secara dinamis - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
-- [ ] **997**. Mendukung install, uninstall, enable, dan disable extension secara dinamis - Desain antarmuka UI komponen PySide6 dan binding properties.
-- [ ] **998**. Mendukung install, uninstall, enable, dan disable extension secara dinamis - Sinkronisasi events, signals, dan slot callbacks.
-- [ ] **999**. Mendukung install, uninstall, enable, dan disable extension secara dinamis - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
-- [ ] **1000**. Mendukung install, uninstall, enable, dan disable extension secara dinamis - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **951**. Membuat Problems Panel widget di panel bawah area - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **952**. Membuat Problems Panel widget di panel bawah area - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **953**. Membuat Problems Panel widget di panel bawah area - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **954**. Membuat Problems Panel widget di panel bawah area - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **955**. Membuat Problems Panel widget di panel bawah area - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **956**. Merender daftar diagnostik error/warning dari LSP server dikelompokkan per file - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **957**. Merender daftar diagnostik error/warning dari LSP server dikelompokkan per file - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **958**. Merender daftar diagnostik error/warning dari LSP server dikelompokkan per file - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **959**. Merender daftar diagnostik error/warning dari LSP server dikelompokkan per file - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **960**. Merender daftar diagnostik error/warning dari LSP server dikelompokkan per file - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **961**. Menampilkan kode baris dan deskripsi error di problems list - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **962**. Menampilkan kode baris dan deskripsi error di problems list - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **963**. Menampilkan kode baris dan deskripsi error di problems list - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **964**. Menampilkan kode baris dan deskripsi error di problems list - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **965**. Menampilkan kode baris dan deskripsi error di problems list - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **966**. Melompat ke file dan memposisikan kursor di baris error saat item problem diklik - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **967**. Melompat ke file dan memposisikan kursor di baris error saat item problem diklik - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **968**. Melompat ke file dan memposisikan kursor di baris error saat item problem diklik - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **969**. Melompat ke file dan memposisikan kursor di baris error saat item problem diklik - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **970**. Melompat ke file dan memposisikan kursor di baris error saat item problem diklik - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **971**. Membuat Output Panel widget di panel bawah area - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **972**. Membuat Output Panel widget di panel bawah area - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **973**. Membuat Output Panel widget di panel bawah area - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **974**. Membuat Output Panel widget di panel bawah area - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **975**. Membuat Output Panel widget di panel bawah area - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **976**. Menyediakan channel selector dropdown di output panel (misal output Git, output LSP) - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **977**. Menyediakan channel selector dropdown di output panel (misal output Git, output LSP) - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **978**. Menyediakan channel selector dropdown di output panel (misal output Git, output LSP) - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **979**. Menyediakan channel selector dropdown di output panel (misal output Git, output LSP) - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **980**. Menyediakan channel selector dropdown di output panel (misal output Git, output LSP) - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **981**. Membuat Extensions Panel widget di primary sidebar area - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **982**. Membuat Extensions Panel widget di primary sidebar area - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **983**. Membuat Extensions Panel widget di primary sidebar area - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **984**. Membuat Extensions Panel widget di primary sidebar area - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **985**. Membuat Extensions Panel widget di primary sidebar area - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **986**. Membaca database extension lokal yang terpasang di folder .extensions - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **987**. Membaca database extension lokal yang terpasang di folder .extensions - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **988**. Membaca database extension lokal yang terpasang di folder .extensions - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **989**. Membaca database extension lokal yang terpasang di folder .extensions - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **990**. Membaca database extension lokal yang terpasang di folder .extensions - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **991**. Menyediakan antarmuka pencarian marketplace extension - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **992**. Menyediakan antarmuka pencarian marketplace extension - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **993**. Menyediakan antarmuka pencarian marketplace extension - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **994**. Menyediakan antarmuka pencarian marketplace extension - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **995**. Menyediakan antarmuka pencarian marketplace extension - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.
+- [x] **996**. Mendukung install, uninstall, enable, dan disable extension secara dinamis - Tahap Inisialisasi arsitektur dan pemodelan class dasar.
+- [x] **997**. Mendukung install, uninstall, enable, dan disable extension secara dinamis - Desain antarmuka UI komponen PySide6 dan binding properties.
+- [x] **998**. Mendukung install, uninstall, enable, dan disable extension secara dinamis - Sinkronisasi events, signals, dan slot callbacks.
+- [x] **999**. Mendukung install, uninstall, enable, dan disable extension secara dinamis - Integrasi backend system, caching, dan optimalisasi penyimpanan state.
+- [x] **1000**. Mendukung install, uninstall, enable, dan disable extension secara dinamis - Pengujian unit testing, penanganan pengecualian error (exceptions), dan logging.

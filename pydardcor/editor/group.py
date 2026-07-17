@@ -797,6 +797,7 @@ class EditorGroup(QWidget):
 
     tab_changed = Signal(str, str)  # file_path, language
     dirty_changed = Signal(bool)
+    group_empty = Signal(object)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -1452,6 +1453,7 @@ class EditorGroup(QWidget):
         self._sync_tab_bar()
 
         if not self._tabs:
+            self.group_empty.emit(self)
             self.set_breadcrumbs_visible(False)
             self.refresh_welcome_recent()
             self._welcome.show()

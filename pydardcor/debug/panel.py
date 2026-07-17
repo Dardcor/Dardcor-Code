@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Signal, Qt, QTimer
 from PySide6.QtGui import QColor, QFont, QAction
+from pydardcor.workspace.workspace_trust import WorkspaceTrust
 
 
 class SectionWidget(QWidget):
@@ -392,9 +393,19 @@ class DebugPanel(QWidget):
         self._debug_btn.setEnabled(not active)
 
     def _on_run(self):
+        from ..core.config import get_config
+        trust_manager = WorkspaceTrust()
+        if not trust_manager.is_trusted(get_config().workspace_path or ""):
+            self._debug_console.append_error("Run", "Execution is disabled because this workspace is untrusted.")
+            return
         self.run_requested.emit()
 
     def _on_start(self):
+        from ..core.config import get_config
+        trust_manager = WorkspaceTrust()
+        if not trust_manager.is_trusted(get_config().workspace_path or ""):
+            self._debug_console.append_error("Debug", "Debugger is disabled because this workspace is untrusted.")
+            return
         self._set_debug_buttons(True)
         self._status_label.setText("Starting...")
         self.debug_requested.emit()
