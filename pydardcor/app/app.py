@@ -7,7 +7,6 @@ import sys
 import os
 import signal
 
-# Suppress Qt QPA font warnings on Windows (DirectWrite font database issues with legacy/bitmap fonts)
 if os.name == "nt":
     existing = os.environ.get("QT_LOGGING_RULES", "")
     if "qt.qpa.fonts" not in existing:
@@ -44,11 +43,13 @@ def run_desktop_app():
     if hasattr(Qt, "AA_UseHighDpiPixmaps"):
         QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
 
-    # Tune GPU acceleration for WebEngine (Monaco)
-    os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--enable-gpu-rasterization --enable-oop-rasterization --enable-zero-copy --ignore-gpu-blocklist"
+    if os.environ.get("DARDCOR_DISABLE_GPU") == "1":
+        os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--disable-gpu --disable-software-rasterizer"
+        QApplication.setAttribute(Qt.AA_UseSoftwareOpenGL)
+    else:
+        os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--enable-gpu-rasterization --enable-oop-rasterization --enable-zero-copy"
 
     app = QApplication(sys.argv)
-    # Fix Qt locale float parsing bugs in QSvgRenderer (e.g. for European/Indonesian locales using comma as decimal point)
     QLocale.setDefault(QLocale.c())
     app.setApplicationName("Dardcor Code")
     app.setApplicationDisplayName("Dardcor Code")
@@ -56,21 +57,17 @@ def run_desktop_app():
         app.setDesktopFileName("dardcor-code")
     app.setStyle("Fusion")
 
-    # Set default font
     from ..core.config import get_config
     cfg = get_config()
     ui_zoom = getattr(cfg, "ui_zoom", 0)
-    # Ensure point size doesn't drop below 6 to prevent QFont <= 0 warnings
     default_font = QFont("Inter", max(6, 9 + ui_zoom))
     default_font.setStyleHint(QFont.SansSerif)
     app.setFont(default_font)
 
-    # Apply saved theme before creating windows to avoid first-paint flicker.
     ThemeManager.register_extension_themes()
     ThemeManager._current_zoom_level = getattr(cfg, "ui_zoom", 0)
     ThemeManager.apply_theme(app, cfg.color_theme or "dardcor-purple")
 
-    # Set app icon globally
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     logo_path = os.path.join(base_dir, "image", "dardcor.png")
     if os.path.exists(logo_path):

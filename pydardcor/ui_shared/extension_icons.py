@@ -12,10 +12,8 @@ from PySide6.QtSvg import QSvgRenderer
 
 from ..core.config import get_global_home_dir
 
-_DEFAULT_SVG = b"""<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
-  <rect width="48" height="48" rx="8" fill="#161616"/>
-  <path d="M24 8l4 4-4 4-4-4 4-4zm-8 8l4 4-4 4-4-4 4-4zm16 0l4 4-4 4-4-4 4-4zm-8 8l4 4-4 4-4-4 4-4z"
-        fill="#888888" fill-rule="evenodd"/>
+_DEFAULT_SVG = b"""<svg width="48" height="48" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="#858585">
+  <path d="M14 6v8h-8V6h8zm-1 1H7v6h6V7zm-2-5v3H8V2h3zM7 2v3H4v8H3V4h4V2h5zM3 13V5h1v8H3z"/>
 </svg>"""
 
 

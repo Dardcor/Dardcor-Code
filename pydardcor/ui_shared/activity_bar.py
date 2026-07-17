@@ -174,7 +174,13 @@ class ActivityBarButton(QPushButton):
             x = self.width() - bw - 4
             y = self.height() - bh - 6
             painter.setPen(Qt.NoPen)
-            painter.setBrush(QColor("#007acc"))
+            try:
+                from ..app.theme_manager import ThemeManager
+                c = ThemeManager.THEMES.get(ThemeManager.current_theme_id(), ThemeManager.THEMES["dardcor-purple"])["colors"]
+                badge_bg = c.get("badge_bg", c.get("accent", "#007acc"))
+            except Exception:
+                badge_bg = "#007acc"
+            painter.setBrush(QColor(badge_bg))
             badge_rect = QRect(self.width() - 18, self.height() - 18, 16, 16)
             painter.drawRoundedRect(badge_rect, 8, 8)
             
@@ -246,13 +252,7 @@ class ActivityBar(QWidget):
         self._stretch_index = layout.count() - 1
         
         # Global Composite Bar
-        self._accounts_btn = ActivityBarButton("accounts", "Accounts", icon_path="")
-        self._accounts_btn.setText("\uea77") # account icon
-        layout.addWidget(self._accounts_btn)
-        
-        self._settings_btn = ActivityBarButton("settings", "Manage", icon_path="")
-        self._settings_btn.setText("\ueb51") # settings icon
-        layout.addWidget(self._settings_btn)
+        # The user requested to remove the accounts (reload) and settings buttons.
 
         self._ext_buttons = {}
         

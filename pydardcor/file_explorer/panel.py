@@ -1355,11 +1355,7 @@ class FileExplorer(QWidget):
         except (PermissionError, OSError):
             return
 
-        exclude_dict = h_config.get("files.exclude", {
-            "**/.git": True,
-            "**/__pycache__": True,
-            "**/.DS_Store": True
-        })
+        exclude_dict = h_config.get("files.exclude", {})
         
         # Parse exclude patterns
         exclude_patterns = []

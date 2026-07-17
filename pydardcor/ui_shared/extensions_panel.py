@@ -57,72 +57,53 @@ def configure_elided_label(label, text: str):
 class _ExtensionCardBase(QWidget):
     detail_requested = Signal(object)
 
-    CARD_HEIGHT = 112
-    ICON_CONTAINER = 48
-    ICON_SIZE = 36
+    CARD_HEIGHT = 62
+    ICON_CONTAINER = 42
+    ICON_SIZE = 42
 
     _STYLE_NORMAL = """
         #extensionCard {
-            background-color: #111111;
-            border: 1px solid #2b2b2b;
-            border-radius: 8px;
+            background-color: transparent;
+            border: none;
         }
     """
     _STYLE_HOVER = """
         #extensionCard {
-            background-color: #1a1a1a;
-            border: 1px solid #333333;
-            border-radius: 8px;
+            background-color: #2a2d2e;
+            border: none;
         }
     """
     _ICON_LABEL_STYLE = """
         QLabel {
-            background-color: #161616;
-            border-radius: 8px;
+            background-color: transparent;
             border: none;
         }
     """
-    _NAME_STYLE = "color: #e6e6e6; font-size: 13px; font-weight: 600; border: none; background: transparent;"
-    _VERSION_STYLE = "color: #9a9a9a; font-size: 11px; border: none; background: transparent;"
+    _NAME_STYLE = "color: #cccccc; font-size: 13px; font-weight: 600; border: none; background: transparent;"
+    _VERSION_STYLE = "color: #969696; font-size: 11px; border: none; background: transparent;"
     _DESC_STYLE = (
-        "color: #6a6a6a; font-size: 11px; line-height: 1.45; "
+        "color: #cccccc; font-size: 11px; "
         "border: none; background: transparent;"
     )
     _INSTALL_BTN_STYLE = """
         QPushButton {
             background-color: #0e639c; color: #ffffff; border: none;
-            border-radius: 5px; font-size: 11px; font-weight: 600;
-            min-height: 28px; padding: 0 14px;
+            border-radius: 2px; font-size: 11px;
+            min-height: 20px; padding: 0 8px;
         }
         QPushButton:hover { background-color: #1177bb; }
         QPushButton:disabled {
-            background-color: #1a1a1a; color: #6a6a6a;
-            border: 1px solid #2b2b2b;
+            background-color: transparent; color: #cccccc; font-size: 16px; font-family: 'codicon'; padding: 0; min-height: 24px;
         }
     """
-    _UNINSTALL_BTN_STYLE = """
+    _UNINSTALL_BTN_STYLE = ""
+    _ENABLE_CB_STYLE = ""
+    _GEAR_BTN_STYLE = """
         QPushButton {
-            background-color: #c42b1c; color: #ffffff; border: none;
-            border-radius: 5px; font-size: 11px; font-weight: 600;
-            min-height: 28px; padding: 0 14px;
+            background-color: transparent; color: #cccccc; border: none;
+            border-radius: 4px; font-size: 14px; font-family: 'codicon'; padding: 4px;
         }
-        QPushButton:hover { background-color: #e04838; }
-    """
-    _ENABLE_CB_STYLE = """
-        QCheckBox {
-            color: #9a9a9a; font-size: 11px; border: none;
-            background: transparent; spacing: 6px;
-        }
-        QCheckBox:checked { color: #e6e6e6; }
-        QCheckBox::indicator {
-            width: 16px; height: 16px;
-            border: 1px solid #333333; border-radius: 4px;
-            background: #161616;
-        }
-        QCheckBox::indicator:checked {
-            background: #0e639c; border-color: #1177bb;
-        }
-        QCheckBox::indicator:hover { border-color: #444444; }
+        QPushButton:hover { background-color: rgba(90, 93, 94, 0.31); color: #ffffff; }
     """
 
     def __init__(self, parent=None):
@@ -204,7 +185,7 @@ class OnlineExtensionCard(_ExtensionCardBase):
         self.action_btn.setEnabled(False)
 
     def set_installed(self):
-        self.action_btn.setText("Installed")
+        self.action_btn.setText("\ueb51") # Gear icon for installed
         self.action_btn.setEnabled(False)
 
     def set_failed(self):
@@ -215,69 +196,67 @@ class OnlineExtensionCard(_ExtensionCardBase):
         self.setFixedHeight(self.CARD_HEIGHT)
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(14, 12, 14, 12)
-        layout.setSpacing(14)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
 
         self._icon_label = self._create_icon_label()
         self._set_icon_pixmap(self._icon_label, default_extension_pixmap(self.ICON_SIZE))
-        layout.addWidget(self._icon_label)
+        layout.addWidget(self._icon_label, 0, Qt.AlignTop)
 
         info_layout = QVBoxLayout()
-        info_layout.setSpacing(5)
-        info_layout.setContentsMargins(0, 2, 0, 2)
+        info_layout.setSpacing(2)
+        info_layout.setContentsMargins(0, 0, 0, 0)
 
+        header_layout = QHBoxLayout()
+        header_layout.setSpacing(6)
         name_label = QLabel()
         configure_elided_label(
             name_label, self._ext.get("display_name", self._ext.get("name", "")))
         name_label.setStyleSheet(self._NAME_STYLE)
-        info_layout.addWidget(name_label)
+        header_layout.addWidget(name_label)
 
         version_label = QLabel(
-            f"v{self._ext.get('version', '0.0.0')}  \u00b7  {self._ext.get('publisher', '')}"
+            self._ext.get('publisher', '')
         )
         version_label.setStyleSheet(self._VERSION_STYLE)
-        info_layout.addWidget(version_label)
+        header_layout.addWidget(version_label, 1)
+        info_layout.addLayout(header_layout)
 
         desc_label = QLabel(self._ext.get("description", "No description"))
         desc_label.setStyleSheet(self._DESC_STYLE)
-        desc_label.setWordWrap(True)
-        desc_label.setMaximumHeight(34)
+        desc_label.setWordWrap(False)
+        desc_label.setMaximumHeight(16)
         info_layout.addWidget(desc_label)
-
-        layout.addLayout(info_layout, 1)
-
-        btn_layout = QVBoxLayout()
-        btn_layout.setSpacing(6)
-        btn_layout.setAlignment(Qt.AlignTop | Qt.AlignRight)
-
+        
+        footer_layout = QHBoxLayout()
+        footer_layout.setSpacing(6)
+        footer_layout.setContentsMargins(0, 4, 0, 0)
+        
         count = self._ext.get("download_count", 0)
         rating = self._ext.get("rating", 0.0)
-        rating_text = f"\u2605 {rating:.1f}" if rating > 0 else ""
-        installs_label = QLabel(f"\u2193  {count:,}")
-        installs_label.setStyleSheet(
-            "color: #6a6a6a; font-size: 10px; border: none; background: transparent;"
-        )
-        installs_label.setAlignment(Qt.AlignRight)
-        btn_layout.addWidget(installs_label)
+        
+        def shorten_count(c):
+            if c < 1000: return str(c)
+            if c < 1000000: return f"{c/1000:.1f}K".replace('.0K', 'K')
+            return f"{c/1000000:.1f}M".replace('.0M', 'M')
+        
+        stats_label = QLabel(f"\ueab6 {shorten_count(count)}" + (f"  \ueb53 {rating:.1f}" if rating > 0 else ""))
+        stats_label.setStyleSheet("color: #cccccc; font-size: 10px; font-family: 'codicon'; border: none; background: transparent;")
+        footer_layout.addWidget(stats_label)
+        footer_layout.addStretch()
 
-        if rating > 0:
-            rating_label = QLabel(rating_text)
-            rating_label.setStyleSheet(
-                "color: #ffcc00; font-size: 10px; border: none; background: transparent;"
-            )
-            rating_label.setAlignment(Qt.AlignRight)
-            btn_layout.addWidget(rating_label)
-
-        self.action_btn = QPushButton("Install" if not self._is_installed else "Installed")
+        self.action_btn = QPushButton("Install" if not self._is_installed else "\ueb51")
         self.action_btn.setEnabled(not self._is_installed)
-        self.action_btn.setFixedHeight(28)
-        self.action_btn.setMinimumWidth(80)
+        self.action_btn.setFixedHeight(20 if not self._is_installed else 24)
+        self.action_btn.setMinimumWidth(50 if not self._is_installed else 24)
         self.action_btn.setCursor(Qt.PointingHandCursor)
         self.action_btn.setStyleSheet(self._INSTALL_BTN_STYLE)
-        self.action_btn.clicked.connect(lambda: self.install_requested.emit(self._ext))
-        btn_layout.addWidget(self.action_btn, 0, Qt.AlignRight)
+        if not self._is_installed:
+            self.action_btn.clicked.connect(lambda: self.install_requested.emit(self._ext))
+        footer_layout.addWidget(self.action_btn)
 
-        layout.addLayout(btn_layout)
+        info_layout.addLayout(footer_layout)
+        layout.addLayout(info_layout, 1)
 
 
 class ExtensionCard(_ExtensionCardBase):
@@ -297,8 +276,8 @@ class ExtensionCard(_ExtensionCardBase):
         self.setFixedHeight(self.CARD_HEIGHT)
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(14, 12, 14, 12)
-        layout.setSpacing(14)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
 
         self._icon_label = self._create_icon_label()
         icon_path = installed_extension_icon_path(self._ext.path, self._ext.manifest or {})
@@ -307,50 +286,71 @@ class ExtensionCard(_ExtensionCardBase):
             if icon_path else default_extension_pixmap(self.ICON_SIZE)
         )
         self._set_icon_pixmap(self._icon_label, pm)
-        layout.addWidget(self._icon_label)
+        layout.addWidget(self._icon_label, 0, Qt.AlignTop)
 
         info_layout = QVBoxLayout()
-        info_layout.setSpacing(5)
-        info_layout.setContentsMargins(0, 2, 0, 2)
+        info_layout.setSpacing(2)
+        info_layout.setContentsMargins(0, 0, 0, 0)
 
+        header_layout = QHBoxLayout()
+        header_layout.setSpacing(6)
         name_label = QLabel()
         configure_elided_label(name_label, self._ext.display_name or self._ext.name)
         name_label.setStyleSheet(self._NAME_STYLE)
-        info_layout.addWidget(name_label)
+        header_layout.addWidget(name_label)
 
-        version_label = QLabel(f"v{self._ext.version}  \u00b7  {self._ext.publisher}")
+        version_label = QLabel(self._ext.publisher)
         version_label.setStyleSheet(self._VERSION_STYLE)
-        info_layout.addWidget(version_label)
+        header_layout.addWidget(version_label, 1)
+        info_layout.addLayout(header_layout)
 
         desc_label = QLabel(self._ext.description or "No description")
         desc_label.setStyleSheet(self._DESC_STYLE)
-        desc_label.setWordWrap(True)
-        desc_label.setMaximumHeight(34)
+        desc_label.setWordWrap(False)
+        desc_label.setMaximumHeight(16)
         info_layout.addWidget(desc_label)
+        
+        footer_layout = QHBoxLayout()
+        footer_layout.setSpacing(6)
+        footer_layout.setContentsMargins(0, 4, 0, 0)
+        
+        from ..app.theme_manager import ThemeManager
+        c = ThemeManager.THEMES.get(ThemeManager.current_theme_id(), ThemeManager.THEMES["dardcor-purple"])["colors"]
+        
+        gear_btn = QPushButton("\ueb51")
+        gear_btn.setFixedSize(24, 24)
+        gear_btn.setCursor(Qt.PointingHandCursor)
+        gear_btn.setStyleSheet(self._GEAR_BTN_STYLE)
+        
+        from PySide6.QtWidgets import QMenu
+        from PySide6.QtGui import QAction
+        
+        def show_menu():
+            menu = QMenu(self)
+            menu.setStyleSheet(f"QMenu {{ background-color: #252526; color: #cccccc; border: 1px solid #454545; }} QMenu::item:selected {{ background-color: {c.get('accent', '#007acc')}; }}")
+            act_toggle = QAction("Disable" if self._ext.enabled else "Enable", self)
+            act_toggle.triggered.connect(lambda: self.toggle_requested.emit(self._ext.name, not self._ext.enabled))
+            menu.addAction(act_toggle)
+            menu.addSeparator()
+            act_uninstall = QAction("Uninstall", self)
+            act_uninstall.triggered.connect(lambda: self.uninstall_requested.emit(self._ext.name))
+            menu.addAction(act_uninstall)
+            menu.exec(gear_btn.mapToGlobal(gear_btn.rect().bottomLeft()))
+            
+        gear_btn.clicked.connect(show_menu)
+        
+        footer_layout.addStretch()
+        footer_layout.addWidget(gear_btn)
 
+        info_layout.addLayout(footer_layout)
         layout.addLayout(info_layout, 1)
+        
+        if not self._ext.enabled:
+            self.setStyleSheet(self._STYLE_NORMAL + " #extensionCard { opacity: 0.5; }")
+            name_label.setStyleSheet(self._NAME_STYLE + " color: #6a6a6a;")
+            version_label.setStyleSheet(self._VERSION_STYLE + " color: #6a6a6a;")
+            desc_label.setStyleSheet(self._DESC_STYLE + " color: #6a6a6a;")
 
-        btn_layout = QVBoxLayout()
-        btn_layout.setSpacing(6)
-        btn_layout.setAlignment(Qt.AlignTop | Qt.AlignRight)
-
-        self._enable_cb = QCheckBox("Enabled")
-        self._enable_cb.setChecked(self._ext.enabled)
-        self._enable_cb.setCursor(Qt.PointingHandCursor)
-        self._enable_cb.setStyleSheet(self._ENABLE_CB_STYLE)
-        self._update_enable_label()
-        self._enable_cb.toggled.connect(self._on_toggle)
-        btn_layout.addWidget(self._enable_cb, 0, Qt.AlignRight)
-
-        uninstall_btn = QPushButton("Uninstall")
-        uninstall_btn.setFixedHeight(28)
-        uninstall_btn.setMinimumWidth(80)
-        uninstall_btn.setCursor(Qt.PointingHandCursor)
-        uninstall_btn.setStyleSheet(self._UNINSTALL_BTN_STYLE)
-        uninstall_btn.clicked.connect(lambda: self.uninstall_requested.emit(self._ext.name))
-        btn_layout.addWidget(uninstall_btn, 0, Qt.AlignRight)
-
-        layout.addLayout(btn_layout)
 
     def _update_enable_label(self):
         if self._enable_cb.isChecked():
@@ -415,16 +415,19 @@ class ExtensionsPanel(QWidget):
         header_layout.addWidget(title)
         header_layout.addStretch()
 
+        from ..app.theme_manager import ThemeManager
+        c = ThemeManager.THEMES.get(ThemeManager.current_theme_id(), ThemeManager.THEMES["dardcor-purple"])["colors"]
+        
         refresh_btn = QPushButton("\u21bb")
         refresh_btn.setToolTip("Refresh installed extensions")
         refresh_btn.setFixedSize(24, 24)
         refresh_btn.setCursor(Qt.PointingHandCursor)
-        refresh_btn.setStyleSheet("""
-            QPushButton {
-                background-color: transparent; color: #cccccc; border: none;
+        refresh_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: transparent; color: {c.get('foreground', '#cccccc')}; border: none;
                 font-size: 14px; font-weight: bold;
-            }
-            QPushButton:hover { color: #ffffff; background-color: #1a1a1a; border-radius: 4px; }
+            }}
+            QPushButton:hover {{ color: #ffffff; background-color: {c.get('hover', '#1a1a1a')}; border-radius: 4px; }}
         """)
         refresh_btn.clicked.connect(self._reload_installed)
         header_layout.addWidget(refresh_btn)
@@ -437,44 +440,56 @@ class ExtensionsPanel(QWidget):
         folder_btn.clicked.connect(self._open_extensions_folder)
         header_layout.addWidget(folder_btn)
 
-        install_btn = QPushButton("\u2b07 Install .vsix")
-        install_btn.setFixedHeight(24)
-        install_btn.setCursor(Qt.PointingHandCursor)
-        install_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #333333; color: #ffffff; border: none;
-                border-radius: 4px; font-size: 11px; padding: 2px 10px; font-weight: bold;
-            }
-            QPushButton:hover { background-color: #444444; }
+        import os
+        from PySide6.QtGui import QIcon
+        image_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "image")
+        
+        more_btn = QPushButton()
+        more_btn.setIcon(QIcon(os.path.join(image_dir, "more.svg")))
+        more_btn.setToolTip("Views and More Actions...")
+        more_btn.setFixedSize(24, 24)
+        more_btn.setCursor(Qt.PointingHandCursor)
+        more_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: transparent; border: none;
+            }}
+            QPushButton:hover {{ background-color: {c.get('hover', '#1a1a1a')}; border-radius: 4px; }}
         """)
-        install_btn.clicked.connect(self._install_from_vsix)
-        header_layout.addWidget(install_btn)
-
-        self._auto_update_cb = QCheckBox("Auto Update")
-        self._auto_update_cb.setChecked(get_config().extensions_auto_update)
-        self._auto_update_cb.setToolTip("Automatically update extensions from the marketplace")
-        self._auto_update_cb.setStyleSheet("""
-            QCheckBox { color: #aaaaaa; font-size: 10px; border: none; spacing: 4px; }
-            QCheckBox::indicator { width: 12px; height: 12px; border: 1px solid #555555; border-radius: 2px; background: #2a2a2a; }
-            QCheckBox::indicator:checked { background: #ffffff; border-color: #cccccc; }
-        """)
-        self._auto_update_cb.toggled.connect(self._on_auto_update_toggled)
-        header_layout.addWidget(self._auto_update_cb)
+        
+        from PySide6.QtWidgets import QMenu
+        from PySide6.QtGui import QAction
+        
+        def show_more_menu():
+            menu = QMenu(self)
+            menu.setStyleSheet(f"QMenu {{ background-color: {c.get('sidebar', '#252526')}; color: {c.get('foreground', '#cccccc')}; border: 1px solid {c.get('border', '#454545')}; }} QMenu::item:selected {{ background-color: {c.get('accent', '#007acc')}; }}")
+            act_install = QAction("Install from VSIX...", self)
+            act_install.triggered.connect(self._install_from_vsix)
+            menu.addAction(act_install)
+            menu.addSeparator()
+            act_auto = QAction("Auto Update Extensions", self)
+            act_auto.setCheckable(True)
+            act_auto.setChecked(get_config().extensions_auto_update)
+            act_auto.toggled.connect(self._on_auto_update_toggled)
+            menu.addAction(act_auto)
+            menu.exec(more_btn.mapToGlobal(more_btn.rect().bottomLeft()))
+            
+        more_btn.clicked.connect(show_more_menu)
+        header_layout.addWidget(more_btn)
 
         layout.addWidget(header)
 
         self._search_input = QLineEdit()
-        self._search_input.setPlaceholderText("\U0001F50D  Search Extensions in Marketplace...")
+        self._search_input.setPlaceholderText("Search Extensions in Marketplace...")
         self._search_input.setFixedHeight(32)
-        self._search_input.setStyleSheet("""
-            QLineEdit {
-                background-color: #1e1e1e; color: #cccccc;
-                border: 1px solid #333333; border-radius: 4px;
+        self._search_input.setStyleSheet(f"""
+            QLineEdit {{
+                background-color: {c.get('sidebar', '#1e1e1e')}; color: {c.get('foreground', '#cccccc')};
+                border: 1px solid {c.get('border', '#333333')}; border-radius: 4px;
                 padding: 6px 12px; font-size: 13px;
-                selection-background-color: #2a2a2a;
-            }
-            QLineEdit:focus { border: 1px solid #555555; background-color: #0a0a0a; }
-            QLineEdit::placeholder { color: #666666; }
+                selection-background-color: {c.get('selection', '#2a2a2a')};
+            }}
+            QLineEdit:focus {{ border: 1px solid {c.get('accent', '#007acc')}; background-color: {c.get('background', '#0a0a0a')}; }}
+            QLineEdit::placeholder {{ color: #666666; }}
         """)
         self._search_input.textChanged.connect(self._on_search_changed)
         layout.addWidget(self._search_input)
@@ -484,19 +499,19 @@ class ExtensionsPanel(QWidget):
         self._source_combo.addItem("Open VSX Registry")
         self._source_combo.setFixedHeight(26)
         self._source_combo.setCursor(Qt.PointingHandCursor)
-        self._source_combo.setStyleSheet("""
-            QComboBox {
-                background-color: #1e1e1e; color: #cccccc;
-                border: 1px solid #333333; border-radius: 4px;
+        self._source_combo.setStyleSheet(f"""
+            QComboBox {{
+                background-color: {c.get('sidebar', '#1e1e1e')}; color: {c.get('foreground', '#cccccc')};
+                border: 1px solid {c.get('border', '#333333')}; border-radius: 4px;
                 padding: 2px 8px; font-size: 11px;
-            }
-            QComboBox:hover { border-color: #555555; }
-            QComboBox::drop-down { border: none; width: 18px; }
-            QComboBox QAbstractItemView {
-                background-color: #0a0a0a; color: #cccccc;
-                selection-background-color: #2a2a2a;
-                border: 1px solid #333333;
-            }
+            }}
+            QComboBox:hover {{ border-color: {c.get('accent', '#555555')}; }}
+            QComboBox::drop-down {{ border: none; width: 18px; }}
+            QComboBox QAbstractItemView {{
+                background-color: {c.get('background', '#0a0a0a')}; color: {c.get('foreground', '#cccccc')};
+                selection-background-color: {c.get('selection', '#2a2a2a')};
+                border: 1px solid {c.get('border', '#333333')};
+            }}
         """)
         self._source_combo.currentIndexChanged.connect(self._on_source_changed)
         layout.addWidget(self._source_combo)
@@ -628,14 +643,14 @@ class ExtensionsPanel(QWidget):
         self._tab_installed.setChecked(True)
         self._tab_marketplace.setChecked(False)
         self._tab_recommendations.setChecked(False)
-        self._search_input.setPlaceholderText("\U0001F50D  Search Installed Extensions...")
+        self._search_input.setPlaceholderText("Search Installed Extensions...")
         self._refresh_extensions()
 
     def _show_marketplace(self):
         self._tab_installed.setChecked(False)
         self._tab_marketplace.setChecked(True)
         self._tab_recommendations.setChecked(False)
-        self._search_input.setPlaceholderText("\U0001F50D  Search Extensions in Marketplace...")
+        self._search_input.setPlaceholderText("Search Extensions in Marketplace...")
         query = self._search_input.text().strip()
         if len(query) >= 2:
             self._do_marketplace_search()
@@ -646,7 +661,7 @@ class ExtensionsPanel(QWidget):
         self._tab_installed.setChecked(False)
         self._tab_marketplace.setChecked(False)
         self._tab_recommendations.setChecked(True)
-        self._search_input.setPlaceholderText("\U0001F50D  Search Recommendations...")
+        self._search_input.setPlaceholderText("Search Recommendations...")
         self._load_recommendations()
 
     def _load_recommendations(self):
