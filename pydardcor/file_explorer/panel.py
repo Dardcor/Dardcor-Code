@@ -766,21 +766,43 @@ class FileExplorer(QWidget):
     def _show_explorer_menu(self):
         from PySide6.QtWidgets import QMenu
         from PySide6.QtGui import QAction
-        menu = QMenu(self)
-        menu.setStyleSheet("""
-            QMenu {
-                background-color: #000000;
-                color: #cccccc;
-                border: 1px solid #333333;
-            }
-            QMenu::item {
+        from ..app.theme_manager import ThemeManager
+        import os
+
+        class KeepOpenMenu(QMenu):
+            def mouseReleaseEvent(self, e):
+                action = self.actionAt(e.pos())
+                if action and action.isCheckable():
+                    action.trigger()
+                    self.update()
+                    e.accept()
+                    return
+                super().mouseReleaseEvent(e)
+
+        menu = KeepOpenMenu(self)
+        c = ThemeManager.THEMES.get(ThemeManager.current_theme_id(), ThemeManager.THEMES["dardcor-purple"])["colors"]
+        image_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "image")
+        check_icon_path = os.path.join(image_dir, 'menu_check.svg').replace('\\', '/')
+
+        menu_style = f"""
+            QMenu {{
+                background-color: {c.get('sidebar', '#252526')};
+                color: {c.get('foreground', '#cccccc')};
+                border: 1px solid {c.get('border', '#454545')};
+            }}
+            QMenu::item {{
                 padding: 4px 24px 4px 24px;
-            }
-            QMenu::item:selected {
-                background-color: #333333;
+            }}
+            QMenu::item:selected {{
+                background-color: {c.get('accent', '#007acc')};
                 color: #ffffff;
-            }
-        """)
+            }}
+            QMenu::indicator {{ width: 16px; height: 16px; padding-left: 6px; }}
+            QMenu::indicator:checked {{ image: url({check_icon_path}); }}
+            QMenu::indicator:non-exclusive:checked {{ image: url({check_icon_path}); }}
+            QMenu::indicator:exclusive:checked {{ image: url({check_icon_path}); }}
+        """
+        menu.setStyleSheet(menu_style)
         
         config = get_config()
         if self._open_editors_panel:
@@ -818,7 +840,9 @@ class FileExplorer(QWidget):
         menu.addAction(toggle_folders)
 
         # Sort Order Submenu
-        sort_menu = menu.addMenu("Sort Order")
+        sort_menu = KeepOpenMenu("Sort Order", self)
+        sort_menu.setStyleSheet(menu_style)
+        menu.addMenu(sort_menu)
         sort_options = [
             ("default", "Default (Folders First)"),
             ("mixed", "Mixed"),
@@ -1922,27 +1946,31 @@ class FileExplorer(QWidget):
         if not self._root_path:
             return
 
+        from ..app.theme_manager import ThemeManager
+        c = ThemeManager.THEMES.get(ThemeManager.current_theme_id(), ThemeManager.THEMES["dardcor-purple"])["colors"]
+
         menu = QMenu(self)
-        menu.setStyleSheet("""
-            QMenu {
-                background-color: #000000;
-                color: #cccccc;
-                border: 1px solid #454545;
+        menu.setStyleSheet(f"""
+            QMenu {{
+                background-color: {c.get('sidebar', '#252526')};
+                color: {c.get('foreground', '#cccccc')};
+                border: 1px solid {c.get('border', '#454545')};
                 padding: 4px 0px;
                 font-size: 12px;
-            }
-            QMenu::item {
+            }}
+            QMenu::item {{
                 padding: 4px 28px 4px 12px;
                 min-width: 150px;
-            }
-            QMenu::item:selected {
-                background-color: #1a1a1a;
-            }
-            QMenu::separator {
+            }}
+            QMenu::item:selected {{
+                background-color: {c.get('accent', '#007acc')};
+                color: #ffffff;
+            }}
+            QMenu::separator {{
                 height: 1px;
-                background: #454545;
+                background: {c.get('border', '#454545')};
                 margin: 4px 0px;
-            }
+            }}
         """)
 
         new_file = QAction("New File...", self)
@@ -2037,27 +2065,31 @@ class FileExplorer(QWidget):
         
         item = self._tree.itemAt(position)
 
+        from ..app.theme_manager import ThemeManager
+        c = ThemeManager.THEMES.get(ThemeManager.current_theme_id(), ThemeManager.THEMES["dardcor-purple"])["colors"]
+
         menu = QMenu(self)
-        menu.setStyleSheet("""
-            QMenu {
-                background-color: #000000;
-                color: #cccccc;
-                border: 1px solid #454545;
+        menu.setStyleSheet(f"""
+            QMenu {{
+                background-color: {c.get('sidebar', '#252526')};
+                color: {c.get('foreground', '#cccccc')};
+                border: 1px solid {c.get('border', '#454545')};
                 padding: 4px 0px;
                 font-size: 12px;
-            }
-            QMenu::item {
+            }}
+            QMenu::item {{
                 padding: 4px 28px 4px 12px;
                 min-width: 150px;
-            }
-            QMenu::item:selected {
-                background-color: #1a1a1a;
-            }
-            QMenu::separator {
+            }}
+            QMenu::item:selected {{
+                background-color: {c.get('accent', '#007acc')};
+                color: #ffffff;
+            }}
+            QMenu::separator {{
                 height: 1px;
-                background: #454545;
+                background: {c.get('border', '#454545')};
                 margin: 4px 0px;
-            }
+            }}
         """)
 
         if not item:

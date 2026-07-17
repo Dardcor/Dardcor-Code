@@ -142,9 +142,12 @@ class NotificationService(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setWindowFlags(Qt.ToolTip | Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_ShowWithoutActivating)
         self.setAttribute(Qt.WA_TransparentForMouseEvents, False)
         self.setAttribute(Qt.WA_TranslucentBackground, True)
         self.setStyleSheet("background: transparent;")
+        self.hide()
         self._toasts: list[NotificationToast] = []
         self._queue: deque = deque()
         self._history = []

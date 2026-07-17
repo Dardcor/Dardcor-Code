@@ -298,3 +298,8 @@ class EditorTabs(QWidget):
         self.grid_system.layout.addWidget(self.grid_system.root_node)
         self._active_group_idx = 0
 
+    def revert_current_file(self):
+        g = self.active_group()
+        if g:
+            g.revert_current_file()
+

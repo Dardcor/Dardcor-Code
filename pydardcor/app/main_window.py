@@ -867,20 +867,16 @@ class MainWindow(QMainWindow):
         self._zen_mode = ZenModeManager(self)
         self._centered_layout = CenteredLayoutManager(self)
         self._focus_manager = FocusManager(self)
-        self._theme_overlay = ThemeLoadingOverlay(self)
         self._setup_breadcrumbs()
         self._setup_keybindings()
         self._setup_menu()
         self._setup_shortcuts()
         self._setup_command_palette()
-        self._setup_extensions()
+        QTimer.singleShot(50, self._setup_extensions)
         self._restore_window_geometry()
         
-        # Apply theme again now that all panels (search, git, etc) are instantiated
-        # so they get patched from their hardcoded styles and editors are updated
         self._set_theme(self._config.color_theme or "dardcor-purple")
 
-        # Log session start telemetry
         try:
             from ..core.telemetry import get_telemetry_service
             telemetry = get_telemetry_service()
@@ -897,20 +893,17 @@ class MainWindow(QMainWindow):
         import os
         from PySide6.QtWidgets import QApplication
         
-        # Store current state if needed
         self._save_window_geometry()
         
         python = sys.executable
         os.execl(python, python, *sys.argv)
         
-    # ── Window Events (Native Resizing & Maximize Icon) ──
-
     def changeEvent(self, event):
         if event.type() == QEvent.WindowStateChange:
             if self.isMaximized():
-                self._title_bar.max_btn.setText("\ueabb") # chrome-restore
+                self._title_bar.max_btn.setText("\ueabb")
             else:
-                self._title_bar.max_btn.setText("\ueab9") # chrome-maximize
+                self._title_bar.max_btn.setText("\ueab9")
         super().changeEvent(event)
 
     def resizeEvent(self, event):
@@ -921,34 +914,29 @@ class MainWindow(QMainWindow):
     def nativeEvent(self, eventType, message):
         if os.name == "nt":
             msg = wintypes.MSG.from_address(message.__int__())
-            if msg.message == 0x0084: # WM_NCHITTEST
+            if msg.message == 0x0084:
                 from PySide6.QtGui import QCursor
                 logical_global_pos = QCursor.pos()
                 pos = self.mapFromGlobal(logical_global_pos)
                 
                 w, h = self.width(), self.height()
-                b = 8 # Border size for resizing
+                b = 8
                 
-                # Check corners
-                if pos.x() < b and pos.y() < b: return True, 13 # HTTOPLEFT
-                if pos.x() > w - b and pos.y() < b: return True, 14 # HTTOPRIGHT
-                if pos.x() < b and pos.y() > h - b: return True, 16 # HTBOTTOMLEFT
-                if pos.x() > w - b and pos.y() > h - b: return True, 17 # HTBOTTOMRIGHT
+                if pos.x() < b and pos.y() < b: return True, 13
+                if pos.x() > w - b and pos.y() < b: return True, 14
+                if pos.x() < b and pos.y() > h - b: return True, 16
+                if pos.x() > w - b and pos.y() > h - b: return True, 17
                 
-                # Check edges
-                if pos.x() < b: return True, 10 # HTLEFT
-                if pos.x() > w - b: return True, 11 # HTRIGHT
-                if pos.y() < b: return True, 12 # HTTOP
-                if pos.y() > h - b: return True, 15 # HTBOTTOM
+                if pos.x() < b: return True, 10
+                if pos.x() > w - b: return True, 11
+                if pos.y() < b: return True, 12
+                if pos.y() > h - b: return True, 15
                 
-                # Check title bar
                 if self._title_bar and self._title_bar.geometry().contains(pos):
-                    # Use local coordinates for reliable hit testing (avoids high DPI issues with widgetAt)
                     tb_pos = self._title_bar.mapFrom(self, pos)
                     child = self._title_bar.childAt(tb_pos)
                     
                     from PySide6.QtWidgets import QPushButton, QMenuBar
-                    # We check if the child itself or any of its parents up to title bar is a button
                     is_clickable = False
                     curr = child
                     while curr and curr != self._title_bar:
@@ -958,14 +946,11 @@ class MainWindow(QMainWindow):
                         curr = curr.parentWidget()
 
                     if is_clickable:
-                        # Let Qt handle mouse events for buttons/menus
                         return False, 0
                         
-                    return True, 2 # HTCAPTION
+                    return True, 2
         
         return super().nativeEvent(eventType, message)
-
-    # ── Agent ──────────────────────────────────────────────
 
     def _setup_agent(self):
         self._agent.on_stream(self._on_agent_stream)
@@ -979,15 +964,10 @@ class MainWindow(QMainWindow):
         from PySide6.QtCore import QTimer
 
         def _run_in_main():
-            # Show the result in the chat panel as a system message
             self._chat_panel.append_system_message(system_message)
-            # Only auto-continue if no other generation is active
             if not self._chat_generation_active:
-                # Inject the message into conversation history so agent sees it
                 self._agent._conversation.add_message("user", f"[Background Task Result]\n{system_message}\n\nContinue with the next step of the task based on this output. Do not stop.")
-                # Wake the agent — pass empty string so _start_chat_message re-uses conversation
                 self._chat_panel.show_native_notification("Task selesai, melanjutkan...")
-                # Directly invoke the API without adding another user message
                 import threading
                 def _continue():
                     import uuid
@@ -1053,10 +1033,7 @@ class MainWindow(QMainWindow):
         event.wait()
         return result_holder[0]
 
-    # ── UI Layout ─────────────────────────────────────────
-
     def _setup_ui(self):
-        # ── Window Settings ──
         self.setWindowTitle("Dardcor Code")
         self.setMinimumSize(600, 400)
         
@@ -1071,7 +1048,6 @@ class MainWindow(QMainWindow):
         else:
             self.resize(1000, 700)
 
-        # Set frameless window hint to hide native OS title bar, but keep system menu and minimize/maximize buttons hints so Windows taskbar clicks and Aero Snap work
         self.setWindowFlags(
             Qt.Window |
             Qt.FramelessWindowHint |
@@ -1083,20 +1059,17 @@ class MainWindow(QMainWindow):
         self.setObjectName("MainWindow")
         self.setStyleSheet("#MainWindow { border: 1px solid #3c0068; }")
         
-        # Set Window Icon
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         logo_path = os.path.join(base_dir, "image", "dardcor.png")
         if os.path.exists(logo_path):
             self.setWindowIcon(QIcon(logo_path))
         
-        # Central widget
         self._central_widget = QWidget()
         self.setCentralWidget(self._central_widget)
         self._layout = QVBoxLayout(self._central_widget)
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(0)
 
-        # Main Subsystems
         from ..core.audio_cues import AudioCueManager
         from ..core.telemetry import TelemetryManager
         from ..core.update import UpdateManager
@@ -1111,33 +1084,27 @@ class MainWindow(QMainWindow):
         self._session_manager = SessionManager(self)
         self._extension_api = ExtensionAPI(self)
 
-        # Auth Manager
         from ..core.auth import AuthManager
         self._auth_manager = AuthManager(self)
         self._auth_manager.auth_changed.connect(lambda provider: print(f"Auth changed for {provider}"))
 
-        # Add custom title bar
         self._title_bar = CustomTitleBar(self)
         self.setMenuWidget(self._title_bar)
 
-        # Banner widget (between title bar and main content)
         from ..ui_shared.banner import BannerWidget
         self._banner = BannerWidget(self)
         self._layout.addWidget(self._banner)
 
-        # Main Layout Container (under title bar)
         self._main_container = QWidget()
         main_layout = QHBoxLayout(self._main_container)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
         self._layout.addWidget(self._main_container, 1)
 
-        # ── Activity Bar (leftmost) ──
         self._activity_bar = ActivityBar()
         self._activity_bar.view_changed.connect(self._on_view_changed)
         main_layout.addWidget(self._activity_bar)
 
-        # ── Sidebar Stack ──
         self._sidebar_stack = QStackedWidget()
         self._sidebar_stack.setMinimumWidth(200)
 
@@ -1169,11 +1136,6 @@ class MainWindow(QMainWindow):
         self._open_editors_panel = OpenEditorsPanel()
         self._open_editors_panel.file_selected.connect(self._open_file_in_editor)
         
-        # We will pass the toggle function to FileExplorer if needed, or handle it here
-        # But we must hide it by default if user wants to toggle it.
-        # Actually, let's keep it visible and let the ... menu toggle it.
-
-        # Add top subpanels inside FileExplorer (below the global EXPLORER label)
         self._file_explorer.add_subpanel(self._open_editors_panel)
         self._file_explorer.setup_explorer_menu(self._open_editors_panel, self._outline_panel, self._timeline_panel)
 
@@ -1182,8 +1144,6 @@ class MainWindow(QMainWindow):
         self._explorer_layout.addWidget(self._outline_panel, 0)
         self._explorer_layout.addWidget(self._timeline_panel, 0)
 
-        # Bottom spacer absorbs leftover space when all collapsible sections are closed
-        # so headers stick together with no empty gaps between them.
         self._bottom_spacer = QWidget()
         self._bottom_spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self._bottom_spacer.setStyleSheet("background: transparent;")
@@ -1197,9 +1157,6 @@ class MainWindow(QMainWindow):
 
             any_open = exp_open or out_open or tim_open
 
-            # Stretch only the open section(s). Spacer stays at 0 stretch when something
-            # is open, and takes 1 stretch when everything is collapsed to push the headers
-            # to the bottom of the panel.
             self._explorer_layout.setStretchFactor(self._file_explorer, 1 if exp_open else 0)
             self._explorer_layout.setStretchFactor(self._outline_panel, 1 if out_open else 0)
             self._explorer_layout.setStretchFactor(self._timeline_panel, 1 if tim_open else 0)
@@ -1220,7 +1177,6 @@ class MainWindow(QMainWindow):
         )
         self._sidebar_stack.addWidget(self._search_panel)
 
-        # Source Control
         git_wrapper = QWidget()
         git_wrapper.setStyleSheet("background-color: #000000;")
         git_layout = QVBoxLayout(git_wrapper)
@@ -1241,7 +1197,6 @@ class MainWindow(QMainWindow):
         
         self._sidebar_stack.addWidget(git_wrapper)
 
-        # Run and Debug Panel
         self._debug_panel = DebugPanel(self)
         self._debug_panel.debug_requested.connect(self._start_debugging)
         self._debug_panel.run_requested.connect(self._run_current_file)
@@ -1475,7 +1430,7 @@ class MainWindow(QMainWindow):
 
         # Detect git branch
         QTimer.singleShot(1000, self._detect_git_branch)
-        QTimer.singleShot(1000, self._show_welcome_page)
+        QTimer.singleShot(1000, self._initialize_session)
 
         self._title_bar.btn_left_sidebar.setChecked(True)
         self._title_bar.btn_right_sidebar.setChecked(True)
@@ -1498,12 +1453,7 @@ class MainWindow(QMainWindow):
         self._panel_position = 'panel_bottom'
         self._title_bar.btn_customize.clicked.connect(self._show_customize_layout)
 
-        if self._config.workspace_path and os.path.exists(self._config.workspace_path):
-            self._file_explorer.set_root(self._config.workspace_path)
-            self._on_root_changed(self._config.workspace_path)
-        elif self._config.workspace_path:
-            self._config.workspace_path = ""
-            self._config.save()
+        # (Workspace session handling is initialized via _initialize_session timer)
 
 
 
@@ -1581,8 +1531,6 @@ class MainWindow(QMainWindow):
                 self.setStyleSheet("#MainWindow { border: 1px solid #3c0068; }")
         super().changeEvent(event)
 
-    # ── Menu Bar ──────────────────────────────────────────
-
     def _setup_menu(self):
         menubar = self._title_bar.menu_bar
 
@@ -1617,26 +1565,24 @@ class MainWindow(QMainWindow):
         file_menu.addAction(open_folder)
 
         open_workspace = QAction("Open Workspace from File...", self)
-        open_workspace.triggered.connect(lambda: QMessageBox.information(self, "Workspace", "Workspace files support coming soon."))
+        open_workspace.triggered.connect(self._open_workspace_file_dialog)
         file_menu.addAction(open_workspace)
 
-        open_recent_menu = file_menu.addMenu("Open Recent")
-        clear_recent = QAction("Clear Recently Opened", self)
-        clear_recent.triggered.connect(lambda: QMessageBox.information(self, "Recent", "History tracking coming soon."))
-        open_recent_menu.addAction(clear_recent)
+        self._open_recent_menu = file_menu.addMenu("Open Recent")
+        self._open_recent_menu.aboutToShow.connect(self._update_recent_menu)
 
         file_menu.addSeparator()
         
         add_folder_ws = QAction("Add Folder to Workspace...", self)
-        add_folder_ws.triggered.connect(self._show_command_palette)
+        add_folder_ws.triggered.connect(self._add_folder_to_workspace)
         file_menu.addAction(add_folder_ws)
         
         save_ws_as = QAction("Save Workspace As...", self)
-        save_ws_as.triggered.connect(self._show_command_palette)
+        save_ws_as.triggered.connect(self._save_workspace_as)
         file_menu.addAction(save_ws_as)
         
         duplicate_ws = QAction("Duplicate Workspace", self)
-        duplicate_ws.triggered.connect(self._show_command_palette)
+        duplicate_ws.triggered.connect(self._save_workspace_as) # Duplicate workspace is effectively Save As
         file_menu.addAction(duplicate_ws)
 
         file_menu.addSeparator()
@@ -1659,9 +1605,14 @@ class MainWindow(QMainWindow):
         file_menu.addSeparator()
         
         share_menu = file_menu.addMenu("Share")
+        
         share_export = QAction("Export Profile...", self)
-        share_export.triggered.connect(self._show_command_palette)
+        share_export.triggered.connect(self._export_profile)
         share_menu.addAction(share_export)
+        
+        share_import = QAction("Import Profile...", self)
+        share_import.triggered.connect(self._import_profile)
+        share_menu.addAction(share_import)
         
         file_menu.addSeparator()
 
@@ -1714,7 +1665,7 @@ class MainWindow(QMainWindow):
         file_menu.addSeparator()
 
         revert_file = QAction("Revert File", self)
-        revert_file.triggered.connect(self._show_command_palette)
+        revert_file.triggered.connect(self._revert_current_file)
         file_menu.addAction(revert_file)
 
         close_editor = QAction("Close Editor", self)
@@ -1805,8 +1756,7 @@ class MainWindow(QMainWindow):
         edit_menu.addAction(toggle_block_comment)
         
         emmet_expand = QAction("Emmet: Expand Abbreviation", self)
-        emmet_expand.setShortcut(QKeySequence("Tab"))
-        emmet_expand.triggered.connect(self._show_command_palette)
+        emmet_expand.triggered.connect(lambda: self._run_editor_action("custom:expandEmmetAbbreviation"))
         edit_menu.addAction(emmet_expand)
 
         edit_menu.addSeparator()
@@ -1895,9 +1845,9 @@ class MainWindow(QMainWindow):
 
         sel_menu.addSeparator()
 
-        switch_ctrl_click = QAction("Switch to Ctrl+Click for Multi-Cursor", self)
-        switch_ctrl_click.triggered.connect(self._show_command_palette)
-        sel_menu.addAction(switch_ctrl_click)
+        self._switch_ctrl_click_act = QAction("Switch to Ctrl+Click for Multi-Cursor", self)
+        self._switch_ctrl_click_act.triggered.connect(self._toggle_multi_cursor_modifier)
+        sel_menu.addAction(self._switch_ctrl_click_act)
 
         column_sel_mode = QAction("Column Selection Mode", self)
         column_sel_mode.triggered.connect(lambda: self._run_editor_action("editor.action.toggleColumnSelection"))
@@ -1919,7 +1869,7 @@ class MainWindow(QMainWindow):
         view_menu.addAction(toggle_tab_focus)
 
         open_view = QAction("Open View...", self)
-        open_view.triggered.connect(self._show_command_palette)
+        open_view.triggered.connect(self._open_view_dialog)
         view_menu.addAction(open_view)
 
         view_menu.addSeparator()
@@ -1927,10 +1877,11 @@ class MainWindow(QMainWindow):
         # ── Appearance submenu ──
         appearance_menu = view_menu.addMenu("Appearance")
         
-        full_screen = QAction("Full Screen", self)
-        full_screen.setShortcut(QKeySequence("F11"))
-        full_screen.triggered.connect(self._show_command_palette)
-        appearance_menu.addAction(full_screen)
+        self._full_screen_act = QAction("Full Screen", self)
+        self._full_screen_act.setShortcut(QKeySequence("F11"))
+        self._full_screen_act.setCheckable(True)
+        self._full_screen_act.triggered.connect(self._toggle_full_screen)
+        appearance_menu.addAction(self._full_screen_act)
         
         panel_position_menu = appearance_menu.addMenu("Panel Position")
         
@@ -3155,6 +3106,517 @@ class MainWindow(QMainWindow):
         if path:
             self._open_file_in_editor(path)
 
+    def _open_workspace_file_dialog(self):
+        path, _ = QFileDialog.getOpenFileName(self, "Open Workspace from File", "", "Workspace Files (*.code-workspace)")
+        if path:
+            self._load_workspace_file(path)
+
+    def _load_workspace_file(self, path: str):
+        import json
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            folders = data.get("folders", [])
+            if not folders:
+                QMessageBox.warning(self, "Invalid Workspace", "No folders defined in workspace file.")
+                return
+            
+            # Resolve the first folder path relative to the workspace file directory
+            ws_dir = os.path.dirname(os.path.abspath(path))
+            first_folder = folders[0]
+            folder_path = first_folder.get("path", "")
+            
+            if not os.path.isabs(folder_path):
+                resolved_path = os.path.abspath(os.path.join(ws_dir, folder_path))
+            else:
+                resolved_path = os.path.abspath(folder_path)
+                
+            if not os.path.exists(resolved_path):
+                QMessageBox.warning(self, "Folder Not Found", f"The workspace folder '{resolved_path}' does not exist.")
+                return
+            
+            # Set the root and workspace settings to the code-workspace file
+            self._file_explorer.set_root(path)
+            self._on_root_changed(path)
+            
+            # Check if there are workspace-specific settings in the file
+            ws_settings = data.get("settings", {})
+            if ws_settings:
+                # Apply custom workspace settings (like zoom or auto_save)
+                if "files.autoSave" in ws_settings:
+                    auto_save_val = ws_settings["files.autoSave"]
+                    self._config.auto_save = (auto_save_val in ("onFocusChange", "afterDelay", True))
+                # Trigger theme change if defined
+                if "workbench.colorTheme" in ws_settings:
+                    theme_name = ws_settings["workbench.colorTheme"]
+                    self._set_theme(theme_name)
+                    
+            # Update title bar to show it is a workspace
+            ws_name = os.path.splitext(os.path.basename(path))[0]
+            self._title_bar.lbl_title.setText(f"{ws_name} (Workspace) - Dardcor Code")
+            
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Failed to load workspace file: {e}")
+
+    def _update_recent_menu(self):
+        self._open_recent_menu.clear()
+        
+        recent_folders = self._config.recent_folders or []
+        recent_files = self._config.recent_files or []
+        
+        has_items = False
+        
+        # Folder section
+        if recent_folders:
+            for f_path in recent_folders[:10]:
+                if os.path.exists(f_path):
+                    act = QAction(os.path.basename(f_path) or f_path, self)
+                    act.setData(f_path)
+                    act.triggered.connect(lambda checked=False, p=f_path: self._open_recent_folder(p))
+                    self._open_recent_menu.addAction(act)
+                    has_items = True
+            
+        # Divider between folders and files
+        if recent_folders and recent_files:
+            self._open_recent_menu.addSeparator()
+            
+        # File section
+        if recent_files:
+            for file_path in recent_files[:10]:
+                if os.path.exists(file_path):
+                    act = QAction(os.path.basename(file_path) or file_path, self)
+                    act.setData(file_path)
+                    act.triggered.connect(lambda checked=False, p=file_path: self._open_file_in_editor(p))
+                    self._open_recent_menu.addAction(act)
+                    has_items = True
+
+        if has_items:
+            self._open_recent_menu.addSeparator()
+            
+        # Clear action
+        clear_recent = QAction("Clear Recently Opened", self)
+        clear_recent.triggered.connect(self._clear_recent_history)
+        self._open_recent_menu.addAction(clear_recent)
+
+    def _open_recent_folder(self, path: str):
+        self._file_explorer.set_root(path)
+        self._on_root_changed(path)
+        self._config.workspace_path = path
+        self._config.save()
+
+    def _clear_recent_history(self):
+        self._config.recent_folders = []
+        self._config.recent_files = []
+        self._config.save()
+        self._update_recent_menu()
+
+    def _add_folder_to_workspace(self):
+        folder_path = QFileDialog.getExistingDirectory(self, "Add Folder to Workspace")
+        if not folder_path:
+            return
+            
+        current_path = self._config.workspace_path or ""
+        is_workspace = current_path.endswith(".code-workspace") and os.path.isfile(current_path)
+        
+        if is_workspace:
+            try:
+                import json
+                with open(current_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                
+                folders = data.get("folders", [])
+                ws_dir = os.path.dirname(os.path.abspath(current_path))
+                abs_new = os.path.abspath(folder_path)
+                
+                for f in folders:
+                    p_val = f.get("path", "")
+                    abs_p = p_val if os.path.isabs(p_val) else os.path.abspath(os.path.join(ws_dir, p_val))
+                    if os.path.normcase(abs_p) == os.path.normcase(abs_new):
+                        QMessageBox.information(self, "Workspace", "Folder is already in the workspace.")
+                        return
+                
+                try:
+                    rel = os.path.relpath(abs_new, ws_dir)
+                    if not rel.startswith("..") and not ":" in rel:
+                        path_to_add = rel
+                    else:
+                        path_to_add = abs_new
+                except ValueError:
+                    path_to_add = abs_new
+                    
+                folders.append({"path": path_to_add})
+                data["folders"] = folders
+                
+                with open(current_path, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, indent=2, ensure_ascii=False)
+                
+                self._load_workspace_file(current_path)
+                
+            except Exception as e:
+                QMessageBox.warning(self, "Error", f"Failed to add folder: {e}")
+        else:
+            reply = QMessageBox.question(
+                self, "Save Workspace",
+                "Adding a folder requires creating a workspace file. Save workspace file now?",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if reply == QMessageBox.Yes:
+                ws_file, _ = QFileDialog.getSaveFileName(self, "Save Workspace As", "", "Workspace Files (*.code-workspace)")
+                if ws_file:
+                    try:
+                        import json
+                        folders = []
+                        if current_path and os.path.isdir(current_path):
+                            ws_dir = os.path.dirname(os.path.abspath(ws_file))
+                            rel_curr = os.path.relpath(current_path, ws_dir)
+                            folders.append({"path": rel_curr})
+                            
+                        ws_dir = os.path.dirname(os.path.abspath(ws_file))
+                        rel_new = os.path.relpath(folder_path, ws_dir)
+                        folders.append({"path": rel_new})
+                        
+                        data = {"folders": folders, "settings": {}}
+                        with open(ws_file, 'w', encoding='utf-8') as f:
+                            json.dump(data, f, indent=2, ensure_ascii=False)
+                            
+                        self._load_workspace_file(ws_file)
+                    except Exception as e:
+                        QMessageBox.warning(self, "Error", f"Failed to create workspace: {e}")
+
+    def _save_workspace_as(self):
+        ws_file, _ = QFileDialog.getSaveFileName(self, "Save Workspace As", "", "Workspace Files (*.code-workspace)")
+        if not ws_file:
+            return
+            
+        current_path = self._config.workspace_path or ""
+        is_workspace = current_path.endswith(".code-workspace") and os.path.isfile(current_path)
+        
+        try:
+            import json
+            if is_workspace:
+                with open(current_path, 'r', encoding='utf-8') as f:
+                    old_data = json.load(f)
+                
+                old_folders = old_data.get("folders", [])
+                new_folders = []
+                old_ws_dir = os.path.dirname(os.path.abspath(current_path))
+                new_ws_dir = os.path.dirname(os.path.abspath(ws_file))
+                
+                for f in old_folders:
+                    p = f.get("path", "")
+                    abs_p = p if os.path.isabs(p) else os.path.abspath(os.path.join(old_ws_dir, p))
+                    rel = os.path.relpath(abs_p, new_ws_dir)
+                    new_folders.append({"path": rel})
+                
+                old_data["folders"] = new_folders
+                data = old_data
+            else:
+                folders = []
+                if current_path and os.path.isdir(current_path):
+                    new_ws_dir = os.path.dirname(os.path.abspath(ws_file))
+                    rel_curr = os.path.relpath(current_path, new_ws_dir)
+                    folders.append({"path": rel_curr})
+                data = {"folders": folders, "settings": {}}
+                
+            with open(ws_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+                
+            self._load_workspace_file(ws_file)
+            
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Failed to save workspace: {e}")
+
+    def _export_profile(self):
+        zip_path, _ = QFileDialog.getSaveFileName(self, "Export Profile", "", "Zip Files (*.zip)")
+        if not zip_path:
+            return
+            
+        try:
+            import zipfile
+            from ..core.config import get_global_home_dir, get_user_data_dir
+            
+            home = get_global_home_dir()
+            user_data = get_user_data_dir()
+            
+            files_to_export = {
+                "keybindings.json": os.path.join(home, "keybindings.json"),
+                "mcp_servers.json": os.path.join(home, "mcp", "servers.json"),
+                "skills.json": os.path.join(home, "skills", "skills.json"),
+                "lsp_servers.json": os.path.join(home, "lsp", "servers.json"),
+                "config.json": os.path.join(user_data, "config.json"),
+                "settings.json": os.path.join(user_data, "settings.json"),
+            }
+            
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+                for arcname, filepath in files_to_export.items():
+                    if os.path.exists(filepath):
+                        zip_file.write(filepath, arcname)
+                        
+            QMessageBox.information(self, "Export Profile", "Profile exported successfully.")
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Failed to export profile: {e}")
+
+    def _import_profile(self):
+        zip_path, _ = QFileDialog.getOpenFileName(self, "Import Profile", "", "Zip Files (*.zip)")
+        if not zip_path:
+            return
+            
+        try:
+            import zipfile
+            from ..core.config import get_global_home_dir, get_user_data_dir
+            
+            home = get_global_home_dir()
+            user_data = get_user_data_dir()
+            
+            reply = QMessageBox.question(
+                self, "Import Profile",
+                "Importing a profile will overwrite your current settings, keybindings, and MCP servers. Continue?",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if reply != QMessageBox.Yes:
+                return
+                
+            dest_mapping = {
+                "keybindings.json": os.path.join(home, "keybindings.json"),
+                "mcp_servers.json": os.path.join(home, "mcp", "servers.json"),
+                "skills.json": os.path.join(home, "skills", "skills.json"),
+                "lsp_servers.json": os.path.join(home, "lsp", "servers.json"),
+                "config.json": os.path.join(user_data, "config.json"),
+                "settings.json": os.path.join(user_data, "settings.json"),
+            }
+            
+            with zipfile.ZipFile(zip_path, 'r') as zip_file:
+                for arcname, dest_path in dest_mapping.items():
+                    if arcname in zip_file.namelist():
+                        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+                        with open(dest_path, "wb") as f:
+                            f.write(zip_file.read(arcname))
+                            
+            from ..core.config import AppConfig
+            self._config = AppConfig.load()
+            self._set_theme(self._config.color_theme or "dardcor-purple")
+            QMessageBox.information(self, "Import Profile", "Profile imported successfully. Config reloaded.")
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Failed to import profile: {e}")
+
+    def _toggle_multi_cursor_modifier(self):
+        current = getattr(self, "_multi_cursor_modifier", "alt")
+        new_mod = "ctrlCmd" if current == "alt" else "alt"
+        self._multi_cursor_modifier = new_mod
+        
+        # Apply to all editors
+        for g in self._editor_tabs._groups:
+            for tab in g._tabs:
+                if hasattr(tab.editor, "set_multi_cursor_modifier"):
+                    tab.editor.set_multi_cursor_modifier(new_mod)
+                    
+        # Update action text
+        if new_mod == "ctrlCmd":
+            self._switch_ctrl_click_act.setText("Use Alt+Click for Multi-Cursor")
+        else:
+            self._switch_ctrl_click_act.setText("Use Ctrl+Click for Multi-Cursor")
+
+    def _open_view_dialog(self):
+        from ..ui_shared.quick_pick import QuickPickDialog
+        from ..ui_shared.activity_bar import (
+            VIEW_EXPLORER, VIEW_SEARCH, VIEW_SOURCE_CONTROL, VIEW_DEBUG, VIEW_EXTENSIONS, VIEW_COMMENTS
+        )
+        
+        items = [
+            {"label": "Explorer", "detail": "Show File Explorer", "data": ("sidebar", VIEW_EXPLORER)},
+            {"label": "Search", "detail": "Search in Files", "data": ("sidebar", VIEW_SEARCH)},
+            {"label": "Source Control", "detail": "Git and version control", "data": ("sidebar", VIEW_SOURCE_CONTROL)},
+            {"label": "Run and Debug", "detail": "Run and Debug code", "data": ("sidebar", VIEW_DEBUG)},
+            {"label": "Extensions", "detail": "Manage plugins and extensions", "data": ("sidebar", VIEW_EXTENSIONS)},
+            {"label": "Comments", "detail": "Review comments", "data": ("sidebar", VIEW_COMMENTS)},
+            {"label": "Terminal", "detail": "Show integrated terminal", "data": ("bottom", "terminal")},
+            {"label": "Output", "detail": "Show build and logging output", "data": ("bottom", "output")},
+            {"label": "Problems", "detail": "Show workspace problems", "data": ("bottom", "problems")},
+            {"label": "Debug Console", "detail": "Interactive debug console", "data": ("bottom", "debug")},
+            {"label": "Ports", "detail": "Forwarded ports", "data": ("bottom", "ports")},
+        ]
+        
+        dialog = QuickPickDialog(title="Open View...", placeholder="Type the name of a view to open...", parent=self)
+        dialog.set_items(items)
+        
+        def handle_confirm(selected):
+            if selected:
+                target_type, val = selected[0]
+                if target_type == "sidebar":
+                    self._switch_sidebar(val)
+                elif target_type == "bottom":
+                    self._bottom_panel.set_active_view(val)
+                    self._toggle_panel_force(True)
+                        
+        dialog.confirmed.connect(handle_confirm)
+        dialog.show_dialog()
+
+    def _toggle_full_screen(self):
+        if self.isFullScreen():
+            self.showNormal()
+            self._title_bar.show()
+            self._full_screen_act.setChecked(False)
+        else:
+            self.showFullScreen()
+            self._title_bar.hide()
+            self._full_screen_act.setChecked(True)
+
+    def query_workspace_symbols(self, query: str) -> list:
+        results = []
+        if not hasattr(self, "_lsp_manager") or not self._lsp_manager:
+            return results
+        import os
+        for lang, client in self._lsp_manager._clients.items():
+            if client.is_initialized():
+                try:
+                    syms = client.workspace_symbols(query)
+                    if syms:
+                        for s in syms:
+                            uri = s.get("location", {}).get("uri", "")
+                            if uri.startswith("file:///"):
+                                full_path = uri[8:].replace("/", os.sep)
+                                # Clean Windows paths like file:///c:/path
+                                if ":" in full_path and full_path.startswith(os.sep):
+                                    full_path = full_path.lstrip(os.sep)
+                                if os.path.exists(full_path):
+                                    line = s.get("location", {}).get("range", {}).get("start", {}).get("line", 0) + 1
+                                    kind_val = s.get("kind", 1)
+                                    kind_name = "class" if kind_val in (5, 6) else "function" if kind_val in (11, 12) else "symbol"
+                                    rel_path = os.path.basename(full_path)
+                                    if getattr(self, "_quick_open_root", None):
+                                        try:
+                                            rel_path = os.path.relpath(full_path, self._quick_open_root)
+                                        except Exception:
+                                            pass
+                                    results.append({
+                                        "name": s.get("name", ""),
+                                        "type": kind_name,
+                                        "line": line,
+                                        "rel": rel_path,
+                                        "full": full_path
+                                    })
+                except Exception:
+                    pass
+        return results
+
+    def _initialize_session(self):
+        restored = self._restore_session()
+        if not restored:
+            if self._config.workspace_path and os.path.exists(self._config.workspace_path):
+                self._file_explorer.set_root(self._config.workspace_path)
+                self._on_root_changed(self._config.workspace_path)
+            elif self._config.workspace_path:
+                self._config.workspace_path = ""
+                self._config.save()
+            self._show_welcome_page()
+
+    def _backup_session(self):
+        try:
+            import shutil
+            from ..core.config import get_global_home_dir
+            backup_dir = os.path.join(get_global_home_dir(), "backups")
+            
+            if os.path.exists(backup_dir):
+                shutil.rmtree(backup_dir)
+            os.makedirs(backup_dir, exist_ok=True)
+            
+            manifest = {
+                "workspace_path": self._config.workspace_path or "",
+                "tabs": []
+            }
+            
+            backup_count = 0
+            for gi, group in enumerate(self._editor_tabs._groups):
+                for ti, tab in enumerate(group._tabs):
+                    if not tab.editor:
+                        continue
+                        
+                    is_dirty = hasattr(tab.editor, 'is_dirty') and tab.editor.is_dirty()
+                    backup_id = None
+                    
+                    if is_dirty:
+                        backup_id = f"backup_{backup_count}.txt"
+                        backup_path = os.path.join(backup_dir, backup_id)
+                        content = tab.editor.get_content() if hasattr(tab.editor, 'get_content') else ""
+                        with open(backup_path, "w", encoding="utf-8") as f:
+                            f.write(content)
+                        backup_count += 1
+                        
+                    manifest["tabs"].append({
+                        "file_path": tab.file_path,
+                        "is_dirty": is_dirty,
+                        "backup_id": backup_id,
+                        "group_idx": gi,
+                        "is_pinned": getattr(tab, "is_pinned", False),
+                        "title": getattr(tab, "title", "Untitled")
+                    })
+                    
+            manifest_path = os.path.join(backup_dir, "session.json")
+            with open(manifest_path, "w", encoding="utf-8") as f:
+                import json
+                json.dump(manifest, f, indent=2)
+        except Exception as e:
+            print(f"Failed to backup session: {e}")
+
+    def _restore_session(self) -> bool:
+        try:
+            from ..core.config import get_global_home_dir
+            backup_dir = os.path.join(get_global_home_dir(), "backups")
+            manifest_path = os.path.join(backup_dir, "session.json")
+            if not os.path.exists(manifest_path):
+                return False
+                
+            import json
+            with open(manifest_path, "r", encoding="utf-8") as f:
+                manifest = json.load(f)
+                
+            ws_path = manifest.get("workspace_path", "")
+            if ws_path and os.path.exists(ws_path):
+                self._file_explorer.set_root(ws_path)
+                self._on_root_changed(ws_path)
+                
+            self._editor_tabs.close_all()
+            
+            tabs = manifest.get("tabs", [])
+            for t in tabs:
+                file_path = t.get("file_path")
+                is_dirty = t.get("is_dirty", False)
+                backup_id = t.get("backup_id")
+                group_idx = t.get("group_idx", 0)
+                is_pinned = t.get("is_pinned", False)
+                
+                while len(self._editor_tabs._groups) <= group_idx:
+                    self._editor_tabs._add_group()
+                    
+                group = self._editor_tabs._groups[group_idx]
+                
+                if file_path and os.path.exists(file_path):
+                    editor = group.open_file(file_path)
+                else:
+                    editor = group.new_file()
+                    
+                if editor:
+                    if is_dirty and backup_id:
+                        backup_path = os.path.join(backup_dir, backup_id)
+                        if os.path.exists(backup_path):
+                            with open(backup_path, "r", encoding="utf-8") as f:
+                                backup_content = f.read()
+                            editor.set_content(backup_content, editor.get_language())
+                            editor._dirty = True
+                            
+                    if is_pinned:
+                        idx = group._editor_index(editor)
+                        if idx >= 0:
+                            group._tabs[idx].is_pinned = True
+                            
+            import shutil
+            shutil.rmtree(backup_dir, ignore_errors=True)
+            return True
+        except Exception as e:
+            print(f"Failed to restore session: {e}")
+            return False
+
     def _current_nav_path(self) -> str | None:
         editor = getattr(self, "_editor_tabs", None)
         if not editor:
@@ -3486,12 +3948,7 @@ class MainWindow(QMainWindow):
 
     def _set_theme(self, theme_id: str, persist: bool = False):
         """Apply a theme by its ID from ThemeManager (builtin or extension)."""
-        if hasattr(self, "_theme_overlay") and self.isVisible():
-            self._theme_overlay.show()
-            self._theme_overlay.raise_()
-            QTimer.singleShot(600, lambda: self._do_set_theme(theme_id, persist))
-        else:
-            self._do_set_theme(theme_id, persist)
+        self._do_set_theme(theme_id, persist)
 
     def _do_set_theme(self, theme_id: str, persist: bool):
         from .theme_manager import ThemeManager
@@ -3568,10 +4025,22 @@ class MainWindow(QMainWindow):
 
     def _start_debugging(self):
         editor = self._editor_tabs.current_editor()
-        if not editor or not editor.get_file_path():
-            self._output_panel.append("No file open to debug.", "Dardcor")
-            self._open_output_panel()
-            return
+        # Workspace Trust Check
+        ws = self._config.workspace_path
+        if ws and not self._workspace_trust.is_trusted(ws):
+            from PySide6.QtWidgets import QMessageBox
+            reply = QMessageBox.question(
+                self, "Workspace Untrusted",
+                "Debugging is disabled in Restricted Mode. Do you trust this workspace to enable debugging?",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if reply == QMessageBox.Yes:
+                self._workspace_trust.trust(ws)
+                self.dismiss_banner()
+            else:
+                self._debug_console.append_ansi("Cannot start debugging in Restricted Mode.\n", "Debug Console")
+                self._open_debug_console()
+                return
 
         file_path = editor.get_file_path()
         config = self._build_debug_config(file_path)
@@ -3716,7 +4185,11 @@ class MainWindow(QMainWindow):
         editor = self._editor_tabs.current_editor()
         if editor and editor._view_ready:
             import json
-            js = f"editor.trigger('menu', {json.dumps(action_id)}, null);"
+            if action_id.startswith("custom:"):
+                func_name = action_id.split(":", 1)[1]
+                js = f"if (typeof {func_name} === 'function') {func_name}();"
+            else:
+                js = f"editor.trigger('menu', {json.dumps(action_id)}, null);"
             editor._view.page().runJavaScript(js)
 
     def _report_issue(self):
@@ -3909,34 +4382,59 @@ class MainWindow(QMainWindow):
 
     def _on_root_changed(self, path: str):
         effective = path or ""
-        self._quick_open_root = effective
+        is_workspace = effective.endswith(".code-workspace") and os.path.isfile(effective)
+        primary_dir = ""
+        roots = []
+        if is_workspace:
+            try:
+                import json
+                with open(effective, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                folders = data.get("folders", [])
+                ws_dir = os.path.dirname(os.path.abspath(effective))
+                for folder in folders:
+                    folder_path = folder.get("path", "")
+                    if folder_path:
+                        if not os.path.isabs(folder_path):
+                            abs_p = os.path.abspath(os.path.join(ws_dir, folder_path))
+                        else:
+                            abs_p = os.path.abspath(folder_path)
+                        roots.append(abs_p)
+                if roots:
+                    primary_dir = roots[0]
+            except Exception:
+                pass
+        
+        if not primary_dir:
+            primary_dir = effective
+
+        self._quick_open_root = primary_dir
         if hasattr(self, "_search_panel"):
-            self._search_panel.set_root(effective)
+            self._search_panel.set_root(primary_dir)
         if hasattr(self, "_terminal_panel"):
-            self._terminal_panel.set_workdir(effective or os.path.expanduser("~"))
+            self._terminal_panel.set_workdir(primary_dir or os.path.expanduser("~"))
         quick_open = getattr(self, "_quick_open", None)
         if quick_open is not None:
-            quick_open.set_root(effective)
-            quick_open._all_files = []
+            quick_open.set_root(roots if roots else [primary_dir])
         basename = os.path.basename(effective.rstrip("/\\")) if effective else ""
         if hasattr(self, "_chat_panel"):
             self._chat_panel.set_workspace_name(basename.lower())
         if hasattr(self, "_git_panel"):
-            self._git_panel.set_root(effective)
+            self._git_panel.set_root(primary_dir)
         if hasattr(self, "_launch_config"):
-            self._launch_config.set_workspace(effective)
+            self._launch_config.set_workspace(primary_dir)
             if hasattr(self, "_debug_panel"):
                 self._debug_panel.set_config_names(self._launch_config.get_config_names())
         if hasattr(self, "_task_manager"):
-            self._task_manager.set_workspace(effective)
+            self._task_manager.set_workspace(primary_dir)
         if hasattr(self, "_problem_matcher"):
-            self._problem_matcher.set_workspace(effective)
+            self._problem_matcher.set_workspace(primary_dir)
         self._config.workspace_path = effective
-        if effective and os.path.isdir(effective):
+        if effective and (os.path.isdir(effective) or is_workspace):
             recent = [
                 os.path.normpath(p)
                 for p in getattr(self._config, "recent_folders", [])
-                if p and os.path.isdir(p)
+                if p and (os.path.isdir(p) or p.endswith(".code-workspace"))
             ]
             norm_effective = os.path.normpath(effective)
             recent = [p for p in recent if os.path.normcase(p) != os.path.normcase(norm_effective)]
@@ -3946,8 +4444,31 @@ class MainWindow(QMainWindow):
             self._editor_tabs.refresh_welcome_recent()
         self._update_window_title()
         if effective and hasattr(self, '_agent'):
-            self._agent.set_workspace(effective)
+            self._agent.set_workspace(primary_dir)
         QTimer.singleShot(100, self._detect_git_branch)
+
+        # Workspace Trust Banner Check
+        if effective and (os.path.isdir(effective) or is_workspace):
+            if not self._workspace_trust.is_trusted(effective):
+                def trust_handler():
+                    self._workspace_trust.trust(effective)
+                    self.dismiss_banner()
+                    self._debug_console.append_ansi("Workspace trusted. Restrictions lifted.\n", "Debug Console")
+                    # Try activating enabled extensions now that it's trusted
+                    if hasattr(self, "_ext_manager"):
+                        self._ext_manager.activate_all_enabled()
+
+                self.show_banner(
+                    "Restricted Mode: Trust this workspace to enable tasks, debugging, and extensions.",
+                    icon="⚠",
+                    color="#a1260d",
+                    actions=[
+                        {"label": "Trust Workspace", "handler": trust_handler},
+                        {"label": "Learn More", "handler": lambda: self._execute_command("workbench.action.showInteractivePlayground")}
+                    ]
+                )
+            else:
+                self.dismiss_banner()
 
     def _update_window_title(self, file_path: str = None):
         """Update window title dynamically based on active file and workspace."""
@@ -5036,6 +5557,22 @@ class MainWindow(QMainWindow):
 
     def _do_run_task(self, label: str):
         """Execute a task by label, handling dependsOn and inputs."""
+        # Workspace Trust Check
+        ws = self._config.workspace_path
+        if ws and not self._workspace_trust.is_trusted(ws):
+            from PySide6.QtWidgets import QMessageBox
+            reply = QMessageBox.question(
+                self, "Workspace Untrusted",
+                "Running tasks is disabled in Restricted Mode. Do you trust this workspace to enable running tasks?",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if reply == QMessageBox.Yes:
+                self._workspace_trust.trust(ws)
+                self.dismiss_banner()
+            else:
+                self._output_panel.append("Cannot run tasks in Restricted Mode.\n", "System")
+                self._open_output_panel()
+                return
         task = self._task_manager.get_task_by_label(label)
         if not task:
             self._notifications.show_warning(f"Task '{label}' not found.")
@@ -5274,8 +5811,11 @@ class MainWindow(QMainWindow):
         except Exception:
             pass
 
-        # Handle unsaved files
-        if getattr(self._config, 'auto_save', False):
+        # Handle unsaved files / Hot Exit
+        hot_exit = getattr(self._config, 'hot_exit', True)
+        if hot_exit:
+            self._backup_session()
+        elif getattr(self._config, 'auto_save', False):
             self._editor_tabs.save_all(is_auto_save=True)
         else:
             dirty_count = 0

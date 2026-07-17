@@ -10,6 +10,8 @@ class ScreencastOverlay(QLabel):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setWindowFlags(Qt.ToolTip | Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_ShowWithoutActivating)
         self.setAlignment(Qt.AlignCenter)
         self.setFixedHeight(40)
         self.setMinimumWidth(100)

@@ -472,6 +472,18 @@ class ExtensionManager:
             return self._apis[ext_name]
 
         manifest = ext.manifest or {}
+
+        # Workspace Trust Check
+        workspace_path = self._emit("get_workspace_path", "") or ""
+        if workspace_path:
+            from ..workspace.workspace_trust import WorkspaceTrust
+            trust = WorkspaceTrust()
+            if not trust.is_trusted(workspace_path):
+                # Restrict extension activation in untrusted workspaces if not explicitly supported
+                untrusted_support = manifest.get("capabilities", {}).get("untrustedWorkspaces", {}).get("supported", "restricted")
+                if untrusted_support != "true":
+                    return None
+
         main_file = manifest.get("main", "extension.py")
         main_path = os.path.join(ext.path, main_file)
 

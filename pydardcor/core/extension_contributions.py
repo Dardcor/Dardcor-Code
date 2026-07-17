@@ -312,6 +312,10 @@ class ContributionParser:
 
         for pm in contributes.get("problemMatchers", []):
             pattern_data = pm.get("pattern", {})
+            if isinstance(pattern_data, list):
+                pattern_data = pattern_data[0] if pattern_data else {}
+            if not isinstance(pattern_data, dict):
+                pattern_data = {}
             pattern = ProblemPatternContribution(
                 name=pattern_data.get("regexp", ""),
                 regexp=pattern_data.get("regexp", ""),
@@ -399,6 +403,10 @@ class ContributionParser:
 
         for pm in contributes.get("problemMatchers", []):
             pattern_data = pm.get("pattern", {})
+            if isinstance(pattern_data, list):
+                pattern_data = pattern_data[0] if pattern_data else {}
+            if not isinstance(pattern_data, dict):
+                pattern_data = {}
             pattern = ProblemPatternContribution(
                 name=pattern_data.get("regexp", ""),
                 regexp=pattern_data.get("regexp", ""),

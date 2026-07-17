@@ -284,6 +284,15 @@
             ], function () {
                 monaco.editor.defineTheme('dardcor-dark', DARDCOR_THEME);
 
+                // Load and enable Emmet
+                require(['emmet-monaco'], function (emmet) {
+                    if (emmet) {
+                        emmet.emmetHTML(monaco, ['html', 'php', 'xml']);
+                        emmet.emmetCSS(monaco, ['css', 'scss', 'less']);
+                        emmet.emmetJSX(monaco, ['javascript', 'typescript', 'javascriptreact', 'typescriptreact']);
+                    }
+                });
+
                 editor = monaco.editor.create(document.getElementById('container'), {
                     value: '',
                     language: 'plaintext',
@@ -553,6 +562,53 @@
                     }
                     return monaco.Uri.parse('file://' + normalized);
                 }
+
+                window.expandEmmetAbbreviation = function() {
+                    var model = editor.getModel();
+                    var position = editor.getPosition();
+                    if (!model || !position) return;
+                    
+                    var lineContent = model.getLineContent(position.lineNumber);
+                    var textBeforeCursor = lineContent.substring(0, position.column - 1);
+                    
+                    var match = textBeforeCursor.match(/([a-zA-Z0-9.\#*+>():[\]]+)$/);
+                    if (!match) return;
+                    
+                    var abbreviation = match[1];
+                    var startColumn = position.column - abbreviation.length;
+                    
+                    require(['emmet-monaco'], function (emmet) {
+                        if (emmet && emmet.expandAbbreviation) {
+                            try {
+                                var lang = model.getLanguageId();
+                                var syntax = 'html';
+                                if (['css', 'scss', 'less'].includes(lang)) syntax = 'css';
+                                else if (['javascript', 'typescript', 'javascriptreact', 'typescriptreact'].includes(lang)) syntax = 'jsx';
+                                
+                                var expanded = emmet.expandAbbreviation(abbreviation, {
+                                    syntax: syntax
+                                });
+                                
+                                if (expanded) {
+                                    var range = new monaco.Range(
+                                        position.lineNumber,
+                                        startColumn,
+                                        position.lineNumber,
+                                        position.column
+                                    );
+                                    
+                                    editor.executeEdits('emmet', [{
+                                        range: range,
+                                        text: expanded,
+                                        forceMoveMarkers: true
+                                    }]);
+                                }
+                            } catch (e) {
+                                console.error("Emmet expansion failed: ", e);
+                            }
+                        }
+                    });
+                };
 
                 var backendDefinitionProvider = {
                     provideDefinition: function (model, position) {

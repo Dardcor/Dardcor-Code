@@ -397,7 +397,11 @@ class ExtensionsPanel(QWidget):
             QTimer.singleShot(2000, self._run_auto_update_check)
 
     def _current_source(self) -> str:
-        return SOURCE_VSCODE if self._source_combo.currentIndex() == 0 else SOURCE_OPENVSX
+        return getattr(self, '_source_idx', 0)
+
+    def _set_source(self, index: int):
+        self._source_idx = index
+        self._refresh_extensions()
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
@@ -460,12 +464,51 @@ class ExtensionsPanel(QWidget):
         from PySide6.QtGui import QAction
         
         def show_more_menu():
-            menu = QMenu(self)
-            menu.setStyleSheet(f"QMenu {{ background-color: {c.get('sidebar', '#252526')}; color: {c.get('foreground', '#cccccc')}; border: 1px solid {c.get('border', '#454545')}; }} QMenu::item:selected {{ background-color: {c.get('accent', '#007acc')}; }}")
+            class KeepOpenMenu(QMenu):
+                def mouseReleaseEvent(self, e):
+                    action = self.actionAt(e.pos())
+                    if action and action.isCheckable():
+                        action.trigger()
+                        self.update()
+                        e.accept()
+                        return
+                    super().mouseReleaseEvent(e)
+
+            menu = KeepOpenMenu(self)
+            
+            check_icon_path = os.path.join(image_dir, 'menu_check.svg').replace('\\', '/')
+            menu.setStyleSheet(f"""
+                QMenu {{ background-color: {c.get('sidebar', '#252526')}; color: {c.get('foreground', '#cccccc')}; border: 1px solid {c.get('border', '#454545')}; }}
+                QMenu::item:selected {{ background-color: {c.get('accent', '#007acc')}; }}
+                QMenu::indicator {{ width: 16px; height: 16px; padding-left: 6px; }}
+                QMenu::indicator:checked {{ image: url({check_icon_path}); }}
+                QMenu::indicator:non-exclusive:checked {{ image: url({check_icon_path}); }}
+                QMenu::indicator:exclusive:checked {{ image: url({check_icon_path}); }}
+            """)
             act_install = QAction("Install from VSIX...", self)
             act_install.triggered.connect(self._install_from_vsix)
             menu.addAction(act_install)
             menu.addSeparator()
+            
+            from PySide6.QtGui import QActionGroup
+            source_group = QActionGroup(self)
+            
+            act_vscode = QAction("VS Code Marketplace", self)
+            act_vscode.setCheckable(True)
+            act_vscode.setChecked(getattr(self, '_source_idx', 0) == 0)
+            act_vscode.triggered.connect(lambda: self._set_source(0))
+            source_group.addAction(act_vscode)
+            menu.addAction(act_vscode)
+            
+            act_openvsx = QAction("Open VSX Registry", self)
+            act_openvsx.setCheckable(True)
+            act_openvsx.setChecked(getattr(self, '_source_idx', 0) == 1)
+            act_openvsx.triggered.connect(lambda: self._set_source(1))
+            source_group.addAction(act_openvsx)
+            menu.addAction(act_openvsx)
+            
+            menu.addSeparator()
+            
             act_auto = QAction("Auto Update Extensions", self)
             act_auto.setCheckable(True)
             act_auto.setChecked(get_config().extensions_auto_update)
@@ -480,44 +523,27 @@ class ExtensionsPanel(QWidget):
 
         self._search_input = QLineEdit()
         self._search_input.setPlaceholderText("Search Extensions in Marketplace...")
-        self._search_input.setFixedHeight(32)
+        self._search_input.setFixedHeight(26)
         self._search_input.setStyleSheet(f"""
             QLineEdit {{
                 background-color: {c.get('sidebar', '#1e1e1e')}; color: {c.get('foreground', '#cccccc')};
                 border: 1px solid {c.get('border', '#333333')}; border-radius: 4px;
-                padding: 6px 12px; font-size: 13px;
+                padding: 2px 8px; font-size: 12px;
                 selection-background-color: {c.get('selection', '#2a2a2a')};
             }}
             QLineEdit:focus {{ border: 1px solid {c.get('accent', '#007acc')}; background-color: {c.get('background', '#0a0a0a')}; }}
             QLineEdit::placeholder {{ color: #666666; }}
         """)
         self._search_input.textChanged.connect(self._on_search_changed)
-        layout.addWidget(self._search_input)
-
-        self._source_combo = QComboBox()
-        self._source_combo.addItem("VS Code Marketplace")
-        self._source_combo.addItem("Open VSX Registry")
-        self._source_combo.setFixedHeight(26)
-        self._source_combo.setCursor(Qt.PointingHandCursor)
-        self._source_combo.setStyleSheet(f"""
-            QComboBox {{
-                background-color: {c.get('sidebar', '#1e1e1e')}; color: {c.get('foreground', '#cccccc')};
-                border: 1px solid {c.get('border', '#333333')}; border-radius: 4px;
-                padding: 2px 8px; font-size: 11px;
-            }}
-            QComboBox:hover {{ border-color: {c.get('accent', '#555555')}; }}
-            QComboBox::drop-down {{ border: none; width: 18px; }}
-            QComboBox QAbstractItemView {{
-                background-color: {c.get('background', '#0a0a0a')}; color: {c.get('foreground', '#cccccc')};
-                selection-background-color: {c.get('selection', '#2a2a2a')};
-                border: 1px solid {c.get('border', '#333333')};
-            }}
-        """)
-        self._source_combo.currentIndexChanged.connect(self._on_source_changed)
-        layout.addWidget(self._source_combo)
+        
+        search_container = QWidget()
+        search_layout = QVBoxLayout(search_container)
+        search_layout.setContentsMargins(14, 6, 14, 6)
+        search_layout.addWidget(self._search_input)
+        layout.addWidget(search_container)
 
         tab_bar = QWidget()
-        tab_bar.setFixedHeight(30)
+        tab_bar.setFixedHeight(32)
         tab_bar.setStyleSheet("background-color: #000000;")
         tab_layout = QHBoxLayout(tab_bar)
         tab_layout.setContentsMargins(8, 0, 8, 0)
@@ -529,9 +555,11 @@ class ExtensionsPanel(QWidget):
         self._tab_installed.setStyleSheet("""
             QPushButton {
                 background: transparent; color: #888888; border: none;
-                border-bottom: 2px solid transparent; padding: 4px 12px; font-size: 11px;
+                border-bottom: 2px solid transparent; 
+                padding-top: 4px; padding-bottom: 8px; padding-left: 4px; padding-right: 4px; 
+                font-size: 11px;
             }
-            QPushButton:checked { color: #ffffff; border-bottom: 2px solid #ffffff; font-weight: bold; }
+            QPushButton:checked { color: #ffffff; border-bottom: 2px solid #ffffff; }
             QPushButton:hover:!checked { color: #aaaaaa; }
         """)
         self._tab_installed.clicked.connect(self._show_installed)
@@ -542,22 +570,26 @@ class ExtensionsPanel(QWidget):
         self._tab_marketplace.setStyleSheet("""
             QPushButton {
                 background: transparent; color: #888888; border: none;
-                border-bottom: 2px solid transparent; padding: 4px 12px; font-size: 11px;
+                border-bottom: 2px solid transparent; 
+                padding-top: 4px; padding-bottom: 8px; padding-left: 4px; padding-right: 4px; 
+                font-size: 11px;
             }
-            QPushButton:checked { color: #ffffff; border-bottom: 2px solid #ffffff; font-weight: bold; }
+            QPushButton:checked { color: #ffffff; border-bottom: 2px solid #ffffff; }
             QPushButton:hover:!checked { color: #aaaaaa; }
         """)
         self._tab_marketplace.clicked.connect(self._show_marketplace)
         tab_layout.addWidget(self._tab_marketplace)
 
-        self._tab_recommendations = QPushButton("Recommendations")
+        self._tab_recommendations = QPushButton("Recommended")
         self._tab_recommendations.setCheckable(True)
         self._tab_recommendations.setStyleSheet("""
             QPushButton {
                 background: transparent; color: #888888; border: none;
-                border-bottom: 2px solid transparent; padding: 4px 12px; font-size: 11px;
+                border-bottom: 2px solid transparent; 
+                padding-top: 4px; padding-bottom: 8px; padding-left: 4px; padding-right: 4px; 
+                font-size: 11px;
             }
-            QPushButton:checked { color: #ffffff; border-bottom: 2px solid #ffffff; font-weight: bold; }
+            QPushButton:checked { color: #ffffff; border-bottom: 2px solid #ffffff; }
             QPushButton:hover:!checked { color: #aaaaaa; }
         """)
         self._tab_recommendations.clicked.connect(self._show_recommendations)

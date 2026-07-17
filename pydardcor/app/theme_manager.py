@@ -453,6 +453,9 @@ class ThemeManager:
 
     @classmethod
     def apply_theme(cls, app: QApplication, theme_id: str):
+        if cls._current_theme == theme_id and app.styleSheet():
+            return
+
         if theme_id in cls.EXT_THEMES:
             return cls._apply_extension_theme(app, theme_id)
 
@@ -490,7 +493,9 @@ class ThemeManager:
 
     @classmethod
     def _apply_extension_theme(cls, app: QApplication, theme_id: str):
-        """Apply a VS Code color theme contributed by an installed extension."""
+        if cls._current_theme == theme_id and app.styleSheet():
+            return
+
         info = cls.EXT_THEMES[theme_id]
         try:
             data = _load_vscode_theme(info["path"])

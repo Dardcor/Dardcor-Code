@@ -57,6 +57,23 @@ def run_desktop_app():
         app.setDesktopFileName("dardcor-code")
     app.setStyle("Fusion")
 
+    # Set a dark palette immediately to prevent white flash before stylesheet is fully rendered
+    palette = QPalette()
+    palette.setColor(QPalette.Window, QColor(0, 0, 0))
+    palette.setColor(QPalette.WindowText, QColor(255, 255, 255))
+    palette.setColor(QPalette.Base, QColor(0, 0, 0))
+    palette.setColor(QPalette.AlternateBase, QColor(10, 10, 10))
+    palette.setColor(QPalette.ToolTipBase, QColor(0, 0, 0))
+    palette.setColor(QPalette.ToolTipText, QColor(255, 255, 255))
+    palette.setColor(QPalette.Text, QColor(255, 255, 255))
+    palette.setColor(QPalette.Button, QColor(20, 20, 20))
+    palette.setColor(QPalette.ButtonText, QColor(255, 255, 255))
+    palette.setColor(QPalette.BrightText, QColor(255, 0, 0))
+    palette.setColor(QPalette.Link, QColor(42, 130, 218))
+    palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
+    palette.setColor(QPalette.HighlightedText, QColor(255, 255, 255))
+    app.setPalette(palette)
+
     from ..core.config import get_config
     cfg = get_config()
     ui_zoom = getattr(cfg, "ui_zoom", 0)

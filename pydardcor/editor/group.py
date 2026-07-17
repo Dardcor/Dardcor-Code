@@ -1602,3 +1602,14 @@ class EditorGroup(QWidget):
     def toggle_breakpoint(self):
         ed = self.current_editor()
         if ed and hasattr(ed, "toggle_breakpoint"): ed.toggle_breakpoint()
+
+    def revert_current_file(self):
+        import os
+        idx = self._current_idx
+        if idx < 0 or idx >= len(self._tabs):
+            return
+        tab = self._tabs[idx]
+        if tab.file_path and os.path.exists(tab.file_path):
+            tab.editor.open_file(tab.file_path)
+            self._sync_tab_bar()
+            self.dirty_changed.emit(False)

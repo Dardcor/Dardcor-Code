@@ -458,8 +458,13 @@ class QuickOpenDialog(QDialog):
 
         layout.addWidget(container)
 
-    def set_root(self, root_path: str):
-        self._root_path = root_path
+    def set_root(self, root_path):
+        if isinstance(root_path, str):
+            self._root_paths = [root_path]
+            self._root_path = root_path
+        else:
+            self._root_paths = list(root_path)
+            self._root_path = self._root_paths[0] if self._root_paths else ""
         self._all_files = []  # Reset cache when root changes
         self._start_async_scan()
 
@@ -471,31 +476,38 @@ class QuickOpenDialog(QDialog):
         self._recent_files = self._recent_files[:20]
 
     def _start_async_scan(self):
-        if not self._root_path or not os.path.exists(self._root_path):
+        if not hasattr(self, "_root_paths") or not self._root_paths:
             return
         import threading
-        def worker(root):
+        def worker(roots):
             from ..core.filesystem import is_binary
             skip_dirs = {".git", "__pycache__", "node_modules", ".venv", "venv",
                          "dist", "build", ".next", ".nuxt", "target"}
             files = []
-            for dirpath, dirnames, filenames in os.walk(root):
-                dirnames[:] = [d for d in dirnames if d not in skip_dirs and not d.startswith(".")]
-                for fname in filenames:
-                    if not is_binary(fname):
-                        full = os.path.join(dirpath, fname)
-                        try:
-                            rel = os.path.relpath(full, root)
-                            files.append((fname, rel, full))
-                        except Exception:
-                            pass
+            for root in roots:
+                if not root or not os.path.exists(root):
+                    continue
+                for dirpath, dirnames, filenames in os.walk(root):
+                    dirnames[:] = [d for d in dirnames if d not in skip_dirs and not d.startswith(".")]
+                    for fname in filenames:
+                        if not is_binary(fname):
+                            full = os.path.join(dirpath, fname)
+                            try:
+                                rel = os.path.relpath(full, root)
+                                # Prepend the folder name to rel path if there are multiple roots
+                                if len(roots) > 1:
+                                    folder_name = os.path.basename(root)
+                                    rel = os.path.join(folder_name, rel)
+                                files.append((fname, rel, full))
+                            except Exception:
+                                pass
+                        if len(files) >= 8000:
+                            break
                     if len(files) >= 8000:
                         break
-                if len(files) >= 8000:
-                    break
             self._all_files = files
 
-        t = threading.Thread(target=worker, args=(self._root_path,), daemon=True)
+        t = threading.Thread(target=worker, args=(self._root_paths,), daemon=True)
         t.start()
 
     def _scan_files(self):
@@ -751,29 +763,37 @@ class QuickOpenDialog(QDialog):
             query_sym = text_stripped[1:].strip().lower()
             self._list.clear()
             
-            from ..file_explorer.outline_panel import parse_outline_symbols
-            import time
-            start_time = time.time()
             flat_symbols = []
-
-            for fname, rel, full in self._all_files:
-                if full.lower().endswith((".py", ".js", ".jsx", ".ts", ".tsx", ".vue")):
-                    try:
-                        with open(full, "r", encoding="utf-8", errors="replace") as f:
-                            content = f.read()
-                        symbols = parse_outline_symbols(content, full)
-                        def flatten(syms, prefix=""):
-                            for sym in syms:
-                                fullname = f"{prefix}{sym['name']}"
-                                flat_symbols.append((fullname, sym['type'], sym['line'], rel, full))
-                                if sym.get('children'):
-                                    flatten(sym['children'], f"{fullname} > ")
-                        flatten(symbols)
-                    except Exception:
-                        pass
-                if time.time() - start_time > 0.5:
-                    break
-                    
+            parent = self.parent()
+            # Try LSP first
+            if parent and hasattr(parent, "query_workspace_symbols"):
+                lsp_syms = parent.query_workspace_symbols(query_sym)
+                for s in lsp_syms:
+                    flat_symbols.append((s["name"], s["type"], s["line"], s["rel"], s["full"]))
+            
+            # Fallback to local parsing if LSP returned nothing
+            if not flat_symbols:
+                from ..file_explorer.outline_panel import parse_outline_symbols
+                import time
+                start_time = time.time()
+                for fname, rel, full in self._all_files:
+                    if full.lower().endswith((".py", ".js", ".jsx", ".ts", ".tsx", ".vue")):
+                        try:
+                            with open(full, "r", encoding="utf-8", errors="replace") as f:
+                                content = f.read()
+                            symbols = parse_outline_symbols(content, full)
+                            def flatten(syms, prefix=""):
+                                for sym in syms:
+                                    fullname = f"{prefix}{sym['name']}"
+                                    flat_symbols.append((fullname, sym['type'], sym['line'], rel, full))
+                                    if sym.get('children'):
+                                        flatten(sym['children'], f"{fullname} > ")
+                            flatten(symbols)
+                        except Exception:
+                            pass
+                    if time.time() - start_time > 0.5:
+                        break
+                        
             filtered_syms = [
                 s for s in flat_symbols
                 if not query_sym or query_sym in s[0].lower()

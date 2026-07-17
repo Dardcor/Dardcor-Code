@@ -718,6 +718,10 @@ class MonacoEditorWidget(QWidget):
         if self._view_ready:
             self._view.page().runJavaScript("clearCommentMarkers();")
 
+    def set_multi_cursor_modifier(self, modifier: str):
+        if self._view_ready:
+            self._view.page().runJavaScript(f"setMultiCursorModifier('{modifier}');")
+
     def closeEvent(self, event):
         self.cleanup()
         super().closeEvent(event)

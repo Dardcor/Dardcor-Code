@@ -88,7 +88,10 @@ class WelcomePageWidget(QWidget):
         grid = QHBoxLayout()
         grid.setSpacing(40)
 
-        left_col = QVBoxLayout()
+        left_widget = QWidget()
+        left_widget.setMaximumWidth(450)
+        left_col = QVBoxLayout(left_widget)
+        left_col.setContentsMargins(0, 0, 0, 0)
         left_col.setSpacing(10)
         left_col.setAlignment(Qt.AlignTop)
 
@@ -157,9 +160,12 @@ class WelcomePageWidget(QWidget):
                     btn.clicked.connect(lambda checked=False, p=path: self.file_action_requested.emit(f"open_file_path:{p}"))
                 left_col.addWidget(btn)
 
-        grid.addLayout(left_col, 1)
+        grid.addWidget(left_widget)
 
-        right_col = QVBoxLayout()
+        right_widget = QWidget()
+        right_widget.setMaximumWidth(400)
+        right_col = QVBoxLayout(right_widget)
+        right_col.setContentsMargins(0, 0, 0, 0)
         right_col.setSpacing(20)
         right_col.setAlignment(Qt.AlignTop)
 
@@ -210,7 +216,8 @@ class WelcomePageWidget(QWidget):
         card_lay.addWidget(telemetry_cb)
 
         right_col.addWidget(card)
-        grid.addLayout(right_col, 1)
+        grid.addWidget(right_widget)
+        grid.addStretch()
 
         c_lay.addLayout(grid)
         self._scroll.setWidget(content)
