@@ -6,9 +6,9 @@ import { type IHoverLifecycleOptions } from '../hover/hover.js';
 export interface IFindInputToggleOpts {
 	readonly appendTitle: string;
 	readonly isChecked: boolean;
-	readonly inputActiveOptionBorder: string | undefined;
-	readonly inputActiveOptionForeground: string | undefined;
-	readonly inputActiveOptionBackground: string | undefined;
+	readonly inputActiveOptionBorder?: string;
+	readonly inputActiveOptionForeground?: string;
+	readonly inputActiveOptionBackground?: string;
 	readonly hoverLifecycleOptions?: IHoverLifecycleOptions;
 }
 

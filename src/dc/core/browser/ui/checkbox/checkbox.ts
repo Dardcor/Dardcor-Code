@@ -19,6 +19,7 @@ export interface IToggleOpts {
 	title: string;
 	isChecked: boolean;
 	styles?: IToggleStyles;
+	hoverLifecycleOptions?: any;
 }
 
 export class Toggle extends Widget {
@@ -84,5 +85,9 @@ export class Checkbox extends Widget {
 
 	public focus(): void {
 		this.domNode.focus();
+	}
+
+	public hasFocus(): boolean {
+		return document.activeElement === this.domNode;
 	}
 }

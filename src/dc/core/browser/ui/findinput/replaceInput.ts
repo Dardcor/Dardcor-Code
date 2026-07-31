@@ -104,7 +104,7 @@ export class ReplaceInput extends Widget {
 			validationOptions: {
 				validation: this.validation
 			},
-			history,
+			history: history as any,
 			showHistoryHint: options.showHistoryHint,
 			flexibleHeight,
 			flexibleWidth,
@@ -158,7 +158,7 @@ export class ReplaceInput extends Widget {
 						indexes[newIndex].focus();
 					}
 
-					dom.EventHelper.stop(event, true);
+					dom.EventHelper.stop(event.browserEvent as Event, true);
 				}
 			}
 		});

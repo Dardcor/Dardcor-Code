@@ -23,6 +23,7 @@ export enum ButtonBarAlignment {
 export interface IButtonWithDropdownOptions {
 	title?: string;
 	actions?: any[];
+	dropdownLayer?: number;
 }
 
 export class Button extends Widget implements IButton {
@@ -68,6 +69,10 @@ export class Button extends Widget implements IButton {
 	public focus(): void {
 		this.element.focus();
 	}
+
+	public hasFocus(): boolean {
+		return document.activeElement === this.element;
+	}
 }
 
 export class ButtonBar extends Widget {
@@ -88,15 +93,34 @@ export class ButtonBar extends Widget {
 		this._buttons.push(btn);
 		return btn;
 	}
+
+	public addButtonWithDropdown(options?: IButtonWithDropdownOptions): ButtonWithDropdown {
+		const btn = this._register(new ButtonWithDropdown(this.element, options));
+		this._buttons.push(btn);
+		return btn;
+	}
+
+	public addButtonWithDescription(options?: any): ButtonWithDescription {
+		const btn = this._register(new ButtonWithDescription(this.element, options));
+		this._buttons.push(btn);
+		return btn;
+	}
+
+	public get buttons(): Button[] {
+		return this._buttons;
+	}
 }
 
 export class ButtonWithDescription extends Button {
+	public description: string = '';
 	constructor(container: HTMLElement, options?: any) {
 		super(container, options);
 	}
 }
 
 export class ButtonWithDropdown extends Button {
+	public primaryButton: Button = this;
+	public dropdownButton: Button = this;
 	constructor(container: HTMLElement, options?: IButtonWithDropdownOptions) {
 		super(container, options);
 	}

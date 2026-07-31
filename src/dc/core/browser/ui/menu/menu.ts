@@ -3,6 +3,11 @@ import { IAction } from '../../../common/actions.js';
 export interface IMenuOptions {
 	ariaLabel?: string;
 	actions?: IAction[];
+	context?: any;
+	actionViewItemProvider?: any;
+	getKeyBinding?: (action: IAction) => any;
+	actionRunner?: any;
+	anchorAlignment?: number;
 }
 
 export class Menu {

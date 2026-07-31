@@ -113,7 +113,7 @@ export class FindInput extends Widget {
 			flexibleMaxHeight,
 			inputBoxStyles: options.inputBoxStyles,
 			history: options.history,
-			actions: options.actions,
+			actions: options.actions as any[],
 			actionViewItemProvider: options.actionViewItemProvider,
 			hideHoverOnValueChange: options.hideHoverOnValueChange
 		}));
@@ -191,7 +191,7 @@ export class FindInput extends Widget {
 							indexes[newIndex].focus();
 						}
 
-						dom.EventHelper.stop(event, true);
+						dom.EventHelper.stop(event.browserEvent as Event, true);
 					}
 				}
 			});

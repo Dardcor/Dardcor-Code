@@ -180,7 +180,7 @@ export class Dialog extends Disposable {
 		if (this.options.checkboxLabel) {
 			const checkboxRowElement = this.messageContainer.appendChild($('.dialog-checkbox-row'));
 			const checkbox = this.checkbox = this._register(
-				new Checkbox(this.options.checkboxLabel, !!this.options.checkboxChecked, options.checkboxStyles)
+				new Checkbox('', this.options.checkboxLabel, !!this.options.checkboxChecked, options.checkboxStyles)
 			);
 			checkboxRowElement.appendChild(checkbox.domNode);
 			const checkboxMessageElement = checkboxRowElement.appendChild($('.dialog-checkbox-message'));
@@ -223,7 +223,7 @@ export class Dialog extends Disposable {
 			};
 			this._register(toDisposable(close));
 
-			const buttonBar = this.buttonBar = this._register(new ButtonBar(this.buttonsContainer, { alignment: this.options?.alignment === DialogContentsAlignment.Vertical ? ButtonBarAlignment.Vertical : ButtonBarAlignment.Horizontal }));
+			const buttonBar = this.buttonBar = this._register(new ButtonBar(this.buttonsContainer, { alignment: this.options?.alignment === DialogContentsAlignment.Vertical ? ButtonBarAlignment.LEFT : ButtonBarAlignment.RIGHT }));
 			const buttonMap = this.rearrangeButtons(this.buttons, this.options.cancelId);
 
 			const onButtonClick = (index: number) => {
@@ -269,10 +269,7 @@ export class Dialog extends Disposable {
 						button.description = buttonOptions?.sublabel;
 					}
 				}
-				this._register(button.onDidClick(e => {
-					if (e) {
-						EventHelper.stop(e);
-					}
+				this._register(button.onDidClick(() => {
 					onButtonClick(index);
 				}));
 			});

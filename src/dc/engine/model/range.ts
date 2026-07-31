@@ -1,7 +1,8 @@
-import { IRange, Position, Range as BaseRange } from './text-model.js';
+import { IRange, Range as BaseRange } from './text-model.js';
+import { Position } from './position.js';
 
 export type { IRange } from './text-model.js';
-export { Position } from './position.js';
+export { Position };
 
 export class Range extends BaseRange {
 	static isIRange(thing: unknown): thing is IRange {

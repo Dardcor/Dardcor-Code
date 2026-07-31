@@ -31,7 +31,7 @@ export class CopyPasteController extends Disposable {
 	public getTextToCopy(selections: readonly Selection[], model: ITextModel): string {
 		const parts: string[] = [];
 		for (const selection of selections) {
-			parts.push(this._getTextInRange(model, selection.start, selection.end));
+			parts.push(this.getTextInRange(model, selection.start, selection.end));
 		}
 		return parts.join('\n');
 	}

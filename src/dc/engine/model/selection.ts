@@ -24,7 +24,7 @@ export class Selection extends EditorRange implements ISelection {
 			return false;
 		}
 		const candidate = thing as ISelection;
-		return Range.isIRange(candidate)
+		return EditorRange.isIRange(candidate)
 			&& typeof candidate.selectionStartLineNumber === 'number'
 			&& typeof candidate.selectionStartColumn === 'number'
 			&& typeof candidate.positionLineNumber === 'number'
@@ -83,7 +83,7 @@ export class Selection extends EditorRange implements ISelection {
 		);
 	}
 
-	static fromPositions(start: Position, end: Position): Selection {
+	static fromPositions(start: EditorPosition, end: EditorPosition): Selection {
 		return new Selection(start.lineNumber, start.column, end.lineNumber, end.column);
 	}
 
@@ -113,29 +113,29 @@ export class Selection extends EditorRange implements ISelection {
 		return this.endColumn;
 	}
 
-	get selectionStart(): Position {
-		return new Position(this.startLineNumber, this.startColumn);
+	get selectionStart(): EditorPosition {
+		return new EditorPosition(this.startLineNumber, this.startColumn);
 	}
 
-	get position(): Position {
-		return new Position(this.endLineNumber, this.endColumn);
+	get position(): EditorPosition {
+		return new EditorPosition(this.endLineNumber, this.endColumn);
 	}
 
-	get anchor(): Position {
+	get anchor(): EditorPosition {
 		return this.selectionStart;
 	}
 
-	get active(): Position {
+	get active(): EditorPosition {
 		return this.position;
 	}
 
-	get start(): Position {
+	get start(): EditorPosition {
 		return EditorPosition.compare(this.selectionStart, this.position) <= 0
 			? this.selectionStart
 			: this.position;
 	}
 
-	get end(): Position {
+	get end(): EditorPosition {
 		return EditorPosition.compare(this.selectionStart, this.position) <= 0
 			? this.position
 			: this.selectionStart;
@@ -169,7 +169,7 @@ export class Selection extends EditorRange implements ISelection {
 		return Selection.createReversed(this);
 	}
 
-	toRange(): Range {
+	toRange(): EditorRange {
 		return EditorRange.fromPositions(this.start, this.end);
 	}
 

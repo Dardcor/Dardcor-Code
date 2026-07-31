@@ -1,4 +1,5 @@
-import { ITextModel, Position } from '../model/text-model.js';
+import { ITextModel } from '../model/text-model.js';
+import { Position } from '../model/position.js';
 import { Selection } from '../model/selection.js';
 import { CursorWord, DEFAULT_WORD_SEPARATORS } from './cursor-word.js';
 

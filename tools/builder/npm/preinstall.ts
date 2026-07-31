@@ -10,7 +10,7 @@ if (!process.env['DARDCOR_SKIP_NODE_VERSION_CHECK']) {
 	const minorNodeVersion = parseInt(nodeVersion![2]);
 	const patchNodeVersion = parseInt(nodeVersion![3]);
 
-	const nvmrcPath = path.join(import.meta.dirname, '..', '..', '.nvmrc');
+	const nvmrcPath = path.join(import.meta.dirname, '..', '..', '..', '.nvmrc');
 	const requiredVersion = fs.readFileSync(nvmrcPath, 'utf8').trim();
 	const requiredVersionMatch = /^(\d+)\.(\d+)\.(\d+)/.exec(requiredVersion);
 

@@ -1,6 +1,7 @@
 import { Widget } from '../widget.js';
 import { IContextViewProvider } from '../contextview/contextview.js';
 import { IHistory } from '../../../common/history.js';
+import { Emitter } from '../../../common/event.js';
 
 export interface IInputBoxStyles {
 	inputBackground?: string;
@@ -26,12 +27,15 @@ export interface IInputOptions {
 	flexibleWidth?: boolean;
 	flexibleMaxHeight?: number;
 	actions?: any[];
+	type?: string;
 }
 
 export class InputBox extends Widget {
 	public readonly element: HTMLElement;
 	public readonly inputElement: HTMLInputElement;
 	public checked = false;
+	public paddingRight = 0;
+	public readonly onDidChange = this._register(new Emitter<string>()).event;
 
 	constructor(parent: HTMLElement, contextViewProvider?: IContextViewProvider, options?: IInputOptions) {
 		super();
@@ -75,10 +79,18 @@ export class InputBox extends Widget {
 	public disable(): void {
 		this.inputElement.disabled = true;
 	}
+
+	public layout(): void {}
+	public setActions(actions: any[], actionViewItemProvider?: any): void {}
+	public get actionsWidth(): number { return 0; }
+	public validate(): void {}
+	public showMessage(message: IMessage): void {}
+	public hideMessage(): void {}
 }
 
 export class HistoryInputBox extends InputBox {
 	constructor(parent: HTMLElement, contextViewProvider?: IContextViewProvider, options?: IInputOptions) {
 		super(parent, contextViewProvider, options);
 	}
+	public addToHistory(): void {}
 }
