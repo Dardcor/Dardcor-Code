@@ -45,4 +45,3 @@ coverage/
 # Electron
 electron-builder.yml.local
 
-AGENT.md

@@ -554,25 +554,25 @@ Desain warna default Dardcor Code :
 - [x] 483. platform/list: list service lengkap
 - [x] 484. platform/log: log service (ILogService, ILog, createLogger, dll) lengkap
 - [x] 485. platform/markers: markers service (IMarkerService, MarkerSeverity, dll) lengkap
-- [ ] 486. platform/markdown: markdown service (renderMarkdown, dll) lengkap
-- [ ] 487. platform/menubar: menu bar service lengkap
-- [ ] 488. platform/meteredConnection: metered connection lengkap
-- [ ] 489. platform/notification: notification service (notify, error, warning, info, progress, dll) lengkap
-- [ ] 490. platform/observable: observable service lengkap
-- [ ] 491. platform/opener: opener service (open, openExternal, dll) lengkap
-- [ ] 492. platform/process: process service lengkap
-- [ ] 493. platform/product: product service (IProductService) lengkap
-- [ ] 494. platform/profiling: profiling service lengkap
-- [ ] 495. platform/progress: progress service (show, withProgress, IProgress, dll) lengkap
-- [ ] 496. platform/quickinput: quick input service (showQuickPick, showInputBox, pick, dll) lengkap
-- [ ] 497. platform/registry: registry service lengkap
-- [ ] 498. platform/remote: remote service lengkap
-- [ ] 499. platform/remoteTunnel: remote tunnel service lengkap
-- [ ] 500. platform/request: request service (makeRequest, dll) lengkap
-- [ ] 501. platform/sandbox: sandbox service lengkap
-- [ ] 502. platform/secrets: secrets service (getSecret, setSecret, dll) lengkap
-- [ ] 503. platform/sharedProcess: shared process service lengkap
-- [ ] 504. platform/shell: shell service (openExternal, showItemInFolder, trash, dll) lengkap
+- [x] 486. platform/markdown: markdown service (renderMarkdown, dll) lengkap
+- [x] 487. platform/menubar: menu bar service lengkap
+- [x] 488. platform/meteredConnection: metered connection lengkap
+- [x] 489. platform/notification: notification service (notify, error, warning, info, progress, dll) lengkap
+- [x] 490. platform/observable: observable service lengkap
+- [x] 491. platform/opener: opener service (open, openExternal, dll) lengkap
+- [x] 492. platform/process: process service lengkap
+- [x] 493. platform/product: product service (IProductService) lengkap
+- [x] 494. platform/profiling: profiling service lengkap
+- [x] 495. platform/progress: progress service (show, withProgress, IProgress, dll) lengkap
+- [x] 496. platform/quickinput: quick input service (showQuickPick, showInputBox, pick, dll) lengkap
+- [x] 497. platform/registry: registry service lengkap
+- [x] 498. platform/remote: remote service lengkap
+- [x] 499. platform/remoteTunnel: remote tunnel service lengkap
+- [x] 500. platform/request: request service (makeRequest, dll) lengkap
+- [x] 501. platform/sandbox: sandbox service lengkap
+- [x] 502. platform/secrets: secrets service (getSecret, setSecret, dll) lengkap
+- [x] 503. platform/sharedProcess: shared process service lengkap
+- [x] 504. platform/shell: shell service (openExternal, showItemInFolder, trash, dll) lengkap
 - [ ] 505. platform/sign: sign service lengkap
 - [ ] 506. platform/storage: storage service (get, set, remove, globalStorage, workspaceStorage, dll) lengkap
 - [ ] 507. platform/telemetry: telemetry service (sendTelemetryEvent, sendErrorTelemetry, publicProperties, dll) lengkap
