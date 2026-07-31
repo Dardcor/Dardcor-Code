@@ -673,73 +673,73 @@ Desain warna default Dardcor Code :
 - [x] 599. editor/common/textResourceEditor.ts asli lengkap
 - [x] 600. editor/common/editorOpenContext.ts asli lengkap
 - [x] 601. editor/common/multiDiffEditorInput.ts asli lengkap
-- [ ] 602. encryption: encryption service lengkap
-- [ ] 603. environment: environment service workbench lengkap
-- [ ] 604. extensionManagement: workbench extension management (instal, uninstal, update, marketplace) lengkap
-- [ ] 605. extensionRecommendations: workbench extension recommendations lengkap
-- [ ] 606. extensions: workbench extension service, extension host, extension status lengkap
-- [ ] 607. files: workbench file service (open, save, auto save, file watcher, dll) lengkap
-- [ ] 608. filesConfiguration: files configuration lengkap
-- [ ] 609. history: editor history service (recent files, recently opened) lengkap
-- [ ] 610. host: host service lengkap
-- [ ] 611. imageResize: image resize lengkap
-- [ ] 612. inlineCompletions: inline completions lengkap
-- [ ] 613. integrity: integrity service lengkap
-- [ ] 614. keybinding: workbench keybinding service lengkap
-- [ ] 615. label: workbench label service lengkap
-- [ ] 616. language: workbench language service lengkap
-- [ ] 617. languageDetection: language detection lengkap
-- [ ] 618. languageStatus: language status lengkap
-- [ ] 619. layout: workbench layout service (grid layout, editor group sizing, dll) lengkap
-- [ ] 620. lifecycle: workbench lifecycle lengkap
-- [ ] 621. localization: localization service lengkap
-- [ ] 622. log: workbench log service lengkap
-- [ ] 623. mcp: MCP (Model Context Protocol) service lengkap
-- [ ] 624. menubar: workbench menubar service lengkap
-- [ ] 625. model: model service lengkap
-- [ ] 626. notebook: notebook service lengkap
-- [ ] 627. notification: workbench notification service lengkap
-- [ ] 628. outline: outline service lengkap
-- [ ] 629. output: output service lengkap
-- [ ] 630. panecomposite: pane composite service lengkap
-- [ ] 631. path: path service lengkap
-- [ ] 632. policies: policy service lengkap
-- [ ] 633. power: power service lengkap
-- [ ] 634. preferences: preferences service lengkap
-- [ ] 635. process: workbench process service lengkap
-- [ ] 636. progress: workbench progress service lengkap
-- [ ] 637. quickinput: workbench quick input lengkap
-- [ ] 638. remote: workbench remote service lengkap
-- [ ] 639. request: workbench request lengkap
-- [ ] 640. search: workbench search service lengkap
-- [ ] 641. secrets: workbench secrets lengkap
-- [ ] 642. sharedProcess: shared process lengkap
-- [ ] 643. statusbar: status bar service lengkap
-- [ ] 644. storage: workbench storage service lengkap
-- [ ] 645. suggest: suggest service lengkap
-- [ ] 646. telemetry: workbench telemetry lengkap
-- [ ] 647. terminal: workbench terminal service lengkap
-- [ ] 648. textfile: text file service (save, revert, encoding, dirty, dll) lengkap
-- [ ] 649. textMate: text mate service lengkap
-- [ ] 650. textmodelResolver: text model resolver lengkap
-- [ ] 651. textresourceProperties: text resource properties lengkap
-- [ ] 652. themes: workbench themes lengkap
-- [ ] 653. timer: timer lengkap
-- [ ] 654. title: title service lengkap
-- [ ] 655. treeSitter: tree sitter service lengkap
-- [ ] 656. tunnel: workbench tunnel lengkap
-- [ ] 657. untitled: untitled text editor service lengkap
-- [ ] 658. update: workbench update lengkap
-- [ ] 659. url: workbench url lengkap
-- [ ] 660. userActivity: user activity lengkap
-- [ ] 661. userAttention: user attention lengkap
-- [ ] 662. userData: user data service lengkap
-- [ ] 663. userDataProfile: user data profile service lengkap
-- [ ] 664. userDataSync: user data sync service lengkap
-- [ ] 665. utilityProcess: utility process lengkap
-- [ ] 666. views: view service lengkap
-- [ ] 667. workingCopy: working copy service lengkap
-- [ ] 668. workspaces: workbench workspaces lengkap
+- [x] 602. encryption: encryption service lengkap
+- [x] 603. environment: environment service workbench lengkap
+- [x] 604. extensionManagement: workbench extension management (instal, uninstal, update, marketplace) lengkap
+- [x] 605. extensionRecommendations: workbench extension recommendations lengkap
+- [x] 606. extensions: workbench extension service, extension host, extension status lengkap
+- [x] 607. files: workbench file service (open, save, auto save, file watcher, dll) lengkap
+- [x] 608. filesConfiguration: files configuration lengkap
+- [x] 609. history: editor history service (recent files, recently opened) lengkap
+- [x] 610. host: host service lengkap
+- [x] 611. imageResize: image resize lengkap
+- [x] 612. inlineCompletions: inline completions lengkap
+- [x] 613. integrity: integrity service lengkap
+- [x] 614. keybinding: workbench keybinding service lengkap
+- [x] 615. label: workbench label service lengkap
+- [x] 616. language: workbench language service lengkap
+- [x] 617. languageDetection: language detection lengkap
+- [x] 618. languageStatus: language status lengkap
+- [x] 619. layout: workbench layout service (grid layout, editor group sizing, dll) lengkap
+- [x] 620. lifecycle: workbench lifecycle lengkap
+- [x] 621. localization: localization service lengkap
+- [x] 622. log: workbench log service lengkap
+- [x] 623. mcp: MCP (Model Context Protocol) service lengkap
+- [x] 624. menubar: workbench menubar service lengkap
+- [x] 625. model: model service lengkap
+- [x] 626. notebook: notebook service lengkap
+- [x] 627. notification: workbench notification service lengkap
+- [x] 628. outline: outline service lengkap
+- [x] 629. output: output service lengkap
+- [x] 630. panecomposite: pane composite service lengkap
+- [x] 631. path: path service lengkap
+- [x] 632. policies: policy service lengkap
+- [x] 633. power: power service lengkap
+- [x] 634. preferences: preferences service lengkap
+- [x] 635. process: workbench process service lengkap
+- [x] 636. progress: workbench progress service lengkap
+- [x] 637. quickinput: workbench quick input lengkap
+- [x] 638. remote: workbench remote service lengkap
+- [x] 639. request: workbench request lengkap
+- [x] 640. search: workbench search service lengkap
+- [x] 641. secrets: workbench secrets lengkap
+- [x] 642. sharedProcess: shared process lengkap
+- [x] 643. statusbar: status bar service lengkap
+- [x] 644. storage: workbench storage service lengkap
+- [x] 645. suggest: suggest service lengkap
+- [x] 646. telemetry: workbench telemetry lengkap
+- [x] 647. terminal: workbench terminal service lengkap
+- [x] 648. textfile: text file service (save, revert, encoding, dirty, dll) lengkap
+- [x] 649. textMate: text mate service lengkap
+- [x] 650. textmodelResolver: text model resolver lengkap
+- [x] 651. textresourceProperties: text resource properties lengkap
+- [x] 652. themes: workbench themes lengkap
+- [x] 653. timer: timer lengkap
+- [x] 654. title: title service lengkap
+- [x] 655. treeSitter: tree sitter service lengkap
+- [x] 656. tunnel: workbench tunnel lengkap
+- [x] 657. untitled: untitled text editor service lengkap
+- [x] 658. update: workbench update lengkap
+- [x] 659. url: workbench url lengkap
+- [x] 660. userActivity: user activity lengkap
+- [x] 661. userAttention: user attention lengkap
+- [x] 662. userData: user data service lengkap
+- [x] 663. userDataProfile: user data profile service lengkap
+- [x] 664. userDataSync: user data sync service lengkap
+- [x] 665. utilityProcess: utility process lengkap
+- [x] 666. views: view service lengkap
+- [x] 667. workingCopy: working copy service lengkap
+- [x] 668. workspaces: workbench workspaces lengkap
 
 ## E. src/dc/app-shell (meniru src/vs/workbench/browser VS Code asli)
 
