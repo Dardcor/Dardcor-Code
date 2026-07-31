@@ -642,37 +642,37 @@ Desain warna default Dardcor Code :
 - [x] 568. editor/browser/editorService2.ts asli lengkap
 - [x] 569. editor/browser/editorTabs.ts asli lengkap
 - [x] 570. editor/browser/editorTab.ts asli lengkap
-- [ ] 571. editor/browser/editorTabbedGroup.ts asli lengkap
-- [ ] 572. editor/browser/editorWillMoveEvent.ts asli lengkap
-- [ ] 573. editor/browser/multiEditorDiff.ts asli lengkap
-- [ ] 574. editor/browser/sideBySideEditor.ts asli lengkap
-- [ ] 575. editor/browser/editorTypeIdentifier.ts asli lengkap
-- [ ] 576. editor/common/codeEditorService.ts asli lengkap
-- [ ] 577. editor/common/editor.ts asli lengkap
-- [ ] 578. editor/common/editorConfig.ts asli lengkap
-- [ ] 579. editor/common/editorOptions.ts asli lengkap
-- [ ] 580. editor/common/editorExtensionService.ts asli lengkap
-- [ ] 581. editor/common/editorGroup.ts asli lengkap
-- [ ] 582. editor/common/editorInput.ts asli (EditorInput, dll) lengkap
-- [ ] 583. editor/common/editorModel.ts asli lengkap
-- [ ] 584. editor/common/editorModelResolverService.ts asli lengkap
-- [ ] 585. editor/common/editorPane.ts asli lengkap
-- [ ] 586. editor/common/editorPart.ts asli lengkap
-- [ ] 587. editor/common/editorRegistration.ts asli lengkap
-- [ ] 588. editor/common/editorResourceAccessor.ts asli lengkap
-- [ ] 589. editor/common/editorResolverService.ts asli lengkap
-- [ ] 590. editor/common/editorService.ts asli lengkap
-- [ ] 591. editor/common/editorStack.ts asli lengkap
-- [ ] 592. editor/common/editorStatusBarItem.ts asli lengkap
-- [ ] 593. editor/common/editorTheme.ts asli lengkap
-- [ ] 594. editor/common/editorTitle.ts asli lengkap
-- [ ] 595. editor/common/editorWorkbench.ts asli lengkap
-- [ ] 596. editor/common/untitledTextEditor.ts asli lengkap
-- [ ] 597. editor/common/textEditor.ts asli lengkap
-- [ ] 598. editor/common/binaryEditor.ts asli lengkap
-- [ ] 599. editor/common/textResourceEditor.ts asli lengkap
-- [ ] 600. editor/common/editorOpenContext.ts asli lengkap
-- [ ] 601. editor/common/multiDiffEditorInput.ts asli lengkap
+- [x] 571. editor/browser/editorTabbedGroup.ts asli lengkap
+- [x] 572. editor/browser/editorWillMoveEvent.ts asli lengkap
+- [x] 573. editor/browser/multiEditorDiff.ts asli lengkap
+- [x] 574. editor/browser/sideBySideEditor.ts asli lengkap
+- [x] 575. editor/browser/editorTypeIdentifier.ts asli lengkap
+- [x] 576. editor/common/codeEditorService.ts asli lengkap
+- [x] 577. editor/common/editor.ts asli lengkap
+- [x] 578. editor/common/editorConfig.ts asli lengkap
+- [x] 579. editor/common/editorOptions.ts asli lengkap
+- [x] 580. editor/common/editorExtensionService.ts asli lengkap
+- [x] 581. editor/common/editorGroup.ts asli lengkap
+- [x] 582. editor/common/editorInput.ts asli (EditorInput, dll) lengkap
+- [x] 583. editor/common/editorModel.ts asli lengkap
+- [x] 584. editor/common/editorModelResolverService.ts asli lengkap
+- [x] 585. editor/common/editorPane.ts asli lengkap
+- [x] 586. editor/common/editorPart.ts asli lengkap
+- [x] 587. editor/common/editorRegistration.ts asli lengkap
+- [x] 588. editor/common/editorResourceAccessor.ts asli lengkap
+- [x] 589. editor/common/editorResolverService.ts asli lengkap
+- [x] 590. editor/common/editorService.ts asli lengkap
+- [x] 591. editor/common/editorStack.ts asli lengkap
+- [x] 592. editor/common/editorStatusBarItem.ts asli lengkap
+- [x] 593. editor/common/editorTheme.ts asli lengkap
+- [x] 594. editor/common/editorTitle.ts asli lengkap
+- [x] 595. editor/common/editorWorkbench.ts asli lengkap
+- [x] 596. editor/common/untitledTextEditor.ts asli lengkap
+- [x] 597. editor/common/textEditor.ts asli lengkap
+- [x] 598. editor/common/binaryEditor.ts asli lengkap
+- [x] 599. editor/common/textResourceEditor.ts asli lengkap
+- [x] 600. editor/common/editorOpenContext.ts asli lengkap
+- [x] 601. editor/common/multiDiffEditorInput.ts asli lengkap
 - [ ] 602. encryption: encryption service lengkap
 - [ ] 603. environment: environment service workbench lengkap
 - [ ] 604. extensionManagement: workbench extension management (instal, uninstal, update, marketplace) lengkap
