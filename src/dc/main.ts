@@ -1,8 +1,3 @@
-/**
- * Dardcor Code - Application Renderer Entry Point
- * Uses Monaco Editor for code editing and Xterm.js for terminal
- */
-
 declare const monaco: typeof import('monaco-editor');
 declare const nodeRequire: any;
 
@@ -10,8 +5,6 @@ const { ipcRenderer } = nodeRequire('electron');
 const { Terminal } = nodeRequire('@xterm/xterm');
 const { FitAddon } = nodeRequire('@xterm/addon-fit');
 const path = nodeRequire('path');
-
-// ─── Language Detection ──────────────────────────────────────────
 
 const EXT_TO_LANG: Record<string, string> = {
 	'.ts': 'typescript', '.tsx': 'typescriptreact',
