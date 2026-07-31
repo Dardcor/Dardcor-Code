@@ -428,39 +428,39 @@ Desain warna default Dardcor Code :
 - [x] 365. diffEditorBreadcrumbs: breadcrumbs di diff editor lengkap
 - [x] 366. dnd: drag and drop teks di editor lengkap
 - [x] 367. documentSymbols: document symbols outline lengkap
-- [ ] 368. dropOrPasteInto: drop/paste into editor lengkap
-- [ ] 369. editorState: editor state tracking lengkap
-- [ ] 370. find: find widget (Ctrl+F), replace (Ctrl+H), find in selection, find next/previous, match case, whole word, regex, preserve case, multiline, find history lengkap
-- [ ] 371. floatingMenu: floating menu bar di editor lengkap
-- [ ] 372. folding: fold/unfold, fold all, unfold all, fold level 1-7, fold recursion, fold markers, fold region, folding highlight, folding decorations lengkap
-- [ ] 373. fontZoom: Ctrl+=, Ctrl+-, Ctrl+0 lengkap
-- [ ] 374. format: format document, format selection, format on save, format on paste, format on type lengkap
-- [ ] 375. gotoError: go to next/previous error or warning (F8, Shift+F8) lengkap
-- [ ] 376. gotoSymbol: go to symbol, go to symbol in workspace (Ctrl+Shift+O, Ctrl+T) lengkap
-- [ ] 377. gpu: GPU hardware acceleration lengkap
-- [ ] 378. hover: hover widget, markdown hover, hover provider lengkap
-- [ ] 379. indentation: indent/dedent, convert indentation, reindent lines lengkap
-- [ ] 380. inlayHints: inlay hints rendering lengkap
-- [ ] 381. inlineCompletions: inline completion widget (ghost text) lengkap
-- [ ] 382. inlineProgress: inline progress indicator lengkap
-- [ ] 383. inPlaceReplace: replace in place lengkap
-- [ ] 384. insertFinalNewLine: insert final newline lengkap
-- [ ] 385. lineSelection: select line lengkap
-- [ ] 386. linesOperations: copy line up/down, move line up/down, delete line, sort lines, trim trailing whitespace lengkap
-- [ ] 387. linkedEditing: linked editing (HTML tags) lengkap
-- [ ] 388. links: link detector, clickable links, Ctrl+click lengkap
-- [ ] 389. longLinesHelper: long lines helper lengkap
-- [ ] 390. message: message controller lengkap
-- [ ] 391. middleScroll: middle mouse scroll lengkap
-- [ ] 392. multicursor: multi cursor (Alt+Click, Ctrl+Alt+Up/Down, add cursor to line ends, add selection to next find match) lengkap
-- [ ] 393. parameterHints: parameter hints (Ctrl+Shift+Space), signature help lengkap
-- [ ] 394. peekView: peek view widget lengkap
-- [ ] 395. placeholderText: placeholder text widget lengkap
-- [ ] 396. quickAccess: quick access di editor lengkap
-- [ ] 397. readOnlyMessage: read-only message widget lengkap
-- [ ] 398. rename: rename symbol (F2), rename preview lengkap
-- [ ] 399. sectionHeaders: section headers lengkap
-- [ ] 400. semanticTokens: semantic tokens highlight lengkap
+- [x] 368. dropOrPasteInto: drop/paste into editor lengkap
+- [x] 369. editorState: editor state tracking lengkap
+- [x] 370. find: find widget (Ctrl+F), replace (Ctrl+H), find in selection, find next/previous, match case, whole word, regex, preserve case, multiline, find history lengkap
+- [x] 371. floatingMenu: floating menu bar di editor lengkap
+- [x] 372. folding: fold/unfold, fold all, unfold all, fold level 1-7, fold recursion, fold markers, fold region, folding highlight, folding decorations lengkap
+- [x] 373. fontZoom: Ctrl+=, Ctrl+-, Ctrl+0 lengkap
+- [x] 374. format: format document, format selection, format on save, format on paste, format on type lengkap
+- [x] 375. gotoError: go to next/previous error or warning (F8, Shift+F8) lengkap
+- [x] 376. gotoSymbol: go to symbol, go to symbol in workspace (Ctrl+Shift+O, Ctrl+T) lengkap
+- [x] 377. gpu: GPU hardware acceleration lengkap
+- [x] 378. hover: hover widget, markdown hover, hover provider lengkap
+- [x] 379. indentation: indent/dedent, convert indentation, reindent lines lengkap
+- [x] 380. inlayHints: inlay hints rendering lengkap
+- [x] 381. inlineCompletions: inline completion widget (ghost text) lengkap
+- [x] 382. inlineProgress: inline progress indicator lengkap
+- [x] 383. inPlaceReplace: replace in place lengkap
+- [x] 384. insertFinalNewLine: insert final newline lengkap
+- [x] 385. lineSelection: select line lengkap
+- [x] 386. linesOperations: copy line up/down, move line up/down, delete line, sort lines, trim trailing whitespace lengkap
+- [x] 387. linkedEditing: linked editing (HTML tags) lengkap
+- [x] 388. links: link detector, clickable links, Ctrl+click lengkap
+- [x] 389. longLinesHelper: long lines helper lengkap
+- [x] 390. message: message controller lengkap
+- [x] 391. middleScroll: middle mouse scroll lengkap
+- [x] 392. multicursor: multi cursor (Alt+Click, Ctrl+Alt+Up/Down, add cursor to line ends, add selection to next find match) lengkap
+- [x] 393. parameterHints: parameter hints (Ctrl+Shift+Space), signature help lengkap
+- [x] 394. peekView: peek view widget lengkap
+- [x] 395. placeholderText: placeholder text widget lengkap
+- [x] 396. quickAccess: quick access di editor lengkap
+- [x] 397. readOnlyMessage: read-only message widget lengkap
+- [x] 398. rename: rename symbol (F2), rename preview lengkap
+- [x] 399. sectionHeaders: section headers lengkap
+- [x] 400. semanticTokens: semantic tokens highlight lengkap
 - [ ] 401. smartSelect: expand/shrink selection (Shift+Alt+Right/Left) lengkap
 - [ ] 402. snippet: snippet controller, snippet parser, snippet session, tabstop, placeholder, choice, variable lengkap
 - [ ] 403. stickyScroll: sticky scroll (editor.stickyScroll.enabled) lengkap
