@@ -1,0 +1,2 @@
+import { IDocumentDiffProviderOptions } from 'dc/editor/common/diff/documentDiffProvider';
+import { IChange } from 'dc/editor/common/diff/smartLinesDiffComputer';

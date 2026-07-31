@@ -1,0 +1,482 @@
+{
+	"editor": [
+		{
+			"name": "dc/platform",
+			"project": "vscode-editor"
+		},
+		{
+			"name": "dc/editor/contrib",
+			"project": "vscode-editor"
+		},
+		{
+			"name": "dc/editor",
+			"project": "vscode-editor"
+		},
+		{
+			"name": "dc/base",
+			"project": "vscode-editor"
+		}
+	],
+	"workbench": [
+		{
+			"name": "dc/code",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/api/common",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/bulkEdit",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/cli",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/codeEditor",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/callHierarchy",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/typeHierarchy",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/codeActions",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/comments",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/debug",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/dialogs",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/emmet",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/experiments",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/extensions",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/externalTerminal",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/feedback",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/files",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/html",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/issue",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/inlayHints",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/interactive",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/languageStatus",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/keybindings",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/markers",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/mergeEditor",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/localization",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/logs",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/output",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/performance",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/preferences",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/notebook",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/quickaccess",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/userData",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/remote",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/relauncher",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/sash",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/scm",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/search",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/searchEditor",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/snippets",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/format",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/tags",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/surveys",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/tasks",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/testing",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/terminal",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/themes",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/trust",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/update",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/url",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/watermark",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/webview",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/webviewPanel",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/workspace",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/workspaces",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/customEditor",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/externalUriOpener",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/welcomeGettingStarted",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/welcomeOverlay",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/welcomePage",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/welcomeViews",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/welcomeWalkthrough",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/outline",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/userDataSync",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/editSessions",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/views",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/languageDetection",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/audioCues",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/deprecatedExtensionMigrator",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/bracketPairColorizer2Telemetry",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/offline",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/actions",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/authToken",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/backup",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/bulkEdit",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/clipboard",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/commands",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/configuration",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/configurationResolver",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/dialogs",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/editor",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/extensions",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/extensionManagement",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/files",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/history",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/log",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/integrity",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/keybinding",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/lifecycle",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/language",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/progress",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/remote",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/search",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/textfile",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/themes",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/textMate",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/workingCopy",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/workspaces",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/decorations",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/label",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/preferences",
+			"project": "vscode-preferences"
+		},
+		{
+			"name": "dc/workbench/services/notification",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/userData",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/userDataSync",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/editSessions",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/views",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/timeline",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/localHistory",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/authentication",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/extensionRecommendations",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/gettingStarted",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/services/host",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "dc/workbench/contrib/userDataProfile",
+			"project": "vscode-profiles"
+		},
+		{
+			"name": "dc/workbench/services/userDataProfile",
+			"project": "vscode-profiles"
+		}
+	]
+}

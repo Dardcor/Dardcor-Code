@@ -1,0 +1,151 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+// eslint-disable-next-line no-var
+declare var MonacoEnvironment: monaco.Environment | undefined;
+
+declare namespace monaco {
+
+	export type Thenable<T> = PromiseLike<T>;
+
+	export interface Environment {
+		/**
+		 * Define a global `monaco` symbol.
+		 * This is true by default in AMD and false by default in ESM.
+		 */
+		globalAPI?: boolean;
+		/**
+		 * The base url where the editor sources are found (which contains the vs folder)
+		 */
+		baseUrl?: string;
+		/**
+		 * A web worker factory.
+		 * NOTE: If `getWorker` is defined, `getWorkerUrl` is not invoked.
+		 */
+		getWorker?(workerId: string, label: string): Promise<Worker> | Worker;
+		/**
+		 * Return the location for web worker scripts.
+		 * NOTE: If `getWorker` is defined, `getWorkerUrl` is not invoked.
+		 */
+		getWorkerUrl?(workerId: string, label: string): string;
+		/**
+		 * Create a trusted types policy (same API as window.trustedTypes.createPolicy)
+		 */
+		createTrustedTypesPolicy?(
+			policyName: string,
+			policyOptions?: ITrustedTypePolicyOptions,
+		): undefined | ITrustedTypePolicy;
+	}
+
+	export interface ITrustedTypePolicyOptions {
+		createHTML?: (input: string, ...arguments: any[]) => string;
+		createScript?: (input: string, ...arguments: any[]) => string;
+		createScriptURL?: (input: string, ...arguments: any[]) => string;
+	}
+
+	export interface ITrustedTypePolicy {
+		readonly name: string;
+		createHTML?(input: string): any;
+		createScript?(input: string): any;
+		createScriptURL?(input: string): any;
+	}
+
+	export interface IDisposable {
+		dispose(): void;
+	}
+
+	export interface IEvent<T> {
+		(listener: (e: T) => any, thisArg?: any): IDisposable;
+	}
+
+	/**
+	 * A helper that allows to emit and listen to typed events
+	 */
+	export class Emitter<T> {
+		constructor();
+		readonly event: Event<T>;
+		fire(event: T): void;
+		dispose(): void;
+	}
+
+#include(dc/platform/markers/common/markers.js): MarkerTag, MarkerSeverity
+#include(dc/base/common/cancellation.js): CancellationTokenSource, CancellationToken
+#include(dc/base/common/uri.js): URI, UriComponents
+#include(dc/base/common/keyCodes.js): KeyCode
+#include(dc/editor/common/services/editorBaseApi.js): KeyMod
+#include(dc/base/common/htmlContent.js): IMarkdownString, MarkdownStringTrustedOptions
+#include(dc/base/browser/keyboardEvent.js): IKeyboardEvent
+#include(dc/base/browser/mouseEvent.js): IMouseEvent
+#include(dc/editor/common/editorCommon.js): IScrollEvent
+#include(dc/editor/common/core/position.js): IPosition, Position
+#include(dc/editor/common/core/range.js): IRange, Range
+#include(dc/editor/common/core/selection.js): ISelection, Selection, SelectionDirection
+#include(dc/editor/common/languages.js): Token
+}
+
+declare namespace monaco.editor {
+#includeAll(dc/editor/standalone/browser/standaloneEditor.js;languages.Token=>Token):
+#include(dc/editor/standalone/common/standaloneTheme.js): BuiltinTheme, IStandaloneThemeData, IColors
+#include(dc/editor/common/languages/supports/tokenization.js): ITokenThemeRule
+#include(dc/editor/standalone/browser/standaloneWebWorker.js): MonacoWebWorker, IInternalWebWorkerOptions
+#include(dc/editor/standalone/browser/standaloneCodeEditor.js): IActionDescriptor, IGlobalEditorOptions, IStandaloneEditorConstructionOptions, IStandaloneDiffEditorConstructionOptions, IStandaloneCodeEditor, IStandaloneDiffEditor
+export interface ICommandHandler {
+	(...args: any[]): void;
+}
+export interface ILocalizedString {
+	original: string;
+	value: string;
+}
+export interface ICommandMetadata {
+	readonly description: ILocalizedString | string;
+}
+#include(dc/platform/contextkey/common/contextkey.js): IContextKey, ContextKeyValue
+#include(dc/editor/standalone/browser/standaloneServices.js): IEditorOverrideServices
+#include(dc/platform/markers/common/markers.js): IMarker, IMarkerData, IRelatedInformation
+#include(dc/editor/standalone/browser/colorizer.js): IColorizerOptions, IColorizerElementOptions
+#include(dc/base/common/scrollable.js): ScrollbarVisibility
+#include(dc/base/common/themables.js): ThemeColor, ThemeIcon
+#include(dc/editor/common/core/editOperation.js): ISingleEditOperation
+#include(dc/editor/common/core/wordHelper.js): IWordAtPosition
+#includeAll(dc/editor/common/model.js): IScrollEvent
+#include(dc/editor/common/diff/legacyLinesDiffComputer.js): IChange, ICharChange, ILineChange
+#include(dc/editor/common/core/2d/dimension.js): IDimension
+#includeAll(dc/editor/common/editorCommon.js): IScrollEvent
+#includeAll(dc/editor/common/textModelEvents.js):
+#include(dc/editor/common/model/mirrorTextModel.js): IModelContentChange
+#includeAll(dc/editor/common/cursorEvents.js):
+#include(dc/platform/accessibility/common/accessibility.js): AccessibilitySupport
+#includeAll(dc/editor/common/config/editorOptions.js):
+#include(dc/editor/browser/config/editorConfiguration.js): IEditorConstructionOptions
+#includeAll(dc/editor/browser/editorBrowser.js;editorCommon.=>):
+#include(dc/editor/common/config/fontInfo.js): FontInfo, BareFontInfo
+#include(dc/editor/common/config/editorZoom.js): EditorZoom, IEditorZoom
+
+//compatibility:
+export type IReadOnlyModel = ITextModel;
+export type IModel = ITextModel;
+}
+
+declare namespace monaco.languages {
+
+#include(dc/editor/common/textModelEditSource.js): EditDeltaInfo
+#include(dc/base/common/glob.js): IRelativePattern
+#include(dc/editor/common/languageSelector.js): LanguageSelector, LanguageFilter
+#includeAll(dc/editor/standalone/browser/standaloneLanguages.js;languages.=>;editorCommon.=>editor.;model.=>editor.;IMarkerData=>editor.IMarkerData):
+#includeAll(dc/editor/common/languages/languageConfiguration.js):
+#includeAll(dc/editor/common/languages.js;IMarkerData=>editor.IMarkerData;ISingleEditOperation=>editor.ISingleEditOperation;model.=>editor.;ThemeIcon=>editor.ThemeIcon): Token
+#include(dc/editor/common/languages/language.js): ILanguageExtensionPoint
+#includeAll(dc/editor/standalone/common/monarch/monarchTypes.js):
+
+}
+
+declare namespace monaco.worker {
+
+#include(dc/editor/common/model/mirrorTextModel.js): IMirrorTextModel
+#includeAll(dc/editor/common/services/editorWebWorker.js;):
+
+}
+
+//dtsv=3

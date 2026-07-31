@@ -1,8 +1,0 @@
-{
-	"name": "types",
-	"displayName": "TypeScript and JavaScript Grammar",
-	"description": "Grammar for TypeScript and JavaScript.",
-	"version": "1.0.0",
-	"publisher": "vscode",
-	"engines": { "vscode": "^1.0.0" }
-}

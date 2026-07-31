@@ -1,0 +1,42 @@
+{
+	"extends": "./tsconfig.base.json",
+	"compilerOptions": {
+		"noEmit": true,
+		"types": [
+			"@webgpu/types",
+			"trusted-types",
+			"wicg-file-system-access"
+		],
+		"module": "nodenext",
+		"moduleResolution": "nodenext",
+		"removeComments": false,
+		"preserveConstEnums": true,
+		"target": "ES2024",
+		"sourceMap": false,
+		"declaration": true,
+		"skipLibCheck": true
+	},
+	"include": [
+		"typings/css.d.ts",
+		"typings/thenable.d.ts",
+		"typings/vscode-globals-product.d.ts",
+		"typings/vscode-globals-nls.d.ts",
+		"typings/editContext.d.ts",
+		"typings/base-common.d.ts",
+		"dc/monaco.d.ts",
+		"dc/editor/*",
+		"dc/base/common/*",
+		"dc/base/browser/*",
+		"dc/platform/*/common/*",
+		"dc/platform/*/browser/*"
+	],
+	"exclude": [
+		"node_modules/*",
+		"dc/platform/files/browser/htmlFileSystemProvider.ts",
+		"dc/platform/files/browser/webFileSystemAccess.ts",
+		"dc/platform/telemetry/*",
+		"dc/platform/assignment/*",
+		"dc/platform/terminal/*",
+		"dc/platform/externalTerminal/*"
+	]
+}

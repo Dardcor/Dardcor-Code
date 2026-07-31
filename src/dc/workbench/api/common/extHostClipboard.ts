@@ -1,14 +1,24 @@
-import { Emitter, Event } from 'dc/core/common/event';
-import { IDisposable } from 'dc/core/common/lifecycle';
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import { IMainContext, MainContext } from './extHost.protocol.js';
+import type * as vscode from 'vscode';
 
 export class ExtHostClipboard {
-	private _clipboard = '';
 
-	async readText(): Promise<string> {
-		return this._clipboard;
-	}
+	readonly value: vscode.Clipboard;
 
-	async writeText(value: string): Promise<void> {
-		this._clipboard = value;
+	constructor(mainContext: IMainContext) {
+		const proxy = mainContext.getProxy(MainContext.MainThreadClipboard);
+		this.value = Object.freeze({
+			readText() {
+				return proxy.$readText();
+			},
+			writeText(value: string) {
+				return proxy.$writeText(value);
+			}
+		});
 	}
 }

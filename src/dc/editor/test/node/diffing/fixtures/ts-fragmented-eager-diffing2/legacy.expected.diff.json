@@ -1,0 +1,22 @@
+{
+	"original": {
+		"content": "import { assertIsDefined } from 'dc/base/common/types';\nimport { IInstantiationService, ServicesAccessor } from 'dc/platform/instantiation/common/instantiation';\nimport { MenuId, Action2, IAction2Options, IMenuService, SubmenuItemAction } from 'dc/platform/actions/common/actions';\nimport { createActionViewItem } from 'dc/platform/actions/browser/menuEntryActionViewItem';\nimport { parseLinkedText } from 'dc/base/common/linkedText';\nimport { IOpenerService } from 'dc/platform/opener/common/opener';",
+		"fileName": "./1.tst"
+	},
+	"modified": {
+		"content": "import { assertIsDefined } from 'dc/base/common/types';\nimport { IInstantiationService, ServicesAccessor } from 'dc/platform/instantiation/common/instantiation';\nimport { MenuId, Action2, IAction2Options, SubmenuItemAction } from 'dc/platform/actions/common/actions';\nimport { createActionViewItem } from 'dc/platform/actions/browser/menuEntryActionViewItem';\nimport { parseLinkedText } from 'dc/base/common/linkedText';\nimport { IOpenerService } from 'dc/platform/opener/common/opener';",
+		"fileName": "./2.tst"
+	},
+	"diffs": [
+		{
+			"originalRange": "[3,4)",
+			"modifiedRange": "[3,4)",
+			"innerChanges": [
+				{
+					"originalRange": "[3,44 -> 3,58]",
+					"modifiedRange": "[3,44 -> 3,44]"
+				}
+			]
+		}
+	]
+}

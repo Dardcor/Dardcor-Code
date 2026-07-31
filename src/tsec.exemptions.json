@@ -1,0 +1,45 @@
+{
+	"ban-document-execcommand": [
+		"dc/workbench/contrib/codeEditor/electron-browser/inputClipboardActions.ts",
+		"dc/editor/contrib/clipboard/browser/clipboard.ts"
+	],
+	"ban-eval-calls": [
+		"dc/workbench/api/worker/extHostExtensionService.ts"
+	],
+	"ban-function-calls": [
+		"dc/workbench/api/worker/extHostExtensionService.ts",
+		"dc/workbench/contrib/notebook/browser/view/renderers/webviewPreloads.ts",
+		"dc/workbench/services/keybinding/test/node/keyboardMapperTestUtils.ts"
+	],
+	"ban-trustedtypes-createpolicy": [
+		"dc/code/electron-browser/workbench/workbench.ts",
+		"dc/sessions/electron-browser/sessions.ts",
+		"dc/amdX.ts",
+		"dc/base/browser/trustedTypes.ts",
+		"dc/workbench/contrib/notebook/browser/view/renderers/webviewPreloads.ts"
+	],
+	"ban-worker-calls": [
+		"dc/platform/webWorker/browser/webWorkerServiceImpl.ts",
+		"dc/workbench/services/extensions/browser/webWorkerExtensionHost.ts"
+	],
+	"ban-worker-importscripts": [
+		"dc/amdX.ts",
+		"dc/workbench/services/extensions/worker/polyfillNestedWorker.ts",
+		"dc/workbench/api/worker/extensionHostWorker.ts"
+	],
+	"ban-domparser-parsefromstring": [
+		"dc/base/browser/htmlToMarkdown.ts",
+		"dc/base/browser/markdownRenderer.ts",
+		"dc/base/test/browser/markdownRenderer.test.ts"
+	],
+	"ban-element-setattribute": [
+		"**/*.ts"
+	],
+	"ban-element-insertadjacenthtml": [
+		"**/*.ts"
+	],
+	"ban-script-content-assignments": [
+		"dc/code/electron-browser/workbench/workbench.ts",
+		"dc/sessions/electron-browser/sessions.ts"
+	]
+}

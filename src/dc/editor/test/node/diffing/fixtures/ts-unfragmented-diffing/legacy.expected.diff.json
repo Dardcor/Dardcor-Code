@@ -1,0 +1,27 @@
+{
+	"original": {
+		"content": "import { KeyCode, KeyMod } from 'dc/base/common/keyCodes';\nimport { Disposable } from 'dc/base/common/lifecycle';\nimport { ICodeEditor } from 'dc/editor/browser/editorBrowser';\nimport { EditorAction, EditorCommand, registerEditorAction, registerEditorCommand, registerEditorContribution, ServicesAccessor } from 'dc/editor/browser/editorExtensions';\nimport { IEditorContribution } from 'dc/editor/common/editorCommon';\nimport { EditorContextKeys } from 'dc/editor/common/editorContextKeys';\nimport * as languages from 'dc/editor/common/languages';\nimport { TriggerContext } from 'dc/editor/contrib/parameterHints/browser/parameterHintsModel';\nimport { Context } from 'dc/editor/contrib/parameterHints/browser/provideSignatureHelp';\nimport * as nls from 'dc/nls';\nimport { ContextKeyExpr } from 'dc/platform/contextkey/common/contextkey';\nimport { IInstantiationService } from 'dc/platform/instantiation/common/instantiation';\nimport { KeybindingWeight } from 'dc/platform/keybinding/common/keybindingsRegistry';\nimport { ParameterHintsWidget } from './parameterHintsWidget';\n",
+		"fileName": "./1.tst"
+	},
+	"modified": {
+		"content": "import { KeyCode, KeyMod } from 'dc/base/common/keyCodes';\nimport { Lazy } from 'dc/base/common/lazy';\nimport { Disposable } from 'dc/base/common/lifecycle';\nimport { ICodeEditor } from 'dc/editor/browser/editorBrowser';\nimport { EditorAction, EditorCommand, registerEditorAction, registerEditorCommand, registerEditorContribution, ServicesAccessor } from 'dc/editor/browser/editorExtensions';\nimport { IEditorContribution } from 'dc/editor/common/editorCommon';\nimport { EditorContextKeys } from 'dc/editor/common/editorContextKeys';\nimport * as languages from 'dc/editor/common/languages';\nimport { ILanguageFeaturesService } from 'dc/editor/common/services/languageFeatures';\nimport { ParameterHintsModel, TriggerContext } from 'dc/editor/contrib/parameterHints/browser/parameterHintsModel';\nimport { Context } from 'dc/editor/contrib/parameterHints/browser/provideSignatureHelp';\nimport * as nls from 'dc/nls';\nimport { ContextKeyExpr } from 'dc/platform/contextkey/common/contextkey';\nimport { IInstantiationService } from 'dc/platform/instantiation/common/instantiation';\nimport { KeybindingWeight } from 'dc/platform/keybinding/common/keybindingsRegistry';\nimport { ParameterHintsWidget } from './parameterHintsWidget';\n",
+		"fileName": "./2.tst"
+	},
+	"diffs": [
+		{
+			"originalRange": "[2,2)",
+			"modifiedRange": "[2,3)",
+			"innerChanges": null
+		},
+		{
+			"originalRange": "[8,9)",
+			"modifiedRange": "[9,11)",
+			"innerChanges": [
+				{
+					"originalRange": "[8,10 -> 8,10]",
+					"modifiedRange": "[9,10 -> 10,31]"
+				}
+			]
+		}
+	]
+}
