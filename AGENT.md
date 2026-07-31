@@ -292,142 +292,142 @@ Desain warna default Dardcor Code :
 - [x] 244. editor/common/model/indentRanges.ts asli lengkap
 - [x] 245. editor/common/model/pieceTreeTextBuffer (PieceTreeTextBuffer, PieceTreeTextBufferBuilder, dll) lengkap
 - [x] 246. editor/common/model/pieceTree.ts asli (PieceTree) lengkap
-- [ ] 247. editor/common/model/position.ts asli (Position) lengkap
-- [ ] 248. editor/common/model/range.ts asli (Range, RangeOffset) lengkap
-- [ ] 249. editor/common/model/selection.ts asli (Selection, Direction) lengkap
-- [ ] 250. editor/common/model/lineTokens.ts asli lengkap
-- [ ] 251. editor/common/model/textSearch.ts asli (TextSearchMatch, dll) lengkap
-- [ ] 252. editor/common/model/markerDecorations.ts asli lengkap
-- [ ] 253. editor/common/model/rangeMap.ts asli lengkap
-- [ ] 254. editor/common/model/prefixSumComputer.ts asli lengkap
-- [ ] 255. editor/common/model/lineEnding.ts asli lengkap
-- [ ] 256. editor/common/model/snapshot.ts asli lengkap
-- [ ] 257. editor/common/model/characterPair.ts asli lengkap
-- [ ] 258. editor/common/model/identifierSearch.ts asli lengkap
-- [ ] 259. editor/common/model/textModelSearch.ts asli lengkap
-- [ ] 260. editor/common/core/position.ts, range.ts, selection.ts, editOperation.ts, dll lengkap
-- [ ] 261. editor/common/core/lineRange.ts, lineRangeSet.ts asli lengkap
-- [ ] 262. editor/common/core/rangeDelta.ts asli lengkap
-- [ ] 263. editor/common/core/textEdit.ts asli (TextEdit, dll) lengkap
-- [ ] 264. editor/common/core/wordCharacterClassifier.ts asli lengkap
-- [ ] 265. editor/common/core/offsetRange.ts, positionToOffset.ts asli lengkap
-- [ ] 266. editor/common/textModelEvents.ts asli lengkap
-- [ ] 267. editor/common/languages (language.ts, modes.ts, languageConfiguration.ts, languageFeatureRegistry.ts, tokenizationRegistry.ts, dll) lengkap
-- [ ] 268. editor/common/languages/enterAction.ts, linkComputer.ts asli lengkap
-- [ ] 269. editor/common/languages/supports (languageConfiguration, richEditBrackets, characterPair, onEnter, indentRules, dll) lengkap
-- [ ] 270. editor/common/tokens (lineTokens, textModelTokens, tokenizationRegistry, dll) lengkap
-- [ ] 271. editor/common/cursorEvents.ts, cursorCommon.ts asli lengkap
-- [ ] 272. editor/common/codeEditorService.ts asli (ICodeEditorService) lengkap
-- [ ] 273. editor/common/editorCommon.ts asli (ICodeEditor, IEditor, dll) lengkap
-- [ ] 274. editor/common/config/editorConfiguration.ts asli lengkap
-- [ ] 275. editor/common/editorAction.ts, editorCommand.ts asli lengkap
-- [ ] 276. editor/common/editorContextKeys.ts asli lengkap
-- [ ] 277. editor/common/editorTheme.ts asli lengkap
-- [ ] 278. editor/common/viewModel (viewModelImpl, viewModel, viewModelEventDispatcher, dll) lengkap
-- [ ] 279. editor/common/viewLayout/viewLinesCollection.ts, viewLines.ts asli lengkap
-- [ ] 280. editor/common/viewParts (margin, lineNumbers, currentLineHighlight, decorations, contentWidgets, overlayWidgets, minimap, scrollbar, ruler, viewZone, glyphMargin, dll) lengkap
-- [ ] 281. editor/common/services (editorSimpleWorker, editorWorkerService, modelService, dll) lengkap
-- [ ] 282. editor/common/standalone (standaloneBase, standaloneThemeService, dll) lengkap
+- [x] 247. editor/common/model/position.ts asli (Position) lengkap
+- [x] 248. editor/common/model/range.ts asli (Range, RangeOffset) lengkap
+- [x] 249. editor/common/model/selection.ts asli (Selection, Direction) lengkap
+- [x] 250. editor/common/model/lineTokens.ts asli lengkap
+- [x] 251. editor/common/model/textSearch.ts asli (TextSearchMatch, dll) lengkap
+- [x] 252. editor/common/model/markerDecorations.ts asli lengkap
+- [x] 253. editor/common/model/rangeMap.ts asli lengkap
+- [x] 254. editor/common/model/prefixSumComputer.ts asli lengkap
+- [x] 255. editor/common/model/lineEnding.ts asli lengkap
+- [x] 256. editor/common/model/snapshot.ts asli lengkap
+- [x] 257. editor/common/model/characterPair.ts asli lengkap
+- [x] 258. editor/common/model/identifierSearch.ts asli lengkap
+- [x] 259. editor/common/model/textModelSearch.ts asli lengkap
+- [x] 260. editor/common/core/position.ts, range.ts, selection.ts, editOperation.ts, dll lengkap
+- [x] 261. editor/common/core/lineRange.ts, lineRangeSet.ts asli lengkap
+- [x] 262. editor/common/core/rangeDelta.ts asli lengkap
+- [x] 263. editor/common/core/textEdit.ts asli (TextEdit, dll) lengkap
+- [x] 264. editor/common/core/wordCharacterClassifier.ts asli lengkap
+- [x] 265. editor/common/core/offsetRange.ts, positionToOffset.ts asli lengkap
+- [x] 266. editor/common/textModelEvents.ts asli lengkap
+- [x] 267. editor/common/languages (language.ts, modes.ts, languageConfiguration.ts, languageFeatureRegistry.ts, tokenizationRegistry.ts, dll) lengkap
+- [x] 268. editor/common/languages/enterAction.ts, linkComputer.ts asli lengkap
+- [x] 269. editor/common/languages/supports (languageConfiguration, richEditBrackets, characterPair, onEnter, indentRules, dll) lengkap
+- [x] 270. editor/common/tokens (lineTokens, textModelTokens, tokenizationRegistry, dll) lengkap
+- [x] 271. editor/common/cursorEvents.ts, cursorCommon.ts asli lengkap
+- [x] 272. editor/common/codeEditorService.ts asli (ICodeEditorService) lengkap
+- [x] 273. editor/common/editorCommon.ts asli (ICodeEditor, IEditor, dll) lengkap
+- [x] 274. editor/common/config/editorConfiguration.ts asli lengkap
+- [x] 275. editor/common/editorAction.ts, editorCommand.ts asli lengkap
+- [x] 276. editor/common/editorContextKeys.ts asli lengkap
+- [x] 277. editor/common/editorTheme.ts asli lengkap
+- [x] 278. editor/common/viewModel (viewModelImpl, viewModel, viewModelEventDispatcher, dll) lengkap
+- [x] 279. editor/common/viewLayout/viewLinesCollection.ts, viewLines.ts asli lengkap
+- [x] 280. editor/common/viewParts (margin, lineNumbers, currentLineHighlight, decorations, contentWidgets, overlayWidgets, minimap, scrollbar, ruler, viewZone, glyphMargin, dll) lengkap
+- [x] 281. editor/common/services (editorSimpleWorker, editorWorkerService, modelService, dll) lengkap
+- [x] 282. editor/common/standalone (standaloneBase, standaloneThemeService, dll) lengkap
 
 ### C2. engine/browser
 
-- [ ] 283. editor/browser/editorBrowser.ts asli (CodeEditorWidget, ICodeEditor, IEditorMouseEvent, dll) lengkap
-- [ ] 284. editor/browser/codeEditorService.ts asli lengkap
-- [ ] 285. editor/browser/editorExtensions.ts asli (EditorContribution, registerEditorContribution, dll) lengkap
-- [ ] 286. editor/browser/editorDom.ts asli (createEditorFont, dll) lengkap
-- [ ] 287. editor/browser/coreCommands.ts asli (CoreEditingCommands, CoreNavigationCommands, dll) lengkap
-- [ ] 288. editor/browser/editor.ts asli (Editor, dll) lengkap
-- [ ] 289. editor/browser/stableEditorScroll.ts asli lengkap
-- [ ] 290. editor/browser/observableCodeEditor.ts asli lengkap
-- [ ] 291. editor/browser/view/view.ts asli (View, RenderingContext, dll) lengkap
-- [ ] 292. editor/browser/view/renderingContext.ts asli lengkap
-- [ ] 293. editor/browser/view/viewLayout.ts asli lengkap
-- [ ] 294. editor/browser/view/viewLines.ts asli (ViewLines, ViewLine, dll) lengkap
-- [ ] 295. editor/browser/view/viewModel.ts asli lengkap
-- [ ] 296. editor/browser/view/viewParts.ts asli lengkap
-- [ ] 297. editor/browser/view/viewContext.ts asli lengkap
-- [ ] 298. editor/browser/view/viewEvent.ts asli lengkap
-- [ ] 299. editor/browser/viewParts/* (lineNumbers, glyphMargin, margin, contentWidgets, overlayWidgets, minimap, scrollbar, ruler, viewZone, decorations, currentLine, cursor, selection, indentGuides, bracketGuides, whitespace, overviewRuler, dll) lengkap
-- [ ] 300. editor/browser/widget/codeEditorWidget.ts asli lengkap
-- [ ] 301. editor/browser/widget/diffEditorWidget.ts asli (DiffEditorWidget) lengkap
-- [ ] 302. editor/browser/widget/diffEditor (diffEditor, diffEditorOptions, diffEditorViewModel, dll) lengkap
-- [ ] 303. editor/browser/widget/inlineDiff (inlineDiffEditor, dll) lengkap
-- [ ] 304. editor/browser/widget/multiDiffEditorWidget.ts asli lengkap
-- [ ] 305. editor/browser/widget/diffNavigator.ts asli lengkap
-- [ ] 306. editor/browser/widget/codeEditorWidgetOptions.ts asli lengkap
-- [ ] 307. editor/browser/widget/diffEditorWidget2.ts asli lengkap
-- [ ] 308. editor/browser/controller (keyboardInput, mouseInput, touchInput, coreCommands, editorController, dll) lengkap
-- [ ] 309. editor/browser/commands (editorCommands, editorCommandHandlers, dll) lengkap
-- [ ] 310. editor/browser/config/editorConfiguration.ts asli lengkap
-- [ ] 311. editor/browser/config/editorZoom.ts asli lengkap
+- [x] 283. editor/browser/editorBrowser.ts asli (CodeEditorWidget, ICodeEditor, IEditorMouseEvent, dll) lengkap
+- [x] 284. editor/browser/codeEditorService.ts asli lengkap
+- [x] 285. editor/browser/editorExtensions.ts asli (EditorContribution, registerEditorContribution, dll) lengkap
+- [x] 286. editor/browser/editorDom.ts asli (createEditorFont, dll) lengkap
+- [x] 287. editor/browser/coreCommands.ts asli (CoreEditingCommands, CoreNavigationCommands, dll) lengkap
+- [x] 288. editor/browser/editor.ts asli (Editor, dll) lengkap
+- [x] 289. editor/browser/stableEditorScroll.ts asli lengkap
+- [x] 290. editor/browser/observableCodeEditor.ts asli lengkap
+- [x] 291. editor/browser/view/view.ts asli (View, RenderingContext, dll) lengkap
+- [x] 292. editor/browser/view/renderingContext.ts asli lengkap
+- [x] 293. editor/browser/view/viewLayout.ts asli lengkap
+- [x] 294. editor/browser/view/viewLines.ts asli (ViewLines, ViewLine, dll) lengkap
+- [x] 295. editor/browser/view/viewModel.ts asli lengkap
+- [x] 296. editor/browser/view/viewParts.ts asli lengkap
+- [x] 297. editor/browser/view/viewContext.ts asli lengkap
+- [x] 298. editor/browser/view/viewEvent.ts asli lengkap
+- [x] 299. editor/browser/viewParts/* (lineNumbers, glyphMargin, margin, contentWidgets, overlayWidgets, minimap, scrollbar, ruler, viewZone, decorations, currentLine, cursor, selection, indentGuides, bracketGuides, whitespace, overviewRuler, dll) lengkap
+- [x] 300. editor/browser/widget/codeEditorWidget.ts asli lengkap
+- [x] 301. editor/browser/widget/diffEditorWidget.ts asli (DiffEditorWidget) lengkap
+- [x] 302. editor/browser/widget/diffEditor (diffEditor, diffEditorOptions, diffEditorViewModel, dll) lengkap
+- [x] 303. editor/browser/widget/inlineDiff (inlineDiffEditor, dll) lengkap
+- [x] 304. editor/browser/widget/multiDiffEditorWidget.ts asli lengkap
+- [x] 305. editor/browser/widget/diffNavigator.ts asli lengkap
+- [x] 306. editor/browser/widget/codeEditorWidgetOptions.ts asli lengkap
+- [x] 307. editor/browser/widget/diffEditorWidget2.ts asli lengkap
+- [x] 308. editor/browser/controller (keyboardInput, mouseInput, touchInput, coreCommands, editorController, dll) lengkap
+- [x] 309. editor/browser/commands (editorCommands, editorCommandHandlers, dll) lengkap
+- [x] 310. editor/browser/config/editorConfiguration.ts asli lengkap
+- [x] 311. editor/browser/config/editorZoom.ts asli lengkap
 
 ### C3. engine/tokenizer + grammar
 
-- [ ] 312. editor/common/languages/monarch.ts asli (MonarchLanguage, compile, MonarchTokenizer, dll) lengkap
-- [ ] 313. editor/common/languages/monarch/monarchCompile.ts asli lengkap
-- [ ] 314. editor/common/languages/monarch/monarchLexer.ts asli lengkap
-- [ ] 315. editor/common/languages/monarch/monarchTypes.ts asli lengkap
-- [ ] 316. editor/common/languages/tokenizationRegistry.ts asli lengkap
-- [ ] 317. editor/common/languages/textToHtmlTokenizer.ts asli lengkap
-- [ ] 318. editor/common/languages/textMate (TextMateTokenizer, TextMateService, dll) lengkap
-- [ ] 319. editor/common/languages/semanticTokens (semanticTokens, semanticTokensProvider, dll) lengkap
-- [ ] 320. editor/common/tokenizationRegistry.ts asli lengkap
+- [x] 312. editor/common/languages/monarch.ts asli (MonarchLanguage, compile, MonarchTokenizer, dll) lengkap
+- [x] 313. editor/common/languages/monarch/monarchCompile.ts asli lengkap
+- [x] 314. editor/common/languages/monarch/monarchLexer.ts asli lengkap
+- [x] 315. editor/common/languages/monarch/monarchTypes.ts asli lengkap
+- [x] 316. editor/common/languages/tokenizationRegistry.ts asli lengkap
+- [x] 317. editor/common/languages/textToHtmlTokenizer.ts asli lengkap
+- [x] 318. editor/common/languages/textMate (TextMateTokenizer, TextMateService, dll) lengkap
+- [x] 319. editor/common/languages/semanticTokens (semanticTokens, semanticTokensProvider, dll) lengkap
+- [x] 320. editor/common/tokenizationRegistry.ts asli lengkap
 
 ### C4. engine/controller + cursor
 
-- [ ] 321. editor/controller/cursor.ts asli (Cursor, CursorState, dll) lengkap
-- [ ] 322. editor/controller/cursorCommon.ts asli (CursorConfiguration) lengkap
-- [ ] 323. editor/controller/cursorMoveCommands.ts asli lengkap
-- [ ] 324. editor/controller/cursorDeleteOperations.ts asli lengkap
-- [ ] 325. editor/controller/cursorTypeOperations.ts asli lengkap
-- [ ] 326. editor/controller/cursorUndo.ts asli lengkap
-- [ ] 327. editor/controller/cursorColumnSelection.ts asli lengkap
-- [ ] 328. editor/controller/multiCursor.ts asli lengkap
-- [ ] 329. editor/controller/smartSelect.ts asli lengkap
-- [ ] 330. editor/controller/wordOperations.ts asli lengkap
-- [ ] 331. editor/controller/columnSelection.ts asli lengkap
-- [ ] 332. editor/controller/cursorWordOperations.ts asli lengkap
-- [ ] 333. editor/controller/indentation.ts asli lengkap
-- [ ] 334. editor/controller/textAreaState.ts asli lengkap
-- [ ] 335. editor/controller/textAreaInput.ts asli lengkap
-- [ ] 336. editor/controller/textArea.ts asli lengkap
-- [ ] 337. editor/controller/keyboardInput.ts asli lengkap
-- [ ] 338. editor/controller/mouseInput.ts asli lengkap
-- [ ] 339. editor/controller/selectionController.ts asli lengkap
-- [ ] 340. editor/controller/caretOperations.ts asli lengkap
-- [ ] 341. editor/controller/insertFinalNewLine.ts asli lengkap
-- [ ] 342. editor/controller/lineSelection.ts asli lengkap
-- [ ] 343. editor/controller/middleScroll.ts asli lengkap
+- [x] 321. editor/controller/cursor.ts asli (Cursor, CursorState, dll) lengkap
+- [x] 322. editor/controller/cursorCommon.ts asli (CursorConfiguration) lengkap
+- [x] 323. editor/controller/cursorMoveCommands.ts asli lengkap
+- [x] 324. editor/controller/cursorDeleteOperations.ts asli lengkap
+- [x] 325. editor/controller/cursorTypeOperations.ts asli lengkap
+- [x] 326. editor/controller/cursorUndo.ts asli lengkap
+- [x] 327. editor/controller/cursorColumnSelection.ts asli lengkap
+- [x] 328. editor/controller/multiCursor.ts asli lengkap
+- [x] 329. editor/controller/smartSelect.ts asli lengkap
+- [x] 330. editor/controller/wordOperations.ts asli lengkap
+- [x] 331. editor/controller/columnSelection.ts asli lengkap
+- [x] 332. editor/controller/cursorWordOperations.ts asli lengkap
+- [x] 333. editor/controller/indentation.ts asli lengkap
+- [x] 334. editor/controller/textAreaState.ts asli lengkap
+- [x] 335. editor/controller/textAreaInput.ts asli lengkap
+- [x] 336. editor/controller/textArea.ts asli lengkap
+- [x] 337. editor/controller/keyboardInput.ts asli lengkap
+- [x] 338. editor/controller/mouseInput.ts asli lengkap
+- [x] 339. editor/controller/selectionController.ts asli lengkap
+- [x] 340. editor/controller/caretOperations.ts asli lengkap
+- [x] 341. editor/controller/insertFinalNewLine.ts asli lengkap
+- [x] 342. editor/controller/lineSelection.ts asli lengkap
+- [x] 343. editor/controller/middleScroll.ts asli lengkap
 
 ### C5. engine/diff
 
-- [ ] 344. editor/common/diff/diffComputer.ts asli (DiffComputer, dll) lengkap
-- [ ] 345. editor/common/diff/diffAlgorithm.ts asli (MyersDiffAlgorithm, dll) lengkap
-- [ ] 346. editor/common/diff/advancedLinesDiffComputer.ts asli lengkap
-- [ ] 347. editor/common/diff/legacyLinesDiffComputer.ts asli lengkap
-- [ ] 348. editor/common/diff/documentDiffProvider.ts asli lengkap
-- [ ] 349. editor/common/diff/linesDiffComputer.ts asli (ILinesDiffComputer) lengkap
-- [ ] 350. editor/common/diff/linesDiff.ts asli lengkap
-- [ ] 351. editor/common/diff/diffEditorInput.ts asli lengkap
-- [ ] 352. editor/common/diff/diffReview.ts asli lengkap
-- [ ] 353. editor/common/diff/lcs.ts asli lengkap
-- [ ] 354. editor/common/diff/diffReviewMode.ts asli lengkap
+- [x] 344. editor/common/diff/diffComputer.ts asli (DiffComputer, dll) lengkap
+- [x] 345. editor/common/diff/diffAlgorithm.ts asli (MyersDiffAlgorithm, dll) lengkap
+- [x] 346. editor/common/diff/advancedLinesDiffComputer.ts asli lengkap
+- [x] 347. editor/common/diff/legacyLinesDiffComputer.ts asli lengkap
+- [x] 348. editor/common/diff/documentDiffProvider.ts asli lengkap
+- [x] 349. editor/common/diff/linesDiffComputer.ts asli (ILinesDiffComputer) lengkap
+- [x] 350. editor/common/diff/linesDiff.ts asli lengkap
+- [x] 351. editor/common/diff/diffEditorInput.ts asli lengkap
+- [x] 352. editor/common/diff/diffReview.ts asli lengkap
+- [x] 353. editor/common/diff/lcs.ts asli lengkap
+- [x] 354. editor/common/diff/diffReviewMode.ts asli lengkap
 
 ### C6. engine/contrib (setiap fitur editor asli)
 
-- [ ] 355. anchorSelect: anchor select mode (Shift+Alt+A), anchorSelectWidget lengkap
-- [ ] 356. bracketMatching: bracket matching highlight, bracket select, bracket matching widget lengkap
-- [ ] 357. caretOperations: move caret up/down (Ctrl+Alt+Up/Down) lengkap
-- [ ] 358. clipboard: copy, cut, paste, paste as, copy with syntax highlighting lengkap
-- [ ] 359. codeAction: code action lightbulb, quick fix, refactor menu, organize imports, source actions lengkap
-- [ ] 360. codelens: code lens rendering, click handler, refresh lengkap
-- [ ] 361. colorPicker: color detector, color picker widget, insert color, color presentation lengkap
-- [ ] 362. comment: toggle line comment, block comment, add line comment, remove line comment lengkap
-- [ ] 363. contextmenu: editor context menu lengkap
-- [ ] 364. cursorUndo: cursor undo, cursor redo lengkap
-- [ ] 365. diffEditorBreadcrumbs: breadcrumbs di diff editor lengkap
-- [ ] 366. dnd: drag and drop teks di editor lengkap
-- [ ] 367. documentSymbols: document symbols outline lengkap
+- [x] 355. anchorSelect: anchor select mode (Shift+Alt+A), anchorSelectWidget lengkap
+- [x] 356. bracketMatching: bracket matching highlight, bracket select, bracket matching widget lengkap
+- [x] 357. caretOperations: move caret up/down (Ctrl+Alt+Up/Down) lengkap
+- [x] 358. clipboard: copy, cut, paste, paste as, copy with syntax highlighting lengkap
+- [x] 359. codeAction: code action lightbulb, quick fix, refactor menu, organize imports, source actions lengkap
+- [x] 360. codelens: code lens rendering, click handler, refresh lengkap
+- [x] 361. colorPicker: color detector, color picker widget, insert color, color presentation lengkap
+- [x] 362. comment: toggle line comment, block comment, add line comment, remove line comment lengkap
+- [x] 363. contextmenu: editor context menu lengkap
+- [x] 364. cursorUndo: cursor undo, cursor redo lengkap
+- [x] 365. diffEditorBreadcrumbs: breadcrumbs di diff editor lengkap
+- [x] 366. dnd: drag and drop teks di editor lengkap
+- [x] 367. documentSymbols: document symbols outline lengkap
 - [ ] 368. dropOrPasteInto: drop/paste into editor lengkap
 - [ ] 369. editorState: editor state tracking lengkap
 - [ ] 370. find: find widget (Ctrl+F), replace (Ctrl+H), find in selection, find next/previous, match case, whole word, regex, preserve case, multiline, find history lengkap
