@@ -1,0 +1,9 @@
+{
+  "name": "references-view",
+  "displayName": "references-view",
+  "description": "Dardcor Code built-in extension: references-view",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

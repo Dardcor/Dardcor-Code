@@ -1,0 +1,9 @@
+{
+  "name": "docker",
+  "displayName": "docker",
+  "description": "Dardcor Code built-in extension: docker",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

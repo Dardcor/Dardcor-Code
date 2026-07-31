@@ -1,0 +1,9 @@
+{
+  "name": "yaml",
+  "displayName": "yaml",
+  "description": "Dardcor Code built-in extension: yaml",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

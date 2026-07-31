@@ -1,0 +1,9 @@
+{
+  "name": "debug-auto-launch",
+  "displayName": "debug-auto-launch",
+  "description": "Dardcor Code built-in extension: debug-auto-launch",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

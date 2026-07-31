@@ -1,0 +1,9 @@
+{
+  "name": "theme-quietlight",
+  "displayName": "theme-quietlight",
+  "description": "Dardcor Code built-in extension: theme-quietlight",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

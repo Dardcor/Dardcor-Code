@@ -1,0 +1,9 @@
+{
+  "name": "ipynb",
+  "displayName": "ipynb",
+  "description": "Dardcor Code built-in extension: ipynb",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

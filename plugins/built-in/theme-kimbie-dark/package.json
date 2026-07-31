@@ -1,0 +1,9 @@
+{
+  "name": "theme-kimbie-dark",
+  "displayName": "theme-kimbie-dark",
+  "description": "Dardcor Code built-in extension: theme-kimbie-dark",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

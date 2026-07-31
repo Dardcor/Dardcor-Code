@@ -1,0 +1,9 @@
+{
+  "name": "clojure",
+  "displayName": "clojure",
+  "description": "Dardcor Code built-in extension: clojure",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "handlebars",
+  "displayName": "handlebars",
+  "description": "Dardcor Code built-in extension: handlebars",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

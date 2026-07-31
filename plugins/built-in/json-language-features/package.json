@@ -1,0 +1,9 @@
+{
+  "name": "json-language-features",
+  "displayName": "json-language-features",
+  "description": "Dardcor Code built-in extension: json-language-features",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

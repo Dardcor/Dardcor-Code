@@ -1,0 +1,9 @@
+{
+  "name": "github-authentication",
+  "displayName": "github-authentication",
+  "description": "Dardcor Code built-in extension: github-authentication",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

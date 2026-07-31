@@ -1,0 +1,9 @@
+{
+  "name": "xml",
+  "displayName": "xml",
+  "description": "Dardcor Code built-in extension: xml",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

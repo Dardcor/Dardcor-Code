@@ -1,0 +1,9 @@
+{
+  "name": "csharp",
+  "displayName": "csharp",
+  "description": "Dardcor Code built-in extension: csharp",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

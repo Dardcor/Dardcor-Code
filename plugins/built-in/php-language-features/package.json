@@ -1,0 +1,9 @@
+{
+  "name": "php-language-features",
+  "displayName": "php-language-features",
+  "description": "Dardcor Code built-in extension: php-language-features",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

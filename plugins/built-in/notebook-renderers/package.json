@@ -1,0 +1,9 @@
+{
+  "name": "notebook-renderers",
+  "displayName": "notebook-renderers",
+  "description": "Dardcor Code built-in extension: notebook-renderers",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

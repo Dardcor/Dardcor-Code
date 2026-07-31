@@ -1,0 +1,9 @@
+{
+  "name": "theme-monokai",
+  "displayName": "theme-monokai",
+  "description": "Dardcor Code built-in extension: theme-monokai",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

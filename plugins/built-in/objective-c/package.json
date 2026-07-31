@@ -1,0 +1,9 @@
+{
+  "name": "objective-c",
+  "displayName": "objective-c",
+  "description": "Dardcor Code built-in extension: objective-c",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

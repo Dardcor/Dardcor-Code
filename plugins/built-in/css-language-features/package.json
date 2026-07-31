@@ -1,0 +1,9 @@
+{
+  "name": "css-language-features",
+  "displayName": "css-language-features",
+  "description": "Dardcor Code built-in extension: css-language-features",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

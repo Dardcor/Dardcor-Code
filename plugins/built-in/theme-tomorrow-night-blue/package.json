@@ -1,0 +1,9 @@
+{
+  "name": "theme-tomorrow-night-blue",
+  "displayName": "theme-tomorrow-night-blue",
+  "description": "Dardcor Code built-in extension: theme-tomorrow-night-blue",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

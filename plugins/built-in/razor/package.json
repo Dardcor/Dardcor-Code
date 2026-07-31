@@ -1,0 +1,9 @@
+{
+  "name": "razor",
+  "displayName": "razor",
+  "description": "Dardcor Code built-in extension: razor",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

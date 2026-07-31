@@ -1,0 +1,9 @@
+{
+  "name": "javascript",
+  "displayName": "javascript",
+  "description": "Dardcor Code built-in extension: javascript",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

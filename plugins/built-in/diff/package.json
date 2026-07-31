@@ -1,0 +1,9 @@
+{
+  "name": "diff",
+  "displayName": "diff",
+  "description": "Dardcor Code built-in extension: diff",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

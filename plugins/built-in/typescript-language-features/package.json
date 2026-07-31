@@ -1,0 +1,9 @@
+{
+  "name": "typescript-language-features",
+  "displayName": "typescript-language-features",
+  "description": "Dardcor Code built-in extension: typescript-language-features",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

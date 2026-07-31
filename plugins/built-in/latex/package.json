@@ -1,0 +1,9 @@
+{
+  "name": "latex",
+  "displayName": "latex",
+  "description": "Dardcor Code built-in extension: latex",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

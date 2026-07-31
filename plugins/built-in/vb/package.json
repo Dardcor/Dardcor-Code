@@ -1,0 +1,9 @@
+{
+  "name": "vb",
+  "displayName": "vb",
+  "description": "Dardcor Code built-in extension: vb",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

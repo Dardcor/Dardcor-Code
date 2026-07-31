@@ -1,0 +1,9 @@
+{
+  "name": "copilot",
+  "displayName": "copilot",
+  "description": "Dardcor Code built-in extension: copilot",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

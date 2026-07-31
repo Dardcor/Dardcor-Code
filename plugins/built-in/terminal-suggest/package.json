@@ -1,0 +1,9 @@
+{
+  "name": "terminal-suggest",
+  "displayName": "terminal-suggest",
+  "description": "Dardcor Code built-in extension: terminal-suggest",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

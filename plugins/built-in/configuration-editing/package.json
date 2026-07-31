@@ -1,0 +1,9 @@
+{
+  "name": "configuration-editing",
+  "displayName": "configuration-editing",
+  "description": "Dardcor Code built-in extension: configuration-editing",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

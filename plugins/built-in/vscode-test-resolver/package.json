@@ -1,0 +1,9 @@
+{
+  "name": "vscode-test-resolver",
+  "displayName": "vscode-test-resolver",
+  "description": "Dardcor Code built-in extension: vscode-test-resolver",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "r",
+  "displayName": "r",
+  "description": "Dardcor Code built-in extension: r",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

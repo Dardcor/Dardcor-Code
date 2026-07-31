@@ -1,0 +1,9 @@
+{
+  "name": "ini",
+  "displayName": "ini",
+  "description": "Dardcor Code built-in extension: ini",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

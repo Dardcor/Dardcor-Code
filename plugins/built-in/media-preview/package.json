@@ -1,0 +1,9 @@
+{
+  "name": "media-preview",
+  "displayName": "media-preview",
+  "description": "Dardcor Code built-in extension: media-preview",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

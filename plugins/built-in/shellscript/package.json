@@ -1,0 +1,9 @@
+{
+  "name": "shellscript",
+  "displayName": "shellscript",
+  "description": "Dardcor Code built-in extension: shellscript",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

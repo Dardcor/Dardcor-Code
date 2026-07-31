@@ -1,0 +1,9 @@
+{
+  "name": "vscode-colorize-tests",
+  "displayName": "vscode-colorize-tests",
+  "description": "Dardcor Code built-in extension: vscode-colorize-tests",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}

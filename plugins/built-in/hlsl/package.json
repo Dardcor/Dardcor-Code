@@ -1,0 +1,9 @@
+{
+  "name": "hlsl",
+  "displayName": "hlsl",
+  "description": "Dardcor Code built-in extension: hlsl",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": { "dardcor": "^1.0.0" },
+  "categories": ["Programming Languages"]
+}
