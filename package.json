@@ -27,11 +27,22 @@
   "devDependencies": {
     "@types/node": "^26.1.2",
     "electron": "^43.2.0",
+    "electron-builder": "^25.1.8",
+    "eslint": "^9.0.0",
+    "gulp": "^5.0.0",
+    "gulp-rename": "^2.0.0",
+    "gulp-terser": "^2.1.0",
+    "mocha": "^10.2.0",
+    "playwright": "^1.40.0",
     "typescript": "^5.4.0"
   },
   "dependencies": {
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/xterm": "^6.0.0",
-    "monaco-editor": "^0.56.0"
+    "monaco-editor": "^0.56.0",
+    "node-pty": "^1.0.0",
+    "vscode-oniguruma": "^1.7.0",
+    "spdlog": "^0.14.0",
+    "native-is-elevated": "^0.7.0"
   }
 }

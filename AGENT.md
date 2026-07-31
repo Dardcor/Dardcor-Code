@@ -32,61 +32,61 @@ Desain warna default Dardcor Code :
 - [x] 3. Buat gulpfile.mjs berisi SEMUA task gulp VS Code asli (build, compile, minify, package, upload, test, lint, watch, dll)
 - [x] 4. Buat tsconfig.json, tsfmt.json, eslint.config.js, .eslint-ignore, .eslint-allowed-javascript-files
 - [x] 5. Buat .editorconfig, .gitattributes, .gitignore, .mailmap, .mention-bot, .lsifrc.json
-- [ ] 6. Buat .npmrc, .nvmrc, .vscode-test.js, .config, .agents, .devcontainer
-- [ ] 7. Buat SECURITY.md, CONTRIBUTING.md, LICENSE.txt, ThirdPartyNotices.txt, README.md, CodeQL.yml
-- [ ] 8. Buat cglicenses.json, cgmanifest.json, .git-blame-ignore-revs
-- [ ] 9. resources/win32: aplikasi .ico semua ukuran, 32x32, 150x150, installer banner, windows file
-- [ ] 10. resources/linux: icon png semua ukuran, .desktop, .rpm, .deb, snap files
-- [ ] 11. resources/mac: icon.icns, Info.plist, Dock icon, document types, PList files
-- [ ] 12. resources/server: code-server icon, docker files
-- [ ] 13. resources/web: favicon, manifest, icons web
-- [ ] 14. Struktur folder root lengkap seperti VS Code asli: build, cli, extensions, remote, resources, scripts, src, test
-- [ ] 15. Dardcor: tools/builder meniru build/ VS Code asli lengkap dengan semua subfolder
-- [ ] 16. Dardcor: tools/cli meniru cli/ VS Code asli lengkap dengan semua subfolder
-- [ ] 17. Dardcor: plugins/built-in meniru extensions/ VS Code asli lengkap (100+ extension)
-- [ ] 18. Dardcor: tests meniru test/ VS Code asli (automation, integration, monaco, smoke, unit)
-- [ ] 19. Dardcor: scripts meniru scripts/ VS Code asli (semua script CI dan dev)
-- [ ] 20. index.html root meniru src/vs/code/browser/workbench/workbench.html VS Code asli
-- [ ] 21. Folder public berisi semua file yang di-load runtime (icons, splash, css) seperti VS Code asli
-- [ ] 22. Semua path alias import harus sama pola dengan VS Code asli (mis. dc/core, dc/engine, dc/platform)
-- [ ] 23. Build system harus bisa menghasilkan build penuh: dardcor-code-win32-x64, darwin, linux
-- [ ] 24. Package script npm start harus jalan tanpa error dan menghasilkan aplikasi desktop nyata
-- [ ] 25. Buat .github workflows sama dengan VS Code asli (CI, nightly, release, smoke test)
-- [ ] 26. Versi electron, node, typescript, monaco di package.json harus sama versi dengan VS Code asli
-- [ ] 27. Semua dependency production VS Code asli harus ada di Dardcor (menyimpan native dependencies)
-- [ ] 28. Semua dependency dev VS Code asli harus ada di Dardcor (gulp, eslint, mocha, playwright, dll)
-- [ ] 29. Product launcher: file .exe utama bernama Dardcor Code.exe di semua platform
-- [ ] 30. app.getAppUserModelId, app.setAppUserModelId, name package harus "Dardcor Code" di semua tempat
-- [ ] 31. User data folder default harus "Dardcor Code" di AppData, ~/.config/dardcor-code, ~/Library/Application Support
-- [ ] 32. Extension folder user default: ~/.dardcor-code/extensions di semua platform
-- [ ] 33. File .asar harus bernama app.asar dan berisi seluruh aplikasi
-- [ ] 34. Ikon aplikasi di taskbar, dock, alt-tab, about dialog harus ikon Dardcor Code
-- [ ] 35. Nama proses: dardcor-code, Dardcor Code.exe, dardcor-code-server
-- [ ] 36. Buat file src/dc/index.ts (entry utama) yang menginisialisasi seluruh sistem Dardcor Code
+- [x] 6. Buat .npmrc, .nvmrc, .vscode-test.js, .config, .agents, .devcontainer
+- [x] 7. Buat SECURITY.md, CONTRIBUTING.md, LICENSE.txt, ThirdPartyNotices.txt, README.md, CodeQL.yml
+- [x] 8. Buat cglicenses.json, cgmanifest.json, .git-blame-ignore-revs
+- [x] 9. resources/win32: aplikasi .ico semua ukuran, 32x32, 150x150, installer banner, windows file
+- [x] 10. resources/linux: icon png semua ukuran, .desktop, .rpm, .deb, snap files
+- [x] 11. resources/mac: icon.icns, Info.plist, Dock icon, document types, PList files
+- [x] 12. resources/server: code-server icon, docker files
+- [x] 13. resources/web: favicon, manifest, icons web
+- [x] 14. Struktur folder root lengkap seperti VS Code asli: build, cli, extensions, remote, resources, scripts, src, test
+- [x] 15. Dardcor: tools/builder meniru build/ VS Code asli lengkap dengan semua subfolder
+- [x] 16. Dardcor: tools/cli meniru cli/ VS Code asli lengkap dengan semua subfolder
+- [x] 17. Dardcor: plugins/built-in meniru extensions/ VS Code asli lengkap (100+ extension)
+- [x] 18. Dardcor: tests meniru test/ VS Code asli (automation, integration, monaco, smoke, unit)
+- [x] 19. Dardcor: scripts meniru scripts/ VS Code asli (semua script CI dan dev)
+- [x] 20. index.html root meniru src/vs/code/browser/workbench/workbench.html VS Code asli
+- [x] 21. Folder public berisi semua file yang di-load runtime (icons, splash, css) seperti VS Code asli
+- [x] 22. Semua path alias import harus sama pola dengan VS Code asli (mis. dc/core, dc/engine, dc/platform)
+- [x] 23. Build system harus bisa menghasilkan build penuh: dardcor-code-win32-x64, darwin, linux
+- [x] 24. Package script npm start harus jalan tanpa error dan menghasilkan aplikasi desktop nyata
+- [x] 25. Buat .github workflows sama dengan VS Code asli (CI, nightly, release, smoke test)
+- [x] 26. Versi electron, node, typescript, monaco di package.json harus sama versi dengan VS Code asli
+- [x] 27. Semua dependency production VS Code asli harus ada di Dardcor (menyimpan native dependencies)
+- [x] 28. Semua dependency dev VS Code asli harus ada di Dardcor (gulp, eslint, mocha, playwright, dll)
+- [x] 29. Product launcher: file .exe utama bernama Dardcor Code.exe di semua platform
+- [x] 30. app.getAppUserModelId, app.setAppUserModelId, name package harus "Dardcor Code" di semua tempat
+- [x] 31. User data folder default harus "Dardcor Code" di AppData, ~/.config/dardcor-code, ~/Library/Application Support
+- [x] 32. Extension folder user default: ~/.dardcor-code/extensions di semua platform
+- [x] 33. File .asar harus bernama app.asar dan berisi seluruh aplikasi
+- [x] 34. Ikon aplikasi di taskbar, dock, alt-tab, about dialog harus ikon Dardcor Code
+- [x] 35. Nama proses: dardcor-code, Dardcor Code.exe, dardcor-code-server
+- [x] 36. Buat file src/dc/index.ts (entry utama) yang menginisialisasi seluruh sistem Dardcor Code
 
 ## B. src/dc/core (meniru src/vs/base VS Code asli 100%)
 
 ### B1. core/common (meniru base/common)
 
-- [ ] 37. semua fungsi actions.ts asli (IAction, ActionRunner, toAction, dll) ada di core dengan nama file berbeda
-- [ ] 38. semua fungsi arrays.ts asli (pushToStart, move, findFirst, groupBy, dll) lengkap
-- [ ] 39. arraysFind.ts asli (findLast, findFirst, findMaxBy, dll) lengkap
-- [ ] 40. assert.ts asli (ok, assertNever, checkNull, dll) lengkap
-- [ ] 41. async.ts asli (WinJS, Sequencer, Delayer, Barrier, TaskSequencer, retry, timeout, raceTimeout, mapToSerial, DeferredPromise, RunOnceScheduler, throttledDebounce, dll) 100% lengkap di core/async
-- [ ] 42. buffer.ts asli (VSBuffer, VSBufferReadable, VSBufferWriteable, bufferedStream, newWriteableBufferStream, dll) lengkap
-- [ ] 43. cache.ts asli (Cache, AdoptableCache) lengkap
-- [ ] 44. cancellation.ts asli (CancellationToken, CancellationTokenSource, CancellationError, dll) lengkap
-- [ ] 45. charCode.ts asli (CharCode enum lengkap semua 256+ kode) lengkap
-- [ ] 46. codicons.ts, codiconsLibrary.ts, codiconsUtil.ts asli (registri semua codicon) lengkap
-- [ ] 47. collections.ts asli (Set, Map, Hashtable, LinkedMap, UniqueContainer, dll) lengkap
-- [ ] 48. color.ts asli (Color, RGBA, HSLA, HSVA, format, parse, ColorScheme, dll) lengkap
-- [ ] 49. comparers.ts asli (compareAnything, compareByPrefix, compareIgnoreCase, dll) lengkap
-- [ ] 50. console.ts asli (log, warn, error, present, logOnce, dll) lengkap
-- [ ] 51. controlFlow.ts asli (consume, reset, toDisposable, done, spinned, dll) lengkap
-- [ ] 52. dataTransfer.ts asli (DataTransfer, DataTransferItem) lengkap
-- [ ] 53. date.ts asli (range, utc2Local, dateDelta, Duration, offset, dll) lengkap
-- [ ] 54. decorators.ts asli (memoize, createDecorator, dll) lengkap
-- [ ] 55. defaultAccount.ts, desktopEnvironmentInfo.ts asli lengkap
+- [x] 37. semua fungsi actions.ts asli (IAction, ActionRunner, toAction, dll) ada di core dengan nama file berbeda
+- [x] 38. semua fungsi arrays.ts asli (pushToStart, move, findFirst, groupBy, dll) lengkap
+- [x] 39. arraysFind.ts asli (findLast, findFirst, findMaxBy, dll) lengkap
+- [x] 40. assert.ts asli (ok, assertNever, checkNull, dll) lengkap
+- [x] 41. async.ts asli (WinJS, Sequencer, Delayer, Barrier, TaskSequencer, retry, timeout, raceTimeout, mapToSerial, DeferredPromise, RunOnceScheduler, throttledDebounce, dll) 100% lengkap di core/async
+- [x] 42. buffer.ts asli (VSBuffer, VSBufferReadable, VSBufferWriteable, bufferedStream, newWriteableBufferStream, dll) lengkap
+- [x] 43. cache.ts asli (Cache, AdoptableCache) lengkap
+- [x] 44. cancellation.ts asli (CancellationToken, CancellationTokenSource, CancellationError, dll) lengkap
+- [x] 45. charCode.ts asli (CharCode enum lengkap semua 256+ kode) lengkap
+- [x] 46. codicons.ts, codiconsLibrary.ts, codiconsUtil.ts asli (registri semua codicon) lengkap
+- [x] 47. collections.ts asli (Set, Map, Hashtable, LinkedMap, UniqueContainer, dll) lengkap
+- [x] 48. color.ts asli (Color, RGBA, HSLA, HSVA, format, parse, ColorScheme, dll) lengkap
+- [x] 49. comparers.ts asli (compareAnything, compareByPrefix, compareIgnoreCase, dll) lengkap
+- [x] 50. console.ts asli (log, warn, error, present, logOnce, dll) lengkap
+- [x] 51. controlFlow.ts asli (consume, reset, toDisposable, done, spinned, dll) lengkap
+- [x] 52. dataTransfer.ts asli (DataTransfer, DataTransferItem) lengkap
+- [x] 53. date.ts asli (range, utc2Local, dateDelta, Duration, offset, dll) lengkap
+- [x] 54. decorators.ts asli (memoize, createDecorator, dll) lengkap
+- [x] 55. defaultAccount.ts, desktopEnvironmentInfo.ts asli lengkap
 - [ ] 56. editArcTracker.ts asli lengkap
 - [ ] 57. envfile.ts asli (parse, serialize) lengkap
 - [ ] 58. equals.ts asli (equals, structuralEquals, getStructuralHash) lengkap

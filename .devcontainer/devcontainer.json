@@ -1,0 +1,4 @@
+{
+  "name": "Dardcor Code Dev Container",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:20"
+}
