@@ -178,13 +178,13 @@ export class ExtHostWebview extends Disposable {
 
 	constructor(private readonly _rpc: RPCProtocol) {
 		super();
-		this._register(this._rpc.onEvent('webview', 'message', (payload: { id: string; message: any }) => {
+		this._register(this._rpc.onEvent('webview', 'message')((payload: { id: string; message: any }) => {
 			this._webviews.get(payload.id)?._fireMessage(payload.message);
 		}));
-		this._register(this._rpc.onEvent('webview', 'state', (payload: { id: string; visible: boolean; active: boolean; viewColumn: number; title?: string }) => {
+		this._register(this._rpc.onEvent('webview', 'state')((payload: { id: string; visible: boolean; active: boolean; viewColumn: number; title?: string }) => {
 			this._panels.get(payload.id)?._updateState(payload);
 		}));
-		this._register(this._rpc.onEvent('webview', 'disposed', (payload: { id: string }) => {
+		this._register(this._rpc.onEvent('webview', 'disposed')((payload: { id: string }) => {
 			const panel = this._panels.get(payload.id);
 			if (panel) {
 				this._panels.delete(payload.id);

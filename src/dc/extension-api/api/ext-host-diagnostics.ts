@@ -49,7 +49,7 @@ export class DiagnosticCollection implements IDisposable {
 			this.delete(uri);
 			return;
 		}
-		this._data.set(uri.toString(), diagnostics.map(d => d instanceof Diagnostic ? d : new Diagnostic(d.range, d.message, d.severity, d.code, d.source)));
+		this._data.set(uri.toString(), diagnostics.map(d => d instanceof Diagnostic ? d : new Diagnostic((d as any).range, (d as any).message, (d as any).severity, (d as any).code, (d as any).source)));
 		this._onDidChange(uri);
 	}
 

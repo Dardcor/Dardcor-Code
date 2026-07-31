@@ -9,6 +9,8 @@ import { RPCProtocol, IRPCChannelHandler } from '../host/rpc-protocol.js';
 import { URI } from '../../core/types/uri.js';
 import { CancellationToken } from '../../core/async/cancellation.js';
 
+export type Thenable<T> = PromiseLike<T>;
+
 export enum TaskScope {
 	Global = 1,
 	Workspace = 2
@@ -116,13 +118,13 @@ export class ExtHostTasks extends Disposable {
 
 	constructor(private readonly _rpc: RPCProtocol) {
 		super();
-		this._register(this._rpc.onEvent('tasks', 'started', (payload: { executionId: number; task: any }) => {
+		this._register(this._rpc.onEvent('tasks', 'started')((payload: { executionId: number; task: any }) => {
 			const execution = this._executions.get(payload.executionId);
 			if (execution) {
 				this._onDidStartTask.fire(execution);
 			}
 		}));
-		this._register(this._rpc.onEvent('tasks', 'ended', (payload: { executionId: number; exitCode?: number }) => {
+		this._register(this._rpc.onEvent('tasks', 'ended')((payload: { executionId: number; exitCode?: number }) => {
 			const execution = this._executions.get(payload.executionId);
 			if (execution) {
 				this._executions.delete(payload.executionId);
@@ -151,12 +153,13 @@ export class ExtHostTasks extends Disposable {
 	}
 
 	public get api(): ITasksApi {
+		const self = this;
 		return {
 			registerTaskProvider: (type: string, provider: TaskProvider) => this.registerTaskProvider(type, provider),
 			fetchTasks: (filter?: TaskFilter) => this.fetchTasks(filter),
 			executeTask: (task: Task) => this.executeTask(task),
 			get taskExecutions() {
-				return [...this._executions.values()];
+				return [...self._executions.values()];
 			},
 			onDidStartTask: this.onDidStartTask,
 			onDidEndTask: this.onDidEndTask,
@@ -174,7 +177,7 @@ export class ExtHostTasks extends Disposable {
 						if (!registration?.provider.provideTasks) {
 							return [];
 						}
-						return Promise.resolve(registration.provider.provideTasks(CancellationToken.None)).then(tasks => (tasks ?? []).map(t => t.toJSON()));
+						return Promise.resolve(registration.provider.provideTasks(CancellationToken.None)).then(tasks => (tasks ?? []).map((t: any) => t.toJSON()));
 					}
 					case '$resolveTask': {
 						const registration = [...this._providers.values()].find(r => r.type === payload.type);

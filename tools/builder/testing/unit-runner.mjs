@@ -70,10 +70,9 @@ function distPathFor(srcPath) {
 	return path.join(DIST_DIR, rel).replace(/\.ts$/, '.js');
 }
 
-async function waitForSuiteSettling(report, timeoutMs = 5000) {
+async function waitForSuiteSettling(results, timeoutMs = 5000) {
 	// Async suite cases record results after the report is returned;
 	// poll until the result count stops growing.
-	const results = report.results;
 	const start = Date.now();
 	while (Date.now() - start < timeoutMs) {
 		const before = results.length;
@@ -97,8 +96,16 @@ async function runSuiteFile(file) {
 		try {
 			const report = fn();
 			const awaited = await Promise.resolve(report);
-			await waitForSuiteSettling(awaited);
-			results.push(...awaited.results.map(r => ({ ...r, suite: name })));
+			// Two suite conventions are supported:
+			//   - ITestSuiteReport { results, passed, failed } (sync suite)
+			//   - Promise<ITestResult[]> (async suite resolving to a result array)
+			const list = Array.isArray(awaited) ? awaited : awaited?.results;
+			if (!Array.isArray(list)) {
+				results.push({ name, passed: false, suite: 'runner', message: 'suite returned neither ITestSuiteReport nor ITestResult[]' });
+				continue;
+			}
+			await waitForSuiteSettling(list, 5000);
+			results.push(...list.map(r => ({ ...r, suite: name })));
 		} catch (err) {
 			results.push({ name, passed: false, suite: 'runner', message: err.message });
 		}

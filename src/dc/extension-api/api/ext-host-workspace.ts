@@ -7,7 +7,7 @@ import { Disposable, IDisposable } from '../../core/lifecycle/disposable.js';
 import { Emitter, Event } from '../../core/events/emitter.js';
 import { RPCProtocol, IRPCChannelHandler } from '../host/rpc-protocol.js';
 import { URI } from '../../core/types/uri.js';
-import { TextDocument, ExtHostDocuments, TextDocumentChangeEvent } from './ext-host-documents.js';
+import { TextDocument, ExtHostDocuments, TextDocumentChangeEvent, ITextDocumentData } from './ext-host-documents.js';
 import { WorkspaceEdit } from './ext-host-api-impl.js';
 
 export interface IWorkspaceFolderData {
@@ -162,16 +162,16 @@ export class ExtHostWorkspace extends Disposable {
 	) {
 		super();
 		this.onDidChangeTextDocument = this._documents.onDidChangeTextDocument;
-		this._register(this._rpc.onEvent('workspace', 'watcherChanged', (payload: { id: number; type: 'create' | 'change' | 'delete'; uri: string }) => {
+		this._register(this._rpc.onEvent('workspace', 'watcherChanged')((payload: { id: number; type: 'create' | 'change' | 'delete'; uri: string }) => {
 			this._watchers.get(payload.id)?.fireEvent(payload.type, URI.parse(payload.uri));
 		}));
-		this._register(this._rpc.onEvent('workspace', 'configurationChanged', (payload: { configuration: Record<string, any> }) => {
+		this._register(this._rpc.onEvent('workspace', 'configurationChanged')((payload: { configuration: Record<string, any> }) => {
 			this._configuration = payload.configuration;
 			this._onDidChangeConfiguration.fire({
 				affectsConfiguration: (section: string) => this._configurationHasSection(section)
 			});
 		}));
-		this._register(this._rpc.onEvent('workspace', 'foldersChanged', (payload: { folders: IWorkspaceFolderData[] }) => {
+		this._register(this._rpc.onEvent('workspace', 'foldersChanged')((payload: { folders: IWorkspaceFolderData[] }) => {
 			this.setWorkspaceFolders(payload.folders);
 		}));
 	}
@@ -246,7 +246,7 @@ export class ExtHostWorkspace extends Disposable {
 				return self._documents.addDocument(data);
 			},
 			getConfiguration: (section?: string, scope?: URI | WorkspaceFolder) =>
-				new WorkspaceConfiguration({ section: section ?? '', values: self._configurationFor(section, scope) }),
+				new WorkspaceConfiguration({ section: section ?? '', values: self._configurationFor(section ?? '', scope) }),
 			createFileSystemWatcher: (globPattern: string, ignoreCreateEvents = false, ignoreChangeEvents = false, ignoreDeleteEvents = false) => {
 				const id = self._nextWatcherId++;
 				const watcher = new FileSystemWatcher(id, rpc);

@@ -177,9 +177,9 @@ function buildPlaceholderTtf(iconCount) {
 		subtable.writeUInt16BE(0, 18);     // reservedPad
 		subtable.writeUInt16BE(0, 20);     // startCode[0]
 		subtable.writeUInt16BE(firstCp, 22);
-		// idDelta[segCount]: glyph = cp + idDelta
-		subtable.writeInt16BE(0, 24);
-		subtable.writeInt16BE(1 - firstCp, 26);
+		// idDelta[segCount]: glyph = (cp + idDelta) mod 65536
+		subtable.writeUInt16BE(0, 24);
+		subtable.writeUInt16BE((1 - firstCp) & 0xFFFF, 26);
 		// idRangeOffset[segCount] = 0 (delta mapping)
 		subtable.writeUInt16BE(0, 28);
 		subtable.writeUInt16BE(0, 30);

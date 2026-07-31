@@ -349,7 +349,7 @@ export class Disposable implements IDisposable {
 		});
 	}
 
-	public static readonly None: Disposable = Object.freeze(new Disposable(() => undefined));
+	public static readonly None: Disposable = Object.freeze(new Disposable(() => undefined)) as Disposable;
 
 	constructor(private readonly _disposeCallback?: () => void) {}
 

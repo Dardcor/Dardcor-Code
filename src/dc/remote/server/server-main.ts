@@ -119,7 +119,7 @@ function toRemoteStat(stats: Stats | BigIntStats, path: string): IFileStat {
 		isDirectory: stats.isDirectory(),
 		isFile: stats.isFile(),
 		size: Number(stats.size),
-		mtime: stats.mtimeMs
+		mtime: Number(stats.mtimeMs)
 	};
 }
 

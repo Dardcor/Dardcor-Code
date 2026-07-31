@@ -76,10 +76,10 @@ export class ExtHostTerminal extends Disposable {
 
 	constructor(private readonly _rpc: RPCProtocol) {
 		super();
-		this._register(this._rpc.onEvent('terminal', 'data', (payload: { terminalId: number; data: string }) => {
+		this._register(this._rpc.onEvent('terminal', 'data')((payload: { terminalId: number; data: string }) => {
 			this._terminals.get(payload.terminalId)?.handleInput(payload.data);
 		}));
-		this._register(this._rpc.onEvent('terminal', 'close', (payload: { terminalId: number; code: number | undefined }) => {
+		this._register(this._rpc.onEvent('terminal', 'close')((payload: { terminalId: number; code: number | undefined }) => {
 			const terminal = this._terminals.get(payload.terminalId);
 			if (terminal) {
 				this._terminals.delete(payload.terminalId);
@@ -90,7 +90,7 @@ export class ExtHostTerminal extends Disposable {
 				}
 			}
 		}));
-		this._register(this._rpc.onEvent('terminal', 'active', (payload: { terminalId: number | undefined }) => {
+		this._register(this._rpc.onEvent('terminal', 'active')((payload: { terminalId: number | undefined }) => {
 			this._setActiveTerminal(payload.terminalId === undefined ? undefined : this._terminals.get(payload.terminalId));
 		}));
 	}
@@ -126,10 +126,11 @@ export class ExtHostTerminal extends Disposable {
 	}
 
 	public get api(): ITerminalApi {
+		const self = this;
 		return {
 			createTerminal: (options?: IExtHostTerminalOptions | string) => this.createTerminal(options),
 			get terminals() {
-				return this.all;
+				return self.all;
 			},
 			onDidOpenTerminal: this.onDidOpenTerminal,
 			onDidCloseTerminal: this.onDidCloseTerminal,

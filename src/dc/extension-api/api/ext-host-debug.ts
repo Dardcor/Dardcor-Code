@@ -83,19 +83,19 @@ export class ExtHostDebugService extends Disposable {
 
 	constructor(private readonly _rpc: RPCProtocol) {
 		super();
-		this._register(this._rpc.onEvent('debug', 'started', (payload: { session: any }) => {
+		this._register(this._rpc.onEvent('debug', 'started')((payload: { session: any }) => {
 			this._onDidStartDebugSession.fire(payload.session as DebugSession);
 		}));
-		this._register(this._rpc.onEvent('debug', 'terminated', (payload: { session: any }) => {
+		this._register(this._rpc.onEvent('debug', 'terminated')((payload: { session: any }) => {
 			this._onDidTerminateDebugSession.fire(payload.session as DebugSession);
 			if (this._activeSession?.id === payload.session?.id) {
 				this._setActiveSession(undefined);
 			}
 		}));
-		this._register(this._rpc.onEvent('debug', 'active', (payload: { session: any }) => {
+		this._register(this._rpc.onEvent('debug', 'active')((payload: { session: any }) => {
 			this._setActiveSession(payload.session as DebugSession | undefined);
 		}));
-		this._register(this._rpc.onEvent('debug', 'customEvent', (payload: { event: string; session: any; body?: any }) => {
+		this._register(this._rpc.onEvent('debug', 'customEvent')((payload: { event: string; session: any; body?: any }) => {
 			this._onDidReceiveDebugSessionCustomEvent.fire({ event: payload.event, session: payload.session as DebugSession, body: payload.body });
 		}));
 	}

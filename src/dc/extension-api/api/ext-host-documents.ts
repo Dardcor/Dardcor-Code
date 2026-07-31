@@ -123,7 +123,7 @@ export class TextDocument {
 		const lineIndex = position.lineNumber - 1;
 		let offset = 0;
 		for (let i = 0; i < lineIndex; i++) {
-			offset += lines[i]?.length + 1 ?? 1;
+			offset += (lines[i]?.length ?? 0) + 1;
 		}
 		return offset + (position.column - 1);
 	}
@@ -176,7 +176,7 @@ export class TextDocument {
 		const lines = this._lines();
 		let offset = 0;
 		for (let i = 0; i < lineNumber - 1; i++) {
-			offset += lines[i]?.length + 1 ?? 1;
+			offset += (lines[i]?.length ?? 0) + 1;
 		}
 		return offset;
 	}

@@ -241,10 +241,10 @@ function joinPath(base: string, name: string): string {
 	return `${base === '/' ? '' : base}/${name}`;
 }
 
-function getDirectoryIterator(handle: FileSystemDirectoryHandle): AsyncIterable<FileSystemHandle> {
+function getDirectoryIterator(handle: FileSystemDirectoryHandle): AsyncIterable<FileSystemFileHandle | FileSystemDirectoryHandle> {
 	const anyHandle = handle as any;
 	if (typeof anyHandle.values === 'function') {
-		return anyHandle.values() as AsyncIterable<FileSystemHandle>;
+		return anyHandle.values() as AsyncIterable<FileSystemFileHandle | FileSystemDirectoryHandle>;
 	}
 	const iterator = anyHandle[Symbol.asyncIterator];
 	if (typeof iterator === 'function') {

@@ -77,8 +77,8 @@ export interface NotebookDocument {
 	readonly version: number;
 	readonly isDirty: boolean;
 	readonly cellCount: number;
-	readonly cellAt(index: number): NotebookCell;
-	readonly getCells(): NotebookCell[];
+	cellAt(index: number): NotebookCell;
+	getCells(): NotebookCell[];
 }export interface NotebookSerializer {
 	deserializeNotebook(content: Uint8Array, token: CancellationToken): NotebookData | Promise<NotebookData>;
 	serializeNotebook?(data: NotebookData, token: CancellationToken): Uint8Array | Promise<Uint8Array>;
@@ -210,7 +210,7 @@ export class ExtHostNotebooks extends Disposable {
 							throw new Error(`Serializer notebook tidak dikenal: ${payload.handle}`);
 						}
 						return Promise.resolve(registration.serializer.deserializeNotebook(new Uint8Array(payload.content), CancellationToken.None))
-							.then(data => data instanceof NotebookData ? data : new NotebookData(data.cells, data.metadata))
+							.then(data => data instanceof NotebookData ? data : new NotebookData((data as any).cells, (data as any).metadata))
 							.then(data => data.toJSON());
 					}
 					case '$serialize': {

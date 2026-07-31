@@ -12,6 +12,8 @@ import { ExtHostDiagnostics, DiagnosticCollection } from './ext-host-diagnostics
 import { Position, Range, Location, MarkdownString, WorkspaceEdit, TextEdit, Diagnostic } from './ext-host-api-impl.js';
 import { CancellationToken } from '../../core/async/cancellation.js';
 
+export type Thenable<T> = PromiseLike<T>;
+
 export interface IDocumentFilter {
 	language?: string;
 	scheme?: string;
@@ -390,7 +392,7 @@ export class ExtHostLanguageFeatures extends Disposable {
 		}
 		const contents = Array.isArray(result.contents) ? result.contents : [result.contents];
 		return {
-			contents: contents.map(c => this._serializeDocumentation(c)),
+			contents: contents.map((c: any) => this._serializeDocumentation(c)),
 			range: result.range ? this._serializeRange(result.range) : undefined
 		};
 	}
@@ -408,7 +410,7 @@ export class ExtHostLanguageFeatures extends Disposable {
 	private async _provideReferences(provider: ReferenceProvider, document: TextDocument, args: any): Promise<any> {
 		const position = new Position(args.position.lineNumber, args.position.column);
 		const result = await provider.provideReferences(document, position, { includeDeclaration: args.context?.includeDeclaration ?? true }, token());
-		return (result ?? []).map(loc => this._serializeLocation(loc));
+		return (result ?? []).map((loc: any) => this._serializeLocation(loc));
 	}
 
 	private async _provideRename(provider: RenameProvider, document: TextDocument, args: any): Promise<any> {
@@ -420,7 +422,7 @@ export class ExtHostLanguageFeatures extends Disposable {
 	private async _provideFormatting(provider: DocumentFormattingEditProvider, document: TextDocument, args: any): Promise<any> {
 		const options: FormattingOptions = { tabSize: args.options?.tabSize ?? 4, insertSpaces: args.options?.insertSpaces ?? true };
 		const result = await provider.provideDocumentFormattingEdits(document, options, token());
-		return (result ?? []).map(e => ({ range: this._serializeRange(e.range), newText: e.newText }));
+		return (result ?? []).map((e: any) => ({ range: this._serializeRange(e.range), newText: e.newText }));
 	}
 
 	private async _provideCodeActions(provider: CodeActionProvider, document: TextDocument, args: any): Promise<any> {
@@ -439,7 +441,7 @@ export class ExtHostLanguageFeatures extends Disposable {
 		if (!result) {
 			return [];
 		}
-		return result.map(action => {
+		return result.map((action: any) => {
 			if ('command' in action && !('title' in action)) {
 				return { isCommand: true, title: action.title, command: action.command };
 			}
@@ -457,7 +459,7 @@ export class ExtHostLanguageFeatures extends Disposable {
 
 	private async _provideCodeLenses(provider: CodeLensProvider, document: TextDocument, args: any): Promise<any> {
 		const result = await provider.provideCodeLenses(document, token());
-		return (result ?? []).map(lens => ({
+		return (result ?? []).map((lens: any) => ({
 			range: this._serializeRange(lens.range),
 			command: lens.command ?? undefined,
 			isResolved: lens.isResolved ?? false
@@ -483,9 +485,9 @@ export class ExtHostLanguageFeatures extends Disposable {
 	private async _provideInlayHints(provider: InlayHintsProvider, document: TextDocument, args: any): Promise<any> {
 		const range = new Range(args.range.startLineNumber, args.range.startColumn, args.range.endLineNumber, args.range.endColumn);
 		const result = await provider.provideInlayHints(document, range, token());
-		return (result ?? []).map(hint => ({
+		return (result ?? []).map((hint: any) => ({
 			position: hint.position.toJSON(),
-			label: Array.isArray(hint.label) ? hint.label.map(l => ({ value: l.value, tooltip: l.tooltip ? this._serializeDocumentation(l.tooltip) : undefined })) : hint.label,
+			label: Array.isArray(hint.label) ? hint.label.map((l: any) => ({ value: l.value, tooltip: l.tooltip ? this._serializeDocumentation(l.tooltip) : undefined })) : hint.label,
 			kind: hint.kind ?? InlayHintKind.Type,
 			paddingLeft: hint.paddingLeft ?? false,
 			paddingRight: hint.paddingRight ?? false,
@@ -498,8 +500,8 @@ export class ExtHostLanguageFeatures extends Disposable {
 			return {
 				uri: (loc as LocationLink).targetUri.toString(),
 				range: this._serializeRange((loc as LocationLink).targetRange),
-				originSelectionRange: (loc as LocationLink).originSelectionRange ? this._serializeRange((loc as LocationLink).originSelectionRange) : undefined,
-				targetSelectionRange: (loc as LocationLink).targetSelectionRange ? this._serializeRange((loc as LocationLink).targetSelectionRange) : undefined
+				originSelectionRange: (loc as LocationLink).originSelectionRange ? this._serializeRange((loc as LocationLink).originSelectionRange as Range) : undefined,
+				targetSelectionRange: (loc as LocationLink).targetSelectionRange ? this._serializeRange((loc as LocationLink).targetSelectionRange as Range) : undefined
 			};
 		}
 		return { uri: (loc as Location).uri.toString(), range: this._serializeRange((loc as Location).range) };

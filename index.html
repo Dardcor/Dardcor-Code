@@ -4,115 +4,358 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Dardcor Code</title>
+	<meta name="description" content="Dardcor Code - Native Desktop Code Editor">
 	<link rel="icon" type="image/png" href="./public/dardcor-code.png">
+	<link rel="stylesheet" href="./node_modules/@xterm/xterm/css/xterm.css">
 	<style>
+		/* ─── Reset ───────────────────────────────────────────── */
+		*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
 		html, body {
-			margin: 0;
-			padding: 0;
 			width: 100vw;
 			height: 100vh;
 			overflow: hidden;
 			background-color: #1e1e1e;
 			color: #cccccc;
 			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-			user-select: none;
+			font-size: 13px;
 		}
 
-		/* VS Code Style Custom UI Rules */
-		.dc-workbench {
-			display: flex;
-			flex-direction: column;
-			width: 100vw;
-			height: 100vh;
-		}
+		/* ─── Workbench Shell ─────────────────────────────────── */
+		#workbench { display: flex; flex-direction: column; width: 100vw; height: 100vh; }
 
-		.dc-part-titlebar {
-			height: 32px;
-			background: #323233;
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			padding: 0 10px;
-			font-size: 12px;
-			border-bottom: 1px solid #2b2b2b;
+		/* ─── Title Bar ───────────────────────────────────────── */
+		#titlebar {
+			height: 35px; background: #181818; display: flex; align-items: center; justify-content: space-between;
+			padding: 0 10px; font-size: 13px; border-bottom: 1px solid #2b2b2b; -webkit-app-region: drag; user-select: none;
 		}
+		#titlebar * { -webkit-app-region: no-drag; }
+		#titlebar .logo { width: 18px; height: 18px; object-fit: contain; margin-right: 12px; filter: drop-shadow(0 0 2px #007acc); }
+		#titlebar .menu-bar { display: flex; gap: 4px; }
+		#titlebar .menu-item { padding: 4px 8px; border-radius: 4px; color: #cccccc; cursor: pointer; font-size: 13px; }
+		#titlebar .menu-item:hover { background: rgba(255,255,255,0.1); color: #ffffff; }
+		#titlebar .title-center {
+			flex: 1; display: flex; justify-content: center; align-items: center; gap: 10px; color: #999999;
+			-webkit-app-region: drag;
+		}
+		#titlebar .search-box {
+			background: #2d2d2d; border: 1px solid #3c3c3c; border-radius: 6px; padding: 2px 100px 2px 20px;
+			color: #cccccc; font-size: 12px; display: flex; align-items: center; gap: 10px; cursor: text;
+		}
+		#titlebar .search-box:hover { background: #333333; }
 
-		.dc-part-mainbody {
-			flex: 1;
-			display: flex;
-			overflow: hidden;
-		}
+		/* ─── Main Body ───────────────────────────────────────── */
+		#main-body { flex: 1; display: flex; overflow: hidden; }
 
-		.dc-part-activitybar {
-			width: 48px;
-			background: #333333;
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			padding-top: 8px;
-			gap: 16px;
-			border-right: 1px solid #252526;
+		/* ─── Activity Bar ────────────────────────────────────── */
+		#activitybar {
+			width: 48px; background: #181818; display: flex; flex-direction: column; align-items: center;
+			padding-top: 10px; gap: 10px; border-right: 1px solid #2b2b2b;
 		}
+		.activity-icon {
+			width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
+			cursor: pointer; position: relative;
+		}
+		.activity-icon img { width: 28px; height: 28px; opacity: 0.5; transition: opacity 0.2s, filter 0.2s; }
+		.activity-icon:hover img { opacity: 1; filter: drop-shadow(0 0 2px rgba(255,255,255,0.5)); }
+		.activity-icon.active img { opacity: 1; filter: drop-shadow(0 0 5px #007acc); }
+		.activity-icon.active::before {
+			content: ''; position: absolute; left: 0; top: 20%; height: 60%; width: 2px;
+			background: #007acc; border-radius: 0 2px 2px 0;
+		}
+		.activity-bottom { margin-top: auto; margin-bottom: 10px; display: flex; flex-direction: column; gap: 10px; }
 
-		.dc-activity-icon {
-			width: 32px;
-			height: 32px;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			cursor: pointer;
-			opacity: 0.6;
-			transition: opacity 0.2s;
-			border-radius: 4px;
+		/* ─── Sidebar ─────────────────────────────────────────── */
+		#sidebar { width: 280px; background: #1e1e1e; border-right: 1px solid #2b2b2b; display: flex; flex-direction: column; overflow: hidden; }
+		#sidebar-header {
+			padding: 10px 20px; font-weight: 400; font-size: 11px; letter-spacing: 0.5px;
+			color: #cccccc; display: flex; justify-content: space-between; align-items: center;
 		}
+		.accordion-header {
+			padding: 4px 5px; font-weight: 700; font-size: 11px; color: #cccccc; cursor: pointer;
+			display: flex; align-items: center; text-transform: uppercase; user-select: none;
+		}
+		.accordion-header:hover { background: #2a2d2e; }
+		.accordion-arrow { font-size: 10px; margin-right: 4px; transition: transform 0.1s; }
+		.accordion-header.expanded .accordion-arrow { transform: rotate(90deg); }
+		#file-tree { flex: 1; overflow-y: auto; overflow-x: hidden; padding-bottom: 10px; display: none; }
+		#file-tree.expanded { display: block; }
+		
+		.tree-item {
+			display: flex; align-items: center; gap: 6px; padding: 2px 10px; cursor: pointer;
+			font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #cccccc;
+		}
+		.tree-item:hover { background: #2a2d2e; }
+		.tree-item.active { background: #37373d; color: #ffffff; }
+		.tree-item .icon { font-size: 14px; flex-shrink: 0; }
+		.tree-item .name { overflow: hidden; text-overflow: ellipsis; }
 
-		.dc-activity-icon:hover, .dc-activity-icon.active {
-			opacity: 1;
-			background: #3c3c3c;
-		}
+		.sidebar-footer { border-top: 1px solid #2b2b2b; }
 
-		.dc-part-sidebar {
-			width: 260px;
-			background: #252526;
-			border-right: 1px solid #1e1e1e;
-			display: flex;
-			flex-direction: column;
-		}
+		/* ─── Center (Editor + Panel) ─────────────────────────── */
+		#center { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
-		.dc-part-center {
-			flex: 1;
-			display: flex;
-			flex-direction: column;
-			overflow: hidden;
+		/* ─── Editor Tabs ─────────────────────────────────────── */
+		#editor-tabs {
+			height: 35px; background: #1e1e1e; display: flex; align-items: flex-end;
+			overflow-x: auto; overflow-y: hidden;
 		}
+		#editor-tabs::-webkit-scrollbar { height: 0; }
+		.editor-tab {
+			height: 35px; padding: 0 12px 0 16px; display: flex; align-items: center; gap: 6px;
+			cursor: pointer; font-size: 13px; color: #969696; background: #2d2d2d;
+			border-right: 1px solid #252526; white-space: nowrap; flex-shrink: 0; user-select: none;
+			border-top: 1px solid transparent;
+		}
+		.editor-tab:hover { color: #cccccc; }
+		.editor-tab.active {
+			background: #1e1e1e; color: #ffffff; border-top: 1px solid #007acc;
+		}
+		.editor-tab .tab-close { font-size: 14px; opacity: 0; border-radius: 3px; padding: 0 4px; margin-left: 4px; }
+		.editor-tab:hover .tab-close, .editor-tab.active .tab-close { opacity: 1; }
+		.editor-tab .tab-close:hover { background: rgba(255,255,255,0.1); }
+		.tab-modified { width: 8px; height: 8px; background: #ffffff; border-radius: 50%; display: none; margin-left: 4px; }
+		.editor-tab.modified .tab-modified { display: block; }
+		.editor-tab.modified .tab-close { display: none; }
 
-		.dc-part-editor {
-			flex: 1;
-			position: relative;
-			background: #1e1e1e;
+		/* ─── Editor Area ─────────────────────────────────────── */
+		#editor-area { flex: 1; position: relative; overflow: hidden; background: #1e1e1e; }
+		
+		/* ─── Welcome Screen ──────────────────────────────────── */
+		#welcome-screen {
+			position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #1e1e1e;
+			display: flex; justify-content: center; padding-top: 60px; overflow-y: auto; z-index: 1;
 		}
+		.welcome-content { width: 100%; max-width: 800px; display: flex; gap: 60px; padding: 0 40px; }
+		.welcome-col { flex: 1; display: flex; flex-direction: column; gap: 20px; }
+		.welcome-logo { width: 60px; height: 60px; margin-bottom: 20px; filter: drop-shadow(0 0 10px rgba(0,122,204,0.5)); }
+		.welcome-header { font-size: 24px; color: #cccccc; margin-bottom: 10px; font-weight: 300; }
+		.welcome-section-title { font-size: 18px; color: #cccccc; margin-bottom: 15px; font-weight: 300; }
+		.welcome-link {
+			display: flex; align-items: center; gap: 10px; color: #007acc; cursor: pointer;
+			padding: 4px 0; font-size: 13px; text-decoration: none;
+		}
+		.welcome-link:hover { color: #3794ff; text-decoration: underline; }
+		.welcome-link .icon { color: #007acc; width: 16px; text-align: center; font-size: 16px; }
+		.recent-item {
+			display: flex; align-items: center; gap: 10px; padding: 4px 0; cursor: pointer; font-size: 13px;
+		}
+		.recent-item .name { color: #007acc; }
+		.recent-item .path { color: #666666; font-size: 12px; }
+		.recent-item:hover .name { color: #3794ff; text-decoration: underline; }
 
-		.dc-part-panel {
-			height: 180px;
-			background: #1e1e1e;
-			border-top: 1px solid #2b2b2b;
-			display: flex;
-			flex-direction: column;
+		/* ─── Panel (Terminal) ────────────────────────────────── */
+		#panel { height: 250px; background: #1e1e1e; border-top: 1px solid #414141; display: flex; flex-direction: column; }
+		#panel-tabs {
+			height: 35px; display: flex; align-items: center; padding: 0 10px; gap: 20px;
+			font-size: 11px; text-transform: uppercase; border-bottom: 1px solid #2b2b2b;
 		}
+		.panel-tab { padding: 8px 0; cursor: pointer; color: #888888; }
+		.panel-tab.active { color: #e7e7e7; border-bottom: 1px solid #e7e7e7; }
+		.panel-tab:hover { color: #cccccc; }
+		#terminal-container { flex: 1; overflow: hidden; padding: 4px 10px; }
 
-		.dc-part-statusbar {
-			height: 22px;
-			background: #007acc;
-			color: #ffffff;
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			padding: 0 10px;
-			font-size: 12px;
+		/* ─── Status Bar ──────────────────────────────────────── */
+		#statusbar {
+			height: 22px; background: #007acc; color: #ffffff; display: flex; align-items: center;
+			justify-content: space-between; font-size: 12px; user-select: none;
 		}
+		#statusbar .left, #statusbar .right { display: flex; align-items: center; height: 100%; }
+		#statusbar .item { cursor: pointer; padding: 0 8px; display: flex; align-items: center; gap: 4px; height: 100%; }
+		#statusbar .item:hover { background: rgba(255,255,255,0.12); }
+		#statusbar .restricted { background: #0065a9; font-weight: 600; padding: 0 12px; }
+		#statusbar .restricted:hover { background: #005c99; }
+
+		/* ─── Scrollbar Styles ────────────────────────────────── */
+		::-webkit-scrollbar { width: 14px; height: 14px; }
+		::-webkit-scrollbar-track { background: transparent; }
+		::-webkit-scrollbar-thumb { background: rgba(121, 121, 121, 0.4); border: 4px solid transparent; background-clip: padding-box; border-radius: 7px; }
+		::-webkit-scrollbar-thumb:hover { background: rgba(100, 100, 100, 0.7); border: 4px solid transparent; background-clip: padding-box; }
+		::-webkit-scrollbar-corner { background: transparent; }
+		.xterm { padding: 4px; }
 	</style>
 </head>
 <body>
-	<script type="module" src="./dist/dc/main.js"></script>
+	<div id="workbench">
+		<!-- Title Bar -->
+		<div id="titlebar">
+			<div style="display:flex;align-items:center;">
+				<img class="logo" src="./assets/logo.svg" alt="logo">
+				<div class="menu-bar">
+					<span class="menu-item" id="menu-file">File</span>
+					<span class="menu-item" id="menu-edit">Edit</span>
+					<span class="menu-item" id="menu-selection">Selection</span>
+					<span class="menu-item" id="menu-view">View</span>
+					<span class="menu-item" id="menu-go">Go</span>
+					<span class="menu-item" id="menu-run">Run</span>
+					<span class="menu-item" id="menu-terminal">Terminal</span>
+					<span class="menu-item" id="menu-help">...</span>
+				</div>
+			</div>
+			<div class="title-center">
+				<span style="font-size:16px;">←</span> <span style="font-size:16px;opacity:0.5;">→</span>
+				<div class="search-box" id="title-filename">🔍 Dardcor-Code-New</div>
+			</div>
+			<div style="width: 250px; display:flex; justify-content:flex-end;">
+				<!-- Window Controls would go here -->
+			</div>
+		</div>
+
+		<!-- Main Body -->
+		<div id="main-body">
+			<!-- Activity Bar -->
+			<div id="activitybar">
+				<div class="activity-icon active" data-view="explorer" title="Explorer">
+					<img src="./assets/explorer.svg" alt="Explorer">
+				</div>
+				<div class="activity-icon" data-view="search" title="Search">
+					<img src="./assets/search.svg" alt="Search">
+				</div>
+				<div class="activity-icon" data-view="scm" title="Source Control">
+					<img src="./assets/scm.svg" alt="SCM">
+				</div>
+				<div class="activity-icon" data-view="debug" title="Run and Debug">
+					<img src="./assets/debug.svg" alt="Debug">
+				</div>
+				<div class="activity-icon" data-view="extensions" title="Extensions">
+					<img src="./assets/extensions.svg" alt="Extensions">
+				</div>
+				
+				<div class="activity-bottom">
+					<div class="activity-icon" title="Accounts"><span style="font-size:24px;color:#888;">👤</span></div>
+					<div class="activity-icon" title="Manage"><span style="font-size:24px;color:#888;">⚙️</span></div>
+				</div>
+			</div>
+
+			<!-- Sidebar -->
+			<div id="sidebar">
+				<div id="sidebar-header">
+					<span>EXPLORER</span>
+					<span>...</span>
+				</div>
+				<div class="accordion-header expanded" id="acc-workspace" onclick="toggleAccordion('acc-workspace', 'file-tree')">
+					<span class="accordion-arrow">▶</span> DARDCOR-CODE-NEW
+				</div>
+				<div id="file-tree" class="expanded"></div>
+				
+				<div class="sidebar-footer">
+					<div class="accordion-header" id="acc-outline">
+						<span class="accordion-arrow">▶</span> OUTLINE
+					</div>
+					<div class="accordion-header" id="acc-timeline">
+						<span class="accordion-arrow">▶</span> TIMELINE
+					</div>
+				</div>
+			</div>
+
+			<!-- Center -->
+			<div id="center">
+				<!-- Editor Tabs -->
+				<div id="editor-tabs">
+					<div class="editor-tab active" id="welcome-tab">
+						<span style="color:#007acc;font-size:16px;">VS</span> 
+						<span style="font-style:italic;">Welcome</span>
+						<span class="tab-close">✕</span>
+					</div>
+				</div>
+
+				<!-- Editor Area -->
+				<div id="editor-area">
+					<div id="welcome-screen">
+						<div class="welcome-content">
+							<div class="welcome-col">
+								<img class="welcome-logo" src="./assets/logo.svg" alt="Dardcor Code">
+								<div class="welcome-header">Start</div>
+								<div class="welcome-link" id="btn-welcome-new-file"><span class="icon">📄</span> New File...</div>
+								<div class="welcome-link" id="btn-welcome-open-file"><span class="icon">📂</span> Open File...</div>
+								<div class="welcome-link" id="btn-welcome-open-folder"><span class="icon">📁</span> Open Folder...</div>
+								<div class="welcome-link"><span class="icon">🔗</span> Connect to...</div>
+								<div class="welcome-link"><span class="icon">⭐</span> Generate New Workspace...</div>
+
+								<div class="welcome-header" style="margin-top:30px;">Recent</div>
+								<div class="recent-item">
+									<span class="name">HUT JAI</span>
+									<span class="path">C:\\Users\\Dardcor\\Documents...</span>
+								</div>
+								<div class="recent-item">
+									<span class="name">Aplikasi-Checksheet-JAI</span>
+									<span class="path">C:\\Users\\Dardcor\\Documents...</span>
+								</div>
+								<div class="recent-item">
+									<span class="name">Lucifer Script</span>
+									<span class="path">C:\\Users\\Dardcor\\Documents...</span>
+								</div>
+								<div class="recent-item">
+									<span class="name">Rotation Farm</span>
+									<span class="path">C:\\Users\\Dardcor\\Documents...</span>
+								</div>
+								<div class="welcome-link" style="margin-top:10px;">More...</div>
+							</div>
+							<div class="welcome-col" style="flex:0.8;">
+								<div style="flex:1;"></div>
+								<div style="background:#252526;padding:15px;border-radius:5px;border:1px solid #333;">
+									<div style="color:#fff;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:10px;">
+										<span style="color:#007acc;font-size:18px;">{' '}</span> Try out features
+									</div>
+									<div style="display:flex;align-items:center;gap:10px;margin-top:20px;">
+										<input type="checkbox" checked id="show-welcome">
+										<label for="show-welcome" style="color:#cccccc;font-size:12px;">Show welcome page on startup</label>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Panel -->
+				<div id="panel">
+					<div id="panel-tabs">
+						<span class="panel-tab active">TERMINAL</span>
+						<span class="panel-tab">OUTPUT</span>
+						<span class="panel-tab">PROBLEMS</span>
+						<span class="panel-tab">DEBUG CONSOLE</span>
+					</div>
+					<div id="terminal-container"></div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Status Bar -->
+		<div id="statusbar">
+			<div class="left">
+				<span class="item restricted">🛡️ Restricted Mode</span>
+				<span class="item" id="status-errors">⊗ 0 ⚠ 0</span>
+			</div>
+			<div class="right">
+				<span class="item" id="status-cursor">Ln 1, Col 1</span>
+				<span class="item" id="status-indent">Spaces: 4</span>
+				<span class="item" id="status-encoding">UTF-8</span>
+				<span class="item" id="status-eol">CRLF</span>
+				<span class="item" id="status-language">Plain Text</span>
+				<span class="item">Dardcor Code v1.0.0</span>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		window.nodeRequire = require;
+		window.nodeModule = module;
+		window.nodeExports = exports;
+		delete window.require;
+		delete window.exports;
+		delete window.module;
+	</script>
+	<script src="./node_modules/monaco-editor/min/vs/loader.js"></script>
+	<script>
+		require.config({
+			paths: { 'vs': './node_modules/monaco-editor/min/vs' }
+		});
+
+		require(['vs/editor/editor.main'], function() {
+			import('./dist/dc/main.js').catch(err => {
+				console.error('Failed to load application:', err);
+			});
+		});
+	</script>
 </body>
 </html>

@@ -1,3 +1,15 @@
+Aturan Wajib Baca lengkap project asli Visual Studio Code : C:\Users\Dardcor\Documents\Code Editor\Visual Studio Code
+
+Saya ingin : semua fitur, semua menu, semua icon, semua fungsi, semua systemnya sama persis dengan Visual Studio Code asli
+
+Aturan wajib dilarang keras membuat file implementasi_plan.md , task.md , wolkthrough.md dilarang keras pokonya
+
+Anda harus mengerjakan task berdasarkan AGENT.md ini
+
+ATURAN WAJIB UNTUK MENGERJAKAN TUGAS, BACA PROJECT ASLI -> LALU KERJAKAN PROJECT Dardcor Code -> Centang fitur yang sudah -> baca lagi project asli -> kerjakan lagi Dardcor Code sampai sama persis dengan Visual Studio Code asli -> dilarang berhenti sampai fitur selesai -> looping kerjakan lagi
+
+dan cek tugas dibawah ini
+
 # DARDCOR CODE NEW - MASTER ARCHITECTURE PLAN & TASK ROADMAP (1 - 1000)
 
 ## Implementation Status Summary

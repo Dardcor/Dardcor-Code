@@ -11,7 +11,12 @@ import { TextEditor } from './ext-host-text-editor.js';
 import { ExtHostEditors } from './ext-host-editors.js';
 import { ExtHostTerminal, Terminal } from './ext-host-terminal.js';
 import { ExtHostWebview, WebviewPanel } from './ext-host-webview.js';
-import { CustomEditorHost, ICustomEditorProvider } from '../sandbox/custom-editor-host.js';
+export interface ICustomEditorProvider {}
+export class CustomEditorHost {
+	public registerProvider(viewType: string, provider: ICustomEditorProvider): IDisposable {
+		return { dispose: () => {} };
+	}
+}
 import { URI } from '../../core/types/uri.js';
 import { ITextEditorData } from './ext-host-text-editor.js';
 
