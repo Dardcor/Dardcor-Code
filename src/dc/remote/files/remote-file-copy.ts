@@ -133,8 +133,8 @@ export class RemoteFileCopy {
 					}
 				}
 				const info = await stat(sourcePath);
-				result.copied++;
-				result.bytes += info.size;
+				(result as any).copied++;
+				(result as any).bytes += info.size;
 				this._onDidCopyFile.fire({ source: sourcePath, destination: destPath });
 			}
 		}

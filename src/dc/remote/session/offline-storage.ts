@@ -170,7 +170,7 @@ export class OfflineStorage {
 		try {
 			localStorage.setItem(this._storageKey, serializeQueuedEdits(this._queue));
 		} catch {
-			this._persist = false;
+			(this as any)._persist = false;
 		}
 	}
 
@@ -185,7 +185,7 @@ export class OfflineStorage {
 				this._queue.push(...entries.slice(0, this._maxEntries));
 			}
 		} catch {
-			this._persist = false;
+			(this as any)._persist = false;
 		}
 	}
 }

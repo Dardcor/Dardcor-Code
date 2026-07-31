@@ -174,7 +174,7 @@ export class StandaloneCodeEditor extends Disposable {
 	}
 
 	public setReadOnly(readOnly: boolean): void {
-		this._options.readOnly = readOnly;
+		(this._options as any).readOnly = readOnly;
 		this._content.setAttribute('contenteditable', readOnly ? 'false' : 'true');
 	}
 

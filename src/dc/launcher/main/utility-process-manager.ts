@@ -125,7 +125,7 @@ export class UtilityProcessManager extends Disposable {
 		if (!entry.port) {
 			return Promise.reject(new Error(`Utility process '${serviceName}' has no channel`));
 		}
-		return entry.rpc.call(entry.port, method, args) as Promise<T>;
+		return entry.rpc.call(entry.port as any, method, args) as Promise<T>;
 	}
 
 	public kill(serviceName: string, signal?: string): boolean {

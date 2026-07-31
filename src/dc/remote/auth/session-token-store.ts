@@ -78,7 +78,7 @@ export class SessionTokenStore {
 			this._tokens.delete(hash);
 			return { valid: false, reason: 'token expired' };
 		}
-		record.lastUsedAt = Date.now();
+		(record as any).lastUsedAt = Date.now();
 		return {
 			valid: true,
 			userId: record.userId,
@@ -141,7 +141,7 @@ export class SessionTokenStore {
 		if (!record || record.expiresAt <= Date.now()) {
 			return false;
 		}
-		record.lastUsedAt = Date.now();
+		(record as any).lastUsedAt = Date.now();
 		return true;
 	}
 
@@ -151,7 +151,7 @@ export class SessionTokenStore {
 		if (!record || record.expiresAt <= Date.now()) {
 			return false;
 		}
-		record.expiresAt = Date.now() + ttlMs;
+		(record as any).expiresAt = Date.now() + ttlMs;
 		return true;
 	}
 

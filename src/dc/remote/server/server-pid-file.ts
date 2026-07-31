@@ -10,7 +10,7 @@ export interface IPidFileInfo {
 export function formatPidFile(pid: number, port?: number): string {
 	const payload: IPidFileInfo = { pid, createdAt: Date.now() };
 	if (port !== undefined) {
-		payload.port = port;
+		(payload as any).port = port;
 	}
 	return JSON.stringify(payload, null, 2);
 }

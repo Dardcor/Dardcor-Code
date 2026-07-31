@@ -94,8 +94,8 @@ export class NativeDialogs extends Disposable {
 		return { ok: true, response: result.response, checked: result.checkboxChecked };
 	}
 
-	public async showConfirm(window?: BrowserWindow | null, message: string, detail?: string): Promise<boolean> {
-		const result = await this.showMessage(window, {
+	public async showConfirm(window: BrowserWindow | null | undefined, message: string, detail?: string): Promise<boolean> {
+		const result = await dialog.showMessageBox(window || undefined as any, {
 			type: 'question',
 			title: 'Dardcor Code',
 			message,

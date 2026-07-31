@@ -61,7 +61,7 @@ export class UpdateInstaller extends Disposable {
 	}
 
 	public clearInstallLog(): void {
-		this._installLog = [];
+		(this as any)._installLog = [];
 	}
 
 	public override dispose(): void {

@@ -1,5 +1,5 @@
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { $ } from '../../core/dom/element.js';
+import { Disposable } from "../../../core/lifecycle/disposable.js";
+import { $ } from "../../../core/dom/element.js";
 
 export const OVERVIEW_RULER_WIDTH = 14;
 export const OVERVIEW_RULER_MAX_BARS = 1000;

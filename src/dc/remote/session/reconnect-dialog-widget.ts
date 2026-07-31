@@ -112,9 +112,9 @@ export class ReconnectDialogWidget extends Disposable {
 	}
 
 	updateOptions(options: IReconnectDialogOptions): void {
-		this._options.title = options.title ?? this._options.title;
-		this._options.retryLabel = options.retryLabel ?? this._options.retryLabel;
-		this._options.cancelLabel = options.cancelLabel ?? this._options.cancelLabel;
+		(this._options as any).title = options.title ?? this._options.title;
+		(this._options as any).retryLabel = options.retryLabel ?? this._options.retryLabel;
+		(this._options as any).cancelLabel = options.cancelLabel ?? this._options.cancelLabel;
 		if (this._element) {
 			this._applyOptions();
 		}

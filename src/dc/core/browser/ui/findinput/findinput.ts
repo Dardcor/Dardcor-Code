@@ -104,9 +104,7 @@ export class FindInput extends Widget {
 		this.inputBox = this._register(new HistoryInputBox(this.domNode, contextViewProvider, {
 			placeholder: this.placeholder || '',
 			ariaLabel: this.label || '',
-			validationOptions: {
-				validation: this.validation
-			},
+			validation: this.validation,
 			showHistoryHint: options.showHistoryHint,
 			flexibleHeight,
 			flexibleWidth,
@@ -191,7 +189,7 @@ export class FindInput extends Widget {
 							indexes[newIndex].focus();
 						}
 
-						dom.EventHelper.stop(event.browserEvent as Event, true);
+						dom.EventHelper.stop(event.browserEvent as any, true);
 					}
 				}
 			});
@@ -326,8 +324,8 @@ export class FindInput extends Widget {
 		return nodes;
 	}
 
-	public setActions(actions: ReadonlyArray<IAction> | undefined, actionViewItemProvider?: IActionViewItemProvider): void {
-		this.inputBox.setActions(actions, actionViewItemProvider);
+	public setActions(actions: readonly IAction[]) {
+		this.inputBox.setActions(actions as any[]);
 		this.updateInputBoxPadding();
 	}
 

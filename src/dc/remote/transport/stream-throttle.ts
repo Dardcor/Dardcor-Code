@@ -77,12 +77,14 @@ export class StreamThrottle extends Transform {
 		this._onPause.fire();
 	}
 
-	pause(): void {
+	pause(): this {
 		this.stop();
+		return this;
 	}
 
-	resume(): void {
+	resume(): this {
 		this.start();
+		return this;
 	}
 
 	throttle(chunk: Buffer): void {

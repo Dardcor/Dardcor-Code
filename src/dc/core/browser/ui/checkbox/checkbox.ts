@@ -20,6 +20,9 @@ export interface IToggleOpts {
 	isChecked: boolean;
 	styles?: IToggleStyles;
 	hoverLifecycleOptions?: any;
+	inputActiveOptionBorder?: string;
+	inputActiveOptionForeground?: string;
+	inputActiveOptionBackground?: string;
 }
 
 export class Toggle extends Widget {

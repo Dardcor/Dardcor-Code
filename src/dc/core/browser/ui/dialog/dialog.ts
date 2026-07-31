@@ -263,7 +263,7 @@ export class Dialog extends Disposable {
 					buttonOptions.styleButton(button);
 				}
 
-				button.label = mnemonicButtonLabel(buttonMap[index].label, true);
+				button.label = mnemonicButtonLabel(buttonMap[index].label, true).label;
 				if (button instanceof ButtonWithDescription) {
 					if (buttonOptions?.sublabel) {
 						button.description = buttonOptions?.sublabel;

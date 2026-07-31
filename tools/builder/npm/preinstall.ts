@@ -114,7 +114,7 @@ function installHeaders() {
 		? path.join(import.meta.dirname, 'gyp', 'node_modules', '.bin', 'node-gyp.cmd')
 		: path.join(import.meta.dirname, 'gyp', 'node_modules', '.bin', 'node-gyp');
 
-	const local = getHeaderInfo(path.join(import.meta.dirname, '..', '..', '.npmrc'));
+	const local = getHeaderInfo(path.join(import.meta.dirname, '..', '..', '..', '.npmrc'));
 
 	if (local !== undefined) {
 		child_process.execFileSync(node_gyp, ['install', '--dist-url', local.disturl, local.target], { shell: true });

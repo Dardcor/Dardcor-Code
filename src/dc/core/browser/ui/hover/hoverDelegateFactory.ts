@@ -1,4 +1,4 @@
-export function getDefaultHoverDelegate(): any {
+export function getDefaultHoverDelegate(...args: any[]): any {
 	return {
 		showHover: () => {}
 	};

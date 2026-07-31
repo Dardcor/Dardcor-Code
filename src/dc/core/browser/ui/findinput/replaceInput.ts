@@ -101,9 +101,7 @@ export class ReplaceInput extends Widget {
 		this.inputBox = this._register(new HistoryInputBox(this.domNode, this.contextViewProvider, {
 			ariaLabel: this.label || '',
 			placeholder: this.placeholder || '',
-			validationOptions: {
-				validation: this.validation
-			},
+			validation: this.validation,
 			history: history as any,
 			showHistoryHint: options.showHistoryHint,
 			flexibleHeight,
@@ -158,7 +156,7 @@ export class ReplaceInput extends Widget {
 						indexes[newIndex].focus();
 					}
 
-					dom.EventHelper.stop(event.browserEvent as Event, true);
+					dom.EventHelper.stop(event.browserEvent as any, true);
 				}
 			}
 		});

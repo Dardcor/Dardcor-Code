@@ -35,7 +35,7 @@ export interface WindowOptionsOverrides {
 	maximizable?: boolean;
 	closable?: boolean;
 	transparent?: boolean;
-	vibrancy?: Electron.Vibrancy;
+	vibrancy?: any;
 	acceptFirstMouse?: boolean;
 	additionalArguments?: string[];
 }

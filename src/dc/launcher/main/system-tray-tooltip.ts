@@ -12,7 +12,7 @@ export function setTrayTooltip(tray: Tray, tooltip: string): void {
 
 export function getTrayTooltip(tray: Tray): string {
 	try {
-		return tray.getToolTip();
+		return (tray as any).getToolTip?.() ?? "";
 	} catch {
 		return DEFAULT_TOOLTIP;
 	}

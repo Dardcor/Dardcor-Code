@@ -47,7 +47,7 @@ export class UpdateDownloader extends Disposable {
 		}
 		const timeoutMs = this._options.timeoutMs ?? 300000;
 
-		return new Promise((resolve, reject) => {
+		return new Promise<boolean>((resolve, reject) => {
 			const protocol = url.startsWith('https:') ? https : url.startsWith('http:') ? http : null;
 			if (!protocol) {
 				reject(new Error(`Unsupported protocol for download URL: ${url}`));

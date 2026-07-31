@@ -23,40 +23,40 @@ export function parseSgrSequence(sequence: string): IParsedSgr {
 	for (let i = 0; i < parts.length; i++) {
 		const code = parts[i];
 		if (code === 1) {
-			result.bold = true;
+			(result as any).bold = true;
 		} else if (code === 3) {
-			result.italic = true;
+			(result as any).italic = true;
 		} else if (code === 4) {
-			result.underline = true;
+			(result as any).underline = true;
 		} else if (code === 7) {
-			result.inverse = true;
+			(result as any).inverse = true;
 		} else if (code === 38 || code === 48) {
 			const mode = parts[i + 1];
 			if (mode === 2 && parts[i + 4] !== undefined) {
 				const color: RgbColor = [parts[i + 2], parts[i + 3], parts[i + 4]];
 				if (code === 38) {
-					result.fg = color;
+					(result as any).fg = color;
 				} else {
-					result.bg = color;
+					(result as any).bg = color;
 				}
 				i += 4;
 			} else if (mode === 5 && parts[i + 2] !== undefined) {
 				const index = parts[i + 2];
 				if (code === 38) {
-					result.fgIndex = index;
+					(result as any).fgIndex = index;
 				} else {
-					result.bgIndex = index;
+					(result as any).bgIndex = index;
 				}
 				i += 2;
 			}
 		} else if (code >= 30 && code <= 37) {
-			result.fgIndex = code - 30;
+			(result as any).fgIndex = code - 30;
 		} else if (code >= 90 && code <= 97) {
-			result.fgIndex = code - 90 + 8;
+			(result as any).fgIndex = code - 90 + 8;
 		} else if (code >= 40 && code <= 47) {
-			result.bgIndex = code - 40;
+			(result as any).bgIndex = code - 40;
 		} else if (code >= 100 && code <= 107) {
-			result.bgIndex = code - 100 + 8;
+			(result as any).bgIndex = code - 100 + 8;
 		}
 	}
 	return result;

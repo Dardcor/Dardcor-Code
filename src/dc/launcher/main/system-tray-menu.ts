@@ -1,7 +1,7 @@
 import { Menu, MenuItemConstructorOptions } from 'electron';
 
 export interface TrayMenuItem {
-	label: string;
+	label?: string;
 	click?: () => void;
 	type?: 'normal' | 'separator' | 'checkbox' | 'radio';
 	checked?: boolean;

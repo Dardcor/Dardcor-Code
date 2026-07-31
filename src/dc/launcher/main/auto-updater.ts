@@ -156,7 +156,7 @@ export class AutoUpdater extends Disposable {
 			this._onUpdateAvailable.fire(this._info);
 		});
 		autoUpdater.on('update-not-available', () => this._setState('not-available'));
-		autoUpdater.on('update-downloaded', (_event: Electron.Event, releaseNotes: string, releaseName: string, releaseDate: Date, _updateURL: string, version: string) => {
+		(autoUpdater as any).on('update-downloaded', (_event: Electron.Event, releaseNotes: string, releaseName: string, releaseDate: Date, _updateURL: string, version: string) => {
 			this._info = { version, releaseName, releaseNotes, releaseDate: releaseDate?.toISOString() };
 			this._setState('downloaded');
 			this._onUpdateDownloaded.fire(this._info);

@@ -126,7 +126,7 @@ export class RemoteFileStatCache<T = unknown> {
 		if (!entry) {
 			return false;
 		}
-		entry.expiresAt = Date.now() + (ttlMs ?? this._defaultTtlMs);
+		(entry as any).expiresAt = Date.now() + (ttlMs ?? this._defaultTtlMs);
 		return true;
 	}
 

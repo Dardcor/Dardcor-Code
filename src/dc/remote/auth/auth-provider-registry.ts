@@ -51,7 +51,7 @@ export class AuthProviderRegistry extends Disposable {
 			return pb - pa;
 		});
 		this._onDidRegister.fire(provider);
-		return toDisposable(() => this.unregister(provider.id));
+		return toDisposable(() => this.unregister(provider.id)) as any;
 	}
 
 	unregister(id: string): boolean {

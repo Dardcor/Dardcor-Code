@@ -30,7 +30,7 @@ export class CompressionStream {
 			return { data: bytes, compressed: false, format: 'none' };
 		}
 		try {
-			const stream = new CompressionStream('gzip');
+			const stream = new (CompressionStream as any)("gzip");
 			const compressed = await this._transform(bytes, stream);
 			return { data: compressed, compressed: true, format: 'gzip' };
 		} catch {
@@ -87,10 +87,10 @@ export class CompressionStream {
 	}
 
 	private async _transform(bytes: Uint8Array, stream: CompressionStream | DecompressionStream): Promise<Uint8Array> {
-		const writer = stream.writable.getWriter();
+		const writer = (stream as any).writable.getWriter();
 		writer.write(bytes);
 		writer.close();
-		const reader = stream.readable.getReader();
+		const reader = (stream as any).readable.getReader();
 		const chunks: Uint8Array[] = [];
 		let total = 0;
 		for (;;) {

@@ -1,5 +1,5 @@
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { $ } from '../../core/dom/element.js';
+import { Disposable } from '../../../core/lifecycle/disposable.js';
+import { $ } from '../../../core/dom/element.js';
 
 export interface ILineCard {
 	readonly id: string;

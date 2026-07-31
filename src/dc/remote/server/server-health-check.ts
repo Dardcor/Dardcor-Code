@@ -109,7 +109,7 @@ export class ServerHealthCheck {
 		};
 	}
 
-	private async _checkWorkspace(): IHealthCheckResult {
+	private async _checkWorkspace(): Promise<IHealthCheckResult> {
 		if (!this._workspaceRoot) {
 			return { name: 'workspace', ok: true, detail: 'no workspace root configured' };
 		}

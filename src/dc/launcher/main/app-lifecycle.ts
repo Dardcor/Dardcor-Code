@@ -107,7 +107,7 @@ export class AppLifecycle extends Disposable {
 				this._options.onOpenFile?.(filePath);
 			});
 
-			app.on('open-folder', (event: Electron.Event, folderPath: string) => {
+			(app as any).on('open-folder', (event: Electron.Event, folderPath: string) => {
 				event.preventDefault();
 				this._options.onOpenFolder?.(folderPath);
 			});

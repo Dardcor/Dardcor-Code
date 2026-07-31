@@ -72,7 +72,7 @@ export class RemoteExtensionIpc extends Disposable {
 		this._clientChannels.set(name, client);
 		return {
 			dispose: () => this.unregisterChannel(name)
-		};
+		} as any;
 	}
 
 	unregisterChannel(name: string): void {
@@ -130,7 +130,7 @@ export class RemoteExtensionIpc extends Disposable {
 			if (payload && typeof (payload as IRpcEvent).event === 'string') {
 				listener((payload as IRpcEvent).data);
 			}
-		});
+		}) as any;
 	}
 
 	hasChannel(name: string): boolean {

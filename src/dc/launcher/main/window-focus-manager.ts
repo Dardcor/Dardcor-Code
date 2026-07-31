@@ -54,7 +54,7 @@ export class WindowFocusManager extends Disposable {
 	}
 
 	public focusWindow(id: number): boolean {
-		const win = this._windows.find((w) => !w.isDestroyed() && w.id === id);
+		const win = Array.from(this._windows).find((w) => !w.isDestroyed() && w.id === id);
 		if (!win) {
 			return false;
 		}

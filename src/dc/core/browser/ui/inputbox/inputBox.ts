@@ -28,6 +28,8 @@ export interface IInputOptions {
 	flexibleMaxHeight?: number;
 	actions?: any[];
 	type?: string;
+	actionViewItemProvider?: any;
+	hideHoverOnValueChange?: boolean;
 }
 
 export class InputBox extends Widget {

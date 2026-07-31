@@ -1,4 +1,5 @@
-import { ITextModel, Position } from '../model/text-model.js';
+import { ITextModel } from '../model/text-model.js';
+import { Position } from '../model/position.js';
 import { Selection } from '../model/selection.js';
 
 export interface ICursorMoveArgs {

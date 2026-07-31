@@ -155,21 +155,21 @@ function toComposeService(name: string, raw: Record<string, unknown>): IComposeS
 	const service: IComposeService = { name, raw };
 	const image = raw.image;
 	if (typeof image === 'string') {
-		service.image = image;
+		(service as any).image = image;
 	}
 	const build = raw.build;
 	if (typeof build === 'string') {
-		service.build = build;
+		(service as any).build = build;
 	} else if (build && typeof build === 'object' && typeof (build as Record<string, unknown>).context === 'string') {
-		service.build = (build as Record<string, unknown>).context as string;
+		(service as any).build = (build as Record<string, unknown>).context as string;
 	}
 	const ports = raw.ports;
 	if (Array.isArray(ports)) {
-		service.ports = ports.map(parseScalar).map(parsePortSpec).filter((p): p is IComposePort => p !== null);
+		(service as any).ports = ports.map(parseScalar).map(parsePortSpec).filter((p): p is IComposePort => p !== null);
 	}
 	const volumes = raw.volumes;
 	if (Array.isArray(volumes)) {
-		service.volumes = volumes.map(parseScalar).filter(Boolean);
+		(service as any).volumes = volumes.map(parseScalar).filter(Boolean);
 	}
 	const environment = raw.environment;
 	if (Array.isArray(environment)) {
@@ -182,23 +182,23 @@ function toComposeService(name: string, raw: Record<string, unknown>): IComposeS
 				env[entry] = '';
 			}
 		}
-		service.environment = env;
+		(service as any).environment = env;
 	} else if (environment && typeof environment === 'object') {
-		service.environment = Object.fromEntries(
+		(service as any).environment = Object.fromEntries(
 			Object.entries(environment as Record<string, unknown>).map(([key, value]) => [key, parseScalar(value)])
 		);
 	}
 	const dependsOn = raw.depends_on;
 	if (Array.isArray(dependsOn)) {
-		service.dependsOn = dependsOn.map(parseScalar).filter(Boolean);
+		(service as any).dependsOn = dependsOn.map(parseScalar).filter(Boolean);
 	}
 	const command = raw.command;
 	if (typeof command === 'string' || Array.isArray(command)) {
-		service.command = command;
+		(service as any).command = command;
 	}
 	const user = raw.user;
 	if (typeof user === 'string') {
-		service.user = user;
+		(service as any).user = user;
 	}
 	return service;
 }
