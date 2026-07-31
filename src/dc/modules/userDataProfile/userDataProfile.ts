@@ -1,1 +1,1 @@
-wexport class UserDataProfileModule {}
+export class UserDataProfileModule {}

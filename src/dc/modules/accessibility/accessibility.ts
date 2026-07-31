@@ -1,1 +1,1 @@
-wexport class AccessibilityModule {}
+export class AccessibilityModule {}

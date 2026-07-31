@@ -1,1 +1,1 @@
-wexport class CommentsModule {}
+export class CommentsModule {}

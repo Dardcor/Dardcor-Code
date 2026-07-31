@@ -868,73 +868,73 @@ Desain warna default Dardcor Code :
 - [x] 781. welcomeOnboarding: onboarding lengkap
 - [x] 782. welcomeViews: welcome views lengkap
 - [x] 783. welcomeWalkthrough: walkthrough lengkap
-- [ ] 784. workspace: workspace lengkap
-- [ ] 785. workspaces: workspaces lengkap
+- [x] 784. workspace: workspace lengkap
+- [x] 785. workspaces: workspaces lengkap
 
 ### F2. modul debug (samakan persis VS Code asli)
 
-- [ ] 786. debug viewlet lengkap (sidebar dengan SESSION, BREAKPOINTS, CALL STACK, VARIABLES, WATCH) lengkap
-- [ ] 787. debug toolbar (continue, step over, step into, step out, restart, stop) lengkap
-- [ ] 788. breakpoints (set, remove, enable, disable, conditional, logpoints, hit count, exception) lengkap
-- [ ] 789. debug console lengkap
-- [ ] 790. launch.json (create, select, edit, configurations, compound, preLaunchTask, env) lengkap
-- [ ] 791. debug adapter protocol (DAP) client lengkap
-- [ ] 792. inline values, debug hover, watch expressions lengkap
-- [ ] 793. call stack (frames, threads, switch, restart frame) lengkap
-- [ ] 794. variables (scope, tree, set value, copy value) lengkap
-- [ ] 795. loaded scripts lengkap
-- [ ] 796. debug configuration UI (add configuration, select) lengkap
-- [ ] 797. exception breakpoints (all exceptions, uncaught) lengkap
-- [ ] 798. function breakpoints lengkap
-- [ ] 799. breakpoint decorations di editor lengkap
-- [ ] 800. debug statusbar (debug icon, session name, stop) lengkap
-- [ ] 801. attach to process lengkap
-- [ ] 802. auto attach lengkap
-- [ ] 803. debug find (debug console filter) lengkap
-- [ ] 804. debug repl lengkap
+- [x] 786. debug viewlet lengkap (sidebar dengan SESSION, BREAKPOINTS, CALL STACK, VARIABLES, WATCH) lengkap
+- [x] 787. debug toolbar (continue, step over, step into, step out, restart, stop) lengkap
+- [x] 788. breakpoints (set, remove, enable, disable, conditional, logpoints, hit count, exception) lengkap
+- [x] 789. debug console lengkap
+- [x] 790. launch.json (create, select, edit, configurations, compound, preLaunchTask, env) lengkap
+- [x] 791. debug adapter protocol (DAP) client lengkap
+- [x] 792. inline values, debug hover, watch expressions lengkap
+- [x] 793. call stack (frames, threads, switch, restart frame) lengkap
+- [x] 794. variables (scope, tree, set value, copy value) lengkap
+- [x] 795. loaded scripts lengkap
+- [x] 796. debug configuration UI (add configuration, select) lengkap
+- [x] 797. exception breakpoints (all exceptions, uncaught) lengkap
+- [x] 798. function breakpoints lengkap
+- [x] 799. breakpoint decorations di editor lengkap
+- [x] 800. debug statusbar (debug icon, session name, stop) lengkap
+- [x] 801. attach to process lengkap
+- [x] 802. auto attach lengkap
+- [x] 803. debug find (debug console filter) lengkap
+- [x] 804. debug repl lengkap
 
 ### F3. modul git + scm (samakan persis VS Code asli)
 
-- [ ] 805. source control viewlet lengkap (Changes, Staged Changes, Merge Changes) lengkap
-- [ ] 806. git init, clone, open repository lengkap
-- [ ] 807. stage, unstage, stage all, unstage all lengkap
-- [ ] 808. commit (commit box, commit staged, commit all, amend) lengkap
-- [ ] 809. push, pull, fetch, sync lengkap
-- [ ] 810. branch (create, switch, rename, delete, merge) lengkap
-- [ ] 811. checkout, discard changes, revert lengkap
-- [ ] 812. diff editor (open changes, staged changes, previous/next change) lengkap
-- [ ] 813. merge conflict (accept current, accept incoming, accept both, compare) lengkap
-- [ ] 814. stash (create, pop, drop, list) lengkap
-- [ ] 815. tags (create, delete, switch) lengkap
-- [ ] 816. submodules lengkap
-- [ ] 817. git output channel lengkap
-- [ ] 818. git blame, git log, timeline lengkap
-- [ ] 819. inline change decorations (git decorations di editor) lengkap
-- [ ] 820. SCM input box lengkap
-- [ ] 821. SCM resource groups lengkap
-- [ ] 822. SCM repository service lengkap
-- [ ] 823. sync indicator statusbar lengkap
-- [ ] 824. git ignore, git config actions lengkap
-- [ ] 825. remote management (add, remove, set URL) lengkap
-- [ ] 826. commit history lengkap
+- [x] 805. source control viewlet lengkap (Changes, Staged Changes, Merge Changes) lengkap
+- [x] 806. git init, clone, open repository lengkap
+- [x] 807. stage, unstage, stage all, unstage all lengkap
+- [x] 808. commit (commit box, commit staged, commit all, amend) lengkap
+- [x] 809. push, pull, fetch, sync lengkap
+- [x] 810. branch (create, switch, rename, delete, merge) lengkap
+- [x] 811. checkout, discard changes, revert lengkap
+- [x] 812. diff editor (open changes, staged changes, previous/next change) lengkap
+- [x] 813. merge conflict (accept current, accept incoming, accept both, compare) lengkap
+- [x] 814. stash (create, pop, drop, list) lengkap
+- [x] 815. tags (create, delete, switch) lengkap
+- [x] 816. submodules lengkap
+- [x] 817. git output channel lengkap
+- [x] 818. git blame, git log, timeline lengkap
+- [x] 819. inline change decorations (git decorations di editor) lengkap
+- [x] 820. SCM input box lengkap
+- [x] 821. SCM resource groups lengkap
+- [x] 822. SCM repository service lengkap
+- [x] 823. sync indicator statusbar lengkap
+- [x] 824. git ignore, git config actions lengkap
+- [x] 825. remote management (add, remove, set URL) lengkap
+- [x] 826. commit history lengkap
 
 ### F4. modul notebook (samakan persis VS Code asli)
 
-- [ ] 827. notebook editor lengkap (ipynb) lengkap
-- [ ] 828. code cells, markdown cells, raw cells lengkap
-- [ ] 829. run cell, run all, run above, run below, clear outputs lengkap
-- [ ] 830. cell toolbar (add cell above/below, delete, move up/down, stop) lengkap
-- [ ] 831. kernel selection lengkap
-- [ ] 832. notebook output rendering (text, html, image, error) lengkap
-- [ ] 833. cell folding lengkap
-- [ ] 834. cell execution status lengkap
-- [ ] 835. notebook find lengkap
-- [ ] 836. notebook outline lengkap
-- [ ] 837. notebook trust lengkap
-- [ ] 838. cell drag and drop lengkap
-- [ ] 839. insert cell lengkap
-- [ ] 840. variable explorer (notebook) lengkap
-- [ ] 841. interactive window lengkap
+- [x] 827. notebook editor lengkap (ipynb) lengkap
+- [x] 828. code cells, markdown cells, raw cells lengkap
+- [x] 829. run cell, run all, run above, run below, clear outputs lengkap
+- [x] 830. cell toolbar (add cell above/below, delete, move up/down, stop) lengkap
+- [x] 831. kernel selection lengkap
+- [x] 832. notebook output rendering (text, html, image, error) lengkap
+- [x] 833. cell folding lengkap
+- [x] 834. cell execution status lengkap
+- [x] 835. notebook find lengkap
+- [x] 836. notebook outline lengkap
+- [x] 837. notebook trust lengkap
+- [x] 838. cell drag and drop lengkap
+- [x] 839. insert cell lengkap
+- [x] 840. variable explorer (notebook) lengkap
+- [x] 841. interactive window lengkap
 
 ### F5. modul settings (samakan persis VS Code asli)
 
