@@ -1098,154 +1098,154 @@ Desain warna default Dardcor Code :
 - [x] 976. appState.ts asli lengkap
 - [x] 977. appWindow.ts asli lengkap
 - [x] 978. appCodeWindowsManager.ts asli lengkap
-- [ ] 979. appSingleInstanceService.ts asli lengkap
-- [ ] 980. appSharedProcess.ts asli lengkap
-- [ ] 981. appUtilityProcess.ts asli lengkap
-- [ ] 982. appExtensionHost.ts asli lengkap
-- [ ] 983. appExtensionHostStarter.ts asli lengkap
-- [ ] 984. appProtocolMain.ts asli lengkap
-- [ ] 985. appRequestService.ts asli lengkap
-- [ ] 986. appProxyService.ts asli lengkap
-- [ ] 987. appDownloadService.ts asli lengkap
-- [ ] 988. appEnvironmentService.ts asli lengkap
-- [ ] 989. appGlobalThis.ts asli lengkap
-- [ ] 990. appMenu.ts asli (SEMUA menu native: File, Edit, Selection, View, Go, Run, Terminal, Window, Help) lengkap
-- [ ] 991. appMenuBar.ts asli lengkap
-- [ ] 992. appMenus.ts asli lengkap
-- [ ] 993. appNativeDialogs.ts asli (open file, save file, folder picker) lengkap
-- [ ] 994. appNativeShortcuts.ts asli lengkap
-- [ ] 995. appWindowsUpdater.ts asli lengkap
-- [ ] 996. appGracePeriod.ts asli lengkap
-- [ ] 997. appProtocolUpdater.ts asli lengkap
-- [ ] 998. appLifecycleService.ts asli lengkap
-- [ ] 999. appProcessExplorer.ts asli lengkap
-- [ ] 1000. appTelemetryService.ts asli lengkap
-- [ ] 1001. appUserDataProfile.ts asli lengkap
-- [ ] 1002. appUserDataSync.ts asli lengkap
-- [ ] 1003. appUpdateService.ts asli lengkap
-- [ ] 1004. appUpdateResult.ts asli lengkap
-- [ ] 1005. appLogsService.ts asli lengkap
-- [ ] 1006. appNotificationService.ts asli lengkap
-- [ ] 1007. appOpenerService.ts asli lengkap
-- [ ] 1008. appQuickInputService.ts asli lengkap
-- [ ] 1009. appSecurity.ts asli lengkap
-- [ ] 1010. appShell.ts asli lengkap
-- [ ] 1011. appStorageService.ts asli lengkap
-- [ ] 1012. appTray.ts asli lengkap
-- [ ] 1013. appWindowService.ts asli lengkap
-- [ ] 1014. appWorkspacesService.ts asli lengkap
-- [ ] 1015. appExtensionHostManager.ts asli lengkap
-- [ ] 1016. appExtensionManagementService.ts asli lengkap
-- [ ] 1017. appExtensionScannerService.ts asli lengkap
-- [ ] 1018. appExtensionValidator.ts asli lengkap
-- [ ] 1019. appRemoteExtensionHost.ts asli lengkap
-- [ ] 1020. appRelauncher.ts asli lengkap
-- [ ] 1021. appSmokeTest.ts asli lengkap
-- [ ] 1022. appStateService.ts asli lengkap
-- [ ] 1023. appStorageDatabase.ts asli lengkap
-- [ ] 1024. appTaskService.ts asli lengkap
-- [ ] 1025. appTerminalService.ts asli lengkap
-- [ ] 1026. appTextFileService.ts asli lengkap
-- [ ] 1027. appTimerService.ts asli lengkap
-- [ ] 1028. appUndoRedoService.ts asli lengkap
-- [ ] 1029. appUriIdentityService.ts asli lengkap
-- [ ] 1030. appUserActivityService.ts asli lengkap
-- [ ] 1031. appWebviewService.ts asli lengkap
-- [ ] 1032. appWorkspaceService.ts asli lengkap
-- [ ] 1033. appFileSystemProvider.ts asli lengkap
-- [ ] 1034. appProtocolHandler.ts asli lengkap
-- [ ] 1035. appDevTools.ts asli lengkap
-- [ ] 1036. appKeyboardLayoutService.ts asli lengkap
-- [ ] 1037. appKeybindingService.ts asli lengkap
-- [ ] 1038. appTitleService.ts asli lengkap
-- [ ] 1039. appWindowCore.ts asli lengkap
-- [ ] 1040. appWindowNative.ts asli lengkap
-- [ ] 1041. appWindowBrowser.ts asli lengkap
+- [x] 979. appSingleInstanceService.ts asli lengkap
+- [x] 980. appSharedProcess.ts asli lengkap
+- [x] 981. appUtilityProcess.ts asli lengkap
+- [x] 982. appExtensionHost.ts asli lengkap
+- [x] 983. appExtensionHostStarter.ts asli lengkap
+- [x] 984. appProtocolMain.ts asli lengkap
+- [x] 985. appRequestService.ts asli lengkap
+- [x] 986. appProxyService.ts asli lengkap
+- [x] 987. appDownloadService.ts asli lengkap
+- [x] 988. appEnvironmentService.ts asli lengkap
+- [x] 989. appGlobalThis.ts asli lengkap
+- [x] 990. appMenu.ts asli (SEMUA menu native: File, Edit, Selection, View, Go, Run, Terminal, Window, Help) lengkap
+- [x] 991. appMenuBar.ts asli lengkap
+- [x] 992. appMenus.ts asli lengkap
+- [x] 993. appNativeDialogs.ts asli (open file, save file, folder picker) lengkap
+- [x] 994. appNativeShortcuts.ts asli lengkap
+- [x] 995. appWindowsUpdater.ts asli lengkap
+- [x] 996. appGracePeriod.ts asli lengkap
+- [x] 997. appProtocolUpdater.ts asli lengkap
+- [x] 998. appLifecycleService.ts asli lengkap
+- [x] 999. appProcessExplorer.ts asli lengkap
+- [x] 1000. appTelemetryService.ts asli lengkap
+- [x] 1001. appUserDataProfile.ts asli lengkap
+- [x] 1002. appUserDataSync.ts asli lengkap
+- [x] 1003. appUpdateService.ts asli lengkap
+- [x] 1004. appUpdateResult.ts asli lengkap
+- [x] 1005. appLogsService.ts asli lengkap
+- [x] 1006. appNotificationService.ts asli lengkap
+- [x] 1007. appOpenerService.ts asli lengkap
+- [x] 1008. appQuickInputService.ts asli lengkap
+- [x] 1009. appSecurity.ts asli lengkap
+- [x] 1010. appShell.ts asli lengkap
+- [x] 1011. appStorageService.ts asli lengkap
+- [x] 1012. appTray.ts asli lengkap
+- [x] 1013. appWindowService.ts asli lengkap
+- [x] 1014. appWorkspacesService.ts asli lengkap
+- [x] 1015. appExtensionHostManager.ts asli lengkap
+- [x] 1016. appExtensionManagementService.ts asli lengkap
+- [x] 1017. appExtensionScannerService.ts asli lengkap
+- [x] 1018. appExtensionValidator.ts asli lengkap
+- [x] 1019. appRemoteExtensionHost.ts asli lengkap
+- [x] 1020. appRelauncher.ts asli lengkap
+- [x] 1021. appSmokeTest.ts asli lengkap
+- [x] 1022. appStateService.ts asli lengkap
+- [x] 1023. appStorageDatabase.ts asli lengkap
+- [x] 1024. appTaskService.ts asli lengkap
+- [x] 1025. appTerminalService.ts asli lengkap
+- [x] 1026. appTextFileService.ts asli lengkap
+- [x] 1027. appTimerService.ts asli lengkap
+- [x] 1028. appUndoRedoService.ts asli lengkap
+- [x] 1029. appUriIdentityService.ts asli lengkap
+- [x] 1030. appUserActivityService.ts asli lengkap
+- [x] 1031. appWebviewService.ts asli lengkap
+- [x] 1032. appWorkspaceService.ts asli lengkap
+- [x] 1033. appFileSystemProvider.ts asli lengkap
+- [x] 1034. appProtocolHandler.ts asli lengkap
+- [x] 1035. appDevTools.ts asli lengkap
+- [x] 1036. appKeyboardLayoutService.ts asli lengkap
+- [x] 1037. appKeybindingService.ts asli lengkap
+- [x] 1038. appTitleService.ts asli lengkap
+- [x] 1039. appWindowCore.ts asli lengkap
+- [x] 1040. appWindowNative.ts asli lengkap
+- [x] 1041. appWindowBrowser.ts asli lengkap
 
 ### G2. electron-browser + electron-utility
 
-- [ ] 1042. code/electron-browser/sharedProcess/sharedProcessMain.ts asli lengkap
-- [ ] 1043. code/electron-browser/sharedProcess/sharedProcessWorker.ts asli lengkap
-- [ ] 1044. code/electron-browser/sharedProcess/sharedProcessCli.ts asli lengkap
-- [ ] 1045. code/electron-utility/sharedProcess/sharedProcessMain.ts asli lengkap
-- [ ] 1046. code/electron-utility/processExplorer/processExplorerMain.ts asli lengkap
-- [ ] 1047. code/electron-utility/issue/issueMain.ts asli lengkap
-- [ ] 1048. code/electron-utility/issue/issueReporter.ts asli lengkap
-- [ ] 1049. code/electron-utility/issue/issueReporterMain.ts asli lengkap
-- [ ] 1050. code/electron-utility/update/updateMain.ts asli lengkap
-- [ ] 1051. code/electron-utility/update/updateService.ts asli lengkap
-- [ ] 1052. code/electron-utility/extensions/extensionsMain.ts asli lengkap
-- [ ] 1053. code/electron-utility/extensions/extensionsScanner.ts asli lengkap
-- [ ] 1054. code/electron-utility/extensions/extensionsValidator.ts asli lengkap
-- [ ] 1055. code/electron-utility/extensions/extensionsWatcher.ts asli lengkap
-- [ ] 1056. code/electron-utility/extensions/extensionsDownloader.ts asli lengkap
-- [ ] 1057. code/electron-utility/extensions/extensionsInstaller.ts asli lengkap
-- [ ] 1058. code/electron-utility/extensions/extensionsUninstaller.ts asli lengkap
-- [ ] 1059. code/electron-utility/extensions/extensionsRepair.ts asli lengkap
-- [ ] 1060. code/electron-utility/extensions/extensionsCleanup.ts asli lengkap
-- [ ] 1061. code/electron-utility/extensions/extensionsInit.ts asli lengkap
-- [ ] 1062. code/electron-utility/extensions/extensionsMigration.ts asli lengkap
-- [ ] 1063. code/electron-utility/extensions/extensionsMetadata.ts asli lengkap
-- [ ] 1064. code/electron-utility/extensions/extensionsStorage.ts asli lengkap
-- [ ] 1065. code/electron-utility/ptyHost/ptyHostMain.ts asli lengkap
-- [ ] 1066. code/electron-utility/ptyHost/ptyService.ts asli lengkap
-- [ ] 1067. code/electron-utility/ptyHost/ptyProcess.ts asli lengkap
-- [ ] 1068. code/electron-utility/ptyHost/ptyHostClient.ts asli lengkap
-- [ ] 1069. code/electron-utility/ptyHost/ptyHostServer.ts asli lengkap
-- [ ] 1070. code/electron-utility/ptyHost/ptyHostWindow.ts asli lengkap
-- [ ] 1071. code/electron-utility/ptyHost/ptyLogger.ts asli lengkap
-- [ ] 1072. code/electron-utility/ptyHost/ptyLifecycle.ts asli lengkap
-- [ ] 1073. code/electron-utility/ptyHost/ptyShutdown.ts asli lengkap
-- [ ] 1074. code/electron-utility/ptyHost/ptyWindows.ts asli lengkap
-- [ ] 1075. code/electron-utility/ptyHost/ptyMac.ts asli lengkap
-- [ ] 1076. code/electron-utility/ptyHost/ptyLinux.ts asli lengkap
-- [ ] 1077. code/electron-utility/ptyHost/ptyAgent.ts asli lengkap
-- [ ] 1078. code/electron-utility/ptyHost/ptyIntegration.ts asli lengkap
+- [x] 1042. code/electron-browser/sharedProcess/sharedProcessMain.ts asli lengkap
+- [x] 1043. code/electron-browser/sharedProcess/sharedProcessWorker.ts asli lengkap
+- [x] 1044. code/electron-browser/sharedProcess/sharedProcessCli.ts asli lengkap
+- [x] 1045. code/electron-utility/sharedProcess/sharedProcessMain.ts asli lengkap
+- [x] 1046. code/electron-utility/processExplorer/processExplorerMain.ts asli lengkap
+- [x] 1047. code/electron-utility/issue/issueMain.ts asli lengkap
+- [x] 1048. code/electron-utility/issue/issueReporter.ts asli lengkap
+- [x] 1049. code/electron-utility/issue/issueReporterMain.ts asli lengkap
+- [x] 1050. code/electron-utility/update/updateMain.ts asli lengkap
+- [x] 1051. code/electron-utility/update/updateService.ts asli lengkap
+- [x] 1052. code/electron-utility/extensions/extensionsMain.ts asli lengkap
+- [x] 1053. code/electron-utility/extensions/extensionsScanner.ts asli lengkap
+- [x] 1054. code/electron-utility/extensions/extensionsValidator.ts asli lengkap
+- [x] 1055. code/electron-utility/extensions/extensionsWatcher.ts asli lengkap
+- [x] 1056. code/electron-utility/extensions/extensionsDownloader.ts asli lengkap
+- [x] 1057. code/electron-utility/extensions/extensionsInstaller.ts asli lengkap
+- [x] 1058. code/electron-utility/extensions/extensionsUninstaller.ts asli lengkap
+- [x] 1059. code/electron-utility/extensions/extensionsRepair.ts asli lengkap
+- [x] 1060. code/electron-utility/extensions/extensionsCleanup.ts asli lengkap
+- [x] 1061. code/electron-utility/extensions/extensionsInit.ts asli lengkap
+- [x] 1062. code/electron-utility/extensions/extensionsMigration.ts asli lengkap
+- [x] 1063. code/electron-utility/extensions/extensionsMetadata.ts asli lengkap
+- [x] 1064. code/electron-utility/extensions/extensionsStorage.ts asli lengkap
+- [x] 1065. code/electron-utility/ptyHost/ptyHostMain.ts asli lengkap
+- [x] 1066. code/electron-utility/ptyHost/ptyService.ts asli lengkap
+- [x] 1067. code/electron-utility/ptyHost/ptyProcess.ts asli lengkap
+- [x] 1068. code/electron-utility/ptyHost/ptyHostClient.ts asli lengkap
+- [x] 1069. code/electron-utility/ptyHost/ptyHostServer.ts asli lengkap
+- [x] 1070. code/electron-utility/ptyHost/ptyHostWindow.ts asli lengkap
+- [x] 1071. code/electron-utility/ptyHost/ptyLogger.ts asli lengkap
+- [x] 1072. code/electron-utility/ptyHost/ptyLifecycle.ts asli lengkap
+- [x] 1073. code/electron-utility/ptyHost/ptyShutdown.ts asli lengkap
+- [x] 1074. code/electron-utility/ptyHost/ptyWindows.ts asli lengkap
+- [x] 1075. code/electron-utility/ptyHost/ptyMac.ts asli lengkap
+- [x] 1076. code/electron-utility/ptyHost/ptyLinux.ts asli lengkap
+- [x] 1077. code/electron-utility/ptyHost/ptyAgent.ts asli lengkap
+- [x] 1078. code/electron-utility/ptyHost/ptyIntegration.ts asli lengkap
 
 ### G3. browser + common + node
 
-- [ ] 1079. code/browser/workbench/workbench.ts asli (browser entry) lengkap
-- [ ] 1080. code/browser/workbench/workbench.html asli lengkap
-- [ ] 1081. code/browser/workbench/workbench.js asli lengkap
-- [ ] 1082. code/browser/workbench/workbench.css asli lengkap
-- [ ] 1083. code/browser/workbench/workbench-dev.html asli lengkap
-- [ ] 1084. code/browser/workbench/workbench-dev.js asli lengkap
-- [ ] 1085. code/browser/workbench/workbench-dev.css asli lengkap
-- [ ] 1086. code/browser/workbench/dompurifyInit.ts asli lengkap
-- [ ] 1087. code/browser/workbench/l10nInit.ts asli lengkap
-- [ ] 1088. code/browser/workbench/renderer.ts asli lengkap
-- [ ] 1089. code/browser/workbench/auxiliaryWindow.ts asli lengkap
-- [ ] 1090. code/browser/workbench/sidebar.ts asli lengkap
-- [ ] 1091. code/browser/workbench/panel.ts asli lengkap
-- [ ] 1092. code/browser/workbench/auxiliaryBar.ts asli lengkap
-- [ ] 1093. code/browser/workbench/statusbar.ts asli lengkap
-- [ ] 1094. code/browser/workbench/activitybar.ts asli lengkap
-- [ ] 1095. code/browser/workbench/titlebar.ts asli lengkap
-- [ ] 1096. code/browser/workbench/editor.ts asli lengkap
-- [ ] 1097. code/common/process.ts asli lengkap
-- [ ] 1098. code/common/sharedProcess.ts asli lengkap
-- [ ] 1099. code/node/cli.ts asli (command line interface lengkap) lengkap
-- [ ] 1100. code/node/cliProcessMain.ts asli lengkap
-- [ ] 1101. code/node/cliProcessUtils.ts asli lengkap
-- [ ] 1102. code/node/cliProcessService.ts asli lengkap
-- [ ] 1103. code/node/cliProcessTransport.ts asli lengkap
-- [ ] 1104. code/node/cliProcessStats.ts asli lengkap
-- [ ] 1105. code/node/cliProcessEnvironment.ts asli lengkap
-- [ ] 1106. code/node/cliProcessLogs.ts asli lengkap
-- [ ] 1107. code/node/cliProcessState.ts asli lengkap
-- [ ] 1108. code/node/cliProcessWindows.ts asli lengkap
-- [ ] 1109. code/node/cliProcessMac.ts asli lengkap
-- [ ] 1110. code/node/cliProcessLinux.ts asli lengkap
-- [ ] 1111. code/node/argv.ts asli (parseArgs lengkap semua argumen: -n, -r, -g, -d, --new-window, --reuse-window, --folder-uri, --file-uri, --install-extension, --uninstall-extension, --list-extensions, --show-versions, --status, --locate-extension, --disable-extension, --disable-extensions, --sync, --add, --remove, --goto, --diff, --wait, --locale, --user-data-dir, --profile, --extensions-dir, --verbose, --log, --telemetry, --tunnel, --port, --host, --accept-server-license-terms, --help, --version, dll) lengkap
-- [ ] 1112. code/node/launcher.ts asli lengkap
-- [ ] 1113. code/node/stdin.ts asli lengkap
-- [ ] 1114. code/node/performance.ts asli lengkap
-- [ ] 1115. code/node/log.ts asli lengkap
-- [ ] 1116. code/node/errorHandler.ts asli lengkap
-- [ ] 1117. code/node/processExplorer.ts asli lengkap
-- [ ] 1118. code/node/sharedProcess.ts asli lengkap
-- [ ] 1119. code/node/codeProcessMain.ts asli lengkap
-- [ ] 1120. code/node/codeProcessUtils.ts asli lengkap
+- [x] 1079. code/browser/workbench/workbench.ts asli (browser entry) lengkap
+- [x] 1080. code/browser/workbench/workbench.html asli lengkap
+- [x] 1081. code/browser/workbench/workbench.js asli lengkap
+- [x] 1082. code/browser/workbench/workbench.css asli lengkap
+- [x] 1083. code/browser/workbench/workbench-dev.html asli lengkap
+- [x] 1084. code/browser/workbench/workbench-dev.js asli lengkap
+- [x] 1085. code/browser/workbench/workbench-dev.css asli lengkap
+- [x] 1086. code/browser/workbench/dompurifyInit.ts asli lengkap
+- [x] 1087. code/browser/workbench/l10nInit.ts asli lengkap
+- [x] 1088. code/browser/workbench/renderer.ts asli lengkap
+- [x] 1089. code/browser/workbench/auxiliaryWindow.ts asli lengkap
+- [x] 1090. code/browser/workbench/sidebar.ts asli lengkap
+- [x] 1091. code/browser/workbench/panel.ts asli lengkap
+- [x] 1092. code/browser/workbench/auxiliaryBar.ts asli lengkap
+- [x] 1093. code/browser/workbench/statusbar.ts asli lengkap
+- [x] 1094. code/browser/workbench/activitybar.ts asli lengkap
+- [x] 1095. code/browser/workbench/titlebar.ts asli lengkap
+- [x] 1096. code/browser/workbench/editor.ts asli lengkap
+- [x] 1097. code/common/process.ts asli lengkap
+- [x] 1098. code/common/sharedProcess.ts asli lengkap
+- [x] 1099. code/node/cli.ts asli (command line interface lengkap) lengkap
+- [x] 1100. code/node/cliProcessMain.ts asli lengkap
+- [x] 1101. code/node/cliProcessUtils.ts asli lengkap
+- [x] 1102. code/node/cliProcessService.ts asli lengkap
+- [x] 1103. code/node/cliProcessTransport.ts asli lengkap
+- [x] 1104. code/node/cliProcessStats.ts asli lengkap
+- [x] 1105. code/node/cliProcessEnvironment.ts asli lengkap
+- [x] 1106. code/node/cliProcessLogs.ts asli lengkap
+- [x] 1107. code/node/cliProcessState.ts asli lengkap
+- [x] 1108. code/node/cliProcessWindows.ts asli lengkap
+- [x] 1109. code/node/cliProcessMac.ts asli lengkap
+- [x] 1110. code/node/cliProcessLinux.ts asli lengkap
+- [x] 1111. code/node/argv.ts asli (parseArgs lengkap semua argumen: -n, -r, -g, -d, --new-window, --reuse-window, --folder-uri, --file-uri, --install-extension, --uninstall-extension, --list-extensions, --show-versions, --status, --locate-extension, --disable-extension, --disable-extensions, --sync, --add, --remove, --goto, --diff, --wait, --locale, --user-data-dir, --profile, --extensions-dir, --verbose, --log, --telemetry, --tunnel, --port, --host, --accept-server-license-terms, --help, --version, dll) lengkap
+- [x] 1112. code/node/launcher.ts asli lengkap
+- [x] 1113. code/node/stdin.ts asli lengkap
+- [x] 1114. code/node/performance.ts asli lengkap
+- [x] 1115. code/node/log.ts asli lengkap
+- [x] 1116. code/node/errorHandler.ts asli lengkap
+- [x] 1117. code/node/processExplorer.ts asli lengkap
+- [x] 1118. code/node/sharedProcess.ts asli lengkap
+- [x] 1119. code/node/codeProcessMain.ts asli lengkap
+- [x] 1120. code/node/codeProcessUtils.ts asli lengkap
 - [ ] 1121. code/node/codeProcessService.ts asli lengkap
 - [ ] 1122. code/node/codeProcessTransport.ts asli lengkap
 - [ ] 1123. code/node/codeProcessStats.ts asli lengkap
