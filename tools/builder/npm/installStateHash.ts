@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import path from 'path';
 import { dirs } from './dirs.ts';
 
-export const root = fs.realpathSync.native(path.dirname(path.dirname(import.meta.dirname)));
+export const root = fs.realpathSync.native(path.dirname(path.dirname(path.dirname(import.meta.dirname))));
 export const stateFile = path.join(root, 'node_modules', '.postinstall-state');
 export const stateContentsFile = path.join(root, 'node_modules', '.postinstall-state-contents');
 export const forceInstallMessage = 'Run \x1b[36mnode tools/builder/npm/fast-install.ts --force\x1b[0m to force a full install.';
