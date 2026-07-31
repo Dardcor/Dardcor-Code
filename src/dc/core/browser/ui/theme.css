@@ -1,0 +1,19 @@
+/* Dardcor Theme CSS */
+body, .monaco-workbench {
+    background-color: #000000 !important;
+    border-color: #4A148C !important;
+}
+.monaco-action-bar, .monaco-button, .monaco-checkbox, .monaco-dialog, .monaco-dropdown, .monaco-findinput, .monaco-grid, .monaco-hover, .monaco-inputbox, .monaco-list, .monaco-menu, .monaco-progress, .monaco-radio, .monaco-sash, .monaco-scrollable, .monaco-select-box, .monaco-split-view2, .monaco-table, .monaco-tabs, .monaco-tree, .monaco-widget {
+    background-color: #000000 !important;
+    border: 1px solid #4A148C !important;
+}
+.monaco-list-row.focused {
+    background-color: #3B0A5E !important;
+}
+.monaco-list-row:hover {
+    background-color: #6A1B9A !important;
+}
+.monaco-button {
+    background-color: #7C4DFF !important;
+    color: #ffffff !important;
+}

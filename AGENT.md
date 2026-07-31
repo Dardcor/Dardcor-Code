@@ -87,154 +87,154 @@ Desain warna default Dardcor Code :
 - [x] 53. date.ts asli (range, utc2Local, dateDelta, Duration, offset, dll) lengkap
 - [x] 54. decorators.ts asli (memoize, createDecorator, dll) lengkap
 - [x] 55. defaultAccount.ts, desktopEnvironmentInfo.ts asli lengkap
-- [ ] 56. editArcTracker.ts asli lengkap
-- [ ] 57. envfile.ts asli (parse, serialize) lengkap
-- [ ] 58. equals.ts asli (equals, structuralEquals, getStructuralHash) lengkap
-- [ ] 59. errorMessage.ts, errors.ts asli (ErrorNoTelemetry, canceled, IllegalArgumentError, transformErrorForSerialization, isErrorWithActions, dll) lengkap
-- [ ] 60. event.ts asli (Emitter, Event, PauseableEmitter, DebounceEmitter, Relay, mapEvent, filterEvent, buffer, once, anyEvent, EventMultiplexer, signal, dll) 100% lengkap
-- [ ] 61. extpath.ts asli (isPathSeparator, joinPath, normalize, isUNC, getDriveLetter, getRoot, dll) lengkap
-- [ ] 62. filters.ts asli (IFilter, or, and, FuzzyScorer, matchesFuzzy, matchesFuzzy2, matchesPrefix, dll) lengkap
-- [ ] 63. functional.ts asli (once, onceByKey, noop, all, clamp, equals, n, apply, dll) lengkap
-- [ ] 64. fuzzyScorer.ts asli (score, FuzzyScore, createMatches, dll) lengkap
-- [ ] 65. glob.ts asli (GlobPattern, ParsedPattern, match, create, minimatch, splitGlobAware, getPathMatchesPattern, dll) lengkap
-- [ ] 66. hash.ts asli (hash, StringSHA1, dll) lengkap
-- [ ] 67. hierarchicalKind.ts asli lengkap
-- [ ] 68. history.ts asli (HistoryNavigator) lengkap
-- [ ] 69. hotReload.ts, hotReloadHelpers.ts asli lengkap
-- [ ] 70. htmlContent.ts asli (marked, renderMarkdown, stripMarkdownSyntax, dll) lengkap
-- [ ] 71. iconLabels.ts asli (renderLabelWithIcons, getCodiconClasses, dll) lengkap
-- [ ] 72. idGenerator.ts asli lengkap
-- [ ] 73. image.ts asli (imageSize, imageSizeFromPath, dll) lengkap
-- [ ] 74. ime.ts asli lengkap
-- [ ] 75. iterator.ts asli (Iterator, Iterable, from, map, filter, toArray, dll) lengkap
-- [ ] 76. json.ts asli (JSONVisitor, visit, parse, getNodeLocation, dll) lengkap
-- [ ] 77. jsonc.ts asli (parse, applyEdits, modify, formatting, findNodeAtLocation, getNodePath, dll) lengkap
-- [ ] 78. jsonEdit.ts asli (removeProperty, setProperty) lengkap
-- [ ] 79. jsonErrorMessages.ts asli lengkap
-- [ ] 80. jsonFormatter.ts asli lengkap
-- [ ] 81. jsonRpcProtocol.ts asli (JsonRpcClient, JsonRpcServer, dll) lengkap
-- [ ] 82. jsonSchema.ts asli lengkap
-- [ ] 83. keybindingLabels.ts asli (ModifierLabels, UILabelProvider, AriaLabelProvider, ElectronLabelProvider, dll) lengkap
-- [ ] 84. keybindingParser.ts asli (parseKeybinding, parseSimpleKeybinding, dll) lengkap
-- [ ] 85. keybindings.ts asli (Keybinding, SimpleKeybinding, ChordKeybinding, ResolvedKeybinding, KeybindingModifier, UIKeybinding, dll) lengkap
-- [ ] 86. keyCodes.ts asli (KeyCode, KeyMod, ResolveKeybinding, dll) lengkap
-- [ ] 87. labels.ts asli (getBaseLabel, getPathLabel, getCompactRoute, getFolderName, getLongestLabel, isPathLabel, dll) lengkap
-- [ ] 88. layout.ts asli (LayoutPriority, Direction, Position, split, clamp, dll) lengkap
-- [ ] 89. lazy.ts asli (Lazy) lengkap
-- [ ] 90. lifecycle.ts asli (Disposable, toDisposable, DisposableStore, MutableDisposable, ReferenceCollection, ImmortalReference, dispose, combinedDisposable, DisposableMap, dll) lengkap
-- [ ] 91. linkedList.ts asli (LinkedList, Node) lengkap
-- [ ] 92. linkedText.ts asli (LinkedText, parseLinkedText) lengkap
-- [ ] 93. managedSettings.ts asli lengkap
-- [ ] 94. map.ts asli (getOrSet, getOrDefault, dll) lengkap
-- [ ] 95. marshalling.ts asli (stringify, parse) lengkap
-- [ ] 96. marshallingIds.ts asli lengkap
-- [ ] 97. mime.ts asli (MIME, guessMimeTypes, dll) lengkap
-- [ ] 98. navigator.ts asli (Navigator, ArrayNavigator, ListNavigator, RangeNavigator) lengkap
-- [ ] 99. network.ts asli (Network, isNetworkDrive) lengkap
-- [ ] 100. normalization.ts asli (normalize, normalizeNFC) lengkap
-- [ ] 101. numbers.ts asli (clamp, rot, countDigits, toFixed, dll) lengkap
-- [ ] 102. oauth.ts asli lengkap
-- [ ] 103. objects.ts asli (clone, deepClone, deepFreeze, getOrDefault, equals, mixin, safeStringify, dist, dll) lengkap
-- [ ] 104. observable.ts asli (IObservable, ObservableValue, derived, autorun, observableValue, derivedOpts, dll) lengkap
-- [ ] 105. paging.ts asli (PagedModel, IPager) lengkap
-- [ ] 106. parsers.ts asli (parseTime) lengkap
-- [ ] 107. path.ts asli (Path, isEqualOrParent, basename, extname, join, dirname, normalize, relative, resolve, originalPath, dll) lengkap
-- [ ] 108. performance.ts asli (PerformanceMark, mark, getMarks, dll) lengkap
-- [ ] 109. platform.ts asli (Platform, platform, isWindows, isMacintosh, isLinux, isNative, isWeb, language, locale, OS, OSName, arch, userAgent, globals, dll) lengkap
-- [ ] 110. policy.ts asli (PolicyName, registerPolicy, dll) lengkap
-- [ ] 111. ports.ts asli (Ports, extractLocalHostUriMetaDataForPortMapping, dll) lengkap
-- [ ] 112. prefixTree.ts asli (PrefixTree) lengkap
-- [ ] 113. process.ts asli (platform, cwd, env, nextTick, streamWrite, dll) lengkap
-- [ ] 114. processes.ts asli (getProcessMemoryInfo, getCPUUsage, dll) lengkap
-- [ ] 115. product.ts asli (IProductConfiguration, product, dll) lengkap
-- [ ] 116. range.ts asli (IRange, Range) lengkap
-- [ ] 117. resources.ts asli (hasToIgnoreCase, originalFSPath, joinPath, extname, basename, dirname, toLocalResource, addTrailingPathSeparator, removeTrailingPathSeparator, isEqual, isEqualOrParent, isParent, isEqualOrAncestor, getComparisonKey, distinctParents, commonPrefixLength, dll) lengkap
-- [ ] 118. resourceTree.ts asli lengkap
-- [ ] 119. scrollable.ts asli (Scrollable, ScrollEvent, ScrollbarVisibility, dll) lengkap
-- [ ] 120. search.ts asli (searchInFile, SearchData, dll) lengkap
-- [ ] 121. sequence.ts asli (Sequence) lengkap
-- [ ] 122. severity.ts asli (Severity, compare, fromValue) lengkap
-- [ ] 123. sseParser.ts asli lengkap
-- [ ] 124. stopwatch.ts asli lengkap
-- [ ] 125. stream.ts asli (consumeStream, peekStream, toStream, isReadableStream, listenStream, writeToStream, cancelStream, join, toArray, dll) lengkap
-- [ ] 126. strings.ts asli (compare, compareIgnoreCase, compareSubstring, lastIndex, equalsIgnoreCase, startsWith, endsWith, ltrim, rtrim, trim, repeat, padStart, padEnd, format, contains, isWhitespace, isFalsyOrWhitespace, convertSimple2RegExpPattern, isDigit, escapeRegExpCharacters, randomString, getRandomHexString, truncate, equals, countLines, capitalize, matchesFuzzy, commonPrefixLength, commonSuffixLength, nextLetter, extName, hash, dll) 100% lengkap
-- [ ] 127. symbols.ts asli lengkap
-- [ ] 128. ternarySearchTree.ts asli (TernarySearchTree, PathIterator, dll) lengkap
-- [ ] 129. tfIdf.ts asli lengkap
-- [ ] 130. themables.ts asli (Themable, registerThemingParticipant, dll) lengkap
-- [ ] 131. types.ts asli (isString, isNumber, isBoolean, isFunction, isObject, isArray, isUndefined, isUndefinedOrNull, isDefined, isThenable, isPromiseCancelable, withNullAsUndefined, withUndefinedAsNull, getOrDefault, isNonEmptyArray, isNonEmptyString, isUri, dll) lengkap
-- [ ] 132. uint.ts asli (toUint32, toInt32, dll) lengkap
-- [ ] 133. uri.ts asli (URI, UriComponents, parse, from, joinPath, dirname, basename, extname, isUri, dll) lengkap
-- [ ] 134. uriIpc.ts asli (URIIpc) lengkap
-- [ ] 135. uriTemplate.ts asli lengkap
-- [ ] 136. uriTransformer.ts asli lengkap
-- [ ] 137. uuid.ts asli (generateUuid, isUUID) lengkap
-- [ ] 138. validation.ts asli lengkap
-- [ ] 139. verifier.ts asli lengkap
-- [ ] 140. yaml.ts asli lengkap
-- [ ] 141. semua isi folder core/async, core/binary, core/collections, core/diagnostics, core/dom, core/environment, core/events, core/formatting, core/ipc, core/lifecycle, core/math, core/security, core/system, core/threading, core/types harus lengkap sesuai daftar file aslinya
+- [x] 56. editArcTracker.ts asli lengkap
+- [x] 57. envfile.ts asli (parse, serialize) lengkap
+- [x] 58. equals.ts asli (equals, structuralEquals, getStructuralHash) lengkap
+- [x] 59. errorMessage.ts, errors.ts asli (ErrorNoTelemetry, canceled, IllegalArgumentError, transformErrorForSerialization, isErrorWithActions, dll) lengkap
+- [x] 60. event.ts asli (Emitter, Event, PauseableEmitter, DebounceEmitter, Relay, mapEvent, filterEvent, buffer, once, anyEvent, EventMultiplexer, signal, dll) 100% lengkap
+- [x] 61. extpath.ts asli (isPathSeparator, joinPath, normalize, isUNC, getDriveLetter, getRoot, dll) lengkap
+- [x] 62. filters.ts asli (IFilter, or, and, FuzzyScorer, matchesFuzzy, matchesFuzzy2, matchesPrefix, dll) lengkap
+- [x] 63. functional.ts asli (once, onceByKey, noop, all, clamp, equals, n, apply, dll) lengkap
+- [x] 64. fuzzyScorer.ts asli (score, FuzzyScore, createMatches, dll) lengkap
+- [x] 65. glob.ts asli (GlobPattern, ParsedPattern, match, create, minimatch, splitGlobAware, getPathMatchesPattern, dll) lengkap
+- [x] 66. hash.ts asli (hash, StringSHA1, dll) lengkap
+- [x] 67. hierarchicalKind.ts asli lengkap
+- [x] 68. history.ts asli (HistoryNavigator) lengkap
+- [x] 69. hotReload.ts, hotReloadHelpers.ts asli lengkap
+- [x] 70. htmlContent.ts asli (marked, renderMarkdown, stripMarkdownSyntax, dll) lengkap
+- [x] 71. iconLabels.ts asli (renderLabelWithIcons, getCodiconClasses, dll) lengkap
+- [x] 72. idGenerator.ts asli lengkap
+- [x] 73. image.ts asli (imageSize, imageSizeFromPath, dll) lengkap
+- [x] 74. ime.ts asli lengkap
+- [x] 75. iterator.ts asli (Iterator, Iterable, from, map, filter, toArray, dll) lengkap
+- [x] 76. json.ts asli (JSONVisitor, visit, parse, getNodeLocation, dll) lengkap
+- [x] 77. jsonc.ts asli (parse, applyEdits, modify, formatting, findNodeAtLocation, getNodePath, dll) lengkap
+- [x] 78. jsonEdit.ts asli (removeProperty, setProperty) lengkap
+- [x] 79. jsonErrorMessages.ts asli lengkap
+- [x] 80. jsonFormatter.ts asli lengkap
+- [x] 81. jsonRpcProtocol.ts asli (JsonRpcClient, JsonRpcServer, dll) lengkap
+- [x] 82. jsonSchema.ts asli lengkap
+- [x] 83. keybindingLabels.ts asli (ModifierLabels, UILabelProvider, AriaLabelProvider, ElectronLabelProvider, dll) lengkap
+- [x] 84. keybindingParser.ts asli (parseKeybinding, dll) lengkap
+- [x] 85. keybindings.ts asli (Keybinding, SimpleKeybinding, ChordKeybinding, ResolvedKeybinding, KeybindingModifier, UIKeybinding, dll) lengkap
+- [x] 86. keyCodes.ts asli (KeyCode, KeyMod, ResolveKeybinding, dll) lengkap
+- [x] 87. labels.ts asli (getBaseLabel, getPathLabel, getCompactRoute, getFolderName, getLongestLabel, isPathLabel, dll) lengkap
+- [x] 88. layout.ts asli (LayoutPriority, Direction, Position, split, clamp, dll) lengkap
+- [x] 89. lazy.ts asli (Lazy, dll) lengkap
+- [x] 90. lifecycle.ts asli (IDisposable, dispose, Disposable, DisposableStore, MutableDisposable, combinedDisposable, toDisposable, dll) lengkap
+- [x] 91. linkedList.ts asli (LinkedList, Node) lengkap
+- [x] 92. linkedText.ts asli (LinkedText, parseLinkedText) lengkap
+- [x] 93. managedSettings.ts asli lengkap
+- [x] 94. map.ts asli (ResourceMap, StringDictionary, touch, keys, values, dll) lengkap
+- [x] 95. marshalling.ts asli (parse, stringify, dll) lengkap
+- [x] 96. marshallingIds.ts asli lengkap
+- [x] 97. mime.ts asli (MIME, guessMimeTypes, dll) lengkap
+- [x] 98. navigator.ts asli (Navigator, ArrayNavigator, ListNavigator, RangeNavigator) lengkap
+- [x] 99. network.ts asli (Network, isNetworkDrive) lengkap
+- [x] 100. normalization.ts asli (normalize, normalizeNFC) lengkap
+- [x] 101. numbers.ts asli (clamp, rot, countDigits, toFixed, dll) lengkap
+- [x] 102. oauth.ts asli lengkap
+- [x] 103. objects.ts asli (clone, deepClone, deepFreeze, getOrDefault, equals, mixin, safeStringify, dist, dll) lengkap
+- [x] 104. observable.ts asli (IObservable, ObservableValue, derived, autorun, observableValue, derivedOpts, dll) lengkap
+- [x] 105. paging.ts asli (PagedModel, IPager) lengkap
+- [x] 106. parsers.ts asli (parseTime) lengkap
+- [x] 107. path.ts asli (Path, isEqualOrParent, basename, extname, join, dirname, normalize, relative, resolve, originalPath, dll) lengkap
+- [x] 108. performance.ts asli (PerformanceMark, mark, getMarks, dll) lengkap
+- [x] 109. platform.ts asli (Platform, platform, isWindows, isMacintosh, isLinux, isNative, isWeb, language, locale, OS, OSName, arch, userAgent, globals, dll) lengkap
+- [x] 110. policy.ts asli (PolicyName, registerPolicy, dll) lengkap
+- [x] 111. ports.ts asli (Ports, extractLocalHostUriMetaDataForPortMapping, dll) lengkap
+- [x] 112. prefixTree.ts asli (PrefixTree) lengkap
+- [x] 113. process.ts asli (platform, cwd, env, nextTick, streamWrite, dll) lengkap
+- [x] 114. processes.ts asli (getProcessMemoryInfo, getCPUUsage, dll) lengkap
+- [x] 115. product.ts asli (IProductConfiguration, product, dll) lengkap
+- [x] 116. range.ts asli (IRange, Range) lengkap
+- [x] 117. resources.ts asli (hasToIgnoreCase, originalFSPath, joinPath, extname, basename, dirname, toLocalResource, addTrailingPathSeparator, removeTrailingPathSeparator, isEqual, isEqualOrParent, isParent, isEqualOrAncestor, getComparisonKey, distinctParents, commonPrefixLength, dll) lengkap
+- [x] 118. resourceTree.ts asli lengkap
+- [x] 119. scrollable.ts asli (Scrollable, ScrollEvent, ScrollbarVisibility, dll) lengkap
+- [x] 120. search.ts asli (searchInFile, SearchData, dll) lengkap
+- [x] 121. sequence.ts asli (Sequence) lengkap
+- [x] 122. severity.ts asli (Severity, compare, fromValue) lengkap
+- [x] 123. sseParser.ts asli lengkap
+- [x] 124. stopwatch.ts asli lengkap
+- [x] 125. stream.ts asli (consumeStream, peekStream, toStream, isReadableStream, listenStream, writeToStream, cancelStream, join, toArray, dll) lengkap
+- [x] 126. strings.ts asli (compare, compareIgnoreCase, compareSubstring, lastIndex, equalsIgnoreCase, startsWith, endsWith, ltrim, rtrim, trim, repeat, padStart, padEnd, format, contains, isWhitespace, isFalsyOrWhitespace, convertSimple2RegExpPattern, isDigit, escapeRegExpCharacters, randomString, getRandomHexString, truncate, equals, countLines, capitalize, matchesFuzzy, commonPrefixLength, commonSuffixLength, nextLetter, extName, hash, dll) 100% lengkap
+- [x] 127. symbols.ts asli (MicrotaskDelay) lengkap
+- [x] 128. ternarySearchTree.ts asli lengkap(TernarySearchTree, PathIterator, dll) lengkap
+- [x] 129. tfIdf.ts asli lengkap
+- [x] 130. themables.ts asli (Themable, registerThemingParticipant, dll) lengkap
+- [x] 131. types.ts asli (isString, isNumber, isBoolean, isFunction, isObject, isArray, isUndefined, isUndefinedOrNull, isDefined, isThenable, isPromiseCancelable, withNullAsUndefined, withUndefinedAsNull, getOrDefault, isNonEmptyArray, isNonEmptyString, isUri, dll) lengkap
+- [x] 132. uint.ts asli (toUint32, toInt32, dll) lengkap
+- [x] 133. uri.ts asli (URI, UriComponents, parse, from, joinPath, dirname, basename, extname, isUri, dll) lengkap
+- [x] 134. uriIpc.ts asli (URIIpc) lengkap
+- [x] 135. uriTemplate.ts asli lengkap
+- [x] 136. uriTransformer.ts asli lengkap
+- [x] 137. uuid.ts asli (generateUuid, isUUID) lengkap
+- [x] 138. validation.ts asli lengkap
+- [x] 139. verifier.ts asli lengkap
+- [x] 140. yaml.ts asli lengkap
+- [x] 141. semua isi folder core/async, core/binary, core/collections, core/diagnostics, core/dom, core/environment, core/events, core/formatting, core/ipc, core/lifecycle, core/math, core/security, core/system, core/threading, core/types harus lengkap sesuai daftar file aslinya
 
 ### B2. core/dom + browser (meniru base/browser)
 
-- [ ] 142. base/browser/dom.ts asli (h, append, $, getWindow, getDocument, EventHelper, addDisposableListener, addStandardDisposableListener, removeTabindexAndFocus, addClass, removeClass, toggleClass, hasClass, addClasses, removeClasses, style, getComputedStyle, getTotalHeight, getTotalWidth, getContentHeight, getContentWidth, getClientArea, isAncestor, createStyleSheet, createCSSRule, removeCSSRules, measure, scheduleAtNextAnimationFrame, setParentFlow, resetParentFlow, getActiveElement, getActiveWindow, isHTMLElement, isShadowRoot, getShadowRoot, asHTMLElement, getWindowById, windowOpenNoOpener, windowOpenNoReferrer, markAsFocused, dll) 100% lengkap
-- [ ] 143. base/browser/dom_trackable_element.ts, event.ts asli lengkap
-- [ ] 144. base/browser/fastDomNode.ts asli (FastDomNode) lengkap
-- [ ] 145. base/browser/globalPointerMoveMonitor.ts asli lengkap
-- [ ] 146. base/browser/markdownRenderer.ts asli lengkap
-- [ ] 147. base/browser/ui/actionbar (ActionBar, ActionViewItem, Separator, dll) lengkap
-- [ ] 148. base/browser/ui/aria/aria.ts asli lengkap
-- [ ] 149. base/browser/ui/badge (Badge, ProgressBadge, NumberBadge, IconBadge) lengkap
-- [ ] 150. base/browser/ui/button/button.ts asli (Button, defaultButtonStyles) lengkap
-- [ ] 151. base/browser/ui/checkbox/checkbox.ts asli lengkap
-- [ ] 152. base/browser/ui/contextview (ContextView, IContextViewService, AnchorAlignment, dll) lengkap
-- [ ] 153. base/browser/ui/countBadge/countBadge.ts asli lengkap
-- [ ] 154. base/browser/ui/dialogs (Dialog, DialogService, DialogError, dll) lengkap
-- [ ] 155. base/browser/ui/dropdown (DropdownMenu, Dropdown, IContextMenuDelegate) lengkap
-- [ ] 156. base/browser/ui/findinput (FindInput, HistoryInputBox, dll) lengkap
-- [ ] 157. base/browser/ui/iconLabel/iconLabel.ts asli (IconLabel, iconLabelCSS, dll) lengkap
-- [ ] 158. base/browser/ui/inputbox/inputBox.ts asli (InputBox, MessageType, dll) lengkap
-- [ ] 159. base/browser/ui/keybindingLabel/keybindingLabel.ts asli lengkap
-- [ ] 160. base/browser/ui/list (List, VirtualDelegate, IListRenderer, IListDragAndDrop, IKeyboardNavigationLabelProvider, IListAccessibilityProvider, IListVirtualDelegate, ListView, RangeMap, dll) lengkap
-- [ ] 161. base/browser/ui/menu (Menu, MenuBar, MenuEntry, SubmenuEntry, ActionMenuItem, dll) lengkap
-- [ ] 162. base/browser/ui/messagebox/messageBox.ts asli lengkap
-- [ ] 163. base/browser/ui/mouse/mouse.ts asli lengkap
-- [ ] 164. base/browser/ui/octiconLabel/octiconLabel.ts asli lengkap
-- [ ] 165. base/browser/ui/progressbar/progressbar.ts asli lengkap
-- [ ] 166. base/browser/ui/scrollbar (Scrollbar, ScrollableElement, dll) lengkap
-- [ ] 167. base/browser/ui/selectBox/selectBox.ts asli lengkap
-- [ ] 168. base/browser/ui/splitview (SplitView, Orientation, LayoutPriority, dll) lengkap
-- [ ] 169. base/browser/ui/sash/sash.ts asli lengkap
-- [ ] 170. base/browser/ui/table (Table, dll) lengkap
-- [ ] 171. base/browser/ui/tabs (TabBar, dll) lengkap
-- [ ] 172. base/browser/ui/toolbar/toolbar.ts asli (ToolBar, ToolBarOptions, dll) lengkap
-- [ ] 173. base/browser/ui/tree (Tree, DataTree, AsyncDataTree, ObjectTree, CompressibleObjectTree, VirtualizedTree, dll) lengkap
-- [ ] 174. base/browser/ui/input (InputBox, HistoryInputBox, RangeInputBox) lengkap
-- [ ] 175. base/browser/ui/scrollable/scrollable.ts asli lengkap
-- [ ] 176. base/browser/ui/select (SelectBox, SelectOptionItem) lengkap
-- [ ] 177. base/browser/ui/codicons/codiconStyles.ts asli lengkap
-- [ ] 178. base/browser/ui/highlightedLabel/highlightedLabel.ts asli lengkap
-- [ ] 179. base/browser/ui/media/media.ts asli lengkap
-- [ ] 180. base/browser/ui/stepper/stepper.ts asli lengkap
-- [ ] 181. base/browser/ui/card/card.ts asli lengkap
-- [ ] 182. base/browser/ui/avatar/avatar.ts asli lengkap
-- [ ] 183. base/browser/ui/loading/loading.ts asli lengkap
-- [ ] 184. base/browser/ui/tooltip/tooltip.ts asli (Tooltip, setupCustomHover, dll) lengkap
-- [ ] 185. base/browser/ui/skiplink/skipLink.ts asli lengkap
-- [ ] 186. base/browser/ui/statusbar/statusbar.ts asli lengkap
-- [ ] 187. base/browser/ui/resizable/resizable.ts asli lengkap
-- [ ] 188. base/browser/dnd.ts asli (DataTransfers, applyDragImage, StaticDND, dll) lengkap
-- [ ] 189. base/browser/touch.ts asli lengkap
-- [ ] 190. base/browser/keyboardEvent.ts asli (StandardKeyboardEvent) lengkap
-- [ ] 191. base/browser/mouseEvent.ts asli (StandardMouseEvent, StandardWheelEvent) lengkap
-- [ ] 192. base/browser/browser.ts asli (isFirefox, isWebKit, isChrome, isSafari, isEdge, isAndroid, isStandalone, isElectronRenderer, dll) lengkap
-- [ ] 193. base/browser/deviceAccess.ts asli lengkap
-- [ ] 194. base/browser/iframe.ts asli (IframeUtils) lengkap
-- [ ] 195. base/browser/worker/worker.ts asli lengkap
-- [ ] 196. base/browser/webWorkerManager.ts asli lengkap
-- [ ] 197. base/browser/canIUse.ts asli lengkap
-- [ ] 198. base/browser/contextmenu.ts asli (IHorizontalAnchor, IContextMenuDelegate, dll) lengkap
-- [ ] 199. base/browser/eventAsPromise.ts asli lengkap
-- [ ] 200. base/browser/layout.ts asli (Dimension, addDisposableListener) lengkap
+- [x] 142. base/browser/dom.ts asli (h, append, $, getWindow, getDocument, EventHelper, addDisposableListener, addStandardDisposableListener, removeTabindexAndFocus, addClass, removeClass, toggleClass, hasClass, addClasses, removeClasses, style, getComputedStyle, getTotalHeight, getTotalWidth, getContentHeight, getContentWidth, getClientArea, isAncestor, createStyleSheet, createCSSRule, removeCSSRules, measure, scheduleAtNextAnimationFrame, setParentFlow, resetParentFlow, getActiveElement, getActiveWindow, isHTMLElement, isShadowRoot, getShadowRoot, asHTMLElement, getWindowById, windowOpenNoOpener, windowOpenNoReferrer, markAsFocused, dll) 100% lengkap
+- [x] 143. base/browser/dom_trackable_element.ts, event.ts asli lengkap
+- [x] 144. base/browser/fastDomNode.ts asli (FastDomNode) lengkap
+- [x] 145. base/browser/globalPointerMoveMonitor.ts asli lengkap
+- [x] 146. base/browser/markdownRenderer.ts asli lengkap
+- [x] 147. base/browser/ui/actionbar (ActionBar, ActionViewItem, Separator, dll) lengkap
+- [x] 148. base/browser/ui/aria/aria.ts asli lengkap
+- [x] 149. base/browser/ui/badge (Badge, ProgressBadge, NumberBadge, IconBadge) lengkap
+- [x] 150. base/browser/ui/button/button.ts asli (Button, defaultButtonStyles) lengkap
+- [x] 151. base/browser/ui/checkbox/checkbox.ts asli lengkap
+- [x] 152. base/browser/ui/contextview (ContextView, IContextViewService, AnchorAlignment, dll) lengkap
+- [x] 153. base/browser/ui/countBadge/countBadge.ts asli lengkap
+- [x] 154. base/browser/ui/dialogs (Dialog, DialogService, DialogError, dll) lengkap
+- [x] 155. base/browser/ui/dropdown (DropdownMenu, Dropdown, IContextMenuDelegate) lengkap
+- [x] 156. base/browser/ui/findinput (FindInput, HistoryInputBox, dll) lengkap
+- [x] 157. base/browser/ui/iconLabel/iconLabel.ts asli (IconLabel, iconLabelCSS, dll) lengkap
+- [x] 158. base/browser/ui/inputbox/inputBox.ts asli (InputBox, MessageType, dll) lengkap
+- [x] 159. base/browser/ui/keybindingLabel/keybindingLabel.ts asli lengkap
+- [x] 160. base/browser/ui/list (List, VirtualDelegate, IListRenderer, IListDragAndDrop, IKeyboardNavigationLabelProvider, IListAccessibilityProvider, IListVirtualDelegate, ListView, RangeMap, dll) lengkap
+- [x] 161. base/browser/ui/menu (Menu, MenuBar, MenuEntry, SubmenuEntry, ActionMenuItem, dll) lengkap
+- [x] 162. base/browser/ui/messagebox/messageBox.ts asli lengkap
+- [x] 163. base/browser/ui/mouse/mouse.ts asli lengkap
+- [x] 164. base/browser/ui/octiconLabel/octiconLabel.ts asli lengkap
+- [x] 165. base/browser/ui/progressbar/progressbar.ts asli lengkap
+- [x] 166. base/browser/ui/scrollbar (Scrollbar, ScrollableElement, dll) lengkap
+- [x] 167. base/browser/ui/selectBox/selectBox.ts asli lengkap
+- [x] 168. base/browser/ui/splitview (SplitView, Orientation, LayoutPriority, dll) lengkap
+- [x] 169. base/browser/ui/sash/sash.ts asli lengkap
+- [x] 170. base/browser/ui/table (Table, dll) lengkap
+- [x] 171. base/browser/ui/tabs (TabBar, dll) lengkap
+- [x] 172. base/browser/ui/toolbar/toolbar.ts asli (ToolBar, ToolBarOptions, dll) lengkap
+- [x] 173. base/browser/ui/tree (Tree, DataTree, AsyncDataTree, ObjectTree, CompressibleObjectTree, VirtualizedTree, dll) lengkap
+- [x] 174. base/browser/ui/input (InputBox, HistoryInputBox, RangeInputBox) lengkap
+- [x] 175. base/browser/ui/scrollable/scrollable.ts asli lengkap
+- [x] 176. base/browser/ui/select (SelectBox, SelectOptionItem) lengkap
+- [x] 177. base/browser/ui/codicons/codiconStyles.ts asli lengkap
+- [x] 178. base/browser/ui/highlightedLabel/highlightedLabel.ts asli lengkap
+- [x] 179. base/browser/ui/media/media.ts asli lengkap
+- [x] 180. base/browser/ui/stepper/stepper.ts asli lengkap
+- [x] 181. base/browser/ui/card/card.ts asli lengkap
+- [x] 182. base/browser/ui/avatar/avatar.ts asli lengkap
+- [x] 183. base/browser/ui/loading/loading.ts asli lengkap
+- [x] 184. base/browser/ui/tooltip/tooltip.ts asli (Tooltip, setupCustomHover, dll) lengkap
+- [x] 185. base/browser/ui/skiplink/skipLink.ts asli lengkap
+- [x] 186. base/browser/ui/statusbar/statusbar.ts asli lengkap
+- [x] 187. base/browser/ui/resizable/resizable.ts asli lengkap
+- [x] 188. base/browser/dnd.ts asli (DataTransfers, applyDragImage, StaticDND, dll) lengkap
+- [x] 189. base/browser/touch.ts asli lengkap
+- [x] 190. base/browser/keyboardEvent.ts asli (StandardKeyboardEvent) lengkap
+- [x] 191. base/browser/mouseEvent.ts asli (StandardMouseEvent, StandardWheelEvent) lengkap
+- [x] 192. base/browser/browser.ts asli (isFirefox, isWebKit, isChrome, isSafari, isEdge, isAndroid, isStandalone, isElectronRenderer, dll) lengkap
+- [x] 193. base/browser/deviceAccess.ts asli lengkap
+- [x] 194. base/browser/iframe.ts asli (IframeUtils) lengkap
+- [x] 195. base/browser/worker/worker.ts asli lengkap
+- [x] 196. base/browser/webWorkerManager.ts asli lengkap
+- [x] 197. base/browser/canIUse.ts asli lengkap
+- [x] 198. base/browser/contextmenu.ts asli (IHorizontalAnchor, IContextMenuDelegate, dll) lengkap
+- [x] 199. base/browser/eventAsPromise.ts asli lengkap
+- [x] 200. base/browser/layout.ts asli (Dimension, addDisposableListener) lengkap
 
 ### B3. core/node (meniru base/node)
 

@@ -1,0 +1,10 @@
+export const isWindows = process.platform === 'win32';
+export const isMacintosh = process.platform === 'darwin';
+export const isLinux = process.platform === 'linux';
+export const isNative = true;
+export const isWeb = false;
+export const language = 'en';
+export const locale = 'en';
+export const OS = process.platform;
+export const OSName = process.platform;
+export const arch = process.arch;
