@@ -461,99 +461,99 @@ Desain warna default Dardcor Code :
 - [x] 398. rename: rename symbol (F2), rename preview lengkap
 - [x] 399. sectionHeaders: section headers lengkap
 - [x] 400. semanticTokens: semantic tokens highlight lengkap
-- [ ] 401. smartSelect: expand/shrink selection (Shift+Alt+Right/Left) lengkap
-- [ ] 402. snippet: snippet controller, snippet parser, snippet session, tabstop, placeholder, choice, variable lengkap
-- [ ] 403. stickyScroll: sticky scroll (editor.stickyScroll.enabled) lengkap
-- [ ] 404. suggest: suggestion widget (Ctrl+Space), suggest details, suggest inline details, suggest memory, suggest filtering, suggestion preview, accept suggestion lengkap
-- [ ] 405. symbolIcons: symbol icons lengkap
-- [ ] 406. toggleTabFocusMode: toggle tab key moves focus lengkap
-- [ ] 407. tokenization: tokenization lengkap
-- [ ] 408. unicodeHighlighter: unicode highlighter lengkap
-- [ ] 409. unusualLineTerminators: unusual line terminators warning lengkap
-- [ ] 410. wordHighlighter: word highlight, occurrences highlight lengkap
-- [ ] 411. wordOperations: delete word, word operations lengkap
-- [ ] 412. wordPartOperations: move word part lengkap
-- [ ] 413. zoneWidget: zone widget lengkap
-- [ ] 414. peekView/referencesPeekView: references peek lengkap
-- [ ] 415. gotoDefinition: go to definition (F12), peek definition, go to implementation, go to type definition lengkap
-- [ ] 416. referenceSearch: find all references (Shift+F12) lengkap
-- [ ] 417. inlineCompletions/ghostText: ghost text widget lengkap
-- [ ] 418. suggest/wordBasedSuggestions: word based suggestions lengkap
+- [x] 401. smartSelect: expand/shrink selection (Shift+Alt+Right/Left) lengkap
+- [x] 402. snippet: snippet controller, snippet parser, snippet session, tabstop, placeholder, choice, variable lengkap
+- [x] 403. stickyScroll: sticky scroll (editor.stickyScroll.enabled) lengkap
+- [x] 404. suggest: suggestion widget (Ctrl+Space), suggest details, suggest inline details, suggest memory, suggest filtering, suggestion preview, accept suggestion lengkap
+- [x] 405. symbolIcons: symbol icons lengkap
+- [x] 406. toggleTabFocusMode: toggle tab key moves focus lengkap
+- [x] 407. tokenization: tokenization lengkap
+- [x] 408. unicodeHighlighter: unicode highlighter lengkap
+- [x] 409. unusualLineTerminators: unusual line terminators warning lengkap
+- [x] 410. wordHighlighter: word highlight, occurrences highlight lengkap
+- [x] 411. wordOperations: delete word, word operations lengkap
+- [x] 412. wordPartOperations: move word part lengkap
+- [x] 413. zoneWidget: zone widget lengkap
+- [x] 414. peekView/referencesPeekView: references peek lengkap
+- [x] 415. gotoDefinition: go to definition (F12), peek definition, go to implementation, go to type definition lengkap
+- [x] 416. referenceSearch: find all references (Shift+F12) lengkap
+- [x] 417. inlineCompletions/ghostText: ghost text widget lengkap
+- [x] 418. suggest/wordBasedSuggestions: word based suggestions lengkap
 
 ### C7. engine/standalone + options
 
-- [ ] 419. editor/standalone/browser/standaloneCodeEditor.ts asli (StandaloneCodeEditor) lengkap
-- [ ] 420. editor/standalone/browser/standaloneEditor.ts asli (monaco.editor API lengkap) lengkap
-- [ ] 421. editor/standalone/browser/standaloneServices.ts asli lengkap
-- [ ] 422. editor/standalone/browser/standaloneThemeService.ts asli lengkap
-- [ ] 423. editor/standalone/browser/standalone-tokens.ts asli lengkap
-- [ ] 424. editor/standalone/browser/simpleServices.ts asli lengkap
-- [ ] 425. editor/standalone/browser/accessibility/standaloneA11y.ts asli lengkap
-- [ ] 426. editor/standalone/common/monarch/monarchTypes.ts asli lengkap
-- [ ] 427. editor/common/config/editorOptions.ts asli (SEMUA opsi editor: fontFamily, fontSize, lineHeight, letterSpacing, tabSize, insertSpaces, autoIndent, detectIndentation, trimAutoWhitespace, wordWrap, wordWrapColumn, wordWrapOverride1, wordWrapOverride2, wrappingIndent, wrappingStrategy, wordBreak, autoClosingBrackets, autoClosingQuotes, autoClosingDelete, autoClosingOvertype, autoSurround, autoIndent, formatOnType, formatOnPaste, autoFormatting, comments, bracketPairColorization, guides, selectOnLineNumbers, glyphMargin, lineDecorationsWidth, lineNumbersMinChars, lineNumbers, cursorBlinking, cursorSmoothCaretAnimation, cursorStyle, cursorSurroundingLines, cursorSurroundingLinesStyle, cursorWidth, cursorSticky, stickyScroll, dragAndDrop, emptySelectionClipboard, copyWithSyntaxHighlighting, multiCursorModifier, multiCursorPaste, multiCursorLimit, accessibilitySupport, accessibilityPageSize, ariaContainerElement, dll) 100% lengkap
-- [ ] 428. editor/common/config/editorOptions.ts asli semua enum (EditorAutoClosingStrategy, EditorAutoIndentStrategy, EditorAutoSurroundStrategy, EditorCursorBlinkingStyle, EditorCursorStyle, EditorLineNumbers, EditorMultiCursorModifier, EditorScrollbarVisibility, EditorWordWrap, RenderLineNumbersType, WrappingIndent, WrappingStrategy, dll) lengkap
+- [x] 419. editor/standalone/browser/standaloneCodeEditor.ts asli (StandaloneCodeEditor) lengkap
+- [x] 420. editor/standalone/browser/standaloneEditor.ts asli (monaco.editor API lengkap) lengkap
+- [x] 421. editor/standalone/browser/standaloneServices.ts asli lengkap
+- [x] 422. editor/standalone/browser/standaloneThemeService.ts asli lengkap
+- [x] 423. editor/standalone/browser/standalone-tokens.ts asli lengkap
+- [x] 424. editor/standalone/browser/simpleServices.ts asli lengkap
+- [x] 425. editor/standalone/browser/accessibility/standaloneA11y.ts asli lengkap
+- [x] 426. editor/standalone/common/monarch/monarchTypes.ts asli lengkap
+- [x] 427. editor/common/config/editorOptions.ts asli (SEMUA opsi editor: fontFamily, fontSize, lineHeight, letterSpacing, tabSize, insertSpaces, autoIndent, detectIndentation, trimAutoWhitespace, wordWrap, wordWrapColumn, wordWrapOverride1, wordWrapOverride2, wrappingIndent, wrappingStrategy, wordBreak, autoClosingBrackets, autoClosingQuotes, autoClosingDelete, autoClosingOvertype, autoSurround, autoIndent, formatOnType, formatOnPaste, autoFormatting, comments, bracketPairColorization, guides, selectOnLineNumbers, glyphMargin, lineDecorationsWidth, lineNumbersMinChars, lineNumbers, cursorBlinking, cursorSmoothCaretAnimation, cursorStyle, cursorSurroundingLines, cursorSurroundingLinesStyle, cursorWidth, cursorSticky, stickyScroll, dragAndDrop, emptySelectionClipboard, copyWithSyntaxHighlighting, multiCursorModifier, multiCursorPaste, multiCursorLimit, accessibilitySupport, accessibilityPageSize, ariaContainerElement, dll) 100% lengkap
+- [x] 428. editor/common/config/editorOptions.ts asli semua enum (EditorAutoClosingStrategy, EditorAutoIndentStrategy, EditorAutoSurroundStrategy, EditorCursorBlinkingStyle, EditorCursorStyle, EditorLineNumbers, EditorMultiCursorModifier, EditorScrollbarVisibility, EditorWordWrap, RenderLineNumbersType, WrappingIndent, WrappingStrategy, dll) lengkap
 
 ## D. src/dc/services (meniru src/vs/platform VS Code asli 100%)
 
 ### D1. services/platform dasar
 
-- [ ] 429. platform/actions/common/actions.ts asli (Action, ActionRunner, Separator, toAction, MenuId, MenuRegistry, Action2, registerAction2, dll) lengkap
-- [ ] 430. platform/actions/common/actionRunner.ts asli lengkap
-- [ ] 431. platform/action/common/action.ts asli (ActionItem) lengkap
-- [ ] 432. platform/actionWidget: action widget service lengkap
-- [ ] 433. platform/accessibility: accessibility service, IAccessibilityService, screen reader, accessibility signal lengkap
-- [ ] 434. platform/accessibilitySignal: accessibility signal service (LineHasError, LineHasWarning, BreakpointHit, TaskCompleted, TaskFailed, dll) lengkap
-- [ ] 435. platform/auxiliaryWindow: auxiliary window service (browser window baru) lengkap
-- [ ] 436. platform/backup: backup service (backup file, restore, disk dump) lengkap
-- [ ] 437. platform/browserView: browser view service lengkap
-- [ ] 438. platform/checksum: checksum service lengkap
-- [ ] 439. platform/clipboard: clipboard service (readText, writeText, readFindText, writeFindText, readResources, writeResources) lengkap
-- [ ] 440. platform/commands: command service, command registry, Command, ICommandService, CommandHandler, dll lengkap
-- [ ] 441. platform/configuration: configuration service (getValue, updateValue, inspect, onDidChangeConfiguration, ConfigurationTarget, IConfigurationService, dll) lengkap
-- [ ] 442. platform/configuration/common/configurations.ts asli lengkap
-- [ ] 443. platform/configuration/common/configurationModels.ts asli lengkap
-- [ ] 444. platform/contextkey: context key service, ContextKeyExpr, ContextKeyExpression, ContextKeyService, ContextKeyValue, dll lengkap
-- [ ] 445. platform/contextview: context view service lengkap
-- [ ] 446. platform/dialogs: dialog service (confirm, input, error, warning, info, showDialog, dll) lengkap
-- [ ] 447. platform/dnd: drag and drop service lengkap
-- [ ] 448. platform/download: download service lengkap
-- [ ] 449. platform/editor: editor service, IEditorService, IEditorInput, IEditorPart, dll lengkap
-- [ ] 450. platform/encryption: encryption service lengkap
-- [ ] 451. platform/environment: environment service (userHome, userDataPath, extensionsPath, workspaceStorageHome, appSettingsHome, logsHome, dll) lengkap
-- [ ] 452. platform/extensionManagement: extension management service (install, uninstall, update, enable, disable, metadata) lengkap
-- [ ] 453. platform/extensionRecommendations: extension recommendations service lengkap
-- [ ] 454. platform/extensionResourceLoader: extension resource loader lengkap
-- [ ] 455. platform/extensions: extension service, IExtensionService, IExtensionHostStarter, dll lengkap
-- [ ] 456. platform/extensionManagement/common/extensionGalleryService.ts asli lengkap
-- [ ] 457. platform/extensionManagement/common/extensionManagement.ts asli lengkap
-- [ ] 458. platform/extensionManagement/common/extensionManifestPropertiesService.ts asli lengkap
-- [ ] 459. platform/files: file service (IFileService, readFile, writeFile, createFolder, delete, rename, move, copy, stat, resolve, watch, dll) lengkap
-- [ ] 460. platform/files/common/files.ts asli (FileSystemProvider, FileType, FileStat, dll) lengkap
-- [ ] 461. platform/files/common/fileService.ts asli (FileService, dll) lengkap
-- [ ] 462. platform/files/common/diskFileSystemProvider.ts asli lengkap
-- [ ] 463. platform/files/common/inMemoryFileSystemProvider.ts asli lengkap
-- [ ] 464. platform/files/common/fileSystemProvider.ts asli lengkap
-- [ ] 465. platform/files/common/fileWatcher.ts asli (filewatcher, IFileWatcher, dll) lengkap
-- [ ] 466. platform/files/node/watcher/* lengkap
-- [ ] 467. platform/files/node/diskFileSystemProvider.ts asli lengkap
-- [ ] 468. platform/files/node/encoding/* (encodingService, detection) lengkap
-- [ ] 469. platform/globalKeybindings: global keybindings lengkap
-- [ ] 470. platform/history: history service lengkap
-- [ ] 471. platform/hover: hover service lengkap
-- [ ] 472. platform/imageResize: image resize service lengkap
-- [ ] 473. platform/instantiation: instantiation service (createDecorator, ServiceIdentifier, IInstantiationService, dll) lengkap
-- [ ] 474. platform/ipc: ipc service, IChannel, IServerChannel, IPCClient, dll lengkap
-- [ ] 475. platform/jsonschemas: json schemas service (registerSchema, requestSchema, dll) lengkap
-- [ ] 476. platform/keybinding: keybinding service (IKeybindingService, resolveKeybinding, lookupKeybinding, dll) lengkap
-- [ ] 477. platform/keyboardLayout: keyboard layout service lengkap
-- [ ] 478. platform/label: label service (getUriLabel, getWorkspaceLabel, dll) lengkap
-- [ ] 479. platform/languagePacks: language pack service lengkap
-- [ ] 480. platform/language: language service (ILanguageService, createById, dll) lengkap
-- [ ] 481. platform/layout: layout service lengkap
-- [ ] 482. platform/lifecycle: lifecycle service lengkap
-- [ ] 483. platform/list: list service lengkap
-- [ ] 484. platform/log: log service (ILogService, ILog, createLogger, dll) lengkap
-- [ ] 485. platform/markers: markers service (IMarkerService, MarkerSeverity, dll) lengkap
+- [x] 429. platform/actions/common/actions.ts asli (Action, ActionRunner, Separator, toAction, MenuId, MenuRegistry, Action2, registerAction2, dll) lengkap
+- [x] 430. platform/actions/common/actionRunner.ts asli lengkap
+- [x] 431. platform/action/common/action.ts asli (ActionItem) lengkap
+- [x] 432. platform/actionWidget: action widget service lengkap
+- [x] 433. platform/accessibility: accessibility service, IAccessibilityService, screen reader, accessibility signal lengkap
+- [x] 434. platform/accessibilitySignal: accessibility signal service (LineHasError, LineHasWarning, BreakpointHit, TaskCompleted, TaskFailed, dll) lengkap
+- [x] 435. platform/auxiliaryWindow: auxiliary window service (browser window baru) lengkap
+- [x] 436. platform/backup: backup service (backup file, restore, disk dump) lengkap
+- [x] 437. platform/browserView: browser view service lengkap
+- [x] 438. platform/checksum: checksum service lengkap
+- [x] 439. platform/clipboard: clipboard service (readText, writeText, readFindText, writeFindText, readResources, writeResources) lengkap
+- [x] 440. platform/commands: command service, command registry, Command, ICommandService, CommandHandler, dll lengkap
+- [x] 441. platform/configuration: configuration service (getValue, updateValue, inspect, onDidChangeConfiguration, ConfigurationTarget, IConfigurationService, dll) lengkap
+- [x] 442. platform/configuration/common/configurations.ts asli lengkap
+- [x] 443. platform/configuration/common/configurationModels.ts asli lengkap
+- [x] 444. platform/contextkey: context key service, ContextKeyExpr, ContextKeyExpression, ContextKeyService, ContextKeyValue, dll lengkap
+- [x] 445. platform/contextview: context view service lengkap
+- [x] 446. platform/dialogs: dialog service (confirm, input, error, warning, info, showDialog, dll) lengkap
+- [x] 447. platform/dnd: drag and drop service lengkap
+- [x] 448. platform/download: download service lengkap
+- [x] 449. platform/editor: editor service, IEditorService, IEditorInput, IEditorPart, dll lengkap
+- [x] 450. platform/encryption: encryption service lengkap
+- [x] 451. platform/environment: environment service (userHome, userDataPath, extensionsPath, workspaceStorageHome, appSettingsHome, logsHome, dll) lengkap
+- [x] 452. platform/extensionManagement: extension management service (install, uninstall, update, enable, disable, metadata) lengkap
+- [x] 453. platform/extensionRecommendations: extension recommendations service lengkap
+- [x] 454. platform/extensionResourceLoader: extension resource loader lengkap
+- [x] 455. platform/extensions: extension service, IExtensionService, IExtensionHostStarter, dll lengkap
+- [x] 456. platform/extensionManagement/common/extensionGalleryService.ts asli lengkap
+- [x] 457. platform/extensionManagement/common/extensionManagement.ts asli lengkap
+- [x] 458. platform/extensionManagement/common/extensionManifestPropertiesService.ts asli lengkap
+- [x] 459. platform/files: file service (IFileService, readFile, writeFile, createFolder, delete, rename, move, copy, stat, resolve, watch, dll) lengkap
+- [x] 460. platform/files/common/files.ts asli (FileSystemProvider, FileType, FileStat, dll) lengkap
+- [x] 461. platform/files/common/fileService.ts asli (FileService, dll) lengkap
+- [x] 462. platform/files/common/diskFileSystemProvider.ts asli lengkap
+- [x] 463. platform/files/common/inMemoryFileSystemProvider.ts asli lengkap
+- [x] 464. platform/files/common/fileSystemProvider.ts asli lengkap
+- [x] 465. platform/files/common/fileWatcher.ts asli (filewatcher, IFileWatcher, dll) lengkap
+- [x] 466. platform/files/node/watcher/* lengkap
+- [x] 467. platform/files/node/diskFileSystemProvider.ts asli lengkap
+- [x] 468. platform/files/node/encoding/* (encodingService, detection) lengkap
+- [x] 469. platform/globalKeybindings: global keybindings lengkap
+- [x] 470. platform/history: history service lengkap
+- [x] 471. platform/hover: hover service lengkap
+- [x] 472. platform/imageResize: image resize service lengkap
+- [x] 473. platform/instantiation: instantiation service (createDecorator, ServiceIdentifier, IInstantiationService, dll) lengkap
+- [x] 474. platform/ipc: ipc service, IChannel, IServerChannel, IPCClient, dll lengkap
+- [x] 475. platform/jsonschemas: json schemas service (registerSchema, requestSchema, dll) lengkap
+- [x] 476. platform/keybinding: keybinding service (IKeybindingService, resolveKeybinding, lookupKeybinding, dll) lengkap
+- [x] 477. platform/keyboardLayout: keyboard layout service lengkap
+- [x] 478. platform/label: label service (getUriLabel, getWorkspaceLabel, dll) lengkap
+- [x] 479. platform/languagePacks: language pack service lengkap
+- [x] 480. platform/language: language service (ILanguageService, createById, dll) lengkap
+- [x] 481. platform/layout: layout service lengkap
+- [x] 482. platform/lifecycle: lifecycle service lengkap
+- [x] 483. platform/list: list service lengkap
+- [x] 484. platform/log: log service (ILogService, ILog, createLogger, dll) lengkap
+- [x] 485. platform/markers: markers service (IMarkerService, MarkerSeverity, dll) lengkap
 - [ ] 486. platform/markdown: markdown service (renderMarkdown, dll) lengkap
 - [ ] 487. platform/menubar: menu bar service lengkap
 - [ ] 488. platform/meteredConnection: metered connection lengkap
