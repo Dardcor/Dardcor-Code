@@ -1,0 +1,25 @@
+{
+  "name": "dardcor-code",
+  "version": "1.0.0",
+  "description": "Dardcor Code - Native Desktop Code Editor",
+  "main": "dist/dc/launcher/main/electron-main.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "tsc && electron ."
+  },
+  "keywords": [
+    "editor",
+    "code-editor",
+    "dardcor-code",
+    "electron"
+  ],
+  "author": "Dardcor Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "electron": "^43.2.0",
+    "typescript": "^5.4.0"
+  }
+}

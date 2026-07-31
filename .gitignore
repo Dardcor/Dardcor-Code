@@ -1,21 +1,46 @@
-__pycache__/
-*.pyc
-*.pyo
-*.egg-info/
-*.egg
-*.whl
-*.tar.gz
-.pytest_cache/
+# Dependencies
+node_modules/
+
+# Build output
 dist/
 build/
-*.spec
-.dardcor_chrome_profile/
-/database/
-.remember
+out/
 
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+credentials.json
 secrets.json
-*.secrets.json
-oauth_tokens.json
-*oauth_tokens*.json
 
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Temp & cache
+.tmp/
+.cache/
+*.tsbuildinfo
+
+# Coverage
+coverage/
+
+# Electron
+electron-builder.yml.local

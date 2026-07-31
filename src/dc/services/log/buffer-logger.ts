@@ -1,0 +1,42 @@
+/**
+ * Dardcor Code - Memory Buffer Logger (Task 191)
+ * Mirrors: vs/platform/log/common/bufferLog.ts
+ */
+
+import { IDisposable } from '../../core/lifecycle/disposable.js';
+import { LogLevel } from './log-service.js';
+
+export interface ILogEntry {
+	timestamp: number;
+	level: LogLevel;
+	message: string;
+}
+
+export class BufferLogger implements IDisposable {
+	private readonly _buffer: ILogEntry[] = [];
+
+	constructor(private readonly _maxEntries = 500) {}
+
+	log(level: LogLevel, message: string): void {
+		this._buffer.push({
+			timestamp: Date.now(),
+			level,
+			message,
+		});
+		if (this._buffer.length > this._maxEntries) {
+			this._buffer.shift();
+		}
+	}
+
+	getEntries(): ILogEntry[] {
+		return [...this._buffer];
+	}
+
+	clear(): void {
+		this._buffer.length = 0;
+	}
+
+	dispose(): void {
+		this.clear();
+	}
+}

@@ -1,1 +1,0 @@
-"""Dardcor virtual model provider."""
