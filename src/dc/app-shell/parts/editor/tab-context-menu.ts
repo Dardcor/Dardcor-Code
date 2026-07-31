@@ -32,8 +32,13 @@ interface IMenuItemSpec {
 	readonly id: TabContextMenuAction;
 	readonly label: string;
 	readonly enabled?: boolean;
-	readonly separator?: boolean;
 }
+
+interface IMenuSeparatorSpec {
+	readonly separator: true;
+}
+
+type IMenuSpec = IMenuItemSpec | IMenuSeparatorSpec;
 
 const WIDTH = 220;
 const ITEM_HEIGHT = 26;
@@ -55,7 +60,7 @@ export class TabContextMenu extends Disposable {
 			: 'clientX' in anchor ? getAnchorFromMouseEvent(anchor as MouseEvent) : anchor as IAnchor;
 
 		const items = this._buildItems(options);
-		const height = items.filter(i => !i.separator).length * ITEM_HEIGHT + items.filter(i => i.separator).length * 9 + 8;
+		const height = items.filter(i => !('separator' in i)).length * ITEM_HEIGHT + items.filter(i => 'separator' in i).length * 9 + 8;
 		const layout = layoutContextMenu(anchorInfo, WIDTH, height, window.innerWidth, window.innerHeight);
 
 		const menu = $<HTMLElement>('div', 'dc-tab-context-menu');
@@ -82,26 +87,26 @@ export class TabContextMenu extends Disposable {
 		return this._menu !== null;
 	}
 
-	private _buildItems(options: ITabContextMenuOptions): IMenuItemSpec[] {
-		const items: IMenuItemSpec[] = [
+	private _buildItems(options: ITabContextMenuOptions): IMenuSpec[] {
+		const items: IMenuSpec[] = [
 			{ id: 'close', label: 'Close', enabled: options.hasDirty === false },
 			{ id: 'closeOthers', label: 'Close Others' },
 			{ id: 'closeSaved', label: 'Close Saved' },
-			{ id: 'sep1', label: '', separator: true },
+			{ separator: true },
 			{ id: 'togglePin', label: options.isPinned ? 'Unpin' : 'Pin' },
-			{ id: 'sep2', label: '', separator: true },
+			{ separator: true },
 			{ id: 'copyPath', label: 'Copy Path' },
 			{ id: 'copyRelativePath', label: 'Copy Relative Path' },
-			{ id: 'sep3', label: '', separator: true },
+			{ separator: true },
 			{ id: 'splitEditor', label: 'Split Right' },
 		];
 		return items;
 	}
 
-	private _renderItems(menu: HTMLElement, items: IMenuItemSpec[], input: EditorInput, options: ITabContextMenuOptions): void {
+	private _renderItems(menu: HTMLElement, items: IMenuSpec[], input: EditorInput, options: ITabContextMenuOptions): void {
 		let visibleIndex = -1;
 		for (const item of items) {
-			if (item.separator) {
+			if ('separator' in item) {
 				const sep = $<HTMLElement>('div', 'dc-tab-context-menu-separator');
 				sep.style.cssText = 'height:1px;background:#3c3c3c;margin:4px 10px;';
 				menu.appendChild(sep);
@@ -153,9 +158,9 @@ export class TabContextMenu extends Disposable {
 		document.addEventListener('mousedown', onMouseDown);
 	}
 
-	private _registerKeyDown(menu: HTMLElement, items: IMenuItemSpec[], input: EditorInput): void {
+	private _registerKeyDown(menu: HTMLElement, items: IMenuSpec[], input: EditorInput): void {
 		const onKeyDown = (e: KeyboardEvent) => {
-			const enabled = items.filter(i => !i.separator && i.enabled !== false);
+			const enabled = items.filter((i): i is IMenuItemSpec => !('separator' in i) && i.enabled !== false);
 			switch (e.key) {
 				case 'ArrowDown':
 					e.preventDefault();

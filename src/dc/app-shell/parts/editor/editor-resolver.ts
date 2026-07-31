@@ -23,7 +23,7 @@ export interface IEditorResolverMatch {
 
 export class EditorResolver extends Disposable {
 	private readonly _extensions = new Map<string, IEditorResolverRegistration>();
-	private readonly _globs: { pattern: string; registration: IEditorResolverRegistration }[] = [];
+	private _globs: { pattern: string; registration: IEditorResolverRegistration }[] = [];
 	private readonly _schemes = new Map<string, IEditorResolverRegistration>();
 	private _untitled: IEditorResolverRegistration | null = null;
 	private _order = 0;

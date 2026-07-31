@@ -1,22 +1,51 @@
 /**
- * Dardcor Code - VSIX Tar Unpacker (Task 175)
+ * Dardcor Code - VSIX Zip Unpacker (Task 175)
  * Mirrors: vs/platform/extensionManagement/common/extensionManagement.ts VSIX package unpacker
  */
 
 import { readZip } from '../../core/binary/zip-parser.js';
 import { URI } from '../../core/types/uri.js';
-import { IFileSystemProvider } from '../files/file-service.js';
+import { DataBuffer } from '../../core/binary/buffer.js';
+import { IFileService } from '../files/file-service.js';
 
-export async function unpackVsix(vsixBuffer: ArrayBuffer, destDir: URI, fsProvider: IFileSystemProvider): Promise<void> {
-	const entries = await readZip(vsixBuffer);
+export async function unpackVsix(vsixBuffer: ArrayBuffer | Uint8Array, destDir: URI, fileService: IFileService): Promise<void> {
+	const buffer = vsixBuffer instanceof Uint8Array
+		? vsixBuffer.buffer.slice(vsixBuffer.byteOffset, vsixBuffer.byteOffset + vsixBuffer.byteLength) as ArrayBuffer
+		: vsixBuffer;
+	const entries = await readZip(buffer);
+	const provider = fileService.getProvider(destDir.scheme);
 	for (const entry of entries) {
-		if (entry.name.startsWith('extension/') && !entry.isDirectory) {
-			const relativePath = entry.name.substring('extension/'.length);
-			const targetUri = URI.from({
-				scheme: destDir.scheme,
-				path: `${destDir.path}/${relativePath}`
-			});
-			await fsProvider.writeFile(targetUri, entry.data, { create: true, overwrite: true });
+		if (entry.isDirectory) {
+			continue;
 		}
+		const relativePath = entry.name.startsWith('extension/')
+			? entry.name.substring('extension/'.length)
+			: entry.name;
+		if (!relativePath || hasTraversalSegments(relativePath)) {
+			continue;
+		}
+		const targetUri = URI.from({
+			scheme: destDir.scheme,
+			path: `${destDir.path}/${relativePath}`,
+		});
+		if (provider) {
+			const lastSlash = targetUri.path.lastIndexOf('/');
+			if (lastSlash > 0) {
+				const parentUri = URI.from({
+					scheme: targetUri.scheme,
+					path: targetUri.path.substring(0, lastSlash),
+				});
+				try {
+					await provider.mkdir(parentUri);
+				} catch {
+					// Parent directory already exists.
+				}
+			}
+		}
+		await fileService.writeFile(targetUri, DataBuffer.wrap(entry.data));
 	}
+}
+
+function hasTraversalSegments(relativePath: string): boolean {
+	return relativePath.split('/').some((segment) => segment === '..' || segment === '.');
 }

@@ -9,7 +9,8 @@ import { SnippetParser, SnippetNode, SnippetNodeKind, snippetNodesToText } from 
 
 export interface ISnippetTabStop {
 	readonly index: number;
-	readonly range: IRange;
+	range: IRange;
+
 	readonly defaultValue: string;
 }
 

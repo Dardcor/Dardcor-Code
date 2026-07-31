@@ -1,9 +1,7 @@
 /**
  * Dardcor Code - Native Dialogs (Task 165)
- * Mirrors: vs/platform/dialogs/node/dialogs.ts OS native dialog bindings
+ * Mirrors: vs/platform/dialogs/node/dialogs.ts (OS native dialog bindings)
  */
-
-declare const require: any;
 
 export interface IOpenDialogOptions {
 	title?: string;
@@ -22,22 +20,41 @@ export interface ISaveDialogOptions {
 
 export class NativeDialogService {
 	async showOpenDialog(options: IOpenDialogOptions): Promise<string[] | undefined> {
+		const dialog = await this._getDialog();
+		if (!dialog) {
+			return undefined;
+		}
 		try {
-			const { dialog } = require('electron').remote || require('electron');
-			const res = await dialog.showOpenDialog(options);
-			if (res.canceled) return undefined;
-			return res.filePaths;
+			const result = await dialog.showOpenDialog(options);
+			if (result?.canceled) {
+				return undefined;
+			}
+			return result?.filePaths;
 		} catch {
 			return undefined;
 		}
 	}
 
 	async showSaveDialog(options: ISaveDialogOptions): Promise<string | undefined> {
+		const dialog = await this._getDialog();
+		if (!dialog) {
+			return undefined;
+		}
 		try {
-			const { dialog } = require('electron').remote || require('electron');
-			const res = await dialog.showSaveDialog(options);
-			if (res.canceled) return undefined;
-			return res.filePath;
+			const result = await dialog.showSaveDialog(options);
+			if (result?.canceled) {
+				return undefined;
+			}
+			return result?.filePath;
+		} catch {
+			return undefined;
+		}
+	}
+
+	private async _getDialog(): Promise<any | undefined> {
+		try {
+			const electron: any = await import('electron');
+			return electron?.dialog ?? electron?.remote?.dialog;
 		} catch {
 			return undefined;
 		}

@@ -15,7 +15,8 @@ export interface IBracketPairNode {
 	readonly openChar: string;
 	readonly closeChar: string;
 	readonly openRange: IRange;
-	readonly closeRange: IRange | null;
+	closeRange: IRange | null;
+
 	readonly level: number;
 	readonly index: number;
 	parent: IBracketPairNode | null;

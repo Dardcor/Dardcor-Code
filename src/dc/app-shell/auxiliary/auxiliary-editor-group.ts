@@ -2,8 +2,8 @@
  * Dardcor Code - Floating Editor Group Instance Inside Child Window
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
+import { Disposable } from '../../core/lifecycle/disposable.js';
+import { Emitter, Event } from '../../core/events/emitter.js';
 import { AuxiliaryWindowElement, IAuxiliaryWindowOptions } from './auxiliary-window-element.js';
 import { EditorGroup, EditorPaneFactory, IEditorGroupEvent } from '../parts/editor/editor-group.js';
 import { EditorInput } from '../parts/editor/editor-input.js';

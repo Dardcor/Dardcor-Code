@@ -81,14 +81,13 @@ export class SymbolTree extends Disposable {
 			return b.range.endColumn - a.range.endColumn;
 		});
 
-		const virtualRoot: SymbolNode = {
+		const virtualRoot: SymbolNode = new SymbolNode({
 			name: "",
+
 			kind: SymbolKind.File,
 			range: { startLineNumber: 0, startColumn: 0, endLineNumber: Number.MAX_SAFE_INTEGER, endColumn: Number.MAX_SAFE_INTEGER },
-			detail: "",
-			children: [],
-			parent: null
-		};
+			detail: ""
+		});
 		const stack: SymbolNode[] = [virtualRoot];
 		for (const symbol of sorted) {
 			const node = new SymbolNode(symbol);

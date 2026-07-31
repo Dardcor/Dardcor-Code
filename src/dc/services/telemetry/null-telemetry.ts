@@ -29,3 +29,5 @@ export class NullTelemetryService implements ITelemetryService {
 
 	dispose(): void {}
 }
+
+export const nullTelemetryService = new NullTelemetryService();

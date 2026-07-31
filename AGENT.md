@@ -241,69 +241,75 @@
 
 ### Phase 3: Code Editor Engine (`src/dc/engine`) [Tasks 201 - 300]
 201. [COMPLETED] `src/dc/engine/model/piece-tree/piece-tree.ts` - Implement PieceTree text data structure.
-202. `src/dc/engine/model/piece-tree/rb-tree.ts` - Implement red-black tree for PieceTree line offset tracking.
+202. [COMPLETED] `src/dc/engine/model/piece-tree/rb-tree.ts` - Implement red-black tree for PieceTree line offset tracking.
+
 203. [COMPLETED] `src/dc/engine/model/text-model.ts` - Implement `ITextModel` document buffer representation.
-204. `src/dc/engine/model/line-tokens.ts` - Implement syntax token storage per line.
-205. `src/dc/engine/model/edit-stack.ts` - Implement document undo/redo transaction stack.
-206. `src/dc/engine/model/range-map.ts` - Implement interval tree for tracking decorations across edits.
-207. `src/dc/engine/model/word-helper.ts` - Implement word boundary parser (`getWordAtPosition`).
-208. `src/dc/engine/view/view-layout.ts` - Implement editor line layout and height mapping.
-209. `src/dc/engine/view/view-model.ts` - Implement projection of TextModel to View lines (folding/wrapping).
-210. `src/dc/engine/view/viewport.ts` - Implement viewport visible line calculator.
-211. `src/dc/engine/view/renderers/line-renderer.ts` - Implement DOM line renderer with token span styling.
-212. `src/dc/engine/view/renderers/gutter-renderer.ts` - Implement line numbers and glyph margin renderer.
-213. `src/dc/engine/view/renderers/decoration-renderer.ts` - Implement inline and margin line decoration layer.
-214. `src/dc/engine/view/renderers/cursor-renderer.ts` - Implement animated cursor caret layer.
-215. `src/dc/engine/view/renderers/selection-renderer.ts` - Implement highlighted text selection block layer.
-216. `src/dc/engine/view/renderers/whitespace-renderer.ts` - Implement whitespace symbol glyph layer.
-217. `src/dc/engine/view/renderers/indent-guide-renderer.ts` - Implement vertical indentation guide line layer.
-218. `src/dc/engine/cursor/cursor-controller.ts` - Implement cursor movement and selection state machine.
-219. `src/dc/engine/cursor/cursor-operations.ts` - Implement character, word, line, and page movement logic.
-220. `src/dc/engine/cursor/multi-cursor.ts` - Implement multi-caret creation, merging, and sync logic.
+204. [COMPLETED] `src/dc/engine/model/line-tokens.ts` - Implement syntax token storage per line.
+205. [COMPLETED] `src/dc/engine/model/edit-stack.ts` - Implement document undo/redo transaction stack.
+206. [COMPLETED] `src/dc/engine/model/range-map.ts` - Implement interval tree for tracking decorations across edits.
+207. [COMPLETED] `src/dc/engine/model/word-helper.ts` - Implement word boundary parser (`getWordAtPosition`).
+208. [COMPLETED] `src/dc/engine/view/view-layout.ts` - Implement editor line layout and height mapping.
+209. [COMPLETED] `src/dc/engine/view/view-model.ts` - Implement projection of TextModel to View lines (folding/wrapping).
+210. [COMPLETED] `src/dc/engine/view/viewport.ts` - Implement viewport visible line calculator.
+
+211. [COMPLETED] `src/dc/engine/view/renderers/line-renderer.ts` - Implement DOM line renderer with token span styling.
+212. [COMPLETED] `src/dc/engine/view/renderers/gutter-renderer.ts` - Implement line numbers and glyph margin renderer.
+213. [COMPLETED] `src/dc/engine/view/renderers/decoration-renderer.ts` - Implement inline and margin line decoration layer.
+214. [COMPLETED] `src/dc/engine/view/renderers/cursor-renderer.ts` - Implement animated cursor caret layer.
+215. [COMPLETED] `src/dc/engine/view/renderers/selection-renderer.ts` - Implement highlighted text selection block layer.
+216. [COMPLETED] `src/dc/engine/view/renderers/whitespace-renderer.ts` - Implement whitespace symbol glyph layer.
+217. [COMPLETED] `src/dc/engine/view/renderers/indent-guide-renderer.ts` - Implement vertical indentation guide line layer.
+218. [COMPLETED] `src/dc/engine/cursor/cursor-controller.ts` - Implement cursor movement and selection state machine.
+219. [COMPLETED] `src/dc/engine/cursor/cursor-operations.ts` - Implement character, word, line, and page movement logic.
+220. [COMPLETED] `src/dc/engine/cursor/multi-cursor.ts` - Implement multi-caret creation, merging, and sync logic.
 221. [COMPLETED] `src/dc/engine/controller/editor-controller.ts` - Implement `ICodeEditor` main component interface.
-222. `src/dc/engine/controller/keyboard-input.ts` - Implement hidden textarea input listener for IME composition.
-223. `src/dc/engine/controller/mouse-input.ts` - Implement mouse drag, click, and selection handler.
-224. `src/dc/engine/controller/scroll-controller.ts` - Implement editor scroll physics controller.
-225. `src/dc/engine/options/editor-options.ts` - Implement editor options defaults and validation.
-226. `src/dc/engine/tokenizer/textmate-tokenizer.ts` - Implement TextMate regex syntax tokenizer adapter.
-227. `src/dc/engine/tokenizer/monarch-tokenizer.ts` - Implement Monarch declarative syntax highlighter engine.
-228. `src/dc/engine/diff/diff-computer.ts` - Implement side-by-side text model diff calculator.
-229. `src/dc/engine/diff/diff-view.ts` - Implement dual-pane diff code editor component.
-230. `src/dc/engine/standalone/standalone-editor.ts` - Implement standalone embeddable editor instance factory.
-231. `src/dc/engine/model/piece-tree/buffer-factory.ts` - Implement text snapshot buffer builder.
-232. `src/dc/engine/model/indent-rules.ts` - Implement auto-indentation rule parser.
-233. `src/dc/engine/model/character-pair.ts` - Implement auto-closing brackets and quotes manager.
-234. `src/dc/engine/view/renderers/minimap-renderer.ts` - Implement HTML5 Canvas minimap code preview layer.
-235. `src/dc/engine/view/renderers/ruler-renderer.ts` - Implement vertical column ruler lines.
-236. `src/dc/engine/cursor/cursor-column.ts` - Implement tab character column offset mapper.
-237. `src/dc/engine/controller/command-executor.ts` - Implement editor edit transaction runner.
-238. `src/dc/engine/tokenizer/token-theme-rules.ts` - Implement color scope matching engine.
-239. `src/dc/engine/diff/inline-diff-view.ts` - Implement single-column unified diff view renderer.
-240. `src/dc/engine/model/text-buffer.ts` - Implement raw character array text accessor.
-241. `src/dc/engine/model/line-model.ts` - Implement single line text content and token holder.
-242. `src/dc/engine/view/view-lines.ts` - Implement view line array virtualizer.
-243. `src/dc/engine/view/renderers/current-line-renderer.ts` - Implement active line background highlight.
-244. `src/dc/engine/cursor/word-operations.ts` - Implement word deletion and casing transform actions.
-245. `src/dc/engine/controller/touch-input.ts` - Implement touch swipe and pinch-to-zoom listener.
-246. `src/dc/engine/tokenizer/null-tokenizer.ts` - Implement plain text fallback tokenizer.
-247. `src/dc/engine/diff/diff-change.ts` - Implement insert/delete diff change descriptor.
-248. `src/dc/engine/model/position-converter.ts` - Implement line/column offset index mapping.
-249. `src/dc/engine/view/view-events.ts` - Implement layout change and view render event system.
-250. `src/dc/engine/view/renderers/bracket-match-renderer.ts` - Implement matching bracket pair highlight renderer.
-251. `src/dc/engine/cursor/cursor-context.ts` - Implement editor context state accessor for cursor operations.
-252. `src/dc/engine/controller/drag-selection.ts` - Implement mouse drag selection auto-scroll controller.
-253. `src/dc/engine/tokenizer/token-store.ts` - Implement line syntax token cache.
-254. `src/dc/engine/diff/diff-navigator.ts` - Implement change-to-change jump controller (`F7` / `Shift+F7`).
-255. `src/dc/engine/model/text-search.ts` - Implement regex document search engine.
-256. `src/dc/engine/view/renderers/overlay-widgets.ts` - Implement absolute positioned overlay container layer.
-257. `src/dc/engine/cursor/column-select.ts` - Implement rectangular box selection controller.
-258. `src/dc/engine/controller/context-keys.ts` - Implement editor focus/selection context key updater.
-259. `src/dc/engine/tokenizer/semantic-highlighter.ts` - Implement LSP semantic token delta merger.
-260. `src/dc/engine/standalone/standalone-services.ts` - Implement standalone DI service overrides.
-261. `src/dc/engine/model/line-ending.ts` - Implement CRLF vs LF line ending normalizer.
-262. `src/dc/engine/view/view-context.ts` - Implement shared layout configuration holder.
-263. `src/dc/engine/view/renderers/content-widgets.ts` - Implement text-anchored floating widgets layer.
-264. `src/dc/engine/cursor/cursor-save-state.ts` - Implement view state cursor restore snapshot.
+
+222. [COMPLETED] `src/dc/engine/controller/keyboard-input.ts` - Implement hidden textarea input listener for IME composition.
+223. [COMPLETED] `src/dc/engine/controller/mouse-input.ts` - Implement mouse drag, click, and selection handler.
+224. [COMPLETED] `src/dc/engine/controller/scroll-controller.ts` - Implement editor scroll physics controller.
+225. [COMPLETED] `src/dc/engine/options/editor-options.ts` - Implement editor options defaults and validation.
+226. [COMPLETED] `src/dc/engine/tokenizer/textmate-tokenizer.ts` - Implement TextMate regex syntax tokenizer adapter.
+227. [COMPLETED] `src/dc/engine/tokenizer/monarch-tokenizer.ts` - Implement Monarch declarative syntax highlighter engine.
+228. [COMPLETED] `src/dc/engine/diff/diff-computer.ts` - Implement side-by-side text model diff calculator.
+229. [COMPLETED] `src/dc/engine/diff/diff-view.ts` - Implement dual-pane diff code editor component.
+230. [COMPLETED] `src/dc/engine/standalone/standalone-editor.ts` - Implement standalone embeddable editor instance factory.
+231. [COMPLETED] `src/dc/engine/model/piece-tree/buffer-factory.ts` - Implement text snapshot buffer builder.
+232. [COMPLETED] `src/dc/engine/model/indent-rules.ts` - Implement auto-indentation rule parser.
+233. [COMPLETED] `src/dc/engine/model/character-pair.ts` - Implement auto-closing brackets and quotes manager.
+234. [COMPLETED] `src/dc/engine/view/renderers/minimap-renderer.ts` - Implement HTML5 Canvas minimap code preview layer.
+235. [COMPLETED] `src/dc/engine/view/renderers/ruler-renderer.ts` - Implement vertical column ruler lines.
+236. [COMPLETED] `src/dc/engine/cursor/cursor-column.ts` - Implement tab character column offset mapper.
+237. [COMPLETED] `src/dc/engine/controller/command-executor.ts` - Implement editor edit transaction runner.
+238. [COMPLETED] `src/dc/engine/tokenizer/token-theme-rules.ts` - Implement color scope matching engine.
+239. [COMPLETED] `src/dc/engine/diff/inline-diff-view.ts` - Implement single-column unified diff view renderer.
+240. [COMPLETED] `src/dc/engine/model/text-buffer.ts` - Implement raw character array text accessor.
+241. [COMPLETED] `src/dc/engine/model/line-model.ts` - Implement single line text content and token holder.
+242. [COMPLETED] `src/dc/engine/view/view-lines.ts` - Implement view line array virtualizer.
+243. [COMPLETED] `src/dc/engine/view/renderers/current-line-renderer.ts` - Implement active line background highlight.
+244. [COMPLETED] `src/dc/engine/cursor/word-operations.ts` - Implement word deletion and casing transform actions.
+245. [COMPLETED] `src/dc/engine/controller/touch-input.ts` - Implement touch swipe and pinch-to-zoom listener.
+246. [COMPLETED] `src/dc/engine/tokenizer/null-tokenizer.ts` - Implement plain text fallback tokenizer.
+247. [COMPLETED] `src/dc/engine/diff/diff-change.ts` - Implement insert/delete diff change descriptor.
+248. [COMPLETED] `src/dc/engine/model/position-converter.ts` - Implement line/column offset index mapping.
+249. [COMPLETED] `src/dc/engine/view/view-events.ts` - Implement layout change and view render event system.
+250. [COMPLETED] `src/dc/engine/view/renderers/bracket-match-renderer.ts` - Implement matching bracket pair highlight renderer.
+251. [COMPLETED] `src/dc/engine/cursor/cursor-context.ts` - Implement editor context state accessor for cursor operations.
+252. [COMPLETED] `src/dc/engine/controller/drag-selection.ts` - Implement mouse drag selection auto-scroll controller.
+253. [COMPLETED] `src/dc/engine/tokenizer/token-store.ts` - Implement line syntax token cache.
+254. [COMPLETED] `src/dc/engine/diff/diff-navigator.ts` - Implement change-to-change jump controller (`F7` / `Shift+F7`).
+255. [COMPLETED] `src/dc/engine/model/text-search.ts` - Implement regex document search engine.
+256. [COMPLETED] `src/dc/engine/view/renderers/overlay-widgets.ts` - Implement absolute positioned overlay container layer.
+257. [COMPLETED] `src/dc/engine/cursor/column-select.ts` - Implement rectangular box selection controller.
+258. [COMPLETED] `src/dc/engine/controller/context-keys.ts` - Implement editor focus/selection context key updater.
+259. [COMPLETED] `src/dc/engine/tokenizer/semantic-highlighter.ts` - Implement LSP semantic token delta merger.
+260. [COMPLETED] `src/dc/engine/standalone/standalone-services.ts` - Implement standalone DI service overrides.
+261. [COMPLETED] `src/dc/engine/model/line-ending.ts` - Implement CRLF vs LF line ending normalizer.
+262. [COMPLETED] `src/dc/engine/view/view-context.ts` - Implement shared layout configuration holder.
+
+263. [COMPLETED] `src/dc/engine/view/renderers/content-widgets.ts` - Implement text-anchored floating widgets layer.
+
+264. [COMPLETED] `src/dc/engine/cursor/cursor-save-state.ts` - Implement view state cursor restore snapshot.
+
 265. `src/dc/engine/controller/find-controller.ts` - Implement in-editor quick search state machine.
 266. `src/dc/engine/tokenizer/grammar-registry.ts` - Implement language grammar loader registry.
 267. `src/dc/engine/model/marker-decorations.ts` - Implement diagnostic squiggly underline decorator bridge.

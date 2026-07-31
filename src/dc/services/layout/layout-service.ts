@@ -1,9 +1,10 @@
 /**
  * Dardcor Code - Layout Service (Task 155)
- * Mirrors: vs/workbench/services/layout/browser/layoutService.ts
+ * Mirrors: vs/workbench/services/layout/browser/layoutService.ts (shell container layout coordinator)
  */
 
-import { IDisposable } from '../../core/lifecycle/disposable.js';
+import { createDecorator } from '../instantiation/annotations.js';
+import { Disposable } from '../../core/lifecycle/disposable.js';
 import { Emitter, Event } from '../../core/events/emitter.js';
 
 export const enum Parts {
@@ -15,24 +16,33 @@ export const enum Parts {
 	STATUSBAR_PART = 'workbench.parts.statusbar',
 }
 
-export interface ILayoutService extends IDisposable {
+export interface ILayoutService {
+	readonly _serviceBrand: undefined;
 	readonly onDidLayout: Event<{ width: number; height: number }>;
 	readonly onDidChangePartVisibility: Event<{ part: Parts; visible: boolean }>;
 	isVisible(part: Parts): boolean;
 	setPartHidden(hidden: boolean, part: Parts): void;
 	getContainer(part: Parts): HTMLElement | undefined;
+	registerContainer(part: Parts, container: HTMLElement): void;
+	layout(width: number, height: number): void;
 }
 
-export class LayoutService implements ILayoutService {
+export const ILayoutService = createDecorator<ILayoutService>('layoutService');
+
+export class LayoutService extends Disposable implements ILayoutService {
+	declare readonly _serviceBrand: undefined;
+
 	private readonly _visibility = new Map<Parts, boolean>();
 	private readonly _containers = new Map<Parts, HTMLElement>();
-	private readonly _onDidLayout = new Emitter<{ width: number; height: number }>();
-	private readonly _onDidChangePartVisibility = new Emitter<{ part: Parts; visible: boolean }>();
+
+	private readonly _onDidLayout = this._register(new Emitter<{ width: number; height: number }>());
+	private readonly _onDidChangePartVisibility = this._register(new Emitter<{ part: Parts; visible: boolean }>());
 
 	readonly onDidLayout = this._onDidLayout.event;
 	readonly onDidChangePartVisibility = this._onDidChangePartVisibility.event;
 
 	constructor() {
+		super();
 		this._visibility.set(Parts.TITLEBAR_PART, true);
 		this._visibility.set(Parts.ACTIVITYBAR_PART, true);
 		this._visibility.set(Parts.SIDEBAR_PART, true);
@@ -46,7 +56,9 @@ export class LayoutService implements ILayoutService {
 	}
 
 	setPartHidden(hidden: boolean, part: Parts): void {
-		if (this.isVisible(part) === !hidden) return;
+		if (this.isVisible(part) === !hidden) {
+			return;
+		}
 		this._visibility.set(part, !hidden);
 		const container = this._containers.get(part);
 		if (container) {
@@ -66,10 +78,5 @@ export class LayoutService implements ILayoutService {
 
 	layout(width: number, height: number): void {
 		this._onDidLayout.fire({ width, height });
-	}
-
-	dispose(): void {
-		this._onDidLayout.dispose();
-		this._onDidChangePartVisibility.dispose();
 	}
 }

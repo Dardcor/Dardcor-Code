@@ -3,30 +3,42 @@
  * Mirrors: vs/platform/environment/node/shellEnv.ts
  */
 
-declare const process: any;
-declare const require: any;
+import { Process } from '../../core/system/process.js';
+
+export function getEnvironmentVariable(name: string): string | undefined {
+	return Process.env[name];
+}
+
+export function getEnvironmentVariables(): Record<string, string | undefined> {
+	return { ...Process.env };
+}
 
 export async function resolveUserShellEnv(): Promise<Record<string, string>> {
-	if (typeof process === 'undefined' || !process.env) return {};
+	if (typeof process === 'undefined' || typeof process.env !== 'object') {
+		return {};
+	}
+	const current = { ...process.env } as Record<string, string>;
 	if (process.platform === 'win32') {
-		return { ...process.env };
+		return current;
 	}
 	try {
-		const os = require('os');
-		const userInfo = os.userInfo();
-		const shell = userInfo.shell || '/bin/bash';
-		const child_process = require('child_process');
-		const res = child_process.execSync(`${shell} -ilc env`, { encoding: 'utf8', timeout: 3000 });
-		const lines = res.split('\n');
+		const os = await import('node:os');
+		const { execFileSync } = await import('node:child_process');
+		const shell = os.userInfo().shell || '/bin/bash';
+		const out = execFileSync(shell, ['-ilc', 'env'], {
+			encoding: 'utf8',
+			timeout: 3000,
+			stdio: ['ignore', 'pipe', 'ignore'],
+		});
 		const env: Record<string, string> = {};
-		for (const line of lines) {
+		for (const line of out.split('\n')) {
 			const idx = line.indexOf('=');
 			if (idx > 0) {
-				env[line.substring(0, idx)] = line.substring(idx + 1).trim();
+				env[line.substring(0, idx)] = line.substring(idx + 1);
 			}
 		}
-		return env;
+		return { ...current, ...env };
 	} catch {
-		return { ...process.env };
+		return current;
 	}
 }

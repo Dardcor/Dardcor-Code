@@ -1,6 +1,6 @@
 /**
  * Dardcor Code - Console Logger (Task 163)
- * Mirrors: vs/platform/log/browser/consoleLog.ts developer console channel
+ * Mirrors: vs/platform/log/browser/consoleLog.ts (developer console formatting channel)
  */
 
 import { IDisposable } from '../../core/lifecycle/disposable.js';
@@ -13,6 +13,7 @@ function getLogLevelString(level: LogLevel): string {
 		case LogLevel.Info: return 'INFO';
 		case LogLevel.Warning: return 'WARN';
 		case LogLevel.Error: return 'ERROR';
+		case LogLevel.Critical: return 'CRITICAL';
 		case LogLevel.Off: return 'OFF';
 		default: return 'INFO';
 	}
@@ -25,8 +26,14 @@ export class ConsoleLogger implements IDisposable {
 		this._level = level;
 	}
 
+	setLevel(level: LogLevel): void {
+		this._level = level;
+	}
+
 	log(level: LogLevel, message: string, ...args: any[]): void {
-		if (level < this._level) return;
+		if (level < this._level || level === LogLevel.Off) {
+			return;
+		}
 		const timestamp = new Date().toLocaleTimeString();
 		const tag = `[${timestamp}] [${getLogLevelString(level)}]`;
 
@@ -42,6 +49,7 @@ export class ConsoleLogger implements IDisposable {
 				console.warn(tag, message, ...args);
 				break;
 			case LogLevel.Error:
+			case LogLevel.Critical:
 				console.error(tag, message, ...args);
 				break;
 		}

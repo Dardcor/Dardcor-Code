@@ -1,0 +1,100 @@
+{
+	"appId": "com.dardcor.code",
+	"productName": "Dardcor Code",
+	"copyright": "Copyright (c) 2026 Dardcor Team",
+	"directories": {
+		"output": "release",
+		"buildResources": "build"
+	},
+	"files": [
+		"dist/**/*",
+		"plugins/**/*",
+		"package.json"
+	],
+	"asar": true,
+	"asarUnpack": [
+		"plugins/**/*"
+	],
+	"win": {
+		"target": [
+			{
+				"target": "nsis",
+				"arch": ["x64"]
+			}
+		],
+		"icon": "public/dardcor-code.ico",
+		"artifactName": "${productName}-Setup-${version}.${ext}"
+	},
+	"nsis": {
+		"oneClick": false,
+		"allowToChangeInstallationDirectory": true,
+		"createDesktopShortcut": true,
+		"createStartMenuShortcut": true,
+		"shortcutName": "Dardcor Code",
+		"uninstallDisplayName": "Dardcor Code",
+		"installerLanguages": ["en_US", "id_ID"]
+	},
+	"mac": {
+		"target": [
+			{
+				"target": "dmg",
+				"arch": ["arm64", "x64"]
+			}
+		],
+		"category": "public.app-category.developer-tools",
+		"icon": "public/dardcor-code.icns",
+		"artifactName": "${productName}-${version}-${arch}.${ext}",
+		"darkModeSupport": true
+	},
+	"dmg": {
+		"title": "${productName} ${version}",
+		"contents": [
+			{
+				"x": 130,
+				"y": 220
+			},
+			{
+				"x": 410,
+				"y": 220,
+				"type": "link",
+				"path": "/Applications"
+			}
+		],
+		"window": {
+			"width": 540,
+			"height": 380
+		}
+	},
+	"linux": {
+		"target": [
+			{
+				"target": "AppImage",
+				"arch": ["x64"]
+			},
+			{
+				"target": "deb",
+				"arch": ["x64"]
+			},
+			{
+				"target": "rpm",
+				"arch": ["x64"]
+			}
+		],
+		"icon": "public/dardcor-code.png",
+		"category": "Development",
+		"maintainer": "Dardcor Team <team@dardcor.com>",
+		"artifactName": "${productName}-${version}-${arch}.${ext}",
+		"synopsis": "Native desktop code editor",
+		"description": "Dardcor Code - A fast native desktop code editor built with Electron."
+	},
+	"appImage": {
+		"artifactName": "${productName}-${version}-${arch}.${ext}"
+	},
+	"publish": {
+		"provider": "github",
+		"owner": "dardcor",
+		"repo": "dardcor-code"
+	},
+	"npmRebuild": false,
+	"electronVersion": "43.2.0"
+}

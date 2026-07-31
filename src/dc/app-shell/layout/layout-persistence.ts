@@ -66,28 +66,26 @@ export class LayoutPersistence extends Disposable {
 
 	saveGeometry(geometry: IWindowGeometry): void {
 		const current = this.load();
-		const next: IPersistedLayout = {
-			...current,
+		this._persist({
+			sizes: current?.sizes ?? LayoutPersistence.getDefaultSizes(),
 			geometry,
 			version: 1,
-		};
-		this._store(next);
+		});
 	}
 
 	savePanelSizes(sizes: IPanelSizes): void {
 		const current = this.load();
-		const next: IPersistedLayout = {
-			...current,
+		this._persist({
 			sizes,
+			geometry: current?.geometry,
 			version: 1,
-		};
-		this._store(next);
+		});
 	}
 
 	save(): void {
 		const geometry = this._captureGeometry();
 		const sizes = this.load()?.sizes ?? LayoutPersistence.getDefaultSizes();
-		this._store({ geometry, sizes, version: 1 });
+		this._persist({ geometry, sizes, version: 1 });
 	}
 
 	scheduleSave(): void {
@@ -143,7 +141,7 @@ export class LayoutPersistence extends Disposable {
 		};
 	}
 
-	private _store(layout: IPersistedLayout): void {
+	private _persist(layout: IPersistedLayout): void {
 		try {
 			this._storage.store(STORAGE_KEY, JSON.stringify(layout), StorageScope.GLOBAL, StorageTarget.MACHINE);
 			this._onDidSave.fire(layout);
@@ -187,6 +185,8 @@ class LocalStorageAdapter implements IStorageService {
 		return () => ({ dispose() {} });
 	}
 
+	get(key: string, scope: StorageScope, fallbackValue: string): string;
+	get(key: string, scope: StorageScope, fallbackValue?: string): string | undefined;
 	get(key: string, _scope: StorageScope, fallbackValue?: string): string | undefined {
 		const backend = this._backend;
 		if (backend) {

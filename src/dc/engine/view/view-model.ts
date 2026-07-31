@@ -5,8 +5,8 @@
 
 import { Emitter, Event } from '../../core/events/emitter.js';
 import { Disposable } from '../../core/lifecycle/disposable.js';
-import { ITextModel } from '../model/text-model.js';
-import { Position } from '../../core/types/position.js';
+import { ITextModel, Position } from '../model/text-model.js';
+
 
 export interface IViewModel {
 	readonly onDidChangeViewLineCount: Event<{ count: number }>;

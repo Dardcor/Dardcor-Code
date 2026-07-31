@@ -32,6 +32,10 @@ export class BufferLogger implements IDisposable {
 		return [...this._buffer];
 	}
 
+	getContent(): string {
+		return this._buffer.map((entry) => `${formatTimestamp(entry.timestamp)} [${getLevelName(entry.level)}] ${entry.message}`).join('\n');
+	}
+
 	clear(): void {
 		this._buffer.length = 0;
 	}
@@ -39,4 +43,20 @@ export class BufferLogger implements IDisposable {
 	dispose(): void {
 		this.clear();
 	}
+}
+
+function getLevelName(level: LogLevel): string {
+	switch (level) {
+		case LogLevel.Trace: return 'trace';
+		case LogLevel.Debug: return 'debug';
+		case LogLevel.Info: return 'info';
+		case LogLevel.Warning: return 'warn';
+		case LogLevel.Error: return 'error';
+		case LogLevel.Critical: return 'critical';
+		default: return 'off';
+	}
+}
+
+function formatTimestamp(ts: number): string {
+	return new Date(ts).toISOString();
 }

@@ -1,11 +1,12 @@
 /**
  * Dardcor Code - User Profile Service (Task 148)
- * Mirrors: vs/platform/userDataProfile/common/userDataProfile.ts
+ * Mirrors: vs/platform/userDataProfile/common/userDataProfile.ts (profile state switcher)
  */
 
-import { URI } from '../../core/types/uri.js';
+import { createDecorator } from '../instantiation/annotations.js';
+import { Disposable } from '../../core/lifecycle/disposable.js';
 import { Emitter, Event } from '../../core/events/emitter.js';
-import { IDisposable } from '../../core/lifecycle/disposable.js';
+import { URI } from '../../core/types/uri.js';
 
 export interface IUserDataProfile {
 	readonly id: string;
@@ -17,52 +18,70 @@ export interface IUserDataProfile {
 	readonly extensionsResource: URI;
 }
 
-export const IUserDataProfileService = Symbol('IUserDataProfileService');
+export const IUserDataProfileService = createDecorator<IUserDataProfileService>('userDataProfileService');
 
-export interface IUserDataProfileService extends IDisposable {
+export interface IUserDataProfileService {
+	readonly _serviceBrand: undefined;
 	readonly onDidChangeCurrentProfile: Event<IUserDataProfile>;
 	readonly currentProfile: IUserDataProfile;
 	readonly profiles: IUserDataProfile[];
 	createProfile(name: string): Promise<IUserDataProfile>;
 	setProfile(profile: IUserDataProfile): Promise<void>;
+	deleteProfile(profile: IUserDataProfile): Promise<boolean>;
 }
 
-export class UserDataProfileService implements IUserDataProfileService {
+function profileResources(location: URI): Pick<IUserDataProfile, 'settingsResource' | 'keybindingsResource' | 'extensionsResource'> {
+	return {
+		settingsResource: URI.from({ scheme: location.scheme, path: `${location.path}/settings.json` }),
+		keybindingsResource: URI.from({ scheme: location.scheme, path: `${location.path}/keybindings.json` }),
+		extensionsResource: URI.from({ scheme: location.scheme, path: `${location.path}/extensions.json` }),
+	};
+}
+
+export class UserDataProfileService extends Disposable implements IUserDataProfileService {
+	declare readonly _serviceBrand: undefined;
+
 	private _currentProfile: IUserDataProfile;
 	private readonly _profiles: IUserDataProfile[] = [];
-	private readonly _onDidChangeCurrentProfile = new Emitter<IUserDataProfile>();
+
+	private readonly _onDidChangeCurrentProfile = this._register(new Emitter<IUserDataProfile>());
 	readonly onDidChangeCurrentProfile: Event<IUserDataProfile> = this._onDidChangeCurrentProfile.event;
 
 	constructor(defaultProfileLocation: URI) {
+		super();
 		this._currentProfile = {
 			id: 'default',
 			name: 'Default',
 			location: defaultProfileLocation,
 			isDefault: true,
-			settingsResource: URI.from({ scheme: defaultProfileLocation.scheme, path: `${defaultProfileLocation.path}/settings.json` }),
-			keybindingsResource: URI.from({ scheme: defaultProfileLocation.scheme, path: `${defaultProfileLocation.path}/keybindings.json` }),
-			extensionsResource: URI.from({ scheme: defaultProfileLocation.scheme, path: `${defaultProfileLocation.path}/extensions.json` }),
+			...profileResources(defaultProfileLocation),
 		};
 		this._profiles.push(this._currentProfile);
 	}
 
-	get currentProfile(): IUserDataProfile { return this._currentProfile; }
-	get profiles(): IUserDataProfile[] { return [...this._profiles]; }
+	get currentProfile(): IUserDataProfile {
+		return this._currentProfile;
+	}
+
+	get profiles(): IUserDataProfile[] {
+		return [...this._profiles];
+	}
 
 	async createProfile(name: string): Promise<IUserDataProfile> {
 		const id = name.toLowerCase().replace(/\s+/g, '-');
-		const location = URI.from({ scheme: this._currentProfile.location.scheme, path: `${this._currentProfile.location.path}/profiles/${id}` });
-		const p: IUserDataProfile = {
+		const location = URI.from({
+			scheme: this._currentProfile.location.scheme,
+			path: `${this._currentProfile.location.path}/profiles/${id}`,
+		});
+		const profile: IUserDataProfile = {
 			id,
 			name,
 			location,
 			isDefault: false,
-			settingsResource: URI.from({ scheme: location.scheme, path: `${location.path}/settings.json` }),
-			keybindingsResource: URI.from({ scheme: location.scheme, path: `${location.path}/keybindings.json` }),
-			extensionsResource: URI.from({ scheme: location.scheme, path: `${location.path}/extensions.json` }),
+			...profileResources(location),
 		};
-		this._profiles.push(p);
-		return p;
+		this._profiles.push(profile);
+		return profile;
 	}
 
 	async setProfile(profile: IUserDataProfile): Promise<void> {
@@ -72,7 +91,15 @@ export class UserDataProfileService implements IUserDataProfileService {
 		}
 	}
 
-	dispose(): void {
-		this._onDidChangeCurrentProfile.dispose();
+	async deleteProfile(profile: IUserDataProfile): Promise<boolean> {
+		if (profile.isDefault || profile === this._currentProfile) {
+			return false;
+		}
+		const idx = this._profiles.indexOf(profile);
+		if (idx < 0) {
+			return false;
+		}
+		this._profiles.splice(idx, 1);
+		return true;
 	}
 }

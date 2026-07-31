@@ -14,10 +14,12 @@ export interface IGlobalActionEvent {
 }
 
 interface IGlobalMenuEntry {
-	readonly id: GlobalActionId;
+	readonly id: GlobalActionId | string;
 	readonly label: string;
 	readonly keybinding?: string;
+	readonly separator?: boolean;
 }
+
 
 const SETTINGS_MENU: IGlobalMenuEntry[] = [
 	{ id: 'settings', label: 'Settings', keybinding: 'Ctrl+,' },
@@ -133,7 +135,7 @@ export class GlobalActions extends Disposable {
 				row.style.background = 'transparent';
 			});
 			row.addEventListener('click', () => {
-				this._onDidSelect.fire({ id: entry.id });
+				this._onDidSelect.fire({ id: entry.id as GlobalActionId });
 				this._closeMenu();
 			});
 			menu.appendChild(row);
