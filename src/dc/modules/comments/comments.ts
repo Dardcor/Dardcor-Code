@@ -1,0 +1,1 @@
+wexport class CommentsModule {}

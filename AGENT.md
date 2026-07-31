@@ -745,89 +745,89 @@ Desain warna default Dardcor Code :
 
 ### E1. parts utama
 
-- [ ] 669. titlebar: TitlebarPart lengkap (icon aplikasi, judul, tombol min/max/close, menu, aktivitas, drag region, centering, zoom) lengkap
-- [ ] 670. activitybar: ActivitybarPart lengkap (ikon semua viewlets, badge, tombol tambahan, sync) lengkap
-- [ ] 671. sidebar: SidebarPart lengkap (view container, ukuran, default views, hamburger menu) lengkap
-- [ ] 672. panel: PanelPart lengkap (output, problems, terminal, debug console, align, position, panel maximized) lengkap
-- [ ] 673. auxiliarybar: AuxiliaryBarPart lengkap lengkap
-- [ ] 674. editor: EditorPart lengkap (grid, split editor, tabs, tab bar, breadcrumbs, sticky, preview tabs, dirty indicator, close button, editor actions) lengkap
-- [ ] 675. statusbar: StatusbarPart lengkap (SEMUA item: branch, error, warning, info, cursor position, indent, encoding, language, spaces, line endings, remote, notification, feedback, settings, dll) lengkap
-- [ ] 676. banner: BannerPart lengkap lengkap
-- [ ] 677. dialogs: DialogPart lengkap (dialog modal: error, warning, info, confirmation, input) lengkap
-- [ ] 678. notifications: NotificationsCenterPart + NotificationsToastsPart lengkap (toast, center, actions, do not ask again) lengkap
-- [ ] 679. views: ViewsPart, ViewPaneContainer, ViewPane lengkap
-- [ ] 680. media: semua css dan icon media lengkap
+- [x] 669. titlebar: TitlebarPart lengkap (icon aplikasi, judul, tombol min/max/close, menu, aktivitas, drag region, centering, zoom) lengkap
+- [x] 670. activitybar: ActivitybarPart lengkap (ikon semua viewlets, badge, tombol tambahan, sync) lengkap
+- [x] 671. sidebar: SidebarPart lengkap (view container, ukuran, default views, hamburger menu) lengkap
+- [x] 672. panel: PanelPart lengkap (output, problems, terminal, debug console, align, position, panel maximized) lengkap
+- [x] 673. auxiliarybar: AuxiliaryBarPart lengkap lengkap
+- [x] 674. editor: EditorPart lengkap (grid, split editor, tabs, tab bar, breadcrumbs, sticky, preview tabs, dirty indicator, close button, editor actions) lengkap
+- [x] 675. statusbar: StatusbarPart lengkap (SEMUA item: branch, error, warning, info, cursor position, indent, encoding, language, spaces, line endings, remote, notification, feedback, settings, dll) lengkap
+- [x] 676. banner: BannerPart lengkap lengkap
+- [x] 677. dialogs: DialogPart lengkap (dialog modal: error, warning, info, confirmation, input) lengkap
+- [x] 678. notifications: NotificationsCenterPart + NotificationsToastsPart lengkap (toast, center, actions, do not ask again) lengkap
+- [x] 679. views: ViewsPart, ViewPaneContainer, ViewPane lengkap
+- [x] 680. media: semua css dan icon media lengkap
 
 ### E2. layout & windows
 
-- [ ] 681. layout.ts asli (WorkbenchLayout, LayoutState, dll) lengkap
-- [ ] 682. workbench.ts asli (Workbench, dll) lengkap
-- [ ] 683. workbenchActions.ts asli lengkap
-- [ ] 684. workbenchContributions.ts asli lengkap
-- [ ] 685. workbenchColors.ts asli (semua warna workbench) lengkap
-- [ ] 686. workbenchCommands.ts asli lengkap
-- [ ] 687. workbenchContextKeys.ts asli lengkap
-- [ ] 688. workbenchState.ts asli lengkap
-- [ ] 689. workbenchToolbar.ts asli lengkap
-- [ ] 690. workbenchThemeService.ts asli lengkap
-- [ ] 691. web.api.ts asli lengkap
-- [ ] 692. parts/titlebar/titlebarPart.ts asli lengkap
-- [ ] 693. parts/activitybar/activitybarPart.ts asli lengkap
-- [ ] 694. parts/sidebar/sidebarPart.ts asli lengkap
-- [ ] 695. parts/panel/panelPart.ts asli lengkap
-- [ ] 696. parts/editor/editorPart.ts asli lengkap
-- [ ] 697. parts/statusbar/statusbarPart.ts asli lengkap
-- [ ] 698. window.ts asli (Window, DOM helper, dll) lengkap
-- [ ] 699. zoom.ts asli (per-window zoom) lengkap
-- [ ] 700. contextmenu.ts asli lengkap
-- [ ] 701. bootstrap.ts asli (bootstrap, startup) lengkap
-- [ ] 702. media/contextview.css, statusbar.css, dll semua css lengkap
-- [ ] 703. resize: semua sash, splitter, drag area lengkap
-- [ ] 704. grid layout: seluruh grid workbench (activitybar, sidebar, panel, editor, statusbar, titlebar) lengkap
-- [ ] 705. window configuration: semua state window (bounds, maximized, fullscreen, minimized, restored) lengkap
+- [x] 681. layout.ts asli (WorkbenchLayout, LayoutState, dll) lengkap
+- [x] 682. workbench.ts asli (Workbench, dll) lengkap
+- [x] 683. workbenchActions.ts asli lengkap
+- [x] 684. workbenchContributions.ts asli lengkap
+- [x] 685. workbenchColors.ts asli (semua warna workbench) lengkap
+- [x] 686. workbenchCommands.ts asli lengkap
+- [x] 687. workbenchContextKeys.ts asli lengkap
+- [x] 688. workbenchState.ts asli lengkap
+- [x] 689. workbenchToolbar.ts asli lengkap
+- [x] 690. workbenchThemeService.ts asli lengkap
+- [x] 691. web.api.ts asli lengkap
+- [x] 692. parts/titlebar/titlebarPart.ts asli lengkap
+- [x] 693. parts/activitybar/activitybarPart.ts asli lengkap
+- [x] 694. parts/sidebar/sidebarPart.ts asli lengkap
+- [x] 695. parts/panel/panelPart.ts asli lengkap
+- [x] 696. parts/editor/editorPart.ts asli lengkap
+- [x] 697. parts/statusbar/statusbarPart.ts asli lengkap
+- [x] 698. window.ts asli (Window, DOM helper, dll) lengkap
+- [x] 699. zoom.ts asli (per-window zoom) lengkap
+- [x] 700. contextmenu.ts asli lengkap
+- [x] 701. bootstrap.ts asli (bootstrap, startup) lengkap
+- [x] 702. media/contextview.css, statusbar.css, dll semua css lengkap
+- [x] 703. resize: semua sash, splitter, drag area lengkap
+- [x] 704. grid layout: seluruh grid workbench (activitybar, sidebar, panel, editor, statusbar, titlebar) lengkap
+- [x] 705. window configuration: semua state window (bounds, maximized, fullscreen, minimized, restored) lengkap
 
 ## F. src/dc/modules (meniru src/vs/workbench/contrib VS Code asli 100%)
 
 ### F1. modul utama workbench
 
-- [ ] 706. accessibility: menu accessibility, screen reader mode, accessibility help dialog, accessibility notification lengkap
-- [ ] 707. accessibilitySignals: semua sinyal audio (error, warning, breakpoint, task, chat) lengkap
-- [ ] 708. authentication: sign in, akun, pengaturan autentikasi lengkap
-- [ ] 709. bulkEdit: bulk edit service lengkap
-- [ ] 710. callHierarchy: call hierarchy view (Shift+Alt+H) lengkap
-- [ ] 711. codeActions: code action menu, quick fixes, source actions lengkap
-- [ ] 712. codeEditor: code editor workbench integration lengkap
-- [ ] 713. comments: comment thread, resolve comment, comment editor lengkap
-- [ ] 714. customEditor: custom editor (hex editor, image preview) lengkap
-- [ ] 715. debug: DEBUG LENGKAP (lihat F2) lengkap
-- [ ] 716. editSessions: edit sessions (cloud changes) lengkap
-- [ ] 717. emmet: emmet expansion lengkap
-- [ ] 718. extensions: extension views, install, uninstall, update, marketplace lengkap
-- [ ] 719. externalTerminal: open in terminal, open external terminal lengkap
-- [ ] 720. externalUriOpener: external uri opener lengkap
-- [ ] 721. files: file explorer actions, new file, new folder, open file, open folder, save all lengkap
-- [ ] 722. folding: editor folding integration lengkap
-- [ ] 723. format: format integration lengkap
-- [ ] 724. git: GIT LENGKAP (lihat F3) lengkap
-- [ ] 725. inlayHints: inlay hints lengkap
-- [ ] 726. interactive: interactive windows lengkap
-- [ ] 727. issue: report issue lengkap
-- [ ] 728. keybindings: keybindings editor lengkap
-- [ ] 729. languageDetection: language detection lengkap
-- [ ] 730. languageStatus: language status item lengkap
-- [ ] 731. limitIndicator: limit indicator lengkap
-- [ ] 732. list: list view lengkap
-- [ ] 733. localHistory: local history (file local history) lengkap
-- [ ] 734. localization: localization lengkap
-- [ ] 735. logs: log output lengkap
-- [ ] 736. markdown: markdown preview lengkap
-- [ ] 737. markers: problems panel lengkap
-- [ ] 738. mergeEditor: merge editor lengkap
-- [ ] 739. meteredConnection: metered connection lengkap
-- [ ] 740. multiDiffEditor: multi diff editor lengkap
-- [ ] 741. notebook: notebook lengkap (lihat F4) lengkap
-- [ ] 742. onboarding: onboarding lengkap
-- [ ] 743. opener: opener lengkap
+- [x] 706. accessibility: menu accessibility, screen reader mode, accessibility help dialog, accessibility notification lengkap
+- [x] 707. accessibilitySignals: semua sinyal audio (error, warning, breakpoint, task, chat) lengkap
+- [x] 708. authentication: sign in, akun, pengaturan autentikasi lengkap
+- [x] 709. bulkEdit: bulk edit service lengkap
+- [x] 710. callHierarchy: call hierarchy view (Shift+Alt+H) lengkap
+- [x] 711. codeActions: code action menu, quick fixes, source actions lengkap
+- [x] 712. codeEditor: code editor workbench integration lengkap
+- [x] 713. comments: comment thread, resolve comment, comment editor lengkap
+- [x] 714. customEditor: custom editor (hex editor, image preview) lengkap
+- [x] 715. debug: DEBUG LENGKAP (lihat F2) lengkap
+- [x] 716. editSessions: edit sessions (cloud changes) lengkap
+- [x] 717. emmet: emmet expansion lengkap
+- [x] 718. extensions: extension views, install, uninstall, update, marketplace lengkap
+- [x] 719. externalTerminal: open in terminal, open external terminal lengkap
+- [x] 720. externalUriOpener: external uri opener lengkap
+- [x] 721. files: file explorer actions, new file, new folder, open file, open folder, save all lengkap
+- [x] 722. folding: editor folding integration lengkap
+- [x] 723. format: format integration lengkap
+- [x] 724. git: GIT LENGKAP (lihat F3) lengkap
+- [x] 725. inlayHints: inlay hints lengkap
+- [x] 726. interactive: interactive windows lengkap
+- [x] 727. issue: report issue lengkap
+- [x] 728. keybindings: keybindings editor lengkap
+- [x] 729. languageDetection: language detection lengkap
+- [x] 730. languageStatus: language status item lengkap
+- [x] 731. limitIndicator: limit indicator lengkap
+- [x] 732. list: list view lengkap
+- [x] 733. localHistory: local history (file local history) lengkap
+- [x] 734. localization: localization lengkap
+- [x] 735. logs: log output lengkap
+- [x] 736. markdown: markdown preview lengkap
+- [x] 737. markers: problems panel lengkap
+- [x] 738. mergeEditor: merge editor lengkap
+- [x] 739. meteredConnection: metered connection lengkap
+- [x] 740. multiDiffEditor: multi diff editor lengkap
+- [x] 741. notebook: notebook lengkap (lihat F4) lengkap
+- [x] 742. onboarding: onboarding lengkap
+- [x] 743. opener: opener lengkap
 - [ ] 744. outline: outline view lengkap
 - [ ] 745. output: output panel lengkap
 - [ ] 746. performance: performance lengkap
