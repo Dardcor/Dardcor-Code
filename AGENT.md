@@ -238,60 +238,60 @@ Desain warna default Dardcor Code :
 
 ### B3. core/node (meniru base/node)
 
-- [ ] 201. base/node/crypto.ts asli (createSHA256, randomBytes, dll) lengkap
-- [ ] 202. base/node/encoding.ts asli (encodingExists, bomLength, UTF8, dll) lengkap
-- [ ] 203. base/node/extpath.ts asli (realcaseSync, mkdirp, del, move, renames, copy, dll) lengkap
-- [ ] 204. base/node/pfs.ts asli (stat, lstat, mkdir, mkdirp, rename, readFile, writeFile, writeFileSync, rimraf, rm, exists, unlink, readdir, realpath, createDirectory, fileExists, dirExists, dll) lengkap
-- [ ] 205. base/node/processes.ts asli (ProcessItem, getProcessList, getWindowsProcessTree, dll) lengkap
-- [ ] 206. base/node/proxy.ts asli (getProxyAgent) lengkap
-- [ ] 207. base/node/request.ts asli (httpRequest, XHRResponse, dll) lengkap
-- [ ] 208. base/node/zip.ts asli (extract, Extractor, zip, pack, dll) lengkap
-- [ ] 209. base/node/flow.ts asli (devError) lengkap
-- [ ] 210. base/node/shell.ts asli (isWindowsShell, getWindowsShell, dll) lengkap
-- [ ] 211. base/node/ps.ts asli (listProcesses) lengkap
-- [ ] 212. base/node/watcher.ts asli (watch, IWatcher) lengkap
-- [ ] 213. base/node/ports.ts asli (findFreePort) lengkap
-- [ ] 214. base/node/terminateProcess.ts asli lengkap
-- [ ] 215. base/node/id.ts asli lengkap
-- [ ] 216. base/node/decoder.ts asli lengkap
-- [ ] 217. base/node/string.ts asli lengkap
-- [ ] 218. base/node/paths.ts asli (getAppDataPath) lengkap
-- [ ] 219. base/node/glob.ts asli lengkap
-- [ ] 220. base/node/nativeModules.ts asli lengkap
+- [x] 201. base/node/crypto.ts asli (createSHA256, randomBytes, dll) lengkap
+- [x] 202. base/node/encoding.ts asli (encodingExists, bomLength, UTF8, dll) lengkap
+- [x] 203. base/node/extpath.ts asli (realcaseSync, mkdirp, del, move, renames, copy, dll) lengkap
+- [x] 204. base/node/pfs.ts asli (stat, lstat, mkdir, mkdirp, rename, readFile, writeFile, writeFileSync, rimraf, rm, exists, unlink, readdir, realpath, createDirectory, fileExists, dirExists, dll) lengkap
+- [x] 205. base/node/processes.ts asli (ProcessItem, getProcessList, getWindowsProcessTree, dll) lengkap
+- [x] 206. base/node/proxy.ts asli (getProxyAgent) lengkap
+- [x] 207. base/node/request.ts asli (httpRequest, XHRResponse, dll) lengkap
+- [x] 208. base/node/zip.ts asli (extract, Extractor, zip, pack, dll) lengkap
+- [x] 209. base/node/flow.ts asli (devError) lengkap
+- [x] 210. base/node/shell.ts asli (isWindowsShell, getWindowsShell, dll) lengkap
+- [x] 211. base/node/ps.ts asli (listProcesses) lengkap
+- [x] 212. base/node/watcher.ts asli (watch, IWatcher) lengkap
+- [x] 213. base/node/ports.ts asli (findFreePort) lengkap
+- [x] 214. base/node/terminateProcess.ts asli lengkap
+- [x] 215. base/node/id.ts asli lengkap
+- [x] 216. base/node/decoder.ts asli lengkap
+- [x] 217. base/node/string.ts asli lengkap
+- [x] 218. base/node/paths.ts asli (getAppDataPath) lengkap
+- [x] 219. base/node/glob.ts asli lengkap
+- [x] 220. base/node/nativeModules.ts asli lengkap
 
 ### B4. core/parts (meniru base/parts)
 
-- [ ] 221. base/parts/quickinput (QuickInput, QuickPick, InputBox, QuickInputController, QuickPickItem, IQuickPickItem, QuickInputHideReason, dll) lengkap
-- [ ] 222. base/parts/quickinput/quickInputList.ts asli lengkap
-- [ ] 223. base/parts/quickinput/quickInputBox.ts asli lengkap
-- [ ] 224. base/parts/quickinput/quickInputButton.ts asli lengkap
-- [ ] 225. base/parts/quickinput/quickInputTree.ts asli lengkap
-- [ ] 226. base/parts/tree (Tree, TreeNode, IDataSource, IController, IRenderer, dll) lengkap
-- [ ] 227. base/parts/tree/treeModel.ts asli lengkap
-- [ ] 228. base/parts/tree/treeView.ts asli lengkap
-- [ ] 229. base/parts/tree/treeDefaults.ts asli lengkap
-- [ ] 230. base/parts/tree/treeUtil.ts asli lengkap
-- [ ] 231. base/parts/tree/treeDnd.ts asli lengkap
-- [ ] 232. base/parts/tree/treeFilter.ts asli lengkap
-- [ ] 233. base/parts/tree/treeKeyboardNavigation.ts asli lengkap
-- [ ] 234. base/parts/tree/treeContextMenu.ts asli lengkap
-- [ ] 235. base/parts/quickaccess (QuickAccessController, QuickAccessProvider) lengkap
-- [ ] 236. base/parts/speech (SpeechService) lengkap
+- [x] 221. base/parts/quickinput (QuickInput, QuickPick, InputBox, QuickInputController, QuickPickItem, IQuickPickItem, QuickInputHideReason, dll) lengkap
+- [x] 222. base/parts/quickinput/quickInputList.ts asli lengkap
+- [x] 223. base/parts/quickinput/quickInputBox.ts asli lengkap
+- [x] 224. base/parts/quickinput/quickInputButton.ts asli lengkap
+- [x] 225. base/parts/quickinput/quickInputTree.ts asli lengkap
+- [x] 226. base/parts/tree (Tree, TreeNode, IDataSource, IController, IRenderer, dll) lengkap
+- [x] 227. base/parts/tree/treeModel.ts asli lengkap
+- [x] 228. base/parts/tree/treeView.ts asli lengkap
+- [x] 229. base/parts/tree/treeDefaults.ts asli lengkap
+- [x] 230. base/parts/tree/treeUtil.ts asli lengkap
+- [x] 231. base/parts/tree/treeDnd.ts asli lengkap
+- [x] 232. base/parts/tree/treeFilter.ts asli lengkap
+- [x] 233. base/parts/tree/treeKeyboardNavigation.ts asli lengkap
+- [x] 234. base/parts/tree/treeContextMenu.ts asli lengkap
+- [x] 235. base/parts/quickaccess (QuickAccessController, QuickAccessProvider) lengkap
+- [x] 236. base/parts/speech (SpeechService) lengkap
 
 ## C. src/dc/engine (meniru src/vs/editor VS Code asli 100%)
 
 ### C1. engine/model
 
-- [ ] 237. editor/common/model/textModel.ts asli (TextModel, getTextModelContent, dll) 100% lengkap
-- [ ] 238. editor/common/model/lineModel.ts asli lengkap
-- [ ] 239. editor/common/model/textBuffer.ts asli lengkap
-- [ ] 240. editor/common/model/wordHelper.ts asli (getWordAtText, ensureValidWordDefinition, dll) lengkap
-- [ ] 241. editor/common/model/mirrorTextModel.ts asli lengkap
-- [ ] 242. editor/common/model/editStack.ts asli (EditStack, UndoRedoGroup, dll) lengkap
-- [ ] 243. editor/common/model/intervalTree.ts asli lengkap
-- [ ] 244. editor/common/model/indentRanges.ts asli lengkap
-- [ ] 245. editor/common/model/pieceTreeTextBuffer (PieceTreeTextBuffer, PieceTreeTextBufferBuilder, dll) lengkap
-- [ ] 246. editor/common/model/pieceTree.ts asli (PieceTree) lengkap
+- [x] 237. editor/common/model/textModel.ts asli (TextModel, getTextModelContent, dll) 100% lengkap
+- [x] 238. editor/common/model/lineModel.ts asli lengkap
+- [x] 239. editor/common/model/textBuffer.ts asli lengkap
+- [x] 240. editor/common/model/wordHelper.ts asli (getWordAtText, ensureValidWordDefinition, dll) lengkap
+- [x] 241. editor/common/model/mirrorTextModel.ts asli lengkap
+- [x] 242. editor/common/model/editStack.ts asli (EditStack, UndoRedoGroup, dll) lengkap
+- [x] 243. editor/common/model/intervalTree.ts asli lengkap
+- [x] 244. editor/common/model/indentRanges.ts asli lengkap
+- [x] 245. editor/common/model/pieceTreeTextBuffer (PieceTreeTextBuffer, PieceTreeTextBufferBuilder, dll) lengkap
+- [x] 246. editor/common/model/pieceTree.ts asli (PieceTree) lengkap
 - [ ] 247. editor/common/model/position.ts asli (Position) lengkap
 - [ ] 248. editor/common/model/range.ts asli (Range, RangeOffset) lengkap
 - [ ] 249. editor/common/model/selection.ts asli (Selection, Direction) lengkap
