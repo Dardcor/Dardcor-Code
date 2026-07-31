@@ -1,0 +1,9 @@
+{
+  "name": "theme-dark-modern",
+  "displayName": "Dark Modern Theme",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.0.0"
+  }
+}

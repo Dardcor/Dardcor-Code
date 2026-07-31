@@ -8,7 +8,6 @@
 	<link rel="icon" type="image/png" href="./public/dardcor-code.png">
 	<link rel="stylesheet" href="./node_modules/@xterm/xterm/css/xterm.css">
 	<style>
-		/* ─── Reset ───────────────────────────────────────────── */
 		*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 		html, body {
@@ -21,10 +20,8 @@
 			font-size: 13px;
 		}
 
-		/* ─── Workbench Shell ─────────────────────────────────── */
 		#workbench { display: flex; flex-direction: column; width: 100vw; height: 100vh; }
 
-		/* ─── Title Bar ───────────────────────────────────────── */
 		#titlebar {
 			height: 35px; background: #181818; display: flex; align-items: center; justify-content: space-between;
 			padding: 0 10px; font-size: 13px; border-bottom: 1px solid #2b2b2b; -webkit-app-region: drag; user-select: none;
@@ -44,10 +41,8 @@
 		}
 		#titlebar .search-box:hover { background: #333333; }
 
-		/* ─── Main Body ───────────────────────────────────────── */
 		#main-body { flex: 1; display: flex; overflow: hidden; }
 
-		/* ─── Activity Bar ────────────────────────────────────── */
 		#activitybar {
 			width: 48px; background: #181818; display: flex; flex-direction: column; align-items: center;
 			padding-top: 10px; gap: 10px; border-right: 1px solid #2b2b2b;
@@ -65,7 +60,6 @@
 		}
 		.activity-bottom { margin-top: auto; margin-bottom: 10px; display: flex; flex-direction: column; gap: 10px; }
 
-		/* ─── Sidebar ─────────────────────────────────────────── */
 		#sidebar { width: 280px; background: #1e1e1e; border-right: 1px solid #2b2b2b; display: flex; flex-direction: column; overflow: hidden; }
 		#sidebar-header {
 			padding: 10px 20px; font-weight: 400; font-size: 11px; letter-spacing: 0.5px;
@@ -92,10 +86,8 @@
 
 		.sidebar-footer { border-top: 1px solid #2b2b2b; }
 
-		/* ─── Center (Editor + Panel) ─────────────────────────── */
 		#center { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
-		/* ─── Editor Tabs ─────────────────────────────────────── */
 		#editor-tabs {
 			height: 35px; background: #1e1e1e; display: flex; align-items: flex-end;
 			overflow-x: auto; overflow-y: hidden;
@@ -118,10 +110,8 @@
 		.editor-tab.modified .tab-modified { display: block; }
 		.editor-tab.modified .tab-close { display: none; }
 
-		/* ─── Editor Area ─────────────────────────────────────── */
 		#editor-area { flex: 1; position: relative; overflow: hidden; background: #1e1e1e; }
 		
-		/* ─── Welcome Screen ──────────────────────────────────── */
 		#welcome-screen {
 			position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #1e1e1e;
 			display: flex; justify-content: center; padding-top: 60px; overflow-y: auto; z-index: 1;
@@ -144,7 +134,6 @@
 		.recent-item .path { color: #666666; font-size: 12px; }
 		.recent-item:hover .name { color: #3794ff; text-decoration: underline; }
 
-		/* ─── Panel (Terminal) ────────────────────────────────── */
 		#panel { height: 250px; background: #1e1e1e; border-top: 1px solid #414141; display: flex; flex-direction: column; }
 		#panel-tabs {
 			height: 35px; display: flex; align-items: center; padding: 0 10px; gap: 20px;
@@ -155,7 +144,6 @@
 		.panel-tab:hover { color: #cccccc; }
 		#terminal-container { flex: 1; overflow: hidden; padding: 4px 10px; }
 
-		/* ─── Status Bar ──────────────────────────────────────── */
 		#statusbar {
 			height: 22px; background: #007acc; color: #ffffff; display: flex; align-items: center;
 			justify-content: space-between; font-size: 12px; user-select: none;
@@ -166,7 +154,6 @@
 		#statusbar .restricted { background: #0065a9; font-weight: 600; padding: 0 12px; }
 		#statusbar .restricted:hover { background: #005c99; }
 
-		/* ─── Scrollbar Styles ────────────────────────────────── */
 		::-webkit-scrollbar { width: 14px; height: 14px; }
 		::-webkit-scrollbar-track { background: transparent; }
 		::-webkit-scrollbar-thumb { background: rgba(121, 121, 121, 0.4); border: 4px solid transparent; background-clip: padding-box; border-radius: 7px; }
@@ -177,10 +164,9 @@
 </head>
 <body>
 	<div id="workbench">
-		<!-- Title Bar -->
 		<div id="titlebar">
 			<div style="display:flex;align-items:center;">
-				<img class="logo" src="./assets/logo.svg" alt="logo">
+				<img class="logo" src="./public/dardcor-code.png" alt="logo">
 				<div class="menu-bar">
 					<span class="menu-item" id="menu-file">File</span>
 					<span class="menu-item" id="menu-edit">Edit</span>
@@ -197,13 +183,10 @@
 				<div class="search-box" id="title-filename">🔍 Dardcor-Code-New</div>
 			</div>
 			<div style="width: 250px; display:flex; justify-content:flex-end;">
-				<!-- Window Controls would go here -->
 			</div>
 		</div>
 
-		<!-- Main Body -->
 		<div id="main-body">
-			<!-- Activity Bar -->
 			<div id="activitybar">
 				<div class="activity-icon active" data-view="explorer" title="Explorer">
 					<img src="./assets/explorer.svg" alt="Explorer">
@@ -227,7 +210,6 @@
 				</div>
 			</div>
 
-			<!-- Sidebar -->
 			<div id="sidebar">
 				<div id="sidebar-header">
 					<span>EXPLORER</span>
@@ -248,9 +230,7 @@
 				</div>
 			</div>
 
-			<!-- Center -->
 			<div id="center">
-				<!-- Editor Tabs -->
 				<div id="editor-tabs">
 					<div class="editor-tab active" id="welcome-tab">
 						<span style="color:#007acc;font-size:16px;">VS</span> 
@@ -259,12 +239,11 @@
 					</div>
 				</div>
 
-				<!-- Editor Area -->
 				<div id="editor-area">
 					<div id="welcome-screen">
 						<div class="welcome-content">
 							<div class="welcome-col">
-								<img class="welcome-logo" src="./assets/logo.svg" alt="Dardcor Code">
+								<img class="welcome-logo" src="./public/dardcor-code.png" alt="Dardcor Code">
 								<div class="welcome-header">Start</div>
 								<div class="welcome-link" id="btn-welcome-new-file"><span class="icon">📄</span> New File...</div>
 								<div class="welcome-link" id="btn-welcome-open-file"><span class="icon">📂</span> Open File...</div>

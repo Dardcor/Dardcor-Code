@@ -1,0 +1,9 @@
+{
+  "name": "json",
+  "displayName": "JSON Language Support",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.0.0"
+  }
+}

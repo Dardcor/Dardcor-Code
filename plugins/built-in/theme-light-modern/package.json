@@ -1,0 +1,9 @@
+{
+  "name": "theme-light-modern",
+  "displayName": "Light Modern Theme",
+  "version": "1.0.0",
+  "publisher": "dardcor",
+  "engines": {
+    "vscode": "^1.0.0"
+  }
+}
