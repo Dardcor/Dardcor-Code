@@ -1,0 +1,3 @@
+* text=auto eol=lf
+*.{cmd,[cC][aA][tT]} text eol=crlf
+*.bat text eol=crlf

@@ -5,9 +5,16 @@
   "main": "dist/dc/launcher/main/electron-main.js",
   "type": "module",
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "start": "tsc && electron ."
+    "build": "gulp build",
+    "compile": "gulp compile",
+    "minify": "gulp minify",
+    "terser": "gulp terser",
+    "watch": "gulp watch",
+    "test": "gulp test",
+    "lint": "eslint .",
+    "package": "gulp package",
+    "electron-builder": "electron-builder",
+    "start": "electron ."
   },
   "keywords": [
     "editor",
