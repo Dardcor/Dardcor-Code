@@ -1333,137 +1333,137 @@ Desain warna default Dardcor Code :
 - [x] 1202. server/common/server.ts asli lengkap
 - [x] 1203. server/common/serverEnvironment.ts asli lengkap
 - [x] 1204. server/common/serverUrl.ts asli lengkap
-- [ ] 1205. server/common/serverProtocol.ts asli lengkap
-- [ ] 1206. server/common/serverConnection.ts asli lengkap
-- [ ] 1207. server/common/serverTask.ts asli lengkap
-- [ ] 1208. server/common/serverTelemetry.ts asli lengkap
-- [ ] 1209. server/common/serverMetrics.ts asli lengkap
-- [ ] 1210. server/common/serverTraffic.ts asli lengkap
-- [ ] 1211. server/common/serverAuth.ts asli lengkap
-- [ ] 1212. server/common/serverRequest.ts asli lengkap
-- [ ] 1213. server/common/serverToken.ts asli lengkap
-- [ ] 1214. server/common/serverSession.ts asli lengkap
-- [ ] 1215. server/common/serverPort.ts asli lengkap
-- [ ] 1216. server/common/serverHost.ts asli lengkap
-- [ ] 1217. server/common/serverProxy.ts asli lengkap
-- [ ] 1218. server/common/serverAgent.ts asli lengkap
-- [ ] 1219. server/common/serverDownload.ts asli lengkap
-- [ ] 1220. server/common/serverUpdate.ts asli lengkap
-- [ ] 1221. server/common/serverResources.ts asli lengkap
-- [ ] 1222. server/common/serverEndpoints.ts asli lengkap
-- [ ] 1223. server/common/serverTunnel.ts asli lengkap
-- [ ] 1224. server/common/serverUserData.ts asli lengkap
-- [ ] 1225. server/common/serverExtensions.ts asli lengkap
-- [ ] 1226. server/common/serverWorkbench.ts asli lengkap
-- [ ] 1227. server/common/serverWindow.ts asli lengkap
-- [ ] 1228. server/common/serverMenus.ts asli lengkap
-- [ ] 1229. server/common/serverCommands.ts asli lengkap
-- [ ] 1230. server/common/serverKeybindings.ts asli lengkap
-- [ ] 1231. server/common/serverLanguage.ts asli lengkap
-- [ ] 1232. server/common/serverMarker.ts asli lengkap
-- [ ] 1233. server/common/serverNotification.ts asli lengkap
-- [ ] 1234. server/common/serverProgress.ts asli lengkap
-- [ ] 1235. server/common/serverDialogs.ts asli lengkap
-- [ ] 1236. server/common/serverQuickInput.ts asli lengkap
-- [ ] 1237. server/common/serverWebview.ts asli lengkap
-- [ ] 1238. server/common/serverChat.ts asli lengkap
-- [ ] 1239. server/common/serverHistory.ts asli lengkap
-- [ ] 1240. server/common/serverExplorer.ts asli lengkap
-- [ ] 1241. server/common/serverSearchView.ts asli lengkap
-- [ ] 1242. server/common/serverSCM.ts asli lengkap
-- [ ] 1243. server/common/serverDebug.ts asli lengkap
-- [ ] 1244. server/common/serverTerminalView.ts asli lengkap
-- [ ] 1245. server/common/serverProblems.ts asli lengkap
-- [ ] 1246. server/common/serverOutput.ts asli lengkap
-- [ ] 1247. server/common/serverStatusbar.ts asli lengkap
-- [ ] 1248. server/common/serverActivitybar.ts asli lengkap
-- [ ] 1249. server/common/serverPanel.ts asli lengkap
-- [ ] 1250. server/common/serverSidebar.ts asli lengkap
-- [ ] 1251. server/common/serverEditor.ts asli lengkap
-- [ ] 1252. server/common/serverTitlebar.ts asli lengkap
-- [ ] 1253. server/common/serverBanner.ts asli lengkap
-- [ ] 1254. server/common/serverSettings.ts asli lengkap
-- [ ] 1255. server/common/serverKeybindingsEditor.ts asli lengkap
-- [ ] 1256. server/common/serverThemes.ts asli lengkap
-- [ ] 1257. server/common/serverTimeline.ts asli lengkap
-- [ ] 1258. server/common/serverTesting.ts asli lengkap
-- [ ] 1259. server/common/serverNotebook.ts asli lengkap
-- [ ] 1260. server/common/serverCustomEditor.ts asli lengkap
-- [ ] 1261. server/common/serverCustomEditorView.ts asli lengkap
-- [ ] 1262. server/common/serverWebviewView.ts asli lengkap
-- [ ] 1263. server/common/serverComments.ts asli lengkap
-- [ ] 1264. server/common/serverMerge.ts asli lengkap
-- [ ] 1265. server/common/serverMultiDiff.ts asli lengkap
-- [ ] 1266. server/common/serverInteractive.ts asli lengkap
-- [ ] 1267. server/common/serverReplNotebook.ts asli lengkap
-- [ ] 1268. server/common/serverChatView.ts asli lengkap
-- [ ] 1269. server/common/serverExtensionsView.ts asli lengkap
-- [ ] 1270. server/common/serverRemoteView.ts asli lengkap
-- [ ] 1271. server/common/serverRemoteTunnel.ts asli lengkap
-- [ ] 1272. server/common/serverWorkspace.ts asli lengkap
-- [ ] 1273. server/common/serverWorkspaces.ts asli lengkap
-- [ ] 1274. server/common/serverUserDataProfile.ts asli lengkap
-- [ ] 1275. server/common/serverUserDataSync.ts asli lengkap
-- [ ] 1276. server/common/serverLocalization.ts asli lengkap
-- [ ] 1277. server/common/serverTelemetryView.ts asli lengkap
-- [ ] 1278. server/common/serverSurveys.ts asli lengkap
-- [ ] 1279. server/common/serverGettingStarted.ts asli lengkap
-- [ ] 1280. server/common/serverWelcome.ts asli lengkap
-- [ ] 1281. server/common/serverWelcomeViews.ts asli lengkap
-- [ ] 1282. server/common/serverWalkthrough.ts asli lengkap
-- [ ] 1283. server/common/serverSplash.ts asli lengkap
-- [ ] 1284. server/common/serverIssue.ts asli lengkap
-- [ ] 1285. server/common/serverShare.ts asli lengkap
-- [ ] 1286. server/common/serverClipboard.ts asli lengkap
-- [ ] 1287. server/common/serverDragAndDrop.ts asli lengkap
-- [ ] 1288. server/common/serverDropOrPaste.ts asli lengkap
-- [ ] 1289. server/common/serverCopyPaste.ts asli lengkap
-- [ ] 1290. server/common/serverSelection.ts asli lengkap
-- [ ] 1291. server/common/serverFolding.ts asli lengkap
-- [ ] 1292. server/common/serverFind.ts asli lengkap
-- [ ] 1293. server/common/serverFormat.ts asli lengkap
-- [ ] 1294. server/common/serverInlayHints.ts asli lengkap
-- [ ] 1295. server/common/serverInlineCompletions.ts asli lengkap
-- [ ] 1296. server/common/serverSnippet.ts asli lengkap
-- [ ] 1297. server/common/serverSuggest.ts asli lengkap
-- [ ] 1298. server/common/serverHover.ts asli lengkap
-- [ ] 1299. server/common/serverParameterHints.ts asli lengkap
-- [ ] 1300. server/common/serverRename.ts asli lengkap
-- [ ] 1301. server/common/serverReferenceSearch.ts asli lengkap
-- [ ] 1302. server/common/serverGotoDefinition.ts asli lengkap
-- [ ] 1303. server/common/serverCallHierarchy.ts asli lengkap
-- [ ] 1304. server/common/serverTypeHierarchy.ts asli lengkap
-- [ ] 1305. server/common/serverSemanticTokens.ts asli lengkap
-- [ ] 1306. server/common/serverCodeLens.ts asli lengkap
-- [ ] 1307. server/common/serverCodeAction.ts asli lengkap
-- [ ] 1308. server/common/serverCommentsEditor.ts asli lengkap
-- [ ] 1309. server/common/serverColorPicker.ts asli lengkap
-- [ ] 1310. server/common/serverWordHighlighter.ts asli lengkap
-- [ ] 1311. server/common/serverLinks.ts asli lengkap
-- [ ] 1312. server/common/serverStickyScroll.ts asli lengkap
-- [ ] 1313. server/common/serverBreadcrumbs.ts asli lengpak
-- [ ] 1314. server/common/serverDiffEditor.ts asli lengkap
-- [ ] 1315. server/common/serverInlineDiff.ts asli lengkap
-- [ ] 1316. server/common/serverPeekView.ts asli lengkap
-- [ ] 1317. server/common/serverZoneWidget.ts asli lengkap
-- [ ] 1318. server/common/serverGhostText.ts asli lengkap
-- [ ] 1319. server/common/serverUnicodeHighlighter.ts asli lengkap
-- [ ] 1320. server/common/serverMinimap.ts asli lengkap
-- [ ] 1321. server/common/serverOverviewRuler.ts asli lengkap
-- [ ] 1322. server/common/serverGlyphMargin.ts asli lengkap
-- [ ] 1323. server/common/serverLineNumbers.ts asli lengkap
-- [ ] 1324. server/common/serverIndentGuides.ts asli lengkap
-- [ ] 1325. server/common/serverBracketGuides.ts asli lengkap
-- [ ] 1326. server/common/serverScrollbar.ts asli lengkap
-- [ ] 1327. server/common/serverRuler.ts asli lengkap
-- [ ] 1328. server/common/serverCursor.ts asli lengkap
-- [ ] 1329. server/common/serverSelectionRenderer.ts asli lengkap
-- [ ] 1330. server/common/serverWhitespaceRenderer.ts asli lengkap
-- [ ] 1331. server/common/serverCurrentLine.ts asli lengkap
-- [ ] 1332. server/common/serverDecorations.ts asli lengkap
-- [ ] 1333. server/common/serverContentWidgets.ts asli lengkap
-- [ ] 1334. server/common/serverOverlayWidgets.ts asli lengkap
-- [ ] 1335. server/common/serverViewZones.ts asli lengkap
+- [x] 1205. server/common/serverProtocol.ts asli lengkap
+- [x] 1206. server/common/serverConnection.ts asli lengkap
+- [x] 1207. server/common/serverTask.ts asli lengkap
+- [x] 1208. server/common/serverTelemetry.ts asli lengkap
+- [x] 1209. server/common/serverMetrics.ts asli lengkap
+- [x] 1210. server/common/serverTraffic.ts asli lengkap
+- [x] 1211. server/common/serverAuth.ts asli lengkap
+- [x] 1212. server/common/serverRequest.ts asli lengkap
+- [x] 1213. server/common/serverToken.ts asli lengkap
+- [x] 1214. server/common/serverSession.ts asli lengkap
+- [x] 1215. server/common/serverPort.ts asli lengkap
+- [x] 1216. server/common/serverHost.ts asli lengkap
+- [x] 1217. server/common/serverProxy.ts asli lengkap
+- [x] 1218. server/common/serverAgent.ts asli lengkap
+- [x] 1219. server/common/serverDownload.ts asli lengkap
+- [x] 1220. server/common/serverUpdate.ts asli lengkap
+- [x] 1221. server/common/serverResources.ts asli lengkap
+- [x] 1222. server/common/serverEndpoints.ts asli lengkap
+- [x] 1223. server/common/serverTunnel.ts asli lengkap
+- [x] 1224. server/common/serverUserData.ts asli lengkap
+- [x] 1225. server/common/serverExtensions.ts asli lengkap
+- [x] 1226. server/common/serverWorkbench.ts asli lengkap
+- [x] 1227. server/common/serverWindow.ts asli lengkap
+- [x] 1228. server/common/serverMenus.ts asli lengkap
+- [x] 1229. server/common/serverCommands.ts asli lengkap
+- [x] 1230. server/common/serverKeybindings.ts asli lengkap
+- [x] 1231. server/common/serverLanguage.ts asli lengkap
+- [x] 1232. server/common/serverMarker.ts asli lengkap
+- [x] 1233. server/common/serverNotification.ts asli lengkap
+- [x] 1234. server/common/serverProgress.ts asli lengkap
+- [x] 1235. server/common/serverDialogs.ts asli lengkap
+- [x] 1236. server/common/serverQuickInput.ts asli lengkap
+- [x] 1237. server/common/serverWebview.ts asli lengkap
+- [x] 1238. server/common/serverChat.ts asli lengkap
+- [x] 1239. server/common/serverHistory.ts asli lengkap
+- [x] 1240. server/common/serverExplorer.ts asli lengkap
+- [x] 1241. server/common/serverSearchView.ts asli lengkap
+- [x] 1242. server/common/serverSCM.ts asli lengkap
+- [x] 1243. server/common/serverDebug.ts asli lengkap
+- [x] 1244. server/common/serverTerminalView.ts asli lengkap
+- [x] 1245. server/common/serverProblems.ts asli lengkap
+- [x] 1246. server/common/serverOutput.ts asli lengkap
+- [x] 1247. server/common/serverStatusbar.ts asli lengkap
+- [x] 1248. server/common/serverActivitybar.ts asli lengkap
+- [x] 1249. server/common/serverPanel.ts asli lengkap
+- [x] 1250. server/common/serverSidebar.ts asli lengkap
+- [x] 1251. server/common/serverEditor.ts asli lengkap
+- [x] 1252. server/common/serverTitlebar.ts asli lengkap
+- [x] 1253. server/common/serverBanner.ts asli lengkap
+- [x] 1254. server/common/serverSettings.ts asli lengkap
+- [x] 1255. server/common/serverKeybindingsEditor.ts asli lengkap
+- [x] 1256. server/common/serverThemes.ts asli lengkap
+- [x] 1257. server/common/serverTimeline.ts asli lengkap
+- [x] 1258. server/common/serverTesting.ts asli lengkap
+- [x] 1259. server/common/serverNotebook.ts asli lengkap
+- [x] 1260. server/common/serverCustomEditor.ts asli lengkap
+- [x] 1261. server/common/serverCustomEditorView.ts asli lengkap
+- [x] 1262. server/common/serverWebviewView.ts asli lengkap
+- [x] 1263. server/common/serverComments.ts asli lengkap
+- [x] 1264. server/common/serverMerge.ts asli lengkap
+- [x] 1265. server/common/serverMultiDiff.ts asli lengkap
+- [x] 1266. server/common/serverInteractive.ts asli lengkap
+- [x] 1267. server/common/serverReplNotebook.ts asli lengkap
+- [x] 1268. server/common/serverChatView.ts asli lengkap
+- [x] 1269. server/common/serverExtensionsView.ts asli lengkap
+- [x] 1270. server/common/serverRemoteView.ts asli lengkap
+- [x] 1271. server/common/serverRemoteTunnel.ts asli lengkap
+- [x] 1272. server/common/serverWorkspace.ts asli lengkap
+- [x] 1273. server/common/serverWorkspaces.ts asli lengkap
+- [x] 1274. server/common/serverUserDataProfile.ts asli lengkap
+- [x] 1275. server/common/serverUserDataSync.ts asli lengkap
+- [x] 1276. server/common/serverLocalization.ts asli lengkap
+- [x] 1277. server/common/serverTelemetryView.ts asli lengkap
+- [x] 1278. server/common/serverSurveys.ts asli lengkap
+- [x] 1279. server/common/serverGettingStarted.ts asli lengkap
+- [x] 1280. server/common/serverWelcome.ts asli lengkap
+- [x] 1281. server/common/serverWelcomeViews.ts asli lengkap
+- [x] 1282. server/common/serverWalkthrough.ts asli lengkap
+- [x] 1283. server/common/serverSplash.ts asli lengkap
+- [x] 1284. server/common/serverIssue.ts asli lengkap
+- [x] 1285. server/common/serverShare.ts asli lengkap
+- [x] 1286. server/common/serverClipboard.ts asli lengkap
+- [x] 1287. server/common/serverDragAndDrop.ts asli lengkap
+- [x] 1288. server/common/serverDropOrPaste.ts asli lengkap
+- [x] 1289. server/common/serverCopyPaste.ts asli lengkap
+- [x] 1290. server/common/serverSelection.ts asli lengkap
+- [x] 1291. server/common/serverFolding.ts asli lengkap
+- [x] 1292. server/common/serverFind.ts asli lengkap
+- [x] 1293. server/common/serverFormat.ts asli lengkap
+- [x] 1294. server/common/serverInlayHints.ts asli lengkap
+- [x] 1295. server/common/serverInlineCompletions.ts asli lengkap
+- [x] 1296. server/common/serverSnippet.ts asli lengkap
+- [x] 1297. server/common/serverSuggest.ts asli lengkap
+- [x] 1298. server/common/serverHover.ts asli lengkap
+- [x] 1299. server/common/serverParameterHints.ts asli lengkap
+- [x] 1300. server/common/serverRename.ts asli lengkap
+- [x] 1301. server/common/serverReferenceSearch.ts asli lengkap
+- [x] 1302. server/common/serverGotoDefinition.ts asli lengkap
+- [x] 1303. server/common/serverCallHierarchy.ts asli lengkap
+- [x] 1304. server/common/serverTypeHierarchy.ts asli lengkap
+- [x] 1305. server/common/serverSemanticTokens.ts asli lengkap
+- [x] 1306. server/common/serverCodeLens.ts asli lengkap
+- [x] 1307. server/common/serverCodeAction.ts asli lengkap
+- [x] 1308. server/common/serverCommentsEditor.ts asli lengkap
+- [x] 1309. server/common/serverColorPicker.ts asli lengkap
+- [x] 1310. server/common/serverWordHighlighter.ts asli lengkap
+- [x] 1311. server/common/serverLinks.ts asli lengkap
+- [x] 1312. server/common/serverStickyScroll.ts asli lengkap
+- [x] 1313. server/common/serverBreadcrumbs.ts asli lengpak
+- [x] 1314. server/common/serverDiffEditor.ts asli lengkap
+- [x] 1315. server/common/serverInlineDiff.ts asli lengkap
+- [x] 1316. server/common/serverPeekView.ts asli lengkap
+- [x] 1317. server/common/serverZoneWidget.ts asli lengkap
+- [x] 1318. server/common/serverGhostText.ts asli lengkap
+- [x] 1319. server/common/serverUnicodeHighlighter.ts asli lengkap
+- [x] 1320. server/common/serverMinimap.ts asli lengkap
+- [x] 1321. server/common/serverOverviewRuler.ts asli lengkap
+- [x] 1322. server/common/serverGlyphMargin.ts asli lengkap
+- [x] 1323. server/common/serverLineNumbers.ts asli lengkap
+- [x] 1324. server/common/serverIndentGuides.ts asli lengkap
+- [x] 1325. server/common/serverBracketGuides.ts asli lengkap
+- [x] 1326. server/common/serverScrollbar.ts asli lengkap
+- [x] 1327. server/common/serverRuler.ts asli lengkap
+- [x] 1328. server/common/serverCursor.ts asli lengkap
+- [x] 1329. server/common/serverSelectionRenderer.ts asli lengkap
+- [x] 1330. server/common/serverWhitespaceRenderer.ts asli lengkap
+- [x] 1331. server/common/serverCurrentLine.ts asli lengkap
+- [x] 1332. server/common/serverDecorations.ts asli lengkap
+- [x] 1333. server/common/serverContentWidgets.ts asli lengkap
+- [x] 1334. server/common/serverOverlayWidgets.ts asli lengkap
+- [x] 1335. server/common/serverViewZones.ts asli lengkap
 
 ## I. src/dc/extension-api (meniru src/vscode-dts VS Code asli 100%)
 

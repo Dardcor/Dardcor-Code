@@ -1,0 +1,1 @@
+export {} // fileTypeAssociations API
