@@ -1392,54 +1392,54 @@ Desain warna default Dardcor Code :
 - [x] 1261. server/common/serverCustomEditorView.ts asli lengkap
 - [x] 1262. server/common/serverWebviewView.ts asli lengkap
 - [x] 1263. server/common/serverComments.ts asli lengkap
-- [ ] 1264. server/common/serverMerge.ts asli lengkap
-- [ ] 1265. server/common/serverMultiDiff.ts asli lengkap
-- [ ] 1266. server/common/serverInteractive.ts asli lengkap
-- [ ] 1267. server/common/serverReplNotebook.ts asli lengkap
-- [ ] 1268. server/common/serverChatView.ts asli lengkap
-- [ ] 1269. server/common/serverExtensionsView.ts asli lengkap
-- [ ] 1270. server/common/serverRemoteView.ts asli lengkap
-- [ ] 1271. server/common/serverRemoteTunnel.ts asli lengkap
-- [ ] 1272. server/common/serverWorkspace.ts asli lengkap
-- [ ] 1273. server/common/serverWorkspaces.ts asli lengkap
-- [ ] 1274. server/common/serverUserDataProfile.ts asli lengkap
-- [ ] 1275. server/common/serverUserDataSync.ts asli lengkap
-- [ ] 1276. server/common/serverLocalization.ts asli lengkap
-- [ ] 1277. server/common/serverTelemetryView.ts asli lengkap
-- [ ] 1278. server/common/serverSurveys.ts asli lengkap
-- [ ] 1279. server/common/serverGettingStarted.ts asli lengkap
-- [ ] 1280. server/common/serverWelcome.ts asli lengkap
-- [ ] 1281. server/common/serverWelcomeViews.ts asli lengkap
-- [ ] 1282. server/common/serverWalkthrough.ts asli lengkap
-- [ ] 1283. server/common/serverSplash.ts asli lengkap
-- [ ] 1284. server/common/serverIssue.ts asli lengkap
-- [ ] 1285. server/common/serverShare.ts asli lengkap
-- [ ] 1286. server/common/serverClipboard.ts asli lengkap
-- [ ] 1287. server/common/serverDragAndDrop.ts asli lengkap
-- [ ] 1288. server/common/serverDropOrPaste.ts asli lengkap
-- [ ] 1289. server/common/serverCopyPaste.ts asli lengkap
-- [ ] 1290. server/common/serverSelection.ts asli lengkap
-- [ ] 1291. server/common/serverFolding.ts asli lengkap
-- [ ] 1292. server/common/serverFind.ts asli lengkap
-- [ ] 1293. server/common/serverFormat.ts asli lengkap
-- [ ] 1294. server/common/serverInlayHints.ts asli lengkap
-- [ ] 1295. server/common/serverInlineCompletions.ts asli lengkap
-- [ ] 1296. server/common/serverSnippet.ts asli lengkap
-- [ ] 1297. server/common/serverSuggest.ts asli lengkap
-- [ ] 1298. server/common/serverHover.ts asli lengkap
-- [ ] 1299. server/common/serverParameterHints.ts asli lengkap
-- [ ] 1300. server/common/serverRename.ts asli lengkap
-- [ ] 1301. server/common/serverReferenceSearch.ts asli lengkap
-- [ ] 1302. server/common/serverGotoDefinition.ts asli lengkap
-- [ ] 1303. server/common/serverCallHierarchy.ts asli lengkap
-- [ ] 1304. server/common/serverTypeHierarchy.ts asli lengkap
-- [ ] 1305. server/common/serverSemanticTokens.ts asli lengkap
-- [ ] 1306. server/common/serverCodeLens.ts asli lengkap
-- [ ] 1307. server/common/serverCodeAction.ts asli lengkap
-- [ ] 1308. server/common/serverCommentsEditor.ts asli lengkap
-- [ ] 1309. server/common/serverColorPicker.ts asli lengkap
-- [ ] 1310. server/common/serverWordHighlighter.ts asli lengkap
-- [ ] 1311. server/common/serverLinks.ts asli lengkap
+- [x] 1264. server/common/serverMerge.ts asli lengkap
+- [x] 1265. server/common/serverMultiDiff.ts asli lengkap
+- [x] 1266. server/common/serverInteractive.ts asli lengkap
+- [x] 1267. server/common/serverReplNotebook.ts asli lengkap
+- [x] 1268. server/common/serverChatView.ts asli lengkap
+- [x] 1269. server/common/serverExtensionsView.ts asli lengkap
+- [x] 1270. server/common/serverRemoteView.ts asli lengkap
+- [x] 1271. server/common/serverRemoteTunnel.ts asli lengkap
+- [x] 1272. server/common/serverWorkspace.ts asli lengkap
+- [x] 1273. server/common/serverWorkspaces.ts asli lengkap
+- [x] 1274. server/common/serverUserDataProfile.ts asli lengkap
+- [x] 1275. server/common/serverUserDataSync.ts asli lengkap
+- [x] 1276. server/common/serverLocalization.ts asli lengkap
+- [x] 1277. server/common/serverTelemetryView.ts asli lengkap
+- [x] 1278. server/common/serverSurveys.ts asli lengkap
+- [x] 1279. server/common/serverGettingStarted.ts asli lengkap
+- [x] 1280. server/common/serverWelcome.ts asli lengkap
+- [x] 1281. server/common/serverWelcomeViews.ts asli lengkap
+- [x] 1282. server/common/serverWalkthrough.ts asli lengkap
+- [x] 1283. server/common/serverSplash.ts asli lengkap
+- [x] 1284. server/common/serverIssue.ts asli lengkap
+- [x] 1285. server/common/serverShare.ts asli lengkap
+- [x] 1286. server/common/serverClipboard.ts asli lengkap
+- [x] 1287. server/common/serverDragAndDrop.ts asli lengkap
+- [x] 1288. server/common/serverDropOrPaste.ts asli lengkap
+- [x] 1289. server/common/serverCopyPaste.ts asli lengkap
+- [x] 1290. server/common/serverSelection.ts asli lengkap
+- [x] 1291. server/common/serverFolding.ts asli lengkap
+- [x] 1292. server/common/serverFind.ts asli lengkap
+- [x] 1293. server/common/serverFormat.ts asli lengkap
+- [x] 1294. server/common/serverInlayHints.ts asli lengkap
+- [x] 1295. server/common/serverInlineCompletions.ts asli lengkap
+- [x] 1296. server/common/serverSnippet.ts asli lengkap
+- [x] 1297. server/common/serverSuggest.ts asli lengkap
+- [x] 1298. server/common/serverHover.ts asli lengkap
+- [x] 1299. server/common/serverParameterHints.ts asli lengkap
+- [x] 1300. server/common/serverRename.ts asli lengkap
+- [x] 1301. server/common/serverReferenceSearch.ts asli lengkap
+- [x] 1302. server/common/serverGotoDefinition.ts asli lengkap
+- [x] 1303. server/common/serverCallHierarchy.ts asli lengkap
+- [x] 1304. server/common/serverTypeHierarchy.ts asli lengkap
+- [x] 1305. server/common/serverSemanticTokens.ts asli lengkap
+- [x] 1306. server/common/serverCodeLens.ts asli lengkap
+- [x] 1307. server/common/serverCodeAction.ts asli lengkap
+- [x] 1308. server/common/serverCommentsEditor.ts asli lengkap
+- [x] 1309. server/common/serverColorPicker.ts asli lengkap
+- [x] 1310. server/common/serverWordHighlighter.ts asli lengkap
+- [x] 1311. server/common/serverLinks.ts asli lengkap
 - [ ] 1312. server/common/serverStickyScroll.ts asli lengkap
 - [ ] 1313. server/common/serverBreadcrumbs.ts asli lengpak
 - [ ] 1314. server/common/serverDiffEditor.ts asli lengkap
@@ -2712,10 +2712,3 @@ Desain warna default Dardcor Code :
 - [ ] 2517. Bandingkan semua fitur portable mode asli dengan Dardcor Code, samakan semua
 - [ ] 2518. Bandingkan semua fitur installer asli dengan Dardcor Code, samakan semua
 - [ ] 2519. Centang semua item yang sudah selesai di list ini, ulangi dari A sampai U sampai semua tercentang dan aplikasi 100% sama persis dengan Visual Studio Code asli
-
-
-
-
-
-
-
