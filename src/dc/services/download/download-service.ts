@@ -3,12 +3,12 @@
  * Mirrors: vs/platform/download/common/download.ts (file downloader with progress)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { URI } from '../../core/types/uri.js';
-import { CancellationToken } from '../../core/async/cancellation.js';
-import { DataBuffer } from '../../core/binary/buffer.js';
-import { IRequestService } from '../request/request-service.js';
-import { IFileService } from '../files/file-service.js';
+import { createDecorator } from '../instantiation/annotations';
+import { URI } from '../../core/types/uri';
+import { CancellationToken } from '../../core/async/cancellation';
+import { DataBuffer } from '../../core/binary/buffer';
+import { IRequestService } from '../request/request-service';
+import { IFileService } from '../files/file-service';
 
 export const IDownloadService = createDecorator<IDownloadService>('downloadService');
 

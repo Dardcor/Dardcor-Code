@@ -3,9 +3,9 @@
  * Mirrors: vs/editor/browser/viewParts/overlayWidgets/overlayWidgets.ts
  */
 
-import { $ } from '../../../core/dom/element.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { Disposable } from '../../../core/lifecycle/disposable.js';
+import { $ } from '../../../core/dom/element';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { Disposable } from '../../../core/lifecycle/disposable';
 
 export interface IOverlayWidgetPosition {
 	readonly top: number;

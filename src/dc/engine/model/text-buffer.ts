@@ -3,8 +3,8 @@
  * Mirrors: vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.ts
  */
 
-import { IPosition, IRange, Position, Range } from './text-model.js';
-import { escapeRegExpCharacters } from '../../core/types/strings.js';
+import { IPosition, IRange, Position, Range } from './text-model';
+import { escapeRegExpCharacters } from '../../core/types/strings';
 
 export interface ITextBufferSearchResult {
 	readonly range: Range;

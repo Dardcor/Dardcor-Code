@@ -5,8 +5,8 @@
 
 declare const require: any;
 
-import { IDisposable } from '../../core/lifecycle/disposable.js';
-import { LogLevel } from './log-service.js';
+import { IDisposable } from '../../core/lifecycle/disposable';
+import { LogLevel } from './log-service';
 
 function getLogLevelString(level: LogLevel): string {
 	switch (level) {

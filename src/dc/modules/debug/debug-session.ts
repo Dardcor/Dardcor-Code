@@ -2,11 +2,11 @@
  * Dardcor Code - Debug Execution Session State Controller
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { DapClient, IDapEvent } from './dap-client.js';
-import { IBreakpoint } from './breakpoint-manager.js';
-import { URI } from '../../core/types/uri.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { DapClient, IDapEvent } from './dap-client';
+import { IBreakpoint } from './breakpoint-manager';
+import { URI } from '../../core/types/uri';
 
 declare const process: any;
 

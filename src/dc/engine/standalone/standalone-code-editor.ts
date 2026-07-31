@@ -1,10 +1,10 @@
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { $, clearNode, addDisposableListener } from '../../core/dom/element.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { URI } from '../../core/types/uri.js';
-import { TextModel, Position, IModelContentChangedEvent } from '../model/text-model.js';
-import { GrammarRegistry, IGrammar } from '../tokenizer/grammar-registry.js';
-import { expandTabs } from '../view/view-line-rendering.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { $, clearNode, addDisposableListener } from '../../core/dom/element';
+import { Emitter, Event } from '../../core/events/emitter';
+import { URI } from '../../core/types/uri';
+import { TextModel, Position, IModelContentChangedEvent } from '../model/text-model';
+import { GrammarRegistry, IGrammar } from '../tokenizer/grammar-registry';
+import { expandTabs } from '../view/view-line-rendering';
 
 export interface IStandaloneCodeEditorOptions {
 	readonly value?: string;

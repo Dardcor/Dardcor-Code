@@ -2,10 +2,10 @@
  * Dardcor Code - Distraction-Free Full Screen Zen Mode Controller
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $ } from '../../core/dom/element.js';
-import { IStorageService, StorageScope, StorageTarget } from '../../services/storage/storage-service.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $ } from '../../core/dom/element';
+import { IStorageService, StorageScope, StorageTarget } from '../../services/storage/storage-service';
 
 export interface IZenModeTargets {
 	readonly container: HTMLElement;

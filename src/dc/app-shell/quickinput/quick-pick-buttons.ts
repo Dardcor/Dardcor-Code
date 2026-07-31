@@ -2,10 +2,10 @@
  * Dardcor Code - Action Buttons Inside Quick Pick Item Entries
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $ } from '../../core/dom/element.js';
-import { QuickPickItem } from './quick-pick-item.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $ } from '../../core/dom/element';
+import { QuickPickItem } from './quick-pick-item';
 
 export interface IQuickPickButton {
 	readonly id: string;

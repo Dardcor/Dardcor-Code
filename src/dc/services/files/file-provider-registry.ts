@@ -3,9 +3,9 @@
  * Mirrors: vs/platform/files/common/files.ts scheme provider map
  */
 
-import { IDisposable } from '../../core/lifecycle/disposable.js';
-import { URI } from '../../core/types/uri.js';
-import { IFileSystemProvider } from './file-service.js';
+import { IDisposable } from '../../core/lifecycle/disposable';
+import { URI } from '../../core/types/uri';
+import { IFileSystemProvider } from './file-service';
 
 export class FileProviderRegistry {
 	private readonly _providers = new Map<string, IFileSystemProvider>();

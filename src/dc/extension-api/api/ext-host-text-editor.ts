@@ -3,11 +3,11 @@
  * Mirrors: vs/workbench/api/common/extHostTextEditor.ts
  */
 
-import { Disposable, IDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { RPCProtocol, IRPCChannelHandler } from '../host/rpc-protocol.js';
-import { TextDocument } from './ext-host-documents.js';
-import { Position, Range, Selection } from './ext-host-api-impl.js';
+import { Disposable, IDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { RPCProtocol, IRPCChannelHandler } from '../host/rpc-protocol';
+import { TextDocument } from './ext-host-documents';
+import { Position, Range, Selection } from './ext-host-api-impl';
 
 export enum TextEditorRevealType {
 	Default = 0,

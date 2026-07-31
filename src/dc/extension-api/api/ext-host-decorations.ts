@@ -1,5 +1,5 @@
-import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { URI } from '../../core/types/uri.js';
+import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable';
+import { URI } from '../../core/types/uri';
 
 export interface IFileDecoration {
 	color?: string;

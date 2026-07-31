@@ -2,13 +2,13 @@
  * Dardcor Code - Center Tabbed Editor Group Split Container
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { GridLayout, Direction } from '../../layout/grid-layout.js';
-import { EditorGroup, IEditorGroupEvent, IEditorGroupCloseEvent, EditorPaneFactory } from './editor-group.js';
-import { EditorInput } from './editor-input.js';
-import { EditorDropTarget, DropDirection, IDropEvent } from './editor-drop-target.js';
-import { EditorPane } from './editor-pane.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { GridLayout, Direction } from '../../layout/grid-layout';
+import { EditorGroup, IEditorGroupEvent, IEditorGroupCloseEvent, EditorPaneFactory } from './editor-group';
+import { EditorInput } from './editor-input';
+import { EditorDropTarget, DropDirection, IDropEvent } from './editor-drop-target';
+import { EditorPane } from './editor-pane';
 
 export interface IEditorPartOpenEvent {
 	readonly group: EditorGroup;

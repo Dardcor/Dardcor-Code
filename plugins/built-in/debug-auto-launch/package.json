@@ -1,9 +1,48 @@
 {
   "name": "debug-auto-launch",
-  "displayName": "debug-auto-launch",
-  "description": "Dardcor Code built-in extension: debug-auto-launch",
-  "version": "1.0.0",
-  "publisher": "dardcor",
-  "engines": { "dardcor": "^1.0.0" },
-  "categories": ["Programming Languages"]
+  "displayName": "%displayName%",
+  "description": "%description%",
+  "version": "10.0.0",
+  "publisher": "vscode",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.5.0"
+  },
+  "icon": "media/icon.png",
+  "capabilities": {
+    "virtualWorkspaces": false,
+    "untrustedWorkspaces": {
+      "supported": true
+    }
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension",
+  "scripts": {
+    "compile": "gulp compile-extension:debug-auto-launch",
+    "watch": "gulp watch-extension:debug-auto-launch"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "extension.node-debug.toggleAutoAttach",
+        "title": "%toggle.auto.attach%",
+        "category": "Debug"
+      }
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "24.x"
+  },
+  "prettier": {
+    "printWidth": 100,
+    "trailingComma": "all",
+    "singleQuote": true,
+    "arrowParens": "avoid"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/microsoft/vscode.git"
+  }
 }

@@ -2,10 +2,10 @@
  * Dardcor Code - 2D Flex Layout Calculation View Model
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $ } from '../../core/dom/element.js';
-import { Direction } from './grid-layout.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $ } from '../../core/dom/element';
+import { Direction } from './grid-layout';
 
 export interface IGridLeaf {
 	readonly id: string;

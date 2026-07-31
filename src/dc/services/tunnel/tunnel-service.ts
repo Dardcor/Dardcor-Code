@@ -3,9 +3,9 @@
  * Mirrors: vs/platform/tunnel/common/tunnel.ts (local port forwarding engine)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
+import { createDecorator } from '../instantiation/annotations';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
 
 declare const require: any;
 

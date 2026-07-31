@@ -3,10 +3,10 @@
  * Mirrors: vs/editor/contrib/diffEditor/browser/diffNavigator.ts
  */
 
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { DiffChange } from './diff-change.js';
-import { IRange } from '../model/text-model.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { DiffChange } from './diff-change';
+import { IRange } from '../model/text-model';
 
 export interface IDiffNavigatorCallbacks {
 	getChanges(): DiffChange[];

@@ -2,12 +2,12 @@
  * Dardcor Code - Close Editor, Close Saved Editors, Close All Editors Actions
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { EditorPart } from './editor-part.js';
-import { EditorGroup } from './editor-group.js';
-import { EditorInput } from './editor-input.js';
-import { CommandRegistry } from '../../../services/commands/command-service.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { EditorPart } from './editor-part';
+import { EditorGroup } from './editor-group';
+import { EditorInput } from './editor-input';
+import { CommandRegistry } from '../../../services/commands/command-service';
 
 export interface IEditorCloseEvent {
 	readonly input: EditorInput;

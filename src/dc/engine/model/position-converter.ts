@@ -3,7 +3,7 @@
  * Mirrors: vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.ts (offset conversion)
  */
 
-import { Position } from './text-model.js';
+import { Position } from './text-model';
 
 export interface IOffsetPosition {
 	readonly lineNumber: number;

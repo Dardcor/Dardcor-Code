@@ -1,5 +1,5 @@
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
 
 export type SuggestionKind = 'method' | 'function' | 'class' | 'interface' | 'property' | 'variable' | 'constant' | 'keyword' | 'snippet' | 'text';
 

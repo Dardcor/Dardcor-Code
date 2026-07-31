@@ -5,9 +5,9 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, rmSync, statSync, renameSync, cpSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { inflateRawSync } from 'node:zlib';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { IRemoteExtensionInfo } from './remote-extension-scanner.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { IRemoteExtensionInfo } from './remote-extension-scanner';
 
 interface ZipEntry {
 	readonly name: string;

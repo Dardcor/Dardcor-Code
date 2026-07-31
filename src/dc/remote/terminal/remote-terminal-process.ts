@@ -3,9 +3,9 @@
  */
 
 import { spawn, ChildProcessWithoutNullStreams } from 'node:child_process';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Shell } from '../../core/system/shell.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Shell } from '../../core/system/shell';
 
 export interface IRemoteTerminalProcessOptions {
 	readonly shell?: string;

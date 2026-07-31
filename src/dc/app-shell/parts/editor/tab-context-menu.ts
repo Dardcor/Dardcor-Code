@@ -2,11 +2,11 @@
  * Dardcor Code - Editor Tab Header Context Menu
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { $ } from '../../../core/dom/element.js';
-import { layoutContextMenu, getAnchorFromMouseEvent, IAnchor } from '../../../core/dom/context-menu.js';
-import { EditorInput } from './editor-input.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { $ } from '../../../core/dom/element';
+import { layoutContextMenu, getAnchorFromMouseEvent, IAnchor } from '../../../core/dom/context-menu';
+import { EditorInput } from './editor-input';
 
 export type TabContextMenuAction =
 	| 'close'

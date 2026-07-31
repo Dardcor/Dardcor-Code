@@ -1,5 +1,5 @@
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { URI } from '../../core/types/uri.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { URI } from '../../core/types/uri';
 
 export interface IStatCacheEntry<T = unknown> {
 	readonly stat: T;

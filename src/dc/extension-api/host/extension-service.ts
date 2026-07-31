@@ -1,11 +1,11 @@
 import * as path from 'node:path';
 import * as fsp from 'node:fs/promises';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { URI } from '../../core/types/uri.js';
-import { ExtensionLoader, ILoadedExtensionModule } from './extension-loader.js';
-import { ExtensionManifestParser, IExtensionDescriptor, IExtensionManifest } from './extension-manifest.js';
-import { createExtensionContext, ExtensionContext } from './extension-context.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { URI } from '../../core/types/uri';
+import { ExtensionLoader, ILoadedExtensionModule } from './extension-loader';
+import { ExtensionManifestParser, IExtensionDescriptor, IExtensionManifest } from './extension-manifest';
+import { createExtensionContext, ExtensionContext } from './extension-context';
 
 export interface IActivatedExtension {
 	readonly id: string;

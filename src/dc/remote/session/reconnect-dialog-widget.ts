@@ -1,6 +1,6 @@
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { $ } from '../../core/dom/element.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { $ } from '../../core/dom/element';
 
 export interface IReconnectDialogOptions {
 	readonly title?: string;

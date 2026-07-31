@@ -2,13 +2,13 @@
  * Dardcor Code - File Explorer Filter Input (files.exclude)
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, addDisposableListener } from '../../core/dom/element.js';
-import { match } from '../../core/formatting/glob.js';
-import { Path } from '../../core/types/path.js';
-import { FileTreeNode } from './file-tree-model.js';
-import { IConfigurationService, ConfigurationService } from '../../services/configuration/configuration-service.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, addDisposableListener } from '../../core/dom/element';
+import { match } from '../../core/formatting/glob';
+import { Path } from '../../core/types/path';
+import { FileTreeNode } from './file-tree-model';
+import { IConfigurationService, ConfigurationService } from '../../services/configuration/configuration-service';
 
 export interface IFileFilterPatterns {
 	readonly excludes: string[];

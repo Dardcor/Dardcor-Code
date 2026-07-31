@@ -1,6 +1,6 @@
-import { IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { LspClient } from './lsp-client.js';
-import { ILspPosition, ILspRange } from './lsp-converters.js';
+import { IDisposable, toDisposable } from '../../core/lifecycle/disposable';
+import { LspClient } from './lsp-client';
+import { ILspPosition, ILspRange } from './lsp-converters';
 
 export interface SelectionRange {
 	range: ILspRange;

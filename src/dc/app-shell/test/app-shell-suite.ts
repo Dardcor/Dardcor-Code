@@ -2,21 +2,21 @@
  * Dardcor Code - App-Shell Layout & UI Components Unit Test Suite
  */
 
-import { EditorGroupModel } from '../parts/editor/editor-group-model.js';
-import { EditorGroupGrid } from '../parts/editor/editor-group-grid.js';
-import { EditorReopenClosed } from '../parts/editor/editor-reopen-closed.js';
-import { FileEditorInput } from '../parts/editor/editor-input.js';
-import { EditorCopyPath } from '../parts/editor/editor-copy-path.js';
-import { EditorEncoding, detectEncodingFromBom, encodeText, decodeText, convertEncoding } from '../parts/editor/editor-encoding.js';
-import { LineEnding, detectLineEnding, convertLineEnding } from '../parts/editor/editor-eol.js';
-import { detectIndentation, renderIndent } from '../parts/editor/editor-indentation.js';
-import { LanguageRegistry } from '../parts/editor/editor-language-selector.js';
-import { PanelDockPosition } from '../parts/panel/panel-dock-position.js';
-import { computeActivitybarLayout } from '../parts/activitybar/activitybar-layout.js';
-import { StatusbarEntryBuilder, buildStatusbarEntry } from '../parts/statusbar/statusbar-entry-builder.js';
-import { StatusbarAlignment } from '../parts/statusbar/statusbar-registry.js';
-import { URI } from '../../core/types/uri.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
+import { EditorGroupModel } from '../parts/editor/editor-group-model';
+import { EditorGroupGrid } from '../parts/editor/editor-group-grid';
+import { EditorReopenClosed } from '../parts/editor/editor-reopen-closed';
+import { FileEditorInput } from '../parts/editor/editor-input';
+import { EditorCopyPath } from '../parts/editor/editor-copy-path';
+import { EditorEncoding, detectEncodingFromBom, encodeText, decodeText, convertEncoding } from '../parts/editor/editor-encoding';
+import { LineEnding, detectLineEnding, convertLineEnding } from '../parts/editor/editor-eol';
+import { detectIndentation, renderIndent } from '../parts/editor/editor-indentation';
+import { LanguageRegistry } from '../parts/editor/editor-language-selector';
+import { PanelDockPosition } from '../parts/panel/panel-dock-position';
+import { computeActivitybarLayout } from '../parts/activitybar/activitybar-layout';
+import { StatusbarEntryBuilder, buildStatusbarEntry } from '../parts/statusbar/statusbar-entry-builder';
+import { StatusbarAlignment } from '../parts/statusbar/statusbar-registry';
+import { URI } from '../../core/types/uri';
+import { Disposable } from '../../core/lifecycle/disposable';
 
 export interface ITestResult {
 	readonly name: string;
@@ -260,8 +260,8 @@ export function runAppShellSuite(): ITestSuiteReport {
 	if (hasDom) {
 		suite.run('window-title: format', () => {
 			return (async () => {
-				const { WindowTitle } = await import('../parts/titlebar/window-title.js');
-				const { EditorPart } = await import('../parts/editor/editor-part.js');
+				const { WindowTitle } = await import('../parts/titlebar/window-title');
+				const { EditorPart } = await import('../parts/editor/editor-part');
 				const container = document.createElement('div');
 				const part = new EditorPart(container);
 				const title = new WindowTitle(part, { workspaceName: 'My Workspace' });

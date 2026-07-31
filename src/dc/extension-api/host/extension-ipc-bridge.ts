@@ -1,6 +1,6 @@
-import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { RPCProtocol, IRPCChannelHandler } from './rpc-protocol.js';
+import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { RPCProtocol, IRPCChannelHandler } from './rpc-protocol';
 
 export interface IIpcChannelHandler {
 	call(method: string, args: unknown[]): unknown | Promise<unknown>;

@@ -1,5 +1,5 @@
-import { Disposable } from './lifecycle.js';
-import { Emitter, Event } from './event.js';
+import { Disposable } from './lifecycle';
+import { Emitter, Event } from './event';
 
 export interface IAction {
 	readonly id: string;

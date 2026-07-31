@@ -2,8 +2,8 @@
  * Dardcor Code - Async Emitter Architecture
  */
 
-import { Emitter, Event } from './emitter.js';
-import { IDisposable } from '../lifecycle/disposable.js';
+import { Emitter, Event } from './emitter';
+import { IDisposable } from '../lifecycle/disposable';
 
 export interface IWaitUntil {
 	waitUntil(promise: Promise<any>): void;

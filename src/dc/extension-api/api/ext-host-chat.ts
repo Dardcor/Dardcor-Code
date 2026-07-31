@@ -3,12 +3,12 @@
  * Mirrors: vs/workbench/api/common/extHostChat.ts
  */
 
-import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { RPCProtocol, IRPCChannelHandler } from '../host/rpc-protocol.js';
-import { URI } from '../../core/types/uri.js';
-import { MarkdownString } from './ext-host-api-impl.js';
-import { CancellationToken } from '../../core/async/cancellation.js';
+import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { RPCProtocol, IRPCChannelHandler } from '../host/rpc-protocol';
+import { URI } from '../../core/types/uri';
+import { MarkdownString } from './ext-host-api-impl';
+import { CancellationToken } from '../../core/async/cancellation';
 
 export interface ChatRequestReference {
 	readonly id?: string;

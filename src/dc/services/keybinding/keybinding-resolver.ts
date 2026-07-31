@@ -2,8 +2,8 @@
  * Dardcor Code - Keybinding Trie Match Engine (Task 117)
  */
 
-import { StringTrie } from '../../core/collections/trie.js';
-import { ChordKeybinding, IKeybinding } from '../../core/types/keycodes.js';
+import { StringTrie } from '../../core/collections/trie';
+import { ChordKeybinding, IKeybinding } from '../../core/types/keycodes';
 
 export interface IKeybindingRule {
 	readonly keybinding: ChordKeybinding;

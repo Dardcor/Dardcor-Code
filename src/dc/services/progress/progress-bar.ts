@@ -3,9 +3,9 @@
  * Mirrors: vs/base/browser/ui/progressbar/progressbar.ts + IProgressService renderer hook
  */
 
-import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { IProgressService, IProgressState } from './progress-service.js';
+import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { IProgressService, IProgressState } from './progress-service';
 
 export interface IProgressBar {
 	readonly onDidStop: Event<void>;

@@ -1,6 +1,6 @@
-import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { URI } from '../../core/types/uri.js';
-import { CancellationToken } from '../../core/async/cancellation.js';
+import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable';
+import { URI } from '../../core/types/uri';
+import { CancellationToken } from '../../core/async/cancellation';
 
 export interface IFileSearchOptions {
 	maxResults?: number;

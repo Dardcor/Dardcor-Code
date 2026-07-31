@@ -2,7 +2,7 @@
  * Dardcor Code - LRU Cache
  */
 
-import { Emitter, Event } from '../events/emitter.js';
+import { Emitter, Event } from '../events/emitter';
 
 export class LRUCache<K, V> {
 	private _limit: number;

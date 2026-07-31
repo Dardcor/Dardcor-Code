@@ -1,5 +1,5 @@
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { URI } from '../../core/types/uri.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { URI } from '../../core/types/uri';
 
 export interface ICustomEditorDescriptor {
 	id: string;

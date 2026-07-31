@@ -3,11 +3,11 @@
  * Mirrors: vs/workbench/api/common/extHostDocuments.ts
  */
 
-import { Disposable, IDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { URI } from '../../core/types/uri.js';
-import { RPCProtocol, IRPCChannelHandler } from '../host/rpc-protocol.js';
-import { Position, Range } from './ext-host-api-impl.js';
+import { Disposable, IDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { URI } from '../../core/types/uri';
+import { RPCProtocol, IRPCChannelHandler } from '../host/rpc-protocol';
+import { Position, Range } from './ext-host-api-impl';
 
 export interface ITextDocumentData {
 	uri: string;

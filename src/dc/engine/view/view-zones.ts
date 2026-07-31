@@ -1,4 +1,4 @@
-import { Disposable } from '../../core/lifecycle/disposable.js';
+import { Disposable } from '../../core/lifecycle/disposable';
 
 export interface IViewZone {
 	readonly afterLineNumber: number;

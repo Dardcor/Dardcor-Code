@@ -45,7 +45,8 @@ function createWindow(): void {
 		}
 	});
 
-	mainWindow.loadFile(path.join(projectRoot, 'index.html'));
+	// Load the dynamic workbench HTML just like VS Code
+	mainWindow.loadFile(path.join(projectRoot, 'src', 'dc', 'code', 'electron-sandbox', 'workbench', 'workbench.html'));
 
 	mainWindow.on('closed', () => {
 		// Kill all terminal processes

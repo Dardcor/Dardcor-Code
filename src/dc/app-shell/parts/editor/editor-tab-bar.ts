@@ -2,17 +2,17 @@
  * Dardcor Code - Draggable File Tab Bar With Close Icons
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { $, clearNode } from '../../../core/dom/element.js';
-import { EditorInput } from './editor-input.js';
-import { Path } from '../../../core/types/path.js';
-import { DROP_DATA_FORMAT } from './editor-drop-target.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { $, clearNode } from '../../../core/dom/element';
+import { EditorInput } from './editor-input';
+import { Path } from '../../../core/types/path';
+import { DROP_DATA_FORMAT } from './editor-drop-target';
 
 const FILE_ICONS: Record<string, string> = {
 	'.ts': '\u{1F4D8}',
 	'.tsx': '\u{1F4D8}',
-	'.js': '\u{1F7E1}',
+	'': '\u{1F7E1}',
 	'.jsx': '\u{1F7E1}',
 	'.json': '\u{1F4E6}',
 	'.html': '\u{1F5C4}',

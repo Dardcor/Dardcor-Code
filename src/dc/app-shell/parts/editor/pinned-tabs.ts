@@ -2,11 +2,11 @@
  * Dardcor Code - Compact Pinned Tab Rendering Controller
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { $, clearNode } from '../../../core/dom/element.js';
-import { EditorInput } from './editor-input.js';
-import { DROP_DATA_FORMAT } from './editor-drop-target.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { $, clearNode } from '../../../core/dom/element';
+import { EditorInput } from './editor-input';
+import { DROP_DATA_FORMAT } from './editor-drop-target';
 
 export interface IPinnedTabItem {
 	readonly input: EditorInput;

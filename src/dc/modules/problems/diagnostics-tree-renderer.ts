@@ -2,11 +2,11 @@
  * Dardcor Code - File Problem Group Node DOM Element Renderer
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $ } from '../../core/dom/element.js';
-import { Path } from '../../core/types/path.js';
-import { IFileDiagnostics, IDiagnostic, DiagnosticsModel, DiagnosticSeverity } from './diagnostics-model.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $ } from '../../core/dom/element';
+import { Path } from '../../core/types/path';
+import { IFileDiagnostics, IDiagnostic, DiagnosticsModel, DiagnosticSeverity } from './diagnostics-model';
 
 export interface IDiagnosticsTreeNodeEvent {
 	readonly file: IFileDiagnostics;

@@ -2,10 +2,10 @@
  * Dardcor Code - Output Channel Panel Viewer Component
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, clearNode, addDisposableListener } from '../../core/dom/element.js';
-import { OutputChannel, IOutputChannelRegistry, OutputChannelRegistry } from './output-channel-registry.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, clearNode, addDisposableListener } from '../../core/dom/element';
+import { OutputChannel, IOutputChannelRegistry, OutputChannelRegistry } from './output-channel-registry';
 
 export class OutputView extends Disposable {
 	private readonly _onDidSelectChannel = this._register(new Emitter<string>());

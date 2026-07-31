@@ -2,15 +2,15 @@
  * Dardcor Code - File Tree Drag & Drop Move Controller
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter } from '../../core/events/emitter.js';
-import { addDisposableListener } from '../../core/dom/element.js';
-import { setupDragAndDrop } from '../../core/dom/drag-and-drop.js';
-import { FileTreeModel, FileTreeNode } from './file-tree-model.js';
-import { IDiskLikeProvider } from './file-actions.js';
-import { IFileService } from '../../services/files/file-service.js';
-import { URI } from '../../core/types/uri.js';
-import { Path } from '../../core/types/path.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter } from '../../core/events/emitter';
+import { addDisposableListener } from '../../core/dom/element';
+import { setupDragAndDrop } from '../../core/dom/drag-and-drop';
+import { FileTreeModel, FileTreeNode } from './file-tree-model';
+import { IDiskLikeProvider } from './file-actions';
+import { IFileService } from '../../services/files/file-service';
+import { URI } from '../../core/types/uri';
+import { Path } from '../../core/types/path';
 
 export type FileDropMode = 'into' | 'before' | 'after';
 

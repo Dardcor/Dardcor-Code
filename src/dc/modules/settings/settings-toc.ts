@@ -2,11 +2,11 @@
  * Dardcor Code - Table of Contents Side Navigation Panel for Settings GUI
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, clearNode, addDisposableListener } from '../../core/dom/element.js';
-import { CssInjector } from '../../core/dom/css-injector.js';
-import { SETTINGS_CATEGORIES } from './settings-editor.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, clearNode, addDisposableListener } from '../../core/dom/element';
+import { CssInjector } from '../../core/dom/css-injector';
+import { SETTINGS_CATEGORIES } from './settings-editor';
 
 const TOC_STYLE_ID = 'dc-settings-toc-styles';
 

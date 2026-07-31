@@ -1,6 +1,6 @@
 import { screen, BrowserWindow, Display, Rectangle } from 'electron';
-import { Disposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter } from '../../core/events/emitter.js';
+import { Disposable, toDisposable } from '../../core/lifecycle/disposable';
+import { Emitter } from '../../core/events/emitter';
 
 export interface ScreenChangeEvent {
 	type: 'display-added' | 'display-removed' | 'display-metrics-changed';

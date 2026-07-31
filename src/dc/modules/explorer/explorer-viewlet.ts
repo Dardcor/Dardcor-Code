@@ -2,8 +2,8 @@
  * Dardcor Code - Workspace File Explorer Viewlet
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { $ } from '../../core/dom/element.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { $ } from '../../core/dom/element';
 
 export class ExplorerViewlet extends Disposable {
 	private readonly _container: HTMLElement;

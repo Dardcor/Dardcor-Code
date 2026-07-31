@@ -1,18 +1,18 @@
 import './dialog.css';
-import { $, addDisposableListener, addStandardDisposableListener, clearNode, EventHelper, EventType, getWindow, hide, isActiveElement, isAncestor, show } from '../../dom.js';
-import { StandardKeyboardEvent } from '../../keyboardEvent.js';
-import { ActionBar } from '../actionbar/actionbar.js';
-import { ButtonBar, ButtonBarAlignment, ButtonWithDescription, ButtonWithDropdown, IButton, IButtonStyles, IButtonWithDropdownOptions } from '../button/button.js';
-import { ICheckboxStyles, Checkbox } from '../checkbox/checkbox.js';
-import { IInputBoxStyles, InputBox } from '../inputbox/inputBox.js';
-import { Action, toAction } from '../../../common/actions.js';
-import { Codicon } from '../../../common/codicons.js';
-import { ThemeIcon } from '../../../common/themables.js';
-import { KeyCode, KeyMod } from '../../../common/keyCodes.js';
-import { mnemonicButtonLabel } from '../../../common/labels.js';
-import { Disposable, toDisposable } from '../../../common/lifecycle.js';
-import { isLinux, isMacintosh, isWindows } from '../../../common/platform.js';
-import { isActionProvider } from '../dropdown/dropdown.js';
+import { $, addDisposableListener, addStandardDisposableListener, clearNode, EventHelper, EventType, getWindow, hide, isActiveElement, isAncestor, show } from '../../dom';
+import { StandardKeyboardEvent } from '../../keyboardEvent';
+import { ActionBar } from '../actionbar/actionbar';
+import { ButtonBar, ButtonBarAlignment, ButtonWithDescription, ButtonWithDropdown, IButton, IButtonStyles, IButtonWithDropdownOptions } from '../button/button';
+import { ICheckboxStyles, Checkbox } from '../checkbox/checkbox';
+import { IInputBoxStyles, InputBox } from '../inputbox/inputBox';
+import { Action, toAction } from '../../../common/actions';
+import { Codicon } from '../../../common/codicons';
+import { ThemeIcon } from '../../../common/themables';
+import { KeyCode, KeyMod } from '../../../common/keyCodes';
+import { mnemonicButtonLabel } from '../../../common/labels';
+import { Disposable, toDisposable } from '../../../common/lifecycle';
+import { isLinux, isMacintosh, isWindows } from '../../../common/platform';
+import { isActionProvider } from '../dropdown/dropdown';
 
 export interface IDialogInputOptions {
 	readonly placeholder?: string;

@@ -2,9 +2,9 @@
  * Dardcor Code - Remote Open Files & Cursor State Snapshot Sync (Task 820)
  */
 
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { IRemoteChannelClient } from '../transport/connection-multiplexer.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { IRemoteChannelClient } from '../transport/connection-multiplexer';
 
 export interface IEditorPosition {
 	readonly line: number;

@@ -2,10 +2,10 @@
  * Dardcor Code - Local File Revision Snapshot Auto-Saver
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { URI } from '../../core/types/uri.js';
-import { Path } from '../../core/types/path.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { URI } from '../../core/types/uri';
+import { Path } from '../../core/types/path';
 
 declare const require: any;
 

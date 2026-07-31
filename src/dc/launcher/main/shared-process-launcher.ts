@@ -1,9 +1,9 @@
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { Disposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter } from '../../core/events/emitter.js';
-import { SharedProcessClient } from './shared-process-client.js';
-import { getSharedProcessEntryPath } from './shared-process-channel.js';
+import { Disposable, toDisposable } from '../../core/lifecycle/disposable';
+import { Emitter } from '../../core/events/emitter';
+import { SharedProcessClient } from './shared-process-client';
+import { getSharedProcessEntryPath } from './shared-process-channel';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -122,5 +122,5 @@ export function getSharedProcessPath(): string {
 
 export function getSharedProcessBundledPath(): string {
 	const appPath = process.env.DC_APP_PATH ?? path.resolve(__dirname, '../../../../');
-	return path.join(appPath, 'dist', 'dc', 'launcher', 'main', 'shared-process-channel.js');
+	return path.join(appPath, 'dist', 'dc', 'launcher', 'main', 'shared-process-channel');
 }

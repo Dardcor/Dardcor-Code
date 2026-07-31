@@ -3,8 +3,8 @@
  * Mirrors: vs/workbench/services/lifecycle/common/lifecycle.ts
  */
 
-import { Emitter, Event } from '../events/emitter.js';
-import { IDisposable } from '../lifecycle/disposable.js';
+import { Emitter, Event } from '../events/emitter';
+import { IDisposable } from '../lifecycle/disposable';
 
 export const enum LifecyclePhase {
 	Starting = 1,

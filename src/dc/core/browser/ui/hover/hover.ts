@@ -1,4 +1,4 @@
-import { IDisposable } from '../../../common/lifecycle.js';
+import { IDisposable } from '../../../common/lifecycle';
 
 export interface IHoverLifecycleOptions {
 	readonly hoverPosition?: number;

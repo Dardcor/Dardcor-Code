@@ -2,7 +2,7 @@ import { readdir, stat, mkdir, rename, readFile, writeFile, unlink, rm } from 'n
 import { join, basename, dirname, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { existsSync } from 'node:fs';
-import { Emitter, Event } from '../../core/events/emitter.js';
+import { Emitter, Event } from '../../core/events/emitter';
 
 export interface ITrashEntry {
 	readonly id: string;

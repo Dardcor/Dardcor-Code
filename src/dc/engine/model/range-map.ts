@@ -3,7 +3,7 @@
  * Mirrors: vs/editor/common/model/intervalTree.ts
  */
 
-import { IRange, Range } from './text-model.js';
+import { IRange, Range } from './text-model';
 
 
 export interface IDecorationInterval {

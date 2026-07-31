@@ -2,4 +2,4 @@
  * Dardcor Code - Launcher Barrel Export
  */
 
-export * from './main/window-manager.js';
+export * from './main/window-manager';

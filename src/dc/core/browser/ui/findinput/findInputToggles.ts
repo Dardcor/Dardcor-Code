@@ -1,7 +1,7 @@
-import { Toggle } from '../checkbox/checkbox.js';
-import { Codicon } from '../../../common/codicons.js';
-import * as nls from '../../../../nls.js';
-import { type IHoverLifecycleOptions } from '../hover/hover.js';
+import { Toggle } from '../checkbox/checkbox';
+import { Codicon } from '../../../common/codicons';
+import * as nls from '../../../../nls';
+import { type IHoverLifecycleOptions } from '../hover/hover';
 
 export interface IFindInputToggleOpts {
 	readonly appendTitle: string;

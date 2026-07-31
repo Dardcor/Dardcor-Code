@@ -2,11 +2,11 @@
  * Dardcor Code - Graphical Settings GUI Editor Pane with Category Navigation
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { $, clearNode, addDisposableListener } from '../../core/dom/element.js';
-import { CssInjector } from '../../core/dom/css-injector.js';
-import { IConfigurationService, ConfigurationService } from '../../services/configuration/configuration-service.js';
-import { SettingsSearch } from './settings-search.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { $, clearNode, addDisposableListener } from '../../core/dom/element';
+import { CssInjector } from '../../core/dom/css-injector';
+import { IConfigurationService, ConfigurationService } from '../../services/configuration/configuration-service';
+import { SettingsSearch } from './settings-search';
 
 export type ISettingType = 'string' | 'number' | 'boolean' | 'enum' | 'array';
 

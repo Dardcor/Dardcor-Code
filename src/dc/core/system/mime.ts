@@ -11,7 +11,7 @@ const EXT_TO_MIME: Record<string, string> = {
 	'.txt': 'text/plain',
 	'.html': 'text/html', '.htm': 'text/html',
 	'.css': 'text/css',
-	'.js': 'text/javascript', '.mjs': 'text/javascript',
+	'': 'text/javascript', '.mjs': 'text/javascript',
 	'.ts': 'text/typescript', '.tsx': 'text/typescript',
 	'.json': 'application/json', '.jsonc': 'application/json',
 	'.xml': 'text/xml',

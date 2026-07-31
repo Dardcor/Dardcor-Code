@@ -1,6 +1,6 @@
-import { Widget } from '../widget.js';
-import { Emitter, Event } from '../../../common/event.js';
-import { IKeyboardEvent } from '../../keyboardEvent.js';
+import { Widget } from '../widget';
+import { Emitter, Event } from '../../../common/event';
+import { IKeyboardEvent } from '../../keyboardEvent';
 
 export interface IToggleStyles {
 	inputActiveOptionBorder?: string;

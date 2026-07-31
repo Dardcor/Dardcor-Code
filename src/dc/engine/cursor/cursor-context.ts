@@ -3,10 +3,10 @@
  * Mirrors: vs/editor/common/controller/cursor.ts (CursorContext)
  */
 
-import { ITextModel } from '../model/text-model.js';
-import { Position } from '../model/text-model.js';
-import { CursorColumn } from './cursor-column.js';
-import { EndOfLineSequence } from '../model/line-ending.js';
+import { ITextModel } from '../model/text-model';
+import { Position } from '../model/text-model';
+import { CursorColumn } from './cursor-column';
+import { EndOfLineSequence } from '../model/line-ending';
 
 export interface ICursorContext {
 	readonly model: ITextModel;

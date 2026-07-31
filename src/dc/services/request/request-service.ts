@@ -3,9 +3,9 @@
  * Mirrors: vs/platform/request/common/request.ts (HTTP proxy & network fetch provider)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { CancellationToken } from '../../core/async/cancellation.js';
-import { IProxyConfiguration, resolveProxyURL } from './proxy-agent.js';
+import { createDecorator } from '../instantiation/annotations';
+import { CancellationToken } from '../../core/async/cancellation';
+import { IProxyConfiguration, resolveProxyURL } from './proxy-agent';
 
 export interface IRequestContext {
 	status: number;

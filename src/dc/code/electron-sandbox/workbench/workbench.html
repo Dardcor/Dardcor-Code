@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<meta
+			http-equiv="Content-Security-Policy"
+			content="
+				default-src
+					'none'
+				;
+				img-src
+					'self'
+					data:
+					blob:
+					dc-remote-resource:
+					dc-managed-remote-resource:
+					https:
+				;
+				media-src
+					'self'
+				;
+				frame-src
+					'self'
+					dc-webview:
+				;
+				script-src
+					'self'
+					'unsafe-eval'
+					blob:
+				;
+				style-src
+					'self'
+					'unsafe-inline'
+				;
+				connect-src
+					'self'
+					https:
+					ws:
+				;
+				font-src
+					'self'
+					dc-remote-resource:
+					dc-managed-remote-resource:
+					https://*.dc-unpkg.net
+				;
+				require-trusted-types-for
+					'script'
+				;
+		"/>
+
+		<link rel="stylesheet" href="../../../workbench/workbench.desktop.main.css">
+	</head>
+
+	<body aria-label="">
+	</body>
+
+	<script src="./workbench.js" type="module"></script>
+</html>

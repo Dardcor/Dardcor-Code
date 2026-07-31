@@ -2,9 +2,9 @@
  * Dardcor Code - DOM Element View For Single Editor Pane Group
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { $ } from '../../../core/dom/element.js';
-import { EditorPane } from './editor-pane.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { $ } from '../../../core/dom/element';
+import { EditorPane } from './editor-pane';
 
 export class EditorGroupView extends Disposable {
 	private readonly _container: HTMLElement;

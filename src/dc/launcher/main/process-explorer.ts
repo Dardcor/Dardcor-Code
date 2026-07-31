@@ -1,6 +1,6 @@
 import { BrowserWindow, dialog } from 'electron';
-import { getProcessTree, ProcessInfo } from './process-monitor-tree.js';
-import { formatBytes } from './native-file-trash.js';
+import { getProcessTree, ProcessInfo } from './process-monitor-tree';
+import { formatBytes } from './native-file-trash';
 
 export function getProcessList(): ProcessInfo[] {
 	return getProcessTreeSync();

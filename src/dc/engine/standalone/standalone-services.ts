@@ -3,13 +3,13 @@
  * Mirrors: vs/editor/standalone/browser/standaloneServices.ts
  */
 
-import { InstantiationService, IInstantiationService } from '../../services/instantiation/container.js';
-import { ServiceCollection } from '../../services/instantiation/service-registry.js';
-import { SyncDescriptor } from '../../services/instantiation/descriptors.js';
-import { ThemeService, IThemeService } from '../../services/theme/theme-service.js';
-import { IColorRegistry, getColorRegistry } from '../../services/theme/color-registry.js';
-import { ContextKeyService, IContextKeyService } from '../../services/contextkey/contextkey-service.js';
-import { CommandService, ICommandService } from '../../services/commands/command-service.js';
+import { InstantiationService, IInstantiationService } from '../../services/instantiation/container';
+import { ServiceCollection } from '../../services/instantiation/service-registry';
+import { SyncDescriptor } from '../../services/instantiation/descriptors';
+import { ThemeService, IThemeService } from '../../services/theme/theme-service';
+import { IColorRegistry, getColorRegistry } from '../../services/theme/color-registry';
+import { ContextKeyService, IContextKeyService } from '../../services/contextkey/contextkey-service';
+import { CommandService, ICommandService } from '../../services/commands/command-service';
 
 export type ServiceOverride = [symbol, unknown];
 

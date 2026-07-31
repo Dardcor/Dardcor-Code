@@ -2,10 +2,10 @@
  * Dardcor Code - Terminal Shell Profile Detection & Launcher
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { isWindows } from '../../core/environment/platform.js';
-import { Path } from '../../core/types/path.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { isWindows } from '../../core/environment/platform';
+import { Path } from '../../core/types/path';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 

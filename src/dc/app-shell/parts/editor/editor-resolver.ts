@@ -2,11 +2,11 @@
  * Dardcor Code - File Extension To Custom Editor Pane Resolver
  */
 
-import { Disposable, IDisposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { Path } from '../../../core/types/path.js';
-import { EditorInput } from './editor-input.js';
-import { EditorPane, TextEditorPane } from './editor-pane.js';
+import { Disposable, IDisposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { Path } from '../../../core/types/path';
+import { EditorInput } from './editor-input';
+import { EditorPane, TextEditorPane } from './editor-pane';
 
 export type ResolvedEditorPaneFactory = (container: HTMLElement, input: EditorInput) => EditorPane;
 

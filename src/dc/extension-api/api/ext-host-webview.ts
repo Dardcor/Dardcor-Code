@@ -3,11 +3,11 @@
  * Mirrors: vs/workbench/api/common/extHostWebview.ts
  */
 
-import { Disposable, IDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { RPCProtocol } from '../host/rpc-protocol.js';
-import { generateUuid } from '../../core/types/uuid.js';
-import { URI } from '../../core/types/uri.js';
+import { Disposable, IDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { RPCProtocol } from '../host/rpc-protocol';
+import { generateUuid } from '../../core/types/uuid';
+import { URI } from '../../core/types/uri';
 
 export interface IWebviewOptions {
 	enableScripts?: boolean;

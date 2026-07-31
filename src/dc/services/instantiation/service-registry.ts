@@ -2,8 +2,8 @@
  * Dardcor Code - ServiceCollection Map
  */
 
-import { ServiceIdentifier } from './annotations.js';
-import { SyncDescriptor } from './descriptors.js';
+import { ServiceIdentifier } from './annotations';
+import { SyncDescriptor } from './descriptors';
 
 export class ServiceCollection {
 	private readonly _entries = new Map<ServiceIdentifier<any>, any>();

@@ -1,4 +1,4 @@
-import { IDisposable } from '../../core/lifecycle/disposable.js';
+import { IDisposable } from '../../core/lifecycle/disposable';
 
 export type TelemetryPropertyValue = string | number | boolean;
 

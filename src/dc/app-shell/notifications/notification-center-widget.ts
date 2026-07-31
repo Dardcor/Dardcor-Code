@@ -2,11 +2,11 @@
  * Dardcor Code - Bell Notification Drawer Panel Widget
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, clearNode } from '../../core/dom/element.js';
-import { NotificationActions, INotificationAction } from './notification-actions.js';
-import { NotificationSeverity, INotification } from './notification-toast-widget.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, clearNode } from '../../core/dom/element';
+import { NotificationActions, INotificationAction } from './notification-actions';
+import { NotificationSeverity, INotification } from './notification-toast-widget';
 
 const SEVERITY_ICON: Record<NotificationSeverity, string> = {
 	[NotificationSeverity.INFO]: '\u2139',

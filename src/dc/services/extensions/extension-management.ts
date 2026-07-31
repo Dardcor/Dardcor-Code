@@ -3,13 +3,13 @@
  * Mirrors: vs/platform/extensionManagement/common/extensionManagement.ts (VSIX installer)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { URI } from '../../core/types/uri.js';
-import { IFileService } from '../files/file-service.js';
-import { unpackVsix } from '../download/extract-tar.js';
-import { readExtensionManifest } from './extension-scanner.js';
+import { createDecorator } from '../instantiation/annotations';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { URI } from '../../core/types/uri';
+import { IFileService } from '../files/file-service';
+import { unpackVsix } from '../download/extract-tar';
+import { readExtensionManifest } from './extension-scanner';
 
 export interface ILocalExtension {
 	identifier: { id: string };

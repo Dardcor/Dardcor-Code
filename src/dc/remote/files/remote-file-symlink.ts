@@ -1,6 +1,6 @@
 import { lstat, readlink, symlink as symlinkFs, unlink, realpath } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
-import { Emitter, Event } from '../../core/events/emitter.js';
+import { Emitter, Event } from '../../core/events/emitter';
 
 export interface ISymlinkInfo {
 	readonly path: string;

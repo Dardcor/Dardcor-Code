@@ -1,5 +1,5 @@
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { DevcontainerConfig } from './devcontainer-parser.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { DevcontainerConfig } from './devcontainer-parser';
 
 export interface ILifecycleCommand {
 	readonly command: string;

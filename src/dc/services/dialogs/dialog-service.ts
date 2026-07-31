@@ -3,8 +3,8 @@
  * Mirrors: vs/platform/dialogs/common/dialogs.ts
  */
 
-import { IDisposable } from '../../core/lifecycle/disposable.js';
-import { Severity } from '../notification/notification-service.js';
+import { IDisposable } from '../../core/lifecycle/disposable';
+import { Severity } from '../notification/notification-service';
 
 export interface IConfirmation {
 	title?: string;

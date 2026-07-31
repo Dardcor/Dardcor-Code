@@ -2,11 +2,11 @@
  * Dardcor Code - Git Branch Switch & Create Picker
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, clearNode, addDisposableListener } from '../../core/dom/element.js';
-import { CssInjector } from '../../core/dom/css-injector.js';
-import { GitService } from './git-service.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, clearNode, addDisposableListener } from '../../core/dom/element';
+import { CssInjector } from '../../core/dom/css-injector';
+import { GitService } from './git-service';
 
 const BRANCH_PICKER_STYLE_ID = 'dc-git-branch-picker-styles';
 

@@ -2,10 +2,10 @@
  * Dardcor Code - Bottom-Right Floating Alert Toast Card Widget
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $ } from '../../core/dom/element.js';
-import { NotificationActions, INotificationAction } from './notification-actions.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $ } from '../../core/dom/element';
+import { NotificationActions, INotificationAction } from './notification-actions';
 
 export const enum NotificationSeverity {
 	INFO = 0,

@@ -1,7 +1,7 @@
 import { spawn, execFile, ChildProcess } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import { Disposable, toDisposable } from '../../core/lifecycle/disposable.js';
+import { Disposable, toDisposable } from '../../core/lifecycle/disposable';
 
 export interface SearchOptions {
 	rootPath: string;

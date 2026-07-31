@@ -2,10 +2,10 @@
  * Dardcor Code - Editor Component Container Base Class
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { $ } from '../../../core/dom/element.js';
-import { CodeEditor } from '../../../engine/controller/editor-controller.js';
-import { EditorInput } from './editor-input.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { $ } from '../../../core/dom/element';
+import { CodeEditor } from '../../../engine/controller/editor-controller';
+import { EditorInput } from './editor-input';
 
 export abstract class EditorPane extends Disposable {
 	protected readonly _container: HTMLElement;

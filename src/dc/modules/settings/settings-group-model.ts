@@ -2,9 +2,9 @@
  * Dardcor Code - Hierarchical Setting Section Categorization Model
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { ISettingDescriptor, SETTINGS_CATEGORIES } from './settings-editor.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { ISettingDescriptor, SETTINGS_CATEGORIES } from './settings-editor';
 
 export interface ISettingsGroupNode {
 	readonly id: string;

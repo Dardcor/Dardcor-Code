@@ -2,17 +2,17 @@
  * Dardcor Code - Virtualized File Tree Node DOM Renderer
  */
 
-import { ITreeNode, ITreeRenderer } from '../../core/dom/tree-view.js';
-import { CssInjector } from '../../core/dom/css-injector.js';
-import { IFileTreeElement } from './file-tree-model.js';
-import { Path } from '../../core/types/path.js';
-import { escape } from '../../core/types/strings.js';
-import { toDisposable } from '../../core/lifecycle/disposable.js';
+import { ITreeNode, ITreeRenderer } from '../../core/dom/tree-view';
+import { CssInjector } from '../../core/dom/css-injector';
+import { IFileTreeElement } from './file-tree-model';
+import { Path } from '../../core/types/path';
+import { escape } from '../../core/types/strings';
+import { toDisposable } from '../../core/lifecycle/disposable';
 
 const FILE_TREE_STYLE_ID = 'dc-file-tree-styles';
 
 const FILE_ICONS: Record<string, string> = {
-	'.js': '\u{1F4C4}', '.ts': '\u{1F4C4}', '.tsx': '\u{1F4C4}', '.jsx': '\u{1F4C4}',
+	'': '\u{1F4C4}', '.ts': '\u{1F4C4}', '.tsx': '\u{1F4C4}', '.jsx': '\u{1F4C4}',
 	'.json': '\u{2699}', '.html': '\u{1F5C4}', '.css': '\u{1F5A8}', '.scss': '\u{1F5A8}',
 	'.md': '\u{1F4DD}', '.svg': '\u{1F5BC}', '.png': '\u{1F5BC}', '.jpg': '\u{1F5BC}',
 	'.jpeg': '\u{1F5BC}', '.gif': '\u{1F5BC}', '.ico': '\u{1F5BC}',
@@ -22,7 +22,7 @@ const FILE_ICONS: Record<string, string> = {
 	'.xml': '\u{2699}', '.sh': '\u{1F4BB}', '.bat': '\u{1F4BB}', '.ps1': '\u{1F4BB}',
 	'.exe': '\u{1F4E6}', '.zip': '\u{1F4E6}', '.tar': '\u{1F4E6}', '.gz': '\u{1F4E6}',
 	'.pdf': '\u{1F4C4}', '.txt': '\u{1F4C4}', '.gitignore': '\u{1F5C2}', '.env': '\u{2699}',
-	'.lock': '\u{1F512}', '.dll': '\u{2699}', '.map': '\u{1F5C2}', '.min.js': '\u{1F4A9}'
+	'.lock': '\u{1F512}', '.dll': '\u{2699}', '.map': '\u{1F5C2}', '.min': '\u{1F4A9}'
 };
 
 const FOLDER_ICON = '\u{1F4C1}';

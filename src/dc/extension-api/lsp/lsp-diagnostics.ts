@@ -2,12 +2,12 @@
  * Dardcor Code - LSP publishDiagnostics Notification Handler (Task 628)
  */
 
-import { Disposable, IDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { LspClient, ILspMessage } from './lsp-client.js';
-import { lspDiagnosticToApiDiagnostic, ILspDiagnostic } from './lsp-converters.js';
-import { Diagnostic } from '../api/ext-host-api-impl.js';
-import { URI } from '../../core/types/uri.js';
+import { Disposable, IDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { LspClient, ILspMessage } from './lsp-client';
+import { lspDiagnosticToApiDiagnostic, ILspDiagnostic } from './lsp-converters';
+import { Diagnostic } from '../api/ext-host-api-impl';
+import { URI } from '../../core/types/uri';
 
 export interface ILspDiagnosticsEvent {
 	readonly uri: URI;

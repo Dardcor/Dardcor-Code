@@ -2,7 +2,7 @@ import os from 'node:os';
 import { access, writeFile, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { Emitter, Event } from '../../core/events/emitter.js';
+import { Emitter, Event } from '../../core/events/emitter';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 export interface IHealthCheckResult {

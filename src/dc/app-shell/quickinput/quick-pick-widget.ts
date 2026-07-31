@@ -2,11 +2,11 @@
  * Dardcor Code - Command Palette Fuzzy Search Selection UI Widget
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, clearNode } from '../../core/dom/element.js';
-import { QuickPickItem } from './quick-pick-item.js';
-import { ModalDialogHost } from '../dialogs/modal-dialog-host.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, clearNode } from '../../core/dom/element';
+import { QuickPickItem } from './quick-pick-item';
+import { ModalDialogHost } from '../dialogs/modal-dialog-host';
 
 export interface IQuickPickOptions {
 	title?: string;

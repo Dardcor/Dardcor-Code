@@ -4,7 +4,7 @@
 
 import os from 'node:os';
 import { existsSync, readFileSync } from 'node:fs';
-import { isWindows, isLinux, isMacintosh } from '../../core/environment/platform.js';
+import { isWindows, isLinux, isMacintosh } from '../../core/environment/platform';
 
 export interface ServerEnvironmentInfo {
 	readonly platform: string;

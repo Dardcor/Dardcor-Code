@@ -1,7 +1,7 @@
 import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
-import { Disposable } from '../../core/lifecycle/disposable.js';
+import { Disposable } from '../../core/lifecycle/disposable';
 
 export interface RestoreSession {
 	paths: string[];

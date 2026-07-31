@@ -3,7 +3,7 @@
  * Mirrors: vs/platform/userDataProfile/common/userDataProfile.ts export/import
  */
 
-import { IUserDataProfile } from './user-profile-service.js';
+import { IUserDataProfile } from './user-profile-service';
 
 export interface IExportedUserProfile {
 	name: string;

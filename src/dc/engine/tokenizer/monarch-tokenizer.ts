@@ -3,8 +3,8 @@
  * Mirrors: vs/editor/common/languages/monarch/monarchCompile.ts + monarchLexer.ts
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { LineToken } from '../model/line-tokens.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { LineToken } from '../model/line-tokens';
 
 export interface IMonarchLanguageRule {
 	readonly regex?: string | RegExp;

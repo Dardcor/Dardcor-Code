@@ -3,7 +3,7 @@
  * Mirrors: vs/editor/contrib/codeAction/codeAction.ts (transform) & cursorDeleteOperations.ts
  */
 
-import { getWordAtPosition } from '../model/word-helper.js';
+import { getWordAtPosition } from '../model/word-helper';
 
 export const enum WordTransform {
 	UpperCase = 0,

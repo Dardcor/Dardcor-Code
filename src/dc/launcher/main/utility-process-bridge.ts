@@ -1,6 +1,6 @@
 import { ipcMain, WebContents } from 'electron';
-import { Disposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { UtilityProcessRpc, RpcPort } from './utility-process-rpc.js';
+import { Disposable, toDisposable } from '../../core/lifecycle/disposable';
+import { UtilityProcessRpc, RpcPort } from './utility-process-rpc';
 
 export interface BridgeOptions {
 	onEvent?: (serviceName: string, event: string, data: unknown) => void;

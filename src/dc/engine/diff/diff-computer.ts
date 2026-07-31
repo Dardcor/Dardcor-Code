@@ -3,8 +3,8 @@
  * Mirrors: vs/editor/common/diff/diffComputer.ts (Myers)
  */
 
-import { computeDiff, IChange } from '../../core/formatting/diff.js';
-import { ITextModel } from '../model/text-model.js';
+import { computeDiff, IChange } from '../../core/formatting/diff';
+import { ITextModel } from '../model/text-model';
 
 export enum DiffChangeType {
 	Insert = 'insert',

@@ -3,9 +3,9 @@
  * Mirrors: vs/editor/browser/controller/mouseController.ts (drag auto-scroll)
  */
 
-import { addDisposableListener } from '../../core/dom/element.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
+import { addDisposableListener } from '../../core/dom/element';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
 
 export interface IDragSelectionCallbacks {
 	getPositionFromPoint(x: number, y: number): { lineNumber: number; column: number } | null;

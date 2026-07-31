@@ -2,12 +2,12 @@
  * Dardcor Code - Reopen Closed Editor Stack Command Handler (Ctrl+Shift+T)
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { URI } from '../../../core/types/uri.js';
-import { CommandRegistry } from '../../../services/commands/command-service.js';
-import { EditorInput, FileEditorInput } from './editor-input.js';
-import { EditorPart } from './editor-part.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { URI } from '../../../core/types/uri';
+import { CommandRegistry } from '../../../services/commands/command-service';
+import { EditorInput, FileEditorInput } from './editor-input';
+import { EditorPart } from './editor-part';
 
 export interface IReopenEntry {
 	readonly uri: URI;

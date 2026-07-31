@@ -2,8 +2,8 @@
  * Dardcor Code - Throttler & ThrottledDelayer
  */
 
-import { ITask } from './promise-queue.js';
-import { IDisposable } from '../lifecycle/disposable.js';
+import { ITask } from './promise-queue';
+import { IDisposable } from '../lifecycle/disposable';
 
 export class Throttler implements IDisposable {
 	private _activePromise: Promise<any> | null = null;

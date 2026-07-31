@@ -2,9 +2,9 @@
  * Dardcor Code - Window Geometry & Panel Sizes State Saver
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { IStorageService, StorageScope, StorageTarget } from '../../services/storage/storage-service.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { IStorageService, StorageScope, StorageTarget } from '../../services/storage/storage-service';
 
 export interface IWindowGeometry {
 	readonly width: number;

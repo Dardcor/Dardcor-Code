@@ -2,11 +2,11 @@
  * Dardcor Code - Single Child Folder Chain Visual Compression
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, addDisposableListener } from '../../core/dom/element.js';
-import { FileTreeNode } from './file-tree-model.js';
-import { FileIcons } from './file-icons.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, addDisposableListener } from '../../core/dom/element';
+import { FileTreeNode } from './file-tree-model';
+import { FileIcons } from './file-icons';
 
 
 export class CompressFolders extends Disposable {

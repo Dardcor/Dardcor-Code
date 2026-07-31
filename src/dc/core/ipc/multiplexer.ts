@@ -3,8 +3,8 @@
  * Mirrors: vs/base/parts/ipc/common/ipc.ts multiplexing
  */
 
-import { Emitter, Event } from '../events/emitter.js';
-import { IDisposable } from '../lifecycle/disposable.js';
+import { Emitter, Event } from '../events/emitter';
+import { IDisposable } from '../lifecycle/disposable';
 
 export interface IChannelMessage {
 	channelId: string;

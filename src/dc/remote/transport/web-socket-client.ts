@@ -2,8 +2,8 @@
  * Dardcor Code - Browser WebSocket Client Connection Bridge (Task 813)
  */
 
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
 
 export interface IWebSocketClientOptions {
 	readonly protocols?: string | string[];

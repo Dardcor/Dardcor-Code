@@ -3,9 +3,9 @@
  * Mirrors: vs/platform/telemetry/common/telemetry.ts NullTelemetryService
  */
 
-import { Event } from '../../core/events/emitter.js';
-import { IDisposable } from '../../core/lifecycle/disposable.js';
-import { ITelemetryService, ITelemetryData, ITelemetryPayload } from './telemetry-service.js';
+import { Event } from '../../core/events/emitter';
+import { IDisposable } from '../../core/lifecycle/disposable';
+import { ITelemetryService, ITelemetryData, ITelemetryPayload } from './telemetry-service';
 
 export class NullTelemetryService implements ITelemetryService {
 	declare readonly _serviceBrand: undefined;

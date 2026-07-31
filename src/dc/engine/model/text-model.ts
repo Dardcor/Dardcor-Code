@@ -2,10 +2,10 @@
  * Dardcor Code - TextModel Representation
  */
 
-import { PieceTree } from './piece-tree/piece-tree.js';
-import { URI } from '../../core/types/uri.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
+import { PieceTree } from './piece-tree/piece-tree';
+import { URI } from '../../core/types/uri';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
 
 export interface IPosition {
 	readonly lineNumber: number;

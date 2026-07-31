@@ -3,11 +3,11 @@
  * Mirrors: vs/editor/contrib/diffEditor/browser/diffEditorViewModel.ts (unified rendering)
  */
 
-import { $ } from '../../core/dom/element.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { ITextModel } from '../model/text-model.js';
-import { DiffChange, computeLineDiff, splitLines } from './diff-change.js';
+import { $ } from '../../core/dom/element';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { ITextModel } from '../model/text-model';
+import { DiffChange, computeLineDiff, splitLines } from './diff-change';
 
 export interface IInlineDiffViewOptions {
 	readonly lineHeight: number;

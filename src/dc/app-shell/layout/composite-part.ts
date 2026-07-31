@@ -2,9 +2,9 @@
  * Dardcor Code - Base Class For ActivityBar & Panel View Containers
  */
 
-import { Disposable, IDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, clearNode } from '../../core/dom/element.js';
+import { Disposable, IDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, clearNode } from '../../core/dom/element';
 
 export interface ICompositePartStyles {
 	readonly headerHeight?: number;

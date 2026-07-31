@@ -3,10 +3,10 @@
  * Mirrors: vs/editor/browser/viewParts/contentWidgets/contentWidgets.ts
  */
 
-import { $, clearNode } from '../../../core/dom/element.js';
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Position } from '../../model/text-model.js';
-import { IRenderContext } from '../../options/editor-options.js';
+import { $, clearNode } from '../../../core/dom/element';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Position } from '../../model/text-model';
+import { IRenderContext } from '../../options/editor-options';
 
 export enum ContentWidgetPositionPreference {
 	EXACT = 0,

@@ -3,12 +3,12 @@
  * Mirrors: vs/platform/secrets/common/secrets.ts (encrypted extension secrets vault)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { CryptoBridge } from '../../core/security/crypto.js';
-import { deriveMasterKey } from './master-key.js';
-import { ICredentialsService } from '../credentials/credentials-service.js';
+import { createDecorator } from '../instantiation/annotations';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { CryptoBridge } from '../../core/security/crypto';
+import { deriveMasterKey } from './master-key';
+import { ICredentialsService } from '../credentials/credentials-service';
 
 export const ISecretsService = createDecorator<ISecretsService>('secretsService');
 

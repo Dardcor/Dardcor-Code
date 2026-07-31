@@ -2,10 +2,10 @@
  * Dardcor Code - Grouped Sections Inside Quick Pick Menu List
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, clearNode } from '../../core/dom/element.js';
-import { QuickPickItem } from './quick-pick-item.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, clearNode } from '../../core/dom/element';
+import { QuickPickItem } from './quick-pick-item';
 
 export interface IPickerTreeGroup {
 	readonly id: string;

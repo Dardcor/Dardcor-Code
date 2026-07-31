@@ -2,9 +2,9 @@
  * Dardcor Code - InstantiationService Graph Dependency Resolver
  */
 
-import { ServiceIdentifier, ServicesAccessor, _util, createDecorator } from './annotations.js';
-import { ServiceCollection } from './service-registry.js';
-import { SyncDescriptor } from './descriptors.js';
+import { ServiceIdentifier, ServicesAccessor, _util, createDecorator } from './annotations';
+import { ServiceCollection } from './service-registry';
+import { SyncDescriptor } from './descriptors';
 
 export { ServicesAccessor };
 

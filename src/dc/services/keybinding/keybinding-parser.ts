@@ -3,7 +3,7 @@
  * Mirrors: vs/platform/keybinding/common/keybindingParser.ts (key combo DSL string parser)
  */
 
-import { KeyCode } from '../../core/types/keycodes.js';
+import { KeyCode } from '../../core/types/keycodes';
 
 export interface IParsedKeyCombo {
 	ctrlKey: boolean;

@@ -2,11 +2,11 @@
  * Dardcor Code - Recent File/Workspace LRU History Manager (Task 136)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { URI } from '../../core/types/uri.js';
-import { IStorageService, StorageScope, StorageTarget } from '../storage/storage-service.js';
+import { createDecorator } from '../instantiation/annotations';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { URI } from '../../core/types/uri';
+import { IStorageService, StorageScope, StorageTarget } from '../storage/storage-service';
 
 const RECENT_FILES_KEY = 'history.recentFiles';
 const RECENT_WORKSPACES_KEY = 'history.recentWorkspaces';

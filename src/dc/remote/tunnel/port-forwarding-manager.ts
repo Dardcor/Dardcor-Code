@@ -3,9 +3,9 @@
  */
 
 import { createServer } from 'node:net';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { generateUuid } from '../../core/types/uuid.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { generateUuid } from '../../core/types/uuid';
 
 export const enum PortMappingStatus {
 	Pending = 0,

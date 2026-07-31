@@ -1,8 +1,8 @@
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $ } from '../../core/dom/element.js';
-import { ITextModel } from '../model/text-model.js';
-import { Selection } from '../model/selection.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $ } from '../../core/dom/element';
+import { ITextModel } from '../model/text-model';
+import { Selection } from '../model/selection';
 
 export class CopyPasteController extends Disposable {
 	private readonly _onDidPaste = this._register(new Emitter<string>());

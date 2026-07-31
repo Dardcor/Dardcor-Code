@@ -1,5 +1,5 @@
 import { Tray } from 'electron';
-import { Disposable, toDisposable } from '../../core/lifecycle/disposable.js';
+import { Disposable, toDisposable } from '../../core/lifecycle/disposable';
 
 export interface TrayEventHandlers {
 	onClick?: (event: Electron.KeyboardEvent, bounds: Electron.Rectangle) => void;

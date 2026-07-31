@@ -1,6 +1,6 @@
 import { BrowserWindow, dialog, MessageBoxOptions, OpenDialogOptions, SaveDialogOptions } from 'electron';
 import * as fs from 'fs';
-import { Disposable } from '../../core/lifecycle/disposable.js';
+import { Disposable } from '../../core/lifecycle/disposable';
 
 export interface DialogResult {
 	ok: boolean;

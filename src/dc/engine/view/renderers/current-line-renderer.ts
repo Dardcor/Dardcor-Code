@@ -3,8 +3,8 @@
  * Mirrors: vs/editor/browser/viewParts/currentLineHighlight/currentLineHighlight.ts
  */
 
-import { $ } from '../../../core/dom/element.js';
-import { Disposable } from '../../../core/lifecycle/disposable.js';
+import { $ } from '../../../core/dom/element';
+import { Disposable } from '../../../core/lifecycle/disposable';
 
 export interface ICurrentLineRenderOptions {
 	readonly color: string;

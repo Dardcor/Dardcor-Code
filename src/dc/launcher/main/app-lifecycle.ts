@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
-import { Disposable, toDisposable } from '../../core/lifecycle/disposable.js';
+import { Disposable, toDisposable } from '../../core/lifecycle/disposable';
 
 export interface AppLifecycleOptions {
 	createWindow: () => void;

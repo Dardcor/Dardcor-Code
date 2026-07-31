@@ -3,7 +3,7 @@
  * Mirrors: vs/workbench/contrib/webview/common/webview.ts CSP generator
  */
 
-import { generateNonce } from '../../core/security/nonce.js';
+import { generateNonce } from '../../core/security/nonce';
 
 export interface IWebviewCSPOptions {
 	enableScripts?: boolean;

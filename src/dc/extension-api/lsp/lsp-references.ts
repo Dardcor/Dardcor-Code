@@ -1,8 +1,8 @@
-import { IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { URI } from '../../core/types/uri.js';
-import { LspClient } from './lsp-client.js';
-import { ILspPosition, ILspRange, lspRangeToApiRange } from './lsp-converters.js';
-import { Position, Location } from '../api/ext-host-api-impl.js';
+import { IDisposable, toDisposable } from '../../core/lifecycle/disposable';
+import { URI } from '../../core/types/uri';
+import { LspClient } from './lsp-client';
+import { ILspPosition, ILspRange, lspRangeToApiRange } from './lsp-converters';
+import { Position, Location } from '../api/ext-host-api-impl';
 
 export class LspReferences {
 	private _client: LspClient | undefined;

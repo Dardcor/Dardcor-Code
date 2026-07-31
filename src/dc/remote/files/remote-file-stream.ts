@@ -6,10 +6,10 @@ import { open, unlink } from 'node:fs/promises';
 import type { FileHandle } from 'node:fs/promises';
 import { resolve, dirname, sep } from 'node:path';
 import { existsSync, mkdirSync } from 'node:fs';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { IRemoteChannelClient, IRemoteChannelServer } from '../transport/connection-multiplexer.js';
-import { fromBase64, toBase64 } from './remote-file-provider.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { IRemoteChannelClient, IRemoteChannelServer } from '../transport/connection-multiplexer';
+import { fromBase64, toBase64 } from './remote-file-provider';
 
 export const DEFAULT_CHUNK_SIZE = 64 * 1024;
 

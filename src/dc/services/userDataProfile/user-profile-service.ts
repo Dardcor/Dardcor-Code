@@ -3,10 +3,10 @@
  * Mirrors: vs/platform/userDataProfile/common/userDataProfile.ts (profile state switcher)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { URI } from '../../core/types/uri.js';
+import { createDecorator } from '../instantiation/annotations';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { URI } from '../../core/types/uri';
 
 export interface IUserDataProfile {
 	readonly id: string;

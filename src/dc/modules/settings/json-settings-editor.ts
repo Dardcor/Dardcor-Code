@@ -2,11 +2,11 @@
  * Dardcor Code - Raw settings.json Code Editor Adapter with JSON Schema Validation
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, addDisposableListener } from '../../core/dom/element.js';
-import { IConfigurationService, ConfigurationService } from '../../services/configuration/configuration-service.js';
-import { JSONParser } from '../../core/formatting/json-parser.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, addDisposableListener } from '../../core/dom/element';
+import { IConfigurationService, ConfigurationService } from '../../services/configuration/configuration-service';
+import { JSONParser } from '../../core/formatting/json-parser';
 
 export interface IJsonValidationResult {
 	readonly valid: boolean;

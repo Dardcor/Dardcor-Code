@@ -2,10 +2,10 @@
  * Dardcor Code - Code Line Breakpoint Store & Toggle Manager
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { URI } from '../../core/types/uri.js';
-import type { DebugSession } from './debug-session.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { URI } from '../../core/types/uri';
+import type { DebugSession } from './debug-session';
 
 export interface IBreakpoint {
 	readonly id: string;

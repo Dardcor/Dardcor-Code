@@ -2,10 +2,10 @@
  * Dardcor Code - Browser IndexedDB & HTML5 FileSystem API Provider (Task 817)
  */
 
-import { IFileSystemProvider, IFileStat, FileChangeEvent, FileChangeType } from '../../services/files/file-service.js';
-import { URI } from '../../core/types/uri.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
+import { IFileSystemProvider, IFileStat, FileChangeEvent, FileChangeType } from '../../services/files/file-service';
+import { URI } from '../../core/types/uri';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
 
 interface WebFsRecord {
 	readonly path: string;

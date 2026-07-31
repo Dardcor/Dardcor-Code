@@ -1,4 +1,4 @@
-import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
+import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable';
 
 export interface IWebviewRpcMessage {
 	id?: number;

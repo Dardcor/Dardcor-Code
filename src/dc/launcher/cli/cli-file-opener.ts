@@ -1,4 +1,4 @@
-import { getElectronIPC } from '../../core/ipc/electron-bridge.js';
+import { getElectronIPC } from '../../core/ipc/electron-bridge';
 
 export class CLIFileOpener {
 	public openInRunningInstance(paths: string[]): boolean {

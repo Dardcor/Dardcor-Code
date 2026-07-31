@@ -2,8 +2,8 @@
  * Dardcor Code - IPC Client & Channel Client
  */
 
-import { IChannel } from './channel.js';
-import { Event, Emitter } from '../events/emitter.js';
+import { IChannel } from './channel';
+import { Event, Emitter } from '../events/emitter';
 
 export class IPCClient {
 	private readonly _channels = new Map<string, IChannel>();

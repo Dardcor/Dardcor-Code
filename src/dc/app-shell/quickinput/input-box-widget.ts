@@ -2,10 +2,10 @@
  * Dardcor Code - Quick String Input Box Modal Dialog
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $ } from '../../core/dom/element.js';
-import { ModalDialogHost } from '../dialogs/modal-dialog-host.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $ } from '../../core/dom/element';
+import { ModalDialogHost } from '../dialogs/modal-dialog-host';
 
 export interface IInputBoxOptions {
 	title?: string;

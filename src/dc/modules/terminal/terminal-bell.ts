@@ -2,11 +2,11 @@
  * Dardcor Code - Terminal Visual Bell Flash Indicator
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $ } from '../../core/dom/element.js';
-import { CssInjector } from '../../core/dom/css-injector.js';
-import { TerminalEmulator } from './xterm-integration.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $ } from '../../core/dom/element';
+import { CssInjector } from '../../core/dom/css-injector';
+import { TerminalEmulator } from './xterm-integration';
 
 const TERMINAL_BELL_STYLE_ID = 'dc-terminal-bell-styles';
 

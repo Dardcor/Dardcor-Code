@@ -2,10 +2,10 @@
  * Dardcor Code - File Size & Modification Date Details Sidebar Tooltip
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { $ } from '../../core/dom/element.js';
-import { Path } from '../../core/types/path.js';
-import { DateFormatter } from '../../core/formatting/date-formatter.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { $ } from '../../core/dom/element';
+import { Path } from '../../core/types/path';
+import { DateFormatter } from '../../core/formatting/date-formatter';
 
 declare const require: any;
 
@@ -113,7 +113,7 @@ export class FileStatsView extends Disposable {
 	public static getFileType(path: string): string {
 		const ext = Path.extname(path).toLowerCase();
 		const map: Record<string, string> = {
-			'.ts': 'TypeScript', '.js': 'JavaScript', '.tsx': 'TypeScript React',
+			'.ts': 'TypeScript', '': 'JavaScript', '.tsx': 'TypeScript React',
 			'.jsx': 'JavaScript React', '.json': 'JSON', '.css': 'CSS', '.html': 'HTML',
 			'.md': 'Markdown', '.py': 'Python', '.txt': 'Text', '.png': 'PNG Image',
 			'.jpg': 'JPEG Image', '.svg': 'SVG Image', '.log': 'Log File'

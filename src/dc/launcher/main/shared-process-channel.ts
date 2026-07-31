@@ -170,5 +170,5 @@ export function getSharedProcessChannel(): SharedProcessChannel {
 }
 
 export function getSharedProcessEntryPath(): string {
-	return path.join(__dirname, 'shared-process-channel.js');
+	return path.join(__dirname, 'shared-process-channel');
 }

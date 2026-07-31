@@ -2,15 +2,15 @@
  * Dardcor Code - Status Bar Document Language Mode Selector
  */
 
-import { Disposable, IDisposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { URI } from '../../../core/types/uri.js';
-import { Path } from '../../../core/types/path.js';
-import { QuickPickItem } from '../../quickinput/quick-pick-item.js';
-import { IQuickInputService } from '../../quickinput/quick-input-service.js';
-import { EditorInput } from './editor-input.js';
-import { IStatusbarEntry, StatusbarRegistry } from '../statusbar/statusbar-registry.js';
-import { CommandRegistry } from '../../../services/commands/command-service.js';
+import { Disposable, IDisposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { URI } from '../../../core/types/uri';
+import { Path } from '../../../core/types/path';
+import { QuickPickItem } from '../../quickinput/quick-pick-item';
+import { IQuickInputService } from '../../quickinput/quick-input-service';
+import { EditorInput } from './editor-input';
+import { IStatusbarEntry, StatusbarRegistry } from '../statusbar/statusbar-registry';
+import { CommandRegistry } from '../../../services/commands/command-service';
 
 export interface ILanguageDescriptor {
 	readonly id: string;
@@ -35,7 +35,7 @@ export const PLAIN_TEXT_LANGUAGE: ILanguageDescriptor = {
 export const LANGUAGE_REGISTRY: ILanguageDescriptor[] = [
 	{ id: 'typescript', label: 'TypeScript', extensions: ['.ts', '.mts', '.cts'], icon: '\u1F4D8' },
 	{ id: 'typescriptreact', label: 'TypeScript React', extensions: ['.tsx'], icon: '\u1F4D8' },
-	{ id: 'javascript', label: 'JavaScript', extensions: ['.js', '.mjs', '.cjs'], icon: '\u1F7E1' },
+	{ id: 'javascript', label: 'JavaScript', extensions: ['', '.mjs', '.cjs'], icon: '\u1F7E1' },
 	{ id: 'javascriptreact', label: 'JavaScript React', extensions: ['.jsx'], icon: '\u1F7E1' },
 	{ id: 'json', label: 'JSON', extensions: ['.json', '.jsonc'], icon: '\u1F4E6' },
 	{ id: 'html', label: 'HTML', extensions: ['.html', '.htm'], icon: '\u1F5C4' },

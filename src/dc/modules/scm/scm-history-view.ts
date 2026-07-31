@@ -2,12 +2,12 @@
  * Dardcor Code - Repository Commit Timeline History View
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, clearNode, addDisposableListener } from '../../core/dom/element.js';
-import { CssInjector } from '../../core/dom/css-injector.js';
-import { DateFormatter } from '../../core/formatting/date-formatter.js';
-import { GitService, IGitLogEntry } from '../scm/git-service.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, clearNode, addDisposableListener } from '../../core/dom/element';
+import { CssInjector } from '../../core/dom/css-injector';
+import { DateFormatter } from '../../core/formatting/date-formatter';
+import { GitService, IGitLogEntry } from '../scm/git-service';
 
 const SCM_HISTORY_STYLE_ID = 'dc-scm-history-styles';
 

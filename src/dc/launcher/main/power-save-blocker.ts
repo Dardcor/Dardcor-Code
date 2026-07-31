@@ -1,5 +1,5 @@
 import { powerSaveBlocker } from 'electron';
-import { Disposable, toDisposable } from '../../core/lifecycle/disposable.js';
+import { Disposable, toDisposable } from '../../core/lifecycle/disposable';
 
 export type PowerSaveType = 'prevent-app-suspension' | 'prevent-display-sleep';
 

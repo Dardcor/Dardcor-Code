@@ -1,4 +1,4 @@
-import { CLIOutput } from './cli-output.js';
+import { CLIOutput } from './cli-output';
 
 export function printHelp(output: CLIOutput): void {
 	output.out('Dardcor Code - Command Line Interface');

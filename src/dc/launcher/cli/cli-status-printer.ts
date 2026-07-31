@@ -1,4 +1,4 @@
-import { CLIOutput } from './cli-output.js';
+import { CLIOutput } from './cli-output';
 
 export function printStatusTable(output: CLIOutput, status: Record<string, unknown>): void {
 	const entries = Object.entries(status);

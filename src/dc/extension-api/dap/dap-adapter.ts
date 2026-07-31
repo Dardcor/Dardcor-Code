@@ -3,10 +3,10 @@
  */
 
 import * as path from 'node:path';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { DapClient, IDapEvent, IDapLaunchOptions } from '../../modules/debug/dap-client.js';
-import { URI } from '../../core/types/uri.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { DapClient, IDapEvent, IDapLaunchOptions } from '../../modules/debug/dap-client';
+import { URI } from '../../core/types/uri';
 
 export interface IDapAdapterOptions {
 	adapterPath: string;

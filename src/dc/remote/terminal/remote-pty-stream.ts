@@ -2,9 +2,9 @@
  * Dardcor Code - Binary Stream Encoder For Terminal PTY Output Data (Task 821)
  */
 
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { concatBuffers, readUInt32BE, writeUInt32BE } from '../transport/framed-protocol.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { concatBuffers, readUInt32BE, writeUInt32BE } from '../transport/framed-protocol';
 
 export const enum PtyPacketKind {
 	Data = 0,

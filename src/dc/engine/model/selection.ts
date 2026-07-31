@@ -1,6 +1,6 @@
-import { IRange, Position, Range } from './text-model.js';
-import { Position as EditorPosition } from './position.js';
-import { Range as EditorRange } from './range.js';
+import { IRange, Position, Range } from './text-model';
+import { Position as EditorPosition } from './position';
+import { Range as EditorRange } from './range';
 
 export interface ISelection extends IRange {
 	readonly selectionStartLineNumber: number;

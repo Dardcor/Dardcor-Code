@@ -2,12 +2,12 @@
  * Dardcor Code - Debug Execution Call Stack Tree View Component
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, clearNode, addDisposableListener } from '../../core/dom/element.js';
-import { DebugSession, IStackFrame, DebugState } from './debug-session.js';
-import { Path } from '../../core/types/path.js';
-import { escape } from '../../core/types/strings.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, clearNode, addDisposableListener } from '../../core/dom/element';
+import { DebugSession, IStackFrame, DebugState } from './debug-session';
+import { Path } from '../../core/types/path';
+import { escape } from '../../core/types/strings';
 
 export class CallStackView extends Disposable {
 	private readonly _onDidSelectFrame = this._register(new Emitter<IStackFrame>());

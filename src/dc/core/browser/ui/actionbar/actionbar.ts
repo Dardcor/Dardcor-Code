@@ -1,5 +1,5 @@
-import { Disposable } from '../../../common/lifecycle.js';
-import { IAction } from '../../../common/actions.js';
+import { Disposable } from '../../../common/lifecycle';
+import { IAction } from '../../../common/actions';
 
 export interface IActionViewItemOptions {
 	icon?: boolean;

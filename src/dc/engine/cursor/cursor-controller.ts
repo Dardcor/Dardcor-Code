@@ -3,14 +3,14 @@
  * Mirrors: vs/editor/common/cursor/cursor.ts
  */
 
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { ITextModel, Position, Range } from '../model/text-model.js';
-import { EditStack } from '../model/edit-stack.js';
-import { EditorOptions } from '../options/editor-options.js';
-import { ViewLayout } from '../view/view-layout.js';
-import { MultiCursor } from './multi-cursor.js';
-import { CursorOperations, CursorSelection, positionsEqual } from './cursor-operations.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { ITextModel, Position, Range } from '../model/text-model';
+import { EditStack } from '../model/edit-stack';
+import { EditorOptions } from '../options/editor-options';
+import { ViewLayout } from '../view/view-layout';
+import { MultiCursor } from './multi-cursor';
+import { CursorOperations, CursorSelection, positionsEqual } from './cursor-operations';
 
 export enum CursorMoveCommand {
 	Left = 'left',

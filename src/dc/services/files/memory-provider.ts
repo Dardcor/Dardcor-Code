@@ -2,9 +2,9 @@
  * Dardcor Code - In-Memory Virtual FileSystem Provider
  */
 
-import { IFileSystemProvider, IFileStat, FileChangeEvent, FileChangeType } from './file-service.js';
-import { URI } from '../../core/types/uri.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
+import { IFileSystemProvider, IFileStat, FileChangeEvent, FileChangeType } from './file-service';
+import { URI } from '../../core/types/uri';
+import { Emitter, Event } from '../../core/events/emitter';
 
 interface MemoryNode {
 	name: string;

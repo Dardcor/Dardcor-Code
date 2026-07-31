@@ -2,12 +2,12 @@
  * Dardcor Code - Panel Placement Selector (Bottom, Left, Right)
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { $ } from '../../../core/dom/element.js';
-import { QuickPickItem } from '../../quickinput/quick-pick-item.js';
-import { IQuickInputService } from '../../quickinput/quick-input-service.js';
-import { PanelPosition } from './panel-actions.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { $ } from '../../../core/dom/element';
+import { QuickPickItem } from '../../quickinput/quick-pick-item';
+import { IQuickInputService } from '../../quickinput/quick-input-service';
+import { PanelPosition } from './panel-actions';
 
 export interface IPanelDockPositionOptions {
 	readonly container: HTMLElement;

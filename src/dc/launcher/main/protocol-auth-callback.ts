@@ -1,6 +1,6 @@
 import { app } from 'electron';
-import { Disposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter } from '../../core/events/emitter.js';
+import { Disposable, toDisposable } from '../../core/lifecycle/disposable';
+import { Emitter } from '../../core/events/emitter';
 
 export interface AuthCodePayload {
 	code: string;

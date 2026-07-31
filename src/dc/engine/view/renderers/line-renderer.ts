@@ -3,10 +3,10 @@
  * Mirrors: vs/editor/browser/view/viewLayer.ts + lineDecorations.ts
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { $, clearNode } from '../../../core/dom/element.js';
-import { IRenderContext } from '../../options/editor-options.js';
-import { LineToken, LineTokens } from '../../model/line-tokens.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { $, clearNode } from '../../../core/dom/element';
+import { IRenderContext } from '../../options/editor-options';
+import { LineToken, LineTokens } from '../../model/line-tokens';
 
 export class LineRenderer extends Disposable {
 	private readonly _domNode: HTMLElement;

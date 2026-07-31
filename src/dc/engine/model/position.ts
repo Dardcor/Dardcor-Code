@@ -1,6 +1,6 @@
-import { IPosition, Position as BasePosition } from './text-model.js';
+import { IPosition, Position as BasePosition } from './text-model';
 
-export type { IPosition } from './text-model.js';
+export type { IPosition } from './text-model';
 
 export class Position extends BasePosition {
 	static isIPosition(thing: unknown): thing is IPosition {

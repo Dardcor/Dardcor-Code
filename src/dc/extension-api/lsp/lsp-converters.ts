@@ -3,9 +3,9 @@
  * Mirrors: vs/workbench/api/common/languageFeatures.ts (converters)
  */
 
-import { Position as EditorPosition, Range as EditorRange } from '../../engine/model/text-model.js';
-import { Position, Range, Location, Diagnostic, DiagnosticSeverity, MarkdownString, TextEdit, WorkspaceEdit } from '../api/ext-host-api-impl.js';
-import { URI } from '../../core/types/uri.js';
+import { Position as EditorPosition, Range as EditorRange } from '../../engine/model/text-model';
+import { Position, Range, Location, Diagnostic, DiagnosticSeverity, MarkdownString, TextEdit, WorkspaceEdit } from '../api/ext-host-api-impl';
+import { URI } from '../../core/types/uri';
 
 export interface ILspPosition {
 	line: number;

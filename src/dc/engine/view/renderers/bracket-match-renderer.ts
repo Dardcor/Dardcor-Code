@@ -3,9 +3,9 @@
  * Mirrors: vs/editor/contrib/bracketMatching/browser/bracketMatching.ts
  */
 
-import { $ } from '../../../core/dom/element.js';
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { IRange, Range } from '../../model/text-model.js';
+import { $ } from '../../../core/dom/element';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { IRange, Range } from '../../model/text-model';
 
 export interface IBracketMatchRange {
 	readonly range: Range;

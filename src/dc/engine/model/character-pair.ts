@@ -3,7 +3,7 @@
  * Mirrors: vs/editor/contrib/languageAutoClose/languageAutoClose.ts
  */
 
-import { IPosition } from './text-model.js';
+import { IPosition } from './text-model';
 
 export interface ICharacterPair {
 	readonly open: string;

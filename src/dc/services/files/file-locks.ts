@@ -3,7 +3,7 @@
  * Mirrors: vs/platform/files/common/fileLocks.ts
  */
 
-import { URI } from '../../core/types/uri.js';
+import { URI } from '../../core/types/uri';
 
 export class FileLockManager {
 	private readonly _locks = new Map<string, Promise<any>>();

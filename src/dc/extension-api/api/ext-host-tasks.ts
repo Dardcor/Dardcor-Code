@@ -3,11 +3,11 @@
  * Mirrors: vs/workbench/api/common/extHostTasks.ts
  */
 
-import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { RPCProtocol, IRPCChannelHandler } from '../host/rpc-protocol.js';
-import { URI } from '../../core/types/uri.js';
-import { CancellationToken } from '../../core/async/cancellation.js';
+import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { RPCProtocol, IRPCChannelHandler } from '../host/rpc-protocol';
+import { URI } from '../../core/types/uri';
+import { CancellationToken } from '../../core/async/cancellation';
 
 export type Thenable<T> = PromiseLike<T>;
 

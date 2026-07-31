@@ -1,4 +1,4 @@
-import { IAction } from '../../../common/actions.js';
+import { IAction } from '../../../common/actions';
 
 export interface IMenuOptions {
 	ariaLabel?: string;

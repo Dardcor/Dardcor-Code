@@ -2,12 +2,12 @@
  * Dardcor Code - Keybinding Service (Task 116)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { ChordKeybinding, IKeybinding } from '../../core/types/keycodes.js';
-import { IContextKeyService } from '../contextkey/contextkey-service.js';
-import { KeybindingResolver, IKeybindingRule } from './keybinding-resolver.js';
+import { createDecorator } from '../instantiation/annotations';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable';
+import { ChordKeybinding, IKeybinding } from '../../core/types/keycodes';
+import { IContextKeyService } from '../contextkey/contextkey-service';
+import { KeybindingResolver, IKeybindingRule } from './keybinding-resolver';
 
 export interface IResolvedKeybindingMatch {
 	readonly command: string;

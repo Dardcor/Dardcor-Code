@@ -3,8 +3,8 @@
  * Mirrors: vs/workbench/contrib/webview/browser/webviewElement.ts
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
 
 export interface IWebviewElementOptions {
 	readonly enableScripts?: boolean;

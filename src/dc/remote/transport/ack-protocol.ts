@@ -1,5 +1,5 @@
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { generateUuid } from '../../core/types/uuid.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { generateUuid } from '../../core/types/uuid';
 
 export interface IAckMessage<T = unknown> {
 	readonly id: string;

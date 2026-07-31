@@ -2,10 +2,10 @@
  * Dardcor Code - Extension Recommendation Engine & Suggestions View
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, clearNode, addDisposableListener } from '../../core/dom/element.js';
-import { IExtensionInfo } from './extensions-viewlet.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, clearNode, addDisposableListener } from '../../core/dom/element';
+import { IExtensionInfo } from './extensions-viewlet';
 
 export type RecommendationReason = 'workspace' | 'filetype' | 'popular' | 'config';
 

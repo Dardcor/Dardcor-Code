@@ -2,10 +2,10 @@
  * Dardcor Code - LSP textDocument/hover Request Handler (Task 630)
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { LspClient } from './lsp-client.js';
-import { lspRangeToApiRange, lspMarkupContentToMarkdown, ILspRange } from './lsp-converters.js';
-import { Position, Range, MarkdownString } from '../api/ext-host-api-impl.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { LspClient } from './lsp-client';
+import { lspRangeToApiRange, lspMarkupContentToMarkdown, ILspRange } from './lsp-converters';
+import { Position, Range, MarkdownString } from '../api/ext-host-api-impl';
 
 export interface ILspHover {
 	contents: string | Array<string | { kind: string; value: string }> | { kind: string; value: string };

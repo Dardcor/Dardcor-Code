@@ -3,10 +3,10 @@
  * Mirrors: vs/editor/browser/viewParts/cursors/cursors.ts
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { $, clearNode } from '../../../core/dom/element.js';
-import { IRenderContext } from '../../options/editor-options.js';
-import { Position } from '../../model/text-model.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { $, clearNode } from '../../../core/dom/element';
+import { IRenderContext } from '../../options/editor-options';
+import { Position } from '../../model/text-model';
 
 const BLINK_INTERVAL_MS = 500;
 

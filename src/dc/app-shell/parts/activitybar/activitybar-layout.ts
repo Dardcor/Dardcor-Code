@@ -2,8 +2,8 @@
  * Dardcor Code - Vertical Positioning Calculator For Activity Bar
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { $ } from '../../../core/dom/element.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { $ } from '../../../core/dom/element';
 
 export interface IActivityBarMetrics {
 	readonly width: number;

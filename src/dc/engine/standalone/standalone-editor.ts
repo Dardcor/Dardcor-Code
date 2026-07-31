@@ -3,32 +3,32 @@
  * Mirrors: vs/editor/standalone/browser/standaloneCodeEditor.ts
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { $, clearNode, addDisposableListener } from '../../core/dom/element.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { URI } from '../../core/types/uri.js';
-import { ITextModel, Position, Range, TextModel } from '../model/text-model.js';
-import { LineToken, LineTokens } from '../model/line-tokens.js';
-import { EditStack } from '../model/edit-stack.js';
-import { ViewModel } from '../view/view-model.js';
-import { ViewLayout } from '../view/view-layout.js';
-import { Viewport } from '../view/viewport.js';
-import { EditorOptions, IRenderContext, IEditorOptions } from '../options/editor-options.js';
-import { MultiCursor } from '../cursor/multi-cursor.js';
-import { CursorController, CursorMoveCommand, IEditOperationInput } from '../cursor/cursor-controller.js';
-import { CursorSelection } from '../cursor/cursor-operations.js';
-import { LineRenderer } from '../view/renderers/line-renderer.js';
-import { GutterRenderer } from '../view/renderers/gutter-renderer.js';
-import { DecorationRenderer } from '../view/renderers/decoration-renderer.js';
-import { CursorRenderer } from '../view/renderers/cursor-renderer.js';
-import { SelectionRenderer } from '../view/renderers/selection-renderer.js';
-import { WhitespaceRenderer } from '../view/renderers/whitespace-renderer.js';
-import { IndentGuideRenderer } from '../view/renderers/indent-guide-renderer.js';
-import { KeyboardInput } from '../controller/keyboard-input.js';
-import { MouseInput } from '../controller/mouse-input.js';
-import { ScrollController } from '../controller/scroll-controller.js';
-import { TextMateTokenizer } from '../tokenizer/textmate-tokenizer.js';
-import { DecorationRangeMap, IDecorationInterval } from '../model/range-map.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { $, clearNode, addDisposableListener } from '../../core/dom/element';
+import { Emitter, Event } from '../../core/events/emitter';
+import { URI } from '../../core/types/uri';
+import { ITextModel, Position, Range, TextModel } from '../model/text-model';
+import { LineToken, LineTokens } from '../model/line-tokens';
+import { EditStack } from '../model/edit-stack';
+import { ViewModel } from '../view/view-model';
+import { ViewLayout } from '../view/view-layout';
+import { Viewport } from '../view/viewport';
+import { EditorOptions, IRenderContext, IEditorOptions } from '../options/editor-options';
+import { MultiCursor } from '../cursor/multi-cursor';
+import { CursorController, CursorMoveCommand, IEditOperationInput } from '../cursor/cursor-controller';
+import { CursorSelection } from '../cursor/cursor-operations';
+import { LineRenderer } from '../view/renderers/line-renderer';
+import { GutterRenderer } from '../view/renderers/gutter-renderer';
+import { DecorationRenderer } from '../view/renderers/decoration-renderer';
+import { CursorRenderer } from '../view/renderers/cursor-renderer';
+import { SelectionRenderer } from '../view/renderers/selection-renderer';
+import { WhitespaceRenderer } from '../view/renderers/whitespace-renderer';
+import { IndentGuideRenderer } from '../view/renderers/indent-guide-renderer';
+import { KeyboardInput } from '../controller/keyboard-input';
+import { MouseInput } from '../controller/mouse-input';
+import { ScrollController } from '../controller/scroll-controller';
+import { TextMateTokenizer } from '../tokenizer/textmate-tokenizer';
+import { DecorationRangeMap, IDecorationInterval } from '../model/range-map';
 
 export interface IStandaloneEditorOptions {
 	readonly value?: string;

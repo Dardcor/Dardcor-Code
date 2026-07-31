@@ -1,4 +1,4 @@
-export { DiagnosticSeverity } from './ext-host-types.js';
+export { DiagnosticSeverity } from './ext-host-types';
 
 export enum OverviewRulerLane {
 	Left = 1,

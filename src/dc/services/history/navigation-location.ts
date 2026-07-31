@@ -3,7 +3,7 @@
  * Mirrors: vs/workbench/services/history/common/history.ts navigation marker
  */
 
-import { URI } from '../../core/types/uri.js';
+import { URI } from '../../core/types/uri';
 
 export interface INavigationLocation {
 	readonly resource: URI;

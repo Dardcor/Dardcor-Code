@@ -2,12 +2,12 @@
  * Dardcor Code - Full Extension README & Details Tab Editor Pane
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, clearNode } from '../../core/dom/element.js';
-import { ExtensionRegistry, IExtensionInfo } from './extensions-viewlet.js';
-import { getExtensionIconColor, getExtensionInitial } from './extension-card-renderer.js';
-import { escape } from '../../core/types/strings.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, clearNode } from '../../core/dom/element';
+import { ExtensionRegistry, IExtensionInfo } from './extensions-viewlet';
+import { getExtensionIconColor, getExtensionInitial } from './extension-card-renderer';
+import { escape } from '../../core/types/strings';
 
 export class ExtensionDetailsEditor extends Disposable {
 	private readonly _onDidClose = this._register(new Emitter<void>());

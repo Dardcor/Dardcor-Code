@@ -1,5 +1,5 @@
-import { ITextModel, Position } from '../model/text-model.js';
-import { Selection } from '../model/selection.js';
+import { ITextModel, Position } from '../model/text-model';
+import { Selection } from '../model/selection';
 
 const DEFAULT_LINE_HEIGHT = 19;
 const PAGE_SCROLL_FACTOR = 0.8;

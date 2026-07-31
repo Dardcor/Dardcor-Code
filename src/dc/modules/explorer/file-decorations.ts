@@ -2,10 +2,10 @@
  * Dardcor Code - Git Status File Name Color Decorations
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { GitService, IGitStatusEntry } from '../scm/git-service.js';
-import { Path } from '../../core/types/path.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { GitService, IGitStatusEntry } from '../scm/git-service';
+import { Path } from '../../core/types/path';
 
 export type FileDecorationKind = 'added' | 'modified' | 'deleted' | 'untracked' | 'conflicted' | 'renamed';
 

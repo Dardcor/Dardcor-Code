@@ -3,11 +3,11 @@
  * Mirrors: vs/workbench/api/common/extHostTextEditors.ts
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { RPCProtocol, IRPCChannelHandler } from '../host/rpc-protocol.js';
-import { ExtHostDocuments } from './ext-host-documents.js';
-import { TextEditor, ITextEditorData } from './ext-host-text-editor.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { RPCProtocol, IRPCChannelHandler } from '../host/rpc-protocol';
+import { ExtHostDocuments } from './ext-host-documents';
+import { TextEditor, ITextEditorData } from './ext-host-text-editor';
 
 /**
  * Tracks the active and visible text editors on the main side. The main

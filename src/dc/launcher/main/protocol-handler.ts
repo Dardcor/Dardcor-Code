@@ -1,5 +1,5 @@
 import { app, protocol, net } from 'electron';
-import { Disposable, toDisposable } from '../../core/lifecycle/disposable.js';
+import { Disposable, toDisposable } from '../../core/lifecycle/disposable';
 
 export const DEFAULT_PROTOCOLS = ['dc', 'dardcor'];
 

@@ -2,11 +2,11 @@
  * Dardcor Code - IFileSystemProvider Adapter For Remote Server Filesystem (Task 804)
  */
 
-import { IFileSystemProvider, IFileStat, FileChangeEvent, FileChangeType } from '../../services/files/file-service.js';
-import { URI } from '../../core/types/uri.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { IRemoteChannelClient } from '../transport/connection-multiplexer.js';
+import { IFileSystemProvider, IFileStat, FileChangeEvent, FileChangeType } from '../../services/files/file-service';
+import { URI } from '../../core/types/uri';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { IRemoteChannelClient } from '../transport/connection-multiplexer';
 
 export interface IRemoteFileChangeEvent {
 	readonly path: string;

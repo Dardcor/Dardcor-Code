@@ -2,8 +2,8 @@
  * Dardcor Code - Web Worker Thread Client Manager
  */
 
-import { Disposable } from '../lifecycle/disposable.js';
-import { Emitter, Event } from '../events/emitter.js';
+import { Disposable } from '../lifecycle/disposable';
+import { Emitter, Event } from '../events/emitter';
 
 export class WorkerClient extends Disposable {
 	private _worker: Worker | null = null;

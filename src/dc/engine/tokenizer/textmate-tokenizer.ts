@@ -5,10 +5,10 @@
  * dynamic import; falls back to the built-in Monarch tokenizer.
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { LineToken } from '../model/line-tokens.js';
-import { MonarchLanguages, MonarchTokenizer } from './monarch-tokenizer.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { LineToken } from '../model/line-tokens';
+import { MonarchLanguages, MonarchTokenizer } from './monarch-tokenizer';
 
 export interface ITextMateTokenizeResult {
 	readonly tokens: LineToken[];
@@ -21,7 +21,7 @@ export interface ITextMateTokenizeState {
 }
 
 const LANG_TO_SCOPE: Record<string, string> = {
-	javascript: 'source.js',
+	javascript: 'source',
 	typescript: 'source.ts',
 	json: 'source.json',
 	html: 'text.html.basic',

@@ -1,4 +1,4 @@
-import { IDisposable } from '../../../../dc/core/common/lifecycle.js';
+import { IDisposable } from 'dc/core/common/lifecycle';
 
 export function createDecorator<T>(serviceId: string): any {
 	return serviceId;

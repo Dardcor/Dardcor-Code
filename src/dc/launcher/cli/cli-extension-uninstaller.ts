@@ -1,6 +1,6 @@
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import { getExtensionsDir, readExtensionsIndex, writeExtensionsIndex } from './cli-extension-installer.js';
+import { getExtensionsDir, readExtensionsIndex, writeExtensionsIndex } from './cli-extension-installer';
 
 export class CLIExtensionUninstaller {
 	constructor(private readonly _extensionsRoot?: string) {}

@@ -1,15 +1,15 @@
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { CLIExitCode } from './cli-exit-codes.js';
-import { parseCLIArgs, ICLIOptions } from './cli-parser.js';
-import { CLIOutput } from './cli-output.js';
-import { printHelp } from './cli-help.js';
-import { printVersion } from './cli-version.js';
-import { printStatusTable } from './cli-status-printer.js';
-import { readStdin } from './cli-stdin-reader.js';
-import { launchDiff } from './cli-diff-launcher.js';
-import { CLICommands } from './cli-commands.js';
-import { CLIFileOpener } from './cli-file-opener.js';
+import { CLIExitCode } from './cli-exit-codes';
+import { parseCLIArgs, ICLIOptions } from './cli-parser';
+import { CLIOutput } from './cli-output';
+import { printHelp } from './cli-help';
+import { printVersion } from './cli-version';
+import { printStatusTable } from './cli-status-printer';
+import { readStdin } from './cli-stdin-reader';
+import { launchDiff } from './cli-diff-launcher';
+import { CLICommands } from './cli-commands';
+import { CLIFileOpener } from './cli-file-opener';
 
 export async function bootstrapCLI(argv: string[]): Promise<number> {
 	const options = parseCLIArgs(argv);
@@ -136,7 +136,7 @@ async function collectStatus(): Promise<Record<string, unknown>> {
 		Version: 'unknown'
 	};
 	try {
-		const { readPackageJson } = await import('./cli-version.js');
+		const { readPackageJson } = await import('./cli-version');
 		status.Version = readPackageJson()?.version ?? '1.0.0';
 	} catch {
 		// Ignore - version already defaults.

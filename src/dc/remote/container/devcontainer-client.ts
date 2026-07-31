@@ -4,10 +4,10 @@
 
 import { resolve, basename, join } from 'node:path';
 import { existsSync } from 'node:fs';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { DockerCli, DockerCliError } from './docker-cli.js';
-import { DevcontainerConfig, getDefaultWorkspaceFolder } from './devcontainer-parser.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { DockerCli, DockerCliError } from './docker-cli';
+import { DevcontainerConfig, getDefaultWorkspaceFolder } from './devcontainer-parser';
 
 export interface DevcontainerSession {
 	readonly containerId: string;

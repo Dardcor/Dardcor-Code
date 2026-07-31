@@ -3,10 +3,10 @@
  * Mirrors: vs/platform/userDataSync/common/userDataSync.ts (settings & extension cloud sync client)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { mergeSettings } from './sync-merger.js';
+import { createDecorator } from '../instantiation/annotations';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { mergeSettings } from './sync-merger';
 
 export const enum SyncStatus {
 	Uninitialized = 'uninitialized',

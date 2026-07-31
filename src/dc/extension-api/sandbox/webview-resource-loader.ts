@@ -1,4 +1,4 @@
-import { URI } from '../../core/types/uri.js';
+import { URI } from '../../core/types/uri';
 
 const SCHEME = 'webview-resource';
 

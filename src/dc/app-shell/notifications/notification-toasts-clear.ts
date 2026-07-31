@@ -2,10 +2,10 @@
  * Dardcor Code - Clear All Action Handler Inside Notification Center
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { NotificationCenterWidget } from './notification-center-widget.js';
-import { NotificationToastCenter } from './notification-toast-center.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { NotificationCenterWidget } from './notification-center-widget';
+import { NotificationToastCenter } from './notification-toast-center';
 
 export interface INotificationToastsClearOptions {
 	readonly clearCenter?: boolean;

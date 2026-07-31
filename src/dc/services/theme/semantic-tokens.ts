@@ -3,8 +3,8 @@
  * Mirrors: vs/platform/theme/common/tokenClassificationRegistry.ts + LSP semanticTokens delta decoder
  */
 
-import { Color } from '../../core/math/color.js';
-import { IThemeTokenColor } from './theme-service.js';
+import { Color } from '../../core/math/color';
+import { IThemeTokenColor } from './theme-service';
 
 export interface ISemanticTokenRule {
 	selector: string; // e.g. "variable.readonly:typescript"

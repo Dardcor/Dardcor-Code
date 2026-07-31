@@ -1,8 +1,8 @@
-import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { DocumentSelector, matchesSelector } from './ext-host-languages.js';
-import { TextDocument } from './ext-host-documents.js';
-import { TextEdit, Range, Position } from './ext-host-api-impl.js';
-import { CancellationToken } from '../../core/async/cancellation.js';
+import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable';
+import { DocumentSelector, matchesSelector } from './ext-host-languages';
+import { TextDocument } from './ext-host-documents';
+import { TextEdit, Range, Position } from './ext-host-api-impl';
+import { CancellationToken } from '../../core/async/cancellation';
 
 export interface IFormattingOptions {
 	tabSize: number;

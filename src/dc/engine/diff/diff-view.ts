@@ -3,11 +3,11 @@
  * Mirrors: vs/editor/contrib/diffEditor/diffEditorWidget.ts
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { $, clearNode } from '../../core/dom/element.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { ITextModel } from '../model/text-model.js';
-import { DiffChangeType, DiffComputer, IDiffChange } from './diff-computer.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { $, clearNode } from '../../core/dom/element';
+import { Emitter, Event } from '../../core/events/emitter';
+import { ITextModel } from '../model/text-model';
+import { DiffChangeType, DiffComputer, IDiffChange } from './diff-computer';
 
 export interface IDiffViewOptions {
 	readonly lineHeight?: number;

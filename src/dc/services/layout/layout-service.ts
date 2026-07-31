@@ -3,9 +3,9 @@
  * Mirrors: vs/workbench/services/layout/browser/layoutService.ts (shell container layout coordinator)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
+import { createDecorator } from '../instantiation/annotations';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
 
 export const enum Parts {
 	TITLEBAR_PART = 'workbench.parts.titlebar',

@@ -3,7 +3,7 @@
  */
 
 import type { IncomingMessage } from 'node:http';
-import { JwtSigner } from './jwt-signer.js';
+import { JwtSigner } from './jwt-signer';
 
 export interface ITokenValidatorOptions {
 	readonly tokens?: ReadonlyArray<string>;

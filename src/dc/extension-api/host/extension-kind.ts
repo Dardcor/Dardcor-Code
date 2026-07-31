@@ -3,7 +3,7 @@
  * Mirrors: vs/workbench/api/common/extHostExtensionService.ts (ExtensionKind)
  */
 
-import { IExtensionManifest } from './extension-manifest.js';
+import { IExtensionManifest } from './extension-manifest';
 
 export enum ExtensionKind {
 	UI = 1,

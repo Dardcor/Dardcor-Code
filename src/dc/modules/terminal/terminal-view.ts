@@ -2,13 +2,13 @@
  * Dardcor Code - Integrated Terminal Panel View Container
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, clearNode, addDisposableListener } from '../../core/dom/element.js';
-import { TerminalEmulator, XtermRenderer } from './xterm-integration.js';
-import { TerminalProcess, ITerminalProcessOptions } from './terminal-process.js';
-import { TerminalTabs } from './terminal-tabs.js';
-import { IConfigurationService, ConfigurationService } from '../../services/configuration/configuration-service.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, clearNode, addDisposableListener } from '../../core/dom/element';
+import { TerminalEmulator, XtermRenderer } from './xterm-integration';
+import { TerminalProcess, ITerminalProcessOptions } from './terminal-process';
+import { TerminalTabs } from './terminal-tabs';
+import { IConfigurationService, ConfigurationService } from '../../services/configuration/configuration-service';
 
 export interface ITerminalInstance {
 	readonly id: number;

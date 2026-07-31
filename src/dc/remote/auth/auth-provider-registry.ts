@@ -1,5 +1,5 @@
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable, toDisposable } from '../../core/lifecycle/disposable.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable, toDisposable } from '../../core/lifecycle/disposable';
 
 export interface AuthResult {
 	readonly valid: boolean;

@@ -1,8 +1,8 @@
-import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { URI } from '../../core/types/uri.js';
-import { Range, Position } from './ext-host-api-impl.js';
-import { TextDocument } from './ext-host-documents.js';
+import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { URI } from '../../core/types/uri';
+import { Range, Position } from './ext-host-api-impl';
+import { TextDocument } from './ext-host-documents';
 
 export interface ICommentAuthor {
 	name: string;

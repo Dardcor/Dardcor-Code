@@ -3,7 +3,7 @@
  * Mirrors: vs/platform/notification/common/notification.ts notification model
  */
 
-import { Severity, INotificationAction } from './notification-service.js';
+import { Severity, INotificationAction } from './notification-service';
 
 
 export class NotificationModel {

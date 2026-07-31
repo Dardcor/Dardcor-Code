@@ -2,7 +2,7 @@
  * Dardcor Code - Set, ResourceMap & BidirectionalMap
  */
 
-import { URI } from '../types/uri.js';
+import { URI } from '../types/uri';
 
 export class BidirectionalMap<K, V> {
 	private readonly _forward = new Map<K, V>();

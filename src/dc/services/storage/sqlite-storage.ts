@@ -4,9 +4,9 @@
 
 import { promises as fs } from 'node:fs';
 import { dirname } from 'node:path';
-import { IStorageService, IStorageChangeEvent, StorageScope, StorageTarget } from './storage-service.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
+import { IStorageService, IStorageChangeEvent, StorageScope, StorageTarget } from './storage-service';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
 
 type DatabaseSync = {
 	exec(sql: string): void;

@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
-import { CLIExtensionInstaller } from './cli-extension-installer.js';
-import { CLIExtensionUninstaller } from './cli-extension-uninstaller.js';
-import { CLIFileOpener } from './cli-file-opener.js';
+import { CLIExtensionInstaller } from './cli-extension-installer';
+import { CLIExtensionUninstaller } from './cli-extension-uninstaller';
+import { CLIFileOpener } from './cli-file-opener';
 
 export interface ICLICommandDriver {
 	installExtension(id: string): Promise<void>;
@@ -109,7 +109,7 @@ class DefaultCLICommandDriver implements ICLICommandDriver {
 
 	private async _loadExtensionServices(): Promise<any | null> {
 		try {
-			return await import('../../services/extensions/extension-management.js');
+			return await import('../../services/extensions/extension-management');
 		} catch {
 			return null;
 		}
@@ -120,7 +120,7 @@ class DefaultCLICommandDriver implements ICLICommandDriver {
 	}
 
 	private async _listFromIndex(): Promise<string[]> {
-		const { readExtensionsIndex } = await import('./cli-extension-installer.js');
+		const { readExtensionsIndex } = await import('./cli-extension-installer');
 		const index = await readExtensionsIndex();
 		return index.extensions.map(e => `${e.id}@${e.version}`);
 	}

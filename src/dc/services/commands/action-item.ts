@@ -3,8 +3,8 @@
  * Mirrors: vs/base/browser/ui/actionbar/actionbar.ts
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
 
 export interface IAction {
 	readonly id: string;

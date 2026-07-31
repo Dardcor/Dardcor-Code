@@ -1,6 +1,6 @@
 import { readdir, stat, mkdir, copyFile as copyFileFs, rename, rm } from 'node:fs/promises';
 import { join, dirname, basename } from 'node:path';
-import { Emitter, Event } from '../../core/events/emitter.js';
+import { Emitter, Event } from '../../core/events/emitter';
 
 export interface ICopyResult {
 	readonly copied: number;

@@ -2,13 +2,13 @@
  * Dardcor Code - Status Bar Indentation Mode Selector (Spaces vs Tabs, Indent Size)
  */
 
-import { Disposable, IDisposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { QuickPickItem } from '../../quickinput/quick-pick-item.js';
-import { IQuickInputService } from '../../quickinput/quick-input-service.js';
-import { EditorInput } from './editor-input.js';
-import { IStatusbarEntry, StatusbarRegistry } from '../statusbar/statusbar-registry.js';
-import { CommandRegistry } from '../../../services/commands/command-service.js';
+import { Disposable, IDisposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { QuickPickItem } from '../../quickinput/quick-pick-item';
+import { IQuickInputService } from '../../quickinput/quick-input-service';
+import { EditorInput } from './editor-input';
+import { IStatusbarEntry, StatusbarRegistry } from '../statusbar/statusbar-registry';
+import { CommandRegistry } from '../../../services/commands/command-service';
 
 export interface IIndentationInfo {
 	readonly insertSpaces: boolean;

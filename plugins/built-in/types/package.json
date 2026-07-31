@@ -1,9 +1,8 @@
 {
-  "name": "types",
-  "displayName": "types",
-  "description": "Dardcor Code built-in extension: types",
-  "version": "1.0.0",
-  "publisher": "dardcor",
-  "engines": { "dardcor": "^1.0.0" },
-  "categories": ["Programming Languages"]
+	"name": "types",
+	"displayName": "TypeScript and JavaScript Grammar",
+	"description": "Grammar for TypeScript and JavaScript.",
+	"version": "1.0.0",
+	"publisher": "vscode",
+	"engines": { "vscode": "^1.0.0" }
 }

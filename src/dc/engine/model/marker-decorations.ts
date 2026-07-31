@@ -1,6 +1,6 @@
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { IPosition, IRange, Range } from './text-model.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { IPosition, IRange, Range } from './text-model';
 
 export type MarkerSeverity = 'error' | 'warning' | 'info' | 'hint';
 

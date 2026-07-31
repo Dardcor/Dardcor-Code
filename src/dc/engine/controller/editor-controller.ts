@@ -2,10 +2,10 @@
  * Dardcor Code - CodeEditor Component Controller
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { ITextModel } from '../model/text-model.js';
-import { $ } from '../../core/dom/element.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { ITextModel } from '../model/text-model';
+import { $ } from '../../core/dom/element';
+import { Emitter, Event } from '../../core/events/emitter';
 
 export interface ICodeEditor {
 	setModel(model: ITextModel | null): void;

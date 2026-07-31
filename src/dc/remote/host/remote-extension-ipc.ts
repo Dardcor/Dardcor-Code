@@ -1,6 +1,6 @@
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { ConnectionMultiplexer, IRemoteChannelClient } from '../transport/connection-multiplexer.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { ConnectionMultiplexer, IRemoteChannelClient } from '../transport/connection-multiplexer';
 
 export interface IRpcRequest {
 	readonly method: string;

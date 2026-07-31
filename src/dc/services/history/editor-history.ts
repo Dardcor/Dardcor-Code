@@ -3,8 +3,8 @@
  * Mirrors: vs/workbench/services/history/common/history.ts
  */
 
-import { URI } from '../../core/types/uri.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
+import { URI } from '../../core/types/uri';
+import { Emitter, Event } from '../../core/events/emitter';
 
 export interface IEditorHistoryItem {
 	readonly resource: URI;

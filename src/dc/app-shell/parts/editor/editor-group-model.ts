@@ -2,9 +2,9 @@
  * Dardcor Code - List Model Of Active Open Tabs Inside Group
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { EditorInput } from './editor-input.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { EditorInput } from './editor-input';
 
 export interface IEditorGroupModelEvent {
 	readonly input: EditorInput;

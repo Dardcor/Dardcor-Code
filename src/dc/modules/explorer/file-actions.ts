@@ -2,15 +2,15 @@
  * Dardcor Code - File Explorer Context Actions
  */
 
-import { IFileService, IFileSystemProvider } from '../../services/files/file-service.js';
-import { FileTreeModel, FileTreeNode, IFileTreeElement } from './file-tree-model.js';
-import { URI } from '../../core/types/uri.js';
-import { Path } from '../../core/types/path.js';
-import { DataBuffer } from '../../core/binary/buffer.js';
-import { layoutContextMenu, getAnchorFromMouseEvent } from '../../core/dom/context-menu.js';
-import { addDisposableListener } from '../../core/dom/element.js';
-import { toDisposable, IDisposable } from '../../core/lifecycle/disposable.js';
-import { isWindows, isMacintosh } from '../../core/environment/platform.js';
+import { IFileService, IFileSystemProvider } from '../../services/files/file-service';
+import { FileTreeModel, FileTreeNode, IFileTreeElement } from './file-tree-model';
+import { URI } from '../../core/types/uri';
+import { Path } from '../../core/types/path';
+import { DataBuffer } from '../../core/binary/buffer';
+import { layoutContextMenu, getAnchorFromMouseEvent } from '../../core/dom/context-menu';
+import { addDisposableListener } from '../../core/dom/element';
+import { toDisposable, IDisposable } from '../../core/lifecycle/disposable';
+import { isWindows, isMacintosh } from '../../core/environment/platform';
 
 declare const require: any;
 

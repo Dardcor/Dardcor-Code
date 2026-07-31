@@ -2,10 +2,10 @@
  * Dardcor Code - Global Undo/Redo Edit Stack Service (Task 131)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { URI } from '../../core/types/uri.js';
+import { createDecorator } from '../instantiation/annotations';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { URI } from '../../core/types/uri';
 
 export interface IUndoRedoElement {
 	readonly uri: URI;

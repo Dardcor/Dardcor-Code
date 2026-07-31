@@ -1,4 +1,4 @@
-import { Emitter, Event } from '../../../../dc/core/common/event.js';
+import { Emitter, Event } from 'dc/core/common/event';
 
 export interface IServerSplash {
 	readonly id: string;

@@ -3,11 +3,11 @@
  * Mirrors: vs/editor/browser/view/viewLayer.ts (line decorations)
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { $, clearNode } from '../../../core/dom/element.js';
-import { IRenderContext } from '../../options/editor-options.js';
-import { IDecorationInterval } from '../../model/range-map.js';
-import { Range } from '../../model/text-model.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { $, clearNode } from '../../../core/dom/element';
+import { IRenderContext } from '../../options/editor-options';
+import { IDecorationInterval } from '../../model/range-map';
+import { Range } from '../../model/text-model';
 
 export interface IDecorationProvider {
 	getDecorationsInRange(range: Range): IDecorationInterval[];

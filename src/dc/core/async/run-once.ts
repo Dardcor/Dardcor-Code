@@ -3,7 +3,7 @@
  * Mirrors: vs/base/common/async.ts → RunOnceScheduler
  */
 
-import { IDisposable } from '../lifecycle/disposable.js';
+import { IDisposable } from '../lifecycle/disposable';
 
 export class RunOnceScheduler implements IDisposable {
 	private _runner: (() => void) | null;

@@ -2,11 +2,11 @@
  * Dardcor Code - Split Editor Vertical / Horizontal Action Commands
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { $ } from '../../../core/dom/element.js';
-import { Direction } from '../../layout/grid-layout.js';
-import { CommandRegistry } from '../../../services/commands/command-service.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { $ } from '../../../core/dom/element';
+import { Direction } from '../../layout/grid-layout';
+import { CommandRegistry } from '../../../services/commands/command-service';
 
 export interface IEditorGroupActionEvent {
 	readonly action: 'splitVertical' | 'splitHorizontal' | 'closeGroup';

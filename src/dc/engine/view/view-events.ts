@@ -92,8 +92,8 @@ export type AnyViewEvent =
 	| IThemeChangedEvent
 	| IConfigurationChangedEvent;
 
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
 
 export class ViewEventsEmitter extends Disposable {
 	private readonly _onDidViewEvent = this._register(new Emitter<AnyViewEvent>());

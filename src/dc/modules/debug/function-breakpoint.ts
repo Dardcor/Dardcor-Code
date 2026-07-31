@@ -2,9 +2,9 @@
  * Dardcor Code - Execution Stop on Named Function Entry Breakpoint Controller
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, clearNode, addDisposableListener } from '../../core/dom/element.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, clearNode, addDisposableListener } from '../../core/dom/element';
 
 export interface IFunctionBreakpoint {
 	readonly id: string;

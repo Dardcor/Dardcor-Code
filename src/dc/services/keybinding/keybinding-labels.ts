@@ -2,8 +2,8 @@
  * Dardcor Code - Platform Keybinding Labels (Cmd vs Ctrl) (Task 118)
  */
 
-import { isMacintosh } from '../../core/environment/platform.js';
-import { ChordKeybinding, IKeybinding, SimpleKeybinding } from '../../core/types/keycodes.js';
+import { isMacintosh } from '../../core/environment/platform';
+import { ChordKeybinding, IKeybinding, SimpleKeybinding } from '../../core/types/keycodes';
 
 const SPECIAL_KEY_NAMES: Record<number, string> = {
 	1: 'Backspace',

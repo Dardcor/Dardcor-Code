@@ -3,12 +3,12 @@
  * Mirrors: vs/editor/browser/controller/mouseHandler.ts
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { addDisposableListener } from '../../core/dom/element.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Position } from '../model/text-model.js';
-import { ViewLayout } from '../view/view-layout.js';
-import { EditorOptions } from '../options/editor-options.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { addDisposableListener } from '../../core/dom/element';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Position } from '../model/text-model';
+import { ViewLayout } from '../view/view-layout';
+import { EditorOptions } from '../options/editor-options';
 
 export interface IMouseEventData {
 	readonly position: Position;

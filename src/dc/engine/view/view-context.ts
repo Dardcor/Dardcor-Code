@@ -3,8 +3,8 @@
  * Mirrors: vs/editor/browser/editorBrowser.ts (ViewContext) & common/config/editorOptions.ts
  */
 
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
 
 export interface IFontInfo {
 	readonly fontFamily: string;

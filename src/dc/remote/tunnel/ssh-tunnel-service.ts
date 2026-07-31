@@ -3,9 +3,9 @@
  */
 
 import { spawn, ChildProcess } from 'node:child_process';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { getFreePort } from './port-forwarding-manager.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { getFreePort } from './port-forwarding-manager';
 
 export interface ISshTunnelOptions {
 	readonly host: string;

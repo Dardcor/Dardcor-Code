@@ -1,20 +1,20 @@
-import * as dom from '../../dom.js';
-import { IKeyboardEvent } from '../../keyboardEvent.js';
-import { IMouseEvent } from '../../mouseEvent.js';
-import { IToggleStyles, Toggle } from '../checkbox/checkbox.js';
-import { IContextViewProvider } from '../contextview/contextview.js';
-import { CaseSensitiveToggle, RegexToggle, WholeWordsToggle } from './findInputToggles.js';
-import { HistoryInputBox, IInputBoxStyles, IInputValidator, IMessage as InputBoxMessage } from '../inputbox/inputBox.js';
-import { Widget } from '../widget.js';
-import { Emitter, Event } from '../../../common/event.js';
-import { KeyCode } from '../../../common/keyCodes.js';
-import { IAction } from '../../../common/actions.js';
-import type { IActionViewItemProvider } from '../actionbar/actionbar.js';
+import * as dom from '../../dom';
+import { IKeyboardEvent } from '../../keyboardEvent';
+import { IMouseEvent } from '../../mouseEvent';
+import { IToggleStyles, Toggle } from '../checkbox/checkbox';
+import { IContextViewProvider } from '../contextview/contextview';
+import { CaseSensitiveToggle, RegexToggle, WholeWordsToggle } from './findInputToggles';
+import { HistoryInputBox, IInputBoxStyles, IInputValidator, IMessage as InputBoxMessage } from '../inputbox/inputBox';
+import { Widget } from '../widget';
+import { Emitter, Event } from '../../../common/event';
+import { KeyCode } from '../../../common/keyCodes';
+import { IAction } from '../../../common/actions';
+import type { IActionViewItemProvider } from '../actionbar/actionbar';
 import './findInput.css';
-import * as nls from '../../../../nls.js';
-import { DisposableStore, MutableDisposable } from '../../../common/lifecycle.js';
-import { IHistory } from '../../../common/history.js';
-import type { IHoverLifecycleOptions } from '../hover/hover.js';
+import * as nls from '../../../../nls';
+import { DisposableStore, MutableDisposable } from '../../../common/lifecycle';
+import { IHistory } from '../../../common/history';
+import type { IHoverLifecycleOptions } from '../hover/hover';
 
 
 export interface IFindInputOptions {

@@ -1,9 +1,9 @@
-import { URI } from '../../core/types/uri.js';
-import { Event } from '../../core/events/emitter.js';
-import { CancellationToken, CancellationTokenSource } from '../../core/async/cancellation.js';
+import { URI } from '../../core/types/uri';
+import { Event } from '../../core/events/emitter';
+import { CancellationToken, CancellationTokenSource } from '../../core/async/cancellation';
 
-export { CancellationToken, CancellationTokenSource } from '../../core/async/cancellation.js';
-export { URI } from '../../core/types/uri.js';
+export { CancellationToken, CancellationTokenSource } from '../../core/async/cancellation';
+export { URI } from '../../core/types/uri';
 
 export interface IExtHostRpc {
 	call<T = unknown>(channel: string, method: string, args?: unknown[]): Promise<T>;

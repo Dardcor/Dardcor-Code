@@ -1,11 +1,11 @@
 import { ipcMain } from 'electron';
-import { Disposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { registerFileChannels } from './main-channel-files.js';
-import { registerDialogChannels } from './main-channel-dialogs.js';
-import { registerStorageChannels } from './main-channel-storage.js';
-import { registerWindowChannels } from './main-channel-window.js';
-import { registerAppChannels } from './main-channel-app.js';
-import { registerUpdateChannels } from './main-channel-updates.js';
+import { Disposable, toDisposable } from '../../core/lifecycle/disposable';
+import { registerFileChannels } from './main-channel-files';
+import { registerDialogChannels } from './main-channel-dialogs';
+import { registerStorageChannels } from './main-channel-storage';
+import { registerWindowChannels } from './main-channel-window';
+import { registerAppChannels } from './main-channel-app';
+import { registerUpdateChannels } from './main-channel-updates';
 
 export type IpcHandler = (...args: any[]) => Promise<unknown> | unknown;
 

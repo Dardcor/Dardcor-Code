@@ -1,5 +1,5 @@
-import { ITextModel, Position } from '../model/text-model.js';
-import { Selection } from '../model/selection.js';
+import { ITextModel, Position } from '../model/text-model';
+import { Selection } from '../model/selection';
 
 export interface ICursorHomeEndArgs {
 	readonly inSelection: boolean;

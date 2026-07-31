@@ -3,9 +3,9 @@
  * Mirrors: vs/editor/common/editorContextKeys.ts + vs/editor/browser/controller/editorController.ts
  */
 
-import { IContextKey, IContextKeyService } from '../../services/contextkey/contextkey-service.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Position } from '../model/text-model.js';
+import { IContextKey, IContextKeyService } from '../../services/contextkey/contextkey-service';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Position } from '../model/text-model';
 
 export interface IEditorContextState {
 	readonly focused: boolean;

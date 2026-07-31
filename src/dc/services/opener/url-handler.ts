@@ -3,10 +3,10 @@
  * Mirrors: vs/platform/url/common/url.ts (custom protocol scheme handler for `dc://`)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { Disposable, IDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { URI } from '../../core/types/uri.js';
+import { createDecorator } from '../instantiation/annotations';
+import { Disposable, IDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { URI } from '../../core/types/uri';
 
 export interface IURLHandler {
 	handleURL(uri: URI): Promise<boolean>;

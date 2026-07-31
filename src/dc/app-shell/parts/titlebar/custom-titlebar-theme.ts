@@ -2,9 +2,9 @@
  * Dardcor Code - Theme Color Sync For Window Native Frame
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { isElectron } from '../../../core/environment/platform.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { isElectron } from '../../../core/environment/platform';
 
 export interface ITitlebarThemeColors {
 	readonly titlebarBackground: string;

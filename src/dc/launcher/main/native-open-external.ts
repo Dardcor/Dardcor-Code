@@ -1,5 +1,5 @@
 import { shell } from 'electron';
-import { Disposable } from '../../core/lifecycle/disposable.js';
+import { Disposable } from '../../core/lifecycle/disposable';
 
 const ALLOWED_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);
 const ALLOWED_APP_PROTOCOLS = new Set(['dc:', 'dardcor:']);

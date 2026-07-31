@@ -2,10 +2,10 @@
  * Dardcor Code - Multi-Terminal Instance Side Tab Bar
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, clearNode, addDisposableListener } from '../../core/dom/element.js';
-import { CssInjector } from '../../core/dom/css-injector.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, clearNode, addDisposableListener } from '../../core/dom/element';
+import { CssInjector } from '../../core/dom/css-injector';
 
 const TABS_STYLE_ID = 'dc-terminal-tabs-styles';
 

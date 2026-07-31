@@ -2,10 +2,10 @@
  * Dardcor Code - LSP textDocument/completion Request Handler (Task 629)
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { LspClient } from './lsp-client.js';
-import { lspRangeToApiRange, ILspPosition } from './lsp-converters.js';
-import { Position, MarkdownString } from '../api/ext-host-api-impl.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { LspClient } from './lsp-client';
+import { lspRangeToApiRange, ILspPosition } from './lsp-converters';
+import { Position, MarkdownString } from '../api/ext-host-api-impl';
 
 export enum CompletionTriggerKind {
 	Invoked = 1,

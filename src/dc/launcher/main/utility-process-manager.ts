@@ -1,6 +1,6 @@
-import { Disposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter } from '../../core/events/emitter.js';
-import { UtilityProcessRpc } from './utility-process-rpc.js';
+import { Disposable, toDisposable } from '../../core/lifecycle/disposable';
+import { Emitter } from '../../core/events/emitter';
+import { UtilityProcessRpc } from './utility-process-rpc';
 
 export interface UtilityProcessEntry {
 	id: number;

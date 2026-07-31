@@ -3,8 +3,8 @@
  * Mirrors: vs/base/browser/ui/tree/
  */
 
-import { IDisposable } from '../lifecycle/disposable.js';
-import { Emitter, Event } from '../events/emitter.js';
+import { IDisposable } from '../lifecycle/disposable';
+import { Emitter, Event } from '../events/emitter';
 
 export interface ITreeNode<T> {
 	readonly element: T;

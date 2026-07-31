@@ -3,9 +3,9 @@
  * Mirrors: vs/workbench/api/common/extHostCommands.ts
  */
 
-import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { RPCProtocol, IRPCChannelHandler } from '../host/rpc-protocol.js';
+import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { RPCProtocol, IRPCChannelHandler } from '../host/rpc-protocol';
 
 export interface ICommandHandler<T extends unknown[] = any[]> {
 	(...args: T): unknown | Promise<unknown>;

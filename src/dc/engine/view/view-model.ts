@@ -3,9 +3,9 @@
  * Mirrors: vs/editor/common/viewModel/viewModelImpl.ts
  */
 
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { ITextModel, Position } from '../model/text-model.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { ITextModel, Position } from '../model/text-model';
 
 
 export interface IViewModel {

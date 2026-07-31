@@ -1,4 +1,4 @@
-import { KeyCode } from '../common/keyCodes.js';
+import { KeyCode } from '../common/keyCodes';
 
 export interface IKeyboardEvent {
 	readonly browserEvent: KeyboardEvent;

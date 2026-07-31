@@ -98,7 +98,7 @@ export function buildPreloadScriptWithRuntime(extraLines: string[]): string {
 }
 
 export function getPreloadScriptPath(): string {
-	return path.resolve(__dirname, '..', 'preload', 'preload.js');
+	return path.resolve(__dirname, '..', 'preload', 'preload');
 }
 
 export function writePreloadScript(): string {

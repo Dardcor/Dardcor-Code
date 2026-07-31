@@ -2,9 +2,9 @@
  * Dardcor Code - Git Stash Create, List & Restore Management
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { GitService } from './git-service.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { GitService } from './git-service';
 
 export interface IStashEntry {
 	readonly id: string;

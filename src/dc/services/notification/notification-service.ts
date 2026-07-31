@@ -2,10 +2,10 @@
  * Dardcor Code - Notification Service Toast/Dialog Queue (Task 126)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable, IDisposable } from '../../core/lifecycle/disposable.js';
-import { generateUuid } from '../../core/types/uuid.js';
+import { createDecorator } from '../instantiation/annotations';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable, IDisposable } from '../../core/lifecycle/disposable';
+import { generateUuid } from '../../core/types/uuid';
 
 export enum Severity {
 	Info = 0,

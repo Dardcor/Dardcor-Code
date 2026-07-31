@@ -2,10 +2,10 @@
  * Dardcor Code - Command Service & Command Registry
  */
 
-import { createDecorator, ServicesAccessor } from '../instantiation/annotations.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { IInstantiationService } from '../instantiation/container.js';
+import { createDecorator, ServicesAccessor } from '../instantiation/annotations';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { IInstantiationService } from '../instantiation/container';
 
 export interface ICommand {
 	id: string;

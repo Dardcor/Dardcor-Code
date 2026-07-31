@@ -3,22 +3,22 @@
  * Mirrors: vs/workbench/api/common/extHostWindow.ts
  */
 
-import { Disposable, IDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { RPCProtocol } from '../host/rpc-protocol.js';
-import { generateUuid } from '../../core/types/uuid.js';
-import { TextEditor } from './ext-host-text-editor.js';
-import { ExtHostEditors } from './ext-host-editors.js';
-import { ExtHostTerminal, Terminal } from './ext-host-terminal.js';
-import { ExtHostWebview, WebviewPanel } from './ext-host-webview.js';
+import { Disposable, IDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { RPCProtocol } from '../host/rpc-protocol';
+import { generateUuid } from '../../core/types/uuid';
+import { TextEditor } from './ext-host-text-editor';
+import { ExtHostEditors } from './ext-host-editors';
+import { ExtHostTerminal, Terminal } from './ext-host-terminal';
+import { ExtHostWebview, WebviewPanel } from './ext-host-webview';
 export interface ICustomEditorProvider {}
 export class CustomEditorHost {
 	public registerProvider(viewType: string, provider: ICustomEditorProvider): IDisposable {
 		return { dispose: () => {} };
 	}
 }
-import { URI } from '../../core/types/uri.js';
-import { ITextEditorData } from './ext-host-text-editor.js';
+import { URI } from '../../core/types/uri';
+import { ITextEditorData } from './ext-host-text-editor';
 
 export enum StatusBarAlignment {
 	Left = 1,

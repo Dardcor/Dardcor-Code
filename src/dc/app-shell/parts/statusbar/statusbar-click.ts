@@ -2,12 +2,12 @@
  * Dardcor Code - Click Command Execution Binding For Status Items
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { StatusbarItem } from './statusbar-item.js';
-import { StatusbarPart } from './statusbar-part.js';
-import { CommandRegistry } from '../../../services/commands/command-service.js';
-import { ServicesAccessor } from '../../../services/instantiation/annotations.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { StatusbarItem } from './statusbar-item';
+import { StatusbarPart } from './statusbar-part';
+import { CommandRegistry } from '../../../services/commands/command-service';
+import { ServicesAccessor } from '../../../services/instantiation/annotations';
 
 const NOOP_ACCESSOR: ServicesAccessor = {
 	get: () => undefined as never,

@@ -7,29 +7,29 @@ import { resolve, sep } from 'node:path';
 import { stat, readdir, readFile, writeFile, mkdir, rm, rename } from 'node:fs/promises';
 import type { Stats, BigIntStats } from 'node:fs';
 import { pathToFileURL } from 'node:url';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { URI } from '../../core/types/uri.js';
-import { IFileStat } from '../../services/files/file-service.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { URI } from '../../core/types/uri';
+import { IFileStat } from '../../services/files/file-service';
 import {
 	ServerCliOptions,
 	parseServerCliArgs,
 	printServerHelp,
 	ServerCliLogLevel
-} from './server-cli-parser.js';
-import { ServerEnvironment } from './server-environment.js';
-import { ServerLog } from './server-log.js';
-import { WebSocketServer, WebSocketConnection } from '../transport/websocket-server.js';
-import { ConnectionMultiplexer, IRemoteChannelServer, IMessageConnection } from '../transport/connection-multiplexer.js';
-import { TokenValidator } from '../auth/token-validator.js';
-import { CorsMiddleware } from '../auth/cors-middleware.js';
-import { HeartbeatMonitor } from '../session/heartbeat-monitor.js';
-import { encodeHeartbeatPing, encodeHeartbeatPong, decodeHeartbeat } from '../transport/heartbeat-protocol.js';
-import { RemoteFileWatcher, RemoteFileWatcherServerChannel } from '../files/remote-file-watcher.js';
-import { RemoteFileStreamServerChannel } from '../files/remote-file-stream.js';
-import { RemoteFileSearchServer } from '../files/remote-file-search-provider.js';
-import { RemotePtyService, RemotePtyChannel } from '../terminal/remote-pty-service.js';
-import { fromBase64, toBase64 } from '../files/remote-file-provider.js';
-import { RemoteWorkspaceState } from '../session/remote-workspace-state.js';
+} from './server-cli-parser';
+import { ServerEnvironment } from './server-environment';
+import { ServerLog } from './server-log';
+import { WebSocketServer, WebSocketConnection } from '../transport/websocket-server';
+import { ConnectionMultiplexer, IRemoteChannelServer, IMessageConnection } from '../transport/connection-multiplexer';
+import { TokenValidator } from '../auth/token-validator';
+import { CorsMiddleware } from '../auth/cors-middleware';
+import { HeartbeatMonitor } from '../session/heartbeat-monitor';
+import { encodeHeartbeatPing, encodeHeartbeatPong, decodeHeartbeat } from '../transport/heartbeat-protocol';
+import { RemoteFileWatcher, RemoteFileWatcherServerChannel } from '../files/remote-file-watcher';
+import { RemoteFileStreamServerChannel } from '../files/remote-file-stream';
+import { RemoteFileSearchServer } from '../files/remote-file-search-provider';
+import { RemotePtyService, RemotePtyChannel } from '../terminal/remote-pty-service';
+import { fromBase64, toBase64 } from '../files/remote-file-provider';
+import { RemoteWorkspaceState } from '../session/remote-workspace-state';
 
 export interface IRemoteServerConfig {
 	readonly port: number;

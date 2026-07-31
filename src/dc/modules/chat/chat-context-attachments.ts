@@ -2,10 +2,10 @@
  * Dardcor Code - @file and @workspace Context Reference Attachment Selector
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, clearNode, addDisposableListener } from '../../core/dom/element.js';
-import { Path } from '../../core/types/path.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, clearNode, addDisposableListener } from '../../core/dom/element';
+import { Path } from '../../core/types/path';
 
 export type ChatAttachmentKind = 'file' | 'workspace' | 'selection';
 

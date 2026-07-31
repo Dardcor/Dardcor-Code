@@ -2,10 +2,10 @@
  * Dardcor Code - Panel Maximize & Position Command Actions
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { $ } from '../../../core/dom/element.js';
-import { CommandRegistry } from '../../../services/commands/command-service.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { $ } from '../../../core/dom/element';
+import { CommandRegistry } from '../../../services/commands/command-service';
 
 export type PanelPosition = 'bottom' | 'right' | 'left';
 

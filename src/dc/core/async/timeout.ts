@@ -2,7 +2,7 @@
  * Dardcor Code - Timeout and Interval Timers with Disposable Auto-Cancellation
  */
 
-import { IDisposable } from '../lifecycle/disposable.js';
+import { IDisposable } from '../lifecycle/disposable';
 
 export class TimeoutTimer implements IDisposable {
 	private _token: any = null;

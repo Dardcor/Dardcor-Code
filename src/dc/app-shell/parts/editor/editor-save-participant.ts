@@ -2,10 +2,10 @@
  * Dardcor Code - Post-Save Edit Transformation Pipeline Hooks
  */
 
-import { Disposable, IDisposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { EditorInput } from './editor-input.js';
-import { ITextModel } from '../../../engine/model/text-model.js';
+import { Disposable, IDisposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { EditorInput } from './editor-input';
+import { ITextModel } from '../../../engine/model/text-model';
 
 export const enum SaveParticipantReason {
 	MANUAL = 'manual',

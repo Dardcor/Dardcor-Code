@@ -3,8 +3,8 @@
  * Mirrors: vs/platform/checksum/common/checksumService.ts (SHA256 integrity checker)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { sha256Hex } from '../../core/security/crypto.js';
+import { createDecorator } from '../instantiation/annotations';
+import { sha256Hex } from '../../core/security/crypto';
 
 export const IChecksumService = createDecorator<IChecksumService>('checksumService');
 

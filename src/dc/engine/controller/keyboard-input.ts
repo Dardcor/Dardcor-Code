@@ -3,9 +3,9 @@
  * Mirrors: vs/editor/browser/controller/textAreaInput.ts
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { addDisposableListener } from '../../core/dom/element.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { addDisposableListener } from '../../core/dom/element';
+import { Emitter, Event } from '../../core/events/emitter';
 
 export interface ITextAreaInputData {
 	readonly text: string;

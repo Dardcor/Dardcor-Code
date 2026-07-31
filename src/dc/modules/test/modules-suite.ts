@@ -2,17 +2,17 @@
  * Dardcor Code - Built-in Workbench Modules Unit Test Suite
  */
 
-import { SettingsGroupModel } from '../settings/settings-group-model.js';
-import { DEFAULT_SETTINGS } from '../settings/settings-editor.js';
-import { KeybindingsSearch } from '../keybindings/keybindings-search.js';
-import { MergeConflictParser } from '../scm/git-merge-editor.js';
-import { ChatIntentParser } from '../chat/chat-intent-parser.js';
-import { TerminalQuickFix } from '../terminal/terminal-quick-fix.js';
-import { SearchNotebookProvider } from '../search/search-notebook.js';
-import { ExtensionUpdateChecker } from '../extensions/extension-update-checker.js';
-import { DiagnosticsModel, DiagnosticSeverity } from '../problems/diagnostics-model.js';
-import { OutlineParser, OutlineSymbolKind } from '../outline/outline-view.js';
-import { URI } from '../../core/types/uri.js';
+import { SettingsGroupModel } from '../settings/settings-group-model';
+import { DEFAULT_SETTINGS } from '../settings/settings-editor';
+import { KeybindingsSearch } from '../keybindings/keybindings-search';
+import { MergeConflictParser } from '../scm/git-merge-editor';
+import { ChatIntentParser } from '../chat/chat-intent-parser';
+import { TerminalQuickFix } from '../terminal/terminal-quick-fix';
+import { SearchNotebookProvider } from '../search/search-notebook';
+import { ExtensionUpdateChecker } from '../extensions/extension-update-checker';
+import { DiagnosticsModel, DiagnosticSeverity } from '../problems/diagnostics-model';
+import { OutlineParser, OutlineSymbolKind } from '../outline/outline-view';
+import { URI } from '../../core/types/uri';
 
 export interface ITestResult {
 	readonly name: string;

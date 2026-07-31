@@ -1,5 +1,5 @@
-import { Widget } from '../widget.js';
-import { Emitter, Event } from '../../../common/event.js';
+import { Widget } from '../widget';
+import { Emitter, Event } from '../../../common/event';
 
 export interface IButtonStyles {
 	buttonBackground?: string;

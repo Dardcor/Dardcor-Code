@@ -3,11 +3,11 @@
  * Mirrors: vs/workbench/api/common/extHostNotebook.ts
  */
 
-import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { RPCProtocol, IRPCChannelHandler } from '../host/rpc-protocol.js';
-import { CancellationToken } from '../../core/async/cancellation.js';
-import { URI } from '../../core/types/uri.js';
+import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { RPCProtocol, IRPCChannelHandler } from '../host/rpc-protocol';
+import { CancellationToken } from '../../core/async/cancellation';
+import { URI } from '../../core/types/uri';
 
 export enum NotebookCellKind {
 	Markup = 1,
@@ -72,7 +72,7 @@ export interface NotebookCell {
 }
 
 export interface NotebookDocument {
-	readonly uri: import('../../core/types/uri.js').URI;
+	readonly uri: import('../../core/types/uri').URI;
 	readonly notebookType: string;
 	readonly version: number;
 	readonly isDirty: boolean;

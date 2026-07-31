@@ -1,6 +1,6 @@
-import { Disposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, addDisposableListener } from '../../core/dom/element.js';
+import { Disposable, toDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, addDisposableListener } from '../../core/dom/element';
 
 export interface IHoverPosition {
 	readonly x: number;

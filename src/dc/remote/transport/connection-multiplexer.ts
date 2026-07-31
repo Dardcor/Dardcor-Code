@@ -2,8 +2,8 @@
  * Dardcor Code - Multi-Channel IPC Socket Over Single Transport Tunnel (Task 803)
  */
 
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
 
 export interface IMessageConnection {
 	readonly onMessage: Event<Uint8Array>;

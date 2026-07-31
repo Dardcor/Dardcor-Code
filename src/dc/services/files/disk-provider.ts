@@ -4,15 +4,15 @@
 
 import { promises as fs } from 'node:fs';
 import { dirname } from 'node:path';
-import { IFileSystemProvider, IFileStat, FileChangeEvent, FileChangeType } from './file-service.js';
-import { URI } from '../../core/types/uri.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { isWindows } from '../../core/environment/platform.js';
-import { toFileStat } from './file-stat.js';
-import { FileSystemWatcher } from './file-watcher.js';
+import { IFileSystemProvider, IFileStat, FileChangeEvent, FileChangeType } from './file-service';
+import { URI } from '../../core/types/uri';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable';
+import { isWindows } from '../../core/environment/platform';
+import { toFileStat } from './file-stat';
+import { FileSystemWatcher } from './file-watcher';
 
-export type { IFileSystemProvider } from './file-service.js';
+export type { IFileSystemProvider } from './file-service';
 
 export function toOSPath(resource: URI): string {
 	let path = decodeURIComponent(resource.path);

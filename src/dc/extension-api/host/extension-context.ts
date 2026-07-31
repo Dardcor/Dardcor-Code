@@ -4,9 +4,9 @@
  */
 
 import * as path from 'node:path';
-import { IDisposable, dispose } from '../../core/lifecycle/disposable.js';
-import { ExtensionStorage, StorageScope } from './extension-storage.js';
-import { URI } from '../../core/types/uri.js';
+import { IDisposable, dispose } from '../../core/lifecycle/disposable';
+import { ExtensionStorage, StorageScope } from './extension-storage';
+import { URI } from '../../core/types/uri';
 
 export enum ExtensionMode {
 	Development = 1,

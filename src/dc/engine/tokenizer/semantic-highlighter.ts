@@ -3,8 +3,8 @@
  * Mirrors: vs/editor/common/model/semanticTokens/semanticTokens.ts
  */
 
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
 
 export interface ISemanticToken {
 	readonly lineNumber: number;

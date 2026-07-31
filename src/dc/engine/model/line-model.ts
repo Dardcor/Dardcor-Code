@@ -3,8 +3,8 @@
  * Mirrors: vs/editor/common/model/textModel.ts (single line abstraction)
  */
 
-import { LineToken, LineTokens } from './line-tokens.js';
-import { getWordAtPosition, IWordAtPosition } from './word-helper.js';
+import { LineToken, LineTokens } from './line-tokens';
+import { getWordAtPosition, IWordAtPosition } from './word-helper';
 
 export class LineModel {
 	private _tokens: LineTokens | null = null;

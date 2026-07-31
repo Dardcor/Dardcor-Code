@@ -3,9 +3,9 @@
  * Mirrors: vs/platform/workspaces/common/workspaces.ts multi-root workspace
  */
 
-import { URI } from '../../core/types/uri.js';
-import { IWorkspaceFolder } from './workspace-service.js';
-import { WorkspaceFolder } from './workspace-folder.js';
+import { URI } from '../../core/types/uri';
+import { IWorkspaceFolder } from './workspace-service';
+import { WorkspaceFolder } from './workspace-folder';
 
 export class MultiRootWorkspace {
 	private readonly _folders: IWorkspaceFolder[] = [];

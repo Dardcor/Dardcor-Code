@@ -2,9 +2,9 @@
  * Dardcor Code - N-Way Grid Editor Group Splitter Layout Calculation
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { Direction } from '../../layout/grid-layout.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { Direction } from '../../layout/grid-layout';
 
 export interface IGridCell {
 	readonly index: number;

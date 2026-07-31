@@ -1,12 +1,12 @@
-﻿/**
+/**
  * Dardcor Code - Visual Keyboard Shortcuts Keybinding GUI Editor Pane
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, clearNode, addDisposableListener } from '../../core/dom/element.js';
-import { CssInjector } from '../../core/dom/css-injector.js';
-import { CommandRegistry } from '../../services/commands/command-service.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, clearNode, addDisposableListener } from '../../core/dom/element';
+import { CssInjector } from '../../core/dom/css-injector';
+import { CommandRegistry } from '../../services/commands/command-service';
 
 export interface IKeybindingEntry {
 	readonly commandId: string;
@@ -17,18 +17,111 @@ export interface IKeybindingEntry {
 }
 
 export const DEFAULT_KEYBINDINGS: Record<string, string> = {
-	'workbench.action.openSearch': 'Ctrl+Shift+F',
-	'workbench.action.showCommands': 'Ctrl+Shift+P',
+	// 1896
+	'editor.action.clipboardCopyAction': 'Ctrl+C',
+	'editor.action.clipboardPasteAction': 'Ctrl+V',
+	'editor.action.clipboardCutAction': 'Ctrl+X',
+	'undo': 'Ctrl+Z',
+	'redo': 'Ctrl+Y',
+	// 1897
+	'actions.find': 'Ctrl+F',
+	'editor.action.startFindReplaceAction': 'Ctrl+H',
+	'editor.action.nextMatchFindAction': 'F3',
+	'editor.action.previousMatchFindAction': 'Shift+F3',
+	// 1898
+	'workbench.action.findInFiles': 'Ctrl+Shift+F',
+	'workbench.action.replaceInFiles': 'Ctrl+Shift+H',
+	// 1899
 	'workbench.action.quickOpen': 'Ctrl+P',
-	'workbench.action.toggleTerminal': 'Ctrl+`',
-	'workbench.action.togglePanel': 'Ctrl+J',
-	'workbench.action.newFile': 'Ctrl+N',
-	'workbench.action.save': 'Ctrl+S',
+	'workbench.action.showCommands': 'Ctrl+Shift+P',
+	// 1900
+	'workbench.action.files.newUntitledFile': 'Ctrl+N',
+	'workbench.action.files.openFile': 'Ctrl+O',
+	'workbench.action.files.save': 'Ctrl+S',
+	'workbench.action.files.saveAs': 'Ctrl+Shift+S',
+	'workbench.action.files.saveAll': 'Ctrl+K S',
+	// 1901
 	'workbench.action.closeActiveEditor': 'Ctrl+W',
+	'workbench.action.closeWindow': 'Ctrl+Shift+W',
+	// 1902
+	'workbench.action.toggleSidebarVisibility': 'Ctrl+B',
+	'workbench.action.terminal.toggleTerminal': 'Ctrl+`',
+	'workbench.action.terminal.new': 'Ctrl+Shift+`',
+	// 1903
+	'workbench.view.explorer': 'Ctrl+Shift+E',
+	'workbench.view.scm': 'Ctrl+Shift+G',
+	'workbench.view.debug': 'Ctrl+Shift+D',
+	'workbench.view.extensions': 'Ctrl+Shift+X',
+	// 1904
+	'workbench.actions.view.problems': 'Ctrl+Shift+M',
+	'workbench.action.output.toggleOutput': 'Ctrl+Shift+U',
+	'workbench.debug.action.toggleRepl': 'Ctrl+Shift+Y',
+	// 1905
 	'workbench.action.debug.start': 'F5',
+	'workbench.action.debug.run': 'Ctrl+F5',
+	'workbench.action.debug.stop': 'Shift+F5',
+	'editor.debug.action.toggleBreakpoint': 'F9',
 	'workbench.action.debug.stepOver': 'F10',
 	'workbench.action.debug.stepInto': 'F11',
-	'workbench.action.findInFiles': 'Ctrl+Shift+F'
+	'workbench.action.debug.stepOut': 'Shift+F11',
+	// 1906
+	'editor.action.revealDefinition': 'F12',
+	'editor.action.peekDefinition': 'Alt+F12',
+	'editor.action.referenceSearch.trigger': 'Shift+F12',
+	'editor.action.goToImplementation': 'Ctrl+F12',
+	'editor.action.goToTypeDefinition': 'Ctrl+Shift+F12',
+	// 1907
+	'editor.action.triggerSuggest': 'Ctrl+Space',
+	'editor.action.triggerParameterHints': 'Ctrl+Shift+Space',
+	// 1908
+	'editor.action.rename': 'F2',
+	'editor.action.formatDocument': 'Shift+Alt+F',
+	'editor.action.formatSelection': 'Ctrl+K Ctrl+F',
+	// 1909
+	'editor.action.commentLine': 'Ctrl+/',
+	'editor.action.blockComment': 'Shift+Alt+A',
+	// 1910
+	'editor.action.addSelectionToNextFindMatch': 'Ctrl+D',
+	'editor.action.selectHighlights': 'Ctrl+Shift+L',
+	'editor.action.copyLinesDownAction': 'Shift+Alt+Down',
+	'editor.action.copyLinesUpAction': 'Shift+Alt+Up',
+	'editor.action.moveLinesDownAction': 'Alt+Down',
+	'editor.action.moveLinesUpAction': 'Alt+Up',
+	// 1911
+	'workbench.action.gotoSymbol': 'Ctrl+Shift+O',
+	'workbench.action.showAllSymbols': 'Ctrl+T',
+	'workbench.action.gotoLine': 'Ctrl+G',
+	// 1912
+	'workbench.action.quickOpenPreviousRecentlyUsedEditorInGroup': 'Ctrl+Tab',
+	'workbench.action.nextEditor': 'Ctrl+PageDown',
+	'workbench.action.previousEditor': 'Ctrl+PageUp',
+	// 1913
+	'workbench.action.toggleZenMode': 'Ctrl+K Z',
+	'workbench.action.editorLayoutSingle': 'Ctrl+Shift+1',
+	'workbench.action.editorLayoutTwoColumns': 'Ctrl+Shift+2',
+	'workbench.action.editorLayoutThreeColumns': 'Ctrl+Shift+3',
+	// 1914
+	'workbench.action.zoomIn': 'Ctrl+=',
+	'workbench.action.zoomOut': 'Ctrl+-',
+	'workbench.action.zoomReset': 'Ctrl+0',
+	'workbench.action.toggleFullScreen': 'F11',
+	// 1915
+	'workbench.action.tasks.build': 'Ctrl+Shift+B',
+	'workbench.action.tasks.test': 'Ctrl+Shift+X',
+	// 1916
+	'workbench.action.openGlobalKeybindings': 'Ctrl+K Ctrl+S',
+	'workbench.action.keybindingsReference': 'Ctrl+K Ctrl+R',
+	// 1917
+	'editor.action.insertCursorBelow': 'Ctrl+Alt+Down',
+	'editor.action.insertCursorAbove': 'Ctrl+Alt+Up',
+	'editor.action.smartSelect.expand': 'Shift+Alt+Right',
+	'editor.action.smartSelect.shrink': 'Shift+Alt+Left',
+	// 1918
+	'editor.action.addCommentLine': 'Ctrl+K Ctrl+C',
+	'editor.action.removeCommentLine': 'Ctrl+K Ctrl+U',
+	// 1919
+	'markdown.showPreview': 'Ctrl+Shift+V',
+	'markdown.showPreviewToSide': 'Ctrl+K V'
 };
 
 const KEYBINDINGS_STYLE_ID = 'dc-keybindings-editor-styles';

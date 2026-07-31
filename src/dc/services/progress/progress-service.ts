@@ -2,9 +2,9 @@
  * Dardcor Code - Progress Service Task Indicator Engine (Task 138)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
+import { createDecorator } from '../instantiation/annotations';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable';
 
 export interface IProgressOptions {
 	readonly title?: string;

@@ -1,5 +1,5 @@
-import { Emitter, Event } from '../../../../dc/core/common/event.js';
-import { IDisposable } from '../../../../dc/core/common/lifecycle.js';
+import { Emitter, Event } from 'dc/core/common/event';
+import { IDisposable } from 'dc/core/common/lifecycle';
 
 export interface IServerSidebarView {
 	readonly id: string;

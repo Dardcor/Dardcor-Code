@@ -1,5 +1,5 @@
 import { Transform, TransformCallback } from 'node:stream';
-import { Emitter, Event } from '../../core/events/emitter.js';
+import { Emitter, Event } from '../../core/events/emitter';
 
 export interface IStreamThrottleOptions {
 	readonly bytesPerSecond?: number;

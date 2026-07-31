@@ -1,7 +1,7 @@
 import { spawn, ChildProcess } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
 
 export interface IExtensionDebuggerOptions {
 	readonly port?: number;

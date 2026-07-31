@@ -1,6 +1,6 @@
-import { Disposable, IDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { createDecorator } from '../../services/instantiation/annotations.js';
+import { Disposable, IDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { createDecorator } from '../../services/instantiation/annotations';
 
 export const IExtHostQuickOpen = createDecorator<IExtHostQuickOpen>('extHostQuickOpen');
 

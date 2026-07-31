@@ -1,7 +1,7 @@
-import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { URI } from '../../core/types/uri.js';
-import { CancellationToken } from '../../core/async/cancellation.js';
+import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { URI } from '../../core/types/uri';
+import { CancellationToken } from '../../core/async/cancellation';
 
 export interface ITextDocumentContentProvider {
 	provideTextDocumentContent(uri: URI, token: CancellationToken): string | Promise<string | undefined> | undefined;

@@ -2,11 +2,11 @@
  * Dardcor Code - Bottom Dockable Tool Container
  */
 
-import { Disposable, IDisposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { $, clearNode } from '../../../core/dom/element.js';
-import { PanelRegistry, IPanelDescriptor } from './panel-registry.js';
-import { PanelTabBar } from './panel-tab-bar.js';
+import { Disposable, IDisposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { $, clearNode } from '../../../core/dom/element';
+import { PanelRegistry, IPanelDescriptor } from './panel-registry';
+import { PanelTabBar } from './panel-tab-bar';
 
 export class PanelPart extends Disposable {
 	private readonly _container: HTMLElement;

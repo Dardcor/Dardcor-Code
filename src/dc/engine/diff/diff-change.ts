@@ -3,7 +3,7 @@
  * Mirrors: vs/editor/common/diff/diffComputer.ts
  */
 
-import { Range } from '../model/text-model.js';
+import { Range } from '../model/text-model';
 
 export const enum DiffChangeType {
 	Insert = 0,

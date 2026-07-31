@@ -1,5 +1,5 @@
 import { BrowserWindow, screen, Display } from 'electron';
-import { Disposable, toDisposable } from '../../core/lifecycle/disposable.js';
+import { Disposable, toDisposable } from '../../core/lifecycle/disposable';
 
 export interface DpiInfo {
 	scaleFactor: number;

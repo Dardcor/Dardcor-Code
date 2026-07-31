@@ -2,10 +2,10 @@
  * Dardcor Code - Dynamic Window Title Generator String
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { EditorPart } from '../editor/editor-part.js';
-import { EditorInput } from '../editor/editor-input.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { EditorPart } from '../editor/editor-part';
+import { EditorInput } from '../editor/editor-input';
 
 export interface IWindowTitleOptions {
 	readonly workspaceName?: string;

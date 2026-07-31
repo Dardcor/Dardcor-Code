@@ -1,4 +1,4 @@
-import { UtilityProcessRpc } from './utility-process-rpc.js';
+import { UtilityProcessRpc } from './utility-process-rpc';
 
 export type ServiceMethod = (args: unknown[]) => unknown | Promise<unknown>;
 export type ServiceMethods = Record<string, ServiceMethod>;

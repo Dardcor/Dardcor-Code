@@ -1,6 +1,6 @@
 import { app, autoUpdater } from 'electron';
-import { Disposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter } from '../../core/events/emitter.js';
+import { Disposable, toDisposable } from '../../core/lifecycle/disposable';
+import { Emitter } from '../../core/events/emitter';
 
 export type UpdateState = 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'not-available' | 'error';
 

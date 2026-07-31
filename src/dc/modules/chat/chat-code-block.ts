@@ -2,10 +2,10 @@
  * Dardcor Code - Embedded Code Block Card with Apply to Editor Button
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, addDisposableListener } from '../../core/dom/element.js';
-import { escape } from '../../core/types/strings.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, addDisposableListener } from '../../core/dom/element';
+import { escape } from '../../core/types/strings';
 
 export interface IChatCodeBlock {
 	readonly id: string;

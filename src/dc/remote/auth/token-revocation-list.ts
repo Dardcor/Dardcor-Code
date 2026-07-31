@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { Emitter, Event } from '../../core/events/emitter.js';
+import { Emitter, Event } from '../../core/events/emitter';
 
 export interface IRevocationEntry {
 	readonly hash: string;

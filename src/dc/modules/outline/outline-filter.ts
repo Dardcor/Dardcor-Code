@@ -2,10 +2,10 @@
  * Dardcor Code - Outline Symbol Type Filter Search Input
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, clearNode, addDisposableListener } from '../../core/dom/element.js';
-import { OutlineSymbolKind, IOutlineSymbol, getSymbolKindLabel } from './outline-view.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, clearNode, addDisposableListener } from '../../core/dom/element';
+import { OutlineSymbolKind, IOutlineSymbol, getSymbolKindLabel } from './outline-view';
 
 export interface IOutlineFilterState {
 	readonly query: string;

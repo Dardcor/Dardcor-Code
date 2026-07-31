@@ -3,9 +3,9 @@
  * Mirrors: vs/platform/theme/common/tokenTheme.ts + colorRegistry (theme fallback)
  */
 
-import { Color } from '../../core/math/color.js';
-import { getColorRegistry, ColorTokens } from '../../services/theme/color-registry.js';
-import { IColorTheme } from '../../services/theme/theme-service.js';
+import { Color } from '../../core/math/color';
+import { getColorRegistry, ColorTokens } from '../../services/theme/color-registry';
+import { IColorTheme } from '../../services/theme/theme-service';
 
 export interface ITokenThemeRule {
 	readonly scope: string | string[];

@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile, rename } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
-import { readZip } from '../../core/binary/zip-parser.js';
+import { readZip } from '../../core/binary/zip-parser';
 
 export interface IExtensionIndexEntry {
 	id: string;

@@ -3,9 +3,9 @@
  * Mirrors: vs/workbench/contrib/webview/common/webview.ts (webview panel pool manager)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { Disposable, IDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
+import { createDecorator } from '../instantiation/annotations';
+import { Disposable, IDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
 
 export interface IWebview extends IDisposable {
 	html: string;

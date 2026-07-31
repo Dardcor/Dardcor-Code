@@ -1,7 +1,7 @@
-import { Disposable, IDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { generateUuid } from '../../core/types/uuid.js';
-import { StatusBarAlignment } from './ext-host-enums.js';
+import { Disposable, IDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { generateUuid } from '../../core/types/uuid';
+import { StatusBarAlignment } from './ext-host-enums';
 
 export interface IStatusBarItemData {
 	readonly id: string;

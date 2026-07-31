@@ -2,16 +2,16 @@
  * Dardcor Code - Editor Group Upper Bar Element
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { $, clearNode } from '../../../core/dom/element.js';
-import { URI } from '../../../core/types/uri.js';
-import { EditorBreadcrumb, IBreadcrumbNavigationEvent } from './editor-breadcrumb.js';
-import { EditorGroupActions } from './editor-group-actions.js';
-import { EditorOverflowTabs, IOverflowTab } from './editor-overflow-tabs.js';
-import { EditorInput } from './editor-input.js';
-import { EditorDirtyIndicator } from './editor-dirty-indicator.js';
-import { Direction } from '../../layout/grid-layout.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { $, clearNode } from '../../../core/dom/element';
+import { URI } from '../../../core/types/uri';
+import { EditorBreadcrumb, IBreadcrumbNavigationEvent } from './editor-breadcrumb';
+import { EditorGroupActions } from './editor-group-actions';
+import { EditorOverflowTabs, IOverflowTab } from './editor-overflow-tabs';
+import { EditorInput } from './editor-input';
+import { EditorDirtyIndicator } from './editor-dirty-indicator';
+import { Direction } from '../../layout/grid-layout';
 
 export interface IEditorTitleControlOptions {
 	readonly breadcrumb?: boolean;

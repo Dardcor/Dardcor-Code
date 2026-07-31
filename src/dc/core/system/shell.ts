@@ -2,7 +2,7 @@
  * Dardcor Code - Shell Detector & Argument Escaping Engine
  */
 
-import { isWindows } from '../environment/platform.js';
+import { isWindows } from '../environment/platform';
 
 declare const process: any;
 

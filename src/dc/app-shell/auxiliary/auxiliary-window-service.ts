@@ -2,9 +2,9 @@
  * Dardcor Code - Multi-Monitor Popup Auxiliary Window Manager
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { AuxiliaryWindowElement, IAuxiliaryWindowOptions } from './auxiliary-window-element.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { AuxiliaryWindowElement, IAuxiliaryWindowOptions } from './auxiliary-window-element';
 
 export class AuxiliaryWindowService extends Disposable {
 	private readonly _windows = new Map<string, AuxiliaryWindowElement>();

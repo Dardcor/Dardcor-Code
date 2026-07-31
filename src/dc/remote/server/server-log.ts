@@ -4,9 +4,9 @@
 
 import { appendFileSync, existsSync, mkdirSync, renameSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { ServerCliLogLevel } from './server-cli-parser.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { ServerCliLogLevel } from './server-cli-parser';
 
 export interface IServerLogOptions {
 	readonly level?: ServerCliLogLevel;

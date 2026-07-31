@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { Emitter, Event } from '../../core/events/emitter.js';
+import { Emitter, Event } from '../../core/events/emitter';
 
 export const DAEMON_SERVICE_NAME = 'dc-remote-server';
 export const DAEMON_LABEL = 'Dardcor Code Remote Server';
@@ -239,9 +239,9 @@ export class ServerDaemonService {
 
 	private _resolveServerMainPath(): string {
 		try {
-			return fileURLToPath(new URL('server-main.js', import.meta.url));
+			return fileURLToPath(new URL('server-main', import.meta.url));
 		} catch {
-			return 'server-main.js';
+			return 'server-main';
 		}
 	}
 

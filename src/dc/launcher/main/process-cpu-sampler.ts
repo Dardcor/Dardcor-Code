@@ -1,4 +1,4 @@
-import { Disposable, toDisposable } from '../../core/lifecycle/disposable.js';
+import { Disposable, toDisposable } from '../../core/lifecycle/disposable';
 import * as os from 'os';
 
 export interface CpuSample {

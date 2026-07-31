@@ -4,9 +4,9 @@
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { RemoteFileWatcher } from '../files/remote-file-watcher.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { RemoteFileWatcher } from '../files/remote-file-watcher';
 
 export interface IRemoteExtensionInfo {
 	readonly id: string;

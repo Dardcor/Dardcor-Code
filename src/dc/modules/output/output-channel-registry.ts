@@ -2,9 +2,9 @@
  * Dardcor Code - Named Output Stream Log Registration Table
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { createDecorator } from '../../services/instantiation/annotations.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { createDecorator } from '../../services/instantiation/annotations';
 
 export class OutputChannel extends Disposable {
 	private readonly _onDidChange = this._register(new Emitter<void>());

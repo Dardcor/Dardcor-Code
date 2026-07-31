@@ -1,16 +1,16 @@
-import { IContextMenuProvider } from '../../contextmenu.js';
-import { $, addDisposableListener, append, EventHelper, EventType, isMouseEvent } from '../../dom.js';
-import { StandardKeyboardEvent } from '../../keyboardEvent.js';
-import { EventType as GestureEventType, Gesture } from '../../touch.js';
-import { AnchorAlignment, contextViewMenuCloseAnimation, CONTEXT_VIEW_MENU_MOTION_CLASS, IContextViewCloseAnimation } from '../contextview/contextview.js';
-import type { IManagedHover } from '../hover/hover.js';
-import { getBaseLayerHoverDelegate } from '../hover/hoverDelegate2.js';
-import { getDefaultHoverDelegate } from '../hover/hoverDelegateFactory.js';
-import { IMenuOptions } from '../menu/menu.js';
-import { ActionRunner, IAction } from '../../../common/actions.js';
-import { Emitter } from '../../../common/event.js';
-import { KeyCode } from '../../../common/keyCodes.js';
-import { IDisposable } from '../../../common/lifecycle.js';
+import { IContextMenuProvider } from '../../contextmenu';
+import { $, addDisposableListener, append, EventHelper, EventType, isMouseEvent } from '../../dom';
+import { StandardKeyboardEvent } from '../../keyboardEvent';
+import { EventType as GestureEventType, Gesture } from '../../touch';
+import { AnchorAlignment, contextViewMenuCloseAnimation, CONTEXT_VIEW_MENU_MOTION_CLASS, IContextViewCloseAnimation } from '../contextview/contextview';
+import type { IManagedHover } from '../hover/hover';
+import { getBaseLayerHoverDelegate } from '../hover/hoverDelegate2';
+import { getDefaultHoverDelegate } from '../hover/hoverDelegateFactory';
+import { IMenuOptions } from '../menu/menu';
+import { ActionRunner, IAction } from '../../../common/actions';
+import { Emitter } from '../../../common/event';
+import { KeyCode } from '../../../common/keyCodes';
+import { IDisposable } from '../../../common/lifecycle';
 import './dropdown.css';
 
 export interface ILabelRenderer {

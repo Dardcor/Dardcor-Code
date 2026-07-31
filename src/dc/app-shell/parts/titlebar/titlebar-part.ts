@@ -2,10 +2,10 @@
  * Dardcor Code - Custom Window Titlebar With Drag Region & Menu Bar
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { $ } from '../../../core/dom/element.js';
-import { MenubarPart } from '../menubar/menubar-part.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { $ } from '../../../core/dom/element';
+import { MenubarPart } from '../menubar/menubar-part';
 
 export type WindowControlAction = 'minimize' | 'maximize' | 'close';
 

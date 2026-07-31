@@ -1,6 +1,6 @@
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { IPosition, IRange } from '../model/text-model.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { IPosition, IRange } from '../model/text-model';
 
 export type CodeActionKind = 'quickfix' | 'refactor' | 'refactor.extract' | 'refactor.inline' | 'refactor.rewrite' | 'source' | 'source.organizeImports' | 'source.fixAll' | 'empty';
 

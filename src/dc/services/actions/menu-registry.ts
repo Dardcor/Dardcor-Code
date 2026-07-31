@@ -3,8 +3,8 @@
  * Mirrors: vs/platform/actions/common/actions.ts (MenuRegistry)
  */
 
-import { IDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
+import { IDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
 
 export const enum MenuId {
 	CommandPalette = 'CommandPalette',

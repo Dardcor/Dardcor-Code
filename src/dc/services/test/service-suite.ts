@@ -4,12 +4,12 @@
  * Run with: node dist/dc/services/test/service-suite.js
  */
 
-import { InstantiationService } from '../instantiation/container.js';
-import { ServiceCollection } from '../instantiation/service-registry.js';
-import { createDecorator } from '../instantiation/annotations.js';
-import { Graph } from '../instantiation/graph.js';
-import { mergeSettings } from '../userDataSync/sync-merger.js';
-import { parseKeybinding } from '../keybinding/keybinding-parser.js';
+import { InstantiationService } from '../instantiation/container';
+import { ServiceCollection } from '../instantiation/service-registry';
+import { createDecorator } from '../instantiation/annotations';
+import { Graph } from '../instantiation/graph';
+import { mergeSettings } from '../userDataSync/sync-merger';
+import { parseKeybinding } from '../keybinding/keybinding-parser';
 
 export interface ITestServiceA {
 	readonly name: string;

@@ -2,7 +2,7 @@
  * Dardcor Code - Idle Callback Scheduler
  */
 
-import { IDisposable } from './disposable.js';
+import { IDisposable } from './disposable';
 
 export function runWhenIdle(runner: () => void, timeout = 1000): IDisposable {
 	if (typeof requestIdleCallback !== 'undefined') {

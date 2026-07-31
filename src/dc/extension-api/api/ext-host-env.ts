@@ -3,10 +3,10 @@
  * Mirrors: vs/workbench/api/common/extHostEnv.ts
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { RPCProtocol } from '../host/rpc-protocol.js';
-import { generateUuid } from '../../core/types/uuid.js';
-import { URI } from '../../core/types/uri.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { RPCProtocol } from '../host/rpc-protocol';
+import { generateUuid } from '../../core/types/uuid';
+import { URI } from '../../core/types/uri';
 
 export enum UIKind {
 	Desktop = 1,

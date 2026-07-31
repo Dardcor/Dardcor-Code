@@ -2,11 +2,11 @@
  * Dardcor Code - Quick Panel Tab Change Keyboard Bindings (Ctrl+J)
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { PanelPart } from './panel-part.js';
-import { PanelRegistry, IPanelDescriptor } from './panel-registry.js';
-import { CommandRegistry } from '../../../services/commands/command-service.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { PanelPart } from './panel-part';
+import { PanelRegistry, IPanelDescriptor } from './panel-registry';
+import { CommandRegistry } from '../../../services/commands/command-service';
 
 export interface IPanelSwitcherOptions {
 	readonly registry?: PanelRegistry;

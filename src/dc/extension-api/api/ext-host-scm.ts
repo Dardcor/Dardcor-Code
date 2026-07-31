@@ -3,11 +3,11 @@
  * Mirrors: vs/workbench/api/common/extHostSCM.ts
  */
 
-import { Disposable, IDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { RPCProtocol } from '../host/rpc-protocol.js';
-import { URI } from '../../core/types/uri.js';
-import { generateUuid } from '../../core/types/uuid.js';
+import { Disposable, IDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { RPCProtocol } from '../host/rpc-protocol';
+import { URI } from '../../core/types/uri';
+import { generateUuid } from '../../core/types/uuid';
 
 export interface Command {
 	title: string;

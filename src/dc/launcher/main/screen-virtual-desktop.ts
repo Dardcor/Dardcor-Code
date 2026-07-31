@@ -1,6 +1,6 @@
 import { spawn } from 'child_process';
 import { BrowserWindow } from 'electron';
-import { Disposable, toDisposable } from '../../core/lifecycle/disposable.js';
+import { Disposable, toDisposable } from '../../core/lifecycle/disposable';
 
 export interface VirtualDesktopInfo {
 	supported: boolean;

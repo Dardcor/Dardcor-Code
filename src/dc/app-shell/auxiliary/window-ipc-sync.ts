@@ -2,10 +2,10 @@
  * Dardcor Code - Window State Synchronizer Across Secondary Screens
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { AuxiliaryWindowService } from './auxiliary-window-service.js';
-import { AuxiliaryWindowElement } from './auxiliary-window-element.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { AuxiliaryWindowService } from './auxiliary-window-service';
+import { AuxiliaryWindowElement } from './auxiliary-window-element';
 
 export const enum WindowSyncTopic {
 	THEME = 'theme',

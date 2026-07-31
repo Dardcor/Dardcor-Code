@@ -2,8 +2,8 @@
  * Dardcor Code - SVG & Font Icon Set Manager (Task 130)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
+import { createDecorator } from '../instantiation/annotations';
+import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable';
 
 export const ICON_FONT_ID = 'dc-icon-font';
 

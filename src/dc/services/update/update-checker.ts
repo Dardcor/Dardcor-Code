@@ -3,8 +3,8 @@
  * Mirrors: vs/platform/update/common/update.ts manifest poll engine
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { IRequestService } from '../request/request-service.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { IRequestService } from '../request/request-service';
 
 export interface IUpdateManifest {
 	version: string;

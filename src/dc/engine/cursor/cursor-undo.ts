@@ -1,4 +1,4 @@
-import { Selection } from '../model/selection.js';
+import { Selection } from '../model/selection';
 
 export class CursorUndo {
 	private readonly _past: Selection[][] = [];

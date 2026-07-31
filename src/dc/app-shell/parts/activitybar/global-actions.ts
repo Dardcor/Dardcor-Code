@@ -2,10 +2,10 @@
  * Dardcor Code - Bottom Settings Gear & Account Icon Activity Actions
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { $ } from '../../../core/dom/element.js';
-import { layoutContextMenu, getAnchorFromElement } from '../../../core/dom/context-menu.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { $ } from '../../../core/dom/element';
+import { layoutContextMenu, getAnchorFromElement } from '../../../core/dom/context-menu';
 
 export type GlobalActionId = 'settings' | 'accounts' | 'commandPalette' | 'keyboardShortcuts' | 'themes' | 'snippets' | 'checkForUpdates' | 'about';
 

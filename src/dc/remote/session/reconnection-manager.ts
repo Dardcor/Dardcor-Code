@@ -2,8 +2,8 @@
  * Dardcor Code - Auto-Reconnection State Sync Engine (Task 810)
  */
 
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
 
 export const enum ReconnectionState {
 	Disconnected = 0,

@@ -2,14 +2,14 @@
  * Dardcor Code - Status Bar File Encoding Picker & Converter
  */
 
-import { Disposable, IDisposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { decodeUTF8, encodeUTF8 } from '../../../core/binary/encoding.js';
-import { QuickPickItem } from '../../quickinput/quick-pick-item.js';
-import { IQuickInputService } from '../../quickinput/quick-input-service.js';
-import { EditorInput } from './editor-input.js';
-import { StatusbarAlignment, IStatusbarEntry, StatusbarRegistry } from '../statusbar/statusbar-registry.js';
-import { CommandRegistry } from '../../../services/commands/command-service.js';
+import { Disposable, IDisposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { decodeUTF8, encodeUTF8 } from '../../../core/binary/encoding';
+import { QuickPickItem } from '../../quickinput/quick-pick-item';
+import { IQuickInputService } from '../../quickinput/quick-input-service';
+import { EditorInput } from './editor-input';
+import { StatusbarAlignment, IStatusbarEntry, StatusbarRegistry } from '../statusbar/statusbar-registry';
+import { CommandRegistry } from '../../../services/commands/command-service';
 
 export const enum EditorEncoding {
 	UTF8 = 'utf-8',

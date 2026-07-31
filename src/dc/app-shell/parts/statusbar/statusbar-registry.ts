@@ -2,8 +2,8 @@
  * Dardcor Code - Status Bar Item Contribution Locator
  */
 
-import { Disposable, IDisposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
+import { Disposable, IDisposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
 
 export const enum StatusbarAlignment {
 	LEFT = 0,

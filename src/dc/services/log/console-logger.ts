@@ -3,8 +3,8 @@
  * Mirrors: vs/platform/log/browser/consoleLog.ts (developer console formatting channel)
  */
 
-import { IDisposable } from '../../core/lifecycle/disposable.js';
-import { LogLevel } from './log-service.js';
+import { IDisposable } from '../../core/lifecycle/disposable';
+import { LogLevel } from './log-service';
 
 function getLogLevelString(level: LogLevel): string {
 	switch (level) {

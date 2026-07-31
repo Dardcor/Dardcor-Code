@@ -2,13 +2,13 @@
  * Dardcor Code - Workspace Context Service (Task 133)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { URI } from '../../core/types/uri.js';
-import { IWorkspaceFolder, WorkspaceFolder } from './workspace-folder.js';
+import { createDecorator } from '../instantiation/annotations';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { URI } from '../../core/types/uri';
+import { IWorkspaceFolder, WorkspaceFolder } from './workspace-folder';
 
-export type { IWorkspaceFolder } from './workspace-folder.js';
+export type { IWorkspaceFolder } from './workspace-folder';
 
 export type WorkbenchState = 'empty' | 'folder' | 'workspace';
 

@@ -2,11 +2,11 @@
  * Dardcor Code - Raw keybindings.json Code Editor Adapter
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, addDisposableListener } from '../../core/dom/element.js';
-import { JSONParser } from '../../core/formatting/json-parser.js';
-import { KeybindingRegistry } from './keybindings-editor.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, addDisposableListener } from '../../core/dom/element';
+import { JSONParser } from '../../core/formatting/json-parser';
+import { KeybindingRegistry } from './keybindings-editor';
 
 export interface IKeybindingsJsonValidation {
 	readonly valid: boolean;

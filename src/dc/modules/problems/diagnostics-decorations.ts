@@ -2,11 +2,11 @@
  * Dardcor Code - Editor Line Number Error Background Highlight Markers
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { CssInjector } from '../../core/dom/css-injector.js';
-import { URI } from '../../core/types/uri.js';
-import { DiagnosticsModel, DiagnosticSeverity } from './diagnostics-model.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { CssInjector } from '../../core/dom/css-injector';
+import { URI } from '../../core/types/uri';
+import { DiagnosticsModel, DiagnosticSeverity } from './diagnostics-model';
 
 const DECORATIONS_STYLE_ID = 'dc-diagnostics-decorations-styles';
 

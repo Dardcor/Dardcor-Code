@@ -2,8 +2,8 @@
  * Dardcor Code - Settings Property Name & Description Fuzzy Filter
  */
 
-import { fuzzyMatch, startsWith } from '../../core/types/strings.js';
-import type { ISettingDescriptor } from './settings-editor.js';
+import { fuzzyMatch, startsWith } from '../../core/types/strings';
+import type { ISettingDescriptor } from './settings-editor';
 
 export interface ISearchScore {
 	readonly setting: ISettingDescriptor;

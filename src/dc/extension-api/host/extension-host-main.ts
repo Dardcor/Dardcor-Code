@@ -1,6 +1,6 @@
-import { ExtensionHostService } from './extension-service.js';
-import { ExtensionUnhandledRejections } from './extension-unhandled-rejections.js';
-import { applyV8Flags } from './extension-v8-flags.js';
+import { ExtensionHostService } from './extension-service';
+import { ExtensionUnhandledRejections } from './extension-unhandled-rejections';
+import { applyV8Flags } from './extension-v8-flags';
 
 export interface IExtensionHostMainOptions {
 	readonly extensionHostDebugPort?: number;
@@ -9,14 +9,14 @@ export interface IExtensionHostMainOptions {
 
 export function startExtensionHostMain(): void {
 	if (typeof process === 'undefined' || typeof process.argv === 'undefined') {
-		throw new Error('Extension Host hanya dapat dijalankan pada Node.js');
+		throw new Error('Extension Host hanya dapat dijalankan pada Node');
 	}
 	main();
 }
 
 export function main(): void {
 	if (typeof process === 'undefined') {
-		throw new Error('Extension Host hanya dapat dijalankan pada Node.js');
+		throw new Error('Extension Host hanya dapat dijalankan pada Node');
 	}
 	applyV8Flags();
 	new ExtensionUnhandledRejections().install();
@@ -77,5 +77,5 @@ if (typeof process !== 'undefined' && typeof process.argv !== 'undefined' && pro
 }
 
 function isExtensionHostEntry(entry: string): boolean {
-	return entry.replace(/\\/g, '/').endsWith('extension-host-main.js') || entry.replace(/\\/g, '/').endsWith('extension-host-main.ts');
+	return entry.replace(/\\/g, '/').endsWith('extension-host-main') || entry.replace(/\\/g, '/').endsWith('extension-host-main.ts');
 }

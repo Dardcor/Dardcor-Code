@@ -2,11 +2,11 @@
  * Dardcor Code - IFileService & FileSystem Gateway
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { URI } from '../../core/types/uri.js';
-import { DataBuffer } from '../../core/binary/buffer.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
+import { createDecorator } from '../instantiation/annotations';
+import { URI } from '../../core/types/uri';
+import { DataBuffer } from '../../core/binary/buffer';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
 
 export interface IFileStat {
 	readonly resource: URI;

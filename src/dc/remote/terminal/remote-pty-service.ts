@@ -2,13 +2,13 @@
  * Dardcor Code - Remote Pseudo-Terminal Allocator & PTY Stream Bridge (Task 811)
  */
 
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { generateUuid } from '../../core/types/uuid.js';
-import { IRemoteChannelClient, IRemoteChannelServer } from '../transport/connection-multiplexer.js';
-import { toBase64, fromBase64 } from '../files/remote-file-provider.js';
-import { RemoteTerminalProcess, IRemoteTerminalProcessOptions } from './remote-terminal-process.js';
-import { PtyPacketDecoder, PtyPacketKind } from './remote-pty-stream.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { generateUuid } from '../../core/types/uuid';
+import { IRemoteChannelClient, IRemoteChannelServer } from '../transport/connection-multiplexer';
+import { toBase64, fromBase64 } from '../files/remote-file-provider';
+import { RemoteTerminalProcess, IRemoteTerminalProcessOptions } from './remote-terminal-process';
+import { PtyPacketDecoder, PtyPacketKind } from './remote-pty-stream';
 
 export interface IRemotePtyCreateOptions extends IRemoteTerminalProcessOptions {
 	readonly name?: string;

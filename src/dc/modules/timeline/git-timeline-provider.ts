@@ -2,12 +2,12 @@
  * Dardcor Code - Git Commit History Item Timeline Provider
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { URI } from '../../core/types/uri.js';
-import { Path } from '../../core/types/path.js';
-import { GitService, IGitLogEntry } from '../scm/git-service.js';
-import { ITimelineItem } from './timeline-view.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { URI } from '../../core/types/uri';
+import { Path } from '../../core/types/path';
+import { GitService, IGitLogEntry } from '../scm/git-service';
+import { ITimelineItem } from './timeline-view';
 
 export interface IGitTimelineOptions {
 	readonly limit?: number;

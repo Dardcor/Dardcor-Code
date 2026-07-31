@@ -1,5 +1,5 @@
-import { Disposable } from '../../common/lifecycle.js';
-import * as dom from '../dom.js';
+import { Disposable } from '../../common/lifecycle';
+import * as dom from '../dom';
 
 export abstract class Widget extends Disposable {
 	protected onkeyup(element: HTMLElement, listener: (e: any) => void): void {

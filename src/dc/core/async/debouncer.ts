@@ -2,7 +2,7 @@
  * Dardcor Code - Event Debouncer
  */
 
-import { IDisposable } from '../lifecycle/disposable.js';
+import { IDisposable } from '../lifecycle/disposable';
 
 export class Debouncer implements IDisposable {
 	private _handle: any = null;

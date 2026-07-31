@@ -3,11 +3,11 @@
  * Mirrors: vs/workbench/api/common/extHostDiagnostics.ts
  */
 
-import { Disposable, IDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { RPCProtocol, IRPCChannelHandler } from '../host/rpc-protocol.js';
-import { URI } from '../../core/types/uri.js';
-import { Diagnostic, Range } from './ext-host-api-impl.js';
+import { Disposable, IDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { RPCProtocol, IRPCChannelHandler } from '../host/rpc-protocol';
+import { URI } from '../../core/types/uri';
+import { Diagnostic, Range } from './ext-host-api-impl';
 
 export function diagnosticFromJSON(json: any): Diagnostic {
 	return new Diagnostic(

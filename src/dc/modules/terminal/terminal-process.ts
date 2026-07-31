@@ -2,10 +2,10 @@
  * Dardcor Code - Native Terminal Spawn Process Bridge
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { isWindows } from '../../core/environment/platform.js';
-import { IConfigurationService, ConfigurationService } from '../../services/configuration/configuration-service.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { isWindows } from '../../core/environment/platform';
+import { IConfigurationService, ConfigurationService } from '../../services/configuration/configuration-service';
 
 declare const require: any;
 

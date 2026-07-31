@@ -34,7 +34,8 @@ app.whenReady().then(() => {
     }
   });
 
-  win.loadFile(path.join(__dirname, '..', '..', 'index.html'));
+  // Load the dynamic workbench HTML just like VS Code
+  win.loadFile(path.join(__dirname, '..', '..', 'src', 'dc', 'code', 'electron-sandbox', 'workbench', 'workbench.html'));
   
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

@@ -3,8 +3,8 @@
  * Mirrors: vs/platform/extensionManagement/common/extensionValidator.ts
  */
 
-import { IExtensionManifest } from './extension-scanner.js';
-import { parseSemVer, compareSemVer } from '../../core/types/semantic-version.js';
+import { IExtensionManifest } from './extension-scanner';
+import { parseSemVer, compareSemVer } from '../../core/types/semantic-version';
 
 export interface IValidationResult {
 	valid: boolean;

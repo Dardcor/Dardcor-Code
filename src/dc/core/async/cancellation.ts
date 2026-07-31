@@ -2,8 +2,8 @@
  * Dardcor Code - Cancellation Tokens & Cancellation Token Source
  */
 
-import { Event, Emitter } from '../events/emitter.js';
-import { IDisposable } from '../lifecycle/disposable.js';
+import { Event, Emitter } from '../events/emitter';
+import { IDisposable } from '../lifecycle/disposable';
 
 export interface CancellationToken {
 	readonly isCancellationRequested: boolean;

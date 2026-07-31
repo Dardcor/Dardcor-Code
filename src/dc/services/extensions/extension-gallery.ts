@@ -3,9 +3,9 @@
  * Mirrors: vs/platform/extensionManagement/common/extensionGalleryService.ts (marketplace API client)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { CancellationToken } from '../../core/async/cancellation.js';
-import { IRequestService } from '../request/request-service.js';
+import { createDecorator } from '../instantiation/annotations';
+import { CancellationToken } from '../../core/async/cancellation';
+import { IRequestService } from '../request/request-service';
 
 export interface IGalleryExtension {
 	identifier: { id: string; uuid?: string };

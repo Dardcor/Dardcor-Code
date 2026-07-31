@@ -1,5 +1,5 @@
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { $, addDisposableListener } from '../../core/dom/element.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { $, addDisposableListener } from '../../core/dom/element';
 
 export interface IScrollbarState {
 	scrollTop: number;

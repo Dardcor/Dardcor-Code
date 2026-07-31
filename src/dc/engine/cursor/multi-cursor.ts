@@ -3,11 +3,11 @@
  * Mirrors: vs/editor/common/cursor/cursorCollection.ts
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { ITextModel, Position, Range } from '../model/text-model.js';
-import { ICursorState } from './cursor-controller.js';
-import { CursorSelection } from './cursor-operations.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { ITextModel, Position, Range } from '../model/text-model';
+import { ICursorState } from './cursor-controller';
+import { CursorSelection } from './cursor-operations';
 
 export class MultiCursor extends Disposable {
 	private _selections: CursorSelection[] = [new CursorSelection(new Position(1, 1), new Position(1, 1))];

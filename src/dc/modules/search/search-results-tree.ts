@@ -2,13 +2,13 @@
  * Dardcor Code - Search Result Match Tree Renderer
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { URI } from '../../core/types/uri.js';
-import { Path } from '../../core/types/path.js';
-import { ISearchMatch } from './ripgrep-service.js';
-import { escape } from '../../core/types/strings.js';
-import { clearNode, $ } from '../../core/dom/element.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { URI } from '../../core/types/uri';
+import { Path } from '../../core/types/path';
+import { ISearchMatch } from './ripgrep-service';
+import { escape } from '../../core/types/strings';
+import { clearNode, $ } from '../../core/dom/element';
 
 export interface ISearchResultsGroup {
 	readonly resource: URI;

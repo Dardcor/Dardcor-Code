@@ -1,5 +1,5 @@
 import { BrowserWindow, dialog } from 'electron';
-import { Disposable, toDisposable } from '../../core/lifecycle/disposable.js';
+import { Disposable, toDisposable } from '../../core/lifecycle/disposable';
 
 export type CloseChoice = 'save' | 'discard' | 'cancel';
 

@@ -3,7 +3,7 @@
  * Mirrors: vs/workbench/api/common/extHostExtensionService.ts (Activation Events)
  */
 
-import { match as globMatch } from '../../core/formatting/glob.js';
+import { match as globMatch } from '../../core/formatting/glob';
 
 export interface IActivationTrigger {
 	readonly language?: string;

@@ -2,7 +2,7 @@
  * Dardcor Code - Reference Counted Disposable
  */
 
-import { IDisposable } from './disposable.js';
+import { IDisposable } from './disposable';
 
 export class RefCountedDisposable implements IDisposable {
 	private _counter = 1;

@@ -1,6 +1,6 @@
 import net from 'node:net';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
 
 export interface ISocketPoolOptions {
 	readonly maxPoolSize?: number;

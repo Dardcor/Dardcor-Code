@@ -1,9 +1,9 @@
 import { Tray, Menu, nativeImage, BrowserWindow } from 'electron';
-import { Disposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { getTrayIcon, getTrayIconPath } from './system-tray-icon.js';
-import { buildTrayMenu, defaultTrayMenu } from './system-tray-menu.js';
-import { SystemTrayEvents, TrayEventHandlers } from './system-tray-events.js';
-import { setTrayTooltip, getStatusTooltip } from './system-tray-tooltip.js';
+import { Disposable, toDisposable } from '../../core/lifecycle/disposable';
+import { getTrayIcon, getTrayIconPath } from './system-tray-icon';
+import { buildTrayMenu, defaultTrayMenu } from './system-tray-menu';
+import { SystemTrayEvents, TrayEventHandlers } from './system-tray-events';
+import { setTrayTooltip, getStatusTooltip } from './system-tray-tooltip';
 
 export interface SystemTrayOptions {
 	iconPath?: string;

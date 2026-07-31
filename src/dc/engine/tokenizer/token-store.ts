@@ -3,10 +3,10 @@
  * Mirrors: vs/editor/common/tokens/tokensStore.ts
  */
 
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { LineTokens } from '../model/line-tokens.js';
-import { NullTokenizer } from './null-tokenizer.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { LineTokens } from '../model/line-tokens';
+import { NullTokenizer } from './null-tokenizer';
 
 export interface ITokenStoreChangeEvent {
 	readonly lineNumber: number;

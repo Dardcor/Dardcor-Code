@@ -5,9 +5,9 @@
 import { spawn } from 'node:child_process';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { IRemoteChannelClient, IRemoteChannelServer } from '../transport/connection-multiplexer.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { IRemoteChannelClient, IRemoteChannelServer } from '../transport/connection-multiplexer';
 
 export interface IRemoteSearchOptions {
 	readonly pattern: string;

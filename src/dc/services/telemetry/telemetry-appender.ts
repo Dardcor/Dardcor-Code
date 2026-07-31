@@ -3,9 +3,9 @@
  * Mirrors: vs/platform/telemetry/common/telemetryAppender.ts
  */
 
-import { IDisposable } from '../../core/lifecycle/disposable.js';
-import { ITelemetryEvent } from './telemetry-service.js';
-import { TelemetrySanitizer } from './telemetry-sanitizer.js';
+import { IDisposable } from '../../core/lifecycle/disposable';
+import { ITelemetryEvent } from './telemetry-service';
+import { TelemetrySanitizer } from './telemetry-sanitizer';
 
 export interface ITelemetryAppender extends IDisposable {
 	log(event: ITelemetryEvent): void;

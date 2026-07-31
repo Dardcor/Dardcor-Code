@@ -2,7 +2,7 @@
  * Dardcor Code - IPC Channel Router
  */
 
-import { IChannelRouter } from './channel.js';
+import { IChannelRouter } from './channel';
 
 export class IPCChannelRouter implements IChannelRouter {
 	private readonly _routes = new Map<string, string>();

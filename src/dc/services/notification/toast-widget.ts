@@ -3,10 +3,10 @@
  * Mirrors: vs/workbench/browser/parts/notifications/notificationsToasts.ts
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { NotificationModel } from './notification-model.js';
-import { Severity } from './notification-service.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { NotificationModel } from './notification-model';
+import { Severity } from './notification-service';
 
 export interface IToastWidgetOptions {
 	readonly autoHideDelayMs?: number;

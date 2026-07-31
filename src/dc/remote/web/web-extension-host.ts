@@ -2,9 +2,9 @@
  * Dardcor Code - Web Worker Based Extension Host Runtime For Browser (Task 827)
  */
 
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { generateUuid } from '../../core/types/uuid.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { generateUuid } from '../../core/types/uuid';
 
 export interface IWebExtensionHostOptions {
 	readonly entryScript?: string;

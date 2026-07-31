@@ -3,8 +3,8 @@
  * Mirrors: vs/workbench/common/views.ts (ViewContainerRegistry)
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
 
 export const enum ViewContainerLocation {
 	Sidebar = 0,

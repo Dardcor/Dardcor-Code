@@ -1,7 +1,7 @@
 import { BrowserWindow, dialog } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
-import { formatBytes } from './native-file-trash.js';
+import { formatBytes } from './native-file-trash';
 
 export interface FileProperties {
 	name: string;

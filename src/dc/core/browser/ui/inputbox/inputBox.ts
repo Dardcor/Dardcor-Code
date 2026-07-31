@@ -1,7 +1,7 @@
-import { Widget } from '../widget.js';
-import { IContextViewProvider } from '../contextview/contextview.js';
-import { IHistory } from '../../../common/history.js';
-import { Emitter } from '../../../common/event.js';
+import { Widget } from '../widget';
+import { IContextViewProvider } from '../contextview/contextview';
+import { IHistory } from '../../../common/history';
+import { Emitter } from '../../../common/event';
 
 export interface IInputBoxStyles {
 	inputBackground?: string;

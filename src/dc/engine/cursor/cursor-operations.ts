@@ -3,8 +3,8 @@
  * Mirrors: vs/editor/common/cursor/cursorMoveOperations.ts
  */
 
-import { ITextModel, Position } from '../model/text-model.js';
-import { getWordAtPosition, IWordAtPosition } from '../model/word-helper.js';
+import { ITextModel, Position } from '../model/text-model';
+import { getWordAtPosition, IWordAtPosition } from '../model/word-helper';
 
 export const WORD_SEPARATORS = "`~!@#$%^&*()-=+[{]}\\|;:'\",.<>/?";
 

@@ -2,9 +2,9 @@
  * Dardcor Code - Document Error & Warning Marker Aggregator Model
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { URI } from '../../core/types/uri.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { URI } from '../../core/types/uri';
 
 export enum DiagnosticSeverity {
 	Error = 0,

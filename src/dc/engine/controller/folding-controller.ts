@@ -1,7 +1,7 @@
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { IRange, ITextModel } from '../model/text-model.js';
-import { Position } from '../model/position.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { IRange, ITextModel } from '../model/text-model';
+import { Position } from '../model/position';
 
 export interface IFoldingEditor {
 	getModel(): ITextModel | null;

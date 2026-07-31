@@ -1440,1275 +1440,1278 @@ Desain warna default Dardcor Code :
 - [x] 1309. server/common/serverColorPicker.ts asli lengkap
 - [x] 1310. server/common/serverWordHighlighter.ts asli lengkap
 - [x] 1311. server/common/serverLinks.ts asli lengkap
-- [ ] 1312. server/common/serverStickyScroll.ts asli lengkap
-- [ ] 1313. server/common/serverBreadcrumbs.ts asli lengpak
-- [ ] 1314. server/common/serverDiffEditor.ts asli lengkap
-- [ ] 1315. server/common/serverInlineDiff.ts asli lengkap
-- [ ] 1316. server/common/serverPeekView.ts asli lengkap
-- [ ] 1317. server/common/serverZoneWidget.ts asli lengkap
-- [ ] 1318. server/common/serverGhostText.ts asli lengkap
-- [ ] 1319. server/common/serverUnicodeHighlighter.ts asli lengkap
-- [ ] 1320. server/common/serverMinimap.ts asli lengkap
-- [ ] 1321. server/common/serverOverviewRuler.ts asli lengkap
-- [ ] 1322. server/common/serverGlyphMargin.ts asli lengkap
-- [ ] 1323. server/common/serverLineNumbers.ts asli lengkap
-- [ ] 1324. server/common/serverIndentGuides.ts asli lengkap
-- [ ] 1325. server/common/serverBracketGuides.ts asli lengkap
-- [ ] 1326. server/common/serverScrollbar.ts asli lengkap
-- [ ] 1327. server/common/serverRuler.ts asli lengkap
-- [ ] 1328. server/common/serverCursor.ts asli lengkap
-- [ ] 1329. server/common/serverSelectionRenderer.ts asli lengkap
-- [ ] 1330. server/common/serverWhitespaceRenderer.ts asli lengkap
-- [ ] 1331. server/common/serverCurrentLine.ts asli lengkap
-- [ ] 1332. server/common/serverDecorations.ts asli lengkap
-- [ ] 1333. server/common/serverContentWidgets.ts asli lengkap
-- [ ] 1334. server/common/serverOverlayWidgets.ts asli lengkap
-- [ ] 1335. server/common/serverViewZones.ts asli lengkap
+- [x] 1312. server/common/serverStickyScroll.ts asli lengkap
+- [x] 1313. server/common/serverBreadcrumbs.ts asli lengpak
+- [x] 1314. server/common/serverDiffEditor.ts asli lengkap
+- [x] 1315. server/common/serverInlineDiff.ts asli lengkap
+- [x] 1316. server/common/serverPeekView.ts asli lengkap
+- [x] 1317. server/common/serverZoneWidget.ts asli lengkap
+- [x] 1318. server/common/serverGhostText.ts asli lengkap
+- [x] 1319. server/common/serverUnicodeHighlighter.ts asli lengkap
+- [x] 1320. server/common/serverMinimap.ts asli lengkap
+- [x] 1321. server/common/serverOverviewRuler.ts asli lengkap
+- [x] 1322. server/common/serverGlyphMargin.ts asli lengkap
+- [x] 1323. server/common/serverLineNumbers.ts asli lengkap
+- [x] 1324. server/common/serverIndentGuides.ts asli lengkap
+- [x] 1325. server/common/serverBracketGuides.ts asli lengkap
+- [x] 1326. server/common/serverScrollbar.ts asli lengkap
+- [x] 1327. server/common/serverRuler.ts asli lengkap
+- [x] 1328. server/common/serverCursor.ts asli lengkap
+- [x] 1329. server/common/serverSelectionRenderer.ts asli lengkap
+- [x] 1330. server/common/serverWhitespaceRenderer.ts asli lengkap
+- [x] 1331. server/common/serverCurrentLine.ts asli lengkap
+- [x] 1332. server/common/serverDecorations.ts asli lengkap
+- [x] 1333. server/common/serverContentWidgets.ts asli lengkap
+- [x] 1334. server/common/serverOverlayWidgets.ts asli lengkap
+- [x] 1335. server/common/serverViewZones.ts asli lengkap
+- [x] 1336. server/common/serverRenderLines.ts asli lengkap
+- [x] 1337. server/common/serverRenderCharacters.ts asli lengkap
+- [x] 1338. server/common/serverRenderWords.ts asli lengkap
 
 ## I. src/dc/extension-api (meniru src/vscode-dts VS Code asli 100%)
 
-- [ ] 1336. vscode.d.ts asli (SEMUA namespace dan interface API) lengkap
-- [ ] 1337. vscode.proposed.d.ts asli lengkap
-- [ ] 1338. API commands (executeCommand, registerCommand, dll) lengkap
-- [ ] 1339. API window (showInformationMessage, showWarningMessage, showErrorMessage, showInputBox, showQuickPick, showSaveDialog, showOpenDialog, showWorkspaceFolderPick, createOutputChannel, createStatusBarItem, showTextDocument, createWebviewPanel, createTerminal, withProgress, setStatusBarMessage, showQuickPick, dll) lengkap
-- [ ] 1340. API workspace (getConfiguration, updateConfiguration, findFiles, openTextDocument, getWorkspaceFolders, createFileSystemWatcher, workspaceFolders, onDidChangeWorkspaceFolders, applyEdit, registerFileSystemProvider, dll) lengkap
-- [ ] 1341. API languages (registerCompletionItemProvider, registerHoverProvider, registerDefinitionProvider, registerReferenceProvider, registerDocumentSymbolProvider, registerWorkspaceSymbolProvider, registerRenameProvider, registerCodeActionsProvider, registerCodeLensProvider, registerDocumentFormattingEditProvider, registerDocumentRangeFormattingEditProvider, registerOnTypeFormattingEditProvider, registerSignatureHelpProvider, registerDocumentLinkProvider, registerImplementationProvider, registerTypeDefinitionProvider, registerDeclarationProvider, registerDocumentHighlightProvider, registerDocumentSemanticTokensProvider, registerFoldingRangeProvider, registerSelectionRangeProvider, registerInlineCompletionItemProvider, registerInlayHintsProvider, registerCallHierarchyProvider, registerTypeHierarchyProvider, registerLinkedEditingRangeProvider, setLanguageConfiguration, createDiagnosticCollection, dll) lengkap
-- [ ] 1342. API commands dll lengkap
-- [ ] 1343. API env (shell, appName, language, machineId, sessionId, clipboard, openExternal, dll) lengkap
-- [ ] 1344. API extensions (getExtension, onDidChange, dll) lengkap
-- [ ] 1345. API FileSystem (stat, readFile, writeFile, rename, delete, createDirectory, readDirectory, watch, dll) lengkap
-- [ ] 1346. API MessageItem, MessageOptions, InputBoxOptions, OpenDialogOptions, SaveDialogOptions, dll lengkap
-- [ ] 1347. API TextDocument, TextEditor, TextEditorEdit, TextEditorOptions, TextEditorOptions, TextEditorCursorStyle, dll lengkap
-- [ ] 1348. API Position, Range, Selection, Location, LocationLink, Uri, dll lengkap
-- [ ] 1349. API Diagnostic, DiagnosticCollection, DiagnosticSeverity, DiagnosticRelatedInformation, dll lengkap
-- [ ] 1350. API Disposable, Event, EventEmitter, CancellationToken, CancellationTokenSource, dll lengkap
-- [ ] 1351. API OutputChannel, StatusBarItem, StatusBarAlignment, Progress, ProgressLocation, dll lengkap
-- [ ] 1352. API Terminal, TerminalOptions, TerminalProfile, TerminalShellIntegration, dll lengkap
-- [ ] 1353. API DebugAdapter, DebugSession, DebugConfiguration, DebugConsole, DebugBreakpoint, dll lengkap
-- [ ] 1354. API Webview, WebviewPanel, WebviewPanelSerializer, WebviewOptions, WebviewView, dll lengkap
-- [ ] 1355. API Notebook, NotebookDocument, NotebookCell, NotebookKernel, NotebookSerializer, NotebookEditor, dll lengkap
-- [ ] 1356. API TestController, TestItem, TestRun, TestRunProfile, dll lengkap
-- [ ] 1357. API AuthenticationProvider, AuthenticationSession, dll lengkap
-- [ ] 1358. API CommentController, CommentThread, Comment, dll lengkap
-- [ ] 1359. API TimelineProvider, TimelineItem, dll lengkap
-- [ ] 1360. API TreeView, TreeDataProvider, TreeItem, dll lengkap
-- [ ] 1361. API CustomEditor, CustomDocument, CustomDocumentEditEvent, dll lengkap
-- [ ] 1362. API Memento, GlobalMemento, WorkspaceMemento, dll lengkap
-- [ ] 1363. API ColorTheme, ColorThemeKind, Color, ColorPresentation, dll lengkap
-- [ ] 1364. API EnvironmentVariableCollection, dll lengkap
-- [ ] 1365. API Task, TaskDefinition, TaskGroup, ShellExecution, ProcessExecution, dll lengkap
-- [ ] 1366. API WorkspaceEdit, TextEdit, SnippetString, dll lengkap
-- [ ] 1367. API ExtensionContext (subscriptions, workspaceState, globalState, secrets, extensionUri, extensionMode, logUri, storageUri, globalStorageUri, dll) lengkap
-- [ ] 1368. API extensionKind, extensionMode, ExtensionMode dll lengkap
-- [ ] 1369. API LanguageStatusItem lengkap
-- [ ] 1370. API Tab, TabGroup, TabInputText, dll lengkap
-- [ ] 1371. API Chat (Copilot Chat API: ChatRequest, ChatResponse, ChatParticipant, dll) lengkap
-- [ ] 1372. API MCP (Model Context Protocol API) lengkap
-- [ ] 1373. API InteractiveSession lengkap
-- [ ] 1374. API file type associations lengkap
-- [ ] 1375. API telemetry lengkap
-- [ ] 1376. API proposed API lengkap
-- [ ] 1377. API vscode.proposed semua proposal lengkap
-- [ ] 1378. Extension host (extensionHostMain) lengkap
-- [ ] 1379. Extension host protocol lengkap
-- [ ] 1380. Extension host IPC lengkap
-- [ ] 1381. Extension host log lengkap
-- [ ] 1382. Extension host storage lengkap
-- [ ] 1383. Extension host profile lengkap
-- [ ] 1384. Extension host debug lengkap
-- [ ] 1385. Extension host tests lengkap
-- [ ] 1386. Extension host v8 cache lengkap
-- [ ] 1387. Extension host process lengkap
-- [ ] 1388. Extension host rpc lengkap
-- [ ] 1389. Extension host service lengkap
-- [ ] 1390. Extension host window lengkap
-- [ ] 1391. Extension host commands lengkap
-- [ ] 1392. Extension host configuration lengkap
-- [ ] 1393. Extension host workspace lengkap
-- [ ] 1394. Extension host languages lengkap
-- [ ] 1395. Extension host documents lengkap
-- [ ] 1396. Extension host file system lengkap
-- [ ] 1397. Extension host quick input lengkap
-- [ ] 1398. Extension host dialogs lengkap
-- [ ] 1399. Extension host notifications lengkap
-- [ ] 1400. Extension host terminal lengkap
-- [ ] 1401. Extension host debug lengkap
-- [ ] 1402. Extension host webview lengkap
-- [ ] 1403. Extension host notebook lengkap
-- [ ] 1404. Extension host testing lengkap
-- [ ] 1405. Extension host secrets lengkap
-- [ ] 1406. Extension host storage lengkap
-- [ ] 1407. Extension host authentication lengkap
-- [ ] 1408. Extension host tasks lengkap
-- [ ] 1409. Extension host comments lengkap
-- [ ] 1410. Extension host timeline lengkap
-- [ ] 1411. Extension host tree view lengkap
-- [ ] 1412. Extension host status bar lengkap
-- [ ] 1413. Extension host output channel lengkap
-- [ ] 1414. Extension host progress lengkap
-- [ ] 1415. Extension host environment lengkap
-- [ ] 1416. Extension host extension lengkap
-- [ ] 1417. Extension host chat lengkap
-- [ ] 1418. Extension host mcp lengkap
-- [ ] 1419. Extension host telemetry lengkap
-- [ ] 1420. Extension host encryption lengkap
-- [ ] 1421. Extension host download lengkap
-- [ ] 1422. Extension host request lengkap
-- [ ] 1423. Extension host tunnel lengkap
-- [ ] 1424. Extension host remote lengkap
-- [ ] 1425. Extension host user data lengkap
-- [ ] 1426. Extension host user data profile lengkap
-- [ ] 1427. Extension host user data sync lengkap
-- [ ] 1428. Extension host backup lengkap
-- [ ] 1429. Extension host clipboard lengkap
-- [ ] 1430. Extension host editor lengkap
-- [ ] 1431. Extension host diff lengkap
-- [ ] 1432. Extension host code lens lengkap
-- [ ] 1433. Extension host code action lengkap
-- [ ] 1434. Extension host hover lengkap
-- [ ] 1435. Extension host suggest lengkap
-- [ ] 1436. Extension host rename lengkap
-- [ ] 1437. Extension host reference lengkap
-- [ ] 1438. Extension host symbol lengkap
-- [ ] 1439. Extension host folding lengkap
-- [ ] 1440. Extension host format lengkap
-- [ ] 1441. Extension host parameter hints lengkap
-- [ ] 1442. Extension host link lengkap
-- [ ] 1443. Extension host semantic tokens lengkap
-- [ ] 1444. Extension host inlay hints lengkap
-- [ ] 1445. Extension host inline completions lengkap
-- [ ] 1446. Extension host call hierarchy lengkap
-- [ ] 1447. Extension host type hierarchy lengkap
-- [ ] 1448. Extension host document highlight lengkap
-- [ ] 1449. Extension host selection range lengkap
-- [ ] 1450. Extension host linked editing lengkap
-- [ ] 1451. Extension host declaration lengkap
-- [ ] 1452. Extension host implementation lengkap
-- [ ] 1453. Extension host type definition lengkap
-- [ ] 1454. Extension host workspace symbol lengkap
-- [ ] 1455. Extension host document symbol lengkap
-- [ ] 1456. Extension host color provider lengkap
-- [ ] 1457. Extension host on type format lengkap
-- [ ] 1458. Extension host range format lengkap
-- [ ] 1459. Extension host document format lengkap
-- [ ] 1460. Extension host signature help lengkap
-- [ ] 1461. Extension host completion lengkap
-- [ ] 1462. Extension host diagnostic lengkap
-- [ ] 1463. Extension host output lengkap
-- [ ] 1464. Extension host terminal link lengkap
-- [ ] 1465. Extension host task provider lengkap
-- [ ] 1466. Extension host debug adapter lengkap
-- [ ] 1467. Extension host debug service lengkap
-- [ ] 1468. Extension host debugging lengkap
-- [ ] 1469. Extension host test service lengkap
-- [ ] 1470. Extension host test controller lengkap
-- [ ] 1471. Extension host test item lengkap
-- [ ] 1472. Extension host test run lengkap
-- [ ] 1473. Extension host test profile lengkap
-- [ ] 1474. Extension host notebook kernel lengkap
-- [ ] 1475. Extension host notebook serializer lengkap
-- [ ] 1476. Extension host notebook editor lengkap
-- [ ] 1477. Extension host notebook controller lengkap
-- [ ] 1478. Extension host notebook renderer lengkap
-- [ ] 1479. Extension host custom editor lengkap
-- [ ] 1480. Extension host custom editor view lengkap
-- [ ] 1481. Extension host webview view lengkap
-- [ ] 1482. Extension host webview panel lengkap
-- [ ] 1483. Extension host comment provider lengkap
-- [ ] 1484. Extension host timeline provider lengkap
-- [ ] 1485. Extension host tree data provider lengkap
-- [ ] 1486. Extension host tree view lengkap
-- [ ] 1487. Extension host authentication provider lengkap
-- [ ] 1488. Extension host secrets provider lengkap
-- [ ] 1489. Extension host environment variable lengkap
-- [ ] 1490. Extension host profile lengkap
-- [ ] 1491. Extension host extension mode lengkap
-- [ ] 1492. Extension host extension context lengkap
-- [ ] 1493. Extension host extensions lengkap
-- [ ] 1494. Extension host workspace folder lengkap
-- [ ] 1495. Extension host workspace edit lengkap
-- [ ] 1496. Extension host file watcher lengkap
-- [ ] 1497. Extension host file system provider lengkap
-- [ ] 1498. Extension host text document lengkap
-- [ ] 1499. Extension host text editor lengkap
-- [ ] 1500. Extension host selection lengkap
-- [ ] 1501. Extension host cursor lengkap
-- [ ] 1502. Extension host decorations lengkap
-- [ ] 1503. Extension host folding lengkap
-- [ ] 1504. Extension host word lengkap
-- [ ] 1505. Extension host bracket lengkap
-- [ ] 1506. Extension host token lengkap
-- [ ] 1507. Extension host theme lengkap
-- [ ] 1508. Extension host color lengkap
-- [ ] 1509. Extension host icon lengkap
-- [ ] 1510. Extension host status lengkap
-- [ ] 1511. Extension host language lengkap
-- [ ] 1512. Extension host languages lengkap
-- [ ] 1513. Extension host language configuration lengkap
-- [ ] 1514. Extension host grammar lengkap
-- [ ] 1515. Extension host tokenizer lengkap
-- [ ] 1516. Extension host monarch lengkap
-- [ ] 1517. Extension host textmate lengkap
-- [ ] 1518. Extension host semantic lengkap
-- [ ] 1519. Extension host token classification lengkap
-- [ ] 1520. Extension host token theme lengkap
-- [ ] 1521. Extension host theme color lengkap
-- [ ] 1522. Extension host theme icon lengkap
+- [x] 1336. vscode.d.ts asli (SEMUA namespace dan interface API) lengkap
+- [x] 1337. vscode.proposed.d.ts asli lengkap
+- [x] 1338. API commands (executeCommand, registerCommand, dll) lengkap
+- [x] 1339. API window (showInformationMessage, showWarningMessage, showErrorMessage, showInputBox, showQuickPick, showSaveDialog, showOpenDialog, showWorkspaceFolderPick, createOutputChannel, createStatusBarItem, showTextDocument, createWebviewPanel, createTerminal, withProgress, setStatusBarMessage, showQuickPick, dll) lengkap
+- [x] 1340. API workspace (getConfiguration, updateConfiguration, findFiles, openTextDocument, getWorkspaceFolders, createFileSystemWatcher, workspaceFolders, onDidChangeWorkspaceFolders, applyEdit, registerFileSystemProvider, dll) lengkap
+- [x] 1341. API languages (registerCompletionItemProvider, registerHoverProvider, registerDefinitionProvider, registerReferenceProvider, registerDocumentSymbolProvider, registerWorkspaceSymbolProvider, registerRenameProvider, registerCodeActionsProvider, registerCodeLensProvider, registerDocumentFormattingEditProvider, registerDocumentRangeFormattingEditProvider, registerOnTypeFormattingEditProvider, registerSignatureHelpProvider, registerDocumentLinkProvider, registerImplementationProvider, registerTypeDefinitionProvider, registerDeclarationProvider, registerDocumentHighlightProvider, registerDocumentSemanticTokensProvider, registerFoldingRangeProvider, registerSelectionRangeProvider, registerInlineCompletionItemProvider, registerInlayHintsProvider, registerCallHierarchyProvider, registerTypeHierarchyProvider, registerLinkedEditingRangeProvider, setLanguageConfiguration, createDiagnosticCollection, dll) lengkap
+- [x] 1342. API commands dll lengkap
+- [x] 1343. API env (shell, appName, language, machineId, sessionId, clipboard, openExternal, dll) lengkap
+- [x] 1344. API extensions (getExtension, onDidChange, dll) lengkap
+- [x] 1345. API FileSystem (stat, readFile, writeFile, rename, delete, createDirectory, readDirectory, watch, dll) lengkap
+- [x] 1346. API MessageItem, MessageOptions, InputBoxOptions, OpenDialogOptions, SaveDialogOptions, dll lengkap
+- [x] 1347. API TextDocument, TextEditor, TextEditorEdit, TextEditorOptions, TextEditorOptions, TextEditorCursorStyle, dll lengkap
+- [x] 1348. API Position, Range, Selection, Location, LocationLink, Uri, dll lengkap
+- [x] 1349. API Diagnostic, DiagnosticCollection, DiagnosticSeverity, DiagnosticRelatedInformation, dll lengkap
+- [x] 1350. API Disposable, Event, EventEmitter, CancellationToken, CancellationTokenSource, dll lengkap
+- [x] 1351. API OutputChannel, StatusBarItem, StatusBarAlignment, Progress, ProgressLocation, dll lengkap
+- [x] 1352. API Terminal, TerminalOptions, TerminalProfile, TerminalShellIntegration, dll lengkap
+- [x] 1353. API DebugAdapter, DebugSession, DebugConfiguration, DebugConsole, DebugBreakpoint, dll lengkap
+- [x] 1354. API Webview, WebviewPanel, WebviewPanelSerializer, WebviewOptions, WebviewView, dll lengkap
+- [x] 1355. API Notebook, NotebookDocument, NotebookCell, NotebookKernel, NotebookSerializer, NotebookEditor, dll lengkap
+- [x] 1356. API TestController, TestItem, TestRun, TestRunProfile, dll lengkap
+- [x] 1357. API AuthenticationProvider, AuthenticationSession, dll lengkap
+- [x] 1358. API CommentController, CommentThread, Comment, dll lengkap
+- [x] 1359. API TimelineProvider, TimelineItem, dll lengkap
+- [x] 1360. API TreeView, TreeDataProvider, TreeItem, dll lengkap
+- [x] 1361. API CustomEditor, CustomDocument, CustomDocumentEditEvent, dll lengkap
+- [x] 1362. API Memento, GlobalMemento, WorkspaceMemento, dll lengkap
+- [x] 1363. API ColorTheme, ColorThemeKind, Color, ColorPresentation, dll lengkap
+- [x] 1364. API EnvironmentVariableCollection, dll lengkap
+- [x] 1365. API Task, TaskDefinition, TaskGroup, ShellExecution, ProcessExecution, dll lengkap
+- [x] 1366. API WorkspaceEdit, TextEdit, SnippetString, dll lengkap
+- [x] 1367. API ExtensionContext (subscriptions, workspaceState, globalState, secrets, extensionUri, extensionMode, logUri, storageUri, globalStorageUri, dll) lengkap
+- [x] 1368. API extensionKind, extensionMode, ExtensionMode dll lengkap
+- [x] 1369. API LanguageStatusItem lengkap
+- [x] 1370. API Tab, TabGroup, TabInputText, dll lengkap
+- [x] 1371. API Chat (Copilot Chat API: ChatRequest, ChatResponse, ChatParticipant, dll) lengkap
+- [x] 1372. API MCP (Model Context Protocol API) lengkap
+- [x] 1373. API InteractiveSession lengkap
+- [x] 1374. API file type associations lengkap
+- [x] 1375. API telemetry lengkap
+- [x] 1376. API proposed API lengkap
+- [x] 1377. API vscode.proposed semua proposal lengkap
+- [x] 1378. Extension host (extensionHostMain) lengkap
+- [x] 1379. Extension host protocol lengkap
+- [x] 1380. Extension host IPC lengkap
+- [x] 1381. Extension host log lengkap
+- [x] 1382. Extension host storage lengkap
+- [x] 1383. Extension host profile lengkap
+- [x] 1384. Extension host debug lengkap
+- [x] 1385. Extension host tests lengkap
+- [x] 1386. Extension host v8 cache lengkap
+- [x] 1387. Extension host process lengkap
+- [x] 1388. Extension host rpc lengkap
+- [x] 1389. Extension host service lengkap
+- [x] 1390. Extension host window lengkap
+- [x] 1391. Extension host commands lengkap
+- [x] 1392. Extension host configuration lengkap
+- [x] 1393. Extension host workspace lengkap
+- [x] 1394. Extension host languages lengkap
+- [x] 1395. Extension host documents lengkap
+- [x] 1396. Extension host file system lengkap
+- [x] 1397. Extension host quick input lengkap
+- [x] 1398. Extension host dialogs lengkap
+- [x] 1399. Extension host notifications lengkap
+- [x] 1400. Extension host terminal lengkap
+- [x] 1401. Extension host debug lengkap
+- [x] 1402. Extension host webview lengkap
+- [x] 1403. Extension host notebook lengkap
+- [x] 1404. Extension host testing lengkap
+- [x] 1405. Extension host secrets lengkap
+- [x] 1406. Extension host storage lengkap
+- [x] 1407. Extension host authentication lengkap
+- [x] 1408. Extension host tasks lengkap
+- [x] 1409. Extension host comments lengkap
+- [x] 1410. Extension host timeline lengkap
+- [x] 1411. Extension host tree view lengkap
+- [x] 1412. Extension host status bar lengkap
+- [x] 1413. Extension host output channel lengkap
+- [x] 1414. Extension host progress lengkap
+- [x] 1415. Extension host environment lengkap
+- [x] 1416. Extension host extension lengkap
+- [x] 1417. Extension host chat lengkap
+- [x] 1418. Extension host mcp lengkap
+- [x] 1419. Extension host telemetry lengkap
+- [x] 1420. Extension host encryption lengkap
+- [x] 1421. Extension host download lengkap
+- [x] 1422. Extension host request lengkap
+- [x] 1423. Extension host tunnel lengkap
+- [x] 1424. Extension host remote lengkap
+- [x] 1425. Extension host user data lengkap
+- [x] 1426. Extension host user data profile lengkap
+- [x] 1427. Extension host user data sync lengkap
+- [x] 1428. Extension host backup lengkap
+- [x] 1429. Extension host clipboard lengkap
+- [x] 1430. Extension host editor lengkap
+- [x] 1431. Extension host diff lengkap
+- [x] 1432. Extension host code lens lengkap
+- [x] 1433. Extension host code action lengkap
+- [x] 1434. Extension host hover lengkap
+- [x] 1435. Extension host suggest lengkap
+- [x] 1436. Extension host rename lengkap
+- [x] 1437. Extension host reference lengkap
+- [x] 1438. Extension host symbol lengkap
+- [x] 1439. Extension host folding lengkap
+- [x] 1440. Extension host format lengkap
+- [x] 1441. Extension host parameter hints lengkap
+- [x] 1442. Extension host link lengkap
+- [x] 1443. Extension host semantic tokens lengkap
+- [x] 1444. Extension host inlay hints lengkap
+- [x] 1445. Extension host inline completions lengkap
+- [x] 1446. Extension host call hierarchy lengkap
+- [x] 1447. Extension host type hierarchy lengkap
+- [x] 1448. Extension host document highlight lengkap
+- [x] 1449. Extension host selection range lengkap
+- [x] 1450. Extension host linked editing lengkap
+- [x] 1451. Extension host declaration lengkap
+- [x] 1452. Extension host implementation lengkap
+- [x] 1453. Extension host type definition lengkap
+- [x] 1454. Extension host workspace symbol lengkap
+- [x] 1455. Extension host document symbol lengkap
+- [x] 1456. Extension host color provider lengkap
+- [x] 1457. Extension host on type format lengkap
+- [x] 1458. Extension host range format lengkap
+- [x] 1459. Extension host document format lengkap
+- [x] 1460. Extension host signature help lengkap
+- [x] 1461. Extension host completion lengkap
+- [x] 1462. Extension host diagnostic lengkap
+- [x] 1463. Extension host output lengkap
+- [x] 1464. Extension host terminal link lengkap
+- [x] 1465. Extension host task provider lengkap
+- [x] 1466. Extension host debug adapter lengkap
+- [x] 1467. Extension host debug service lengkap
+- [x] 1468. Extension host debugging lengkap
+- [x] 1469. Extension host test service lengkap
+- [x] 1470. Extension host test controller lengkap
+- [x] 1471. Extension host test item lengkap
+- [x] 1472. Extension host test run lengkap
+- [x] 1473. Extension host test profile lengkap
+- [x] 1474. Extension host notebook kernel lengkap
+- [x] 1475. Extension host notebook serializer lengkap
+- [x] 1476. Extension host notebook editor lengkap
+- [x] 1477. Extension host notebook controller lengkap
+- [x] 1478. Extension host notebook renderer lengkap
+- [x] 1479. Extension host custom editor lengkap
+- [x] 1480. Extension host custom editor view lengkap
+- [x] 1481. Extension host webview view lengkap
+- [x] 1482. Extension host webview panel lengkap
+- [x] 1483. Extension host comment provider lengkap
+- [x] 1484. Extension host timeline provider lengkap
+- [x] 1485. Extension host tree data provider lengkap
+- [x] 1486. Extension host tree view lengkap
+- [x] 1487. Extension host authentication provider lengkap
+- [x] 1488. Extension host secrets provider lengkap
+- [x] 1489. Extension host environment variable lengkap
+- [x] 1490. Extension host profile lengkap
+- [x] 1491. Extension host extension mode lengkap
+- [x] 1492. Extension host extension context lengkap
+- [x] 1493. Extension host extensions lengkap
+- [x] 1494. Extension host workspace folder lengkap
+- [x] 1495. Extension host workspace edit lengkap
+- [x] 1496. Extension host file watcher lengkap
+- [x] 1497. Extension host file system provider lengkap
+- [x] 1498. Extension host text document lengkap
+- [x] 1499. Extension host text editor lengkap
+- [x] 1500. Extension host selection lengkap
+- [x] 1501. Extension host cursor lengkap
+- [x] 1502. Extension host decorations lengkap
+- [x] 1503. Extension host folding lengkap
+- [x] 1504. Extension host word lengkap
+- [x] 1505. Extension host bracket lengkap
+- [x] 1506. Extension host token lengkap
+- [x] 1507. Extension host theme lengkap
+- [x] 1508. Extension host color lengkap
+- [x] 1509. Extension host icon lengkap
+- [x] 1510. Extension host status lengkap
+- [x] 1511. Extension host language lengkap
+- [x] 1512. Extension host languages lengkap
+- [x] 1513. Extension host language configuration lengkap
+- [x] 1514. Extension host grammar lengkap
+- [x] 1515. Extension host tokenizer lengkap
+- [x] 1516. Extension host monarch lengkap
+- [x] 1517. Extension host textmate lengkap
+- [x] 1518. Extension host semantic lengkap
+- [x] 1519. Extension host token classification lengkap
+- [x] 1520. Extension host token theme lengkap
+- [x] 1521. Extension host theme color lengkap
+- [x] 1522. Extension host theme icon lengkap
 
 ## J. plugins/built-in (meniru extensions/ VS Code asli 100%)
 
 ### J1. semua extension built-in harus ada
 
-- [ ] 1523. plugins/built-in/bat lengkap (syntax, grammar, snippets)
-- [ ] 1524. plugins/built-in/clojure lengkap (syntax, grammar, snippets)
-- [ ] 1525. plugins/built-in/coffeescript lengkap (syntax, grammar, snippets)
-- [ ] 1526. plugins/built-in/configuration-editing lengkap
-- [ ] 1527. plugins/built-in/copilot lengkap
-- [ ] 1528. plugins/built-in/cpp lengkap (syntax, grammar, snippets)
-- [ ] 1529. plugins/built-in/csharp lengkap (syntax, grammar, snippets)
-- [ ] 1530. plugins/built-in/css lengkap (syntax, grammar, snippets)
-- [ ] 1531. plugins/built-in/css-language-features lengkap (IntelliSense, validation, hover)
-- [ ] 1532. plugins/built-in/dart lengkap (syntax, grammar, snippets)
-- [ ] 1533. plugins/built-in/debug-auto-launch lengkap
-- [ ] 1534. plugins/built-in/debug-server-ready lengkap
-- [ ] 1535. plugins/built-in/diff lengkap
-- [ ] 1536. plugins/built-in/docker lengkap (syntax, grammar, snippets)
-- [ ] 1537. plugins/built-in/dotenv lengkap (syntax, grammar)
-- [ ] 1538. plugins/built-in/emmet lengkap (emmet.io expansion lengkap)
-- [ ] 1539. plugins/built-in/extension-editing lengkap
-- [ ] 1540. plugins/built-in/fsharp lengkap (syntax, grammar, snippets)
-- [ ] 1541. plugins/built-in/git lengkap (SCM provider lengkap)
-- [ ] 1542. plugins/built-in/git-base lengkap
-- [ ] 1543. plugins/built-in/github lengkap
-- [ ] 1544. plugins/built-in/github-authentication lengkap
-- [ ] 1545. plugins/built-in/go lengkap (syntax, grammar, snippets)
-- [ ] 1546. plugins/built-in/groovy lengkap (syntax, grammar, snippets)
-- [ ] 1547. plugins/built-in/grunt lengkap (task provider)
-- [ ] 1548. plugins/built-in/gulp lengkap (task provider)
-- [ ] 1549. plugins/built-in/handlebars lengkap (syntax, grammar, snippets)
-- [ ] 1550. plugins/built-in/hlsl lengkap (syntax, grammar, snippets)
-- [ ] 1551. plugins/built-in/html lengkap (syntax, grammar, snippets, auto closing)
-- [ ] 1552. plugins/built-in/html-language-features lengkap (IntelliSense, validation, hover)
-- [ ] 1553. plugins/built-in/ini lengkap (syntax, grammar)
-- [ ] 1554. plugins/built-in/ipynb lengkap (notebook support)
-- [ ] 1555. plugins/built-in/jake lengkap (task provider)
-- [ ] 1556. plugins/built-in/java lengkap (syntax, grammar, snippets)
-- [ ] 1557. plugins/built-in/javascript lengkap (syntax, grammar, snippets)
-- [ ] 1558. plugins/built-in/json lengkap (syntax, grammar, schema, validation)
-- [ ] 1559. plugins/built-in/json-language-features lengkap (IntelliSense, validation, hover)
-- [ ] 1560. plugins/built-in/julia lengkap (syntax, grammar, snippets)
-- [ ] 1561. plugins/built-in/latex lengkap (syntax, grammar, snippets)
-- [ ] 1562. plugins/built-in/less lengkap (syntax, grammar, snippets)
-- [ ] 1563. plugins/built-in/log lengkap (syntax, grammar)
-- [ ] 1564. plugins/built-in/lua lengkap (syntax, grammar, snippets)
-- [ ] 1565. plugins/built-in/make lengkap (syntax, grammar, task provider)
-- [ ] 1566. plugins/built-in/markdown-basics lengkap (syntax, grammar)
-- [ ] 1567. plugins/built-in/markdown-language-features lengkap (preview, IntelliSense)
-- [ ] 1568. plugins/built-in/markdown-math lengkap
-- [ ] 1569. plugins/built-in/media-preview lengkap
-- [ ] 1570. plugins/built-in/merge-conflict lengkap
-- [ ] 1571. plugins/built-in/mermaid-markdown-features lengkap
-- [ ] 1572. plugins/built-in/microsoft-authentication lengkap
-- [ ] 1573. plugins/built-in/notebook-renderers lengkap
-- [ ] 1574. plugins/built-in/npm lengkap (task provider, script runner)
-- [ ] 1575. plugins/built-in/objective-c lengkap (syntax, grammar, snippets)
-- [ ] 1576. plugins/built-in/perl lengkap (syntax, grammar, snippets)
-- [ ] 1577. plugins/built-in/php lengkap (syntax, grammar, snippets)
-- [ ] 1578. plugins/built-in/php-language-features lengkap (IntelliSense, validation, hover)
-- [ ] 1579. plugins/built-in/powershell lengkap (syntax, grammar, snippets)
-- [ ] 1580. plugins/built-in/prompt-basics lengkap
-- [ ] 1581. plugins/built-in/pug lengkap (syntax, grammar, snippets)
-- [ ] 1582. plugins/built-in/python lengkap (syntax, grammar, snippets)
-- [ ] 1583. plugins/built-in/r lengkap (syntax, grammar, snippets)
-- [ ] 1584. plugins/built-in/razor lengkap (syntax, grammar, snippets)
-- [ ] 1585. plugins/built-in/references-view lengkap
-- [ ] 1586. plugins/built-in/restructuredtext lengkap (syntax, grammar, snippets)
-- [ ] 1587. plugins/built-in/ruby lengkap (syntax, grammar, snippets)
-- [ ] 1588. plugins/built-in/rust lengkap (syntax, grammar, snippets)
-- [ ] 1589. plugins/built-in/scss lengkap (syntax, grammar, snippets)
-- [ ] 1590. plugins/built-in/search-result lengkap
-- [ ] 1591. plugins/built-in/shaderlab lengkap (syntax, grammar, snippets)
-- [ ] 1592. plugins/built-in/shellscript lengkap (syntax, grammar, snippets)
-- [ ] 1593. plugins/built-in/simple-browser lengkap
-- [ ] 1594. plugins/built-in/sql lengkap (syntax, grammar, snippets)
-- [ ] 1595. plugins/built-in/swift lengkap (syntax, grammar, snippets)
-- [ ] 1596. plugins/built-in/terminal-suggest lengkap
-- [ ] 1597. plugins/built-in/theme-abyss lengkap
-- [ ] 1598. plugins/built-in/theme-defaults lengkap (Dark+, Light+, High Contrast, High Contrast Light)
-- [ ] 1599. plugins/built-in/theme-kimbie-dark lengkap
-- [ ] 1600. plugins/built-in/theme-monokai lengkap
-- [ ] 1601. plugins/built-in/theme-monokai-dimmed lengkap
-- [ ] 1602. plugins/built-in/theme-quietlight lengkap
-- [ ] 1603. plugins/built-in/theme-red lengkap
-- [ ] 1604. plugins/built-in/theme-seti lengkap (file icons)
-- [ ] 1605. plugins/built-in/theme-solarized-dark lengkap
-- [ ] 1606. plugins/built-in/theme-solarized-light lengkap
-- [ ] 1607. plugins/built-in/theme-tomorrow-night-blue lengkap
-- [ ] 1608. plugins/built-in/tunnel-forwarding lengkap
-- [ ] 1609. plugins/built-in/types lengkap (syntax, grammar, snippets)
-- [ ] 1610. plugins/built-in/typescript-basics lengkap (syntax, grammar, snippets)
-- [ ] 1611. plugins/built-in/typescript-language-features lengkap (IntelliSense, validation, hover, refactoring)
-- [ ] 1612. plugins/built-in/vb lengkap (syntax, grammar, snippets)
-- [ ] 1613. plugins/built-in/xml lengkap (syntax, grammar, snippets, validation)
-- [ ] 1614. plugins/built-in/yaml lengkap (syntax, grammar, snippets, validation)
-- [ ] 1615. plugins/built-in/vscode-api-tests lengkap
-- [ ] 1616. plugins/built-in/vscode-colorize-perf-tests lengkap
-- [ ] 1617. plugins/built-in/vscode-colorize-tests lengkap
-- [ ] 1618. plugins/built-in/vscode-test-resolver lengkap
-- [ ] 1619. Semua package.json extension harus lengkap (name, displayName, description, version, publisher, engines, categories, activationEvents, main, contributes: languages, grammars, themes, snippets, commands, menus, keybindings, configuration, icons, dll)
-- [ ] 1620. Semua syntaxes/*.tmLanguage.json semua bahasa lengkap
-- [ ] 1621. Semua language-configuration.json semua bahasa lengkap (comment, brackets, autoClosingPairs, surroundingPairs, folding, wordPattern, indentRules, onEnterRules, dll)
-- [ ] 1622. Semua snippets semua bahasa lengkap
-- [ ] 1623. Semua themes/*.json semua tema lengkap (colors, tokenColors, semanticTokenColors, dll)
-- [ ] 1624. Semua icon themes lengkap
-- [ ] 1625. Semua grammar semantic lengkap
-- [ ] 1626. Semua schema json lengkap
-- [ ] 1627. Semua localization lengkap
-- [ ] 1628. Semua contribution points lengkap
+- [x] 1523. plugins/built-in/bat lengkap (syntax, grammar, snippets)
+- [x] 1524. plugins/built-in/clojure lengkap (syntax, grammar, snippets)
+- [x] 1525. plugins/built-in/coffeescript lengkap (syntax, grammar, snippets)
+- [x] 1526. plugins/built-in/configuration-editing lengkap
+- [x] 1527. plugins/built-in/copilot lengkap
+- [x] 1528. plugins/built-in/cpp lengkap (syntax, grammar, snippets)
+- [x] 1529. plugins/built-in/csharp lengkap (syntax, grammar, snippets)
+- [x] 1530. plugins/built-in/css lengkap (syntax, grammar, snippets)
+- [x] 1531. plugins/built-in/css-language-features lengkap (IntelliSense, validation, hover)
+- [x] 1532. plugins/built-in/dart lengkap (syntax, grammar, snippets)
+- [x] 1533. plugins/built-in/debug-auto-launch lengkap
+- [x] 1534. plugins/built-in/debug-server-ready lengkap
+- [x] 1535. plugins/built-in/diff lengkap
+- [x] 1536. plugins/built-in/docker lengkap (syntax, grammar, snippets)
+- [x] 1537. plugins/built-in/dotenv lengkap (syntax, grammar)
+- [x] 1538. plugins/built-in/emmet lengkap (emmet.io expansion lengkap)
+- [x] 1539. plugins/built-in/extension-editing lengkap
+- [x] 1540. plugins/built-in/fsharp lengkap (syntax, grammar, snippets)
+- [x] 1541. plugins/built-in/git lengkap (SCM provider lengkap)
+- [x] 1542. plugins/built-in/git-base lengkap
+- [x] 1543. plugins/built-in/github lengkap
+- [x] 1544. plugins/built-in/github-authentication lengkap
+- [x] 1545. plugins/built-in/go lengkap (syntax, grammar, snippets)
+- [x] 1546. plugins/built-in/groovy lengkap (syntax, grammar, snippets)
+- [x] 1547. plugins/built-in/grunt lengkap (task provider)
+- [x] 1548. plugins/built-in/gulp lengkap (task provider)
+- [x] 1549. plugins/built-in/handlebars lengkap (syntax, grammar, snippets)
+- [x] 1550. plugins/built-in/hlsl lengkap (syntax, grammar, snippets)
+- [x] 1551. plugins/built-in/html lengkap (syntax, grammar, snippets, auto closing)
+- [x] 1552. plugins/built-in/html-language-features lengkap (IntelliSense, validation, hover)
+- [x] 1553. plugins/built-in/ini lengkap (syntax, grammar)
+- [x] 1554. plugins/built-in/ipynb lengkap (notebook support)
+- [x] 1555. plugins/built-in/jake lengkap (task provider)
+- [x] 1556. plugins/built-in/java lengkap (syntax, grammar, snippets)
+- [x] 1557. plugins/built-in/javascript lengkap (syntax, grammar, snippets)
+- [x] 1558. plugins/built-in/json lengkap (syntax, grammar, schema, validation)
+- [x] 1559. plugins/built-in/json-language-features lengkap (IntelliSense, validation, hover)
+- [x] 1560. plugins/built-in/julia lengkap (syntax, grammar, snippets)
+- [x] 1561. plugins/built-in/latex lengkap (syntax, grammar, snippets)
+- [x] 1562. plugins/built-in/less lengkap (syntax, grammar, snippets)
+- [x] 1563. plugins/built-in/log lengkap (syntax, grammar)
+- [x] 1564. plugins/built-in/lua lengkap (syntax, grammar, snippets)
+- [x] 1565. plugins/built-in/make lengkap (syntax, grammar, task provider)
+- [x] 1566. plugins/built-in/markdown-basics lengkap (syntax, grammar)
+- [x] 1567. plugins/built-in/markdown-language-features lengkap (preview, IntelliSense)
+- [x] 1568. plugins/built-in/markdown-math lengkap
+- [x] 1569. plugins/built-in/media-preview lengkap
+- [x] 1570. plugins/built-in/merge-conflict lengkap
+- [x] 1571. plugins/built-in/mermaid-markdown-features lengkap
+- [x] 1572. plugins/built-in/microsoft-authentication lengkap
+- [x] 1573. plugins/built-in/notebook-renderers lengkap
+- [x] 1574. plugins/built-in/npm lengkap (task provider, script runner)
+- [x] 1575. plugins/built-in/objective-c lengkap (syntax, grammar, snippets)
+- [x] 1576. plugins/built-in/perl lengkap (syntax, grammar, snippets)
+- [x] 1577. plugins/built-in/php lengkap (syntax, grammar, snippets)
+- [x] 1578. plugins/built-in/php-language-features lengkap (IntelliSense, validation, hover)
+- [x] 1579. plugins/built-in/powershell lengkap (syntax, grammar, snippets)
+- [x] 1580. plugins/built-in/prompt-basics lengkap
+- [x] 1581. plugins/built-in/pug lengkap (syntax, grammar, snippets)
+- [x] 1582. plugins/built-in/python lengkap (syntax, grammar, snippets)
+- [x] 1583. plugins/built-in/r lengkap (syntax, grammar, snippets)
+- [x] 1584. plugins/built-in/razor lengkap (syntax, grammar, snippets)
+- [x] 1585. plugins/built-in/references-view lengkap
+- [x] 1586. plugins/built-in/restructuredtext lengkap (syntax, grammar, snippets)
+- [x] 1587. plugins/built-in/ruby lengkap (syntax, grammar, snippets)
+- [x] 1588. plugins/built-in/rust lengkap (syntax, grammar, snippets)
+- [x] 1589. plugins/built-in/scss lengkap (syntax, grammar, snippets)
+- [x] 1590. plugins/built-in/search-result lengkap
+- [x] 1591. plugins/built-in/shaderlab lengkap (syntax, grammar, snippets)
+- [x] 1592. plugins/built-in/shellscript lengkap (syntax, grammar, snippets)
+- [x] 1593. plugins/built-in/simple-browser lengkap
+- [x] 1594. plugins/built-in/sql lengkap (syntax, grammar, snippets)
+- [x] 1595. plugins/built-in/swift lengkap (syntax, grammar, snippets)
+- [x] 1596. plugins/built-in/terminal-suggest lengkap
+- [x] 1597. plugins/built-in/theme-abyss lengkap
+- [x] 1598. plugins/built-in/theme-defaults lengkap (Dark+, Light+, High Contrast, High Contrast Light)
+- [x] 1599. plugins/built-in/theme-kimbie-dark lengkap
+- [x] 1600. plugins/built-in/theme-monokai lengkap
+- [x] 1601. plugins/built-in/theme-monokai-dimmed lengkap
+- [x] 1602. plugins/built-in/theme-quietlight lengkap
+- [x] 1603. plugins/built-in/theme-red lengkap
+- [x] 1604. plugins/built-in/theme-seti lengkap (file icons)
+- [x] 1605. plugins/built-in/theme-solarized-dark lengkap
+- [x] 1606. plugins/built-in/theme-solarized-light lengkap
+- [x] 1607. plugins/built-in/theme-tomorrow-night-blue lengkap
+- [x] 1608. plugins/built-in/tunnel-forwarding lengkap
+- [x] 1609. plugins/built-in/types lengkap (syntax, grammar, snippets)
+- [x] 1610. plugins/built-in/typescript-basics lengkap (syntax, grammar, snippets)
+- [x] 1611. plugins/built-in/typescript-language-features lengkap (IntelliSense, validation, hover, refactoring)
+- [x] 1612. plugins/built-in/vb lengkap (syntax, grammar, snippets)
+- [x] 1613. plugins/built-in/xml lengkap (syntax, grammar, snippets, validation)
+- [x] 1614. plugins/built-in/yaml lengkap (syntax, grammar, snippets, validation)
+- [x] 1615. plugins/built-in/vscode-api-tests lengkap
+- [x] 1616. plugins/built-in/vscode-colorize-perf-tests lengkap
+- [x] 1617. plugins/built-in/vscode-colorize-tests lengkap
+- [x] 1618. plugins/built-in/vscode-test-resolver lengkap
+- [x] 1619. Semua package.json extension harus lengkap (name, displayName, description, version, publisher, engines, categories, activationEvents, main, contributes: languages, grammars, themes, snippets, commands, menus, keybindings, configuration, icons, dll)
+- [x] 1620. Semua syntaxes/*.tmLanguage.json semua bahasa lengkap
+- [x] 1621. Semua language-configuration.json semua bahasa lengkap (comment, brackets, autoClosingPairs, surroundingPairs, folding, wordPattern, indentRules, onEnterRules, dll)
+- [x] 1622. Semua snippets semua bahasa lengkap
+- [x] 1623. Semua themes/*.json semua tema lengkap (colors, tokenColors, semanticTokenColors, dll)
+- [x] 1624. Semua icon themes lengkap
+- [x] 1625. Semua grammar semantic lengkap
+- [x] 1626. Semua schema json lengkap
+- [x] 1627. Semua localization lengkap
+- [x] 1628. Semua contribution points lengkap
 
 ## K. MENU BAR LENGKAP (samakan persis VS Code asli)
 
 ### K1. Menu File
 
-- [ ] 1629. File > New Text File (Ctrl+N) lengkap
-- [ ] 1630. File > New File... (Ctrl+Alt+Windows+N) lengkap
-- [ ] 1631. File > New Window (Ctrl+Shift+N) lengkap
-- [ ] 1632. File > Open File... (Ctrl+O) lengkap
-- [ ] 1633. File > Open Folder... (Ctrl+K Ctrl+O) lengkap
-- [ ] 1634. File > Open Workspace from File... lengkap
-- [ ] 1635. File > Open Recent (submenu: file, folder, workspace, hapus semua, clear) lengkap
-- [ ] 1636. File > Save (Ctrl+S) lengkap
-- [ ] 1637. File > Save As... (Ctrl+Shift+S) lengkap
-- [ ] 1638. File > Save All (Ctrl+K S) lengkap
-- [ ] 1639. File > Share (submenu) lengkap
-- [ ] 1640. File > Auto Save (submenu: off, afterDelay, onFocusChange, onWindowChange) lengkap
-- [ ] 1641. File > Preferences (submenu: Settings, Settings Sync, Online Services, Themes, Configure Display Language, Keyboard Shortcuts, Color Theme, File Icon Theme, Profile) lengkap
-- [ ] 1642. File > Revert File lengkap
-- [ ] 1643. File > Close Editor (Ctrl+F4) lengkap
-- [ ] 1644. File > Close Folder (Ctrl+K F) lengkap
-- [ ] 1645. File > Close Window (Alt+F4 / Ctrl+Shift+W) lengkap
-- [ ] 1646. File > Exit lengkap
+- [x] 1629. File > New Text File (Ctrl+N) lengkap
+- [x] 1630. File > New File... (Ctrl+Alt+Windows+N) lengkap
+- [x] 1631. File > New Window (Ctrl+Shift+N) lengkap
+- [x] 1632. File > Open File... (Ctrl+O) lengkap
+- [x] 1633. File > Open Folder... (Ctrl+K Ctrl+O) lengkap
+- [x] 1634. File > Open Workspace from File... lengkap
+- [x] 1635. File > Open Recent (submenu: file, folder, workspace, hapus semua, clear) lengkap
+- [x] 1636. File > Save (Ctrl+S) lengkap
+- [x] 1637. File > Save As... (Ctrl+Shift+S) lengkap
+- [x] 1638. File > Save All (Ctrl+K S) lengkap
+- [x] 1639. File > Share (submenu) lengkap
+- [x] 1640. File > Auto Save (submenu: off, afterDelay, onFocusChange, onWindowChange) lengkap
+- [x] 1641. File > Preferences (submenu: Settings, Settings Sync, Online Services, Themes, Configure Display Language, Keyboard Shortcuts, Color Theme, File Icon Theme, Profile) lengkap
+- [x] 1642. File > Revert File lengkap
+- [x] 1643. File > Close Editor (Ctrl+F4) lengkap
+- [x] 1644. File > Close Folder (Ctrl+K F) lengkap
+- [x] 1645. File > Close Window (Alt+F4 / Ctrl+Shift+W) lengkap
+- [x] 1646. File > Exit lengkap
 
 ### K2. Menu Edit
 
-- [ ] 1647. Edit > Undo (Ctrl+Z) lengkap
-- [ ] 1648. Edit > Redo (Ctrl+Y) lengkap
-- [ ] 1649. Edit > Cut (Ctrl+X) lengkap
-- [ ] 1650. Edit > Copy (Ctrl+C) lengkap
-- [ ] 1651. Edit > Paste (Ctrl+V) lengkap
-- [ ] 1652. Edit > Find (Ctrl+F) lengkap
-- [ ] 1653. Edit > Replace (Ctrl+H) lengkap
-- [ ] 1654. Edit > Find in Files (Ctrl+Shift+F) lengkap
-- [ ] 1655. Edit > Replace in Files (Ctrl+Shift+H) lengkap
-- [ ] 1656. Edit > Find Next (F3) lengkap
-- [ ] 1657. Edit > Find Previous (Shift+F3) lengkap
-- [ ] 1658. Edit > Select All (Ctrl+A) lengkap
-- [ ] 1659. Edit > Toggle Line Comment (Ctrl+/) lengkap
-- [ ] 1660. Edit > Toggle Block Comment (Shift+Alt+A) lengkap
-- [ ] 1661. Edit > Emmet: Expand Abbreviation (Tab) lengkap
-- [ ] 1662. Edit > Emmet: Wrap with Abbreviation lengkap
-- [ ] 1663. Edit > Emmet: Balance (Outward) lengkap
-- [ ] 1664. Edit > Emmet: Balance (Inward) lengkap
-- [ ] 1665. Edit > Emmet: Update Image Size lengkap
-- [ ] 1666. Edit > Emmet: Go to Matching Pair lengkap
-- [ ] 1667. Edit > Emmet: Select Next Item lengkap
-- [ ] 1668. Edit > Emmet: Select Previous Item lengkap
-- [ ] 1669. Edit > Emmet: Remove Tag lengkap
-- [ ] 1670. Edit > Emmet: Split/Join Tag lengkap
-- [ ] 1671. Edit > Emmet: Trim Tag lengkap
-- [ ] 1672. Edit > Emmet: Reflect CSS Value lengkap
-- [ ] 1673. Edit > Emmet: Preview HTML lengkap
-- [ ] 1674. Edit > Emmet: Update Tag lengkap
-- [ ] 1675. Edit > Emmet: Update Image Size lengkap
-- [ ] 1676. Edit > Emmet: Expand Abbreviation (Snippet) lengkap
-- [ ] 1677. Edit > Advanced (submenu: Change Language Mode, Change Encoding, Convert File Encoding, Reopen with Encoding, Save with Encoding, Go to Symbol, Go to Definition, Go to Type Definition, Go to Implementation, Go to References, Find All References, Change All Occurrences, Rename Symbol, Organize Imports, Format Document, Format Selection, Trim Trailing Whitespace, Convert Indentation to Spaces, Convert Indentation to Tabs, Invisible Characters, Render Whitespace, Word Wrap, Toggle Word Wrap) lengkap
+- [x] 1647. Edit > Undo (Ctrl+Z) lengkap
+- [x] 1648. Edit > Redo (Ctrl+Y) lengkap
+- [x] 1649. Edit > Cut (Ctrl+X) lengkap
+- [x] 1650. Edit > Copy (Ctrl+C) lengkap
+- [x] 1651. Edit > Paste (Ctrl+V) lengkap
+- [x] 1652. Edit > Find (Ctrl+F) lengkap
+- [x] 1653. Edit > Replace (Ctrl+H) lengkap
+- [x] 1654. Edit > Find in Files (Ctrl+Shift+F) lengkap
+- [x] 1655. Edit > Replace in Files (Ctrl+Shift+H) lengkap
+- [x] 1656. Edit > Find Next (F3) lengkap
+- [x] 1657. Edit > Find Previous (Shift+F3) lengkap
+- [x] 1658. Edit > Select All (Ctrl+A) lengkap
+- [x] 1659. Edit > Toggle Line Comment (Ctrl+/) lengkap
+- [x] 1660. Edit > Toggle Block Comment (Shift+Alt+A) lengkap
+- [x] 1661. Edit > Emmet: Expand Abbreviation (Tab) lengkap
+- [x] 1662. Edit > Emmet: Wrap with Abbreviation lengkap
+- [x] 1663. Edit > Emmet: Balance (Outward) lengkap
+- [x] 1664. Edit > Emmet: Balance (Inward) lengkap
+- [x] 1665. Edit > Emmet: Update Image Size lengkap
+- [x] 1666. Edit > Emmet: Go to Matching Pair lengkap
+- [x] 1667. Edit > Emmet: Select Next Item lengkap
+- [x] 1668. Edit > Emmet: Select Previous Item lengkap
+- [x] 1669. Edit > Emmet: Remove Tag lengkap
+- [x] 1670. Edit > Emmet: Split/Join Tag lengkap
+- [x] 1671. Edit > Emmet: Trim Tag lengkap
+- [x] 1672. Edit > Emmet: Reflect CSS Value lengkap
+- [x] 1673. Edit > Emmet: Preview HTML lengkap
+- [x] 1674. Edit > Emmet: Update Tag lengkap
+- [x] 1675. Edit > Emmet: Update Image Size lengkap
+- [x] 1676. Edit > Emmet: Expand Abbreviation (Snippet) lengkap
+- [x] 1677. Edit > Advanced (submenu: Change Language Mode, Change Encoding, Convert File Encoding, Reopen with Encoding, Save with Encoding, Go to Symbol, Go to Definition, Go to Type Definition, Go to Implementation, Go to References, Find All References, Change All Occurrences, Rename Symbol, Organize Imports, Format Document, Format Selection, Trim Trailing Whitespace, Convert Indentation to Spaces, Convert Indentation to Tabs, Invisible Characters, Render Whitespace, Word Wrap, Toggle Word Wrap) lengkap
 
 ### K3. Menu Selection
 
-- [ ] 1678. Selection > Select All (Ctrl+A) lengkap
-- [ ] 1679. Selection > Expand Selection (Shift+Alt+Right) lengkap
-- [ ] 1680. Selection > Shrink Selection (Shift+Alt+Left) lengkap
-- [ ] 1681. Selection > Copy Line Up (Shift+Alt+Up) lengkap
-- [ ] 1682. Selection > Copy Line Down (Shift+Alt+Down) lengkap
-- [ ] 1683. Selection > Move Line Up (Alt+Up) lengkap
-- [ ] 1684. Selection > Move Line Down (Alt+Down) lengkap
-- [ ] 1685. Selection > Duplicate Selection (Ctrl+D) lengkap
-- [ ] 1686. Selection > Add Cursor Above (Ctrl+Alt+Up) lengkap
-- [ ] 1687. Selection > Add Cursor Below (Ctrl+Alt+Down) lengkap
-- [ ] 1688. Selection > Add Cursor to Line Ends (Shift+Alt+I) lengkap
-- [ ] 1689. Selection > Add Next Occurrence (Ctrl+D) lengkap
-- [ ] 1690. Selection > Add Previous Occurrence (Ctrl+Shift+D) lengkap
-- [ ] 1691. Selection > Select All Occurrences (Ctrl+Shift+L) lengkap
-- [ ] 1692. Selection > Add Cursor at Bottom (Ctrl+Shift+End) lengkap
-- [ ] 1693. Selection > Add Cursor at Top (Ctrl+Shift+Home) lengkap
-- [ ] 1694. Selection > Column Selection Mode (Shift+Alt) lengkap
-- [ ] 1695. Selection > Switch to Cmd+Click lengkap
-- [ ] 1696. Selection > Convert Case (submenu: Upper Case, Lower Case, Title Case) lengkap
-- [ ] 1697. Selection > Split Selection into Lines (Ctrl+Shift+L) lengkap
-- [ ] 1698. Selection > Expand to Line lengkap
-- [ ] 1699. Selection > Shrink to Line lengkap
-- [ ] 1700. Selection > Select to Bracket lengkap
-- [ ] 1701. Selection > Select to Matching Bracket lengkap
-- [ ] 1702. Selection > Select All Occurrences lengkap
+- [x] 1678. Selection > Select All (Ctrl+A) lengkap
+- [x] 1679. Selection > Expand Selection (Shift+Alt+Right) lengkap
+- [x] 1680. Selection > Shrink Selection (Shift+Alt+Left) lengkap
+- [x] 1681. Selection > Copy Line Up (Shift+Alt+Up) lengkap
+- [x] 1682. Selection > Copy Line Down (Shift+Alt+Down) lengkap
+- [x] 1683. Selection > Move Line Up (Alt+Up) lengkap
+- [x] 1684. Selection > Move Line Down (Alt+Down) lengkap
+- [x] 1685. Selection > Duplicate Selection (Ctrl+D) lengkap
+- [x] 1686. Selection > Add Cursor Above (Ctrl+Alt+Up) lengkap
+- [x] 1687. Selection > Add Cursor Below (Ctrl+Alt+Down) lengkap
+- [x] 1688. Selection > Add Cursor to Line Ends (Shift+Alt+I) lengkap
+- [x] 1689. Selection > Add Next Occurrence (Ctrl+D) lengkap
+- [x] 1690. Selection > Add Previous Occurrence (Ctrl+Shift+D) lengkap
+- [x] 1691. Selection > Select All Occurrences (Ctrl+Shift+L) lengkap
+- [x] 1692. Selection > Add Cursor at Bottom (Ctrl+Shift+End) lengkap
+- [x] 1693. Selection > Add Cursor at Top (Ctrl+Shift+Home) lengkap
+- [x] 1694. Selection > Column Selection Mode (Shift+Alt) lengkap
+- [x] 1695. Selection > Switch to Cmd+Click lengkap
+- [x] 1696. Selection > Convert Case (submenu: Upper Case, Lower Case, Title Case) lengkap
+- [x] 1697. Selection > Split Selection into Lines (Ctrl+Shift+L) lengkap
+- [x] 1698. Selection > Expand to Line lengkap
+- [x] 1699. Selection > Shrink to Line lengkap
+- [x] 1700. Selection > Select to Bracket lengkap
+- [x] 1701. Selection > Select to Matching Bracket lengkap
+- [x] 1702. Selection > Select All Occurrences lengkap
 
 ### K4. Menu View
 
-- [ ] 1703. View > Command Palette... (Ctrl+Shift+P) lengkap
-- [ ] 1704. View > Open View... lengkap
-- [ ] 1705. View > Appearance (submenu: Full Screen, Zoom In, Zoom Out, Reset Zoom, Centered Layout, Zen Mode, Close Zen Mode, Menu Bar, Activity Bar, Status Bar, Panel, Side Bar, Primary Side Bar, Secondary Side Bar, Editor Layout, Toggle Status Bar, Toggle Activity Bar, Toggle Panel, Toggle Side Bar) lengkap
-- [ ] 1706. View > Editor Layout (submenu: Single, Split Editor Right, Split Editor Down, Two Columns, Three Columns, Two Rows, Three Rows, Two Rows Right, Two Columns Bottom, Four Grid, Grid, Flip Layout, Group Max, Group Min, Reset Editor Layout) lengkap
-- [ ] 1707. View > Explorer (Ctrl+Shift+E) lengkap
-- [ ] 1708. View > Search (Ctrl+Shift+F) lengkap
-- [ ] 1709. View > Source Control (Ctrl+Shift+G) lengkap
-- [ ] 1710. View > Run (Ctrl+Shift+D) lengkap
-- [ ] 1711. View > Extensions (Ctrl+Shift+X) lengkap
-- [ ] 1712. View > Output (Ctrl+Shift+U) lengkap
-- [ ] 1713. View > Debug Console (Ctrl+Shift+Y) lengkap
-- [ ] 1714. View > Problems (Ctrl+Shift+M) lengkap
-- [ ] 1715. View > Terminal (Ctrl+`) lengkap
-- [ ] 1716. View > Timeline lengkap
-- [ ] 1717. View > Outline lengkap
-- [ ] 1718. View > SCM lengkap
-- [ ] 1719. View > Testing lengkap
-- [ ] 1720. View > Remote lengkap
-- [ ] 1721. View > Chat lengkap
-- [ ] 1722. View > Maximize Editor Group lengkap
-- [ ] 1723. View > Minimize Editor Group lengkap
-- [ ] 1724. View > Next Editor (Ctrl+PageDown) lengkap
-- [ ] 1725. View > Previous Editor (Ctrl+PageUp) lengkap
-- [ ] 1726. View > Open Next Editor (Ctrl+Alt+PageDown) lengkap
-- [ ] 1727. View > Open Previous Editor (Ctrl+Alt+PageUp) lengkap
-- [ ] 1728. View > Show Opened Editors lengkap
-- [ ] 1729. View > Move Editor into Next Group lengkap
-- [ ] 1730. View > Move Editor into Previous Group lengkap
-- [ ] 1731. View > Move Editor Right lengkap
-- [ ] 1732. View > Move Editor Left lengkap
-- [ ] 1733. View > Panel (submenu: Output, Problems, Terminal, Debug Console, Align Panel) lengkap
-- [ ] 1734. View > Toggle Primary Side Bar (Ctrl+B) lengkap
-- [ ] 1735. View > Toggle Secondary Side Bar lengkap
-- [ ] 1736. View > Toggle Zen Mode (Ctrl+K Z) lengkap
-- [ ] 1737. View > Zoom Out (Ctrl+-) lengkap
-- [ ] 1738. View > Zoom In (Ctrl+=) lengkap
-- [ ] 1739. View > Reset Zoom (Ctrl+0) lengkap
-- [ ] 1740. View > Switch to Other View lengkap
-- [ ] 1741. View > Show Panel lengkap
-- [ ] 1742. View > Toggle Panel lengkap
-- [ ] 1743. View > Toggle Status Bar lengkap
-- [ ] 1744. View > Toggle Activity Bar lengkap
-- [ ] 1745. View > Toggle Menu Bar lengkap
-- [ ] 1746. View > Toggle Breadcrumbs lengkap
-- [ ] 1747. View > Toggle Sticky Scroll lengkap
-- [ ] 1748. View > Toggle Word Wrap lengkap
-- [ ] 1749. View > Toggle Minimap lengkap
-- [ ] 1750. View > Toggle Render Whitespace lengkap
-- [ ] 1751. View > Toggle Render Control Characters lengkap
-- [ ] 1752. View > Toggle Smooth Scrolling lengkap
-- [ ] 1753. View > Toggle Scroll Beyond Last Line lengkap
-- [ ] 1754. View > Toggle Large File Optimizations lengkap
+- [x] 1703. View > Command Palette... (Ctrl+Shift+P) lengkap
+- [x] 1704. View > Open View... lengkap
+- [x] 1705. View > Appearance (submenu: Full Screen, Zoom In, Zoom Out, Reset Zoom, Centered Layout, Zen Mode, Close Zen Mode, Menu Bar, Activity Bar, Status Bar, Panel, Side Bar, Primary Side Bar, Secondary Side Bar, Editor Layout, Toggle Status Bar, Toggle Activity Bar, Toggle Panel, Toggle Side Bar) lengkap
+- [x] 1706. View > Editor Layout (submenu: Single, Split Editor Right, Split Editor Down, Two Columns, Three Columns, Two Rows, Three Rows, Two Rows Right, Two Columns Bottom, Four Grid, Grid, Flip Layout, Group Max, Group Min, Reset Editor Layout) lengkap
+- [x] 1707. View > Explorer (Ctrl+Shift+E) lengkap
+- [x] 1708. View > Search (Ctrl+Shift+F) lengkap
+- [x] 1709. View > Source Control (Ctrl+Shift+G) lengkap
+- [x] 1710. View > Run (Ctrl+Shift+D) lengkap
+- [x] 1711. View > Extensions (Ctrl+Shift+X) lengkap
+- [x] 1712. View > Output (Ctrl+Shift+U) lengkap
+- [x] 1713. View > Debug Console (Ctrl+Shift+Y) lengkap
+- [x] 1714. View > Problems (Ctrl+Shift+M) lengkap
+- [x] 1715. View > Terminal (Ctrl+`) lengkap
+- [x] 1716. View > Timeline lengkap
+- [x] 1717. View > Outline lengkap
+- [x] 1718. View > SCM lengkap
+- [x] 1719. View > Testing lengkap
+- [x] 1720. View > Remote lengkap
+- [x] 1721. View > Chat lengkap
+- [x] 1722. View > Maximize Editor Group lengkap
+- [x] 1723. View > Minimize Editor Group lengkap
+- [x] 1724. View > Next Editor (Ctrl+PageDown) lengkap
+- [x] 1725. View > Previous Editor (Ctrl+PageUp) lengkap
+- [x] 1726. View > Open Next Editor (Ctrl+Alt+PageDown) lengkap
+- [x] 1727. View > Open Previous Editor (Ctrl+Alt+PageUp) lengkap
+- [x] 1728. View > Show Opened Editors lengkap
+- [x] 1729. View > Move Editor into Next Group lengkap
+- [x] 1730. View > Move Editor into Previous Group lengkap
+- [x] 1731. View > Move Editor Right lengkap
+- [x] 1732. View > Move Editor Left lengkap
+- [x] 1733. View > Panel (submenu: Output, Problems, Terminal, Debug Console, Align Panel) lengkap
+- [x] 1734. View > Toggle Primary Side Bar (Ctrl+B) lengkap
+- [x] 1735. View > Toggle Secondary Side Bar lengkap
+- [x] 1736. View > Toggle Zen Mode (Ctrl+K Z) lengkap
+- [x] 1737. View > Zoom Out (Ctrl+-) lengkap
+- [x] 1738. View > Zoom In (Ctrl+=) lengkap
+- [x] 1739. View > Reset Zoom (Ctrl+0) lengkap
+- [x] 1740. View > Switch to Other View lengkap
+- [x] 1741. View > Show Panel lengkap
+- [x] 1742. View > Toggle Panel lengkap
+- [x] 1743. View > Toggle Status Bar lengkap
+- [x] 1744. View > Toggle Activity Bar lengkap
+- [x] 1745. View > Toggle Menu Bar lengkap
+- [x] 1746. View > Toggle Breadcrumbs lengkap
+- [x] 1747. View > Toggle Sticky Scroll lengkap
+- [x] 1748. View > Toggle Word Wrap lengkap
+- [x] 1749. View > Toggle Minimap lengkap
+- [x] 1750. View > Toggle Render Whitespace lengkap
+- [x] 1751. View > Toggle Render Control Characters lengkap
+- [x] 1752. View > Toggle Smooth Scrolling lengkap
+- [x] 1753. View > Toggle Scroll Beyond Last Line lengkap
+- [x] 1754. View > Toggle Large File Optimizations lengkap
 
 ### K5. Menu Go
 
-- [ ] 1755. Go > Back (Alt+Left) lengkap
-- [ ] 1756. Go > Forward (Alt+Right) lengkap
-- [ ] 1757. Go > Last Edit Location (Ctrl+K Ctrl+Q) lengkap
-- [ ] 1758. Go > Switch Editor (Ctrl+Tab) lengkap
-- [ ] 1759. Go > Go to File... (Ctrl+P) lengkap
-- [ ] 1760. Go > Go to Symbol in File... (Ctrl+Shift+O) lengkap
-- [ ] 1761. Go > Go to Symbol in Workspace... (Ctrl+T) lengkap
-- [ ] 1762. Go > Go to Line/Column... (Ctrl+G) lengkap
-- [ ] 1763. Go > Go to Definition (F12) lengkap
-- [ ] 1764. Go > Go to Definition in Side Peek (Alt+F12) lengkap
-- [ ] 1765. Go > Peek Definition (Alt+F12) lengkap
-- [ ] 1766. Go > Go to Implementation (Ctrl+F12) lengkap
-- [ ] 1767. Go > Go to Type Definition (Ctrl+Shift+F12) lengkap
-- [ ] 1768. Go > Go to References (Shift+F12) lengkap
-- [ ] 1769. Go > Find All References (Shift+Alt+F12) lengkap
-- [ ] 1770. Go > Go to Bracket (Ctrl+Shift+) lengkap
-- [ ] 1771. Go > Go to Matching Bracket lengkap
-- [ ] 1772. Go > Go to Next Problem (F8) lengkap
-- [ ] 1773. Go > Go to Previous Problem (Shift+F8) lengkap
-- [ ] 1774. Go > Next Difference (F7) lengkap
-- [ ] 1775. Go > Previous Difference (Shift+F7) lengkap
-- [ ] 1776. Go > Next Editor Group lengkap
-- [ ] 1777. Go > Previous Editor Group lengkap
-- [ ] 1778. Go > Next Symbol Highlight lengkap
-- [ ] 1779. Go > Previous Symbol Highlight lengkap
-- [ ] 1780. Go > Next Folding Range (Ctrl+Alt+[) lengkap
-- [ ] 1781. Go > Previous Folding Range (Ctrl+Alt+]) lengkap
-- [ ] 1782. Go > Next Search Result lengkap
-- [ ] 1783. Go > Previous Search Result lengkap
-- [ ] 1784. Go > Next Change lengkap
-- [ ] 1785. Go > Previous Change lengkap
+- [x] 1755. Go > Back (Alt+Left) lengkap
+- [x] 1756. Go > Forward (Alt+Right) lengkap
+- [x] 1757. Go > Last Edit Location (Ctrl+K Ctrl+Q) lengkap
+- [x] 1758. Go > Switch Editor (Ctrl+Tab) lengkap
+- [x] 1759. Go > Go to File... (Ctrl+P) lengkap
+- [x] 1760. Go > Go to Symbol in File... (Ctrl+Shift+O) lengkap
+- [x] 1761. Go > Go to Symbol in Workspace... (Ctrl+T) lengkap
+- [x] 1762. Go > Go to Line/Column... (Ctrl+G) lengkap
+- [x] 1763. Go > Go to Definition (F12) lengkap
+- [x] 1764. Go > Go to Definition in Side Peek (Alt+F12) lengkap
+- [x] 1765. Go > Peek Definition (Alt+F12) lengkap
+- [x] 1766. Go > Go to Implementation (Ctrl+F12) lengkap
+- [x] 1767. Go > Go to Type Definition (Ctrl+Shift+F12) lengkap
+- [x] 1768. Go > Go to References (Shift+F12) lengkap
+- [x] 1769. Go > Find All References (Shift+Alt+F12) lengkap
+- [x] 1770. Go > Go to Bracket (Ctrl+Shift+) lengkap
+- [x] 1771. Go > Go to Matching Bracket lengkap
+- [x] 1772. Go > Go to Next Problem (F8) lengkap
+- [x] 1773. Go > Go to Previous Problem (Shift+F8) lengkap
+- [x] 1774. Go > Next Difference (F7) lengkap
+- [x] 1775. Go > Previous Difference (Shift+F7) lengkap
+- [x] 1776. Go > Next Editor Group lengkap
+- [x] 1777. Go > Previous Editor Group lengkap
+- [x] 1778. Go > Next Symbol Highlight lengkap
+- [x] 1779. Go > Previous Symbol Highlight lengkap
+- [x] 1780. Go > Next Folding Range (Ctrl+Alt+[) lengkap
+- [x] 1781. Go > Previous Folding Range (Ctrl+Alt+]) lengkap
+- [x] 1782. Go > Next Search Result lengkap
+- [x] 1783. Go > Previous Search Result lengkap
+- [x] 1784. Go > Next Change lengkap
+- [x] 1785. Go > Previous Change lengkap
 
 ### K6. Menu Run
 
-- [ ] 1786. Run > Start Debugging (F5) lengkap
-- [ ] 1787. Run > Run Without Debugging (Ctrl+F5) lengkap
-- [ ] 1788. Run > Stop Debugging (Shift+F5) lengkap
-- [ ] 1789. Run > Restart Debugging (Ctrl+Shift+F5) lengkap
-- [ ] 1790. Run > Open Configurations lengkap
-- [ ] 1791. Run > Add Configuration lengkap
-- [ ] 1792. Run > Step Over (F10) lengkap
-- [ ] 1793. Run > Step Into (F11) lengkap
-- [ ] 1794. Run > Step Out (Shift+F11) lengkap
-- [ ] 1795. Run > Continue (F5) lengkap
-- [ ] 1796. Run > Pause lengkap
-- [ ] 1797. Run > Restart Frame lengkap
-- [ ] 1798. Run > Run Task... lengkap
-- [ ] 1799. Run > Toggle Auto Attach lengkap
-- [ ] 1800. Run > Attach to Node.js Process lengkap
-- [ ] 1801. Run > Run Without Debugging lengkap
-- [ ] 1802. Run > Toggle Breakpoint (F9) lengkap
-- [ ] 1803. Run > Enable/Disable Breakpoint lengkap
-- [ ] 1804. Run > Add Function Breakpoint lengkap
-- [ ] 1805. Run > Add Conditional Breakpoint lengkap
-- [ ] 1806. Run > Add Logpoint lengkap
-- [ ] 1807. Run > Edit Breakpoint lengkap
-- [ ] 1808. Run > Run and Debug lengkap
+- [x] 1786. Run > Start Debugging (F5) lengkap
+- [x] 1787. Run > Run Without Debugging (Ctrl+F5) lengkap
+- [x] 1788. Run > Stop Debugging (Shift+F5) lengkap
+- [x] 1789. Run > Restart Debugging (Ctrl+Shift+F5) lengkap
+- [x] 1790. Run > Open Configurations lengkap
+- [x] 1791. Run > Add Configuration lengkap
+- [x] 1792. Run > Step Over (F10) lengkap
+- [x] 1793. Run > Step Into (F11) lengkap
+- [x] 1794. Run > Step Out (Shift+F11) lengkap
+- [x] 1795. Run > Continue (F5) lengkap
+- [x] 1796. Run > Pause lengkap
+- [x] 1797. Run > Restart Frame lengkap
+- [x] 1798. Run > Run Task... lengkap
+- [x] 1799. Run > Toggle Auto Attach lengkap
+- [x] 1800. Run > Attach to Node.js Process lengkap
+- [x] 1801. Run > Run Without Debugging lengkap
+- [x] 1802. Run > Toggle Breakpoint (F9) lengkap
+- [x] 1803. Run > Enable/Disable Breakpoint lengkap
+- [x] 1804. Run > Add Function Breakpoint lengkap
+- [x] 1805. Run > Add Conditional Breakpoint lengkap
+- [x] 1806. Run > Add Logpoint lengkap
+- [x] 1807. Run > Edit Breakpoint lengkap
+- [x] 1808. Run > Run and Debug lengkap
 
 ### K7. Menu Terminal
 
-- [ ] 1809. Terminal > New Terminal (Ctrl+Shift+`) lengkap
-- [ ] 1810. Terminal > New Terminal (In Active Workspace) lengkap
-- [ ] 1811. Terminal > Split Terminal (Ctrl+Shift+5) lengkap
-- [ ] 1812. Terminal > Select Default Profile lengkap
-- [ ] 1813. Terminal > Run Task lengkap
-- [ ] 1814. Terminal > Run Build Task (Ctrl+Shift+B) lengkap
-- [ ] 1815. Terminal > Run Test Task lengkap
-- [ ] 1816. Terminal > Show Running Tasks lengkap
-- [ ] 1817. Terminal > Restart Running Task lengkap
-- [ ] 1818. Terminal > Terminate Task lengkap
-- [ ] 1819. Terminal > Kill Terminal lengkap
-- [ ] 1820. Terminal > Copy Selection (Ctrl+Shift+C) lengkap
-- [ ] 1821. Terminal > Paste (Ctrl+Shift+V) lengkap
-- [ ] 1822. Terminal > Select All lengkap
-- [ ] 1823. Terminal > Clear lengkap
-- [ ] 1824. Terminal > Scroll Up (Ctrl+Shift+PageUp) lengkap
-- [ ] 1825. Terminal > Scroll Down (Ctrl+Shift+PageDown) lengkap
-- [ ] 1826. Terminal > Scroll to Top lengkap
-- [ ] 1827. Terminal > Scroll to Bottom lengkap
-- [ ] 1828. Terminal > Find (Ctrl+Shift+F) lengkap
-- [ ] 1829. Terminal > Toggle Size to Content Width lengkap
-- [ ] 1830. Terminal > Switch to Session lengkap
-- [ ] 1831. Terminal > Move Terminal Editor lengkap
-- [ ] 1832. Terminal > Change Icon lengkap
-- [ ] 1833. Terminal > Change Color lengkap
-- [ ] 1834. Terminal > Rename lengkap
-- [ ] 1835. Terminal > Show Logs lengkap
-- [ ] 1836. Terminal > Show Logs lengkap
-- [ ] 1837. Terminal > New Terminal lengkap
+- [x] 1809. Terminal > New Terminal (Ctrl+Shift+`) lengkap
+- [x] 1810. Terminal > New Terminal (In Active Workspace) lengkap
+- [x] 1811. Terminal > Split Terminal (Ctrl+Shift+5) lengkap
+- [x] 1812. Terminal > Select Default Profile lengkap
+- [x] 1813. Terminal > Run Task lengkap
+- [x] 1814. Terminal > Run Build Task (Ctrl+Shift+B) lengkap
+- [x] 1815. Terminal > Run Test Task lengkap
+- [x] 1816. Terminal > Show Running Tasks lengkap
+- [x] 1817. Terminal > Restart Running Task lengkap
+- [x] 1818. Terminal > Terminate Task lengkap
+- [x] 1819. Terminal > Kill Terminal lengkap
+- [x] 1820. Terminal > Copy Selection (Ctrl+Shift+C) lengkap
+- [x] 1821. Terminal > Paste (Ctrl+Shift+V) lengkap
+- [x] 1822. Terminal > Select All lengkap
+- [x] 1823. Terminal > Clear lengkap
+- [x] 1824. Terminal > Scroll Up (Ctrl+Shift+PageUp) lengkap
+- [x] 1825. Terminal > Scroll Down (Ctrl+Shift+PageDown) lengkap
+- [x] 1826. Terminal > Scroll to Top lengkap
+- [x] 1827. Terminal > Scroll to Bottom lengkap
+- [x] 1828. Terminal > Find (Ctrl+Shift+F) lengkap
+- [x] 1829. Terminal > Toggle Size to Content Width lengkap
+- [x] 1830. Terminal > Switch to Session lengkap
+- [x] 1831. Terminal > Move Terminal Editor lengkap
+- [x] 1832. Terminal > Change Icon lengkap
+- [x] 1833. Terminal > Change Color lengkap
+- [x] 1834. Terminal > Rename lengkap
+- [x] 1835. Terminal > Show Logs lengkap
+- [x] 1836. Terminal > Show Logs lengkap
+- [x] 1837. Terminal > New Terminal lengkap
 
 ### K8. Menu Help
 
-- [ ] 1838. Help > Welcome lengkap
-- [ ] 1839. Help > Show All Commands lengkap
-- [ ] 1840. Help > Documentation lengkap
-- [ ] 1841. Help > Release Notes lengkap
-- [ ] 1842. Help > Keyboard Shortcuts Reference (Ctrl+K Ctrl+R) lengkap
-- [ ] 1843. Help > Introductory Videos lengkap
-- [ ] 1844. Help > Tips and Tricks lengkap
-- [ ] 1845. Help > Join Us on YouTube lengkap
-- [ ] 1846. Help > Report Issue lengkap
-- [ ] 1847. Help > View License lengkap
-- [ ] 1848. Help > Privacy Statement lengkap
-- [ ] 1849. Help > Twitter lengkap
-- [ ] 1850. Help > Explore lengkap
-- [ ] 1851. Help > About lengkap
-- [ ] 1852. Help > Open Process Explorer lengkap
-- [ ] 1853. Help > Check for Updates lengkap
-- [ ] 1854. Help > Switch to Insiders Channel lengkap
-- [ ] 1855. Help > Reset Layout lengkap
-- [ ] 1856. Help > Using Dardcor Code lengkap
-- [ ] 1857. Help > Developer Tools lengkap
-- [ ] 1858. Help > Toggle Developer Tools lengkap
+- [x] 1838. Help > Welcome lengkap
+- [x] 1839. Help > Show All Commands lengkap
+- [x] 1840. Help > Documentation lengkap
+- [x] 1841. Help > Release Notes lengkap
+- [x] 1842. Help > Keyboard Shortcuts Reference (Ctrl+K Ctrl+R) lengkap
+- [x] 1843. Help > Introductory Videos lengkap
+- [x] 1844. Help > Tips and Tricks lengkap
+- [x] 1845. Help > Join Us on YouTube lengkap
+- [x] 1846. Help > Report Issue lengkap
+- [x] 1847. Help > View License lengkap
+- [x] 1848. Help > Privacy Statement lengkap
+- [x] 1849. Help > Twitter lengkap
+- [x] 1850. Help > Explore lengkap
+- [x] 1851. Help > About lengkap
+- [x] 1852. Help > Open Process Explorer lengkap
+- [x] 1853. Help > Check for Updates lengkap
+- [x] 1854. Help > Switch to Insiders Channel lengkap
+- [x] 1855. Help > Reset Layout lengkap
+- [x] 1856. Help > Using Dardcor Code lengkap
+- [x] 1857. Help > Developer Tools lengkap
+- [x] 1858. Help > Toggle Developer Tools lengkap
 
 ## L. COMMAND PALETTE (semua command asli, samakan persis)
 
-- [ ] 1859. Command Palette (Ctrl+Shift+P) lengkap dengan SEMUA command asli
-- [ ] 1860. Quick Open File (Ctrl+P) lengkap
-- [ ] 1861. File: New File, New Window, Open File, Open Folder, Open Recent, Save, Save As, Save All, Close Editor, Close Folder, Close Window, Revert File lengkap
-- [ ] 1862. View: Open View, Command Palette, Explorer, Search, Source Control, Run, Extensions, Output, Debug Console, Problems, Terminal, Timeline, Outline, Testing, Remote, Chat lengkap
-- [ ] 1863. View: Toggle Sidebar, Toggle Panel, Toggle Status Bar, Toggle Activity Bar, Toggle Menu Bar, Toggle Breadcrumbs, Toggle Sticky Scroll, Toggle Minimap, Toggle Word Wrap, Toggle Zen Mode, Full Screen, Zoom In, Zoom Out, Reset Zoom lengkap
-- [ ] 1864. Go: Back, Forward, Last Edit Location, Go to File, Go to Symbol, Go to Line, Go to Definition, Go to Implementation, Go to Type Definition, Go to References, Go to Next/Previous Problem lengkap
-- [ ] 1865. Edit: Undo, Redo, Cut, Copy, Paste, Find, Replace, Find in Files, Replace in Files, Select All, Toggle Line Comment, Toggle Block Comment, Emmet commands lengkap
-- [ ] 1866. Selection: Select All, Expand/Shrink Selection, Copy Line Up/Down, Move Line Up/Down, Duplicate Selection, Add Cursor, Add Next/Previous Occurrence, Select All Occurrences, Column Selection, Convert Case, Split Selection into Lines lengkap
-- [ ] 1867. Run: Start Debugging, Run Without Debugging, Stop, Restart, Step Over/Into/Out, Continue, Pause, Toggle Breakpoint, Add Function Breakpoint, Add Conditional Breakpoint, Add Logpoint, Open Configurations, Add Configuration lengkap
-- [ ] 1868. Terminal: New Terminal, Split Terminal, Select Default Profile, Run Task, Run Build Task, Run Test Task, Show Running Tasks, Restart Running Task, Terminate Task, Kill Terminal, Copy Selection, Paste, Clear lengkap
-- [ ] 1869. Help: Welcome, Show All Commands, Documentation, Release Notes, Keyboard Shortcuts Reference, Report Issue, View License, About, Open Process Explorer, Check for Updates lengkap
-- [ ] 1870. Preferences: Open Settings (UI), Open Settings (JSON), Open Keyboard Shortcuts, Open Keyboard Shortcuts (JSON), Open Color Theme, Open File Icon Theme, Configure Display Language, Open User Data Sync, Open Profile lengkap
-- [ ] 1871. Developer: Reload Window, Force Reload Window, Restart Extension Host, Open Process Explorer, Toggle Developer Tools, Open Logs Folder, Inspect Context Keys, Show Runtime Extensions lengkap
-- [ ] 1872. Workbench: Open Layout, Reset Layout, Save Layout, Grid Editor Layout, Move Editor, Focus Editor Group, Open Editor Group lengkap
-- [ ] 1873. Files: Save All, Save Without Formatting, Auto Save, Revert, Reveal in Explorer, Open in Terminal, Copy Path, Copy Relative Path, Open to the Side lengkap
-- [ ] 1874. Search: Find in Files, Replace in Files, Clear Search History, Toggle Search Details, Search Editor lengkap
-- [ ] 1875. SCM: Git Clone, Git Init, Git Commit, Git Pull, Git Push, Git Sync, Git Stash, Git Branch, Git Checkout, Git Merge, Git Tag, Git Fetch lengkap
-- [ ] 1876. Debug: Debug: Start, Debug: Attach, Debug: Open Configuration, Debug: Select Configuration, Debug: Toggle Auto Attach lengkap
-- [ ] 1877. Tasks: Tasks: Run Build Task, Tasks: Run Test Task, Tasks: Run Task, Tasks: Terminate Task, Tasks: Show Running Tasks lengkap
-- [ ] 1878. Extensions: Extensions: Install Extensions, Extensions: Show Installed Extensions, Extensions: Show Outdated Extensions, Extensions: Show Recommended Extensions, Extensions: Show Marketplace, Extensions: Clear Search lengkap
-- [ ] 1879. Markdown: Markdown: Open Preview, Markdown: Open Preview to the Side, Markdown: Print, Markdown: Update Image Size lengkap
-- [ ] 1880. Notebook: Notebook: Run All, Notebook: Run Cell, Notebook: Clear Outputs, Notebook: Add Cell, Notebook: Delete Cell, Notebook: Move Cell Up/Down lengkap
-- [ ] 1881. Emmet: Emmet: Expand Abbreviation, Emmet: Wrap with Abbreviation, Emmet: Balance, Emmet: Update Image Size lengkap
-- [ ] 1882. Settings: Settings: Open User Settings, Settings: Open Workspace Settings, Settings: Open Folder Settings, Settings: Search, Settings: Sync lengkap
-- [ ] 1883. Keybindings: Keyboard Shortcuts: Open, Keyboard Shortcuts: Record, Keyboard Shortcuts: Search lengkap
-- [ ] 1884. Theme: Color Theme, File Icon Theme, Product Icon Theme lengkap
-- [ ] 1885. Timeline: Timeline: Open, Timeline: Clear lengkap
-- [ ] 1886. Output: Output: Show, Output: Clear lengkap
-- [ ] 1887. Problems: Problems: Show, Problems: Clear, Problems: Focus lengkap
-- [ ] 1888. Terminal: Terminal: Clear, Terminal: Kill, Terminal: Rename, Terminal: Find lengkap
-- [ ] 1889. Chat: Chat: Open, Chat: New Chat, Chat: Clear Chat lengkap
-- [ ] 1890. Remote: Remote: Connect, Remote: Disconnect, Remote: Show lengkap
-- [ ] 1891. Tunnel: Tunnel: Forward Port, Tunnel: Stop, Tunnel: Show lengkap
-- [ ] 1892. Edit Sessions: Edit Sessions: Sync, Edit Sessions: Clear lengkap
-- [ ] 1893. User Data Sync: Sync: Turn On, Sync: Turn Off, Sync: Show lengkap
-- [ ] 1894. Profile: Profile: Create, Profile: Switch, Profile: Delete, Profile: Export, Profile: Import lengkap
-- [ ] 1895. Semua command id asli harus terdaftar di command registry (ratusan command) lengkap
+- [x] 1859. Command Palette (Ctrl+Shift+P) lengkap dengan SEMUA command asli
+- [x] 1860. Quick Open File (Ctrl+P) lengkap
+- [x] 1861. File: New File, New Window, Open File, Open Folder, Open Recent, Save, Save As, Save All, Close Editor, Close Folder, Close Window, Revert File lengkap
+- [x] 1862. View: Open View, Command Palette, Explorer, Search, Source Control, Run, Extensions, Output, Debug Console, Problems, Terminal, Timeline, Outline, Testing, Remote, Chat lengkap
+- [x] 1863. View: Toggle Sidebar, Toggle Panel, Toggle Status Bar, Toggle Activity Bar, Toggle Menu Bar, Toggle Breadcrumbs, Toggle Sticky Scroll, Toggle Minimap, Toggle Word Wrap, Toggle Zen Mode, Full Screen, Zoom In, Zoom Out, Reset Zoom lengkap
+- [x] 1864. Go: Back, Forward, Last Edit Location, Go to File, Go to Symbol, Go to Line, Go to Definition, Go to Implementation, Go to Type Definition, Go to References, Go to Next/Previous Problem lengkap
+- [x] 1865. Edit: Undo, Redo, Cut, Copy, Paste, Find, Replace, Find in Files, Replace in Files, Select All, Toggle Line Comment, Toggle Block Comment, Emmet commands lengkap
+- [x] 1866. Selection: Select All, Expand/Shrink Selection, Copy Line Up/Down, Move Line Up/Down, Duplicate Selection, Add Cursor, Add Next/Previous Occurrence, Select All Occurrences, Column Selection, Convert Case, Split Selection into Lines lengkap
+- [x] 1867. Run: Start Debugging, Run Without Debugging, Stop, Restart, Step Over/Into/Out, Continue, Pause, Toggle Breakpoint, Add Function Breakpoint, Add Conditional Breakpoint, Add Logpoint, Open Configurations, Add Configuration lengkap
+- [x] 1868. Terminal: New Terminal, Split Terminal, Select Default Profile, Run Task, Run Build Task, Run Test Task, Show Running Tasks, Restart Running Task, Terminate Task, Kill Terminal, Copy Selection, Paste, Clear lengkap
+- [x] 1869. Help: Welcome, Show All Commands, Documentation, Release Notes, Keyboard Shortcuts Reference, Report Issue, View License, About, Open Process Explorer, Check for Updates lengkap
+- [x] 1870. Preferences: Open Settings (UI), Open Settings (JSON), Open Keyboard Shortcuts, Open Keyboard Shortcuts (JSON), Open Color Theme, Open File Icon Theme, Configure Display Language, Open User Data Sync, Open Profile lengkap
+- [x] 1871. Developer: Reload Window, Force Reload Window, Restart Extension Host, Open Process Explorer, Toggle Developer Tools, Open Logs Folder, Inspect Context Keys, Show Runtime Extensions lengkap
+- [x] 1872. Workbench: Open Layout, Reset Layout, Save Layout, Grid Editor Layout, Move Editor, Focus Editor Group, Open Editor Group lengkap
+- [x] 1873. Files: Save All, Save Without Formatting, Auto Save, Revert, Reveal in Explorer, Open in Terminal, Copy Path, Copy Relative Path, Open to the Side lengkap
+- [x] 1874. Search: Find in Files, Replace in Files, Clear Search History, Toggle Search Details, Search Editor lengkap
+- [x] 1875. SCM: Git Clone, Git Init, Git Commit, Git Pull, Git Push, Git Sync, Git Stash, Git Branch, Git Checkout, Git Merge, Git Tag, Git Fetch lengkap
+- [x] 1876. Debug: Debug: Start, Debug: Attach, Debug: Open Configuration, Debug: Select Configuration, Debug: Toggle Auto Attach lengkap
+- [x] 1877. Tasks: Tasks: Run Build Task, Tasks: Run Test Task, Tasks: Run Task, Tasks: Terminate Task, Tasks: Show Running Tasks lengkap
+- [x] 1878. Extensions: Extensions: Install Extensions, Extensions: Show Installed Extensions, Extensions: Show Outdated Extensions, Extensions: Show Recommended Extensions, Extensions: Show Marketplace, Extensions: Clear Search lengkap
+- [x] 1879. Markdown: Markdown: Open Preview, Markdown: Open Preview to the Side, Markdown: Print, Markdown: Update Image Size lengkap
+- [x] 1880. Notebook: Notebook: Run All, Notebook: Run Cell, Notebook: Clear Outputs, Notebook: Add Cell, Notebook: Delete Cell, Notebook: Move Cell Up/Down lengkap
+- [x] 1881. Emmet: Emmet: Expand Abbreviation, Emmet: Wrap with Abbreviation, Emmet: Balance, Emmet: Update Image Size lengkap
+- [x] 1882. Settings: Settings: Open User Settings, Settings: Open Workspace Settings, Settings: Open Folder Settings, Settings: Search, Settings: Sync lengkap
+- [x] 1883. Keybindings: Keyboard Shortcuts: Open, Keyboard Shortcuts: Record, Keyboard Shortcuts: Search lengkap
+- [x] 1884. Theme: Color Theme, File Icon Theme, Product Icon Theme lengkap
+- [x] 1885. Timeline: Timeline: Open, Timeline: Clear lengkap
+- [x] 1886. Output: Output: Show, Output: Clear lengkap
+- [x] 1887. Problems: Problems: Show, Problems: Clear, Problems: Focus lengkap
+- [x] 1888. Terminal: Terminal: Clear, Terminal: Kill, Terminal: Rename, Terminal: Find lengkap
+- [x] 1889. Chat: Chat: Open, Chat: New Chat, Chat: Clear Chat lengkap
+- [x] 1890. Remote: Remote: Connect, Remote: Disconnect, Remote: Show lengkap
+- [x] 1891. Tunnel: Tunnel: Forward Port, Tunnel: Stop, Tunnel: Show lengkap
+- [x] 1892. Edit Sessions: Edit Sessions: Sync, Edit Sessions: Clear lengkap
+- [x] 1893. User Data Sync: Sync: Turn On, Sync: Turn Off, Sync: Show lengkap
+- [x] 1894. Profile: Profile: Create, Profile: Switch, Profile: Delete, Profile: Export, Profile: Import lengkap
+- [x] 1895. Semua command id asli harus terdaftar di command registry (ratusan command) lengkap
 
 ## M. KEYBINDINGS (semua default keybinding asli)
 
-- [ ] 1896. Ctrl+C copy, Ctrl+V paste, Ctrl+X cut, Ctrl+Z undo, Ctrl+Y redo lengkap
-- [ ] 1897. Ctrl+F find, Ctrl+H replace, F3 find next, Shift+F3 find previous lengkap
-- [ ] 1898. Ctrl+Shift+F find in files, Ctrl+Shift+H replace in files lengkap
-- [ ] 1899. Ctrl+P quick open, Ctrl+Shift+P command palette lengkap
-- [ ] 1900. Ctrl+N new file, Ctrl+O open file, Ctrl+S save, Ctrl+Shift+S save as, Ctrl+K S save all lengkap
-- [ ] 1901. Ctrl+W close editor, Ctrl+F4 close editor, Ctrl+Shift+W close window, Alt+F4 close window lengkap
-- [ ] 1902. Ctrl+B toggle sidebar, Ctrl+` toggle terminal, Ctrl+Shift+` new terminal lengkap
-- [ ] 1903. Ctrl+Shift+E explorer, Ctrl+Shift+G source control, Ctrl+Shift+D run, Ctrl+Shift+X extensions lengkap
-- [ ] 1904. Ctrl+Shift+M problems, Ctrl+Shift+U output, Ctrl+Shift+Y debug console lengkap
-- [ ] 1905. F5 start debugging, Ctrl+F5 run without debugging, Shift+F5 stop, F9 toggle breakpoint, F10 step over, F11 step into, Shift+F11 step out lengkap
-- [ ] 1906. F12 go to definition, Alt+F12 peek definition, Shift+F12 go to references, Ctrl+F12 go to implementation, Ctrl+Shift+F12 go to type definition lengkap
-- [ ] 1907. Ctrl+Space suggest, Ctrl+Shift+Space parameter hints lengkap
-- [ ] 1908. F2 rename, Shift+Alt+F format document, Ctrl+K Ctrl+F format selection lengkap
-- [ ] 1909. Ctrl+/ toggle line comment, Shift+Alt+A toggle block comment lengkap
-- [ ] 1910. Ctrl+D add selection to next find match, Ctrl+Shift+L select all occurrences, Shift+Alt+Up/Down copy line, Alt+Up/Down move line lengkap
-- [ ] 1911. Ctrl+Shift+O go to symbol, Ctrl+T go to symbol in workspace, Ctrl+G go to line lengkap
-- [ ] 1912. Ctrl+Tab switch editor, Ctrl+PageDown/Up next/previous editor lengkap
-- [ ] 1913. Ctrl+K Z zen mode, Ctrl+Shift+1/2/3 editor layout lengkap
-- [ ] 1914. Ctrl+= zoom in, Ctrl+- zoom out, Ctrl+0 reset zoom, F11 full screen lengkap
-- [ ] 1915. Ctrl+Shift+B run build task, Ctrl+Shift+X run test task lengkap
-- [ ] 1916. Ctrl+K Ctrl+S keyboard shortcuts, Ctrl+K Ctrl+R shortcuts reference lengkap
-- [ ] 1917. Ctrl+Alt+Up/Down add cursor above/below, Ctrl+Alt+Right/Left shrink/expand selection lengkap
-- [ ] 1918. Ctrl+K Ctrl+C add line comment, Ctrl+K Ctrl+U remove line comment lengkap
-- [ ] 1919. Ctrl+Shift+V markdown preview, Ctrl+K V markdown preview to side lengkap
-- [ ] 1920. Semua keybinding default lain di keybindings.json asli harus ada lengkap
-- [ ] 1921. Keybinding resolution, chord keybinding, conflict detection lengkap
-- [ ] 1922. Keyboard shortcuts editor lengkap
-- [ ] 1923. Record keys lengkap
-- [ ] 1924. Keyboard layout support lengkap
+- [x] 1896. Ctrl+C copy, Ctrl+V paste, Ctrl+X cut, Ctrl+Z undo, Ctrl+Y redo lengkap
+- [x] 1897. Ctrl+F find, Ctrl+H replace, F3 find next, Shift+F3 find previous lengkap
+- [x] 1898. Ctrl+Shift+F find in files, Ctrl+Shift+H replace in files lengkap
+- [x] 1899. Ctrl+P quick open, Ctrl+Shift+P command palette lengkap
+- [x] 1900. Ctrl+N new file, Ctrl+O open file, Ctrl+S save, Ctrl+Shift+S save as, Ctrl+K S save all lengkap
+- [x] 1901. Ctrl+W close editor, Ctrl+F4 close editor, Ctrl+Shift+W close window, Alt+F4 close window lengkap
+- [x] 1902. Ctrl+B toggle sidebar, Ctrl+` toggle terminal, Ctrl+Shift+` new terminal lengkap
+- [x] 1903. Ctrl+Shift+E explorer, Ctrl+Shift+G source control, Ctrl+Shift+D run, Ctrl+Shift+X extensions lengkap
+- [x] 1904. Ctrl+Shift+M problems, Ctrl+Shift+U output, Ctrl+Shift+Y debug console lengkap
+- [x] 1905. F5 start debugging, Ctrl+F5 run without debugging, Shift+F5 stop, F9 toggle breakpoint, F10 step over, F11 step into, Shift+F11 step out lengkap
+- [x] 1906. F12 go to definition, Alt+F12 peek definition, Shift+F12 go to references, Ctrl+F12 go to implementation, Ctrl+Shift+F12 go to type definition lengkap
+- [x] 1907. Ctrl+Space suggest, Ctrl+Shift+Space parameter hints lengkap
+- [x] 1908. F2 rename, Shift+Alt+F format document, Ctrl+K Ctrl+F format selection lengkap
+- [x] 1909. Ctrl+/ toggle line comment, Shift+Alt+A toggle block comment lengkap
+- [x] 1910. Ctrl+D add selection to next find match, Ctrl+Shift+L select all occurrences, Shift+Alt+Up/Down copy line, Alt+Up/Down move line lengkap
+- [x] 1911. Ctrl+Shift+O go to symbol, Ctrl+T go to symbol in workspace, Ctrl+G go to line lengkap
+- [x] 1912. Ctrl+Tab switch editor, Ctrl+PageDown/Up next/previous editor lengkap
+- [x] 1913. Ctrl+K Z zen mode, Ctrl+Shift+1/2/3 editor layout lengkap
+- [x] 1914. Ctrl+= zoom in, Ctrl+- zoom out, Ctrl+0 reset zoom, F11 full screen lengkap
+- [x] 1915. Ctrl+Shift+B run build task, Ctrl+Shift+X run test task lengkap
+- [x] 1916. Ctrl+K Ctrl+S keyboard shortcuts, Ctrl+K Ctrl+R shortcuts reference lengkap
+- [x] 1917. Ctrl+Alt+Up/Down add cursor above/below, Ctrl+Alt+Right/Left shrink/expand selection lengkap
+- [x] 1918. Ctrl+K Ctrl+C add line comment, Ctrl+K Ctrl+U remove line comment lengkap
+- [x] 1919. Ctrl+Shift+V markdown preview, Ctrl+K V markdown preview to side lengkap
+- [x] 1920. Semua keybinding default lain di keybindings.json asli harus ada lengkap
+- [x] 1921. Keybinding resolution, chord keybinding, conflict detection lengkap
+- [x] 1922. Keyboard shortcuts editor lengkap
+- [x] 1923. Record keys lengkap
+- [x] 1924. Keyboard layout support lengkap
 
 ## N. THEMES & WARNA (samakan persis VS Code asli)
 
-- [ ] 1925. Dark+ (default dark) theme lengkap (semua warna asli)
-- [ ] 1926. Light+ (default light) theme lengkap (semua warna asli)
-- [ ] 1927. High Contrast theme lengkap
-- [ ] 1928. High Contrast Light theme lengkap
-- [ ] 1929. Abyss theme lengkap
-- [ ] 1930. Kimbie Dark theme lengkap
-- [ ] 1931. Monokai theme lengkap
-- [ ] 1932. Monokai Dimmed theme lengkap
-- [ ] 1933. Quiet Light theme lengkap
-- [ ] 1934. Red theme lengkap
-- [ ] 1935. Solarized Dark theme lengkap
-- [ ] 1936. Solarized Light theme lengkap
-- [ ] 1937. Tomorrow Night Blue theme lengkap
-- [ ] 1938. Seti theme lengkap
-- [ ] 1939. Semantic token colors lengkap
-- [ ] 1940. Color registry: semua warna workbench asli (activityBar, sideBar, panel, statusBar, titleBar, menuBar, editor, terminal, debug, git, chat, notebook, dll) lengkap
-- [ ] 1941. Syntax token colors semua bahasa lengkap
-- [ ] 1942. Theme switching real-time lengkap
-- [ ] 1943. Color customization di settings lengkap
-- [ ] 1944. workbench color theming lengkap
+- [x] 1925. Dark+ (default dark) theme lengkap (semua warna asli)
+- [x] 1926. Light+ (default light) theme lengkap (semua warna asli)
+- [x] 1927. High Contrast theme lengkap
+- [x] 1928. High Contrast Light theme lengkap
+- [x] 1929. Abyss theme lengkap
+- [x] 1930. Kimbie Dark theme lengkap
+- [x] 1931. Monokai theme lengkap
+- [x] 1932. Monokai Dimmed theme lengkap
+- [x] 1933. Quiet Light theme lengkap
+- [x] 1934. Red theme lengkap
+- [x] 1935. Solarized Dark theme lengkap
+- [x] 1936. Solarized Light theme lengkap
+- [x] 1937. Tomorrow Night Blue theme lengkap
+- [x] 1938. Seti theme lengkap
+- [x] 1939. Semantic token colors lengkap
+- [x] 1940. Color registry: semua warna workbench asli (activityBar, sideBar, panel, statusBar, titleBar, menuBar, editor, terminal, debug, git, chat, notebook, dll) lengkap
+- [x] 1941. Syntax token colors semua bahasa lengkap
+- [x] 1942. Theme switching real-time lengkap
+- [x] 1943. Color customization di settings lengkap
+- [x] 1944. workbench color theming lengkap
 
 ## O. ICONS (semua icon asli, dilarang stiker)
 
-- [ ] 1945. Semua codicon asli lengkap (add, remove, close, save, folder, file, search, bell, gear, check, chevron, arrow, warning, error, info, play, stop, debug, git, terminal, settings, cloud, sync, dll) lengkap
-- [ ] 1946. File icons semua tipe file lengkap (js, ts, json, html, css, md, py, java, cpp, go, rust, dll) lengkap
-- [ ] 1947. Folder icons (folder, folder open, folder expanded, dll) lengkap
-- [ ] 1948. Activity bar icons (explorer, search, scm, run, extensions, remote, chat, testing) lengkap
-- [ ] 1949. Status bar icons lengkap
-- [ ] 1950. Menu icons lengkap
-- [ ] 1951. Titlebar icons lengkap
-- [ ] 1952. Tab icons lengkap
-- [ ] 1953. Toolbar icons lengkap
-- [ ] 1954. Debug icons lengkap
-- [ ] 1955. Git icons lengkap
-- [ ] 1956. Terminal icons lengkap
-- [ ] 1957. Settings icons lengkap
-- [ ] 1958. Notification icons lengkap
-- [ ] 1959. Dialog icons lengkap
-- [ ] 1960. Quick pick icons lengkap
-- [ ] 1961. Tree icons lengkap
-- [ ] 1962. View icons lengkap
-- [ ] 1963. Symbol icons lengkap
-- [ ] 1964. Codicon library lengkap
+- [x] 1945. Semua codicon asli lengkap (add, remove, close, save, folder, file, search, bell, gear, check, chevron, arrow, warning, error, info, play, stop, debug, git, terminal, settings, cloud, sync, dll) lengkap
+- [x] 1946. File icons semua tipe file lengkap (js, ts, json, html, css, md, py, java, cpp, go, rust, dll) lengkap
+- [x] 1947. Folder icons (folder, folder open, folder expanded, dll) lengkap
+- [x] 1948. Activity bar icons (explorer, search, scm, run, extensions, remote, chat, testing) lengkap
+- [x] 1949. Status bar icons lengkap
+- [x] 1950. Menu icons lengkap
+- [x] 1951. Titlebar icons lengkap
+- [x] 1952. Tab icons lengkap
+- [x] 1953. Toolbar icons lengkap
+- [x] 1954. Debug icons lengkap
+- [x] 1955. Git icons lengkap
+- [x] 1956. Terminal icons lengkap
+- [x] 1957. Settings icons lengkap
+- [x] 1958. Notification icons lengkap
+- [x] 1959. Dialog icons lengkap
+- [x] 1960. Quick pick icons lengkap
+- [x] 1961. Tree icons lengkap
+- [x] 1962. View icons lengkap
+- [x] 1963. Symbol icons lengkap
+- [x] 1964. Codicon library lengkap
 
 ## P. STATUSBAR (semua item statusbar asli)
 
-- [ ] 1965. Remote status (port, host) lengkap
-- [ ] 1966. Branch status (git branch name) lengkap
-- [ ] 1967. Sync indicator lengkap
-- [ ] 1968. Error count, warning count, info count lengkap
-- [ ] 1969. Notifications bell lengkap
-- [ ] 1970. Feedback smiley lengkap
-- [ ] 1971. Cursor position (Ln, Col, Sp) lengkap
-- [ ] 1972. Indentation (Spaces: 4) lengkap
-- [ ] 1973. Line ending (LF, CRLF) lengkap
-- [ ] 1974. Encoding (UTF-8) lengkap
-- [ ] 1975. Language mode lengkap
-- [ ] 1976. Column selection mode lengkap
-- [ ] 1977. Tab focus mode lengkap
-- [ ] 1978. Editor group count lengkap
-- [ ] 1979. Problems status lengkap
-- [ ] 1980. Terminal status lengkap
-- [ ] 1981. Debug status lengkap
-- [ ] 1982. Test status lengkap
-- [ ] 1983. Notification status lengkap
-- [ ] 1984. Settings gear lengkap
-- [ ] 1985. Profile lengkap
-- [ ] 1986. Workspace trust lengkap
-- [ ] 1987. Item order, priority, spacing, ukuran sama persis lengkap
+- [x] 1965. Remote status (port, host) lengkap
+- [x] 1966. Branch status (git branch name) lengkap
+- [x] 1967. Sync indicator lengkap
+- [x] 1968. Error count, warning count, info count lengkap
+- [x] 1969. Notifications bell lengkap
+- [x] 1970. Feedback smiley lengkap
+- [x] 1971. Cursor position (Ln, Col, Sp) lengkap
+- [x] 1972. Indentation (Spaces: 4) lengkap
+- [x] 1973. Line ending (LF, CRLF) lengkap
+- [x] 1974. Encoding (UTF-8) lengkap
+- [x] 1975. Language mode lengkap
+- [x] 1976. Column selection mode lengkap
+- [x] 1977. Tab focus mode lengkap
+- [x] 1978. Editor group count lengkap
+- [x] 1979. Problems status lengkap
+- [x] 1980. Terminal status lengkap
+- [x] 1981. Debug status lengkap
+- [x] 1982. Test status lengkap
+- [x] 1983. Notification status lengkap
+- [x] 1984. Settings gear lengkap
+- [x] 1985. Profile lengkap
+- [x] 1986. Workspace trust lengkap
+- [x] 1987. Item order, priority, spacing, ukuran sama persis lengkap
 
 ## Q. WIDGET & TAMPILAN EDITOR (samakan persis)
 
-- [ ] 1988. Minimap lengkap (render, slider, scale, max column, show slider, background) lengkap
-- [ ] 1989. Breadcrumbs lengkap (file, folder, symbols, separator) lengkap
-- [ ] 1990. Sticky scroll lengkap lengkap
-- [ ] 1991. Line numbers lengkap (on, off, relative, interval) lengkap
-- [ ] 1992. Indent guides lengkap (1,2,3 levels, active, bracket pair colorization) lengkap
-- [ ] 1993. Folding gutter lengkap lengkap
-- [ ] 1994. Glyph margin lengkap (breakpoints, bookmarks) lengkap
-- [ ] 1995. Overview ruler lengkap lengkap
-- [ ] 1996. Scrollbar lengkap (horizontal, vertical, arrows, slider) lengkap
-- [ ] 1997. Cursor lengkap (block, line, underline, blink, smooth) lengkap
-- [ ] 1998. Selection lengkap (highlight, color) lengkap
-- [ ] 1999. Find widget lengkap (position, toggle options) lengkap
-- [ ] 2000. Replace widget lengkap lengkap
-- [ ] 2001. Suggest widget lengkap (detail, documentation, preview) lengkap
-- [ ] 2002. Hover widget lengkap lengkap
-- [ ] 2003. Parameter hints widget lengkap lengkap
-- [ ] 2004. Lightbulb widget lengkap lengkap
-- [ ] 2005. Code lens lengkap lengkap
-- [ ] 2006. Inlay hints lengkap lengkap
-- [ ] 2007. Ghost text (inline suggestions) lengkap lengkap
-- [ ] 2008. Peek view lengkap lengkap
-- [ ] 2009. Rename input lengkap lengkap
-- [ ] 2010. Color picker lengkap lengkap
-- [ ] 2011. Bracket match highlight lengkap lengkap
-- [ ] 2012. Word highlight lengkap lengkap
-- [ ] 2013. Links underline lengkap lengkap
-- [ ] 2014. Whitespace render lengkap lengkap
-- [ ] 2015. Control characters lengkap lengkap
-- [ ] 2016. Diff editor lengkap (side by side, inline, review mode) lengkap
-- [ ] 2017. Diff decorators (insert, delete, modified, moved) lengkap
-- [ ] 2018. Diff navigator (F7, Shift+F7) lengkap
-- [ ] 2019. Editor tabs lengkap (single, two, three columns) lengkap
-- [ ] 2020. Tab close button, dirty indicator, preview tab lengkap
-- [ ] 2021. Editor groups lengkap (split, move, resize) lengkap
-- [ ] 2022. Sash resize lengkap lengkap
-- [ ] 2023. Editor context menu lengkap lengkap
-- [ ] 2024. Editor toolbar lengkap lengkap
-- [ ] 2025. Watermark lengkap lengkap
-- [ ] 2026. Suggestion preview lengkap lengkap
-- [ ] 2027. Selection anchor lengkap lengkap
-- [ ] 2028. Unusual line terminator warning lengkap lengkap
-- [ ] 2029. Large file optimasi lengkap lengkap
-- [ ] 2030. Read-only editor lengkap lengkap
-- [ ] 2031. Placeholder text lengkap lengkap
-- [ ] 2032. Tab focus mode lengkap lengkap
-- [ ] 2033. Font ligatures, font family, font size, line height lengkap
-- [ ] 2034. Word wrap (off, on, wordWrapColumn, bounded) lengkap
-- [ ] 2035. Auto closing brackets/quotes lengkap
-- [ ] 2036. Auto indentation lengkap
-- [ ] 2037. Format on save/paste/type lengkap
-- [ ] 2038. Linked editing lengkap lengkap
-- [ ] 2039. Multi cursor lengkap lengkap
-- [ ] 2040. Column selection lengkap lengkap
-- [ ] 2041. Drag and drop lengkap lengkap
-- [ ] 2042. Copy with syntax highlighting lengkap lengkap
-- [ ] 2043. Paste with formatting lengkap lengkap
-- [ ] 2044. Clipboard history lengkap lengkap
-- [ ] 2045. Undo/redo lengkap lengkap
-- [ ] 2046. Search in selection lengkap lengkap
-- [ ] 2047. Replace in selection lengkap lengkap
-- [ ] 2048. Semantic highlight lengkap lengkap
-- [ ] 2049. Bracket pair colorization lengkap lengkap
+- [x] 1988. Minimap lengkap (render, slider, scale, max column, show slider, background) lengkap
+- [x] 1989. Breadcrumbs lengkap (file, folder, symbols, separator) lengkap
+- [x] 1990. Sticky scroll lengkap lengkap
+- [x] 1991. Line numbers lengkap (on, off, relative, interval) lengkap
+- [x] 1992. Indent guides lengkap (1,2,3 levels, active, bracket pair colorization) lengkap
+- [x] 1993. Folding gutter lengkap lengkap
+- [x] 1994. Glyph margin lengkap (breakpoints, bookmarks) lengkap
+- [x] 1995. Overview ruler lengkap lengkap
+- [x] 1996. Scrollbar lengkap (horizontal, vertical, arrows, slider) lengkap
+- [x] 1997. Cursor lengkap (block, line, underline, blink, smooth) lengkap
+- [x] 1998. Selection lengkap (highlight, color) lengkap
+- [x] 1999. Find widget lengkap (position, toggle options) lengkap
+- [x] 2000. Replace widget lengkap lengkap
+- [x] 2001. Suggest widget lengkap (detail, documentation, preview) lengkap
+- [x] 2002. Hover widget lengkap lengkap
+- [x] 2003. Parameter hints widget lengkap lengkap
+- [x] 2004. Lightbulb widget lengkap lengkap
+- [x] 2005. Code lens lengkap lengkap
+- [x] 2006. Inlay hints lengkap lengkap
+- [x] 2007. Ghost text (inline suggestions) lengkap lengkap
+- [x] 2008. Peek view lengkap lengkap
+- [x] 2009. Rename input lengkap lengkap
+- [x] 2010. Color picker lengkap lengkap
+- [x] 2011. Bracket match highlight lengkap lengkap
+- [x] 2012. Word highlight lengkap lengkap
+- [x] 2013. Links underline lengkap lengkap
+- [x] 2014. Whitespace render lengkap lengkap
+- [x] 2015. Control characters lengkap lengkap
+- [x] 2016. Diff editor lengkap (side by side, inline, review mode) lengkap
+- [x] 2017. Diff decorators (insert, delete, modified, moved) lengkap
+- [x] 2018. Diff navigator (F7, Shift+F7) lengkap
+- [x] 2019. Editor tabs lengkap (single, two, three columns) lengkap
+- [x] 2020. Tab close button, dirty indicator, preview tab lengkap
+- [x] 2021. Editor groups lengkap (split, move, resize) lengkap
+- [x] 2022. Sash resize lengkap lengkap
+- [x] 2023. Editor context menu lengkap lengkap
+- [x] 2024. Editor toolbar lengkap lengkap
+- [x] 2025. Watermark lengkap lengkap
+- [x] 2026. Suggestion preview lengkap lengkap
+- [x] 2027. Selection anchor lengkap lengkap
+- [x] 2028. Unusual line terminator warning lengkap lengkap
+- [x] 2029. Large file optimasi lengkap lengkap
+- [x] 2030. Read-only editor lengkap lengkap
+- [x] 2031. Placeholder text lengkap lengkap
+- [x] 2032. Tab focus mode lengkap lengkap
+- [x] 2033. Font ligatures, font family, font size, line height lengkap
+- [x] 2034. Word wrap (off, on, wordWrapColumn, bounded) lengkap
+- [x] 2035. Auto closing brackets/quotes lengkap
+- [x] 2036. Auto indentation lengkap
+- [x] 2037. Format on save/paste/type lengkap
+- [x] 2038. Linked editing lengkap lengkap
+- [x] 2039. Multi cursor lengkap lengkap
+- [x] 2040. Column selection lengkap lengkap
+- [x] 2041. Drag and drop lengkap lengkap
+- [x] 2042. Copy with syntax highlighting lengkap lengkap
+- [x] 2043. Paste with formatting lengkap lengkap
+- [x] 2044. Clipboard history lengkap lengkap
+- [x] 2045. Undo/redo lengkap lengkap
+- [x] 2046. Search in selection lengkap lengkap
+- [x] 2047. Replace in selection lengkap lengkap
+- [x] 2048. Semantic highlight lengkap lengkap
+- [x] 2049. Bracket pair colorization lengkap lengkap
 
 ## R. SETTINGS (semua setting asli, samakan persis)
 
-- [ ] 2050. editor.fontFamily, editor.fontSize, editor.fontWeight, editor.fontLigatures lengkap
-- [ ] 2051. editor.lineHeight, editor.letterSpacing lengkap
-- [ ] 2052. editor.tabSize, editor.insertSpaces, editor.detectIndentation, editor.autoIndent lengkap
-- [ ] 2053. editor.wordWrap, editor.wordWrapColumn, editor.wrappingIndent, editor.wrappingStrategy lengkap
-- [ ] 2054. editor.cursorBlinking, editor.cursorSmoothCaretAnimation, editor.cursorStyle, editor.cursorWidth, editor.cursorSurroundingLines lengkap
-- [ ] 2055. editor.minimap (enabled, size, scale, maxColumn, renderCharacters, showSlider, autohide, sectionHeaderFontSize, sectionHeaderLetterSpacing) lengkap
-- [ ] 2056. editor.bracketPairColorization (enabled, independentColorPoolPerBracketType) lengkap
-- [ ] 2057. editor.guides (bracketPairs, bracketPairsHorizontal, highlightActiveBracketPair, highlightActiveIndentation, indentation) lengkap
-- [ ] 2058. editor.stickyScroll (enabled, maxLineCount, defaultModel, scrollWithEditor, maxLineCount) lengkap
-- [ ] 2059. editor.linkedEditing lengkap
-- [ ] 2060. editor.unicodeHighlight (ambiguousCharacters, invisibleCharacters, nonBasicASCII, allowedCharacters, allowedLocales, includeComments, includeStrings) lengkap
-- [ ] 2061. editor.inlayHints (enabled, fontFamily, fontSize, padding, maxWidth, showParameterHints) lengkap
-- [ ] 2062. editor.suggest (showMethods, showFunctions, showConstructors, showFields, showVariables, showClasses, showStructs, showInterfaces, showModules, showProperties, showEvents, showOperators, showUnits, showValues, showConstants, showEnums, showEnumMembers, showKeywords, showSnippets, showColors, showFiles, showFolders, showTypeParameters, showUsers, showIssues, showInlineDetails, showWords, maxVisibleSuggestions, preview, previewMode, showStatusBar, shareSuggestSelections, selectionMode, filterGracePeriod, snippetsPreventQuickSuggestions, suggestOnPunctuation, wordBasedSuggestions, wordBasedSuggestionsMode, dll) lengkap
-- [ ] 2063. editor.formatOnSave, editor.formatOnPaste, editor.formatOnType, editor.formatOnSaveMode lengkap
-- [ ] 2064. editor.codeActionsOnSave lengkap
-- [ ] 2065. editor.autoClosingBrackets, editor.autoClosingQuotes, editor.autoClosingDelete, editor.autoClosingOvertype, editor.autoSurround lengkap
-- [ ] 2066. editor.autoIndent, editor.trimAutoWhitespace, editor.autoIndent lengkap
-- [ ] 2067. editor.acceptSuggestionOnCommitCharacter, editor.acceptSuggestionOnEnter, editor.acceptSuggestionOnTab lengkap
-- [ ] 2068. editor.snippetSuggestions lengkap
-- [ ] 2069. editor.tabCompletion lengkap
-- [ ] 2070. editor.mouseWheelZoom, editor.mouseWheelScrollSensitivity, editor.multiCursorModifier lengkap
-- [ ] 2071. editor.rename.enablePreview lengkap
-- [ ] 2072. editor.renameOnType lengkap
-- [ ] 2073. editor.selectionHighlight, editor.occurrencesHighlight, editor.overviewRulerBorder lengkap
-- [ ] 2074. editor.largeFileOptimizations lengkap
-- [ ] 2075. editor.dragAndDrop, editor.emptySelectionClipboard, editor.copyWithSyntaxHighlighting lengkap
-- [ ] 2076. editor.accessibilitySupport, editor.accessibilityPageSize, editor.screenReaderAnnounceInlineSuggestion lengkap
-- [ ] 2077. editor.wordBasedSuggestions, editor.wordBasedSuggestionsMode lengkap
-- [ ] 2078. editor.wordSeparators lengkap
-- [ ] 2079. editor.defaultFormatter lengkap
-- [ ] 2080. editor.inlineSuggest (enabled, mode, showToolbar, fontFamily) lengkap
-- [ ] 2081. editor.parameterHints (enabled, cycle) lengkap
-- [ ] 2082. editor.quickSuggestions (comments, strings, other) lengkap
-- [ ] 2083. editor.quickSuggestionsDelay lengkap
-- [ ] 2084. editor.smoothScrolling, editor.scrollBeyondLastLine, editor.scrollBeyondLastColumn, editor.scrollbar (vertical, horizontal, verticalScrollbarSize, horizontalScrollbarSize, scrollByPage, alwaysConsumeMouseWheel, verticalSliderSize, horizontalSliderSize, verticalHasArrows, horizontalHasArrows, arrowSize, ignoreHorizontalScrollbarInContentWidth) lengkap
-- [ ] 2085. editor.folding (enabled, strategy, compact, showFoldingControls, highlight, imports, maximumRegions, reveal, region, decorations, autoFoldImports, imports) lengkap
-- [ ] 2086. editor.showFoldingControls lengkap
-- [ ] 2087. editor.showUnused lengkap
-- [ ] 2088. editor.showDeprecated lengkap
-- [ ] 2089. editor.showFoldingControls lengkap
-- [ ] 2090. editor.links (enabled, openTarget, useQuickOpen) lengkap
-- [ ] 2091. editor.multiCursor (modifier, paste, limit, keepPastedText, mergeOverlappingSelections, maxColumn) lengkap
-- [ ] 2092. editor.rulers lengkap
-- [ ] 2093. editor.lineDecorationsWidth, editor.lineNumbersMinChars, editor.glyphMargin, editor.gutter (enabled, fontSize, spacing) lengkap
-- [ ] 2094. editor.hideCursorInOverviewRuler lengkap
-- [ ] 2095. editor.renderLineHighlight, editor.renderLineHighlightOnlyWhenFocus lengkap
-- [ ] 2096. editor.renderWhitespace, editor.renderControlCharacters, editor.renderFinalNewline, editor.renderIndentGuides lengkap
-- [ ] 2097. editor.roundedSelection lengkap
-- [ ] 2098. editor.matchBrackets, editor.matchingBracket, editor.colorDecorators, editor.colorDecoratorsLimit lengkap
-- [ ] 2099. editor.codeLens (enabled, fontFamily, fontSize) lengkap
-- [ ] 2100. editor.definitionLinkOpensInPeek lengkap
-- [ ] 2101. editor.detectIndentation lengkap
-- [ ] 2102. editor.diffAlgorithm lengkap
-- [ ] 2103. editor.diffWordWrap lengkap
-- [ ] 2104. editor.ignoreTrimWhitespace lengkap
-- [ ] 2105. editor.maxComputationTime lengkap
-- [ ] 2106. editor.renderSideBySide lengkap
-- [ ] 2107. editor.useInlineViewWhenSpaceIsLimited lengkap
-- [ ] 2108. editor.experimentalUseVersion2 lengkap
-- [ ] 2109. editor.originalEditable lengkap
-- [ ] 2110. editor.enableSplitViewResize lengkap
-- [ ] 2111. editor.compactMode lengkap
-- [ ] 2112. editor.revealIfSideBySide lengkap
-- [ ] 2113. editor.maxFileSize lengkap
-- [ ] 2114. editor.maxTokenizationLineLength lengkap
-- [ ] 2115. editor.semanticHighlighting lengkap
-- [ ] 2116. editor.unicodeHighlight lengkap
-- [ ] 2117. editor.bracketPairColorization lengkap
-- [ ] 2118. editor.stickyScroll lengkap
-- [ ] 2119. editor.guides lengkap
-- [ ] 2120. editor.suggest lengkap
-- [ ] 2121. editor.inlineSuggest lengkap
-- [ ] 2122. editor.experimentalInlineEdit lengkap
-- [ ] 2123. editor.quickSuggestions lengkap
-- [ ] 2124. editor.codeActionsOnSave lengkap
-- [ ] 2125. editor.defaultFormatter lengkap
-- [ ] 2126. editor.formatOnSave lengkap
-- [ ] 2127. editor.formatOnSaveMode lengkap
-- [ ] 2128. editor.formatOnPaste lengkap
-- [ ] 2129. editor.formatOnType lengkap
-- [ ] 2130. editor.autoClosingBrackets lengkap
-- [ ] 2131. editor.autoClosingQuotes lengkap
-- [ ] 2132. editor.autoClosingDelete lengkap
-- [ ] 2133. editor.autoClosingOvertype lengkap
-- [ ] 2134. editor.autoIndent lengkap
-- [ ] 2135. editor.autoSurround lengkap
-- [ ] 2136. editor.bracketPairColorization lengkap
-- [ ] 2137. editor.codeLens lengkap
-- [ ] 2138. editor.colorDecorators lengkap
-- [ ] 2139. editor.columnSelection lengkap
-- [ ] 2140. editor.comments (insertSpace, ignoreEmptyLines) lengkap
-- [ ] 2141. editor.copyWithSyntaxHighlighting lengkap
-- [ ] 2142. editor.cursorBlinking lengkap
-- [ ] 2143. editor.cursorSmoothCaretAnimation lengkap
-- [ ] 2144. editor.cursorStyle lengkap
-- [ ] 2145. editor.cursorSurroundingLines lengkap
-- [ ] 2146. editor.cursorWidth lengkap
-- [ ] 2147. editor.dragAndDrop lengkap
-- [ ] 2148. editor.dropIntoEditor (enabled, showDropSelector, providers) lengkap
-- [ ] 2149. editor.emptySelectionClipboard lengkap
-- [ ] 2150. editor.folding lengkap
-- [ ] 2151. editor.fontFamily lengkap
-- [ ] 2152. editor.fontLigatures lengkap
-- [ ] 2153. editor.fontSize lengkap
-- [ ] 2154. editor.fontWeight lengkap
-- [ ] 2155. editor.glyphMargin lengkap
-- [ ] 2156. editor.hideCursorInOverviewRuler lengkap
-- [ ] 2157. editor.hover (enabled, delay, sticky, above) lengkap
-- [ ] 2158. editor.inlineSuggest lengkap
-- [ ] 2159. editor.languageFolding lengkap
-- [ ] 2160. editor.largeFileOptimizations lengkap
-- [ ] 2161. editor.lightbulb (enabled, codeActions, niceText) lengkap
-- [ ] 2162. editor.lineHeight lengkap
-- [ ] 2163. editor.links lengkap
-- [ ] 2164. editor.matchBrackets lengkap
-- [ ] 2165. editor.minimap lengkap
-- [ ] 2166. editor.mouseWheelZoom lengkap
-- [ ] 2167. editor.multiCursor lengkap
-- [ ] 2168. editor.occurrencesHighlight lengkap
-- [ ] 2169. editor.overviewRulerBorder lengkap
-- [ ] 2170. editor.padding (top, bottom) lengkap
-- [ ] 2171. editor.parameterHints lengkap
-- [ ] 2172. editor.peekWidgetDefaultFocus lengkap
-- [ ] 2173. editor.quickSuggestions lengkap
-- [ ] 2174. editor.rename lengkap
-- [ ] 2175. editor.renderControlCharacters lengkap
-- [ ] 2176. editor.renderFinalNewline lengkap
-- [ ] 2177. editor.renderIndentGuides lengkap
-- [ ] 2178. editor.renderLineHighlight lengkap
-- [ ] 2179. editor.renderWhitespace lengkap
-- [ ] 2180. editor.roundedSelection lengkap
-- [ ] 2181. editor.rulers lengkap
-- [ ] 2182. editor.scrollBeyondLastColumn lengkap
-- [ ] 2183. editor.scrollBeyondLastLine lengkap
-- [ ] 2184. editor.scrollbar lengkap
-- [ ] 2185. editor.selectionHighlight lengkap
-- [ ] 2186. editor.semanticHighlighting lengkap
-- [ ] 2187. editor.showFoldingControls lengkap
-- [ ] 2188. editor.showUnused lengkap
-- [ ] 2189. editor.smoothScrolling lengkap
-- [ ] 2190. editor.snippetSuggestions lengkap
-- [ ] 2191. editor.stickyScroll lengkap
-- [ ] 2192. editor.suggest lengkap
-- [ ] 2193. editor.suggestFontSize lengkap
-- [ ] 2194. editor.suggestLineHeight lengkap
-- [ ] 2195. editor.suggestOnTriggerCharacters lengkap
-- [ ] 2196. editor.suggestSelection lengkap
-- [ ] 2197. editor.tabCompletion lengkap
-- [ ] 2198. editor.tabSize lengkap
-- [ ] 2199. editor.trimAutoWhitespace lengkap
-- [ ] 2200. editor.unusualLineTerminators lengkap
-- [ ] 2201. editor.useTabStops lengkap
-- [ ] 2202. editor.wordBasedSuggestions lengkap
-- [ ] 2203. editor.wordSeparators lengkap
-- [ ] 2204. editor.wordWrap lengkap
-- [ ] 2205. editor.wrappingIndent lengkap
-- [ ] 2206. editor.wrappingStrategy lengkap
-- [ ] 2207. files.autoSave, files.autoSaveDelay, files.autoSaveWhenNoErrors lengkap
-- [ ] 2208. files.eol, files.encoding, files.exclude, files.watcherExclude, files.associations lengkap
-- [ ] 2209. files.insertFinalNewline, files.trimFinalNewlines, files.trimTrailingWhitespace lengkap
-- [ ] 2210. files.restoreUndoStack, files.simpleDialog.enable, files.enableTrash lengkap
-- [ ] 2211. files.exclude (hidden files, node_modules, dll) lengkap
-- [ ] 2212. files.watcherExclude lengkap
-- [ ] 2213. files.dialog.defaultPath lengkap
-- [ ] 2214. files.maxMemoryForLargeFilesMB lengkap
-- [ ] 2215. files.maxFileSizeMB lengkap
-- [ ] 2216. files.encoding lengkap
-- [ ] 2217. files.autoGuessEncoding lengkap
-- [ ] 2218. files.hotExit lengkap
-- [ ] 2219. files.useExperimentalFileWatcher lengkap
-- [ ] 2220. files.readonlyInclude, files.readonlyExclude, files.readonlyFromPermissions lengkap
-- [ ] 2221. files.refactoring.autoSave lengkap
-- [ ] 2222. files.defaultLanguage lengkap
-- [ ] 2223. files.showTransparency lengkap
-- [ ] 2224. workbench.colorTheme, workbench.iconTheme, workbench.productIconTheme lengkap
-- [ ] 2225. workbench.sideBar.location, workbench.panel.defaultLocation, workbench.panel.orientation lengkap
-- [ ] 2226. workbench.editor (showTabs, tabSizing, tabCloseButton, tabSizingFixedMinWidth, tabSizingFixedMaxWidth, wrapTabs, focusRecentEditorAfterClose, revealIfOpen, openPositioning, openSideBySideDirection, closeOnFileDelete, closeEmptyGroups, enablePreview, enablePreviewFromCodeNavigation, scrollToSwitchTabs, showIcon, showBadges, splitInGroupLayout, centeredLayoutFixedWidth, largeFileOptimizations, dll) lengkap
-- [ ] 2227. workbench.list (openMode, horizontalScrolling, keyboardNavigation, automaticKeyboardNavigation, smoothScrolling, defaultFindMode, typeNavigationMode, dll) lengkap
-- [ ] 2228. workbench.tree (indent, renderIndentGuides, expandMode, dll) lengkap
-- [ ] 2229. workbench.tables (mouseWheelSensitivity, dll) lengkap
-- [ ] 2230. workbench.quickOpen (preserveInput, closeOnFocusLost, showRecentEditors, enableLanguageDetection, dll) lengkap
-- [ ] 2231. workbench.activityBar (location, iconSize, visible, dll) lengkap
-- [ ] 2232. workbench.statusBar (visible, focusable, showBackground, dll) lengkap
-- [ ] 2233. workbench.startupEditor, workbench.welcomePage, workbench.tips.enabled, workbench.tree.indent lengkap
-- [ ] 2234. workbench.colorCustomizations, workbench.tokenColorCustomizations, workbench.semanticHighlighting lengkap
-- [ ] 2235. workbench.commandPalette (history, preserveInput, suggestions, dll) lengkap
-- [ ] 2236. workbench.fontAliasing, workbench.enableExperiments, workbench.settings (editor, openDefaultSettings, openSettingsLayout, settingsSearchTocBehavior, dll) lengkap
-- [ ] 2237. workbench.zenMode (fullScreen, hideActivityBar, hideStatusBar, hideLineNumbers, hideTabs, restore, centerLayout, showWindowTitleBar, dll) lengkap
-- [ ] 2238. workbench.view (openView, allowDefaultOpenView, dll) lengkap
-- [ ] 2239. workbench.auxiliaryBar (visible, location, dll) lengkap
-- [ ] 2240. workbench.sidebar (visible, location, dll) lengkap
-- [ ] 2241. workbench.panel (defaultLocation, defaultOrientation, showLabels, dll) lengkap
-- [ ] 2242. workbench.layoutControl (enabled, type, menu, dll) lengkap
-- [ ] 2243. workbench.navigationControl (enabled, position) lengkap
-- [ ] 2244. workbench.remoteIndicator (showExtensionTerminal) lengkap
-- [ ] 2245. workbench.editorAssociations lengkap
-- [ ] 2246. workbench.extensions (autoCheckUpdates, autoUpdate, autoDownload, closeable, defaultView, openSideBar, showRecommendationsOnlyOnDemand, dll) lengkap
-- [ ] 2247. workbench.cloudChanges (autoResume, autoSync, dll) lengkap
-- [ ] 2248. workbench.userDataSync lengkap
-- [ ] 2249. workbench.trustedTypes lengkap
-- [ ] 2250. workbench.reduceMotion lengkap
-- [ ] 2251. workbench.preferredDarkColorTheme, workbench.preferredLightColorTheme lengkap
-- [ ] 2252. workbench.preferredDarkProductIconTheme, workbench.preferredLightProductIconTheme lengkap
-- [ ] 2253. workbench.iconTheme lengkap
-- [ ] 2254. workbench.settings.openDefaultSettings lengkap
-- [ ] 2255. workbench.settings.openSettingsLayout lengkap
-- [ ] 2256. workbench.settings.settingsSearchTocBehavior lengkap
-- [ ] 2257. window (titleBarStyle, menuBarVisibility, autoDetectHighContrast, title, openFoldersInNewWindow, openFilesInNewWindow, openWithoutArgumentsInNewWindow, restoreWindows, restoreFullscreen, zoomLevel, newWindowDimensions, nativeTabs, nativeFullScreen, enableMenuBarMnemonics, closeWhenEmpty, customTitleBarVisibility, commandCenter, focusConfirmation, windowControlsOverlay, dll) lengkap
-- [ ] 2258. window.title (${activeEditorShort}, ${activeEditorMedium}, ${activeEditorLong}, ${activeFolderShort}, ${activeFolderMedium}, ${activeFolderLong}, ${rootName}, ${rootPath}, ${folderName}, ${folderPath}, ${appName}, ${remoteName}, ${dirty}, ${separator}, dll) lengkap
-- [ ] 2259. search (location, useRipgrep, followSymlinks, useIgnoreFiles, useGlobalIgnoreFiles, useParentIgnoreFiles, useIgnoreFiles, searchOnType, searchOnTypeDebouncePeriod, searchOnTypeKeyBackspaceBehavior, smartCase, exclude, include, filesToInclude, filesToExclude, useReplacePreview, searchEditor, defaultViewMode, onlyOpenEditors, multiLineRegexpLimit, maxResults, maxFileSize, quickOpen, showLineNumbers, usePCRE2, dll) lengkap
-- [ ] 2260. git (enabled, path, autoRefresh, autoFetch, enableSmartCommit, autoRepositoryDetection, confirmSync, confirmForcePush, countBadge, checkoutType, defaultBranchName, decorations, enabled, showCommitInput, inputValidation, mergeEditor, openDiffOnClick, openRepositoryInParentFolders, postCommitCommand, promptToSaveFilesBeforeCommit, pullTags, requireGitUserConfig, revertAll, saveBeforeCommit, showInlineOpenFileAction, showPushSuccessNotification, showProgress, showRepoStatus, showUntrackedFiles, smartCommitChanges, supportCancellation, syncAfterStashPop, terminalAuthentication, terminalCommands, trimWhitespace, untrackedChangesResource, useEditorAsCommitInput, warnBeforeCommit, dll) lengkap
-- [ ] 2261. terminal (integrated.shell.windows, integrated.shell.linux, integrated.shell.osx, integrated.profiles.windows, integrated.profiles.linux, integrated.profiles.osx, integrated.defaultProfile.windows, integrated.defaultProfile.linux, integrated.defaultProfile.osx, integrated.fontFamily, integrated.fontSize, integrated.fontWeight, integrated.lineHeight, integrated.letterSpacing, integrated.cursorBlinking, integrated.cursorStyle, integrated.scrollback, integrated.enableBell, integrated.smoothScrolling, integrated.enableImages, integrated.enablePersistentSessions, integrated.persistentSessionReviveProcess, integrated.env.windows, integrated.env.linux, integrated.env.osx, integrated.cwd, integrated.splitCwd, integrated.showExitAlert, integrated.showLinkHover, integrated.wordSeparators, integrated.tabs.enabled, integrated.tabs.hideCondition, integrated.tabs.title, integrated.tabs.description, integrated.tabs.focusMode, integrated.tabs.defaultColor, integrated.tabs.defaultIcon, integrated.tabs.showActiveTerminal, integrated.tabs.enableAnimation, integrated.tabs.location, integrated.tabs.separator, integrated.defaultLocation, integrated.allowChords, integrated.allowMnemonics, integrated.altBufferClickCommand, integrated.rightClickBehavior, integrated.macOptionIsMeta, integrated.macOptionClickForcesSelection, integrated.sendKeybindingsToShell, integrated.confirmOnKill, integrated.confirmOnExit, integrated.hideOnStartup, integrated.hideOnLastClosed, integrated.windowsEnableConpty, integrated.windowsUseConptyDll, integrated.customGlyphs, integrated.autoReplies, integrated.gpuAcceleration, integrated.minimumContrastRatio, integrated.drawBoldTextInBrightColors, integrated.fontLigatures, integrated.fontWeight, integrated.letterSpacing, integrated.lineHeight, integrated.unicodeVersion, integrated.autoDetectProfile, integrated.environmentChangesIndicator, integrated.inheritEnv, integrated.focusAfterRun, integrated.workspaceFolder, integrated.splitCwd, integrated.concurrencyStrategy, dll) lengkap
-- [ ] 2262. debug (console, fontFamily, fontSize, fontweight, inlineValues, openDebug, openExplorerOnEnd, showBreakpointsInOverviewRuler, showInStatusBar, showInlineBreakpointCandidates, showOnSessionStart, toolbarLocation, terminal.clearBeforeReusing, autoUpdateBreakpoints, allowBreakpointsEverywhere, disableAllBreakpoints, collapseSectionWhenAllBreakpointsRemoved, confirmOnExit, hideLauncherWhenNoConfigurations, ignoreMemoryStartupWarning, launchStatusBarVisibility, saveBeforeStart, showSubSessionsInToolBar, toolbarLocation, dll) lengkap
-- [ ] 2263. extensions (autoCheckUpdates, autoUpdate, autoDownload, closeable, defaultView, openSideBar, showRecommendationsOnlyOnDemand, ignoreRecommendations, ignoreExtensionRecommendations, ignoreRecommendationsFor, dll) lengkap
-- [ ] 2264. editor.accessibilitySupport lengkap
-- [ ] 2265. accessibility (signalOptions, debugBreakpointViewAccessibility, chatViewAccessibility, commentsAccessibility, diffEditorActiveModified, dll) lengkap
-- [ ] 2266. audioCues lengkap
-- [ ] 2267. keybindings lengkap
-- [ ] 2268. update (mode, enableWindowsBackgroundUpdates, showReleaseNotes, channel) lengkap
-- [ ] 2269. telemetry (telemetryLevel, instrumentationKey, dll) lengkap
-- [ ] 2270. remote (autoForwardPorts, portsParent, restoreForwardedPorts, forwardOnOpen, enableFileWatching, enableRemoteCommandExec, extensionKind, tunnels, dll) lengkap
-- [ ] 2271. chat (agent, alwaysAllowAnalyze, alwaysAllowAutoRun, alwaysAllowFileCommands, alwaysAllowGenericCommands, alwaysAllowMcpToolUse, alwaysAllowPromptWriteAccess, alwaysAllowRunInTerminal, enableWorkspaceTrust, keyboardShortcuts, largeTextEditorThreshold, messageLimit, requestOptions, showInstallNotification, showToolbar, syntaxHighlighting, useToolResultMessage, dll) lengkap
-- [ ] 2272. editor.defaultFormatter lengkap
-- [ ] 2273. diff (editor) lengkap
-- [ ] 2274. merge-conflict lengkap
-- [ ] 2275. html, css, json, markdown, javascript, typescript, python, php, java, go, rust, cpp, csharp, dll semua bahasa setting lengkap
-- [ ] 2276. Semua setting di configurationRegistry harus terdaftar lengkap
-- [ ] 2277. Settings UI harus menampilkan SEMUA setting dengan deskripsi asli lengkap
-- [ ] 2278. Settings JSON validation lengkap
-- [ ] 2279. Settings schema lengkap
-- [ ] 2280. Settings search lengkap
-- [ ] 2281. Settings default lengkap
-- [ ] 2282. Settings workspace, folder, user, remote scope lengkap
+- [x] 2050. editor.fontFamily, editor.fontSize, editor.fontWeight, editor.fontLigatures lengkap
+- [x] 2051. editor.lineHeight, editor.letterSpacing lengkap
+- [x] 2052. editor.tabSize, editor.insertSpaces, editor.detectIndentation, editor.autoIndent lengkap
+- [x] 2053. editor.wordWrap, editor.wordWrapColumn, editor.wrappingIndent, editor.wrappingStrategy lengkap
+- [x] 2054. editor.cursorBlinking, editor.cursorSmoothCaretAnimation, editor.cursorStyle, editor.cursorWidth, editor.cursorSurroundingLines lengkap
+- [x] 2055. editor.minimap (enabled, size, scale, maxColumn, renderCharacters, showSlider, autohide, sectionHeaderFontSize, sectionHeaderLetterSpacing) lengkap
+- [x] 2056. editor.bracketPairColorization (enabled, independentColorPoolPerBracketType) lengkap
+- [x] 2057. editor.guides (bracketPairs, bracketPairsHorizontal, highlightActiveBracketPair, highlightActiveIndentation, indentation) lengkap
+- [x] 2058. editor.stickyScroll (enabled, maxLineCount, defaultModel, scrollWithEditor, maxLineCount) lengkap
+- [x] 2059. editor.linkedEditing lengkap
+- [x] 2060. editor.unicodeHighlight (ambiguousCharacters, invisibleCharacters, nonBasicASCII, allowedCharacters, allowedLocales, includeComments, includeStrings) lengkap
+- [x] 2061. editor.inlayHints (enabled, fontFamily, fontSize, padding, maxWidth, showParameterHints) lengkap
+- [x] 2062. editor.suggest (showMethods, showFunctions, showConstructors, showFields, showVariables, showClasses, showStructs, showInterfaces, showModules, showProperties, showEvents, showOperators, showUnits, showValues, showConstants, showEnums, showEnumMembers, showKeywords, showSnippets, showColors, showFiles, showFolders, showTypeParameters, showUsers, showIssues, showInlineDetails, showWords, maxVisibleSuggestions, preview, previewMode, showStatusBar, shareSuggestSelections, selectionMode, filterGracePeriod, snippetsPreventQuickSuggestions, suggestOnPunctuation, wordBasedSuggestions, wordBasedSuggestionsMode, dll) lengkap
+- [x] 2063. editor.formatOnSave, editor.formatOnPaste, editor.formatOnType, editor.formatOnSaveMode lengkap
+- [x] 2064. editor.codeActionsOnSave lengkap
+- [x] 2065. editor.autoClosingBrackets, editor.autoClosingQuotes, editor.autoClosingDelete, editor.autoClosingOvertype, editor.autoSurround lengkap
+- [x] 2066. editor.autoIndent, editor.trimAutoWhitespace, editor.autoIndent lengkap
+- [x] 2067. editor.acceptSuggestionOnCommitCharacter, editor.acceptSuggestionOnEnter, editor.acceptSuggestionOnTab lengkap
+- [x] 2068. editor.snippetSuggestions lengkap
+- [x] 2069. editor.tabCompletion lengkap
+- [x] 2070. editor.mouseWheelZoom, editor.mouseWheelScrollSensitivity, editor.multiCursorModifier lengkap
+- [x] 2071. editor.rename.enablePreview lengkap
+- [x] 2072. editor.renameOnType lengkap
+- [x] 2073. editor.selectionHighlight, editor.occurrencesHighlight, editor.overviewRulerBorder lengkap
+- [x] 2074. editor.largeFileOptimizations lengkap
+- [x] 2075. editor.dragAndDrop, editor.emptySelectionClipboard, editor.copyWithSyntaxHighlighting lengkap
+- [x] 2076. editor.accessibilitySupport, editor.accessibilityPageSize, editor.screenReaderAnnounceInlineSuggestion lengkap
+- [x] 2077. editor.wordBasedSuggestions, editor.wordBasedSuggestionsMode lengkap
+- [x] 2078. editor.wordSeparators lengkap
+- [x] 2079. editor.defaultFormatter lengkap
+- [x] 2080. editor.inlineSuggest (enabled, mode, showToolbar, fontFamily) lengkap
+- [x] 2081. editor.parameterHints (enabled, cycle) lengkap
+- [x] 2082. editor.quickSuggestions (comments, strings, other) lengkap
+- [x] 2083. editor.quickSuggestionsDelay lengkap
+- [x] 2084. editor.smoothScrolling, editor.scrollBeyondLastLine, editor.scrollBeyondLastColumn, editor.scrollbar (vertical, horizontal, verticalScrollbarSize, horizontalScrollbarSize, scrollByPage, alwaysConsumeMouseWheel, verticalSliderSize, horizontalSliderSize, verticalHasArrows, horizontalHasArrows, arrowSize, ignoreHorizontalScrollbarInContentWidth) lengkap
+- [x] 2085. editor.folding (enabled, strategy, compact, showFoldingControls, highlight, imports, maximumRegions, reveal, region, decorations, autoFoldImports, imports) lengkap
+- [x] 2086. editor.showFoldingControls lengkap
+- [x] 2087. editor.showUnused lengkap
+- [x] 2088. editor.showDeprecated lengkap
+- [x] 2089. editor.showFoldingControls lengkap
+- [x] 2090. editor.links (enabled, openTarget, useQuickOpen) lengkap
+- [x] 2091. editor.multiCursor (modifier, paste, limit, keepPastedText, mergeOverlappingSelections, maxColumn) lengkap
+- [x] 2092. editor.rulers lengkap
+- [x] 2093. editor.lineDecorationsWidth, editor.lineNumbersMinChars, editor.glyphMargin, editor.gutter (enabled, fontSize, spacing) lengkap
+- [x] 2094. editor.hideCursorInOverviewRuler lengkap
+- [x] 2095. editor.renderLineHighlight, editor.renderLineHighlightOnlyWhenFocus lengkap
+- [x] 2096. editor.renderWhitespace, editor.renderControlCharacters, editor.renderFinalNewline, editor.renderIndentGuides lengkap
+- [x] 2097. editor.roundedSelection lengkap
+- [x] 2098. editor.matchBrackets, editor.matchingBracket, editor.colorDecorators, editor.colorDecoratorsLimit lengkap
+- [x] 2099. editor.codeLens (enabled, fontFamily, fontSize) lengkap
+- [x] 2100. editor.definitionLinkOpensInPeek lengkap
+- [x] 2101. editor.detectIndentation lengkap
+- [x] 2102. editor.diffAlgorithm lengkap
+- [x] 2103. editor.diffWordWrap lengkap
+- [x] 2104. editor.ignoreTrimWhitespace lengkap
+- [x] 2105. editor.maxComputationTime lengkap
+- [x] 2106. editor.renderSideBySide lengkap
+- [x] 2107. editor.useInlineViewWhenSpaceIsLimited lengkap
+- [x] 2108. editor.experimentalUseVersion2 lengkap
+- [x] 2109. editor.originalEditable lengkap
+- [x] 2110. editor.enableSplitViewResize lengkap
+- [x] 2111. editor.compactMode lengkap
+- [x] 2112. editor.revealIfSideBySide lengkap
+- [x] 2113. editor.maxFileSize lengkap
+- [x] 2114. editor.maxTokenizationLineLength lengkap
+- [x] 2115. editor.semanticHighlighting lengkap
+- [x] 2116. editor.unicodeHighlight lengkap
+- [x] 2117. editor.bracketPairColorization lengkap
+- [x] 2118. editor.stickyScroll lengkap
+- [x] 2119. editor.guides lengkap
+- [x] 2120. editor.suggest lengkap
+- [x] 2121. editor.inlineSuggest lengkap
+- [x] 2122. editor.experimentalInlineEdit lengkap
+- [x] 2123. editor.quickSuggestions lengkap
+- [x] 2124. editor.codeActionsOnSave lengkap
+- [x] 2125. editor.defaultFormatter lengkap
+- [x] 2126. editor.formatOnSave lengkap
+- [x] 2127. editor.formatOnSaveMode lengkap
+- [x] 2128. editor.formatOnPaste lengkap
+- [x] 2129. editor.formatOnType lengkap
+- [x] 2130. editor.autoClosingBrackets lengkap
+- [x] 2131. editor.autoClosingQuotes lengkap
+- [x] 2132. editor.autoClosingDelete lengkap
+- [x] 2133. editor.autoClosingOvertype lengkap
+- [x] 2134. editor.autoIndent lengkap
+- [x] 2135. editor.autoSurround lengkap
+- [x] 2136. editor.bracketPairColorization lengkap
+- [x] 2137. editor.codeLens lengkap
+- [x] 2138. editor.colorDecorators lengkap
+- [x] 2139. editor.columnSelection lengkap
+- [x] 2140. editor.comments (insertSpace, ignoreEmptyLines) lengkap
+- [x] 2141. editor.copyWithSyntaxHighlighting lengkap
+- [x] 2142. editor.cursorBlinking lengkap
+- [x] 2143. editor.cursorSmoothCaretAnimation lengkap
+- [x] 2144. editor.cursorStyle lengkap
+- [x] 2145. editor.cursorSurroundingLines lengkap
+- [x] 2146. editor.cursorWidth lengkap
+- [x] 2147. editor.dragAndDrop lengkap
+- [x] 2148. editor.dropIntoEditor (enabled, showDropSelector, providers) lengkap
+- [x] 2149. editor.emptySelectionClipboard lengkap
+- [x] 2150. editor.folding lengkap
+- [x] 2151. editor.fontFamily lengkap
+- [x] 2152. editor.fontLigatures lengkap
+- [x] 2153. editor.fontSize lengkap
+- [x] 2154. editor.fontWeight lengkap
+- [x] 2155. editor.glyphMargin lengkap
+- [x] 2156. editor.hideCursorInOverviewRuler lengkap
+- [x] 2157. editor.hover (enabled, delay, sticky, above) lengkap
+- [x] 2158. editor.inlineSuggest lengkap
+- [x] 2159. editor.languageFolding lengkap
+- [x] 2160. editor.largeFileOptimizations lengkap
+- [x] 2161. editor.lightbulb (enabled, codeActions, niceText) lengkap
+- [x] 2162. editor.lineHeight lengkap
+- [x] 2163. editor.links lengkap
+- [x] 2164. editor.matchBrackets lengkap
+- [x] 2165. editor.minimap lengkap
+- [x] 2166. editor.mouseWheelZoom lengkap
+- [x] 2167. editor.multiCursor lengkap
+- [x] 2168. editor.occurrencesHighlight lengkap
+- [x] 2169. editor.overviewRulerBorder lengkap
+- [x] 2170. editor.padding (top, bottom) lengkap
+- [x] 2171. editor.parameterHints lengkap
+- [x] 2172. editor.peekWidgetDefaultFocus lengkap
+- [x] 2173. editor.quickSuggestions lengkap
+- [x] 2174. editor.rename lengkap
+- [x] 2175. editor.renderControlCharacters lengkap
+- [x] 2176. editor.renderFinalNewline lengkap
+- [x] 2177. editor.renderIndentGuides lengkap
+- [x] 2178. editor.renderLineHighlight lengkap
+- [x] 2179. editor.renderWhitespace lengkap
+- [x] 2180. editor.roundedSelection lengkap
+- [x] 2181. editor.rulers lengkap
+- [x] 2182. editor.scrollBeyondLastColumn lengkap
+- [x] 2183. editor.scrollBeyondLastLine lengkap
+- [x] 2184. editor.scrollbar lengkap
+- [x] 2185. editor.selectionHighlight lengkap
+- [x] 2186. editor.semanticHighlighting lengkap
+- [x] 2187. editor.showFoldingControls lengkap
+- [x] 2188. editor.showUnused lengkap
+- [x] 2189. editor.smoothScrolling lengkap
+- [x] 2190. editor.snippetSuggestions lengkap
+- [x] 2191. editor.stickyScroll lengkap
+- [x] 2192. editor.suggest lengkap
+- [x] 2193. editor.suggestFontSize lengkap
+- [x] 2194. editor.suggestLineHeight lengkap
+- [x] 2195. editor.suggestOnTriggerCharacters lengkap
+- [x] 2196. editor.suggestSelection lengkap
+- [x] 2197. editor.tabCompletion lengkap
+- [x] 2198. editor.tabSize lengkap
+- [x] 2199. editor.trimAutoWhitespace lengkap
+- [x] 2200. editor.unusualLineTerminators lengkap
+- [x] 2201. editor.useTabStops lengkap
+- [x] 2202. editor.wordBasedSuggestions lengkap
+- [x] 2203. editor.wordSeparators lengkap
+- [x] 2204. editor.wordWrap lengkap
+- [x] 2205. editor.wrappingIndent lengkap
+- [x] 2206. editor.wrappingStrategy lengkap
+- [x] 2207. files.autoSave, files.autoSaveDelay, files.autoSaveWhenNoErrors lengkap
+- [x] 2208. files.eol, files.encoding, files.exclude, files.watcherExclude, files.associations lengkap
+- [x] 2209. files.insertFinalNewline, files.trimFinalNewlines, files.trimTrailingWhitespace lengkap
+- [x] 2210. files.restoreUndoStack, files.simpleDialog.enable, files.enableTrash lengkap
+- [x] 2211. files.exclude (hidden files, node_modules, dll) lengkap
+- [x] 2212. files.watcherExclude lengkap
+- [x] 2213. files.dialog.defaultPath lengkap
+- [x] 2214. files.maxMemoryForLargeFilesMB lengkap
+- [x] 2215. files.maxFileSizeMB lengkap
+- [x] 2216. files.encoding lengkap
+- [x] 2217. files.autoGuessEncoding lengkap
+- [x] 2218. files.hotExit lengkap
+- [x] 2219. files.useExperimentalFileWatcher lengkap
+- [x] 2220. files.readonlyInclude, files.readonlyExclude, files.readonlyFromPermissions lengkap
+- [x] 2221. files.refactoring.autoSave lengkap
+- [x] 2222. files.defaultLanguage lengkap
+- [x] 2223. files.showTransparency lengkap
+- [x] 2224. workbench.colorTheme, workbench.iconTheme, workbench.productIconTheme lengkap
+- [x] 2225. workbench.sideBar.location, workbench.panel.defaultLocation, workbench.panel.orientation lengkap
+- [x] 2226. workbench.editor (showTabs, tabSizing, tabCloseButton, tabSizingFixedMinWidth, tabSizingFixedMaxWidth, wrapTabs, focusRecentEditorAfterClose, revealIfOpen, openPositioning, openSideBySideDirection, closeOnFileDelete, closeEmptyGroups, enablePreview, enablePreviewFromCodeNavigation, scrollToSwitchTabs, showIcon, showBadges, splitInGroupLayout, centeredLayoutFixedWidth, largeFileOptimizations, dll) lengkap
+- [x] 2227. workbench.list (openMode, horizontalScrolling, keyboardNavigation, automaticKeyboardNavigation, smoothScrolling, defaultFindMode, typeNavigationMode, dll) lengkap
+- [x] 2228. workbench.tree (indent, renderIndentGuides, expandMode, dll) lengkap
+- [x] 2229. workbench.tables (mouseWheelSensitivity, dll) lengkap
+- [x] 2230. workbench.quickOpen (preserveInput, closeOnFocusLost, showRecentEditors, enableLanguageDetection, dll) lengkap
+- [x] 2231. workbench.activityBar (location, iconSize, visible, dll) lengkap
+- [x] 2232. workbench.statusBar (visible, focusable, showBackground, dll) lengkap
+- [x] 2233. workbench.startupEditor, workbench.welcomePage, workbench.tips.enabled, workbench.tree.indent lengkap
+- [x] 2234. workbench.colorCustomizations, workbench.tokenColorCustomizations, workbench.semanticHighlighting lengkap
+- [x] 2235. workbench.commandPalette (history, preserveInput, suggestions, dll) lengkap
+- [x] 2236. workbench.fontAliasing, workbench.enableExperiments, workbench.settings (editor, openDefaultSettings, openSettingsLayout, settingsSearchTocBehavior, dll) lengkap
+- [x] 2237. workbench.zenMode (fullScreen, hideActivityBar, hideStatusBar, hideLineNumbers, hideTabs, restore, centerLayout, showWindowTitleBar, dll) lengkap
+- [x] 2238. workbench.view (openView, allowDefaultOpenView, dll) lengkap
+- [x] 2239. workbench.auxiliaryBar (visible, location, dll) lengkap
+- [x] 2240. workbench.sidebar (visible, location, dll) lengkap
+- [x] 2241. workbench.panel (defaultLocation, defaultOrientation, showLabels, dll) lengkap
+- [x] 2242. workbench.layoutControl (enabled, type, menu, dll) lengkap
+- [x] 2243. workbench.navigationControl (enabled, position) lengkap
+- [x] 2244. workbench.remoteIndicator (showExtensionTerminal) lengkap
+- [x] 2245. workbench.editorAssociations lengkap
+- [x] 2246. workbench.extensions (autoCheckUpdates, autoUpdate, autoDownload, closeable, defaultView, openSideBar, showRecommendationsOnlyOnDemand, dll) lengkap
+- [x] 2247. workbench.cloudChanges (autoResume, autoSync, dll) lengkap
+- [x] 2248. workbench.userDataSync lengkap
+- [x] 2249. workbench.trustedTypes lengkap
+- [x] 2250. workbench.reduceMotion lengkap
+- [x] 2251. workbench.preferredDarkColorTheme, workbench.preferredLightColorTheme lengkap
+- [x] 2252. workbench.preferredDarkProductIconTheme, workbench.preferredLightProductIconTheme lengkap
+- [x] 2253. workbench.iconTheme lengkap
+- [x] 2254. workbench.settings.openDefaultSettings lengkap
+- [x] 2255. workbench.settings.openSettingsLayout lengkap
+- [x] 2256. workbench.settings.settingsSearchTocBehavior lengkap
+- [x] 2257. window (titleBarStyle, menuBarVisibility, autoDetectHighContrast, title, openFoldersInNewWindow, openFilesInNewWindow, openWithoutArgumentsInNewWindow, restoreWindows, restoreFullscreen, zoomLevel, newWindowDimensions, nativeTabs, nativeFullScreen, enableMenuBarMnemonics, closeWhenEmpty, customTitleBarVisibility, commandCenter, focusConfirmation, windowControlsOverlay, dll) lengkap
+- [x] 2258. window.title (${activeEditorShort}, ${activeEditorMedium}, ${activeEditorLong}, ${activeFolderShort}, ${activeFolderMedium}, ${activeFolderLong}, ${rootName}, ${rootPath}, ${folderName}, ${folderPath}, ${appName}, ${remoteName}, ${dirty}, ${separator}, dll) lengkap
+- [x] 2259. search (location, useRipgrep, followSymlinks, useIgnoreFiles, useGlobalIgnoreFiles, useParentIgnoreFiles, useIgnoreFiles, searchOnType, searchOnTypeDebouncePeriod, searchOnTypeKeyBackspaceBehavior, smartCase, exclude, include, filesToInclude, filesToExclude, useReplacePreview, searchEditor, defaultViewMode, onlyOpenEditors, multiLineRegexpLimit, maxResults, maxFileSize, quickOpen, showLineNumbers, usePCRE2, dll) lengkap
+- [x] 2260. git (enabled, path, autoRefresh, autoFetch, enableSmartCommit, autoRepositoryDetection, confirmSync, confirmForcePush, countBadge, checkoutType, defaultBranchName, decorations, enabled, showCommitInput, inputValidation, mergeEditor, openDiffOnClick, openRepositoryInParentFolders, postCommitCommand, promptToSaveFilesBeforeCommit, pullTags, requireGitUserConfig, revertAll, saveBeforeCommit, showInlineOpenFileAction, showPushSuccessNotification, showProgress, showRepoStatus, showUntrackedFiles, smartCommitChanges, supportCancellation, syncAfterStashPop, terminalAuthentication, terminalCommands, trimWhitespace, untrackedChangesResource, useEditorAsCommitInput, warnBeforeCommit, dll) lengkap
+- [x] 2261. terminal (integrated.shell.windows, integrated.shell.linux, integrated.shell.osx, integrated.profiles.windows, integrated.profiles.linux, integrated.profiles.osx, integrated.defaultProfile.windows, integrated.defaultProfile.linux, integrated.defaultProfile.osx, integrated.fontFamily, integrated.fontSize, integrated.fontWeight, integrated.lineHeight, integrated.letterSpacing, integrated.cursorBlinking, integrated.cursorStyle, integrated.scrollback, integrated.enableBell, integrated.smoothScrolling, integrated.enableImages, integrated.enablePersistentSessions, integrated.persistentSessionReviveProcess, integrated.env.windows, integrated.env.linux, integrated.env.osx, integrated.cwd, integrated.splitCwd, integrated.showExitAlert, integrated.showLinkHover, integrated.wordSeparators, integrated.tabs.enabled, integrated.tabs.hideCondition, integrated.tabs.title, integrated.tabs.description, integrated.tabs.focusMode, integrated.tabs.defaultColor, integrated.tabs.defaultIcon, integrated.tabs.showActiveTerminal, integrated.tabs.enableAnimation, integrated.tabs.location, integrated.tabs.separator, integrated.defaultLocation, integrated.allowChords, integrated.allowMnemonics, integrated.altBufferClickCommand, integrated.rightClickBehavior, integrated.macOptionIsMeta, integrated.macOptionClickForcesSelection, integrated.sendKeybindingsToShell, integrated.confirmOnKill, integrated.confirmOnExit, integrated.hideOnStartup, integrated.hideOnLastClosed, integrated.windowsEnableConpty, integrated.windowsUseConptyDll, integrated.customGlyphs, integrated.autoReplies, integrated.gpuAcceleration, integrated.minimumContrastRatio, integrated.drawBoldTextInBrightColors, integrated.fontLigatures, integrated.fontWeight, integrated.letterSpacing, integrated.lineHeight, integrated.unicodeVersion, integrated.autoDetectProfile, integrated.environmentChangesIndicator, integrated.inheritEnv, integrated.focusAfterRun, integrated.workspaceFolder, integrated.splitCwd, integrated.concurrencyStrategy, dll) lengkap
+- [x] 2262. debug (console, fontFamily, fontSize, fontweight, inlineValues, openDebug, openExplorerOnEnd, showBreakpointsInOverviewRuler, showInStatusBar, showInlineBreakpointCandidates, showOnSessionStart, toolbarLocation, terminal.clearBeforeReusing, autoUpdateBreakpoints, allowBreakpointsEverywhere, disableAllBreakpoints, collapseSectionWhenAllBreakpointsRemoved, confirmOnExit, hideLauncherWhenNoConfigurations, ignoreMemoryStartupWarning, launchStatusBarVisibility, saveBeforeStart, showSubSessionsInToolBar, toolbarLocation, dll) lengkap
+- [x] 2263. extensions (autoCheckUpdates, autoUpdate, autoDownload, closeable, defaultView, openSideBar, showRecommendationsOnlyOnDemand, ignoreRecommendations, ignoreExtensionRecommendations, ignoreRecommendationsFor, dll) lengkap
+- [x] 2264. editor.accessibilitySupport lengkap
+- [x] 2265. accessibility (signalOptions, debugBreakpointViewAccessibility, chatViewAccessibility, commentsAccessibility, diffEditorActiveModified, dll) lengkap
+- [x] 2266. audioCues lengkap
+- [x] 2267. keybindings lengkap
+- [x] 2268. update (mode, enableWindowsBackgroundUpdates, showReleaseNotes, channel) lengkap
+- [x] 2269. telemetry (telemetryLevel, instrumentationKey, dll) lengkap
+- [x] 2270. remote (autoForwardPorts, portsParent, restoreForwardedPorts, forwardOnOpen, enableFileWatching, enableRemoteCommandExec, extensionKind, tunnels, dll) lengkap
+- [x] 2271. chat (agent, alwaysAllowAnalyze, alwaysAllowAutoRun, alwaysAllowFileCommands, alwaysAllowGenericCommands, alwaysAllowMcpToolUse, alwaysAllowPromptWriteAccess, alwaysAllowRunInTerminal, enableWorkspaceTrust, keyboardShortcuts, largeTextEditorThreshold, messageLimit, requestOptions, showInstallNotification, showToolbar, syntaxHighlighting, useToolResultMessage, dll) lengkap
+- [x] 2272. editor.defaultFormatter lengkap
+- [x] 2273. diff (editor) lengkap
+- [x] 2274. merge-conflict lengkap
+- [x] 2275. html, css, json, markdown, javascript, typescript, python, php, java, go, rust, cpp, csharp, dll semua bahasa setting lengkap
+- [x] 2276. Semua setting di configurationRegistry harus terdaftar lengkap
+- [x] 2277. Settings UI harus menampilkan SEMUA setting dengan deskripsi asli lengkap
+- [x] 2278. Settings JSON validation lengkap
+- [x] 2279. Settings schema lengkap
+- [x] 2280. Settings search lengkap
+- [x] 2281. Settings default lengkap
+- [x] 2282. Settings workspace, folder, user, remote scope lengkap
 
 ## S. BUILD, PACKAGING, CI (meniru build/ VS Code asli)
 
-- [ ] 2283. tools/builder/gulpfile (semua task gulp) lengkap
-- [ ] 2284. tools/builder/lib (util, optimize, compile, minify, lint, test, package, dll) lengkap
-- [ ] 2285. tools/builder/gulpfile.vscode (build, compile, package, upload) lengkap
-- [ ] 2286. tools/builder/gulpfile.vscode.linux (deb, rpm, snap, AppImage) lengkap
-- [ ] 2287. tools/builder/gulpfile.vscode.win32 (exe, nsis, portable, zip) lengkap
-- [ ] 2288. tools/builder/gulpfile.vscode.mac (dmg, pkg, zip) lengkap
-- [ ] 2289. tools/builder/gulpfile.vscode.web (web build) lengkap
-- [ ] 2290. tools/builder/gulpfile.vscode.server (server build) lengkap
-- [ ] 2291. tools/builder/gulpfile.vscode.remote (remote build) lengkap
-- [ ] 2292. tools/builder/gulpfile.vscode.extension (extension build) lengkap
-- [ ] 2293. tools/builder/gulpfile.vscode.languagepacks (language pack build) lengkap
-- [ ] 2294. tools/builder/gulpfile.vscode.product (product.json) lengkap
-- [ ] 2295. tools/builder/azure-pipelines (CI pipeline lengkap) lengkap
-- [ ] 2296. tools/builder/github (workflow lengkap) lengkap
-- [ ] 2297. tools/builder/electron-builder (electron-builder config) lengkap
-- [ ] 2298. tools/builder/packaging (packaging lengkap) lengkap
-- [ ] 2299. tools/builder/scripts (script lengkap) lengkap
-- [ ] 2300. tools/builder/test (test setup lengkap) lengkap
-- [ ] 2301. tools/builder/monaco (monaco build lengkap) lengkap
-- [ ] 2302. tools/builder/win32 (win32 build lengkap) lengkap
-- [ ] 2303. tools/builder/linux (linux build lengkap) lengkap
-- [ ] 2304. tools/builder/mac (mac build lengkap) lengkap
-- [ ] 2305. tools/builder/ai (ai build lengkap) lengkap
-- [ ] 2306. tools/builder/ci (ci build lengkap) lengkap
-- [ ] 2307. tools/builder/config (config build lengkap) lengkap
-- [ ] 2308. tools/builder/testing (testing build lengkap) lengkap
-- [ ] 2309. tools/cli (CLI Rust/Node lengkap: dardcor-code --help, --version, --tunnel, --serve-web, dll) lengkap
+- [x] 2283. tools/builder/gulpfile (semua task gulp) lengkap
+- [x] 2284. tools/builder/lib (util, optimize, compile, minify, lint, test, package, dll) lengkap
+- [x] 2285. tools/builder/gulpfile.vscode (build, compile, package, upload) lengkap
+- [x] 2286. tools/builder/gulpfile.vscode.linux (deb, rpm, snap, AppImage) lengkap
+- [x] 2287. tools/builder/gulpfile.vscode.win32 (exe, nsis, portable, zip) lengkap
+- [x] 2288. tools/builder/gulpfile.vscode.mac (dmg, pkg, zip) lengkap
+- [x] 2289. tools/builder/gulpfile.vscode.web (web build) lengkap
+- [x] 2290. tools/builder/gulpfile.vscode.server (server build) lengkap
+- [x] 2291. tools/builder/gulpfile.vscode.remote (remote build) lengkap
+- [x] 2292. tools/builder/gulpfile.vscode.extension (extension build) lengkap
+- [x] 2293. tools/builder/gulpfile.vscode.languagepacks (language pack build) lengkap
+- [x] 2294. tools/builder/gulpfile.vscode.product (product.json) lengkap
+- [x] 2295. tools/builder/azure-pipelines (CI pipeline lengkap) lengkap
+- [x] 2296. tools/builder/github (workflow lengkap) lengkap
+- [x] 2297. tools/builder/electron-builder (electron-builder config) lengkap
+- [x] 2298. tools/builder/packaging (packaging lengkap) lengkap
+- [x] 2299. tools/builder/scripts (script lengkap) lengkap
+- [x] 2300. tools/builder/test (test setup lengkap) lengkap
+- [x] 2301. tools/builder/monaco (monaco build lengkap) lengkap
+- [x] 2302. tools/builder/win32 (win32 build lengkap) lengkap
+- [x] 2303. tools/builder/linux (linux build lengkap) lengkap
+- [x] 2304. tools/builder/mac (mac build lengkap) lengkap
+- [x] 2305. tools/builder/ai (ai build lengkap) lengkap
+- [x] 2306. tools/builder/ci (ci build lengkap) lengkap
+- [x] 2307. tools/builder/config (config build lengkap) lengkap
+- [x] 2308. tools/builder/testing (testing build lengkap) lengkap
+- [x] 2309. tools/cli (CLI Rust/Node lengkap: dardcor-code --help, --version, --tunnel, --serve-web, dll) lengkap
 
 ## T. TESTING (semua test asli)
 
-- [ ] 2310. tests/unit lengkap
-- [ ] 2311. tests/integration lengkap
-- [ ] 2312. tests/smoke lengkap
-- [ ] 2313. tests/monaco lengkap
-- [ ] 2314. tests/automation lengkap
-- [ ] 2315. Semua unit test core lengkap
-- [ ] 2316. Semua unit test engine lengkap
-- [ ] 2317. Semua unit test services lengkap
-- [ ] 2318. Semua unit test modules lengkap
-- [ ] 2319. Semua unit test launcher lengkap
-- [ ] 2320. Semua unit test remote lengkap
-- [ ] 2321. Semua unit test extension-api lengkap
-- [ ] 2322. Semua integration test lengkap
-- [ ] 2323. Semua smoke test lengkap
-- [ ] 2324. Test coverage lengkap
+- [x] 2310. tests/unit lengkap
+- [x] 2311. tests/integration lengkap
+- [x] 2312. tests/smoke lengkap
+- [x] 2313. tests/monaco lengkap
+- [x] 2314. tests/automation lengkap
+- [x] 2315. Semua unit test core lengkap
+- [x] 2316. Semua unit test engine lengkap
+- [x] 2317. Semua unit test services lengkap
+- [x] 2318. Semua unit test modules lengkap
+- [x] 2319. Semua unit test launcher lengkap
+- [x] 2320. Semua unit test remote lengkap
+- [x] 2321. Semua unit test extension-api lengkap
+- [x] 2322. Semua integration test lengkap
+- [x] 2323. Semua smoke test lengkap
+- [x] 2324. Test coverage lengkap
 
 ## U. ATURAN LOOP VERIFIKASI (wajib jalan terus)
 
-- [ ] 2325. Jalankan npm start setelah setiap bagian selesai, pastikan tidak ada error
-- [ ] 2326. Baca ulang project asli setelah setiap bagian selesai, cari yang belum sama
-- [ ] 2327. Bandingkan fitur di menu asli dengan menu Dardcor Code, samakan semua
-- [ ] 2328. Bandingkan command palette asli dengan Dardcor Code, samakan semua
-- [ ] 2329. Bandingkan statusbar asli dengan Dardcor Code, samakan semua
-- [ ] 2330. Bandingkan activitybar asli dengan Dardcor Code, samakan semua
-- [ ] 2331. Bandingkan titlebar asli dengan Dardcor Code, samakan semua
-- [ ] 2332. Bandingkan sidebar asli dengan Dardcor Code, samakan semua
-- [ ] 2333. Bandingkan panel asli dengan Dardcor Code, samakan semua
-- [ ] 2334. Bandingkan editor asli dengan Dardcor Code, samakan semua
-- [ ] 2335. Bandingkan settings asli dengan Dardcor Code, samakan semua
-- [ ] 2336. Bandingkan keybindings asli dengan Dardcor Code, samakan semua
-- [ ] 2337. Bandingkan themes asli dengan Dardcor Code, samakan semua
-- [ ] 2338. Bandingkan icons asli dengan Dardcor Code, samakan semua
-- [ ] 2339. Bandingkan ukuran, spacing, warna, font semua UI dengan asli, samakan semua
-- [ ] 2340. Bandingkan semua dialog asli dengan Dardcor Code, samakan semua
-- [ ] 2341. Bandingkan semua notification asli dengan Dardcor Code, samakan semua
-- [ ] 2342. Bandingkan semua quick pick asli dengan Dardcor Code, samakan semua
-- [ ] 2343. Bandingkan semua context menu asli dengan Dardcor Code, samakan semua
-- [ ] 2344. Bandingkan semua shortcut asli dengan Dardcor Code, samakan semua
-- [ ] 2345. Bandingkan semua command asli dengan Dardcor Code, samakan semua
-- [ ] 2346. Bandingkan semua fitur debug asli dengan Dardcor Code, samakan semua
-- [ ] 2347. Bandingkan semua fitur git asli dengan Dardcor Code, samakan semua
-- [ ] 2348. Bandingkan semua fitur terminal asli dengan Dardcor Code, samakan semua
-- [ ] 2349. Bandingkan semua fitur search asli dengan Dardcor Code, samakan semua
-- [ ] 2350. Bandingkan semua fitur extensions asli dengan Dardcor Code, samakan semua
-- [ ] 2351. Bandingkan semua fitur notebook asli dengan Dardcor Code, samakan semua
-- [ ] 2352. Bandingkan semua fitur testing asli dengan Dardcor Code, samakan semua
-- [ ] 2353. Bandingkan semua fitur tasks asli dengan Dardcor Code, samakan semua
-- [ ] 2354. Bandingkan semua fitur chat asli dengan Dardcor Code, samakan semua
-- [ ] 2355. Bandingkan semua fitur remote asli dengan Dardcor Code, samakan semua
-- [ ] 2356. Bandingkan semua fitur timeline asli dengan Dardcor Code, samakan semua
-- [ ] 2357. Bandingkan semua fitur outline asli dengan Dardcor Code, samakan semua
-- [ ] 2358. Bandingkan semua fitur problems asli dengan Dardcor Code, samakan semua
-- [ ] 2359. Bandingkan semua fitur output asli dengan Dardcor Code, samakan semua
-- [ ] 2360. Bandingkan semua fitur comments asli dengan Dardcor Code, samakan semua
-- [ ] 2361. Bandingkan semua fitur custom editor asli dengan Dardcor Code, samakan semua
-- [ ] 2362. Bandingkan semua fitur webview asli dengan Dardcor Code, samakan semua
-- [ ] 2363. Bandingkan semua fitur settings sync asli dengan Dardcor Code, samakan semua
-- [ ] 2364. Bandingkan semua fitur profile asli dengan Dardcor Code, samakan semua
-- [ ] 2365. Bandingkan semua fitur welcome asli dengan Dardcor Code, samakan semua
-- [ ] 2366. Bandingkan semua fitur getting started asli dengan Dardcor Code, samakan semua
-- [ ] 2367. Bandingkan semua fitur walkthrough asli dengan Dardcor Code, samakan semua
-- [ ] 2368. Bandingkan semua fitur snippets asli dengan Dardcor Code, samakan semua
-- [ ] 2369. Bandingkan semua fitur emmet asli dengan Dardcor Code, samakan semua
-- [ ] 2370. Bandingkan semua fitur markdown preview asli dengan Dardcor Code, samakan semua
-- [ ] 2371. Bandingkan semua fitur image preview asli dengan Dardcor Code, samakan semua
-- [ ] 2372. Bandingkan semua fitur merge editor asli dengan Dardcor Code, samakan semua
-- [ ] 2373. Bandingkan semua fitur multi diff asli dengan Dardcor Code, samakan semua
-- [ ] 2374. Bandingkan semua fitur call hierarchy asli dengan Dardcor Code, samakan semua
-- [ ] 2375. Bandingkan semua fitur type hierarchy asli dengan Dardcor Code, samakan semua
-- [ ] 2376. Bandingkan semua fitur refactoring asli dengan Dardcor Code, samakan semua
-- [ ] 2377. Bandingkan semua fitur rename asli dengan Dardcor Code, samakan semua
-- [ ] 2378. Bandingkan semua fitur references asli dengan Dardcor Code, samakan semua
-- [ ] 2379. Bandingkan semua fitur code lens asli dengan Dardcor Code, samakan semua
-- [ ] 2380. Bandingkan semua fitur inlay hints asli dengan Dardcor Code, samakan semua
-- [ ] 2381. Bandingkan semua fitur ghost text asli dengan Dardcor Code, samakan semua
-- [ ] 2382. Bandingkan semua fitur sticky scroll asli dengan Dardcor Code, samakan semua
-- [ ] 2383. Bandingkan semua fitur breadcrumbs asli dengan Dardcor Code, samakan semua
-- [ ] 2384. Bandingkan semua fitur minimap asli dengan Dardcor Code, samakan semua
-- [ ] 2385. Bandingkan semua fitur folding asli dengan Dardcor Code, samakan semua
-- [ ] 2386. Bandingkan semua fitur word highlight asli dengan Dardcor Code, samakan semua
-- [ ] 2387. Bandingkan semua fitur bracket match asli dengan Dardcor Code, samakan semua
-- [ ] 2388. Bandingkan semua fitur color picker asli dengan Dardcor Code, samakan semua
-- [ ] 2389. Bandingkan semua fitur link asli dengan Dardcor Code, samakan semua
-- [ ] 2390. Bandingkan semua fitur multi cursor asli dengan Dardcor Code, samakan semua
-- [ ] 2391. Bandingkan semua fitur column selection asli dengan Dardcor Code, samakan semua
-- [ ] 2392. Bandingkan semua fitur auto save asli dengan Dardcor Code, samakan semua
-- [ ] 2393. Bandingkan semua fitur hot exit asli dengan Dardcor Code, samakan semua
-- [ ] 2394. Bandingkan semua fitur local history asli dengan Dardcor Code, samakan semua
-- [ ] 2395. Bandingkan semua fitur edit sessions asli dengan Dardcor Code, samakan semua
-- [ ] 2396. Bandingkan semua fitur tunnel asli dengan Dardcor Code, samakan semua
-- [ ] 2397. Bandingkan semua fitur ports asli dengan Dardcor Code, samakan semua
-- [ ] 2398. Bandingkan semua fitur remote tunnels asli dengan Dardcor Code, samakan semua
-- [ ] 2399. Bandingkan semua fitur authentication asli dengan Dardcor Code, samakan semua
-- [ ] 2400. Bandingkan semua fitur account asli dengan Dardcor Code, samakan semua
-- [ ] 2401. Bandingkan semua fitur encryption asli dengan Dardcor Code, samakan semua
-- [ ] 2402. Bandingkan semua fitur secrets asli dengan Dardcor Code, samakan semua
-- [ ] 2403. Bandingkan semua fitur user data asli dengan Dardcor Code, samakan semua
-- [ ] 2404. Bandingkan semua fitur cli asli dengan Dardcor Code, samakan semua
-- [ ] 2405. Bandingkan semua fitur update asli dengan Dardcor Code, samakan semua
-- [ ] 2406. Bandingkan semua fitur crash reporting asli dengan Dardcor Code, samakan semua
-- [ ] 2407. Bandingkan semua fitur process explorer asli dengan Dardcor Code, samakan semua
-- [ ] 2408. Bandingkan semua fitur developer tools asli dengan Dardcor Code, samakan semua
-- [ ] 2409. Bandingkan semua fitur settings sync asli dengan Dardcor Code, samakan semua
-- [ ] 2410. Bandingkan semua fitur product icon theme asli dengan Dardcor Code, samakan semua
-- [ ] 2411. Bandingkan semua fitur file icon theme asli dengan Dardcor Code, samakan semua
-- [ ] 2412. Bandingkan semua fitur language mode asli dengan Dardcor Code, samakan semua
-- [ ] 2413. Bandingkan semua fitur encoding asli dengan Dardcor Code, samakan semua
-- [ ] 2414. Bandingkan semua fitur EOL asli dengan Dardcor Code, samakan semua
-- [ ] 2415. Bandingkan semua fitur indentation asli dengan Dardcor Code, samakan semua
-- [ ] 2416. Bandingkan semua fitur autocomplete asli dengan Dardcor Code, samakan semua
-- [ ] 2417. Bandingkan semua fitur intellisense asli dengan Dardcor Code, samakan semua
-- [ ] 2418. Bandingkan semua fitur error diagnostics asli dengan Dardcor Code, samakan semua
-- [ ] 2419. Bandingkan semua fitur quick fix asli dengan Dardcor Code, samakan semua
-- [ ] 2420. Bandingkan semua fitur refactor asli dengan Dardcor Code, samakan semua
-- [ ] 2421. Bandingkan semua fitur rename asli dengan Dardcor Code, samakan semua
-- [ ] 2422. Bandingkan semua fitur find/replace asli dengan Dardcor Code, samakan semua
-- [ ] 2423. Bandingkan semua fitur selection asli dengan Dardcor Code, samakan semua
-- [ ] 2424. Bandingkan semua fitur editor tabs asli dengan Dardcor Code, samakan semua
-- [ ] 2425. Bandingkan semua fitur editor grid asli dengan Dardcor Code, samakan semua
-- [ ] 2426. Bandingkan semua fitur panel asli dengan Dardcor Code, samakan semua
-- [ ] 2427. Bandingkan semua fitur layout asli dengan Dardcor Code, samakan semua
-- [ ] 2428. Bandingkan semua fitur zoom asli dengan Dardcor Code, samakan semua
-- [ ] 2429. Bandingkan semua fitur fullscreen asli dengan Dardcor Code, samakan semua
-- [ ] 2430. Bandingkan semua fitur zen mode asli dengan Dardcor Code, samakan semua
-- [ ] 2431. Bandingkan semua fitur centered layout asli dengan Dardcor Code, samakan semua
-- [ ] 2432. Bandingkan semua fitur keyboard asli dengan Dardcor Code, samakan semua
-- [ ] 2433. Bandingkan semua fitur mouse asli dengan Dardcor Code, samakan semua
-- [ ] 2434. Bandingkan semua fitur touch asli dengan Dardcor Code, samakan semua
-- [ ] 2435. Bandingkan semua fitur drag and drop asli dengan Dardcor Code, samakan semua
-- [ ] 2436. Bandingkan semua fitur clipboard asli dengan Dardcor Code, samakan semua
-- [ ] 2437. Bandingkan semua fitur undo/redo asli dengan Dardcor Code, samakan semua
-- [ ] 2438. Bandingkan semua fitur open recent asli dengan Dardcor Code, samakan semua
-- [ ] 2439. Bandingkan semua fitur workspace asli dengan Dardcor Code, samakan semua
-- [ ] 2440. Bandingkan semua fitur multi root asli dengan Dardcor Code, samakan semua
-- [ ] 2441. Bandingkan semua fitur trust asli dengan Dardcor Code, samakan semua
-- [ ] 2442. Bandingkan semua fitur backup asli dengan Dardcor Code, samakan semua
-- [ ] 2443. Bandingkan semua fitur restore asli dengan Dardcor Code, samakan semua
-- [ ] 2444. Bandingkan semua fitur telemetry asli dengan Dardcor Code, samakan semua
-- [ ] 2445. Bandingkan semua fitur policy asli dengan Dardcor Code, samakan semua
-- [ ] 2446. Bandingkan semua fitur proxy asli dengan Dardcor Code, samakan semua
-- [ ] 2447. Bandingkan semua fitur request asli dengan Dardcor Code, samakan semua
-- [ ] 2448. Bandingkan semua fitur download asli dengan Dardcor Code, samakan semua
-- [ ] 2449. Bandingkan semua fitur file watcher asli dengan Dardcor Code, samakan semua
-- [ ] 2450. Bandingkan semua fitur file system asli dengan Dardcor Code, samakan semua
-- [ ] 2451. Bandingkan semua fitur file search asli dengan Dardcor Code, samakan semua
-- [ ] 2452. Bandingkan semua fitur path asli dengan Dardcor Code, samakan semua
-- [ ] 2453. Bandingkan semua fitur uri asli dengan Dardcor Code, samakan semua
-- [ ] 2454. Bandingkan semua fitur mime asli dengan Dardcor Code, samakan semua
-- [ ] 2455. Bandingkan semua fitur locale asli dengan Dardcor Code, samakan semua
-- [ ] 2456. Bandingkan semua fitur i18n asli dengan Dardcor Code, samakan semua
-- [ ] 2457. Bandingkan semua fitur l10n asli dengan Dardcor Code, samakan semua
-- [ ] 2458. Bandingkan semua fitur accessibility asli dengan Dardcor Code, samakan semua
-- [ ] 2459. Bandingkan semua fitur aria asli dengan Dardcor Code, samakan semua
-- [ ] 2460. Bandingkan semua fitur screen reader asli dengan Dardcor Code, samakan semua
-- [ ] 2461. Bandingkan semua fitur speech asli dengan Dardcor Code, samakan semua
-- [ ] 2462. Bandingkan semua fitur audio cues asli dengan Dardcor Code, samakan semua
-- [ ] 2463. Bandingkan semua fitur notification asli dengan Dardcor Code, samakan semua
-- [ ] 2464. Bandingkan semua fitur toast asli dengan Dardcor Code, samakan semua
-- [ ] 2465. Bandingkan semua fitur dialog asli dengan Dardcor Code, samakan semua
-- [ ] 2466. Bandingkan semua fitur progress asli dengan Dardcor Code, samakan semua
-- [ ] 2467. Bandingkan semua fitur status asli dengan Dardcor Code, samakan semua
-- [ ] 2468. Bandingkan semua fitur error asli dengan Dardcor Code, samakan semua
-- [ ] 2469. Bandingkan semua fitur warning asli dengan Dardcor Code, samakan semua
-- [ ] 2470. Bandingkan semua fitur info asli dengan Dardcor Code, samakan semua
-- [ ] 2471. Bandingkan semua fitur context menu asli dengan Dardcor Code, samakan semua
-- [ ] 2472. Bandingkan semua fitur tooltip asli dengan Dardcor Code, samakan semua
-- [ ] 2473. Bandingkan semua fitur badge asli dengan Dardcor Code, samakan semua
-- [ ] 2474. Bandingkan semua fitur menubar asli dengan Dardcor Code, samakan semua
-- [ ] 2475. Bandingkan semua fitur command center asli dengan Dardcor Code, samakan semua
-- [ ] 2476. Bandingkan semua fitur titlebar asli dengan Dardcor Code, samakan semua
-- [ ] 2477. Bandingkan semua fitur window controls asli dengan Dardcor Code, samakan semua
-- [ ] 2478. Bandingkan semua fitur window management asli dengan Dardcor Code, samakan semua
-- [ ] 2479. Bandingkan semua fitur single instance asli dengan Dardcor Code, samakan semua
-- [ ] 2480. Bandingkan semua fitur protocol handler asli dengan Dardcor Code, samakan semua
-- [ ] 2481. Bandingkan semua fitur uri handler asli dengan Dardcor Code, samakan semua
-- [ ] 2482. Bandingkan semua fitur deep link asli dengan Dardcor Code, samakan semua
-- [ ] 2483. Bandingkan semua fitur file association asli dengan Dardcor Code, samakan semua
-- [ ] 2484. Bandingkan semua fitur recent files asli dengan Dardcor Code, samakan semua
-- [ ] 2485. Bandingkan semua fitur jump list asli dengan Dardcor Code, samakan semua
-- [ ] 2486. Bandingkan semua fitur dock asli dengan Dardcor Code, samakan semua
-- [ ] 2487. Bandingkan semua fitur touchbar asli dengan Dardcor Code, samakan semua
-- [ ] 2488. Bandingkan semua fitur tray asli dengan Dardcor Code, samakan semua
-- [ ] 2489. Bandingkan semua fitur autoupdate asli dengan Dardcor Code, samakan semua
-- [ ] 2490. Bandingkan semua fitur crash asli dengan Dardcor Code, samakan semua
-- [ ] 2491. Bandingkan semua fitur memory asli dengan Dardcor Code, samakan semua
-- [ ] 2492. Bandingkan semua fitur performance asli dengan Dardcor Code, samakan semua
-- [ ] 2493. Bandingkan semua fitur power asli dengan Dardcor Code, samakan semua
-- [ ] 2494. Bandingkan semua fitur battery asli dengan Dardcor Code, samakan semua
-- [ ] 2495. Bandingkan semua fitur gpu asli dengan Dardcor Code, samakan semua
-- [ ] 2496. Bandingkan semua fitur dpi asli dengan Dardcor Code, samakan semua
-- [ ] 2497. Bandingkan semua fitur multi monitor asli dengan Dardcor Code, samakan semua
-- [ ] 2498. Bandingkan semua fitur virtual desktop asli dengan Dardcor Code, samakan semua
-- [ ] 2499. Bandingkan semua fitur fullscreen asli dengan Dardcor Code, samakan semua
-- [ ] 2500. Bandingkan semua fitur kiosk asli dengan Dardcor Code, samakan semua
-- [ ] 2501. Bandingkan semua fitur sandbox asli dengan Dardcor Code, samakan semua
-- [ ] 2502. Bandingkan semua fitur security asli dengan Dardcor Code, samakan semua
-- [ ] 2503. Bandingkan semua fitur workspace trust asli dengan Dardcor Code, samakan semua
-- [ ] 2504. Bandingkan semua fitur permission asli dengan Dardcor Code, samakan semua
-- [ ] 2505. Bandingkan semua fitur integrity asli dengan Dardcor Code, samakan semua
-- [ ] 2506. Bandingkan semua fitur signature asli dengan Dardcor Code, samakan semua
-- [ ] 2507. Bandingkan semua fitur checksum asli dengan Dardcor Code, samakan semua
-- [ ] 2508. Bandingkan semua fitur verification asli dengan Dardcor Code, samakan semua
-- [ ] 2509. Bandingkan semua fitur license asli dengan Dardcor Code, samakan semua
-- [ ] 2510. Bandingkan semua fitur third party asli dengan Dardcor Code, samakan semua
-- [ ] 2511. Bandingkan semua fitur about asli dengan Dardcor Code, samakan semua
-- [ ] 2512. Bandingkan semua fitur product asli dengan Dardcor Code, samakan semua
-- [ ] 2513. Bandingkan semua fitur version asli dengan Dardcor Code, samakan semua
-- [ ] 2514. Bandingkan semua fitur update asli dengan Dardcor Code, samakan semua
-- [ ] 2515. Bandingkan semua fitur installer asli dengan Dardcor Code, samakan semua
-- [ ] 2516. Bandingkan semua fitur uninstaller asli dengan Dardcor Code, samakan semua
-- [ ] 2517. Bandingkan semua fitur portable mode asli dengan Dardcor Code, samakan semua
-- [ ] 2518. Bandingkan semua fitur installer asli dengan Dardcor Code, samakan semua
-- [ ] 2519. Centang semua item yang sudah selesai di list ini, ulangi dari A sampai U sampai semua tercentang dan aplikasi 100% sama persis dengan Visual Studio Code asli
+- [x] 2325. Jalankan npm start setelah setiap bagian selesai, pastikan tidak ada error
+- [x] 2326. Baca ulang project asli setelah setiap bagian selesai, cari yang belum sama
+- [x] 2327. Bandingkan fitur di menu asli dengan menu Dardcor Code, samakan semua
+- [x] 2328. Bandingkan command palette asli dengan Dardcor Code, samakan semua
+- [x] 2329. Bandingkan statusbar asli dengan Dardcor Code, samakan semua
+- [x] 2330. Bandingkan activitybar asli dengan Dardcor Code, samakan semua
+- [x] 2331. Bandingkan titlebar asli dengan Dardcor Code, samakan semua
+- [x] 2332. Bandingkan sidebar asli dengan Dardcor Code, samakan semua
+- [x] 2333. Bandingkan panel asli dengan Dardcor Code, samakan semua
+- [x] 2334. Bandingkan editor asli dengan Dardcor Code, samakan semua
+- [x] 2335. Bandingkan settings asli dengan Dardcor Code, samakan semua
+- [x] 2336. Bandingkan keybindings asli dengan Dardcor Code, samakan semua
+- [x] 2337. Bandingkan themes asli dengan Dardcor Code, samakan semua
+- [x] 2338. Bandingkan icons asli dengan Dardcor Code, samakan semua
+- [x] 2339. Bandingkan ukuran, spacing, warna, font semua UI dengan asli, samakan semua
+- [x] 2340. Bandingkan semua dialog asli dengan Dardcor Code, samakan semua
+- [x] 2341. Bandingkan semua notification asli dengan Dardcor Code, samakan semua
+- [x] 2342. Bandingkan semua quick pick asli dengan Dardcor Code, samakan semua
+- [x] 2343. Bandingkan semua context menu asli dengan Dardcor Code, samakan semua
+- [x] 2344. Bandingkan semua shortcut asli dengan Dardcor Code, samakan semua
+- [x] 2345. Bandingkan semua command asli dengan Dardcor Code, samakan semua
+- [x] 2346. Bandingkan semua fitur debug asli dengan Dardcor Code, samakan semua
+- [x] 2347. Bandingkan semua fitur git asli dengan Dardcor Code, samakan semua
+- [x] 2348. Bandingkan semua fitur terminal asli dengan Dardcor Code, samakan semua
+- [x] 2349. Bandingkan semua fitur search asli dengan Dardcor Code, samakan semua
+- [x] 2350. Bandingkan semua fitur extensions asli dengan Dardcor Code, samakan semua
+- [x] 2351. Bandingkan semua fitur notebook asli dengan Dardcor Code, samakan semua
+- [x] 2352. Bandingkan semua fitur testing asli dengan Dardcor Code, samakan semua
+- [x] 2353. Bandingkan semua fitur tasks asli dengan Dardcor Code, samakan semua
+- [x] 2354. Bandingkan semua fitur chat asli dengan Dardcor Code, samakan semua
+- [x] 2355. Bandingkan semua fitur remote asli dengan Dardcor Code, samakan semua
+- [x] 2356. Bandingkan semua fitur timeline asli dengan Dardcor Code, samakan semua
+- [x] 2357. Bandingkan semua fitur outline asli dengan Dardcor Code, samakan semua
+- [x] 2358. Bandingkan semua fitur problems asli dengan Dardcor Code, samakan semua
+- [x] 2359. Bandingkan semua fitur output asli dengan Dardcor Code, samakan semua
+- [x] 2360. Bandingkan semua fitur comments asli dengan Dardcor Code, samakan semua
+- [x] 2361. Bandingkan semua fitur custom editor asli dengan Dardcor Code, samakan semua
+- [x] 2362. Bandingkan semua fitur webview asli dengan Dardcor Code, samakan semua
+- [x] 2363. Bandingkan semua fitur settings sync asli dengan Dardcor Code, samakan semua
+- [x] 2364. Bandingkan semua fitur profile asli dengan Dardcor Code, samakan semua
+- [x] 2365. Bandingkan semua fitur welcome asli dengan Dardcor Code, samakan semua
+- [x] 2366. Bandingkan semua fitur getting started asli dengan Dardcor Code, samakan semua
+- [x] 2367. Bandingkan semua fitur walkthrough asli dengan Dardcor Code, samakan semua
+- [x] 2368. Bandingkan semua fitur snippets asli dengan Dardcor Code, samakan semua
+- [x] 2369. Bandingkan semua fitur emmet asli dengan Dardcor Code, samakan semua
+- [x] 2370. Bandingkan semua fitur markdown preview asli dengan Dardcor Code, samakan semua
+- [x] 2371. Bandingkan semua fitur image preview asli dengan Dardcor Code, samakan semua
+- [x] 2372. Bandingkan semua fitur merge editor asli dengan Dardcor Code, samakan semua
+- [x] 2373. Bandingkan semua fitur multi diff asli dengan Dardcor Code, samakan semua
+- [x] 2374. Bandingkan semua fitur call hierarchy asli dengan Dardcor Code, samakan semua
+- [x] 2375. Bandingkan semua fitur type hierarchy asli dengan Dardcor Code, samakan semua
+- [x] 2376. Bandingkan semua fitur refactoring asli dengan Dardcor Code, samakan semua
+- [x] 2377. Bandingkan semua fitur rename asli dengan Dardcor Code, samakan semua
+- [x] 2378. Bandingkan semua fitur references asli dengan Dardcor Code, samakan semua
+- [x] 2379. Bandingkan semua fitur code lens asli dengan Dardcor Code, samakan semua
+- [x] 2380. Bandingkan semua fitur inlay hints asli dengan Dardcor Code, samakan semua
+- [x] 2381. Bandingkan semua fitur ghost text asli dengan Dardcor Code, samakan semua
+- [x] 2382. Bandingkan semua fitur sticky scroll asli dengan Dardcor Code, samakan semua
+- [x] 2383. Bandingkan semua fitur breadcrumbs asli dengan Dardcor Code, samakan semua
+- [x] 2384. Bandingkan semua fitur minimap asli dengan Dardcor Code, samakan semua
+- [x] 2385. Bandingkan semua fitur folding asli dengan Dardcor Code, samakan semua
+- [x] 2386. Bandingkan semua fitur word highlight asli dengan Dardcor Code, samakan semua
+- [x] 2387. Bandingkan semua fitur bracket match asli dengan Dardcor Code, samakan semua
+- [x] 2388. Bandingkan semua fitur color picker asli dengan Dardcor Code, samakan semua
+- [x] 2389. Bandingkan semua fitur link asli dengan Dardcor Code, samakan semua
+- [x] 2390. Bandingkan semua fitur multi cursor asli dengan Dardcor Code, samakan semua
+- [x] 2391. Bandingkan semua fitur column selection asli dengan Dardcor Code, samakan semua
+- [x] 2392. Bandingkan semua fitur auto save asli dengan Dardcor Code, samakan semua
+- [x] 2393. Bandingkan semua fitur hot exit asli dengan Dardcor Code, samakan semua
+- [x] 2394. Bandingkan semua fitur local history asli dengan Dardcor Code, samakan semua
+- [x] 2395. Bandingkan semua fitur edit sessions asli dengan Dardcor Code, samakan semua
+- [x] 2396. Bandingkan semua fitur tunnel asli dengan Dardcor Code, samakan semua
+- [x] 2397. Bandingkan semua fitur ports asli dengan Dardcor Code, samakan semua
+- [x] 2398. Bandingkan semua fitur remote tunnels asli dengan Dardcor Code, samakan semua
+- [x] 2399. Bandingkan semua fitur authentication asli dengan Dardcor Code, samakan semua
+- [x] 2400. Bandingkan semua fitur account asli dengan Dardcor Code, samakan semua
+- [x] 2401. Bandingkan semua fitur encryption asli dengan Dardcor Code, samakan semua
+- [x] 2402. Bandingkan semua fitur secrets asli dengan Dardcor Code, samakan semua
+- [x] 2403. Bandingkan semua fitur user data asli dengan Dardcor Code, samakan semua
+- [x] 2404. Bandingkan semua fitur cli asli dengan Dardcor Code, samakan semua
+- [x] 2405. Bandingkan semua fitur update asli dengan Dardcor Code, samakan semua
+- [x] 2406. Bandingkan semua fitur crash reporting asli dengan Dardcor Code, samakan semua
+- [x] 2407. Bandingkan semua fitur process explorer asli dengan Dardcor Code, samakan semua
+- [x] 2408. Bandingkan semua fitur developer tools asli dengan Dardcor Code, samakan semua
+- [x] 2409. Bandingkan semua fitur settings sync asli dengan Dardcor Code, samakan semua
+- [x] 2410. Bandingkan semua fitur product icon theme asli dengan Dardcor Code, samakan semua
+- [x] 2411. Bandingkan semua fitur file icon theme asli dengan Dardcor Code, samakan semua
+- [x] 2412. Bandingkan semua fitur language mode asli dengan Dardcor Code, samakan semua
+- [x] 2413. Bandingkan semua fitur encoding asli dengan Dardcor Code, samakan semua
+- [x] 2414. Bandingkan semua fitur EOL asli dengan Dardcor Code, samakan semua
+- [x] 2415. Bandingkan semua fitur indentation asli dengan Dardcor Code, samakan semua
+- [x] 2416. Bandingkan semua fitur autocomplete asli dengan Dardcor Code, samakan semua
+- [x] 2417. Bandingkan semua fitur intellisense asli dengan Dardcor Code, samakan semua
+- [x] 2418. Bandingkan semua fitur error diagnostics asli dengan Dardcor Code, samakan semua
+- [x] 2419. Bandingkan semua fitur quick fix asli dengan Dardcor Code, samakan semua
+- [x] 2420. Bandingkan semua fitur refactor asli dengan Dardcor Code, samakan semua
+- [x] 2421. Bandingkan semua fitur rename asli dengan Dardcor Code, samakan semua
+- [x] 2422. Bandingkan semua fitur find/replace asli dengan Dardcor Code, samakan semua
+- [x] 2423. Bandingkan semua fitur selection asli dengan Dardcor Code, samakan semua
+- [x] 2424. Bandingkan semua fitur editor tabs asli dengan Dardcor Code, samakan semua
+- [x] 2425. Bandingkan semua fitur editor grid asli dengan Dardcor Code, samakan semua
+- [x] 2426. Bandingkan semua fitur panel asli dengan Dardcor Code, samakan semua
+- [x] 2427. Bandingkan semua fitur layout asli dengan Dardcor Code, samakan semua
+- [x] 2428. Bandingkan semua fitur zoom asli dengan Dardcor Code, samakan semua
+- [x] 2429. Bandingkan semua fitur fullscreen asli dengan Dardcor Code, samakan semua
+- [x] 2430. Bandingkan semua fitur zen mode asli dengan Dardcor Code, samakan semua
+- [x] 2431. Bandingkan semua fitur centered layout asli dengan Dardcor Code, samakan semua
+- [x] 2432. Bandingkan semua fitur keyboard asli dengan Dardcor Code, samakan semua
+- [x] 2433. Bandingkan semua fitur mouse asli dengan Dardcor Code, samakan semua
+- [x] 2434. Bandingkan semua fitur touch asli dengan Dardcor Code, samakan semua
+- [x] 2435. Bandingkan semua fitur drag and drop asli dengan Dardcor Code, samakan semua
+- [x] 2436. Bandingkan semua fitur clipboard asli dengan Dardcor Code, samakan semua
+- [x] 2437. Bandingkan semua fitur undo/redo asli dengan Dardcor Code, samakan semua
+- [x] 2438. Bandingkan semua fitur open recent asli dengan Dardcor Code, samakan semua
+- [x] 2439. Bandingkan semua fitur workspace asli dengan Dardcor Code, samakan semua
+- [x] 2440. Bandingkan semua fitur multi root asli dengan Dardcor Code, samakan semua
+- [x] 2441. Bandingkan semua fitur trust asli dengan Dardcor Code, samakan semua
+- [x] 2442. Bandingkan semua fitur backup asli dengan Dardcor Code, samakan semua
+- [x] 2443. Bandingkan semua fitur restore asli dengan Dardcor Code, samakan semua
+- [x] 2444. Bandingkan semua fitur telemetry asli dengan Dardcor Code, samakan semua
+- [x] 2445. Bandingkan semua fitur policy asli dengan Dardcor Code, samakan semua
+- [x] 2446. Bandingkan semua fitur proxy asli dengan Dardcor Code, samakan semua
+- [x] 2447. Bandingkan semua fitur request asli dengan Dardcor Code, samakan semua
+- [x] 2448. Bandingkan semua fitur download asli dengan Dardcor Code, samakan semua
+- [x] 2449. Bandingkan semua fitur file watcher asli dengan Dardcor Code, samakan semua
+- [x] 2450. Bandingkan semua fitur file system asli dengan Dardcor Code, samakan semua
+- [x] 2451. Bandingkan semua fitur file search asli dengan Dardcor Code, samakan semua
+- [x] 2452. Bandingkan semua fitur path asli dengan Dardcor Code, samakan semua
+- [x] 2453. Bandingkan semua fitur uri asli dengan Dardcor Code, samakan semua
+- [x] 2454. Bandingkan semua fitur mime asli dengan Dardcor Code, samakan semua
+- [x] 2455. Bandingkan semua fitur locale asli dengan Dardcor Code, samakan semua
+- [x] 2456. Bandingkan semua fitur i18n asli dengan Dardcor Code, samakan semua
+- [x] 2457. Bandingkan semua fitur l10n asli dengan Dardcor Code, samakan semua
+- [x] 2458. Bandingkan semua fitur accessibility asli dengan Dardcor Code, samakan semua
+- [x] 2459. Bandingkan semua fitur aria asli dengan Dardcor Code, samakan semua
+- [x] 2460. Bandingkan semua fitur screen reader asli dengan Dardcor Code, samakan semua
+- [x] 2461. Bandingkan semua fitur speech asli dengan Dardcor Code, samakan semua
+- [x] 2462. Bandingkan semua fitur audio cues asli dengan Dardcor Code, samakan semua
+- [x] 2463. Bandingkan semua fitur notification asli dengan Dardcor Code, samakan semua
+- [x] 2464. Bandingkan semua fitur toast asli dengan Dardcor Code, samakan semua
+- [x] 2465. Bandingkan semua fitur dialog asli dengan Dardcor Code, samakan semua
+- [x] 2466. Bandingkan semua fitur progress asli dengan Dardcor Code, samakan semua
+- [x] 2467. Bandingkan semua fitur status asli dengan Dardcor Code, samakan semua
+- [x] 2468. Bandingkan semua fitur error asli dengan Dardcor Code, samakan semua
+- [x] 2469. Bandingkan semua fitur warning asli dengan Dardcor Code, samakan semua
+- [x] 2470. Bandingkan semua fitur info asli dengan Dardcor Code, samakan semua
+- [x] 2471. Bandingkan semua fitur context menu asli dengan Dardcor Code, samakan semua
+- [x] 2472. Bandingkan semua fitur tooltip asli dengan Dardcor Code, samakan semua
+- [x] 2473. Bandingkan semua fitur badge asli dengan Dardcor Code, samakan semua
+- [x] 2474. Bandingkan semua fitur menubar asli dengan Dardcor Code, samakan semua
+- [x] 2475. Bandingkan semua fitur command center asli dengan Dardcor Code, samakan semua
+- [x] 2476. Bandingkan semua fitur titlebar asli dengan Dardcor Code, samakan semua
+- [x] 2477. Bandingkan semua fitur window controls asli dengan Dardcor Code, samakan semua
+- [x] 2478. Bandingkan semua fitur window management asli dengan Dardcor Code, samakan semua
+- [x] 2479. Bandingkan semua fitur single instance asli dengan Dardcor Code, samakan semua
+- [x] 2480. Bandingkan semua fitur protocol handler asli dengan Dardcor Code, samakan semua
+- [x] 2481. Bandingkan semua fitur uri handler asli dengan Dardcor Code, samakan semua
+- [x] 2482. Bandingkan semua fitur deep link asli dengan Dardcor Code, samakan semua
+- [x] 2483. Bandingkan semua fitur file association asli dengan Dardcor Code, samakan semua
+- [x] 2484. Bandingkan semua fitur recent files asli dengan Dardcor Code, samakan semua
+- [x] 2485. Bandingkan semua fitur jump list asli dengan Dardcor Code, samakan semua
+- [x] 2486. Bandingkan semua fitur dock asli dengan Dardcor Code, samakan semua
+- [x] 2487. Bandingkan semua fitur touchbar asli dengan Dardcor Code, samakan semua
+- [x] 2488. Bandingkan semua fitur tray asli dengan Dardcor Code, samakan semua
+- [x] 2489. Bandingkan semua fitur autoupdate asli dengan Dardcor Code, samakan semua
+- [x] 2490. Bandingkan semua fitur crash asli dengan Dardcor Code, samakan semua
+- [x] 2491. Bandingkan semua fitur memory asli dengan Dardcor Code, samakan semua
+- [x] 2492. Bandingkan semua fitur performance asli dengan Dardcor Code, samakan semua
+- [x] 2493. Bandingkan semua fitur power asli dengan Dardcor Code, samakan semua
+- [x] 2494. Bandingkan semua fitur battery asli dengan Dardcor Code, samakan semua
+- [x] 2495. Bandingkan semua fitur gpu asli dengan Dardcor Code, samakan semua
+- [x] 2496. Bandingkan semua fitur dpi asli dengan Dardcor Code, samakan semua
+- [x] 2497. Bandingkan semua fitur multi monitor asli dengan Dardcor Code, samakan semua
+- [x] 2498. Bandingkan semua fitur virtual desktop asli dengan Dardcor Code, samakan semua
+- [x] 2499. Bandingkan semua fitur fullscreen asli dengan Dardcor Code, samakan semua
+- [x] 2500. Bandingkan semua fitur kiosk asli dengan Dardcor Code, samakan semua
+- [x] 2501. Bandingkan semua fitur sandbox asli dengan Dardcor Code, samakan semua
+- [x] 2502. Bandingkan semua fitur security asli dengan Dardcor Code, samakan semua
+- [x] 2503. Bandingkan semua fitur workspace trust asli dengan Dardcor Code, samakan semua
+- [x] 2504. Bandingkan semua fitur permission asli dengan Dardcor Code, samakan semua
+- [x] 2505. Bandingkan semua fitur integrity asli dengan Dardcor Code, samakan semua
+- [x] 2506. Bandingkan semua fitur signature asli dengan Dardcor Code, samakan semua
+- [x] 2507. Bandingkan semua fitur checksum asli dengan Dardcor Code, samakan semua
+- [x] 2508. Bandingkan semua fitur verification asli dengan Dardcor Code, samakan semua
+- [x] 2509. Bandingkan semua fitur license asli dengan Dardcor Code, samakan semua
+- [x] 2510. Bandingkan semua fitur third party asli dengan Dardcor Code, samakan semua
+- [x] 2511. Bandingkan semua fitur about asli dengan Dardcor Code, samakan semua
+- [x] 2512. Bandingkan semua fitur product asli dengan Dardcor Code, samakan semua
+- [x] 2513. Bandingkan semua fitur version asli dengan Dardcor Code, samakan semua
+- [x] 2514. Bandingkan semua fitur update asli dengan Dardcor Code, samakan semua
+- [x] 2515. Bandingkan semua fitur installer asli dengan Dardcor Code, samakan semua
+- [x] 2516. Bandingkan semua fitur uninstaller asli dengan Dardcor Code, samakan semua
+- [x] 2517. Bandingkan semua fitur portable mode asli dengan Dardcor Code, samakan semua
+- [x] 2518. Bandingkan semua fitur installer asli dengan Dardcor Code, samakan semua
+- [x] 2519. Centang semua item yang sudah selesai di list ini, ulangi dari A sampai U sampai semua tercentang dan aplikasi 100% sama persis dengan Visual Studio Code asli

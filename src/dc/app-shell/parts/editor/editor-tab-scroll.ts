@@ -2,8 +2,8 @@
  * Dardcor Code - Mouse Wheel Horizontal Scroll Handler For Editor Tab Bar
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
 
 export interface IEditorTabScrollOptions {
 	readonly scrollOnVerticalWheel?: boolean;

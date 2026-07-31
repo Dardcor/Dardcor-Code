@@ -2,11 +2,11 @@
  * Dardcor Code - Installed Extension Background Update Check Notification
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, clearNode, addDisposableListener } from '../../core/dom/element.js';
-import { CssInjector } from '../../core/dom/css-injector.js';
-import { IExtensionInfo, ExtensionRegistry } from './extensions-viewlet.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, clearNode, addDisposableListener } from '../../core/dom/element';
+import { CssInjector } from '../../core/dom/css-injector';
+import { IExtensionInfo, ExtensionRegistry } from './extensions-viewlet';
 
 const UPDATE_CHECKER_STYLE_ID = 'dc-extension-update-checker-styles';
 

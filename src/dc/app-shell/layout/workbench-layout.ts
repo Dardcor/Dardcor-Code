@@ -2,8 +2,8 @@
  * Dardcor Code - Master Workbench Shell Container & Component Layout
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { $ } from '../../core/dom/element.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { $ } from '../../core/dom/element';
 
 export class WorkbenchLayout extends Disposable {
 	public readonly container: HTMLElement;

@@ -2,10 +2,10 @@
  * Dardcor Code - Status Bar Entry Item Model
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { $ } from '../../../core/dom/element.js';
-import { StatusbarAlignment, IStatusbarEntry } from './statusbar-registry.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { $ } from '../../../core/dom/element';
+import { StatusbarAlignment, IStatusbarEntry } from './statusbar-registry';
 
 export interface IStatusbarItemOptions {
 	readonly id: string;

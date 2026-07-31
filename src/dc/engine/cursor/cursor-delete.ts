@@ -1,8 +1,8 @@
-import { ITextModel } from '../model/text-model.js';
-import { Selection } from '../model/selection.js';
-import { Range } from '../model/range.js';
-import { CursorWord, DEFAULT_WORD_SEPARATORS } from './cursor-word.js';
-import { IEditOperation } from './cursor-type.js';
+import { ITextModel } from '../model/text-model';
+import { Selection } from '../model/selection';
+import { Range } from '../model/range';
+import { CursorWord, DEFAULT_WORD_SEPARATORS } from './cursor-word';
+import { IEditOperation } from './cursor-type';
 
 export class CursorDelete {
 	static deleteLeft(model: ITextModel, selections: readonly Selection[], wordStarts: boolean): IEditOperation[] {

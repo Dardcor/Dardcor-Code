@@ -3,8 +3,8 @@
  * Mirrors: vs/editor/common/cursor/cursorSaveState.ts
  */
 
-import { ITextModel, Position } from '../model/text-model.js';
-import { CursorSelection } from './cursor-operations.js';
+import { ITextModel, Position } from '../model/text-model';
+import { CursorSelection } from './cursor-operations';
 
 export interface IViewStateSelection {
 	readonly anchorLineNumber: number;

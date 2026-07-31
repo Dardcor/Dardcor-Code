@@ -2,14 +2,14 @@
  * Dardcor Code - Single Editor Group Tab Manager & Active Pane Controller
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { $ } from '../../../core/dom/element.js';
-import { EditorInput } from './editor-input.js';
-import { EditorTabBar } from './editor-tab-bar.js';
-import { EditorGroupView } from './editor-group-view.js';
-import { EditorPane, TextEditorPane } from './editor-pane.js';
-import { EditorHistoryTracker } from './editor-history-tracker.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { $ } from '../../../core/dom/element';
+import { EditorInput } from './editor-input';
+import { EditorTabBar } from './editor-tab-bar';
+import { EditorGroupView } from './editor-group-view';
+import { EditorPane, TextEditorPane } from './editor-pane';
+import { EditorHistoryTracker } from './editor-history-tracker';
 
 export type EditorPaneFactory = (container: HTMLElement, input: EditorInput) => EditorPane;
 

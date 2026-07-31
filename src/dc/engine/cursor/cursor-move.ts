@@ -1,6 +1,6 @@
-import { ITextModel } from '../model/text-model.js';
-import { Position } from '../model/position.js';
-import { Selection } from '../model/selection.js';
+import { ITextModel } from '../model/text-model';
+import { Position } from '../model/position';
+import { Selection } from '../model/selection';
 
 export interface ICursorMoveArgs {
 	readonly to: 'left' | 'right' | 'up' | 'down' | 'wrappedLineStart' | 'wrappedLineEnd' | 'viewPortTop' | 'viewPortCenter' | 'viewPortBottom' | 'prevBlankLine' | 'nextBlankLine';

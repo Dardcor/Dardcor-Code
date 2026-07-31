@@ -3,8 +3,8 @@
  * Mirrors: vs/base/parts/ipc/common/ipc.mp.ts
  */
 
-import { IDisposable } from '../lifecycle/disposable.js';
-import { Emitter, Event } from '../events/emitter.js';
+import { IDisposable } from '../lifecycle/disposable';
+import { Emitter, Event } from '../events/emitter';
 
 export interface IMessagePortData {
 	type: string;

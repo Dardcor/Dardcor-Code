@@ -14,7 +14,7 @@ export async function launchDiff(left: string, right: string): Promise<void> {
 	}
 	try {
 		const projectRoot = new URL('../../../../', import.meta.url).pathname.replace(/^[/\\]/, '');
-		const entry = pathToFileURL(join(projectRoot, 'index.html')).toString();
+		const entry = pathToFileURL(join(projectRoot, 'src', 'dc', 'code', 'electron-sandbox', 'workbench', 'workbench.html')).toString();
 		const diffQuery = `${encodeURIComponent(left)}|${encodeURIComponent(right)}`;
 		const win = new electron.BrowserWindow({
 			width: 1280,

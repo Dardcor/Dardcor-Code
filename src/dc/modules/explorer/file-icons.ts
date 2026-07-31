@@ -2,14 +2,14 @@
  * Dardcor Code - File Tree Node File Type Icon Resolver
  */
 
-import { getIconRegistry, registerIcon, IIconDefinition } from '../../services/theme/icon-registry.js';
-import { CssInjector } from '../../core/dom/css-injector.js';
-import { Path } from '../../core/types/path.js';
+import { getIconRegistry, registerIcon, IIconDefinition } from '../../services/theme/icon-registry';
+import { CssInjector } from '../../core/dom/css-injector';
+import { Path } from '../../core/types/path';
 
 const FILE_ICONS_STYLE_ID = 'dc-file-type-icons-styles';
 
 const EXTENSION_ICONS: Record<string, string> = {
-	'.js': 'ext-js', '.jsx': 'ext-jsx', '.mjs': 'ext-js', '.cjs': 'ext-js',
+	'': 'ext-js', '.jsx': 'ext-jsx', '.mjs': 'ext-js', '.cjs': 'ext-js',
 	'.ts': 'ext-ts', '.tsx': 'ext-tsx', '.mts': 'ext-ts', '.cts': 'ext-ts',
 	'.json': 'ext-json', '.jsonc': 'ext-json', '.json5': 'ext-json',
 	'.html': 'ext-html', '.htm': 'ext-html', '.xml': 'ext-html', '.svg': 'ext-svg',

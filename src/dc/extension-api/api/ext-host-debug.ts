@@ -3,10 +3,10 @@
  * Mirrors: vs/workbench/api/common/extHostDebugService.ts
  */
 
-import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { RPCProtocol, IRPCChannelHandler } from '../host/rpc-protocol.js';
-import { WorkspaceFolder } from './ext-host-workspace.js';
+import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { RPCProtocol, IRPCChannelHandler } from '../host/rpc-protocol';
+import { WorkspaceFolder } from './ext-host-workspace';
 
 export interface DebugConfiguration {
 	type: string;

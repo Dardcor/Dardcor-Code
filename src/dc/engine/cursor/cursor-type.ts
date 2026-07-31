@@ -1,6 +1,6 @@
-import { ITextModel } from '../model/text-model.js';
-import { Selection } from '../model/selection.js';
-import { Range } from '../model/range.js';
+import { ITextModel } from '../model/text-model';
+import { Selection } from '../model/selection';
+import { Range } from '../model/range';
 
 export interface IEditOperation {
 	readonly range: Range;

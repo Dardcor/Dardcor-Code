@@ -2,7 +2,7 @@
  * Dardcor Code - Dynamic CSS Injector
  */
 
-import { IDisposable } from '../lifecycle/disposable.js';
+import { IDisposable } from '../lifecycle/disposable';
 
 class CssInjectorImpl {
 	private _styleElement: HTMLStyleElement | null = null;

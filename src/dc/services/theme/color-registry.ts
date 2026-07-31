@@ -2,9 +2,9 @@
  * Dardcor Code - Design System Color Token Registry (Task 129)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { Color } from '../../core/math/color.js';
+import { createDecorator } from '../instantiation/annotations';
+import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable';
+import { Color } from '../../core/math/color';
 
 export type ColorThemeKind = 'light' | 'dark' | 'hc';
 
@@ -132,6 +132,62 @@ export namespace ColorTokens {
 	export const notificationCenterBackground = 'notificationCenter.background';
 	export const menuBackground = 'menu.background';
 	export const menuForeground = 'menu.foreground';
+	// Debug
+	export const debugToolBarBackground = 'debugToolBar.background';
+	export const debugToolBarBorder = 'debugToolBar.border';
+	export const debugIconStartForeground = 'debugIcon.startForeground';
+	export const debugIconPauseForeground = 'debugIcon.pauseForeground';
+	export const debugIconStopForeground = 'debugIcon.stopForeground';
+	export const debugIconStepOverForeground = 'debugIcon.stepOverForeground';
+	export const debugIconStepIntoForeground = 'debugIcon.stepIntoForeground';
+	export const debugIconStepOutForeground = 'debugIcon.stepOutForeground';
+	export const debugIconContinueForeground = 'debugIcon.continueForeground';
+	export const debugIconStepBackForeground = 'debugIcon.stepBackForeground';
+	export const debugConsoleInfoForeground = 'debugConsole.infoForeground';
+	export const debugConsoleWarningForeground = 'debugConsole.warningForeground';
+	export const debugConsoleErrorForeground = 'debugConsole.errorForeground';
+	export const debugConsoleSourceForeground = 'debugConsole.sourceForeground';
+	export const debugConsoleInputIconForeground = 'debugConsoleInputIcon.foreground';
+	
+	// Git
+	export const gitDecorationAddedResourceForeground = 'gitDecoration.addedResourceForeground';
+	export const gitDecorationModifiedResourceForeground = 'gitDecoration.modifiedResourceForeground';
+	export const gitDecorationDeletedResourceForeground = 'gitDecoration.deletedResourceForeground';
+	export const gitDecorationUntrackedResourceForeground = 'gitDecoration.untrackedResourceForeground';
+	export const gitDecorationIgnoredResourceForeground = 'gitDecoration.ignoredResourceForeground';
+	export const gitDecorationConflictingResourceForeground = 'gitDecoration.conflictingResourceForeground';
+	export const gitDecorationSubmoduleResourceForeground = 'gitDecoration.submoduleResourceForeground';
+
+	// Chat
+	export const chatRequestBackground = 'chat.requestBackground';
+	export const chatRequestBorder = 'chat.requestBorder';
+
+	// Notebook
+	export const notebookCellBorderColor = 'notebook.cellBorderColor';
+	export const notebookCellHoverBackground = 'notebook.cellHoverBackground';
+	export const notebookCellInsertionIndicator = 'notebook.cellInsertionIndicator';
+	export const notebookCellStatusBarItemHoverBackground = 'notebook.cellStatusBarItemHoverBackground';
+	export const notebookCellToolbarSeparator = 'notebook.cellToolbarSeparator';
+	export const notebookEditorBackground = 'notebook.editorBackground';
+	export const notebookFocusedCellBackground = 'notebook.focusedCellBackground';
+	export const notebookFocusedCellBorder = 'notebook.focusedCellBorder';
+	export const notebookFocusedEditorBorder = 'notebook.focusedEditorBorder';
+	export const notebookInactiveFocusedCellBorder = 'notebook.inactiveFocusedCellBorder';
+	export const notebookInactiveSelectedCellBorder = 'notebook.inactiveSelectedCellBorder';
+	export const notebookOutputContainerBackgroundColor = 'notebook.outputContainerBackgroundColor';
+	export const notebookOutputContainerBorderColor = 'notebook.outputContainerBorderColor';
+	export const notebookSelectedCellBackground = 'notebook.selectedCellBackground';
+	export const notebookSelectedCellBorder = 'notebook.selectedCellBorder';
+	export const notebookSymbolHighlightBackground = 'notebook.symbolHighlightBackground';
+	export const notebookScrollbarSliderActiveBackground = 'notebookScrollbarSlider.activeBackground';
+	export const notebookScrollbarSliderBackground = 'notebookScrollbarSlider.background';
+	export const notebookScrollbarSliderHoverBackground = 'notebookScrollbarSlider.hoverBackground';
+	export const notebookStatusErrorIcon = 'notebookStatusErrorIcon.foreground';
+	export const notebookStatusRunningIcon = 'notebookStatusRunningIcon.foreground';
+	export const notebookStatusSuccessIcon = 'notebookStatusSuccessIcon.foreground';
+
+	// Others
+	export const widgetShadow = 'widget.shadow';
 }
 
 function registerDefaultColors(): void {
@@ -178,7 +234,63 @@ function registerDefaultColors(): void {
 		[ColorTokens.breadcrumbsForeground, { light: '#616161', dark: '#cccccc' }],
 		[ColorTokens.notificationCenterBackground, { light: '#ffffff', dark: '#252526' }],
 		[ColorTokens.menuBackground, { light: '#ffffff', dark: '#252526' }],
-		[ColorTokens.menuForeground, { light: '#333333', dark: '#cccccc' }]
+		[ColorTokens.menuForeground, { light: '#333333', dark: '#cccccc' }],
+		// Debug
+		[ColorTokens.debugToolBarBackground, { light: '#f3f3f3', dark: '#333333' }],
+		[ColorTokens.debugToolBarBorder, { light: '#eaeaea', dark: '#474747' }],
+		[ColorTokens.debugIconStartForeground, { light: '#388a34', dark: '#89d185' }],
+		[ColorTokens.debugIconPauseForeground, { light: '#007acc', dark: '#75beff' }],
+		[ColorTokens.debugIconStopForeground, { light: '#a1260d', dark: '#f48771' }],
+		[ColorTokens.debugIconStepOverForeground, { light: '#007acc', dark: '#75beff' }],
+		[ColorTokens.debugIconStepIntoForeground, { light: '#007acc', dark: '#75beff' }],
+		[ColorTokens.debugIconStepOutForeground, { light: '#007acc', dark: '#75beff' }],
+		[ColorTokens.debugIconContinueForeground, { light: '#007acc', dark: '#75beff' }],
+		[ColorTokens.debugIconStepBackForeground, { light: '#007acc', dark: '#75beff' }],
+		[ColorTokens.debugConsoleInfoForeground, { light: '#1a1a1a', dark: '#cccccc' }],
+		[ColorTokens.debugConsoleWarningForeground, { light: '#bf8803', dark: '#cca700' }],
+		[ColorTokens.debugConsoleErrorForeground, { light: '#a1260d', dark: '#f48771' }],
+		[ColorTokens.debugConsoleSourceForeground, { light: '#1a1a1a', dark: '#cccccc' }],
+		[ColorTokens.debugConsoleInputIconForeground, { light: '#1a1a1a', dark: '#cccccc' }],
+		
+		// Git
+		[ColorTokens.gitDecorationAddedResourceForeground, { light: '#587c0c', dark: '#81b88b' }],
+		[ColorTokens.gitDecorationModifiedResourceForeground, { light: '#895503', dark: '#e2c08d' }],
+		[ColorTokens.gitDecorationDeletedResourceForeground, { light: '#ad0707', dark: '#c74e39' }],
+		[ColorTokens.gitDecorationUntrackedResourceForeground, { light: '#007100', dark: '#73c991' }],
+		[ColorTokens.gitDecorationIgnoredResourceForeground, { light: '#8e8e90', dark: '#8c8c8c' }],
+		[ColorTokens.gitDecorationConflictingResourceForeground, { light: '#ad0707', dark: '#e4676b' }],
+		[ColorTokens.gitDecorationSubmoduleResourceForeground, { light: '#1258a7', dark: '#8db9e2' }],
+
+		// Chat
+		[ColorTokens.chatRequestBackground, { light: '#f2f2f2', dark: '#252526' }],
+		[ColorTokens.chatRequestBorder, { light: '#e5e5e5', dark: '#303031' }],
+
+		// Notebook
+		[ColorTokens.notebookCellBorderColor, { light: '#e5e5e5', dark: '#37373d' }],
+		[ColorTokens.notebookCellHoverBackground, { light: '#f2f2f2', dark: '#252526' }],
+		[ColorTokens.notebookCellInsertionIndicator, { light: '#007acc', dark: '#007acc' }],
+		[ColorTokens.notebookCellStatusBarItemHoverBackground, { light: '#e5e5e5', dark: '#37373d' }],
+		[ColorTokens.notebookCellToolbarSeparator, { light: '#e5e5e5', dark: '#37373d' }],
+		[ColorTokens.notebookEditorBackground, { light: '#f2f2f2', dark: '#1e1e1e' }],
+		[ColorTokens.notebookFocusedCellBackground, { light: '#ffffff', dark: '#252526' }],
+		[ColorTokens.notebookFocusedCellBorder, { light: '#007acc', dark: '#007acc' }],
+		[ColorTokens.notebookFocusedEditorBorder, { light: '#007acc', dark: '#007acc' }],
+		[ColorTokens.notebookInactiveFocusedCellBorder, { light: '#e5e5e5', dark: '#37373d' }],
+		[ColorTokens.notebookInactiveSelectedCellBorder, { light: '#e5e5e5', dark: '#37373d' }],
+		[ColorTokens.notebookOutputContainerBackgroundColor, { light: '#f2f2f2', dark: '#1e1e1e' }],
+		[ColorTokens.notebookOutputContainerBorderColor, { light: '#e5e5e5', dark: '#37373d' }],
+		[ColorTokens.notebookSelectedCellBackground, { light: '#f2f2f2', dark: '#252526' }],
+		[ColorTokens.notebookSelectedCellBorder, { light: '#e5e5e5', dark: '#37373d' }],
+		[ColorTokens.notebookSymbolHighlightBackground, { light: '#fdff0033', dark: '#ffffff0b' }],
+		[ColorTokens.notebookScrollbarSliderActiveBackground, { light: '#00000033', dark: '#bfbfbf33' }],
+		[ColorTokens.notebookScrollbarSliderBackground, { light: '#0000001a', dark: '#7979791a' }],
+		[ColorTokens.notebookScrollbarSliderHoverBackground, { light: '#00000026', dark: '#64646426' }],
+		[ColorTokens.notebookStatusErrorIcon, { light: '#a1260d', dark: '#f48771' }],
+		[ColorTokens.notebookStatusRunningIcon, { light: '#007acc', dark: '#75beff' }],
+		[ColorTokens.notebookStatusSuccessIcon, { light: '#388a34', dark: '#89d185' }],
+
+		// Others
+		[ColorTokens.widgetShadow, { light: '#00000029', dark: '#0000005c' }]
 	];
 	for (const [id, defaults] of colors) {
 		registry.registerColor(id, defaults);

@@ -1,7 +1,7 @@
-import { IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { LspClient } from './lsp-client.js';
-import { ILspPosition, ILspRange, ILspDiagnostic } from './lsp-converters.js';
-import { Range } from '../api/ext-host-api-impl.js';
+import { IDisposable, toDisposable } from '../../core/lifecycle/disposable';
+import { LspClient } from './lsp-client';
+import { ILspPosition, ILspRange, ILspDiagnostic } from './lsp-converters';
+import { Range } from '../api/ext-host-api-impl';
 
 export interface ICodeActionContext {
 	diagnostics: ILspDiagnostic[];

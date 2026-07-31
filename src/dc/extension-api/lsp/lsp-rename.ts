@@ -1,7 +1,7 @@
-import { IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { LspClient } from './lsp-client.js';
-import { ILspPosition, ILspRange, lspRangeToApiRange, lspWorkspaceEditToApiEdit, ILspWorkspaceEdit } from './lsp-converters.js';
-import { Position, Range, WorkspaceEdit } from '../api/ext-host-api-impl.js';
+import { IDisposable, toDisposable } from '../../core/lifecycle/disposable';
+import { LspClient } from './lsp-client';
+import { ILspPosition, ILspRange, lspRangeToApiRange, lspWorkspaceEditToApiEdit, ILspWorkspaceEdit } from './lsp-converters';
+import { Position, Range, WorkspaceEdit } from '../api/ext-host-api-impl';
 
 export interface IPrepareRenameResult {
 	range: ILspRange;

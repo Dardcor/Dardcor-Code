@@ -3,7 +3,7 @@
  * Mirrors: vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBufferBuilder.ts
  */
 
-import { PieceTree } from './piece-tree.js';
+import { PieceTree } from './piece-tree';
 
 export interface ITextBufferChunk {
 	readonly text: string;

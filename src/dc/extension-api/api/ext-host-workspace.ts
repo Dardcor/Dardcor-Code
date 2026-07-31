@@ -3,12 +3,12 @@
  * Mirrors: vs/workbench/api/common/extHostWorkspace.ts
  */
 
-import { Disposable, IDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { RPCProtocol, IRPCChannelHandler } from '../host/rpc-protocol.js';
-import { URI } from '../../core/types/uri.js';
-import { TextDocument, ExtHostDocuments, TextDocumentChangeEvent, ITextDocumentData } from './ext-host-documents.js';
-import { WorkspaceEdit } from './ext-host-api-impl.js';
+import { Disposable, IDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { RPCProtocol, IRPCChannelHandler } from '../host/rpc-protocol';
+import { URI } from '../../core/types/uri';
+import { TextDocument, ExtHostDocuments, TextDocumentChangeEvent, ITextDocumentData } from './ext-host-documents';
+import { WorkspaceEdit } from './ext-host-api-impl';
 
 export interface IWorkspaceFolderData {
 	uri: string;

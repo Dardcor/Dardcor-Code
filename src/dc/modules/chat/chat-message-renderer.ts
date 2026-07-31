@@ -2,10 +2,10 @@
  * Dardcor Code - Markdown Streaming LLM Chat Response Message Bubble Component
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, clearNode, addDisposableListener } from '../../core/dom/element.js';
-import { escape } from '../../core/types/strings.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, clearNode, addDisposableListener } from '../../core/dom/element';
+import { escape } from '../../core/types/strings';
 
 export type ChatMessageRole = 'user' | 'assistant' | 'system';
 

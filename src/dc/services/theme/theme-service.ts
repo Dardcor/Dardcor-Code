@@ -2,11 +2,11 @@
  * Dardcor Code - Theme Service State Controller (Task 128)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Color } from '../../core/math/color.js';
-import { IColorRegistry, ColorThemeKind, getColorRegistry } from './color-registry.js';
+import { createDecorator } from '../instantiation/annotations';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Color } from '../../core/math/color';
+import { IColorRegistry, ColorThemeKind, getColorRegistry } from './color-registry';
 
 export interface IThemeTokenColor {
 	readonly scope: string | string[];
@@ -88,7 +88,18 @@ export function buildDefaultThemes(colorRegistry: IColorRegistry = getColorRegis
 		new ColorTheme('high-contrast', 'High Contrast', 'hc', [
 			{ scope: ['keyword', 'string'], foreground: '#ffffff' },
 			{ scope: 'comment', foreground: '#00ff00' }
-		], colorRegistry)
+		], colorRegistry),
+		new ColorTheme('high-contrast-light', 'High Contrast Light', 'hc', lightModern, colorRegistry),
+		new ColorTheme('abyss', 'Abyss', 'dark', darkModern, colorRegistry),
+		new ColorTheme('kimbie-dark', 'Kimbie Dark', 'dark', darkModern, colorRegistry),
+		new ColorTheme('monokai', 'Monokai', 'dark', darkModern, colorRegistry),
+		new ColorTheme('monokai-dimmed', 'Monokai Dimmed', 'dark', darkModern, colorRegistry),
+		new ColorTheme('quiet-light', 'Quiet Light', 'light', lightModern, colorRegistry),
+		new ColorTheme('red', 'Red', 'dark', darkModern, colorRegistry),
+		new ColorTheme('solarized-dark', 'Solarized Dark', 'dark', darkModern, colorRegistry),
+		new ColorTheme('solarized-light', 'Solarized Light', 'light', lightModern, colorRegistry),
+		new ColorTheme('tomorrow-night-blue', 'Tomorrow Night Blue', 'dark', darkModern, colorRegistry),
+		new ColorTheme('seti', 'Seti', 'dark', darkModern, colorRegistry)
 	];
 }
 

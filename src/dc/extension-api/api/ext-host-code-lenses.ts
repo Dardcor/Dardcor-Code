@@ -1,9 +1,9 @@
-import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { DocumentSelector, matchesSelector } from './ext-host-languages.js';
-import { TextDocument } from './ext-host-documents.js';
-import { Range } from './ext-host-api-impl.js';
-import { CancellationToken } from '../../core/async/cancellation.js';
+import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { DocumentSelector, matchesSelector } from './ext-host-languages';
+import { TextDocument } from './ext-host-documents';
+import { Range } from './ext-host-api-impl';
+import { CancellationToken } from '../../core/async/cancellation';
 
 export interface ICodeLensCommand {
 	title: string;

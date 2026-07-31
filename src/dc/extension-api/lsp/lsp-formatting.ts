@@ -1,7 +1,7 @@
-import { IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { LspClient } from './lsp-client.js';
-import { ILspRange, ILspTextEdit, lspRangeToApiRange } from './lsp-converters.js';
-import { Range, TextEdit } from '../api/ext-host-api-impl.js';
+import { IDisposable, toDisposable } from '../../core/lifecycle/disposable';
+import { LspClient } from './lsp-client';
+import { ILspRange, ILspTextEdit, lspRangeToApiRange } from './lsp-converters';
+import { Range, TextEdit } from '../api/ext-host-api-impl';
 
 export interface IFormattingOptions {
 	tabSize: number;

@@ -1,4 +1,4 @@
-import { Emitter, Event } from '../../core/events/emitter.js';
+import { Emitter, Event } from '../../core/events/emitter';
 
 export interface IProfileSample {
 	readonly timestamp: number;

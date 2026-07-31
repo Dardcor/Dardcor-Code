@@ -3,7 +3,7 @@
  * Mirrors: vs/platform/theme/common/tokenTheme.ts
  */
 
-import { Color } from '../../core/math/color.js';
+import { Color } from '../../core/math/color';
 
 export interface ITokenColorCustomization {
 	scope?: string | string[];

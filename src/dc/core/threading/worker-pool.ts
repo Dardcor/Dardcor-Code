@@ -3,7 +3,7 @@
  * Mirrors: vs/base/common/worker/
  */
 
-import { IDisposable } from '../lifecycle/disposable.js';
+import { IDisposable } from '../lifecycle/disposable';
 
 export interface IWorkerTask<TInput, TOutput> {
 	id: number;

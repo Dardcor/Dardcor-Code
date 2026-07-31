@@ -1,6 +1,6 @@
 import { BrowserWindow } from 'electron';
-import { parseProtocolUrl, dispatchProtocolUrl } from './protocol-url-dispatcher.js';
-import { isProtocolRegistered } from './protocol-handler.js';
+import { parseProtocolUrl, dispatchProtocolUrl } from './protocol-url-dispatcher';
+import { isProtocolRegistered } from './protocol-handler';
 
 export interface UrlValidation {
 	safe: boolean;

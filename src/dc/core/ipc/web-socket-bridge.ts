@@ -2,8 +2,8 @@
  * Dardcor Code - WebSocket IPC Client (Task 96)
  */
 
-import { IDisposable } from '../lifecycle/disposable.js';
-import { Emitter, Event } from '../events/emitter.js';
+import { IDisposable } from '../lifecycle/disposable';
+import { Emitter, Event } from '../events/emitter';
 
 export class WebSocketIPCClient implements IDisposable {
 	private _ws: WebSocket | null = null;

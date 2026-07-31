@@ -2,9 +2,9 @@
  * Dardcor Code - Status Item Dynamic Construction Helper
  */
 
-import { Disposable, IDisposable } from '../../../core/lifecycle/disposable.js';
-import { StatusbarAlignment, IStatusbarEntry, StatusbarRegistry } from './statusbar-registry.js';
-import { StatusbarItem } from './statusbar-item.js';
+import { Disposable, IDisposable } from '../../../core/lifecycle/disposable';
+import { StatusbarAlignment, IStatusbarEntry, StatusbarRegistry } from './statusbar-registry';
+import { StatusbarItem } from './statusbar-item';
 
 export interface IStatusbarEntryBuilderOptions {
 	readonly id: string;

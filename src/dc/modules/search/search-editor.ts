@@ -2,15 +2,15 @@
  * Dardcor Code - Dedicated Full-Tab Search Results Document Editor
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, clearNode, addDisposableListener } from '../../core/dom/element.js';
-import { CssInjector } from '../../core/dom/css-injector.js';
-import { URI } from '../../core/types/uri.js';
-import { RipgrepService, ISearchOptions, ISearchMatch, ISearchSummary } from './ripgrep-service.js';
-import { SearchResultsTree } from './search-results-tree.js';
-import { SearchHistory } from './search-history.js';
-import { SearchFileIncludes } from './search-file-includes.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, clearNode, addDisposableListener } from '../../core/dom/element';
+import { CssInjector } from '../../core/dom/css-injector';
+import { URI } from '../../core/types/uri';
+import { RipgrepService, ISearchOptions, ISearchMatch, ISearchSummary } from './ripgrep-service';
+import { SearchResultsTree } from './search-results-tree';
+import { SearchHistory } from './search-history';
+import { SearchFileIncludes } from './search-file-includes';
 
 const SEARCH_EDITOR_STYLE_ID = 'dc-search-editor-styles';
 

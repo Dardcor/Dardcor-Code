@@ -2,14 +2,14 @@
  * Dardcor Code - Outline Symbol View Pane Container
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, clearNode, addDisposableListener } from '../../core/dom/element.js';
-import { CssInjector } from '../../core/dom/css-injector.js';
-import { URI } from '../../core/types/uri.js';
-import { Path } from '../../core/types/path.js';
-import { OutlineView, OutlineParser, IOutlineSymbol, getOutlineDocumentId } from './outline-view.js';
-import { OutlineFilter } from './outline-filter.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, clearNode, addDisposableListener } from '../../core/dom/element';
+import { CssInjector } from '../../core/dom/css-injector';
+import { URI } from '../../core/types/uri';
+import { Path } from '../../core/types/path';
+import { OutlineView, OutlineParser, IOutlineSymbol, getOutlineDocumentId } from './outline-view';
+import { OutlineFilter } from './outline-filter';
 
 const OUTLINE_PANE_STYLE_ID = 'dc-outline-pane-styles';
 

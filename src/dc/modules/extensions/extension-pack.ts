@@ -2,9 +2,9 @@
  * Dardcor Code - Extension Pack Grouping & Bulk Install
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { IExtensionInfo } from './extensions-viewlet.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { IExtensionInfo } from './extensions-viewlet';
 
 export interface IExtensionPack {
 	readonly id: string;

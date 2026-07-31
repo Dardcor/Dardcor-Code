@@ -2,8 +2,8 @@
  * Dardcor Code - Readable & Writable Streaming Buffers
  */
 
-import { Emitter, Event } from '../events/emitter.js';
-import { DataBuffer } from './buffer.js';
+import { Emitter, Event } from '../events/emitter';
+import { DataBuffer } from './buffer';
 
 export interface ReadableStream<T> {
 	on(event: 'data', listener: (data: T) => void): void;

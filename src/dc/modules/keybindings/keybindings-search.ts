@@ -2,8 +2,8 @@
  * Dardcor Code - Keybinding Action & Shortcut Combination Fuzzy Search
  */
 
-import { fuzzyMatch } from '../../core/types/strings.js';
-import type { IKeybindingEntry } from './keybindings-editor.js';
+import { fuzzyMatch } from '../../core/types/strings';
+import type { IKeybindingEntry } from './keybindings-editor';
 
 export interface IKeybindingSearchScore {
 	readonly entry: IKeybindingEntry;

@@ -3,11 +3,11 @@
  * Mirrors: vs/editor/browser/viewParts/selection/selection.ts
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { $, clearNode } from '../../../core/dom/element.js';
-import { IRenderContext } from '../../options/editor-options.js';
-import { CursorSelection } from '../../cursor/cursor-operations.js';
-import { Position, Range } from '../../model/text-model.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { $, clearNode } from '../../../core/dom/element';
+import { IRenderContext } from '../../options/editor-options';
+import { CursorSelection } from '../../cursor/cursor-operations';
+import { Position, Range } from '../../model/text-model';
 
 export class SelectionRenderer extends Disposable {
 	private readonly _domNode: HTMLElement;

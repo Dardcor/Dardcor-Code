@@ -2,11 +2,11 @@
  * Dardcor Code - Auto-Save Trigger Manager (AfterDelay, OnFocusChange, OnWindowChange)
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { Debouncer } from '../../../core/async/debouncer.js';
-import { EditorPart } from './editor-part.js';
-import { EditorInput } from './editor-input.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { Debouncer } from '../../../core/async/debouncer';
+import { EditorPart } from './editor-part';
+import { EditorInput } from './editor-input';
 
 export const enum AutoSaveMode {
 	OFF = 'off',

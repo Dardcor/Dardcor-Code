@@ -2,8 +2,8 @@
  * Dardcor Code - Drag and Drop Helper Utilities
  */
 
-import { addDisposableListener } from './element.js';
-import { IDisposable } from '../lifecycle/disposable.js';
+import { addDisposableListener } from './element';
+import { IDisposable } from '../lifecycle/disposable';
 
 export interface IDragAndDropCallbacks {
 	onDragStart?: (e: DragEvent) => void;

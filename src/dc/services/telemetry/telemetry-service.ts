@@ -2,13 +2,13 @@
  * Dardcor Code - Telemetry Event Dispatcher (Task 122)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { generateUuid } from '../../core/types/uuid.js';
-import { IStorageService, StorageScope, StorageTarget } from '../storage/storage-service.js';
-import { IEnvironmentService } from '../environment/environment-service.js';
-import { TelemetrySanitizer } from './telemetry-sanitizer.js';
+import { createDecorator } from '../instantiation/annotations';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable';
+import { generateUuid } from '../../core/types/uuid';
+import { IStorageService, StorageScope, StorageTarget } from '../storage/storage-service';
+import { IEnvironmentService } from '../environment/environment-service';
+import { TelemetrySanitizer } from './telemetry-sanitizer';
 
 export interface ITelemetryData {
 	[key: string]: any;

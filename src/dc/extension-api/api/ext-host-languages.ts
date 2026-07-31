@@ -3,14 +3,14 @@
  * Mirrors: vs/workbench/api/common/extHostLanguageFeatures.ts
  */
 
-import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { RPCProtocol, IRPCChannelHandler } from '../host/rpc-protocol.js';
-import { URI } from '../../core/types/uri.js';
-import { match as globMatch } from '../../core/formatting/glob.js';
-import { TextDocument, ExtHostDocuments } from './ext-host-documents.js';
-import { ExtHostDiagnostics, DiagnosticCollection } from './ext-host-diagnostics.js';
-import { Position, Range, Location, MarkdownString, WorkspaceEdit, TextEdit, Diagnostic } from './ext-host-api-impl.js';
-import { CancellationToken } from '../../core/async/cancellation.js';
+import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable';
+import { RPCProtocol, IRPCChannelHandler } from '../host/rpc-protocol';
+import { URI } from '../../core/types/uri';
+import { match as globMatch } from '../../core/formatting/glob';
+import { TextDocument, ExtHostDocuments } from './ext-host-documents';
+import { ExtHostDiagnostics, DiagnosticCollection } from './ext-host-diagnostics';
+import { Position, Range, Location, MarkdownString, WorkspaceEdit, TextEdit, Diagnostic } from './ext-host-api-impl';
+import { CancellationToken } from '../../core/async/cancellation';
 
 export type Thenable<T> = PromiseLike<T>;
 

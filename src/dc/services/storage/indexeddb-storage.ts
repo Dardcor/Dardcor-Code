@@ -2,9 +2,9 @@
  * Dardcor Code - IndexedDB Browser Storage Backend (Task 112)
  */
 
-import { IStorageService, IStorageChangeEvent, StorageScope, StorageTarget } from './storage-service.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
+import { IStorageService, IStorageChangeEvent, StorageScope, StorageTarget } from './storage-service';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
 
 const STORE_NAMES: Record<number, string> = {
 	[StorageScope.GLOBAL]: 'global',

@@ -2,14 +2,14 @@
  * Dardcor Code - WebSocket Ping/Pong Heartbeat Latency Monitor (Task 830)
  */
 
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
 import {
 	HeartbeatPayload,
 	createHeartbeatPing,
 	createHeartbeatPong,
 	computeRoundTripTime
-} from '../transport/heartbeat-protocol.js';
+} from '../transport/heartbeat-protocol';
 
 export interface IHeartbeatMonitorOptions {
 	readonly intervalMs?: number;

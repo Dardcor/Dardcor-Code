@@ -2,9 +2,9 @@
  * Dardcor Code - App Lifecycle Shutdown Gatekeeper (Task 132)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
+import { createDecorator } from '../instantiation/annotations';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
 
 export enum LifecyclePhase {
 	Starting = 1,

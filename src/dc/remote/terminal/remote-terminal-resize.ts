@@ -1,5 +1,5 @@
-import { RemotePty, RemotePtyClient } from './remote-pty-service.js';
-import { RemoteTerminalProcess } from './remote-terminal-process.js';
+import { RemotePty, RemotePtyClient } from './remote-pty-service';
+import { RemoteTerminalProcess } from './remote-terminal-process';
 
 export interface ITerminalSize {
 	readonly cols: number;

@@ -2,11 +2,11 @@
  * Dardcor Code - Toast Notification Stacked Card Positioning
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $ } from '../../core/dom/element.js';
-import { NotificationSeverity, INotification } from './notification-toast-widget.js';
-import { NotificationActions, INotificationAction } from './notification-actions.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $ } from '../../core/dom/element';
+import { NotificationSeverity, INotification } from './notification-toast-widget';
+import { NotificationActions, INotificationAction } from './notification-actions';
 
 export interface INotificationToastCenterOptions {
 	readonly maxVisible?: number;

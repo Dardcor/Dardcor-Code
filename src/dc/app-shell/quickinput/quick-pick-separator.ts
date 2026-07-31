@@ -2,9 +2,9 @@
  * Dardcor Code - Visual Separator Lines In Quick Pick Menu List
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { $ } from '../../core/dom/element.js';
-import { QuickPickItem, IQuickPickItemOptions } from './quick-pick-item.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { $ } from '../../core/dom/element';
+import { QuickPickItem, IQuickPickItemOptions } from './quick-pick-item';
 
 export interface IQuickPickSeparatorOptions {
 	readonly label?: string;

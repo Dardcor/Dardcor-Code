@@ -3,8 +3,8 @@
  * Mirrors: vs/platform/extensionManagement/common/extensionScanner.ts
  */
 
-import { URI } from '../../core/types/uri.js';
-import { IFileSystemProvider } from '../files/file-service.js';
+import { URI } from '../../core/types/uri';
+import { IFileSystemProvider } from '../files/file-service';
 
 export interface IExtensionManifest {
 	name: string;

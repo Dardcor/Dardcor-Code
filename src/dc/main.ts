@@ -8,7 +8,7 @@ const path = nodeRequire('path');
 
 const EXT_TO_LANG: Record<string, string> = {
 	'.ts': 'typescript', '.tsx': 'typescriptreact',
-	'.js': 'javascript', '.jsx': 'javascriptreact',
+	'': 'javascript', '.jsx': 'javascriptreact',
 	'.json': 'json', '.html': 'html', '.htm': 'html',
 	'.css': 'css', '.scss': 'scss', '.less': 'less',
 	'.md': 'markdown', '.xml': 'xml', '.yaml': 'yaml', '.yml': 'yaml',
@@ -39,7 +39,7 @@ function getFileIcon(name: string, isDir: boolean, isExpanded: boolean = false):
 	switch (ext) {
 		case '.ts': case '.tsx':
 			return '<i class="codicon codicon-file-code" style="color:#3178c6;"></i>';
-		case '.js': case '.jsx': case '.mjs': case '.cjs':
+		case '': case '.jsx': case '.mjs': case '.cjs':
 			return '<i class="codicon codicon-file-code" style="color:#f1e05a;"></i>';
 		case '.json':
 			return '<i class="codicon codicon-json" style="color:#cbcb41;"></i>';
@@ -106,24 +106,105 @@ function initMonacoEditor(): void {
 		fontSize: 14,
 		fontFamily: "'Cascadia Code', 'Fira Code', Consolas, 'Courier New', monospace",
 		fontLigatures: true,
-		minimap: { enabled: true },
+		minimap: {
+			enabled: true,
+			renderCharacters: true,
+			showSlider: 'mouseover',
+			scale: 1,
+			maxColumn: 120
+		},
 		scrollBeyondLastLine: true,
 		smoothScrolling: true,
-		cursorSmoothCaretAnimation: 'on',
-		cursorBlinking: 'smooth',
-		renderWhitespace: 'selection',
 		automaticLayout: true,
 		bracketPairColorization: { enabled: true },
-		guides: { bracketPairs: true, indentation: true },
+		guides: {
+			bracketPairs: true,
+			indentation: true,
+			highlightActiveIndentation: true,
+			bracketPairsHorizontal: true
+		},
 		padding: { top: 10 },
-		suggest: { showIcons: true, showMethods: true },
 		wordWrap: 'off',
-		lineNumbers: 'on',
+		lineNumbers: 'on', // on, off, relative, interval
 		glyphMargin: true,
 		folding: true,
-		links: true,
+		showFoldingControls: 'mouseover',
 		tabSize: 4,
 		insertSpaces: false,
+		stickyScroll: {
+			enabled: true,
+			maxLineCount: 5,
+			defaultModel: 'outlineModel'
+		},
+		overviewRulerBorder: true,
+		overviewRulerLanes: 3,
+		scrollbar: {
+			vertical: 'visible',
+			horizontal: 'visible',
+			useShadows: true,
+			verticalHasArrows: false,
+			horizontalHasArrows: false,
+			verticalScrollbarSize: 14,
+			horizontalScrollbarSize: 14,
+			arrowSize: 30
+		},
+		cursorStyle: 'line',
+		cursorBlinking: 'smooth',
+		cursorSmoothCaretAnimation: 'on',
+		renderWhitespace: 'selection',
+		renderControlCharacters: true,
+		inlayHints: {
+			enabled: 'on',
+			fontSize: 12,
+			fontFamily: 'Consolas'
+		},
+		codeLens: true,
+		colorDecorators: true,
+		hover: {
+			enabled: true,
+			delay: 300,
+			sticky: true
+		},
+		suggest: {
+			showIcons: true,
+			showMethods: true,
+			showInlineDetails: true,
+			snippetsPreventQuickSuggestions: false,
+			preview: true
+		},
+		parameterHints: {
+			enabled: true,
+			cycle: true
+		},
+		lightbulb: {
+			enabled: true
+		},
+		inlineSuggest: {
+			enabled: true
+		},
+		find: {
+			addExtraSpaceOnTop: true,
+			autoFindInSelection: 'never',
+			seedSearchStringFromSelection: 'always'
+		},
+		matchBrackets: 'always',
+		occurrencesHighlight: 'singleFile',
+		selectionHighlight: true,
+		links: true,
+		autoClosingBrackets: 'languageDefined',
+		autoClosingQuotes: 'languageDefined',
+		autoIndent: 'full',
+		formatOnPaste: true,
+		formatOnType: true,
+		linkedEditing: true,
+		multiCursorModifier: 'alt',
+		columnSelection: false,
+		dragAndDrop: true,
+		emptySelectionClipboard: true,
+		unusualLineTerminators: 'prompt',
+		largeFileOptimizations: true,
+		selectionClipboard: true,
+		trimAutoWhitespace: true
 	});
 
 	// Update status bar on cursor change

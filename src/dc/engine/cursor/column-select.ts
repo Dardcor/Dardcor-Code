@@ -3,8 +3,8 @@
  * Mirrors: vs/editor/contrib/columnSelection/columnSelection.ts
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Range } from '../model/text-model.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Range } from '../model/text-model';
 
 export interface IBoxSelection {
 	readonly anchorLineNumber: number;

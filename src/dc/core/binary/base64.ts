@@ -2,7 +2,7 @@
  * Dardcor Code - Base64 Encoding Utilities
  */
 
-import { DataBuffer } from './buffer.js';
+import { DataBuffer } from './buffer';
 
 declare const Buffer: any;
 

@@ -3,8 +3,8 @@
  * Mirrors: vs/editor/contrib/minimap/browser/minimap.ts
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { LineTokens } from '../../model/line-tokens.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { LineTokens } from '../../model/line-tokens';
 
 export interface IMinimapRenderOptions {
 	readonly width: number;

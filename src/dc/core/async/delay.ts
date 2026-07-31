@@ -3,7 +3,7 @@
  * Mirrors: vs/base/common/async.ts delay/timeout
  */
 
-import { CancellationToken } from './cancellation.js';
+import { CancellationToken } from './cancellation';
 
 export interface ICancelableDelay extends Promise<void> {
 	cancel(): void;

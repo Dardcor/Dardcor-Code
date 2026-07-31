@@ -3,10 +3,10 @@
  * Mirrors: vs/platform/extensionManagement/common/extensionManagement.ts VSIX package unpacker
  */
 
-import { readZip } from '../../core/binary/zip-parser.js';
-import { URI } from '../../core/types/uri.js';
-import { DataBuffer } from '../../core/binary/buffer.js';
-import { IFileService } from '../files/file-service.js';
+import { readZip } from '../../core/binary/zip-parser';
+import { URI } from '../../core/types/uri';
+import { DataBuffer } from '../../core/binary/buffer';
+import { IFileService } from '../files/file-service';
 
 export async function unpackVsix(vsixBuffer: ArrayBuffer | Uint8Array, destDir: URI, fileService: IFileService): Promise<void> {
 	const buffer = vsixBuffer instanceof Uint8Array

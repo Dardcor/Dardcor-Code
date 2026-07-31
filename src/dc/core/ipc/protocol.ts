@@ -2,7 +2,7 @@
  * Dardcor Code - Framed IPC Serialization Protocol
  */
 
-import { DataBuffer } from '../binary/buffer.js';
+import { DataBuffer } from '../binary/buffer';
 
 export interface IPCMessage {
 	id: number;

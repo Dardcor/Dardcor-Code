@@ -1,4 +1,4 @@
-import { YAMLLite } from '../../core/formatting/yaml-lite.js';
+import { YAMLLite } from '../../core/formatting/yaml-lite';
 
 export interface IComposePort {
 	readonly published: number;

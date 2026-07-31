@@ -2,9 +2,9 @@
  * Dardcor Code - Configuration Service Interface & Implementation
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
+import { createDecorator } from '../instantiation/annotations';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
 
 export const IConfigurationService = createDecorator<IConfigurationService>('configurationService');
 

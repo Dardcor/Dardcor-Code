@@ -2,11 +2,11 @@
  * Dardcor Code - Menu Bar Item Click Dispatcher
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { IMenuEntry, IMenuItem, MenubarPart } from '../menubar/menubar-part.js';
-import { CommandRegistry } from '../../../services/commands/command-service.js';
-import { ServicesAccessor } from '../../../services/instantiation/annotations.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { IMenuEntry, IMenuItem, MenubarPart } from '../menubar/menubar-part';
+import { CommandRegistry } from '../../../services/commands/command-service';
+import { ServicesAccessor } from '../../../services/instantiation/annotations';
 
 const NOOP_ACCESSOR: ServicesAccessor = {
 	get: () => undefined as never,

@@ -2,13 +2,13 @@
  * Dardcor Code - Global Find & Replace Across Workspace Files Engine
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { IFileService } from '../../services/files/file-service.js';
-import { URI } from '../../core/types/uri.js';
-import { DataBuffer } from '../../core/binary/buffer.js';
-import { createRegExp, regExpLeadsToEndlessLoop } from '../../core/types/strings.js';
-import { ISearchMatch, ISearchOptions } from './ripgrep-service.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { IFileService } from '../../services/files/file-service';
+import { URI } from '../../core/types/uri';
+import { DataBuffer } from '../../core/binary/buffer';
+import { createRegExp, regExpLeadsToEndlessLoop } from '../../core/types/strings';
+import { ISearchMatch, ISearchOptions } from './ripgrep-service';
 
 export interface IReplaceResult {
 	readonly resource: URI;

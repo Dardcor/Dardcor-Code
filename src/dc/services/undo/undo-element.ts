@@ -3,8 +3,8 @@
  * Mirrors: vs/platform/undoRedo/common/undoRedo.ts
  */
 
-import { URI } from '../../core/types/uri.js';
-import { IUndoRedoElement } from './undo-redo-service.js';
+import { URI } from '../../core/types/uri';
+import { IUndoRedoElement } from './undo-redo-service';
 
 export class WorkspaceEditUndoElement implements IUndoRedoElement {
 	readonly uri: URI;

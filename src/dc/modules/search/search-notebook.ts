@@ -2,10 +2,10 @@
  * Dardcor Code - Notebook Document Cell Text Search Provider
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { createRegExp } from '../../core/types/strings.js';
-import { JSONParser } from '../../core/formatting/json-parser.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { createRegExp } from '../../core/types/strings';
+import { JSONParser } from '../../core/formatting/json-parser';
 
 export type NotebookCellKind = 'markdown' | 'code';
 

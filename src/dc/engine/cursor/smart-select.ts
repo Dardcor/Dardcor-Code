@@ -1,7 +1,7 @@
-import { ITextModel } from '../model/text-model.js';
-import { Position } from '../model/position.js';
-import { Selection } from '../model/selection.js';
-import { CursorWord, DEFAULT_WORD_SEPARATORS } from './cursor-word.js';
+import { ITextModel } from '../model/text-model';
+import { Position } from '../model/position';
+import { Selection } from '../model/selection';
+import { CursorWord, DEFAULT_WORD_SEPARATORS } from './cursor-word';
 
 const OPEN_TO_CLOSE: Record<string, string> = {
 	'(': ')',

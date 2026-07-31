@@ -1,4 +1,4 @@
-import { DevcontainerFeature } from './devcontainer-parser.js';
+import { DevcontainerFeature } from './devcontainer-parser';
 
 export interface IDockerfileGenerateOptions {
 	readonly baseImage?: string;

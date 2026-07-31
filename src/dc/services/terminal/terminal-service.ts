@@ -3,10 +3,10 @@
  * Mirrors: vs/workbench/contrib/terminal/common/terminal.ts (process terminal allocator)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { Disposable, IDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { PtyProcess } from './pty-exec.js';
+import { createDecorator } from '../instantiation/annotations';
+import { Disposable, IDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { PtyProcess } from './pty-exec';
 
 export interface ITerminalInstance extends IDisposable {
 	readonly id: number;

@@ -2,13 +2,13 @@
  * Dardcor Code - Platform Services Barrel Export
  */
 
-export * from './instantiation/annotations.js';
-export * from './instantiation/container.js';
-export * from './instantiation/descriptors.js';
-export * from './instantiation/service-registry.js';
-export * from './files/file-service.js';
-export * from './files/memory-provider.js';
-export * from './storage/storage-service.js';
-export * from './configuration/configuration-service.js';
-export * from './contextkey/contextkey-service.js';
-export * from './commands/command-service.js';
+export * from './instantiation/annotations';
+export * from './instantiation/container';
+export * from './instantiation/descriptors';
+export * from './instantiation/service-registry';
+export * from './files/file-service';
+export * from './files/memory-provider';
+export * from './storage/storage-service';
+export * from './configuration/configuration-service';
+export * from './contextkey/contextkey-service';
+export * from './commands/command-service';

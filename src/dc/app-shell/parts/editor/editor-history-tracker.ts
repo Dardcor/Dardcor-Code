@@ -2,9 +2,9 @@
  * Dardcor Code - Tab Usage History Tracker For Ctrl+Tab Switcher
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { EditorInput } from './editor-input.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { EditorInput } from './editor-input';
 
 export class EditorHistoryTracker extends Disposable {
 	private readonly _mru: EditorInput[] = [];

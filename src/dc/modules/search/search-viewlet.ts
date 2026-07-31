@@ -2,17 +2,17 @@
  * Dardcor Code - Global Text Search Viewlet Component
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, clearNode, addDisposableListener } from '../../core/dom/element.js';
-import { CssInjector } from '../../core/dom/css-injector.js';
-import { URI } from '../../core/types/uri.js';
-import { IFileService } from '../../services/files/file-service.js';
-import { FileService } from '../../services/files/file-service.js';
-import { DiskFileSystemProvider } from '../../services/files/disk-provider.js';
-import { RipgrepService, ISearchOptions, ISearchMatch } from './ripgrep-service.js';
-import { SearchResultsTree } from './search-results-tree.js';
-import { SearchReplaceEngine } from './search-replace.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, clearNode, addDisposableListener } from '../../core/dom/element';
+import { CssInjector } from '../../core/dom/css-injector';
+import { URI } from '../../core/types/uri';
+import { IFileService } from '../../services/files/file-service';
+import { FileService } from '../../services/files/file-service';
+import { DiskFileSystemProvider } from '../../services/files/disk-provider';
+import { RipgrepService, ISearchOptions, ISearchMatch } from './ripgrep-service';
+import { SearchResultsTree } from './search-results-tree';
+import { SearchReplaceEngine } from './search-replace';
 
 export interface ISearchViewletOptions {
 	searchOnTypeDelay?: number;

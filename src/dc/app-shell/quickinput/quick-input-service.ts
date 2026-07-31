@@ -2,12 +2,12 @@
  * Dardcor Code - Quick Input Service Modal Host
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { createDecorator } from '../../services/instantiation/annotations.js';
-import { ModalDialogHost } from '../dialogs/modal-dialog-host.js';
-import { QuickPickWidget, IQuickPickOptions } from './quick-pick-widget.js';
-import { InputBoxWidget, IInputBoxOptions } from './input-box-widget.js';
-import { QuickPickItem } from './quick-pick-item.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { createDecorator } from '../../services/instantiation/annotations';
+import { ModalDialogHost } from '../dialogs/modal-dialog-host';
+import { QuickPickWidget, IQuickPickOptions } from './quick-pick-widget';
+import { InputBoxWidget, IInputBoxOptions } from './input-box-widget';
+import { QuickPickItem } from './quick-pick-item';
 
 export const IQuickInputService = createDecorator<IQuickInputService>('quickInputService');
 

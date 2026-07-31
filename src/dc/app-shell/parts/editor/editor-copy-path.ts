@@ -2,13 +2,13 @@
  * Dardcor Code - Copy Path / Copy Relative Path Actions On Editor Tabs
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { URI } from '../../../core/types/uri.js';
-import { Path } from '../../../core/types/path.js';
-import { IClipboardService, BrowserClipboardService } from '../../../core/system/clipboard.js';
-import { CommandRegistry } from '../../../services/commands/command-service.js';
-import { EditorInput } from './editor-input.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { URI } from '../../../core/types/uri';
+import { Path } from '../../../core/types/path';
+import { IClipboardService, BrowserClipboardService } from '../../../core/system/clipboard';
+import { CommandRegistry } from '../../../services/commands/command-service';
+import { EditorInput } from './editor-input';
 
 export interface IEditorCopyPathEvent {
 	readonly uri: URI;

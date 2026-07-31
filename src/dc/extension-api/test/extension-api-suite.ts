@@ -1,4 +1,4 @@
-import { Position, Range, WorkspaceEdit } from '../api/ext-host-api-impl.js';
+import { Position, Range, WorkspaceEdit } from '../api/ext-host-api-impl';
 import {
 	apiPositionToLspPosition,
 	lspPositionToApiPosition,
@@ -7,11 +7,11 @@ import {
 	lspWorkspaceEditToApiEdit,
 	ILspWorkspaceEdit,
 	ILspTextEdit
-} from '../lsp/lsp-converters.js';
-import { buildClientCapabilities } from '../lsp/lsp-client-capabilities.js';
-import { buildWebviewCsp } from '../sandbox/webview-csp.js';
-import { CustomEditorModel } from '../sandbox/custom-editor-model.js';
-import { LspWorkspaceEdits } from '../lsp/lsp-workspace-edits.js';
+} from '../lsp/lsp-converters';
+import { buildClientCapabilities } from '../lsp/lsp-client-capabilities';
+import { buildWebviewCsp } from '../sandbox/webview-csp';
+import { CustomEditorModel } from '../sandbox/custom-editor-model';
+import { LspWorkspaceEdits } from '../lsp/lsp-workspace-edits';
 
 export interface IExtensionApiSuiteResult {
 	pass: number;

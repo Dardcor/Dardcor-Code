@@ -1,5 +1,5 @@
-import { IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { LspClient } from './lsp-client.js';
+import { IDisposable, toDisposable } from '../../core/lifecycle/disposable';
+import { LspClient } from './lsp-client';
 
 export const lspSemanticTokenTypes: readonly string[] = [
 	'namespace', 'type', 'class', 'enum', 'interface', 'struct', 'typeParameter',

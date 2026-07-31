@@ -2,7 +2,7 @@
  * Dardcor Code - Event & Emitter Architecture
  */
 
-import { IDisposable, DisposableStore, toDisposable } from '../lifecycle/disposable.js';
+import { IDisposable, DisposableStore, toDisposable } from '../lifecycle/disposable';
 
 export interface Event<T> {
 	(listener: (e: T) => unknown, thisArgs?: any, disposables?: IDisposable[] | DisposableStore): IDisposable;

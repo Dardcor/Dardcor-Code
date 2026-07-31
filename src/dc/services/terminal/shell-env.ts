@@ -3,7 +3,7 @@
  * Mirrors: vs/platform/environment/node/shellEnv.ts
  */
 
-import { Process } from '../../core/system/process.js';
+import { Process } from '../../core/system/process';
 
 export function getEnvironmentVariable(name: string): string | undefined {
 	return Process.env[name];

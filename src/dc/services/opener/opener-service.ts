@@ -2,9 +2,9 @@
  * Dardcor Code - External/Internal URL Opener Router (Task 137)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { URI } from '../../core/types/uri.js';
+import { createDecorator } from '../instantiation/annotations';
+import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable';
+import { URI } from '../../core/types/uri';
 
 export interface IOpenOptions {
 	readonly openExternal?: boolean;

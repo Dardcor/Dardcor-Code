@@ -3,7 +3,7 @@
  * Mirrors: vs/platform/secrets/common/secrets.ts PBKDF2 master key derivation
  */
 
-import { sha256Hex } from '../../core/security/crypto.js';
+import { sha256Hex } from '../../core/security/crypto';
 
 const DEFAULT_ITERATIONS = 150_000;
 

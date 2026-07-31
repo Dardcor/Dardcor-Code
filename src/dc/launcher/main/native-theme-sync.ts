@@ -1,5 +1,5 @@
 import { BrowserWindow, nativeTheme } from 'electron';
-import { Disposable, toDisposable } from '../../core/lifecycle/disposable.js';
+import { Disposable, toDisposable } from '../../core/lifecycle/disposable';
 import {
 	DARK_BACKGROUND,
 	DARK_TITLEBAR_OVERLAY,
@@ -7,7 +7,7 @@ import {
 	LIGHT_TITLEBAR_OVERLAY,
 	SystemTheme,
 	getSystemTheme
-} from './native-theme-main.js';
+} from './native-theme-main';
 
 export function syncWindowTheme(window: BrowserWindow): void {
 	if (window.isDestroyed()) {

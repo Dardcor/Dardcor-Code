@@ -2,7 +2,7 @@
  * Dardcor Code - IPC Channel Interfaces & Primitives
  */
 
-import { Event } from '../events/emitter.js';
+import { Event } from '../events/emitter';
 
 export interface IChannel {
 	call<T>(command: string, arg?: any): Promise<T>;

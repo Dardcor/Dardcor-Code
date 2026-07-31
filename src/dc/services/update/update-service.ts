@@ -3,11 +3,11 @@
  * Mirrors: vs/platform/update/common/update.ts (app auto-update background worker)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { UpdateChecker, IUpdateManifest } from './update-checker.js';
-import { IRequestService } from '../request/request-service.js';
+import { createDecorator } from '../instantiation/annotations';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { UpdateChecker, IUpdateManifest } from './update-checker';
+import { IRequestService } from '../request/request-service';
 
 export const enum StateType {
 	Uninitialized = 'uninitialized',

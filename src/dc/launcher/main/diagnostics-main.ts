@@ -2,11 +2,11 @@ import { app } from 'electron';
 import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs';
-import { CLIOutput } from '../cli/cli-output.js';
-import { formatBytes } from './native-file-trash.js';
-import { getGpuStatus } from './gpu-acceleration.js';
-import { getProcessTree, ProcessInfo } from './process-monitor-tree.js';
-import { getV8Flags } from './v8-flags-main.js';
+import { CLIOutput } from '../cli/cli-output';
+import { formatBytes } from './native-file-trash';
+import { getGpuStatus } from './gpu-acceleration';
+import { getProcessTree, ProcessInfo } from './process-monitor-tree';
+import { getV8Flags } from './v8-flags-main';
 
 export interface DiagnosticReport {
 	version: string;

@@ -3,14 +3,14 @@
  * Mirrors: vs/workbench/api/common/extHost.api.impl.ts
  */
 
-import { URI } from '../../core/types/uri.js';
-import { IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { CancellationToken, CancellationTokenSource } from '../../core/async/cancellation.js';
-import { RPCProtocol } from '../host/rpc-protocol.js';
+import { URI } from '../../core/types/uri';
+import { IDisposable, toDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { CancellationToken, CancellationTokenSource } from '../../core/async/cancellation';
+import { RPCProtocol } from '../host/rpc-protocol';
 
-export { URI as Uri } from '../../core/types/uri.js';
-export { CancellationToken, CancellationTokenSource } from '../../core/async/cancellation.js';
+export { URI as Uri } from '../../core/types/uri';
+export { CancellationToken, CancellationTokenSource } from '../../core/async/cancellation';
 
 export class Position {
 	constructor(
@@ -377,36 +377,36 @@ export function toApiDisposable(value: DisposableLike): Disposable {
 
 export interface IExtHostContext {
 	readonly rpc: RPCProtocol;
-	readonly documents: import('./ext-host-documents.js').ExtHostDocuments;
-	readonly editors: import('./ext-host-editors.js').ExtHostEditors;
-	readonly workspace: import('./ext-host-workspace.js').ExtHostWorkspace;
-	readonly window: import('./ext-host-window.js').ExtHostWindow;
-	readonly commands: import('./ext-host-commands.js').ExtHostCommands;
-	readonly languages: import('./ext-host-languages.js').ExtHostLanguageFeatures;
-	readonly diagnostics: import('./ext-host-diagnostics.js').ExtHostDiagnostics;
-	readonly debug: import('./ext-host-debug.js').ExtHostDebugService;
-	readonly scm: import('./ext-host-scm.js').ExtHostSCM;
-	readonly terminals: import('./ext-host-terminal.js').ExtHostTerminal;
-	readonly webviews: import('./ext-host-webview.js').ExtHostWebview;
-	readonly env: import('./ext-host-env.js').ExtHostEnv;
-	readonly tasks: import('./ext-host-tasks.js').ExtHostTasks;
-	readonly notebooks: import('./ext-host-notebooks.js').ExtHostNotebooks;
-	readonly chat: import('./ext-host-chat.js').ExtHostChat;
+	readonly documents: import('./ext-host-documents').ExtHostDocuments;
+	readonly editors: import('./ext-host-editors').ExtHostEditors;
+	readonly workspace: import('./ext-host-workspace').ExtHostWorkspace;
+	readonly window: import('./ext-host-window').ExtHostWindow;
+	readonly commands: import('./ext-host-commands').ExtHostCommands;
+	readonly languages: import('./ext-host-languages').ExtHostLanguageFeatures;
+	readonly diagnostics: import('./ext-host-diagnostics').ExtHostDiagnostics;
+	readonly debug: import('./ext-host-debug').ExtHostDebugService;
+	readonly scm: import('./ext-host-scm').ExtHostSCM;
+	readonly terminals: import('./ext-host-terminal').ExtHostTerminal;
+	readonly webviews: import('./ext-host-webview').ExtHostWebview;
+	readonly env: import('./ext-host-env').ExtHostEnv;
+	readonly tasks: import('./ext-host-tasks').ExtHostTasks;
+	readonly notebooks: import('./ext-host-notebooks').ExtHostNotebooks;
+	readonly chat: import('./ext-host-chat').ExtHostChat;
 }
 
 export interface IExtensionApi {
 	readonly version: string;
-	readonly workspace: import('./ext-host-workspace.js').IWorkspaceApi;
-	readonly window: import('./ext-host-window.js').IWindowApi;
-	readonly commands: import('./ext-host-commands.js').ICommandsApi;
-	readonly languages: import('./ext-host-languages.js').ILanguagesApi;
-	readonly debug: import('./ext-host-debug.js').IDebugApi;
-	readonly scm: import('./ext-host-scm.js').IScmApi;
-	readonly terminal: import('./ext-host-terminal.js').ITerminalApi;
-	readonly env: import('./ext-host-env.js').IEnvApi;
-	readonly tasks: import('./ext-host-tasks.js').ITasksApi;
-	readonly notebooks: import('./ext-host-notebooks.js').INotebooksApi;
-	readonly chat: import('./ext-host-chat.js').IChatApi;
+	readonly workspace: import('./ext-host-workspace').IWorkspaceApi;
+	readonly window: import('./ext-host-window').IWindowApi;
+	readonly commands: import('./ext-host-commands').ICommandsApi;
+	readonly languages: import('./ext-host-languages').ILanguagesApi;
+	readonly debug: import('./ext-host-debug').IDebugApi;
+	readonly scm: import('./ext-host-scm').IScmApi;
+	readonly terminal: import('./ext-host-terminal').ITerminalApi;
+	readonly env: import('./ext-host-env').IEnvApi;
+	readonly tasks: import('./ext-host-tasks').ITasksApi;
+	readonly notebooks: import('./ext-host-notebooks').INotebooksApi;
+	readonly chat: import('./ext-host-chat').IChatApi;
 	readonly Uri: typeof URI;
 	readonly Position: typeof Position;
 	readonly Range: typeof Range;

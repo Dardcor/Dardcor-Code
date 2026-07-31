@@ -1,18 +1,18 @@
-import * as dom from '../../dom.js';
-import { IKeyboardEvent } from '../../keyboardEvent.js';
-import { IMouseEvent } from '../../mouseEvent.js';
-import { IToggleStyles, Toggle } from '../checkbox/checkbox.js';
-import { IContextViewProvider } from '../contextview/contextview.js';
-import { IFindInputToggleOpts } from './findInputToggles.js';
-import { HistoryInputBox, IInputBoxStyles, IInputValidator, IMessage as InputBoxMessage } from '../inputbox/inputBox.js';
-import { Widget } from '../widget.js';
-import { Codicon } from '../../../common/codicons.js';
-import { Emitter, Event } from '../../../common/event.js';
-import { KeyCode } from '../../../common/keyCodes.js';
+import * as dom from '../../dom';
+import { IKeyboardEvent } from '../../keyboardEvent';
+import { IMouseEvent } from '../../mouseEvent';
+import { IToggleStyles, Toggle } from '../checkbox/checkbox';
+import { IContextViewProvider } from '../contextview/contextview';
+import { IFindInputToggleOpts } from './findInputToggles';
+import { HistoryInputBox, IInputBoxStyles, IInputValidator, IMessage as InputBoxMessage } from '../inputbox/inputBox';
+import { Widget } from '../widget';
+import { Codicon } from '../../../common/codicons';
+import { Emitter, Event } from '../../../common/event';
+import { KeyCode } from '../../../common/keyCodes';
 import './findInput.css';
-import * as nls from '../../../../nls.js';
-import { IHistory } from '../../../common/history.js';
-import { type IHoverLifecycleOptions } from '../hover/hover.js';
+import * as nls from '../../../../nls';
+import { IHistory } from '../../../common/history';
+import { type IHoverLifecycleOptions } from '../hover/hover';
 
 
 export interface IReplaceInputOptions {

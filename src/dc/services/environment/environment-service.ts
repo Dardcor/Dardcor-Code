@@ -4,9 +4,9 @@
 
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { URI } from '../../core/types/uri.js';
-import { createDecorator } from '../instantiation/annotations.js';
-import { isWindows, isMacintosh, isLinux } from '../../core/environment/platform.js';
+import { URI } from '../../core/types/uri';
+import { createDecorator } from '../instantiation/annotations';
+import { isWindows, isMacintosh, isLinux } from '../../core/environment/platform';
 
 export interface IEnvironmentService {
 	readonly _serviceBrand: undefined;

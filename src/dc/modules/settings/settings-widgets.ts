@@ -2,9 +2,9 @@
  * Dardcor Code - Typed Settings Input Widgets (Boolean/Enum/Number/String/List)
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, addDisposableListener } from '../../core/dom/element.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, addDisposableListener } from '../../core/dom/element';
 
 export type SettingWidgetType = 'boolean' | 'enum' | 'number' | 'string' | 'array' | 'color';
 

@@ -1,4 +1,4 @@
-import { Emitter, Event } from '../../core/events/emitter.js';
+import { Emitter, Event } from '../../core/events/emitter';
 
 export const DEFAULT_TERMINAL_ENV: Record<string, string> = {
 	TERM: 'xterm-256color',

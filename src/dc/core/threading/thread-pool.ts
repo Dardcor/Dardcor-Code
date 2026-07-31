@@ -2,8 +2,8 @@
  * Dardcor Code - Worker Thread Pool Executor
  */
 
-import { WorkerClient } from './worker-client.js';
-import { Disposable } from '../lifecycle/disposable.js';
+import { WorkerClient } from './worker-client';
+import { Disposable } from '../lifecycle/disposable';
 
 export class ThreadPool extends Disposable {
 	private readonly _workers: WorkerClient[] = [];

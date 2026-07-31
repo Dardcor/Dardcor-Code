@@ -2,18 +2,18 @@
  * Dardcor Code - Browser-Only Web Application Entry Point (Vite Target) (Task 807)
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { $, clearNode } from '../../core/dom/element.js';
-import { WorkbenchLayout } from '../../app-shell/layout/workbench-layout.js';
-import { WebSocketClientBridge } from '../transport/web-socket-client.js';
-import { ConnectionMultiplexer, IRemoteChannelClient } from '../transport/connection-multiplexer.js';
-import { RemoteFileProvider } from '../files/remote-file-provider.js';
-import { RemoteWorkspaceState } from '../session/remote-workspace-state.js';
-import { HeartbeatMonitor, HeartbeatState } from '../session/heartbeat-monitor.js';
-import { encodeHeartbeatPing, encodeHeartbeatPong, decodeHeartbeat } from '../transport/heartbeat-protocol.js';
-import { RemotePtyClient } from '../terminal/remote-pty-service.js';
-import { URI } from '../../core/types/uri.js';
-import { IFileStat } from '../../services/files/file-service.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { $, clearNode } from '../../core/dom/element';
+import { WorkbenchLayout } from '../../app-shell/layout/workbench-layout';
+import { WebSocketClientBridge } from '../transport/web-socket-client';
+import { ConnectionMultiplexer, IRemoteChannelClient } from '../transport/connection-multiplexer';
+import { RemoteFileProvider } from '../files/remote-file-provider';
+import { RemoteWorkspaceState } from '../session/remote-workspace-state';
+import { HeartbeatMonitor, HeartbeatState } from '../session/heartbeat-monitor';
+import { encodeHeartbeatPing, encodeHeartbeatPong, decodeHeartbeat } from '../transport/heartbeat-protocol';
+import { RemotePtyClient } from '../terminal/remote-pty-service';
+import { URI } from '../../core/types/uri';
+import { IFileStat } from '../../services/files/file-service';
 
 export interface IWebWorkbenchConfig {
 	readonly serverUrl: string;

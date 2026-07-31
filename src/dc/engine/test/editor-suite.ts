@@ -1,15 +1,15 @@
-import { Position } from '../model/position.js';
-import { Range } from '../model/range.js';
-import { Selection } from '../model/selection.js';
-import { PrefixSumComputer } from '../model/prefix-sum-computer.js';
-import { IntervalTree, IIntervalNode } from '../model/interval-tree.js';
-import { PieceTree } from '../model/piece-tree/piece-tree.js';
-import { TextModel } from '../model/text-model.js';
-import { URI } from '../../core/types/uri.js';
-import { CursorWord, DEFAULT_WORD_SEPARATORS } from '../cursor/cursor-word.js';
-import { expandTabs, escapeHtml } from '../view/view-line-rendering.js';
-import { GrammarRegistry } from '../tokenizer/grammar-registry.js';
-import { createSnapshot, snapshotToLines, snapshotToText, snapshotFromText, Snapshot } from '../model/snapshot.js';
+import { Position } from '../model/position';
+import { Range } from '../model/range';
+import { Selection } from '../model/selection';
+import { PrefixSumComputer } from '../model/prefix-sum-computer';
+import { IntervalTree, IIntervalNode } from '../model/interval-tree';
+import { PieceTree } from '../model/piece-tree/piece-tree';
+import { TextModel } from '../model/text-model';
+import { URI } from '../../core/types/uri';
+import { CursorWord, DEFAULT_WORD_SEPARATORS } from '../cursor/cursor-word';
+import { expandTabs, escapeHtml } from '../view/view-line-rendering';
+import { GrammarRegistry } from '../tokenizer/grammar-registry';
+import { createSnapshot, snapshotToLines, snapshotToText, snapshotFromText, Snapshot } from '../model/snapshot';
 
 export interface IEditorSuiteResult {
 	readonly pass: number;

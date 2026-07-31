@@ -4,8 +4,8 @@
 
 import { readFileSync, existsSync, watch, FSWatcher } from 'node:fs';
 import { resolve, join } from 'node:path';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable';
 
 export interface IRemoteExtensionConfigPaths {
 	readonly userSettings?: string;

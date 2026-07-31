@@ -3,7 +3,7 @@
  */
 
 import { spawn } from 'node:child_process';
-import { Disposable } from '../../core/lifecycle/disposable.js';
+import { Disposable } from '../../core/lifecycle/disposable';
 
 export interface DockerContainerInfo {
 	readonly id: string;

@@ -2,15 +2,15 @@
  * Dardcor Code - Source Control Management (SCM / Git) Viewlet
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, clearNode, addDisposableListener } from '../../core/dom/element.js';
-import { CssInjector } from '../../core/dom/css-injector.js';
-import { Path } from '../../core/types/path.js';
-import { GitService } from './git-service.js';
-import { ScmRepository, IScmResource } from './scm-repository.js';
-import { ScmCommitBox } from './scm-commit-box.js';
-import { URI } from '../../core/types/uri.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, clearNode, addDisposableListener } from '../../core/dom/element';
+import { CssInjector } from '../../core/dom/css-injector';
+import { Path } from '../../core/types/path';
+import { GitService } from './git-service';
+import { ScmRepository, IScmResource } from './scm-repository';
+import { ScmCommitBox } from './scm-commit-box';
+import { URI } from '../../core/types/uri';
 
 const SCM_STYLE_ID = 'dc-scm-viewlet-styles';
 

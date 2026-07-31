@@ -3,9 +3,9 @@
  * Mirrors: vs/editor/contrib/find/findModel.ts
  */
 
-import { ITextModel, IRange, Range } from './text-model.js';
-import { TextBuffer } from './text-buffer.js';
-import { escapeRegExpCharacters } from '../../core/types/strings.js';
+import { ITextModel, IRange, Range } from './text-model';
+import { TextBuffer } from './text-buffer';
+import { escapeRegExpCharacters } from '../../core/types/strings';
 
 export interface ISearchQuery {
 	readonly searchString: string;

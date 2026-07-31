@@ -1,7 +1,7 @@
 import { readdir, mkdir, stat, readFile, writeFile, unlink, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
-import { Emitter, Event } from '../../core/events/emitter.js';
+import { Emitter, Event } from '../../core/events/emitter';
 
 export interface IV8CacheOptions {
 	readonly cacheDir?: string;

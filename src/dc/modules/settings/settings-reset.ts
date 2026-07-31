@@ -2,11 +2,11 @@
  * Dardcor Code - Reset Setting to Default Inline Action Command
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $ } from '../../core/dom/element.js';
-import { IConfigurationService, ConfigurationService } from '../../services/configuration/configuration-service.js';
-import { DEFAULT_SETTINGS, ISettingDescriptor } from './settings-editor.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $ } from '../../core/dom/element';
+import { IConfigurationService, ConfigurationService } from '../../services/configuration/configuration-service';
+import { DEFAULT_SETTINGS, ISettingDescriptor } from './settings-editor';
 
 export interface ISettingsResetEvent {
 	readonly settingKey: string;

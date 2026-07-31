@@ -3,10 +3,10 @@
  * Mirrors: vs/editor/browser/view/viewLines/viewLines.ts
  */
 
-import { $ } from '../../core/dom/element.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { LineTokens } from '../model/line-tokens.js';
+import { $ } from '../../core/dom/element';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { LineTokens } from '../model/line-tokens';
 
 export interface IViewLineData {
 	readonly lineNumber: number;

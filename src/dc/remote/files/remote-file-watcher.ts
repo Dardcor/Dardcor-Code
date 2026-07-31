@@ -4,10 +4,10 @@
 
 import { watch, FSWatcher, Stats, statSync } from 'node:fs';
 import { join, relative, resolve, sep } from 'node:path';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
-import { FileChangeType } from '../../services/files/file-service.js';
-import { IRemoteChannelClient, IRemoteChannelServer } from '../transport/connection-multiplexer.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable, IDisposable, toDisposable } from '../../core/lifecycle/disposable';
+import { FileChangeType } from '../../services/files/file-service';
+import { IRemoteChannelClient, IRemoteChannelServer } from '../transport/connection-multiplexer';
 
 export interface IRemoteFileChange {
 	readonly path: string;

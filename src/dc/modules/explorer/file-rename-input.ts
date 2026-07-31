@@ -2,10 +2,10 @@
  * Dardcor Code - Inline File Tree Node Editing Text Input Element
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $ } from '../../core/dom/element.js';
-import { Path } from '../../core/types/path.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $ } from '../../core/dom/element';
+import { Path } from '../../core/types/path';
 
 export interface IFileRenameCommitEvent {
 	readonly value: string;

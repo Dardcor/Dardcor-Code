@@ -1,5 +1,5 @@
 import { readFileSync, existsSync } from 'node:fs';
-import { CLIOutput } from './cli-output.js';
+import { CLIOutput } from './cli-output';
 
 interface IPackageJson {
 	name?: string;

@@ -2,10 +2,10 @@
  * Dardcor Code - URI Case-Insensitivity Identity Normalizer (Task 135)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { URI } from '../../core/types/uri.js';
-import { isWindows } from '../../core/environment/platform.js';
+import { createDecorator } from '../instantiation/annotations';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { URI } from '../../core/types/uri';
+import { isWindows } from '../../core/environment/platform';
 
 export interface IUriIdentityService {
 	readonly _serviceBrand: undefined;

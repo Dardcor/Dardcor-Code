@@ -1,5 +1,5 @@
-import { Emitter, Event } from '../../../../dc/core/common/event.js';
-import { IDisposable } from '../../../../dc/core/common/lifecycle.js';
+import { Emitter, Event } from 'dc/core/common/event';
+import { IDisposable } from 'dc/core/common/lifecycle';
 
 export type ServerSyncStatus = 'uninitialized' | 'idle' | 'syncing' | 'hasConflicts';
 export type ServerSyncResource = 'settings' | 'keybindings' | 'snippets' | 'tasks' | 'extensions' | 'globalState' | 'profiles';

@@ -3,8 +3,8 @@
  * Mirrors: vs/platform/storage/common/storage.ts memory storage
  */
 
-import { IDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
+import { IDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
 
 export interface IStorageBackend extends IDisposable {
 	readonly onDidChange: Event<{ key: string; value: string | undefined }>;

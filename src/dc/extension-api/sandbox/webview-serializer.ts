@@ -1,4 +1,4 @@
-import { IDisposable, toDisposable } from '../../core/lifecycle/disposable.js';
+import { IDisposable, toDisposable } from '../../core/lifecycle/disposable';
 
 export interface IWebviewSerializer {
 	deserializeWebviewPanel(newWebview: any, state: any): void;

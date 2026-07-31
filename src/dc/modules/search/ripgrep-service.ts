@@ -2,11 +2,11 @@
  * Dardcor Code - Fast Native Ripgrep Binary Subprocess Search Service
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { URI } from '../../core/types/uri.js';
-import { Path } from '../../core/types/path.js';
-import { createRegExp, escapeRegExpCharacters } from '../../core/types/strings.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { URI } from '../../core/types/uri';
+import { Path } from '../../core/types/path';
+import { createRegExp, escapeRegExpCharacters } from '../../core/types/strings';
 
 declare const require: any;
 

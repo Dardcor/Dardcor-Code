@@ -3,9 +3,9 @@
  * Mirrors: vs/workbench/api/common/extHostTerminalService.ts
  */
 
-import { Disposable, IDisposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { RPCProtocol } from '../host/rpc-protocol.js';
+import { Disposable, IDisposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { RPCProtocol } from '../host/rpc-protocol';
 
 export interface IExtHostTerminalOptions {
 	name?: string;

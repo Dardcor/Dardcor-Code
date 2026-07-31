@@ -3,7 +3,7 @@
  * Mirrors: vs/platform/credentials/common/credentials.ts (safe OS password store wrapper)
  */
 
-import { createDecorator } from '../instantiation/annotations.js';
+import { createDecorator } from '../instantiation/annotations';
 
 export const ICredentialsService = createDecorator<ICredentialsService>('credentialsService');
 

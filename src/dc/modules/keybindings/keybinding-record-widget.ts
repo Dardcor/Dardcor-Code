@@ -2,10 +2,10 @@
  * Dardcor Code - Keybinding Recorder & Capture Widget
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, addDisposableListener } from '../../core/dom/element.js';
-import { isMacintosh } from '../../core/environment/platform.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, addDisposableListener } from '../../core/dom/element';
+import { isMacintosh } from '../../core/environment/platform';
 
 export interface IKeybindingRecordResult {
 	readonly chord: string[];

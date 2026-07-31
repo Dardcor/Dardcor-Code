@@ -2,10 +2,10 @@
  * Dardcor Code - Input Validation Warning & Error Message Box
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $ } from '../../core/dom/element.js';
-import { IInputBoxOptions } from './input-box-widget.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $ } from '../../core/dom/element';
+import { IInputBoxOptions } from './input-box-widget';
 
 export const enum InputValidationSeverity {
 	INFO = 0,

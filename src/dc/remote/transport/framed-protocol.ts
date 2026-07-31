@@ -2,8 +2,8 @@
  * Dardcor Code - Framed Binary Frame Message Encoder & Decoder (Task 823)
  */
 
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
 
 export const FRAME_HEADER_SIZE = 4;
 export const DEFAULT_MAX_FRAME_SIZE = 16 * 1024 * 1024;

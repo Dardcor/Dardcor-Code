@@ -1,4 +1,4 @@
-import { Disposable, toDisposable } from '../../core/lifecycle/disposable.js';
+import { Disposable, toDisposable } from '../../core/lifecycle/disposable';
 
 export interface SharedProcessRequest {
 	__dcId: number;

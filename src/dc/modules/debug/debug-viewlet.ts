@@ -2,18 +2,18 @@
  * Dardcor Code - DAP Debugger Viewlet Component
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, clearNode, addDisposableListener } from '../../core/dom/element.js';
-import { CssInjector } from '../../core/dom/css-injector.js';
-import { DebugSession, DebugState, IStackFrame, IDebugSessionOptions } from './debug-session.js';
-import { BreakpointManager, IBreakpoint } from './breakpoint-manager.js';
-import { CallStackView } from './call-stack-view.js';
-import { VariablesView } from './variables-view.js';
-import { WatchView } from './watch-view.js';
-import { DebugToolbar } from './debug-toolbar.js';
-import { URI } from '../../core/types/uri.js';
-import { Path } from '../../core/types/path.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, clearNode, addDisposableListener } from '../../core/dom/element';
+import { CssInjector } from '../../core/dom/css-injector';
+import { DebugSession, DebugState, IStackFrame, IDebugSessionOptions } from './debug-session';
+import { BreakpointManager, IBreakpoint } from './breakpoint-manager';
+import { CallStackView } from './call-stack-view';
+import { VariablesView } from './variables-view';
+import { WatchView } from './watch-view';
+import { DebugToolbar } from './debug-toolbar';
+import { URI } from '../../core/types/uri';
+import { Path } from '../../core/types/path';
 
 const DEBUG_STYLE_ID = 'dc-debug-viewlet-styles';
 

@@ -2,10 +2,10 @@
  * Dardcor Code - Files to Include & Files to Exclude Match Filters
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { match, splitGlobAware } from '../../core/formatting/glob.js';
-import { Path } from '../../core/types/path.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { match, splitGlobAware } from '../../core/formatting/glob';
+import { Path } from '../../core/types/path';
 
 export interface ISearchFileFilters {
 	readonly includes: string[];

@@ -2,10 +2,10 @@
  * Dardcor Code - Embedded Titlebar Menu Bar Controller
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { $, clearNode, addDisposableListener } from '../../../core/dom/element.js';
-import { layoutContextMenu } from '../../../core/dom/context-menu.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { $, clearNode, addDisposableListener } from '../../../core/dom/element';
+import { layoutContextMenu } from '../../../core/dom/context-menu';
 
 export interface IMenuItem {
 	readonly id: string;

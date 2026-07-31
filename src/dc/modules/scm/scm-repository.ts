@@ -2,11 +2,11 @@
  * Dardcor Code - Git Repository Status Track Model
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { URI } from '../../core/types/uri.js';
-import { Path } from '../../core/types/path.js';
-import { GitService, IGitStatusEntry, GIT_STATUS_LABELS } from './git-service.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { URI } from '../../core/types/uri';
+import { Path } from '../../core/types/path';
+import { GitService, IGitStatusEntry, GIT_STATUS_LABELS } from './git-service';
 
 export interface IScmResource {
 	readonly uri: URI;

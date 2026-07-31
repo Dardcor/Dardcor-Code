@@ -1,5 +1,5 @@
 import { BrowserWindow } from 'electron';
-import { Disposable, toDisposable } from '../../core/lifecycle/disposable.js';
+import { Disposable, toDisposable } from '../../core/lifecycle/disposable';
 
 export class ScreenCapturePrevention extends Disposable {
 	private readonly _windows = new Set<BrowserWindow>();

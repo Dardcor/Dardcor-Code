@@ -2,8 +2,8 @@
  * Dardcor Code - Auto-Reconnecting WebSocket Transport
  */
 
-import { Disposable } from '../lifecycle/disposable.js';
-import { Emitter, Event } from '../events/emitter.js';
+import { Disposable } from '../lifecycle/disposable';
+import { Emitter, Event } from '../events/emitter';
 
 export class ReconnectingWebSocket extends Disposable {
 	private _ws: WebSocket | null = null;

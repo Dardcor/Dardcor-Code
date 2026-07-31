@@ -3,7 +3,7 @@
  * Mirrors: vs/editor/common/languages/nullTokenize.ts
  */
 
-import { LineToken, LineTokens } from '../model/line-tokens.js';
+import { LineToken, LineTokens } from '../model/line-tokens';
 
 export interface ITokenizationResult {
 	readonly tokens: LineTokens;

@@ -2,9 +2,9 @@
  * Dardcor Code - Inline Debug Variable Value Decoration Overlay
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { CssInjector } from '../../core/dom/css-injector.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { CssInjector } from '../../core/dom/css-injector';
 
 export interface IInlineValue {
 	readonly variableName: string;

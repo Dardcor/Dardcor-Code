@@ -1,4 +1,4 @@
-import { Emitter, Event } from '../../core/events/emitter.js';
+import { Emitter, Event } from '../../core/events/emitter';
 
 export interface IIpWhitelistOptions {
 	readonly ips?: ReadonlyArray<string>;

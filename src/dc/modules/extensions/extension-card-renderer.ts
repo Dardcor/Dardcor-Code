@@ -2,8 +2,8 @@
  * Dardcor Code - Extension Item Card View Renderer
  */
 
-import { $ } from '../../core/dom/element.js';
-import type { IExtensionInfo } from './extensions-viewlet.js';
+import { $ } from '../../core/dom/element';
+import type { IExtensionInfo } from './extensions-viewlet';
 
 export interface IExtensionCardCallbacks {
 	onInstall: (extension: IExtensionInfo) => void;

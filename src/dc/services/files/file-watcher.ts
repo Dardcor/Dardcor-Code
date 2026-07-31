@@ -4,10 +4,10 @@
 
 import { watch, FSWatcher } from 'node:fs';
 import { stat } from 'node:fs/promises';
-import { URI } from '../../core/types/uri.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { FileChangeEvent, FileChangeType } from './file-service.js';
+import { URI } from '../../core/types/uri';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { FileChangeEvent, FileChangeType } from './file-service';
 
 export class FileSystemWatcher extends Disposable {
 	private readonly _onDidChangeFile = this._register(new Emitter<FileChangeEvent[]>());

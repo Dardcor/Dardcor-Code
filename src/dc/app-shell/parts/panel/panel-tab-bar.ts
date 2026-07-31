@@ -2,10 +2,10 @@
  * Dardcor Code - Bottom Panel Navigation Tab Bar
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { $, clearNode } from '../../../core/dom/element.js';
-import { IPanelDescriptor } from './panel-registry.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { $, clearNode } from '../../../core/dom/element';
+import { IPanelDescriptor } from './panel-registry';
 
 export class PanelTabBar extends Disposable {
 	private readonly _container: HTMLElement;

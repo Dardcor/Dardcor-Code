@@ -2,10 +2,10 @@
  * Dardcor Code - Commit Message Text Area & Commit Button Component
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { $, addDisposableListener } from '../../core/dom/element.js';
-import { ScmRepository } from './scm-repository.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { $, addDisposableListener } from '../../core/dom/element';
+import { ScmRepository } from './scm-repository';
 
 export class ScmCommitBox extends Disposable {
 	private readonly _onDidCommit = this._register(new Emitter<string>());

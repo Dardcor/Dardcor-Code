@@ -3,7 +3,7 @@
  * Mirrors: vs/platform/configuration/common/configurationRegistry.ts JSON Schema generation
  */
 
-import { IConfigurationPropertySchema, getConfigurationRegistry } from './config-registry.js';
+import { IConfigurationPropertySchema, getConfigurationRegistry } from './config-registry';
 
 export function generateSettingsJSONSchema(): any {
 	const props = getConfigurationRegistry().getConfigurationProperties();

@@ -2,9 +2,9 @@
  * Dardcor Code - Split Overlay Visual Guide Indicator During Tab Drag
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { $ } from '../../../core/dom/element.js';
-import { DropDirection } from './editor-drop-target.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { $ } from '../../../core/dom/element';
+import { DropDirection } from './editor-drop-target';
 
 export interface IEditorGridDropOptions {
 	readonly edgeRatio?: number;

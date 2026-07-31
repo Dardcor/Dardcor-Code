@@ -3,11 +3,11 @@
  * Mirrors: vs/editor/common/model/editStack.ts + vs/editor/common/editorCommon.ts (IEditOperation)
  */
 
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { ITextModel } from '../model/text-model.js';
-import { EditStack, IEditOperation } from '../model/edit-stack.js';
-import { IRange } from '../model/text-model.js';
+import { Emitter, Event } from '../../core/events/emitter';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { ITextModel } from '../model/text-model';
+import { EditStack, IEditOperation } from '../model/edit-stack';
+import { IRange } from '../model/text-model';
 
 export interface IEditCommand {
 	readonly id: string;

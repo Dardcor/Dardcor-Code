@@ -2,9 +2,9 @@
  * Dardcor Code - Container Focus Tracker Controller
  */
 
-import { Disposable } from '../lifecycle/disposable.js';
-import { Emitter, Event } from '../events/emitter.js';
-import { addDisposableListener } from './element.js';
+import { Disposable } from '../lifecycle/disposable';
+import { Emitter, Event } from '../events/emitter';
+import { addDisposableListener } from './element';
 
 export class FocusTracker extends Disposable {
 	private readonly _onDidFocus = this._register(new Emitter<void>());

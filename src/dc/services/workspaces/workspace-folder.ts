@@ -2,7 +2,7 @@
  * Dardcor Code - Workspace Root Folder Model (Task 134)
  */
 
-import { URI } from '../../core/types/uri.js';
+import { URI } from '../../core/types/uri';
 
 export interface IWorkspaceFolder {
 	readonly uri: URI;

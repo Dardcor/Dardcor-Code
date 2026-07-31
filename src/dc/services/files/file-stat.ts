@@ -3,8 +3,8 @@
  */
 
 import type { Stats } from 'node:fs';
-import { IFileStat } from './file-service.js';
-import { URI } from '../../core/types/uri.js';
+import { IFileStat } from './file-service';
+import { URI } from '../../core/types/uri';
 
 export class FileStat {
 	private constructor() {}

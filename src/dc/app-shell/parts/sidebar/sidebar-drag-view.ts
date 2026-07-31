@@ -2,10 +2,10 @@
  * Dardcor Code - Drag View Section Between Containers Capability
  */
 
-import { Disposable } from '../../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../../core/events/emitter.js';
-import { $ } from '../../../core/dom/element.js';
-import { SidebarViewContainer, ISidebarViewSection } from './sidebar-view-container.js';
+import { Disposable } from '../../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../../core/events/emitter';
+import { $ } from '../../../core/dom/element';
+import { SidebarViewContainer, ISidebarViewSection } from './sidebar-view-container';
 
 export interface IDragViewSection {
 	readonly id: string;

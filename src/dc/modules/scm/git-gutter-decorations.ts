@@ -2,10 +2,10 @@
  * Dardcor Code - Editor Gutter Diff Markers
  */
 
-import { Disposable } from '../../core/lifecycle/disposable.js';
-import { Emitter, Event } from '../../core/events/emitter.js';
-import { GitService } from './git-service.js';
-import { Path } from '../../core/types/path.js';
+import { Disposable } from '../../core/lifecycle/disposable';
+import { Emitter, Event } from '../../core/events/emitter';
+import { GitService } from './git-service';
+import { Path } from '../../core/types/path';
 
 export const enum GutterDecorationType {
 	Added = 1,

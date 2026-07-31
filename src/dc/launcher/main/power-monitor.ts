@@ -1,5 +1,5 @@
 import { powerMonitor } from 'electron';
-import { Disposable, toDisposable } from '../../core/lifecycle/disposable.js';
+import { Disposable, toDisposable } from '../../core/lifecycle/disposable';
 
 export interface PowerMonitorHandlers {
 	onSuspend?: () => void;

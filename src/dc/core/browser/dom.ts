@@ -1,4 +1,4 @@
-import { IDisposable, toDisposable } from '../common/lifecycle.js';
+import { IDisposable, toDisposable } from '../common/lifecycle';
 
 export const EventType = {
 	CLICK: 'click',
