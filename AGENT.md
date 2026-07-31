@@ -573,75 +573,75 @@ Desain warna default Dardcor Code :
 - [x] 502. platform/secrets: secrets service (getSecret, setSecret, dll) lengkap
 - [x] 503. platform/sharedProcess: shared process service lengkap
 - [x] 504. platform/shell: shell service (openExternal, showItemInFolder, trash, dll) lengkap
-- [ ] 505. platform/sign: sign service lengkap
-- [ ] 506. platform/storage: storage service (get, set, remove, globalStorage, workspaceStorage, dll) lengkap
-- [ ] 507. platform/telemetry: telemetry service (sendTelemetryEvent, sendErrorTelemetry, publicProperties, dll) lengkap
-- [ ] 508. platform/terminal: terminal service (createTerminal, getTerminalById, dll) lengkap
-- [ ] 509. platform/theme: theme service (getColorTheme, onDidColorThemeChange, dll) lengkap
-- [ ] 510. platform/tunnel: tunnel service lengkap
-- [ ] 511. platform/undoRedo: undo redo service (IUndoRedoService, UndoRedoGroup, dll) lengkap
-- [ ] 512. platform/update: update service (checkForUpdates, downloadUpdate, dll) lengkap
-- [ ] 513. platform/uriIdentity: uri identity service lengkap
-- [ ] 514. platform/url: url service lengkap
-- [ ] 515. platform/userData: user data service lengkap
-- [ ] 516. platform/userDataProfile: user data profile service lengkap
-- [ ] 517. platform/userDataSync: user data sync service lengkap
-- [ ] 518. platform/utilityProcess: utility process service lengkap
-- [ ] 519. platform/webview: webview service lengkap
-- [ ] 520. platform/webWorker: web worker service lengkap
-- [ ] 521. platform/window: window service (IWindowService, openWindow, closeWindow, dll) lengkap
-- [ ] 522. platform/windows: windows service lengkap
-- [ ] 523. platform/workspace: workspace service (IWorkspaceService, getWorkspace, dll) lengkap
-- [ ] 524. platform/workspaces: workspaces service lengkap
-- [ ] 525. platform/theme/common/colorRegistry.ts asli (SEMUA color id: foreground, background, selectionBackground, focusBorder, contrastBorder, activeContrastBorder, descriptionForeground, errorForeground, dll SEMUA lengkap) lengkap
-- [ ] 526. platform/theme/common/themeService.ts asli (IColorTheme, IThemeService, getBaseThemeId, dll) lengkap
-- [ ] 527. platform/theme/common/tokenClassificationRegistry.ts asli lengkap
-- [ ] 528. platform/theme/common/colorExtensionPoint.ts asli lengkap
-- [ ] 529. platform/actionWidget/common/actionWidget.ts asli lengkap
-- [ ] 530. platform/hover/browser/hoverWidget.ts asli lengkap
-- [ ] 531. platform/policy: policy service lengkap
-- [ ] 532. platform/state: state service lengkap
-- [ ] 533. platform/timer: timer service lengkap
+- [x] 505. platform/sign: sign service lengkap
+- [x] 506. platform/storage: storage service (get, set, remove, globalStorage, workspaceStorage, dll) lengkap
+- [x] 507. platform/telemetry: telemetry service (sendTelemetryEvent, sendErrorTelemetry, publicProperties, dll) lengkap
+- [x] 508. platform/terminal: terminal service (createTerminal, getTerminalById, dll) lengkap
+- [x] 509. platform/theme: theme service (getColorTheme, onDidColorThemeChange, dll) lengkap
+- [x] 510. platform/tunnel: tunnel service lengkap
+- [x] 511. platform/undoRedo: undo redo service (IUndoRedoService, UndoRedoGroup, dll) lengkap
+- [x] 512. platform/update: update service (checkForUpdates, downloadUpdate, dll) lengkap
+- [x] 513. platform/uriIdentity: uri identity service lengkap
+- [x] 514. platform/url: url service lengkap
+- [x] 515. platform/userData: user data service lengkap
+- [x] 516. platform/userDataProfile: user data profile service lengkap
+- [x] 517. platform/userDataSync: user data sync service lengkap
+- [x] 518. platform/utilityProcess: utility process service lengkap
+- [x] 519. platform/webview: webview service lengkap
+- [x] 520. platform/webWorker: web worker service lengkap
+- [x] 521. platform/window: window service (IWindowService, openWindow, closeWindow, dll) lengkap
+- [x] 522. platform/windows: windows service lengkap
+- [x] 523. platform/workspace: workspace service (IWorkspaceService, getWorkspace, dll) lengkap
+- [x] 524. platform/workspaces: workspaces service lengkap
+- [x] 525. platform/theme/common/colorRegistry.ts asli (SEMUA color id: foreground, background, selectionBackground, focusBorder, contrastBorder, activeContrastBorder, descriptionForeground, errorForeground, dll SEMUA lengkap) lengkap
+- [x] 526. platform/theme/common/themeService.ts asli (IColorTheme, IThemeService, getBaseThemeId, dll) lengkap
+- [x] 527. platform/theme/common/tokenClassificationRegistry.ts asli lengkap
+- [x] 528. platform/theme/common/colorExtensionPoint.ts asli lengkap
+- [x] 529. platform/actionWidget/common/actionWidget.ts asli lengkap
+- [x] 530. platform/hover/browser/hoverWidget.ts asli lengkap
+- [x] 531. platform/policy: policy service lengkap
+- [x] 532. platform/state: state service lengkap
+- [x] 533. platform/timer: timer service lengkap
 
 ### D2. workbench services (meniru src/vs/workbench/services VS Code asli)
 
-- [ ] 534. accessibility: accessibility config, screen reader optimasi, accessibility help lengkap
-- [ ] 535. accounts: account service lengkap
-- [ ] 536. actions: workbench action service lengkap
-- [ ] 537. activity: activity service, activity bar service lengkap
-- [ ] 538. aiEmbeddingVector, aiRelatedInformation, aiSettingsSearch: AI services lengkap
-- [ ] 539. assignment: assignment service lengkap
-- [ ] 540. authentication: authentication service (getSession, onDidChangeSessions, dll) lengkap
-- [ ] 541. auxiliaryWindow: auxiliary window service lengkap
-- [ ] 542. banner: banner service lengkap
-- [ ] 543. browserView: browser view lengkap
-- [ ] 544. chat: chat service lengkap
-- [ ] 545. checksum: checksum service lengkap
-- [ ] 546. clipboard: clipboard service lengkap
-- [ ] 547. commands: workbench commands lengkap
-- [ ] 548. configuration: workbench configuration (setting, workspace configuration, dll) lengkap
-- [ ] 549. configurationResolver: configuration resolver (variable resolution ${workspaceFolder}, ${file}, ${env:...}, dll) lengkap
-- [ ] 550. contextmenu: context menu service lengkap
-- [ ] 551. dataChannel: data channel lengkap
-- [ ] 552. decorations: decorations service lengkap
-- [ ] 553. dialogs: workbench dialog service lengkap
-- [ ] 554. driver: driver service lengkap
-- [ ] 555. editor: workbench editor service (openEditor, save, revert, dll) lengkap
-- [ ] 556. editor/browser/editorService.ts asli lengkap
-- [ ] 557. editor/browser/editorGroupService.ts asli lengkap
-- [ ] 558. editor/browser/editorPane.ts asli lengkap
-- [ ] 559. editor/browser/editorResolverService.ts asli lengkap
-- [ ] 560. editor/browser/editorPart.ts asli lengkap
-- [ ] 561. editor/browser/editorGroup.ts asli lengkap
-- [ ] 562. editor/browser/editorGroupsService.ts asli lengkap
-- [ ] 563. editor/browser/codeEditor/rangeDecorations.ts asli lengkap
-- [ ] 564. editor/browser/editorDropTarget.ts asli lengkap
-- [ ] 565. editor/browser/editorGroupDropTarget.ts asli lengkap
-- [ ] 566. editor/browser/editorGroupView.ts asli lengkap
-- [ ] 567. editor/browser/editorOpenContext.ts asli lengkap
-- [ ] 568. editor/browser/editorService2.ts asli lengkap
-- [ ] 569. editor/browser/editorTabs.ts asli lengkap
-- [ ] 570. editor/browser/editorTab.ts asli lengkap
+- [x] 534. accessibility: accessibility config, screen reader optimasi, accessibility help lengkap
+- [x] 535. accounts: account service lengkap
+- [x] 536. actions: workbench action service lengkap
+- [x] 537. activity: activity service, activity bar service lengkap
+- [x] 538. aiEmbeddingVector, aiRelatedInformation, aiSettingsSearch: AI services lengkap
+- [x] 539. assignment: assignment service lengkap
+- [x] 540. authentication: authentication service (getSession, onDidChangeSessions, dll) lengkap
+- [x] 541. auxiliaryWindow: auxiliary window service lengkap
+- [x] 542. banner: banner service lengkap
+- [x] 543. browserView: browser view lengkap
+- [x] 544. chat: chat service lengkap
+- [x] 545. checksum: checksum service lengkap
+- [x] 546. clipboard: clipboard service lengkap
+- [x] 547. commands: workbench commands lengkap
+- [x] 548. configuration: workbench configuration (setting, workspace configuration, dll) lengkap
+- [x] 549. configurationResolver: configuration resolver (variable resolution ${workspaceFolder}, ${file}, ${env:...}, dll) lengkap
+- [x] 550. contextmenu: context menu service lengkap
+- [x] 551. dataChannel: data channel lengkap
+- [x] 552. decorations: decorations service lengkap
+- [x] 553. dialogs: workbench dialog service lengkap
+- [x] 554. driver: driver service lengkap
+- [x] 555. editor: workbench editor service (openEditor, save, revert, dll) lengkap
+- [x] 556. editor/browser/editorService.ts asli lengkap
+- [x] 557. editor/browser/editorGroupService.ts asli lengkap
+- [x] 558. editor/browser/editorPane.ts asli lengkap
+- [x] 559. editor/browser/editorResolverService.ts asli lengkap
+- [x] 560. editor/browser/editorPart.ts asli lengkap
+- [x] 561. editor/browser/editorGroup.ts asli lengkap
+- [x] 562. editor/browser/editorGroupsService.ts asli lengkap
+- [x] 563. editor/browser/codeEditor/rangeDecorations.ts asli lengkap
+- [x] 564. editor/browser/editorDropTarget.ts asli lengkap
+- [x] 565. editor/browser/editorGroupDropTarget.ts asli lengkap
+- [x] 566. editor/browser/editorGroupView.ts asli lengkap
+- [x] 567. editor/browser/editorOpenContext.ts asli lengkap
+- [x] 568. editor/browser/editorService2.ts asli lengkap
+- [x] 569. editor/browser/editorTabs.ts asli lengkap
+- [x] 570. editor/browser/editorTab.ts asli lengkap
 - [ ] 571. editor/browser/editorTabbedGroup.ts asli lengkap
 - [ ] 572. editor/browser/editorWillMoveEvent.ts asli lengkap
 - [ ] 573. editor/browser/multiEditorDiff.ts asli lengkap
