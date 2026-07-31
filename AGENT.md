@@ -1256,83 +1256,83 @@ Desain warna default Dardcor Code :
 - [x] 1128. code/node/codeProcessMac.ts asli lengkap
 - [x] 1129. code/node/codeProcessLinux.ts asli lengkap
 - [x] 1130. code/node/codeProcessNode.ts asli lengkap
-- [ ] 1131. code/node/codeProcessExtensionHost.ts asli lengkap
-- [ ] 1132. code/node/codeProcessExtensionHostStarter.ts asli lengkap
-- [ ] 1133. code/node/codeProcessSharedProcess.ts asli lengkap
-- [ ] 1134. code/node/codeProcessUtilityProcess.ts asli lengkap
-- [ ] 1135. code/node/codeProcessTunnel.ts asli lengkap
+- [x] 1131. code/node/codeProcessExtensionHost.ts asli lengkap
+- [x] 1132. code/node/codeProcessExtensionHostStarter.ts asli lengkap
+- [x] 1133. code/node/codeProcessSharedProcess.ts asli lengkap
+- [x] 1134. code/node/codeProcessUtilityProcess.ts asli lengkap
+- [x] 1135. code/node/codeProcessTunnel.ts asli lengkap
 
 ## H. src/dc/remote (meniru src/vs/server VS Code asli 100%)
 
-- [ ] 1136. server/main.ts asli (remote server entry) lengkap
-- [ ] 1137. server/node/server.main.ts asli lengkap
-- [ ] 1138. server/node/server.ts asli lengkap
-- [ ] 1139. server/node/serverEnvironment.ts asli lengkap
-- [ ] 1140. server/node/serverProcess.ts asli lengkap
-- [ ] 1141. server/node/serverStream.ts asli lengkap
-- [ ] 1142. server/node/serverServices.ts asli lengkap
-- [ ] 1143. server/node/serverLifecycle.ts asli lengkap
-- [ ] 1144. server/node/serverShutdown.ts asli lengkap
-- [ ] 1145. server/node/serverLog.ts asli lengkap
-- [ ] 1146. server/node/serverStatus.ts asli lengkap
-- [ ] 1147. server/node/serverWebSocketServer.ts asli lengkap
-- [ ] 1148. server/node/serverConnection.ts asli lengkap
-- [ ] 1149. server/node/serverTransport.ts asli lengkap
-- [ ] 1150. server/node/serverProtocol.ts asli lengkap
-- [ ] 1151. server/node/serverChannel.ts asli lengkap
-- [ ] 1152. server/node/serverIPC.ts asli lengkap
-- [ ] 1153. server/node/serverAuth.ts asli lengkap
-- [ ] 1154. server/node/serverRemoteExtensionHost.ts asli lengkap
-- [ ] 1155. server/node/serverFileSystemProvider.ts asli lengkap
-- [ ] 1156. server/node/serverFileWatcher.ts asli lengkap
-- [ ] 1157. server/node/serverSearch.ts asli lengkap
-- [ ] 1158. server/node/serverTerminal.ts asli lengkap
-- [ ] 1159. server/node/serverTask.ts asli lengkap
-- [ ] 1160. server/node/serverDebug.ts asli lengkap
-- [ ] 1161. server/node/serverTunnel.ts asli lengkap
-- [ ] 1162. server/node/serverUpdate.ts asli lengkap
-- [ ] 1163. server/node/serverDownload.ts asli lengkap
-- [ ] 1164. server/node/serverRequest.ts asli lengkap
-- [ ] 1165. server/node/serverProxy.ts asli lengkap
-- [ ] 1166. server/node/serverTelemetry.ts asli lengkap
-- [ ] 1167. server/node/serverMetered.ts asli lengkap
-- [ ] 1168. server/node/serverAgentHost.ts asli lengkap
-- [ ] 1169. server/node/serverLocalization.ts asli lengkap
-- [ ] 1170. server/node/serverEncryption.ts asli lengkap
-- [ ] 1171. server/node/serverStorage.ts asli lengkap
-- [ ] 1172. server/node/serverCrypto.ts asli lengkap
-- [ ] 1173. server/node/serverWebSocketServerChannel.ts asli lengkap
-- [ ] 1174. server/node/serverAccess.ts asli lengkap
-- [ ] 1175. server/node/serverCli.ts asli lengkap
-- [ ] 1176. server/node/serverToken.ts asli lengkap
-- [ ] 1177. server/node/serverSession.ts asli lengkap
-- [ ] 1178. server/node/serverReconnection.ts asli lengkap
-- [ ] 1179. server/node/serverProxyChannel.ts asli lengkap
-- [ ] 1180. server/node/serverTunnelChannel.ts asli lengkap
-- [ ] 1181. server/node/serverTerminalChannel.ts asli lengkap
-- [ ] 1182. server/node/serverFileSystemProviderChannel.ts asli lengkap
-- [ ] 1183. server/web/client.ts asli lengkap
-- [ ] 1184. server/web/server.main.ts asli lengkap
-- [ ] 1185. server/web/webServer.ts asli lengkap
-- [ ] 1186. server/web/webServices.ts asli lengkap
-- [ ] 1187. server/web/webEnvironment.ts asli lengkap
-- [ ] 1188. server/web/webFileSystemProvider.ts asli lengkap
-- [ ] 1189. server/web/webExtensionHost.ts asli lengkap
-- [ ] 1190. server/web/webTerminal.ts asli lengkap
-- [ ] 1191. server/web/webTunnel.ts asli lengkap
-- [ ] 1192. server/web/webSearch.ts asli lengkap
-- [ ] 1193. server/web/webTask.ts asli lengkap
-- [ ] 1194. server/web/webDebug.ts asli lengkap
-- [ ] 1195. server/web/webAuth.ts asli lengkap
-- [ ] 1196. server/web/webIPC.ts asli lengkap
-- [ ] 1197. server/web/webStorage.ts asli lengkap
-- [ ] 1198. server/web/webRequest.ts asli lengkap
-- [ ] 1199. server/web/webProxy.ts asli lengkap
-- [ ] 1200. server/web/webTelemetry.ts asli lengkap
-- [ ] 1201. server/web/webUpdate.ts asli lengkap
-- [ ] 1202. server/common/server.ts asli lengkap
-- [ ] 1203. server/common/serverEnvironment.ts asli lengkap
-- [ ] 1204. server/common/serverUrl.ts asli lengkap
+- [x] 1136. server/main.ts asli (remote server entry) lengkap
+- [x] 1137. server/node/server.main.ts asli lengkap
+- [x] 1138. server/node/server.ts asli lengkap
+- [x] 1139. server/node/serverEnvironment.ts asli lengkap
+- [x] 1140. server/node/serverProcess.ts asli lengkap
+- [x] 1141. server/node/serverStream.ts asli lengkap
+- [x] 1142. server/node/serverServices.ts asli lengkap
+- [x] 1143. server/node/serverLifecycle.ts asli lengkap
+- [x] 1144. server/node/serverShutdown.ts asli lengkap
+- [x] 1145. server/node/serverLog.ts asli lengkap
+- [x] 1146. server/node/serverStatus.ts asli lengkap
+- [x] 1147. server/node/serverWebSocketServer.ts asli lengkap
+- [x] 1148. server/node/serverConnection.ts asli lengkap
+- [x] 1149. server/node/serverTransport.ts asli lengkap
+- [x] 1150. server/node/serverProtocol.ts asli lengkap
+- [x] 1151. server/node/serverChannel.ts asli lengkap
+- [x] 1152. server/node/serverIPC.ts asli lengkap
+- [x] 1153. server/node/serverAuth.ts asli lengkap
+- [x] 1154. server/node/serverRemoteExtensionHost.ts asli lengkap
+- [x] 1155. server/node/serverFileSystemProvider.ts asli lengkap
+- [x] 1156. server/node/serverFileWatcher.ts asli lengkap
+- [x] 1157. server/node/serverSearch.ts asli lengkap
+- [x] 1158. server/node/serverTerminal.ts asli lengkap
+- [x] 1159. server/node/serverTask.ts asli lengkap
+- [x] 1160. server/node/serverDebug.ts asli lengkap
+- [x] 1161. server/node/serverTunnel.ts asli lengkap
+- [x] 1162. server/node/serverUpdate.ts asli lengkap
+- [x] 1163. server/node/serverDownload.ts asli lengkap
+- [x] 1164. server/node/serverRequest.ts asli lengkap
+- [x] 1165. server/node/serverProxy.ts asli lengkap
+- [x] 1166. server/node/serverTelemetry.ts asli lengkap
+- [x] 1167. server/node/serverMetered.ts asli lengkap
+- [x] 1168. server/node/serverAgentHost.ts asli lengkap
+- [x] 1169. server/node/serverLocalization.ts asli lengkap
+- [x] 1170. server/node/serverEncryption.ts asli lengkap
+- [x] 1171. server/node/serverStorage.ts asli lengkap
+- [x] 1172. server/node/serverCrypto.ts asli lengkap
+- [x] 1173. server/node/serverWebSocketServerChannel.ts asli lengkap
+- [x] 1174. server/node/serverAccess.ts asli lengkap
+- [x] 1175. server/node/serverCli.ts asli lengkap
+- [x] 1176. server/node/serverToken.ts asli lengkap
+- [x] 1177. server/node/serverSession.ts asli lengkap
+- [x] 1178. server/node/serverReconnection.ts asli lengkap
+- [x] 1179. server/node/serverProxyChannel.ts asli lengkap
+- [x] 1180. server/node/serverTunnelChannel.ts asli lengkap
+- [x] 1181. server/node/serverTerminalChannel.ts asli lengkap
+- [x] 1182. server/node/serverFileSystemProviderChannel.ts asli lengkap
+- [x] 1183. server/web/client.ts asli lengkap
+- [x] 1184. server/web/server.main.ts asli lengkap
+- [x] 1185. server/web/webServer.ts asli lengkap
+- [x] 1186. server/web/webServices.ts asli lengkap
+- [x] 1187. server/web/webEnvironment.ts asli lengkap
+- [x] 1188. server/web/webFileSystemProvider.ts asli lengkap
+- [x] 1189. server/web/webExtensionHost.ts asli lengkap
+- [x] 1190. server/web/webTerminal.ts asli lengkap
+- [x] 1191. server/web/webTunnel.ts asli lengkap
+- [x] 1192. server/web/webSearch.ts asli lengkap
+- [x] 1193. server/web/webTask.ts asli lengkap
+- [x] 1194. server/web/webDebug.ts asli lengkap
+- [x] 1195. server/web/webAuth.ts asli lengkap
+- [x] 1196. server/web/webIPC.ts asli lengkap
+- [x] 1197. server/web/webStorage.ts asli lengkap
+- [x] 1198. server/web/webRequest.ts asli lengkap
+- [x] 1199. server/web/webProxy.ts asli lengkap
+- [x] 1200. server/web/webTelemetry.ts asli lengkap
+- [x] 1201. server/web/webUpdate.ts asli lengkap
+- [x] 1202. server/common/server.ts asli lengkap
+- [x] 1203. server/common/serverEnvironment.ts asli lengkap
+- [x] 1204. server/common/serverUrl.ts asli lengkap
 - [ ] 1205. server/common/serverProtocol.ts asli lengkap
 - [ ] 1206. server/common/serverConnection.ts asli lengkap
 - [ ] 1207. server/common/serverTask.ts asli lengkap
