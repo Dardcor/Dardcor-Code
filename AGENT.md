@@ -1376,22 +1376,22 @@ Desain warna default Dardcor Code :
 - [x] 1245. server/common/serverProblems.ts asli lengkap
 - [x] 1246. server/common/serverOutput.ts asli lengkap
 - [x] 1247. server/common/serverStatusbar.ts asli lengkap
-- [ ] 1248. server/common/serverActivitybar.ts asli lengkap
-- [ ] 1249. server/common/serverPanel.ts asli lengkap
-- [ ] 1250. server/common/serverSidebar.ts asli lengkap
-- [ ] 1251. server/common/serverEditor.ts asli lengkap
-- [ ] 1252. server/common/serverTitlebar.ts asli lengkap
-- [ ] 1253. server/common/serverBanner.ts asli lengkap
-- [ ] 1254. server/common/serverSettings.ts asli lengkap
-- [ ] 1255. server/common/serverKeybindingsEditor.ts asli lengkap
-- [ ] 1256. server/common/serverThemes.ts asli lengkap
-- [ ] 1257. server/common/serverTimeline.ts asli lengkap
-- [ ] 1258. server/common/serverTesting.ts asli lengkap
-- [ ] 1259. server/common/serverNotebook.ts asli lengkap
-- [ ] 1260. server/common/serverCustomEditor.ts asli lengkap
-- [ ] 1261. server/common/serverCustomEditorView.ts asli lengkap
-- [ ] 1262. server/common/serverWebviewView.ts asli lengkap
-- [ ] 1263. server/common/serverComments.ts asli lengkap
+- [x] 1248. server/common/serverActivitybar.ts asli lengkap
+- [x] 1249. server/common/serverPanel.ts asli lengkap
+- [x] 1250. server/common/serverSidebar.ts asli lengkap
+- [x] 1251. server/common/serverEditor.ts asli lengkap
+- [x] 1252. server/common/serverTitlebar.ts asli lengkap
+- [x] 1253. server/common/serverBanner.ts asli lengkap
+- [x] 1254. server/common/serverSettings.ts asli lengkap
+- [x] 1255. server/common/serverKeybindingsEditor.ts asli lengkap
+- [x] 1256. server/common/serverThemes.ts asli lengkap
+- [x] 1257. server/common/serverTimeline.ts asli lengkap
+- [x] 1258. server/common/serverTesting.ts asli lengkap
+- [x] 1259. server/common/serverNotebook.ts asli lengkap
+- [x] 1260. server/common/serverCustomEditor.ts asli lengkap
+- [x] 1261. server/common/serverCustomEditorView.ts asli lengkap
+- [x] 1262. server/common/serverWebviewView.ts asli lengkap
+- [x] 1263. server/common/serverComments.ts asli lengkap
 - [ ] 1264. server/common/serverMerge.ts asli lengkap
 - [ ] 1265. server/common/serverMultiDiff.ts asli lengkap
 - [ ] 1266. server/common/serverInteractive.ts asli lengkap

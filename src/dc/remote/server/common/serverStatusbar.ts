@@ -1,15 +1,47 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Dardcor. All rights reserved.
- *  Licensed under the MIT License. See License.txt in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
+import { IDisposable } from '../../../../dc/core/common/lifecycle.js';
 
-import { createDecorator, IInstantiationService } from '../../../platform/instantiation/common/instantiation.js';
-import { DisposableStore, IDisposable } from '../../../base/common/lifecycle.js';
-import { ThemeColor } from '../../../base/common/themables.js';
-import { Command } from '../../../editor/common/languages.js';
-import { IMarkdownString } from '../../../base/common/htmlContent.js';
-import { IManagedHoverTooltipHTMLElement, IManagedHoverTooltipMarkdownString } from '../../../base/browser/ui/hover/hover.js';
-import { ColorIdentifier } from '../../../platform/theme/common/colorRegistry.js';
+export function createDecorator<T>(serviceId: string): any {
+	return serviceId;
+}
+
+export interface IInstantiationService {
+	createInstance<T>(ctor: any, ...args: any[]): T;
+}
+
+export interface ThemeColor {
+	readonly id: string;
+}
+
+export interface Command {
+	readonly id: string;
+	readonly title: string;
+}
+
+export interface IMarkdownString {
+	readonly value: string;
+}
+
+export interface IManagedHoverTooltipHTMLElement {
+	element: HTMLElement;
+}
+
+export interface IManagedHoverTooltipMarkdownString {
+	markdown: IMarkdownString;
+}
+
+export type ColorIdentifier = string;
+
+export class DisposableStore implements IDisposable {
+	private readonly _toDispose = new Set<IDisposable>();
+	dispose(): void {
+		for (const item of this._toDispose) { item.dispose(); }
+		this._toDispose.clear();
+	}
+	add<T extends IDisposable>(item: T): T {
+		this._toDispose.add(item);
+		return item;
+	}
+}
 
 export const IServerStatusbarService = createDecorator<IServerStatusbarService>('serverStatusbarService');
 
