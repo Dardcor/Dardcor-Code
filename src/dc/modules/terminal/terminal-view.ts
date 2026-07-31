@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Dardcor Code - Integrated Terminal Panel View Container
  */
 
@@ -36,7 +36,7 @@ export class TerminalView extends Disposable {
 		this._configurationService = configurationService ?? new ConfigurationService();
 
 		this._container = $<HTMLElement>('div', 'dc-terminal-view');
-		this._container.style.cssText = 'display:flex;flex-direction:column;height:100%;overflow:hidden;background:#1e1e1e;';
+		this._container.style.cssText = 'display:flex;flex-direction:column;height:100%;overflow:hidden;background:#000000;';
 
 		this._tabs = new TerminalTabs(this._container);
 
@@ -76,7 +76,7 @@ export class TerminalView extends Disposable {
 		const process = new TerminalProcess(80, 24, this._configurationService);
 
 		const view = $<HTMLElement>('div', 'dc-terminal-instance');
-		view.style.cssText = 'position:absolute;inset:0;display:none;background:#1e1e1e;';
+		view.style.cssText = 'position:absolute;inset:0;display:none;background:#000000;';
 		view.tabIndex = 0;
 		view.style.outline = 'none';
 

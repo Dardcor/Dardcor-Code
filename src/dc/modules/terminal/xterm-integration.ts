@@ -12,12 +12,12 @@ export interface ITerminalCell {
 	bold: boolean;
 }
 
-export const TERMINAL_DEFAULT_BG = '#1e1e1e';
+export const TERMINAL_DEFAULT_BG = '#000000';
 export const TERMINAL_DEFAULT_FG = '#cccccc';
 
 export const TERMINAL_PALETTE: string[] = [
-	'#000000', '#cd3131', '#0dbc79', '#e5e510', '#2472c8', '#bc3fbc', '#11a8cd', '#e5e5e5',
-	'#666666', '#f14c4c', '#23d18b', '#f5f543', '#3b8eea', '#d670d6', '#29b8db', '#ffffff'
+	'#000000', '#ff5252', '#69f0ae', '#ffd740', '#7c4dff', '#e040fb', '#18ffff', '#e5e5e5',
+	'#666666', '#ff8a80', '#b9f6ca', '#ffe57f', '#b388ff', '#ea80fc', '#84ffff', '#ffffff'
 ];
 
 function createEmptyCell(fg: number, bg: number, bold: boolean): ITerminalCell {

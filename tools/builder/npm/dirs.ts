@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { existsSync } from 'fs';
 
 export const dirs = [

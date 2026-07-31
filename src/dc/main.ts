@@ -29,21 +29,40 @@ function detectLanguage(filePath: string): string {
 	return EXT_TO_LANG[ext] || 'plaintext';
 }
 
-function getFileIcon(name: string, isDir: boolean): string {
-	if (isDir) return '📁';
+function getFileIcon(name: string, isDir: boolean, isExpanded: boolean = false): string {
+	if (isDir) {
+		return isExpanded
+			? '<i class="codicon codicon-folder-opened" style="color:#7C4DFF;"></i>'
+			: '<i class="codicon codicon-folder" style="color:#7C4DFF;"></i>';
+	}
 	const ext = path.extname(name).toLowerCase();
 	switch (ext) {
-		case '.ts': case '.tsx': return '🟦';
-		case '.js': case '.jsx': return '🟨';
-		case '.json': return '⚙️';
-		case '.html': case '.htm': return '🌐';
-		case '.css': case '.scss': case '.less': return '🎨';
-		case '.md': return '📝';
-		case '.py': return '🐍';
-		case '.rs': return '🦀';
-		case '.go': return '🔵';
-		case '.png': case '.jpg': case '.gif': case '.svg': return '🖼️';
-		default: return '📄';
+		case '.ts': case '.tsx':
+			return '<i class="codicon codicon-file-code" style="color:#3178c6;"></i>';
+		case '.js': case '.jsx': case '.mjs': case '.cjs':
+			return '<i class="codicon codicon-file-code" style="color:#f1e05a;"></i>';
+		case '.json':
+			return '<i class="codicon codicon-json" style="color:#cbcb41;"></i>';
+		case '.html': case '.htm':
+			return '<i class="codicon codicon-file-code" style="color:#e34c26;"></i>';
+		case '.css': case '.scss': case '.less':
+			return '<i class="codicon codicon-file-code" style="color:#563d7c;"></i>';
+		case '.md':
+			return '<i class="codicon codicon-markdown" style="color:#42a5f5;"></i>';
+		case '.py':
+			return '<i class="codicon codicon-python" style="color:#3572A5;"></i>';
+		case '.rs':
+			return '<i class="codicon codicon-file-code" style="color:#dea584;"></i>';
+		case '.go':
+			return '<i class="codicon codicon-file-code" style="color:#00add8;"></i>';
+		case '.png': case '.jpg': case '.jpeg': case '.gif': case '.svg':
+			return '<i class="codicon codicon-file-media" style="color:#b388ff;"></i>';
+		case '.zip': case '.tar': case '.gz': case '.7z':
+			return '<i class="codicon codicon-file-zip" style="color:#e040fb;"></i>';
+		case '.sh': case '.bash': case '.ps1': case '.bat':
+			return '<i class="codicon codicon-terminal" style="color:#4caf50;"></i>';
+		default:
+			return '<i class="codicon codicon-file" style="color:#cccccc;"></i>';
 	}
 }
 
@@ -283,7 +302,7 @@ async function loadFileTree(rootPath: string): Promise<void> {
 	rootItem.className = 'tree-item';
 	rootItem.style.fontWeight = '600';
 	rootItem.style.paddingLeft = '8px';
-	rootItem.innerHTML = `<span class="icon">📂</span><span class="name">${folderName.toUpperCase()}</span>`;
+	rootItem.innerHTML = `<span class="icon"><i class="codicon codicon-folder-opened" style="color:#7C4DFF;"></i></span><span class="name">${folderName.toUpperCase()}</span>`;
 	treeEl.appendChild(rootItem);
 
 	expandedFolders.add(rootPath);
@@ -304,8 +323,9 @@ async function renderDirectoryContents(dirPath: string, parentEl: HTMLElement, d
 		item.dataset.path = entry.path;
 		item.dataset.isDir = String(entry.isDirectory);
 
-		const icon = getFileIcon(entry.name, entry.isDirectory);
-		item.innerHTML = `<span class="icon">${entry.isDirectory ? (expandedFolders.has(entry.path) ? '📂' : '📁') : icon}</span><span class="name">${entry.name}</span>`;
+		const isExp = expandedFolders.has(entry.path);
+		const icon = getFileIcon(entry.name, entry.isDirectory, isExp);
+		item.innerHTML = `<span class="icon">${icon}</span><span class="name">${entry.name}</span>`;
 
 		item.addEventListener('click', async () => {
 			if (entry.isDirectory) {
@@ -322,11 +342,11 @@ async function renderDirectoryContents(dirPath: string, parentEl: HTMLElement, d
 						next = next.nextElementSibling;
 						toRemove.remove();
 					}
-					item.querySelector('.icon')!.textContent = '📁';
+					item.querySelector('.icon')!.innerHTML = getFileIcon(entry.name, true, false);
 				} else {
 					// Expand
 					expandedFolders.add(entry.path);
-					item.querySelector('.icon')!.textContent = '📂';
+					item.querySelector('.icon')!.innerHTML = getFileIcon(entry.name, true, true);
 					// Create a temporary container, render into it, then insert after item
 					const tempDiv = document.createElement('div');
 					await renderDirectoryContents(entry.path, tempDiv, depth + 1);
@@ -372,26 +392,27 @@ async function initTerminal(): Promise<void> {
 
 	terminal = new Terminal({
 		theme: {
-			background: '#1e1e1e',
+			background: '#000000',
 			foreground: '#cccccc',
-			cursor: '#aeafad',
-			selectionBackground: '#264f78',
+			cursor: '#7C4DFF',
+			cursorAccent: '#000000',
+			selectionBackground: '#4A148C',
 			black: '#000000',
-			red: '#cd3131',
-			green: '#0dbc79',
-			yellow: '#e5e510',
-			blue: '#2472c8',
-			magenta: '#bc3fbc',
-			cyan: '#11a8cd',
-			white: '#e5e5e5',
+			red: '#ff5252',
+			green: '#69f0ae',
+			yellow: '#ffd740',
+			blue: '#7c4dff',
+			magenta: '#e040fb',
+			cyan: '#18ffff',
+			white: '#ffffff',
 			brightBlack: '#666666',
-			brightRed: '#f14c4c',
-			brightGreen: '#23d18b',
-			brightYellow: '#f5f543',
-			brightBlue: '#3b8eea',
-			brightMagenta: '#d670d6',
-			brightCyan: '#29b8db',
-			brightWhite: '#e5e5e5',
+			brightRed: '#ff8a80',
+			brightGreen: '#b9f6ca',
+			brightYellow: '#ffe57f',
+			brightBlue: '#b388ff',
+			brightMagenta: '#ea80fc',
+			brightCyan: '#84ffff',
+			brightWhite: '#ffffff',
 		},
 		fontFamily: "'Cascadia Code', 'Fira Code', Consolas, monospace",
 		fontSize: 13,
@@ -449,11 +470,23 @@ async function initTerminal(): Promise<void> {
 // ─── Activity Bar ────────────────────────────────────────────────
 
 function initActivityBar(): void {
-	const icons = document.querySelectorAll('.activity-icon');
+	const icons = document.querySelectorAll('.activity-icon[data-view]');
+	const sidebarHeader = document.querySelector('#sidebar-header span:first-child');
 	icons.forEach(icon => {
 		icon.addEventListener('click', () => {
 			icons.forEach(i => i.classList.remove('active'));
 			icon.classList.add('active');
+			const view = (icon as HTMLElement).dataset.view;
+			if (sidebarHeader && view) {
+				const titleMap: Record<string, string> = {
+					'explorer': 'EXPLORER',
+					'search': 'SEARCH',
+					'scm': 'SOURCE CONTROL',
+					'debug': 'RUN AND DEBUG',
+					'extensions': 'EXTENSIONS'
+				};
+				sidebarHeader.textContent = titleMap[view] || 'EXPLORER';
+			}
 		});
 	});
 }

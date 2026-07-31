@@ -32,12 +32,12 @@ function createWindow(): void {
 		title: 'Dardcor Code',
 		icon: iconPath,
 		autoHideMenuBar: true,
-		backgroundColor: '#1e1e1e',
+		backgroundColor: '#000000',
 		titleBarStyle: 'hidden',
 		titleBarOverlay: {
-			color: '#323233',
-			symbolColor: '#cccccc',
-			height: 30
+			color: '#000000',
+			symbolColor: '#ffffff',
+			height: 35
 		},
 		webPreferences: {
 			nodeIntegration: true,

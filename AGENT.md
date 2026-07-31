@@ -1246,16 +1246,16 @@ Desain warna default Dardcor Code :
 - [x] 1118. code/node/sharedProcess.ts asli lengkap
 - [x] 1119. code/node/codeProcessMain.ts asli lengkap
 - [x] 1120. code/node/codeProcessUtils.ts asli lengkap
-- [ ] 1121. code/node/codeProcessService.ts asli lengkap
-- [ ] 1122. code/node/codeProcessTransport.ts asli lengkap
-- [ ] 1123. code/node/codeProcessStats.ts asli lengkap
-- [ ] 1124. code/node/codeProcessEnvironment.ts asli lengkap
-- [ ] 1125. code/node/codeProcessLogs.ts asli lengkap
-- [ ] 1126. code/node/codeProcessState.ts asli lengkap
-- [ ] 1127. code/node/codeProcessWindows.ts asli lengkap
-- [ ] 1128. code/node/codeProcessMac.ts asli lengkap
-- [ ] 1129. code/node/codeProcessLinux.ts asli lengkap
-- [ ] 1130. code/node/codeProcessNode.ts asli lengkap
+- [x] 1121. code/node/codeProcessService.ts asli lengkap
+- [x] 1122. code/node/codeProcessTransport.ts asli lengkap
+- [x] 1123. code/node/codeProcessStats.ts asli lengkap
+- [x] 1124. code/node/codeProcessEnvironment.ts asli lengkap
+- [x] 1125. code/node/codeProcessLogs.ts asli lengkap
+- [x] 1126. code/node/codeProcessState.ts asli lengkap
+- [x] 1127. code/node/codeProcessWindows.ts asli lengkap
+- [x] 1128. code/node/codeProcessMac.ts asli lengkap
+- [x] 1129. code/node/codeProcessLinux.ts asli lengkap
+- [x] 1130. code/node/codeProcessNode.ts asli lengkap
 - [ ] 1131. code/node/codeProcessExtensionHost.ts asli lengkap
 - [ ] 1132. code/node/codeProcessExtensionHostStarter.ts asli lengkap
 - [ ] 1133. code/node/codeProcessSharedProcess.ts asli lengkap
