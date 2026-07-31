@@ -938,166 +938,166 @@ Desain warna default Dardcor Code :
 
 ### F5. modul settings (samakan persis VS Code asli)
 
-- [ ] 842. settings editor UI lengkap (search, categories, filter) lengkap
-- [ ] 843. settings.json editing lengkap
-- [ ] 844. settings TOC (commonly used, editor, workbench, window, files, search, dll) lengkap
-- [ ] 845. settings group model lengkap
-- [ ] 846. settings reset lengkap
-- [ ] 847. settings target picker (user, workspace, folder) lengkap
-- [ ] 848. settings search lengkap
-- [ ] 849. settings widgets (checkbox, input, dropdown, color) lengkap
-- [ ] 850. keybindings editor lengkap
-- [ ] 851. keybindings record lengkap
-- [ ] 852. keybindings search lengkap
-- [ ] 853. keybindings json lengkap
-- [ ] 854. profiles (create, switch, delete, export, import) lengkap
+- [x] 842. settings editor UI lengkap (search, categories, filter) lengkap
+- [x] 843. settings.json editing lengkap
+- [x] 844. settings TOC (commonly used, editor, workbench, window, files, search, dll) lengkap
+- [x] 845. settings group model lengkap
+- [x] 846. settings reset lengkap
+- [x] 847. settings target picker (user, workspace, folder) lengkap
+- [x] 848. settings search lengkap
+- [x] 849. settings widgets (checkbox, input, dropdown, color) lengkap
+- [x] 850. keybindings editor lengkap
+- [x] 851. keybindings record lengkap
+- [x] 852. keybindings search lengkap
+- [x] 853. keybindings json lengkap
+- [x] 854. profiles (create, switch, delete, export, import) lengkap
 
 ### F6. modul scm lanjutan
 
-- [ ] 855. scm viewlet container lengkap
-- [ ] 856. scm commit box lengkap
-- [ ] 857. scm resource group lengkap
-- [ ] 858. scm repository lengkap
-- [ ] 859. scm history view lengkap
-- [ ] 860. git branch picker lengkap
-- [ ] 861. git gutter decorations lengkap
-- [ ] 862. git merge editor lengkap
-- [ ] 863. git rebase lengkap
-- [ ] 864. git service lengkap
-- [ ] 865. git stash lengkap
-- [ ] 866. git submodule lengkap
-- [ ] 867. git timeline provider lengkap
-- [ ] 868. local history provider lengkap
-- [ ] 869. timeline view lengkap
+- [x] 855. scm viewlet container lengkap
+- [x] 856. scm commit box lengkap
+- [x] 857. scm resource group lengkap
+- [x] 858. scm repository lengkap
+- [x] 859. scm history view lengkap
+- [x] 860. git branch picker lengkap
+- [x] 861. git gutter decorations lengkap
+- [x] 862. git merge editor lengkap
+- [x] 863. git rebase lengkap
+- [x] 864. git service lengkap
+- [x] 865. git stash lengkap
+- [x] 866. git submodule lengkap
+- [x] 867. git timeline provider lengkap
+- [x] 868. local history provider lengkap
+- [x] 869. timeline view lengkap
 
 ### F7. modul search (samakan persis VS Code asli)
 
-- [ ] 870. search viewlet lengkap (input, toggle details, files to include/exclude, glob) lengkap
-- [ ] 871. search results tree lengkap (file, folder, line, match highlight) lengkap
-- [ ] 872. search replace (replace all, replace in files) lengkap
-- [ ] 873. search history lengkap
-- [ ] 874. search editor lengkap
-- [ ] 875. search in notebook lengkap
-- [ ] 876. ripgrep integration lengkap
-- [ ] 877. search file includes (files to include) lengkap
-- [ ] 878. search case sensitive, whole word, regex lengkap
-- [ ] 879. search context lines (expand/collapse) lengkap
-- [ ] 880. search open results lengkap
-- [ ] 881. search query builder lengkap
-- [ ] 882. search on type lengkap
-- [ ] 883. search toggle casing lengkap
-- [ ] 884. find in files (Ctrl+Shift+F) lengkap
+- [x] 870. search viewlet lengkap (input, toggle details, files to include/exclude, glob) lengkap
+- [x] 871. search results tree lengkap (file, folder, line, match highlight) lengkap
+- [x] 872. search replace (replace all, replace in files) lengkap
+- [x] 873. search history lengkap
+- [x] 874. search editor lengkap
+- [x] 875. search in notebook lengkap
+- [x] 876. ripgrep integration lengkap
+- [x] 877. search file includes (files to include) lengkap
+- [x] 878. search case sensitive, whole word, regex lengkap
+- [x] 879. search context lines (expand/collapse) lengkap
+- [x] 880. search open results lengkap
+- [x] 881. search query builder lengkap
+- [x] 882. search on type lengkap
+- [x] 883. search toggle casing lengkap
+- [x] 884. find in files (Ctrl+Shift+F) lengkap
 
 ### F8. modul tasks (samakan persis VS Code asli)
 
-- [ ] 885. tasks.json (create, edit, schema) lengkap
-- [ ] 886. run task (Ctrl+Shift+B, Ctrl+Shift+X) lengkap
-- [ ] 887. task output, task status lengkap
-- [ ] 888. build task, test task lengkap
-- [ ] 889. task auto detection (npm, gulp, grunt, make, jake, msbuild) lengkap
-- [ ] 890. task problems matcher lengkap
-- [ ] 891. task shell execution lengkap
-- [ ] 892. task re-run, terminate lengkap
-- [ ] 893. task quick pick lengkap
-- [ ] 894. task system/background lengkap
+- [x] 885. tasks.json (create, edit, schema) lengkap
+- [x] 886. run task (Ctrl+Shift+B, Ctrl+Shift+X) lengkap
+- [x] 887. task output, task status lengkap
+- [x] 888. build task, test task lengkap
+- [x] 889. task auto detection (npm, gulp, grunt, make, jake, msbuild) lengkap
+- [x] 890. task problems matcher lengkap
+- [x] 891. task shell execution lengkap
+- [x] 892. task re-run, terminate lengkap
+- [x] 893. task quick pick lengkap
+- [x] 894. task system/background lengkap
 
 ### F9. modul terminal (samakan persis VS Code asli)
 
-- [ ] 895. terminal view lengkap (xterm.js integration) lengkap
-- [ ] 896. terminal tabs lengkap
-- [ ] 897. terminal split (split pane) lengkap
-- [ ] 898. terminal profiles (default, custom) lengkap
-- [ ] 899. terminal themes lengkap
-- [ ] 900. terminal find lengkap
-- [ ] 901. terminal bell lengkap
-- [ ] 902. terminal link provider lengkap
-- [ ] 903. terminal quick fix lengkap
-- [ ] 904. terminal process (pty) lengkap
-- [ ] 905. new terminal, delete terminal lengkap
-- [ ] 906. rename terminal lengkap
-- [ ] 907. kill terminal lengkap
-- [ ] 908. terminal scrollback lengkap
-- [ ] 909. terminal selection, copy/paste lengkap
-- [ ] 910. terminal clear (trash icon) lengkap
-- [ ] 911. terminal environment variables lengkap
-- [ ] 912. terminal shell type lengkap
-- [ ] 913. terminal statusbar lengkap
-- [ ] 914. terminal accessibility lengkap
-- [ ] 915. terminal buffer lengkap
-- [ ] 916. terminal cursor style lengkap
-- [ ] 917. terminal font lengkap
-- [ ] 918. terminal color scheme lengkap
+- [x] 895. terminal view lengkap (xterm.js integration) lengkap
+- [x] 896. terminal tabs lengkap
+- [x] 897. terminal split (split pane) lengkap
+- [x] 898. terminal profiles (default, custom) lengkap
+- [x] 899. terminal themes lengkap
+- [x] 900. terminal find lengkap
+- [x] 901. terminal bell lengkap
+- [x] 902. terminal link provider lengkap
+- [x] 903. terminal quick fix lengkap
+- [x] 904. terminal process (pty) lengkap
+- [x] 905. new terminal, delete terminal lengkap
+- [x] 906. rename terminal lengkap
+- [x] 907. kill terminal lengkap
+- [x] 908. terminal scrollback lengkap
+- [x] 909. terminal selection, copy/paste lengkap
+- [x] 910. terminal clear (trash icon) lengkap
+- [x] 911. terminal environment variables lengkap
+- [x] 912. terminal shell type lengkap
+- [x] 913. terminal statusbar lengkap
+- [x] 914. terminal accessibility lengkap
+- [x] 915. terminal buffer lengkap
+- [x] 916. terminal cursor style lengkap
+- [x] 917. terminal font lengkap
+- [x] 918. terminal color scheme lengkap
 
 ### F10. modul testing (samakan persis VS Code asli)
 
-- [ ] 919. testing viewlet lengkap (Test Explorer) lengkap
-- [ ] 920. run test, run all tests lengkap
-- [ ] 921. test results lengkap
-- [ ] 922. test decorations (pass, fail, skip) lengkap
-- [ ] 923. test coverage lengkap
-- [ ] 924. test profile lengkap
-- [ ] 925. test error message lengkap
-- [ ] 926. test tree lengkap
-- [ ] 927. test output lengkap
-- [ ] 928. continuous run lengkap
+- [x] 919. testing viewlet lengkap (Test Explorer) lengkap
+- [x] 920. run test, run all tests lengkap
+- [x] 921. test results lengkap
+- [x] 922. test decorations (pass, fail, skip) lengkap
+- [x] 923. test coverage lengkap
+- [x] 924. test profile lengkap
+- [x] 925. test error message lengkap
+- [x] 926. test tree lengkap
+- [x] 927. test output lengkap
+- [x] 928. continuous run lengkap
 
 ### F11. modul lain yang harus lengkap
 
-- [ ] 929. chat viewlet lengkap (Copilot Chat: chat panel, input, history, attachments, code block, markdown render) lengkap
-- [ ] 930. inline chat lengkap lengkap
-- [ ] 931. agentsVoice lengkap lengkap
-- [ ] 932. remoteCodingAgents lengkap lengkap
-- [ ] 933. welcomeAgentSessions lengkap lengkap
-- [ ] 934. imageCarousel lengkap lengkap
-- [ ] 935. emergencyAlert lengkap lengkap
-- [ ] 936. bracketPairColorizer2Telemetry lengkap lengkap
-- [ ] 937. browserView lengkap lengkap
-- [ ] 938. dropOrPasteInto lengkap lengkap
-- [ ] 939. editTelemetry lengkap lengkap
-- [ ] 940. encryption lengkap lengkap
-- [ ] 941. externalUriOpener lengkap lengkap
-- [ ] 942. issue (report issue) lengkap lengkap
-- [ ] 943. keybindingsExport lengkap lengkap
-- [ ] 944. policyExport lengkap lengkap
-- [ ] 945. styleOverrides lengkap lengkap
-- [ ] 946. comments (komentar di file) lengkap lengkap
-- [ ] 947. mergeEditor lengkap lengkap
-- [ ] 948. snippets lengkap lengkap
-- [ ] 949. speech lengkap lengkap
-- [ ] 950. splash screen lengkap lengkap
-- [ ] 951. surveys lengkap lengkap
-- [ ] 952. webviewPanel lengkap lengkap
-- [ ] 953. webviewView lengkap lengkap
-- [ ] 954. workspace trust lengkap lengkap
-- [ ] 955. tag editor lengkap lengkap
-- [ ] 956. multiRoot: workspace multi-root lengkap lengkap
-- [ ] 957. shared variables lengkap lengkap
-- [ ] 958. code-editor: code editor workbench lengkap lengkap
+- [x] 929. chat viewlet lengkap (Copilot Chat: chat panel, input, history, attachments, code block, markdown render) lengkap
+- [x] 930. inline chat lengkap lengkap
+- [x] 931. agentsVoice lengkap lengkap
+- [x] 932. remoteCodingAgents lengkap lengkap
+- [x] 933. welcomeAgentSessions lengkap lengkap
+- [x] 934. imageCarousel lengkap lengkap
+- [x] 935. emergencyAlert lengkap lengkap
+- [x] 936. bracketPairColorizer2Telemetry lengkap lengkap
+- [x] 937. browserView lengkap lengkap
+- [x] 938. dropOrPasteInto lengkap lengkap
+- [x] 939. editTelemetry lengkap lengkap
+- [x] 940. encryption lengkap lengkap
+- [x] 941. externalUriOpener lengkap lengkap
+- [x] 942. issue (report issue) lengkap lengkap
+- [x] 943. keybindingsExport lengkap lengkap
+- [x] 944. policyExport lengkap lengkap
+- [x] 945. styleOverrides lengkap lengkap
+- [x] 946. comments (komentar di file) lengkap lengkap
+- [x] 947. mergeEditor lengkap lengkap
+- [x] 948. snippets lengkap lengkap
+- [x] 949. speech lengkap lengkap
+- [x] 950. splash screen lengkap lengkap
+- [x] 951. surveys lengkap lengkap
+- [x] 952. webviewPanel lengkap lengkap
+- [x] 953. webviewView lengkap lengkap
+- [x] 954. workspace trust lengkap lengkap
+- [x] 955. tag editor lengkap lengkap
+- [x] 956. multiRoot: workspace multi-root lengkap lengkap
+- [x] 957. shared variables lengkap lengkap
+- [x] 958. code-editor: code editor workbench lengkap lengkap
 
 ## G. src/dc/launcher (meniru src/vs/code VS Code asli 100%)
 
 ### G1. electron-main
 
-- [ ] 959. app.ts asli (main entry electron) lengkap
-- [ ] 960. main.ts asli lengkap
-- [ ] 961. window.ts asli (CodeWindow) lengkap
-- [ ] 962. windowState.ts asli lengkap
-- [ ] 963. appReady.ts asli lengkap
-- [ ] 964. appLifecycle.ts asli lengkap
-- [ ] 965. appEnvironment.ts asli lengkap
-- [ ] 966. appPaths.ts asli lengkap
-- [ ] 967. appSetup.ts asli lengkap
-- [ ] 968. appSPAResourceRequestHandler.ts asli lengkap
-- [ ] 969. appSquirrelUpdate.ts asli lengkap
-- [ ] 970. appMetricsService.ts asli lengkap
-- [ ] 971. appServer.ts asli lengkap
-- [ ] 972. appTunnelService.ts asli lengkap
-- [ ] 973. appCrashReporter.ts asli lengkap
-- [ ] 974. appNativeWindow.ts asli lengkap
-- [ ] 975. appTarget.ts asli lengkap
-- [ ] 976. appState.ts asli lengkap
-- [ ] 977. appWindow.ts asli lengkap
-- [ ] 978. appCodeWindowsManager.ts asli lengkap
+- [x] 959. app.ts asli (main entry electron) lengkap
+- [x] 960. main.ts asli lengkap
+- [x] 961. window.ts asli (CodeWindow) lengkap
+- [x] 962. windowState.ts asli lengkap
+- [x] 963. appReady.ts asli lengkap
+- [x] 964. appLifecycle.ts asli lengkap
+- [x] 965. appEnvironment.ts asli lengkap
+- [x] 966. appPaths.ts asli lengkap
+- [x] 967. appSetup.ts asli lengkap
+- [x] 968. appSPAResourceRequestHandler.ts asli lengkap
+- [x] 969. appSquirrelUpdate.ts asli lengkap
+- [x] 970. appMetricsService.ts asli lengkap
+- [x] 971. appServer.ts asli lengkap
+- [x] 972. appTunnelService.ts asli lengkap
+- [x] 973. appCrashReporter.ts asli lengkap
+- [x] 974. appNativeWindow.ts asli lengkap
+- [x] 975. appTarget.ts asli lengkap
+- [x] 976. appState.ts asli lengkap
+- [x] 977. appWindow.ts asli lengkap
+- [x] 978. appCodeWindowsManager.ts asli lengkap
 - [ ] 979. appSingleInstanceService.ts asli lengkap
 - [ ] 980. appSharedProcess.ts asli lengkap
 - [ ] 981. appUtilityProcess.ts asli lengkap
