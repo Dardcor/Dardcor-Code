@@ -130,6 +130,7 @@
     "@vscode/windows-process-tree": "^0.8.0",
     "@vscode/windows-registry": "^1.2.0",
     "@xterm/addon-clipboard": "^0.3.0-beta.291",
+    "@xterm/addon-fit": "^0.11.0",
     "@xterm/addon-image": "^0.10.0-beta.291",
     "@xterm/addon-ligatures": "^0.11.0-beta.291",
     "@xterm/addon-progress": "^0.3.0-beta.291",
@@ -148,6 +149,7 @@
     "katex": "^0.16.22",
     "kerberos": "2.1.1",
     "minimist": "^1.2.8",
+    "monaco-editor": "^0.56.0",
     "native-is-elevated": "0.9.0",
     "native-keymap": "^3.3.5",
     "node-addon-api": "^6.0.0",
@@ -164,9 +166,7 @@
     "ws": "^8.19.0",
     "yauzl": "^3.3.1",
     "yazl": "^2.4.3",
-    "zod": "^3.25.76",
-    "monaco-editor": "^0.56.0",
-    "@xterm/addon-fit": "^0.11.0"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.3.220",

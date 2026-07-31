@@ -828,46 +828,46 @@ Desain warna default Dardcor Code :
 - [x] 741. notebook: notebook lengkap (lihat F4) lengkap
 - [x] 742. onboarding: onboarding lengkap
 - [x] 743. opener: opener lengkap
-- [ ] 744. outline: outline view lengkap
-- [ ] 745. output: output panel lengkap
-- [ ] 746. performance: performance lengkap
-- [ ] 747. preferences: settings editor lengkap (lihat F5) lengkap
-- [ ] 748. processExplorer: process explorer (Help > Open Process Explorer) lengkap
-- [ ] 749. quickaccess: quick access (Ctrl+P, Ctrl+Shift+P) lengkap
-- [ ] 750. relauncher: relauncher lengkap
-- [ ] 751. remote: remote explorer lengkap
-- [ ] 752. remoteTunnel: remote tunnel lengkap
-- [ ] 753. replNotebook: repl notebook lengkap
-- [ ] 754. sash: sash lengkap
-- [ ] 755. scm: source control lengkap (lihat F6) lengkap
-- [ ] 756. scrollLocking: scroll locking lengkap
-- [ ] 757. search: search lengkap (lihat F7) lengkap
-- [ ] 758. searchEditor: search editor lengkap
-- [ ] 759. share: share lengkap
-- [ ] 760. snippets: snippets lengkap
-- [ ] 761. speech: speech lengkap
-- [ ] 762. splash: splash screen lengkap
-- [ ] 763. surveys: surveys lengkap
-- [ ] 764. tags: tags lengkap
-- [ ] 765. tasks: tasks (lihat F8) lengkap
-- [ ] 766. telemetry: telemetry lengkap
-- [ ] 767. terminal: terminal lengkap (lihat F9) lengkap
-- [ ] 768. testing: testing lengkap (lihat F10) lengkap
-- [ ] 769. themes: themes lengkap
-- [ ] 770. timeline: timeline view lengkap
-- [ ] 771. typeHierarchy: type hierarchy lengkap
-- [ ] 772. update: update lengkap
-- [ ] 773. url: url lengkap
-- [ ] 774. userDataProfile: profile lengkap
-- [ ] 775. userDataSync: settings sync lengkap
-- [ ] 776. webview: webview lengkap
-- [ ] 777. webviewPanel: webview panel lengkap
-- [ ] 778. webviewView: webview view lengkap
-- [ ] 779. welcomeBanner: welcome banner lengkap
-- [ ] 780. welcomeGettingStarted: getting started lengkap
-- [ ] 781. welcomeOnboarding: onboarding lengkap
-- [ ] 782. welcomeViews: welcome views lengkap
-- [ ] 783. welcomeWalkthrough: walkthrough lengkap
+- [x] 744. outline: outline view lengkap
+- [x] 745. output: output panel lengkap
+- [x] 746. performance: performance lengkap
+- [x] 747. preferences: settings editor lengkap (lihat F5) lengkap
+- [x] 748. processExplorer: process explorer (Help > Open Process Explorer) lengkap
+- [x] 749. quickaccess: quick access (Ctrl+P, Ctrl+Shift+P) lengkap
+- [x] 750. relauncher: relauncher lengkap
+- [x] 751. remote: remote explorer lengkap
+- [x] 752. remoteTunnel: remote tunnel lengkap
+- [x] 753. replNotebook: repl notebook lengkap
+- [x] 754. sash: sash lengkap
+- [x] 755. scm: source control lengkap (lihat F6) lengkap
+- [x] 756. scrollLocking: scroll locking lengkap
+- [x] 757. search: search lengkap (lihat F7) lengkap
+- [x] 758. searchEditor: search editor lengkap
+- [x] 759. share: share lengkap
+- [x] 760. snippets: snippets lengkap
+- [x] 761. speech: speech lengkap
+- [x] 762. splash: splash screen lengkap
+- [x] 763. surveys: surveys lengkap
+- [x] 764. tags: tags lengkap
+- [x] 765. tasks: tasks (lihat F8) lengkap
+- [x] 766. telemetry: telemetry lengkap
+- [x] 767. terminal: terminal lengkap (lihat F9) lengkap
+- [x] 768. testing: testing lengkap (lihat F10) lengkap
+- [x] 769. themes: themes lengkap
+- [x] 770. timeline: timeline view lengkap
+- [x] 771. typeHierarchy: type hierarchy lengkap
+- [x] 772. update: update lengkap
+- [x] 773. url: url lengkap
+- [x] 774. userDataProfile: profile lengkap
+- [x] 775. userDataSync: settings sync lengkap
+- [x] 776. webview: webview lengkap
+- [x] 777. webviewPanel: webview panel lengkap
+- [x] 778. webviewView: webview view lengkap
+- [x] 779. welcomeBanner: welcome banner lengkap
+- [x] 780. welcomeGettingStarted: getting started lengkap
+- [x] 781. welcomeOnboarding: onboarding lengkap
+- [x] 782. welcomeViews: welcome views lengkap
+- [x] 783. welcomeWalkthrough: walkthrough lengkap
 - [ ] 784. workspace: workspace lengkap
 - [ ] 785. workspaces: workspaces lengkap
 
