@@ -82,7 +82,7 @@ export const textPreformatBorder = registerColor('textPreformat.border',
 // ------ text block quote
 
 export const textBlockQuoteBackground = registerColor('textBlockQuote.background',
-	{ light: '#f2f2f2', dark: '#222222', hcDark: null, hcLight: '#F2F2F2' },
+	{ light: '#f2f2f2', dark: '#3B0A5E', hcDark: null, hcLight: '#F2F2F2' },
 	nls.localize('textBlockQuoteBackground', "Background color for block quotes in text."));
 
 export const textBlockQuoteBorder = registerColor('textBlockQuote.border',
