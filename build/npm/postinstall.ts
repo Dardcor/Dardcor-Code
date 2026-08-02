@@ -100,13 +100,19 @@ async function npmInstallAsync(dir: string, opts?: child_process.SpawnOptions): 
 
 function setNpmrcConfig(dir: string, env: NodeJS.ProcessEnv) {
 	const npmrcPath = path.join(root, dir, '.npmrc');
-	const lines = fs.readFileSync(npmrcPath, 'utf8').split('\n');
+	if (fs.existsSync(npmrcPath)) {
+		const lines = fs.readFileSync(npmrcPath, 'utf8').split('\n');
 
-	for (const line of lines) {
-		const trimmedLine = line.trim();
-		if (trimmedLine && !trimmedLine.startsWith('#')) {
-			const [key, value] = trimmedLine.split('=');
-			env[`npm_config_${key}`] = value.replace(/^"(.*)"$/, '$1');
+		for (const line of lines) {
+			let trimmedLine = line.trim();
+			if (trimmedLine.startsWith('#')) {
+				trimmedLine = trimmedLine.substring(1).trim();
+			}
+			if (trimmedLine && trimmedLine.includes('=')) {
+				const [key, value] = trimmedLine.split('=');
+				const cleanKey = key.trim().replace(/^npm_config_/, '');
+				env[`npm_config_${cleanKey}`] = value.trim().replace(/^"(.*)"$/, '$1');
+			}
 		}
 	}
 
@@ -137,6 +143,15 @@ function setNpmrcConfig(dir: string, env: NodeJS.ProcessEnv) {
 		// https://github.com/tree-sitter/node-tree-sitter/issues/268.
 		// env['npm_config_target'] = process.versions.node;
 		env['npm_config_arch'] = process.arch;
+	}
+
+	if (process.platform === 'win32') {
+		env['VCINSTALLDIR'] = env['VCINSTALLDIR'] || 'C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC';
+		env['VSCMD_VER'] = env['VSCMD_VER'] || '17.10.0';
+		env['WindowsSDKVersion'] = env['WindowsSDKVersion'] || '10.0.26100.0\\';
+		env['GYP_MSVS_VERSION'] = env['GYP_MSVS_VERSION'] || '2022';
+		env['npm_config_msvs_version'] = env['npm_config_msvs_version'] || '2022';
+		env['VCToolsInstallDir'] = env['VCToolsInstallDir'] || 'C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\';
 	}
 }
 
@@ -186,12 +201,15 @@ function clearInheritedNpmrcConfig(dir: string, env: NodeJS.ProcessEnv): void {
 	}
 }
 
-function ensureAgentHarnessLink(sourceRelativePath: string, linkPath: string): 'existing' | 'junction' | 'symlink' | 'hard link' {
+function ensureAgentHarnessLink(sourceRelativePath: string, linkPath: string): 'existing' | 'junction' | 'symlink' | 'hard link' | 'missing' {
 	if (fs.existsSync(linkPath)) {
 		return 'existing';
 	}
 
 	const sourcePath = path.resolve(path.dirname(linkPath), sourceRelativePath);
+	if (!fs.existsSync(sourcePath)) {
+		return 'missing';
+	}
 	const isDirectory = fs.statSync(sourcePath).isDirectory();
 
 	try {
@@ -299,6 +317,9 @@ async function main() {
 		parallelTasks.push(() => {
 			const env = { ...process.env };
 			clearInheritedNpmrcConfig(taskDir, env);
+			if (process.platform === 'win32') {
+				setNpmrcConfig(taskDir, env);
+			}
 			return npmInstallAsync(taskDir, { env });
 		});
 	}
@@ -325,13 +346,13 @@ async function main() {
 
 	const claudeMdLink = path.join(claudeDir, 'CLAUDE.md');
 	const claudeMdLinkType = ensureAgentHarnessLink(path.join('..', '.github', 'copilot-instructions.md'), claudeMdLink);
-	if (claudeMdLinkType !== 'existing') {
+	if (claudeMdLinkType !== 'existing' && claudeMdLinkType !== 'missing') {
 		log('.', `Created ${claudeMdLinkType} .claude/CLAUDE.md -> .github/copilot-instructions.md`);
 	}
 
 	const claudeSkillsLink = path.join(claudeDir, 'skills');
 	const claudeSkillsLinkType = ensureAgentHarnessLink(path.join('..', '.agents', 'skills'), claudeSkillsLink);
-	if (claudeSkillsLinkType !== 'existing') {
+	if (claudeSkillsLinkType !== 'existing' && claudeSkillsLinkType !== 'missing') {
 		log('.', `Created ${claudeSkillsLinkType} .claude/skills -> .agents/skills`);
 	}
 

@@ -488,7 +488,9 @@ export class ChannelServer<TContext = string> implements IChannelServer<TContext
 		}
 
 		const timer = setTimeout(() => {
-			console.error(`Unknown channel: ${request.channelName}`);
+			if (!request.channelName.startsWith('agentHost')) {
+				console.error(`Unknown channel: ${request.channelName}`);
+			}
 
 			if (request.type === RequestType.Promise) {
 				this.sendResponse({

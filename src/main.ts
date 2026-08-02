@@ -20,6 +20,10 @@ import { getUNCHost, addUNCHostToAllowlist } from './dc/base/node/unc.js';
 import { INLSConfiguration } from './dc/nls.js';
 import { NativeParsedArgs } from './dc/platform/environment/common/argv.js';
 
+if (!app.isPackaged && !process.env['VSCODE_DEV']) {
+	process.env['VSCODE_DEV'] = '1';
+}
+
 perf.mark('code/didStartMain');
 
 perf.mark('code/willLoadMainBundle', {
@@ -394,7 +398,7 @@ function readArgvConfigSync(): IArgvConfig {
 	try {
 		argvConfig = parse(fs.readFileSync(argvConfigPath).toString());
 	} catch (error) {
-		if (error && error.code === 'ENOENT') {
+		if (error && (error as any).code === 'ENOENT') {
 			createDefaultArgvConfigSync(argvConfigPath);
 		} else {
 			console.warn(`Unable to read argv.json configuration file in ${argvConfigPath}, falling back to defaults (${error})`);

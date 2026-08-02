@@ -432,7 +432,7 @@ export const watchApiProposalNamesTask = task.define('watch-api-proposal-names',
 // Codicons
 const root = path.dirname(path.dirname(import.meta.dirname));
 const codiconSource = path.join(root, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.ttf');
-const codiconDest = path.join(root, 'src', 'vs', 'base', 'browser', 'ui', 'codicons', 'codicon', 'codicon.ttf');
+const codiconDest = path.join(root, 'src', 'dc', 'base', 'browser', 'ui', 'codicons', 'codicon', 'codicon.ttf');
 
 function copyCodiconsImpl() {
 	try {

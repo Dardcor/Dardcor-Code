@@ -125,21 +125,19 @@ function installHeaders() {
 	// The node gyp package got installed using the above npm command using the gyp/package.json
 	// file checked into our repository. So from that point it is safe to construct the path
 	// to that executable
-	const node_gyp = process.platform === 'win32'
-		? path.join(import.meta.dirname, 'gyp', 'node_modules', '.bin', 'node-gyp.cmd')
-		: path.join(import.meta.dirname, 'gyp', 'node_modules', '.bin', 'node-gyp');
+	const node_gyp = path.join(import.meta.dirname, 'gyp', 'node_modules', 'node-gyp', 'bin', 'node-gyp.js');
 
 	const local = getHeaderInfo(path.join(import.meta.dirname, '..', '..', '.npmrc'));
 	const remote = getHeaderInfo(path.join(import.meta.dirname, '..', '..', 'remote', '.npmrc'));
 
 	if (local !== undefined) {
 		// Both disturl and target come from a file checked into our repository
-		child_process.execFileSync(node_gyp, ['install', '--dist-url', local.disturl, local.target], { shell: true });
+		child_process.execFileSync(process.execPath, [node_gyp, 'install', '--dist-url', local.disturl, local.target]);
 	}
 
 	if (remote !== undefined) {
 		// Both disturl and target come from a file checked into our repository
-		child_process.execFileSync(node_gyp, ['install', '--dist-url', remote.disturl, remote.target], { shell: true });
+		child_process.execFileSync(process.execPath, [node_gyp, 'install', '--dist-url', remote.disturl, remote.target]);
 	}
 
 	// Overlay any custom headers shipped in build/npm/gyp/custom-headers on top of
@@ -186,11 +184,11 @@ function getHeaderInfo(rcFile: string): { disturl: string; target: string } | un
 	let disturl: string | undefined;
 	let target: string | undefined;
 	for (const line of lines) {
-		let match = line.match(/\s*disturl=*\"(.*)\"\s*$/);
+		let match = line.match(/\s*#?\s*(?:npm_config_)?disturl=*\"(.*)\"\s*$/);
 		if (match !== null && match.length >= 1) {
 			disturl = match[1];
 		}
-		match = line.match(/\s*target=*\"(.*)\"\s*$/);
+		match = line.match(/\s*#?\s*(?:npm_config_)?target=*\"(.*)\"\s*$/);
 		if (match !== null && match.length >= 1) {
 			target = match[1];
 		}

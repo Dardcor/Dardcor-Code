@@ -192,7 +192,7 @@ function findExtensionPointInVariable(sourceFile: ts.SourceFile, varName: string
 
 const rootDir = path.resolve(import.meta.dirname, '..', '..');
 const srcDir = path.join(rootDir, 'src');
-const outputPath = path.join(srcDir, 'vs', 'workbench', 'services', 'extensions', 'common', 'extensionPoints.json');
+const outputPath = path.join(srcDir, 'dc', 'workbench', 'services', 'extensions', 'common', 'extensionPoints.json');
 
 function scanDirectory(dir: string): string[] {
 	const names: string[] = [];
@@ -216,7 +216,7 @@ function normalize(s: string): string {
 }
 
 function main(): void {
-	const names = scanDirectory(path.join(srcDir, 'vs', 'workbench'));
+	const names = scanDirectory(path.join(srcDir, 'dc', 'workbench'));
 	names.sort();
 	const output = JSON.stringify(names, undefined, '\t') + '\n';
 	try {

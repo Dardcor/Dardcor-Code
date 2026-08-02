@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
 /**
@@ -258,7 +258,11 @@ export const eslintFilter = Object.freeze<string[]>([
 	'**/*.{ts,tsx,mts,cts}',
 	'.eslint-plugin-local/**/*.ts',
 	'!src/dc/platform/agentHost/node/codex/protocol/generated/**',
-	...readFileSync(join(import.meta.dirname, '..', '.eslint-ignore'))
+	...(existsSync(join(import.meta.dirname, '..', '.eslint-ignore'))
+		? readFileSync(join(import.meta.dirname, '..', '.eslint-ignore'))
+		: existsSync(join(import.meta.dirname, '..', '.eslintignore'))
+			? readFileSync(join(import.meta.dirname, '..', '.eslintignore'))
+			: Buffer.from(''))
 		.toString()
 		.split(/\r\n|\n/)
 		.filter(line => line && !line.startsWith('#'))
