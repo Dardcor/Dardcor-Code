@@ -17,7 +17,7 @@ try {
 	const [major, minor] = tag.split('.');
 	const shorttag = `${major}.${minor}`;
 
-	const dtsUri = `https://raw.githubusercontent.com/microsoft/vscode/${tag}/src/dccode-dts/vscode.d.ts`;
+	const dtsUri = `https://raw.githubusercontent.com/microsoft/vscode/${tag}/src/vscode-dts/vscode.d.ts`;
 	const outDtsPath = path.resolve(process.cwd(), 'DefinitelyTyped/types/vscode/index.d.ts');
 	cp.execSync(`curl ${dtsUri} --output ${outDtsPath}`);
 

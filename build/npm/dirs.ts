@@ -49,10 +49,6 @@ export const dirs = [
 	'extensions/tunnel-forwarding',
 	'extensions/terminal-suggest',
 	'extensions/typescript-language-features',
-	'extensions/vscode-api-tests',
-	'extensions/vscode-colorize-tests',
-	'extensions/vscode-colorize-perf-tests',
-	'extensions/vscode-test-resolver',
 	'remote',
 	'remote/web',
 	'test/automation',
@@ -60,10 +56,7 @@ export const dirs = [
 	'test/monaco',
 	'test/smoke',
 	'test/mcp',
-	'.vscode/extensions/vscode-selfhost-import-aid',
-	'.vscode/extensions/vscode-selfhost-test-provider',
-	'.vscode/extensions/vscode-extras',
-	'.vscode/extensions/vscode-pr-pinger',
+
 ];
 
 if (existsSync(`${import.meta.dirname}/../../.build/distro/npm`)) {

@@ -314,7 +314,7 @@ function generateApiProposalNames() {
 			const proposalName = match[1];
 
 			proposals.set(proposalName, {
-				proposal: `https://raw.githubusercontent.com/microsoft/vscode/main/src/dccode-dts/vscode.proposed.${proposalName}.d.ts`,
+				proposal: `https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.${proposalName}.d.ts`,
 			});
 		}, function () {
 			const names = [...proposals.keys()].sort();
@@ -360,7 +360,7 @@ function generateApiProposalNames() {
 const apiProposalNamesReporter = createReporter('api-proposal-names');
 
 export const compileApiProposalNamesTask = task.define('compile-api-proposal-names', () => {
-	return gulp.src('src/dccode-dts/**')
+	return gulp.src('src/vscode-dts/**')
 		.pipe(generateApiProposalNames())
 		.pipe(gulp.dest('src'))
 		.pipe(apiProposalNamesReporter.end(true));
@@ -420,11 +420,11 @@ export const watchExtensionPointNamesTask = task.define('watch-extension-point-n
 });
 
 export const watchApiProposalNamesTask = task.define('watch-api-proposal-names', () => {
-	const task = () => gulp.src('src/dccode-dts/**')
+	const task = () => gulp.src('src/vscode-dts/**')
 		.pipe(generateApiProposalNames())
 		.pipe(apiProposalNamesReporter.end(true));
 
-	return watch('src/dccode-dts/**', { readDelay: 200 })
+	return watch('src/vscode-dts/**', { readDelay: 200 })
 		.pipe(util.debounce(task))
 		.pipe(gulp.dest('src'));
 });
