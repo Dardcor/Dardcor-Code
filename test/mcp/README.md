@@ -21,13 +21,13 @@ Then, open the Command Palette and run:
 ```
 MCP: List Servers → vscode-automation-mcp → Start Server
 ```
-or open [mcp.json](../../.vscode/mcp.json) and start it from there.
+or open [mcp.json](../../.dardcor/mcp.json) and start it from there.
 
 That's it! It should automatically compile everything needed.
 
 ## Arguments
 
-Open the [mcp.json](../../.vscode/mcp.json) and modify the `args`:
+Open the [mcp.json](../../.dardcor/mcp.json) and modify the `args`:
 
 * `["run", "start-stdio"]`: opens Electron window
 * `["run", "start-stdio", "--", "--web"]`: opens a Chromium window

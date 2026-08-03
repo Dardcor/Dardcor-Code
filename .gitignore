@@ -7,6 +7,7 @@ node_modules/
 .build/
 /extensionsCG/
 .vscode/extensions/**/out/
+.dardcor/extensions/**/out/
 extensions/**/dist/
 src/dc/base/browser/ui/codicons/codicon/codicon.ttf
 /out*/
@@ -28,6 +29,7 @@ product.overrides.json
 *.tsbuildinfo
 .eslintcache
 .vscode-test
+.dardcor-test
 .chat-simulation-data
 vscode-telemetry-docs/
 test-output.json

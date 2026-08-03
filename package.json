@@ -15,7 +15,7 @@
 		"test-browser": "npx playwright install && node test/unit/browser/index.js",
 		"test-browser-no-install": "node test/unit/browser/index.js",
 		"test-node": "mocha test/unit/node/index.js --delay --ui=tdd --timeout=5000 --exit",
-		"test-extension": "vscode-test",
+		"test-extension": "vscode-test --config .dardcor-test.js",
 		"test-build-scripts": "cd build && npm run test",
 		"test-agent-host-e2e-coverage": "node scripts/agent-host-e2e-coverage.ts",
 		"check-cyclic-dependencies": "node build/lib/checkCyclicDependencies.ts out",

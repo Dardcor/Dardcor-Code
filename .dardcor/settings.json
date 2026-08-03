@@ -45,7 +45,7 @@
 		".profile-oss": true,
 		"**/*.tsbuildinfo": true,
 		"**/.DS_Store": true,
-		".vscode-test": true,
+		".dardcor-test": true,
 		"cli/target": true,
 		"build/**/*.js.map": true,
 		"build/**/*.js": {
@@ -122,7 +122,7 @@
 			"fileMatch": [
 				"cglicenses.json"
 			],
-			"url": "./.vscode/cglicenses.schema.json"
+			"url": "./.dardcor/cglicenses.schema.json"
 		}
 	],
 	"css.format.spaceAroundSelectorSeparator": true,
