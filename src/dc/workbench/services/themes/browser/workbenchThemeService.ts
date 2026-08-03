@@ -223,12 +223,15 @@ export class WorkbenchThemeService extends Disposable implements IWorkbenchTheme
 				return this.setFileIconTheme(devThemes[0].id, ConfigurationTarget.MEMORY);
 			}
 			let theme = this.fileIconThemeRegistry.findThemeBySettingsId(this.settings.fileIconTheme);
-			if (!theme) {
+			if (!theme || !theme.id) {
 				// If the current theme is not available, first make sure setting sync is complete
 				await this.userDataInitializationService.whenInitializationFinished();
-				theme = this.fileIconThemeRegistry.findThemeBySettingsId(this.settings.fileIconTheme)
-					|| this.fileIconThemeRegistry.findThemeBySettingsId('vs-seti')
-					|| this.fileIconThemeRegistry.getThemes()[0];
+				theme = this.fileIconThemeRegistry.findThemeBySettingsId(this.settings.fileIconTheme);
+				if (!theme || !theme.id) {
+					theme = this.fileIconThemeRegistry.findThemeBySettingsId('vs-seti')
+						|| this.fileIconThemeRegistry.findThemeById(DEFAULT_FILE_ICON_THEME_ID)
+						|| this.fileIconThemeRegistry.getThemes().find(t => !!t.id);
+				}
 			}
 			return this.setFileIconTheme(theme ? theme.id : DEFAULT_FILE_ICON_THEME_ID, undefined);
 		};
