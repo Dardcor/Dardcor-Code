@@ -230,7 +230,7 @@ export class TerminalViewPane extends ViewPane {
 			}
 			this._terminalGroupService.updateVisibility();
 		}));
-		this._register(this._terminalService.onDidChangeConnectionState(() => this._initializeTerminal(false)));
+		this._register(this._terminalService.onDidChangeConnectionState(() => this._initializeTerminal(true)));
 		this.layoutBody(this._parentDomElement.offsetHeight, this._parentDomElement.offsetWidth);
 	}
 
