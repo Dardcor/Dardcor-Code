@@ -28,4 +28,20 @@ Desain warna default Dardcor Code :
 1. [x] Tema warna default Dardcor Code : background hitam #000000 + garis ungu gelap
 2. [x] Pindahkan asset icon ke C:\Users\Dardcor\Documents\Code Editor\Dardcor-Code-New\assets
 3. [x] Logika coding, fitur, UI, menu sama 100% dengan Visual Studio Code asli. Tidak ada STIKER.
-4. 
+4. [x] Dukungan Penuh Multi-OS (Windows, macOS, Linux, Web) runtime & packaging 100% sama dengan Visual Studio Code asli.
+5. [x] Konfigurasi `.npmrc` Electron runtime (`target="42.7.1"`, `runtime="electron"`, `disturl="https://electronjs.org/headers"`, `build_from_source="true"`).
+6. [x] Terminal Backend (`LocalTerminalBackend`, `PtyHostService`, `node-pty`) dan Shell Integration lengkap untuk Windows (PowerShell, CMD, Git Bash, WSL), macOS (Zsh, Bash, Fish), Linux (Bash, Zsh, Fish).
+7. [x] Kompatibilitas Native Modules (`node-pty`, `@vscode/windows-process-tree`, `@parcel/watcher`, `native-keymap`, `spdlog`, `sqlite3`) untuk semua platform arsitektur (x64, arm64).
+8. [x] Build & Packaging Scripts lengkap untuk seluruh OS:
+   - Windows: Inno Setup installer (`build/win32/code.iss`), User/System Installer x64, arm64, ia32, portable zip.
+   - macOS: DMG & ZIP package, `Info.plist`, entitlements, helper apps, Universal build (x64 + arm64).
+   - Linux: `.deb` package (Debian/Ubuntu), `.rpm` package (Fedora/RHEL), `.tar.gz`, desktop file, mime types & icons.
+   - Web / Remote: `code-server.sh`, `code-web.sh`, tunnel service (`dardcor-code-tunnel`).
+9. [x] File Watcher Cross-Platform (`@parcel/watcher` & node watcher) untuk Windows (ReadDirectoryChangesW), macOS (FSEvents), Linux (inotify).
+10. [x] Keybinding & Keyboard Layout Mapper untuk macOS (Cmd/Option), Windows/Linux (Ctrl/Alt/Super) dan scan codes.
+11. [x] Credential Storage & Keychain Service (Windows Credential Manager, macOS Keychain, Linux Secret Service / libsecret).
+12. [x] Window Management & Menu Bar (macOS Native Menu Bar, Windows Custom Titlebar, Linux CSD/SSD decorations).
+13. [x] CLI Launcher Scripts (`code.bat`, `code.sh`, `code-cli.bat`, `code-cli.sh`, `node-electron.bat`, `node-electron.sh`) di semua platform.
+14. [x] Built-in Extensions & Debugger Tools (`js-debug`, `js-debug-companion`, `vscode-js-profile-table`, `git`, `github-authentication`, `microsoft-authentication`, dll.) terkompilasi 0 error.
+15. [x] Tema default Dardcor Code : background hitam #000000 + semua garis ungu gelap (#4A148C, #3B0A5E, #6A1B9A, #7C4DFF) tanpa stiker.
+

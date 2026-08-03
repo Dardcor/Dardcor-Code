@@ -552,14 +552,14 @@ async function copyAllNonTsFiles(outDir: string, excludeTests: boolean): Promise
 		ignorePatterns.push('**/test/**');
 	}
 
-	const files = await globAsync('**/*', {
+	const files = await globAsync('{*,**/*}', {
 		cwd: path.join(REPO_ROOT, SRC_DIR),
 		nodir: true,
 		ignore: ignorePatterns,
 	});
 
 	// Re-include .d.ts files that were excluded by the *.ts ignore
-	const dtsFiles = await globAsync('**/*.d.ts', {
+	const dtsFiles = await globAsync('{*.d.ts,**/*.d.ts}', {
 		cwd: path.join(REPO_ROOT, SRC_DIR),
 		ignore: excludeTests ? ['**/test/**'] : [],
 	});
@@ -755,7 +755,7 @@ async function transpile(outDir: string, excludeTests: boolean): Promise<void> {
 		ignorePatterns.push('**/test/**');
 	}
 
-	const files = await globAsync('**/*.ts', {
+	const files = await globAsync('{*.ts,**/*.ts}', {
 		cwd: path.join(REPO_ROOT, SRC_DIR),
 		ignore: ignorePatterns,
 	});
