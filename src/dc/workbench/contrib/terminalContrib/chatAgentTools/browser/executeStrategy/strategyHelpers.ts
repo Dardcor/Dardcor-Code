@@ -169,7 +169,7 @@ function _stripCommandEchoAndPromptOnce(output: string, commandLine: string, log
 			// Wrapped fragment ending with $ or # (e.g. "er$", "ts/testWorkspace$")
 			((!knownPrompt || isUnix) && /^\s*[\w/.-]+[#$]\s*$/.test(line)) ||
 			// Bracketed prompt start: [ hostname:/path or [ user@host:/path
-			// e.g., "[ alex@MacBook-Pro:/Users/alex/src/dccode4/extensions/vscode-api-test"
+			// e.g., "[ alex@MacBook-Pro:/Users/alex/src/vscode4/extensions/vscode-api-test"
 			// e.g., "[W007DV9PF9-1:~/vss/_work/1/s/extensions/vscode-api-tests/testWorkspace] cloudte"
 			((!knownPrompt || isUnix) && /^\[\s*[\w.-]+(@[\w.-]+)?:[~\/]/.test(line)) ||
 			// Wrapped continuation: user@host:path or hostname:path (no trailing $)

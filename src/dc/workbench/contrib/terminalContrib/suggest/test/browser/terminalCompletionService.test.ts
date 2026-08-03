@@ -524,7 +524,7 @@ suite('TerminalCompletionService', () => {
 			validResources = [URI.parse('file:///test')];
 			childResources = [
 				{ resource: URI.parse('file:///test/src/'), isDirectory: true },
-				{ resource: URI.parse('file:///test/dc/'), isDirectory: true }
+				{ resource: URI.parse('file:///test/vs/'), isDirectory: true }
 			];
 			const result = await terminalCompletionService.resolveResources(resourceOptions, 's/', 2, provider, capabilities);
 

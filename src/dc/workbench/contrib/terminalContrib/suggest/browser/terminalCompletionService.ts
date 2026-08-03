@@ -322,7 +322,7 @@ export class TerminalCompletionService extends Disposable implements ITerminalCo
 		let lastWordFolderResource: URI | string | undefined;
 		if (type === 'relative' && lastWordFolder.length > 0) {
 			// If the typed folder matches the tail of cwd (common when the extension already
-			// resolved the path, such as `./src/dc/`), reuse cwd to avoid duplicating segments.
+			// resolved the path, such as `./src/vs/`), reuse cwd to avoid duplicating segments.
 			const normalizedFolder = (useWindowsStylePath ? lastWordFolder.replaceAll('\\', '/') : lastWordFolder).replaceAll('\\ ', ' ');
 			const hasDotPrefix = normalizedFolder.startsWith('./');
 			if (hasDotPrefix) {

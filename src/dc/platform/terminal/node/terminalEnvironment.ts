@@ -257,19 +257,19 @@ export async function getShellIntegrationInjection(
 			envMixin['USER_ZDOTDIR'] = userZdotdir;
 			const filesToCopy: IShellIntegrationConfigInjection['filesToCopy'] = [];
 			filesToCopy.push({
-				source: path.join(appRoot, 'out/dc/workbench/contrib/terminal/common/scripts/shellIntegration-rc.zsh'),
+				source: path.join(appRoot, 'out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-rc.zsh'),
 				dest: path.join(zdotdir, '.zshrc')
 			});
 			filesToCopy.push({
-				source: path.join(appRoot, 'out/dc/workbench/contrib/terminal/common/scripts/shellIntegration-profile.zsh'),
+				source: path.join(appRoot, 'out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-profile.zsh'),
 				dest: path.join(zdotdir, '.zprofile')
 			});
 			filesToCopy.push({
-				source: path.join(appRoot, 'out/dc/workbench/contrib/terminal/common/scripts/shellIntegration-env.zsh'),
+				source: path.join(appRoot, 'out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-env.zsh'),
 				dest: path.join(zdotdir, '.zshenv')
 			});
 			filesToCopy.push({
-				source: path.join(appRoot, 'out/dc/workbench/contrib/terminal/common/scripts/shellIntegration-login.zsh'),
+				source: path.join(appRoot, 'out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-login.zsh'),
 				dest: path.join(zdotdir, '.zlogin')
 			});
 			return { type, newArgs, envMixin, filesToCopy };
@@ -329,15 +329,15 @@ enum ShellIntegrationExecutable {
 
 const shellIntegrationArgs: Map<ShellIntegrationExecutable, string[]> = new Map();
 // The try catch swallows execution policy errors in the case of the archive distributable
-shellIntegrationArgs.set(ShellIntegrationExecutable.WindowsPwsh, ['-noexit', '-command', 'try { . \"{0}\\out\\dc\\workbench\\contrib\\terminal\\common\\scripts\\shellIntegration.ps1\" } catch {}{1}']);
-shellIntegrationArgs.set(ShellIntegrationExecutable.WindowsPwshLogin, ['-l', '-noexit', '-command', 'try { . \"{0}\\out\\dc\\workbench\\contrib\\terminal\\common\\scripts\\shellIntegration.ps1\" } catch {}{1}']);
-shellIntegrationArgs.set(ShellIntegrationExecutable.Pwsh, ['-noexit', '-command', '. "{0}/out/dc/workbench/contrib/terminal/common/scripts/shellIntegration.ps1"{1}']);
-shellIntegrationArgs.set(ShellIntegrationExecutable.PwshLogin, ['-l', '-noexit', '-command', '. "{0}/out/dc/workbench/contrib/terminal/common/scripts/shellIntegration.ps1"']);
+shellIntegrationArgs.set(ShellIntegrationExecutable.WindowsPwsh, ['-noexit', '-command', 'try { . \"{0}\\out\\vs\\workbench\\contrib\\terminal\\common\\scripts\\shellIntegration.ps1\" } catch {}{1}']);
+shellIntegrationArgs.set(ShellIntegrationExecutable.WindowsPwshLogin, ['-l', '-noexit', '-command', 'try { . \"{0}\\out\\vs\\workbench\\contrib\\terminal\\common\\scripts\\shellIntegration.ps1\" } catch {}{1}']);
+shellIntegrationArgs.set(ShellIntegrationExecutable.Pwsh, ['-noexit', '-command', '. "{0}/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration.ps1"{1}']);
+shellIntegrationArgs.set(ShellIntegrationExecutable.PwshLogin, ['-l', '-noexit', '-command', '. "{0}/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration.ps1"']);
 shellIntegrationArgs.set(ShellIntegrationExecutable.Zsh, ['-i']);
 shellIntegrationArgs.set(ShellIntegrationExecutable.ZshLogin, ['-il']);
-shellIntegrationArgs.set(ShellIntegrationExecutable.Bash, ['--init-file', '{0}/out/dc/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh']);
-shellIntegrationArgs.set(ShellIntegrationExecutable.Fish, ['--init-command', 'source "{0}/out/dc/workbench/contrib/terminal/common/scripts/shellIntegration.fish"']);
-shellIntegrationArgs.set(ShellIntegrationExecutable.FishLogin, ['-l', '--init-command', 'source "{0}/out/dc/workbench/contrib/terminal/common/scripts/shellIntegration.fish"']);
+shellIntegrationArgs.set(ShellIntegrationExecutable.Bash, ['--init-file', '{0}/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh']);
+shellIntegrationArgs.set(ShellIntegrationExecutable.Fish, ['--init-command', 'source "{0}/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration.fish"']);
+shellIntegrationArgs.set(ShellIntegrationExecutable.FishLogin, ['-l', '--init-command', 'source "{0}/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration.fish"']);
 const pwshLoginArgs = ['-login', '-l'];
 const shLoginArgs = ['--login', '-l'];
 const shInteractiveArgs = ['-i', '--interactive'];

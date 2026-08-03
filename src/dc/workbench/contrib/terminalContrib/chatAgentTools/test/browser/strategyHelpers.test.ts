@@ -26,7 +26,7 @@ suite('stripCommandEchoAndPrompt', () => {
 	test('strips command echo with zsh-style prompt (] $ )', () => {
 		const output = [
 			's/testWorkspace (main**) ] $  true',
-			'[ alex@Alexandrus-MacBook-Pro:/Users/alex/src/dccode4/extensions/vscode-api-test',
+			'[ alex@Alexandrus-MacBook-Pro:/Users/alex/src/vscode4/extensions/vscode-api-test',
 			's/testWorkspace (main**) ] $ ',
 		].join('\n');
 
@@ -68,7 +68,7 @@ suite('stripCommandEchoAndPrompt', () => {
 	test('handles empty output (no-output command)', () => {
 		const output = [
 			's/testWorkspace (main**) ] $  true',
-			'[ alex@host:/Users/alex/src/dccode4/extensions/vscode-api-test',
+			'[ alex@host:/Users/alex/src/vscode4/extensions/vscode-api-test',
 			's/testWorkspace (main**) ] $',
 		].join('\n');
 
@@ -84,7 +84,7 @@ suite('stripCommandEchoAndPrompt', () => {
 			's/testWorkspace (main**) ] $ ELECTRON_RUN_AS_NODE=1 PATH="$PATH:/app/rg/bin" T',
 			'MPDIR="/tmp/sandbox" "/app/sandbox-runtime/dist/cli.js" --settings "/tmp/sand',
 			'box-settings.json" -c \'curl -s https://example.com\'',
-			'[ alex@host:/Users/alex/src/dccode4/extensions/vscode-api-test',
+			'[ alex@host:/Users/alex/src/vscode4/extensions/vscode-api-test',
 			's/testWorkspace (main**) ] $ ',
 		].join('\n');
 
@@ -221,7 +221,7 @@ suite('stripCommandEchoAndPrompt', () => {
 	test('handles bash -c subshell command echo', () => {
 		const output = [
 			's/testWorkspace (main**) ] $  bash -c "exit 42"',
-			'[ alex@host:/Users/alex/src/dccode4/extensions/vscode-api-test',
+			'[ alex@host:/Users/alex/src/vscode4/extensions/vscode-api-test',
 			's/testWorkspace (main**) ] $ ',
 		].join('\n');
 
@@ -434,19 +434,19 @@ suite('stripCommandEchoAndPrompt', () => {
 	});
 
 	test('strips sandbox-wrapped command echo with error output and trailing prompt', () => {
-		const commandLine = 'ELECTRON_RUN_AS_NODE=1 PATH="$PATH:/Users/alex/src/dccode4/node_modules/@vscode/ripgrep/bin" TMPDIR="/Users/alex/.vscode-oss-dev/tmp" CLAUDE_TMPDIR="/Users/alex/.vscode-oss-dev/tmp" "/Users/alex/src/dccode4/node_modules/@vscode/sandbox-runtime/dist/cli.js" --settings "/Users/alex/.vscode-oss-dev/tmp/vscode-sandbox-settings-cf5b6232-825b-4f4c-8902-32a8591007fd.json" -c \' echo "SANDBOX_TMP_1774127409076" > /tmp/SANDBOX_TMP_1774127409076.txt\'';
+		const commandLine = 'ELECTRON_RUN_AS_NODE=1 PATH="$PATH:/Users/alex/src/vscode4/node_modules/@vscode/ripgrep/bin" TMPDIR="/Users/alex/.vscode-oss-dev/tmp" CLAUDE_TMPDIR="/Users/alex/.vscode-oss-dev/tmp" "/Users/alex/src/vscode4/node_modules/@vscode/sandbox-runtime/dist/cli.js" --settings "/Users/alex/.vscode-oss-dev/tmp/vscode-sandbox-settings-cf5b6232-825b-4f4c-8902-32a8591007fd.json" -c \' echo "SANDBOX_TMP_1774127409076" > /tmp/SANDBOX_TMP_1774127409076.txt\'';
 		const output = [
-			'ELECTRON_RUN_AS_NODE=1 PATH="$PATH:/Users/alex/src/dccode4/node_modules/@vscode/',
+			'ELECTRON_RUN_AS_NODE=1 PATH="$PATH:/Users/alex/src/vscode4/node_modules/@vscode/',
 			'ripgrep/bin" TMPDIR="/Users/alex/.vscode-oss-dev/tmp" CLAUDE_TMPDIR="/Users/alex',
-			'/.vscode-oss-dev/tmp" "/Users/alex/src/dccode4/node_modules/@vscode/sandbox-',
+			'/.vscode-oss-dev/tmp" "/Users/alex/src/vscode4/node_modules/@vscode/sandbox-',
 			'runtime/dist/cli.js" --settings "/Users/alex/.vscode-oss-dev/tmp/vscode-sandbo',
 			'x-settings-cf5b6232-825b-4f4c-8902-32a8591007fd.json" -c \' echo "SANDBOX_TMP_177',
 			'4127409076" > /tmp/SANDBOX_TMP_1774127409076.txt\'',
-			'[ alex@Alexandrus-MacBook-Pro:/Users/alex/src/dccode4/extensions/vscode-api-test',
+			'[ alex@Alexandrus-MacBook-Pro:/Users/alex/src/vscode4/extensions/vscode-api-test',
 			's/testWorkspace (alexdima/fix-303531-sandbox-no-output-leak**) ] $ ELECTRON_RUN_',
-			'AS_NODE=1 PATH="$PATH:/Users/alex/src/dccode4/node_modules/@vscode/ripgrep/bin" ',
+			'AS_NODE=1 PATH="$PATH:/Users/alex/src/vscode4/node_modules/@vscode/ripgrep/bin" ',
 			'TMPDIR="/Users/alex/.vscode-oss-dev/tmp" CLAUDE_TMPDIR="/Users/alex/.vscode-oss-',
-			'dev/tmp" "/Users/alex/src/dccode4/node_modules/@vscode/sandbox-runtime/dis',
+			'dev/tmp" "/Users/alex/src/vscode4/node_modules/@vscode/sandbox-runtime/dis',
 			't/cli.js" --settings "/Users/alex/.vscode-oss-dev/tmp/vscode-sandbox-settings-cf',
 			'5b6232-825b-4f4c-8902-32a8591007fd.json" -c \' echo "SANDBOX_TMP_1774127409076" >',
 			' /tmp/SANDBOX_TMP_1774127409076.txt\'',
