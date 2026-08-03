@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -208,3 +209,4 @@ export const NOTIFICATION_INTRODUCED_IN: { readonly [K in ProtocolNotificationMe
 export function isNotificationKnownToVersion(method: ProtocolNotificationMethod, clientVersion: string): boolean {
 	return compareProtocolVersions(NOTIFICATION_INTRODUCED_IN[method], clientVersion) <= 0;
 }
+

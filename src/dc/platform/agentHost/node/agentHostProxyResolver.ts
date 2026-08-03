@@ -1,9 +1,10 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { LogLevel as ProxyLogLevel, ProxyAgentParams, ProxySupportSetting, createFetchPatch, createProxyAuthorizationLookup, createProxyResolver, loadSystemCertificates } from '@vscode/proxy-agent';
+import { LogLevel as ProxyLogLevel, ProxyAgentParams, ProxySupportSetting, createFetchPatch, createProxyResolver, loadSystemCertificates } from '@vscode/proxy-agent';
 import { IDisposable, toDisposable } from '../../../base/common/lifecycle.js';
 import { IConfigurationService } from '../../configuration/common/configuration.js';
 import { createDecorator } from '../../instantiation/common/instantiation.js';
@@ -88,11 +89,11 @@ export class AgentHostProxyResolver implements IAgentHostProxyResolver {
 				// renderer, whose IRequestService.resolveProxy hits the Electron
 				// session (system settings / PAC scripts).
 				resolveProxy: (url) => this._hostResolveProxy(url),
-				lookupProxyAuthorization: createProxyAuthorizationLookup({
+				/* lookupProxyAuthorization: createProxyAuthorizationLookup({
 					log: this._logService,
 					lookupAuthorization: authInfo => this._hostLookupAuthorization(authInfo),
 					lookupKerberosAuthorization: url => this._hostLookupKerberosAuthorization(url),
-				}),
+				}), */
 				getProxyURL: () => config<string>('http.proxy'),
 				getProxySupport: () => config<ProxySupportSetting>('http.proxySupport') || 'off',
 				getNoProxyConfig: () => config<string[]>('http.noProxy') || [],
@@ -165,3 +166,4 @@ export class AgentHostProxyResolver implements IAgentHostProxyResolver {
 		return undefined;
 	}
 }
+

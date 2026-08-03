@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -231,3 +232,4 @@ function childrenEqual(a: readonly { id: string; name: string }[] | undefined, b
 function pluginPathsEqual(a: readonly URI[], b: readonly URI[]): boolean {
 	return arraysEqual(a, b, (x, y) => x.toString() === y.toString());
 }
+

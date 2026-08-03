@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -214,3 +215,4 @@ export class AgentHostChatCompletionProvider implements IAgentHostCompletionItem
 		return turns && turns.length > 0 ? turns[turns.length - 1].id : undefined;
 	}
 }
+

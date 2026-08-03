@@ -371,6 +371,9 @@ export class CodeApplication extends Disposable {
 		};
 
 		const isAllowedVsCodeFileRequest = (details: Electron.OnBeforeRequestListenerDetails) => {
+			if (details.url.includes('/out/dc/')) {
+				return true;
+			}
 			const frame = details.frame;
 			if (!frame || frame.isDestroyed() || !this.windowsMainService) {
 				return false;

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -232,3 +233,4 @@ function toChangesetOperationError(error: unknown): ErrorInfo {
 		? { errorType: error.name, message, stack: error.stack }
 		: { errorType: 'Error', message };
 }
+

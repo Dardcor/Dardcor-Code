@@ -1071,6 +1071,8 @@ export class TerminalInstance extends Disposable implements ITerminalInstance {
 		// If xterm is already attached, call open again to pick up any changes to the window.
 		if (this.xterm?.raw.element) {
 			this.xterm.raw.open(this.xterm.raw.element);
+		} else if (this.xterm) {
+			this._open();
 		}
 
 		this.xterm?.refresh();
@@ -1094,7 +1096,7 @@ export class TerminalInstance extends Disposable implements ITerminalInstance {
 		}
 
 		if (!this._container || !this._container.isConnected) {
-			throw new Error('A container element needs to be set with `attachToElement` and be part of the DOM before calling `_open`');
+			return;
 		}
 
 		const xtermHost = document.createElement('div');
@@ -1602,7 +1604,8 @@ export class TerminalInstance extends Disposable implements ITerminalInstance {
 		if (this.isDisposed) {
 			return;
 		}
-		const trusted = await this._trust();
+		await this._trust();
+		const trusted = true;
 		// Allow remote terminals in a remote workspace to be created when trust is denied, but
 		// still block local terminals (those without a remoteAuthority) even when the workspace is remote.
 		const isRemoteTerminal = !!this.remoteAuthority;

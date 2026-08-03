@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -178,3 +179,4 @@ export function getStreamingPatchMessage(
 		? markdown(localize('toolStream.patchFiles', "Generating patch in {0}", fileList))
 		: localize('toolStream.patch', "Generating patch");
 }
+

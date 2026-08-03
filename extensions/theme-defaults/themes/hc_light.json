@@ -9,7 +9,7 @@
 				"variable.legacy.builtin.python"
 			],
 			"settings": {
-				"foreground": "#292929"
+				"foreground": "#000000"
 			}
 		},
 		{
@@ -74,7 +74,7 @@
 		{
 			"scope": "entity.other.attribute-name",
 			"settings": {
-				"foreground": "#264F78"
+				"foreground": "#4A148C"
 			}
 		},
 		{
@@ -285,7 +285,7 @@
 				"source.coffee.embedded"
 			],
 			"settings": {
-				"foreground": "#264F78"
+				"foreground": "#4A148C"
 			}
 		},
 		{
@@ -570,8 +570,8 @@
 		}
 	],
 	"colors": {
-		"actionBar.toggledBackground": "#dddddd",
-		"statusBarItem.remoteBackground": "#FFFFFF",
+		"actionBar.toggledBackground": "#000000",
+		"statusBarItem.remoteBackground": "#000000",
 		"statusBarItem.remoteForeground": "#000000"
 	}
 }

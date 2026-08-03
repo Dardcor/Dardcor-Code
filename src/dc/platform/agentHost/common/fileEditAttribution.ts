@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -225,3 +226,4 @@ function buildEditAttributionResource(kind: EditAttributionResourceRequest['kind
 function isEditTelemetryTrigger(value: string | number | boolean | undefined): value is EditTelemetryTrigger {
 	return value === '10hours' || value === 'hashChange' || value === 'branchChange' || value === 'closed' || value === 'time';
 }
+

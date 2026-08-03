@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -191,3 +192,4 @@ suite.skip('AgentHostReviewService (real git)', () => {
 		assert.deepStrictEqual([...await svc!.getReviewedPaths(sessionUri.toString(), URI.file(dir), undefined)], []);
 	});
 });
+

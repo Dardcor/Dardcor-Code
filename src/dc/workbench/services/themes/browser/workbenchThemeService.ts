@@ -226,7 +226,9 @@ export class WorkbenchThemeService extends Disposable implements IWorkbenchTheme
 			if (!theme) {
 				// If the current theme is not available, first make sure setting sync is complete
 				await this.userDataInitializationService.whenInitializationFinished();
-				theme = this.fileIconThemeRegistry.findThemeBySettingsId(this.settings.fileIconTheme);
+				theme = this.fileIconThemeRegistry.findThemeBySettingsId(this.settings.fileIconTheme)
+					|| this.fileIconThemeRegistry.findThemeBySettingsId('vs-seti')
+					|| this.fileIconThemeRegistry.getThemes()[0];
 			}
 			return this.setFileIconTheme(theme ? theme.id : DEFAULT_FILE_ICON_THEME_ID, undefined);
 		};

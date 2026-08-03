@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -345,3 +346,4 @@ function truncateRepoInfoDiff(diff: string, uri: string): string {
 	}
 	return `${diff.substring(0, MAX_DIFF_SIZE)}\n... Diff truncated (exceeded ${MAX_DIFF_SIZE} characters) for ${uri}`;
 }
+

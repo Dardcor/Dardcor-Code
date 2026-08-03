@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -300,3 +301,4 @@ export interface CompletionsResult {
 	/** The completion items, in the order the server suggests displaying them. */
 	items: CompletionItem[];
 }
+

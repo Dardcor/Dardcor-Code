@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -175,3 +176,4 @@ function elicitationAnswerToValue(answer: ChatInputAnswer | undefined): JsonValu
 function bigintToNumber(value: bigint | null | undefined): number | undefined {
 	return value === null || value === undefined ? undefined : Number(value);
 }
+

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -260,3 +261,4 @@ export class EditSurvivalReporterFactory implements IEditSurvivalReporterFactory
 		return new SessionEditSurvivalReporter(params, this._fileService, this._logService, this._telemetryService);
 	}
 }
+

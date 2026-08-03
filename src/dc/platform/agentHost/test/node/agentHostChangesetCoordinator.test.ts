@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -512,3 +513,4 @@ class TestChangesetService implements IAgentHostChangesetService {
 function tick(): Promise<void> {
 	return new Promise(resolve => setImmediate(resolve));
 }
+

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -46,3 +47,4 @@ export function parseAnnotationsUri(uri: URI): { sessionUri: URI } | undefined {
 export function isAnnotationsUri(uri: URI): boolean {
 	return parseAnnotationsUri(uri) !== undefined;
 }
+

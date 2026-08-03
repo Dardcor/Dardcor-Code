@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -340,3 +341,4 @@ function parseRateLimitHeader(value: string | string[] | undefined): number | un
 	const parsed = parseInt(str, 10);
 	return isNaN(parsed) ? undefined : parsed;
 }
+

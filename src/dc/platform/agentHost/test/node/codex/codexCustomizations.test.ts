@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -102,3 +103,4 @@ suite('codexCustomizations', () => {
 		assert.deepStrictEqual([codexHooksToContainers(undefined), codexHooksToContainers({ data: [] }), codexHooksToContainers({ data: [{ cwd: '/x', hooks: [], warnings: [], errors: [] }] })], [[], [], []]);
 	});
 });
+

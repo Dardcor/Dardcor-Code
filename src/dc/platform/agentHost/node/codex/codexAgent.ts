@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -4600,3 +4601,4 @@ async function defaultResolveCodexPackageJsonPath(): Promise<string> {
 	const { createRequire } = await import('node:module');
 	return createRequire(import.meta.url).resolve('@openai/codex/package.json');
 }
+

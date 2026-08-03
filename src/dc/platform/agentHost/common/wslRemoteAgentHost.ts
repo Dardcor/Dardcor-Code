@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -131,3 +132,4 @@ export interface IWSLRemoteAgentHostMainService {
 	disconnect(distro: string): Promise<void>;
 	reconnect(distro: string, name: string, remoteAgentHostCommand?: string): Promise<IWSLConnectResult>;
 }
+

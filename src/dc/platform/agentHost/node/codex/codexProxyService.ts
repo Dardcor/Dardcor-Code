@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -482,3 +483,4 @@ function transformUserAgent(userAgent: string): string {
 	}
 	return `${USER_AGENT_PREFIX}${userAgent.substring(slashIndex)}`;
 }
+

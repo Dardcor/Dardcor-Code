@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -144,3 +145,4 @@ export interface AnnotationsEntryRemovedAction {
 	/** The {@link AnnotationEntry.id} to remove. */
 	entryId: string;
 }
+

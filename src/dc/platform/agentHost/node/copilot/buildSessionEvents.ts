@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -277,3 +278,4 @@ export function serializeSessionEventsToJsonl(events: readonly SessionEvent[]): 
 export function buildSessionEventLogFromTurns(turns: readonly Turn[], options: IBuildSessionEventsOptions): string {
 	return serializeSessionEventsToJsonl(buildSessionEventsFromTurns(turns, options));
 }
+

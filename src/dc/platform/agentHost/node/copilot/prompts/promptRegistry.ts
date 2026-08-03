@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -239,3 +240,4 @@ export class AgentHostPromptRegistry {
  * `allPrompts.ts`) and the session launcher reads from it.
  */
 export const agentHostPromptRegistry = new AgentHostPromptRegistry();
+

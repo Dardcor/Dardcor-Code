@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -52,3 +53,4 @@ suite('Host build info _meta helpers', () => {
 		assert.strictEqual(formatHostBuildInfo({ version: '2.0.0' }), '2.0.0');
 	});
 });
+

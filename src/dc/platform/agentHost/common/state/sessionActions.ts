@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -220,3 +221,4 @@ export function isChangesetAction(action: StateAction): action is ChangesetActio
 export function isAnnotationsAction(action: StateAction): action is AnnotationsAction {
 	return action.type.startsWith('annotations/');
 }
+

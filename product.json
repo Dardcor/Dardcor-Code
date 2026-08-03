@@ -23,6 +23,13 @@
 	"linuxIconName": "dardcor-code",
 	"licenseFileName": "LICENSE.txt",
 	"reportIssueUrl": "https://github.com/dardcor/dardcor-code/issues/new",
+	"extensionsGallery": {
+		"serviceUrl": "https://marketplace.visualstudio.com/_apis/public/gallery",
+		"itemUrl": "https://marketplace.visualstudio.com/items",
+		"publisherUrl": "https://marketplace.visualstudio.com/publishers",
+		"resourceUrlTemplate": "https://{publisher}.vscode-assets.net/vscode/{name}/{version}/{path}",
+		"controlUrl": "https://az764295.vo.msecnd.net/extensions/marketplace.json"
+	},
 	"nodejsArtifactFeed": "",
 	"electronArtifactFeed": "",
 	"urlProtocol": "dardcor-code",

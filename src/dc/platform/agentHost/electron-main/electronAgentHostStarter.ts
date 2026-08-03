@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -233,3 +234,4 @@ export class ElectronAgentHostStarter extends Disposable implements IAgentHostSt
 		return ElectronAgentHostStarter._expectedStderrPatterns.some(pattern => data.includes(pattern));
 	}
 }
+

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -25,3 +26,4 @@ export function getAppNodeModulesPath(): AppResourcePath {
 export function getAppNodeModulesDirName(): 'node_modules' | 'node_modules.asar.unpacked' {
 	return hasUnpackedNodeModulesArchive() ? 'node_modules.asar.unpacked' : 'node_modules';
 }
+

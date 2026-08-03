@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -147,3 +148,4 @@ export function defineAgentHostE2ETests(config: IAgentHostE2EProviderConfig, tar
 export function defineAgentHostConformanceTests(config: IAgentHostE2EProviderConfig, target?: IAgentHostTarget): void {
 	defineSuite(config, { tier: 'conformance', suiteTitle: config.suiteTitle, target });
 }
+

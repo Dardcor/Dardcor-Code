@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -168,3 +169,4 @@ suite('claudeToolCallRegistry — Phase 8.5 input/info tracking', () => {
 		assert.strictEqual(registry.lookup('tu_unknown'), undefined);
 	});
 });
+

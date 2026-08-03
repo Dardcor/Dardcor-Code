@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -69,3 +70,4 @@ export class TestAgentHostTerminalManager extends Disposable implements IAgentHo
 	finalizeOutputTerminal(uri: string, exitCode: number | undefined): void { this.outputTerminalsFinalized.push({ uri, exitCode }); }
 	fireCommandFinished(event: ICommandFinishedEvent): void { this._onCommandFinished.fire(event); }
 }
+

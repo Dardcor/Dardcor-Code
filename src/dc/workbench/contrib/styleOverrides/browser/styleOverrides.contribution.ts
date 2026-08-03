@@ -35,6 +35,7 @@ import './media/shadows.css';
 import './media/statusBar.css';
 import './media/tabs.css';
 import './media/titlebar.css';
+import './media/fileIcons.css';
 
 interface IStyleOverrideModule {
 	readonly id: string;

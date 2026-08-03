@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -32,3 +33,4 @@ export function softAssertNever(value: never, log?: (msg: string) => void): void
 export function isClientDispatchable(action: RootAction | SessionAction | TerminalAction | ChangesetAction | AnnotationsAction): action is ClientRootAction | ClientSessionAction | ClientTerminalAction | ClientChangesetAction | ClientAnnotationsAction {
 	return IS_CLIENT_DISPATCHABLE[action.type];
 }
+

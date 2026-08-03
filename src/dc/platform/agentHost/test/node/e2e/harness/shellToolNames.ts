@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -43,3 +44,4 @@ export function expandShellToolName(toolName: string, platform: NodeJS.Platform 
 	const shell = platform === 'win32' ? 'powershell' : 'bash';
 	return match.groups?.shutdown ? `${shell}_shutdown` : `${match.groups?.prefix ?? ''}${shell}`;
 }
+

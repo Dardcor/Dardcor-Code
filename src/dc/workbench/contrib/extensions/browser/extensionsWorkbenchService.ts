@@ -1452,6 +1452,8 @@ export class ExtensionsWorkbenchService extends Disposable implements IExtension
 				this.logService.error(error);
 			}
 		}
+		this._installed = undefined;
+		this._local = undefined;
 		return this.local;
 	}
 

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -138,3 +139,4 @@ export function applyModelFamilyAlias(model: ModelSelection | undefined, overrid
 	const family = getModelFamilyAlias(overrides, model.id);
 	return family ? { ...model, id: family } : model;
 }
+

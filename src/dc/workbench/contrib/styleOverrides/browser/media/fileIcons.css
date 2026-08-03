@@ -1,0 +1,80 @@
+/*---------------------------------------------------------------------------------------------
+ *  Dardcor Code - Dark Purple Folder Icon & Complete SVG File Icons
+ *--------------------------------------------------------------------------------------------*/
+
+/* Dark Purple Folder Icon override using assets/folder.svg */
+.monaco-workbench .folder-icon::before,
+.monaco-workbench .rootfolder-icon::before,
+.monaco-workbench .monaco-tl-contents .folder-icon::before,
+.monaco-workbench .show-file-icons .folder-icon::before,
+.monaco-workbench .show-file-icons .rootfolder-icon::before {
+	content: '' !important;
+	display: inline-block !important;
+	width: 16px !important;
+	height: 16px !important;
+	vertical-align: middle !important;
+	background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='%23A77BFF'%3E%3Cpath d='M2 4.5V6H5.58579C5.71839 6 5.84557 5.94732 5.93934 5.85355L7.29289 4.5L5.93934 3.14645C5.84557 3.05268 5.71839 3 5.58579 3H3.5C2.67157 3 2 3.67157 2 4.5ZM1 4.5C1 3.11929 2.11929 2 3.5 2H5.58579C5.98361 2 6.36514 2.15804 6.64645 2.43934L8.20711 4H12.5C13.8807 4 15 5.11929 15 6.5V11.5C15 12.8807 13.8807 14 12.5 14H3.5C2.11929 14 1 12.8807 1 11.5V4.5ZM2 7V11.5C2 12.3284 2.67157 13 3.5 13H12.5C13.3284 13 14 12.3284 14 11.5V6.5C14 5.67157 13.3284 5 12.5 5H8.20711L6.64645 6.56066C6.36514 6.84197 5.98361 7 5.58579 7H2Z'/%3E%3C/svg%3E") !important;
+	background-repeat: no-repeat !important;
+	background-position: center !important;
+	background-size: contain !important;
+	margin-right: 6px !important;
+}
+
+/* Default File Icon - Clean SVG Document Outline (#A77BFF) for all unknown files */
+.monaco-workbench .file-icon::before,
+.monaco-workbench .show-file-icons .file-icon::before {
+	content: '' !important;
+	display: inline-block !important;
+	width: 16px !important;
+	height: 16px !important;
+	vertical-align: middle !important;
+	background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='%23A77BFF'%3E%3Cpath d='M4 1.5C3.17157 1.5 2.5 2.17157 2.5 3V13C2.5 13.8284 3.17157 14.5 4 14.5H12C12.8284 14.5 13.5 13.8284 13.5 13V5.5L9.5 1.5H4ZM4 2.5H8.79289L12.5 6.20711V13C12.5 13.2761 12.2761 13.5 12 13.5H4C3.72386 13.5 3.5 13.2761 3.5 13V3C3.5 2.72386 3.72386 2.5 4 2.5ZM9 2.5V5.5H12'/%3E%3C/svg%3E") !important;
+	background-repeat: no-repeat !important;
+	background-position: center !important;
+	background-size: contain !important;
+	margin-right: 6px !important;
+}
+
+/* JSON / Config Files (.json, .jsonc) - Gold SVG */
+.monaco-workbench .json-ext-file-icon.file-icon::before,
+.monaco-workbench .jsonc-ext-file-icon.file-icon::before,
+.monaco-workbench .show-file-icons .json-ext-file-icon.file-icon::before {
+	background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='%23CBCB41'%3E%3Cpath d='M4 1.5C3.17157 1.5 2.5 2.17157 2.5 3V13C2.5 13.8284 3.17157 14.5 4 14.5H12C12.8284 14.5 13.5 13.8284 13.5 13V5.5L9.5 1.5H4ZM5.5 7.5C5.22386 7.5 5 7.72386 5 8C5 8.27614 5.22386 8.5 5.5 8.5H6.5V9.5C6.5 9.77614 6.72386 10 7 10C7.27614 10 7.5 9.77614 7.5 9.5V8.5H8.5C8.77614 8.5 9 8.27614 9 8C9 7.72386 8.77614 7.5 8.5 7.5H7.5V6.5C7.5 6.22386 7.27614 6 7 6C6.72386 6 6.5 6.22386 6.5 6.5V7.5H5.5Z'/%3E%3C/svg%3E") !important;
+}
+
+/* TypeScript Files (.ts, .tsx) - Blue SVG */
+.monaco-workbench .ts-ext-file-icon.file-icon::before,
+.monaco-workbench .tsx-ext-file-icon.file-icon::before,
+.monaco-workbench .show-file-icons .ts-ext-file-icon.file-icon::before {
+	background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='%23519ABA'%3E%3Cpath d='M2.5 3C2.5 2.17157 3.17157 1.5 4 1.5H12C12.8284 1.5 13.5 2.17157 13.5 3V13C13.5 13.8284 12.8284 14.5 12 14.5H4C3.17157 14.5 2.5 13.8284 2.5 13V3ZM5 5V6.5H6.25V11.5H7.75V6.5H9V5H5ZM9.75 5V6.5H11V8H9.75V10H11.5V11.5H9.75C9.05964 11.5 8.5 10.9404 8.5 10.25V6.25C8.5 5.55964 9.05964 5 9.75 5Z'/%3E%3C/svg%3E") !important;
+}
+
+/* JavaScript Files (.js, .jsx, .mjs, .cjs) - Yellow SVG */
+.monaco-workbench .js-ext-file-icon.file-icon::before,
+.monaco-workbench .jsx-ext-file-icon.file-icon::before,
+.monaco-workbench .mjs-ext-file-icon.file-icon::before,
+.monaco-workbench .cjs-ext-file-icon.file-icon::before,
+.monaco-workbench .show-file-icons .js-ext-file-icon.file-icon::before {
+	background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='%23E5C07B'%3E%3Cpath d='M2.5 3C2.5 2.17157 3.17157 1.5 4 1.5H12C12.8284 1.5 13.5 2.17157 13.5 3V13C13.5 13.8284 12.8284 14.5 12 14.5H4C3.17157 14.5 2.5 13.8284 2.5 13V3ZM6.5 5V9.5C6.5 10.6046 5.60457 11.5 4.5 11.5V10C5.05228 10 5.5 9.55228 5.5 9V5H6.5ZM10.5 5V6.5H12V8H10.5V10H12.25V11.5H10.5C9.80964 11.5 9.25 10.9404 9.25 10.25V6.25C9.25 5.55964 9.80964 5 10.5 5Z'/%3E%3C/svg%3E") !important;
+}
+
+/* Markdown Files (.md) - Cyan SVG */
+.monaco-workbench .md-ext-file-icon.file-icon::before,
+.monaco-workbench .markdown-ext-file-icon.file-icon::before,
+.monaco-workbench .show-file-icons .md-ext-file-icon.file-icon::before {
+	background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='%2342A5F5'%3E%3Cpath d='M2.5 3C2.5 2.17157 3.17157 1.5 4 1.5H12C12.8284 1.5 13.5 2.17157 13.5 3V13C13.5 13.8284 12.8284 14.5 12 14.5H4C3.17157 14.5 2.5 13.8284 2.5 13V3ZM4.5 5.5V10.5H5.75V8L7 9.5L8.25 8V10.5H9.5V5.5H8.25L7 7L5.75 5.5H4.5ZM11 5.5L9.5 7.5H10.5V10.5H11.5V7.5H12.5L11 5.5Z'/%3E%3C/svg%3E") !important;
+}
+
+/* Git Files (.gitignore, .gitattributes, etc.) - Orange SVG */
+.monaco-workbench .gitignore-name-file-icon.file-icon::before,
+.monaco-workbench .gitattributes-name-file-icon.file-icon::before,
+.monaco-workbench .show-file-icons .gitignore-name-file-icon.file-icon::before {
+	background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='%23F14E32'%3E%3Cpath d='M13.8 7.3L8.7 2.2C8.3 1.8 7.7 1.8 7.3 2.2L2.2 7.3C1.8 7.7 1.8 8.3 2.2 8.7L7.3 13.8C7.7 14.2 8.3 14.2 8.7 13.8L13.8 8.7C14.2 8.3 14.2 7.7 13.8 7.3ZM6.5 10.3V7.2L8.6 9.3C8.5 9.7 8.7 10.2 9.1 10.4C9.6 10.7 10.2 10.5 10.4 10.1C10.7 9.6 10.5 9 10.1 8.8C9.7 8.6 9.3 8.7 9.1 9L7.2 7.1V5.7C7.5 5.5 7.7 5.1 7.7 4.7C7.7 4.1 7.2 3.7 6.7 3.7C6.1 3.7 5.7 4.1 5.7 4.7C5.7 5.1 5.9 5.5 6.2 5.7V10.3C5.9 10.5 5.7 10.9 5.7 11.3C5.7 11.9 6.1 12.3 6.7 12.3C7.2 12.3 7.7 11.9 7.7 11.3C7.7 10.9 7.5 10.5 7.2 10.3H6.5Z'/%3E%3C/svg%3E") !important;
+}
+
+/* CSS / SCSS Files - Blue SVG */
+.monaco-workbench .css-ext-file-icon.file-icon::before,
+.monaco-workbench .scss-ext-file-icon.file-icon::before,
+.monaco-workbench .show-file-icons .css-ext-file-icon.file-icon::before {
+	background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='%2342A5F5'%3E%3Cpath d='M2.5 3L3.5 13.5L8 15L12.5 13.5L13.5 3H2.5ZM10.5 6H5.8L6 7.5H10.3L9.9 11.5L8 12L6.1 11.5L6 10H4.5L4.7 12.7L8 13.7L11.3 12.7L11.8 6H10.5Z'/%3E%3C/svg%3E") !important;
+}

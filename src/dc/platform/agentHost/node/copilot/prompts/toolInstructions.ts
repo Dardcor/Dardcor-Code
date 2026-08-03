@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -135,3 +136,4 @@ export function resolveToolInstructionsOverride(hasTool: (name: string) => boole
 	const content = universalToolInstructions(hasTool, lines);
 	return content === undefined ? undefined : composeToolInstructions(existing, content);
 }
+

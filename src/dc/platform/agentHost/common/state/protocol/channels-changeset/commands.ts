@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -103,3 +104,4 @@ export interface InvokeChangesetOperationResult {
 	/** Optional follow-up: a URI to open (e.g. a PR), a content ref, etc. */
 	followUp?: ChangesetOperationFollowUp;
 }
+

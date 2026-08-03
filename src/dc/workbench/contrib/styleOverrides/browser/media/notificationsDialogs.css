@@ -60,7 +60,8 @@
  * with the center (8px / 34px / 35px once the margin is added back).
  */
 .style-override.monaco-workbench > .notifications-toasts {
-	right: 4px !important;
+	left: 16px !important;
+	right: auto !important;
 	bottom: 30px !important;
 }
 

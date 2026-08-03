@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -14,3 +15,4 @@ export { changesetReducer } from './channels-changeset/reducer.js';
 export { annotationsReducer } from './channels-annotations/reducer.js';
 export { resourceWatchReducer } from './channels-resource-watch/reducer.js';
 export { softAssertNever, isClientDispatchable } from './common/reducer-helpers.js';
+

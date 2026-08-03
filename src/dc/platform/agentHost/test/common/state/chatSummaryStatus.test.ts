@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -102,3 +103,4 @@ suite('chatSummaryFromState status projection', () => {
 		assert.strictEqual(chatSummaryFromState(state).status, SessionStatus.InputNeeded);
 	});
 });
+

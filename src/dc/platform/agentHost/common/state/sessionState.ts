@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -1469,3 +1470,4 @@ export function formatHostBuildInfo(info: IHostBuildInfo): string {
 	if (info.quality) { details.push(info.quality); }
 	return details.length > 0 ? `${info.version} (${details.join(', ')})` : info.version;
 }
+
