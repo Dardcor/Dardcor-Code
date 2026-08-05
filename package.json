@@ -11,6 +11,8 @@
 	"private": true,
 	"scripts": {
 		"start": ".\\scripts\\code.bat",
+		"build": "npm run compile-client",
+		"package": "npm run compile-client",
 		"test": "echo Please run any of the test scripts from the scripts folder.",
 		"test-browser": "npx playwright install && node test/unit/browser/index.js",
 		"test-browser-no-install": "node test/unit/browser/index.js",

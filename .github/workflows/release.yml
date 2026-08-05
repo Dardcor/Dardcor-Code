@@ -1,11 +1,37 @@
 name: Release
+
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v*'
+      - 'Dardcor*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - run: npm install
-    - run: npm run package
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Dardcor Code v1.0.0"
+          tag_name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          body: |
+            ## 🚀 Dardcor Code v1.0.0 Release
+
+            Next-Generation Desktop Code Editor based on Electron, TypeScript, and Monaco.
+
+            ### Fitur Utama:
+            - **Desktop Workbench**: Antarmuka visual berkinerja tinggi berbasis Monaco Editor.
+            - **Terminal Terintegrasi**: PTY Host dengan xterm.js interaktif.
+            - **Dukungan Multi-Platform**: Windows, Linux, dan macOS.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
