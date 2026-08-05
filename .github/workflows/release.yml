@@ -10,6 +10,10 @@ on:
 permissions:
   contents: write
 
+env:
+  VSCODE_SKIP_NODE_VERSION_CHECK: '1'
+  VSCODE_SKIP_PREINSTALL_CHECK: '1'
+
 jobs:
   build-win32-x64:
     name: Build Windows x64
@@ -24,13 +28,9 @@ jobs:
           node-version: 24
 
       - name: Install Project Dependencies
-        env:
-          VSCODE_SKIP_NODE_VERSION_CHECK: '1'
         run: npm install
 
       - name: Build Windows Standalone Package
-        env:
-          VSCODE_SKIP_NODE_VERSION_CHECK: '1'
         run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js --gulpfile build/gulpfile.vscode.ts vscode-win32-x64
 
       - name: Create Windows Zip Archive
@@ -66,13 +66,9 @@ jobs:
           node-version: 24
 
       - name: Install Project Dependencies
-        env:
-          VSCODE_SKIP_NODE_VERSION_CHECK: '1'
         run: npm install
 
       - name: Build Linux Standalone Package
-        env:
-          VSCODE_SKIP_NODE_VERSION_CHECK: '1'
         run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js --gulpfile build/gulpfile.vscode.ts vscode-linux-x64
 
       - name: Create Linux Tarball Archive
@@ -86,5 +82,37 @@ jobs:
           tag_name: ${{ github.ref_name }}
           files: |
             Dardcor.Code_x64.app.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-darwin-x64:
+    name: Build macOS x64
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install Project Dependencies
+        run: npm install
+
+      - name: Build macOS Standalone Package
+        run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js --gulpfile build/gulpfile.vscode.ts vscode-darwin-x64
+
+      - name: Create macOS Tarball Archive
+        run: |
+          tar -czvf Dardcor.Code_darwin_x64.app.tar.gz -C ../VSCode-darwin-x64 .
+
+      - name: Upload macOS Asset to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Dardcor Code v1.0.0"
+          tag_name: ${{ github.ref_name }}
+          files: |
+            Dardcor.Code_darwin_x64.app.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -496,6 +496,9 @@ export function packageMarketplaceExtensionsStream(forWeb: boolean): Stream {
 		...builtInExtensions.filter(({ name }) => (forWeb ? !marketplaceWebExtensionsExclude.has(name) : true)),
 		...(forWeb ? webBuiltInExtensions : [])
 	];
+	if (marketplaceExtensionsDescriptions.length === 0) {
+		return es.readArray([]);
+	}
 	const marketplaceExtensionsStream = minifyExtensionResources(
 		es.merge(
 			...marketplaceExtensionsDescriptions
