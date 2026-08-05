@@ -17,6 +17,8 @@ interface NpmPackageLock {
 	}>;
 }
 
+const root = fs.realpathSync(path.dirname(path.dirname(import.meta.dirname)));
+
 export interface EnsureNpmPackageOptions {
 	packPackage?: (packageName: string, version: string, tempDir: string) => string;
 }
@@ -26,12 +28,13 @@ export interface EnsureNpmPackageOptions {
  * package-lock.json when it is missing from node_modules.
  */
 export function ensureNpmPackage(packageName: string, nodeModulesRoot = 'node_modules', options: EnsureNpmPackageOptions = {}): void {
-	const packageDir = path.join(nodeModulesRoot, ...packageName.split('/'));
+	const absoluteNodeModulesRoot = path.isAbsolute(nodeModulesRoot) ? nodeModulesRoot : path.join(root, nodeModulesRoot);
+	const packageDir = path.join(absoluteNodeModulesRoot, ...packageName.split('/'));
 	if (fs.existsSync(packageDir)) {
 		return;
 	}
 
-	const lockFilePath = path.join(path.dirname(nodeModulesRoot), 'package-lock.json');
+	const lockFilePath = path.join(path.dirname(absoluteNodeModulesRoot), 'package-lock.json');
 	const lockPackageKey = path.posix.join('node_modules', packageName);
 	const lockPackage = readNpmPackageLock(lockFilePath).packages?.[lockPackageKey];
 	if (!lockPackage?.version) {

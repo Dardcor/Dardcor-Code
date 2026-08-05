@@ -216,8 +216,10 @@ task.task(task.define('core-ci', task.series(
 function computeChecksums(out: string, filenames: string[]): Record<string, string> {
 	const result: Record<string, string> = {};
 	filenames.forEach(function (filename) {
-		const fullPath = path.join(process.cwd(), out, filename);
-		result[filename] = computeChecksum(fullPath);
+		const fullPath = path.join(root, out, filename);
+		if (fs.existsSync(fullPath)) {
+			result[filename] = computeChecksum(fullPath);
+		}
 	});
 	return result;
 }
@@ -277,7 +279,7 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 			'dc/sessions/electron-browser/sessions.js'
 		]);
 
-		const src = gulp.src(out + '/**', { base: '.' })
+		const src = gulp.src(out + '/**', { cwd: root, base: root })
 			.pipe(rename(function (path) { path.dirname = path.dirname!.replace(new RegExp('^' + out), 'out'); }))
 			.pipe(util.setExecutableBit(['**/*.sh']));
 
@@ -290,7 +292,7 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 			return !set.has(platform);
 		}).map(ext => `!.build/extensions/${ext.name}/**`);
 
-		const extensions = gulp.src(['.build/extensions/**', ...platformSpecificBuiltInExtensionsExclusions], { base: '.build', dot: true });
+		const extensions = gulp.src(['.build/extensions/**', ...platformSpecificBuiltInExtensionsExclusions], { cwd: root, base: path.join(root, '.build'), dot: true });
 
 		const sourceFilterPattern = stripSourceMapsInPackagingTasks
 			? ['**', '!**/*.{js,css}.map']
@@ -313,7 +315,7 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 		}
 
 		let packageJsonContents: string;
-		const packageJsonStream = gulp.src(['package.json'], { base: '.' })
+		const packageJsonStream = gulp.src(['package.json'], { cwd: root, base: root })
 			.pipe(jsonEditor(packageJsonUpdates))
 			.pipe(es.through(function (file) {
 				packageJsonContents = file.contents.toString();
@@ -321,7 +323,7 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 			}));
 
 		let productJsonContents: string;
-		const productJsonStream = gulp.src(['product.json'], { base: '.' })
+		const productJsonStream = gulp.src(['product.json'], { cwd: root, base: root })
 			.pipe(jsonEditor((json: Record<string, unknown>) => {
 				json.commit = commit;
 				json.date = readISODate(out);
@@ -348,15 +350,14 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 				this.emit('data', file);
 			}));
 
-		const license = gulp.src([product.licenseFileName, 'ThirdPartyNotices.txt', 'licenses/**'], { base: '.', allowEmpty: true });
+		const license = gulp.src([product.licenseFileName, 'ThirdPartyNotices.txt', 'licenses/**'], { cwd: root, base: root, allowEmpty: true });
 
 		// TODO the API should be copied to `out` during compile, not here
-		const api = gulp.src('src/vscode-dts/vscode.d.ts').pipe(rename('out/vscode-dts/vscode.d.ts'));
+		const api = gulp.src('src/vscode-dts/vscode.d.ts', { cwd: root }).pipe(rename('out/vscode-dts/vscode.d.ts'));
 
-		const telemetry = gulp.src('.build/telemetry/**', { base: '.build/telemetry', dot: true });
+		const telemetry = gulp.src('.build/telemetry/**', { cwd: root, base: path.join(root, '.build/telemetry'), dot: true });
 
 		const jsFilter = util.filter(data => !data.isDirectory() && /\.js$/.test(data.path));
-		const root = path.resolve(path.join(import.meta.dirname, '..'));
 		const productionDependencies = getProductionDependencies(root);
 		const dependenciesSrc = productionDependencies.map(d => path.relative(root, d)).map(d => [`${d}/**`, `!${d}/**/{test,tests}/**`]).flat().concat('!**/*.mk');
 
@@ -465,17 +466,17 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 				'resources/win32/yaml.ico',
 				'resources/win32/code_70x70.png',
 				'resources/win32/code_150x150.png'
-			], { base: '.' }));
+			], { cwd: root, base: root }));
 		} else if (platform === 'linux') {
-			const policyDest = gulp.src('.build/policies/linux/**', { base: '.build/policies/linux' })
+			const policyDest = gulp.src('.build/policies/linux/**', { cwd: root, base: path.join(root, '.build/policies/linux'), allowEmpty: true })
 				.pipe(rename(f => f.dirname = `policies/${f.dirname}`));
-			all = es.merge(all, gulp.src('resources/linux/code.png', { base: '.' }), policyDest);
+			all = es.merge(all, gulp.src('resources/linux/code.png', { cwd: root, base: root, allowEmpty: true }), policyDest);
 		} else if (platform === 'darwin') {
-			const shortcut = gulp.src('resources/darwin/bin/code.sh')
+			const shortcut = gulp.src('resources/darwin/bin/code.sh', { cwd: root, base: root, allowEmpty: true })
 				.pipe(replace('@@APPNAME@@', product.applicationName))
 				.pipe(replace('@@NAME@@', product.nameShort))
 				.pipe(rename('bin/code'));
-			const policyDest = gulp.src('.build/policies/darwin/**', { base: '.build/policies/darwin' })
+			const policyDest = gulp.src('.build/policies/darwin/**', { cwd: root, base: path.join(root, '.build/policies/darwin'), allowEmpty: true })
 				.pipe(rename(f => f.dirname = `policies/${f.dirname}`));
 			all = es.merge(all, shortcut, policyDest);
 		}
@@ -501,25 +502,25 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 			], { dot: true }));
 
 		if (platform === 'linux') {
-			result = es.merge(result, gulp.src('resources/completions/bash/code', { base: '.' })
+			result = es.merge(result, gulp.src('resources/completions/bash/code', { cwd: root, base: root, allowEmpty: true })
 				.pipe(replace('@@APPNAME@@', product.applicationName))
 				.pipe(rename(function (f) { f.basename = product.applicationName; })));
 
-			result = es.merge(result, gulp.src('resources/completions/zsh/_code', { base: '.' })
+			result = es.merge(result, gulp.src('resources/completions/zsh/_code', { cwd: root, base: root, allowEmpty: true })
 				.pipe(replace('@@APPNAME@@', product.applicationName))
 				.pipe(rename(function (f) { f.basename = '_' + product.applicationName; })));
 		}
 
 		if (platform === 'win32') {
-			result = es.merge(result, gulp.src('resources/win32/bin/code.js', { base: 'resources/win32', allowEmpty: true }));
+			result = es.merge(result, gulp.src('resources/win32/bin/code.js', { cwd: root, base: path.join(root, 'resources/win32'), allowEmpty: true }));
 
 			if (versionedResourcesFolder) {
-				result = es.merge(result, gulp.src('resources/win32/versioned/bin/code.cmd', { base: 'resources/win32/versioned' })
+				result = es.merge(result, gulp.src('resources/win32/versioned/bin/code.cmd', { cwd: root, base: path.join(root, 'resources/win32/versioned'), allowEmpty: true })
 					.pipe(replace('@@NAME@@', product.nameShort))
 					.pipe(replace('@@VERSIONFOLDER@@', versionedResourcesFolder))
 					.pipe(rename(function (f) { f.basename = product.applicationName; })));
 
-				result = es.merge(result, gulp.src('resources/win32/versioned/bin/code.sh', { base: 'resources/win32/versioned' })
+				result = es.merge(result, gulp.src('resources/win32/versioned/bin/code.sh', { cwd: root, base: path.join(root, 'resources/win32/versioned'), allowEmpty: true })
 					.pipe(replace('@@NAME@@', product.nameShort))
 					.pipe(replace('@@PRODNAME@@', product.nameLong))
 					.pipe(replace('@@VERSION@@', version))
@@ -530,11 +531,11 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 					.pipe(replace('@@QUALITY@@', quality!))
 					.pipe(rename(function (f) { f.basename = product.applicationName; f.extname = ''; })));
 			} else {
-				result = es.merge(result, gulp.src('resources/win32/bin/code.cmd', { base: 'resources/win32' })
+				result = es.merge(result, gulp.src('resources/win32/bin/code.cmd', { cwd: root, base: path.join(root, 'resources/win32'), allowEmpty: true })
 					.pipe(replace('@@NAME@@', product.nameShort))
 					.pipe(rename(function (f) { f.basename = product.applicationName; })));
 
-				result = es.merge(result, gulp.src('resources/win32/bin/code.sh', { base: 'resources/win32' })
+				result = es.merge(result, gulp.src('resources/win32/bin/code.sh', { cwd: root, base: path.join(root, 'resources/win32'), allowEmpty: true })
 					.pipe(replace('@@NAME@@', product.nameShort))
 					.pipe(replace('@@PRODNAME@@', product.nameLong))
 					.pipe(replace('@@VERSION@@', version))
@@ -545,18 +546,18 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 					.pipe(rename(function (f) { f.basename = product.applicationName; f.extname = ''; })));
 			}
 
-			result = es.merge(result, gulp.src('resources/win32/VisualElementsManifest.xml', { base: 'resources/win32' })
+			result = es.merge(result, gulp.src('resources/win32/VisualElementsManifest.xml', { cwd: root, base: path.join(root, 'resources/win32'), allowEmpty: true })
 				.pipe(replace('@@VERSIONFOLDER@@', versionedResourcesFolder ? `${versionedResourcesFolder}\\` : ''))
 				.pipe(rename(product.nameShort + '.VisualElementsManifest.xml')));
 
-			result = es.merge(result, gulp.src('.build/policies/win32/**', { base: '.build/policies/win32' })
+			result = es.merge(result, gulp.src('.build/policies/win32/**', { cwd: root, base: path.join(root, '.build/policies/win32'), allowEmpty: true })
 				.pipe(rename(f => f.dirname = `policies/${f.dirname}`)));
 
 			if (quality === 'stable' || quality === 'insider') {
-				result = es.merge(result, gulp.src('.build/win32/appx/**', { base: '.build/win32' }));
+				result = es.merge(result, gulp.src('.build/win32/appx/**', { cwd: root, base: path.join(root, '.build/win32'), allowEmpty: true }));
 				const rawVersion = version.replace(/-\w+$/, '').split('.');
 				const appxVersion = `${rawVersion[0]}.0.${rawVersion[1]}.${rawVersion[2]}`;
-				result = es.merge(result, gulp.src('resources/win32/appx/AppxManifest.xml', { base: '.' })
+				result = es.merge(result, gulp.src('resources/win32/appx/AppxManifest.xml', { cwd: root, base: root, allowEmpty: true })
 					.pipe(replace('@@AppxPackageName@@', product.win32AppUserModelId))
 					.pipe(replace('@@AppxPackageVersion@@', appxVersion))
 					.pipe(replace('@@AppxPackageDisplayName@@', product.nameLong))
@@ -564,12 +565,12 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 					.pipe(replace('@@ApplicationIdShort@@', product.win32RegValueName))
 					.pipe(replace('@@ApplicationExe@@', product.nameShort + '.exe'))
 					.pipe(replace('@@FileExplorerContextMenuID@@', quality === 'stable' ? 'OpenWithCode' : 'OpenWithCodeInsiders'))
-					.pipe(replace('@@FileExplorerContextMenuCLSID@@', (product as { win32ContextMenu?: Record<string, { clsid: string }> }).win32ContextMenu![arch].clsid))
+					.pipe(replace('@@FileExplorerContextMenuCLSID@@', (product as { win32ContextMenu?: Record<string, { clsid: string }> }).win32ContextMenu?.[arch]?.clsid ?? ''))
 					.pipe(replace('@@FileExplorerContextMenuDLL@@', `${quality === 'stable' ? 'code' : 'code_insider'}_explorer_command_${arch}.dll`))
 					.pipe(rename(f => f.dirname = `appx/manifest`)));
 			}
 		} else if (platform === 'linux') {
-			result = es.merge(result, gulp.src('resources/linux/bin/code.sh', { base: '.' })
+			result = es.merge(result, gulp.src('resources/linux/bin/code.sh', { cwd: root, base: root, allowEmpty: true })
 				.pipe(replace('@@PRODNAME@@', product.nameLong))
 				.pipe(replace('@@APPNAME@@', product.applicationName))
 				.pipe(rename('bin/' + product.applicationName)));
@@ -588,10 +589,14 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 }
 
 function hasAuthenticodeSignature(filePath: string): Promise<boolean> {
-	return new Promise((resolve, reject) => {
-		const proc = cp.spawn('signtool.exe', ['verify', '/pa', filePath]);
-		proc.on('error', reject);
-		proc.on('exit', code => resolve(code === 0));
+	return new Promise((resolve) => {
+		try {
+			const proc = cp.spawn('signtool.exe', ['verify', '/pa', filePath]);
+			proc.on('error', () => resolve(false));
+			proc.on('exit', code => resolve(code === 0));
+		} catch {
+			resolve(false);
+		}
 	});
 }
 

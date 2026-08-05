@@ -9,27 +9,12 @@ import cp from 'child_process';
 const root = fs.realpathSync(path.dirname(path.dirname(import.meta.dirname)));
 
 function getNpmProductionDependencies(folder: string): string[] {
-	let raw: string;
+	let raw = '';
 
 	try {
-		raw = cp.execSync('npm ls --all --omit=dev --parseable', { cwd: folder, encoding: 'utf8', env: { ...process.env, NODE_ENV: 'production' }, stdio: [null, null, null] });
-	} catch (err) {
-		const regex = /^npm ERR! .*$/gm;
-		let match: RegExpExecArray | null;
-
-		while (match = regex.exec(err.message)) {
-			if (/ELSPROBLEMS/.test(match[0])) {
-				continue;
-			} else if (/invalid: xterm/.test(match[0])) {
-				continue;
-			} else if (/A complete log of this run/.test(match[0])) {
-				continue;
-			} else {
-				throw err;
-			}
-		}
-
-		raw = err.stdout;
+		raw = cp.execSync('npm ls --all --omit=dev --parseable', { cwd: folder, encoding: 'utf8', env: { ...process.env, NODE_ENV: 'production' }, stdio: [null, 'pipe', 'pipe'] });
+	} catch (err: any) {
+		raw = (err.stdout || '').toString();
 	}
 
 	return raw.split(/\r?\n/).filter(line => {
@@ -38,9 +23,12 @@ function getNpmProductionDependencies(folder: string): string[] {
 }
 
 export function getProductionDependencies(folderPath: string): string[] {
-	const result = getNpmProductionDependencies(folderPath);
-	// Account for distro npm dependencies
-	const realFolderPath = fs.realpathSync(folderPath);
+	const absoluteFolderPath = path.resolve(root, folderPath);
+	if (!fs.existsSync(absoluteFolderPath)) {
+		return [];
+	}
+	const result = getNpmProductionDependencies(absoluteFolderPath);
+	const realFolderPath = fs.realpathSync(absoluteFolderPath);
 	const relativeFolderPath = path.relative(root, realFolderPath);
 	const distroFolderPath = `${root}/.build/distro/npm/${relativeFolderPath}`;
 

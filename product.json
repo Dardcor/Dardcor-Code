@@ -208,5 +208,5 @@
 	"sessionsWindowAllowedExtensions": [],
 	"voiceWsUrl": "wss://falcon-caas.mai.microsoft.com/voice-code/api/v1/realtime/voice",
 	"quality": "stable",
-	"version": "1.132.0"
+	"version": "1.0.0"
 }
