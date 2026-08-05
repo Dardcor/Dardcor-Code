@@ -1,4 +1,4 @@
-name: Release
+name: Release Multi-OS Build
 
 on:
   push:
@@ -11,23 +11,70 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
+  build-and-release:
+    name: Build ${{ matrix.os }} (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: vscode-win32-x64
+            artifact_name: Dardcor-Code-v1.0.0-win-x64.zip
+          - os: ubuntu-latest
+            target: vscode-linux-x64
+            artifact_name: Dardcor-Code-v1.0.0-linux-x64.tar.gz
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Create GitHub Release
+      - name: Install Linux Build Dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libxkbfile-dev libkrb5-dev libsecret-1-dev
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install Project Dependencies
+        env:
+          VSCODE_SKIP_NODE_VERSION_CHECK: '1'
+        run: npm install
+
+      - name: Compile Standalone Application Package
+        env:
+          VSCODE_SKIP_NODE_VERSION_CHECK: '1'
+        run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js --gulpfile build/gulpfile.vscode.ts ${{ matrix.target }}
+
+      - name: Compress Release Artifact (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: Compress-Archive -Path '../VSCode-win32-x64/*' -DestinationPath 'Dardcor-Code-v1.0.0-win-x64.zip' -Force
+
+      - name: Compress Release Artifact (Linux)
+        if: runner.os == 'Linux'
+        run: tar -czvf Dardcor-Code-v1.0.0-linux-x64.tar.gz -C ../VSCode-linux-x64 .
+
+      - name: Upload Binaries to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: "Dardcor Code v1.0.0"
           tag_name: ${{ github.ref_name }}
           draft: false
           prerelease: false
+          files: ${{ matrix.artifact_name }}
           body: |
-            ## 🚀 Dardcor Code v1.0.0 Release
+            ## 🚀 Dardcor Code v1.0.0 Official Production Release
 
             Next-Generation Desktop AI-Powered Code Editor built on Electron, TypeScript, Node.js, and Monaco.
+
+            ### 📦 Downloads:
+            - **Windows (x64)**: `Dardcor-Code-v1.0.0-win-x64.zip`
+            - **Linux (x64)**: `Dardcor-Code-v1.0.0-linux-x64.tar.gz`
 
             ### Key Features:
             - **Desktop Workbench**: High-performance visual UI powered by Monaco Editor.
