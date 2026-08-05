@@ -90,7 +90,7 @@ jobs:
       - name: Install Linux Build Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pkg-config libxkbfile-dev libkrb5-dev libsecret-1-dev rpm dpkg
+          sudo apt-get install -y pkg-config libxkbfile-dev libkrb5-dev libsecret-1-dev rpm dpkg fakeroot
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -107,10 +107,10 @@ jobs:
         run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-linux-${{ matrix.arch }}
 
       - name: Build Linux DEB Package
-        run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-linux-${{ matrix.arch }}-build-deb
+        run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-linux-${{ matrix.arch }}-prepare-deb vscode-linux-${{ matrix.arch }}-build-deb
 
       - name: Build Linux RPM Package
-        run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-linux-${{ matrix.arch }}-build-rpm
+        run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-linux-${{ matrix.arch }}-prepare-rpm vscode-linux-${{ matrix.arch }}-build-rpm
 
       - name: Create Linux Artifacts
         run: |

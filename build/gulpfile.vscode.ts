@@ -630,7 +630,7 @@ function patchWin32DependenciesTask(destinationFolderName: string) {
 	return async () => {
 		const versionedResourcesFolder = util.getVersionedResourcesFolder('win32', commit!);
 		const deps = (await Promise.all([
-			glob('**/*.node', { cwd, ignore: 'extensions/node_modules/@parcel/watcher/**' }),
+			glob('**/*.node', { cwd, ignore: ['extensions/node_modules/@parcel/watcher/**', '**/*-linux/**', '**/*-darwin/**', '**/linux-x64/**', '**/linux-arm64/**', '**/darwin-x64/**', '**/darwin-arm64/**'] }),
 			glob('**/rg.exe', { cwd }),
 			glob('**/tgrep.exe', { cwd }),
 			glob('**/node_modules.asar.unpacked/@github/copilot-win32-*/builtin-plugins/computer-use/*/win32-*/computer-use-mcp.exe', { cwd }),
