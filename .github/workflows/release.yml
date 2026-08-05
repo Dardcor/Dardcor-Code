@@ -27,11 +27,11 @@ jobs:
           body: |
             ## 🚀 Dardcor Code v1.0.0 Release
 
-            Next-Generation Desktop Code Editor based on Electron, TypeScript, and Monaco.
+            Next-Generation Desktop AI-Powered Code Editor built on Electron, TypeScript, Node.js, and Monaco.
 
-            ### Fitur Utama:
-            - **Desktop Workbench**: Antarmuka visual berkinerja tinggi berbasis Monaco Editor.
-            - **Terminal Terintegrasi**: PTY Host dengan xterm.js interaktif.
-            - **Dukungan Multi-Platform**: Windows, Linux, dan macOS.
+            ### Key Features:
+            - **Desktop Workbench**: High-performance visual UI powered by Monaco Editor.
+            - **Integrated Terminal**: Interactive PTY Host with xterm.js support.
+            - **Multi-Platform Support**: Cross-platform compatibility for Windows, Linux, and macOS.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
