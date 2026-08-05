@@ -53,8 +53,13 @@ function spawnAsync(command: string, args: string[], opts: child_process.SpawnOp
 }
 
 async function npmInstallAsync(dir: string, opts?: child_process.SpawnOptions): Promise<void> {
+	const env = { ...process.env };
+	delete env['npm_config_msvs_version'];
+	delete env['msvs_version'];
+	delete env['npm_config_msvs_version'];
+
 	const finalOpts: child_process.SpawnOptions = {
-		env: { ...process.env },
+		env,
 		...(opts ?? {}),
 		cwd: path.join(root, dir),
 		shell: true,

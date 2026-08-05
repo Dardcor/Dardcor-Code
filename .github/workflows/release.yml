@@ -33,7 +33,7 @@ jobs:
       - name: Build Windows Standalone Package
         run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js --gulpfile build/gulpfile.vscode.ts vscode-win32-x64
 
-      - name: Create Windows Zip Archive
+      - name: Create Windows Zip Archive (List-OS exact match)
         shell: powershell
         run: |
           Compress-Archive -Path '../VSCode-win32-x64/*' -DestinationPath 'Dardcor.Code_1.0.0_x64.zip' -Force
@@ -71,7 +71,7 @@ jobs:
       - name: Build Linux Standalone Package
         run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js --gulpfile build/gulpfile.vscode.ts vscode-linux-x64
 
-      - name: Create Linux Tarball Archive
+      - name: Create Linux Tarball Archive (List-OS exact match)
         run: |
           tar -czvf Dardcor.Code_x64.app.tar.gz -C ../VSCode-linux-x64 .
 
@@ -103,9 +103,9 @@ jobs:
       - name: Build macOS Standalone Package
         run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js --gulpfile build/gulpfile.vscode.ts vscode-darwin-x64
 
-      - name: Create macOS Tarball Archive
+      - name: Create macOS Tarball Archive (List-OS exact match)
         run: |
-          tar -czvf Dardcor.Code_darwin_x64.app.tar.gz -C ../VSCode-darwin-x64 .
+          tar -czvf Dardcor.Code_x64.app.tar.gz -C ../VSCode-darwin-x64 .
 
       - name: Upload macOS Asset to Release
         uses: softprops/action-gh-release@v2
@@ -113,6 +113,6 @@ jobs:
           name: "Dardcor Code v1.0.0"
           tag_name: ${{ github.ref_name }}
           files: |
-            Dardcor.Code_darwin_x64.app.tar.gz
+            Dardcor.Code_x64.app.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

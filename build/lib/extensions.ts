@@ -228,13 +228,11 @@ const baseHeaders = {
 	'X-Market-User-Id': '291C1CD0-051A-4123-9B4B-30D60EF52EE2',
 };
 
-export function fromMarketplace(serviceUrl: string, { name: extensionName, version, sha256, metadata }: IExtensionDefinition): Stream {
+export function fromMarketplace(serviceUrl: string, { name: extensionName, version, sha256 }: IExtensionDefinition): Stream {
 	const [publisher, name] = extensionName.split('.');
 	const url = `${serviceUrl}/publishers/${publisher}/vsextensions/${name}/${version}/vspackage`;
 
 	fancyLog('Downloading extension:', ansiColors.yellow(`${extensionName}@${version}`), '...');
-
-	const packageJsonFilter = filter('package.json', { restore: true });
 
 	return fetchUrls('', {
 		base: url,
@@ -245,11 +243,7 @@ export function fromMarketplace(serviceUrl: string, { name: extensionName, versi
 	})
 		.pipe(vinylZip.src())
 		.pipe(filter('extension/**'))
-		.pipe(rename(p => p.dirname = p.dirname!.replace(/^extension\/?/, '')))
-		.pipe(packageJsonFilter)
-		.pipe(buffer())
-		.pipe(jsonEditor({ __metadata: metadata }))
-		.pipe(packageJsonFilter.restore);
+		.pipe(rename(p => p.dirname = p.dirname!.replace(/^extension\/?/, '')));
 }
 
 export function fromVsix(vsixPath: string, { name: extensionName, version, sha256, metadata }: IExtensionDefinition): Stream {
