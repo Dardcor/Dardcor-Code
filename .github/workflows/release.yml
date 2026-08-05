@@ -30,6 +30,9 @@ jobs:
       - name: Install Project Dependencies
         run: npm install
 
+      - name: Pre-download Built-in Extensions
+        run: node --experimental-strip-types ./build/lib/builtInExtensions.ts
+
       - name: Build Windows Standalone Package
         run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js --gulpfile build/gulpfile.vscode.ts vscode-win32-x64
 
@@ -68,6 +71,9 @@ jobs:
       - name: Install Project Dependencies
         run: npm install
 
+      - name: Pre-download Built-in Extensions
+        run: node --experimental-strip-types ./build/lib/builtInExtensions.ts
+
       - name: Build Linux Standalone Package
         run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js --gulpfile build/gulpfile.vscode.ts vscode-linux-x64
 
@@ -99,6 +105,9 @@ jobs:
 
       - name: Install Project Dependencies
         run: npm install
+
+      - name: Pre-download Built-in Extensions
+        run: node --experimental-strip-types ./build/lib/builtInExtensions.ts
 
       - name: Build macOS Standalone Package
         run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js --gulpfile build/gulpfile.vscode.ts vscode-darwin-x64

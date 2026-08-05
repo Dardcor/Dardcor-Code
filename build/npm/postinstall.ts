@@ -150,7 +150,7 @@ function setNpmrcConfig(dir: string, env: NodeJS.ProcessEnv) {
 		env['npm_config_arch'] = process.arch;
 	}
 
-	if (process.platform === 'win32') {
+	if (process.platform === 'win32' && !process.env['CI']) {
 		env['VCINSTALLDIR'] = env['VCINSTALLDIR'] || 'C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC';
 		env['VSCMD_VER'] = env['VSCMD_VER'] || '17.10.0';
 		env['WindowsSDKVersion'] = env['WindowsSDKVersion'] || '10.0.26100.0\\';
