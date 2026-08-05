@@ -107,10 +107,14 @@ jobs:
         run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-linux-${{ matrix.arch }}
 
       - name: Build Linux DEB Package
-        run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-linux-${{ matrix.arch }}-prepare-deb vscode-linux-${{ matrix.arch }}-build-deb
+        run: |
+          node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-linux-${{ matrix.arch }}-prepare-deb
+          node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-linux-${{ matrix.arch }}-build-deb
 
       - name: Build Linux RPM Package
-        run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-linux-${{ matrix.arch }}-prepare-rpm vscode-linux-${{ matrix.arch }}-build-rpm
+        run: |
+          node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-linux-${{ matrix.arch }}-prepare-rpm
+          node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-linux-${{ matrix.arch }}-build-rpm
 
       - name: Create Linux Artifacts
         run: |
