@@ -60,7 +60,7 @@ if (!process.env['VSCODE_FORCE_INSTALL'] && isUpToDate()) {
 }
 
 if (process.platform === 'win32') {
-	if (!hasSupportedVisualStudioVersion()) {
+	if (!process.env['VSCODE_SKIP_PREINSTALL_CHECK'] && !hasSupportedVisualStudioVersion()) {
 		console.error('\x1b[1;31m*** Invalid C/C++ Compiler Toolchain. Please check https://github.com/microsoft/vscode/wiki/How-to-Contribute#prerequisites.\x1b[0;0m');
 		console.error('\x1b[1;31m*** If you have Visual Studio installed in a custom location, you can specify it via the environment variable:\x1b[0;0m');
 		console.error('\x1b[1;31m*** set vs2022_install=<path> (or vs2019_install for older versions)\x1b[0;0m');
