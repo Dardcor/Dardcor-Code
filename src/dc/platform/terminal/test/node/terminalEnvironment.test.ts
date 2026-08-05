@@ -42,8 +42,8 @@ suite('platform - terminalEnvironment', async () => {
 		// These tests are only expected to work on Windows 10 build 18309 and above
 		(getWindowsBuildNumberSync() < 18309 ? suite.skip : suite)('pwsh', async () => {
 			const expectedPs1 = process.platform === 'win32'
-				? `try { . "${repoRoot}\\out\\vs\\workbench\\contrib\\terminal\\common\\scripts\\shellIntegration.ps1" } catch {}`
-				: `. "${repoRoot}/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration.ps1"`;
+				? `try { . "${repoRoot}\\out\\dc\\workbench\\contrib\\terminal\\common\\scripts\\shellIntegration.ps1" } catch {}`
+				: `. "${repoRoot}/out/dc/workbench/contrib/terminal/common/scripts/shellIntegration.ps1"`;
 			suite('should override args', async () => {
 				const enabledExpectedResult = Object.freeze<IShellIntegrationConfigInjection>({
 					type: 'injection',
@@ -201,7 +201,7 @@ suite('platform - terminalEnvironment', async () => {
 							type: 'injection',
 							newArgs: [
 								'--init-file',
-								`${repoRoot}/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh`
+								`${repoRoot}/out/dc/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh`
 							],
 							envMixin: {
 								VSCODE_INJECTION: '1'
@@ -216,7 +216,7 @@ suite('platform - terminalEnvironment', async () => {
 							type: 'injection',
 							newArgs: [
 								'--init-file',
-								`${repoRoot}/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh`
+								`${repoRoot}/out/dc/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh`
 							],
 							envMixin: {
 								VSCODE_INJECTION: '1',

@@ -128,7 +128,9 @@ export class TerminalProfileService extends Disposable implements ITerminalProfi
 			return undefined;
 		}
 
-		return this.availableProfiles.find(e => e.profileName === defaultProfileName) ?? this.availableProfiles[0];
+		// IMPORTANT: Only allow the default profile name to find non-auto detected profiles as
+		// to avoid unsafe path profiles being picked up.
+		return this.availableProfiles.find(e => e.profileName === defaultProfileName && !e.isAutoDetected);
 	}
 
 	private _getOsKey(os: OperatingSystem): string {

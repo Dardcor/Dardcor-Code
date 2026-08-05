@@ -86,7 +86,8 @@ const compilations = [
 	'extensions/tunnel-forwarding/tsconfig.json',
 	'extensions/typescript-language-features/web/tsconfig.json',
 	'extensions/typescript-language-features/tsconfig.json',
-
+	'extensions/vscode-colorize-tests/tsconfig.json',
+	'extensions/vscode-colorize-perf-tests/tsconfig.json',
 ];
 
 const getBaseUrl = (out: string) => `https://main.vscode-cdn.net/sourcemaps/${commit}/${out}`;
