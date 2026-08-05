@@ -1,4 +1,4 @@
-name: Release Multi-OS Build
+name: Release Multi-OS Complete Build
 
 on:
   push:
@@ -11,29 +11,12 @@ permissions:
   contents: write
 
 jobs:
-  build-and-release:
-    name: Build ${{ matrix.os }} (${{ matrix.target }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            target: vscode-win32-x64
-            artifact_name: Dardcor-Code-v1.0.0-win-x64.zip
-          - os: ubuntu-latest
-            target: vscode-linux-x64
-            artifact_name: Dardcor-Code-v1.0.0-linux-x64.tar.gz
-
+  build-win32-x64:
+    name: Build Windows x64
+    runs-on: windows-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-
-      - name: Install Linux Build Dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config libxkbfile-dev libkrb5-dev libsecret-1-dev
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -45,40 +28,63 @@ jobs:
           VSCODE_SKIP_NODE_VERSION_CHECK: '1'
         run: npm install
 
-      - name: Compile Standalone Application Package
+      - name: Build Windows Standalone Package
         env:
           VSCODE_SKIP_NODE_VERSION_CHECK: '1'
-        run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js --gulpfile build/gulpfile.vscode.ts ${{ matrix.target }}
+        run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js --gulpfile build/gulpfile.vscode.ts vscode-win32-x64
 
-      - name: Compress Release Artifact (Windows)
-        if: runner.os == 'Windows'
+      - name: Create Windows Zip Archive
         shell: powershell
-        run: Compress-Archive -Path '../VSCode-win32-x64/*' -DestinationPath 'Dardcor-Code-v1.0.0-win-x64.zip' -Force
+        run: |
+          Compress-Archive -Path '../VSCode-win32-x64/*' -DestinationPath 'Dardcor.Code_1.0.0_x64.zip' -Force
 
-      - name: Compress Release Artifact (Linux)
-        if: runner.os == 'Linux'
-        run: tar -czvf Dardcor-Code-v1.0.0-linux-x64.tar.gz -C ../VSCode-linux-x64 .
-
-      - name: Upload Binaries to GitHub Release
+      - name: Upload Windows Asset to Release
         uses: softprops/action-gh-release@v2
         with:
           name: "Dardcor Code v1.0.0"
           tag_name: ${{ github.ref_name }}
-          draft: false
-          prerelease: false
-          files: ${{ matrix.artifact_name }}
-          body: |
-            ## 🚀 Dardcor Code v1.0.0 Official Production Release
+          files: |
+            Dardcor.Code_1.0.0_x64.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-            Next-Generation Desktop AI-Powered Code Editor built on Electron, TypeScript, Node.js, and Monaco.
+  build-linux-x64:
+    name: Build Linux x64
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-            ### 📦 Downloads:
-            - **Windows (x64)**: `Dardcor-Code-v1.0.0-win-x64.zip`
-            - **Linux (x64)**: `Dardcor-Code-v1.0.0-linux-x64.tar.gz`
+      - name: Install Linux Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libxkbfile-dev libkrb5-dev libsecret-1-dev rpm dpkg
 
-            ### Key Features:
-            - **Desktop Workbench**: High-performance visual UI powered by Monaco Editor.
-            - **Integrated Terminal**: Interactive PTY Host with xterm.js support.
-            - **Multi-Platform Support**: Cross-platform compatibility for Windows, Linux, and macOS.
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install Project Dependencies
+        env:
+          VSCODE_SKIP_NODE_VERSION_CHECK: '1'
+        run: npm install
+
+      - name: Build Linux Standalone Package
+        env:
+          VSCODE_SKIP_NODE_VERSION_CHECK: '1'
+        run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js --gulpfile build/gulpfile.vscode.ts vscode-linux-x64
+
+      - name: Create Linux Tarball Archive
+        run: |
+          tar -czvf Dardcor.Code_x64.app.tar.gz -C ../VSCode-linux-x64 .
+
+      - name: Upload Linux Asset to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Dardcor Code v1.0.0"
+          tag_name: ${{ github.ref_name }}
+          files: |
+            Dardcor.Code_x64.app.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
