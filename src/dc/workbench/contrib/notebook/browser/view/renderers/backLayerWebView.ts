@@ -463,7 +463,7 @@ export class BackLayerWebView<T extends ICommonCellInfo> extends Themable {
 
 					thead {
 						font-weight: bold;
-						background-color: rgba(130, 130, 130, 0.16);
+						background-color: rgba(59, 10, 94, 0.16);
 					}
 
 					th, td {
@@ -471,7 +471,7 @@ export class BackLayerWebView<T extends ICommonCellInfo> extends Themable {
 					}
 
 					tr:nth-child(even) {
-						background-color: rgba(130, 130, 130, 0.08);
+						background-color: rgba(59, 10, 94, 0.08);
 					}
 
 					tbody th {

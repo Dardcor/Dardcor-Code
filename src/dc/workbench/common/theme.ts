@@ -563,8 +563,8 @@ export const BROWSER_BORDER = registerColor('browser.border', TAB_BORDER, locali
 // < --- Profiles --- >
 
 export const PROFILE_BADGE_BACKGROUND = registerColor('profileBadge.background', {
-	dark: '#4D4D4D',
-	light: '#C4C4C4',
+	dark: '#3B0A5E',
+	light: '#4A148C',
 	hcDark: Color.white,
 	hcLight: Color.black
 }, localize('profileBadgeBackground', "Profile badge background color. The profile badge shows on top of the settings gear icon in the activity bar."));

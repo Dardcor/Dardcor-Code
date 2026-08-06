@@ -171,7 +171,7 @@ class IdeEditSource extends EditSourceBase {
 
 	override toString() { return `${this.category}/${this.feature}`; }
 
-	public getColor(): string { return this.feature === 'format' ? '#0000ff33' : '#80808033'; }
+	public getColor(): string { return this.feature === 'format' ? '#0000ff33' : '#3B0A5E33'; }
 }
 
 class UserEditSource extends EditSourceBase {

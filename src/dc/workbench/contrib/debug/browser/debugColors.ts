@@ -249,7 +249,7 @@ export function registerColors() {
 			}
 		`);
 
-		const debugConsoleInputBorderColor = theme.getColor(inputBorder) || Color.fromHex('#80808060');
+		const debugConsoleInputBorderColor = theme.getColor(inputBorder) || Color.fromHex('#3B0A5E60');
 		const debugConsoleInfoForegroundColor = theme.getColor(debugConsoleInfoForeground)!;
 		const debugConsoleWarningForegroundColor = theme.getColor(debugConsoleWarningForeground)!;
 		const debugConsoleErrorForegroundColor = theme.getColor(debugConsoleErrorForeground)!;

@@ -519,7 +519,7 @@
 }
 
 .extension-editor > .body > .content > .details > .additional-details-container .more-info-container > .more-info > .more-info-entry:nth-child(odd) {
-	background-color: rgba(130, 130, 130, 0.04);
+	background-color: rgba(59, 10, 94, 0.04);
 }
 
 .extension-editor > .body > .content > .details > .additional-details-container .more-info-container > .more-info > .more-info-entry code {
@@ -622,7 +622,7 @@
 }
 
 .extension-editor > .body > .content table tr:nth-child(odd) {
-	background-color: rgba(130, 130, 130, 0.04);
+	background-color: rgba(59, 10, 94, 0.04);
 }
 
 .extension-editor > .body > .content table tr:not(:first-child):hover {

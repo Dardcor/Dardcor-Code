@@ -817,7 +817,7 @@
 		font-size: 12px;
 
 		&:nth-child(odd) {
-			background-color: rgba(130, 130, 130, 0.04);
+			background-color: rgba(59, 10, 94, 0.04);
 		}
 	}
 

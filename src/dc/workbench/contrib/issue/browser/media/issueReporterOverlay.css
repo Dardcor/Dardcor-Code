@@ -67,7 +67,7 @@
 
 .issue-reporter-wizard *::-webkit-scrollbar-thumb:active,
 .issue-reporter-wizard ::-webkit-scrollbar-thumb:active {
-	background: var(--vscode-scrollbarSlider-activeBackground, rgba(191, 191, 191, 0.4));
+	background: var(--vscode-scrollbarSlider-activeBackground, rgba(124, 77, 255, 0.4));
 }
 
 .issue-reporter-editor-tab {
@@ -318,7 +318,7 @@
 	width: 10px;
 	height: 10px;
 	border-radius: 50%;
-	border: 2px solid var(--vscode-foreground, #888);
+	border: 2px solid var(--vscode-foreground, #6A1B9A);
 	background: transparent;
 	transition: background 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
 	opacity: 0.4;
@@ -349,7 +349,7 @@
 	width: 2px;
 	height: 14px;
 	margin: 0 10px;
-	background: var(--vscode-titleBar-activeForeground, #888);
+	background: var(--vscode-titleBar-activeForeground, #6A1B9A);
 	opacity: 0.6;
 	vertical-align: middle;
 }
@@ -432,7 +432,7 @@
 }
 
 .issue-reporter-wizard .wizard-textarea::placeholder {
-	color: var(--vscode-input-placeholderForeground, #888);
+	color: var(--vscode-input-placeholderForeground, #6A1B9A);
 }
 
 .issue-reporter-wizard .wizard-textarea.invalid-input {
@@ -531,7 +531,7 @@ label/control gap, so the buttons must not add their own margin. */
 	border: 1px solid var(--vscode-input-border, #555);
 	font-size: 11px;
 	font-family: monospace;
-	color: var(--vscode-descriptionForeground, #888);
+	color: var(--vscode-descriptionForeground, #6A1B9A);
 	opacity: 0.7;
 	margin-left: 2px;
 }
@@ -618,7 +618,7 @@ label/control gap, so the buttons must not add their own margin. */
 }
 
 .issue-reporter-wizard .wizard-screenshots-empty {
-	color: var(--vscode-descriptionForeground, #888);
+	color: var(--vscode-descriptionForeground, #6A1B9A);
 	font-style: italic;
 	display: flex;
 	align-items: center;
@@ -692,7 +692,7 @@ label/control gap, so the buttons must not add their own margin. */
 
 .issue-reporter-wizard .wizard-screenshot-plus {
 	font-size: 28px;
-	color: var(--vscode-descriptionForeground, #888);
+	color: var(--vscode-descriptionForeground, #6A1B9A);
 }
 
 .issue-reporter-wizard .wizard-screenshot-add:hover .wizard-screenshot-plus {
@@ -705,7 +705,7 @@ label/control gap, so the buttons must not add their own margin. */
 }
 
 .issue-reporter-wizard .wizard-screenshot-add.disabled:hover .wizard-screenshot-plus {
-	color: var(--vscode-descriptionForeground, #888);
+	color: var(--vscode-descriptionForeground, #6A1B9A);
 }
 
 /* Screenshot Controls */
@@ -1214,7 +1214,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 
 .issue-reporter-wizard .review-performance-description {
 	font-size: 12px;
-	color: var(--vscode-descriptionForeground, #888);
+	color: var(--vscode-descriptionForeground, #6A1B9A);
 }
 
 .issue-reporter-wizard .review-diag-header {
@@ -1239,7 +1239,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 
 .issue-reporter-wizard .review-diag-check-label {
 	font-size: 12px;
-	color: var(--vscode-descriptionForeground, #888);
+	color: var(--vscode-descriptionForeground, #6A1B9A);
 	cursor: pointer;
 	white-space: nowrap;
 }
@@ -1263,7 +1263,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 .issue-reporter-wizard .review-diag-content {
 	margin-top: 6px;
 	font-size: 12px;
-	color: var(--vscode-descriptionForeground, #888);
+	color: var(--vscode-descriptionForeground, #6A1B9A);
 	max-height: 200px;
 	overflow: auto;
 }
@@ -1321,7 +1321,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 
 .issue-reporter-wizard .review-diag-loading {
 	font-size: 12px;
-	color: var(--vscode-descriptionForeground, #888);
+	color: var(--vscode-descriptionForeground, #6A1B9A);
 	font-style: italic;
 	padding: 4px 0;
 }
@@ -1783,7 +1783,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 	margin: 0 0 12px;
 	padding: 8px 12px;
 	border-radius: var(--vscode-cornerRadius-small);
-	background: var(--vscode-textBlockQuote-background, rgba(127, 127, 127, 0.1));
+	background: var(--vscode-textBlockQuote-background, rgba(59, 10, 94, 0.1));
 	border-left: 3px solid var(--vscode-focusBorder, #007acc);
 	font-size: 13px;
 	color: var(--vscode-descriptionForeground, #ccc);

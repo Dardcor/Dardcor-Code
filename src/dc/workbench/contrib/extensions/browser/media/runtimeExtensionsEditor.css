@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 .runtime-extensions-editor .monaco-list .monaco-list-rows > .monaco-list-row.odd:not(:hover):not(.focused) {
-	background-color: rgba(130, 130, 130, 0.08);
+	background-color: rgba(59, 10, 94, 0.08);
 }
 
 .runtime-extensions-editor .extension {

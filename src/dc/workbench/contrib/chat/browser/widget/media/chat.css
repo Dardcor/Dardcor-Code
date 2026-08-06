@@ -3595,7 +3595,7 @@ have to be updated for changes to the rules above, or to support more deeply nes
 }
 
 .chat-element-hover .chat-element-hover-section + .chat-element-hover-section {
-	border-top: 1px solid var(--vscode-editorWidget-border, rgba(127, 127, 127, 0.2));
+	border-top: 1px solid var(--vscode-editorWidget-border, rgba(59, 10, 94, 0.2));
 }
 
 .chat-element-hover .chat-element-hover-screenshot .chat-attached-context-hover {
@@ -3680,7 +3680,7 @@ have to be updated for changes to the rules above, or to support more deeply nes
 	display: inline-block;
 	width: 12px;
 	height: 12px;
-	border: 1px solid var(--vscode-editorWidget-border, rgba(127, 127, 127, 0.4));
+	border: 1px solid var(--vscode-editorWidget-border, rgba(74, 20, 140, 0.4));
 	border-radius: 2px;
 	flex-shrink: 0;
 }
