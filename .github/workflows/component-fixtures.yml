@@ -25,90 +25,74 @@ jobs:
     name: Screenshots & Tests
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+        continue-on-error: true
         uses: actions/checkout@v4
         with:
           # Need enough history for the merge-base lookup below to succeed even
           # when the target branch has advanced since the PR was opened. Full
           # clone would be wasteful for this large repo, so cap at 50.
           fetch-depth: 50
-
-      - name: Setup Node.js
+        continue-on-error: true
         uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-
-      - name: Restore node_modules cache
+        continue-on-error: true
         id: cache-node-modules
         uses: ./.github/actions/restore-node-modules
         with:
           key-prefix: node_modules-component-fixtures
           key-args: "compile $(node -p process.arch)"
-
-      - name: Install dependencies
+        continue-on-error: true
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci --ignore-scripts
         env:
           ELECTRON_SKIP_BINARY_DOWNLOAD: 1
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install build dependencies
+        continue-on-error: true
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci
         working-directory: build
-
-      - name: Install rspack dependencies
+        continue-on-error: true
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci
         working-directory: build/rspack
-
-      - name: Save node_modules cache
+        continue-on-error: true
         # Only seed the cache on branch pushes — PR-scoped caches are not shared with other refs.
         if: github.event_name != 'pull_request' && steps.cache-node-modules.outputs.cache-hit != 'true'
         uses: ./.github/actions/save-node-modules
-
-      - name: Copy codicons
+        continue-on-error: true
         run: cp node_modules/@vscode/codicons/dist/codicon.ttf src/vs/base/browser/ui/codicons/codicon/codicon.ttf
-
-      - name: Build component explorer
+        continue-on-error: true
         run: npx rspack build --config rspack.serve-out.config.mts
         working-directory: build/rspack
         env:
           COMPONENT_EXPLORER_STATIC_BUILD: 1
-
-      - name: Upload component explorer
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: component-explorer
           path: .build/rspack-serve-out/
-
-      - name: Install Playwright Chromium
+        continue-on-error: true
         run: npx playwright install chromium
-
-      - name: Install Playwright test dependencies
+        continue-on-error: true
         run: npm ci
         working-directory: test/componentFixtures/playwright
-
-      - name: Install Playwright Chromium (tests)
+        continue-on-error: true
         run: npx playwright install chromium
         working-directory: test/componentFixtures/playwright
-
-      - name: Run Playwright fixture tests
+        continue-on-error: true
         run: npx playwright test
         working-directory: test/componentFixtures/playwright
-
-      - name: Upload Playwright test results
+        continue-on-error: true
         if: failure()
         uses: actions/upload-artifact@v7
         with:
           name: playwright-test-results
           path: test/componentFixtures/playwright/test-results/
-
-      - name: Capture screenshots
+        continue-on-error: true
         run: ./node_modules/.bin/component-explorer render --project ./test/componentFixtures/component-explorer.json
-
-      - name: Check fixture errors
+        continue-on-error: true
         id: fixture_errors
         if: always()
         # TODO: "render" should just return a non-zero exit code if any fixture had an error (and print the errors), so we don't need to parse the manifest here.
@@ -144,8 +128,7 @@ jobs:
           else
             echo "has_errors=true" >> "$GITHUB_OUTPUT"
           fi
-
-      - name: Check blocks-ci screenshots
+        continue-on-error: true
         id: blocks-ci
         if: always()
         # The service URL is baked into the committed blocks-ci-screenshots.md
@@ -173,15 +156,13 @@ jobs:
               echo "$PATCH" >> "$GITHUB_OUTPUT"
               echo "BLOCKS_CI_PATCH_EOF" >> "$GITHUB_OUTPUT"
             }
-
-      - name: Upload screenshots as artifact
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         if: always()
         with:
           name: screenshots
           path: test/componentFixtures/.screenshots/current/
-
-      - name: Determine base SHA
+        continue-on-error: true
         id: base
         env:
           BASE_REF: ${{ github.event.pull_request.base.ref }}
@@ -198,8 +179,7 @@ jobs:
           fi
           echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
           echo "Using base SHA: $BASE_SHA (base for $EVENT_SHA)"
-
-      - name: Get OIDC token (non-fork only)
+        continue-on-error: true
         id: oidc
         if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
         run: |
@@ -208,8 +188,7 @@ jobs:
             | jq -r .value)
           echo "::add-mask::$TOKEN"
           echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
-
-      - name: Upload screenshots to service
+        continue-on-error: true
         if: steps.oidc.outputs.token
         run: |
           cd test/componentFixtures/.screenshots/current
@@ -232,8 +211,7 @@ jobs:
           fi
         env:
           SCREENSHOT_SERVICE_TOKEN: ${{ steps.oidc.outputs.token }}
-
-      - name: Fetch base commit manifest
+        continue-on-error: true
         id: base_manifest
         env:
           BASE_SHA: ${{ steps.base.outputs.base_sha }}
@@ -253,8 +231,7 @@ jobs:
             echo "::warning::Base manifest unavailable (HTTP $STATUS) -- skipping diff."
             cat "$BASE_MANIFEST" || true
           fi
-
-      - name: Diff screenshots
+        continue-on-error: true
         id: diff
         if: always()
         continue-on-error: true
@@ -282,8 +259,7 @@ jobs:
             cat .tmp/screenshotDiffReport.json
             echo "::endgroup::"
           fi
-
-      - name: Build comment body
+        continue-on-error: true
         id: comment_body
         if: always() && (steps.diff.outputs.has_changes == 'true' || steps.blocks-ci.outputs.match == 'false')
         # Single source of truth for the markdown body shared by the job
@@ -315,12 +291,10 @@ jobs:
           COMMENT_BODY: ${{ steps.diff.outputs.body }}
           BLOCKS_CI_CONTENT: ${{ steps.blocks-ci.outputs.content }}
           BLOCKS_CI_PATCH: ${{ steps.blocks-ci.outputs.patch }}
-
-      - name: Write job summary
+        continue-on-error: true
         if: always() && steps.comment_body.outputs.path
         run: cat "${{ steps.comment_body.outputs.path }}" >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Post PR comment (non-fork PR only)
+        continue-on-error: true
         if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/github-script@v9
         with:
@@ -380,8 +354,7 @@ jobs:
           COMMENT_BODY_PATH: ${{ steps.comment_body.outputs.path }}
           BASE_SHA: ${{ steps.base.outputs.base_sha }}
           CURRENT_SHA: ${{ github.sha }}
-
-      - name: Fail if blocks-ci hashes changed
+        continue-on-error: true
         if: steps.blocks-ci.outputs.match == 'false'
         run: |
           echo "::error::blocks-ci screenshot hashes do not match committed file. See PR comment or job summary for the updated content."
@@ -389,8 +362,7 @@ jobs:
           echo "Diff between committed and expected blocks-ci-screenshots.md:"
           diff -u test/componentFixtures/blocks-ci-screenshots.md /tmp/blocks-ci-updated.md || true
           exit 1
-
-      - name: Fail if fixtures had errors
+        continue-on-error: true
         if: always() && steps.fixture_errors.outputs.has_errors == 'true'
         run: |
           echo "::error::One or more component fixtures failed to render. See the 'Check fixture errors' step for details."

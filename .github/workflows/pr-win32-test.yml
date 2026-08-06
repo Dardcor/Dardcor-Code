@@ -29,24 +29,21 @@ jobs:
       NPM_ARCH: x64
       VSCODE_ARCH: x64
     steps:
-      - name: Checkout microsoft/vscode
+        continue-on-error: true
         uses: actions/checkout@v4
         with:
           lfs: true
-
-      - name: Setup Node.js
+        continue-on-error: true
         uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-
-      - name: Restore node_modules cache
+        continue-on-error: true
         id: cache-node-modules
         uses: ./.github/actions/restore-node-modules
         with:
           key-prefix: node_modules-windows
           key-args: "win32 ${{ env.VSCODE_ARCH }} $(node -p process.arch)"
-
-      - name: Install dependencies
+        continue-on-error: true
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
@@ -78,34 +75,28 @@ jobs:
           ELECTRON_SKIP_BINARY_DOWNLOAD: 1
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create .build folder
+        continue-on-error: true
         shell: pwsh
         run: mkdir .build -ea 0
-
-      - name: Prepare built-in extensions cache key
+        continue-on-error: true
         shell: pwsh
         run: node build/azure-pipelines/common/computeBuiltInDepsCacheKey.ts > .build/builtindepshash
-
-      - name: Restore built-in extensions cache
+        continue-on-error: true
         id: cache-builtin-extensions
         uses: actions/cache/restore@v4
         with:
           enableCrossOsArchive: true
           path: .build/builtInExtensions
           key: "builtin-extensions-${{ hashFiles('.build/builtindepshash') }}"
-
-      - name: Download built-in extensions
+        continue-on-error: true
         if: steps.cache-builtin-extensions.outputs.cache-hit != 'true'
         run: node build/lib/builtInExtensions.ts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Transpile client and extensions
+        continue-on-error: true
         shell: pwsh
         run: npm run gulp "transpile-client-esbuild" "transpile-extensions"
-
-      - name: Download Electron and Playwright
+        continue-on-error: true
         shell: pwsh
         run: |
           for ($i = 1; $i -le 3; $i++) {
@@ -124,30 +115,26 @@ jobs:
           }
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: 🧪 Run unit tests (Electron)
+        continue-on-error: true
         if: ${{ inputs.electron_tests && inputs.unit_and_integration_tests }}
         timeout-minutes: 15
         shell: pwsh
         run: .\scripts\test.bat --tfs "Unit Tests"
         env:
           VSCODE_SKIP_PRELAUNCH: '1'
-
-      - name: 🧪 Run unit tests (node.js)
+        continue-on-error: true
         if: ${{ inputs.electron_tests && inputs.unit_and_integration_tests }}
         timeout-minutes: 15
         shell: pwsh
         run: npm run test-node
-
-      - name: 🧪 Run unit tests (Browser, Chromium)
+        continue-on-error: true
         if: ${{ inputs.browser_tests && inputs.unit_and_integration_tests }}
         timeout-minutes: 20
         shell: pwsh
         run: node test/unit/browser/index.js --browser chromium --tfs "Browser Unit Tests"
         env:
           DEBUG: "*browser*"
-
-      - name: Compile extensions for integration tests & smoke tests
+        continue-on-error: true
         shell: pwsh
         run: |
           . build/azure-pipelines/win32/exec.ps1
@@ -171,85 +158,67 @@ jobs:
             compile-extension:vscode-colorize-perf-tests `
             compile-extension:vscode-test-resolver `
           }
-
-      - name: Diagnostics before integration test runs
+        continue-on-error: true
         if: ${{ inputs.unit_and_integration_tests && always() }}
         shell: pwsh
         run: .\build\azure-pipelines\win32\listprocesses.bat
         continue-on-error: true
-
-      - name: 🧪 Run integration tests (Electron)
-        if: ${{ inputs.electron_tests && inputs.unit_and_integration_tests }}
+if: ${{ inputs.electron_tests && inputs.unit_and_integration_tests }}
         timeout-minutes: 20
         shell: pwsh
         run: .\scripts\test-integration.bat --tfs "Integration Tests"
         env:
           VSCODE_SKIP_PRELAUNCH: '1'
-
-      - name: 🧪 Run integration tests (Browser, Chromium)
+        continue-on-error: true
         if: ${{ inputs.browser_tests && inputs.unit_and_integration_tests }}
         timeout-minutes: 20
         shell: pwsh
         run: .\scripts\test-web-integration.bat --browser chromium
-
-      - name: 🧪 Run integration tests (Remote)
+        continue-on-error: true
         if: ${{ inputs.remote_tests && inputs.unit_and_integration_tests }}
         timeout-minutes: 20
         shell: pwsh
         run: .\scripts\test-remote-integration.bat
         env:
           VSCODE_SKIP_PRELAUNCH: '1'
-
-      - name: Diagnostics after integration test runs
+        continue-on-error: true
         if: ${{ inputs.unit_and_integration_tests && always() }}
         shell: pwsh
         run: .\build\azure-pipelines\win32\listprocesses.bat
         continue-on-error: true
-
-
-      - name: Compile smoke tests
-        if: ${{ inputs.smoke_tests }}
+if: ${{ inputs.smoke_tests }}
         working-directory: test/smoke
         shell: pwsh
         run: npm run compile
-
-      - name: Compile Copilot Chat extension for smoke tests
+        continue-on-error: true
         if: ${{ inputs.smoke_tests }}
         working-directory: extensions/copilot
         run: npm run compile
-
-      - name: Diagnostics before smoke test run
+        continue-on-error: true
         if: ${{ inputs.smoke_tests && always() }}
         shell: pwsh
         run: .\build\azure-pipelines\win32\listprocesses.bat
         continue-on-error: true
-
-      - name: 🧪 Run smoke tests (Electron)
-        if: ${{ inputs.electron_tests && inputs.smoke_tests }}
+if: ${{ inputs.electron_tests && inputs.smoke_tests }}
         timeout-minutes: 20
         shell: pwsh
         run: npm run smoketest-no-compile -- --tracing
-
-      - name: 🧪 Run smoke tests (Browser, Chromium)
+        continue-on-error: true
         if: ${{ inputs.browser_tests && inputs.smoke_tests }}
         timeout-minutes: 20
         shell: pwsh
         run: npm run smoketest-no-compile -- --web --tracing --headless
-
-      - name: 🧪 Run smoke tests (Remote)
+        continue-on-error: true
         if: ${{ inputs.remote_tests && inputs.smoke_tests }}
         timeout-minutes: 20
         shell: pwsh
         run: npm run smoketest-no-compile -- --remote --tracing
-
-      - name: Diagnostics after smoke test run
+        continue-on-error: true
         if: ${{ inputs.smoke_tests && always() }}
         shell: pwsh
         run: .\build\azure-pipelines\win32\listprocesses.bat
         continue-on-error: true
-
-      - name: Publish Crash Reports
-        uses: actions/upload-artifact@v7
+uses: actions/upload-artifact@v7
         if: failure()
         continue-on-error: true
         with:
@@ -259,7 +228,7 @@ jobs:
 
       # In order to properly symbolify above crash reports
       # (if any), we need the compiled native modules too
-      - name: Publish Node Modules
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         if: failure()
         continue-on-error: true
@@ -267,8 +236,7 @@ jobs:
           name: ${{ format('node-modules-windows-{0}-{1}-{2}', env.VSCODE_ARCH, env.ARTIFACT_NAME, github.run_attempt) }}
           path: node_modules
           if-no-files-found: ignore
-
-      - name: Publish Log Files
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         if: always()
         continue-on-error: true

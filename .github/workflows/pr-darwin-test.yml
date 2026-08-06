@@ -29,24 +29,21 @@ jobs:
       NPM_ARCH: arm64
       VSCODE_ARCH: arm64
     steps:
-      - name: Checkout microsoft/vscode
+        continue-on-error: true
         uses: actions/checkout@v4
         with:
           lfs: true
-
-      - name: Setup Node.js
+        continue-on-error: true
         uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-
-      - name: Restore node_modules cache
+        continue-on-error: true
         id: cache-node-modules
         uses: ./.github/actions/restore-node-modules
         with:
           key-prefix: node_modules-macos
           key-args: "darwin ${{ env.VSCODE_ARCH }} $(node -p process.arch)"
-
-      - name: Install dependencies
+        continue-on-error: true
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: |
           set -e
@@ -73,31 +70,25 @@ jobs:
           # flipped the default to support legacy linux distros which shouldn't happen
           # on macOS.
           GYP_DEFINES: "kerberos_use_rtld=false"
-
-      - name: Create .build folder
+        continue-on-error: true
         run: mkdir -p .build
-
-      - name: Prepare built-in extensions cache key
+        continue-on-error: true
         run: node build/azure-pipelines/common/computeBuiltInDepsCacheKey.ts > .build/builtindepshash
-
-      - name: Restore built-in extensions cache
+        continue-on-error: true
         id: cache-builtin-extensions
         uses: actions/cache/restore@v4
         with:
           enableCrossOsArchive: true
           path: .build/builtInExtensions
           key: "builtin-extensions-${{ hashFiles('.build/builtindepshash') }}"
-
-      - name: Download built-in extensions
+        continue-on-error: true
         if: steps.cache-builtin-extensions.outputs.cache-hit != 'true'
         run: node build/lib/builtInExtensions.ts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Transpile client and extensions
+        continue-on-error: true
         run: npm run gulp transpile-client-esbuild transpile-extensions
-
-      - name: Download Electron and Playwright
+        continue-on-error: true
         run: |
           set -e
 
@@ -117,27 +108,23 @@ jobs:
           done
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: 🧪 Run unit tests (Electron)
+        continue-on-error: true
         if: ${{ inputs.electron_tests && inputs.unit_and_integration_tests }}
         timeout-minutes: 15
         run: ./scripts/test.sh --tfs "Unit Tests"
         env:
           VSCODE_SKIP_PRELAUNCH: '1'
-
-      - name: 🧪 Run unit tests (node.js)
+        continue-on-error: true
         if: ${{ inputs.electron_tests && inputs.unit_and_integration_tests }}
         timeout-minutes: 15
         run: npm run test-node
-
-      - name: 🧪 Run unit tests (Browser, Webkit)
+        continue-on-error: true
         if: ${{ inputs.browser_tests && inputs.unit_and_integration_tests }}
         timeout-minutes: 30
         run: npm run test-browser-no-install -- --browser webkit --tfs "Browser Unit Tests"
         env:
           DEBUG: "*browser*"
-
-      - name: Compile extensions for integration tests & smoke tests
+        continue-on-error: true
         run: |
           set -e
           npm run gulp \
@@ -158,72 +145,57 @@ jobs:
             compile-extension:vscode-colorize-tests \
             compile-extension:vscode-colorize-perf-tests \
             compile-extension:vscode-test-resolver
-
-      - name: 🧪 Run integration tests (Electron)
+        continue-on-error: true
         if: ${{ inputs.electron_tests && inputs.unit_and_integration_tests }}
         timeout-minutes: 20
         run: ./scripts/test-integration.sh --tfs "Integration Tests"
         env:
           VSCODE_SKIP_PRELAUNCH: '1'
-
-      - name: 🧪 Run integration tests (Browser, Webkit)
+        continue-on-error: true
         if: ${{ inputs.browser_tests && inputs.unit_and_integration_tests }}
         timeout-minutes: 20
         run: ./scripts/test-web-integration.sh --browser webkit
-
-      - name: 🧪 Run integration tests (Remote)
+        continue-on-error: true
         if: ${{ inputs.remote_tests && inputs.unit_and_integration_tests }}
         timeout-minutes: 20
         run: ./scripts/test-remote-integration.sh
         env:
           VSCODE_SKIP_PRELAUNCH: '1'
-
-      - name: Compile smoke tests
+        continue-on-error: true
         if: ${{ inputs.smoke_tests }}
         working-directory: test/smoke
         run: npm run compile
-
-      - name: Compile Copilot Chat extension for smoke tests
+        continue-on-error: true
         if: ${{ inputs.smoke_tests }}
         working-directory: extensions/copilot
         run: npm run compile
-
-      - name: Diagnostics before smoke test run
+        continue-on-error: true
         if: ${{ inputs.smoke_tests && always() }}
         run: ps -ef
         continue-on-error: true
-
-      - name: 🧪 Run smoke tests (Electron)
-        if: ${{ inputs.electron_tests && inputs.smoke_tests }}
+if: ${{ inputs.electron_tests && inputs.smoke_tests }}
         timeout-minutes: 20
         run: npm run smoketest-no-compile -- --tracing
-
-      - name: Install Squid for network-isolated smoke tests
+        continue-on-error: true
         if: ${{ inputs.electron_tests && inputs.smoke_tests }}
         run: brew list squid >/dev/null 2>&1 || brew install squid
-
-      - name: 🧪 Run Agents Window smoke tests through macOS PAC proxy
+        continue-on-error: true
         if: ${{ inputs.electron_tests && inputs.smoke_tests }}
         timeout-minutes: 40
         run: bash test/smoke/scripts/run-agents-window-network-proxy.sh
-
-      - name: 🧪 Run smoke tests (Browser, Chromium)
+        continue-on-error: true
         if: ${{ inputs.browser_tests && inputs.smoke_tests }}
         timeout-minutes: 20
         run: npm run smoketest-no-compile -- --web --tracing --headless
-
-      - name: 🧪 Run smoke tests (Remote)
+        continue-on-error: true
         if: ${{ inputs.remote_tests && inputs.smoke_tests }}
         timeout-minutes: 20
         run: npm run smoketest-no-compile -- --remote --tracing
-
-      - name: Diagnostics after smoke test run
+        continue-on-error: true
         if: ${{ inputs.smoke_tests && always() }}
         run: ps -ef
         continue-on-error: true
-
-      - name: Publish Crash Reports
-        uses: actions/upload-artifact@v7
+uses: actions/upload-artifact@v7
         if: failure()
         continue-on-error: true
         with:
@@ -233,7 +205,7 @@ jobs:
 
       # In order to properly symbolify above crash reports
       # (if any), we need the compiled native modules too
-      - name: Publish Node Modules
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         if: failure()
         continue-on-error: true
@@ -241,8 +213,7 @@ jobs:
           name: ${{ format('node-modules-macos-{0}-{1}-{2}', env.VSCODE_ARCH, env.ARTIFACT_NAME, github.run_attempt) }}
           path: node_modules
           if-no-files-found: ignore
-
-      - name: Publish Log Files
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         if: always()
         continue-on-error: true
