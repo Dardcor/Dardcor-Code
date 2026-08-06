@@ -55,7 +55,7 @@
 }
 
 .vs-dark .monaco-keybinding > .monaco-keybinding-key {
-	background-color: rgba(128, 128, 128, 0.17);
+	background-color: rgba(59, 10, 94, 0.17);
 	border: solid 1px rgba(51, 51, 51, 0.6);
 	border-bottom-color: rgba(68, 68, 68, 0.6);
 	box-shadow: inset 0 -1px 0 rgba(68, 68, 68, 0.6);

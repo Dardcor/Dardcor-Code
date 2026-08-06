@@ -271,7 +271,7 @@
 	width: 1px;
 	align-self: stretch;
 	margin: 4px 0;
-	background-color: var(--vscode-commandCenter-border, rgba(128, 128, 128, 0.35));
+	background-color: var(--vscode-commandCenter-border, rgba(74, 20, 140, 0.35));
 	flex-shrink: 0;
 	pointer-events: none;
 }
@@ -354,7 +354,7 @@
 	top: 4px;
 	bottom: 4px;
 	width: 1px;
-	background-color: var(--vscode-commandCenter-border, rgba(128, 128, 128, 0.35));
+	background-color: var(--vscode-commandCenter-border, rgba(74, 20, 140, 0.35));
 }
 
 /* Sparkle section */

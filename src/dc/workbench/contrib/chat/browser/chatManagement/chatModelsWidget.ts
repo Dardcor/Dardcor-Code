@@ -61,9 +61,9 @@ export function getModelHoverContent(model: ILanguageModel): MarkdownString {
 	const markdown = new MarkdownString('', { isTrusted: true, supportThemeIcons: true });
 	markdown.appendMarkdown(`**${model.metadata.name}**`);
 	if (model.metadata.id !== model.metadata.version) {
-		markdown.appendMarkdown(`&nbsp;<span style="background-color:#8080802B;">&nbsp;_${model.metadata.id}&#64;${model.metadata.version}_&nbsp;</span>`);
+		markdown.appendMarkdown(`&nbsp;<span style="background-color:#3B0A5E2B;">&nbsp;_${model.metadata.id}&#64;${model.metadata.version}_&nbsp;</span>`);
 	} else {
-		markdown.appendMarkdown(`&nbsp;<span style="background-color:#8080802B;">&nbsp;_${model.metadata.id}_&nbsp;</span>`);
+		markdown.appendMarkdown(`&nbsp;<span style="background-color:#3B0A5E2B;">&nbsp;_${model.metadata.id}_&nbsp;</span>`);
 	}
 	markdown.appendText(`\n`);
 
@@ -148,16 +148,16 @@ export function getModelHoverContent(model: ILanguageModel): MarkdownString {
 	if (model.metadata.capabilities) {
 		markdown.appendMarkdown(`${localize('models.capabilities', 'Capabilities')}: `);
 		if (model.metadata.capabilities?.toolCalling) {
-			markdown.appendMarkdown(`&nbsp;<span style="background-color:#8080802B;">&nbsp;_${localize('models.toolCalling', 'Tools')}_&nbsp;</span>`);
+			markdown.appendMarkdown(`&nbsp;<span style="background-color:#3B0A5E2B;">&nbsp;_${localize('models.toolCalling', 'Tools')}_&nbsp;</span>`);
 		}
 		if (model.metadata.capabilities?.vision) {
-			markdown.appendMarkdown(`&nbsp;<span style="background-color:#8080802B;">&nbsp;_${localize('models.vision', 'Vision')}_&nbsp;</span>`);
+			markdown.appendMarkdown(`&nbsp;<span style="background-color:#3B0A5E2B;">&nbsp;_${localize('models.vision', 'Vision')}_&nbsp;</span>`);
 		}
 		if (model.metadata.capabilities?.agentMode) {
-			markdown.appendMarkdown(`&nbsp;<span style="background-color:#8080802B;">&nbsp;_${localize('models.agentMode', 'Agent Mode')}_&nbsp;</span>`);
+			markdown.appendMarkdown(`&nbsp;<span style="background-color:#3B0A5E2B;">&nbsp;_${localize('models.agentMode', 'Agent Mode')}_&nbsp;</span>`);
 		}
 		for (const editTool of model.metadata.capabilities.editTools ?? []) {
-			markdown.appendMarkdown(`&nbsp;<span style="background-color:#8080802B;">&nbsp;_${editTool}_&nbsp;</span>`);
+			markdown.appendMarkdown(`&nbsp;<span style="background-color:#3B0A5E2B;">&nbsp;_${editTool}_&nbsp;</span>`);
 		}
 		markdown.appendText(`\n`);
 	}
@@ -588,9 +588,9 @@ class ModelNameColumnRenderer extends ModelsTableColumnRenderer<IModelNameColumn
 		const markdown = new MarkdownString('', { isTrusted: true, supportThemeIcons: true });
 		markdown.appendMarkdown(`**${entry.model.metadata.name}**`);
 		if (entry.model.metadata.id !== entry.model.metadata.version) {
-			markdown.appendMarkdown(`&nbsp;<span style="background-color:#8080802B;">&nbsp;_${entry.model.metadata.id}&#64;${entry.model.metadata.version}_&nbsp;</span>`);
+			markdown.appendMarkdown(`&nbsp;<span style="background-color:#3B0A5E2B;">&nbsp;_${entry.model.metadata.id}&#64;${entry.model.metadata.version}_&nbsp;</span>`);
 		} else {
-			markdown.appendMarkdown(`&nbsp;<span style="background-color:#8080802B;">&nbsp;_${entry.model.metadata.id}_&nbsp;</span>`);
+			markdown.appendMarkdown(`&nbsp;<span style="background-color:#3B0A5E2B;">&nbsp;_${entry.model.metadata.id}_&nbsp;</span>`);
 		}
 		markdown.appendText(`\n`);
 

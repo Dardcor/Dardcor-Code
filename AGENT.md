@@ -59,3 +59,12 @@ Desain warna default Dardcor Code :
 - [x] 27. File core test `test/monaco/dist/core.html` terhapus/hilang di Dardcor Code; dikembalikan seperti versi asli.
 - [x] 28. Direktori `.github` kehilangan puluhan file aslinya (workflow, action, template instruksi, dll) yang tidak dibawa ke Dardcor Code; struktur ini sudah disalin seluruhnya (kecuali menimpa yang sudah dimodifikasi khusus).
 - [x] 29. Pengecekan menyeluruh `src/dc` vs `src/vs` menunjukkan kode sudah 100% identik strukturnya (tidak ada script yang kurang).
+- [x] 30. `userDataPath.ts` masih menggunakan `code-oss-dev` sebagai dev productName; diperbaiki menjadi `dardcor-code-dev`.
+- [x] 31. `PANEL_BORDER` light mode di `theme.ts` masih `#808080`; diperbaiki ke `#4A148C`.
+- [x] 32. `PANEL_SECTION_HEADER_BACKGROUND` di `theme.ts` masih `#808080`; diperbaiki ke `#3B0A5E`.
+- [x] 33. `SIDE_BAR_SECTION_HEADER_BACKGROUND` di `theme.ts` masih `#808080`; diperbaiki ke `#3B0A5E`.
+- [x] 34. `editor.foldPlaceholderForeground` di `foldingDecorations.ts` masih `#808080`; diperbaiki ke `#6A1B9A`.
+- [x] 35. Semua `#8080802B` di `chatModelsWidget.ts` (7 lokasi) diperbaiki ke `#3B0A5E2B`.
+- [x] 36. `rgba(128, 128, 128, 0.17)` di `keybindingsEditor.css` dan `standaloneQuickInput.css` diperbaiki ke `rgba(59, 10, 94, 0.17)`.
+- [x] 37. Beberapa `rgba(128, 128, 128)` di `extensionEditor.css`, `debugHover.css`, `agenttitlebarstatuswidget.css`, `issueReporterOverlay.css` diperbaiki ke varian ungu gelap.
+- [x] 38. Warna border `#B9B9B9` dan background keybinding info/error di `keybindings.css` diperbaiki ke ungu gelap `#7C4DFF` dan `rgba(74, 20, 140, 0.2)`.

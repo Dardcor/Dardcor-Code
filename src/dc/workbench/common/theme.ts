@@ -487,7 +487,7 @@ export const PANEL_BACKGROUND = registerColor('panel.background', editorBackgrou
 
 export const PANEL_BORDER = registerColor('panel.border', {
 	dark: '#4A148C',
-	light: Color.fromHex('#808080').transparent(0.35),
+	light: Color.fromHex('#4A148C').transparent(0.35),
 	hcDark: contrastBorder,
 	hcLight: contrastBorder
 }, localize('panelBorder', "Panel border color to separate the panel from the editor. Panels are shown below the editor area and contain views like output and integrated terminal."));
@@ -536,8 +536,8 @@ export const PANEL_DRAG_AND_DROP_BORDER = registerColor('panel.dropBorder', PANE
 export const PANEL_SECTION_DRAG_AND_DROP_BACKGROUND = registerColor('panelSection.dropBackground', EDITOR_DRAG_AND_DROP_BACKGROUND, localize('panelSectionDragAndDropBackground', "Drag and drop feedback color for the panel sections. The color should have transparency so that the panel sections can still shine through. Panels are shown below the editor area and contain views like output and integrated terminal. Panel sections are views nested within the panels."));
 
 export const PANEL_SECTION_HEADER_BACKGROUND = registerColor('panelSectionHeader.background', {
-	dark: Color.fromHex('#808080').transparent(0.2),
-	light: Color.fromHex('#808080').transparent(0.2),
+	dark: Color.fromHex('#3B0A5E').transparent(0.2),
+	light: Color.fromHex('#3B0A5E').transparent(0.2),
 	hcDark: null,
 	hcLight: null,
 }, localize('panelSectionHeaderBackground', "Panel section header background color. Panels are shown below the editor area and contain views like output and integrated terminal. Panel sections are views nested within the panels."));
@@ -641,8 +641,8 @@ export const SIDE_BAR_TITLE_BORDER = registerColor('sideBarTitle.border', {
 export const SIDE_BAR_DRAG_AND_DROP_BACKGROUND = registerColor('sideBar.dropBackground', EDITOR_DRAG_AND_DROP_BACKGROUND, localize('sideBarDragAndDropBackground', "Drag and drop feedback color for the side bar sections. The color should have transparency so that the side bar sections can still shine through. The side bar is the container for views like explorer and search. Side bar sections are views nested within the side bar."));
 
 export const SIDE_BAR_SECTION_HEADER_BACKGROUND = registerColor('sideBarSectionHeader.background', {
-	dark: Color.fromHex('#808080').transparent(0.2),
-	light: Color.fromHex('#808080').transparent(0.2),
+	dark: Color.fromHex('#3B0A5E').transparent(0.2),
+	light: Color.fromHex('#3B0A5E').transparent(0.2),
 	hcDark: null,
 	hcLight: null
 }, localize('sideBarSectionHeaderBackground', "Side bar section header background color. The side bar is the container for views like explorer and search. Side bar sections are views nested within the side bar."));

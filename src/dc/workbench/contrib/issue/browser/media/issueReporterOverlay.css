@@ -62,7 +62,7 @@
 
 .issue-reporter-wizard *::-webkit-scrollbar-thumb:hover,
 .issue-reporter-wizard ::-webkit-scrollbar-thumb:hover {
-	background: var(--vscode-scrollbarSlider-hoverBackground, rgba(100, 100, 100, 0.7));
+	background: var(--vscode-scrollbarSlider-hoverBackground, rgba(106, 27, 154, 0.7));
 }
 
 .issue-reporter-wizard *::-webkit-scrollbar-thumb:active,
