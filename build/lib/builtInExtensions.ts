@@ -132,41 +132,35 @@ export function getExtensionStream(extension: IExtensionDefinition) {
 	return getExtensionDownloadStream(extension);
 }
 
-function syncMarketplaceExtension(extension: IExtensionDefinition): Promise<void> {
+function syncMarketplaceExtension(extension: IExtensionDefinition): Stream {
 	const galleryServiceUrl = productjson.extensionsGallery?.serviceUrl;
 	const source = ansiColors.blue(galleryServiceUrl ? '[marketplace]' : '[github]');
 	if (isUpToDate(extension)) {
 		log(source, `${extension.name}@${extension.version}`, ansiColors.green('✔︎'));
-		return Promise.resolve();
+		return es.readArray([]);
 	}
 
 	rimraf.sync(getExtensionPath(extension));
 
-	return new Promise((resolve, reject) => {
-		getExtensionDownloadStream(extension)
-			.pipe(vfs.dest('.build/builtInExtensions'))
-			.on('error', reject)
-			.on('finish', () => {
-				log(source, extension.name, ansiColors.green('✔︎'));
-				resolve();
-			});
-	});
+	return getExtensionDownloadStream(extension)
+		.pipe(vfs.dest('.build/builtInExtensions'))
+		.on('end', () => log(source, extension.name, ansiColors.green('✔︎')));
 }
 
-function syncExtension(extension: IExtensionDefinition, controlState: 'disabled' | 'marketplace'): Promise<void> {
+function syncExtension(extension: IExtensionDefinition, controlState: 'disabled' | 'marketplace'): Stream {
 	if (extension.platforms) {
 		const platforms = new Set(extension.platforms);
 
 		if (!platforms.has(process.platform)) {
 			log(ansiColors.gray('[skip]'), `${extension.name}@${extension.version}: Platform '${process.platform}' not supported: [${extension.platforms}]`, ansiColors.green('✔︎'));
-			return Promise.resolve();
+			return es.readArray([]);
 		}
 	}
 
 	switch (controlState) {
 		case 'disabled':
 			log(ansiColors.blue('[disabled]'), ansiColors.gray(extension.name));
-			return Promise.resolve();
+			return es.readArray([]);
 
 		case 'marketplace':
 			return syncMarketplaceExtension(extension);
@@ -174,15 +168,15 @@ function syncExtension(extension: IExtensionDefinition, controlState: 'disabled'
 		default:
 			if (!fs.existsSync(controlState)) {
 				log(ansiColors.red(`Error: Built-in extension '${extension.name}' is configured to run from '${controlState}' but that path does not exist.`));
-				return Promise.resolve();
+				return es.readArray([]);
 
 			} else if (!fs.existsSync(path.join(controlState, 'package.json'))) {
 				log(ansiColors.red(`Error: Built-in extension '${extension.name}' is configured to run from '${controlState}' but there is no 'package.json' file in that directory.`));
-				return Promise.resolve();
+				return es.readArray([]);
 			}
 
 			log(ansiColors.blue('[local]'), `${extension.name}: ${ansiColors.cyan(controlState)}`, ansiColors.green('✔︎'));
-			return Promise.resolve();
+			return es.readArray([]);
 	}
 }
 
@@ -208,53 +202,26 @@ export function getBuiltInExtensions(): Promise<void> {
 	log(`You can manage built-in extensions with the ${ansiColors.cyan('--builtin')} flag`);
 
 	const control = readControlFile();
-	const promises: Promise<void>[] = [];
+	const streams: Stream[] = [];
 
 	for (const extension of [...builtInExtensions, ...webBuiltInExtensions]) {
 		const controlState = control[extension.name] || 'marketplace';
 		control[extension.name] = controlState;
 
-		promises.push(syncExtension(extension, controlState));
+		streams.push(syncExtension(extension, controlState));
 	}
 
 	writeControlFile(control);
 
-	return Promise.all(promises).then(() => {});
+	return new Promise((resolve, reject) => {
+		es.merge(streams)
+			.on('error', reject)
+			.on('end', resolve);
+	});
 }
 
 if (import.meta.main) {
-	getBuiltInExtensions().then(() => {
-		for (const extension of [...builtInExtensions, ...webBuiltInExtensions]) {
-			const pkgPath = path.join(getExtensionPath(extension), 'package.json');
-			if (fs.existsSync(pkgPath)) {
-				try {
-					const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-					let changed = false;
-					if (pkg.engines && pkg.engines.vscode) {
-						pkg.engines.vscode = '*';
-						changed = true;
-					}
-					if (pkg.contributes && pkg.contributes.debuggers) {
-						for (const dbg of pkg.contributes.debuggers) {
-							if (dbg.configurationAttributes && dbg.configurationAttributes.attach && dbg.configurationAttributes.attach.properties && dbg.configurationAttributes.attach.properties.skipFiles && dbg.configurationAttributes.attach.properties.skipFiles.default) {
-								const def = dbg.configurationAttributes.attach.properties.skipFiles.default;
-								if (Array.isArray(def) && def.includes('${/**')) {
-									dbg.configurationAttributes.attach.properties.skipFiles.default = def.map((v: string) => v === '${/**' ? '${workspaceFolder}/**' : v);
-									changed = true;
-								}
-							}
-						}
-					}
-					if (changed) {
-						fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
-					}
-				} catch (err) {
-					console.error("Error parsing " + pkgPath, err);
-				}
-			}
-		}
-		process.exit(0);
-	}).catch(err => {
+	getBuiltInExtensions().then(() => process.exit(0)).catch(err => {
 		console.error(err);
 		process.exit(1);
 	});
