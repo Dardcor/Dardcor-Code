@@ -392,7 +392,7 @@
 .issue-reporter-wizard .wizard-subtitle {
 	margin: 0;
 	font-size: 13px;
-	color: var(--vscode-descriptionForeground, #999);
+	color: var(--vscode-descriptionForeground, #6A1B9A);
 	line-height: 1.4;
 }
 
@@ -562,7 +562,7 @@ label/control gap, so the buttons must not add their own margin. */
 .issue-reporter-wizard .wizard-similar-issues {
 	margin-top: 8px;
 	font-size: 12px;
-	color: var(--vscode-descriptionForeground, #999);
+	color: var(--vscode-descriptionForeground, #6A1B9A);
 }
 
 .issue-reporter-wizard .wizard-similar-heading {
@@ -599,7 +599,7 @@ label/control gap, so the buttons must not add their own margin. */
 
 .issue-reporter-wizard .wizard-similar-state {
 	margin-left: 6px;
-	color: var(--vscode-descriptionForeground, #999);
+	color: var(--vscode-descriptionForeground, #6A1B9A);
 }
 
 .issue-reporter-wizard .wizard-type-icon {
@@ -726,7 +726,7 @@ label/control gap, so the buttons must not add their own margin. */
 .issue-reporter-wizard .wizard-delay-label {
 	font-size: 12px;
 	white-space: nowrap;
-	color: var(--vscode-descriptionForeground, #999);
+	color: var(--vscode-descriptionForeground, #6A1B9A);
 }
 
 .issue-reporter-wizard .wizard-delay-select {
@@ -827,7 +827,7 @@ This keeps the row height constant regardless of which is visible. */
 	left: 0;
 	right: 0;
 	bottom: 0;
-	color: var(--vscode-descriptionForeground, #999);
+	color: var(--vscode-descriptionForeground, #6A1B9A);
 	font-size: 12px;
 	line-height: 1.4;
 	pointer-events: none;
@@ -1089,7 +1089,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 
 .issue-reporter-wizard .review-value {
 	font-size: 13px;
-	color: var(--vscode-descriptionForeground, #999);
+	color: var(--vscode-descriptionForeground, #6A1B9A);
 	white-space: pre-wrap;
 	word-break: break-word;
 	max-height: 60px;
@@ -1098,7 +1098,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 }
 
 .issue-reporter-wizard .review-target-repo {
-	color: var(--vscode-descriptionForeground, #999);
+	color: var(--vscode-descriptionForeground, #6A1B9A);
 	font-size: 12px;
 }
 
@@ -1361,7 +1361,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 
 .issue-reporter-wizard .wizard-nav-btn:hover {
 	background: rgba(255, 255, 255, 0.06);
-	border-color: var(--vscode-foreground, #999);
+	border-color: var(--vscode-foreground, #6A1B9A);
 }
 
 .issue-reporter-wizard .wizard-nav-btn.primary {
@@ -1543,7 +1543,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 }
 
 .issue-reporter-annotation-overlay .annotation-tool-options-label {
-	color: var(--vscode-descriptionForeground, #999);
+	color: var(--vscode-descriptionForeground, #6A1B9A);
 	font-size: 11px;
 	min-width: 76px;
 }
@@ -1636,7 +1636,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 }
 
 .issue-reporter-annotation-overlay .annotation-opacity-value {
-	color: var(--vscode-descriptionForeground, #999);
+	color: var(--vscode-descriptionForeground, #6A1B9A);
 	font-size: 11px;
 	width: 34px;
 	text-align: right;
@@ -1646,7 +1646,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 	text-align: center;
 	padding: 6px 0;
 	font-size: 12px;
-	color: var(--vscode-descriptionForeground, #999);
+	color: var(--vscode-descriptionForeground, #6A1B9A);
 	border-bottom: 1px solid var(--vscode-panel-border, #444);
 }
 
@@ -1824,7 +1824,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 	opacity: 0.55;
 }
 .issue-reporter-wizard .review-diag-group.excluded .review-diag-title {
-	color: var(--vscode-descriptionForeground, #999);
+	color: var(--vscode-descriptionForeground, #6A1B9A);
 }
 .issue-reporter-wizard .review-diag-toggle-area {
 	display: inline-flex;
