@@ -80,3 +80,6 @@ Desain warna default Dardcor Code :
 - [x] 48. `workbenchThemeService.ts` `badge.background` gray diperbaiki ke `#3B0A5E`.
 - [x] 49. `welcomeAgentSessions`, `chatDebug.css`, `variationA.css` semua sisa `rgba(128,128,128)` diperbaiki.
 - [x] 50. Verifikasi menyeluruh: seluruh `rgba(128/121/127/130,*,*,*)` di `src/dc` sudah 0 hasil (tidak ada lagi warna abu-abu hardcoded).
+- [x] 51. `countBadge.ts` unthemed `badgeBackground` `#4D4D4D` diperbaiki ke ungu gelap `#3B0A5E`.
+- [x] 52. `standaloneQuickInput.css` keybinding key border & shadow `rgba(51,51,51)` & `rgba(68,68,68)` diperbaiki ke ungu gelap `rgba(74, 20, 140)` & `rgba(59, 10, 94)`.
+- [x] 53. `issueReporterOverlay.css` `#ccc` diselaraskan ke `#cccccc`.
