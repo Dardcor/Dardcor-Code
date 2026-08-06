@@ -854,7 +854,7 @@ export class ExtensionHoverWidget extends ExtensionWidget {
 
 		markdown.appendMarkdown(`**`).appendText(this.extension.displayName).appendMarkdown(`**`);
 		if (semver.valid(this.extension.version)) {
-			markdown.appendMarkdown(`&nbsp;<span style="background-color:#8080802B;">**&nbsp;_v${this.extension.version}${(this.extension.isPreReleaseVersion ? ' (pre-release)' : '')}_**&nbsp;</span>`);
+			markdown.appendMarkdown(`&nbsp;<span style="background-color:#3B0A5E2B;">**&nbsp;_v${this.extension.version}${(this.extension.isPreReleaseVersion ? ' (pre-release)' : '')}_**&nbsp;</span>`);
 		}
 		markdown.appendText(`\n`);
 
@@ -916,7 +916,7 @@ export class ExtensionHoverWidget extends ExtensionWidget {
 
 		if (this.extension.outdated) {
 			markdown.appendMarkdown(localize('updateRequired', "Latest version:"));
-			markdown.appendMarkdown(`&nbsp;<span style="background-color:#8080802B;">**&nbsp;_v${this.extension.latestVersion}_**&nbsp;</span>`);
+			markdown.appendMarkdown(`&nbsp;<span style="background-color:#3B0A5E2B;">**&nbsp;_v${this.extension.latestVersion}_**&nbsp;</span>`);
 			markdown.appendText(`\n`);
 		}
 

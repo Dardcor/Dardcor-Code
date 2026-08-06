@@ -31,7 +31,7 @@ export const pickerGroupForeground = registerColor('pickerGroup.foreground',
 	nls.localize('pickerGroupForeground', "Quick picker color for grouping labels."));
 
 export const pickerGroupBorder = registerColor('pickerGroup.border',
-	{ dark: '#3F3F46', light: '#CCCEDB', hcDark: Color.white, hcLight: '#0F4A85' },
+	{ dark: '#4A148C', light: '#CCCEDB', hcDark: Color.white, hcLight: '#0F4A85' },
 	nls.localize('pickerGroupBorder', "Quick picker color for grouping borders."));
 
 export const _deprecatedQuickInputListFocusBackground = registerColor('quickInput.list.focusBackground',

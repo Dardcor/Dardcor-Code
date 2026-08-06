@@ -545,7 +545,7 @@ export class McpServersViewsContribution extends Disposable implements IWorkbenc
 				ctorDescriptor: new SyncDescriptor(McpServersListView, [{}]),
 				when: ContextKeyExpr.and(DefaultViewsContext, HasInstalledMcpServersContext, ChatContextKeys.Setup.hidden.negate(), ChatContextKeys.Setup.disabledInWorkspace.negate()),
 				weight: 40,
-				order: 4,
+				order: 101,
 				canToggleVisibility: true
 			},
 			{
@@ -554,7 +554,7 @@ export class McpServersViewsContribution extends Disposable implements IWorkbenc
 				ctorDescriptor: new SyncDescriptor(DefaultBrowseMcpServersView, [{}]),
 				when: ContextKeyExpr.and(DefaultViewsContext, HasInstalledMcpServersContext.toNegated(), ChatContextKeys.Setup.hidden.negate(), ChatContextKeys.Setup.disabledInWorkspace.negate(), McpServersGalleryStatusContext.isEqualTo(McpGalleryManifestStatus.Available), ContextKeyExpr.or(ContextKeyDefinedExpr.create(`config.${mcpGalleryServiceUrlConfig}`), ProductQualityContext.notEqualsTo('stable'), ContextKeyDefinedExpr.create(`config.${mcpGalleryServiceEnablementConfig}`))),
 				weight: 40,
-				order: 4,
+				order: 101,
 				canToggleVisibility: true
 			},
 			{
@@ -569,7 +569,7 @@ export class McpServersViewsContribution extends Disposable implements IWorkbenc
 				ctorDescriptor: new SyncDescriptor(DefaultBrowseMcpServersView, [{ showWelcome: true }]),
 				when: ContextKeyExpr.and(DefaultViewsContext, HasInstalledMcpServersContext.toNegated(), ChatContextKeys.Setup.hidden.negate(), ChatContextKeys.Setup.disabledInWorkspace.negate(), McpServersGalleryStatusContext.isEqualTo(McpGalleryManifestStatus.Available), ContextKeyDefinedExpr.create(`config.${mcpGalleryServiceUrlConfig}`).negate(), ProductQualityContext.isEqualTo('stable'), ContextKeyDefinedExpr.create(`config.${mcpGalleryServiceEnablementConfig}`).negate()),
 				weight: 40,
-				order: 4,
+				order: 101,
 				canToggleVisibility: true
 			},
 			{

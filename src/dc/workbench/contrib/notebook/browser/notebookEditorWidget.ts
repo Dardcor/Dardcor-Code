@@ -3273,8 +3273,8 @@ export const notebookOutputContainerColor = registerColor('notebook.outputContai
 
 // TODO@rebornix currently also used for toolbar border, if we keep all of this, pick a generic name
 export const CELL_TOOLBAR_SEPERATOR = registerColor('notebook.cellToolbarSeparator', {
-	dark: Color.fromHex('#808080').transparent(0.35),
-	light: Color.fromHex('#808080').transparent(0.35),
+	dark: Color.fromHex('#4A148C').transparent(0.35),
+	light: Color.fromHex('#4A148C').transparent(0.35),
 	hcDark: contrastBorder,
 	hcLight: contrastBorder
 }, nls.localize('notebook.cellToolbarSeparator', "The color of the separator in the cell bottom toolbar"));

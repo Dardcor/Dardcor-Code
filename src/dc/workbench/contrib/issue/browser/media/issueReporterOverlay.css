@@ -56,7 +56,7 @@
 
 .issue-reporter-wizard *::-webkit-scrollbar-thumb,
 .issue-reporter-wizard ::-webkit-scrollbar-thumb {
-	background: var(--vscode-scrollbarSlider-background, rgba(121, 121, 121, 0.4));
+	background: var(--vscode-scrollbarSlider-background, rgba(59, 10, 94, 0.4));
 	border-radius: 0;
 }
 

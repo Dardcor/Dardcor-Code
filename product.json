@@ -216,6 +216,30 @@
 	],
 	"sessionsWindowAllowedExtensions": [],
 	"voiceWsUrl": "wss://falcon-caas.mai.microsoft.com/voice-code/api/v1/realtime/voice",
+	"extensionRecommendations": {
+		"ms-python.python": {
+			"onFileOpen": [
+				"**/*.py"
+			]
+		},
+		"ms-vscode.cpptools": {
+			"onFileOpen": [
+				"**/*.c",
+				"**/*.cpp",
+				"**/*.h"
+			]
+		}
+	},
+	"mcpRegistryDataUrl": "https://api.github.com/copilot/mcp_registry",
+	"mcpGallery": {
+		"serviceUrl": "https://api.github.com/copilot/mcp_registry",
+		"itemWebUrl": "",
+		"publisherUrl": "",
+		"supportUrl": "",
+		"privacyPolicyUrl": "",
+		"termsOfServiceUrl": "",
+		"reportUrl": ""
+	},
 	"quality": "stable",
-	"version": "1.0.0"
+	"version": "1.132.0"
 }

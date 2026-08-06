@@ -15,7 +15,7 @@ import { listActiveSelectionBackground, listActiveSelectionForeground } from './
 
 
 export const menuBorder = registerColor('menu.border',
-	{ dark: null, light: null, hcDark: contrastBorder, hcLight: contrastBorder },
+	{ dark: '#4A148C', light: null, hcDark: contrastBorder, hcLight: contrastBorder },
 	nls.localize('menuBorder', "Border color of menus."));
 
 export const menuForeground = registerColor('menu.foreground',
@@ -39,5 +39,5 @@ export const menuSelectionBorder = registerColor('menu.selectionBorder',
 	nls.localize('menuSelectionBorder', "Border color of the selected menu item in menus."));
 
 export const menuSeparatorBackground = registerColor('menu.separatorBackground',
-	{ dark: transparent(foreground, 0.2), light: transparent(foreground, 0.2), hcDark: contrastBorder, hcLight: contrastBorder },
+	{ dark: '#3B0A5E', light: transparent(foreground, 0.2), hcDark: contrastBorder, hcLight: contrastBorder },
 	nls.localize('menuSeparatorBackground', "Color of a separator menu item in menus."));

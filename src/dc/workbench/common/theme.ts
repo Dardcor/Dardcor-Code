@@ -101,7 +101,7 @@ export const TAB_UNFOCUSED_HOVER_FOREGROUND = registerColor('tab.unfocusedHoverF
 //#region Tab Borders
 
 export const TAB_BORDER = registerColor('tab.border', {
-	dark: '#000000',
+	dark: '#4A148C',
 	light: '#F3F3F3',
 	hcDark: contrastBorder,
 	hcLight: contrastBorder,
@@ -223,7 +223,7 @@ export const EDITOR_GROUP_HEADER_TABS_BACKGROUND = registerColor('editorGroupHea
 	hcLight: null
 }, localize('tabsContainerBackground', "Background color of the editor group title header when tabs are enabled. Editor groups are the containers of editors."));
 
-export const EDITOR_GROUP_HEADER_TABS_BORDER = registerColor('editorGroupHeader.tabsBorder', null, localize('tabsContainerBorder', "Border color of the editor group title header when tabs are enabled. Editor groups are the containers of editors."));
+export const EDITOR_GROUP_HEADER_TABS_BORDER = registerColor('editorGroupHeader.tabsBorder', { dark: '#4A148C', light: null, hcDark: null, hcLight: null }, localize('tabsContainerBorder', "Border color of the editor group title header when tabs are enabled. Editor groups are the containers of editors."));
 
 export const EDITOR_GROUP_HEADER_NO_TABS_BACKGROUND = registerColor('editorGroupHeader.noTabsBackground', editorBackground, localize('editorGroupHeaderBackground', "Background color of the editor group title header when (`\"workbench.editor.showTabs\": \"single\"`). Editor groups are the containers of editors."));
 
@@ -311,7 +311,7 @@ export const STATUS_BAR_NO_FOLDER_BACKGROUND = registerColor('statusBar.noFolder
 }, localize('statusBarNoFolderBackground', "Status bar background color when no folder is opened. The status bar is shown in the bottom of the window."));
 
 export const STATUS_BAR_BORDER = registerColor('statusBar.border', {
-	dark: null,
+	dark: '#4A148C',
 	light: null,
 	hcDark: contrastBorder,
 	hcLight: contrastBorder
@@ -486,7 +486,7 @@ export const ACTIVITY_BAR_TOP_BACKGROUND = registerColor('activityBarTop.backgro
 export const PANEL_BACKGROUND = registerColor('panel.background', editorBackground, localize('panelBackground', "Panel background color. Panels are shown below the editor area and contain views like output and integrated terminal."));
 
 export const PANEL_BORDER = registerColor('panel.border', {
-	dark: Color.fromHex('#808080').transparent(0.35),
+	dark: '#4A148C',
 	light: Color.fromHex('#808080').transparent(0.35),
 	hcDark: contrastBorder,
 	hcLight: contrastBorder
@@ -621,7 +621,7 @@ export const SIDE_BAR_BACKGROUND = registerColor('sideBar.background', {
 export const SIDE_BAR_FOREGROUND = registerColor('sideBar.foreground', null, localize('sideBarForeground', "Side bar foreground color. The side bar is the container for views like explorer and search."));
 
 export const SIDE_BAR_BORDER = registerColor('sideBar.border', {
-	dark: null,
+	dark: '#4A148C',
 	light: null,
 	hcDark: contrastBorder,
 	hcLight: contrastBorder
@@ -713,7 +713,7 @@ export const TITLE_BAR_INACTIVE_BACKGROUND = registerColor('titleBar.inactiveBac
 }, localize('titleBarInactiveBackground', "Title bar background when the window is inactive."));
 
 export const TITLE_BAR_BORDER = registerColor('titleBar.border', {
-	dark: null,
+	dark: '#4A148C',
 	light: null,
 	hcDark: contrastBorder,
 	hcLight: contrastBorder
@@ -821,7 +821,7 @@ export const NOTIFICATIONS_CENTER_HEADER_BACKGROUND = registerColor('notificatio
 	hcLight: NOTIFICATIONS_BACKGROUND
 }, localize('notificationCenterHeaderBackground', "Notifications center header background color. Notifications slide in from the bottom right of the window."));
 
-export const NOTIFICATIONS_BORDER = registerColor('notifications.border', NOTIFICATIONS_CENTER_HEADER_BACKGROUND, localize('notificationsBorder', "Notifications border color separating from other notifications in the notifications center. Notifications slide in from the bottom right of the window."));
+export const NOTIFICATIONS_BORDER = registerColor('notifications.border', { dark: '#4A148C', light: NOTIFICATIONS_CENTER_HEADER_BACKGROUND, hcDark: NOTIFICATIONS_CENTER_HEADER_BACKGROUND, hcLight: NOTIFICATIONS_CENTER_HEADER_BACKGROUND }, localize('notificationsBorder', "Notifications border color separating from other notifications in the notifications center. Notifications slide in from the bottom right of the window."));
 
 export const NOTIFICATIONS_ERROR_ICON_FOREGROUND = registerColor('notificationsErrorIcon.foreground', editorErrorForeground, localize('notificationsErrorIconForeground', "The color used for the icon of error notifications. Notifications slide in from the bottom right of the window."));
 

@@ -30,3 +30,26 @@ Desain warna default Dardcor Code :
 
 ## LIST WAJIB 1 PER 1 JIKA FITUR SUDAH 100% SAMA PERSIS DENGAN VISUAL STUDIO CODE ASLI
 
+- [x] 1. `PANEL_BORDER` di `src/dc/workbench/common/theme.ts` masih menggunakan warna abu-abu `#808080`, seharusnya warna ungu gelap `#4A148C`.
+- [x] 2. `SIDE_BAR_BORDER` di `src/dc/workbench/common/theme.ts` masih menggunakan `null`, belum menggunakan warna ungu gelap `#4A148C`.
+- [x] 3. `TAB_BORDER` di `src/dc/workbench/common/theme.ts` masih menggunakan warna hitam `#000000`, seharusnya menggunakan warna ungu gelap `#4A148C` sebagai garis pemisah.
+- [x] 4. `STATUS_BAR_BORDER` di `src/dc/workbench/common/theme.ts` masih `null`, belum menggunakan ungu gelap `#4A148C`.
+- [x] 5. `menu.separatorBackground` di `src/dc/platform/theme/common/colors/menuColors.ts` masih menggunakan `transparent(foreground, 0.2)` bukan ungu gelap `#3B0A5E`.
+- [x] 6. `EDITOR_GROUP_HEADER_TABS_BORDER` di `src/dc/workbench/common/theme.ts` masih bernilai `null`, belum menggunakan ungu gelap `#4A148C`.
+- [x] 7. `editorBracketMatchBorder` di `src/dc/editor/common/core/editorColorRegistry.ts` masih menggunakan `#888` (abu-abu), seharusnya ungu gelap `#4A148C`.
+- [x] 8. `editorRuler.foreground` di `src/dc/editor/common/core/editorColorRegistry.ts` masih menggunakan `#5A5A5A` (abu-abu), seharusnya ungu gelap `#4A148C`.
+- [x] 9. `editorIndentGuide.background` di `src/dc/editor/common/core/editorColorRegistry.ts` masih memakai warna putih transparan (turunan `editorWhitespaces`), seharusnya warna ungu gelap `#3B0A5E`.
+- [x] 10. `inputBorder` di `src/dc/platform/theme/common/colors/inputColors.ts` masih bernilai `null`, belum menggunakan ungu gelap `#4A148C` untuk garis tepi input box.
+- [x] 11. `buttonBorder` di `src/dc/platform/theme/common/colors/inputColors.ts` masih `contrastBorder` (`null`), belum menggunakan ungu gelap `#4A148C`.
+- [x] 12. `pickerGroupBorder` di `src/dc/platform/theme/common/colors/quickpickColors.ts` masih `#3F3F46` (abu-abu tua), seharusnya ungu gelap `#4A148C` untuk pemisah quick pick.
+- [x] 13. `widgetBorder` (dipakai untuk `dialogBorder`) di `src/dc/platform/theme/common/colors/editorColors.ts` masih `null`, seharusnya ungu gelap `#4A148C` untuk tepi dialog dan notification.
+- [x] 14. `listInactiveFocusOutline` di `src/dc/platform/theme/common/colors/listColors.ts` masih `null`, belum menggunakan ungu gelap `#4A148C`.
+- [x] 15. `NOTIFICATIONS_BORDER` di `src/dc/workbench/common/theme.ts` masih menggunakan warna turunan background, seharusnya ungu gelap `#4A148C` untuk batas pemisah notifikasi.
+- [x] 16. `scrollbarSliderBackground` di `src/dc/platform/theme/common/colors/miscColors.ts` masih menggunakan `#797979` transparan (abu-abu), seharusnya menggunakan ungu gelap `#3B0A5E`.
+- [x] 17. CSS hardcoded untuk scrollbar di `src/dc/workbench/browser/style.ts` (baris 24-26) masih menggunakan `rgba(121, 121, 121)` (abu-abu), belum menggunakan ungu gelap `#3B0A5E`.
+- [x] 18. `TITLE_BAR_BORDER` di `src/dc/workbench/common/theme.ts` masih `null`, belum menggunakan ungu gelap `#4A148C` untuk garis bawah titlebar.
+- [x] 19. `selectBorder` (`dropdown.border`) di `src/dc/platform/theme/common/colors/inputColors.ts` masih menggunakan `selectBackground` (abu-abu gelap), seharusnya ungu gelap `#4A148C`.
+- [x] 20. `menuBorder` di `src/dc/platform/theme/common/colors/menuColors.ts` masih `null`, belum menggunakan ungu gelap `#4A148C` untuk tepi luar menu.
+- [x] 21. `notebook.cellToolbarSeparator` di `src/dc/workbench/contrib/notebook/browser/notebookEditorWidget.ts` masih menggunakan warna abu-abu `#808080`, seharusnya warna ungu gelap `#4A148C`.
+- [x] 22. CSS scrollbar `rgba(121, 121, 121, 0.4)` (abu-abu) di `src/dc/workbench/contrib/issue/browser/media/issueReporterOverlay.css` belum menggunakan ungu gelap `#3B0A5E`.
+- [x] 23. Hardcoded background color `#8080802B` (abu-abu) pada label versi ekstensi di `src/dc/workbench/contrib/extensions/browser/extensionsWidgets.ts` seharusnya menggunakan `#3B0A5E2B`.

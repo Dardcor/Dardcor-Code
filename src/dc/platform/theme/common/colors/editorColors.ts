@@ -341,7 +341,7 @@ export const widgetShadow = registerColor('widget.shadow',
 	nls.localize('widgetShadow', 'Shadow color of widgets such as find/replace inside the editor.'));
 
 export const widgetBorder = registerColor('widget.border',
-	{ dark: null, light: null, hcDark: contrastBorder, hcLight: contrastBorder },
+	{ dark: '#4A148C', light: null, hcDark: contrastBorder, hcLight: contrastBorder },
 	nls.localize('widgetBorder', 'Border color of widgets such as find/replace inside the editor.'));
 
 

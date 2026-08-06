@@ -9,7 +9,6 @@ import { WORKBENCH_BACKGROUND, TITLE_BAR_ACTIVE_BACKGROUND } from '../common/the
 import { isWeb, isIOS } from '../../base/common/platform.js';
 import { createMetaElement } from '../../base/browser/dom.js';
 import { isSafari, isStandalone } from '../../base/browser/browser.js';
-import { selectionBackground } from '../../platform/theme/common/colorRegistry.js';
 import { mainWindow } from '../../base/browser/window.js';
 
 registerThemingParticipant((theme, collector) => {
@@ -19,10 +18,17 @@ registerThemingParticipant((theme, collector) => {
 	collector.addRule(`.monaco-workbench { background-color: ${workbenchBackground}; }`);
 
 	// Selection (do NOT remove - https://github.com/microsoft/vscode/issues/169662)
-	const windowSelectionBackground = theme.getColor(selectionBackground);
-	if (windowSelectionBackground) {
-		collector.addRule(`.monaco-workbench ::selection { background-color: ${windowSelectionBackground}; }`);
-	}
+	collector.addRule(`.monaco-workbench ::selection { background-color: rgba(92, 45, 145, 0.6) !important; }`);
+
+	// Force scrollbar and minimap sliders to be visible (Grey)
+	collector.addRule(`
+		.monaco-workbench .monaco-scrollable-element > .scrollbar > .slider { background: rgba(59, 10, 94, 0.5) !important; }
+		.monaco-workbench .monaco-scrollable-element > .scrollbar > .slider:hover { background: rgba(74, 20, 140, 0.8) !important; }
+		.monaco-workbench .monaco-scrollable-element > .scrollbar > .slider.active { background: rgba(106, 27, 154, 0.8) !important; }
+		.monaco-workbench .monaco-editor .minimap-slider .minimap-slider-horizontal { background: rgba(59, 10, 94, 0.3) !important; }
+		.monaco-workbench .monaco-editor .minimap-slider:hover .minimap-slider-horizontal { background: rgba(74, 20, 140, 0.6) !important; }
+		.monaco-workbench .monaco-editor .minimap-slider.active .minimap-slider-horizontal { background: rgba(106, 27, 154, 0.6) !important; }
+	`);
 
 	// Update <meta name="theme-color" content=""> based on selected theme
 	if (isWeb) {

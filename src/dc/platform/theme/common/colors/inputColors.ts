@@ -26,7 +26,7 @@ export const inputForeground = registerColor('input.foreground',
 	nls.localize('inputBoxForeground', "Input box foreground."));
 
 export const inputBorder = registerColor('input.border',
-	{ dark: null, light: null, hcDark: contrastBorder, hcLight: contrastBorder },
+	{ dark: '#4A148C', light: null, hcDark: contrastBorder, hcLight: contrastBorder },
 	nls.localize('inputBoxBorder', "Input box border."));
 
 export const inputActiveOptionBorder = registerColor('inputOption.activeBorder',
@@ -104,7 +104,7 @@ export const selectForeground = registerColor('dropdown.foreground',
 	nls.localize('dropdownForeground', "Dropdown foreground."));
 
 export const selectBorder = registerColor('dropdown.border',
-	{ dark: selectBackground, light: '#CECECE', hcDark: contrastBorder, hcLight: contrastBorder },
+	{ dark: '#4A148C', light: '#CECECE', hcDark: contrastBorder, hcLight: contrastBorder },
 	nls.localize('dropdownBorder', "Dropdown border."));
 
 
@@ -127,7 +127,7 @@ export const buttonHoverBackground = registerColor('button.hoverBackground',
 	nls.localize('buttonHoverBackground', "Button background color when hovering."));
 
 export const buttonBorder = registerColor('button.border',
-	contrastBorder,
+	{ dark: '#4A148C', light: contrastBorder, hcDark: contrastBorder, hcLight: contrastBorder },
 	nls.localize('buttonBorder', "Button border color."));
 
 export const buttonSecondaryForeground = registerColor('button.secondaryForeground',
