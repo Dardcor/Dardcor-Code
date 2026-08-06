@@ -37,10 +37,10 @@ jobs:
         run: node --experimental-strip-types ./build/lib/builtInExtensions.ts
 
       - name: Build Windows Standalone Package
-        run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-win32-${{ matrix.arch }}
+        run: node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-win32-${{ matrix.arch }}
 
       - name: Build Windows Setup Package
-        run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-win32-${{ matrix.arch }}-system-setup
+        run: node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-win32-${{ matrix.arch }}-system-setup
 
       - name: Create Windows Artifacts
         shell: powershell
@@ -104,17 +104,17 @@ jobs:
         run: node --experimental-strip-types ./build/lib/builtInExtensions.ts
 
       - name: Build Linux Standalone Package
-        run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-linux-${{ matrix.arch }}
+        run: node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-linux-${{ matrix.arch }}
 
       - name: Build Linux DEB Package
         run: |
-          node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-linux-${{ matrix.arch }}-prepare-deb
-          node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-linux-${{ matrix.arch }}-build-deb
+          node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-linux-${{ matrix.arch }}-prepare-deb
+          node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-linux-${{ matrix.arch }}-build-deb
 
       - name: Build Linux RPM Package
         run: |
-          node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-linux-${{ matrix.arch }}-prepare-rpm
-          node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-linux-${{ matrix.arch }}-build-rpm
+          node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-linux-${{ matrix.arch }}-prepare-rpm
+          node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-linux-${{ matrix.arch }}-build-rpm
 
       - name: Create Linux Artifacts
         run: |
@@ -189,7 +189,7 @@ jobs:
         run: node --experimental-strip-types ./build/lib/builtInExtensions.ts
 
       - name: Build macOS Standalone Package
-        run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-darwin-${{ matrix.arch }}
+        run: node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-darwin-${{ matrix.arch }}
 
       - name: Create macOS Artifacts
         run: |
