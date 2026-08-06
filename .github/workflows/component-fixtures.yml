@@ -257,20 +257,25 @@ jobs:
       - name: Diff screenshots
         id: diff
         if: always()
+        continue-on-error: true
         run: |
-          BODY=$(node build/lib/screenshotDiffReport.ts \
-            https://hediet-screenshots.azurewebsites.net \
-            "${{ steps.base.outputs.base_sha }}" \
-            ${{ github.sha }} \
-            "${{ steps.base_manifest.outputs.path }}" \
-            test/componentFixtures/.screenshots/current/manifest.json)
-          if [ -n "$BODY" ]; then
-            echo "has_changes=true" >> "$GITHUB_OUTPUT"
-            echo "body<<SCREENSHOT_EOF" >> "$GITHUB_OUTPUT"
-            echo "$BODY" >> "$GITHUB_OUTPUT"
-            echo "SCREENSHOT_EOF" >> "$GITHUB_OUTPUT"
+          if [ -f test/componentFixtures/.screenshots/current/manifest.json ]; then
+            BODY=$(node build/lib/screenshotDiffReport.ts \
+              https://hediet-screenshots.azurewebsites.net \
+              "${{ steps.base.outputs.base_sha }}" \
+              ${{ github.sha }} \
+              "${{ steps.base_manifest.outputs.path }}" \
+              test/componentFixtures/.screenshots/current/manifest.json)
+            if [ -n "$BODY" ]; then
+              echo "has_changes=true" >> "$GITHUB_OUTPUT"
+              echo "body<<SCREENSHOT_EOF" >> "$GITHUB_OUTPUT"
+              echo "$BODY" >> "$GITHUB_OUTPUT"
+              echo "SCREENSHOT_EOF" >> "$GITHUB_OUTPUT"
+            else
+              echo "No screenshot changes to report."
+            fi
           else
-            echo "No screenshot changes to report."
+            echo "No current manifest.json found -- skipping screenshot diff."
           fi
           if [ -f .tmp/screenshotDiffReport.json ]; then
             echo "::group::Diff JSON"
