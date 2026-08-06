@@ -526,7 +526,7 @@
 	width: 20px;
 	height: 20px;
 	border-radius: 4px;
-	background: var(--vscode-welcomePage-tileBorder, var(--vscode-contrastBorder, rgba(128, 128, 128, 0.2)));
+	background: var(--vscode-welcomePage-tileBorder, var(--vscode-contrastBorder, rgba(59, 10, 94, 0.2)));
 	animation: agentSessionsWelcome-shimmer 1.5s ease-in-out infinite;
 }
 
@@ -540,7 +540,7 @@
 .agentSessionsWelcome-sessionSkeleton-title {
 	height: 12px;
 	border-radius: 2px;
-	background: var(--vscode-welcomePage-tileBorder, var(--vscode-contrastBorder, rgba(128, 128, 128, 0.2)));
+	background: var(--vscode-welcomePage-tileBorder, var(--vscode-contrastBorder, rgba(59, 10, 94, 0.2)));
 	animation: agentSessionsWelcome-shimmer 1.5s ease-in-out infinite;
 	animation-delay: 0.1s;
 }
@@ -549,7 +549,7 @@
 	height: 10px;
 	width: 60%;
 	border-radius: 2px;
-	background: var(--vscode-welcomePage-tileBorder, var(--vscode-contrastBorder, rgba(128, 128, 128, 0.2)));
+	background: var(--vscode-welcomePage-tileBorder, var(--vscode-contrastBorder, rgba(59, 10, 94, 0.2)));
 	animation: agentSessionsWelcome-shimmer 1.5s ease-in-out infinite;
 	animation-delay: 0.2s;
 }

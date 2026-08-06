@@ -1923,7 +1923,7 @@ button.chat-debug-cache-finding.is-clickable:focus-visible {
 	color: var(--vscode-descriptionForeground);
 }
 .chat-debug-wirelog-row {
-	border-bottom: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.15));
+	border-bottom: 1px solid var(--vscode-widget-border, rgba(59, 10, 94, 0.15));
 }
 .chat-debug-wirelog-row-header {
 	display: flex;

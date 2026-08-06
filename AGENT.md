@@ -68,3 +68,15 @@ Desain warna default Dardcor Code :
 - [x] 36. `rgba(128, 128, 128, 0.17)` di `keybindingsEditor.css` dan `standaloneQuickInput.css` diperbaiki ke `rgba(59, 10, 94, 0.17)`.
 - [x] 37. Beberapa `rgba(128, 128, 128)` di `extensionEditor.css`, `debugHover.css`, `agenttitlebarstatuswidget.css`, `issueReporterOverlay.css` diperbaiki ke varian ungu gelap.
 - [x] 38. Warna border `#B9B9B9` dan background keybinding info/error di `keybindings.css` diperbaiki ke ungu gelap `#7C4DFF` dan `rgba(74, 20, 140, 0.2)`.
+- [x] 39. `issueReporterOverlay.css` `#888`, `#999`, `rgba(100,100,100,0.7)`, `rgba(191,191,191,0.4)` diperbaiki ke varian ungu gelap `#6A1B9A` / `rgba(106,27,154)`.
+- [x] 40. `debugColors.ts` fallback border `#80808060` diperbaiki ke `#3B0A5E60`.
+- [x] 41. `documentWithAnnotatedEdits.ts` annotasi `#80808033` diperbaiki ke `#3B0A5E33`.
+- [x] 42. `backLayerWebView.ts`, `browser.css`, `runtimeExtensionsEditor.css`, `settingsWidgets.css` semua `rgba(130,130,130)` diperbaiki ke `rgba(59,10,94)`.
+- [x] 43. `chat.css` `rgba(127,127,127)` border/background diperbaiki ke `rgba(59,10,94)`.
+- [x] 44. `workbenchThemeService.ts` `COLOR_THEME_DARK_INITIAL_COLORS` — 21 border/separator semua diperbaiki ke ungu gelap `#4A148C` / `#3B0A5E`.
+- [x] 45. `workbenchThemeService.ts` `COLOR_THEME_LIGHT_INITIAL_COLORS` — 23 border/separator diperbaiki ke ungu gelap `#4A148C` / `#3B0A5E`.
+- [x] 46. `miscColors.ts` `badge.background` `#4D4D4D`/`#C4C4C4` diperbaiki ke `#3B0A5E`/`#4A148C`.
+- [x] 47. `theme.ts` `PROFILE_BADGE_BACKGROUND` `#4D4D4D`/`#C4C4C4` diperbaiki ke `#3B0A5E`/`#4A148C`.
+- [x] 48. `workbenchThemeService.ts` `badge.background` gray diperbaiki ke `#3B0A5E`.
+- [x] 49. `welcomeAgentSessions`, `chatDebug.css`, `variationA.css` semua sisa `rgba(128,128,128)` diperbaiki.
+- [x] 50. Verifikasi menyeluruh: seluruh `rgba(128/121/127/130,*,*,*)` di `src/dc` sudah 0 hasil (tidak ada lagi warna abu-abu hardcoded).
