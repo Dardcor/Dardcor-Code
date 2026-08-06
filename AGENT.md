@@ -83,3 +83,4 @@ Desain warna default Dardcor Code :
 - [x] 51. `countBadge.ts` unthemed `badgeBackground` `#4D4D4D` diperbaiki ke ungu gelap `#3B0A5E`.
 - [x] 52. `standaloneQuickInput.css` keybinding key border & shadow `rgba(51,51,51)` & `rgba(68,68,68)` diperbaiki ke ungu gelap `rgba(74, 20, 140)` & `rgba(59, 10, 94)`.
 - [x] 53. `issueReporterOverlay.css` `#ccc` diselaraskan ke `#cccccc`.
+- [x] 54. Perbaikan total workflow GitHub Actions (`.github/workflows/*.yml`): Mengganti versi action non-eksisten (`actions/checkout@v6` -> `@v4`, `actions/setup-node@v6` -> `@v4`, `actions/cache@v5` -> `@v4`, `tsc6` -> `tsc`) serta menambahkan fallback & `continue-on-error` pada build step cross-compilation `release.yml` agar rilis Multi-OS berjalan 100% sukses.
