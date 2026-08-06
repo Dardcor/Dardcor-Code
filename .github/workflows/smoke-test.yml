@@ -7,7 +7,7 @@ jobs:
     env:
       VSCODE_SKIP_NODE_VERSION_CHECK: '1'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Linux Build Dependencies
         run: |
