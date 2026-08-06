@@ -53,3 +53,9 @@ Desain warna default Dardcor Code :
 - [x] 21. `notebook.cellToolbarSeparator` di `src/dc/workbench/contrib/notebook/browser/notebookEditorWidget.ts` masih menggunakan warna abu-abu `#808080`, seharusnya warna ungu gelap `#4A148C`.
 - [x] 22. CSS scrollbar `rgba(121, 121, 121, 0.4)` (abu-abu) di `src/dc/workbench/contrib/issue/browser/media/issueReporterOverlay.css` belum menggunakan ungu gelap `#3B0A5E`.
 - [x] 23. Hardcoded background color `#8080802B` (abu-abu) pada label versi ekstensi di `src/dc/workbench/contrib/extensions/browser/extensionsWidgets.ts` seharusnya menggunakan `#3B0A5E2B`.
+- [x] 24. Folder struktur `.eslint-plugin-local` hilang di root Dardcor Code; disalin ulang dari Visual Studio Code.
+- [x] 25. File `CodeQL.yml` dan `ThirdPartyNotices.txt` belum ada di Dardcor Code; disalin ulang.
+- [x] 26. Direktori `.devcontainer` (termasuk Dockerfile, sh) tidak ada di Dardcor Code; disalin ulang dari VS Code.
+- [x] 27. File core test `test/monaco/dist/core.html` terhapus/hilang di Dardcor Code; dikembalikan seperti versi asli.
+- [x] 28. Direktori `.github` kehilangan puluhan file aslinya (workflow, action, template instruksi, dll) yang tidak dibawa ke Dardcor Code; struktur ini sudah disalin seluruhnya (kecuali menimpa yang sudah dimodifikasi khusus).
+- [x] 29. Pengecekan menyeluruh `src/dc` vs `src/vs` menunjukkan kode sudah 100% identik strukturnya (tidak ada script yang kurang).
