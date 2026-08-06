@@ -64,7 +64,7 @@ jobs:
           (Get-FileHash "Dardcor.Code_1.0.0_${{ matrix.arch }}_en-US.msi" -Algorithm SHA256).Hash | Out-File -FilePath "Dardcor.Code_1.0.0_${{ matrix.arch }}_en-US.msi.sig" -Encoding utf8
 
       - name: Upload Windows Asset to Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: "Dardcor Code v1.0.0"
           tag_name: ${{ github.ref_name }}
@@ -150,7 +150,7 @@ jobs:
           fi
 
       - name: Upload Linux Asset to Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: "Dardcor Code v1.0.0"
           tag_name: ${{ github.ref_name }}
@@ -206,7 +206,7 @@ jobs:
           fi
 
       - name: Upload macOS Asset to Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: "Dardcor Code v1.0.0"
           tag_name: ${{ github.ref_name }}
