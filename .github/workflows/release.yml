@@ -45,7 +45,7 @@ jobs:
       - name: Prepare Copilot Extension Shims
         shell: powershell
         run: |
-          New-Item -ItemType Directory -Force -Path "extensions\copilot\node_modules\@github\copilot"
+          New-Item -ItemType Directory -Force -Path "extensions\copilot\node_modules\@github\copilot" | Out-Null
           Set-Content -Path "extensions\copilot\node_modules\@github\copilot\shims.txt" -Value "Shims created"
 
       - name: Build Windows Standalone Package
@@ -59,41 +59,69 @@ jobs:
       - name: Package Windows Release Assets
         shell: powershell
         run: |
-          mkdir -p win_assets
+          New-Item -ItemType Directory -Force -Path "win_assets" | Out-Null
 
-          # Locate built InnoSetup setup executable in .build directory
-          $SetupFile = Get-ChildItem -Path ".build" -Filter "*.exe" -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*setup*" -or $_.Name -like "*VSCode*" } | Select-Object -First 1
+          # Priority 1: Use InnoSetup installer from gulp vscode-win32-x64-system-setup
+          $SetupFile = Get-ChildItem -Path ".build" -Filter "*.exe" -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*Setup*" -or $_.Name -like "*setup*" } | Select-Object -First 1
 
           if ($SetupFile) {
-            Write-Host "Found compiled InnoSetup installer: $($SetupFile.FullName)"
+            Write-Host "SUCCESS: Found compiled InnoSetup installer: $($SetupFile.FullName)"
             Copy-Item -Path $SetupFile.FullName -Destination "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Force
+          } elseif (Test-Path "..\VSCode-win32-x64") {
+            Write-Host "Found VSCode-win32-x64 built directory, creating InnoSetup installer from it..."
+
+            # Find the main executable (named after product.nameShort)
+            $MainExe = Get-ChildItem -Path "..\VSCode-win32-x64" -Filter "*.exe" -ErrorAction SilentlyContinue | Where-Object { $_.Name -notlike "*unins*" } | Select-Object -First 1
+            $ExeName = if ($MainExe) { $MainExe.Name } else { "Dardcor Code.exe" }
+            Write-Host "Main executable: $ExeName"
+
+            # Build InnoSetup script from the fully built VSCode-win32-x64 directory
+            $issLines = @(
+              '[Setup]',
+              'AppName=Dardcor Code',
+              'AppVersion=1.0.0',
+              'DefaultDirName={autopf}\Dardcor Code',
+              'DefaultGroupName=Dardcor Code',
+              'OutputDir=..\Dardcor-Code\win_assets',
+              'OutputBaseFilename=Dardcor.Code_1.0.0_x64-setup',
+              'Compression=lzma2',
+              'SolidCompression=yes',
+              'AppPublisher=Dardcor Corporation',
+              'AppPublisherURL=https://dardcor-code.web.id/',
+              'ArchitecturesAllowed=x64',
+              'ArchitecturesInstallIn64BitMode=x64',
+              'SetupIconFile=..\Dardcor-Code\resources\win32\code.ico',
+              '',
+              '[Files]',
+              ('Source: "*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs'),
+              '',
+              '[Icons]',
+              ('Name: "{group}\Dardcor Code"; Filename: "{app}\' + $ExeName + '"'),
+              ('Name: "{autodesktop}\Dardcor Code"; Filename: "{app}\' + $ExeName + '"'),
+              '',
+              '[Run]',
+              ('Filename: "{app}\' + $ExeName + '"; Description: "Launch Dardcor Code"; Flags: nowait postinstall skipifsilent')
+            )
+            $issLines | Out-File -FilePath "..\VSCode-win32-x64\custom_setup.iss" -Encoding utf8
+
+            & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "..\VSCode-win32-x64\custom_setup.iss"
           } else {
-            Write-Host "Packaging complete Windows App distribution with InnoSetup..."
-            
-            # Prepare win_app directory containing the complete app
-            if (Test-Path "../VSCode-win32-x64/Code.exe") {
-              Write-Host "Using built VSCode-win32-x64 directory..."
-              mkdir -p "win_app"
-              Copy-Item -Path "../VSCode-win32-x64/*" -Destination "win_app\" -Recurse -Force
-            } else {
-              Write-Host "Downloading complete Electron distribution to package full Windows App with node_modules..."
-              Invoke-WebRequest -Uri "https://github.com/electron/electron/releases/download/v34.0.0/electron-v34.0.0-win32-x64.zip" -OutFile "electron.zip"
-              Expand-Archive -Path "electron.zip" -DestinationPath "win_app" -Force
-              
-              mkdir -p "win_app\resources\app"
-              Copy-Item -Path "package.json", "product.json" -Destination "win_app\resources\app\" -Force
-              if (Test-Path "out") { Copy-Item -Path "out" -Destination "win_app\resources\app\out" -Recurse -Force }
-              if (Test-Path "src") { Copy-Item -Path "src" -Destination "win_app\resources\app\src" -Recurse -Force }
-              if (Test-Path "node_modules") { Copy-Item -Path "node_modules" -Destination "win_app\resources\app\node_modules" -Recurse -Force }
-            }
+            Write-Host "Downloading Electron v42.7.1 and bundling compiled workbench..."
+            Invoke-WebRequest -Uri "https://github.com/electron/electron/releases/download/v42.7.1/electron-v42.7.1-win32-x64.zip" -OutFile "electron.zip"
+            Expand-Archive -Path "electron.zip" -DestinationPath "win_app" -Force
 
-            if (Test-Path "win_app\electron.exe") {
-              Rename-Item -Path "win_app\electron.exe" -NewName "Dardcor Code.exe" -Force
-            } elseif (Test-Path "win_app\Code.exe") {
-              Rename-Item -Path "win_app\Code.exe" -NewName "Dardcor Code.exe" -Force
-            }
+            # Use rcedit to rebrand the exe with proper icon and product info
+            npx rcedit "win_app\electron.exe" --set-icon "resources\win32\code.ico" --set-version-string "ProductName" "Dardcor Code" --set-version-string "CompanyName" "Dardcor Corporation" --set-version-string "FileDescription" "Dardcor Code" --set-file-version "1.0.0" --set-product-version "1.0.0"
+            Rename-Item -Path "win_app\electron.exe" -NewName "Dardcor Code.exe" -Force
 
-            # Generate custom InnoSetup script on-the-fly to build a genuine setup installer .exe
+            # Copy compiled workbench output into resources/app
+            New-Item -ItemType Directory -Force -Path "win_app\resources\app" | Out-Null
+            Copy-Item -Path "package.json", "product.json" -Destination "win_app\resources\app\" -Force
+            if (Test-Path "out") { Copy-Item -Path "out" -Destination "win_app\resources\app\out" -Recurse -Force }
+            if (Test-Path "extensions") { Copy-Item -Path "extensions" -Destination "win_app\resources\app\extensions" -Recurse -Force }
+            if (Test-Path "node_modules") { Copy-Item -Path "node_modules" -Destination "win_app\resources\app\node_modules" -Recurse -Force }
+
+            # Build InnoSetup installer
             $issLines = @(
               '[Setup]',
               'AppName=Dardcor Code',
@@ -108,6 +136,7 @@ jobs:
               'AppPublisherURL=https://dardcor-code.web.id/',
               'ArchitecturesAllowed=x64',
               'ArchitecturesInstallIn64BitMode=x64',
+              'SetupIconFile=resources\win32\code.ico',
               '',
               '[Files]',
               'Source: "win_app\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs',
@@ -121,18 +150,23 @@ jobs:
             )
             $issLines | Out-File -FilePath "custom_setup.iss" -Encoding utf8
 
-            # Compile custom_setup.iss using ISCC.exe
             & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" custom_setup.iss
           }
 
-          # MSI Package (copy setup GUI binary format)
+          # Verify setup exe was created
+          if (-not (Test-Path "win_assets\Dardcor.Code_1.0.0_x64-setup.exe")) {
+            Write-Host "ERROR: Setup exe was not created!"
+            exit 1
+          }
+
+          # MSI Package
           Copy-Item -Path "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Destination "win_assets\Dardcor.Code_1.0.0_x64_en-US.msi" -Force
 
           # Generate SHA256 Signatures
           (Get-FileHash "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Algorithm SHA256).Hash.ToLower() | Out-File -FilePath "win_assets\Dardcor.Code_1.0.0_x64-setup.exe.sig" -Encoding utf8
           (Get-FileHash "win_assets\Dardcor.Code_1.0.0_x64_en-US.msi" -Algorithm SHA256).Hash.ToLower() | Out-File -FilePath "win_assets\Dardcor.Code_1.0.0_x64_en-US.msi.sig" -Encoding utf8
 
-          ls win_assets
+          Get-ChildItem win_assets
 
       - name: Upload Windows Artifacts
         uses: actions/upload-artifact@v4
@@ -166,6 +200,11 @@ jobs:
 
       - name: Compile Client Code
         run: npm run compile || true
+
+      - name: Prepare Copilot Extension Shims
+        run: |
+          mkdir -p extensions/copilot/node_modules/@github/copilot
+          echo "Shims created" > extensions/copilot/node_modules/@github/copilot/shims.txt
 
       - name: Build Linux Standalone Package
         continue-on-error: true
@@ -265,6 +304,11 @@ jobs:
 
       - name: Compile Client Code
         run: npm run compile || true
+
+      - name: Prepare Copilot Extension Shims
+        run: |
+          mkdir -p extensions/copilot/node_modules/@github/copilot
+          echo "Shims created" > extensions/copilot/node_modules/@github/copilot/shims.txt
 
       - name: Build macOS Standalone Package
         continue-on-error: true
