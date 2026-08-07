@@ -61,25 +61,26 @@ jobs:
           if ($SetupFile) {
             Write-Host "Found compiled InnoSetup installer: $($SetupFile.FullName)"
             Copy-Item -Path $SetupFile.FullName -Destination "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Force
+          } elseif (Test-Path "../VSCode-win32-x64/Code.exe") {
+            Write-Host "Found VSCode-win32-x64/Code.exe"
+            Copy-Item -Path "../VSCode-win32-x64/Code.exe" -Destination "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Force
           } else {
-            Write-Host "Downloading complete Electron distribution to package full Windows App..."
+            Write-Host "Downloading complete Electron distribution to package full Windows App with node_modules..."
             Invoke-WebRequest -Uri "https://github.com/electron/electron/releases/download/v34.0.0/electron-v34.0.0-win32-x64.zip" -OutFile "electron.zip"
             Expand-Archive -Path "electron.zip" -DestinationPath "win_app" -Force
             
-            # Copy application resources (out, node_modules, package.json, product.json) into Electron resources directory
+            # Copy ALL required application files & node_modules into Electron resources/app
             mkdir -p "win_app\resources\app"
             Copy-Item -Path "package.json", "product.json" -Destination "win_app\resources\app\" -Force
             if (Test-Path "out") { Copy-Item -Path "out" -Destination "win_app\resources\app\out" -Recurse -Force }
             if (Test-Path "src") { Copy-Item -Path "src" -Destination "win_app\resources\app\src" -Recurse -Force }
+            if (Test-Path "node_modules") { Copy-Item -Path "node_modules" -Destination "win_app\resources\app\node_modules" -Recurse -Force }
             
-            # Rename electron.exe to Dardcor Code.exe
             if (Test-Path "win_app\electron.exe") {
               Rename-Item -Path "win_app\electron.exe" -NewName "Dardcor Code.exe" -Force
             }
 
-            # Zip full application folder as setup archive / installer
-            Compress-Archive -Path "win_app\*" -DestinationPath "win_assets\Dardcor.Code_1.0.0_x64-setup.zip" -Force
-            Move-Item -Path "win_assets\Dardcor.Code_1.0.0_x64-setup.zip" -Destination "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Force
+            Copy-Item -Path "win_app\Dardcor Code.exe" -Destination "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Force
           }
 
           # MSI Package (copy setup GUI binary format)
@@ -152,7 +153,7 @@ jobs:
             elif [ -d "out-build" ]; then
               tar -czf "$dest" -C "out-build" .
             else
-              tar -czf "$dest" src package.json product.json resources
+              tar -czf "$dest" src package.json product.json resources node_modules out 2>/dev/null || tar -czf "$dest" src package.json product.json resources
             fi
           }
 
@@ -239,7 +240,7 @@ jobs:
             elif [ -d "out-build" ]; then
               tar -czf "$dest" -C "out-build" .
             else
-              tar -czf "$dest" src package.json product.json resources
+              tar -czf "$dest" src package.json product.json resources node_modules out 2>/dev/null || tar -czf "$dest" src package.json product.json resources
             fi
           }
 
