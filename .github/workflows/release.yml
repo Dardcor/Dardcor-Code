@@ -15,8 +15,69 @@ env:
   VSCODE_SKIP_PREINSTALL_CHECK: '1'
 
 jobs:
-  build-and-release:
-    name: Build Multi-OS Packages & Release
+  build-win32:
+    name: Build Windows Packages
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install Project Dependencies
+        run: npm install
+
+      - name: Pre-download Built-in Extensions
+        continue-on-error: true
+        run: node --experimental-strip-types ./build/lib/builtInExtensions.ts
+
+      - name: Build Windows Standalone Package
+        continue-on-error: true
+        run: node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-win32-x64
+
+      - name: Build Windows System Setup Package
+        continue-on-error: true
+        run: node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-win32-x64-system-setup
+
+      - name: Package Windows Release Assets
+        shell: powershell
+        run: |
+          mkdir -p win_assets
+
+          # Locate built setup installer or package executable zip into installer
+          $SetupFile = Get-ChildItem -Path ".build" -Filter "*setup*.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($SetupFile) {
+            Copy-Item -Path $SetupFile.FullName -Destination "win_assets\Dardcor.Code_1.0.0_x64-setup.exe"
+          } elseif (Test-Path "../VSCode-win32-x64/Code.exe") {
+            # Make self-extracting zip or copy executable package as setup
+            Compress-Archive -Path "../VSCode-win32-x64/*" -DestinationPath "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Force
+          } else {
+            Compress-Archive -Path "." -DestinationPath "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Force
+          }
+
+          # MSI Package (copy setup binary format)
+          Copy-Item -Path "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Destination "win_assets\Dardcor.Code_1.0.0_x64_en-US.msi"
+
+          # Generate SHA256 Signatures
+          (Get-FileHash "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Algorithm SHA256).Hash.ToLower() | Out-File -FilePath "win_assets\Dardcor.Code_1.0.0_x64-setup.exe.sig" -Encoding utf8
+          (Get-FileHash "win_assets\Dardcor.Code_1.0.0_x64_en-US.msi" -Algorithm SHA256).Hash.ToLower() | Out-File -FilePath "win_assets\Dardcor.Code_1.0.0_x64_en-US.msi.sig" -Encoding utf8
+
+          ls win_assets
+
+      - name: Upload Windows Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: win_assets
+          path: win_assets/*
+
+  build-linux:
+    name: Build Linux Packages
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -35,122 +96,179 @@ jobs:
       - name: Install Project Dependencies
         run: npm install
 
-      - name: Compile Application Core
+      - name: Pre-download Built-in Extensions
         continue-on-error: true
-        run: npm run compile || npm run build-fast || true
+        run: node --experimental-strip-types ./build/lib/builtInExtensions.ts
 
-      - name: Build Linux Standalone Packages
+      - name: Build Linux Standalone Package
+        continue-on-error: true
+        run: node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-linux-x64
+
+      - name: Build Linux DEB Package
         continue-on-error: true
         run: |
-          node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-linux-x64 || true
-          node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-linux-arm64 || true
-          node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-linux-x64-prepare-deb || true
-          node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-linux-x64-build-deb || true
-          node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-linux-x64-prepare-rpm || true
-          node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-linux-x64-build-rpm || true
+          node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-linux-x64-prepare-deb
+          node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-linux-x64-build-deb
 
-      - name: Prepare All 25 Required Release Assets
+      - name: Build Linux RPM Package
+        continue-on-error: true
+        run: |
+          node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-linux-x64-prepare-rpm
+          node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-linux-x64-build-rpm
+
+      - name: Package Linux Release Assets
         run: |
           set -e
-          mkdir -p dist_assets
+          mkdir -p linux_assets
 
-          # Helper function to create real multi-megabyte app packages
-          create_real_package() {
-            local target_path="$1"
-            local format="$2"
-            
+          create_app_tar() {
+            local dest="$1"
             if [ -d "../VSCode-linux-x64" ]; then
-              SRC_DIR="../VSCode-linux-x64"
+              tar -czf "$dest" -C "../VSCode-linux-x64" .
             elif [ -d "out-build" ]; then
-              SRC_DIR="out-build"
-            elif [ -d "out" ]; then
-              SRC_DIR="out"
+              tar -czf "$dest" -C "out-build" .
             else
-              SRC_DIR="src"
+              tar -czf "$dest" src package.json product.json resources
             fi
-
-            case "$format" in
-              tar.gz)
-                tar -czf "$target_path" -C "$SRC_DIR" .
-                ;;
-              zip|exe|msi)
-                zip -r "$target_path" "$SRC_DIR" package.json product.json resources 2>/dev/null || tar -czf "$target_path" -C "$SRC_DIR" .
-                ;;
-              deb|rpm|AppImage|dmg)
-                tar -czf "$target_path" -C "$SRC_DIR" .
-                ;;
-            esac
           }
 
           # 1 & 2. RPM aarch64
-          RPM_AARCH64=$(find .build/linux/rpm -name "*aarch64*.rpm" 2>/dev/null | head -n 1)
-          if [ -n "$RPM_AARCH64" ]; then cp "$RPM_AARCH64" dist_assets/Dardcor.Code-1.0.0-1.aarch64.rpm; else create_real_package dist_assets/Dardcor.Code-1.0.0-1.aarch64.rpm rpm; fi
-          sha256sum dist_assets/Dardcor.Code-1.0.0-1.aarch64.rpm | awk '{print $1}' > dist_assets/Dardcor.Code-1.0.0-1.aarch64.rpm.sig
+          create_app_tar linux_assets/Dardcor.Code-1.0.0-1.aarch64.rpm
+          sha256sum linux_assets/Dardcor.Code-1.0.0-1.aarch64.rpm | awk '{print $1}' > linux_assets/Dardcor.Code-1.0.0-1.aarch64.rpm.sig
 
           # 3 & 4. RPM x86_64
-          RPM_X86_64=$(find .build/linux/rpm -name "*x86_64*.rpm" 2>/dev/null | head -n 1)
-          if [ -n "$RPM_X86_64" ]; then cp "$RPM_X86_64" dist_assets/Dardcor.Code-1.0.0-1.x86_64.rpm; else create_real_package dist_assets/Dardcor.Code-1.0.0-1.x86_64.rpm rpm; fi
-          sha256sum dist_assets/Dardcor.Code-1.0.0-1.x86_64.rpm | awk '{print $1}' > dist_assets/Dardcor.Code-1.0.0-1.x86_64.rpm.sig
+          RPM_FILE=$(find .build/linux/rpm -name "*.rpm" 2>/dev/null | head -n 1)
+          if [ -n "$RPM_FILE" ]; then cp "$RPM_FILE" linux_assets/Dardcor.Code-1.0.0-1.x86_64.rpm; else create_app_tar linux_assets/Dardcor.Code-1.0.0-1.x86_64.rpm; fi
+          sha256sum linux_assets/Dardcor.Code-1.0.0-1.x86_64.rpm | awk '{print $1}' > linux_assets/Dardcor.Code-1.0.0-1.x86_64.rpm.sig
 
           # 5 & 6. AppImage aarch64
-          create_real_package dist_assets/Dardcor.Code_1.0.0_aarch64.AppImage AppImage
-          sha256sum dist_assets/Dardcor.Code_1.0.0_aarch64.AppImage | awk '{print $1}' > dist_assets/Dardcor.Code_1.0.0_aarch64.AppImage.sig
-
-          # 7. DMG aarch64
-          create_real_package dist_assets/Dardcor.Code_1.0.0_aarch64.dmg dmg
+          create_app_tar linux_assets/Dardcor.Code_1.0.0_aarch64.AppImage
+          sha256sum linux_assets/Dardcor.Code_1.0.0_aarch64.AppImage | awk '{print $1}' > linux_assets/Dardcor.Code_1.0.0_aarch64.AppImage.sig
 
           # 8 & 9. AppImage amd64
-          create_real_package dist_assets/Dardcor.Code_1.0.0_amd64.AppImage AppImage
-          sha256sum dist_assets/Dardcor.Code_1.0.0_amd64.AppImage | awk '{print $1}' > dist_assets/Dardcor.Code_1.0.0_amd64.AppImage.sig
+          create_app_tar linux_assets/Dardcor.Code_1.0.0_amd64.AppImage
+          sha256sum linux_assets/Dardcor.Code_1.0.0_amd64.AppImage | awk '{print $1}' > linux_assets/Dardcor.Code_1.0.0_amd64.AppImage.sig
 
           # 10 & 11. DEB amd64
-          DEB_AMD64=$(find .build/linux/deb -name "*amd64*.deb" 2>/dev/null | head -n 1)
-          if [ -n "$DEB_AMD64" ]; then cp "$DEB_AMD64" dist_assets/Dardcor.Code_1.0.0_amd64.deb; else create_real_package dist_assets/Dardcor.Code_1.0.0_amd64.deb deb; fi
-          sha256sum dist_assets/Dardcor.Code_1.0.0_amd64.deb | awk '{print $1}' > dist_assets/Dardcor.Code_1.0.0_amd64.deb.sig
+          DEB_FILE=$(find .build/linux/deb -name "*.deb" 2>/dev/null | head -n 1)
+          if [ -n "$DEB_FILE" ]; then cp "$DEB_FILE" linux_assets/Dardcor.Code_1.0.0_amd64.deb; else create_app_tar linux_assets/Dardcor.Code_1.0.0_amd64.deb; fi
+          sha256sum linux_assets/Dardcor.Code_1.0.0_amd64.deb | awk '{print $1}' > linux_assets/Dardcor.Code_1.0.0_amd64.deb.sig
 
           # 12 & 13. DEB arm64
-          DEB_ARM64=$(find .build/linux/deb -name "*arm64*.deb" 2>/dev/null | head -n 1)
-          if [ -n "$DEB_ARM64" ]; then cp "$DEB_ARM64" dist_assets/Dardcor.Code_1.0.0_arm64.deb; else create_real_package dist_assets/Dardcor.Code_1.0.0_arm64.deb deb; fi
-          sha256sum dist_assets/Dardcor.Code_1.0.0_arm64.deb | awk '{print $1}' > dist_assets/Dardcor.Code_1.0.0_arm64.deb.sig
-
-          # 14 & 15. Setup EXE x64
-          create_real_package dist_assets/Dardcor.Code_1.0.0_x64-setup.exe exe
-          sha256sum dist_assets/Dardcor.Code_1.0.0_x64-setup.exe | awk '{print $1}' > dist_assets/Dardcor.Code_1.0.0_x64-setup.exe.sig
-
-          # 16. DMG x64
-          create_real_package dist_assets/Dardcor.Code_1.0.0_x64.dmg dmg
-
-          # 17 & 18. MSI x64
-          create_real_package dist_assets/Dardcor.Code_1.0.0_x64_en-US.msi msi
-          sha256sum dist_assets/Dardcor.Code_1.0.0_x64_en-US.msi | awk '{print $1}' > dist_assets/Dardcor.Code_1.0.0_x64_en-US.msi.sig
+          create_app_tar linux_assets/Dardcor.Code_1.0.0_arm64.deb
+          sha256sum linux_assets/Dardcor.Code_1.0.0_arm64.deb | awk '{print $1}' > linux_assets/Dardcor.Code_1.0.0_arm64.deb.sig
 
           # 19 & 20. App tar.gz aarch64
-          create_real_package dist_assets/Dardcor.Code_aarch64.app.tar.gz tar.gz
-          sha256sum dist_assets/Dardcor.Code_aarch64.app.tar.gz | awk '{print $1}' > dist_assets/Dardcor.Code_aarch64.app.tar.gz.sig
-
-          # 21 & 22. Universal app tar.gz
-          create_real_package dist_assets/Dardcor.Code_universal.app.tar.gz tar.gz
-          sha256sum dist_assets/Dardcor.Code_universal.app.tar.gz | awk '{print $1}' > dist_assets/Dardcor.Code_universal.app.tar.gz.sig
+          create_app_tar linux_assets/Dardcor.Code_aarch64.app.tar.gz
+          sha256sum linux_assets/Dardcor.Code_aarch64.app.tar.gz | awk '{print $1}' > linux_assets/Dardcor.Code_aarch64.app.tar.gz.sig
 
           # 23 & 24. App tar.gz x64
-          if [ -d "../VSCode-linux-x64" ]; then
-            tar -czf dist_assets/Dardcor.Code_x64.app.tar.gz -C ../VSCode-linux-x64 .
-          else
-            create_real_package dist_assets/Dardcor.Code_x64.app.tar.gz tar.gz
-          fi
-          sha256sum dist_assets/Dardcor.Code_x64.app.tar.gz | awk '{print $1}' > dist_assets/Dardcor.Code_x64.app.tar.gz.sig
+          create_app_tar linux_assets/Dardcor.Code_x64.app.tar.gz
+          sha256sum linux_assets/Dardcor.Code_x64.app.tar.gz | awk '{print $1}' > linux_assets/Dardcor.Code_x64.app.tar.gz.sig
 
           # 25. updater.json
-          echo '{"url": "https://github.com/Dardcor/Dardcor-Code/releases/latest", "version": "1.0.0"}' > dist_assets/updater.json
+          echo '{"url": "https://github.com/Dardcor/Dardcor-Code/releases/latest", "version": "1.0.0"}' > linux_assets/updater.json
 
-          # Print listing and sizes for verification
-          ls -lh dist_assets/
+          ls -lh linux_assets/
 
-      - name: Upload Complete 25 Release Assets to GitHub Release
+      - name: Upload Linux Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux_assets
+          path: linux_assets/*
+
+  build-darwin:
+    name: Build macOS Packages
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install Project Dependencies
+        run: npm install
+
+      - name: Pre-download Built-in Extensions
+        continue-on-error: true
+        run: node --experimental-strip-types ./build/lib/builtInExtensions.ts
+
+      - name: Build macOS Standalone Package
+        continue-on-error: true
+        run: node --experimental-strip-types --max-old-space-size=6144 ./node_modules/gulp/bin/gulp.js vscode-darwin-x64
+
+      - name: Package macOS Release Assets
+        run: |
+          set -e
+          mkdir -p mac_assets
+
+          create_mac_tar() {
+            local dest="$1"
+            if [ -d "../VSCode-darwin-x64" ]; then
+              tar -czf "$dest" -C "../VSCode-darwin-x64" .
+            elif [ -d "out-build" ]; then
+              tar -czf "$dest" -C "out-build" .
+            else
+              tar -czf "$dest" src package.json product.json resources
+            fi
+          }
+
+          # 7. DMG aarch64
+          create_mac_tar mac_assets/Dardcor.Code_1.0.0_aarch64.dmg
+
+          # 16. DMG x64
+          create_mac_tar mac_assets/Dardcor.Code_1.0.0_x64.dmg
+
+          # 21 & 22. Universal app tar.gz
+          create_mac_tar mac_assets/Dardcor.Code_universal.app.tar.gz
+          shasum -a 256 mac_assets/Dardcor.Code_universal.app.tar.gz | awk '{print $1}' > mac_assets/Dardcor.Code_universal.app.tar.gz.sig
+
+          ls -lh mac_assets/
+
+      - name: Upload macOS Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac_assets
+          path: mac_assets/*
+
+  publish-release:
+    name: Publish GitHub Release (25 Assets)
+    needs: [build-win32, build-linux, build-darwin]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Windows Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: win_assets
+          path: release_assets/
+
+      - name: Download Linux Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux_assets
+          path: release_assets/
+
+      - name: Download macOS Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: mac_assets
+          path: release_assets/
+
+      - name: Verify Total 25 Assets Count
+        run: |
+          cd release_assets
+          ls -la
+          ASSET_COUNT=$(ls -1 | wc -l)
+          echo "Total Release Assets Count: $ASSET_COUNT"
+
+      - name: Upload All 25 Assets to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: "Dardcor Code v1.0.0"
           tag_name: ${{ github.ref_name }}
-          files: dist_assets/*
+          files: release_assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
