@@ -45,7 +45,7 @@ jobs:
       - name: Prepare Copilot Extension Shims
         shell: powershell
         run: |
-          mkdir -p "extensions\copilot\node_modules\@github\copilot"
+          New-Item -ItemType Directory -Force -Path "extensions\copilot\node_modules\@github\copilot"
           Set-Content -Path "extensions\copilot\node_modules\@github\copilot\shims.txt" -Value "Shims created"
 
       - name: Build Windows Standalone Package
