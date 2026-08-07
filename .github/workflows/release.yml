@@ -55,29 +55,31 @@ jobs:
         run: |
           mkdir -p win_assets
 
-          # Locate built InnoSetup installer or Electron GUI binary
-          $SetupFile = Get-ChildItem -Path ".build" -Filter "*.exe" -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*setup*" -or $_.Name -like "*VSCode*" -or $_.Name -like "*Dardcor*" } | Select-Object -First 1
+          # Locate built InnoSetup setup executable in .build directory
+          $SetupFile = Get-ChildItem -Path ".build" -Filter "*.exe" -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*setup*" -or $_.Name -like "*VSCode*" } | Select-Object -First 1
 
           if ($SetupFile) {
-            Write-Host "Found compiled setup installer: $($SetupFile.FullName)"
+            Write-Host "Found compiled InnoSetup installer: $($SetupFile.FullName)"
             Copy-Item -Path $SetupFile.FullName -Destination "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Force
-          } elseif (Test-Path "../VSCode-win32-x64/Code.exe") {
-            Write-Host "Found VSCode-win32-x64/Code.exe"
-            Copy-Item -Path "../VSCode-win32-x64/Code.exe" -Destination "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Force
-          } elseif (Test-Path "../VSCode-win32-x64/electron.exe") {
-            Write-Host "Found VSCode-win32-x64/electron.exe"
-            Copy-Item -Path "../VSCode-win32-x64/electron.exe" -Destination "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Force
           } else {
-            $ElectronExe = Get-ChildItem -Path "node_modules" -Filter "electron.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($ElectronExe) {
-              Write-Host "Found Electron executable in node_modules: $($ElectronExe.FullName)"
-              Copy-Item -Path $ElectronExe.FullName -Destination "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Force
-            } else {
-              Write-Host "Downloading Electron v34.0.0 binary for Windows..."
-              Invoke-WebRequest -Uri "https://github.com/electron/electron/releases/download/v34.0.0/electron-v34.0.0-win32-x64.zip" -OutFile "electron.zip"
-              Expand-Archive -Path "electron.zip" -DestinationPath "electron_extracted" -Force
-              Copy-Item -Path "electron_extracted\electron.exe" -Destination "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Force
+            Write-Host "Downloading complete Electron distribution to package full Windows App..."
+            Invoke-WebRequest -Uri "https://github.com/electron/electron/releases/download/v34.0.0/electron-v34.0.0-win32-x64.zip" -OutFile "electron.zip"
+            Expand-Archive -Path "electron.zip" -DestinationPath "win_app" -Force
+            
+            # Copy application resources (out, node_modules, package.json, product.json) into Electron resources directory
+            mkdir -p "win_app\resources\app"
+            Copy-Item -Path "package.json", "product.json" -Destination "win_app\resources\app\" -Force
+            if (Test-Path "out") { Copy-Item -Path "out" -Destination "win_app\resources\app\out" -Recurse -Force }
+            if (Test-Path "src") { Copy-Item -Path "src" -Destination "win_app\resources\app\src" -Recurse -Force }
+            
+            # Rename electron.exe to Dardcor Code.exe
+            if (Test-Path "win_app\electron.exe") {
+              Rename-Item -Path "win_app\electron.exe" -NewName "Dardcor Code.exe" -Force
             }
+
+            # Zip full application folder as setup archive / installer
+            Compress-Archive -Path "win_app\*" -DestinationPath "win_assets\Dardcor.Code_1.0.0_x64-setup.zip" -Force
+            Move-Item -Path "win_assets\Dardcor.Code_1.0.0_x64-setup.zip" -Destination "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Force
           }
 
           # MSI Package (copy setup GUI binary format)
