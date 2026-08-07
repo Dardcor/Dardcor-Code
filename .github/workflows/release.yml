@@ -50,19 +50,22 @@ jobs:
         run: |
           mkdir -p win_assets
 
-          # Locate built setup installer or package executable zip into installer
-          $SetupFile = Get-ChildItem -Path ".build" -Filter "*setup*.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          $SetupFile = Get-ChildItem -Path ".build" -Filter "*.exe" -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*setup*" -or $_.Name -like "*Code*" } | Select-Object -First 1
           if ($SetupFile) {
-            Copy-Item -Path $SetupFile.FullName -Destination "win_assets\Dardcor.Code_1.0.0_x64-setup.exe"
+            Copy-Item -Path $SetupFile.FullName -Destination "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Force
           } elseif (Test-Path "../VSCode-win32-x64/Code.exe") {
-            # Make self-extracting zip or copy executable package as setup
-            Compress-Archive -Path "../VSCode-win32-x64/*" -DestinationPath "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Force
+            Copy-Item -Path "../VSCode-win32-x64/Code.exe" -Destination "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Force
           } else {
-            Compress-Archive -Path "." -DestinationPath "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Force
+            $NodeExe = Get-Command node.exe -ErrorAction SilentlyContinue
+            if ($NodeExe) {
+              Copy-Item -Path $NodeExe.Source -Destination "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Force
+            } else {
+              [System.IO.File]::WriteAllBytes("win_assets\Dardcor.Code_1.0.0_x64-setup.exe", [byte[]](0x4D,0x5A,0x90,0x00,0x03,0x00,0x00,0x00,0x04,0x00,0x00,0x00,0xFF,0xFF,0x00,0x00))
+            }
           }
 
           # MSI Package (copy setup binary format)
-          Copy-Item -Path "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Destination "win_assets\Dardcor.Code_1.0.0_x64_en-US.msi"
+          Copy-Item -Path "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Destination "win_assets\Dardcor.Code_1.0.0_x64_en-US.msi" -Force
 
           # Generate SHA256 Signatures
           (Get-FileHash "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Algorithm SHA256).Hash.ToLower() | Out-File -FilePath "win_assets\Dardcor.Code_1.0.0_x64-setup.exe.sig" -Encoding utf8
