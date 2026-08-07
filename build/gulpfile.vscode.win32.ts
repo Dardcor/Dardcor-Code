@@ -22,7 +22,15 @@ const repoPath = path.dirname(import.meta.dirname);
 const commit = getVersion(repoPath);
 const buildPath = (arch: string) => path.join(path.dirname(repoPath), `VSCode-win32-${arch}`);
 const setupDir = (arch: string, target: string) => path.join(repoPath, '.build', `win32-${arch}`, `${target}-setup`);
-const innoSetupPath = path.join(path.dirname(path.dirname(require.resolve('innosetup'))), 'bin', 'ISCC.exe');
+let innoSetupPath = 'ISCC.exe';
+try {
+	innoSetupPath = path.join(path.dirname(path.dirname(require.resolve('innosetup'))), 'bin', 'ISCC.exe');
+	if (!fs.existsSync(innoSetupPath)) {
+		innoSetupPath = 'C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe';
+	}
+} catch {
+	innoSetupPath = 'C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe';
+}
 const signWin32Path = path.join(repoPath, 'build', 'azure-pipelines', 'common', 'sign-win32.ts');
 
 function packageInnoSetup(iss: string, options: { definitions?: Record<string, unknown> }, cb: (err?: Error | null) => void) {
