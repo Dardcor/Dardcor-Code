@@ -110,7 +110,8 @@ jobs:
             Expand-Archive -Path "electron.zip" -DestinationPath "win_app" -Force
 
             # Rebrand executable with proper icon and product info
-            npx rcedit "win_app\electron.exe" --set-icon "resources\win32\code.ico" --set-version-string "ProductName" "Dardcor Code" --set-version-string "CompanyName" "Dardcor Corporation" --set-version-string "FileDescription" "Dardcor Code" --set-file-version "1.0.0" --set-product-version "1.0.0"
+            npm install rcedit --no-save
+            .\node_modules\.bin\rcedit "win_app\electron.exe" --set-icon "resources\win32\code.ico" --set-version-string "ProductName" "Dardcor Code" --set-version-string "CompanyName" "Dardcor Corporation" --set-version-string "FileDescription" "Dardcor Code" --set-file-version "1.0.0" --set-product-version "1.0.0"
             Rename-Item -Path "win_app\electron.exe" -NewName "Dardcor Code.exe" -Force
 
             # Copy ONLY compiled workbench output (lightweight - no raw source, no dev deps)
@@ -119,20 +120,21 @@ jobs:
 
             # Copy compiled output only (no source maps)
             if (Test-Path "out") {
-              robocopy "out" "win_app\resources\app\out" /E /XF *.map /NFL /NDL /NJH /NJS /NC /NS /NP
+              robocopy "out" "win_app\resources\app\out" /E /XF *.map /NFL /NDL /NJH /NJS /NC /NS /NP | Out-Null
             }
 
             # Copy ONLY production dependencies (not devDependencies) - lightweight
             if (Test-Path "node_modules") {
               Write-Host "Copying production dependencies only..."
-              npm ls --prod --parseable 2>$null | ForEach-Object {
+              $npmOutput = cmd /c "npm ls --omit=dev --parseable 2>nul"
+              $npmOutput | ForEach-Object {
                 $rel = $_.Replace((Get-Location).Path + "\", "")
                 if ($rel -like "node_modules\*") {
                   $dest = "win_app\resources\app\$rel"
                   $destDir = Split-Path $dest -Parent
                   New-Item -ItemType Directory -Force -Path $destDir -ErrorAction SilentlyContinue | Out-Null
                   if (Test-Path $_ -PathType Container) {
-                    robocopy "$_" "$dest" /E /XD test tests __tests__ .github docs examples /XF *.md *.map *.ts !*.d.ts LICENSE* CHANGELOG* README* /NFL /NDL /NJH /NJS /NC /NS /NP
+                    robocopy "$_" "$dest" /E /XD test tests __tests__ .github docs examples /XF *.md *.map *.ts !*.d.ts LICENSE* CHANGELOG* README* /NFL /NDL /NJH /NJS /NC /NS /NP | Out-Null
                   }
                 }
               }
