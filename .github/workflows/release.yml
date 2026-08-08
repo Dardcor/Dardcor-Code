@@ -65,17 +65,16 @@ jobs:
           $SetupFile = Get-ChildItem -Path ".build" -Filter "*.exe" -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*Setup*" -or $_.Name -like "*setup*" } | Select-Object -First 1
 
           if ($SetupFile) {
-            Write-Host "SUCCESS: Found compiled InnoSetup installer: $($SetupFile.FullName)"
+            Write-Host "SUCCESS: Found compiled InnoSetup installer: $($SetupFile.FullName) ($([math]::Round($SetupFile.Length/1MB, 2)) MB)"
             Copy-Item -Path $SetupFile.FullName -Destination "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Force
+
           } elseif (Test-Path "..\VSCode-win32-x64") {
             Write-Host "Found VSCode-win32-x64 built directory, creating InnoSetup installer from it..."
 
-            # Find the main executable (named after product.nameShort)
             $MainExe = Get-ChildItem -Path "..\VSCode-win32-x64" -Filter "*.exe" -ErrorAction SilentlyContinue | Where-Object { $_.Name -notlike "*unins*" } | Select-Object -First 1
             $ExeName = if ($MainExe) { $MainExe.Name } else { "Dardcor Code.exe" }
             Write-Host "Main executable: $ExeName"
 
-            # Build InnoSetup script from the fully built VSCode-win32-x64 directory
             $issLines = @(
               '[Setup]',
               'AppName=Dardcor Code',
@@ -84,7 +83,7 @@ jobs:
               'DefaultGroupName=Dardcor Code',
               'OutputDir=..\Dardcor-Code\win_assets',
               'OutputBaseFilename=Dardcor.Code_1.0.0_x64-setup',
-              'Compression=lzma2',
+              'Compression=lzma2/ultra64',
               'SolidCompression=yes',
               'AppPublisher=Dardcor Corporation',
               'AppPublisherURL=https://dardcor-code.web.id/',
@@ -103,25 +102,46 @@ jobs:
               ('Filename: "{app}\' + $ExeName + '"; Description: "Launch Dardcor Code"; Flags: nowait postinstall skipifsilent')
             )
             $issLines | Out-File -FilePath "..\VSCode-win32-x64\custom_setup.iss" -Encoding utf8
-
             & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "..\VSCode-win32-x64\custom_setup.iss"
+
           } else {
-            Write-Host "Downloading Electron v42.7.1 and bundling compiled workbench..."
+            Write-Host "Building lightweight Electron app package..."
             Invoke-WebRequest -Uri "https://github.com/electron/electron/releases/download/v42.7.1/electron-v42.7.1-win32-x64.zip" -OutFile "electron.zip"
             Expand-Archive -Path "electron.zip" -DestinationPath "win_app" -Force
 
-            # Use rcedit to rebrand the exe with proper icon and product info
+            # Rebrand executable with proper icon and product info
             npx rcedit "win_app\electron.exe" --set-icon "resources\win32\code.ico" --set-version-string "ProductName" "Dardcor Code" --set-version-string "CompanyName" "Dardcor Corporation" --set-version-string "FileDescription" "Dardcor Code" --set-file-version "1.0.0" --set-product-version "1.0.0"
             Rename-Item -Path "win_app\electron.exe" -NewName "Dardcor Code.exe" -Force
 
-            # Copy compiled workbench output into resources/app
+            # Copy ONLY compiled workbench output (lightweight - no raw source, no dev deps)
             New-Item -ItemType Directory -Force -Path "win_app\resources\app" | Out-Null
             Copy-Item -Path "package.json", "product.json" -Destination "win_app\resources\app\" -Force
-            if (Test-Path "out") { Copy-Item -Path "out" -Destination "win_app\resources\app\out" -Recurse -Force }
-            if (Test-Path "extensions") { Copy-Item -Path "extensions" -Destination "win_app\resources\app\extensions" -Recurse -Force }
-            if (Test-Path "node_modules") { Copy-Item -Path "node_modules" -Destination "win_app\resources\app\node_modules" -Recurse -Force }
 
-            # Build InnoSetup installer
+            # Copy compiled output only (no source maps)
+            if (Test-Path "out") {
+              robocopy "out" "win_app\resources\app\out" /E /XF *.map /NFL /NDL /NJH /NJS /NC /NS /NP
+            }
+
+            # Copy ONLY production dependencies (not devDependencies) - lightweight
+            if (Test-Path "node_modules") {
+              Write-Host "Copying production dependencies only..."
+              npm ls --prod --parseable 2>$null | ForEach-Object {
+                $rel = $_.Replace((Get-Location).Path + "\", "")
+                if ($rel -like "node_modules\*") {
+                  $dest = "win_app\resources\app\$rel"
+                  $destDir = Split-Path $dest -Parent
+                  New-Item -ItemType Directory -Force -Path $destDir -ErrorAction SilentlyContinue | Out-Null
+                  if (Test-Path $_ -PathType Container) {
+                    robocopy "$_" "$dest" /E /XD test tests __tests__ .github docs examples /XF *.md *.map *.ts !*.d.ts LICENSE* CHANGELOG* README* /NFL /NDL /NJH /NJS /NC /NS /NP
+                  }
+                }
+              }
+            }
+
+            # Remove unnecessary files to minimize size
+            Get-ChildItem -Path "win_app" -Recurse -Include "*.map","*.md","*.txt","*.yml","*.yaml" -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne "ThirdPartyNotices.txt" -and $_.Name -ne "LICENSE.txt" } | Remove-Item -Force -ErrorAction SilentlyContinue
+
+            # Build InnoSetup installer with maximum compression
             $issLines = @(
               '[Setup]',
               'AppName=Dardcor Code',
@@ -130,7 +150,7 @@ jobs:
               'DefaultGroupName=Dardcor Code',
               'OutputDir=win_assets',
               'OutputBaseFilename=Dardcor.Code_1.0.0_x64-setup',
-              'Compression=lzma2',
+              'Compression=lzma2/ultra64',
               'SolidCompression=yes',
               'AppPublisher=Dardcor Corporation',
               'AppPublisherURL=https://dardcor-code.web.id/',
@@ -149,7 +169,6 @@ jobs:
               'Filename: "{app}\Dardcor Code.exe"; Description: "Launch Dardcor Code"; Flags: nowait postinstall skipifsilent'
             )
             $issLines | Out-File -FilePath "custom_setup.iss" -Encoding utf8
-
             & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" custom_setup.iss
           }
 
@@ -158,6 +177,9 @@ jobs:
             Write-Host "ERROR: Setup exe was not created!"
             exit 1
           }
+
+          $size = [math]::Round((Get-Item "win_assets\Dardcor.Code_1.0.0_x64-setup.exe").Length / 1MB, 2)
+          Write-Host "Setup installer size: $size MB"
 
           # MSI Package
           Copy-Item -Path "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Destination "win_assets\Dardcor.Code_1.0.0_x64_en-US.msi" -Force
@@ -234,7 +256,17 @@ jobs:
             elif [ -d "out-build" ]; then
               tar -czf "$dest" -C "out-build" .
             else
-              tar -czf "$dest" src package.json product.json resources node_modules out 2>/dev/null || tar -czf "$dest" src package.json product.json resources
+              # Lightweight fallback: only compiled output + production deps
+              tar -czf "$dest" \
+                --exclude='*.map' \
+                --exclude='node_modules/*/test' \
+                --exclude='node_modules/*/tests' \
+                --exclude='node_modules/*/.github' \
+                --exclude='node_modules/*/docs' \
+                --exclude='node_modules/*/examples' \
+                --exclude='extensions/*/node_modules/*/test' \
+                out package.json product.json resources/linux 2>/dev/null || \
+              tar -czf "$dest" package.json product.json
             fi
           }
 
@@ -326,7 +358,13 @@ jobs:
             elif [ -d "out-build" ]; then
               tar -czf "$dest" -C "out-build" .
             else
-              tar -czf "$dest" src package.json product.json resources node_modules out 2>/dev/null || tar -czf "$dest" src package.json product.json resources
+              tar -czf "$dest" \
+                --exclude='*.map' \
+                --exclude='node_modules/*/test' \
+                --exclude='node_modules/*/tests' \
+                --exclude='node_modules/*/.github' \
+                out package.json product.json resources/darwin 2>/dev/null || \
+              tar -czf "$dest" package.json product.json
             fi
           }
 
