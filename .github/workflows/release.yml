@@ -105,73 +105,9 @@ jobs:
             & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "..\VSCode-win32-x64\custom_setup.iss"
 
           } else {
-            Write-Host "Building lightweight Electron app package..."
-            Invoke-WebRequest -Uri "https://github.com/electron/electron/releases/download/v42.7.1/electron-v42.7.1-win32-x64.zip" -OutFile "electron.zip"
-            Expand-Archive -Path "electron.zip" -DestinationPath "win_app" -Force
-
-            # Rebrand executable with proper icon and product info
-            npm install rcedit --no-save
-            .\node_modules\.bin\rcedit "win_app\electron.exe" --set-icon "resources\win32\code.ico" --set-version-string "ProductName" "Dardcor Code" --set-version-string "CompanyName" "Dardcor Corporation" --set-version-string "FileDescription" "Dardcor Code" --set-file-version "1.0.0" --set-product-version "1.0.0"
-            Rename-Item -Path "win_app\electron.exe" -NewName "Dardcor Code.exe" -Force
-
-            # Copy ONLY compiled workbench output (lightweight - no raw source, no dev deps)
-            New-Item -ItemType Directory -Force -Path "win_app\resources\app" | Out-Null
-            Copy-Item -Path "package.json", "product.json" -Destination "win_app\resources\app\" -Force
-
-            # Copy compiled output only (no source maps)
-            if (Test-Path "out") {
-              robocopy "out" "win_app\resources\app\out" /E /XF *.map /NFL /NDL /NJH /NJS /NC /NS /NP | Out-Null
-            }
-
-            # Copy ONLY production dependencies (not devDependencies) - lightweight
-            if (Test-Path "node_modules") {
-              Write-Host "Copying production dependencies only..."
-              $npmOutput = cmd /c "npm ls --omit=dev --parseable 2>nul"
-              $npmOutput | ForEach-Object {
-                $rel = $_.Replace((Get-Location).Path + "\", "")
-                if ($rel -like "node_modules\*") {
-                  $dest = "win_app\resources\app\$rel"
-                  $destDir = Split-Path $dest -Parent
-                  New-Item -ItemType Directory -Force -Path $destDir -ErrorAction SilentlyContinue | Out-Null
-                  if (Test-Path $_ -PathType Container) {
-                    robocopy "$_" "$dest" /E /XD test tests __tests__ .github docs examples /XF *.md *.map *.ts !*.d.ts LICENSE* CHANGELOG* README* /NFL /NDL /NJH /NJS /NC /NS /NP | Out-Null
-                  }
-                }
-              }
-            }
-
-            # Remove unnecessary files to minimize size
-            Get-ChildItem -Path "win_app" -Recurse -Include "*.map","*.md","*.txt","*.yml","*.yaml" -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne "ThirdPartyNotices.txt" -and $_.Name -ne "LICENSE.txt" } | Remove-Item -Force -ErrorAction SilentlyContinue
-
-            # Build InnoSetup installer with maximum compression
-            $issLines = @(
-              '[Setup]',
-              'AppName=Dardcor Code',
-              'AppVersion=1.0.0',
-              'DefaultDirName={autopf}\Dardcor Code',
-              'DefaultGroupName=Dardcor Code',
-              'OutputDir=win_assets',
-              'OutputBaseFilename=Dardcor.Code_1.0.0_x64-setup',
-              'Compression=lzma2/ultra64',
-              'SolidCompression=yes',
-              'AppPublisher=Dardcor Corporation',
-              'AppPublisherURL=https://dardcor-code.web.id/',
-              'ArchitecturesAllowed=x64',
-              'ArchitecturesInstallIn64BitMode=x64',
-              'SetupIconFile=resources\win32\code.ico',
-              '',
-              '[Files]',
-              'Source: "win_app\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs',
-              '',
-              '[Icons]',
-              'Name: "{group}\Dardcor Code"; Filename: "{app}\Dardcor Code.exe"',
-              'Name: "{autodesktop}\Dardcor Code"; Filename: "{app}\Dardcor Code.exe"',
-              '',
-              '[Run]',
-              'Filename: "{app}\Dardcor Code.exe"; Description: "Launch Dardcor Code"; Flags: nowait postinstall skipifsilent'
-            )
-            $issLines | Out-File -FilePath "custom_setup.iss" -Encoding utf8
-            & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" custom_setup.iss
+            Write-Host "ERROR: Found neither Setup file nor VSCode-win32-x64 directory!"
+            Write-Host "The official Gulp build must have failed. Aborting to prevent a broken fallback build."
+            exit 1
           }
 
           # Verify setup exe was created
