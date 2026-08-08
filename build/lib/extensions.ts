@@ -476,8 +476,10 @@ export function packageCopilotExtensionStream(disableMangle: boolean): Stream {
 	);
 
 	const productionDependencies = getProductionDependencies('extensions/copilot');
-	const dependenciesSrc = productionDependencies.map(d => path.relative(root, d)).map(d => [`${d}/**`, `!${d}/**/{test,tests}/**`]).flat().concat('!extensions/copilot/node_modules/@github/copilot/shims.txt');
-
+	const dependenciesSrc = productionDependencies.map(d => path.relative(root, d)).map(d => [`${d}/**`, `!${d}/**/{test,tests}/**`]).flat().concat([
+		'!extensions/copilot/node_modules/@github/copilot/shims.txt',
+		'!extensions/copilot/node_modules/@opentelemetry/**'
+	]);
 	return es.merge(
 		localExtensionsStream,
 		gulp.src(dependenciesSrc, { base: '.' })

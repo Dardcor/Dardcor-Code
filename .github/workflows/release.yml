@@ -49,11 +49,9 @@ jobs:
           Set-Content -Path "extensions\copilot\node_modules\@github\copilot\shims.txt" -Value "Shims created"
 
       - name: Build Windows Standalone Package
-        continue-on-error: true
         run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-win32-x64
 
       - name: Build Windows System Setup Package
-        continue-on-error: true
         run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-win32-x64-system-setup
 
       - name: Package Windows Release Assets
@@ -68,45 +66,9 @@ jobs:
             Write-Host "SUCCESS: Found compiled InnoSetup installer: $($SetupFile.FullName) ($([math]::Round($SetupFile.Length/1MB, 2)) MB)"
             Copy-Item -Path $SetupFile.FullName -Destination "win_assets\Dardcor.Code_1.0.0_x64-setup.exe" -Force
 
-          } elseif (Test-Path "..\VSCode-win32-x64") {
-            Write-Host "Found VSCode-win32-x64 built directory, creating InnoSetup installer from it..."
-
-            $MainExe = Get-ChildItem -Path "..\VSCode-win32-x64" -Filter "*.exe" -ErrorAction SilentlyContinue | Where-Object { $_.Name -notlike "*unins*" } | Select-Object -First 1
-            $ExeName = if ($MainExe) { $MainExe.Name } else { "Dardcor Code.exe" }
-            Write-Host "Main executable: $ExeName"
-
-            $issLines = @(
-              '[Setup]',
-              'AppName=Dardcor Code',
-              'AppVersion=1.0.0',
-              'DefaultDirName={autopf}\Dardcor Code',
-              'DefaultGroupName=Dardcor Code',
-              'OutputDir=..\Dardcor-Code\win_assets',
-              'OutputBaseFilename=Dardcor.Code_1.0.0_x64-setup',
-              'Compression=lzma2/ultra64',
-              'SolidCompression=yes',
-              'AppPublisher=Dardcor Corporation',
-              'AppPublisherURL=https://dardcor-code.web.id/',
-              'ArchitecturesAllowed=x64',
-              'ArchitecturesInstallIn64BitMode=x64',
-              'SetupIconFile=..\Dardcor-Code\resources\win32\code.ico',
-              '',
-              '[Files]',
-              ('Source: "*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs'),
-              '',
-              '[Icons]',
-              ('Name: "{group}\Dardcor Code"; Filename: "{app}\' + $ExeName + '"'),
-              ('Name: "{autodesktop}\Dardcor Code"; Filename: "{app}\' + $ExeName + '"'),
-              '',
-              '[Run]',
-              ('Filename: "{app}\' + $ExeName + '"; Description: "Launch Dardcor Code"; Flags: nowait postinstall skipifsilent')
-            )
-            $issLines | Out-File -FilePath "..\VSCode-win32-x64\custom_setup.iss" -Encoding utf8
-            & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "..\VSCode-win32-x64\custom_setup.iss"
-
           } else {
-            Write-Host "ERROR: Found neither Setup file nor VSCode-win32-x64 directory!"
-            Write-Host "The official Gulp build must have failed. Aborting to prevent a broken fallback build."
+            Write-Host "ERROR: Found no Setup file!"
+            Write-Host "The official Gulp build must have failed. Aborting."
             exit 1
           }
 
