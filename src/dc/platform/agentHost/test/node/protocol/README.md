@@ -19,7 +19,7 @@ Use `../e2e/` when the behavior depends on a real Claude, Copilot, or Codex proc
 Run one suite with:
 
 ```bash
-./scripts/test-integration.sh --run src/dc/platform/agentHost/test/node/protocol/handshake.integrationTest.ts
+./scripts/test-integration.sh --run src/vs/platform/agentHost/test/node/protocol/handshake.integrationTest.ts
 ```
 
 Shared server/client infrastructure lives in `../serverIntegrationTestHelpers.ts`.

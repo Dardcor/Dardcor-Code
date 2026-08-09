@@ -54,7 +54,7 @@ Findings cross-checked against `CONTEXT.md` and source by three independent revi
 
 ### Mapping doc bugs (Cycle A scope)
 
-- **Q1** — `CONTEXT.md` references `setSessionConfigValues` 4× (lines 1995, 1998, 2008, 2195). Method does NOT exist on `IAgent` (verified by grep across `src/dc/platform/agentHost/common/`). Definitive doc bug.
+- **Q1** — `CONTEXT.md` references `setSessionConfigValues` 4× (lines 1995, 1998, 2008, 2195). Method does NOT exist on `IAgent` (verified by grep across `src/vs/platform/agentHost/common/`). Definitive doc bug.
 - **Q2** — M11 implies `permissionMode` should be `sessionMutable: true`, but Q1's missing protocol method means there's no mechanism to perform the mutation post-creation. Self-contradiction. Resolution must accompany Q1.
 
 ### NIT

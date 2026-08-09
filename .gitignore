@@ -54,3 +54,17 @@ dist
 skills-lock.json
 List-OS.md
 .superpowers
+files_dardcor.txt
+files_vscode.txt
+missing_in_dardcor.txt
+dc_files.txt
+vscode_files.txt
+# Data Penting / Rahasia
+.env
+.env.*
+*.pem
+*.key
+keys/
+secrets/
+brain/
+

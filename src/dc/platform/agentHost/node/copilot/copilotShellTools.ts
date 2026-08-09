@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -810,4 +809,3 @@ function createZshModelDescription(isSandboxEnabled: boolean, networkDomains?: I
 		'- NEVER use status as a variable name (it is read-only in zsh). Use exit_code or ret instead',
 	].join('\n');
 }
-

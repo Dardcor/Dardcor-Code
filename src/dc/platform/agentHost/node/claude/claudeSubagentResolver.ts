@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -91,7 +90,7 @@ export async function fetchParentTurns(
 
 /**
  * Thin convenience wrappers over the base validators in
- * `src/dc/base/common/validation.ts`. The base API returns a
+ * `src/vs/base/common/validation.ts`. The base API returns a
  * `{content, error}` discriminated union (built for full schema
  * validation); these wrappers collapse that to `T | undefined` for the
  * narrow `is-it-this-type?` checks below where we just need a
@@ -354,4 +353,3 @@ export async function getSubagentTranscript(
 	}
 	return mapSessionMessagesToTurns(messages, subagentUri, logService);
 }
-

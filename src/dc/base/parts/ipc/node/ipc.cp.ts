@@ -282,4 +282,3 @@ export class Client implements IChannelClient, IDisposable {
 		this.activeRequests.clear();
 	}
 }
-

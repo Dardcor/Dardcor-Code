@@ -8,33 +8,14 @@
  * with a filled, rounded background that sits behind the icon.
  */
 
-/* Drop the 2px left border indicator on the active item. */
-.style-override .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item.checked .active-item-indicator:before {
-	border-left: none !important;
-}
-
-/*
- * Turn the active item indicator into an inset, rounded background box. It is
- * pushed behind the icon (which lives on the action-label at z-index 1) so the
- * icon stays legible on top of the fill. The size is derived from the activity
- * bar's own CSS variables so it works for both the normal (36px) and compact
- * (28px wide / 28px tall) layouts. Bar width equals action height in both sizes,
- * so the box is a centered square and `left` keeps it horizontally centered.
- */
-.style-override .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .action-item.checked .active-item-indicator {
-	z-index: 0;
-	top: 0;
-	left: calc((var(--activity-bar-width, 36px) - var(--activity-bar-action-height, 36px) + 4px) / 2);
-	width: calc(var(--activity-bar-action-height, 36px) - 4px);
-	height: calc(var(--activity-bar-action-height, 36px) - 4px);
-	border-radius: var(--vscode-cornerRadius-medium);
-	background-color: var(--vscode-activityBar-activeBackground, var(--vscode-list-inactiveSelectionBackground));
-}
-
-/* Compact: minimal horizontal inset — 24×24px box centered in the 28px item. */
-.style-override .activitybar.compact > .content :not(.monaco-menu) > .monaco-action-bar .action-item.checked .active-item-indicator {
-	width: calc(var(--activity-bar-action-height, 28px) - 4px);
-	height: calc(var(--activity-bar-action-height, 28px) - 4px);
+.monaco-workbench .activitybar .action-item:focus:not(:focus-visible),
+.monaco-workbench .activitybar .action-item.checked:focus:not(:focus-visible),
+.monaco-workbench .activitybar .action-label:focus:not(:focus-visible),
+.monaco-workbench .activitybar .action-item:focus,
+.monaco-workbench .activitybar .action-item.checked:focus {
+	outline: none !important;
+	border: none !important;
+	box-shadow: none !important;
 }
 
 /*
@@ -89,7 +70,7 @@
 	width: calc(var(--activity-bar-action-height, 36px) - 4px);
 	height: calc(var(--activity-bar-action-height, 36px) - 4px);
 	border-radius: var(--vscode-cornerRadius-medium);
-	background-color: var(--vscode-list-hoverBackground);
+	background-color: transparent !important; /* Dardcor Code: removed box to match VS Code */
 }
 
 /* Compact: minimal horizontal inset — 24×24px box centered in the 28px item. */
@@ -141,7 +122,7 @@
  */
 .style-override .pane-composite-part > .title > .composite-bar-container > .composite-bar > .monaco-action-bar .action-item.icon.checked:not(:focus) .active-item-indicator:before,
 .style-override .pane-composite-part > .header-or-footer > .composite-bar-container > .composite-bar > .monaco-action-bar .action-item.icon.checked:not(:focus) .active-item-indicator:before {
-	display: none;
+	/* display: none; */ /* Dardcor Code: Restore the thin top/bottom active border line */
 }
 
 /* Active item: inset, rounded background box behind the icon. */
@@ -153,7 +134,7 @@
 	width: 24px;
 	height: 24px;
 	border-radius: var(--vscode-cornerRadius-small);
-	background-color: var(--vscode-activityBar-activeBackground, var(--vscode-list-inactiveSelectionBackground));
+	background-color: transparent !important; /* Dardcor Code: removed active box */
 }
 
 /*
@@ -169,7 +150,7 @@
 	width: 24px;
 	height: 24px;
 	border-radius: var(--vscode-cornerRadius-small);
-	background-color: var(--vscode-list-hoverBackground);
+	background-color: transparent !important; /* Dardcor Code: removed hover box */
 }
 
 /*
@@ -362,3 +343,12 @@
 .style-override.monaco-workbench .activitybar.compact > .content :not(.monaco-menu) > .monaco-action-bar .profile-badge .profile-text-overlay {
 	top: 10px;
 }
+
+.monaco-workbench .activitybar .action-item:focus, .monaco-workbench .activitybar .action-label:focus { outline: none !important; border: none !important; box-shadow: none !important; }
+
+
+.monaco-workbench .activitybar .action-item *, .monaco-workbench .activitybar .action-item:focus * { outline: none !important; border: none !important; box-shadow: none !important; }
+
+
+.monaco-workbench .activitybar .action-item.checked .action-label::before, .monaco-workbench .activitybar .action-item.active .action-label::before { outline: none !important; border: none !important; box-shadow: none !important; }
+

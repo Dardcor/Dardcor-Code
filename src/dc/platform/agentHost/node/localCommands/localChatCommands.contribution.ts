@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -11,4 +10,3 @@
 // plus an import here.
 import './renameLocalCommand.js';
 import './bangLocalCommand.js';
-

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -145,6 +144,29 @@ suite('CodexAppServerClient', () => {
 			peer.push({ id: sent.id, result: { authMode: 'apikey' } });
 			const result = await responsePromise as { authMode: string };
 			assert.deepStrictEqual(result, { authMode: 'apikey' });
+		} finally {
+			client.dispose();
+			peer.dispose();
+		}
+	});
+
+	test('request includes W3C trace context when provided', async () => {
+		const peer = makeFakePeer();
+		const client = new CodexAppServerClient(peer.transport);
+		try {
+			const responsePromise = client.request('getAuthStatus', { refreshToken: false, includeToken: false }, {
+				traceId: '1'.repeat(32),
+				spanId: '2'.repeat(16),
+				traceparent: `00-${'1'.repeat(32)}-${'2'.repeat(16)}-01`,
+				tracestate: 'vendor=value',
+			});
+			const sent = await readNextMessage(peer.outbound) as { id: number; trace: unknown };
+			assert.deepStrictEqual(sent.trace, {
+				traceparent: `00-${'1'.repeat(32)}-${'2'.repeat(16)}-01`,
+				tracestate: 'vendor=value',
+			});
+			peer.push({ id: sent.id, result: { authMode: 'apikey' } });
+			await responsePromise;
 		} finally {
 			client.dispose();
 			peer.dispose();
@@ -369,4 +391,3 @@ suite('CodexAppServerClient', () => {
 		}
 	});
 });
-

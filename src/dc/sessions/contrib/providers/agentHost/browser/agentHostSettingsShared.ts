@@ -30,7 +30,7 @@ export type {
 
 // ============================================================================
 // Sessions-specific glue over the target-neutral Agent Host config editor
-// infrastructure (`dc/workbench/contrib/chat/browser/agentSessions/agentHost/agentHostConfigEditor.ts`).
+// infrastructure (`vs/workbench/contrib/chat/browser/agentSessions/agentHost/agentHostConfigEditor.ts`).
 //
 // Both the per-session (`agent-session-settings://...`) and the per-host
 // (`agent-host-settings://...`) synthetic settings editors in the sessions

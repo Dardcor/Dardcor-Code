@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -42,4 +41,3 @@ export const DEFAULT_MCP_APP_CAPABILITIES: AhpMcpUiHostCapabilities = {
 export const DEFAULT_MCP_APP: McpServerCustomizationApps = {
 	capabilities: DEFAULT_MCP_APP_CAPABILITIES,
 };
-

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -16,6 +15,7 @@
 import { Emitter } from '../../../base/common/event.js';
 import { Disposable, DisposableStore } from '../../../base/common/lifecycle.js';
 import { IntervalTimer, disposableTimeout } from '../../../base/common/async.js';
+import { AgentHostClientConnectionKind } from '../common/agentHostTelemetry.js';
 import type { AhpServerNotification, JsonRpcNotification, JsonRpcRequest, JsonRpcResponse, ProtocolMessage } from '../common/state/sessionProtocol.js';
 import type { IClientTransport } from '../common/state/sessionTransport.js';
 import { Reassembler } from '../common/webPubSub/chunking.js';
@@ -97,6 +97,7 @@ export interface IWebPubSubRelayTransportOptions {
  * 3. {@link dispose} (or a socket close/error) fires {@link onClose} once.
  */
 export class WebPubSubRelayTransport extends Disposable implements IClientTransport {
+	readonly clientConnectionKind = AgentHostClientConnectionKind.WebPubSub;
 
 	private readonly _onMessage = this._register(new Emitter<ProtocolMessage>());
 	readonly onMessage = this._onMessage.event;
@@ -320,4 +321,3 @@ export class WebPubSubRelayTransport extends Disposable implements IClientTransp
 		super.dispose();
 	}
 }
-

@@ -168,7 +168,7 @@ function readJson(buf: Uint8Array): unknown {
  * A {@link TestConfigurationService} whose `chat.tools.global.autoApprove`
  * policy value is pinned to `false`, simulating an organization policy that
  * disables auto-approval. Mirrors the identical helper in
- * `dc/sessions/contrib/providers/agentHost/test/browser/localAgentHostSessionsProvider.test.ts`.
+ * `vs/sessions/contrib/providers/agentHost/test/browser/localAgentHostSessionsProvider.test.ts`.
  */
 function createPolicyRestrictedConfigurationService(): TestConfigurationService {
 	return new class extends TestConfigurationService {

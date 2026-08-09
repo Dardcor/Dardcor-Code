@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -70,4 +69,3 @@ export function writeUpstreamJsonError(
 export function formatSseErrorFrame(envelope: Anthropic.ErrorResponse): string {
 	return `event: error\ndata: ${JSON.stringify(envelope)}\n\n`;
 }
-

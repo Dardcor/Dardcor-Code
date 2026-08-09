@@ -23,7 +23,7 @@ agent roadmap.
 ### What ships before this phase
 
 **Phase 1 (done):** `ICopilotApiService` at
-`src/dc/platform/agentHost/node/shared/copilotApiService.ts`. A
+`src/vs/platform/agentHost/node/shared/copilotApiService.ts`. A
 gateway to GitHub Copilot's chat completions API ("**CAPI**") that
 exposes:
 
@@ -157,7 +157,7 @@ locked in. The numbering matches the design log in `CONTEXT.md`.
 ### Q1 — Naming
 
 `IClaudeProxyService` / `ClaudeProxyService`. Files under
-`src/dc/platform/agentHost/node/claude/`.
+`src/vs/platform/agentHost/node/claude/`.
 
 ### Q2 — Lifecycle / DI
 
@@ -464,14 +464,14 @@ them would have required threading the same five arguments through
 every call. Final layout:
 
 ```
-src/dc/platform/agentHost/node/claude/
+src/vs/platform/agentHost/node/claude/
 ├── claudeProxyService.ts   # interface + impl + lifecycle + server + dispatch + route handlers
 ├── claudeModelId.ts        # parser (Q6) — mirror of extension copy
 ├── anthropicBetas.ts       # filterSupportedBetas + allowlist (Q7)
 ├── anthropicErrors.ts      # buildErrorEnvelope, writeJsonError, writeUpstreamJsonError, formatSseErrorFrame (Q10)
 └── claudeProxyAuth.ts      # parseProxyBearer (Q4)
 
-src/dc/platform/agentHost/test/node/   (flat, matches existing convention)
+src/vs/platform/agentHost/test/node/   (flat, matches existing convention)
 ├── claudeModelId.test.ts
 ├── anthropicBetas.test.ts
 ├── claudeProxyAuth.test.ts
@@ -618,7 +618,7 @@ Three surfaces.
 ### Surface 1 — pure-helper unit tests
 
 Zero deps, fast, deterministic. Located in
-`src/dc/platform/agentHost/test/node/`:
+`src/vs/platform/agentHost/test/node/`:
 
 - `claudeModelId.test.ts` — port the extension's fixture matrix;
   bidirectional round-trip

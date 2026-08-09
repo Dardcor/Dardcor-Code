@@ -1329,7 +1329,7 @@ export class TestInMemoryFileSystemProvider extends InMemoryFileSystemProvider i
 				await timeout(0);
 				stream.end();
 			} catch (error) {
-				stream.end(error as any);
+				stream.end(error);
 			}
 		})();
 

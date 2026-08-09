@@ -1,12 +1,14 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { decodeBase64 } from '../../../../base/common/buffer.js';
 import {
+	ByokLmImageMimeType,
 	IByokLmChatRequest,
 	IByokLmChatResult,
+	IByokLmContentPart,
 	IByokLmInputItem,
 	IByokLmOutputItem,
 	IByokLmTool,
@@ -15,11 +17,25 @@ import {
 interface IResponsesContentPart {
 	readonly type?: string;
 	readonly text?: string;
+	readonly image_url?: string;
 }
 
 interface IResponsesSummaryPart {
 	readonly type?: string;
 	readonly text?: string;
+}
+
+function isSupportedImageMimeType(mimeType: string): mimeType is ByokLmImageMimeType {
+	switch (mimeType) {
+		case 'image/png':
+		case 'image/jpeg':
+		case 'image/gif':
+		case 'image/webp':
+		case 'image/bmp':
+			return true;
+		default:
+			return false;
+	}
 }
 
 interface IResponsesInputItem {
@@ -72,7 +88,7 @@ function toBridgeRole(role: string | undefined): 'system' | 'developer' | 'user'
 	}
 }
 
-function toTextParts(content: string | IResponsesContentPart[] | undefined, itemIndex: number): Array<{ type: 'text'; text: string }> {
+function toContentParts(content: string | IResponsesContentPart[] | undefined, itemIndex: number): IByokLmContentPart[] {
 	if (typeof content === 'string') {
 		return content ? [{ type: 'text', text: content }] : [];
 	}
@@ -82,6 +98,25 @@ function toTextParts(content: string | IResponsesContentPart[] | undefined, item
 	return content.map((part, contentIndex) => {
 		if ((part.type === 'input_text' || part.type === 'output_text' || part.type === 'text') && typeof part.text === 'string') {
 			return { type: 'text' as const, text: part.text };
+		}
+		if (part.type === 'input_image' && typeof part.image_url === 'string') {
+			const match = /^data:(?<mimeType>image\/[^;,]+)(?:;[^,]*)?;base64,(?<data>.*)$/.exec(part.image_url);
+			if (match?.groups) {
+				if (!isSupportedImageMimeType(match.groups.mimeType)) {
+					throw new ResponsesTranslationError(`Unsupported input[${itemIndex}].content[${contentIndex}].image_url MIME type '${match.groups.mimeType}'`);
+				}
+				try {
+					decodeBase64(match.groups.data);
+				} catch {
+					throw new ResponsesTranslationError(`Invalid input[${itemIndex}].content[${contentIndex}].image_url`);
+				}
+				return {
+					type: 'image' as const,
+					mimeType: match.groups.mimeType,
+					data: match.groups.data,
+				};
+			}
+			throw new ResponsesTranslationError(`Unsupported input[${itemIndex}].content[${contentIndex}].image_url`);
 		}
 		throw new ResponsesTranslationError(`Unsupported input[${itemIndex}].content[${contentIndex}] type '${part.type ?? ''}'`);
 	});
@@ -100,7 +135,7 @@ function toBridgeInputItem(item: IResponsesInputItem, index: number): IByokLmInp
 			return {
 				type: 'message',
 				role: toBridgeRole(item.role),
-				content: toTextParts(item.content, index),
+				content: toContentParts(item.content, index),
 			};
 		case 'reasoning':
 			return {
@@ -488,4 +523,3 @@ export function bridgeResultToResponsesSseFrames(result: IByokLmChatResult, mode
 export function responsesErrorBody(message: string, type = 'api_error'): string {
 	return JSON.stringify({ error: { message, type } });
 }
-

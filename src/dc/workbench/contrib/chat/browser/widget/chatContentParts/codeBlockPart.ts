@@ -1024,7 +1024,7 @@ export class CodeCompareBlockPart extends Disposable {
 			}
 
 			const listener = Event.any(diffData.original.onWillDispose, diffData.modified.onWillDispose)(() => {
-				// this a bit weird and basically duplicates https://github.com/microsoft/vscode/blob/7cbcafcbcc88298cfdcd0238018fbbba8eb6853e/src/dc/editor/browser/widget/diffEditor/diffEditorWidget.ts#L328
+				// this a bit weird and basically duplicates https://github.com/microsoft/vscode/blob/7cbcafcbcc88298cfdcd0238018fbbba8eb6853e/src/vs/editor/browser/widget/diffEditor/diffEditorWidget.ts#L328
 				// which cannot call `setModel(null)` without first complaining
 				this.diffEditor.setModel(null);
 			});
@@ -1046,7 +1046,7 @@ export class CodeCompareBlockPart extends Disposable {
 				this.diffEditor.updateOptions({
 					renderSideBySide,
 					// Make it not-compact in side by side mode, otherwise we may not actually
-					// show it side-by-side if it's a simple diff https://github.com/microsoft/vscode/blob/0632563332c7c08656fb47c97bc4328d62ee1d80/src/dc/editor/browser/widget/diffEditor/diffEditorOptions.ts#L35-L39
+					// show it side-by-side if it's a simple diff https://github.com/microsoft/vscode/blob/0632563332c7c08656fb47c97bc4328d62ee1d80/src/vs/editor/browser/widget/diffEditor/diffEditorOptions.ts#L35-L39
 					compactMode: !renderSideBySide,
 					useInlineViewWhenSpaceIsLimited: false,
 				});

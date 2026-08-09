@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -7,6 +6,7 @@
 import { URI } from '../../../../base/common/uri.js';
 import { ILogService } from '../../../log/common/log.js';
 import { ISessionDataService } from '../../common/sessionDataService.js';
+import type { AgentSelection } from '../../common/state/protocol/state.js';
 
 /**
  * Per-session bookkeeping codex needs to persist across agent host
@@ -33,6 +33,7 @@ export interface ICodexSessionOverlay {
 	readonly threadId?: string;
 	readonly cwd?: URI;
 	readonly modelId?: string;
+	readonly agent?: AgentSelection;
 	readonly workingDirectories?: readonly URI[];
 }
 
@@ -40,6 +41,7 @@ export interface ICodexSessionOverlayUpdate {
 	readonly threadId?: string;
 	readonly cwd?: URI;
 	readonly modelId?: string;
+	readonly agent?: AgentSelection | null;
 	readonly workingDirectories?: readonly URI[];
 }
 
@@ -48,6 +50,7 @@ export class CodexSessionMetadataStore {
 	private static readonly KEY_THREAD_ID = 'codex.threadId';
 	private static readonly KEY_CWD = 'codex.cwd';
 	private static readonly KEY_MODEL = 'codex.model';
+	private static readonly KEY_AGENT = 'codex.agent';
 	constructor(
 		@ISessionDataService private readonly _sessionDataService: ISessionDataService,
 		@ILogService private readonly _logService: ILogService,
@@ -77,6 +80,12 @@ export class CodexSessionMetadataStore {
 				if (fields.modelId !== undefined) {
 					work.push(db.setMetadata(CodexSessionMetadataStore.KEY_MODEL, fields.modelId));
 				}
+				if (fields.agent !== undefined) {
+					work.push(db.setMetadata(
+						CodexSessionMetadataStore.KEY_AGENT,
+						fields.agent === null ? '' : JSON.stringify({ uri: fields.agent.uri }),
+					));
+				}
 				await Promise.all(work);
 			} finally {
 				ref.dispose();
@@ -98,16 +107,18 @@ export class CodexSessionMetadataStore {
 				return {};
 			}
 			try {
-				const [threadId, cwdRaw, modelId] = await Promise.all([
+				const [threadId, cwdRaw, modelId, agentRaw] = await Promise.all([
 					ref.object.getMetadata(CodexSessionMetadataStore.KEY_THREAD_ID),
 					ref.object.getMetadata(CodexSessionMetadataStore.KEY_CWD),
 					ref.object.getMetadata(CodexSessionMetadataStore.KEY_MODEL),
+					ref.object.getMetadata(CodexSessionMetadataStore.KEY_AGENT),
 				]);
 				const cwd = parseCwd(cwdRaw);
 				return {
 					threadId: threadId ?? undefined,
 					cwd: cwd.cwd,
 					modelId: modelId ?? undefined,
+					agent: parseAgentSelection(agentRaw),
 					workingDirectories: cwd.workingDirectories,
 				};
 			} finally {
@@ -119,6 +130,18 @@ export class CodexSessionMetadataStore {
 		}
 	}
 
+}
+
+function parseAgentSelection(raw: string | undefined): AgentSelection | undefined {
+	if (!raw) {
+		return undefined;
+	}
+	try {
+		const value: { uri?: unknown } = JSON.parse(raw);
+		return typeof value.uri === 'string' ? { uri: value.uri } : undefined;
+	} catch {
+		return undefined;
+	}
 }
 
 function serializeCwd(cwd: URI, workingDirectories: readonly URI[] | undefined): string {
@@ -156,4 +179,3 @@ function parseCwd(raw: string | undefined): { readonly cwd?: URI; readonly worki
 		return {};
 	}
 }
-

@@ -8,10 +8,10 @@
 // These tokens back the phone-layout changes-list and diff overlay
 // (icons, A/M/D pills, +N/-N counters, edge bars on diff rows). They
 // live next to the views that consume them rather than in the global
-// `dc/sessions/common/theme.ts`, since they are mobile-specific and
+// `vs/sessions/common/theme.ts`, since they are mobile-specific and
 // have no consumers in any other layer.
 //
-// Why register them at all? `dc/workbench/contrib/scm` is not loaded in
+// Why register them at all? `vs/workbench/contrib/scm` is not loaded in
 // the agents window, so the `gitDecoration.*` color tokens that the
 // desktop changes view relies on aren't available here. We register our
 // own tokens so themes can override them, and the CSS reads them via

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -22,9 +21,9 @@ import { NullTelemetryService } from '../../telemetry/common/telemetryUtils.js';
 import { UtilityProcess } from '../../utilityProcess/electron-main/utilityProcess.js';
 import { IAgentHostConnection, IAgentHostStarter } from '../common/agent.js';
 import { buildAgentHostTelemetryIdEnv, IAgentHostForwardedTelemetryIds } from '../common/agentHostTelemetryEnv.js';
+import { AgentHostLaunchKind, AgentHostLaunchKindEnvVar } from '../common/agentHostTelemetry.js';
 import { AgentHostByokModelsEnabledSettingId, AgentHostClaudeAgentEnabledSettingId, AgentHostCodexAgentBinaryArgsSettingId, AgentHostCodexAgentEnabledSettingId, AgentHostCodexAgentSdkRootSettingId, AgentHostCodexAgentCodexHomeSettingId, AgentHostOTelCaptureContentSettingId, AgentHostOTelDbSpanExporterEnabledSettingId, AgentHostOTelEnabledSettingId, AgentHostOTelExporterTypeSettingId, AgentHostOTelOtlpEndpointSettingId, AgentHostOTelOtlpProtocolSettingId, AgentHostOTelOutfileSettingId, AgentHostOTelResourceAttributesSettingId, AgentHostOTelServiceNameSettingId, AgentHostOTelPolicyIpcChannel, buildAgentHostOTelEnv, buildAgentSdkEnv, IAgentHostOTelSettings, sanitizeAgentHostOTelPolicySettings } from '../common/agentService.js';
 import { deepClone } from '../../../base/common/objects.js';
-import '../common/agentHostEnablementService.js';
 import '../common/agentHostStarter.config.contribution.js';
 
 export class ElectronAgentHostStarter extends Disposable implements IAgentHostStarter {
@@ -146,7 +145,7 @@ export class ElectronAgentHostStarter extends Disposable implements IAgentHostSt
 		this.utilityProcess.start({
 			type: 'agentHost',
 			name: 'agent-host',
-			entryPoint: 'dc/platform/agentHost/node/agentHostMain',
+			entryPoint: 'vs/platform/agentHost/node/agentHostMain',
 			execArgv,
 			args,
 			env: {
@@ -156,9 +155,10 @@ export class ElectronAgentHostStarter extends Disposable implements IAgentHostSt
 				// VS Code's agent, so `gh` inherits it. Set after the inherited
 				// env so it wins.
 				[AiAgentEnvVar]: AiAgentEnvValue,
-				VSCODE_ESM_ENTRYPOINT: 'dc/platform/agentHost/node/agentHostMain',
+				VSCODE_ESM_ENTRYPOINT: 'vs/platform/agentHost/node/agentHostMain',
 				VSCODE_PIPE_LOGGING: 'true',
 				VSCODE_VERBOSE_LOGGING: 'true',
+				[AgentHostLaunchKindEnvVar]: AgentHostLaunchKind.VSCodeMainProcess,
 				...sdkEnv,
 				...otelEnv,
 				...telemetryIdEnv,
@@ -234,4 +234,3 @@ export class ElectronAgentHostStarter extends Disposable implements IAgentHostSt
 		return ElectronAgentHostStarter._expectedStderrPatterns.some(pattern => data.includes(pattern));
 	}
 }
-

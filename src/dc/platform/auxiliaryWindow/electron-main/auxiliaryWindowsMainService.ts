@@ -95,7 +95,7 @@ export class AuxiliaryWindowsMainService extends Disposable implements IAuxiliar
 	createWindow(details: HandlerDetails): BrowserWindowConstructorOptions {
 		const { state, overrides } = this.computeWindowStateAndOverrides(details);
 		const options = this.instantiationService.invokeFunction(defaultBrowserWindowOptions, state, overrides, {
-			preload: FileAccess.asFileUri('dc/base/parts/sandbox/electron-browser/preload-aux.js').fsPath
+			preload: FileAccess.asFileUri('vs/base/parts/sandbox/electron-browser/preload-aux.js').fsPath
 		});
 		this.pendingWindowOptionsQueue.push(options);
 		return options;

@@ -173,7 +173,7 @@ e2e/
 Supporting files outside `e2e/`:
 
 ```
-src/dc/sessions/test/
+src/vs/sessions/test/
 ├── web.test.ts              # TestSessionsBrowserMain + MockChatAgentContribution
 ├── web.test.factory.ts      # Factory for test workbench (replaces web.factory.ts)
 └── sessions.web.test.internal.ts  # Test entry point
@@ -191,7 +191,7 @@ scripts/
   ```
 - Dependencies installed:
   ```bash
-  cd src/dc/sessions/test/e2e && npm install
+  cd src/vs/sessions/test/e2e && npm install
   ```
 - Copilot CLI available (for `npm run generate` only):
   ```bash
@@ -201,7 +201,7 @@ scripts/
 ## Running
 
 ```bash
-cd src/dc/sessions/test/e2e
+cd src/vs/sessions/test/e2e
 
 # First time or after UI changes:
 npm run generate
@@ -365,7 +365,7 @@ counts, which may change as mock file content evolves.
 ### Adding Mock File Edits
 
 To add new keyword-matched responses with file edits, update
-`getMockResponseWithEdits()` in `src/dc/sessions/test/web.test.ts`:
+`getMockResponseWithEdits()` in `src/vs/sessions/test/web.test.ts`:
 
 1. **For existing files** — target URIs whose paths match `EXISTING_MOCK_FILES`
    (files pre-seeded in the mock extension's file store). The `emitFileEdits()`

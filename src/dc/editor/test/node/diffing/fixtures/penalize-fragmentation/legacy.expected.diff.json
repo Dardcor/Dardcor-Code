@@ -1,10 +1,10 @@
 {
 	"original": {
-		"content": "import { IChange, IDiffComputationResult } from 'dc/editor/common/diff/diffComputer';",
+		"content": "import { IChange, IDiffComputationResult } from 'vs/editor/common/diff/diffComputer';",
 		"fileName": "./1.txt"
 	},
 	"modified": {
-		"content": "import { IDocumentDiffProviderOptions } from 'dc/editor/common/diff/documentDiffProvider';\nimport { IChange } from 'dc/editor/common/diff/smartLinesDiffComputer';",
+		"content": "import { IDocumentDiffProviderOptions } from 'vs/editor/common/diff/documentDiffProvider';\nimport { IChange } from 'vs/editor/common/diff/smartLinesDiffComputer';",
 		"fileName": "./2.txt"
 	},
 	"diffs": [

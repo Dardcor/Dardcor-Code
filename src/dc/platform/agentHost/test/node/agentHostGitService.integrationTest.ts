@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -95,6 +94,28 @@ suite('AgentHostGitService - getSessionGitState (real git)', () => {
 		assert.strictEqual(result.upstreamBranchName, undefined);
 		assert.strictEqual(result.outgoingChanges, undefined);
 		assert.strictEqual(result.incomingChanges, undefined);
+	});
+
+	(hasGit ? test : test.skip)('reports the GitHub owner of the branch upstream remote', async () => {
+		const dir = initRepo({ remote: 'https://github.com/base-owner/repo.git' });
+		cp.execFileSync('git', ['remote', 'add', 'fork', 'https://github.com/fork-owner/repo.git'], { cwd: dir, stdio: 'pipe' });
+		cp.execFileSync('git', ['checkout', '-q', '-b', 'feature'], { cwd: dir, stdio: 'pipe' });
+		cp.execFileSync('git', ['update-ref', 'refs/remotes/fork/feature', 'HEAD'], { cwd: dir, stdio: 'pipe' });
+		cp.execFileSync('git', ['branch', '--set-upstream-to', 'fork/feature'], { cwd: dir, stdio: 'pipe' });
+
+		const result = await svc!.getSessionGitState(URI.file(dir));
+
+		assert.deepStrictEqual({
+			githubOwner: result?.githubOwner,
+			githubHeadOwner: result?.githubHeadOwner,
+			githubRepo: result?.githubRepo,
+			upstreamBranchName: result?.upstreamBranchName,
+		}, {
+			githubOwner: 'base-owner',
+			githubHeadOwner: 'fork-owner',
+			githubRepo: 'repo',
+			upstreamBranchName: 'fork/feature',
+		});
 	});
 
 	(hasGit ? test : test.skip)('resolves the default branch name and remote-tracking start point', async () => {
@@ -898,4 +919,3 @@ suite('AgentHostGitService - resolveBranchBaselineCommit (real git)', () => {
 		assert.strictEqual(result, undefined);
 	});
 });
-

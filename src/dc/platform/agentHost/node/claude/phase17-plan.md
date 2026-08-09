@@ -210,16 +210,16 @@ discovery/projection layer — `Options.plugins` and the SDK loading path are
 
 | Path | Change | Notes |
 |------|--------|-------|
-| `src/dc/platform/agentPlugins/common/pluginParsers.ts` | modify | Export `parseHooksJson` + `makeHookCustomization` (currently private) |
-| `src/dc/platform/agentHost/node/claude/customizations/scan/claudeHookScan.ts` | create | `scanClaudeHooks` — hooks from user/project/local `settings.json` |
-| `src/dc/platform/agentHost/node/claude/customizations/scan/claudeNativePluginScan.ts` | create | `scanClaudeNativePlugins` — resolve `enabledPlugins` → roots → `parsePlugin` |
-| `src/dc/platform/agentHost/node/claude/customizations/claudeSessionCustomizationDiscovery.ts` | modify | Hook directory containers + plugin containers; native-plugin post-materialize filter |
-| `src/dc/platform/agentHost/node/claude/claudeSdkPipeline.ts` | modify | Capture `system/init.plugins`; add `plugins` to `ISdkResolvedCustomizations` |
-| `src/dc/platform/agentHost/node/claude/claudeAgentSession.ts` | modify | Call new scanners in `getSessionCustomizations`; pass hooks/plugins into the projection (no `Options.plugins` change) |
-| `src/dc/platform/agentHost/test/node/customizations/scan/claudeHookScan.test.ts` | create | Hook scan unit tests |
-| `src/dc/platform/agentHost/test/node/customizations/scan/claudeNativePluginScan.test.ts` | create | Native-plugin resolver unit tests |
-| `src/dc/platform/agentHost/test/node/customizations/claudeSessionCustomizationDiscovery.test.ts` | modify | Hook/plugin projection + post-materialize filter |
-| `src/dc/platform/agentPlugins/test/common/pluginParsers.test.ts` | modify | Cover newly public hook parser surface |
+| `src/vs/platform/agentPlugins/common/pluginParsers.ts` | modify | Export `parseHooksJson` + `makeHookCustomization` (currently private) |
+| `src/vs/platform/agentHost/node/claude/customizations/scan/claudeHookScan.ts` | create | `scanClaudeHooks` — hooks from user/project/local `settings.json` |
+| `src/vs/platform/agentHost/node/claude/customizations/scan/claudeNativePluginScan.ts` | create | `scanClaudeNativePlugins` — resolve `enabledPlugins` → roots → `parsePlugin` |
+| `src/vs/platform/agentHost/node/claude/customizations/claudeSessionCustomizationDiscovery.ts` | modify | Hook directory containers + plugin containers; native-plugin post-materialize filter |
+| `src/vs/platform/agentHost/node/claude/claudeSdkPipeline.ts` | modify | Capture `system/init.plugins`; add `plugins` to `ISdkResolvedCustomizations` |
+| `src/vs/platform/agentHost/node/claude/claudeAgentSession.ts` | modify | Call new scanners in `getSessionCustomizations`; pass hooks/plugins into the projection (no `Options.plugins` change) |
+| `src/vs/platform/agentHost/test/node/customizations/scan/claudeHookScan.test.ts` | create | Hook scan unit tests |
+| `src/vs/platform/agentHost/test/node/customizations/scan/claudeNativePluginScan.test.ts` | create | Native-plugin resolver unit tests |
+| `src/vs/platform/agentHost/test/node/customizations/claudeSessionCustomizationDiscovery.test.ts` | modify | Hook/plugin projection + post-materialize filter |
+| `src/vs/platform/agentPlugins/test/common/pluginParsers.test.ts` | modify | Cover newly public hook parser surface |
 
 > `claudeSdkOptions.ts` is **not** modified — `Options.plugins` stays
 > client-only (native plugins are auto-loaded via `settingSources`).
@@ -294,10 +294,10 @@ discovery/projection layer — `Options.plugins` and the SDK loading path are
 
 ### Unit / Integration
 - Run the agentHost `node` suite for the touched files:
-  - `./scripts/test.sh --run src/dc/platform/agentHost/test/node/customizations/scan/claudeHookScan.test.ts`
-  - `./scripts/test.sh --run src/dc/platform/agentHost/test/node/customizations/scan/claudeNativePluginScan.test.ts`
-  - `./scripts/test.sh --run src/dc/platform/agentHost/test/node/customizations/claudeSessionCustomizationDiscovery.test.ts`
-  - `./scripts/test.sh --run src/dc/platform/agentPlugins/test/common/pluginParsers.test.ts`
+  - `./scripts/test.sh --run src/vs/platform/agentHost/test/node/customizations/scan/claudeHookScan.test.ts`
+  - `./scripts/test.sh --run src/vs/platform/agentHost/test/node/customizations/scan/claudeNativePluginScan.test.ts`
+  - `./scripts/test.sh --run src/vs/platform/agentHost/test/node/customizations/claudeSessionCustomizationDiscovery.test.ts`
+  - `./scripts/test.sh --run src/vs/platform/agentPlugins/test/common/pluginParsers.test.ts`
 - Assertions to cover: hook scan (3 scopes, `disableAllHooks`, managed excluded);
   native-plugin resolver (marketplace cache + skills-dir, fail-soft skip); discovery
   projection (hook directory container, plugin container) pre-materialize; post-materialize
@@ -368,21 +368,21 @@ Launch + log skills discovered in this workspace (project scope):
 ### Part A — Hooks (shipped in this change set)
 
 **Files actually changed** (matches the plan's `Files to Modify or Create`, Part A rows only):
-- `src/dc/platform/agentPlugins/common/pluginParsers.ts` — exported the previously-private
+- `src/vs/platform/agentPlugins/common/pluginParsers.ts` — exported the previously-private
   `parseHooksJson` (+ doc comment). No behavior change. (`makeHookCustomization` was **not**
   exported — the scanner reads the customization off the parsed group's `.customization`,
   so the extra export was unnecessary; minimal-surface deviation from the plan's step 1.)
-- `src/dc/platform/agentHost/node/claude/customizations/scan/claudeHookScan.ts` — **new.**
+- `src/vs/platform/agentHost/node/claude/customizations/scan/claudeHookScan.ts` — **new.**
   `scanClaudeHooks(workingDirectory, userHome, fileService)`; reads
   `<cwd>/.claude/settings.json`, `<cwd>/.claude/settings.local.json`,
   `<userHome>/.claude/settings.json`; dedupes by file URI; one `HookCustomization` per
   declaring file; delegates `disableAllHooks` + canonicalization to `parseHooksJson`.
-- `src/dc/platform/agentHost/node/claude/customizations/claudeSessionCustomizationDiscovery.ts`
+- `src/vs/platform/agentHost/node/claude/customizations/claudeSessionCustomizationDiscovery.ts`
   — `mapDiscoveredCustomizations` + `buildDiscoveredCustomizations` take a new
   `hooks: readonly HookCustomization[]`; `makeDirectory` widened to `Hook` +
   `HookCustomization`; per-scope `Hooks` `DirectoryCustomization` (`contents: Hook`); hooks
   bypass the SDK filter (like rules).
-- `src/dc/platform/agentHost/node/claude/claudeAgentSession.ts` — `getSessionCustomizations`
+- `src/vs/platform/agentHost/node/claude/claudeAgentSession.ts` — `getSessionCustomizations`
   calls `scanClaudeHooks` in its parallel scan and passes the result to
   `buildDiscoveredCustomizations`. `Options.plugins` / materialize untouched.
 

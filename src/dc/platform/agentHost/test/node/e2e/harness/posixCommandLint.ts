@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -36,6 +35,14 @@ export interface IPosixCommandFinding {
 	readonly command: string;
 	readonly toolName: string;
 	readonly reason: string;
+}
+
+/** Extracts the shell command field used by supported provider tool inputs. */
+export function getRecordedShellCommand(input: { readonly command?: unknown; readonly cmd?: unknown } | undefined): string | undefined {
+	if (typeof input?.command === 'string' && input.command) {
+		return input.command;
+	}
+	return typeof input?.cmd === 'string' && input.cmd ? input.cmd : undefined;
 }
 
 interface IPosixPattern {
@@ -120,4 +127,3 @@ export function formatPosixCommandError(fixturePath: string, findings: readonly 
 		'capiReplay options so this check does not fire.',
 	].join('\n');
 }
-

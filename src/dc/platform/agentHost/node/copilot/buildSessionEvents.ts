@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -7,7 +6,7 @@
 import type { SessionEvent } from '@github/copilot-sdk';
 import { isObject } from '../../../../base/common/types.js';
 import { generateUuid, isUUID } from '../../../../base/common/uuid.js';
-import { ResponsePartKind, ToolCallStatus, ToolResultContentType, TurnState, type ToolCallCompletedState, type ToolResultContent, type ToolResultSubagentContent, type Turn } from '../../common/state/sessionState.js';
+import { getInlineToolInput, ResponsePartKind, ToolCallStatus, ToolResultContentType, TurnState, type ToolCallCompletedState, type ToolResultContent, type ToolResultSubagentContent, type Turn } from '../../common/state/sessionState.js';
 
 /**
  * Default schema version stamped on the synthesized `session.start` event.
@@ -90,9 +89,10 @@ export function buildSessionEventsFromTurns(turns: readonly Turn[], options: IBu
 	/** Emits the `tool.execution_start` + `tool.execution_complete` pair for a completed tool call. */
 	const pushCompletedToolCall = (tc: ToolCallCompletedState): void => {
 		let parsedToolInput: Record<string, unknown> | undefined;
-		if (tc.toolInput) {
+		const toolInput = getInlineToolInput(tc.toolInput);
+		if (toolInput) {
 			try {
-				const parsed = JSON.parse(tc.toolInput);
+				const parsed = JSON.parse(toolInput);
 				if (isObject(parsed)) {
 					parsedToolInput = parsed as Record<string, unknown>;
 				}
@@ -278,4 +278,3 @@ export function serializeSessionEventsToJsonl(events: readonly SessionEvent[]): 
 export function buildSessionEventLogFromTurns(turns: readonly Turn[], options: IBuildSessionEventsOptions): string {
 	return serializeSessionEventsToJsonl(buildSessionEventsFromTurns(turns, options));
 }
-

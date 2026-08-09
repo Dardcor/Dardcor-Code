@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -938,4 +937,3 @@ suite('AgentHostFileSystemProvider - resolve / mkdir / copy / watch', () => {
 		assert.strictEqual(received[0][0].resource.toString(), agentHostUri('never-registered', '/path/late.txt').toString());
 	});
 });
-

@@ -33,7 +33,7 @@ import { ConfigPropertySchema, ConfigSchema } from '../../../../../../platform/a
 // Target-neutral Agent Host config editor infrastructure.
 //
 // Both the sessions-window's per-session/per-provider settings editors
-// (`dc/sessions/contrib/providers/agentHost/browser/*`) and the editor-window's
+// (`vs/sessions/contrib/providers/agentHost/browser/*`) and the editor-window's
 // ambient host settings editor render a config's schema as a JSONC document,
 // watch for changes, and round-trip user edits through a replace API. This
 // module factors out that shared plumbing so neither side needs to know about

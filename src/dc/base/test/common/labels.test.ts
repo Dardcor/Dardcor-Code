@@ -60,7 +60,7 @@ suite('Labels', () => {
 		assert.deepStrictEqual(labels.shorten(['a', 'a\\b', 'a\\b\\c', 'd\\b\\c', 'd\\b']), ['a', 'a\\b', 'a\\b\\c', 'd\\b\\c', 'd\\b']);
 		assert.deepStrictEqual(labels.shorten(['a', 'a\\b', 'b']), ['a', 'a\\b', 'b']);
 		assert.deepStrictEqual(labels.shorten(['', 'a', 'b', 'b\\c', 'a\\c']), ['.\\', 'a', 'b', 'b\\c', 'a\\c']);
-		assert.deepStrictEqual(labels.shorten(['src\\dc\\workbench\\parts\\execution\\electron-browser', 'src\\dc\\workbench\\parts\\execution\\electron-browser\\something', 'src\\dc\\workbench\\parts\\terminal\\electron-browser']), ['…\\execution\\electron-browser', '…\\something', '…\\terminal\\…']);
+		assert.deepStrictEqual(labels.shorten(['src\\vs\\workbench\\parts\\execution\\electron-browser', 'src\\vs\\workbench\\parts\\execution\\electron-browser\\something', 'src\\vs\\workbench\\parts\\terminal\\electron-browser']), ['…\\execution\\electron-browser', '…\\something', '…\\terminal\\…']);
 
 		// url paths
 		assert.deepStrictEqual(labels.shorten(['https://a.com/b', 'C:\\foo\\d']), ['https://a.com/b', 'C:\\…\\d']);

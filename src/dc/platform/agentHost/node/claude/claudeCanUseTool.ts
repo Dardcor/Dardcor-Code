@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -6,7 +5,7 @@
 
 import type { PermissionResult, PermissionUpdate } from '@anthropic-ai/claude-agent-sdk';
 import { ClaudePermissionMode, ClaudeSessionConfigKey } from '../../common/claudeSessionConfigKeys.js';
-import { ChatInputResponseKind, ToolCallPendingConfirmationState, ToolCallStatus } from '../../common/state/protocol/state.js';
+import { ChatInputRequestPurpose, ChatInputResponseKind, ToolCallPendingConfirmationState, ToolCallStatus } from '../../common/state/protocol/state.js';
 import { IAgentConfigurationService } from '../agentConfigurationService.js';
 import { ClaudeAgentSession } from './claudeAgentSession.js';
 import { buildAskUserSessionInputQuestions, buildExitPlanModeConfirmationState, flattenAskUserAnswers, parseAskUserQuestionInput } from './claudeInteractiveTools.js';
@@ -264,6 +263,7 @@ async function handleAskUserQuestion(
 	const parentToolCallId = resolveSubagentParent(session, options);
 	const answer = await session.requestUserInput({
 		id: toolUseID,
+		purpose: ChatInputRequestPurpose.AskUser,
 		questions: buildAskUserSessionInputQuestions(askInput),
 	}, parentToolCallId);
 	if (answer.response !== ChatInputResponseKind.Accept || !answer.answers) {
@@ -276,4 +276,3 @@ async function handleAskUserQuestion(
 	}
 	return { behavior: 'allow', updatedInput: { ...input, answers } };
 }
-

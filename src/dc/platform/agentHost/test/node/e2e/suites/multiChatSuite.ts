@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -28,7 +27,7 @@ import {
 	type RootState,
 	type SessionState,
 } from '../../../../common/state/sessionState.js';
-import { createRealSession } from '../harness/agentHostE2ETestHarness.js';
+import { assertToolCallCompleteText, createRealSession } from '../harness/agentHostE2ETestHarness.js';
 import { getActionEnvelope, isActionNotification } from '../../serverIntegrationTestHelpers.js';
 import { conformanceTest, providerHostOnlyTest, type IAgentHostE2ETestContext } from './e2eTestContext.js';
 
@@ -102,6 +101,17 @@ export function defineMultiChatTests(context: IAgentHostE2ETestContext): void {
 			this.timeout(180_000);
 			return run.call(this);
 		});
+	}
+
+	function fileReadToolNames(provider: string): readonly string[] {
+		switch (provider) {
+			case 'claude':
+				return ['Read'];
+			case 'copilotcli':
+				return ['view'];
+			default:
+				return ['Read', 'view', 'shell'];
+		}
 	}
 
 	interface IObservedModelMessage {
@@ -181,7 +191,10 @@ export function defineMultiChatTests(context: IAgentHostE2ETestContext): void {
 				) {
 					return false;
 				}
-				return getActionEnvelope(n).channel === chatUri;
+				if (getActionEnvelope(n).channel !== chatUri) {
+					return false;
+				}
+				return (getActionEnvelope(n).action as { turnId: string }).turnId === turnId;
 			}, 90_000);
 			seen.add(notification as object);
 			if (isActionNotification(notification, 'chat/error')) {
@@ -212,6 +225,7 @@ export function defineMultiChatTests(context: IAgentHostE2ETestContext): void {
 		for (const notification of context.client.receivedNotifications(n =>
 			(isActionNotification(n, 'chat/responsePart') || isActionNotification(n, 'chat/delta'))
 			&& getActionEnvelope(n).channel === chatUri
+			&& (getActionEnvelope(n).action as { turnId: string }).turnId === turnId
 		)) {
 			const action = getActionEnvelope(notification).action;
 			if (action.type === ActionType.ChatResponsePart && action.part.kind === ResponsePartKind.Markdown) {
@@ -527,6 +541,14 @@ export function defineMultiChatTests(context: IAgentHostE2ETestContext): void {
 		const response = await driveTurn(peer, 'peer-read', `Read the file at ${file} and reply with its exact contents only.`, 1);
 
 		assert.match(response, /PEER_FILE_VALUE/);
+		assertToolCallCompleteText(context.client, {
+			channel: peer,
+			turnId: 'peer-read',
+			toolNames: fileReadToolNames(config.provider),
+			workspace,
+			expected: [/PEER_FILE_VALUE/],
+			success: true,
+		});
 	});
 
 	providerTest('peer chat reads a file from a nested directory', async function () {
@@ -540,6 +562,14 @@ export function defineMultiChatTests(context: IAgentHostE2ETestContext): void {
 		const response = await driveTurn(peer, 'peer-read-nested', `Read the file at ${file} and reply with its exact contents only.`, 1);
 
 		assert.match(response, /PEER_NESTED_READ/);
+		assertToolCallCompleteText(context.client, {
+			channel: peer,
+			turnId: 'peer-read-nested',
+			toolNames: fileReadToolNames(config.provider),
+			workspace,
+			expected: [/PEER_NESTED_READ/],
+			success: true,
+		});
 	});
 
 	providerTest('peer chat creates a file in the parent workspace', async function () {
@@ -590,6 +620,14 @@ export function defineMultiChatTests(context: IAgentHostE2ETestContext): void {
 		const response = await driveTurn(peer, 'peer-missing', `Try to read ${file}. If it does not exist, reply exactly "missing".${PREFER_FILE_TOOLS}`, 1);
 
 		assert.match(response, /missing/i);
+		assertToolCallCompleteText(context.client, {
+			channel: peer,
+			turnId: 'peer-missing',
+			toolNames: fileReadToolNames(config.provider),
+			workspace,
+			expected: [/does not exist/],
+			success: false,
+		});
 	});
 
 	providerTest('peer chat reads a filename containing spaces', async function () {
@@ -602,6 +640,14 @@ export function defineMultiChatTests(context: IAgentHostE2ETestContext): void {
 		const response = await driveTurn(peer, 'peer-spaces', `Read the file at ${file} and reply with its exact contents only.`, 1);
 
 		assert.match(response, /PEER_SPACED/);
+		assertToolCallCompleteText(context.client, {
+			channel: peer,
+			turnId: 'peer-spaces',
+			toolNames: fileReadToolNames(config.provider),
+			workspace,
+			expected: [/PEER_SPACED/],
+			success: true,
+		});
 	});
 
 	providerTest('two peer chats write distinct workspace files', async function () {
@@ -841,4 +887,3 @@ export function defineMultiChatTests(context: IAgentHostE2ETestContext): void {
 		assert.ok(request.includes('peer-selection.txt') && (request.includes('peer-selection.txt:2') || request.includes('(line 2)')));
 	});
 }
-

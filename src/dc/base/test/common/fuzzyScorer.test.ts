@@ -365,7 +365,7 @@ suite('Fuzzy Scorer', () => {
 	});
 
 	test('scoreItem - proper target offset #3', function () {
-		const resource = URI.file('/src/dc/editor/browser/viewParts/lineNumbers/flipped-cursor-2x.svg');
+		const resource = URI.file('/src/vs/editor/browser/viewParts/lineNumbers/flipped-cursor-2x.svg');
 
 		const res = scoreItem(resource, 'debug', true, ResourceAccessor);
 
@@ -952,9 +952,9 @@ suite('Fuzzy Scorer', () => {
 	});
 
 	test('compareFilesByScore - avoid match scattering (bug #12095)', function () {
-		const resourceA = URI.file('src/dc/workbench/contrib/files/common/explorerViewModel.ts');
-		const resourceB = URI.file('src/dc/workbench/contrib/files/browser/views/explorerView.ts');
-		const resourceC = URI.file('src/dc/workbench/contrib/files/browser/views/explorerViewer.ts');
+		const resourceA = URI.file('src/vs/workbench/contrib/files/common/explorerViewModel.ts');
+		const resourceB = URI.file('src/vs/workbench/contrib/files/browser/views/explorerView.ts');
+		const resourceC = URI.file('src/vs/workbench/contrib/files/browser/views/explorerViewer.ts');
 
 		const query = 'filesexplorerview.ts';
 
@@ -1050,7 +1050,7 @@ suite('Fuzzy Scorer', () => {
 
 	test('compareFilesByScore - prefer prefix (bug #103052)', function () {
 		const resourceA = URI.file('test/smoke/src/main.ts');
-		const resourceB = URI.file('src/dc/editor/common/services/semantikTokensProviderStyling.ts');
+		const resourceB = URI.file('src/vs/editor/common/services/semantikTokensProviderStyling.ts');
 
 		const query = 'smoke main.ts';
 
@@ -1064,8 +1064,8 @@ suite('Fuzzy Scorer', () => {
 	});
 
 	test('compareFilesByScore - boost better prefix match if multiple queries are used', function () {
-		const resourceA = URI.file('src/dc/workbench/services/host/browser/browserHostService.ts');
-		const resourceB = URI.file('src/dc/workbench/browser/workbench.ts');
+		const resourceA = URI.file('src/vs/workbench/services/host/browser/browserHostService.ts');
+		const resourceB = URI.file('src/vs/workbench/browser/workbench.ts');
 
 		for (const query of ['workbench.ts browser', 'browser workbench.ts', 'browser workbench', 'workbench browser']) {
 			let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
@@ -1079,8 +1079,8 @@ suite('Fuzzy Scorer', () => {
 	});
 
 	test('compareFilesByScore - boost shorter prefix match if multiple queries are used', function () {
-		const resourceA = URI.file('src/dc/workbench/node/actions/windowActions.ts');
-		const resourceB = URI.file('src/dc/workbench/electron-node/window.ts');
+		const resourceA = URI.file('src/vs/workbench/node/actions/windowActions.ts');
+		const resourceB = URI.file('src/vs/workbench/electron-node/window.ts');
 
 		for (const query of ['window node', 'window.ts node']) {
 			let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
@@ -1124,8 +1124,8 @@ suite('Fuzzy Scorer', () => {
 	});
 
 	test('compareFilesByScore - boost consecutive matches in the beginning over end', function () {
-		const resourceA = URI.file('src/dc/server/node/extensionHostStatusService.ts');
-		const resourceB = URI.file('src/dc/workbench/browser/parts/notifications/notificationsStatus.ts');
+		const resourceA = URI.file('src/vs/server/node/extensionHostStatusService.ts');
+		const resourceB = URI.file('src/vs/workbench/browser/parts/notifications/notificationsStatus.ts');
 
 		const query = 'notStatus';
 

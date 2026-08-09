@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -26,4 +25,3 @@ export const enum SessionServerToolName {
 	GetSessionContext = 'get_session_context',
 	DeleteSession = 'delete_session',
 }
-

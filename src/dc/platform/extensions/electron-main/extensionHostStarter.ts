@@ -115,7 +115,7 @@ export class ExtensionHostStarter extends Disposable implements IDisposable, IEx
 			...opts,
 			type: 'extensionHost',
 			name: 'extension-host',
-			entryPoint: 'dc/workbench/api/node/extensionHostProcess',
+			entryPoint: 'vs/workbench/api/node/extensionHostProcess',
 			args,
 			execArgv: opts.execArgv,
 			allowLoadingUnsignedLibraries: true,

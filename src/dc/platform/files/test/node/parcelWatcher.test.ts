@@ -103,7 +103,7 @@ suite.skip('File Watcher (parcel)', function () {
 		// unrealisic case for the file watcher.
 		testDir = URI.file(getRandomTestPath(realpathSync(tmpdir()), 'vsctests', 'filewatcher')).fsPath;
 
-		const sourceDir = FileAccess.asFileUri('dc/platform/files/test/node/fixtures/service').fsPath;
+		const sourceDir = FileAccess.asFileUri('vs/platform/files/test/node/fixtures/service').fsPath;
 
 		await Promises.copy(sourceDir, testDir, { preserveSymlinks: false });
 	});

@@ -88,7 +88,7 @@ and the inline `{ action: 'cancel' }` stub are deleted.
 ## Steps
 
 1. ✓ **Create the pure projection module `claudeElicitation.ts`.**
-   - Files: `src/dc/platform/agentHost/node/claude/claudeElicitation.ts` (create)
+   - Files: `src/vs/platform/agentHost/node/claude/claudeElicitation.ts` (create)
    - Depends on: none
    - Contents (all exported functions get JSDoc):
      - A defensively-narrowed schema reader: `Record<string, unknown>` →
@@ -120,7 +120,7 @@ and the inline `{ action: 'cancel' }` stub are deleted.
      of `ClaudeAgentSession` or any SDK callback type (pure).
 
 2. ✓ **Create the bridge `claudeElicitationBridge.ts`.**
-   - Files: `src/dc/platform/agentHost/node/claude/claudeElicitationBridge.ts` (create)
+   - Files: `src/vs/platform/agentHost/node/claude/claudeElicitationBridge.ts` (create)
    - Depends on: step 1
    - Export `handleElicitation(deps, sessionId, request, options)` where `deps`
      is `IClaudeElicitationDeps { getSession }` (narrower than
@@ -216,15 +216,15 @@ and the inline `{ action: 'cancel' }` stub are deleted.
 
 | Path | Change | Notes |
 |------|--------|-------|
-| `src/dc/platform/agentHost/node/claude/claudeElicitation.ts` | create | Pure projections: schema→questions, answers→content, result mapper + `cancelResult()` helper |
-| `src/dc/platform/agentHost/node/claude/claudeElicitationBridge.ts` | create | SDK-callback bridge: session lookup, park on `requestUserInput`, abort wiring, `ElicitResult` mapping |
-| `src/dc/platform/agentHost/node/claude/claudeSdkOptions.ts` | modify | Add `IBuildOptionsInput.onElicitation`; drop `logElicitation` param; project onto `Options.onElicitation` |
-| `src/dc/platform/agentHost/node/claude/claudeAgentSession.ts` | modify | Add `IMaterializeContext.onElicitation`; pass at materialize (~449) + resume rebuild (~539); remove log lambdas |
-| `src/dc/platform/agentHost/node/claude/claudeAgent.ts` | modify | Add `_makeOnElicitation`; pass into materialize context at all 3 sites |
-| `src/dc/platform/agentHost/test/node/claudeElicitation.test.ts` | create | Projection + bridge unit tests (codex mapper test as template) |
-| `src/dc/platform/agentHost/test/node/claudeAgent.test.ts` | modify | Replace Test 18 stub assertion (~5358) |
-| `src/dc/platform/agentHost/test/node/claudeAgent.integrationTest.ts` | modify | Update wired-through assertion (~737) from cancel-stub to translation |
-| `src/dc/platform/agentHost/test/node/claudeSdkOptions.test.ts` | modify | Drop `logElicitation` arg from `buildOptions` calls; supply `onElicitation` |
+| `src/vs/platform/agentHost/node/claude/claudeElicitation.ts` | create | Pure projections: schema→questions, answers→content, result mapper + `cancelResult()` helper |
+| `src/vs/platform/agentHost/node/claude/claudeElicitationBridge.ts` | create | SDK-callback bridge: session lookup, park on `requestUserInput`, abort wiring, `ElicitResult` mapping |
+| `src/vs/platform/agentHost/node/claude/claudeSdkOptions.ts` | modify | Add `IBuildOptionsInput.onElicitation`; drop `logElicitation` param; project onto `Options.onElicitation` |
+| `src/vs/platform/agentHost/node/claude/claudeAgentSession.ts` | modify | Add `IMaterializeContext.onElicitation`; pass at materialize (~449) + resume rebuild (~539); remove log lambdas |
+| `src/vs/platform/agentHost/node/claude/claudeAgent.ts` | modify | Add `_makeOnElicitation`; pass into materialize context at all 3 sites |
+| `src/vs/platform/agentHost/test/node/claudeElicitation.test.ts` | create | Projection + bridge unit tests (codex mapper test as template) |
+| `src/vs/platform/agentHost/test/node/claudeAgent.test.ts` | modify | Replace Test 18 stub assertion (~5358) |
+| `src/vs/platform/agentHost/test/node/claudeAgent.integrationTest.ts` | modify | Update wired-through assertion (~737) from cancel-stub to translation |
+| `src/vs/platform/agentHost/test/node/claudeSdkOptions.test.ts` | modify | Drop `logElicitation` arg from `buildOptions` calls; supply `onElicitation` |
 
 ## Decisions
 
@@ -419,7 +419,7 @@ Copilot's review surfaced real correctness gaps against the workbench consumer (
 - **Question-less requests cancel instead of falsely accepting.** A `url`-mode request missing its URL, or a form with no representable fields, would become the consumer's injected required text question and then resolve as `accept`. The bridge now cancels a request with neither a URL nor questions.
 - **Prototype-pollution safety.** Untrusted field names (`__proto__`, `constructor`, …) are read with `Object.hasOwn` and content is built via `Object.fromEntries`, so such a name never reads an inherited member (crash) or mutates the prototype (silent drop).
 - **Doc accuracy.** The drift-guard docstring no longer overclaims (it catches incompatible reshapes of covered fields, not purely additive new variants); the roadmap no longer lists out-of-scope `SDKElicitationCompleteMessage` router work.
-- **`IElicitationField` is derived from a base-layer runtime validator and pinned to the MCP SDK's `PrimitiveSchemaDefinition`.** The final design uses `dc/base/common/validation.ts` (the pure "zod-lite") to build `vElicitationField`, runtime-validates each schema field (dropping malformed ones — e.g. a non-array `enum` that would otherwise reach `.map` and throw), and *derives* the field type via `ValidatorType<typeof vElicitationField>` (no hand-rolled interface). A **type-only** import of `PrimitiveSchemaDefinition` plus the compile-time guard `_assertElicitationFieldCoversSchema` (verified non-vacuous and drift-catching) pins the derived type to the SDK's authoritative union. The base validator is used instead of the SDK's own zod schema because a *runtime* `@modelcontextprotocol/sdk` import doesn't resolve in the unit-test renderer (all SDK runtime access goes through `IClaudeAgentSdkService`); a `safeParse` prototype was rejected for exactly that reason. Net vs. the original hand-rolled interface: real runtime validation (fixes a latent throw), zero duplicated type, and spec-drift protection.
+- **`IElicitationField` is derived from a base-layer runtime validator and pinned to the MCP SDK's `PrimitiveSchemaDefinition`.** The final design uses `vs/base/common/validation.ts` (the pure "zod-lite") to build `vElicitationField`, runtime-validates each schema field (dropping malformed ones — e.g. a non-array `enum` that would otherwise reach `.map` and throw), and *derives* the field type via `ValidatorType<typeof vElicitationField>` (no hand-rolled interface). A **type-only** import of `PrimitiveSchemaDefinition` plus the compile-time guard `_assertElicitationFieldCoversSchema` (verified non-vacuous and drift-catching) pins the derived type to the SDK's authoritative union. The base validator is used instead of the SDK's own zod schema because a *runtime* `@modelcontextprotocol/sdk` import doesn't resolve in the unit-test renderer (all SDK runtime access goes through `IClaudeAgentSdkService`); a `safeParse` prototype was rejected for exactly that reason. Net vs. the original hand-rolled interface: real runtime validation (fixes a latent throw), zero duplicated type, and spec-drift protection.
 
 ### avoid-private-methods audit
 

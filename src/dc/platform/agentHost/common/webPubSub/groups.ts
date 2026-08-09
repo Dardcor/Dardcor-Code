@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -154,4 +153,3 @@ export function parseGroupName(name: string, options: ParseGroupNameOptions = {}
 	}
 	return { scope: 'env', lane: envLane, uid, eid };
 }
-

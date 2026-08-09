@@ -17,11 +17,11 @@ import { scrollbarShadow, badgeBackground } from './miscColors.js';
 // ----- editor
 
 export const editorBackground = registerColor('editor.background',
-	{ light: '#ffffff', dark: '#000000', hcDark: Color.black, hcLight: Color.white },
+	{ light: '#ffffff', dark: '#1E1E1E', hcDark: Color.black, hcLight: Color.white },
 	nls.localize('editorBackground', "Editor background color."));
 
 export const editorForeground = registerColor('editor.foreground',
-	{ light: '#000000', dark: '#BBBBBB', hcDark: Color.white, hcLight: foreground },
+	{ light: '#333333', dark: '#BBBBBB', hcDark: Color.white, hcLight: foreground },
 	nls.localize('editorForeground', "Editor default foreground color."));
 
 
@@ -47,7 +47,7 @@ export const editorStickyScrollShadow = registerColor('editorStickyScroll.shadow
 
 
 export const editorWidgetBackground = registerColor('editorWidget.background',
-	{ dark: '#000000', light: '#F3F3F3', hcDark: '#0C141F', hcLight: Color.white },
+	{ dark: '#252526', light: '#F3F3F3', hcDark: '#0C141F', hcLight: Color.white },
 	nls.localize('editorWidgetBackground', 'Background color of editor widgets, such as find/replace.'));
 
 export const editorWidgetForeground = registerColor('editorWidget.foreground',
@@ -231,11 +231,11 @@ export const editorInlayHintParameterBackground = registerColor('editorInlayHint
 // ----- editor lightbulb
 
 export const editorLightBulbForeground = registerColor('editorLightBulb.foreground',
-	{ dark: '#FFCC00', light: '#DDB100', hcDark: '#FFCC00', hcLight: '#7C4DFF' },
+	{ dark: '#FFCC00', light: '#DDB100', hcDark: '#FFCC00', hcLight: '#007ACC' },
 	nls.localize('editorLightBulbForeground', "The color used for the lightbulb actions icon."));
 
 export const editorLightBulbAutoFixForeground = registerColor('editorLightBulbAutoFix.foreground',
-	{ dark: '#75BEFF', light: '#7C4DFF', hcDark: '#75BEFF', hcLight: '#7C4DFF' },
+	{ dark: '#75BEFF', light: '#007ACC', hcDark: '#75BEFF', hcLight: '#007ACC' },
 	nls.localize('editorLightBulbAutoFixForeground', "The color used for the lightbulb auto fix actions icon."));
 
 export const editorLightBulbAiForeground = registerColor('editorLightBulbAi.foreground',
@@ -341,7 +341,7 @@ export const widgetShadow = registerColor('widget.shadow',
 	nls.localize('widgetShadow', 'Shadow color of widgets such as find/replace inside the editor.'));
 
 export const widgetBorder = registerColor('widget.border',
-	{ dark: '#4A148C', light: null, hcDark: contrastBorder, hcLight: contrastBorder },
+	{ dark: null, light: null, hcDark: contrastBorder, hcLight: contrastBorder },
 	nls.localize('widgetBorder', 'Border color of widgets such as find/replace inside the editor.'));
 
 
@@ -417,7 +417,7 @@ export const mergeCommonContentBackground = registerColor('merge.commonContentBa
 	nls.localize('mergeCommonContentBackground', 'Common ancestor content background in inline merge-conflicts. The color must not be opaque so as not to hide underlying decorations.'), true);
 
 export const mergeBorder = registerColor('merge.border',
-	{ dark: null, light: null, hcDark: '#C3DF6F', hcLight: '#7C4DFF' },
+	{ dark: null, light: null, hcDark: '#C3DF6F', hcLight: '#007ACC' },
 	nls.localize('mergeBorder', 'Border color on headers and the splitter in inline merge-conflicts.'));
 
 

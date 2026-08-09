@@ -217,7 +217,7 @@ suite('FindController', () => {
 
 	test('issue #3090: F3 does not loop with two matches on a single line', async () => {
 		await withAsyncTestCodeEditor([
-			'import nls = require(\'dc/nls\');'
+			'import nls = require(\'vs/nls\');'
 		], { serviceCollection: serviceCollection }, async (editor) => {
 			clipboardState = '';
 			const findController = editor.registerAndInstantiateContribution(TestFindController.ID, TestFindController);

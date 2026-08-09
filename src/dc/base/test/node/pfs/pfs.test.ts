@@ -147,7 +147,7 @@ flakySuite('PFS', function () {
 	});
 
 	test('copy, rename and delete', async () => {
-		const sourceDir = FileAccess.asFileUri('dc/base/test/node/pfs/fixtures').fsPath;
+		const sourceDir = FileAccess.asFileUri('vs/base/test/node/pfs/fixtures').fsPath;
 		const parentDir = join(tmpdir(), 'vsctests', 'pfs');
 		const targetDir = randomPath(parentDir);
 		const targetDir2 = randomPath(parentDir);
@@ -182,7 +182,7 @@ flakySuite('PFS', function () {
 	});
 
 	test('rename without retry', async () => {
-		const sourceDir = FileAccess.asFileUri('dc/base/test/node/pfs/fixtures').fsPath;
+		const sourceDir = FileAccess.asFileUri('vs/base/test/node/pfs/fixtures').fsPath;
 		const parentDir = join(tmpdir(), 'vsctests', 'pfs');
 		const targetDir = randomPath(parentDir);
 		const targetDir2 = randomPath(parentDir);

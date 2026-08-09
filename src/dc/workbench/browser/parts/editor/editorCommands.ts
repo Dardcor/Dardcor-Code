@@ -440,7 +440,7 @@ function registerOpenEditorAPICommands(): void {
 
 	// partial, renderer-side API command to open editor only supporting
 	// arguments that do not need to be converted from the extension host
-	// complements https://github.com/microsoft/vscode/blob/2b164efb0e6a5de3826bff62683eaeafe032284f/src/dc/workbench/api/common/extHostApiCommands.ts#L373
+	// complements https://github.com/microsoft/vscode/blob/2b164efb0e6a5de3826bff62683eaeafe032284f/src/vs/workbench/api/common/extHostApiCommands.ts#L373
 	CommandsRegistry.registerCommand({
 		id: 'vscode.open',
 		handler: (accessor, arg) => {
@@ -499,7 +499,7 @@ function registerOpenEditorAPICommands(): void {
 
 	// partial, renderer-side API command to open diff editor only supporting
 	// arguments that do not need to be converted from the extension host
-	// complements https://github.com/microsoft/vscode/blob/2b164efb0e6a5de3826bff62683eaeafe032284f/src/dc/workbench/api/common/extHostApiCommands.ts#L397
+	// complements https://github.com/microsoft/vscode/blob/2b164efb0e6a5de3826bff62683eaeafe032284f/src/vs/workbench/api/common/extHostApiCommands.ts#L397
 	CommandsRegistry.registerCommand({
 		id: 'vscode.diff',
 		handler: (accessor, left, right, label) => {
@@ -553,7 +553,7 @@ function registerOpenEditorAPICommands(): void {
 
 	// partial, renderer-side API command to open diff editor only supporting
 	// arguments that do not need to be converted from the extension host
-	// complements https://github.com/microsoft/vscode/blob/2b164efb0e6a5de3826bff62683eaeafe032284f/src/dc/workbench/api/common/extHostApiCommands.ts#L397
+	// complements https://github.com/microsoft/vscode/blob/2b164efb0e6a5de3826bff62683eaeafe032284f/src/vs/workbench/api/common/extHostApiCommands.ts#L397
 	CommandsRegistry.registerCommand({
 		id: 'vscode.changes',
 		handler: (accessor, title: string, resources: [UriComponents, UriComponents?, UriComponents?][]) => {

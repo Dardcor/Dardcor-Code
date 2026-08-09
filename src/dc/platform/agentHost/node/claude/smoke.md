@@ -43,7 +43,7 @@ refs that change between runs.
 ## 1. Launch
 
 ```bash
-./src/dc/platform/agentHost/node/claude/scripts/launch-smoke.sh 9224
+./src/vs/platform/agentHost/node/claude/scripts/launch-smoke.sh 9224
 ```
 
 This handles the `unset ELECTRON_RUN_AS_NODE`, `VSCODE_SKIP_PRELAUNCH=1`,
@@ -54,7 +54,7 @@ port is listening.
 ## 2. Verify the agent host wiring (no UI required)
 
 ```bash
-./src/dc/platform/agentHost/node/claude/scripts/verify-claude-logs.sh [--phase=N]
+./src/vs/platform/agentHost/node/claude/scripts/verify-claude-logs.sh [--phase=N]
 ```
 
 Default `--phase` is the latest implemented phase (currently 6). Pass
@@ -214,7 +214,7 @@ re-run the verify script (it will look for `session/responsePart` and
 `session/turnComplete` actions in the IPC log):
 
 ```bash
-./src/dc/platform/agentHost/node/claude/scripts/verify-claude-logs.sh --phase=6
+./src/vs/platform/agentHost/node/claude/scripts/verify-claude-logs.sh --phase=6
 ```
 
 This catches issues that the snapshot can't — e.g. a turn that renders text
@@ -248,7 +248,7 @@ Run only after the Phase 6 baseline (above) passes. Steps mirror plan §7.5.
    Screenshot `tool-complete.png`. Clean up the file afterwards.
 
 2. **Verify the action stream.** Re-run
-   `./src/dc/platform/agentHost/node/claude/scripts/verify-claude-logs.sh --phase=7`
+   `./src/vs/platform/agentHost/node/claude/scripts/verify-claude-logs.sh --phase=7`
    — checks 9–11 must pass (`session/toolCallStart`, `pending_confirmation`,
    `session/toolCallComplete`).
 
@@ -338,7 +338,7 @@ that does run live — by which point the bisect window is wider.
 |---------|--------------|
 | `verify-claude-logs.sh` fails at check 1 (`copilotcli` missing) | A registration was deleted from `agentHostMain.ts` or `agentHostServerMain.ts`. |
 | `verify-claude-logs.sh` fails at check 1 (`claude` missing) | Same, but for ClaudeAgent. Or import broken. |
-| `verify-claude-logs.sh` fails at check 2 (`[Claude] Auth token updated` missing) | `agentService.authenticate` is short-circuiting on the first matching provider. The fan-out fix lives in `src/dc/platform/agentHost/node/agentService.ts`. |
+| `verify-claude-logs.sh` fails at check 2 (`[Claude] Auth token updated` missing) | `agentService.authenticate` is short-circuiting on the first matching provider. The fan-out fix lives in `src/vs/platform/agentHost/node/agentService.ts`. |
 | `verify-claude-logs.sh` fails at check 5 (zero models) | The §3.5 filter rejected everything. Inspect the upstream `[Copilot] Found N models` log line and check vendor / `supported_endpoints` / `model_picker_enabled` / `tool_calls`. |
 | `verify-claude-logs.sh` fails at check 6 (`[Claude SDK stderr]`) | Phase 6 SDK subprocess wrote to stderr. Inspect the captured stderr in `agenthost.log` — likely auth (`401`/`403` from the proxy), missing `node` runtime, or the subprocess can't reach `ANTHROPIC_BASE_URL`. |
 | `verify-claude-logs.sh` fails at check 6 (`_processMessages crashed`) | Phase 6 consumer loop hit an uncaught exception. The latched `_fatalError` is in the message; check whether it's a transport error or a bug in `claudeMapSessionEvents.ts`. |

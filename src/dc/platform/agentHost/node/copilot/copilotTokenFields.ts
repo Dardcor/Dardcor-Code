@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -25,4 +24,3 @@ export function parseCopilotTokenFields(token: string | undefined): ReadonlyMap<
 export function isRestrictedTelemetryEnabled(token: string | undefined): boolean {
 	return parseCopilotTokenFields(token).get('rt') === '1';
 }
-

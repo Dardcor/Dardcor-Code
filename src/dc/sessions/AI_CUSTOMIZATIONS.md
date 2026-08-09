@@ -6,10 +6,10 @@ This document describes the AI customization experience: a management editor and
 
 ### File Structure
 
-The management editor lives in `dc/workbench` (shared between core VS Code and sessions):
+The management editor lives in `vs/workbench` (shared between core VS Code and sessions):
 
 ```
-src/dc/workbench/contrib/chat/browser/aiCustomization/
+src/vs/workbench/contrib/chat/browser/aiCustomization/
 ├── aiCustomizationManagement.contribution.ts   # Commands + context menus
 ├── aiCustomizationManagement.ts                # IDs + context keys
 ├── aiCustomizationManagementEditor.ts          # SplitView list/editor
@@ -34,15 +34,15 @@ src/dc/workbench/contrib/chat/browser/aiCustomization/
 └── media/
     └── aiCustomizationManagement.css             # Management editor styling, including Sessions empty-state layout
 
-src/dc/workbench/contrib/chat/common/
+src/vs/workbench/contrib/chat/common/
 ├── aiCustomizationWorkspaceService.ts          # IAICustomizationWorkspaceService + IStorageSourceFilter + BUILTIN_STORAGE
 └── customizationHarnessService.ts              # ICustomizationHarnessService + ICustomizationItem + ICustomizationItemProvider + helpers
 ```
 
-The tree view and overview live in `dc/sessions` (agent sessions window only):
+The tree view and overview live in `vs/sessions` (agent sessions window only):
 
 ```
-src/dc/sessions/contrib/aiCustomizationTreeView/browser/
+src/vs/sessions/contrib/aiCustomizationTreeView/browser/
 ├── aiCustomizationTreeView.contribution.ts     # View + actions
 ├── aiCustomizationTreeView.ts                  # IDs + menu IDs
 ├── aiCustomizationTreeViewViews.ts             # Tree data source + view
@@ -54,11 +54,11 @@ src/dc/sessions/contrib/aiCustomizationTreeView/browser/
 Sessions-specific overrides:
 
 ```
-src/dc/sessions/contrib/chat/browser/
+src/vs/sessions/contrib/chat/browser/
 ├── aiCustomizationWorkspaceService.ts          # Sessions workspace service override
 ├── customizationHarnessService.ts              # Sessions harness service (accepts any content-provider-backed session type)
 └── promptsService.ts                           # AgenticPromptsService (CLI user roots)
-src/dc/sessions/contrib/sessions/browser/
+src/vs/sessions/contrib/sessions/browser/
 ├── aiCustomizationShortcutsWidget.ts           # Resizable sidebar shortcuts widget with overview + section links
 └── customizationsToolbar.contribution.ts       # Sidebar customization links
 ```
@@ -70,6 +70,8 @@ The management editor opens as a compact modal editor. The modal title and welco
 The first sidebar entry is a static `Overview` navigation item. It is styled like the other sidebar labels and does not mirror the active harness label; harness identity is represented by the modal title and welcome heading instead.
 
 The Tools section can browse the Marketplace in the core workbench, where extension gallery browsing and installation are available. The Sessions window hides Tools Marketplace browsing and only shows the tool enablement list.
+
+The Plugins section keeps plugin maintenance close to plugin creation: its compact toolbar includes an accessible Update Plugins button beside Create Plugin. This invokes the shared `workbench.agentPlugins.checkForUpdates` command, matching the Update Plugins action in the installed Agent Plugins view title; holding Alt/Shift on that view-title action invokes the existing force-update command. Update actions are disabled while the shared operation is running. Progress is shown while checking, followed by a notification listing updated or failed plugins, or confirming that plugins are already up to date.
 
 Agent Host MCP **Show Output** actions prepare and register their target channel, close the modal management editor, then reveal the prepared channel. Closing before preparation can tear down the active harness context, while showing before close lets modal teardown reset the Output presentation.
 
@@ -84,10 +86,6 @@ Automations use a discriminated target that is either workspace-backed or a work
 The Agents window contributes a built-in **Automations** client-tool set with `listAutomations`, `configureAutomation`, `runAutomation`, and `deleteAutomation`. Listing is read-only and returns stable IDs plus editable fields. Configuration uses the invoking session as the default target for new entries and follows the normal tool-approval policy: calls that require interaction show standard tool confirmation, while auto-approved calls proceed directly. Both paths validate and commit through `IAutomationService`, and successful creates and updates return a clickable chat result that opens the affected automation. `runAutomation` uses the same approval policy, starts a manual run through `IAutomationRunner` even when scheduled runs are disabled, and returns after dispatch with the run and session identifiers while lifecycle tracking continues in the background; an already-active run or unavailable target is reported without claiming a new run started. A run slot is claimed atomically: `recordRunStart` re-checks for an active run inside the same CAS that appends the pending run, so concurrent manual triggers from agents, the **Run now** button, or separate windows cannot both start the same automation, and only the caller that wins the swap dispatches a session. Manual workspace choices in the automation dialog never update the new-session recent-workspace list. Deletion uses **Delete**/**Cancel** confirmation when required, removes the automation and retained run history, and lets already-dispatched sessions continue. Denial, invalid IDs, stale confirmed updates, and cancellation or disablement observed by the mutation guard leave the ledger unchanged. The guard runs immediately before every CAS attempt; once an atomic CAS starts, concurrent cancellation or disablement cannot revoke a committed write, and the tool reports that commit as successful.
 
 For Agent Host client tools, a call made while the SDK is in **Allow all** mode carries `autoApproveBySetting` on its ready action. A plain `not-needed` confirmation reason is insufficient because client tools that did not consult the setting can use the same reason.
-
-Automation rows use dynamic heights. The management editor propagates both editor-pane and section visibility to the Automations widget; while hidden, the widget updates its view model but defers list splices and layout. Revealing the section commits the latest entries and forces a fresh row measurement so `display:none` cannot cache zero-height rows.
-
-The Automations empty-state CTA is centered and capped to the explanatory copy column while retaining the shared button's responsive width below that cap. A CI-blocking wide management-editor fixture covers this empty state in dark and light themes.
 
 ### IAICustomizationWorkspaceService
 
@@ -121,7 +119,7 @@ Available harnesses:
 | `claude` | Claude | Restricts user roots to `~/.claude`; hides Prompts + Plugins sections |
 
 In core VS Code, all three harnesses are registered but CLI and Claude only appear when their respective agents are registered (`requiredAgentId` checked via `IChatAgentService`). VS Code is the default.
-In sessions, harnesses are accepted for any session type that has a registered content provider (checked via `IChatSessionsService.getContentProviderSchemes()`). AHP remote servers register directly via `registerExternalHarness`.
+In sessions, the Local harness is not registered. Harnesses are accepted for any session type that has a registered content provider (checked via `IChatSessionsService.getContentProviderSchemes()`). The first provider harness becomes active until a session selects its own harness, and the editor uses no Local fallback label while none is available. AHP remote servers register directly via `registerExternalHarness`.
 
 Remote agent hosts can also register **external harnesses** dynamically. Each remote agent harness may contribute:
 - an `itemProvider` that surfaces plugins already configured on the remote host (or synced into the active remote session),
@@ -203,7 +201,7 @@ Claude additionally applies:
 - `hiddenSections: [Prompts, Plugins]`
 - `instructionFileFilter: ['CLAUDE.md', 'CLAUDE.local.md', '.claude/rules/', 'copilot-instructions.md']`
 - `workspaceSubpaths: ['.claude']` (instruction files matching `instructionFileFilter` are exempt)
-- `sectionOverrides`: Hooks → `copilot.claude.hooks` command; Instructions → "Add CLAUDE.md" primary, "Rule" type label, `.md` file extension
+- `sectionOverrides`: Instructions → "Add CLAUDE.md" primary, "Rule" type label, `.md` file extension
 
 ### Built-in Extension Grouping (Core VS Code)
 
@@ -269,16 +267,16 @@ Hooks and other non-markdown detail views continue to open directly in their exi
 Sessions overrides `PromptsService` via `AgenticPromptsService` (in `promptsService.ts`):
 
 - **Discovery**: `AgenticPromptFilesLocator` scopes workspace folders to the active session's worktree
-- **Built-in skills**: Discovers bundled `SKILL.md` files from `dc/sessions/skills/{name}/` and surfaces them with `PromptsStorage.builtin` storage type
+- **Built-in skills**: Discovers bundled `SKILL.md` files from `vs/sessions/skills/{name}/` and surfaces them with `PromptsStorage.builtin` storage type
 - **User override**: Built-in skills are omitted when a user or workspace skill with the same name exists
 - **Creation targets**: `getSourceFolders()` override replaces VS Code profile user roots with `~/.copilot/{subfolder}` for CLI compatibility
 - **Hook folders**: Falls back to `.github/hooks` in the active worktree
 
 ### Built-in Skills
 
-All built-in customizations bundled with the Sessions app are skills, living in `src/dc/sessions/skills/{name}/SKILL.md`. They are:
+All built-in customizations bundled with the Sessions app are skills, living in `src/vs/sessions/skills/{name}/SKILL.md`. They are:
 
-- Discovered at runtime via `FileAccess.asFileUri('dc/sessions/skills')`
+- Discovered at runtime via `FileAccess.asFileUri('vs/sessions/skills')`
 - Tagged with `PromptsStorage.builtin` storage type
 - Shown in a "Built-in" group in the AI Customization tree view and management editor
 - Filtered out when a user/workspace skill shares the same name (override behavior)
@@ -314,7 +312,7 @@ The first sidebar entry is `Overview`, which opens the AI Customization manageme
 
 The management editor opens inline detail panes for prompt files, MCP servers, and plugins. Prompt-file details use the standard text editor pane. MCP and plugin details render dedicated compact widgets — `EmbeddedMcpServerDetail` and `EmbeddedAgentPluginDetail` — purpose-built for the narrow split-pane host. They show the icon, name, scope/source, and description. Do **not** embed the full extension-editor panes inside the split-pane host: they assume a wide page-level layout and don't shrink cleanly.
 
-The MCP detail fixture in `src/dc/workbench/test/browser/componentFixtures/sessions/aiCustomizationManagementEditor.fixture.ts` must open a real server row (not a group header) and use a local server with concrete config so the compact widget's scope/description rendering is covered by screenshots.
+The MCP detail fixture in `src/vs/workbench/test/browser/componentFixtures/sessions/aiCustomizationManagementEditor.fixture.ts` must open a real server row (not a group header) and use a local server with concrete config so the compact widget's scope/description rendering is covered by screenshots.
 
 ### Debug Panel
 

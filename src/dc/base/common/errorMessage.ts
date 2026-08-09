@@ -36,7 +36,7 @@ function detectSystemErrorMessage(exception: any): string {
 		return nls.localize('nodeExceptionMessage', "A system error occurred ({0})", exception.message);
 	}
 
-	return (exception.stack ? exception.stack + "\n" : "") + (exception.message || nls.localize('error.defaultMessage', "An unknown error occurred. Please consult the log for more details."));
+	return exception.message || nls.localize('error.defaultMessage', "An unknown error occurred. Please consult the log for more details.");
 }
 
 /**
@@ -47,7 +47,7 @@ function detectSystemErrorMessage(exception: any): string {
  */
 export function toErrorMessage(error: any = null, verbose: boolean = false): string {
 	if (!error) {
-		return (new Error().stack + "\n") + nls.localize('error.defaultMessage', "An unknown error occurred. Please consult the log for more details.");
+		return nls.localize('error.defaultMessage', "An unknown error occurred. Please consult the log for more details.");
 	}
 
 	if (Array.isArray(error)) {
@@ -85,7 +85,7 @@ export function toErrorMessage(error: any = null, verbose: boolean = false): str
 		return error.message;
 	}
 
-	return (new Error().stack + "\n") + nls.localize('error.defaultMessage', "An unknown error occurred. Please consult the log for more details.");
+	return nls.localize('error.defaultMessage', "An unknown error occurred. Please consult the log for more details.");
 }
 
 

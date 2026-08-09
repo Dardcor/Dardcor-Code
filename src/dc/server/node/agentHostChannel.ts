@@ -9,7 +9,7 @@
 // AHP-over-WebSocket connection upstream and pipes raw JSON frames.
 //
 // The renderer-side counterpart is `AgentHostIpcChannelTransport` in
-// `src/dc/platform/agentHost/browser/`. Together they reuse the existing
+// `src/vs/platform/agentHost/browser/`. Together they reuse the existing
 // `RemoteAgentHostProtocolClient` over IPC instead of a raw WebSocket.
 
 import { Emitter, Event } from '../../base/common/event.js';

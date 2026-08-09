@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -111,4 +110,3 @@ export function stripClientToolNamePrefix(toolName: string): string {
 export function hasClientToolNamePrefix(toolName: string): boolean {
 	return toolName.startsWith(`mcp__${CLAUDE_CLIENT_MCP_SERVER_NAME}__`);
 }
-

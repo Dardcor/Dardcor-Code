@@ -160,7 +160,7 @@ export async function killTree(pid: number, forceful = false) {
 		args.push('/PID', String(pid));
 		child = cp.spawn(taskKill, args, { stdio: ['ignore', 'pipe', 'pipe'] });
 	} else {
-		const killScript = FileAccess.asFileUri('dc/base/node/terminateProcess.sh').fsPath;
+		const killScript = FileAccess.asFileUri('vs/base/node/terminateProcess.sh').fsPath;
 		child = cp.spawn('/bin/sh', [killScript, String(pid), forceful ? '9' : '15'], { stdio: ['ignore', 'pipe', 'pipe'] });
 	}
 

@@ -1,8 +1,8 @@
-# dc/sessions — Agents Window
+# vs/sessions — Agents Window
 
 ## Overview
 
-The `dc/sessions` layer hosts the implementation of the **Agents Window**, a dedicated workbench experience optimized for agent session workflows. This is a distinct top-level layer within the VS Code architecture, sitting alongside `dc/workbench`.
+The `vs/sessions` layer hosts the implementation of the **Agents Window**, a dedicated workbench experience optimized for agent session workflows. This is a distinct top-level layer within the VS Code architecture, sitting alongside `vs/workbench`.
 
 The Agents Window (`Workbench`) provides a simplified, fixed-layout workbench tailored for agent session workflows. Unlike the standard VS Code workbench:
 
@@ -13,7 +13,7 @@ The Agents Window (`Workbench`) provides a simplified, fixed-layout workbench ta
 - **Session-aware titlebar** — Titlebar shows the active session, session picker, and signed-in account widget
 - **Provider model** — Session backends (local CLI, cloud, remote agent host) register as pluggable providers
 
-**Key constraint:** `dc/sessions` may import from `dc/workbench` (and all layers below it), but `dc/workbench` must **never** import from `dc/sessions`.
+**Key constraint:** `vs/sessions` may import from `vs/workbench` (and all layers below it), but `vs/workbench` must **never** import from `vs/sessions`.
 
 ## Documentation
 
@@ -27,7 +27,6 @@ The Agents Window (`Workbench`) provides a simplified, fixed-layout workbench ta
 | [AI_CUSTOMIZATIONS.md](AI_CUSTOMIZATIONS.md) | AI customization design document |
 | [copilot-customizations-spec.md](copilot-customizations-spec.md) | Copilot customizations specification |
 | [contrib/providers/copilotChatSessions/COPILOT_CHAT_SESSIONS_PROVIDER.md](contrib/providers/copilotChatSessions/COPILOT_CHAT_SESSIONS_PROVIDER.md) | Copilot chat sessions provider details |
-| [contrib/providers/localChatSessions/LOCAL_CHAT_SESSIONS_PROVIDER.md](contrib/providers/localChatSessions/LOCAL_CHAT_SESSIONS_PROVIDER.md) | Local in-process VS Code chat sessions provider details |
 | [contrib/providers/agentHost/AGENT_HOST_SESSIONS_PROVIDER.md](contrib/providers/agentHost/AGENT_HOST_SESSIONS_PROVIDER.md) | Agent host provider details (shared base + local agent host) |
 | [contrib/providers/remoteAgentHost/REMOTE_AGENT_HOST_SESSIONS_PROVIDER.md](contrib/providers/remoteAgentHost/REMOTE_AGENT_HOST_SESSIONS_PROVIDER.md) | Remote agent host provider details |
 

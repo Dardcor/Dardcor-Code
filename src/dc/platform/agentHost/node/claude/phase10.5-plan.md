@@ -40,7 +40,7 @@ Replace Claude's dual-map session lifecycle (`_provisionalSessions` + `_sessions
 **Out of scope**
 
 - `IAgent` API changes.
-- Copilot agent refactor (`src/dc/platform/agentHost/node/copilot/copilotAgent.ts`) - owned by a separate phase.
+- Copilot agent refactor (`src/vs/platform/agentHost/node/copilot/copilotAgent.ts`) - owned by a separate phase.
 - New protocol events/methods beyond existing session progress/materialize forwarding.
 - Cross-phase feature work from phases 11+.
 
@@ -59,37 +59,37 @@ Use an incremental, bisectable refactor where each step stays testable and rever
 ## Steps
 
 1. **✓ Add provisional factory on `ClaudeAgentSession`** - allow session instances to exist pre-materialization.
-   - Files: `src/dc/platform/agentHost/node/claude/claudeAgentSession.ts`
+   - Files: `src/vs/platform/agentHost/node/claude/claudeAgentSession.ts`
    - Depends on: none
    - Done when: `createProvisional(...)` exists, `_pipeline` is nullable pre-materialize, `_requirePipeline()` guard exists, and tests prove no SDK startup occurs during provisional construction.
 
 2. **✓ Add `session.materialize()` implementation (2a)** - add session-owned lifecycle orchestration and idempotent in-flight materialize promise.
-   - Files: `src/dc/platform/agentHost/node/claude/claudeAgentSession.ts`, `src/dc/platform/agentHost/node/claude/claudeMaterializer.ts`
+   - Files: `src/vs/platform/agentHost/node/claude/claudeAgentSession.ts`, `src/vs/platform/agentHost/node/claude/claudeMaterializer.ts`
    - Depends on: step 1
    - Done when: direct unit tests cover happy path, concurrency idempotency, and abort cleanup; behavior of agent call paths is unchanged.
 
 3. **✓ Delegate agent materialize/resume methods to session (2b)** - make production path exercise `session.materialize()`.
-   - Files: `src/dc/platform/agentHost/node/claude/claudeAgent.ts`
+   - Files: `src/vs/platform/agentHost/node/claude/claudeAgent.ts`
    - Depends on: step 2
    - Done when: `_materializeProvisional` and `_resumeSession` delegate to session materialization and existing agent tests remain green.
 
 4. **✓ Collapse to one map while keeping compensation (3a)** - remove `_provisionalSessions` and keep compensation temporarily for safe bisecting.
-   - Files: `src/dc/platform/agentHost/node/claude/claudeAgent.ts`, `src/dc/platform/agentHost/node/claude/claudeAgentSession.ts`
+   - Files: `src/vs/platform/agentHost/node/claude/claudeAgent.ts`, `src/vs/platform/agentHost/node/claude/claudeAgentSession.ts`
    - Depends on: step 3
    - Done when: create/send/change/abort/dispose/getMessages all resolve through one map, per-session `Sequencer` is in use, and all Phase 10 regressions still pass.
 
 5. **✓ Delete race compensation (3b)** - removed during 3a since there is no longer a separate provisional record to re-sync.
-   - Files: `src/dc/platform/agentHost/node/claude/claudeAgent.ts`
+   - Files: `src/vs/platform/agentHost/node/claude/claudeAgent.ts`
    - Depends on: step 4
    - Done when: no compensation branches remain, race regressions remain green, and any rollback target is isolated to this commit.
 
 6. **✓ Polish per-phase dispatch in session (4)** - `setClientTools`, `setProvisionalModel`/`queueModelChange`, `requestPermission`, `requestUserInput`, and `abort` are pipeline-aware on session.
-   - Files: `src/dc/platform/agentHost/node/claude/claudeAgentSession.ts`
+   - Files: `src/vs/platform/agentHost/node/claude/claudeAgentSession.ts`
    - Depends on: step 5
    - Done when: pre/during/post mutation matrix passes and startup options receive pre-materialize values on first materialize.
 
 7. **✓ Fold disk-only resume into same object pattern (5)** - `_resumeSession` uses `createProvisional` + `materializer.materialize(ctx)` with the same session object identity.
-   - Files: `src/dc/platform/agentHost/node/claude/claudeAgent.ts`, `src/dc/platform/agentHost/node/claude/claudeSessionMetadataStore.ts`
+   - Files: `src/vs/platform/agentHost/node/claude/claudeAgent.ts`, `src/vs/platform/agentHost/node/claude/claudeSessionMetadataStore.ts`
    - Depends on: step 6
    - Done when: resume path creates one provisional session object, materializes via `isResume: true`, and resume-bootstrap regression remains green.
 
@@ -99,16 +99,16 @@ Use an incremental, bisectable refactor where each step stays testable and rever
 
 | Path | Change | Notes |
 |------|--------|-------|
-| `src/dc/platform/agentHost/node/claude/claudeAgent.ts` | modify | Collapse maps, delegate/cleanup materialize/resume, remove compensation, drop materializer dependency |
-| `src/dc/platform/agentHost/node/claude/claudeAgentSession.ts` | modify | Provisional factory, nullable pipeline guard, materialize flow, per-session sequencer, mutation dispatch |
-| `src/dc/platform/agentHost/node/claude/claudeMaterializer.ts` | modify then delete | Transitional helper extraction; final removal |
-| `src/dc/platform/agentHost/node/claude/claudeSdkOptions.ts` | create | Pure `buildOptions`/`buildClientMcpServers`/`buildSubprocessEnv` helpers |
-| `src/dc/platform/agentHost/node/claude/claudeSessionMetadataStore.ts` | modify (minimal) | Keep workspace-wide overlay store; optional `project()` helper extraction |
-| `src/dc/platform/agentHost/test/node/claudeAgent.test.ts` | modify | Adjust assertions for one-map + compensation deletion + resume flow |
-| `src/dc/platform/agentHost/test/node/claudeAgentSession*.test.ts` | modify/create | Materialize idempotency and provisional-session tests |
-| `src/dc/platform/agentHost/test/node/claudeMaterializer.test.ts` | modify/rename | Move helper coverage to new module |
-| `src/dc/platform/agentHost/test/node/claudeSdkPipeline.test.ts` | modify if needed | Ensure rebind/recover expectations still hold |
-| `src/dc/platform/agentHost/test/node/claudeAgent.integrationTest.ts` | modify | Pre-materialize `setClientTools` integration scenario |
+| `src/vs/platform/agentHost/node/claude/claudeAgent.ts` | modify | Collapse maps, delegate/cleanup materialize/resume, remove compensation, drop materializer dependency |
+| `src/vs/platform/agentHost/node/claude/claudeAgentSession.ts` | modify | Provisional factory, nullable pipeline guard, materialize flow, per-session sequencer, mutation dispatch |
+| `src/vs/platform/agentHost/node/claude/claudeMaterializer.ts` | modify then delete | Transitional helper extraction; final removal |
+| `src/vs/platform/agentHost/node/claude/claudeSdkOptions.ts` | create | Pure `buildOptions`/`buildClientMcpServers`/`buildSubprocessEnv` helpers |
+| `src/vs/platform/agentHost/node/claude/claudeSessionMetadataStore.ts` | modify (minimal) | Keep workspace-wide overlay store; optional `project()` helper extraction |
+| `src/vs/platform/agentHost/test/node/claudeAgent.test.ts` | modify | Adjust assertions for one-map + compensation deletion + resume flow |
+| `src/vs/platform/agentHost/test/node/claudeAgentSession*.test.ts` | modify/create | Materialize idempotency and provisional-session tests |
+| `src/vs/platform/agentHost/test/node/claudeMaterializer.test.ts` | modify/rename | Move helper coverage to new module |
+| `src/vs/platform/agentHost/test/node/claudeSdkPipeline.test.ts` | modify if needed | Ensure rebind/recover expectations still hold |
+| `src/vs/platform/agentHost/test/node/claudeAgent.integrationTest.ts` | modify | Pre-materialize `setClientTools` integration scenario |
 
 ## Decisions
 
@@ -139,7 +139,7 @@ Use an incremental, bisectable refactor where each step stays testable and rever
 - Focused regressions after map collapse/compensation deletion:
   - `./scripts/test.sh --grep "materialize gap|resume bootstrap gap|rebind failure leaves"`
 - Integration assertion for pre-materialize tool registration:
-  - update and run `src/dc/platform/agentHost/test/node/claudeAgent.integrationTest.ts`
+  - update and run `src/vs/platform/agentHost/test/node/claudeAgent.integrationTest.ts`
 
 ### E2E
 
@@ -185,10 +185,10 @@ None.
 ## Implementation Notes
 
 - Files actually changed:
-   - `src/dc/platform/agentHost/node/claude/claudeAgentSession.ts`
-   - `src/dc/platform/agentHost/test/node/claudeAgent.test.ts`
+   - `src/vs/platform/agentHost/node/claude/claudeAgentSession.ts`
+   - `src/vs/platform/agentHost/test/node/claudeAgent.test.ts`
 - Tests written:
-   - `src/dc/platform/agentHost/test/node/claudeAgent.test.ts`:
+   - `src/vs/platform/agentHost/test/node/claudeAgent.test.ts`:
       - `createProvisional creates a session without SDK startup contact`
       - `pipeline methods throw before materialize on provisional sessions`
       - `session.materialize is idempotent across concurrent calls`

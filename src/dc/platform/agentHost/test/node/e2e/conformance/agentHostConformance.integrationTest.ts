@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -41,6 +40,7 @@ const REFERENCE_CONFIG: IAgentHostE2EProviderConfig = {
 	provider: 'copilotcli',
 	scheme: 'copilotcli',
 	shellToolName: 'bash',
+	fileOperationStrategy: 'fileTools',
 	subagentToolNames: ['task'],
 	exitPlanModeToolName: 'exit_plan_mode',
 	enabled: true,
@@ -51,8 +51,6 @@ const REFERENCE_CONFIG: IAgentHostE2EProviderConfig = {
 	supportsMultipleChats: true,
 	supportsChatFork: true,
 	supportsChatForkE2E: true,
-	supportsFileTools: true,
 };
 
 defineAgentHostConformanceTests(REFERENCE_CONFIG);
-

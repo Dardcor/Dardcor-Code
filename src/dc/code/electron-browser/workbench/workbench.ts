@@ -401,7 +401,7 @@
 			if (!!safeProcess.env['VSCODE_DEV'] && globalThis._VSCODE_USE_RELATIVE_IMPORTS) {
 				workbenchUrl = '../../../workbench/workbench.desktop.main.js'; // for dev purposes only
 			} else {
-				workbenchUrl = new URL(`dc/workbench/workbench.desktop.main.js`, baseUrl).href;
+				workbenchUrl = new URL(`vs/workbench/workbench.desktop.main.js`, baseUrl).href;
 			}
 
 			const result = await import(workbenchUrl);

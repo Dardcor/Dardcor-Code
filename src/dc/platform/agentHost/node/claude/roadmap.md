@@ -79,7 +79,7 @@ roadmap.
   — wraps SDK functions including `forkSession(sessionId, options)` (top-level
   function, lines 57, 121–124), `listSubagents`, `getSubagentMessages` (lines
   60–74).
-- `src/dc/platform/agentHost/node/copilot/copilotAgent.ts` — `IAgent` reference
+- `src/vs/platform/agentHost/node/copilot/copilotAgent.ts` — `IAgent` reference
   for capability surface and customization hooks.
 
 ---
@@ -334,7 +334,7 @@ expands the Phase 4 surface area for no review benefit.
 | `effort` (reasoning controls) | When reasoning effort UX exists | `claudeCodeAgent.ts` line 436 |
 | `resume` / `sessionId` | Phase 5 (persistence) | `claudeCodeAgent.ts` lines 446–448 |
 | `includeHookEvents: true` | When hooks are exposed | `claudeCodeAgent.ts` line 471 |
-| OTel env (`deriveClaudeOTelEnv`) | When OTel is wired in agent host | `claudeCodeAgent.ts` line 460 |
+| OTel env | When OTel is wired in agent host | `claudeSdkOptions.ts` |
 | Bundled ripgrep on `PATH` + `USE_BUILTIN_RIPGREP=0` | When bundled ripgrep is needed | `claudeCodeAgent.ts` lines 457–458 |
 | `enableFileCheckpointing` + `Query.rewindFiles()` | Phase 8 (checkpoints). Type definitions confirm both exist in 0.2.112; the extension does not use them, so Phase 8 must validate them itself. | `sdk.d.ts` lines 1105, 1280 |
 | Edit tracker, settings change tracker, runtime data cache, folder MRU, debug file logger | Workbench-side concerns; out of scope for the agent host core | `claudeCodeAgent.ts` (assorted) |
@@ -1278,7 +1278,7 @@ reference only (different lifecycle semantics — no MCP, no
 yield-restart).
 
 Exit criteria: zero `_provisionalSessions` / `IClaudeProvisionalSession`
-/ `ClaudeMaterializer` references under `src/dc/platform/agentHost/`;
+/ `ClaudeMaterializer` references under `src/vs/platform/agentHost/`;
 Phase 10 race regressions still passing; E2E scenario (create →
 set-model → send → set-client-tools → send → rebind → abort →
 dispose) clean across the whole session lifecycle.

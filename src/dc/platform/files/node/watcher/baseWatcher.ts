@@ -62,7 +62,7 @@ export abstract class BaseWatcher extends Disposable implements IWatcher {
 		} else {
 			// Requests without correlation do not carry any unique identifier, so we have to
 			// come up with one based on the options of the request. This matches what the
-			// file service does (dc/platform/files/common/fileService.ts#L1178).
+			// file service does (vs/platform/files/common/fileService.ts#L1178).
 			return hash(request);
 		}
 	}

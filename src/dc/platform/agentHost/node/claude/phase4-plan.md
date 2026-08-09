@@ -14,15 +14,15 @@ Because the provider is a stub for the next several phases (every user-facing me
 
 | Action | File | Purpose |
 |---|---|---|
-| **Create** | `src/dc/platform/agentHost/node/claude/claudeAgent.ts` | The `ClaudeAgent` class. ~200–300 lines. |
-| **Create** | `src/dc/platform/agentHost/test/node/claudeAgent.test.ts` | Unit tests. |
-| **Modify** | `src/dc/platform/agentHost/common/agentService.ts` | Export `AgentHostClaudeAgentEnabledSettingId` setting id and `AgentHostEnableClaudeEnvVar` constant. |
-| **Modify** | `src/dc/workbench/contrib/chat/browser/chat.contribution.ts` | Register `chat.agentHost.claudeAgent.enabled` (boolean, default `false`, `experimental`+`advanced`, hidden in stable). |
-| **Modify** | `src/dc/platform/agentHost/electron-main/electronAgentHostStarter.ts` | Read the setting; forward as `VSCODE_AGENT_HOST_ENABLE_CLAUDE` env var into the utility process. |
-| **Modify** | `src/dc/platform/agentHost/node/nodeAgentHostStarter.ts` | Same forwarding for the Node child-process fallback. |
-| **Modify** | `src/dc/platform/agentHost/node/agentHostMain.ts` | Conditionally register `ClaudeAgent` next to `CopilotAgent` based on the env var. |
-| **Modify** | `src/dc/platform/agentHost/node/agentHostServerMain.ts` | Register `ICopilotApiService`, `IClaudeProxyService`, and `ClaudeAgent` (gated on env var or `--enable-claude-agent`). Currently has none of these. |
-| **Modify** | `src/dc/platform/agentHost/node/claude/scripts/launch-smoke.sh` | Export `VSCODE_AGENT_HOST_ENABLE_CLAUDE=1` so the smoke flow does not require touching user settings. |
+| **Create** | `src/vs/platform/agentHost/node/claude/claudeAgent.ts` | The `ClaudeAgent` class. ~200–300 lines. |
+| **Create** | `src/vs/platform/agentHost/test/node/claudeAgent.test.ts` | Unit tests. |
+| **Modify** | `src/vs/platform/agentHost/common/agentService.ts` | Export `AgentHostClaudeAgentEnabledSettingId` setting id and `AgentHostEnableClaudeEnvVar` constant. |
+| **Modify** | `src/vs/workbench/contrib/chat/browser/chat.contribution.ts` | Register `chat.agentHost.claudeAgent.enabled` (boolean, default `false`, `experimental`+`advanced`, hidden in stable). |
+| **Modify** | `src/vs/platform/agentHost/electron-main/electronAgentHostStarter.ts` | Read the setting; forward as `VSCODE_AGENT_HOST_ENABLE_CLAUDE` env var into the utility process. |
+| **Modify** | `src/vs/platform/agentHost/node/nodeAgentHostStarter.ts` | Same forwarding for the Node child-process fallback. |
+| **Modify** | `src/vs/platform/agentHost/node/agentHostMain.ts` | Conditionally register `ClaudeAgent` next to `CopilotAgent` based on the env var. |
+| **Modify** | `src/vs/platform/agentHost/node/agentHostServerMain.ts` | Register `ICopilotApiService`, `IClaudeProxyService`, and `ClaudeAgent` (gated on env var or `--enable-claude-agent`). Currently has none of these. |
+| **Modify** | `src/vs/platform/agentHost/node/claude/scripts/launch-smoke.sh` | Export `VSCODE_AGENT_HOST_ENABLE_CLAUDE=1` so the smoke flow does not require touching user settings. |
 
 ## 3. `ClaudeAgent` class spec
 
@@ -30,7 +30,7 @@ Because the provider is a stub for the next several phases (every user-facing me
 
 | Phase 4 concern | Reference |
 |---|---|
-| Class shell, `Disposable`, emitter, observable | `src/dc/platform/agentHost/node/copilot/copilotAgent.ts` (in-tree `IAgent` reference) |
+| Class shell, `Disposable`, emitter, observable | `src/vs/platform/agentHost/node/copilot/copilotAgent.ts` (in-tree `IAgent` reference) |
 | `getDescriptor` / `getProtectedResources` / `authenticate` | `CopilotAgent` ONLY — extension has no `IAgent` analog |
 | Model filter | `extensions/copilot/src/extension/chatSessions/claude/node/claudeCodeModels.ts:165–179` |
 
@@ -62,7 +62,7 @@ export class ClaudeAgent extends Disposable implements IAgent {
 }
 ```
 
-**Provider id is `'claude'`** (not `'claude-code'`). The id becomes the URI scheme via `AgentSession.uri()` at `src/dc/platform/agentHost/common/agentService.ts:314`. Branding goes in `displayName`.
+**Provider id is `'claude'`** (not `'claude-code'`). The id becomes the URI scheme via `AgentSession.uri()` at `src/vs/platform/agentHost/common/agentService.ts:314`. Branding goes in `displayName`.
 
 ### 3.2 `getDescriptor()` and `getProtectedResources()`
 
@@ -90,7 +90,7 @@ getProtectedResources(): ProtectedResourceMetadata[] {
 
 ### 3.3 `authenticate()` — the only real logic in this phase
 
-Defer proxy startup until a token arrives. `IClaudeProxyService.start()` requires a non-empty github token (`src/dc/platform/agentHost/node/claude/claudeProxyService.ts:61`), so eager construction is impossible.
+Defer proxy startup until a token arrives. `IClaudeProxyService.start()` requires a non-empty github token (`src/vs/platform/agentHost/node/claude/claudeProxyService.ts:61`), so eager construction is impossible.
 
 Mirror `CopilotAgent.authenticate()` (lines 277–309):
 
@@ -175,7 +175,7 @@ Field references (`src/typings/copilot-api.d.ts`):
 - `capabilities.supports.tool_calls` → line 150
 - `capabilities.limits.max_context_window_tokens` → line ~133
 
-Verify the exact `IAgentModelInfo` shape against `src/dc/platform/agentHost/common/agentService.ts:204` before writing. Drop fields that don't exist in the interface.
+Verify the exact `IAgentModelInfo` shape against `src/vs/platform/agentHost/common/agentService.ts:204` before writing. Drop fields that don't exist in the interface.
 
 ### 3.6 Stub map
 
@@ -220,7 +220,7 @@ override dispose(): void {
 }
 ```
 
-The comment is mandatory — Phase 6 will add SDK spawn and the order matters per `IClaudeProxyHandle` doc at `src/dc/platform/agentHost/node/claude/claudeProxyService.ts:33`.
+The comment is mandatory — Phase 6 will add SDK spawn and the order matters per `IClaudeProxyHandle` doc at `src/vs/platform/agentHost/node/claude/claudeProxyService.ts:33`.
 
 ## 4. Registration changes
 
@@ -231,8 +231,8 @@ Registration is **gated** so users on a default install never see a stub provide
 chat.agentHost.claudeAgent.enabled  --->  VSCODE_AGENT_HOST_ENABLE_CLAUDE=1  --->  registerProvider(ClaudeAgent)
 ```
 
-- The setting key and env-var name live in `src/dc/platform/agentHost/common/agentService.ts` (`AgentHostClaudeAgentEnabledSettingId`, `AgentHostEnableClaudeEnvVar`) so both sides reference the same string.
-- The setting is registered in `src/dc/workbench/contrib/chat/browser/chat.contribution.ts` next to `AgentHostEnabledSettingId`: `type: 'boolean'`, `default: false`, `tags: ['experimental', 'advanced']`, `included: product.quality !== 'stable'`.
+- The setting key and env-var name live in `src/vs/platform/agentHost/common/agentService.ts` (`AgentHostClaudeAgentEnabledSettingId`, `AgentHostEnableClaudeEnvVar`) so both sides reference the same string.
+- The setting is registered with the other Agent Host provider settings: `type: 'boolean'`, `default: false`, `tags: ['experimental', 'advanced']`, `included: product.quality !== 'stable'`.
 - The env var also acts as a developer override: setting it on the parent process (e.g. in `launch-smoke.sh`) opts the agent host in regardless of the workbench setting.
 - Changes require an agent host restart — the env var is captured at process spawn time. The setting description must say so.
 
@@ -243,7 +243,7 @@ Import `AgentHostClaudeAgentEnabledSettingId` next to the existing agent-host se
 ```ts
 [AgentHostClaudeAgentEnabledSettingId]: {
     type: 'boolean',
-    description: nls.localize('chat.agentHost.claudeAgent.enabled', "When enabled, the Claude agent provider is registered inside the agent host. Requires `#chat.agentHost.enabled#`. The agent host process must be restarted for changes to this setting to take effect."),
+    description: nls.localize('chat.agentHost.claudeAgent.enabled', "When enabled, the Claude agent provider is registered inside the agent host. The agent host process must be restarted for changes to this setting to take effect."),
     default: false,
     tags: ['experimental', 'advanced'],
     included: product.quality !== 'stable',
@@ -263,7 +263,7 @@ this.utilityProcess.start({
     env: {
         ...deepClone(process.env),
         ...shellEnv,
-        VSCODE_ESM_ENTRYPOINT: 'dc/platform/agentHost/node/agentHostMain',
+        VSCODE_ESM_ENTRYPOINT: 'vs/platform/agentHost/node/agentHostMain',
         VSCODE_PIPE_LOGGING: 'true',
         VSCODE_VERBOSE_LOGGING: 'true',
         ...(claudeEnabled ? { [AgentHostEnableClaudeEnvVar]: '1' } : {}),
@@ -323,7 +323,7 @@ Imports needed (mirror `agentHostMain.ts` lines ~20–25):
 
 ## 5. Test file spec
 
-New file: `src/dc/platform/agentHost/test/node/claudeAgent.test.ts`. Mirror the harness style of `src/dc/platform/agentHost/test/node/copilotAgent.test.ts` (read lines 233–262 for the `createTestAgentContext` pattern).
+New file: `src/vs/platform/agentHost/test/node/claudeAgent.test.ts`. Mirror the harness style of `src/vs/platform/agentHost/test/node/copilotAgent.test.ts` (read lines 233–262 for the `createTestAgentContext` pattern).
 
 **Mock services (no extensive mocking — minimal stand-ins):**
 - `IClaudeProxyService` mock: `start(token)` returns `{ baseUrl: 'http://127.0.0.1:0', nonce: 'test-nonce', dispose: () => disposeCount++ }`. Track call count and last token.
@@ -344,7 +344,7 @@ New file: `src/dc/platform/agentHost/test/node/claudeAgent.test.ts`. Mirror the 
 11. Each stubbed method (sample 3–4) throws an `Error` whose message contains `'TODO: Phase'` and the right number.
 12. **Registration smoke:** instantiate `AgentService` + register `ClaudeAgent` + assert it appears in root state via the public service surface.
 13. **Stale-write guard:** if a slow `models(tokA)` call resolves *after* `authenticate(tokB)` has already published `[B]`, the late `[A]` result must be discarded.
-    Use `DeferredPromise` from [src/dc/base/common/async.ts](src/dc/base/common/async.ts#L1739) to control the resolution order:
+    Use `DeferredPromise` from [src/vs/base/common/async.ts](src/vs/base/common/async.ts#L1739) to control the resolution order:
     ```ts
     const tokAModels = new DeferredPromise<CCAModel[]>();
     mockApi.models = (token: string) => token === 'tokA' ? tokAModels.p : Promise.resolve([CLAUDE_MODEL_B]);
@@ -371,7 +371,7 @@ Use `ensureNoDisposablesAreLeakedInTestSuite()` at the top.
 | `_refreshModels` writes after `await` — token may have rotated. | Snapshot `_githubToken` at start, gate the write on equality. (Mirrors CopilotAgent.) |
 | `_proxyHandle.dispose()` is the ONLY way to release the proxy refcount — leaving `dispose()` as a TODO leaks. | Implement real `dispose()` in this phase; comment Phase 6 ordering invariant. |
 | `IClaudeProxyService` constructor requires `ICopilotApiService` (verified Phase 2). | Register `ICopilotApiService` first in `agentHostServerMain.ts`. |
-| Test assertions after `authenticate` are async-sensitive (model fetch is a promise). | For tests that just need the refresh to settle: `await new Promise(r => setImmediate(r))` to drain microtasks. For tests that need to *control* refresh ordering (e.g. stale-write guard): use `DeferredPromise` from [async.ts](src/dc/base/common/async.ts#L1739) on the mock `models()` call. Avoid timer-based waits. |
+| Test assertions after `authenticate` are async-sensitive (model fetch is a promise). | For tests that just need the refresh to settle: `await new Promise(r => setImmediate(r))` to drain microtasks. For tests that need to *control* refresh ordering (e.g. stale-write guard): use `DeferredPromise` from [async.ts](src/vs/base/common/async.ts#L1739) on the mock `models()` call. Avoid timer-based waits. |
 | Disposable leak detection: mock `IClaudeProxyHandle` should not register with the test store unless tracked. | Use a lightweight object literal — its `dispose` is a closure, not a disposable. |
 | Forgetting to gate — default-on registration would expose `TODO: Phase N` errors to every Insiders user. | Both `agentHostMain.ts` and `agentHostServerMain.ts` MUST gate on `process.env[AgentHostEnableClaudeEnvVar] === '1'`. Smoke without setting the env var: only `copilotcli` should appear in root state. |
 | Setting flipped at runtime doesn't take effect. | The env var is captured at agent-host process spawn. Reload the window (or kill the host) to apply. The setting description must say so. |
@@ -383,7 +383,7 @@ The PR is **done** when every box below is checked. Run them in order — earlie
 
 ### 7.1 Code structure
 
-- [ ] `src/dc/platform/agentHost/node/claude/claudeAgent.ts` exists with `export class ClaudeAgent extends Disposable implements IAgent`.
+- [ ] `src/vs/platform/agentHost/node/claude/claudeAgent.ts` exists with `export class ClaudeAgent extends Disposable implements IAgent`.
 - [ ] `id = 'claude'` (not `'claude-code'`, not `'copilotcli'`).
 - [ ] Constructor takes exactly `@ILogService`, `@ICopilotApiService`, `@IClaudeProxyService` (no other deps).
 - [ ] All 16 stubbed methods (§3.6) throw `Error('TODO: Phase N')` with the correct N.
@@ -394,7 +394,7 @@ The PR is **done** when every box below is checked. Run them in order — earlie
 
 ### 7.2 Registration & gating
 
-- [ ] `AgentHostClaudeAgentEnabledSettingId` and `AgentHostEnableClaudeEnvVar` are exported from `src/dc/platform/agentHost/common/agentService.ts`.
+- [ ] `AgentHostClaudeAgentEnabledSettingId` and `AgentHostEnableClaudeEnvVar` are exported from `src/vs/platform/agentHost/common/agentService.ts`.
 - [ ] `chat.contribution.ts` registers `chat.agentHost.claudeAgent.enabled` with `default: false`, `tags: ['experimental', 'advanced']`, and `included: product.quality !== 'stable'`.
 - [ ] Setting `description` notes the agent host must restart for changes to take effect.
 - [ ] Both `electronAgentHostStarter.ts` and `nodeAgentHostStarter.ts` forward the setting (or inherited env var) as `VSCODE_AGENT_HOST_ENABLE_CLAUDE=1`.
@@ -404,13 +404,13 @@ The PR is **done** when every box below is checked. Run them in order — earlie
 ### 7.3 Compile + lint + layers
 
 - [ ] `VS Code - Build` task shows zero TypeScript errors. If task is unavailable, `npm run typecheck-client` exits 0.
-- [ ] `npm run eslint -- src/dc/platform/agentHost/node/claude/claudeAgent.ts src/dc/platform/agentHost/test/node/claudeAgent.test.ts` exits 0.
+- [ ] `npm run eslint -- src/vs/platform/agentHost/node/claude/claudeAgent.ts src/vs/platform/agentHost/test/node/claudeAgent.test.ts` exits 0.
 - [ ] `npm run valid-layers-check` exits 0.
 - [ ] `npm run hygiene` exits 0.
 
 ### 7.4 Tests
 
-- [ ] `src/dc/platform/agentHost/test/node/claudeAgent.test.ts` exists with all 13 cases from §5.
+- [ ] `src/vs/platform/agentHost/test/node/claudeAgent.test.ts` exists with all 13 cases from §5.
 - [ ] `ensureNoDisposablesAreLeakedInTestSuite()` is at the top of the suite.
 - [ ] `scripts/test.sh --grep ClaudeAgent` exits 0 — every case passes.
 - [ ] No test uses `as any` or `as unknown as Foo` casts.
@@ -436,9 +436,9 @@ These are the *outcomes* the unit tests verify. §7.8 is the live-system smoke t
 
 | Failure | Likely cause | First debugging step |
 |---|---|---|
-| Compile error on `IAgentModelInfo` | Added a non-existent field (e.g. `family`) | Re-read `src/dc/platform/agentHost/common/agentService.ts:204`; drop unsupported fields. |
+| Compile error on `IAgentModelInfo` | Added a non-existent field (e.g. `family`) | Re-read `src/vs/platform/agentHost/common/agentService.ts:204`; drop unsupported fields. |
 | Compile error on `supportsVision` | Returned `boolean \| undefined` | Coerce: `!!m.capabilities?.supports?.vision`. |
-| `valid-layers-check` fails | Imported from a higher layer (`dc/workbench/`, `dc/sessions/`) by accident | Check imports — only `dc/base`, `dc/platform`, `dc/typings` allowed. |
+| `valid-layers-check` fails | Imported from a higher layer (`vs/workbench/`, `vs/sessions/`) by accident | Check imports — only `vs/base`, `vs/platform`, `vs/typings` allowed. |
 | Test 13 (stale-write) flakes | Microtask draining timing | Replace timer waits with `DeferredPromise` resolution + `await new Promise(r => setImmediate(r))`. |
 | `dispose()` test leaks | Mock proxy handle counted as a tracked disposable | Plain object literal, not `Disposable` subclass. |
 | `agentHostServerMain.ts` server crashes at startup | DI registration order | Register `ICopilotApiService` BEFORE `IClaudeProxyService`. |
@@ -474,4 +474,4 @@ No. `dispose()` clears `this._githubToken` *before* `super.dispose()`, so any hu
 Phase 4 is a stub. Every user-facing method (`createSession`, `sendMessage`, `respondToPermissionRequest`, …) throws `TODO: Phase N`. Shipping it default-on would mean Insiders users who pick Claude in the picker hit a `TODO: Phase 5` error on their first prompt. Default-off + a setting + a developer env var keeps Phase 4 testable without exposing it broadly. The setting is `included: product.quality !== 'stable'` so it is hidden from stable installs entirely. Flip the default to `true` (or remove the gate) only once the user-facing methods stop throwing — the natural milestone is Phase 6 (`sendMessage` lands).
 
 **Workbench setting vs. agent-host root config (`IAgentConfigurationService`)?**
-Workbench setting. Root config is for runtime / per-session knobs that flow through the IPC protocol; this is a feature flag for whether a provider exists at all, decided at process spawn. Mirrors the precedent set by `chat.agentHost.enabled` (which gates whether the *whole* agent host process spawns).
+Workbench setting. Root config is for runtime / per-session knobs that flow through the IPC protocol; this is a feature flag for whether a provider exists at all, decided at process spawn.

@@ -52,7 +52,7 @@ class ProfileAnalysisWorkerService implements IProfileAnalysisWorkerService {
 
 		const worker = this._webWorkerService.createWorkerClient<IProfileAnalysisWorker>(
 			new WebWorkerDescriptor({
-				esmModuleLocation: FileAccess.asBrowserUri('dc/platform/profiling/electron-browser/profileAnalysisWorkerMain.js'),
+				esmModuleLocation: FileAccess.asBrowserUri('vs/platform/profiling/electron-browser/profileAnalysisWorkerMain.js'),
 				label: 'CpuProfileAnalysisWorker'
 			})
 		);

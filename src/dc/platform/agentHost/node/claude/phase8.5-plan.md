@@ -582,7 +582,7 @@ agent):
    with ``Searching for `IClaudeAgentSession` `` ; on completion
    it reads ``Searched for `IClaudeAgentSession` ``.
 4. **Subagent.** Send: *"Spin up 2 subagents that summarize the
-   `src/dc/platform/agentHost/node/claude` folder."* Verify:
+   `src/vs/platform/agentHost/node/claude` folder."* Verify:
    - Each `Task` parent row shows the model-authored
      `description` text (D9) — NOT the literal "Run subagent
      task" — and renders via the subagent renderer.

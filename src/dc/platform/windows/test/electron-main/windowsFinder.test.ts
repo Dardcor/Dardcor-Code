@@ -22,7 +22,7 @@ import { FocusMode } from '../../../native/common/native.js';
 
 suite('WindowsFinder', () => {
 
-	const fixturesFolder = FileAccess.asFileUri('dc/platform/windows/test/electron-main/fixtures').fsPath;
+	const fixturesFolder = FileAccess.asFileUri('vs/platform/windows/test/electron-main/fixtures').fsPath;
 
 	const testWorkspace: IWorkspaceIdentifier = {
 		id: Date.now().toString(),

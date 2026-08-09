@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -448,7 +447,9 @@ export function chatReducer(state: ChatState, action: ChatAction, log?: (msg: st
 				return {
 					...tc,
 					...(action._meta !== undefined ? { _meta: action._meta } : {}),
-					partialInput: (tc.partialInput ?? '') + action.content,
+					...(action.content !== undefined
+						? { partialInput: (tc.partialInput ?? '') + action.content }
+						: {}),
 					invocationMessage: action.invocationMessage ?? tc.invocationMessage,
 				};
 			});
@@ -467,12 +468,14 @@ export function chatReducer(state: ChatState, action: ChatAction, log?: (msg: st
 					contributor: refineToolCallContributor(tc.contributor, action.contributor, log),
 					intention: action.intention ?? tc.intention,
 				};
+				const toolInput = action.toolInput
+					?? (tc.status === ToolCallStatus.Streaming ? undefined : tc.toolInput);
 				if (action.confirmed) {
 					return {
 						status: ToolCallStatus.Running,
 						...base,
 						invocationMessage: action.invocationMessage,
-						toolInput: action.toolInput,
+						toolInput,
 						confirmed: action.confirmed,
 					};
 				}
@@ -482,7 +485,7 @@ export function chatReducer(state: ChatState, action: ChatAction, log?: (msg: st
 					status: ToolCallStatus.PendingConfirmation,
 					...base,
 					invocationMessage: action.invocationMessage,
-					toolInput: action.toolInput ?? pending?.toolInput,
+					toolInput,
 					confirmationTitle: action.confirmationTitle ?? pending?.confirmationTitle,
 					riskAssessment: action.riskAssessment ?? pending?.riskAssessment,
 					edits: action.edits ?? pending?.edits,
@@ -499,11 +502,14 @@ export function chatReducer(state: ChatState, action: ChatAction, log?: (msg: st
 				const base = tcBaseWithMeta(tc, action._meta);
 				const selectedOption = resolveSelectedOption(tc.options, action.selectedOptionId);
 				if (action.approved) {
+					const toolInput = action.editedToolInput !== undefined && typeof tc.toolInput === 'string'
+						? action.editedToolInput
+						: tc.toolInput;
 					return {
 						status: ToolCallStatus.Running,
 						...base,
 						invocationMessage: tc.invocationMessage,
-						toolInput: action.editedToolInput ?? tc.toolInput,
+						toolInput,
 						confirmed: action.confirmed,
 						...(selectedOption ? { selectedOption } : {}),
 					};
@@ -858,4 +864,3 @@ export function chatReducer(state: ChatState, action: ChatAction, log?: (msg: st
 			return state;
 	}
 }
-

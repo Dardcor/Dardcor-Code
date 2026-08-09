@@ -66,7 +66,7 @@ interface ITreeCacheEntry {
  *
  * URI format: github-remote-file://github/{owner}/{repo}/{ref}/{path...}
  *
- * For example: github-remote-file://github/microsoft/vscode/main/src/dc/base/common/uri.ts
+ * For example: github-remote-file://github/microsoft/vscode/main/src/vs/base/common/uri.ts
  *
  * This provider fetches the full recursive tree from the GitHub Trees API on first
  * access and caches it. Individual file contents are fetched on demand via the

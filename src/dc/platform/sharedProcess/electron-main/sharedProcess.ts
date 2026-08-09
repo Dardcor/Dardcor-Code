@@ -171,7 +171,7 @@ export class SharedProcess extends Disposable {
 		this.utilityProcess.start({
 			type: 'shared-process',
 			name: 'shared-process',
-			entryPoint: 'dc/code/electron-utility/sharedProcess/sharedProcessMain',
+			entryPoint: 'vs/code/electron-utility/sharedProcess/sharedProcessMain',
 			payload: this.createSharedProcessConfiguration(),
 			respondToAuthRequestsFromMainProcess: true,
 			execArgv

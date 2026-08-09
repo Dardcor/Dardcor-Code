@@ -1,5 +1,5 @@
 {
-	"nameShort": "Dardcor Code",
+	"nameShort": "Dardcor Code Dev",
 	"nameLong": "Dardcor Code",
 	"applicationName": "dardcor-code",
 	"dataFolderName": ".dardcor-code",
@@ -28,7 +28,7 @@
 	"win32TunnelMutex": "dardcorcode-tunnel",
 	"tunnelApplicationName": "dardcor-code-tunnel",
 	"darwinBundleIdentifier": "com.dardcor.code",
-	"darwinIcon": "code.icns",
+	"darwinIcon": "dardcor-code.icns",
 	"linuxIconName": "dardcor-code",
 	"licenseFileName": "LICENSE.txt",
 	"reportIssueUrl": "https://github.com/dardcor/dardcor-code/issues/new",
@@ -139,7 +139,7 @@
 	"onboardingKeymaps": [
 		{
 			"id": "vscode",
-			"label": "VS Code",
+			"label": "Dardcor Code",
 			"description": "Default keyboard mapping"
 		},
 		{

@@ -135,7 +135,7 @@ export default defineThemedFixtureGroup({ path: 'chat/' }, {
 		labels: { kind: 'animated' },
 		render: (ctx) => renderProgressPart(
 			ctx,
-			createProgressMessage('Reading `src/dc/workbench/contrib/chat/browser/chatWidget.ts`'),
+			createProgressMessage('Reading `src/vs/workbench/contrib/chat/browser/chatWidget.ts`'),
 			createMockContext({ isComplete: false }),
 			{ forceShowSpinner: true, forceShowMessage: true, shimmer: false },
 		),

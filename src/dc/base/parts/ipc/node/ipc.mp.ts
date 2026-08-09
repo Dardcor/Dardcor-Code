@@ -107,4 +107,3 @@ export function once(port: INodeMessagePortFragment, message: unknown, callback:
 
 	port.on('message', listener);
 }
-

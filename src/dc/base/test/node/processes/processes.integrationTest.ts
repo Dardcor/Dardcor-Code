@@ -28,7 +28,7 @@ suite('Processes', () => {
 			return done(); // this test fails when run from within VS Code
 		}
 
-		const child = fork('dc/base/test/node/processes/fixtures/fork');
+		const child = fork('vs/base/test/node/processes/fixtures/fork');
 		const sender = processes.createQueuedSender(child);
 
 		let counter = 0;
@@ -60,7 +60,7 @@ suite('Processes', () => {
 	});
 
 	(!platform.isWindows || process.env['VSCODE_PID'] ? test.skip : test)('buffered sending - lots of data (potential deadlock on win32)', function (done: () => void) { // test is only relevant for Windows and seems to crash randomly on some Linux builds
-		const child = fork('dc/base/test/node/processes/fixtures/fork_large');
+		const child = fork('vs/base/test/node/processes/fixtures/fork_large');
 		const sender = processes.createQueuedSender(child);
 
 		const largeObj = Object.create(null);

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -29,7 +28,7 @@ export const enum CodexSessionConfigKey {
 }
 
 /** Subset of the generated `AskForApproval` union that VS Code exposes. */
-export type CodexApprovalPolicy = 'never' | 'on-request' | 'on-failure' | 'untrusted';
+export type CodexApprovalPolicy = 'never' | 'on-request' | 'untrusted';
 
 /** Mirrors the generated `SandboxMode` union. */
 export type CodexSandboxMode = 'read-only' | 'workspace-write' | 'danger-full-access';
@@ -113,4 +112,3 @@ export function presetForResolvedPermissions(resolved: ICodexResolvedPermissions
 	}
 	return undefined;
 }
-

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -16,7 +15,7 @@
  * the dev dependency in `node_modules/@anthropic-ai/claude-agent-sdk`.
  *
  *   AGENT_HOST_REPLAY_RECORD=1 ./scripts/test-integration.sh --run \
- *     src/dc/platform/agentHost/test/node/e2e/providers/claudeAgentHostE2E.integrationTest.ts
+ *     src/vs/platform/agentHost/test/node/e2e/providers/claudeAgentHostE2E.integrationTest.ts
  *
  * **Recording authentication:** token from `GITHUB_TOKEN` (preferred) or `gh auth
  * token`. Either works — the agent host's `CopilotApiService` discovers the
@@ -60,9 +59,19 @@ const CLAUDE_CONFIG: IAgentHostE2EProviderConfig = {
 	provider: 'claude',
 	scheme: 'claude',
 	shellToolName: 'Bash',
+	fileOperationStrategy: 'fileTools',
 	subagentToolNames: ['Task', 'Agent'],
 	exitPlanModeToolName: 'ExitPlanMode',
 	streamingFileCreateToolName: 'Write',
+	modelSwitchTarget: 'claude-sonnet-4.6',
+	modelSwitchReturnTarget: 'claude-opus-5',
+	interactiveInputPrompt: 'Use AskUserQuestion exactly once to ask "Which fruit?" with options "Apple" and "Banana". After the answer, reply with only the selected fruit.',
+	cancelledInputPrompt: 'Use AskUserQuestion exactly once to ask "Continue?" with options "Yes" and "No". If the request is cancelled, reply exactly "cancelled".',
+	multiSelectInputPrompt: 'Use AskUserQuestion exactly once to ask "Which colors?" with options "Red" and "Blue" and multiSelect true. After the answer, name the selected colors.',
+	supportsRuntimeSlashCommandsE2E: true,
+	supportsAttachmentsE2E: true,
+	fileToolDenialReplayUnstableOnLinux: true,
+	supportsWorktreeIncludeFilesE2E: true,
 	enabled: !!CLAUDE_SDK_ROOT,
 	claudeSdkRoot: CLAUDE_SDK_ROOT,
 	// Worktree isolation is now shared across agents via the host-owned
@@ -83,11 +92,9 @@ const CLAUDE_CONFIG: IAgentHostE2EProviderConfig = {
 	supportsPlanMode: false,
 	supportsMultipleChats: true,
 	supportsChatFork: true,
-	// The Claude SDK currently receives the AHP turn id as upToMessageId and
-	// rejects it as invalid when the fork is exercised against a real transcript.
+	// Claude cannot resolve a client-assigned AHP turn id to an SDK message UUID,
+	// so a provider fork silently starts with fresh context.
 	supportsChatForkE2E: false,
-	supportsFileTools: true,
 };
 
 defineAgentHostE2ETests(CLAUDE_CONFIG);
-

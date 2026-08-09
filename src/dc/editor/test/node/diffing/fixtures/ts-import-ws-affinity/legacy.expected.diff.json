@@ -1,10 +1,10 @@
 {
 	"original": {
-		"content": "import { handledConflictMinimapOverViewRulerColor, unhandledConflictMinimapOverViewRulerColor } from 'dc/workbench/contrib/mergeEditor/browser/view/colors';\nimport { EditorGutter, IGutterItemInfo, IGutterItemView } from '../editorGutter';\nimport { CodeEditorView } from './codeEditorView';\n",
+		"content": "import { handledConflictMinimapOverViewRulerColor, unhandledConflictMinimapOverViewRulerColor } from 'vs/workbench/contrib/mergeEditor/browser/view/colors';\nimport { EditorGutter, IGutterItemInfo, IGutterItemView } from '../editorGutter';\nimport { CodeEditorView } from './codeEditorView';\n",
 		"fileName": "./1.tst"
 	},
 	"modified": {
-		"content": "import { handledConflictMinimapOverViewRulerColor, unhandledConflictMinimapOverViewRulerColor } from 'dc/workbench/contrib/mergeEditor/browser/view/colors';\nimport { EditorGutter, IGutterItemInfo, IGutterItemView } from '../editorGutter';\nimport { CodeEditorView, TitleMenu } from './codeEditorView';\n",
+		"content": "import { handledConflictMinimapOverViewRulerColor, unhandledConflictMinimapOverViewRulerColor } from 'vs/workbench/contrib/mergeEditor/browser/view/colors';\nimport { EditorGutter, IGutterItemInfo, IGutterItemView } from '../editorGutter';\nimport { CodeEditorView, TitleMenu } from './codeEditorView';\n",
 		"fileName": "./2.tst"
 	},
 	"diffs": [

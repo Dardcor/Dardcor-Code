@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -14,9 +13,6 @@ import { CopilotApiError, COPILOT_API_ERROR_STATUS_STREAMING } from './copilotAp
  * see an HTTP/SSE error. The proxy appends `VSCODE_PROXY_ERROR:<base64>` to
  * the error message; the SDK forwards that text back verbatim, and the agent
  * decodes it on the way out.
- *
- * Mirrors the Copilot Chat extension's `PROXY_ERROR_PREFIX`
- * (`extensions/copilot/src/extension/chatSessions/claude/common/claudeMessageDispatch.ts`).
  */
 export const PROXY_ERROR_PREFIX = 'VSCODE_PROXY_ERROR:';
 
@@ -34,7 +30,7 @@ const FORWARDED_MARKER_B64_PATTERN = /^[A-Za-z0-9+/]+={0,2}$/;
 /**
  * Serialized chat fetch error payload. This is the JSON shape forwarded over
  * the protocol's `ErrorInfo._meta.chatError`. The core consumer
- * (`src/dc/workbench/contrib/chat/common/chatErrorMessages.ts`) reads the same
+ * (`src/vs/workbench/contrib/chat/common/chatErrorMessages.ts`) reads the same
  * JSON shape to render localized, user-facing messages. The two definitions
  * are intentionally decoupled (the platform/node layer cannot import workbench
  * code), so any field change must be mirrored on both sides.
@@ -312,4 +308,3 @@ export function extractForwardedErrorInfo(message: string): { message: string; _
 	}
 	return { message: stripProxyErrorMarker(message), _meta: toChatErrorMeta(forwarded) };
 }
-

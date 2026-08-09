@@ -32,7 +32,7 @@ import { ExtHostBrowserTunnelProxy, IExtHostBrowserTunnelProxy } from './extHost
 import { ExtHostLanguageModels, IExtHostLanguageModels } from './extHostLanguageModels.js';
 import { IExtHostTerminalShellIntegration, ExtHostTerminalShellIntegration } from './extHostTerminalShellIntegration.js';
 import { ExtHostTesting, IExtHostTesting } from './extHostTesting.js';
-import { ExtHostMcpService, IExtHostMpcService } from './extHostMCP.js';
+import { ExtHostMcpService, IExtHostMpcService } from './extHostMcp.js';
 import { ExtHostUrls, IExtHostUrlsService } from './extHostUrls.js';
 import { ExtHostProgress, IExtHostProgress } from './extHostProgress.js';
 import { ExtHostDataChannels, IExtHostDataChannels } from './extHostDataChannels.js';

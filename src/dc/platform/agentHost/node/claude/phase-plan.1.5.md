@@ -10,8 +10,8 @@ Implement as a single atomic PR on top of the Phase 1 commit.
 | File | Change type |
 |------|------------|
 | `/package.json` | Add `@anthropic-ai/sdk@^0.82.0` dependency |
-| `src/dc/platform/agentHost/node/shared/copilotApiService.ts` | Drop custom types; rewrite interface + implementation |
-| `src/dc/platform/agentHost/test/node/shared/copilotApiService.test.ts` | Migrate 80 existing tests + add ~15 new |
+| `src/vs/platform/agentHost/node/shared/copilotApiService.ts` | Drop custom types; rewrite interface + implementation |
+| `src/vs/platform/agentHost/test/node/shared/copilotApiService.test.ts` | Migrate 80 existing tests + add ~15 new |
 
 ---
 
@@ -45,7 +45,7 @@ Run `npm install` to update the lockfile.
 
 ## Step 1 — Drop custom types, add import and options type
 
-**File:** `src/dc/platform/agentHost/node/shared/copilotApiService.ts`
+**File:** `src/vs/platform/agentHost/node/shared/copilotApiService.ts`
 
 ### 1-A. Add SDK import (top of file, after existing imports ~line 6)
 
@@ -360,7 +360,7 @@ The `null`-sentinel pattern is removed. `message_stop` is yielded, then `return`
 
 ## Step 5 — Migrate existing 80 tests
 
-**File:** `src/dc/platform/agentHost/test/node/shared/copilotApiService.test.ts`
+**File:** `src/vs/platform/agentHost/test/node/shared/copilotApiService.test.ts`
 
 ### 5-A. Imports — replace `ICopilotChatMessage` with Anthropic SDK type
 

@@ -41,7 +41,7 @@ class OpenFilesViewAction extends Action2 {
 			icon: Codicon.folder,
 			f1: false,
 			// Workspace folder pill shown in the session header meta row
-			// (dc/sessions/browser/parts/sessionHeader.ts), rendered with a custom
+			// (vs/sessions/browser/parts/sessionHeader.ts), rendered with a custom
 			// action view item. Ordered before the changes pill (order 0).
 			menu: {
 				id: Menus.SessionHeaderMeta,

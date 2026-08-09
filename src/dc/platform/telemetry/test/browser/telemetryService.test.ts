@@ -428,9 +428,9 @@ suite('TelemetryService', () => {
 			// to be redacted. See https://github.com/microsoft/vscode/issues/301200.
 			const stack = [
 				'Error: Something failed',
-				'    at StorageService.getStorageKey (out/dc/platform/storage/storage.js:1:200)',
-				'    at Foo.run (out/dc/workbench/foo.js:3:40)',
-				'    at Bar.baz (out/dc/workbench/bar.js:5:60)',
+				'    at StorageService.getStorageKey (out/vs/platform/storage/storage.js:1:200)',
+				'    at Foo.run (out/vs/workbench/foo.js:3:40)',
+				'    at Bar.baz (out/vs/workbench/bar.js:5:60)',
 			];
 
 			const error: any = new Error('Something failed');
@@ -471,7 +471,7 @@ suite('TelemetryService', () => {
 			const stack = [
 				'Error: boom',
 				'    at Service.getApiKey',
-				'    at Foo.run (out/dc/workbench/foo.js:3:40)',
+				'    at Foo.run (out/vs/workbench/foo.js:3:40)',
 			];
 
 			const error: any = new Error('boom');
@@ -910,7 +910,7 @@ suite('TelemetryService', () => {
 			const errorTelemetry = new ErrorTelemetry(service);
 
 			const windowsUserPath = 'c:/Users/bpasero/AppData/Local/Programs/Microsoft%20VS%20Code%20Insiders/resources/app/';
-			const codePath = 'out/dc/workbench/workbench.desktop.main.js';
+			const codePath = 'out/vs/workbench/workbench.desktop.main.js';
 			const stack = [
 				`    at cTe.gc (vscode-file://vscode-app/${windowsUserPath}${codePath}:2724:81492)`,
 				`    at async cTe.setInput (vscode-file://vscode-app/${windowsUserPath}${codePath}:2724:80650)`,
@@ -932,7 +932,7 @@ suite('TelemetryService', () => {
 			assert.strictEqual(testAppender.events[0].data.callstack.indexOf('c:/Users'), -1);
 			// Verify important code path is preserved
 			assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf(codePath), -1);
-			assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf('out/dc/workbench'), -1);
+			assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf('out/vs/workbench'), -1);
 
 			errorTelemetry.dispose();
 			service.dispose();
@@ -950,7 +950,7 @@ suite('TelemetryService', () => {
 		const errorTelemetry = new ErrorTelemetry(service);
 
 		const windowsUserPath = 'c:/Users/bpasero/AppData/Local/Programs/Microsoft%20VS%20Code%20Insiders/resources/app/';
-		const codePath = 'out/dc/workbench/workbench.desktop.main.js';
+		const codePath = 'out/vs/workbench/workbench.desktop.main.js';
 		const stack = [
 			`    at cTe.gc (vscode-file://vscode-app/${windowsUserPath}${codePath}:2724:81492)`,
 			`    at async cTe.setInput (vscode-file://vscode-app/${windowsUserPath}${codePath}:2724:80650)`,
@@ -970,7 +970,7 @@ suite('TelemetryService', () => {
 		assert.strictEqual(testAppender.events[0].data.callstack.indexOf('c:/Users'), -1);
 		// Verify important code path is preserved
 		assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf(codePath), -1);
-		assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf('out/dc/workbench'), -1);
+		assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf('out/vs/workbench'), -1);
 
 		errorTelemetry.dispose();
 		service.dispose();
@@ -987,7 +987,7 @@ suite('TelemetryService', () => {
 			const errorTelemetry = new ErrorTelemetry(service);
 
 			const macUserPath = 'Applications/Visual%20Studio%20Code%20-%20Insiders.app/Contents/Resources/app/';
-			const codePath = 'out/dc/workbench/workbench.desktop.main.js';
+			const codePath = 'out/vs/workbench/workbench.desktop.main.js';
 			const stack = [
 				`    at uTe.gc (vscode-file://vscode-app/${macUserPath}${codePath}:2720:81492)`,
 				`    at async uTe.setInput (vscode-file://vscode-app/${macUserPath}${codePath}:2720:80650)`,
@@ -1008,7 +1008,7 @@ suite('TelemetryService', () => {
 			assert.strictEqual(testAppender.events[0].data.callstack.indexOf('Visual%20Studio%20Code'), -1);
 			// Verify important code path is preserved
 			assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf(codePath), -1);
-			assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf('out/dc/workbench'), -1);
+			assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf('out/vs/workbench'), -1);
 
 			errorTelemetry.dispose();
 			service.dispose();
@@ -1026,7 +1026,7 @@ suite('TelemetryService', () => {
 		const errorTelemetry = new ErrorTelemetry(service);
 
 		const macUserPath = 'Applications/Visual%20Studio%20Code%20-%20Insiders.app/Contents/Resources/app/';
-		const codePath = 'out/dc/workbench/workbench.desktop.main.js';
+		const codePath = 'out/vs/workbench/workbench.desktop.main.js';
 		const stack = [
 			`    at uTe.gc (vscode-file://vscode-app/${macUserPath}${codePath}:2720:81492)`,
 			`    at async uTe.setInput (vscode-file://vscode-app/${macUserPath}${codePath}:2720:80650)`,
@@ -1045,7 +1045,7 @@ suite('TelemetryService', () => {
 		assert.strictEqual(testAppender.events[0].data.callstack.indexOf('Visual%20Studio%20Code'), -1);
 		// Verify important code path is preserved
 		assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf(codePath), -1);
-		assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf('out/dc/workbench'), -1);
+		assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf('out/vs/workbench'), -1);
 
 		errorTelemetry.dispose();
 		service.dispose();
@@ -1063,7 +1063,7 @@ suite('TelemetryService', () => {
 
 			const linuxUserPath = '/home/parallels/GitDevelopment/vscode-node-sqlite3-perf/';
 			const linuxSystemPath = 'usr/share/code-insiders/resources/app/';
-			const codePath = 'out/dc/workbench/workbench.desktop.main.js';
+			const codePath = 'out/vs/workbench/workbench.desktop.main.js';
 			const stack = [
 				`    at _kt.G (vscode-file://vscode-app/${linuxSystemPath}${codePath}:3825:65940)`,
 				`    at _kt.F (vscode-file://vscode-app/${linuxSystemPath}${codePath}:3825:65765)`,
@@ -1087,7 +1087,7 @@ suite('TelemetryService', () => {
 			assert.strictEqual(testAppender.events[0].data.callstack.indexOf('/home/parallels'), -1);
 			// Verify important code path is preserved
 			assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf(codePath), -1);
-			assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf('out/dc/workbench'), -1);
+			assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf('out/vs/workbench'), -1);
 
 			errorTelemetry.dispose();
 			service.dispose();
@@ -1106,7 +1106,7 @@ suite('TelemetryService', () => {
 
 		const linuxUserPath = '/home/parallels/GitDevelopment/vscode-node-sqlite3-perf/';
 		const linuxSystemPath = 'usr/share/code-insiders/resources/app/';
-		const codePath = 'out/dc/workbench/workbench.desktop.main.js';
+		const codePath = 'out/vs/workbench/workbench.desktop.main.js';
 		const stack = [
 			`    at _kt.G (vscode-file://vscode-app/${linuxSystemPath}${codePath}:3825:65940)`,
 			`    at _kt.F (vscode-file://vscode-app/${linuxSystemPath}${codePath}:3825:65765)`,
@@ -1128,7 +1128,7 @@ suite('TelemetryService', () => {
 		assert.strictEqual(testAppender.events[0].data.callstack.indexOf('/home/parallels'), -1);
 		// Verify important code path is preserved
 		assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf(codePath), -1);
-		assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf('out/dc/workbench'), -1);
+		assert.notStrictEqual(testAppender.events[0].data.callstack.indexOf('out/vs/workbench'), -1);
 
 		errorTelemetry.dispose();
 		service.dispose();

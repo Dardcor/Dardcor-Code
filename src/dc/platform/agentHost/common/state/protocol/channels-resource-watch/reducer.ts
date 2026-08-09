@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -37,4 +36,3 @@ export function resourceWatchReducer(state: ResourceWatchState, action: Resource
 	(log ?? console.warn)(`Unhandled action type: ${JSON.stringify(action)}`);
 	return state;
 }
-

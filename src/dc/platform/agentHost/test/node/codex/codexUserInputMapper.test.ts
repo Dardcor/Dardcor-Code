@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -6,7 +5,7 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { ChatInputAnswerState, ChatInputAnswerValueKind, ChatInputQuestionKind, ChatInputResponseKind, type ChatInputAnswer } from '../../../common/state/sessionState.js';
+import { ChatInputAnswerState, ChatInputAnswerValueKind, ChatInputQuestionKind, ChatInputRequestPurpose, ChatInputResponseKind, type ChatInputAnswer } from '../../../common/state/sessionState.js';
 import { answerStrings, buildUserInputRequest, emptyUserInputResponse, userInputResponseFromAnswers } from '../../../node/codex/codexUserInputMapper.js';
 import type { ToolRequestUserInputQuestion } from '../../../node/codex/protocol/generated/v2/ToolRequestUserInputQuestion.js';
 
@@ -25,6 +24,7 @@ suite('codexUserInputMapper', () => {
 	test('buildUserInputRequest maps select and text questions', () => {
 		assert.deepStrictEqual(buildUserInputRequest('req-1', [selectQuestion, textQuestion]), {
 			id: 'req-1',
+			purpose: ChatInputRequestPurpose.AskUser,
 			questions: [
 				{
 					kind: ChatInputQuestionKind.SingleSelect,
@@ -83,4 +83,3 @@ suite('codexUserInputMapper', () => {
 		});
 	});
 });
-

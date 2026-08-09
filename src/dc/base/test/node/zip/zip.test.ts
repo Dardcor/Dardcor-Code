@@ -22,7 +22,7 @@ suite('Zip', () => {
 		const testDir = getRandomTestPath(tmpdir(), 'vsctests', 'zip');
 		await fs.promises.mkdir(testDir, { recursive: true });
 
-		const fixtures = FileAccess.asFileUri('dc/base/test/node/zip/fixtures').fsPath;
+		const fixtures = FileAccess.asFileUri('vs/base/test/node/zip/fixtures').fsPath;
 		const fixture = path.join(fixtures, 'extract.zip');
 
 		await createCancelablePromise(token => extract(fixture, testDir, {}, token));

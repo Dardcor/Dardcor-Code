@@ -21,7 +21,7 @@ suite('URI - perf', function () {
 	let manyFileUris: URI[];
 	setup(function () {
 		manyFileUris = [];
-		const data = readFileSync(FileAccess.asFileUri('dc/base/test/node/uri.perf.data.txt').fsPath).toString();
+		const data = readFileSync(FileAccess.asFileUri('vs/base/test/node/uri.perf.data.txt').fsPath).toString();
 		const lines = data.split('\n');
 		for (const line of lines) {
 			manyFileUris.push(URI.file(line));

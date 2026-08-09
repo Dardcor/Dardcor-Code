@@ -62,7 +62,7 @@ export function toRow(change: ISessionFileChange): IMobileChangesRow {
 	// legacy `IChatSessionFileChange` only has `modifiedUri` (required, never
 	// absent). We detect v2 by the presence of `uri` (it's a non-optional
 	// field on v2 only). Avoiding the import of the type-guard keeps this
-	// file inside the `dc/sessions/browser` layering rule — workbench/contrib
+	// file inside the `vs/sessions/browser` layering rule — workbench/contrib
 	// imports are not allowed here.
 	const v2Uri = (change as { uri?: URI }).uri;
 	const displayUri: URI = v2Uri ?? (change as { modifiedUri: URI }).modifiedUri;

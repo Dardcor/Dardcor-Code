@@ -18,7 +18,7 @@ function perfSuite(name: string, callback: (this: Mocha.Suite) => void) {
 
 perfSuite('Performance - fuzzyMatch', async function () {
 
-	const uri = FileAccess.asBrowserUri('dc/base/test/common/filters.perf.data').toString(true);
+	const uri = FileAccess.asBrowserUri('vs/base/test/common/filters.perf.data').toString(true);
 	const { data } = await importAMDNodeModule<typeof import('./filters.perf.data.js')>(uri, '');
 
 	// suiteSetup(() => console.profile());
@@ -53,7 +53,7 @@ perfSuite('Performance - fuzzyMatch', async function () {
 
 perfSuite('Performance - IFilter', async function () {
 
-	const uri = FileAccess.asBrowserUri('dc/base/test/common/filters.perf.data').toString(true);
+	const uri = FileAccess.asBrowserUri('vs/base/test/common/filters.perf.data').toString(true);
 	const { data } = await importAMDNodeModule<typeof import('./filters.perf.data.js')>(uri, '');
 
 	function perfTest(name: string, match: filters.IFilter) {

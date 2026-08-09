@@ -282,7 +282,7 @@ export class ChatMcpAppModel extends Disposable {
 		// However, the MCP App SDK by default tries to use these for postMessage. So, wrap them.
 		// We also need to wrap the event listeners otherwise the event.source won't match
 		// the wrapped window.parent/window.top.
-		// https://github.com/microsoft/vscode/blob/2a4c8f5b8a715d45dd2a36778906b5810e4a1905/src/dc/workbench/contrib/webview/browser/pre/index.html#L242-L244
+		// https://github.com/microsoft/vscode/blob/2a4c8f5b8a715d45dd2a36778906b5810e4a1905/src/vs/workbench/contrib/webview/browser/pre/index.html#L242-L244
 		const postMessageRehoist = `
 			<script>(() => {
 				const api = acquireVsCodeApi();

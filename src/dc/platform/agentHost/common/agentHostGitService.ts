@@ -1,10 +1,11 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { Sequencer } from '../../../base/common/async.js';
 import { VSBuffer } from '../../../base/common/buffer.js';
+import { LRUCache } from '../../../base/common/map.js';
 import { URI } from '../../../base/common/uri.js';
 import { createDecorator } from '../../instantiation/common/instantiation.js';
 import { ISessionFileDiff, ISessionGitState } from './state/sessionState.js';
@@ -92,6 +93,54 @@ export interface IPullOptions {
 
 export const IAgentHostGitService = createDecorator<IAgentHostGitService>('agentHostGitService');
 
+/**
+ * Resolves linked checkouts to their primary worktree and caches successful mappings for every worktree reported by Git.
+ * Resolution is serialized so concurrent requests across linked checkouts share one probe, while empty results remain retryable.
+ */
+class PrimaryWorktreeRootResolver {
+	private readonly _roots = new LRUCache<string, URI>(100);
+	private readonly _sequencer = new Sequencer();
+
+	constructor(private readonly _gitService: IAgentHostGitService) { }
+
+	async resolve(checkoutRoot: URI): Promise<URI | undefined> {
+		const key = checkoutRoot.toString();
+		const cached = this._roots.get(key);
+		if (cached) {
+			return cached;
+		}
+		return this._sequencer.queue(async () => {
+			const cached = this._roots.get(key);
+			if (cached) {
+				return cached;
+			}
+			const roots = await this._gitService.getWorktreeRoots(checkoutRoot);
+			const primaryRoot = roots[0];
+			if (!primaryRoot) {
+				return undefined;
+			}
+			this._roots.set(key, primaryRoot);
+			for (const root of roots) {
+				this._roots.set(root.toString(), primaryRoot);
+			}
+			return primaryRoot;
+		});
+	}
+}
+
+/** Resolver lifetime follows the injected Git service; each resolver owns a bounded path cache. */
+const primaryWorktreeRootResolvers = new WeakMap<IAgentHostGitService, PrimaryWorktreeRootResolver>();
+
+/** Resolves the primary worktree root when Git reports a worktree listing. */
+export function tryResolvePrimaryWorktreeRoot(gitService: IAgentHostGitService, checkoutRoot: URI): Promise<URI | undefined> {
+	let resolver = primaryWorktreeRootResolvers.get(gitService);
+	if (!resolver) {
+		resolver = new PrimaryWorktreeRootResolver(gitService);
+		primaryWorktreeRootResolvers.set(gitService, resolver);
+	}
+	return resolver.resolve(checkoutRoot);
+}
+
 export interface IRefQuery {
 	readonly count?: number;
 	readonly pattern?: string | string[];
@@ -157,6 +206,7 @@ export interface IAgentHostGitService {
 	getBranches(workingDirectory: URI, query?: IRefQuery): Promise<Branch[]>;
 	getBranch(workingDirectory: URI, name: string): Promise<Branch | undefined>;
 	getRepositoryRoot(workingDirectory: URI): Promise<URI | undefined>;
+	/** Returns worktree roots in Git's porcelain order, with the primary worktree first. */
 	getWorktreeRoots(workingDirectory: URI): Promise<URI[]>;
 	/**
 	 * Creates a worktree for a new branch. `onProgress` receives every checkout
@@ -320,6 +370,14 @@ export interface IAgentHostGitService {
 	revParse(repositoryRoot: URI, expression: string): Promise<string | undefined>;
 
 	/**
+	 * Lists refs matching `pattern` (a `git for-each-ref` glob such as
+	 * `refs/sessions/<id>/*`) with their resolved commit OIDs. Returns an empty
+	 * array when none match. Optional: implementations that don't support raw
+	 * ref enumeration may omit it.
+	 */
+	listRefNamesWithOids?(repositoryRoot: URI, pattern: string): Promise<Array<{ readonly ref: string; readonly oid: string }>>;
+
+	/**
 	 * Builds a new tree from `baseTreeOid` in which the single repo-relative
 	 * `path` is replaced by its content (blob + mode) from `sourceTreeOid`, or
 	 * removed when the path is absent in `sourceTreeOid`. All other paths are
@@ -380,4 +438,3 @@ export function getBranchCompletions(branches: readonly string[], options?: { re
 	filtered.sort((a, b) => getBranchPriority(a, options?.currentBranch, options?.defaultBranch) - getBranchPriority(b, options?.currentBranch, options?.defaultBranch));
 	return options?.limit ? filtered.slice(0, options.limit) : filtered;
 }
-

@@ -19,7 +19,7 @@ behavior the Copilot agent already ships.
 **In scope**
 - `setClientTools` / `onClientToolCallComplete` real implementations on
   `ClaudeAgent` (replace the Phase-10 stubs at
-  [claudeAgent.ts:1068, 1072](src/dc/platform/agentHost/node/claude/claudeAgent.ts)).
+  [claudeAgent.ts:1068, 1072](src/vs/platform/agentHost/node/claude/claudeAgent.ts)).
 - A `clientTools: readonly ToolDefinition[] | undefined` field on the
   per-session objects (`IClaudeProvisionalSession` pre-materialize,
   `ClaudeAgentSession` post-materialize), with the provisional value
@@ -32,7 +32,7 @@ behavior the Copilot agent already ships.
   via `claudeMaterializer._buildOptions`.
 - Deferred-promise plumbing on `ClaudeAgentSession` for each in-flight MCP
   tool call, keyed by SDK `tool_use_id`. Reuses the existing
-  [`PendingRequestRegistry<T>`](src/dc/platform/agentHost/common/pendingRequestRegistry.ts)
+  [`PendingRequestRegistry<T>`](src/vs/platform/agentHost/common/pendingRequestRegistry.ts)
   primitive (already wired for Phase 7 permission round-trips) plus a new
   `ClaudeToolUseIdBridge` that resolves `(toolName, args) → tool_use_id`
   from Phase 7's `tool_use` stream events — necessary because the
@@ -43,7 +43,7 @@ behavior the Copilot agent already ships.
   the existing `_rebindQuery('restart')` path in `claudeSdkPipeline`.
 - `onClientToolCallComplete` subagent routing: `parseSubagentSessionUri` →
   walk to root → look up registry on the root session id (mirrors
-  [copilotAgent.ts:943-954](src/dc/platform/agentHost/node/copilot/copilotAgent.ts)).
+  [copilotAgent.ts:943-954](src/vs/platform/agentHost/node/copilot/copilotAgent.ts)).
 - Result type conversion: protocol `ToolCallResult` → MCP `CallToolResult`
   (`content`, `structuredContent`, `isError`).
 - Test coverage in `claudeAgent.test.ts`: registration → invocation →
@@ -66,7 +66,7 @@ behavior the Copilot agent already ships.
 ## Prerequisites
 
 - Phase 9 yield-restart machinery shipped (`_rebindQuery('restart')` in
-  [claudeSdkPipeline.ts:342-399](src/dc/platform/agentHost/node/claude/claudeSdkPipeline.ts)).
+  [claudeSdkPipeline.ts:342-399](src/vs/platform/agentHost/node/claude/claudeSdkPipeline.ts)).
 - Phase 12 subagent URI helpers shipped (`parseSubagentSessionUri` is already
   imported by `claudeAgent.ts`).
 - Phase 13 resume / cross-window resume path shipped (`_resumeSession` is the
@@ -114,8 +114,8 @@ materializer. Tool-set changes between turns trigger
 ## Steps
 
 1. ✓ **JSON Schema → Zod raw-shape converter.**
-   - Files: `src/dc/platform/agentHost/node/claude/claudeJsonSchemaToZod.ts` (new),
-     `src/dc/platform/agentHost/test/node/claudeJsonSchemaToZod.test.ts` (new).
+   - Files: `src/vs/platform/agentHost/node/claude/claudeJsonSchemaToZod.ts` (new),
+     `src/vs/platform/agentHost/test/node/claudeJsonSchemaToZod.test.ts` (new).
    - Depends on: none.
    - Scope: convert `{ type:'object', properties?: Record<string, object>, required?: string[] }`
      into a `Record<string, ZodType>` (the SDK's `AnyZodRawShape`). Handle
@@ -129,20 +129,20 @@ materializer. Tool-set changes between turns trigger
 
 2. ✓ **Per-session state + extracted public helpers.**
    - Files:
-     `src/dc/platform/agentHost/node/claude/claudeAgent.ts` (add
+     `src/vs/platform/agentHost/node/claude/claudeAgent.ts` (add
      `clientTools?: readonly ToolDefinition[]` to
      `IClaudeProvisionalSession`),
-     `src/dc/platform/agentHost/node/claude/claudeClientToolHelpers.ts` (new —
+     `src/vs/platform/agentHost/node/claude/claudeClientToolHelpers.ts` (new —
      `snapshotEquals(a, b): boolean` deep-equal on `name + description + inputSchema`,
-     mirroring [copilotAgent.ts:2073-2087](src/dc/platform/agentHost/node/copilot/copilotAgent.ts)
+     mirroring [copilotAgent.ts:2073-2087](src/vs/platform/agentHost/node/copilot/copilotAgent.ts)
      `ActiveClient.isOutdated`),
-     `src/dc/platform/agentHost/node/claude/claudeClientToolResult.ts` (new —
+     `src/vs/platform/agentHost/node/claude/claudeClientToolResult.ts` (new —
      `convertToolCallResult(result: ToolCallResult): CallToolResult` doing the
      1:1 content-block mapping, including the protocol
      `EmbeddedResource { data, contentType }` → MCP
      `{ type:'resource', resource:{ uri, mimeType, blob|text } }` shape
      transform; **not** a thin pass-through),
-     `src/dc/platform/agentHost/node/claude/claudeAgentSession.ts` (add
+     `src/vs/platform/agentHost/node/claude/claudeAgentSession.ts` (add
      `clientTools` + `appliedClientToolSnapshot` fields + `setClientTools(tools)` /
      `completeClientToolCall(toolCallId, result)` thin delegates).
    - Depends on: none.
@@ -157,9 +157,9 @@ materializer. Tool-set changes between turns trigger
      verified) / unknown-block fallback.
 
 3. ✓ **`buildClientToolMcpServer` factory + `ClaudeToolUseIdBridge`.**
-   - Files: `src/dc/platform/agentHost/node/claude/claudeClientToolMcpServer.ts` (new),
-     `src/dc/platform/agentHost/node/claude/claudeToolUseIdBridge.ts` (new),
-     `src/dc/platform/agentHost/test/node/claudeToolUseIdBridge.test.ts` (new).
+   - Files: `src/vs/platform/agentHost/node/claude/claudeClientToolMcpServer.ts` (new),
+     `src/vs/platform/agentHost/node/claude/claudeToolUseIdBridge.ts` (new),
+     `src/vs/platform/agentHost/test/node/claudeToolUseIdBridge.test.ts` (new).
    - Depends on: steps 1, 2.
    - Scope:
      - **Factory**: pure factory that, given the SDK's
@@ -188,7 +188,7 @@ materializer. Tool-set changes between turns trigger
          (council finding): subagent and parent can both call the same
          tool with identical args concurrently. The mapper already
          threads `parent_tool_use_id` through every event
-         ([claudeMapSessionEvents.ts:232](src/dc/platform/agentHost/node/claude/claudeMapSessionEvents.ts#L232));
+         ([claudeMapSessionEvents.ts:232](src/vs/platform/agentHost/node/claude/claudeMapSessionEvents.ts#L232));
          pass it through to `noteToolUseEvent`. The handler can't query
          by parent (it doesn't know), so the resolve side keys only on
          `(name, args)` but the bridge maintains parent-disambiguated
@@ -211,8 +211,8 @@ materializer. Tool-set changes between turns trigger
          `resolve()` with `CancellationError`.
      - **Wiring (council finding C2 — mapper DI)**: the mapper currently
        receives `session: URI`, not a `ClaudeAgentSession` instance
-       ([claudeMapSessionEvents.ts:213](src/dc/platform/agentHost/node/claude/claudeMapSessionEvents.ts#L213),
-       [claudeSdkMessageRouter.ts:62](src/dc/platform/agentHost/node/claude/claudeSdkMessageRouter.ts#L62)).
+       ([claudeMapSessionEvents.ts:213](src/vs/platform/agentHost/node/claude/claudeMapSessionEvents.ts#L213),
+       [claudeSdkMessageRouter.ts:62](src/vs/platform/agentHost/node/claude/claudeSdkMessageRouter.ts#L62)).
        This phase adds **one new parameter** through the router→mapper
        boundary: a `bridge: ClaudeToolUseIdBridge | undefined` (undefined
        for subagent transcripts and replay paths where no live bridge
@@ -252,8 +252,8 @@ materializer. Tool-set changes between turns trigger
        only in the live E2E scenario (Verification).
 
 4. ✓ **Implement `ClaudeAgent.setClientTools`.**
-   - Files: `src/dc/platform/agentHost/node/claude/claudeAgent.ts` (replace stub
-     at [L1068](src/dc/platform/agentHost/node/claude/claudeAgent.ts#L1068)).
+   - Files: `src/vs/platform/agentHost/node/claude/claudeAgent.ts` (replace stub
+     at [L1068](src/vs/platform/agentHost/node/claude/claudeAgent.ts#L1068)).
    - Depends on: step 2.
    - Scope:
      - Resolve `sessionId = AgentSession.id(session)`.
@@ -276,8 +276,8 @@ materializer. Tool-set changes between turns trigger
 
 5. ✓ **Inject `Options.mcpServers` at materialize / resume.**
    - Files:
-     `src/dc/platform/agentHost/node/claude/claudeMaterializer.ts` (modify),
-     `src/dc/platform/agentHost/node/claude/claudeAgent.ts` (modify
+     `src/vs/platform/agentHost/node/claude/claudeMaterializer.ts` (modify),
+     `src/vs/platform/agentHost/node/claude/claudeAgent.ts` (modify
      `_materializeProvisional` ~L469 and `_resumeSession` ~L601).
    - Depends on: steps 2, 3.
    - Scope:
@@ -317,9 +317,9 @@ materializer. Tool-set changes between turns trigger
        snapshot is not trustworthy.)
      - **Rematerializer closure scope (council finding C3)**: the
        existing closure captures `provisional`
-       ([claudeAgent.ts:488](src/dc/platform/agentHost/node/claude/claudeAgent.ts#L488)),
+       ([claudeAgent.ts:488](src/vs/platform/agentHost/node/claude/claudeAgent.ts#L488)),
        but `provisional` is deleted after materialize commits
-       ([:622](src/dc/platform/agentHost/node/claude/claudeAgent.ts#L622)).
+       ([:622](src/vs/platform/agentHost/node/claude/claudeAgent.ts#L622)).
        The rematerializer must close over the **session** (assigned
        after the materializer returns) to re-read `session.clientTools`
        on yield-restart. Concretely: assign `const session = await
@@ -340,7 +340,7 @@ materializer. Tool-set changes between turns trigger
      `appliedClientToolSnapshot` equals the snapshot the SDK started
      with (not the post-race snapshot).
 6. ✓ **Tool-diff check + yield-restart in `sendMessage` (rebind-or-forward, exclusive).**
-   - Files: `src/dc/platform/agentHost/node/claude/claudeAgent.ts` (modify
+   - Files: `src/vs/platform/agentHost/node/claude/claudeAgent.ts` (modify
      `sendMessage` ~L909-973).
    - Depends on: steps 2, 5.
    - Scope:
@@ -349,9 +349,9 @@ materializer. Tool-set changes between turns trigger
        `await session.rebindForClientTools(currentSnapshot)` and **skip the
        existing `setPermissionMode` forward**. The rebind path already
        re-reads live permissionMode via the rematerializer
-       ([claudeAgent.ts:491](src/dc/platform/agentHost/node/claude/claudeAgent.ts#L491))
+       ([claudeAgent.ts:491](src/vs/platform/agentHost/node/claude/claudeAgent.ts#L491))
        and `_rebindQuery` re-applies bijective state via `_replayCurrentConfig`
-       ([claudeSdkPipeline.ts:397](src/dc/platform/agentHost/node/claude/claudeSdkPipeline.ts#L397)) —
+       ([claudeSdkPipeline.ts:397](src/vs/platform/agentHost/node/claude/claudeSdkPipeline.ts#L397)) —
        a post-rebind `setPermissionMode` would be redundant.
      - Else (no tool-set change): the existing post-#317248 forward runs
        unchanged:
@@ -375,19 +375,19 @@ materializer. Tool-set changes between turns trigger
        `_replayCurrentConfig`), not two.
 
 7. ✓ **Implement `ClaudeAgent.onClientToolCallComplete`.**
-   - Files: `src/dc/platform/agentHost/node/claude/claudeAgent.ts` (replace
-     stub at [L1072](src/dc/platform/agentHost/node/claude/claudeAgent.ts#L1072)).
+   - Files: `src/vs/platform/agentHost/node/claude/claudeAgent.ts` (replace
+     stub at [L1072](src/vs/platform/agentHost/node/claude/claudeAgent.ts#L1072)).
    - Depends on: step 3.
    - Scope:
      - **Walk subagent URIs to the root with a `while` loop** (council
        finding): nested subagents (subagent-of-subagent) need iterated
        `parseSubagentSessionUri` calls, mirroring
-       [copilotAgent.ts:947-949](src/dc/platform/agentHost/node/copilot/copilotAgent.ts#L947).
+       [copilotAgent.ts:947-949](src/vs/platform/agentHost/node/copilot/copilotAgent.ts#L947).
        Single-call parsing handles only depth-1.
      - Look up the live `ClaudeAgentSession` from `_sessions`.
      - Call `session.completeClientToolCall(toolCallId, convertToolCallResult(result))`.
      - **Silent on miss** — the action dispatcher
-       ([agentSideEffects.ts:851-854](src/dc/platform/agentHost/node/agentSideEffects.ts))
+       ([agentSideEffects.ts:851-854](src/vs/platform/agentHost/node/agentSideEffects.ts))
        forwards EVERY `SessionToolCallComplete` envelope including SDK-owned
        tools (Read/Write/Bash etc.), so unknown ids are expected and must
        not throw.
@@ -397,8 +397,8 @@ materializer. Tool-set changes between turns trigger
 
 8. ✓ **Per-session deferred registry on `ClaudeAgentSession` (reuse `PendingRequestRegistry`).**
    - Files:
-     `src/dc/platform/agentHost/node/claude/claudeAgentSession.ts` (modify),
-     `src/dc/platform/agentHost/common/pendingRequestRegistry.ts` (small
+     `src/vs/platform/agentHost/node/claude/claudeAgentSession.ts` (modify),
+     `src/vs/platform/agentHost/common/pendingRequestRegistry.ts` (small
      extension — see below).
    - Depends on: step 3.
    - Scope:
@@ -433,11 +433,11 @@ materializer. Tool-set changes between turns trigger
      next round.
 
 9. **Result type conversion (1:1 with shape transforms) — extracted helper.**
-   - Files: `src/dc/platform/agentHost/node/claude/claudeClientToolResult.ts`
+   - Files: `src/vs/platform/agentHost/node/claude/claudeClientToolResult.ts`
      (covered by step 2; this step lays out the conversion contract).
    - Depends on: none new.
    - Scope: convert protocol
-     [`ToolCallResult`](src/dc/platform/agentHost/common/state/protocol/state.ts)
+     [`ToolCallResult`](src/vs/platform/agentHost/common/state/protocol/state.ts)
      into MCP
      [`CallToolResult`](node_modules/@modelcontextprotocol/sdk/dist/esm/spec.types.d.ts):
      - **text** → `{ type:'text', text }` (direct).
@@ -462,7 +462,7 @@ materializer. Tool-set changes between turns trigger
      synthesized text block lands).
 
 10. ✓ **Tests.**
-    - Files: `src/dc/platform/agentHost/test/node/claudeAgent.test.ts` (replace
+    - Files: `src/vs/platform/agentHost/test/node/claudeAgent.test.ts` (replace
       the no-op Phase-10 stub at ~L2957),
       `claudeJsonSchemaToZod.test.ts` (new), and any extracted helpers under
       `test/node/`.
@@ -501,21 +501,21 @@ materializer. Tool-set changes between turns trigger
 
 | Path | Change | Notes |
 |------|--------|-------|
-| `src/dc/platform/agentHost/node/claude/claudeJsonSchemaToZod.ts` | create | JSON Schema → Zod raw-shape converter, narrow subset + per-property `z.any()` fallback. |
-| `src/dc/platform/agentHost/node/claude/claudeClientToolMcpServer.ts` | create | Factory wrapping `createSdkMcpServer` + `tool()`. Handler captures `bridge` + `registry` BY REFERENCE (council finding C1). Lazy-loaded SDK exports are passed in by the agent via the SDK service. |
-| `src/dc/platform/agentHost/node/claude/claudeToolUseIdBridge.ts` | create | Per-session rendezvous between Phase 7's `tool_use` stream events and the MCP handler entry. Keys on `(toolName, canonicalStringify(args))`, internally tracks `parent_tool_use_id` to prefer same-parent FIFO matches when both subagent and parent have identical pending args. |
-| `src/dc/platform/agentHost/node/claude/claudeClientToolHelpers.ts` | create | Exported `snapshotEquals(a, b)`; standalone-testable per project rule. |
-| `src/dc/platform/agentHost/node/claude/claudeClientToolResult.ts` | create | Exported `convertToolCallResult(result)`; standalone-testable; handles `EmbeddedResource` shape transform between protocol and MCP. |
-| `src/dc/platform/agentHost/common/pendingRequestRegistry.ts` | modify | Add `rejectAll(error: Error)` sibling to the existing `denyAll`; tighten JSDoc to clarify resolve-vs-reject. Existing consumers (`_pendingPermissions`, `_pendingUserInputs`) unaffected. |
-| `src/dc/platform/agentHost/node/claude/claudeMapSessionEvents.ts` | modify | Accept `bridge: ClaudeToolUseIdBridge \| undefined` parameter; call `bridge?.noteToolUseEvent(id, name, input, parent_tool_use_id)` at `content_block_stop`. |
-| `src/dc/platform/agentHost/node/claude/claudeSdkMessageRouter.ts` | modify | Pass `session?.bridge` into the mapper call (the missing DI step — council finding C2). |
-| `src/dc/platform/agentHost/node/claude/claudeAgent.ts` | modify | Real `setClientTools` / `onClientToolCallComplete`; add `clientTools` field on `IClaudeProvisionalSession`; transfer to session at materialize; wire `mcpServers` into `_materializeProvisional` / `_resumeSession`; tool-diff restart in `sendMessage`. |
-| `src/dc/platform/agentHost/node/claude/claudeAgentSession.ts` | modify | Add `clientTools` + `appliedClientToolSnapshot` fields + thin `setClientTools(tools)` / `completeClientToolCall(toolCallId, result)` / `rebindForClientTools(snapshot)` methods. `_pendingClientToolCalls` + `_toolUseIdBridge` constructed eagerly in the session constructor so MCP factory closures captured pre-materialize bind to the right instances (council finding C1). Dispose-time deferred rejection. |
-| `src/dc/platform/agentHost/node/claude/claudeSdkPipeline.ts` | modify | Narrow public `rebindForRestart()` wrapper around `_rebindQuery('restart')` so `ClaudeAgentSession.rebindForClientTools` can drive it without leaking the private method. |
-| `src/dc/platform/agentHost/node/claude/claudeMaterializer.ts` | modify | `materialize` / `materializeResume` / `_buildOptions` accept and write `Options.mcpServers`. |
-| `src/dc/platform/agentHost/test/node/claudeAgent.test.ts` | modify | Replace the Phase-10 no-op stub; add the 9 tests listed in step 10. |
-| `src/dc/platform/agentHost/test/node/claudeJsonSchemaToZod.test.ts` | create | Unit tests for the schema converter. |
-| `src/dc/platform/agentHost/test/node/claudeToolUseIdBridge.test.ts` | create | Unit tests for the rendezvous bridge (event-first / handler-first / FIFO / dispose). |
+| `src/vs/platform/agentHost/node/claude/claudeJsonSchemaToZod.ts` | create | JSON Schema → Zod raw-shape converter, narrow subset + per-property `z.any()` fallback. |
+| `src/vs/platform/agentHost/node/claude/claudeClientToolMcpServer.ts` | create | Factory wrapping `createSdkMcpServer` + `tool()`. Handler captures `bridge` + `registry` BY REFERENCE (council finding C1). Lazy-loaded SDK exports are passed in by the agent via the SDK service. |
+| `src/vs/platform/agentHost/node/claude/claudeToolUseIdBridge.ts` | create | Per-session rendezvous between Phase 7's `tool_use` stream events and the MCP handler entry. Keys on `(toolName, canonicalStringify(args))`, internally tracks `parent_tool_use_id` to prefer same-parent FIFO matches when both subagent and parent have identical pending args. |
+| `src/vs/platform/agentHost/node/claude/claudeClientToolHelpers.ts` | create | Exported `snapshotEquals(a, b)`; standalone-testable per project rule. |
+| `src/vs/platform/agentHost/node/claude/claudeClientToolResult.ts` | create | Exported `convertToolCallResult(result)`; standalone-testable; handles `EmbeddedResource` shape transform between protocol and MCP. |
+| `src/vs/platform/agentHost/common/pendingRequestRegistry.ts` | modify | Add `rejectAll(error: Error)` sibling to the existing `denyAll`; tighten JSDoc to clarify resolve-vs-reject. Existing consumers (`_pendingPermissions`, `_pendingUserInputs`) unaffected. |
+| `src/vs/platform/agentHost/node/claude/claudeMapSessionEvents.ts` | modify | Accept `bridge: ClaudeToolUseIdBridge \| undefined` parameter; call `bridge?.noteToolUseEvent(id, name, input, parent_tool_use_id)` at `content_block_stop`. |
+| `src/vs/platform/agentHost/node/claude/claudeSdkMessageRouter.ts` | modify | Pass `session?.bridge` into the mapper call (the missing DI step — council finding C2). |
+| `src/vs/platform/agentHost/node/claude/claudeAgent.ts` | modify | Real `setClientTools` / `onClientToolCallComplete`; add `clientTools` field on `IClaudeProvisionalSession`; transfer to session at materialize; wire `mcpServers` into `_materializeProvisional` / `_resumeSession`; tool-diff restart in `sendMessage`. |
+| `src/vs/platform/agentHost/node/claude/claudeAgentSession.ts` | modify | Add `clientTools` + `appliedClientToolSnapshot` fields + thin `setClientTools(tools)` / `completeClientToolCall(toolCallId, result)` / `rebindForClientTools(snapshot)` methods. `_pendingClientToolCalls` + `_toolUseIdBridge` constructed eagerly in the session constructor so MCP factory closures captured pre-materialize bind to the right instances (council finding C1). Dispose-time deferred rejection. |
+| `src/vs/platform/agentHost/node/claude/claudeSdkPipeline.ts` | modify | Narrow public `rebindForRestart()` wrapper around `_rebindQuery('restart')` so `ClaudeAgentSession.rebindForClientTools` can drive it without leaking the private method. |
+| `src/vs/platform/agentHost/node/claude/claudeMaterializer.ts` | modify | `materialize` / `materializeResume` / `_buildOptions` accept and write `Options.mcpServers`. |
+| `src/vs/platform/agentHost/test/node/claudeAgent.test.ts` | modify | Replace the Phase-10 no-op stub; add the 9 tests listed in step 10. |
+| `src/vs/platform/agentHost/test/node/claudeJsonSchemaToZod.test.ts` | create | Unit tests for the schema converter. |
+| `src/vs/platform/agentHost/test/node/claudeToolUseIdBridge.test.ts` | create | Unit tests for the rendezvous bridge (event-first / handler-first / FIFO / dispose). |
 
 ## Decisions
 
@@ -532,7 +532,7 @@ materializer. Tool-set changes between turns trigger
   existing `ClaudeSessionEntry.dispose()` / provisional-delete paths.
 - **Multi-client merging → no.** The protocol has at most one active client
   per session
-  ([agentSideEffects.ts:780-820](src/dc/platform/agentHost/node/agentSideEffects.ts));
+  ([agentSideEffects.ts:780-820](src/vs/platform/agentHost/node/agentSideEffects.ts));
   `setClientTools(session, clientId, tools)` is full replacement of that
   client's slice. We expose a single in-process MCP server named `client`.
 - **Tool-diff granularity → deep-equal on `name + description + inputSchema`.**
@@ -543,7 +543,7 @@ materializer. Tool-set changes between turns trigger
   change, otherwise the SDK runs with stale schemas.
 - **JSON Schema → Zod → hand-rolled minimal converter.** The protocol's
   `ToolDefinition.inputSchema` is a narrow JSON Schema subset
-  ([state.ts:1551-1568](src/dc/platform/agentHost/common/state/protocol/state.ts#L1551));
+  ([state.ts:1551-1568](src/vs/platform/agentHost/common/state/protocol/state.ts#L1551));
   shipping `json-schema-to-zod` is overkill and adds a dep. Unsupported
   per-property schemas fall back to `z.any()` rather than rejecting the
   tool — clients should always get *some* tool surface.
@@ -560,12 +560,12 @@ materializer. Tool-set changes between turns trigger
   (reserved for Phase 11's external MCP hot-swap).
 - **Subagent routing → walk `parseSubagentSessionUri` to the root session
   before resolving deferreds.** Mirrors
-  [copilotAgent.ts:943-954](src/dc/platform/agentHost/node/copilot/copilotAgent.ts#L943).
+  [copilotAgent.ts:943-954](src/vs/platform/agentHost/node/copilot/copilotAgent.ts#L943).
   `ClaudeAgent` already imports the helper.
 - **Deferred plumbing → reuse `PendingRequestRegistry<CallToolResult>`,
   extend with `rejectAll(error: Error)`.** Resolved during grilling. The
   existing class at
-  [`pendingRequestRegistry.ts`](src/dc/platform/agentHost/common/pendingRequestRegistry.ts)
+  [`pendingRequestRegistry.ts`](src/vs/platform/agentHost/common/pendingRequestRegistry.ts)
   is the right primitive — `registerAndFire(toolUseId, () => emit signal)`
   enforces the same register-before-fire invariant Phase 7 relies on for
   permission round-trips. The existing `denyAll(denyValue)` resolves with
@@ -587,7 +587,7 @@ materializer. Tool-set changes between turns trigger
   Claude SDK runs subagents inside the parent's `Query` subprocess (not
   a separate `Query`), so `Options.mcpServers` is shared. The mapper
   already threads `parent_tool_use_id` through every event
-  ([claudeMapSessionEvents.ts:232](src/dc/platform/agentHost/node/claude/claudeMapSessionEvents.ts#L232));
+  ([claudeMapSessionEvents.ts:232](src/vs/platform/agentHost/node/claude/claudeMapSessionEvents.ts#L232));
   Phase 12 routes the resulting signal via `IAgentActionSignal.parentToolCallId`
   so the workbench sees the subagent URI. When the workbench replies
   via `onClientToolCallComplete(subagentURI, ...)`, Phase 10 walks
@@ -595,7 +595,7 @@ materializer. Tool-set changes between turns trigger
   deferred there. Handler-side code stays subagent-unaware.
 - **Bridge prime point → `content_block_stop`, not `content_block_start`.**
   Input deltas are assembled by `finalizeToolBlock`
-  ([claudeMapSessionEvents.ts:120-127](src/dc/platform/agentHost/node/claude/claudeMapSessionEvents.ts#L120));
+  ([claudeMapSessionEvents.ts:120-127](src/vs/platform/agentHost/node/claude/claudeMapSessionEvents.ts#L120));
   priming earlier would queue the bridge with an empty args object and
   always desync from the handler.
 - **Initial `appliedClientToolSnapshot` → set at materialize/resume time,
@@ -605,10 +605,10 @@ materializer. Tool-set changes between turns trigger
 - **`sendMessage` sequencing → rebind-or-forward, exclusive.** Resolved
   during grilling via codebase verification. The rebind path already
   re-reads live permissionMode in the rematerializer
-  ([claudeAgent.ts:491](src/dc/platform/agentHost/node/claude/claudeAgent.ts#L491))
+  ([claudeAgent.ts:491](src/vs/platform/agentHost/node/claude/claudeAgent.ts#L491))
   AND re-applies bijective state via `_replayCurrentConfig` at the tail
   of `_rebindQuery`
-  ([claudeSdkPipeline.ts:397](src/dc/platform/agentHost/node/claude/claudeSdkPipeline.ts#L397)).
+  ([claudeSdkPipeline.ts:397](src/vs/platform/agentHost/node/claude/claudeSdkPipeline.ts#L397)).
   Calling `setPermissionMode(liveMode)` after the rebind would be
   redundant and could record a spurious second `setPermissionMode` call.
   Branch on tool-snapshot diff: rebind owns its own config replay; the
@@ -633,7 +633,7 @@ materializer. Tool-set changes between turns trigger
   `(2) _toolUseIdBridge.cancelAndDispose()` (local; renamed from
   `dispose()` so the call site shows the rejection semantic) →
   `(3) await pipeline.rebindForRestart()` (delegates to
-  `_rebindQuery('restart')` per [claudeSdkPipeline.ts:347](src/dc/platform/agentHost/node/claude/claudeSdkPipeline.ts#L347)) →
+  `_rebindQuery('restart')` per [claudeSdkPipeline.ts:347](src/vs/platform/agentHost/node/claude/claudeSdkPipeline.ts#L347)) →
   `(4) appliedClientToolSnapshot = newSnapshot` (local). Between (2)
   and (3) the OLD `Query` is still alive and may emit a final
   `tool_use` block; the mapper would then call
@@ -663,14 +663,14 @@ materializer. Tool-set changes between turns trigger
 
 - **Closure capture in rematerializer.** The session's rematerializer
   closure (`session.attachRematerializer(...)` in
-  [claudeAgent.ts:495-498](src/dc/platform/agentHost/node/claude/claudeAgent.ts#L495))
+  [claudeAgent.ts:495-498](src/vs/platform/agentHost/node/claude/claudeAgent.ts#L495))
   must re-read the registry on every rebind, not snapshot it once at
   materialize time — otherwise yield-restarts will use stale tools.
   **Mitigation:** pass the registry (not the snapshot) into the closure;
   read at rebind time. Covered by step 5's "Done when".
 
-- **Layering.** `src/dc/platform/agentHost/` lives at the platform layer;
-  no imports from `src/dc/workbench/`. The in-process MCP path only needs
+- **Layering.** `src/vs/platform/agentHost/` lives at the platform layer;
+  no imports from `src/vs/workbench/`. The in-process MCP path only needs
   `@anthropic-ai/claude-agent-sdk` and `@modelcontextprotocol/sdk` types
   (both already used). No layer violation risk for this phase.
 
@@ -715,9 +715,9 @@ _All Open Questions resolved during the grilling pass and the second council rev
 ## Verification
 
 ### Unit / Integration
-- Unit: `./scripts/test.sh --run src/dc/platform/agentHost/test/node/claudeJsonSchemaToZod.test.ts`
-- Unit: `./scripts/test.sh --run src/dc/platform/agentHost/test/node/claudeToolUseIdBridge.test.ts`
-- Integration (test runner): `./scripts/test.sh --run src/dc/platform/agentHost/test/node/claudeAgent.test.ts`
+- Unit: `./scripts/test.sh --run src/vs/platform/agentHost/test/node/claudeJsonSchemaToZod.test.ts`
+- Unit: `./scripts/test.sh --run src/vs/platform/agentHost/test/node/claudeToolUseIdBridge.test.ts`
+- Integration (test runner): `./scripts/test.sh --run src/vs/platform/agentHost/test/node/claudeAgent.test.ts`
 - Type-check: `npm run typecheck-client`
 - Layer check: `npm run valid-layers-check`
 
@@ -747,10 +747,10 @@ Workspace launch/log skills available:
 
 - Roadmap: `./roadmap.md` (Phase 10 — Client-provided tools (in-process MCP))
 - Council convergence on: registry placement, multi-client semantics, tool-diff granularity, no-gateway, restart trigger, JSON-Schema → Zod approach.
-- Copilot analog: [copilotAgent.ts:935-954](src/dc/platform/agentHost/node/copilot/copilotAgent.ts), [copilotAgentSession.ts:570-635](src/dc/platform/agentHost/node/copilot/copilotAgentSession.ts).
+- Copilot analog: [copilotAgent.ts:935-954](src/vs/platform/agentHost/node/copilot/copilotAgent.ts), [copilotAgentSession.ts:570-635](src/vs/platform/agentHost/node/copilot/copilotAgentSession.ts).
 - Production claude extension reference (templates only, do NOT port wholesale): [ideMcpServer.ts](extensions/copilot/src/extension/chatSessions/claude/common/mcpServers/ideMcpServer.ts), [claudeCodeAgent.ts:432-491](extensions/copilot/src/extension/chatSessions/claude/node/claudeCodeAgent.ts).
 - SDK types: [sdk.d.ts:2962-2969](node_modules/@anthropic-ai/claude-agent-sdk/sdk.d.ts) (`tool` signature), [sdk.d.ts:948-961](node_modules/@anthropic-ai/claude-agent-sdk/sdk.d.ts) (`McpSdkServerConfigWithInstance`), [sdk.d.ts:1442-1450](node_modules/@anthropic-ai/claude-agent-sdk/sdk.d.ts) (`Options.mcpServers`).
-- Protocol types: [state.ts:1551-1568](src/dc/platform/agentHost/common/state/protocol/state.ts) (`ToolDefinition`), [state.ts:1408-1427](src/dc/platform/agentHost/common/state/protocol/state.ts) (`ToolCallResult`).
+- Protocol types: [state.ts:1551-1568](src/vs/platform/agentHost/common/state/protocol/state.ts) (`ToolDefinition`), [state.ts:1408-1427](src/vs/platform/agentHost/common/state/protocol/state.ts) (`ToolCallResult`).
 - E2E skills: `launch`, `code-oss-logs`, `vscode-dev-workbench`.
 
 ## Implementation Notes
@@ -758,23 +758,23 @@ Workspace launch/log skills available:
 **Steps 1–3 + step 8 `rejectAll` only; steps 4–10 deferred to next implementer pass.**
 
 **Files actually changed**
-- `src/dc/platform/agentHost/common/pendingRequestRegistry.ts` — added `rejectAll(error)`; tightened `denyAll` JSDoc.
-- `src/dc/platform/agentHost/node/claude/claudeAgent.ts` — added `clientTools: readonly ToolDefinition[] | undefined` to `IClaudeProvisionalSession` (mutable, JSDoc'd; mirrors `model`); `createSession` writes `clientTools: undefined`. No agent-side logic added.
+- `src/vs/platform/agentHost/common/pendingRequestRegistry.ts` — added `rejectAll(error)`; tightened `denyAll` JSDoc.
+- `src/vs/platform/agentHost/node/claude/claudeAgent.ts` — added `clientTools: readonly ToolDefinition[] | undefined` to `IClaudeProvisionalSession` (mutable, JSDoc'd; mirrors `model`); `createSession` writes `clientTools: undefined`. No agent-side logic added.
 
 **Files created**
-- `src/dc/platform/agentHost/node/claude/claudeJsonSchemaToZod.ts`
-- `src/dc/platform/agentHost/node/claude/claudeClientToolHelpers.ts`
-- `src/dc/platform/agentHost/node/claude/claudeClientToolResult.ts`
-- `src/dc/platform/agentHost/node/claude/claudeToolUseIdBridge.ts`
-- `src/dc/platform/agentHost/node/claude/claudeClientToolMcpServer.ts`
+- `src/vs/platform/agentHost/node/claude/claudeJsonSchemaToZod.ts`
+- `src/vs/platform/agentHost/node/claude/claudeClientToolHelpers.ts`
+- `src/vs/platform/agentHost/node/claude/claudeClientToolResult.ts`
+- `src/vs/platform/agentHost/node/claude/claudeToolUseIdBridge.ts`
+- `src/vs/platform/agentHost/node/claude/claudeClientToolMcpServer.ts`
 
 **Tests written (37 new test cases across 5 files)**
-- `src/dc/platform/agentHost/test/node/claudeJsonSchemaToZod.test.ts` (5) — empty/undefined; primitives + required/optional; arrays/nested objects/enum/oneOf/null; nullable/description/default; per-property `z.any()` fallback.
-- `src/dc/platform/agentHost/test/node/claudeClientToolHelpers.test.ts` (7) — `snapshotEquals` against name/description/inputSchema mutations, order-insensitive, undefined-vs-[] symmetry.
-- `src/dc/platform/agentHost/test/node/claudeClientToolResult.test.ts` (6) — text, error, image embedded resource, non-image embedded resource (synthesized URI), unknown-block fallback, structuredContent passthrough.
-- `src/dc/platform/agentHost/test/node/claudeToolUseIdBridge.test.ts` (9) — event-first, handler-first, canonical-stringify, FIFO duplicate match, cross-parent FIFO, dispose-rejects, post-dispose no-op `noteToolUseEvent`, post-dispose `resolve` throws, defensive circular/BigInt stringify.
-- `src/dc/platform/agentHost/test/node/claudeClientToolMcpServer.test.ts` (4) — server named `'client'`; handler resolves via bridge + parks on registry; inputSchema converted via supplied factory; missing-description fallback.
-- `src/dc/platform/agentHost/test/common/pendingRequestRegistry.test.ts` (+1) — `rejectAll` settles every parked deferred with the supplied error and clears the registry.
+- `src/vs/platform/agentHost/test/node/claudeJsonSchemaToZod.test.ts` (5) — empty/undefined; primitives + required/optional; arrays/nested objects/enum/oneOf/null; nullable/description/default; per-property `z.any()` fallback.
+- `src/vs/platform/agentHost/test/node/claudeClientToolHelpers.test.ts` (7) — `snapshotEquals` against name/description/inputSchema mutations, order-insensitive, undefined-vs-[] symmetry.
+- `src/vs/platform/agentHost/test/node/claudeClientToolResult.test.ts` (6) — text, error, image embedded resource, non-image embedded resource (synthesized URI), unknown-block fallback, structuredContent passthrough.
+- `src/vs/platform/agentHost/test/node/claudeToolUseIdBridge.test.ts` (9) — event-first, handler-first, canonical-stringify, FIFO duplicate match, cross-parent FIFO, dispose-rejects, post-dispose no-op `noteToolUseEvent`, post-dispose `resolve` throws, defensive circular/BigInt stringify.
+- `src/vs/platform/agentHost/test/node/claudeClientToolMcpServer.test.ts` (4) — server named `'client'`; handler resolves via bridge + parks on registry; inputSchema converted via supplied factory; missing-description fallback.
+- `src/vs/platform/agentHost/test/common/pendingRequestRegistry.test.ts` (+1) — `rejectAll` settles every parked deferred with the supplied error and clears the registry.
 
 **Deviations from plan**
 - `jsonSchemaToZodRawShape` is parameterized on a `ZodFactory` (the slice of `zod` it needs) rather than statically importing `zod`. Reason: zod isn't a root dep and the renderer-side test harness has no resolver for bare specifiers. The factory is supplied at runtime alongside `createSdkMcpServer` / `tool` via the new `SdkExports` shape in `claudeClientToolMcpServer.ts`. The plan's Decision ("SDK module exports → wrapped behind `IClaudeAgentSdkService`") already foresees this; just folding `z` into the same exported bag.
@@ -789,21 +789,21 @@ Workspace launch/log skills available:
 
 **Files actually changed (full set)**
 - `eslint.config.js` — allow `@modelcontextprotocol/sdk/**/*` imports in the agentHost layer (for `CallToolResult`).
-- `src/dc/platform/agentHost/common/pendingRequestRegistry.ts` — (from step 8 first pass) `rejectAll(error)` already present.
-- `src/dc/platform/agentHost/node/claude/claudeAgent.ts` — real `setClientTools` / `onClientToolCallComplete`; bridge + registry construction in `_materializeProvisional` / `_resumeSession`; `_buildClientMcpServers` private helper; tool-diff exclusive rebind in `sendMessage`; rematerializer closures rebuild mcpServers from `session.clientTools`.
-- `src/dc/platform/agentHost/node/claude/claudeAgentSdkService.ts` — `IClaudeAgentSdkService.buildClientToolMcpServer(...)` added; `IClaudeSdkBindings` gains `createSdkMcpServer` + `tool`; production impl loads `z` from `zod` at the seam and delegates to the helper.
-- `src/dc/platform/agentHost/node/claude/claudeAgentSession.ts` — `clientTools` / `appliedClientToolSnapshot` fields; `bridge` + `_pendingClientToolCalls` ctor params; `setClientTools` / `completeClientToolCall` / `rebindForClientTools` methods; dispose-time `rejectAll` + `cancelAndDispose`.
-- `src/dc/platform/agentHost/node/claude/claudeSdkPipeline.ts` — bridge ctor param (optional with default `undefined` for back-compat with existing tests); narrow public `rebindForRestart()` wrapping `_rebindQuery('restart')`.
-- `src/dc/platform/agentHost/node/claude/claudeSdkMessageRouter.ts` — bridge ctor param (optional default); threaded into mapper calls.
-- `src/dc/platform/agentHost/node/claude/claudeMapSessionEvents.ts` — `bridge?` parameter on `mapSDKMessageToAgentSignals` and `mapStreamEvent`; `bridge?.noteToolUseEvent(toolUseId, name, parsedInput, parentToolUseId)` at `content_block_stop` AFTER `finalizeToolBlock`.
-- `src/dc/platform/agentHost/node/claude/claudeMaterializer.ts` — `IClaudeSessionCollaborators` interface; `materialize` / `materializeResume` accept collaborators / mcpServers and pass into session ctor; `_buildOptions` writes `Options.mcpServers` conditionally.
-- `src/dc/platform/agentHost/node/claude/claudeToolUseIdBridge.ts` — added `resetPendingForRebind()` for the live-rebind path (keeps the bridge alive across yield-restarts while rejecting parked resolves).
-- `src/dc/platform/agentHost/node/claude/claudeClientToolMcpServer.ts` — handler closure no longer carries a phase-10 TODO; the comment now records the design decision (no signal emission needed — the standard stream mapper already emits `SessionToolCallStart` at `content_block_start`).
-- `src/dc/platform/agentHost/node/claude/claudeJsonSchemaToZod.ts` — single `as unknown as` cast at the `z.union(literals...)` site to satisfy strict TS (pre-existing latent error surfaced once the full Phase 10 pipeline started compiling against zod 3.25's typings).
-- `src/dc/platform/agentHost/test/node/claudeAgent.test.ts` — `FakeClaudeAgentSdkService.buildClientToolMcpServer` + `buildClientToolMcpServerCalls` recorder; `ClaudeAgentSession` test wiring updated for the new ctor params; replaced the Phase-10 stub test with 8 Phase-10 integration tests.
-- `src/dc/platform/agentHost/test/node/claudeAgent.integrationTest.ts` — `ProxyRoundTripSdkService.buildClientToolMcpServer` stub.
-- `src/dc/platform/agentHost/test/node/claudeSubagentResolver.test.ts` — `FakeSdkService.buildClientToolMcpServer` stub.
-- `src/dc/platform/agentHost/test/node/claudeSdkMessageRouter.test.ts` / `claudeSdkPipeline.test.ts` — pass `undefined` for the new optional `bridge` constructor arg.
+- `src/vs/platform/agentHost/common/pendingRequestRegistry.ts` — (from step 8 first pass) `rejectAll(error)` already present.
+- `src/vs/platform/agentHost/node/claude/claudeAgent.ts` — real `setClientTools` / `onClientToolCallComplete`; bridge + registry construction in `_materializeProvisional` / `_resumeSession`; `_buildClientMcpServers` private helper; tool-diff exclusive rebind in `sendMessage`; rematerializer closures rebuild mcpServers from `session.clientTools`.
+- `src/vs/platform/agentHost/node/claude/claudeAgentSdkService.ts` — `IClaudeAgentSdkService.buildClientToolMcpServer(...)` added; `IClaudeSdkBindings` gains `createSdkMcpServer` + `tool`; production impl loads `z` from `zod` at the seam and delegates to the helper.
+- `src/vs/platform/agentHost/node/claude/claudeAgentSession.ts` — `clientTools` / `appliedClientToolSnapshot` fields; `bridge` + `_pendingClientToolCalls` ctor params; `setClientTools` / `completeClientToolCall` / `rebindForClientTools` methods; dispose-time `rejectAll` + `cancelAndDispose`.
+- `src/vs/platform/agentHost/node/claude/claudeSdkPipeline.ts` — bridge ctor param (optional with default `undefined` for back-compat with existing tests); narrow public `rebindForRestart()` wrapping `_rebindQuery('restart')`.
+- `src/vs/platform/agentHost/node/claude/claudeSdkMessageRouter.ts` — bridge ctor param (optional default); threaded into mapper calls.
+- `src/vs/platform/agentHost/node/claude/claudeMapSessionEvents.ts` — `bridge?` parameter on `mapSDKMessageToAgentSignals` and `mapStreamEvent`; `bridge?.noteToolUseEvent(toolUseId, name, parsedInput, parentToolUseId)` at `content_block_stop` AFTER `finalizeToolBlock`.
+- `src/vs/platform/agentHost/node/claude/claudeMaterializer.ts` — `IClaudeSessionCollaborators` interface; `materialize` / `materializeResume` accept collaborators / mcpServers and pass into session ctor; `_buildOptions` writes `Options.mcpServers` conditionally.
+- `src/vs/platform/agentHost/node/claude/claudeToolUseIdBridge.ts` — added `resetPendingForRebind()` for the live-rebind path (keeps the bridge alive across yield-restarts while rejecting parked resolves).
+- `src/vs/platform/agentHost/node/claude/claudeClientToolMcpServer.ts` — handler closure no longer carries a phase-10 TODO; the comment now records the design decision (no signal emission needed — the standard stream mapper already emits `SessionToolCallStart` at `content_block_start`).
+- `src/vs/platform/agentHost/node/claude/claudeJsonSchemaToZod.ts` — single `as unknown as` cast at the `z.union(literals...)` site to satisfy strict TS (pre-existing latent error surfaced once the full Phase 10 pipeline started compiling against zod 3.25's typings).
+- `src/vs/platform/agentHost/test/node/claudeAgent.test.ts` — `FakeClaudeAgentSdkService.buildClientToolMcpServer` + `buildClientToolMcpServerCalls` recorder; `ClaudeAgentSession` test wiring updated for the new ctor params; replaced the Phase-10 stub test with 8 Phase-10 integration tests.
+- `src/vs/platform/agentHost/test/node/claudeAgent.integrationTest.ts` — `ProxyRoundTripSdkService.buildClientToolMcpServer` stub.
+- `src/vs/platform/agentHost/test/node/claudeSubagentResolver.test.ts` — `FakeSdkService.buildClientToolMcpServer` stub.
+- `src/vs/platform/agentHost/test/node/claudeSdkMessageRouter.test.ts` / `claudeSdkPipeline.test.ts` — pass `undefined` for the new optional `bridge` constructor arg.
 
 **Tests added in this pass (8 new Phase 10 cases in `claudeAgent.test.ts`)**
 - `setClientTools registers tools that flow into Options.mcpServers on first materialize`

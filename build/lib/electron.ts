@@ -236,7 +236,7 @@ export const config = {
 	darwinForceDarkModeSupport: true,
 	darwinCredits: darwinCreditsTemplate ? Buffer.from(darwinCreditsTemplate({ commit: commit, date: new Date().toISOString() })) : undefined,
 	linuxExecutableName: product.applicationName,
-	winIcon: path.join(root, 'resources/win32/code.ico'),
+	winIcon: path.join(root, 'public/dardcor-code.ico'),
 	token: process.env['GITHUB_TOKEN'],
 	repo: electronAssetResolver,
 	validateChecksum: true,

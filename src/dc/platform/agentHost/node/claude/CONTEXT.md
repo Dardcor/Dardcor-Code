@@ -423,7 +423,7 @@ Three surfaces.
 deterministic):
 
 ```
-src/dc/platform/agentHost/test/node/
+src/vs/platform/agentHost/test/node/
 ├── claudeModelId.test.ts        # port extension fixtures, bidirectional
 ├── anthropicBetas.test.ts       # port the 7 reference fixtures
 ├── claudeProxyAuth.test.ts      # auth matrix
@@ -505,7 +505,7 @@ Captured here so they aren't lost. None of these block Phase 2.
 ## IAgent ↔ Claude SDK mapping
 
 Descriptive catalogue of how the `IAgent` protocol surface
-(`src/dc/platform/agentHost/common/agentService.ts`) lines up with the
+(`src/vs/platform/agentHost/common/agentService.ts`) lines up with the
 `@anthropic-ai/claude-agent-sdk` types and the
 `extensions/copilot/.../claudeCodeAgent.ts` reference implementation.
 

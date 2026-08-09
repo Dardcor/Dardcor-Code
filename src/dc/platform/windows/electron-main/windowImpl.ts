@@ -704,7 +704,7 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 			this.logService.trace('window#ctor: using window state', state);
 
 			const webPreferences: electron.WebPreferences = {
-				preload: FileAccess.asFileUri('dc/base/parts/sandbox/electron-browser/preload.js').fsPath,
+				preload: FileAccess.asFileUri('vs/base/parts/sandbox/electron-browser/preload.js').fsPath,
 				additionalArguments: [`--vscode-window-config=${this.configObjectUrl.resource.toString()}`],
 				v8CacheOptions: this.environmentMainService.useCodeCache ? 'bypassHeatCheck' : 'none'
 			};
@@ -1211,9 +1211,9 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 		if (process.env.VSCODE_DEV && process.env.VSCODE_DEV_SERVER_URL) {
 			windowUrl = process.env.VSCODE_DEV_SERVER_URL; // support URL override for development
 		} else if (configuration.isSessionsWindow) {
-			windowUrl = FileAccess.asBrowserUri(`dc/sessions/electron-browser/sessions${this.environmentMainService.isBuilt ? '' : '-dev'}.html`).toString(true);
+			windowUrl = FileAccess.asBrowserUri(`vs/sessions/electron-browser/sessions${this.environmentMainService.isBuilt ? '' : '-dev'}.html`).toString(true);
 		} else {
-			windowUrl = FileAccess.asBrowserUri(`dc/code/electron-browser/workbench/workbench${this.environmentMainService.isBuilt ? '' : '-dev'}.html`).toString(true);
+			windowUrl = FileAccess.asBrowserUri(`vs/code/electron-browser/workbench/workbench${this.environmentMainService.isBuilt ? '' : '-dev'}.html`).toString(true);
 		}
 		this._win.loadURL(windowUrl);
 

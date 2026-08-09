@@ -161,7 +161,7 @@ flakySuite('Disk File Service', function () {
 
 		testDir = getRandomTestPath(tmpdir(), 'vsctests', 'diskfileservice');
 
-		const sourceDir = FileAccess.asFileUri('dc/platform/files/test/node/fixtures/service').fsPath;
+		const sourceDir = FileAccess.asFileUri('vs/platform/files/test/node/fixtures/service').fsPath;
 
 		await Promises.copy(sourceDir, testDir, { preserveSymlinks: false });
 	});
@@ -223,7 +223,7 @@ flakySuite('Disk File Service', function () {
 	});
 
 	test('resolve - file', async () => {
-		const resource = FileAccess.asFileUri('dc/platform/files/test/node/fixtures/resolver/index.html');
+		const resource = FileAccess.asFileUri('vs/platform/files/test/node/fixtures/resolver/index.html');
 		const resolved = await service.resolve(resource);
 
 		assert.strictEqual(resolved.name, 'index.html');
@@ -241,7 +241,7 @@ flakySuite('Disk File Service', function () {
 	test('resolve - directory', async () => {
 		const testsElements = ['examples', 'other', 'index.html', 'site.css'];
 
-		const resource = FileAccess.asFileUri('dc/platform/files/test/node/fixtures/resolver');
+		const resource = FileAccess.asFileUri('vs/platform/files/test/node/fixtures/resolver');
 		const result = await service.resolve(resource);
 
 		assert.ok(result);
@@ -286,7 +286,7 @@ flakySuite('Disk File Service', function () {
 	test('resolve - directory - with metadata', async () => {
 		const testsElements = ['examples', 'other', 'index.html', 'site.css'];
 
-		const result = await service.resolve(FileAccess.asFileUri('dc/platform/files/test/node/fixtures/resolver'), { resolveMetadata: true });
+		const result = await service.resolve(FileAccess.asFileUri('vs/platform/files/test/node/fixtures/resolver'), { resolveMetadata: true });
 
 		assert.ok(result);
 		assert.strictEqual(result.name, 'resolver');
@@ -336,7 +336,7 @@ flakySuite('Disk File Service', function () {
 	});
 
 	test('resolve - directory - resolveTo single directory', async () => {
-		const resolverFixturesPath = FileAccess.asFileUri('dc/platform/files/test/node/fixtures/resolver').fsPath;
+		const resolverFixturesPath = FileAccess.asFileUri('vs/platform/files/test/node/fixtures/resolver').fsPath;
 		const result = await service.resolve(URI.file(resolverFixturesPath), { resolveTo: [URI.file(join(resolverFixturesPath, 'other/deep'))] });
 
 		assert.ok(result);
@@ -366,7 +366,7 @@ flakySuite('Disk File Service', function () {
 	});
 
 	async function testResolveDirectoryWithTarget(withQueryParam: boolean): Promise<void> {
-		const resolverFixturesPath = FileAccess.asFileUri('dc/platform/files/test/node/fixtures/resolver').fsPath;
+		const resolverFixturesPath = FileAccess.asFileUri('vs/platform/files/test/node/fixtures/resolver').fsPath;
 		const result = await service.resolve(URI.file(resolverFixturesPath).with({ query: withQueryParam ? 'test' : undefined }), {
 			resolveTo: [
 				URI.file(join(resolverFixturesPath, 'other/deep')).with({ query: withQueryParam ? 'test' : undefined }),
@@ -398,7 +398,7 @@ flakySuite('Disk File Service', function () {
 	}
 
 	test('resolve directory - resolveSingleChildFolders', async () => {
-		const resolverFixturesPath = FileAccess.asFileUri('dc/platform/files/test/node/fixtures/resolver/other').fsPath;
+		const resolverFixturesPath = FileAccess.asFileUri('vs/platform/files/test/node/fixtures/resolver/other').fsPath;
 		const result = await service.resolve(URI.file(resolverFixturesPath), { resolveSingleChildDescendants: true });
 
 		assert.ok(result);
@@ -470,7 +470,7 @@ flakySuite('Disk File Service', function () {
 	});
 
 	test('stat - file', async () => {
-		const resource = FileAccess.asFileUri('dc/platform/files/test/node/fixtures/resolver/index.html');
+		const resource = FileAccess.asFileUri('vs/platform/files/test/node/fixtures/resolver/index.html');
 		const resolved = await service.stat(resource);
 
 		assert.strictEqual(resolved.name, 'index.html');
@@ -485,7 +485,7 @@ flakySuite('Disk File Service', function () {
 	});
 
 	test('stat - directory', async () => {
-		const resource = FileAccess.asFileUri('dc/platform/files/test/node/fixtures/resolver');
+		const resource = FileAccess.asFileUri('vs/platform/files/test/node/fixtures/resolver');
 		const result = await service.stat(resource);
 
 		assert.ok(result);
@@ -500,12 +500,12 @@ flakySuite('Disk File Service', function () {
 	// The executable bit does not exist on Windows so use a condition not skip
 	if (!isWindows) {
 		test('stat - executable', async () => {
-			const nonExecutable = FileAccess.asFileUri('dc/platform/files/test/node/fixtures/executable/non_executable');
+			const nonExecutable = FileAccess.asFileUri('vs/platform/files/test/node/fixtures/executable/non_executable');
 			let resolved = await service.stat(nonExecutable);
 			assert.strictEqual(resolved.isFile, true);
 			assert.strictEqual(resolved.executable, false);
 
-			const executable = FileAccess.asFileUri('dc/platform/files/test/node/fixtures/executable/executable');
+			const executable = FileAccess.asFileUri('vs/platform/files/test/node/fixtures/executable/executable');
 			resolved = await service.stat(executable);
 			assert.strictEqual(resolved.isFile, true);
 			assert.strictEqual(resolved.executable, true);

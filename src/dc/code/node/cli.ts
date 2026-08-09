@@ -135,7 +135,7 @@ export async function main(argv: string[]): Promise<void> {
 		if (process.env['VSCODE_DEV']) {
 			cliProcessMain = './cliProcessMain.js';
 		} else {
-			cliProcessMain = './dc/code/node/cliProcessMain.js';
+			cliProcessMain = './vs/code/node/cliProcessMain.js';
 		}
 
 		const cli = await import(cliProcessMain);

@@ -147,7 +147,7 @@ cd "$ROOT"
 # spawns a subprocess tree that's harder to manage in background mode).
 # Use system node rather than the VS Code-managed node binary which may
 # not have been downloaded yet.
-SERVER_ENTRY="$ROOT/out/dc/platform/agentHost/node/agentHostServerMain.js"
+SERVER_ENTRY="$ROOT/out/vs/platform/agentHost/node/agentHostServerMain.js"
 
 if [ ! -f "$SERVER_ENTRY" ]; then
 	echo "ERROR: Server entry point not found: $SERVER_ENTRY" >&2

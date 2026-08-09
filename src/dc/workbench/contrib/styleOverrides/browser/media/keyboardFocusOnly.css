@@ -27,18 +27,19 @@
  * `:focus` but not `:focus-visible`, so drop the row ring in that case. Keyboard
  * focus (`:focus-visible`) keeps it.
  */
-.style-override :is(.part.sidebar, .part.panel, .part.auxiliarybar) .monaco-list:focus:not(:focus-visible) .monaco-list-row.focused {
+.monaco-workbench :is(.part.activitybar, .part.sidebar, .part.panel, .part.auxiliarybar, .part.statusbar, .part.editor, .part.titlebar) .monaco-list:focus:not(:focus-visible) .monaco-list-row.focused {
 	outline: 0 !important;
 }
 
-/*
- * Part-level and control-level focus outlines. Panels (the part element itself,
- * which is `[tabindex="0"]`, plus inner tabindex elements, action items and
- * inputs) draw an outline on `:focus`. Hide it for mouse focus, keep it for
- * keyboard focus. The part element is listed explicitly because a descendant
- * combinator would not match the part itself.
- */
-.style-override :is(.part.sidebar, .part.panel, .part.auxiliarybar, .part.statusbar):focus:not(:focus-visible),
-.style-override :is(.part.sidebar, .part.panel, .part.auxiliarybar, .part.statusbar) :focus:not(:focus-visible) {
-	outline-color: transparent !important;
+.monaco-workbench :is(.part.activitybar, .part.sidebar, .part.panel, .part.auxiliarybar, .part.statusbar, .part.editor, .part.titlebar):focus:not(:focus-visible),
+.monaco-workbench :is(.part.activitybar, .part.sidebar, .part.panel, .part.auxiliarybar, .part.statusbar, .part.editor, .part.titlebar) :focus:not(:focus-visible) {
+	outline: none !important;
+	box-shadow: none !important;
+}
+
+.monaco-workbench .monaco-action-bar .action-item:focus:not(:focus-visible),
+.monaco-workbench .tabs-container > .tab:focus:not(:focus-visible),
+.monaco-workbench .composite-bar .action-item:focus:not(:focus-visible) {
+	outline: none !important;
+	box-shadow: none !important;
 }

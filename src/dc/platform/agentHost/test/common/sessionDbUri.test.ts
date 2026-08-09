@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -52,7 +51,7 @@ suite('buildSessionDbUri / parseSessionDbUri', () => {
 	});
 
 	test('round-trips a backslashed Windows filePath, which the database lookup needs verbatim', () => {
-		const filePath = 'C:\\Code\\vscode\\src\\dc\\file.ts';
+		const filePath = 'C:\\Code\\vscode\\src\\vs\\file.ts';
 		const parsed = parseSessionDbUri(buildSessionDbUri('copilot:/s1', 'tc-1', filePath, 'before'));
 		assert.ok(parsed);
 		assert.strictEqual(parsed.filePath, filePath);
@@ -146,4 +145,3 @@ suite('canonicalizeSessionDbUri', () => {
 		);
 	});
 });
-

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -35,4 +34,3 @@ export async function seedFile(fileService: IFileService, path: string, content 
 	await fileService.writeFile(uri, VSBuffer.fromString(content));
 	return uri;
 }
-

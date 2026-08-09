@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -6,6 +5,7 @@
 
 import { ILogService } from '../../log/common/log.js';
 import { AhpJsonlLogger } from '../common/ahpJsonlLogger.js';
+import { AgentHostClientConnectionKind } from '../common/agentHostTelemetry.js';
 import { RelayTransport } from '../common/relayTransport.js';
 import type { ISSHRemoteAgentHostMainService } from '../common/sshRemoteAgentHost.js';
 
@@ -16,7 +16,6 @@ export class SSHRelayTransport extends RelayTransport {
 		ahpLogger: AhpJsonlLogger | undefined,
 		@ILogService logService: ILogService,
 	) {
-		super(connectionId, sshService, ahpLogger, logService, '[SSHRelayTransport]');
+		super(connectionId, sshService, ahpLogger, logService, '[SSHRelayTransport]', AgentHostClientConnectionKind.SSH);
 	}
 }
-

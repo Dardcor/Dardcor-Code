@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -46,6 +45,8 @@ export {
 	type SessionServerToolsChangedAction,
 	type SessionActiveClientSetAction,
 	type SessionActiveClientRemovedAction,
+	type SessionWorkingDirectorySetAction,
+	type SessionWorkingDirectoryRemovedAction,
 	type SessionCustomizationsChangedAction,
 	type SessionCustomizationToggledAction,
 	type ChatPendingMessageSetAction,
@@ -127,6 +128,8 @@ import type {
 	ChatQueuedMessagesReorderedAction,
 	SessionIsReadChangedAction,
 	SessionIsArchivedChangedAction,
+	SessionWorkingDirectorySetAction,
+	SessionWorkingDirectoryRemovedAction,
 	RootConfigChangedAction,
 } from './protocol/actions.js';
 
@@ -193,6 +196,11 @@ export type IQueuedMessagesReorderedAction = ChatQueuedMessagesReorderedAction;
 export type IIsReadChangedAction = SessionIsReadChangedAction;
 export type IIsArchivedChangedAction = SessionIsArchivedChangedAction;
 
+/** Session-level working-directory mutations. */
+export type SessionWorkingDirectoryAction =
+	| SessionWorkingDirectorySetAction
+	| SessionWorkingDirectoryRemovedAction;
+
 // Notifications
 export type INotification = ProtocolNotification;
 
@@ -221,4 +229,3 @@ export function isChangesetAction(action: StateAction): action is ChangesetActio
 export function isAnnotationsAction(action: StateAction): action is AnnotationsAction {
 	return action.type.startsWith('annotations/');
 }
-

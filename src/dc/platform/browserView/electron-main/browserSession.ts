@@ -273,7 +273,7 @@ export class BrowserSession {
 		this._permissions.configure(this.electronSession);
 		this.electronSession.registerPreloadScript({
 			type: 'frame',
-			filePath: FileAccess.asFileUri('dc/platform/browserView/electron-browser/preload-browserView.js').fsPath
+			filePath: FileAccess.asFileUri('vs/platform/browserView/electron-browser/preload-browserView.js').fsPath
 		});
 		this.electronSession.protocol.handle(Schemas.file, request => {
 			const filePath = normalize(URI.parse(request.url).fsPath);

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -6,7 +5,7 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { ChatInputAnswerState, ChatInputAnswerValueKind, ChatInputQuestionKind, ChatInputResponseKind, type ChatInputAnswer } from '../../../common/state/sessionState.js';
+import { ChatInputAnswerState, ChatInputAnswerValueKind, ChatInputQuestionKind, ChatInputRequestPurpose, ChatInputResponseKind, type ChatInputAnswer } from '../../../common/state/sessionState.js';
 import { buildElicitationRequest, elicitationResponseFromAnswers } from '../../../node/codex/codexElicitationMapper.js';
 import type { McpServerElicitationRequestParams } from '../../../node/codex/protocol/generated/v2/McpServerElicitationRequestParams.js';
 
@@ -39,6 +38,7 @@ suite('codexElicitationMapper', () => {
 	test('buildElicitationRequest (form) projects every primitive field kind', () => {
 		assert.deepStrictEqual(buildElicitationRequest('req-1', formParams), {
 			id: 'req-1',
+			purpose: ChatInputRequestPurpose.Elicitation,
 			message: 'Please configure',
 			questions: [
 				{ kind: ChatInputQuestionKind.Text, id: 'name', title: 'Name', message: 'Your name', required: true, format: undefined, min: 1, max: undefined, defaultValue: undefined },
@@ -53,7 +53,7 @@ suite('codexElicitationMapper', () => {
 
 	test('buildElicitationRequest (url) surfaces the url with no questions', () => {
 		assert.deepStrictEqual(buildElicitationRequest('req-2', urlParams), {
-			id: 'req-2', message: 'Authorize', url: 'https://example.com/auth',
+			id: 'req-2', purpose: ChatInputRequestPurpose.Elicitation, message: 'Authorize', url: 'https://example.com/auth',
 		});
 	});
 
@@ -84,4 +84,3 @@ suite('codexElicitationMapper', () => {
 		);
 	});
 });
-

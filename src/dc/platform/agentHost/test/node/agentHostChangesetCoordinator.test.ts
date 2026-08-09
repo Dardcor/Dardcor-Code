@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -376,6 +375,7 @@ class TestGitStateService extends Disposable implements IAgentHostGitStateServic
 	}
 	async setSessionGitHubState(_sessionKey: string, _state: ISessionGitHubState): Promise<void> { }
 	async attachSessionGitHubPullRequest(_sessionKey: string): Promise<void> { }
+	async attachSessionGitHubIssues(_sessionKey: string, _text: string): Promise<void> { }
 }
 
 class TestFileMonitorService extends Disposable implements IAgentHostFileMonitorService {
@@ -513,4 +513,3 @@ class TestChangesetService implements IAgentHostChangesetService {
 function tick(): Promise<void> {
 	return new Promise(resolve => setImmediate(resolve));
 }
-

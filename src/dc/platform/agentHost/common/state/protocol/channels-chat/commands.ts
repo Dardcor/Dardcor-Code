@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -134,4 +133,3 @@ export interface CreateChatParams extends BaseParams {
  * @version 1
  */
 export interface DisposeChatParams extends BaseParams { }
-

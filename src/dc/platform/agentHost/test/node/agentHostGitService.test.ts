@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -162,6 +161,22 @@ suite('AgentHostGitService', () => {
 	});
 
 	suite('parseGitHubRepoFromRemote', () => {
+		test('parses only the requested fork remote', () => {
+			const out = [
+				'origin\tgit@github.com:base-owner/repo.git (fetch)',
+				'fork\thttps://github.com/fork-owner/repo.git (fetch)',
+			].join('\n');
+			assert.deepStrictEqual(parseGitHubRepoFromRemote(out, 'fork'), { owner: 'fork-owner', repo: 'repo' });
+		});
+
+		test('does not fall back when the requested remote is not GitHub', () => {
+			const out = [
+				'origin\tgit@github.com:base-owner/repo.git (fetch)',
+				'fork\thttps://gitlab.com/fork-owner/repo.git (fetch)',
+			].join('\n');
+			assert.strictEqual(parseGitHubRepoFromRemote(out, 'fork'), undefined);
+		});
+
 		test('parses ssh (scp-like) origin remote', () => {
 			const out = 'origin\tgit@github.com:microsoft/vscode.git (fetch)\norigin\tgit@github.com:microsoft/vscode.git (push)\n';
 			assert.deepStrictEqual(parseGitHubRepoFromRemote(out), { owner: 'microsoft', repo: 'vscode' });
@@ -485,4 +500,3 @@ suite('AgentHostGitService', () => {
 		});
 	});
 });
-

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -218,7 +217,7 @@ suite('FileEditTracker', () => {
 		const localTracker = instantiationService.createInstance(FileEditTracker, 'copilot:/test-session', db);
 		await fileService.writeFile(URI.file('/workspace/non-blocking.txt'), VSBuffer.fromString('before'));
 
-		await localTracker.trackEditStart('/workspace/non-blocking.txt');
+		await localTracker.trackEditStart('/workspace/non-blocking.txt', 'plan');
 		await fileService.writeFile(URI.file('/workspace/non-blocking.txt'), VSBuffer.fromString('after'));
 		await localTracker.completeEdit('/workspace/non-blocking.txt');
 		const resultPromise = localTracker.takeCompletedEdit('turn-1', 'tc-non-blocking', '/workspace/non-blocking.txt', 'apply_patch', undefined, 'model');
@@ -242,6 +241,7 @@ suite('FileEditTracker', () => {
 			diffCallCount: localDiffComputeService.callCount,
 			detailedDiffCallCount: localDiffComputeService.detailedCallCount,
 			initialEdit: report.initialEdit,
+			mode: report.mode,
 		}, {
 			completion: 'complete',
 			resultType: ToolResultContentType.FileEdit,
@@ -250,6 +250,7 @@ suite('FileEditTracker', () => {
 			initialEdit: {
 				replacements: [{ start: 0, endExclusive: 6, text: 'after' }]
 			},
+			mode: 'plan',
 		});
 	});
 
@@ -306,4 +307,3 @@ suite('FileEditTracker', () => {
 		assert.strictEqual(new TextDecoder().decode(content.afterContent), 'modified');
 	});
 });
-

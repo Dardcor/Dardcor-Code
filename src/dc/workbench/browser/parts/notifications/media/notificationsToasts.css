@@ -6,9 +6,8 @@
 .monaco-workbench > .notifications-toasts {
 	position: absolute;
 	z-index: 2545; /* above modal editor backdrop (2540), below quick input (2550) and dialogs (2575) */
-	left: 16px;
-	right: auto;
-	bottom: 30px;
+	right: 3px;
+	bottom: 25px; /* 22px status bar height + 3px */
 	display: none;
 	border-radius: var(--vscode-cornerRadius-small);
 }

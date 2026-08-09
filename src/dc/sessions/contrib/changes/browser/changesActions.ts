@@ -50,7 +50,7 @@ class ViewAllChangesAction extends Action2 {
 			icon: Codicon.diffMultiple,
 			f1: false,
 			// Diff stats shown in the session header meta row
-			// (dc/sessions/browser/parts/sessionHeader.ts). Rendered with a
+			// (vs/sessions/browser/parts/sessionHeader.ts). Rendered with a
 			// custom action view item that shows the live +/- counts.
 			menu: {
 				id: Menus.SessionHeaderMeta,

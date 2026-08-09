@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -63,4 +62,3 @@ suite('gitDiffContent', () => {
 		assert.strictEqual(parseGitBlobUri('not a uri at all'), undefined);
 	});
 });
-

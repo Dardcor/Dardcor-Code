@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -14,6 +13,7 @@ import type { ClientRequest } from './protocol/generated/ClientRequest.js';
 import type { RequestId } from './protocol/generated/RequestId.js';
 import type { ServerNotification } from './protocol/generated/ServerNotification.js';
 import type { ServerRequest } from './protocol/generated/ServerRequest.js';
+import type { IAgentHostTraceContext } from '../../common/otel/agentHostOTelService.js';
 
 // #region Wire types
 //
@@ -149,6 +149,7 @@ export interface ICodexAppServerClient extends IDisposable {
 	request<M extends ClientRequestMethod, R = unknown>(
 		method: M,
 		params: ClientRequestParams<M>,
+		trace?: IAgentHostTraceContext,
 	): Promise<R>;
 
 	/**
@@ -361,6 +362,7 @@ export class CodexAppServerClient extends Disposable implements ICodexAppServerC
 	request<M extends ClientRequestMethod, R = unknown>(
 		method: M,
 		params: ClientRequestParams<M>,
+		trace?: IAgentHostTraceContext,
 	): Promise<R> {
 		if (this._disposed) {
 			return Promise.reject(new CancellationError());
@@ -371,7 +373,12 @@ export class CodexAppServerClient extends Disposable implements ICodexAppServerC
 		const id = this._nextId++;
 		return new Promise<R>((resolve, reject) => {
 			this._pending.set(id, { method, resolve: resolve as (v: unknown) => void, reject });
-			const ok = this._writeMessage({ id, method, params });
+			const ok = this._writeMessage({
+				id,
+				method,
+				params,
+				...(trace ? { trace: { traceparent: trace.traceparent, tracestate: trace.tracestate } } : {}),
+			});
 			if (!ok) {
 				this._pending.delete(id);
 				reject(new JsonRpcError(JsonRpcErrorCode.InternalError, 'write failed; transport closed'));
@@ -472,4 +479,3 @@ export function transportFromChildProcess(
 		onExitOnce: listener => child.once('exit', (code, signal) => listener({ code, signal })),
 	};
 }
-

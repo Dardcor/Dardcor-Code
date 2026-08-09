@@ -289,7 +289,7 @@ function renderInputBoxes({ container, disposableStore }: ComponentFixtureContex
 		placeholder: 'File path',
 		inputBoxStyles: themedInputBoxStyles,
 	}));
-	filledInput.value = '/src/dc/editor/browser';
+	filledInput.value = '/src/vs/editor/browser';
 
 	// Input with info validation
 	const infoInput = disposableStore.add(new InputBox(container, undefined, {

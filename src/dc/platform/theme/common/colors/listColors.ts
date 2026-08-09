@@ -59,7 +59,7 @@ export const listInactiveFocusBackground = registerColor('list.inactiveFocusBack
 	nls.localize('listInactiveFocusBackground', "List/Tree background color for the focused item when the list/tree is inactive. An active list/tree has keyboard focus, an inactive does not."));
 
 export const listInactiveFocusOutline = registerColor('list.inactiveFocusOutline',
-	{ dark: '#4A148C', light: null, hcDark: null, hcLight: null },
+	null,
 	nls.localize('listInactiveFocusOutline', "List/Tree outline color for the focused item when the list/tree is inactive. An active list/tree has keyboard focus, an inactive does not."));
 
 export const listHoverBackground = registerColor('list.hoverBackground',

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -138,5 +137,4 @@ export function createAgentHostSandboxEngine(
 	const host = new AgentHostTerminalSandboxHost(sessionId, workingDirectory, environmentService as INativeEnvironmentService, productService, agentConfigurationService, sandboxHelper);
 	return instantiationService.createInstance(TerminalSandboxEngine, host);
 }
-
 

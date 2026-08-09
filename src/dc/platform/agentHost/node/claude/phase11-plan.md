@@ -37,7 +37,7 @@ Wire customizations (skills + plugins) end-to-end for the Claude provider so the
 
 - Phase 10 yield-restart primitive (`SessionClientToolsDiff` + `ClaudeAgentSession.rebindForClientTools()` + `ClaudeSdkPipeline.rebindForRestart()`) is the structural reference for both the per-session ownership pattern AND the restart fallback path.
 - Phase 10.5 collapsed materialization into `ClaudeAgentSession.materialize(ctx)`; the session is the natural owner of per-session customization state and the place to drain pending reloads.
-- `IAgentPluginManager` DI singleton exists at `src/dc/platform/agentHost/common/agentPluginManager.ts` and ships `syncCustomizations(clientId, customizations, progress?)`. Injected into the session via DI (not the agent), same way `IClaudeAgentSdkService` is injected into the session today.
+- `IAgentPluginManager` DI singleton exists at `src/vs/platform/agentHost/common/agentPluginManager.ts` and ships `syncCustomizations(clientId, customizations, progress?)`. Injected into the session via DI (not the agent), same way `IClaudeAgentSdkService` is injected into the session today.
 - SDK `Query.reloadPlugins()`, `Query.supportedCommands()`, and `Options.plugins` are available on the pinned `@anthropic-ai/claude-agent-sdk` version.
 - Workspace E2E skills available: `launch` (Playwright/CDP), `code-oss-logs`, `chat-customizations-editor`.
 
@@ -48,17 +48,17 @@ Mirror the `clientTools/` pattern exactly. Add a sibling `customizations/` folde
 ## Steps
 
 1. **Add `SessionCustomizationsDiff` collaborator under a new `customizations/` folder.** Mirrors `clientTools/claudeSessionClientToolsModel.ts` shape. Owns: `syncedCustomizations: readonly ISyncedCustomization[]`, `enablement: Map<string, boolean>` (per-session), `resolveEnabledPluginPaths(): readonly URI[]` (derived view used at materialize/reload), `consume(): readonly URI[]` (clears dirty + returns current paths), and `onDidChange: Event<void>` fired on any state mutation.
-   - Files: `src/dc/platform/agentHost/node/claude/customizations/claudeSessionCustomizationsModel.ts` (new)
+   - Files: `src/vs/platform/agentHost/node/claude/customizations/claudeSessionCustomizationsModel.ts` (new)
    - Depends on: none
    - Done when: model compiles with no SDK dependencies; unit tests cover sync update, enablement toggle, dirty lifecycle, event firing.
 
 2. **Add `plugins` field to `IBuildOptionsInput` and project to `Options.plugins`.** Update materialize + rematerializer call sites in the session to pass `session.customizationsDiff.consume()` so plugins are baked into SDK options on both fresh startup and yield-restart.
-   - Files: `src/dc/platform/agentHost/node/claude/claudeSdkOptions.ts`, `src/dc/platform/agentHost/node/claude/claudeAgentSession.ts`
+   - Files: `src/vs/platform/agentHost/node/claude/claudeSdkOptions.ts`, `src/vs/platform/agentHost/node/claude/claudeAgentSession.ts`
    - Depends on: step 1
    - Done when: with non-empty enabled paths, `buildOptions` returns `Options.plugins` as `Record<name, { type: 'local', path }>`; empty omits the field; both materialize and the rematerializer closure pass the current snapshot.
 
 3. **Add the SDK-resolved snapshot helper on the pipeline.** Narrow public method `snapshotResolvedCustomizations(): Promise<{commands, agents, mcpServers}>` that reads the live `Query`'s `supportedCommands` / `supportedAgents` / `mcpServerStatus` in parallel. Used by `getSessionCustomizations` to surface the server-side tier; not used to drive the dirty bit. (Original plan also called for a `reloadPluginsAndSnapshot` helper; cut after council review proved `reloadPlugins` couldn't change the plugin set.)
-   - Files: `src/dc/platform/agentHost/node/claude/claudeSdkPipeline.ts`
+   - Files: `src/vs/platform/agentHost/node/claude/claudeSdkPipeline.ts`
    - Depends on: none
    - Done when: a unit test against the fake `Query` verifies the snapshot returns the three SDK fields verbatim.
 
@@ -67,7 +67,7 @@ Mirror the `clientTools/` pattern exactly. Add a sibling `customizations/` folde
    - `setCustomizationEnabled(uri, enabled): void` — flips the per-session enablement bit; the diff recomputes enabled paths and flips dirty.
    - `getCustomizations(): readonly ISyncedCustomization[]` — returns `customizationsDiff.syncedCustomizations`.
    - `onDidCustomizationsChange: Event<void>` — forwards `customizationsDiff.onDidChange`.
-   - Files: `src/dc/platform/agentHost/node/claude/claudeAgentSession.ts`
+   - Files: `src/vs/platform/agentHost/node/claude/claudeAgentSession.ts`
    - Depends on: step 1
    - Done when: session compiles with the new DI dep; unit test exercises sync to enable to toggle round-trip directly on a session instance.
 
@@ -77,17 +77,17 @@ Mirror the `clientTools/` pattern exactly. Add a sibling `customizations/` folde
    - `getCustomizations()` aggregates the union of `session.getCustomizations()` across `_sessions.values()`, deduped by URI.
    - `getSessionCustomizations(session)` returns `_findAnySession(id)?.getCustomizations() ?? []` (works for provisional sessions since the diff exists from `createProvisional` onward).
    - `onDidCustomizationsChange` is an aggregated event fired when any session's `onDidCustomizationsChange` fires (subscribed via the existing `entry.addDisposable(...)` pattern that already wires per-session signals).
-   - Files: `src/dc/platform/agentHost/node/claude/claudeAgent.ts`
+   - Files: `src/vs/platform/agentHost/node/claude/claudeAgent.ts`
    - Depends on: step 4
    - Done when: all four outbound and two inbound surfaces work end-to-end; the `Phase 11` throws are gone.
 
 6. **Drain pending plugin changes at `send()` pre-flight.** Inside `ClaudeAgentSession.send()`, AFTER the existing `toolDiff.hasDifference` check, collapse to `if (toolDiff.hasDifference || clientCustomizationsDiff.hasDifference) await rebindForRestart()`. The rematerializer reads `clientCustomizationsDiff.consume()` while building the new `Options`, so the new plugin URI set lands in `Options.plugins` of the rebuilt `Query`. (Original plan called for `reloadPlugins`-then-compare-tools-then-maybe-restart; abandoned because `Query.reloadPlugins()` is parameterless and cannot change the plugin URI set.)
-   - Files: `src/dc/platform/agentHost/node/claude/claudeAgentSession.ts`
+   - Files: `src/vs/platform/agentHost/node/claude/claudeAgentSession.ts`
    - Depends on: steps 1, 3, 4
    - Done when: a client-pushed customization change triggers exactly one `rebindForRestart` and one new `sdk.startup` on the next `send()`; mid-turn writes don't drain into the in-flight turn.
 
 7. **Tests.**
-   - Files: `src/dc/platform/agentHost/test/node/customizations/` (new folder mirroring source layout), `src/dc/platform/agentHost/test/node/claudeAgent.test.ts` (new describe block), `src/dc/platform/agentHost/test/node/claudeSdkOptions.test.ts` (plugins field).
+   - Files: `src/vs/platform/agentHost/test/node/customizations/` (new folder mirroring source layout), `src/vs/platform/agentHost/test/node/claudeAgent.test.ts` (new describe block), `src/vs/platform/agentHost/test/node/claudeSdkOptions.test.ts` (plugins field).
    - Depends on: step 6
    - Done when: model unit tests pass; agent tests cover `setClientCustomizations` action publishing, sequencer serialisation, rebind-on-customization-dirty, provisional-session resolution, mid-turn race, swallowed-SDK-snapshot fallback; bundler tests cover write layout / nonce stability / name sanitisation / namespacing / delete-on-change; options test confirms `plugins` projection.
 
@@ -95,21 +95,21 @@ Mirror the `clientTools/` pattern exactly. Add a sibling `customizations/` folde
 
 | Path | Change | Notes |
 |------|--------|-------|
-| `src/dc/platform/agentHost/node/claude/customizations/claudeSessionCustomizationsModel.ts` | create | Per-session synced + enablement state, parallel to `clientTools/claudeSessionClientToolsModel.ts` |
-| `src/dc/platform/agentHost/node/claude/claudeAgentSession.ts` | modify | Inject `IAgentPluginManager`; own `customizationsDiff`; implement `setClientCustomizations` / `setCustomizationEnabled` / `getCustomizations` / `onDidCustomizationsChange`; drain pending reload at `send()` pre-flight; pass plugins into materialize/rematerializer |
-| `src/dc/platform/agentHost/node/claude/claudeAgent.ts` | modify | Replace Phase 11 throws with thin delegations to the session; aggregate outbound surface |
-| `src/dc/platform/agentHost/node/claude/claudeSdkOptions.ts` | modify | `IBuildOptionsInput.plugins`; project to `Options.plugins` |
-| `src/dc/platform/agentHost/node/claude/claudeSdkPipeline.ts` | modify | Public `snapshotResolvedCustomizations()` reading the live `Query`'s commands / agents / MCP servers in parallel |
-| `src/dc/platform/agentHost/test/node/customizations/claudeSessionCustomizationsModel.test.ts` | create | Model unit tests |
-| `src/dc/platform/agentHost/test/node/claudeAgent.test.ts` | modify | `setClientCustomizations` action publishing; reload-no-restart vs reload-then-restart; provisional and mid-turn |
-| `src/dc/platform/agentHost/test/node/claudeSdkOptions.test.ts` | modify | `plugins` projection into `Options.plugins` |
-| `src/dc/platform/agentHost/test/node/claudeSdkPipeline.test.ts` | modify | `snapshotResolvedCustomizations` round-trip |
+| `src/vs/platform/agentHost/node/claude/customizations/claudeSessionCustomizationsModel.ts` | create | Per-session synced + enablement state, parallel to `clientTools/claudeSessionClientToolsModel.ts` |
+| `src/vs/platform/agentHost/node/claude/claudeAgentSession.ts` | modify | Inject `IAgentPluginManager`; own `customizationsDiff`; implement `setClientCustomizations` / `setCustomizationEnabled` / `getCustomizations` / `onDidCustomizationsChange`; drain pending reload at `send()` pre-flight; pass plugins into materialize/rematerializer |
+| `src/vs/platform/agentHost/node/claude/claudeAgent.ts` | modify | Replace Phase 11 throws with thin delegations to the session; aggregate outbound surface |
+| `src/vs/platform/agentHost/node/claude/claudeSdkOptions.ts` | modify | `IBuildOptionsInput.plugins`; project to `Options.plugins` |
+| `src/vs/platform/agentHost/node/claude/claudeSdkPipeline.ts` | modify | Public `snapshotResolvedCustomizations()` reading the live `Query`'s commands / agents / MCP servers in parallel |
+| `src/vs/platform/agentHost/test/node/customizations/claudeSessionCustomizationsModel.test.ts` | create | Model unit tests |
+| `src/vs/platform/agentHost/test/node/claudeAgent.test.ts` | modify | `setClientCustomizations` action publishing; reload-no-restart vs reload-then-restart; provisional and mid-turn |
+| `src/vs/platform/agentHost/test/node/claudeSdkOptions.test.ts` | modify | `plugins` projection into `Options.plugins` |
+| `src/vs/platform/agentHost/test/node/claudeSdkPipeline.test.ts` | modify | `snapshotResolvedCustomizations` round-trip |
 
 ## Decisions
 
 - **State location.** Both synced customizations AND enablement live on `ClaudeAgentSession` via `SessionCustomizationsDiff`. No provider-wide controller class. Mirrors how client tools are held on the session. Each session is responsible for its own customizations, matching the new architectural direction.
 - **`ClaudeAgent` role.** Thin dispatcher only. Looks up the target session by id and delegates. Aggregates outbound events / lists by iterating `_sessions`. The agent never holds customization state itself.
-- **Folder layout.** New `src/dc/platform/agentHost/node/claude/customizations/` folder parallels the existing `clientTools/` folder. One file (`claudeSessionCustomizationsModel.ts`); add more as needs emerge.
+- **Folder layout.** New `src/vs/platform/agentHost/node/claude/customizations/` folder parallels the existing `clientTools/` folder. One file (`claudeSessionCustomizationsModel.ts`); add more as needs emerge.
 - **Plugin-set changes are restart-required, not defer-and-coalesce.** Council review (PR #318113) verified that `Query.reloadPlugins()` in `@anthropic-ai/claude-agent-sdk` is parameterless and only re-reads from the plugin URI set captured into `Options.plugins` at startup. Any add / remove / toggle / nonce-bump therefore requires a full SDK rebuild via `rebindForRestart()`. The single dirty bit + single send() pre-flight branch is the simpler model that this constraint forces. `reloadPlugins` may return as a narrow optimisation for content-only nonce-bumps in a future phase if profiling shows it matters.
 - **Tool-set divergence detection.** Not needed under the rebind-always model. Removed from the implementation.
 - **Provisional sessions.** `customizationsDiff` exists from `ClaudeAgentSession.createProvisional()` onward, so `getCustomizations()` and `setClientCustomizations`/`setCustomizationEnabled` work uniformly before and after materialize. No special-case branching on `isPipelineReady`.
@@ -164,5 +164,5 @@ None.
 - Context: `./CONTEXT.md` §M6 (Customizations cluster), §M11 (hot-swap / defer-and-coalesce / restart-required taxonomy)
 - Prior plan: `./phase10.5-plan.md` (per-session ownership pattern + yield-restart primitive)
 - Reference extension: `extensions/copilot/src/extension/chatSessions/claude/node/claudeCodeAgent.ts` — `_pendingPluginReload`, `_toolsMatch`, `_setCustomizations`, `_loadPlugins`, `_destroyAndRecreateQuery`
-- CopilotAgent for IAgent surface shape only: `src/dc/platform/agentHost/node/copilot/copilotAgent.ts` lines 311, 315, 998, 1026 (note: Copilot uses a provider-wide `PluginController`; Claude deliberately diverges to per-session ownership)
+- CopilotAgent for IAgent surface shape only: `src/vs/platform/agentHost/node/copilot/copilotAgent.ts` lines 311, 315, 998, 1026 (note: Copilot uses a provider-wide `PluginController`; Claude deliberately diverges to per-session ownership)
 - E2E skills used: `launch`, `code-oss-logs`, `chat-customizations-editor`

@@ -67,7 +67,7 @@ if (typeof globalWithAMD.require !== 'undefined' && typeof globalWithAMD.require
 			'jsonc-parser/main',
 			'vscode-uri',
 			'vscode-uri/index',
-			'dc/basic-languages/typescript/typescript'
+			'vs/basic-languages/typescript/typescript'
 		]
 	});
 }

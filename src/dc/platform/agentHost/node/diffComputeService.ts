@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -57,7 +56,7 @@ export class NodeWorkerDiffComputeService extends Disposable implements IDiffCom
 			throw new Error('Diff compute worker failed too many times');
 		}
 		if (!this._worker) {
-			const workerPath = FileAccess.asFileUri('dc/platform/agentHost/node/diffWorkerMain.js').fsPath;
+			const workerPath = FileAccess.asFileUri('vs/platform/agentHost/node/diffWorkerMain.js').fsPath;
 			const w = new Worker(workerPath, { name: 'Diff compute worker' });
 			w.on('message', (msg: { id: number; res?: IDiffCountResult | IDetailedDiffResult; err?: { message: string; stack?: string } }) => {
 				const handler = this._pending.get(msg.id);
@@ -101,4 +100,3 @@ export class NodeWorkerDiffComputeService extends Disposable implements IDiffCom
 		super.dispose();
 	}
 }
-

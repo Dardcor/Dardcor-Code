@@ -11,12 +11,12 @@
 	position: absolute;
 }
 
-.monaco-editor.focused .selected-text {
-	background-color: rgba(92, 45, 145, 0.6) !important;
+.monaco-editor .focused .selected-text {
+	background-color: var(--vscode-editor-selectionBackground);
 }
 
 .monaco-editor .selected-text {
-	background-color: rgba(92, 45, 145, 0.3) !important;
+	background-color: var(--vscode-editor-inactiveSelectionBackground);
 }
 
 .monaco-editor			.top-left-radius		{ border-top-left-radius: 3px; }

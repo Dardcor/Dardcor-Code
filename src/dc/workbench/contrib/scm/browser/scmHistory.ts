@@ -5,7 +5,7 @@
 
 import { localize } from '../../../../nls.js';
 import { deepClone } from '../../../../base/common/objects.js';
-import { badgeBackground, chartsBlue, chartsPurple, foreground } from '../../../../platform/theme/common/colorRegistry.js';
+import { badgeBackground, chartsPurple, foreground } from '../../../../platform/theme/common/colorRegistry.js';
 import { asCssVariable, ColorIdentifier, registerColor } from '../../../../platform/theme/common/colorUtils.js';
 import { ISCMHistoryItem, ISCMHistoryItemGraphNode, ISCMHistoryItemRef, ISCMHistoryItemViewModel, SCMIncomingHistoryItemId, SCMOutgoingHistoryItemId } from '../common/history.js';
 import { rot } from '../../../../base/common/numbers.js';
@@ -26,7 +26,7 @@ const CIRCLE_STROKE_WIDTH = 2;
 /**
  * History item reference colors (local, remote, base)
  */
-export const historyItemRefColor = registerColor('scmGraph.historyItemRefColor', chartsBlue, localize('scmGraphHistoryItemRefColor', "History item reference color."));
+export const historyItemRefColor = registerColor('scmGraph.historyItemRefColor', chartsPurple, localize('scmGraphHistoryItemRefColor', "History item reference color."));
 export const historyItemRemoteRefColor = registerColor('scmGraph.historyItemRemoteRefColor', chartsPurple, localize('scmGraphHistoryItemRemoteRefColor', "History item remote reference color."));
 export const historyItemBaseRefColor = registerColor('scmGraph.historyItemBaseRefColor', '#EA5C00', localize('scmGraphHistoryItemBaseRefColor', "History item base reference color."));
 

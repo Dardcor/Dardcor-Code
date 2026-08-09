@@ -210,8 +210,7 @@ const cache = new Map<string, Promise<any>>();
 export async function importAMDNodeModule<T>(nodeModuleName: string, pathInsideNodeModule: string, isBuilt?: boolean): Promise<T> {
 	if (isBuilt === undefined) {
 		const product = globalThis._VSCODE_PRODUCT_JSON as unknown as IProductConfiguration;
-		const commit = (product ?? globalThis.vscode?.context?.configuration()?.product)?.commit;
-		isBuilt = Boolean(commit && commit !== 'unknown');
+		isBuilt = Boolean((product ?? globalThis.vscode?.context?.configuration()?.product)?.commit);
 	}
 
 	const nodeModulePath = pathInsideNodeModule ? `${nodeModuleName}/${pathInsideNodeModule}` : nodeModuleName;
@@ -221,7 +220,7 @@ export async function importAMDNodeModule<T>(nodeModuleName: string, pathInsideN
 	let scriptSrc: string;
 	if (/^\w[\w\d+.-]*:\/\//.test(nodeModulePath)) {
 		// looks like a URL
-		// bit of a special case for: src/dc/workbench/services/languageDetection/browser/languageDetectionWebWorker.ts
+		// bit of a special case for: src/vs/workbench/services/languageDetection/browser/languageDetectionWebWorker.ts
 		scriptSrc = nodeModulePath;
 	} else {
 		const useASAR = (isBuilt && (platform.isElectron || (platform.isWebWorker && platform.hasElectronUserAgent)));
@@ -236,8 +235,7 @@ export async function importAMDNodeModule<T>(nodeModuleName: string, pathInsideN
 
 export function resolveAmdNodeModulePath(nodeModuleName: string, pathInsideNodeModule: string): string {
 	const product = globalThis._VSCODE_PRODUCT_JSON as unknown as IProductConfiguration;
-	const commit = (product ?? globalThis.vscode?.context?.configuration()?.product)?.commit;
-	const isBuilt = Boolean(commit && commit !== 'unknown');
+	const isBuilt = Boolean((product ?? globalThis.vscode?.context?.configuration()?.product)?.commit);
 	const useASAR = (isBuilt && (platform.isElectron || (platform.isWebWorker && platform.hasElectronUserAgent)));
 
 	const nodeModulePath = `${nodeModuleName}/${pathInsideNodeModule}`;

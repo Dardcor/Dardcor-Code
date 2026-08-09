@@ -43,8 +43,8 @@ import { LocalChatSessionUri, chatSessionResourceToId } from '../../../common/mo
 import { IEditSessionDiffStats } from '../../../common/editing/chatEditingService.js';
 
 
-// Context key id mirrored from `dc/sessions/common/contextkeys` (`IsPhoneLayoutContext`).
-// Inlined as a string because `dc/workbench` must not import from `dc/sessions`.
+// Context key id mirrored from `vs/sessions/common/contextkeys` (`IsPhoneLayoutContext`).
+// Inlined as a string because `vs/workbench` must not import from `vs/sessions`.
 const SESSIONS_IS_PHONE_LAYOUT_KEY = 'sessionsIsPhoneLayout';
 
 /**

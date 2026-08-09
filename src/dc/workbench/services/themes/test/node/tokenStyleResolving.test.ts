@@ -103,7 +103,7 @@ suite('Themes - TokenStyleResolving', () => {
 
 	test('color defaults', async () => {
 		const themeData = ColorThemeData.createUnloadedTheme('foo');
-		themeData.location = FileAccess.asFileUri('dc/workbench/services/themes/test/node/color-theme.json');
+		themeData.location = FileAccess.asFileUri('vs/workbench/services/themes/test/node/color-theme.json');
 		await themeData.ensureLoaded(extensionResourceLoaderService);
 
 		assert.strictEqual(themeData.isLoaded, true);

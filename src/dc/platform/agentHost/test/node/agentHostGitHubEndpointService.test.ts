@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -67,7 +66,7 @@ suite('AgentHostGitHubEndpointService', () => {
 		disposables.add(service.onDidChange(() => fires++));
 
 		// An unrelated root-config change must NOT fire.
-		configService.updateRootConfig({ [AgentHostConfigKey.ClaudeUseCopilotProxy]: false });
+		configService.updateRootConfig({ [AgentHostConfigKey.AllowSignedOutWhenUsable]: true });
 		assert.strictEqual(fires, 0);
 
 		// Setting the enterprise URI fires once and repoints the endpoints.
@@ -80,4 +79,3 @@ suite('AgentHostGitHubEndpointService', () => {
 		assert.strictEqual(fires, 1);
 	});
 });
-

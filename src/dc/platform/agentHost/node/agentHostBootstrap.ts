@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -33,7 +32,7 @@ export interface IAgentHostNetworkServices {
  * itself, and through it `ClaudeAgentSdkService` / `CodexAgent`) must be
  * constructed AFTER this call.
  *
- * Reads the default profile's `settings.json` from `<userRoamingDataHome>` —
+ * Reads the default profile's `settings.json` from `<appSettingsHome>` —
  * the same file the workbench writes user settings to. Initialization is
  * async because the settings file is read off disk.
  *
@@ -51,7 +50,7 @@ export async function registerAgentHostNetworkServices(
 ): Promise<IAgentHostNetworkServices> {
 	const policyService = new NullPolicyService();
 	diServices.set(IPolicyService, policyService);
-	const settingsResource = joinPath(environmentService.userRoamingDataHome, 'settings.json');
+	const settingsResource = joinPath(environmentService.appSettingsHome, 'settings.json');
 	const configurationService = disposables.add(new ConfigurationService(settingsResource, fileService, policyService, logService));
 	await configurationService.initialize();
 	diServices.set(IConfigurationService, configurationService);
@@ -61,4 +60,3 @@ export async function registerAgentHostNetworkServices(
 	diServices.set(IRequestService, requestService);
 	return { proxyResolver, requestService };
 }
-

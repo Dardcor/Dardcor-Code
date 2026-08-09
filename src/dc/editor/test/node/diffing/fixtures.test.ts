@@ -27,10 +27,10 @@ suite('diffing fixtures', () => {
 	});
 
 
-	const fixturesOutDir = FileAccess.asFileUri('dc/editor/test/node/diffing/fixtures').fsPath;
+	const fixturesOutDir = FileAccess.asFileUri('vs/editor/test/node/diffing/fixtures').fsPath;
 	// We want the dir in src, so we can directly update the source files if they disagree and create invalid files to capture the previous state.
 	// This makes it very easy to update the fixtures.
-	const fixturesSrcDir = resolve(fixturesOutDir).replaceAll('\\', '/').replace('/out/dc/editor/', '/src/dc/editor/');
+	const fixturesSrcDir = resolve(fixturesOutDir).replaceAll('\\', '/').replace('/out/vs/editor/', '/src/vs/editor/');
 	const folders = readdirSync(fixturesSrcDir);
 
 	function runTest(folder: string, diffingAlgoName: 'legacy' | 'advanced') {

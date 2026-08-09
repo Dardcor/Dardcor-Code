@@ -1,8 +1,8 @@
 # Sessions Layer Rules
 
-This document describes the import layering rules for `src/dc/sessions/`, enforced by the `local/code-import-patterns` ESLint rule.
+This document describes the import layering rules for `src/vs/sessions/`, enforced by the `local/code-import-patterns` ESLint rule.
 
-The sessions layer sits above `dc/workbench` in the VS Code source code hierarchy. For the broader VS Code layer rules (base → platform → editor → workbench → sessions), see `.github/instructions/source-code-organization.instructions.md`.
+The sessions layer sits above `vs/workbench` in the VS Code source code hierarchy. For the broader VS Code layer rules (base → platform → editor → workbench → sessions), see `.github/instructions/source-code-organization.instructions.md`.
 
 ## Layer Hierarchy
 
@@ -36,66 +36,66 @@ The sessions layer sits above `dc/workbench` in the VS Code source code hierarch
 
 ### `sessions/~` — Sessions Core
 
-**Path:** `src/dc/sessions/{browser,common,electron-browser}/**`
+**Path:** `src/vs/sessions/{browser,common,electron-browser}/**`
 
 The foundational layer. It may import from the sessions **services** layer, but not from any `contrib/` code above it.
 
 **Can import from:**
-- `dc/base/~`, `dc/base/parts/*/~`
-- `dc/platform/*/~`
-- `dc/editor/~`, `dc/editor/contrib/*/~`
-- `dc/workbench/~`, `dc/workbench/browser/**`, `dc/workbench/services/*/~`
-- `dc/sessions/~` (self), `dc/sessions/services/*/~`
+- `vs/base/~`, `vs/base/parts/*/~`
+- `vs/platform/*/~`
+- `vs/editor/~`, `vs/editor/contrib/*/~`
+- `vs/workbench/~`, `vs/workbench/browser/**`, `vs/workbench/services/*/~`
+- `vs/sessions/~` (self), `vs/sessions/services/*/~`
 
-> **Note:** The desktop bootstrap entry `src/dc/sessions/electron-browser/sessions.ts` has its own, **more restrictive** rule: it may import only `dc/base/~`, `dc/base/parts/*/~`, `dc/platform/*/~`, `dc/sessions/~`, and `dc/sessions/sessions.desktop.main.js`.
+> **Note:** The desktop bootstrap entry `src/vs/sessions/electron-browser/sessions.ts` has its own, **more restrictive** rule: it may import only `vs/base/~`, `vs/base/parts/*/~`, `vs/platform/*/~`, `vs/sessions/~`, and `vs/sessions/sessions.desktop.main.js`.
 
 **Cannot import from:**
-- ❌ `dc/sessions/contrib/*` — no contrib dependencies
-- ❌ `dc/sessions/contrib/providers/*` — no provider dependencies
+- ❌ `vs/sessions/contrib/*` — no contrib dependencies
+- ❌ `vs/sessions/contrib/providers/*` — no provider dependencies
 
 ---
 
 ### `sessions/services/*/~` — Sessions Services
 
-**Path:** `src/dc/sessions/services/*/{browser,common}/**`
+**Path:** `src/vs/sessions/services/*/{browser,common}/**`
 
 Service layer sits alongside core. Provides shared service interfaces and implementations.
 
 **Can import from:**
-- Everything `sessions/~` can import (**except** `dc/workbench/browser/**`, which is not granted to services), plus:
-- `dc/sessions/services/*/~` (sibling services)
-- `dc/workbench/contrib/*/~`
+- Everything `sessions/~` can import (**except** `vs/workbench/browser/**`, which is not granted to services), plus:
+- `vs/sessions/services/*/~` (sibling services)
+- `vs/workbench/contrib/*/~`
 
 **Cannot import from:**
-- ❌ `dc/sessions/contrib/*` — no contrib dependencies
-- ❌ `dc/sessions/contrib/providers/*` — no provider dependencies
+- ❌ `vs/sessions/contrib/*` — no contrib dependencies
+- ❌ `vs/sessions/contrib/providers/*` — no provider dependencies
 
 ---
 
 ### `sessions/contrib/*/~` — Contributions (non-provider)
 
-**Path:** `src/dc/sessions/contrib/*/{browser,common}/**` (excluding `contrib/providers/`)
+**Path:** `src/vs/sessions/contrib/*/{browser,common}/**` (excluding `contrib/providers/`)
 
 Feature contributions like `chat`, `sessions`, `changes`, `terminal`, etc.
 
 **Can import from:**
 - Everything `sessions/services/*/~` can import, plus:
-- `dc/sessions/contrib/*/~` (sibling contributions)
+- `vs/sessions/contrib/*/~` (sibling contributions)
 
 **Cannot import from:**
-- ❌ `dc/sessions/contrib/providers/*/~` — **providers are isolated from non-provider contribs**
+- ❌ `vs/sessions/contrib/providers/*/~` — **providers are isolated from non-provider contribs**
 
 ---
 
 ### `sessions/contrib/providers/*/~` — Session Providers
 
-**Path:** `src/dc/sessions/contrib/providers/*/{browser,common}/**`
+**Path:** `src/vs/sessions/contrib/providers/*/{browser,common}/**`
 
 Provider implementations (`agentHost`, `copilotChatSessions`, `remoteAgentHost`). These are the compute backends that register with `ISessionsProvidersService`.
 
 **Can import from:**
 - Everything `sessions/contrib/*/~` can import, plus:
-- `dc/sessions/contrib/providers/*/~` (sibling providers)
+- `vs/sessions/contrib/providers/*/~` (sibling providers)
 
 This is the **most permissive** contrib layer — providers can reach into non-provider contribs and sibling providers, but not vice versa.
 
@@ -120,6 +120,6 @@ Entry points can import from all sessions layers: `sessions/~`, `services/*/~`, 
 contrib/*  ──✕──▶  contrib/providers/*
 ```
 
-Non-provider contributions **must not** import from provider code. If a provider exposes a symbol needed by non-provider code, that symbol should be extracted to a shared location (`dc/sessions/services/`, `dc/sessions/common/`, or a shared contrib module).
+Non-provider contributions **must not** import from provider code. If a provider exposes a symbol needed by non-provider code, that symbol should be extracted to a shared location (`vs/sessions/services/`, `vs/sessions/common/`, or a shared contrib module).
 
 Providers **can** import from non-provider contributions and from sibling providers.

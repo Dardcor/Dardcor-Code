@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -302,7 +301,7 @@ suite('agentHostSchema', () => {
 				enumDescriptions: property.enumDescriptions,
 			}, {
 				enum: ['default', 'assisted', 'autoApprove'],
-				enumLabels: ['Default approvals', 'Assisted permissions', 'Allow all'],
+				enumLabels: ['Default permissions', 'Assisted permissions', 'Allow all'],
 				enumDescriptions: [
 					'Asks when approval settings don\'t apply',
 					'Evaluates risk before running tools',
@@ -416,4 +415,3 @@ suite('agentHostSchema', () => {
 		});
 	});
 });
-

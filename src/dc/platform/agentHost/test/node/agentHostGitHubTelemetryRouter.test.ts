@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -72,6 +71,7 @@ suite('AgentHostGitHubTelemetryRouter', () => {
 		const handled = await Promise.all([
 			'engine.messages',
 			'engine.messages.length',
+			'conversation.repetition.detected',
 			'model.message.added',
 			'model.modelCall.input',
 			'model.modelCall.output',
@@ -83,11 +83,12 @@ suite('AgentHostGitHubTelemetryRouter', () => {
 			handled,
 			events: telemetry.events.map(({ destination, eventName }) => ({ destination, eventName })),
 		}, {
-			handled: [true, true, true, true, true, true, true],
+			handled: [true, true, true, true, true, true, true, true],
 			events: [
 				{ destination: 'enhancedGH', eventName: 'engine.messages' },
 				{ destination: 'enhancedGH', eventName: 'engine.messages.length' },
 				{ destination: 'internalMSFT', eventName: 'engine.messages.length' },
+				{ destination: 'enhancedGH', eventName: 'conversation.repetition.detected' },
 				{ destination: 'internalMSFT', eventName: 'model.message.added' },
 				{ destination: 'internalMSFT', eventName: 'model.modelCall.input' },
 				{ destination: 'internalMSFT', eventName: 'model.modelCall.output' },
@@ -164,4 +165,3 @@ suite('AgentHostGitHubTelemetryRouter', () => {
 	});
 
 });
-

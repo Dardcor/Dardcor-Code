@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -20,7 +19,8 @@ interface IHasToolCallMeta {
 export interface IToolCallMeta {
 	/**
 	 * VS Code rendering hint. `terminal` routes the call to the command/output
-	 * renderer, `subagent` to the subagent UI, `search` to the search renderer;
+	 * renderer, `subagent` to the subagent UI, `search` to the search renderer,
+	 * and `read` keeps incomplete resource arguments out of streaming display;
 	 * everything else falls through to the generic invocation renderer. Set by
 	 * the agent adapter, never matched on raw tool name by the renderer.
 	 */
@@ -61,7 +61,7 @@ export interface IToolSearchCandidate {
  * The set of VS Code-recognized tool-call rendering kinds. Add a new value here
  * (and teach the renderer to handle it) rather than matching on tool name.
  */
-export type ToolKind = 'terminal' | 'subagent' | 'search';
+export type ToolKind = 'terminal' | 'subagent' | 'search' | 'read';
 
 /**
  * MCP App render data carried under {@link IToolCallMeta.ui}. Clients gate
@@ -76,7 +76,7 @@ export interface IToolCallUiMeta {
 }
 
 function isToolKind(value: unknown): value is ToolKind {
-	return value === 'terminal' || value === 'subagent' || value === 'search';
+	return value === 'terminal' || value === 'subagent' || value === 'search' || value === 'read';
 }
 
 function readToolCallUiMeta(value: unknown): IToolCallUiMeta | undefined {
@@ -156,4 +156,3 @@ export function toToolCallMeta(meta: IToolCallMeta): Record<string, unknown> | u
 	}
 	return Object.keys(result).length > 0 ? result : undefined;
 }
-

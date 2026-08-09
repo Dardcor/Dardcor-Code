@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -314,7 +313,7 @@ suite('mapSessionEventsToHistoryRecords', () => {
 				{
 					type: 'skill.invoked',
 					id: 'evt-42',
-					data: { name: 'plan', path: '/abs/repo/skills/plan/SKILL.md' },
+					data: { name: 'plan', path: '/abs/repo/skills/plan/SKILL.md', content: '' },
 				},
 				{
 					type: 'user.message',
@@ -440,4 +439,3 @@ suite('mapSessionEventsToHistoryRecords', () => {
 		});
 	});
 });
-

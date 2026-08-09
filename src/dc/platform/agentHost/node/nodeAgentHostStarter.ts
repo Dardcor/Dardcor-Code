@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -15,6 +14,7 @@ import { parseAgentHostDebugPort } from '../../environment/node/environmentServi
 import { ILogService } from '../../log/common/log.js';
 import { getResolvedShellEnv } from '../../shell/node/shellEnv.js';
 import { IAgentHostConnection, IAgentHostStarter } from '../common/agent.js';
+import { AgentHostLaunchKind, AgentHostLaunchKindEnvVar } from '../common/agentHostTelemetry.js';
 import { AgentHostByokModelsEnabledSettingId, AgentHostClaudeAgentEnabledSettingId, AgentHostCodexAgentBinaryArgsSettingId, AgentHostCodexAgentEnabledSettingId, AgentHostCodexAgentSdkRootSettingId, AgentHostCodexAgentCodexHomeSettingId, AgentHostOTelCaptureContentSettingId, AgentHostOTelDbSpanExporterEnabledSettingId, AgentHostOTelEnabledSettingId, AgentHostOTelExporterTypeSettingId, AgentHostOTelOtlpEndpointSettingId, AgentHostOTelOtlpProtocolSettingId, AgentHostOTelOutfileSettingId, AgentHostOTelResourceAttributesSettingId, AgentHostOTelServiceNameSettingId, buildAgentHostOTelEnv, buildAgentSdkEnv } from '../common/agentService.js';
 import '../common/agentHostStarter.config.contribution.js';
 
@@ -75,9 +75,10 @@ export class NodeAgentHostStarter extends Disposable implements IAgentHostStarte
 			// VS Code's agent, so `gh` inherits it. Set after the inherited
 			// env so it wins.
 			[AiAgentEnvVar]: AiAgentEnvValue,
-			VSCODE_ESM_ENTRYPOINT: 'dc/platform/agentHost/node/agentHostMain',
+			VSCODE_ESM_ENTRYPOINT: 'vs/platform/agentHost/node/agentHostMain',
 			VSCODE_PIPE_LOGGING: 'true',
 			VSCODE_VERBOSE_LOGGING: 'true',
+			[AgentHostLaunchKindEnvVar]: AgentHostLaunchKind.VSCodeCLI,
 		};
 
 		// Forward the Claude/Codex SDK overrides + codex home/args from
@@ -178,4 +179,3 @@ export class NodeAgentHostStarter extends Disposable implements IAgentHostStarte
 		}
 	}
 }
-

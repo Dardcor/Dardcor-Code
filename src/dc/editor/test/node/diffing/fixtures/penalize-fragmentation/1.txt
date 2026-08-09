@@ -1,1 +1,1 @@
-import { IChange, IDiffComputationResult } from 'dc/editor/common/diff/diffComputer';
+import { IChange, IDiffComputationResult } from 'vs/editor/common/diff/diffComputer';

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -14,7 +13,7 @@
  * - toolCallComplete dispatched by the client flows through to the agent
  *
  * Run with:
- *   ./scripts/test-integration.sh --run src/dc/platform/agentHost/test/node/protocol/clientTools.integrationTest.ts
+ *   ./scripts/test-integration.sh --run src/vs/platform/agentHost/test/node/protocol/clientTools.integrationTest.ts
  */
 
 import assert from 'assert';
@@ -193,4 +192,3 @@ suite('Protocol WebSocket — Client Tools', function () {
 		);
 	});
 });
-

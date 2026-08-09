@@ -709,7 +709,7 @@ export async function createServer(address: string | net.AddressInfo | null, arg
 		serverBasePath = `/${serverBasePath}`;
 	}
 
-	const hasWebClient = fs.existsSync(FileAccess.asFileUri(`dc/code/browser/workbench/workbench.html`).fsPath);
+	const hasWebClient = fs.existsSync(FileAccess.asFileUri(`vs/code/browser/workbench/workbench.html`).fsPath);
 
 	if (hasWebClient && address && typeof address !== 'string') {
 		// ships the web ui!

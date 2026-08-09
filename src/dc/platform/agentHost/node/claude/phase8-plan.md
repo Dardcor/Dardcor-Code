@@ -506,7 +506,7 @@ None at plan-acceptance time. All five council candidates from the planning pass
 - Related context: `./CONTEXT.md`
 - Prior plan: `./phase7-plan.md` (tool calls + permission)
 - Production reference (not using `enableFileCheckpointing`): `extensions/copilot/src/extension/chatSessions/claude/node/claudeCodeAgent.ts`
-- Copilot tracker (reference impl): `src/dc/platform/agentHost/node/copilot/fileEditTracker.ts`
+- Copilot tracker (reference impl): `src/vs/platform/agentHost/node/copilot/fileEditTracker.ts`
 - SDK type definitions: `node_modules/@anthropic-ai/claude-agent-sdk/sdk.d.ts` lines 726, 733, 1262, 1299, 1934, 1965, 2153, 2247
 - E2E skills: `launch` (personal), `code-oss-logs` (repo)
 

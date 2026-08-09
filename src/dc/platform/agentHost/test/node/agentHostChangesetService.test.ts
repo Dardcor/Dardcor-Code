@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -25,7 +24,6 @@ import { AgentHostStateManager } from '../../node/agentHostStateManager.js';
 import { AgentConfigurationService } from '../../node/agentConfigurationService.js';
 import { SessionDatabase } from '../../node/sessionDatabase.js';
 import { createNoopGitService, createNullSessionDataService, createSessionDataService, TestSessionDatabase } from '../common/sessionTestHelpers.js';
-import { META_CHECKPOINT_WORKING_DIR } from '../../node/agentHostCheckpointService.js';
 
 /**
  * Builds a test subscription service backed by a mutable set of subscribed
@@ -1096,9 +1094,6 @@ suite.skip('AgentHostChangesetService', () => {
 			const sessionStr = sessionUri.toString();
 			setupSession('file:///wd');
 
-			const db = new TestSessionDatabase();
-			await db.setMetadata(META_CHECKPOINT_WORKING_DIR, 'file:///wd');
-
 			const expectedDiffs = [
 				{ after: { uri: 'file:///wd/a.ts', content: { uri: 'file:///wd/a.ts' } }, diff: { added: 4, removed: 1 } },
 			];
@@ -1111,7 +1106,7 @@ suite.skip('AgentHostChangesetService', () => {
 			const svc = disposables.add(new AgentHostChangesetService(
 				stateManager,
 				new NullLogService(),
-				createSessionDataService(db),
+				createSessionDataService(new TestSessionDatabase()),
 				gitService,
 				makeCheckpointService({
 					'orig': { parent: 'ref-orig-parent', current: 'ref-orig' },
@@ -1200,15 +1195,12 @@ suite.skip('AgentHostChangesetService', () => {
 			const sessionStr = sessionUri.toString();
 			setupSession('file:///wd');
 
-			const db = new TestSessionDatabase();
-			await db.setMetadata(META_CHECKPOINT_WORKING_DIR, 'file:///wd');
-
 			const gitService = createNoopGitService();
 			gitService.computeFileDiffsBetweenRefs = async () => undefined;
 			const svc = disposables.add(new AgentHostChangesetService(
 				stateManager,
 				new NullLogService(),
-				createSessionDataService(db),
+				createSessionDataService(new TestSessionDatabase()),
 				gitService,
 				makeCheckpointService({
 					'orig': { parent: 'p', current: 'ref-orig' },
@@ -1229,4 +1221,3 @@ suite.skip('AgentHostChangesetService', () => {
 		});
 	});
 });
-

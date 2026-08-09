@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -6,8 +5,10 @@
 
 import { packErrorForTelemetry } from '../../telemetry/common/errorTelemetry.js';
 import { ITelemetryService } from '../../telemetry/common/telemetry.js';
+import { AgentHostLaunchKind } from './agentHostTelemetry.js';
 
 export type AgentHostProcessErrorData = {
+	hostLaunchKind: AgentHostLaunchKind;
 	kind: 'unexpectedExit' | 'startFailed';
 	code?: number;
 	restartCount: number;
@@ -21,6 +22,7 @@ type AgentHostProcessErrorEvent = AgentHostProcessErrorData & {
 };
 
 type AgentHostProcessErrorClassification = {
+	hostLaunchKind: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth'; comment: 'Whether the agent host process was launched by the VS Code main process or VS Code CLI.' };
 	kind: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth'; comment: 'The kind of agent host process failure.' };
 	code?: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth'; isMeasurement: true; comment: 'The agent host process exit code, when available.' };
 	restartCount: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth'; isMeasurement: true; comment: 'The number of agent host restart attempts before this failure.' };
@@ -40,4 +42,3 @@ export function reportAgentHostProcessError(telemetryService: ITelemetryService,
 		...(errorData ? { callstack: errorData.callstack, msg: errorData.msg } : {}),
 	});
 }
-

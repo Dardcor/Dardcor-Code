@@ -63,7 +63,7 @@ Fork support (Phase 6.5) is explicitly *not* a Phase 13 concern. The earlier pla
    - Per-Turn `usage = undefined` (live-only metadata, M8 asymmetry).
    - Subagent markers: tool name `'Task'` or `'Agent'` → `_meta: { toolKind: 'subagent' }` + `ToolResultContentType.Subagent` marker block (mirrors [`copilot/mapSessionEvents.ts:617-639`](../copilot/mapSessionEvents.ts#L617)).
    - Returns `readonly Turn[]`.
-   - Files: NEW `src/dc/platform/agentHost/node/claude/claudeReplayMapper.ts`
+   - Files: NEW `src/vs/platform/agentHost/node/claude/claudeReplayMapper.ts`
    - Depends on: none (logically independent)
    - Done when: 6 fixture-driven unit tests pass (see Verification).
 
@@ -79,7 +79,7 @@ Fork support (Phase 6.5) is explicitly *not* a Phase 13 concern. The earlier pla
 5. ~~**Live `(turnId, lastAssistantEnvelopeUuid)` ingest.**~~ **Removed during impl.** No persistence at all. Fork is rare and is owned by Phase 6.5; if it ever lands, it reads `SessionMessage.uuid` directly off the SDK transcript rather than relying on a Phase 13 by-product. See "Out of scope" above.
 
 6. ✓ **Unit tests.** See Verification.
-   - Files: [src/dc/platform/agentHost/test/node/claudeAgent.test.ts](../../test/node/claudeAgent.test.ts), NEW `src/dc/platform/agentHost/test/node/claudeReplayMapper.test.ts`
+   - Files: [src/vs/platform/agentHost/test/node/claudeAgent.test.ts](../../test/node/claudeAgent.test.ts), NEW `src/vs/platform/agentHost/test/node/claudeReplayMapper.test.ts`
    - Depends on: steps 1–3
    - Done when: all fixtures green, `typecheck-client` clean, `valid-layers-check` clean.
 

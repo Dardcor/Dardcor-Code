@@ -59,7 +59,7 @@ export interface IQuickInputOptions {
 	linkOpenerDelegate(content: string): void;
 	returnFocus(): void;
 	/**
-	 * @todo With IHover in dc/editor, can we depend on the service directly
+	 * @todo With IHover in vs/editor, can we depend on the service directly
 	 * instead of passing it through a hover delegate?
 	 */
 	hoverDelegate: IHoverDelegate;

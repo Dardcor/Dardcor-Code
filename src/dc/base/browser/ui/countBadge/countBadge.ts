@@ -22,7 +22,7 @@ export interface ICountBadgeStyles {
 }
 
 export const unthemedCountStyles: ICountBadgeStyles = {
-	badgeBackground: '#3B0A5E',
+	badgeBackground: '#4D4D4D',
 	badgeForeground: '#FFFFFF',
 	badgeBorder: undefined
 };

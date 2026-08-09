@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -188,4 +187,3 @@ function renderTextualEmbeddedResource(att: MessageEmbeddedResourceAttachment): 
 	// and prevents backtick-free content from bleeding into surrounding markup.
 	return `${label}${suffix}:\n\`\`\`\n${content}\n\`\`\``;
 }
-

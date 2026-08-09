@@ -60,24 +60,24 @@ const serverResources = [
 	'out-build/bootstrap-node.js',
 
 	// Performance
-	'out-build/dc/base/common/performance.js',
+	'out-build/vs/base/common/performance.js',
 
 	// Watcher
-	'out-build/dc/platform/files/**/*.exe',
-	'out-build/dc/platform/files/**/*.md',
+	'out-build/vs/platform/files/**/*.exe',
+	'out-build/vs/platform/files/**/*.md',
 
 	// Process monitor
-	'out-build/dc/base/node/cpuUsage.sh',
-	'out-build/dc/base/node/ps.sh',
+	'out-build/vs/base/node/cpuUsage.sh',
+	'out-build/vs/base/node/ps.sh',
 
 	// Terminal shell integration
-	'out-build/dc/workbench/contrib/terminal/browser/media/shellIntegration.ps1',
-	'out-build/dc/workbench/contrib/terminal/browser/media/shellIntegration-bash.sh',
-	'out-build/dc/workbench/contrib/terminal/browser/media/shellIntegration-env.zsh',
-	'out-build/dc/workbench/contrib/terminal/browser/media/shellIntegration-profile.zsh',
-	'out-build/dc/workbench/contrib/terminal/browser/media/shellIntegration-rc.zsh',
-	'out-build/dc/workbench/contrib/terminal/browser/media/shellIntegration-login.zsh',
-	'out-build/dc/workbench/contrib/terminal/browser/media/fish_xdg_data/fish/vendor_conf.d/shellIntegration.fish',
+	'out-build/vs/workbench/contrib/terminal/browser/media/shellIntegration.ps1',
+	'out-build/vs/workbench/contrib/terminal/browser/media/shellIntegration-bash.sh',
+	'out-build/vs/workbench/contrib/terminal/browser/media/shellIntegration-env.zsh',
+	'out-build/vs/workbench/contrib/terminal/browser/media/shellIntegration-profile.zsh',
+	'out-build/vs/workbench/contrib/terminal/browser/media/shellIntegration-rc.zsh',
+	'out-build/vs/workbench/contrib/terminal/browser/media/shellIntegration-login.zsh',
+	'out-build/vs/workbench/contrib/terminal/browser/media/fish_xdg_data/fish/vendor_conf.d/shellIntegration.fish',
 
 	'!**/test/**'
 ];
@@ -93,24 +93,24 @@ const serverWithWebResources = [
 
 const serverEntryPoints = [
 	{
-		name: 'dc/server/node/server.main',
-		exclude: ['dc/css', 'dc/nls']
+		name: 'vs/server/node/server.main',
+		exclude: ['vs/css', 'vs/nls']
 	},
 	{
-		name: 'dc/server/node/server.cli',
-		exclude: ['dc/css', 'dc/nls']
+		name: 'vs/server/node/server.cli',
+		exclude: ['vs/css', 'vs/nls']
 	},
 	{
-		name: 'dc/workbench/api/node/extensionHostProcess',
-		exclude: ['dc/css', 'dc/nls']
+		name: 'vs/workbench/api/node/extensionHostProcess',
+		exclude: ['vs/css', 'vs/nls']
 	},
 	{
-		name: 'dc/platform/files/node/watcher/watcherMain',
-		exclude: ['dc/css', 'dc/nls']
+		name: 'vs/platform/files/node/watcher/watcherMain',
+		exclude: ['vs/css', 'vs/nls']
 	},
 	{
-		name: 'dc/platform/terminal/node/ptyHostMain',
-		exclude: ['dc/css', 'dc/nls']
+		name: 'vs/platform/terminal/node/ptyHostMain',
+		exclude: ['vs/css', 'vs/nls']
 	}
 ];
 

@@ -73,7 +73,7 @@ export const MOBILE_OPEN_DIFF_VIEW_COMMAND_ID = 'sessions.mobile.openDiffView';
 
 /**
  * Minimal subset of diff entry fields consumed by the mobile diff view.
- * Defined locally to avoid importing from dc/workbench/contrib in dc/sessions/browser.
+ * Defined locally to avoid importing from vs/workbench/contrib in vs/sessions/browser.
  */
 export interface IFileDiffViewData {
 	/**

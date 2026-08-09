@@ -74,7 +74,7 @@ export class TreeSitterLibraryService extends Disposable implements ITreeSitterL
 
 	private readonly _injectionQueries = new CachedFunction({ getCacheKey: JSON.stringify }, (arg: { languageId: string; kind: 'injections' | 'highlights' }) => {
 		const loadQuerySource = async () => {
-			const injectionsQueriesLocation: AppResourcePath = `dc/editor/common/languages/${arg.kind}/${arg.languageId}.scm`;
+			const injectionsQueriesLocation: AppResourcePath = `vs/editor/common/languages/${arg.kind}/${arg.languageId}.scm`;
 			const uri = FileAccess.asFileUri(injectionsQueriesLocation);
 			if (!this._fileService.hasProvider(uri)) {
 				return undefined;

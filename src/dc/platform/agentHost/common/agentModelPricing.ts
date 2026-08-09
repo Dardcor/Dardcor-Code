@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -40,11 +39,12 @@ export interface IAgentModelPricingMeta {
 	readonly category?: string;
 	/** Whole-number percentage discount (0-100) for the synthetic `auto` model; shown as a "{n}% discount" detail. */
 	readonly discountPercent?: number;
-	/** Promotional information when the model is experiencing a discount. */
+	/** Promotional information for the model. A `discountPercent` of `0` is a valid message-only promo. */
 	readonly promo?: {
 		readonly id: string;
 		readonly discountPercent: number;
-		readonly endsAt: string;
+		/** ISO 8601 end date; absent for open-ended promotions. */
+		readonly endsAt?: string;
 		readonly message: string;
 	};
 }
@@ -88,8 +88,13 @@ export function readAgentModelPricingMeta(model: IAgentModelInfo | SessionModelI
 	const rawPromo = meta.promo;
 	if (rawPromo && typeof rawPromo === 'object' && !Array.isArray(rawPromo)) {
 		const p = rawPromo as Record<string, unknown>;
-		if (typeof p.id === 'string' && typeof p.discountPercent === 'number' && typeof p.endsAt === 'string' && typeof p.message === 'string') {
-			result.promo = { id: p.id, discountPercent: p.discountPercent, endsAt: p.endsAt, message: p.message };
+		if (typeof p.id === 'string' && typeof p.discountPercent === 'number' && typeof p.message === 'string') {
+			result.promo = {
+				id: p.id,
+				discountPercent: p.discountPercent,
+				message: p.message,
+				...(typeof p.endsAt === 'string' ? { endsAt: p.endsAt } : {}),
+			};
 		}
 	}
 	return result;
@@ -176,8 +181,8 @@ function normalizePromo(billing: Record<string, unknown>): ICAPIModelBilling['pr
 		: typeof raw.ends_at === 'string' ? raw.ends_at
 			: undefined;
 	const message = typeof raw.message === 'string' ? raw.message : undefined;
-	if (id && typeof discountPercent === 'number' && endsAt && message) {
-		return { id, discountPercent, endsAt, message };
+	if (id && typeof discountPercent === 'number' && message) {
+		return { id, discountPercent, message, ...(endsAt ? { endsAt } : {}) };
 	}
 	return undefined;
 }
@@ -192,11 +197,12 @@ export interface ICAPIModelBilling {
 	readonly priceCategory?: string;
 	/** Whole-number percentage discount (0-100) for the synthetic `auto` model; rendered as a "{n}% discount" detail. */
 	readonly discountPercent?: number;
-	/** Promotional info when the model is experiencing a promotional discount. */
+	/** Promotional information for the model. A `discountPercent` of `0` is a valid message-only promo. */
 	readonly promo?: {
 		readonly id: string;
 		readonly discountPercent: number;
-		readonly endsAt: string;
+		/** ISO 8601 end date; absent for open-ended promotions. */
+		readonly endsAt?: string;
 		readonly message: string;
 	};
 	readonly tokenPrices?: {
@@ -274,4 +280,3 @@ export function hasLongContextSurcharge(billing: ICAPIModelBilling | undefined):
 		|| (longContext.cachePrice !== undefined && longContext.cachePrice !== tokenPrices?.cachePrice)
 		|| (longContext.cacheWritePrice !== undefined && longContext.cacheWritePrice !== tokenPrices?.cacheWritePrice);
 }
-

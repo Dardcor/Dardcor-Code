@@ -300,7 +300,7 @@ async sessionConfigCompletions(_session: URI | undefined, _property: string, _qu
 **Why this works for the workbench UI** (verified live):
 - [`AgentHostModePicker`](../../../../../sessions/contrib/chat/browser/agentHost/agentHostModePicker.ts#L128-L141) renders nothing when `schema.properties[Mode]` is absent or fails `isWellKnownModeSchema()`. Claude sessions don't show a mode picker — the right behavior.
 - [`AgentHostSessionConfigPicker`](../../../../../sessions/contrib/chat/browser/agentHost/agentHostSessionConfigPicker.ts#L326) is the generic per-property fallback. It renders a dropdown for any string-enum property in the schema. **`permissionMode` gets a dropdown for free, no workbench changes needed.**
-- The pre-existing `ClaudePermissionModePicker` (`src/dc/sessions/contrib/copilotChatSessions/browser/claudePermissionModePicker.ts`) is for **extension-based** Claude (`CopilotChatSessionsProvider`), not agent-host Claude. The two coexist via `when` clauses. Eventually the extension picker should be deleted in favor of the generic schema-driven path; that cleanup is documented as tech debt in `COPILOT_CHAT_SESSIONS_PROVIDER.md:157` and is out of scope for Phase 5.
+- The pre-existing `ClaudePermissionModePicker` (`src/vs/sessions/contrib/copilotChatSessions/browser/claudePermissionModePicker.ts`) is for **extension-based** Claude (`CopilotChatSessionsProvider`), not agent-host Claude. The two coexist via `when` clauses. Eventually the extension picker should be deleted in favor of the generic schema-driven path; that cleanup is documented as tech debt in `COPILOT_CHAT_SESSIONS_PROVIDER.md:157` and is out of scope for Phase 5.
 
 #### 3.3.6 `shutdown` and `dispose`
 
@@ -465,7 +465,7 @@ The PR is **done** when every box below is checked. Run them in order — earlie
 ### 7.4 Compile + lint + layers
 
 - [ ] `VS Code - Build` task shows zero TypeScript errors. If task is unavailable, `npm run typecheck-client` exits 0.
-- [ ] `npm run eslint -- src/dc/platform/agentHost/node/claude src/dc/platform/agentHost/test/node/claudeAgent.test.ts` exits 0.
+- [ ] `npm run eslint -- src/vs/platform/agentHost/node/claude src/vs/platform/agentHost/test/node/claudeAgent.test.ts` exits 0.
 - [ ] `npm run valid-layers-check` exits 0.
 - [ ] `npm run hygiene` exits 0.
 - [ ] `npm ls @anthropic-ai/claude-agent-sdk` shows exactly `0.2.112`, no native build steps in the install log.
@@ -503,7 +503,7 @@ Follow the Phase-4 smoke harness ([smoke.md](smoke.md), [scripts/launch-smoke.sh
 |---|---|---|
 | `npm ls` shows native build steps | SDK version drifted to > 0.2.112 | Pin to exact `0.2.112` (no caret) in both root and `remote/` `package.json`. |
 | `Cannot find module '@anthropic-ai/claude-agent-sdk'` from a utility process | Lazy import resolved against the wrong root | Verify `agentHostMain.ts` was bundled with the SDK in `node_modules` reachable from the utility process working directory. Check `agentHostServerMain.ts` similarly. |
-| `valid-layers-check` fails | Imported a workbench/sessions symbol from `dc/platform/agentHost/` | Only `dc/base`, `dc/platform`, `dc/typings` allowed. The Claude permission-mode picker is workbench-side and must NOT be referenced from the platform layer. |
+| `valid-layers-check` fails | Imported a workbench/sessions symbol from `vs/platform/agentHost/` | Only `vs/base`, `vs/platform`, `vs/typings` allowed. The Claude permission-mode picker is workbench-side and must NOT be referenced from the platform layer. |
 | Test 5 (corrupt-DB resilience) flakes | Used `Promise.all` instead of `await Promise.all(map(async ... try/catch))` | Inline-try/catch pattern from `agentService.ts:188-204`, NOT the bulk-`Promise.all` from `copilotAgent.ts:519-541`. |
 | Test 10 (dispose ordering) fails | `dispose()` body called `_proxyHandle?.dispose()` before awaiting `shutdown()` | Reorder. The `await` matters — fire-and-forget breaks Phase 6. |
 | `listSessions` test surfaces zero entries when SDK returns three | Filter inadvertently introduced (e.g. `if (!metadata) return undefined`) | Remove. SDK is source of truth; filter excludes external sessions. |
@@ -517,7 +517,7 @@ These are decisions Phase 5 locks down so Phase 6 is a pure-additive change. The
 **Permission-mode resolution helper (Phase 6 will add this method):**
 
 ```ts
-// src/dc/platform/agentHost/node/claude/claudeAgent.ts (Phase 6)
+// src/vs/platform/agentHost/node/claude/claudeAgent.ts (Phase 6)
 private _resolveClaudePermissionMode(sessionUri: URI): PermissionMode {
     // Read the session's permissionMode value; fall back to schema default.
     // canUseTool callback consumes BOTH this and the Permissions key directly —

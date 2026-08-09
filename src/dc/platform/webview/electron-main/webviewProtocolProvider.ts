@@ -35,7 +35,7 @@ export class WebviewProtocolProvider implements IDisposable {
 			const uri = URI.parse(request.url);
 			const entry = WebviewProtocolProvider.validWebviewFilePaths.get(uri.path);
 			if (entry) {
-				const relativeResourcePath: AppResourcePath = `dc/workbench/contrib/webview/browser/pre${uri.path}`;
+				const relativeResourcePath: AppResourcePath = `vs/workbench/contrib/webview/browser/pre${uri.path}`;
 				const url = FileAccess.asFileUri(relativeResourcePath);
 
 				const content = await this._fileService.readFile(url);
