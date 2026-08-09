@@ -5,9 +5,9 @@
 
 import { gitignoreToMinimatch } from '@humanwhocodes/gitignore-to-minimatch';
 import ignore, { Ignore } from 'ignore';
-import { dirname, normalize, posix, relative, sep } from '../../../util/vs/base/common/path';
-import { splitLines } from '../../../util/vs/base/common/strings';
-import { URI } from '../../../util/vs/base/common/uri';
+import { dirname, normalize, posix, relative, sep } from '../../../util/dardcor/base/common/path';
+import { splitLines } from '../../../util/dardcor/base/common/strings';
+import { URI } from '../../../util/dardcor/base/common/uri';
 
 type IgnoreEntry = {
 	ignore: Ignore;

@@ -6,7 +6,7 @@
 import type { CancellationToken } from 'vscode';
 import { ChatFetchResponseType, ChatLocation } from '../../../platform/chat/common/commonTypes';
 import { IEndpointProvider } from '../../../platform/endpoint/common/endpointProvider';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { PromptRenderer } from '../../prompts/node/base/promptRenderer';
 import { FileContentsPrompt, NewWorkspaceContentsPromptProps, ProjectSpecificationPrompt } from '../../prompts/node/panel/newWorkspace/newWorkspaceContents';
 

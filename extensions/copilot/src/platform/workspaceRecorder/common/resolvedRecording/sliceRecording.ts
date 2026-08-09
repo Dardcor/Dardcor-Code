@@ -3,10 +3,10 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { findFirstMonotonous } from '../../../../util/vs/base/common/arraysFind';
-import { CachedFunction } from '../../../../util/vs/base/common/cache';
-import { StringEdit } from '../../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
+import { findFirstMonotonous } from '../../../../util/dardcor/base/common/arraysFind';
+import { CachedFunction } from '../../../../util/dardcor/base/common/cache';
+import { StringEdit } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
 import { serializeStringEdit } from '../../../inlineEdits/common/dataTypes/editUtils';
 import { DocumentEventLogEntryData, LogEntry } from '../workspaceLog';
 import { OperationKind } from './operation';

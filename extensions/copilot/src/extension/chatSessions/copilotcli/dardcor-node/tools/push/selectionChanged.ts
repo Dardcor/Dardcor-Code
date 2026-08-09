@@ -5,7 +5,7 @@
 
 import * as vscode from 'vscode';
 import { ILogger } from '../../../../../../platform/log/common/logService';
-import { Delayer } from '../../../../../../util/vs/base/common/async';
+import { Delayer } from '../../../../../../util/dardcor/base/common/async';
 import { InProcHttpServer } from '../../inProcHttpServer';
 import { getSelectionInfo, SelectionState } from '../getSelection';
 

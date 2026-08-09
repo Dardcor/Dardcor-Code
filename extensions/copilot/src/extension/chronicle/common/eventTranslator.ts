@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { generateUuid } from '../../../util/vs/base/common/uuid';
+import { generateUuid } from '../../../util/dardcor/base/common/uuid';
 import { CopilotChatAttr, GenAiAttr, GenAiOperationName } from '../../../platform/otel/common/genAiAttributes';
 import type { ICompletedSpanData } from '../../../platform/otel/common/otelService';
 import type { IDebugLogEntry } from '../../../platform/chat/common/chatDebugFileLoggerService';

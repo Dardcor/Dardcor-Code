@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type * as vscode from 'vscode';
-import { Range } from '../../../vscodeTypes';
+import { Range } from '../../../dardcorTypes';
 
 /**
  * For the given initial range, find the approximate range after the edits are applied on it.

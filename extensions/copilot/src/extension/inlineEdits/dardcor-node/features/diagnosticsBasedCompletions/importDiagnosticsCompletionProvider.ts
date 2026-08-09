@@ -12,14 +12,14 @@ import { LanguageId } from '../../../../../platform/inlineEdits/common/dataTypes
 import { IObservableDocument } from '../../../../../platform/inlineEdits/common/observableWorkspace';
 import { ILogger } from '../../../../../platform/log/common/logService';
 import { IWorkspaceService } from '../../../../../platform/workspace/common/workspaceService';
-import { CancellationToken } from '../../../../../util/vs/base/common/cancellation';
-import { isAbsolute } from '../../../../../util/vs/base/common/path';
-import { dirname, resolvePath } from '../../../../../util/vs/base/common/resources';
-import { URI } from '../../../../../util/vs/base/common/uri';
-import { TextReplacement } from '../../../../../util/vs/editor/common/core/edits/textEdit';
-import { Position } from '../../../../../util/vs/editor/common/core/position';
+import { CancellationToken } from '../../../../../util/dardcor/base/common/cancellation';
+import { isAbsolute } from '../../../../../util/dardcor/base/common/path';
+import { dirname, resolvePath } from '../../../../../util/dardcor/base/common/resources';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
+import { TextReplacement } from '../../../../../util/dardcor/editor/common/core/edits/textEdit';
+import { Position } from '../../../../../util/dardcor/editor/common/core/position';
 import { INextEditDisplayLocation } from '../../../node/nextEditResult';
-import { IVSCodeObservableDocument } from '../../parts/vscodeWorkspace';
+import { IVSCodeObservableDocument } from '../../parts/dardcorWorkspace';
 import { Diagnostic, DiagnosticCompletionItem, DiagnosticInlineEditRequestLogContext, IDiagnosticCompletionProvider, isDiagnosticWithinDistance, log, logList } from './diagnosticsCompletions';
 
 class ImportCodeAction {

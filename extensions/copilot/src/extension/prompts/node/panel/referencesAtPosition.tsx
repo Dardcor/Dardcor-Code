@@ -16,7 +16,7 @@ import { IParserService, treeSitterOffsetRangeToVSCodeRange, vscodeToTreeSitterO
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry';
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
 import { getLanguage } from '../../../../util/common/languages';
-import { ExtensionMode, Location, Selection, Uri } from '../../../../vscodeTypes';
+import { ExtensionMode, Location, Selection, Uri } from '../../../../dardcorTypes';
 import { asyncComputeWithTimeBudget } from '../../../context/node/resolvers/selectionContextHelpers';
 import { determineNodeToDocument } from '../../../prompt/node/definitionAroundCursor';
 import { CodeBlock } from './safeElements';

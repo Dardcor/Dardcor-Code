@@ -6,7 +6,7 @@ A generic workbench editor for viewing collections of images in a carousel/slide
 
 The image carousel is a self-contained workbench contribution that follows the **custom editor** pattern:
 
-- **URI scheme**: `vscode-image-carousel` (registered in `Schemas` in `src/dc/base/common/network.ts`) — used for `EditorInput.resource` identity.
+- **URI scheme**: `vscode-image-carousel` (registered in `Schemas` in `src/vs/base/common/network.ts`) — used for `EditorInput.resource` identity.
 - **Direct editor input**: Callers create `ImageCarouselEditorInput` with a collection and open it directly via `IEditorService.openEditor()`.
 - **Image extraction**: Chat integration builds a **sections-based** collection from chat request/response items. A section can include user-attached request images alongside response-derived images (tool invocations and inline references). For paired request/response items, the section title prefers the user's chat request message; pending requests with image attachments form their own section.
 
@@ -22,7 +22,7 @@ await editorService.openEditor(input, { pinned: true }, MODAL_GROUP);
 
 ### From chat (via click handler)
 
-Clicking an image attachment pill in chat (when `chat.imageCarousel.enabled` is true) executes the `workbench.action.chat.openImageInCarousel` command, which collects request attachment images together with response-derived images for the current chat session and opens them in the carousel. MIME types are resolved via `getMediaMime()` from `src/dc/base/common/mime.ts`.
+Clicking an image attachment pill in chat (when `chat.imageCarousel.enabled` is true) executes the `workbench.action.chat.openImageInCarousel` command, which collects request attachment images together with response-derived images for the current chat session and opens them in the carousel. MIME types are resolved via `getMediaMime()` from `src/vs/base/common/mime.ts`.
 
 ## Key design decisions
 
@@ -36,7 +36,7 @@ Clicking an image attachment pill in chat (when `chat.imageCarousel.enabled` is 
 
 ### DOM & rendering
 
-- **DOM construction**: Uses the `h()` helper from `dc/base/browser/dom` with `@name` references for declarative DOM — no imperative `document.createElement` calls.
+- **DOM construction**: Uses the `h()` helper from `vs/base/browser/dom` with `@name` references for declarative DOM — no imperative `document.createElement` calls.
 - **Bottom bar**: Caption and thumbnail sections are wrapped in a `div.bottom-bar` flex column below the image area.
 - **Stable DOM skeleton**: Builds DOM once per `setInput()`, updates only changing parts to avoid flash on navigation.
 - **Blob URL lifecycle**: Main image URLs tracked in `_imageDisposables` (revoked on nav), thumbnails in `_contentDisposables` (revoked on `clearInput()`).

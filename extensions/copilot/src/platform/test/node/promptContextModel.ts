@@ -9,12 +9,12 @@ import { ExtHostNotebookDocumentData } from '../../../util/common/test/shims/not
 import { ExtHostNotebookEditor } from '../../../util/common/test/shims/notebookEditor';
 import { createTextDocumentData } from '../../../util/common/test/shims/textDocument';
 import { ExtHostTextEditor } from '../../../util/common/test/shims/textEditor';
-import { Event } from '../../../util/vs/base/common/event';
-import * as path from '../../../util/vs/base/common/path';
-import { isEqual } from '../../../util/vs/base/common/resources';
-import { URI } from '../../../util/vs/base/common/uri';
-import { NotebookRange } from '../../../util/vs/workbench/api/common/extHostTypes/notebooks';
-import { Diagnostic, DiagnosticRelatedInformation, Location, Range, Selection, SymbolInformation, Uri } from '../../../vscodeTypes';
+import { Event } from '../../../util/dardcor/base/common/event';
+import * as path from '../../../util/dardcor/base/common/path';
+import { isEqual } from '../../../util/dardcor/base/common/resources';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { NotebookRange } from '../../../util/dardcor/workbench/api/common/extHostTypes/notebooks';
+import { Diagnostic, DiagnosticRelatedInformation, Location, Range, Selection, SymbolInformation, Uri } from '../../../dardcorTypes';
 import { RepoContext } from '../../git/common/gitService';
 import type { ISerializedWorkspaceState, IWorkspaceStateChangeFile, IWorkspaceStateTestFailure } from '../../workspaceState/common/promptContextModel';
 import { extensionHostWorkspaceUri, isInExtensionHost } from './isInExtensionHost';

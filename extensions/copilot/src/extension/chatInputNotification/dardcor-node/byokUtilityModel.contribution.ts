@@ -7,7 +7,7 @@ import * as vscode from 'vscode';
 import { IAuthenticationService } from '../../../platform/authentication/common/authentication';
 import { IConfigurationService } from '../../../platform/configuration/common/configurationService';
 import { ILogService } from '../../../platform/log/common/logService';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 
 const NOTIFICATION_ID = 'copilot.byokUtilityModelHint';
 const UTILITY_MODEL_SETTING = 'chat.utilityModel';

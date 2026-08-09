@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { DeferredPromise } from '../vs/base/common/async';
-import { BugIndicatingError, CancellationError } from '../vs/base/common/errors';
+import { DeferredPromise } from '../dardcor/base/common/async';
+import { BugIndicatingError, CancellationError } from '../dardcor/base/common/errors';
 
 export type Task<T = void> = () => (Promise<T> | T);
 

@@ -180,7 +180,7 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 		this.overlay = append(container, $('.onboarding-a-overlay'));
 		this.overlay.setAttribute('role', 'dialog');
 		this.overlay.setAttribute('aria-modal', 'true');
-		this.overlay.setAttribute('aria-label', localize('onboarding.a.aria', "Welcome to Dardcor Code"));
+		this.overlay.setAttribute('aria-label', localize('onboarding.a.aria', "Welcome to Visual Studio Code"));
 
 		// Card
 		this.card = append(this.overlay, $('.onboarding-a-card'));
@@ -918,7 +918,7 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 		const preview = append(card, $('div.onboarding-a-theme-preview'));
 		const img = append(preview, $<HTMLImageElement>('img.onboarding-a-theme-preview-img'));
 		img.alt = '';
-		img.src = FileAccess.asBrowserUri(`dc/workbench/contrib/welcomeOnboarding/browser/media/theme-preview-${theme.id}.svg`).toString(true);
+		img.src = FileAccess.asBrowserUri(`vs/workbench/contrib/welcomeOnboarding/browser/media/theme-preview-${theme.id}.svg`).toString(true);
 
 		// Label
 		const label = append(card, $('div.onboarding-a-theme-label'));
@@ -1160,7 +1160,7 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 
 		// Tutorial link at bottom of content, above footer
 		const docsRow = append(wrapper, $('.onboarding-a-sessions-docs'));
-		this._createDocLink(docsRow, localize('onboarding.sessions.agentsTutorial', "Agents tutorial"), 'https://code.visualstudio.com/docs/copilot/agents/agents-tutorial', 'agentsTutorial');
+		this._createDocLink(docsRow, localize('onboarding.sessions.agentsTutorial', "Agents tutorial"), 'https://code.visualstudio.com/docs/agents/agents-tutorial?referrer=in-product', 'agentsTutorial');
 	}
 
 	private _createFeatureCard(parent: HTMLElement, icon: ThemeIcon, title: string, description?: string): HTMLElement {

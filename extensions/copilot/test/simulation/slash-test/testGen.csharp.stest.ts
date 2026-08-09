@@ -6,7 +6,7 @@
 import * as assert from 'assert';
 import { Intent } from '../../../src/extension/common/constants';
 import { isQualifiedFile, isRelativeFile } from '../../../src/platform/test/node/simulationWorkspace';
-import { Schemas } from '../../../src/util/vs/base/common/network';
+import { Schemas } from '../../../src/util/dardcor/base/common/network';
 import { ssuite, stest } from '../../base/stest';
 import { forInline, simulateInlineChatWithStrategy } from '../inlineChatSimulator';
 import { getFileContent } from '../outcomeValidators';

@@ -16,7 +16,7 @@ import { IParserService, treeSitterOffsetRangeToVSCodeRange } from '../../../../
 import { ITabsAndEditorsService } from '../../../../platform/tabs/common/tabsAndEditorsService';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry';
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
-import { ExtensionMode, Location, Uri } from '../../../../vscodeTypes';
+import { ExtensionMode, Location, Uri } from '../../../../dardcorTypes';
 import { findAllReferencedClassDeclarationsInSelection, findAllReferencedFunctionImplementationsInSelection, findAllReferencedTypeDeclarationsInSelection } from '../../../context/node/resolvers/selectionContextHelpers';
 import { PromptReference } from '../../../prompt/common/conversation';
 import { EmbeddedInsideUserMessage, embeddedInsideUserMessageDefault } from '../base/promptElement';

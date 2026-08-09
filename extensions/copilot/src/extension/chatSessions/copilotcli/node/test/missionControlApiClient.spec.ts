@@ -9,7 +9,7 @@ import type { IAuthenticationService } from '../../../../../platform/authenticat
 import { INTEGRATION_ID } from '../../../../../platform/endpoint/common/licenseAgreement';
 import type { ILogService } from '../../../../../platform/log/common/logService';
 import { type FetchOptions, type IFetcherService, HeadersImpl, Response } from '../../../../../platform/networking/common/fetcherService';
-import { Emitter } from '../../../../../util/vs/base/common/event';
+import { Emitter } from '../../../../../util/dardcor/base/common/event';
 import { MissionControlApiClient } from '../missionControlApiClient';
 
 function createResponse(body: string): Response {

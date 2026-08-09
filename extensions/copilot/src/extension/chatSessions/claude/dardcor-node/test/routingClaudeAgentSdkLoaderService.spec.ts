@@ -8,7 +8,7 @@ import { ConfigKey, IConfigurationService } from '../../../../../platform/config
 import { DefaultsOnlyConfigurationService } from '../../../../../platform/configuration/common/defaultsOnlyConfigurationService';
 import { InMemoryConfigurationService } from '../../../../../platform/configuration/test/common/inMemoryConfigurationService';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../util/common/test/testUtils';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { createExtensionUnitTestingServices } from '../../../../test/node/services';
 import { BundledClaudeAgentSdkLoaderService } from '../../node/bundledClaudeAgentSdkLoaderService';
 import { VsCodeClaudeAgentSdkLoaderService } from '../claudeAgentSdkLoaderService';

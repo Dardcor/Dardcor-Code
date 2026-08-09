@@ -5,7 +5,7 @@
 
 import { Result } from '../../../util/common/result';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
 import { IHeaders } from '../../networking/common/fetcherService';
 import { ResponseStream } from './responseStream';
 

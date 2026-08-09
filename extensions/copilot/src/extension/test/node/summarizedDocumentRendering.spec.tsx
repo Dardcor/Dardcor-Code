@@ -13,11 +13,11 @@ import { MockEndpoint } from '../../../platform/endpoint/test/node/mockEndpoint'
 import { IChatEndpoint } from '../../../platform/networking/common/networking';
 import { ITestingServicesAccessor } from '../../../platform/test/node/services';
 import { createTextDocumentData } from '../../../util/common/test/shims/textDocument';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { join } from '../../../util/vs/base/common/path';
-import { URI } from '../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
-import { Range, Selection } from '../../../vscodeTypes';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { join } from '../../../util/dardcor/base/common/path';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { Range, Selection } from '../../../dardcorTypes';
 import { SelectionSplitKind, SummarizedDocumentData, SummarizedDocumentWithSelection, SummarizedDocumentWithSelectionProps } from '../../intents/node/testIntent/summarizedDocumentWithSelection';
 import { ChatVariablesCollection } from '../../prompt/common/chatVariablesCollection';
 import { Turn, TurnStatus } from '../../prompt/common/conversation';

@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { createServiceIdentifier } from '../../../util/common/services';
-import { URI } from '../../../util/vs/base/common/uri';
-import { StringReplacement } from '../../../util/vs/editor/common/core/edits/stringEdit';
-import { StringText } from '../../../util/vs/editor/common/core/text/abstractText';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { StringReplacement } from '../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { StringText } from '../../../util/dardcor/editor/common/core/text/abstractText';
 
 export interface ISnippyService {
 	_serviceBrand: undefined;

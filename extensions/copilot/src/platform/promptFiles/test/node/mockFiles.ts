@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { dirname } from '../../../../util/vs/base/common/resources';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { dirname } from '../../../../util/dardcor/base/common/resources';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { MockFileSystemService } from '../../../filesystem/node/test/mockFileSystemService';
 
 /**

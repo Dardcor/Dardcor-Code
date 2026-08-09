@@ -5,7 +5,7 @@
 
 import { BasePromptElementProps, PromptElement, PromptSizing } from '@vscode/prompt-tsx';
 import { TelemetryCorrelationId } from '../../../../util/common/telemetryCorrelationId';
-import { Diagnostic } from '../../../../vscodeTypes';
+import { Diagnostic } from '../../../../dardcorTypes';
 import { IDocumentContext } from '../../../prompt/node/documentContext';
 import { ChunksToolProps, WorkspaceChunks } from '../panel/workspace/workspaceContext';
 

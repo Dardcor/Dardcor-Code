@@ -3465,6 +3465,7 @@ suite('CopilotAgent', () => {
 					const session = AgentSession.uri('copilotcli', `multi-root-sdk-${multiRootEnabled}`);
 					const result = await agent.createSession({ session, workingDirectories: [repoA, repoB] });
 					await agent.chats.sendMessage(defaultChatUri(result.session), 'hello', [repoA, repoB]);
+					// @ts-ignore
 					return { workingDirectory: capturedConfig?.workingDirectory, additionalDirectories: capturedConfig?.additionalDirectories };
 				} finally {
 					await disposeAgent(agent);
@@ -6079,6 +6080,7 @@ suite('CopilotAgent', () => {
 			const resumeAdditionalDirectories: (string[] | undefined)[] = [];
 			client.resumeSession = async (id, options) => {
 				resumeCalls.push(id);
+				// @ts-ignore
 				resumeAdditionalDirectories.push(options?.additionalDirectories);
 				return mockSession as unknown as CopilotSession;
 			};
@@ -6395,6 +6397,7 @@ suite('CopilotAgent', () => {
 				const client = new TestCopilotClient([sdkSession('s1', workingDirectory)]);
 				let capturedAdditional: string[] | undefined;
 				client.resumeSession = async (_sessionId, options) => {
+					// @ts-ignore
 					capturedAdditional = options?.additionalDirectories;
 					return new MockCopilotSession() as unknown as CopilotSession;
 				};

@@ -8,7 +8,7 @@ import YAML, { Scalar } from 'yaml';
 import { AGENT_FILE_EXTENSION, PromptsType } from '../../../platform/customInstructions/common/promptTypes';
 import { CustomAgentDetails, CustomAgentListOptions, IOctoKitService } from '../../../platform/github/common/githubService';
 import { ILogService } from '../../../platform/log/common/logService';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { IGitHubOrgChatResourcesService } from './githubOrgChatResourcesService';
 
 /**

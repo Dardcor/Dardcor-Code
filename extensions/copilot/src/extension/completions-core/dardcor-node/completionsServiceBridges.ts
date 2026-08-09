@@ -4,12 +4,12 @@
  *--------------------------------------------------------------------------------------------*/
 import { commands, env } from 'vscode';
 import { ILogService } from '../../../platform/log/common/logService';
-import { outputChannel } from '../../../platform/log/vscode/outputChannelLogTarget';
-import { DisposableStore, IDisposable } from '../../../util/vs/base/common/lifecycle';
-import { URI } from '../../../util/vs/base/common/uri';
-import { SyncDescriptor } from '../../../util/vs/platform/instantiation/common/descriptors';
-import { IInstantiationService, ServicesAccessor } from '../../../util/vs/platform/instantiation/common/instantiation';
-import { ServiceCollection } from '../../../util/vs/platform/instantiation/common/serviceCollection';
+import { outputChannel } from '../../../platform/log/dardcor/outputChannelLogTarget';
+import { DisposableStore, IDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { SyncDescriptor } from '../../../util/dardcor/platform/instantiation/common/descriptors';
+import { IInstantiationService, ServicesAccessor } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { ServiceCollection } from '../../../util/dardcor/platform/instantiation/common/serviceCollection';
 import { CompletionsTelemetryServiceBridge, ICompletionsTelemetryService } from './bridge/src/completionsTelemetryServiceBridge';
 import { LoggingCitationManager } from './extension/src/codeReferencing/citationManager';
 import { CompletionsObservableWorkspace } from './extension/src/completionsObservableWorkspace';
@@ -23,7 +23,7 @@ import { ModelPickerManager } from './extension/src/modelPicker';
 import { CopilotStatusBar } from './extension/src/statusBar';
 import { CopilotStatusBarPickMenu } from './extension/src/statusBarPicker';
 import { ExtensionTextDocumentManager } from './extension/src/textDocumentManager';
-import { exception } from './extension/src/vscodeInlineCompletionItemProvider';
+import { exception } from './extension/src/dardcorInlineCompletionItemProvider';
 import { CopilotTokenManagerImpl, ICompletionsCopilotTokenManager } from './lib/src/auth/copilotTokenManager';
 import { ICompletionsCitationManager } from './lib/src/citationManager';
 import { CompletionNotifier, ICompletionsNotifierService } from './lib/src/completionNotifier';

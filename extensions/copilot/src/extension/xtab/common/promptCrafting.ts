@@ -12,10 +12,10 @@ import { StatelessNextEditDocument } from '../../../platform/inlineEdits/common/
 import { IXtabHistoryEntry } from '../../../platform/inlineEdits/common/workspaceEditTracker/nesXtabHistoryTracker';
 import { ContextKind, TraitContext } from '../../../platform/languageServer/common/languageContextService';
 import { Result } from '../../../util/common/result';
-import { range } from '../../../util/vs/base/common/arrays';
-import { assertNever, softAssert } from '../../../util/vs/base/common/assert';
-import { StringEdit, StringReplacement } from '../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../util/vs/editor/common/core/ranges/offsetRange';
+import { range } from '../../../util/dardcor/base/common/arrays';
+import { assertNever, softAssert } from '../../../util/dardcor/base/common/assert';
+import { StringEdit, StringReplacement } from '../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../util/dardcor/editor/common/core/ranges/offsetRange';
 import { getEditDiffHistory } from './diffHistoryForPrompt';
 import { LintErrors } from './lintErrors';
 import { countTokensForLines, toUniquePath } from './promptCraftingUtils';

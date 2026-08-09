@@ -18,12 +18,12 @@ import { IPromptPathRepresentationService } from '../../../../platform/prompts/c
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
 import { getNotebookAndCellFromUri, getNotebookCellOutput } from '../../../../util/common/notebooks';
 import { isUri } from '../../../../util/common/types';
-import { CachedFunction } from '../../../../util/vs/base/common/cache';
-import { Schemas } from '../../../../util/vs/base/common/network';
-import { basename } from '../../../../util/vs/base/common/resources';
-import { splitLines } from '../../../../util/vs/base/common/strings';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
-import { Location, Position, Range, Uri } from '../../../../vscodeTypes';
+import { CachedFunction } from '../../../../util/dardcor/base/common/cache';
+import { Schemas } from '../../../../util/dardcor/base/common/network';
+import { basename } from '../../../../util/dardcor/base/common/resources';
+import { splitLines } from '../../../../util/dardcor/base/common/strings';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { Location, Position, Range, Uri } from '../../../../dardcorTypes';
 import { IPromptEndpoint } from '../base/promptRenderer';
 import { Tag } from '../base/tag';
 import { SummarizedDocumentLineNumberStyle } from '../inline/summarizedDocument/implementation';

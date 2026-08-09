@@ -268,10 +268,10 @@ export type AppResourcePath = (
 	| `y${string}` | `z${string}`
 );
 
-export const builtinExtensionsPath: AppResourcePath = 'vs/../../extensions';
-export const nodeModulesPath: AppResourcePath = 'vs/../../node_modules';
-export const nodeModulesAsarPath: AppResourcePath = 'vs/../../node_modules.asar';
-export const nodeModulesAsarUnpackedPath: AppResourcePath = 'vs/../../node_modules.asar.unpacked';
+export const builtinExtensionsPath: AppResourcePath = 'dc/../../extensions';
+export const nodeModulesPath: AppResourcePath = 'dc/../../node_modules';
+export const nodeModulesAsarPath: AppResourcePath = 'dc/../../node_modules.asar';
+export const nodeModulesAsarUnpackedPath: AppResourcePath = 'dc/../../node_modules.asar.unpacked';
 
 export const VSCODE_AUTHORITY = 'vscode-app';
 
@@ -361,6 +361,10 @@ class FileAccessImpl {
 	private toUri(uriOrModule: URI | string): URI {
 		if (URI.isUri(uriOrModule)) {
 			return uriOrModule;
+		}
+
+		if (typeof uriOrModule === 'string' && uriOrModule.startsWith('vs/')) {
+			uriOrModule = 'dc/' + uriOrModule.substring(3);
 		}
 
 		if (globalThis._VSCODE_FILE_ROOT) {

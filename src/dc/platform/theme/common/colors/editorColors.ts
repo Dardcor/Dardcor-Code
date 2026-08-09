@@ -94,11 +94,11 @@ export const editorInfoBackground = registerColor('editorInfo.background',
 	nls.localize('editorInfo.background', 'Background color of info text in the editor. The color must not be opaque so as not to hide underlying decorations.'), true);
 
 export const editorInfoForeground = registerColor('editorInfo.foreground',
-	{ dark: '#59a4f9', light: '#0063d3', hcDark: '#59a4f9', hcLight: '#0063d3' },
+	{ dark: '#7C4DFF', light: '#0063d3', hcDark: '#7C4DFF', hcLight: '#0063d3' },
 	nls.localize('editorInfo.foreground', 'Foreground color of info squigglies in the editor.'));
 
 export const editorInfoBorder = registerColor('editorInfo.border',
-	{ dark: null, light: null, hcDark: Color.fromHex('#59a4f9').transparent(0.8), hcLight: '#292929' },
+	{ dark: null, light: null, hcDark: Color.fromHex('#7C4DFF').transparent(0.8), hcLight: '#292929' },
 	nls.localize('infoBorder', 'If set, color of double underlines for infos in the editor.'));
 
 
@@ -112,14 +112,14 @@ export const editorHintBorder = registerColor('editorHint.border',
 
 
 export const editorActiveLinkForeground = registerColor('editorLink.activeForeground',
-	{ dark: '#4E94CE', light: Color.blue, hcDark: Color.cyan, hcLight: '#292929' },
+	{ dark: '#7C4DFF', light: Color.blue, hcDark: Color.cyan, hcLight: '#292929' },
 	nls.localize('activeLinkForeground', 'Color of active links.'));
 
 
 // ----- editor selection
 
 export const editorSelectionBackground = registerColor('editor.selectionBackground',
-	{ light: '#ADD6FF', dark: '#264F78', hcDark: '#f3f518', hcLight: '#0F4A85' },
+	{ light: '#ADD6FF', dark: '#4A148C', hcDark: '#f3f518', hcLight: '#0F4A85' },
 	nls.localize('editorSelectionBackground', "Color of the editor selection."));
 
 export const editorSelectionForeground = registerColor('editor.selectionForeground',

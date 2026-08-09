@@ -7,7 +7,7 @@ import { NotebookDocument, TextDocument } from 'vscode';
 import { ConfigKey, IConfigurationService } from '../../../../platform/configuration/common/configurationService';
 import { IIgnoreService } from '../../../../platform/ignore/common/ignoreService';
 import { isNotebookCellOrNotebookChatInput } from '../../../../util/common/notebooks';
-import { derived } from '../../../../util/vs/base/common/observableInternal';
+import { derived } from '../../../../util/dardcor/base/common/observableInternal';
 
 export class DocumentFilter {
 	private readonly _enabledLanguagesObs;

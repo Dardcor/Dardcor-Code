@@ -7,7 +7,7 @@ import { Raw } from '@vscode/prompt-tsx';
 import { describe, expect, it } from 'vitest';
 import type { LanguageModelChatMessage } from 'vscode';
 import { CustomDataPartMimeTypes } from '../../../../platform/endpoint/common/endpointTypes';
-import { LanguageModelChatMessageRole, LanguageModelDataPart, LanguageModelTextPart, LanguageModelToolResultPart, LanguageModelTextPart as LMText } from '../../../../vscodeTypes';
+import { LanguageModelChatMessageRole, LanguageModelDataPart, LanguageModelTextPart, LanguageModelToolResultPart, LanguageModelTextPart as LMText } from '../../../../dardcorTypes';
 import { apiMessageToGeminiMessage } from '../geminiMessageConverter';
 
 describe('GeminiMessageConverter', () => {

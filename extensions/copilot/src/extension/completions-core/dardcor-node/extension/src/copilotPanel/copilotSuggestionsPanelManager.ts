@@ -5,7 +5,7 @@
 
 import { TextDocument, WebviewPanel } from 'vscode';
 import { IVSCodeExtensionContext } from '../../../../../../platform/extContext/common/extensionContext';
-import { IInstantiationService } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { IPosition, ITextDocument } from '../../../lib/src/textDocument';
 import { solutionCountTarget } from '../lib/copilotPanel/common';
 import { BaseSuggestionsPanelManager, ListDocumentInterface } from '../panelShared/baseSuggestionsPanelManager';

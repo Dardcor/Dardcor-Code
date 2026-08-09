@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { createServiceIdentifier } from '../../../util/common/services';
-import { generateUuid } from '../../../util/vs/base/common/uuid';
+import { generateUuid } from '../../../util/dardcor/base/common/uuid';
 
 export const IInteractionService = createServiceIdentifier<IInteractionService>('IInteractionService');
 

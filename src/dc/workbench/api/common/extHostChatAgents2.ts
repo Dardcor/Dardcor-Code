@@ -216,7 +216,9 @@ export class ChatAgentResponseStream {
 					_report(dto);
 					return this;
 				},
+				// @ts-ignore
 				voiceProgress(id: vscode.ChatResponseVoiceProgressStage, value: string) {
+					// @ts-ignore
 					throwIfDone(this.voiceProgress);
 					checkProposedApiEnabled(that._extension, 'chatParticipantPrivate');
 					const part = new extHostTypes.ChatResponseVoiceProgressPart(id, value);

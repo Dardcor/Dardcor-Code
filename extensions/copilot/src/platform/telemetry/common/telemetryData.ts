@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import type { TelemetryTrustedValue } from 'vscode';
-import { generateUuid } from '../../../util/vs/base/common/uuid';
+import { generateUuid } from '../../../util/dardcor/base/common/uuid';
 import { IConfigurationService } from '../../configuration/common/configurationService';
 import { IEnvService } from '../../env/common/envService';
 import { RequestId } from '../../networking/common/fetch';

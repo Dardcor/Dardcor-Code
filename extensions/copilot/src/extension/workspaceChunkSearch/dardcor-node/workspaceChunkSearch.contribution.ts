@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { DisposableStore, IDisposable } from '../../../util/vs/base/common/lifecycle';
-import { IInstantiationService, ServicesAccessor } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { DisposableStore, IDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService, ServicesAccessor } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import * as commands from './commands';
 import { ChatStatusWorkspaceIndexingStatus } from './workspaceIndexingStatus';
 

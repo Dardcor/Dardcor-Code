@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as net from 'net';
-import { CancellationToken } from '../vs/base/common/cancellation';
+import { CancellationToken } from '../dardcor/base/common/cancellation';
 
 function dispose(socket: net.Socket): void {
 	try {

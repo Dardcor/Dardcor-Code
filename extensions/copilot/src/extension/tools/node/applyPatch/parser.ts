@@ -19,8 +19,8 @@
 import type { TextDocument } from 'vscode';
 import { AbstractDocumentWithLanguageId } from '../../../../platform/editing/common/abstractText';
 import { getFilepathComment } from '../../../../util/common/markdown';
-import { computeLevenshteinDistance } from '../../../../util/vs/base/common/diff/diff';
-import { count, isFalsyOrWhitespace } from '../../../../util/vs/base/common/strings';
+import { computeLevenshteinDistance } from '../../../../util/dardcor/base/common/diff/diff';
+import { count, isFalsyOrWhitespace } from '../../../../util/dardcor/base/common/strings';
 import { Lines } from '../../../prompt/node/editGeneration';
 import { computeIndentLevel2, getIndentationChar, guessIndentation, IGuessedIndentation, transformIndentation } from '../../../prompt/node/indentationGuesser';
 import {

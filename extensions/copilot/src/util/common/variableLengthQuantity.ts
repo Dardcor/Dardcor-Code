@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { VSBuffer } from '../vs/base/common/buffer';
+import { VSBuffer } from '../dardcor/base/common/buffer';
 
 /** Reads a 32-bit integer from the buffer */
 export function readVariableLengthQuantity(buffer: VSBuffer, offset: number): { value: number; consumed: number } {

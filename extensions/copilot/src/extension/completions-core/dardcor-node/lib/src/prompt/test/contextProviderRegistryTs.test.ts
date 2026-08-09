@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import assert from 'assert';
-import { ServicesAccessor } from '../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { ServicesAccessor } from '../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { TelemetryWithExp } from '../../telemetry';
 import { createLibTestingContext } from '../../test/context';
 import { ActiveExperiments } from '../contextProviderRegistry';

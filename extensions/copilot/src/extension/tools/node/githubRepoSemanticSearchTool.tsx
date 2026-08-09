@@ -16,11 +16,11 @@ import { GithubAvailableEmbeddingTypesService, IGithubAvailableEmbeddingTypesSer
 import { Result } from '../../../util/common/result';
 import { TelemetryCorrelationId } from '../../../util/common/telemetryCorrelationId';
 import { isLocation, isUri } from '../../../util/common/types';
-import { raceCancellationError, timeout } from '../../../util/vs/base/common/async';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { URI } from '../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
-import { ExtendedLanguageModelToolResult, LanguageModelPromptTsxPart, MarkdownString } from '../../../vscodeTypes';
+import { raceCancellationError, timeout } from '../../../util/dardcor/base/common/async';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { ExtendedLanguageModelToolResult, LanguageModelPromptTsxPart, MarkdownString } from '../../../dardcorTypes';
 import { getUniqueReferences } from '../../prompt/common/conversation';
 import { renderPromptElementJSON } from '../../prompts/node/base/promptRenderer';
 import { WorkspaceChunkList } from '../../prompts/node/panel/workspace/workspaceContext';

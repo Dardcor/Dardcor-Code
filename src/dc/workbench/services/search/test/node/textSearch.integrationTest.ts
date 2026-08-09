@@ -13,7 +13,7 @@ import { flakySuite } from '../../../../../base/test/node/testUtils.js';
 import { deserializeSearchError, IFolderQuery, ISearchRange, ISerializedFileMatch, ITextQuery, ITextSearchContext, ITextSearchMatch, QueryType, SearchErrorCode } from '../../common/search.js';
 import { TextSearchEngineAdapter } from '../../node/textSearchAdapter.js';
 
-const TEST_FIXTURES = path.normalize(FileAccess.asFileUri('dc/workbench/services/search/test/node/fixtures').fsPath);
+const TEST_FIXTURES = path.normalize(FileAccess.asFileUri('vs/workbench/services/search/test/node/fixtures').fsPath);
 const EXAMPLES_FIXTURES = path.join(TEST_FIXTURES, 'examples');
 const MORE_FIXTURES = path.join(TEST_FIXTURES, 'more');
 const TEST_ROOT_FOLDER: IFolderQuery = { folder: URI.file(TEST_FIXTURES) };

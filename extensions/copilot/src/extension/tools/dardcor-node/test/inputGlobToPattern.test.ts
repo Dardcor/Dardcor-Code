@@ -8,9 +8,9 @@ import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { RelativePattern } from '../../../../platform/filesystem/common/fileTypes';
-import { IRemoteRepositoriesService } from '../../../../platform/remoteRepositories/vscode/remoteRepositories';
+import { IRemoteRepositoriesService } from '../../../../platform/remoteRepositories/dardcor/remoteRepositories';
 import { TestLogService } from '../../../../platform/testing/common/testLogService';
-import { ExtensionTextDocumentManager } from '../../../../platform/workspace/vscode/workspaceServiceImpl';
+import { ExtensionTextDocumentManager } from '../../../../platform/workspace/dardcor/workspaceServiceImpl';
 import { inputGlobToPattern } from '../../node/toolUtils';
 import { WorkingDirectory } from '../../../../platform/workspace/common/workingDirectory';
 

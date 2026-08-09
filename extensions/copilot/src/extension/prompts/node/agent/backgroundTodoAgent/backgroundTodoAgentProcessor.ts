@@ -8,9 +8,9 @@ import { IEndpointProvider } from '../../../../../lib/node/chatLibMain';
 import { ILogger, ILogService } from '../../../../../platform/log/common/logService';
 import { IChatEndpoint } from '../../../../../platform/networking/common/networking';
 import { ITelemetryService } from '../../../../../platform/telemetry/common/telemetry';
-import { LazyStatefulPromise, Queue } from '../../../../../util/vs/base/common/async';
-import { Disposable, MutableDisposable } from '../../../../../util/vs/base/common/lifecycle';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { LazyStatefulPromise, Queue } from '../../../../../util/dardcor/base/common/async';
+import { Disposable, MutableDisposable } from '../../../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { IBuildPromptContext } from '../../../../prompt/common/intents';
 import { ITodoListContextProvider } from '../../../../prompt/node/todoListContextProvider';
 import { ToolName } from '../../../../tools/common/toolNames';
@@ -20,7 +20,7 @@ import { BackgroundTodoAgentSessionHistoryStore, ReadOnlyTurnHistory } from './b
 import { ChatFetchResponseType, ChatLocation } from '../../../../../platform/chat/common/commonTypes';
 import { renderPromptElement } from '../../base/promptRenderer';
 import { BackgroundTodoPrompt } from './backgroundTodoAgentPrompt';
-import { CancellationTokenSource } from '../../../../../util/vs/base/common/cancellation';
+import { CancellationTokenSource } from '../../../../../util/dardcor/base/common/cancellation';
 
 /**
  * External state the policy needs but does not own.

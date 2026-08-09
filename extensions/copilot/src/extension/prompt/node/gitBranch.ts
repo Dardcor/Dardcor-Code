@@ -10,9 +10,9 @@ import { IEndpointProvider } from '../../../platform/endpoint/common/endpointPro
 import { ILogService } from '../../../platform/log/common/logService';
 import { CapturingToken } from '../../../platform/requestLogger/common/capturingToken';
 import { IRequestLogger } from '../../../platform/requestLogger/common/requestLogger';
-import { URI } from '../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
-import { ChatRequestTurn } from '../../../vscodeTypes';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { ChatRequestTurn } from '../../../dardcorTypes';
 import { renderPromptElement } from '../../prompts/node/base/promptRenderer';
 import { GitBranchPrompt } from '../../prompts/node/panel/gitBranch';
 

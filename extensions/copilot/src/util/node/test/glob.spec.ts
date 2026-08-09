@@ -6,7 +6,7 @@
 import assert from 'assert';
 import { suite, test } from 'vitest';
 import { isMatch } from '../../common/glob';
-import { URI } from '../../vs/base/common/uri';
+import { URI } from '../../dardcor/base/common/uri';
 
 suite('isMatch', () => {
 	test('issue #3377: should match URIs on Windows', () => {

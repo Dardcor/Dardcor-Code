@@ -13,10 +13,10 @@ import { ContextKind, ILanguageContextService, KnownSources, TriggerKind, type C
 import { ILogService } from '../../../platform/log/common/logService';
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
-import { Queue } from '../../../util/vs/base/common/async';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { DisposableStore } from '../../../util/vs/base/common/lifecycle';
-import { generateUuid } from '../../../util/vs/base/common/uuid';
+import { Queue } from '../../../util/dardcor/base/common/async';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { DisposableStore } from '../../../util/dardcor/base/common/lifecycle';
+import { generateUuid } from '../../../util/dardcor/base/common/uuid';
 import * as protocol from '../common/serverProtocol';
 import { InspectorDataProvider } from './inspector';
 import { ThrottledDebouncer } from './throttledDebounce';

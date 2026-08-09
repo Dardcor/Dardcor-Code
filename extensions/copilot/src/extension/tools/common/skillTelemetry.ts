@@ -6,8 +6,8 @@
 import { ICustomInstructionsService, ISkillInfo } from '../../../platform/customInstructions/common/customInstructionsService';
 import { IExtensionsService } from '../../../platform/extensions/common/extensionsService';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
-import { hash } from '../../../util/vs/base/common/hash';
-import { URI } from '../../../util/vs/base/common/uri';
+import { hash } from '../../../util/dardcor/base/common/hash';
+import { URI } from '../../../util/dardcor/base/common/uri';
 
 /**
  * Sends `skillContentRead` telemetry for a skill invocation.

@@ -9,8 +9,8 @@ import { NullLanguageContextProviderService } from '../../../../../../platform/l
 import { ILanguageDiagnosticsService } from '../../../../../../platform/languages/common/languageDiagnosticsService';
 import { TestLanguageDiagnosticsService } from '../../../../../../platform/languages/common/testLanguageDiagnosticsService';
 import { TestingServiceCollection } from '../../../../../../platform/test/node/services';
-import { SyncDescriptor } from '../../../../../../util/vs/platform/instantiation/common/descriptors';
-import { createExtensionTestingServices } from '../../../../../test/vscode-node/services';
+import { SyncDescriptor } from '../../../../../../util/dardcor/platform/instantiation/common/descriptors';
+import { createExtensionTestingServices } from '../../../../../test/dardcor-node/services';
 import { CompletionsTelemetryServiceBridge, ICompletionsTelemetryService } from '../../../bridge/src/completionsTelemetryServiceBridge';
 import { DocumentContext } from '../../../types/src';
 import { ICompletionsCopilotTokenManager } from '../auth/copilotTokenManager';

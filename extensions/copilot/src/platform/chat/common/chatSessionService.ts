@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { createServiceIdentifier } from '../../../util/common/services';
-import { Event } from '../../../util/vs/base/common/event';
+import { Event } from '../../../util/dardcor/base/common/event';
 
 export const IChatSessionService = createServiceIdentifier<IChatSessionService>('IChatSessionService');
 

@@ -5,7 +5,7 @@
 
 import * as assert from 'assert';
 import * as sinon from 'sinon';
-import { IInstantiationService, ServicesAccessor } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService, ServicesAccessor } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { FileReader } from '../fileReader';
 import { ICompletionsFileSystemService } from '../fileSystem';
 import { ICompletionsTextDocumentManagerService } from '../textDocumentManager';

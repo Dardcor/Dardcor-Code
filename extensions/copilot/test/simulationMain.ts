@@ -34,11 +34,11 @@ import { ParserWithCaching } from '../src/platform/parser/node/parserWithCaching
 import { structureComputer } from '../src/platform/parser/node/structure';
 import { NullTelemetryService } from '../src/platform/telemetry/common/nullTelemetryService';
 import { TokenizerProvider } from '../src/platform/tokenizer/node/tokenizer';
-import { assert } from '../src/util/vs/base/common/assert';
-import { CancellationToken } from '../src/util/vs/base/common/cancellation';
-import { DisposableStore } from '../src/util/vs/base/common/lifecycle';
-import { SyncDescriptor } from '../src/util/vs/platform/instantiation/common/descriptors';
-import { IInstantiationService } from '../src/util/vs/platform/instantiation/common/instantiation';
+import { assert } from '../src/util/dardcor/base/common/assert';
+import { CancellationToken } from '../src/util/dardcor/base/common/cancellation';
+import { DisposableStore } from '../src/util/dardcor/base/common/lifecycle';
+import { SyncDescriptor } from '../src/util/dardcor/platform/instantiation/common/descriptors';
+import { IInstantiationService } from '../src/util/dardcor/platform/instantiation/common/instantiation';
 import { Cache } from './base/cache';
 import { IChatMLCache } from './base/cachingChatMLFetcher';
 import { usedResourceCaches } from './base/cachingResourceFetcher';

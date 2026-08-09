@@ -16,10 +16,10 @@ import { ITelemetryService } from '../../../platform/telemetry/common/telemetry'
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
 import { extractCodeBlocks, filepathCodeBlockMarker } from '../../../util/common/markdown';
 import { extractNotebookOutline, INotebookSection } from '../../../util/common/notebooks';
-import { AsyncIterableObject, AsyncIterableSource, DeferredPromise } from '../../../util/vs/base/common/async';
-import { Lazy } from '../../../util/vs/base/common/lazy';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
-import { ChatResponseMarkdownPart, NotebookEdit, Uri, WorkspaceEdit } from '../../../vscodeTypes';
+import { AsyncIterableObject, AsyncIterableSource, DeferredPromise } from '../../../util/dardcor/base/common/async';
+import { Lazy } from '../../../util/dardcor/base/common/lazy';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { ChatResponseMarkdownPart, NotebookEdit, Uri, WorkspaceEdit } from '../../../dardcorTypes';
 import { ChatVariablesCollection } from '../../prompt/common/chatVariablesCollection';
 import { Turn } from '../../prompt/common/conversation';
 import { IBuildPromptContext } from '../../prompt/common/intents';

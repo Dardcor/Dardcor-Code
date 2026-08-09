@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { AgentInfo, Query } from '@anthropic-ai/claude-agent-sdk';
-import { Event } from '../../../../util/vs/base/common/event';
-import { createDecorator } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { Event } from '../../../../util/dardcor/base/common/event';
+import { createDecorator } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 
 export const IClaudeRuntimeDataService = createDecorator<IClaudeRuntimeDataService>('claudeRuntimeDataService');
 

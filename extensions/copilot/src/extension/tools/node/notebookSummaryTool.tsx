@@ -12,8 +12,8 @@ import { INotebookSummaryTracker } from '../../../platform/notebook/common/noteb
 import { IPromptPathRepresentationService } from '../../../platform/prompts/common/promptPathRepresentationService';
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
 import { findNotebook } from '../../../util/common/notebooks';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
-import { LanguageModelPromptTsxPart, LanguageModelToolResult, MarkdownString, NotebookCellKind, Position } from '../../../vscodeTypes';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { LanguageModelPromptTsxPart, LanguageModelToolResult, MarkdownString, NotebookCellKind, Position } from '../../../dardcorTypes';
 import { IBuildPromptContext } from '../../prompt/common/intents';
 import { renderPromptElementJSON } from '../../prompts/node/base/promptRenderer';
 import { NotebookVariables } from '../../prompts/node/panel/notebookVariables';

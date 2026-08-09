@@ -4,10 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { ITokenizer } from '../../../util/common/tokenizer';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { commonPrefixLength, isFalsyOrWhitespace, splitLines } from '../../../util/vs/base/common/strings';
-import { URI } from '../../../util/vs/base/common/uri';
-import { Range } from '../../../util/vs/editor/common/core/range';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { commonPrefixLength, isFalsyOrWhitespace, splitLines } from '../../../util/dardcor/base/common/strings';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { Range } from '../../../util/dardcor/editor/common/core/range';
 import { ITokenizerProvider, TokenizationEndpoint } from '../../tokenizer/node/tokenizer';
 import { FileChunk } from '../common/chunk';
 

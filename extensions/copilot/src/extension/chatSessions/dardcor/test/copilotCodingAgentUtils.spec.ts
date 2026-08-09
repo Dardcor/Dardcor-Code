@@ -5,8 +5,8 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 import { IGitService, RepoContext } from '../../../../platform/git/common/gitService';
-import { observableValue } from '../../../../util/vs/base/common/observableInternal/observables/observableValue';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { observableValue } from '../../../../util/dardcor/base/common/observableInternal/observables/observableValue';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { getRepoId } from '../copilotCodingAgentUtils';
 
 function makeRepoContext(overrides: Partial<RepoContext>): RepoContext {

@@ -6,7 +6,7 @@
 import * as l10n from '@vscode/l10n';
 import type { ChatResponseStream } from 'vscode';
 import { ILogService } from '../../../platform/log/common/logService';
-import { ChatHookType } from '../../../vscodeTypes';
+import { ChatHookType } from '../../../dardcorTypes';
 
 /**
  * Error thrown when a hook requests the agent to abort processing.

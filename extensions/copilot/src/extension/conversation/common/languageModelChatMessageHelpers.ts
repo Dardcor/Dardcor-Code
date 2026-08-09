@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 
-import { LanguageModelDataPart } from '../../../vscodeTypes';
+import { LanguageModelDataPart } from '../../../dardcorTypes';
 
 export enum ChatImageMimeType {
 	PNG = 'image/png',

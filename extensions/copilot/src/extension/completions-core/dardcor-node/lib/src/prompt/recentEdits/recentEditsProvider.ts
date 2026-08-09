@@ -6,8 +6,8 @@
 import { IObservableDocument } from '../../../../../../../platform/inlineEdits/common/observableWorkspace';
 import { autorunWithChanges } from '../../../../../../../platform/inlineEdits/common/utils/observable';
 import { createServiceIdentifier } from '../../../../../../../util/common/services';
-import { Disposable } from '../../../../../../../util/vs/base/common/lifecycle';
-import { mapObservableArrayCached } from '../../../../../../../util/vs/base/common/observableInternal';
+import { Disposable } from '../../../../../../../util/dardcor/base/common/lifecycle';
+import { mapObservableArrayCached } from '../../../../../../../util/dardcor/base/common/observableInternal';
 import { ICompletionsObservableWorkspace } from '../../completionsObservableWorkspace';
 import {
 	getAllRecentEditsByTimestamp,

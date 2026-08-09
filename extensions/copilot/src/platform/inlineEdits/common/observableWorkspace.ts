@@ -3,13 +3,13 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { assert } from '../../../util/vs/base/common/assert';
-import { Disposable, toDisposable } from '../../../util/vs/base/common/lifecycle';
-import { autorunWithStore, derivedHandleChanges, derivedWithStore, IObservable, IObservableWithChange, ISettableObservable, ITransaction, observableValue, runOnChange, subtransaction } from '../../../util/vs/base/common/observableInternal';
-import { URI } from '../../../util/vs/base/common/uri';
-import { StringEdit, StringReplacement } from '../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../util/vs/editor/common/core/ranges/offsetRange';
-import { StringText } from '../../../util/vs/editor/common/core/text/abstractText';
+import { assert } from '../../../util/dardcor/base/common/assert';
+import { Disposable, toDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { autorunWithStore, derivedHandleChanges, derivedWithStore, IObservable, IObservableWithChange, ISettableObservable, ITransaction, observableValue, runOnChange, subtransaction } from '../../../util/dardcor/base/common/observableInternal';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { StringEdit, StringReplacement } from '../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { StringText } from '../../../util/dardcor/editor/common/core/text/abstractText';
 import { DiagnosticData } from './dataTypes/diagnosticData';
 import { DocumentId } from './dataTypes/documentId';
 import { LanguageId } from './dataTypes/languageId';

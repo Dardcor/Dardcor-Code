@@ -145,6 +145,7 @@ suite('ChatEditorInput', () => {
 		const store = disposables.add(new DisposableStore());
 		const instantiationService = store.add(new TestInstantiationService());
 		const configurationService = new TestConfigurationService({
+			// @ts-ignore
 			[ChatConfiguration.CopilotCliHideExtensionHostEditor]: true,
 		});
 		const chatSessionsService = new MockChatSessionsService();

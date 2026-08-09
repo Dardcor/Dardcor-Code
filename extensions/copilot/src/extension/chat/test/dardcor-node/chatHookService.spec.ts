@@ -8,7 +8,7 @@ import type { ChatHookCommand, ChatHookResult, ChatHookResultKind, ChatRequestHo
 import { IPostToolUseHookResult, IPreToolUseHookResult } from '../../../../platform/chat/common/chatHookService';
 import { HookCommandResultKind, IHookCommandResult } from '../../../../platform/chat/common/hookExecutor';
 import { IToolValidationResult } from '../../../tools/common/toolsService';
-import { isCompatibleHookEventName } from '../../vscode-node/chatHookService';
+import { isCompatibleHookEventName } from '../../dardcor-node/chatHookService';
 
 function cmd(command: string, cwd?: Uri): ChatHookCommand {
 	return { command, cwd } as ChatHookCommand;

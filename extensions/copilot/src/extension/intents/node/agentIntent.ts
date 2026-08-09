@@ -34,15 +34,15 @@ import { ITelemetryService } from '../../../platform/telemetry/common/telemetry'
 import { ITestProvider } from '../../../platform/testing/common/testProvider';
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
 
-import { findLast } from '../../../util/vs/base/common/arraysFind';
-import { raceTimeout } from '../../../util/vs/base/common/async';
-import { isCancellationError } from '../../../util/vs/base/common/errors';
-import { Iterable } from '../../../util/vs/base/common/iterator';
-import { DisposableMap, DisposableStore } from '../../../util/vs/base/common/lifecycle';
-import { IInstantiationService, ServicesAccessor } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { findLast } from '../../../util/dardcor/base/common/arraysFind';
+import { raceTimeout } from '../../../util/dardcor/base/common/async';
+import { isCancellationError } from '../../../util/dardcor/base/common/errors';
+import { Iterable } from '../../../util/dardcor/base/common/iterator';
+import { DisposableMap, DisposableStore } from '../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService, ServicesAccessor } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 
 import { IAuthenticationService } from '../../../platform/authentication/common/authentication';
-import { ChatResponseAutoModeResolutionPart, ChatResponseProgressPart2 } from '../../../vscodeTypes';
+import { ChatResponseAutoModeResolutionPart, ChatResponseProgressPart2 } from '../../../dardcorTypes';
 import { ICommandService } from '../../commands/node/commandService';
 import { Intent } from '../../common/constants';
 import { ChatVariablesCollection } from '../../prompt/common/chatVariablesCollection';

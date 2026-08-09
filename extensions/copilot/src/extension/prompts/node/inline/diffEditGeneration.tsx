@@ -5,8 +5,8 @@
 
 import { PromptElement } from '@vscode/prompt-tsx';
 import { extractCodeBlocks } from '../../../../util/common/markdown';
-import { splitLines } from '../../../../util/vs/base/common/strings';
-import { TextEdit } from '../../../../vscodeTypes';
+import { splitLines } from '../../../../util/dardcor/base/common/strings';
+import { TextEdit } from '../../../../dardcorTypes';
 import { OutcomeAnnotation } from '../../../inlineChat/node/promptCraftingTypes';
 import { createEditsFromPseudoDiff } from '../../../prompt/node/editFromDiffGeneration';
 import { LineRange, Lines, LinesEdit } from '../../../prompt/node/editGeneration';

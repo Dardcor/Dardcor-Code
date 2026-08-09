@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { sanitizeVSCodeVersion } from '../../../util/common/vscodeVersion';
+import { sanitizeVSCodeVersion } from '../../../util/common/dardcorVersion';
 import { IEnvService } from '../../env/common/envService';
 import { IFetcherService } from '../../networking/common/fetcherService';
 import { IReleaseNotesService } from '../common/releaseNotesService';

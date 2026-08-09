@@ -23,11 +23,11 @@ import { IReviewService, ReviewComment } from '../../../platform/review/common/r
 import { IScopeSelector } from '../../../platform/scopeSelection/common/scopeSelection';
 import { ITabsAndEditorsService } from '../../../platform/tabs/common/tabsAndEditorsService';
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
-import { CancellationToken, CancellationTokenSource } from '../../../util/vs/base/common/cancellation';
-import { isCancellationError } from '../../../util/vs/base/common/errors';
-import * as path from '../../../util/vs/base/common/path';
-import { URI } from '../../../util/vs/base/common/uri';
-import { IInstantiationService, ServicesAccessor } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken, CancellationTokenSource } from '../../../util/dardcor/base/common/cancellation';
+import { isCancellationError } from '../../../util/dardcor/base/common/errors';
+import * as path from '../../../util/dardcor/base/common/path';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { IInstantiationService, ServicesAccessor } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { FeedbackGenerator, FeedbackResult } from '../../prompt/node/feedbackGenerator';
 import { CurrentChange, CurrentChangeInput } from '../../prompts/node/feedback/currentChange';
 import { githubReview, githubReviewFileUris } from './githubReviewAgent';

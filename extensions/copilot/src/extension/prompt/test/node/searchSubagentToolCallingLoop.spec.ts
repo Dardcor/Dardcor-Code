@@ -12,10 +12,10 @@ import { IChatModelInformation } from '../../../../platform/endpoint/common/endp
 import { ChatEndpoint } from '../../../../platform/endpoint/node/chatEndpoint';
 import { SEARCH_AGENT_FAMILY, SearchAgentChatEndpoint } from '../../../../platform/endpoint/node/searchAgentChatEndpoint';
 import { IChatEndpoint } from '../../../../platform/networking/common/networking';
-import { CancellationTokenSource } from '../../../../util/vs/base/common/cancellation';
-import { DisposableStore } from '../../../../util/vs/base/common/lifecycle';
-import { generateUuid } from '../../../../util/vs/base/common/uuid';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationTokenSource } from '../../../../util/dardcor/base/common/cancellation';
+import { DisposableStore } from '../../../../util/dardcor/base/common/lifecycle';
+import { generateUuid } from '../../../../util/dardcor/base/common/uuid';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { MockChatHookService } from '../../../intents/test/node/mockChatHookService';
 import { Conversation, Turn } from '../../../prompt/common/conversation';
 import { IBuildPromptContext } from '../../../prompt/common/intents';

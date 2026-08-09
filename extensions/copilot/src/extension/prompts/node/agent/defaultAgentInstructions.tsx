@@ -10,7 +10,7 @@ import { isGpt5PlusFamily } from '../../../../platform/endpoint/common/chatModel
 import { IChatEndpoint } from '../../../../platform/networking/common/networking';
 import { IPromptPathRepresentationService } from '../../../../platform/prompts/common/promptPathRepresentationService';
 import { IExperimentationService } from '../../../../platform/telemetry/common/nullExperimentationService';
-import { LanguageModelToolMCPSource } from '../../../../vscodeTypes';
+import { LanguageModelToolMCPSource } from '../../../../dardcorTypes';
 import { agenticBrowserTools, ToolName } from '../../../tools/common/toolNames';
 import { IToolsService } from '../../../tools/common/toolsService';
 import { InstructionMessage } from '../base/instructionMessage';

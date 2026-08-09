@@ -18,9 +18,9 @@ import { NesXtabHistoryTracker } from '../../src/platform/inlineEdits/common/wor
 import { INotebookService } from '../../src/platform/notebook/common/notebookService';
 import { IExperimentationService } from '../../src/platform/telemetry/common/nullExperimentationService';
 import { IWorkspaceService } from '../../src/platform/workspace/common/workspaceService';
-import { CancellationToken } from '../../src/util/vs/base/common/cancellation';
-import { generateUuid } from '../../src/util/vs/base/common/uuid';
-import { IInstantiationService, ServicesAccessor } from '../../src/util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../src/util/dardcor/base/common/cancellation';
+import { generateUuid } from '../../src/util/dardcor/base/common/uuid';
+import { IInstantiationService, ServicesAccessor } from '../../src/util/dardcor/platform/instantiation/common/instantiation';
 
 export interface IGeneratedPrompt {
 	readonly system: string;

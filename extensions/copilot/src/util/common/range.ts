@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import * as vscodeTypes from '../../vscodeTypes';
+import * as vscodeTypes from '../../dardcorTypes';
 
 export function collapseRangeToStart(range: vscodeTypes.Range): vscodeTypes.Range {
 	return new vscodeTypes.Range(range.start, range.start);

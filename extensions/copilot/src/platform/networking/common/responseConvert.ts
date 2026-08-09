@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { assertNever } from '../../../util/vs/base/common/assert';
+import { assertNever } from '../../../util/dardcor/base/common/assert';
 import { IResponseDelta, ResponsePart, ResponsePartKind } from './fetch';
 
 /**

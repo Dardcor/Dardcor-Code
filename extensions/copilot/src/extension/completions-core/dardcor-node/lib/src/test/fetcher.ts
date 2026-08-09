@@ -9,7 +9,7 @@ import { ResponseStream } from '../../../../../../platform/nesFetch/common/respo
 import { jsonlStreamToCompletions } from '../../../../../../platform/nesFetch/node/streamTransformer';
 import { HeadersImpl } from '../../../../../../platform/networking/common/fetcherService';
 import { Result } from '../../../../../../util/common/result';
-import { CancellationToken } from '../../../../../../util/vs/base/common/cancellation';
+import { CancellationToken } from '../../../../../../util/dardcor/base/common/cancellation';
 import { FetchOptions, IAbortController, ICompletionsFetcherService, IHeaders, Response } from '../networking';
 
 type HeadersParameter = { [key: string]: string };

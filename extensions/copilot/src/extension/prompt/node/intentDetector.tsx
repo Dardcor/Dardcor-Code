@@ -17,9 +17,9 @@ import { ITabsAndEditorsService } from '../../../platform/tabs/common/tabsAndEdi
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
 import { isNotebookCellOrNotebookChatInput } from '../../../util/common/notebooks';
-import { isFalsyOrEmpty } from '../../../util/vs/base/common/arrays';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
-import { Position, Range } from '../../../vscodeTypes';
+import { isFalsyOrEmpty } from '../../../util/dardcor/base/common/arrays';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { Position, Range } from '../../../dardcorTypes';
 import { getAgentForIntent, GITHUB_PLATFORM_AGENT, Intent } from '../../common/constants';
 import { IIntentService } from '../../intents/node/intentService';
 import { UnknownIntent } from '../../intents/node/unknownIntent';

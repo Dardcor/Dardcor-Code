@@ -17,9 +17,9 @@ import { FinishedCallback, ICopilotToolCall, IResponseDelta, OptionalChatRequest
 import { ChoiceLogProbs, rawMessageToCAPI } from '../../src/platform/networking/common/openai';
 import { LcsDiff, LineSequence } from '../../src/util/common/diff';
 import { LockMap } from '../../src/util/common/lock';
-import { BugIndicatingError } from '../../src/util/vs/base/common/errors';
-import { SyncDescriptor } from '../../src/util/vs/platform/instantiation/common/descriptors';
-import { IInstantiationService } from '../../src/util/vs/platform/instantiation/common/instantiation';
+import { BugIndicatingError } from '../../src/util/dardcor/base/common/errors';
+import { SyncDescriptor } from '../../src/util/dardcor/platform/instantiation/common/descriptors';
+import { IInstantiationService } from '../../src/util/dardcor/platform/instantiation/common/instantiation';
 import { CHAT_ML_CACHE_SALT_PER_MODEL } from '../cacheSalt';
 import { IJSONOutputPrinter } from '../jsonOutputPrinter';
 import { OutputType } from '../simulation/shared/sharedTypes';

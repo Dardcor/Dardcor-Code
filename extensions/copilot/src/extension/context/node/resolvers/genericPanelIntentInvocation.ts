@@ -8,7 +8,7 @@ import { BasePromptElementProps } from '@vscode/prompt-tsx';
 import type * as vscode from 'vscode';
 import { ChatLocation } from '../../../../platform/chat/common/commonTypes';
 import { IChatEndpoint } from '../../../../platform/networking/common/networking';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { IBuildPromptContext } from '../../../prompt/common/intents';
 import { IDocumentContext } from '../../../prompt/node/documentContext';
 import { IIntent, IIntentInvocation } from '../../../prompt/node/intents';

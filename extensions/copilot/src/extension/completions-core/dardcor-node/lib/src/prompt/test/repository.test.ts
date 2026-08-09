@@ -10,7 +10,7 @@ import path from 'path';
 import { createLibTestingContext } from '../../test/context';
 import { makeFsUri } from '../../util/uri';
 import { extractRepoInfo } from '../repository';
-import { IInstantiationService } from '../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 
 function findGitRoot(startDir: string): string {
 	let dir = startDir;

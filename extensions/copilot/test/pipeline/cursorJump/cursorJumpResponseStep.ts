@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { OffsetRange } from '../../../src/util/vs/editor/common/core/ranges/offsetRange';
+import { OffsetRange } from '../../../src/util/dardcor/editor/common/core/ranges/offsetRange';
 import { ICrossFileJump, ISameFileJump, normalizeRelativePathForModel } from './detectJump';
 
 export interface ISameFileGeneratedResponse {

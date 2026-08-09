@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { createServiceIdentifier } from '../../../util/common/services';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { Uri } from '../../../vscodeTypes';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { Uri } from '../../../dardcorTypes';
 import { ITokenizerProvider, TokenizationEndpoint } from '../../tokenizer/node/tokenizer';
 import { FileChunk } from '../common/chunk';
 import { MAX_CHUNK_SIZE_TOKENS, NaiveChunker } from './naiveChunker';

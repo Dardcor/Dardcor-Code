@@ -17,10 +17,10 @@ import { IExperimentationService } from '../../../platform/telemetry/common/null
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
 import { WorkingDirectory } from '../../../platform/workspace/common/workingDirectory';
 import { ChatResponseStreamImpl } from '../../../util/common/chatResponseStreamImpl';
-import { URI } from '../../../util/vs/base/common/uri';
-import { generateUuid } from '../../../util/vs/base/common/uuid';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
-import { ChatResponseNotebookEditPart, ChatResponseTextEditPart, ChatToolInvocationPart, ExtendedLanguageModelToolResult, LanguageModelTextPart, MarkdownString, Range } from '../../../vscodeTypes';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { generateUuid } from '../../../util/dardcor/base/common/uuid';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { ChatResponseNotebookEditPart, ChatResponseTextEditPart, ChatToolInvocationPart, ExtendedLanguageModelToolResult, LanguageModelTextPart, MarkdownString, Range } from '../../../dardcorTypes';
 import { Conversation, Turn } from '../../prompt/common/conversation';
 import { IBuildPromptContext } from '../../prompt/common/intents';
 import type { IToolCallLoopResult } from '../../intents/node/toolCallingLoop';

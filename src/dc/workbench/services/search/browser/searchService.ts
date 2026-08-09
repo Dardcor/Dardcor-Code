@@ -191,7 +191,7 @@ export class LocalFileSearchWorkerClient extends Disposable implements ISearchRe
 			try {
 				this._worker = this._register(this.webWorkerService.createWorkerClient<ILocalFileSearchWorker>(
 					new WebWorkerDescriptor({
-						esmModuleLocation: FileAccess.asBrowserUri('dc/workbench/services/search/worker/localFileSearchMain.js'),
+						esmModuleLocation: FileAccess.asBrowserUri('vs/workbench/services/search/worker/localFileSearchMain.js'),
 						label: 'LocalFileSearchWorker'
 					})
 				));

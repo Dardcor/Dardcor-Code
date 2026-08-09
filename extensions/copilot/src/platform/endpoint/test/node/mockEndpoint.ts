@@ -6,8 +6,8 @@
 import { Raw } from '@vscode/prompt-tsx';
 import { modelSupportsToolSearch } from '../../common/chatModelCapabilities';
 import { ITokenizer, TokenizerType } from '../../../../util/common/tokenizer';
-import { AsyncIterableObject } from '../../../../util/vs/base/common/async';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
+import { AsyncIterableObject } from '../../../../util/dardcor/base/common/async';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
 import { IChatMLFetcher, Source } from '../../../chat/common/chatMLFetcher';
 import { ChatLocation, ChatResponse } from '../../../chat/common/commonTypes';
 import { CHAT_MODEL } from '../../../configuration/common/configurationService';

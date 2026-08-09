@@ -5,10 +5,10 @@
 
 import { FileSystem, NotebookData, NotebookDocument, ResourceTrustRequestOptions, TextDocument, Uri, window, workspace, WorkspaceFolder, WorkspaceTrustRequestOptions, type WorkspaceEdit } from 'vscode';
 import { findNotebook } from '../../../util/common/notebooks';
-import { URI } from '../../../util/vs/base/common/uri';
+import { URI } from '../../../util/dardcor/base/common/uri';
 import { ILogService } from '../../log/common/logService';
 import { isGitHubRemoteRepository } from '../../remoteRepositories/common/utils';
-import { IRemoteRepositoriesService } from '../../remoteRepositories/vscode/remoteRepositories';
+import { IRemoteRepositoriesService } from '../../remoteRepositories/dardcor/remoteRepositories';
 import { AbstractWorkspaceService } from '../common/workspaceService';
 
 export class ExtensionTextDocumentManager extends AbstractWorkspaceService {

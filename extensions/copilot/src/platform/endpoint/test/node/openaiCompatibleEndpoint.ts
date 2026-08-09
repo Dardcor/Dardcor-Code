@@ -5,7 +5,7 @@
 
 import { OpenAI } from '@vscode/prompt-tsx';
 import { TokenizerType } from '../../../../util/common/tokenizer';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { IAuthenticationService } from '../../../authentication/common/authentication';
 import { IChatMLFetcher } from '../../../chat/common/chatMLFetcher';
 import { IConfigurationService } from '../../../configuration/common/configurationService';

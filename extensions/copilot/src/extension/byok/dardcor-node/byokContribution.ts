@@ -7,8 +7,8 @@ import { IAuthenticationService } from '../../../platform/authentication/common/
 import { IVSCodeExtensionContext } from '../../../platform/extContext/common/extensionContext';
 import { ILogService } from '../../../platform/log/common/logService';
 import { IFetcherService } from '../../../platform/networking/common/fetcherService';
-import { Disposable, DisposableStore } from '../../../util/vs/base/common/lifecycle';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { Disposable, DisposableStore } from '../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { BYOKKnownModels, isClientBYOKAllowed } from '../../byok/common/byokProvider';
 import { IExtensionContribution } from '../../common/contributions';
 import { AbstractLanguageModelChatProvider } from './abstractLanguageModelChatProvider';

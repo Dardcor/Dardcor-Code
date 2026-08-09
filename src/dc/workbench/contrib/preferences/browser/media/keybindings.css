@@ -45,11 +45,11 @@
 
 /* Editor decorations */
 .monaco-editor .keybindingInfo {
-	box-shadow:	inset 0 0 0 1px #7C4DFF;
-	background-color: rgba(74, 20, 140, 0.2);
+	box-shadow:	inset 0 0 0 1px #B9B9B9;
+	background-color: rgba(100, 100, 250, 0.2);
 }
 
 .monaco-editor .keybindingError {
-	box-shadow:	inset 0 0 0 1px #7C4DFF;
-	background-color: rgba(190, 17, 0, 0.2);
+	box-shadow:	inset 0 0 0 1px #B9B9B9;
+	background-color: rgba(250, 100, 100, 0.2);
 }

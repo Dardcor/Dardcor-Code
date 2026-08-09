@@ -3,11 +3,11 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { URI } from '../../../util/vs/base/common/uri';
-import { StringEdit, StringReplacement } from '../../../util/vs/editor/common/core/edits/stringEdit';
-import { StringText } from '../../../util/vs/editor/common/core/text/abstractText';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { StringEdit, StringReplacement } from '../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { StringText } from '../../../util/dardcor/editor/common/core/text/abstractText';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ILogService } from '../../log/common/logService';
 import * as SnippyCompute from './snippyCompute';
 import { SnippyFetchService } from './snippyFetcher';

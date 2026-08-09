@@ -10,16 +10,16 @@ import { InlineEditRequestLogContext } from '../../../../platform/inlineEdits/co
 import { ObservableGit } from '../../../../platform/inlineEdits/common/observableGit';
 import { ILogService, ILogger } from '../../../../platform/log/common/logService';
 import { ErrorUtils } from '../../../../util/common/errors';
-import { raceCancellation, timeout } from '../../../../util/vs/base/common/async';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { BugIndicatingError } from '../../../../util/vs/base/common/errors';
-import { Disposable, DisposableStore } from '../../../../util/vs/base/common/lifecycle';
-import { StringReplacement } from '../../../../util/vs/editor/common/core/edits/stringEdit';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { raceCancellation, timeout } from '../../../../util/dardcor/base/common/async';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { BugIndicatingError } from '../../../../util/dardcor/base/common/errors';
+import { Disposable, DisposableStore } from '../../../../util/dardcor/base/common/lifecycle';
+import { StringReplacement } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { INextEditProvider, NESInlineCompletionContext, NesOutcome } from '../../node/nextEditProvider';
 import { DiagnosticsTelemetryBuilder } from '../../node/nextEditProviderTelemetry';
 import { INextEditDisplayLocation, INextEditResult } from '../../node/nextEditResult';
-import { VSCodeWorkspace } from '../parts/vscodeWorkspace';
+import { VSCodeWorkspace } from '../parts/dardcorWorkspace';
 import { DiagnosticCompletionItem } from './diagnosticsBasedCompletions/diagnosticsCompletions';
 import { DiagnosticCompletionState, DiagnosticsCompletionProcessor } from './diagnosticsCompletionProcessor';
 

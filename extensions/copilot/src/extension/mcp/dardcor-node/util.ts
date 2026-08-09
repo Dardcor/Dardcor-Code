@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as cp from 'child_process';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
 
 export interface ICommandExecutor {
 	executeWithTimeout(

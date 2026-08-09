@@ -6,7 +6,7 @@ import { SnapshotClient } from '@vitest/snapshot';
 import { NodeSnapshotEnvironment } from '@vitest/snapshot/environment';
 import * as assert from 'assert';
 import { createServiceIdentifier } from '../../src/util/common/services';
-import { Lazy } from '../../src/util/vs/base/common/lazy';
+import { Lazy } from '../../src/util/dardcor/base/common/lazy';
 
 export const ITestSnapshots = createServiceIdentifier<ITestSnapshots>('ITestSnapshots');
 

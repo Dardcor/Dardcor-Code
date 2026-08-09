@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { StringEdit, StringReplacement } from '../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../util/vs/editor/common/core/ranges/offsetRange';
+import { StringEdit, StringReplacement } from '../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../util/dardcor/editor/common/core/ranges/offsetRange';
 
 export type LogDocumentId = number;
 

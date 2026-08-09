@@ -5,9 +5,9 @@
 
 import * as vscode from 'vscode';
 import { ITasksService } from '../../../platform/tasks/common/tasksService';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { URI } from '../../../util/vs/base/common/uri';
-import { generateSTest } from '../../conversation/vscode-node/feedbackReporter';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { generateSTest } from '../../conversation/dardcor-node/feedbackReporter';
 import { IConversationStore } from '../../conversationStore/node/conversationStore';
 import { ILaunchConfigService, needsWorkspaceFolderForTaskError } from '../../onboardDebug/common/launchConfigService';
 import { IStartDebuggingParsedResponse } from '../../onboardDebug/node/parseLaunchConfigFromResponse';

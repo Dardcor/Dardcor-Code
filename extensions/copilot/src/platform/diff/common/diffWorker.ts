@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { DefaultLinesDiffComputer } from '../../../util/vs/editor/common/diff/defaultLinesDiffComputer/defaultLinesDiffComputer';
-import { ILinesDiffComputerOptions } from '../../../util/vs/editor/common/diff/linesDiffComputer';
-import { DetailedLineRangeMapping } from '../../../util/vs/editor/common/diff/rangeMapping';
+import { DefaultLinesDiffComputer } from '../../../util/dardcor/editor/common/diff/defaultLinesDiffComputer/defaultLinesDiffComputer';
+import { ILinesDiffComputerOptions } from '../../../util/dardcor/editor/common/diff/linesDiffComputer';
+import { DetailedLineRangeMapping } from '../../../util/dardcor/editor/common/diff/rangeMapping';
 
 
 export async function computeDiff(original: string, modified: string, options: ILinesDiffComputerOptions): Promise<IDiffComputationResult> {

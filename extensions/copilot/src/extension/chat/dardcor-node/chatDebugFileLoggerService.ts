@@ -15,10 +15,10 @@ import { CopilotChatAttr, GenAiAttr, GenAiOperationName } from '../../../platfor
 import { ICompletedSpanData, IOTelService, ISpanEventData, SpanStatusCode } from '../../../platform/otel/common/otelService';
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
-import { Emitter } from '../../../util/vs/base/common/event';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { extUriBiasedIgnorePathCase } from '../../../util/vs/base/common/resources';
-import { URI } from '../../../util/vs/base/common/uri';
+import { Emitter } from '../../../util/dardcor/base/common/event';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { extUriBiasedIgnorePathCase } from '../../../util/dardcor/base/common/resources';
+import { URI } from '../../../util/dardcor/base/common/uri';
 import { IExtensionContribution } from '../../common/contributions';
 
 const DEBUG_LOGS_DIR_NAME = 'debug-logs';

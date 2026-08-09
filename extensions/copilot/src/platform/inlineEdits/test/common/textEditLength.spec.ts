@@ -5,8 +5,8 @@
 
 
 import { describe, expect, it } from 'vitest';
-import { Range } from '../../../../util/vs/editor/common/core/range';
-import { TextLength } from '../../../../util/vs/editor/common/core/text/textLength';
+import { Range } from '../../../../util/dardcor/editor/common/core/range';
+import { TextLength } from '../../../../util/dardcor/editor/common/core/text/textLength';
 import { SingleTextEditLength, TextLengthEdit } from '../../common/dataTypes/textEditLength';
 
 describe('getRange', () => {

@@ -7,7 +7,7 @@ import { Dropdown, Option, OptionOnSelectData, SelectionEvents } from '@fluentui
 import * as mobx from 'mobx';
 import * as mobxlite from 'mobx-react-lite';
 import * as React from 'react';
-import { assertType } from '../../../../src/util/vs/base/common/types';
+import { assertType } from '../../../../src/util/dardcor/base/common/types';
 import { SimulationTestsProvider } from '../stores/simulationTestsProvider';
 import { useInternalToolbarPickerStyles } from './pickerStyle';
 

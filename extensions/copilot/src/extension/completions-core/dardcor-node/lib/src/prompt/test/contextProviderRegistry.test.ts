@@ -7,8 +7,8 @@ import assert from 'assert';
 import Sinon from 'sinon';
 import { CancellationToken, CancellationTokenSource } from 'vscode-languageserver-protocol';
 import { TestingServiceCollection } from '../../../../../../../platform/test/node/services';
-import { SyncDescriptor } from '../../../../../../../util/vs/platform/instantiation/common/descriptors';
-import { ServicesAccessor } from '../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { SyncDescriptor } from '../../../../../../../util/dardcor/platform/instantiation/common/descriptors';
+import { ServicesAccessor } from '../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import {
 	ContextProvider,
 	ContextUsageStatistics,

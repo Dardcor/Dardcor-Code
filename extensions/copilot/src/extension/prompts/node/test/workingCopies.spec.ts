@@ -5,8 +5,8 @@
 
 import assert from 'assert';
 import { suite, test } from 'vitest';
-import { StringEdit, StringReplacement } from '../../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
+import { StringEdit, StringReplacement } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
 import { WorkingCopyOriginalDocument } from '../inline/workingCopies';
 
 suite('WorkingCopyOriginalDocument', () => {

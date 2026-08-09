@@ -5,8 +5,8 @@
 
 import type { WorkspaceConfiguration } from 'vscode';
 import * as vscode from 'vscode';
-import { DisposableStore, IDisposable } from '../../../../../util/vs/base/common/lifecycle';
-import { IInstantiationService, ServicesAccessor } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { DisposableStore, IDisposable } from '../../../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService, ServicesAccessor } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import {
 	ConfigKey,
 	ConfigKeyType,
@@ -21,7 +21,7 @@ import {
 import { CopilotConfigPrefix } from '../../lib/src/constants';
 import { Logger } from '../../lib/src/logger';
 import { transformEvent } from '../../lib/src/util/event';
-import { Schemas } from '../../../../../util/vs/base/common/network';
+import { Schemas } from '../../../../../util/dardcor/base/common/network';
 
 const logger = new Logger('extensionConfig');
 

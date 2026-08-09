@@ -13,13 +13,13 @@ import { NullNativeEnvService } from '../../../../../platform/env/common/nullEnv
 import { ILogService } from '../../../../../platform/log/common/logService';
 import type { IPromptsService } from '../../../../../platform/promptFiles/common/promptsService';
 import { IWorkspaceService } from '../../../../../platform/workspace/common/workspaceService';
-import { Event } from '../../../../../util/vs/base/common/event';
-import { DisposableStore } from '../../../../../util/vs/base/common/lifecycle';
-import { URI } from '../../../../../util/vs/base/common/uri';
+import { Event } from '../../../../../util/dardcor/base/common/event';
+import { DisposableStore } from '../../../../../util/dardcor/base/common/lifecycle';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
 import { createExtensionUnitTestingServices } from '../../../../test/node/services';
 import { CopilotCLISkills } from '../copilotCLISkills';
 import { MockPromptsService } from '../../../../../platform/promptFiles/test/common/mockPromptsService';
-import { CancellationToken } from '../../../../../util/vs/base/common/cancellation';
+import { CancellationToken } from '../../../../../util/dardcor/base/common/cancellation';
 
 const CopilotCLISkillsConstructor = CopilotCLISkills as unknown as new (
 	logService: ILogService,

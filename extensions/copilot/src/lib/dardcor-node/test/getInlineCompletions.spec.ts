@@ -11,18 +11,18 @@ import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { assert, describe, expect, it } from 'vitest';
 import type { AuthenticationGetSessionOptions, AuthenticationSession, ChatRequest, LanguageModelChat } from 'vscode';
-import { ResultType } from '../../../extension/completions-core/vscode-node/lib/src/ghostText/resultType';
-import { createTextDocument } from '../../../extension/completions-core/vscode-node/lib/src/test/textDocument';
-import { TextDocumentIdentifier } from '../../../extension/completions-core/vscode-node/lib/src/textDocument';
-import { TextDocumentChangeEvent, TextDocumentCloseEvent, TextDocumentFocusedEvent, TextDocumentOpenEvent, WorkspaceFoldersChangeEvent } from '../../../extension/completions-core/vscode-node/lib/src/textDocumentManager';
+import { ResultType } from '../../../extension/completions-core/dardcor-node/lib/src/ghostText/resultType';
+import { createTextDocument } from '../../../extension/completions-core/dardcor-node/lib/src/test/textDocument';
+import { TextDocumentIdentifier } from '../../../extension/completions-core/dardcor-node/lib/src/textDocument';
+import { TextDocumentChangeEvent, TextDocumentCloseEvent, TextDocumentFocusedEvent, TextDocumentOpenEvent, WorkspaceFoldersChangeEvent } from '../../../extension/completions-core/dardcor-node/lib/src/textDocumentManager';
 import { CopilotToken, createTestExtendedTokenInfo } from '../../../platform/authentication/common/copilotToken';
 import { ChatEndpointFamily, EmbeddingsEndpointFamily } from '../../../platform/endpoint/common/endpointProvider';
 import { MutableObservableWorkspace } from '../../../platform/inlineEdits/common/observableWorkspace';
 import { FetchOptions, IAbortController, IHeaders, PaginationOptions, Response } from '../../../platform/networking/common/fetcherService';
 import { IChatEndpoint, IEmbeddingsEndpoint, IFetcher } from '../../../platform/networking/common/networking';
-import { Emitter, Event } from '../../../util/vs/base/common/event';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { URI } from '../../../util/vs/base/common/uri';
+import { Emitter, Event } from '../../../util/dardcor/base/common/event';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { URI } from '../../../util/dardcor/base/common/uri';
 import { createInlineCompletionsProvider, IActionItem, IAuthenticationService, ICompletionsStatusChangedEvent, ICompletionsTextDocumentManager, IEndpointProvider, ILogTarget, ITelemetrySender, LogLevel } from '../../node/chatLibMain';
 
 class TestFetcher implements IFetcher {

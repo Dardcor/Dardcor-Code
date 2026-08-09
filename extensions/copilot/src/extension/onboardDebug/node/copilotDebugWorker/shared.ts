@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { DebugConfiguration } from 'vscode';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 
 export const enum StartResultKind {
 	NoConfig,

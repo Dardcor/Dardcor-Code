@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { StringEdit } from '../../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
+import { StringEdit } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
 import { IEventFetchEnd } from '../workspaceLog';
 
 export type Operation = DocumentSetContentOperation | DocumentOpenedOperation | DocumentClosedOperation

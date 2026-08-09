@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { Extension, Memento, Uri } from 'vscode';
-import { sanitizeVSCodeVersion } from '../../../util/common/vscodeVersion';
-import { isCI } from '../../../util/vs/base/common/platform';
-import { URI } from '../../../util/vs/base/common/uri';
+import { sanitizeVSCodeVersion } from '../../../util/common/dardcorVersion';
+import { isCI } from '../../../util/dardcor/base/common/platform';
+import { URI } from '../../../util/dardcor/base/common/uri';
 import { RemoteCacheType } from '../../embeddings/common/embeddingsIndex';
-import { SettingListItem } from '../../embeddings/common/vscodeIndex';
+import { SettingListItem } from '../../embeddings/common/dardcorIndex';
 import { IEnvService } from '../../env/common/envService';
 import { IVSCodeExtensionContext } from '../../extContext/common/extensionContext';
 import { IFileSystemService } from '../../filesystem/common/fileSystemService';

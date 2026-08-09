@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { afterEach, beforeEach, expect, suite, test } from 'vitest';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { SyncDescriptor } from '../../../../util/vs/platform/instantiation/common/descriptors';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { SyncDescriptor } from '../../../../util/dardcor/platform/instantiation/common/descriptors';
 import { ConfigKey, IConfigurationService } from '../../../configuration/common/configurationService';
 import { DefaultsOnlyConfigurationService } from '../../../configuration/common/defaultsOnlyConfigurationService';
 import { InMemoryConfigurationService } from '../../../configuration/test/common/inMemoryConfigurationService';

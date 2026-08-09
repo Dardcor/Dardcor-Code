@@ -7,8 +7,8 @@ import { PromptElement, PromptElementProps, PromptSizing, SystemMessage, UserMes
 import { ChatLocation } from '../../../../platform/chat/common/commonTypes';
 import { IEndpointProvider } from '../../../../platform/endpoint/common/endpointProvider';
 import { ILogService } from '../../../../platform/log/common/logService';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { PromptRenderer } from '../../../prompts/node/base/promptRenderer';
 
 

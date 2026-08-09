@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Duplex } from 'stream';
-import type { IDisposable } from '../../../../util/vs/base/common/lifecycle';
+import type { IDisposable } from '../../../../util/dardcor/base/common/lifecycle';
 import { StreamSplitter } from './streamSplitter';
 
 // JSON-RPC request object

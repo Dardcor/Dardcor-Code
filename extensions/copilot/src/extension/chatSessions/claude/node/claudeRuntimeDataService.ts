@@ -5,8 +5,8 @@
 
 import type { AgentInfo, Query } from '@anthropic-ai/claude-agent-sdk';
 import { ILogService } from '../../../../platform/log/common/logService';
-import { Emitter } from '../../../../util/vs/base/common/event';
-import { Disposable } from '../../../../util/vs/base/common/lifecycle';
+import { Emitter } from '../../../../util/dardcor/base/common/event';
+import { Disposable } from '../../../../util/dardcor/base/common/lifecycle';
 import { IClaudeRuntimeDataService } from '../common/claudeRuntimeDataService';
 
 export class ClaudeRuntimeDataService extends Disposable implements IClaudeRuntimeDataService {

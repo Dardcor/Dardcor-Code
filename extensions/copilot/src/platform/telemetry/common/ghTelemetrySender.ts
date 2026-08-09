@@ -5,8 +5,8 @@
 
 import type { TelemetryLogger } from 'vscode';
 import { redactPaths } from '../../../util/common/pathRedaction';
-import { DisposableStore } from '../../../util/vs/base/common/lifecycle';
-import { Mutable } from '../../../util/vs/base/common/types';
+import { DisposableStore } from '../../../util/dardcor/base/common/lifecycle';
+import { Mutable } from '../../../util/dardcor/base/common/types';
 import { CopilotToken } from '../../authentication/common/copilotToken';
 import { ICopilotTokenStore } from '../../authentication/common/copilotTokenStore';
 import { IConfigurationService } from '../../configuration/common/configurationService';

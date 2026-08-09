@@ -6,11 +6,11 @@
 import type { ChatQuestion, ChatResponseClearToPreviousToolInvocationReason, ChatResponsePart, ChatResponseStream, ChatVulnerability, ThinkingDelta, Uri } from 'vscode';
 
 import { createFilepathRegexp, mdCodeBlockLangToLanguageId } from '../../../util/common/markdown';
-import { CharCode } from '../../../util/vs/base/common/charCode';
-import { isFalsyOrWhitespace, splitLinesIncludeSeparators } from '../../../util/vs/base/common/strings';
+import { CharCode } from '../../../util/dardcor/base/common/charCode';
+import { isFalsyOrWhitespace, splitLinesIncludeSeparators } from '../../../util/dardcor/base/common/strings';
 
 import { IPromptPathRepresentationService } from '../../../platform/prompts/common/promptPathRepresentationService';
-import { ChatResponseCodeblockUriPart, ChatResponseMarkdownPart, ChatResponseMarkdownWithVulnerabilitiesPart, MarkdownString } from '../../../vscodeTypes';
+import { ChatResponseCodeblockUriPart, ChatResponseMarkdownPart, ChatResponseMarkdownWithVulnerabilitiesPart, MarkdownString } from '../../../dardcorTypes';
 import { CodeBlock } from '../../prompt/common/conversation';
 
 export type CodeBlockWithResource = { readonly code: string; readonly language?: string; readonly resource: Uri; readonly markdownBeforeBlock?: string };

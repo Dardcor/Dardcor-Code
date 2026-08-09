@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, expect, test } from 'vitest';
-import { URI } from '../../../../../util/vs/base/common/uri';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
 import { ChatVariablesCollection, getPromptFileSlashCommandId, parseSlashCommand, PromptFileIdPrefix, type PromptVariable } from '../../../../prompt/common/chatVariablesCollection';
 import { buildSlashCommandUserMessage } from '../chatVariables';
 

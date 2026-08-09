@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { NotebookCell, workspace } from 'vscode';
-import { Emitter } from '../../../util/vs/base/common/event';
-import { IDisposable } from '../../../util/vs/base/common/lifecycle';
+import { Emitter } from '../../../util/dardcor/base/common/event';
+import { IDisposable } from '../../../util/dardcor/base/common/lifecycle';
 
 export enum NotebookCellExecutionState {
 	/**

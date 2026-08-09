@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
-import * as path from '../../../../util/vs/base/common/path';
-import { URI } from '../../../../util/vs/base/common/uri';
+import * as path from '../../../../util/dardcor/base/common/path';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { ChatVariablesCollection } from '../../../prompt/common/chatVariablesCollection';
 import { IDocumentContext } from '../../../prompt/node/documentContext';
 

@@ -6,7 +6,7 @@
 import * as l10n from '@vscode/l10n';
 import * as vscode from 'vscode';
 import { ILogger } from '../../../../../platform/log/common/logService';
-import { Schemas } from '../../../../../util/vs/base/common/network';
+import { Schemas } from '../../../../../util/dardcor/base/common/network';
 import { ICopilotCLISessionTracker } from '../copilotCLISessionTracker';
 import { InProcHttpServer } from '../inProcHttpServer';
 import { getSelectionInfo } from '../tools';

@@ -11,7 +11,7 @@ import path from 'path';
 import { promisify } from 'util';
 import zlib from 'zlib';
 import { LockMap } from '../../src/util/common/lock';
-import { generateUuid } from '../../src/util/vs/base/common/uuid';
+import { generateUuid } from '../../src/util/dardcor/base/common/uuid';
 import { CurrentTestRunInfo } from './simulationContext';
 
 const compress = promisify(zlib.brotliCompress);

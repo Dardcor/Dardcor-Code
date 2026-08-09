@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IIgnoreService } from '../../../../../../../platform/ignore/common/ignoreService';
-import { IInstantiationService } from '../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { CancellationToken as ICancellationToken } from '../../../../types/src';
 import { ConfigKey, getConfig } from '../../config';
 import { ICompletionsFeaturesService } from '../../experiments/featuresService';

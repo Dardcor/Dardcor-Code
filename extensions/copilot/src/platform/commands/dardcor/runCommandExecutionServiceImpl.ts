@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { ITelemetryService } from '../../telemetry/common/telemetry';
 import { IRunCommandExecutionService } from '../common/runCommandExecutionService';
 

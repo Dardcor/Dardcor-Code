@@ -2,8 +2,8 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import { SyncDescriptor } from '../../../../../../util/vs/platform/instantiation/common/descriptors';
-import { createExtensionTestingServices } from '../../../../../test/vscode-node/services';
+import { SyncDescriptor } from '../../../../../../util/dardcor/platform/instantiation/common/descriptors';
+import { createExtensionTestingServices } from '../../../../../test/dardcor-node/services';
 import { ICompletionsEditorAndPluginInfo } from '../../../lib/src/config';
 import { ICompletionsFileSystemService } from '../../../lib/src/fileSystem';
 import { ICompletionsFetcherService } from '../../../lib/src/networking';

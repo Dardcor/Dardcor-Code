@@ -6,7 +6,7 @@
 import { IAuthenticationService } from '../../../../../../platform/authentication/common/authentication';
 import { CopilotToken } from '../../../../../../platform/authentication/common/copilotToken';
 import { createServiceIdentifier } from '../../../../../../util/common/services';
-import { Disposable } from '../../../../../../util/vs/base/common/lifecycle';
+import { Disposable } from '../../../../../../util/dardcor/base/common/lifecycle';
 import { onCopilotToken } from '../auth/copilotTokenNotifier';
 
 interface UserConfigProperties {

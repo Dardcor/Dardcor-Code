@@ -5,8 +5,8 @@
 
 import { CopilotNamedAnnotationList } from '../../../../../../platform/completions-core/common/openai/copilotAnnotations';
 import { RequestId } from '../../../../../../platform/networking/common/fetch';
-import { generateUuid } from '../../../../../../util/vs/base/common/uuid';
-import { ServicesAccessor } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { generateUuid } from '../../../../../../util/dardcor/base/common/uuid';
+import { ServicesAccessor } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { DEFAULT_MAX_COMPLETION_LENGTH } from '../../../prompt/src/prompt';
 import { logger } from '../logger';
 import { TelemetryWithExp, logEngineCompletion } from '../telemetry';

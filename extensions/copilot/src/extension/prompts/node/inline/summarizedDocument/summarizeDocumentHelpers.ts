@@ -9,8 +9,8 @@ import { NotebookDocumentSnapshot } from '../../../../../platform/editing/common
 import { TextDocumentSnapshot } from '../../../../../platform/editing/common/textDocumentSnapshot';
 import { OverlayNode } from '../../../../../platform/parser/node/nodes';
 import { IParserService } from '../../../../../platform/parser/node/parserService';
-import { StringEdit } from '../../../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../../../util/vs/editor/common/core/ranges/offsetRange';
+import { StringEdit } from '../../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../../../util/dardcor/editor/common/core/ranges/offsetRange';
 import { getStructure } from '../../../../context/node/resolvers/selectionContextHelpers';
 import { getAdjustedSelection } from '../adjustSelection';
 import { IDocumentSummarizationItem, ISummarizedDocumentSettings, ProjectedDocument, summarizeDocumentsSync } from './summarizeDocument';

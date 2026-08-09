@@ -5,8 +5,8 @@
 
 import { ImportChanges } from '../../../platform/inlineEdits/common/dataTypes/importFilteringOptions';
 import { StatelessNextEditDocument } from '../../../platform/inlineEdits/common/statelessNextEditProvider';
-import { coalesce } from '../../../util/vs/base/common/arrays';
-import { LineReplacement } from '../../../util/vs/editor/common/core/edits/lineEdit';
+import { coalesce } from '../../../util/dardcor/base/common/arrays';
+import { LineReplacement } from '../../../util/dardcor/editor/common/core/edits/lineEdit';
 import { isImportStatement } from '../../prompt/common/importStatement';
 
 export class IgnoreImportChangesAspect {

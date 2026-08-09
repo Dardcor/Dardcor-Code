@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as l10n from '@vscode/l10n';
-import * as arrays from '../vs/base/common/arrays';
-import * as types from '../vs/base/common/types';
+import * as arrays from '../dardcor/base/common/arrays';
+import * as types from '../dardcor/base/common/types';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 

@@ -2,7 +2,7 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import { ServicesAccessor } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { ServicesAccessor } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { Logger, logger } from './logger';
 import { isAbortError } from './networking';
 import { ICompletionsStatusReporter } from './progress';

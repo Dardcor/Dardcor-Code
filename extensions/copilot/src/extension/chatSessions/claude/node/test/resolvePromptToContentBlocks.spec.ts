@@ -6,8 +6,8 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import { describe, expect, it } from 'vitest';
 import type * as vscode from 'vscode';
-import { URI } from '../../../../../util/vs/base/common/uri';
-import { ChatReferenceBinaryData } from '../../../../../vscodeTypes';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
+import { ChatReferenceBinaryData } from '../../../../../dardcorTypes';
 import { TestChatRequest } from '../../../../test/node/testHelpers';
 import { resolvePromptToContentBlocks } from '../claudePromptResolver';
 

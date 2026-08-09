@@ -121,7 +121,9 @@ export abstract class EditSourceBase {
 				return this._cache.get(new UnknownEditSource());
 
 			case 'Chat.applyEdits':
-				return this._cache.get(new ChatEditSource('sidebar'));
+				return '$origin' in data && data.$origin === 'agentHost'
+					? this._cache.get(new AgentHostEditSource())
+					: this._cache.get(new ChatEditSource('sidebar'));
 			case 'inlineChat.applyEdits':
 				return this._cache.get(new ChatEditSource('inline'));
 			case 'cursor':
@@ -134,7 +136,7 @@ export abstract class EditSourceBase {
 	public abstract getColor(): string;
 }
 
-export type EditSource = InlineSuggestEditSource | ChatEditSource | IdeEditSource | UserEditSource | UnknownEditSource | ExternalEditSource;
+export type EditSource = InlineSuggestEditSource | ChatEditSource | AgentHostEditSource | IdeEditSource | UserEditSource | UnknownEditSource | ExternalEditSource;
 
 export class InlineSuggestEditSource extends EditSourceBase {
 	public readonly category = 'ai';
@@ -163,6 +165,15 @@ class ChatEditSource extends EditSourceBase {
 	public getColor(): string { return '#00ff0066'; }
 }
 
+class AgentHostEditSource extends EditSourceBase {
+	public readonly category = 'agentHost';
+	public readonly feature = 'chat';
+
+	override toString() { return `${this.category}/${this.feature}`; }
+
+	public getColor(): string { return '#00ff0066'; }
+}
+
 class IdeEditSource extends EditSourceBase {
 	public readonly category = 'ide';
 	constructor(
@@ -171,7 +182,7 @@ class IdeEditSource extends EditSourceBase {
 
 	override toString() { return `${this.category}/${this.feature}`; }
 
-	public getColor(): string { return this.feature === 'format' ? '#0000ff33' : '#3B0A5E33'; }
+	public getColor(): string { return this.feature === 'format' ? '#0000ff33' : '#80808033'; }
 }
 
 class UserEditSource extends EditSourceBase {

@@ -6,7 +6,7 @@
 import { Edits } from '../../src/platform/inlineEdits/common/dataTypes/edit';
 import { deserializeStringEdit, serializeStringEdit } from '../../src/platform/inlineEdits/common/dataTypes/editUtils';
 import type { ISerializedEdit } from '../../src/platform/workspaceRecorder/common/workspaceLog';
-import { StringEdit } from '../../src/util/vs/editor/common/core/edits/stringEdit';
+import { StringEdit } from '../../src/util/dardcor/editor/common/core/edits/stringEdit';
 
 export const ORACLE_EDIT_IDLE_MS = 5 * 1000;
 export const ORACLE_CURSOR_SUPPRESSION_MS = 200;

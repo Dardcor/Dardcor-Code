@@ -8,11 +8,11 @@ import { DocumentId } from '../../../../platform/inlineEdits/common/dataTypes/do
 import { LintOptions, LintOptionShowCode, LintOptionWarning } from '../../../../platform/inlineEdits/common/dataTypes/xtabPromptOptions';
 import { IXtabHistoryEntry } from '../../../../platform/inlineEdits/common/workspaceEditTracker/nesXtabHistoryTracker';
 import { TestLanguageDiagnosticsService } from '../../../../platform/languages/common/testLanguageDiagnosticsService';
-import { Position } from '../../../../util/vs/editor/common/core/position';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
-import { StringText } from '../../../../util/vs/editor/common/core/text/abstractText';
-import { ensureDependenciesAreSet } from '../../../../util/vs/editor/common/core/text/positionToOffset';
-import { DiagnosticSeverity, Range } from '../../../../vscodeTypes';
+import { Position } from '../../../../util/dardcor/editor/common/core/position';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { StringText } from '../../../../util/dardcor/editor/common/core/text/abstractText';
+import { ensureDependenciesAreSet } from '../../../../util/dardcor/editor/common/core/text/positionToOffset';
+import { DiagnosticSeverity, Range } from '../../../../dardcorTypes';
 import { LintErrors } from '../../common/lintErrors';
 import { CurrentDocument } from '../../common/xtabCurrentDocument';
 

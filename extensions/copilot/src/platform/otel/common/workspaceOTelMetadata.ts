@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { URI } from '../../../util/vs/base/common/uri';
-import { isEqualOrParent, relativePath } from '../../../util/vs/base/common/resources';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { isEqualOrParent, relativePath } from '../../../util/dardcor/base/common/resources';
 import { getOrderedRepoInfosFromContext, type IGitService, normalizeFetchUrl, type RepoContext } from '../../git/common/gitService';
 import { CopilotChatAttr, GitHubCopilotAttr } from './genAiAttributes';
 

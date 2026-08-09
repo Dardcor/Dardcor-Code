@@ -13,8 +13,8 @@ import { INotebookService } from '../../../../platform/notebook/common/notebookS
 import { IPromptPathRepresentationService } from '../../../../platform/prompts/common/promptPathRepresentationService';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry';
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
-import { LanguageModelPromptTsxPart, LanguageModelToolResult } from '../../../../vscodeTypes';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { LanguageModelPromptTsxPart, LanguageModelToolResult } from '../../../../dardcorTypes';
 import { renderPromptElementJSON } from '../../../prompts/node/base/promptRenderer';
 import { ICodeMapperService } from '../../../prompts/node/codeMapper/codeMapperService';
 import { IEditToolLearningService } from '../../common/editToolLearningService';

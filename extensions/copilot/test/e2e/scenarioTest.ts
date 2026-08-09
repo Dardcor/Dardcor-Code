@@ -21,10 +21,10 @@ import { isInExtensionHost } from '../../src/platform/test/node/isInExtensionHos
 import { isNotebook, SimulationWorkspace } from '../../src/platform/test/node/simulationWorkspace';
 import { SpyChatResponseStream } from '../../src/util/common/test/mockChatResponseStream';
 import { ChatRequestTurn, ChatResponseTurn } from '../../src/util/common/test/shims/chatTypes';
-import { CancellationToken } from '../../src/util/vs/base/common/cancellation';
-import { DisposableStore } from '../../src/util/vs/base/common/lifecycle';
-import { IInstantiationService } from '../../src/util/vs/platform/instantiation/common/instantiation';
-import { ChatLocation, ChatRequest, ChatResponseAnchorPart, ChatResponseMarkdownPart, Uri } from '../../src/vscodeTypes';
+import { CancellationToken } from '../../src/util/dardcor/base/common/cancellation';
+import { DisposableStore } from '../../src/util/dardcor/base/common/lifecycle';
+import { IInstantiationService } from '../../src/util/dardcor/platform/instantiation/common/instantiation';
+import { ChatLocation, ChatRequest, ChatResponseAnchorPart, ChatResponseMarkdownPart, Uri } from '../../src/dardcorTypes';
 import { SimulationWorkspaceExtHost } from '../base/extHostContext/simulationWorkspaceExtHost';
 import { ISimulationTestRuntime, SimulationTestFunction } from '../base/stest';
 import { INLINE_CHANGED_DOC_TAG, INLINE_INITIAL_DOC_TAG, IWorkspaceStateFile } from '../simulation/shared/sharedTypes';

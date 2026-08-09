@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { generateUuid } from '../vs/base/common/uuid';
+import { generateUuid } from '../dardcor/base/common/uuid';
 
 /**
  * Tracks a chain of calls for telemetry purposes.

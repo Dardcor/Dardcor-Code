@@ -6,7 +6,7 @@
 import { outdent } from 'outdent';
 import { expect, suite, test } from 'vitest';
 import { ChatFetchResponseType } from '../../../../platform/chat/common/commonTypes';
-import { NewSymbolNameTriggerKind } from '../../../../vscodeTypes';
+import { NewSymbolNameTriggerKind } from '../../../../dardcorTypes';
 import { RenameSuggestionsProvider } from '../../node/renameSuggestionsProvider';
 
 suite('processReply', () => {

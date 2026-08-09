@@ -24,17 +24,17 @@ import { IWorkspaceService } from '../../../platform/workspace/common/workspaceS
 import { WorkingDirectory } from '../../../platform/workspace/common/workingDirectory';
 import { getLanguageId } from '../../../util/common/markdown';
 import { findNotebook } from '../../../util/common/notebooks';
-import * as glob from '../../../util/vs/base/common/glob';
-import { ResourceMap, ResourceSet } from '../../../util/vs/base/common/map';
-import { Schemas } from '../../../util/vs/base/common/network';
-import { isMacintosh, isWindows } from '../../../util/vs/base/common/platform';
-import { extUriBiasedIgnorePathCase, normalizePath } from '../../../util/vs/base/common/resources';
-import { isFalsyOrWhitespace } from '../../../util/vs/base/common/strings';
-import { isDefined } from '../../../util/vs/base/common/types';
-import { URI } from '../../../util/vs/base/common/uri';
-import { Position as EditorPosition } from '../../../util/vs/editor/common/core/position';
-import { ServicesAccessor } from '../../../util/vs/platform/instantiation/common/instantiation';
-import { EndOfLine, Position, Range, TextEdit } from '../../../vscodeTypes';
+import * as glob from '../../../util/dardcor/base/common/glob';
+import { ResourceMap, ResourceSet } from '../../../util/dardcor/base/common/map';
+import { Schemas } from '../../../util/dardcor/base/common/network';
+import { isMacintosh, isWindows } from '../../../util/dardcor/base/common/platform';
+import { extUriBiasedIgnorePathCase, normalizePath } from '../../../util/dardcor/base/common/resources';
+import { isFalsyOrWhitespace } from '../../../util/dardcor/base/common/strings';
+import { isDefined } from '../../../util/dardcor/base/common/types';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { Position as EditorPosition } from '../../../util/dardcor/editor/common/core/position';
+import { ServicesAccessor } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { EndOfLine, Position, Range, TextEdit } from '../../../dardcorTypes';
 import { IBuildPromptContext } from '../../prompt/common/intents';
 import { formatUriForFileWidget } from '../common/toolUtils';
 

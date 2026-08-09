@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Iterable } from '../../../util/vs/base/common/iterator';
+import { Iterable } from '../../../util/dardcor/base/common/iterator';
 
 export interface IToken<S> {
 	state: S;

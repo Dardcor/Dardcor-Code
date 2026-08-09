@@ -17,10 +17,10 @@ import { ITelemetryService } from '../../../platform/telemetry/common/telemetry'
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
 import { createSha256Hash } from '../../../util/common/crypto';
 import { findNotebook, isJupyterNotebookUri } from '../../../util/common/notebooks';
-import { raceCancellationError, raceTimeout } from '../../../util/vs/base/common/async';
-import { dispose } from '../../../util/vs/base/common/lifecycle';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
-import { ExtendedLanguageModelToolResult, LanguageModelDataPart, LanguageModelPromptTsxPart, LanguageModelTextPart, LanguageModelToolResult, MarkdownString } from '../../../vscodeTypes';
+import { raceCancellationError, raceTimeout } from '../../../util/dardcor/base/common/async';
+import { dispose } from '../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { ExtendedLanguageModelToolResult, LanguageModelDataPart, LanguageModelPromptTsxPart, LanguageModelTextPart, LanguageModelToolResult, MarkdownString } from '../../../dardcorTypes';
 import { IBuildPromptContext } from '../../prompt/common/intents';
 import { renderPromptElementJSON } from '../../prompts/node/base/promptRenderer';
 import { Tag } from '../../prompts/node/base/tag';

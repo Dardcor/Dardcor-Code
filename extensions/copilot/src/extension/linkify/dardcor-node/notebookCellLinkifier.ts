@@ -7,10 +7,10 @@ import { NotebookCell, NotebookDocument } from 'vscode';
 import { ILogService } from '../../../platform/log/common/logService';
 import { CellIdPatternRe, getCellIdMap } from '../../../platform/notebook/common/helpers';
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
 import { LinkifiedPart, LinkifiedText, LinkifyLocationAnchor } from '../common/linkifiedText';
 import { IContributedLinkifier, LinkifierContext } from '../common/linkifyService';
-import { Disposable, IDisposable } from '../../../util/vs/base/common/lifecycle';
+import { Disposable, IDisposable } from '../../../util/dardcor/base/common/lifecycle';
 
 /**
  * Linkifies notebook cell IDs in chat responses.

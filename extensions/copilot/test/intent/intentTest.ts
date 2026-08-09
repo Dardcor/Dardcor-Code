@@ -17,8 +17,8 @@ import { ChatLocation } from '../../src/platform/chat/common/commonTypes';
 import { ITabsAndEditorsService } from '../../src/platform/tabs/common/tabsAndEditorsService';
 import { TestingServiceCollection } from '../../src/platform/test/node/services';
 import { TestingTabsAndEditorsService } from '../../src/platform/test/node/simulationWorkspaceServices';
-import { CancellationToken } from '../../src/util/vs/base/common/cancellation';
-import { IInstantiationService } from '../../src/util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../src/util/dardcor/base/common/cancellation';
+import { IInstantiationService } from '../../src/util/dardcor/platform/instantiation/common/instantiation';
 import { stest } from '../base/stest';
 
 export interface IIntentScenario {

@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import { createServiceIdentifier } from '../../../util/common/services';
-import { Emitter, Event } from '../../../util/vs/base/common/event';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
+import { Emitter, Event } from '../../../util/dardcor/base/common/event';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import type { CopilotToken } from './copilotToken';
 
 

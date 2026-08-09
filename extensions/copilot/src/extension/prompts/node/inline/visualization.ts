@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { findFirstIdxMonotonousOrArrLen, findLastIdxMonotonous } from '../../../../util/vs/base/common/arraysFind';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
+import { findFirstIdxMonotonousOrArrLen, findLastIdxMonotonous } from '../../../../util/dardcor/base/common/arraysFind';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
 
 export function toAstNode<T>(
 	node: T,

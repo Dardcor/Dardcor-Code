@@ -12,12 +12,12 @@ import { DefaultsOnlyConfigurationService } from '../../../platform/configuratio
 import { IChatModelInformation, ICompletionModelInformation, IEmbeddingModelInformation } from '../../../platform/endpoint/common/endpointProvider';
 import { IModelMetadataFetcher } from '../../../platform/endpoint/node/modelMetadataFetcher';
 import { CopilotChatEndpoint } from '../../../platform/endpoint/node/copilotChatEndpoint';
-import { ExtensionContributedChatEndpoint } from '../../../platform/endpoint/vscode-node/extChatEndpoint';
+import { ExtensionContributedChatEndpoint } from '../../../platform/endpoint/dardcor-node/extChatEndpoint';
 import { ITestingServicesAccessor } from '../../../platform/test/node/services';
 import { TokenizerType } from '../../../util/common/tokenizer';
-import { Event } from '../../../util/vs/base/common/event';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
-import { ProductionEndpointProvider } from '../../prompt/vscode-node/endpointProviderImpl';
+import { Event } from '../../../util/dardcor/base/common/event';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { ProductionEndpointProvider } from '../../prompt/dardcor-node/endpointProviderImpl';
 import { createExtensionTestingServices } from './services';
 
 class FakeModelMetadataFetcher implements IModelMetadataFetcher {

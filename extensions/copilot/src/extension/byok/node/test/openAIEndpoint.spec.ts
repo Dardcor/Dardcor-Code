@@ -12,9 +12,9 @@ import { CustomDataPartMimeTypes } from '../../../../platform/endpoint/common/en
 import { ChatEndpoint } from '../../../../platform/endpoint/node/chatEndpoint';
 import { ICreateEndpointBodyOptions, IEndpointBody, IMakeChatRequestOptions } from '../../../../platform/networking/common/networking';
 import { ITestingServicesAccessor } from '../../../../platform/test/node/services';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { DisposableStore } from '../../../../util/vs/base/common/lifecycle';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { DisposableStore } from '../../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { createExtensionUnitTestingServices } from '../../../test/node/services';
 import { OpenAIEndpoint } from '../openAIEndpoint';
 

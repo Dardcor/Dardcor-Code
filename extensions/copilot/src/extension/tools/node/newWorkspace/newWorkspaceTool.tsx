@@ -11,10 +11,10 @@ import { IVSCodeExtensionContext } from '../../../../platform/extContext/common/
 import { IFileSystemService } from '../../../../platform/filesystem/common/fileSystemService';
 import { IInteractiveSessionService } from '../../../../platform/interactive/common/interactiveSessionService';
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
-import { CancellationError } from '../../../../util/vs/base/common/errors';
-import { extUri } from '../../../../util/vs/base/common/resources';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
-import { LanguageModelPromptTsxPart, LanguageModelTextPart, LanguageModelToolResult } from '../../../../vscodeTypes';
+import { CancellationError } from '../../../../util/dardcor/base/common/errors';
+import { extUri } from '../../../../util/dardcor/base/common/resources';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { LanguageModelPromptTsxPart, LanguageModelTextPart, LanguageModelToolResult } from '../../../../dardcorTypes';
 import { saveNewWorkspaceContext } from '../../../getting-started/common/newWorkspaceContext';
 import { renderPromptElementJSON } from '../../../prompts/node/base/promptRenderer';
 import { UnsafeCodeBlock } from '../../../prompts/node/panel/unsafeElements';

@@ -5,8 +5,8 @@
 
 import { IAuthenticationService } from '../../../../../../platform/authentication/common/authentication';
 import { IExperimentationService } from '../../../../../../platform/telemetry/common/nullExperimentationService';
-import { IDisposable } from '../../../../../../util/vs/base/common/lifecycle';
-import { IInstantiationService, ServicesAccessor } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IDisposable } from '../../../../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService, ServicesAccessor } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { CopilotToken } from '../auth/copilotTokenManager';
 import { getUserKind } from '../auth/orgs';
 import {

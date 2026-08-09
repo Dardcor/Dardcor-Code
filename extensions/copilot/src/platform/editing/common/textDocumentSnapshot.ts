@@ -4,10 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { EndOfLine, TextDocument, TextLine, Uri } from 'vscode';
-import { isNumber, isString } from '../../../util/vs/base/common/types';
-import { isUriComponents, URI, UriComponents } from '../../../util/vs/base/common/uri';
-import { DEFAULT_WORD_REGEXP, getWordAtText } from '../../../util/vs/editor/common/core/wordHelper';
-import { Position, Range } from '../../../vscodeTypes';
+import { isNumber, isString } from '../../../util/dardcor/base/common/types';
+import { isUriComponents, URI, UriComponents } from '../../../util/dardcor/base/common/uri';
+import { DEFAULT_WORD_REGEXP, getWordAtText } from '../../../util/dardcor/editor/common/core/wordHelper';
+import { Position, Range } from '../../../dardcorTypes';
 import { PositionOffsetTransformer } from './positionOffsetTransformer';
 
 export interface ITextDocumentSnapshotJSON {

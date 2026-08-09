@@ -5,10 +5,10 @@
 import type { CancellationToken } from 'vscode';
 import { ChatFetchResponseType, ChatLocation } from '../../../platform/chat/common/commonTypes';
 import { IInteractionService } from '../../../platform/chat/common/interactionService';
-import { SettingListItem } from '../../../platform/embeddings/common/vscodeIndex';
+import { SettingListItem } from '../../../platform/embeddings/common/dardcorIndex';
 import { IChatEndpoint } from '../../../platform/networking/common/networking';
-import { raceTimeout } from '../../../util/vs/base/common/async';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { raceTimeout } from '../../../util/dardcor/base/common/async';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { PromptRenderer } from '../../prompts/node/base/promptRenderer';
 import { SettingsEditorSuggestQueryPrompt } from '../../prompts/node/settingsEditor/settingsEditorSuggestQueryPrompt';
 

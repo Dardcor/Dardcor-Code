@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { illegalArgument } from '../../../../util/vs/base/common/errors';
-import { BaseStringEdit, BaseStringReplacement, StringEdit, StringReplacement } from '../../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
+import { illegalArgument } from '../../../../util/dardcor/base/common/errors';
+import { BaseStringEdit, BaseStringReplacement, StringEdit, StringReplacement } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
 import { SingleEdits } from './edit';
 import { Permutation } from './permutation';
 

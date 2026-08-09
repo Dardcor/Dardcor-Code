@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { createServiceIdentifier } from '../../../util/common/services';
-import { ExcludeSettingOptions } from '../../../vscodeTypes';
+import { ExcludeSettingOptions } from '../../../dardcorTypes';
 import { IFileSystemService } from '../../filesystem/common/fileSystemService';
 import { ISearchService } from '../../search/common/searchService';
 

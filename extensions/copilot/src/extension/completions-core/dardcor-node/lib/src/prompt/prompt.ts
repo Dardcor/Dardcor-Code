@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { ServicesAccessor } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { ServicesAccessor } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { PromptMetadata } from '../../../prompt/src/components/components';
 import { commentBlockAsSingles } from '../../../prompt/src/languageMarker';
 import { PromptOptions } from '../../../prompt/src/prompt';

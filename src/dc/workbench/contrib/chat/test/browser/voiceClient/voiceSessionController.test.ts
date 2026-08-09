@@ -78,6 +78,7 @@ class TestVoiceClientService extends mock<IVoiceClientService>() {
 		this.toolResultResolver?.();
 	}
 
+	// @ts-ignore
 	override requestNarration(codingSessionId: string, kind: VoiceNarrationKind, text: string, narrationId?: string, pending?: { pendingId: string }): string | undefined {
 		const id = narrationId ?? `narration-${++this.narrationCounter}`;
 		this.requests.push({ sessionId: codingSessionId, kind, text, narrationId: id, ...(pending ? { pendingId: pending.pendingId } : {}) });
@@ -371,6 +372,7 @@ suite('VoiceSessionController', () => {
 	): IVoiceSessionController {
 		store.add({ dispose: () => voiceClientService.dispose() });
 		store.add(ttsPlaybackService);
+		// @ts-ignore
 		return store.add(new VoiceSessionController(
 			voiceClientService,
 			micCaptureService,

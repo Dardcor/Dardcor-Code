@@ -5,7 +5,7 @@
 
 import type { LanguageModelChat } from 'vscode';
 import { describe, expect, test } from 'vitest';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { CHAT_MODEL } from '../../../configuration/common/configurationService';
 import { IChatModelInformation } from '../../common/endpointProvider';
 import { IModelMetadataFetcher } from '../../node/modelMetadataFetcher';

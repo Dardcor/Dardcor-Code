@@ -12,13 +12,13 @@ import { ILogger, ILogService } from '../../../platform/log/common/logService';
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
 import { isNotebookCell } from '../../../util/common/notebooks';
-import { Emitter } from '../../../util/vs/base/common/event';
-import { Disposable, DisposableMap, IDisposable, MutableDisposable } from '../../../util/vs/base/common/lifecycle';
-import { generateUuid } from '../../../util/vs/base/common/uuid';
+import { Emitter } from '../../../util/dardcor/base/common/event';
+import { Disposable, DisposableMap, IDisposable, MutableDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { generateUuid } from '../../../util/dardcor/base/common/uuid';
 import { createTimeout } from '../common/common';
 import { NesChangeHint, NesTriggerReason } from '../common/nesTriggerHint';
 import { NesOutcome, NextEditProvider } from '../node/nextEditProvider';
-import { VSCodeWorkspace } from './parts/vscodeWorkspace';
+import { VSCodeWorkspace } from './parts/dardcorWorkspace';
 
 export const TRIGGER_INLINE_EDIT_AFTER_CHANGE_LIMIT = 10000; // 10 seconds
 export const TRIGGER_INLINE_EDIT_ON_SAME_LINE_COOLDOWN = 5000; // milliseconds

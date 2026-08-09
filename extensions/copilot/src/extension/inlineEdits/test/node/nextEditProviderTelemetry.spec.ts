@@ -11,9 +11,9 @@ import { FetchResultWithStats, IStatelessNextEditTelemetry } from '../../../../p
 import { eventPropertiesToSimpleObject } from '../../../../platform/telemetry/common/telemetryData';
 import { NullTelemetryService } from '../../../../platform/telemetry/common/nullTelemetryService';
 import { TelemetryEventMeasurements, TelemetryEventProperties, TelemetryProperties } from '../../../../platform/telemetry/common/telemetry';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
-import { StringText } from '../../../../util/vs/editor/common/core/text/abstractText';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { StringText } from '../../../../util/dardcor/editor/common/core/text/abstractText';
 import { IEnhancedTelemetrySendingReason, NES_GH_TELEMETRY_EVENT_NAME, NextEditProviderTelemetryBuilder, TelemetrySender } from '../../node/nextEditProviderTelemetry';
 import { INextEditResult } from '../../node/nextEditResult';
 

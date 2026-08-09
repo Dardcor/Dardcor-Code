@@ -5,8 +5,8 @@
 
 import type { LanguageModelToolInformation, LanguageModelToolResult } from 'vscode';
 import { createServiceIdentifier } from '../../../../util/common/services';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { IObservable } from '../../../../util/vs/base/common/observableInternal';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { IObservable } from '../../../../util/dardcor/base/common/observableInternal';
 import { VirtualTool } from './virtualTool';
 
 export interface IToolGrouping {

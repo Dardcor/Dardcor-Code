@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 import { LanguageToolsProvider } from '../../src/extension/onboardDebug/node/languageToolsProvider';
 import { TestingServiceCollection } from '../../src/platform/test/node/services';
-import { CancellationToken } from '../../src/util/vs/base/common/cancellation';
-import { IInstantiationService } from '../../src/util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../src/util/dardcor/base/common/cancellation';
+import { IInstantiationService } from '../../src/util/dardcor/platform/instantiation/common/instantiation';
 import { ISimulationTestRuntime, ssuite, stest } from '../base/stest';
 
 // Use to print the model's suggested tool list for all languages.

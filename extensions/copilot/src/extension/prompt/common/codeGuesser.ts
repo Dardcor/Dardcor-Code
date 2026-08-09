@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { isBasicASCII } from '../../../util/vs/base/common/strings';
+import { isBasicASCII } from '../../../util/dardcor/base/common/strings';
 
 export function looksLikeCode(text: string): boolean {
 	const lines = text.split(/\r?\n/);

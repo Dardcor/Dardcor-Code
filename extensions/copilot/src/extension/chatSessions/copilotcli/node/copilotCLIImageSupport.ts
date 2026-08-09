@@ -8,9 +8,9 @@ import { IVSCodeExtensionContext } from '../../../../platform/extContext/common/
 import { createDirectoryIfNotExists, IFileSystemService } from '../../../../platform/filesystem/common/fileSystemService';
 import { ILogService } from '../../../../platform/log/common/logService';
 import { createServiceIdentifier } from '../../../../util/common/services';
-import { Lazy } from '../../../../util/vs/base/common/lazy';
-import { ResourceSet } from '../../../../util/vs/base/common/map';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { Lazy } from '../../../../util/dardcor/base/common/lazy';
+import { ResourceSet } from '../../../../util/dardcor/base/common/map';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 
 export interface ICopilotCLIImageSupport {
 	readonly _serviceBrand: undefined;

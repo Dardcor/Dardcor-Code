@@ -5,9 +5,9 @@
 
 import type * as vscode from 'vscode';
 import { IChatEndpoint } from '../../../platform/networking/common/networking';
-import { IDisposable } from '../../../util/vs/base/common/lifecycle';
-import { ObservableMap } from '../../../util/vs/base/common/observable';
-import { URI } from '../../../util/vs/base/common/uri';
+import { IDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { ObservableMap } from '../../../util/dardcor/base/common/observable';
+import { URI } from '../../../util/dardcor/base/common/uri';
 import { IBuildPromptContext } from '../../prompt/common/intents';
 import { ToolName } from './toolNames';
 

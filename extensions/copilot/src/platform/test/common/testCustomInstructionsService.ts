@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { ResourceSet } from '../../../util/vs/base/common/map';
-import { URI } from '../../../util/vs/base/common/uri';
-import type { Uri } from '../../../vscodeTypes';
+import { ResourceSet } from '../../../util/dardcor/base/common/map';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import type { Uri } from '../../../dardcorTypes';
 import { Config } from '../../configuration/common/configurationService';
 import { CodeGenerationInstruction, ICustomInstructions, ICustomInstructionsService, IInstructionIndexFile, ISkillInfo, SkillStorage } from '../../customInstructions/common/customInstructionsService';
 

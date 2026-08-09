@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 import type { CancellationToken } from 'vscode';
 import { ICodeOrDocsSearchItem, ICodeOrDocsSearchMultiRepoScopingQuery, ICodeOrDocsSearchOptions, ICodeOrDocsSearchResult, ICodeOrDocsSearchSingleRepoScopingQuery, IDocsSearchClient } from '../../src/platform/remoteSearch/common/codeOrDocsSearchClient';
-import { ThrottledWorker } from '../../src/util/vs/base/common/async';
-import { SyncDescriptor } from '../../src/util/vs/platform/instantiation/common/descriptors';
-import { IInstantiationService } from '../../src/util/vs/platform/instantiation/common/instantiation';
+import { ThrottledWorker } from '../../src/util/dardcor/base/common/async';
+import { SyncDescriptor } from '../../src/util/dardcor/platform/instantiation/common/descriptors';
+import { IInstantiationService } from '../../src/util/dardcor/platform/instantiation/common/instantiation';
 
 
 export class ThrottlingCodeOrDocsSearchClient implements IDocsSearchClient {

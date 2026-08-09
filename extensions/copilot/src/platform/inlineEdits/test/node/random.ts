@@ -3,15 +3,15 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { numberComparator } from '../../../../util/vs/base/common/arrays';
-import { BugIndicatingError } from '../../../../util/vs/base/common/errors';
-import { StringEdit, StringReplacement } from '../../../../util/vs/editor/common/core/edits/stringEdit';
-import { TextEdit, TextReplacement } from '../../../../util/vs/editor/common/core/edits/textEdit';
-import { Position } from '../../../../util/vs/editor/common/core/position';
-import { Range } from '../../../../util/vs/editor/common/core/range';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
-import { AbstractText } from '../../../../util/vs/editor/common/core/text/abstractText';
-import { PositionOffsetTransformer } from '../../../../util/vs/editor/common/core/text/positionToOffset';
+import { numberComparator } from '../../../../util/dardcor/base/common/arrays';
+import { BugIndicatingError } from '../../../../util/dardcor/base/common/errors';
+import { StringEdit, StringReplacement } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { TextEdit, TextReplacement } from '../../../../util/dardcor/editor/common/core/edits/textEdit';
+import { Position } from '../../../../util/dardcor/editor/common/core/position';
+import { Range } from '../../../../util/dardcor/editor/common/core/range';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { AbstractText } from '../../../../util/dardcor/editor/common/core/text/abstractText';
+import { PositionOffsetTransformer } from '../../../../util/dardcor/editor/common/core/text/positionToOffset';
 
 export abstract class Random {
 	public static readonly alphabetSmallLowercase = 'abcdefgh';

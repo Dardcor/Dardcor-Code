@@ -8,8 +8,8 @@ import { INativeEnvService } from '../../../../../platform/env/common/envService
 import { createDirectoryIfNotExists, IFileSystemService } from '../../../../../platform/filesystem/common/fileSystemService';
 import { ILogService } from '../../../../../platform/log/common/logService';
 import { IWorkspaceService } from '../../../../../platform/workspace/common/workspaceService';
-import { CancellationToken } from '../../../../../util/vs/base/common/cancellation';
-import { URI } from '../../../../../util/vs/base/common/uri';
+import { CancellationToken } from '../../../../../util/dardcor/base/common/cancellation';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
 import { IClaudeSlashCommandHandler, registerClaudeSlashCommand } from './claudeSlashCommandRegistry';
 
 /**

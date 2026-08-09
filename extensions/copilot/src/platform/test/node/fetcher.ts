@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { CancellationTokenSource } from '../../../util/vs/base/common/cancellation';
+import { CancellationTokenSource } from '../../../util/dardcor/base/common/cancellation';
 import { IHeaders, ReportFetchEvent, Response } from '../../networking/common/fetcherService';
 
 

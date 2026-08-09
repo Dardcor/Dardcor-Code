@@ -18,8 +18,8 @@ import {
 	window
 } from 'vscode';
 import { ISurveyService } from '../../../../../../platform/survey/common/surveyService';
-import { assertNever } from '../../../../../../util/vs/base/common/assert';
-import { IInstantiationService } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { assertNever } from '../../../../../../util/dardcor/base/common/assert';
+import { IInstantiationService } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { createCorrelationId } from '../../../../../inlineEdits/common/correlationId';
 import { NextEditProviderTelemetryBuilder } from '../../../../../inlineEdits/node/nextEditProviderTelemetry';
 import { GhostTextLogContext } from '../../../../common/ghostTextContext';

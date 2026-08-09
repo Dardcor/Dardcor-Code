@@ -5,10 +5,10 @@
 
 import * as l10n from '@vscode/l10n';
 import type * as vscode from 'vscode';
-import { ResourceMap, ResourceSet } from '../../../util/vs/base/common/map';
-import { count } from '../../../util/vs/base/common/strings';
-import { URI } from '../../../util/vs/base/common/uri';
-import { MarkdownString } from '../../../vscodeTypes';
+import { ResourceMap, ResourceSet } from '../../../util/dardcor/base/common/map';
+import { count } from '../../../util/dardcor/base/common/strings';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { MarkdownString } from '../../../dardcorTypes';
 import { CellOrNotebookEdit } from '../../prompts/node/codeMapper/codeMapper';
 import { ToolName } from '../common/toolNames';
 import { ToolRegistry } from '../common/toolsRegistry';

@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 
-import { SyncDescriptor } from '../../../util/vs/platform/instantiation/common/descriptors';
+import { SyncDescriptor } from '../../../util/dardcor/platform/instantiation/common/descriptors';
 import { InlineChatIntent } from '../../inlineChat2/node/inlineChatIntent';
 import { IntentRegistry } from '../../prompt/node/intentRegistry';
 import { AgentIntent } from './agentIntent';
@@ -25,7 +25,7 @@ import { TerminalExplainIntent } from './terminalExplainIntent';
 import { TerminalIntent } from './terminalIntent';
 import { TestsIntent } from './testIntent/testIntent';
 import { UnknownIntent } from './unknownIntent';
-import { VscodeIntent } from './vscodeIntent';
+import { VscodeIntent } from './dardcorIntent';
 
 IntentRegistry.setIntents([
 	new SyncDescriptor(EditCodeIntent),

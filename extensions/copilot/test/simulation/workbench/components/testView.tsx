@@ -18,7 +18,7 @@ import { TestRun } from '../stores/testRun';
 import { TestSource, TestSourceValue } from '../stores/testSource';
 import { DisplayOptions } from './app';
 import { useContextMenu } from './contextMenu';
-import { OpenInVSCodeButton } from './openInVSCode';
+import { openIndardcorButton } from './openIndardcor';
 import { TestRunView } from './testRun';
 
 type Props = {
@@ -157,7 +157,7 @@ export const TestView = mobxlite.observer(({ test, runner, runnerOptions, nesExt
 												</TreeItemLayout>
 												<Tree>
 													<TreeItem itemType='leaf'>
-														<OpenInVSCodeButton test={test} />
+														<openIndardcorButton test={test} />
 														<TestRunView
 															key={key}
 															test={test}

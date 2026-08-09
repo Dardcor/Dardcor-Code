@@ -25,7 +25,7 @@ import { EditSourceTrackingImpl } from './editSourceTrackingImpl.js';
 import { IAnnotatedDocuments } from '../helpers/annotatedDocuments.js';
 import { DataChannelForwardingTelemetryService } from '../../../../../platform/dataChannel/browser/forwardingTelemetryService.js';
 import { EDIT_TELEMETRY_DETAILS_SETTING_ID, EDIT_TELEMETRY_SHOW_DECORATIONS, EDIT_TELEMETRY_SHOW_STATUS_BAR } from '../settings.js';
-import { VSCodeWorkspace } from '../helpers/vscodeObservableWorkspace.js';
+import { VSCodeWorkspace } from '../helpers/dardcorObservableWorkspace.js';
 import { IExtensionService } from '../../../../services/extensions/common/extensions.js';
 import { AgentHostEditMarkerService } from './agentHostEditMarkerService.js';
 

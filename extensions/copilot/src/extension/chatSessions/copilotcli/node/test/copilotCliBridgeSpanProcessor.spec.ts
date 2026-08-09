@@ -6,7 +6,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolveOTelConfig } from '../../../../../platform/otel/common/otelConfig';
 import type { ICompletedSpanData, IOTelService } from '../../../../../platform/otel/common/otelService';
-import { Event } from '../../../../../util/vs/base/common/event';
+import { Event } from '../../../../../util/dardcor/base/common/event';
 import { CopilotCliBridgeSpanProcessor } from '../copilotCliBridgeSpanProcessor';
 
 function createMockOTelService(): IOTelService & { injectedSpans: ICompletedSpanData[] } {

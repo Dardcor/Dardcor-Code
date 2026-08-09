@@ -6,7 +6,7 @@
 import * as vscode from 'vscode';
 import { IExtensionContribution } from '../../../extension/common/contributions';
 import { IWorkspaceMutationManager } from '../../../platform/testing/common/workspaceMutationManager';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { SetupTestFileScheme } from '../common/files';
 
 export class SetupTestsContribution extends Disposable implements IExtensionContribution {

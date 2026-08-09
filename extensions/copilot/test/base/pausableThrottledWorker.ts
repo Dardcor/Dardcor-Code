@@ -2,7 +2,7 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import { IThrottledWorkerOptions, ThrottledWorker } from '../../src/util/vs/base/common/async';
+import { IThrottledWorkerOptions, ThrottledWorker } from '../../src/util/dardcor/base/common/async';
 
 /**
  * A ThrottledWorker that supports pausing and resuming work processing.

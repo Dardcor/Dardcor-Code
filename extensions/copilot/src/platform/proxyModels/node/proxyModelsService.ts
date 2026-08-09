@@ -5,10 +5,10 @@
 
 import { isDeepStrictEqual } from 'util';
 import { ErrorUtils } from '../../../util/common/errors';
-import { CancellationToken, CancellationTokenSource } from '../../../util/vs/base/common/cancellation';
-import { Emitter } from '../../../util/vs/base/common/event';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { autorun, observableFromEvent } from '../../../util/vs/base/common/observable';
+import { CancellationToken, CancellationTokenSource } from '../../../util/dardcor/base/common/cancellation';
+import { Emitter } from '../../../util/dardcor/base/common/event';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { autorun, observableFromEvent } from '../../../util/dardcor/base/common/observable';
 import { CopilotToken } from '../../authentication/common/copilotToken';
 import { ICopilotTokenStore } from '../../authentication/common/copilotTokenStore';
 import { ICAPIClientService } from '../../endpoint/common/capiClient';

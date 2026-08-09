@@ -5,9 +5,9 @@
 
 import * as l10n from '@vscode/l10n';
 import type * as vscode from 'vscode';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
-import { LanguageModelPromptTsxPart, LanguageModelToolResult } from '../../../vscodeTypes';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { LanguageModelPromptTsxPart, LanguageModelToolResult } from '../../../dardcorTypes';
 import { renderPromptElementJSON } from '../../prompts/node/base/promptRenderer';
 import { MultirootWorkspaceStructure } from '../../prompts/node/panel/workspace/workspaceStructure';
 import { ToolName } from '../common/toolNames';

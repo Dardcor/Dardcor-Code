@@ -5,7 +5,7 @@
 import { FetchSuccess } from '../../../platform/chat/common/commonTypes';
 import { OpenAIContextManagementResponse } from '../../../platform/networking/common/openai';
 import { isEncryptedThinkingDelta, ThinkingData, ThinkingDelta } from '../../../platform/thinking/common/thinking';
-import { generateUuid } from '../../../util/vs/base/common/uuid';
+import { generateUuid } from '../../../util/dardcor/base/common/uuid';
 import { IToolCall, IToolCallRound } from './intents';
 
 

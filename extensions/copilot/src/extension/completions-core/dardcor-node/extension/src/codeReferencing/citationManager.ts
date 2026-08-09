@@ -6,8 +6,8 @@
 import { commands } from 'vscode';
 import { CodeReference } from '.';
 import { IAuthenticationService } from '../../../../../../platform/authentication/common/authentication';
-import { Disposable } from '../../../../../../util/vs/base/common/lifecycle';
-import { IInstantiationService } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { Disposable } from '../../../../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { onCopilotToken } from '../../../lib/src/auth/copilotTokenNotifier';
 import { ICompletionsCitationManager, IPDocumentCitation } from '../../../lib/src/citationManager';
 import { OutputPaneShowCommand } from '../../../lib/src/snippy/constants';

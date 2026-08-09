@@ -2,9 +2,9 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import { illegalArgument } from '../../../util/vs/base/common/errors';
-import { LineReplacement } from '../../../util/vs/editor/common/core/edits/lineEdit';
-import { LineRange } from '../../../util/vs/editor/common/core/ranges/lineRange';
+import { illegalArgument } from '../../../util/dardcor/base/common/errors';
+import { LineReplacement } from '../../../util/dardcor/editor/common/core/edits/lineEdit';
+import { LineRange } from '../../../util/dardcor/editor/common/core/ranges/lineRange';
 
 
 export namespace ResponseProcessor {

@@ -5,7 +5,7 @@
 
 import type { CancellationToken, TextDocument, Disposable as VscodeDisposable } from 'vscode';
 import { Copilot } from '../../../platform/inlineCompletions/common/api';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { ContextItem } from '../../languageServer/common/languageContextService';
 import { ILanguageContextProviderService, ProviderTarget } from './languageContextProviderService';
 

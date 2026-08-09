@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { AdoRepoId, getAdoRepoIdFromFetchUrl, getGithubRepoIdFromFetchUrl, GithubRepoId, parseRemoteUrl } from '../../../../../../platform/git/common/gitService';
-import { ServicesAccessor } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { ServicesAccessor } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { FileIdentifier, ICompletionsFileSystemService } from '../fileSystem';
 import { LRUCacheMap } from '../helpers/cache';
 import { dirname, getFsUri, joinPath } from '../util/uri';

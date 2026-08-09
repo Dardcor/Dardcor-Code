@@ -5,7 +5,7 @@
 
 import { ChatLocation } from '../../../platform/chat/common/commonTypes';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { Intent } from '../../common/constants';
 import { IntentRegistry } from '../../prompt/node/intentRegistry';
 import { IIntent } from '../../prompt/node/intents';

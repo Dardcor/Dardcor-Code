@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type * as vscode from 'vscode';
-import { Remote, Repository } from '../vscode/git';
+import { Remote, Repository } from '../dardcor/git';
 
 interface GitConfigSection {
 	name: string;

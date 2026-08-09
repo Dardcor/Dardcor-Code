@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IVSCodeExtensionContext } from '../../../../platform/extContext/common/extensionContext';
-import { encodeBase64, VSBuffer } from '../../../../util/vs/base/common/buffer';
-import { LRUCache } from '../../../../util/vs/base/common/map';
-import { LanguageModelToolInformation } from '../../../../vscodeTypes';
+import { encodeBase64, VSBuffer } from '../../../../util/dardcor/base/common/buffer';
+import { LRUCache } from '../../../../util/dardcor/base/common/map';
+import { LanguageModelToolInformation } from '../../../../dardcorTypes';
 import { ISummarizedToolCategory, ISummarizedToolCategoryUpdatable, IToolGroupingCache } from './virtualToolTypes';
 
 const GROUP_CACHE_SIZE = 128;

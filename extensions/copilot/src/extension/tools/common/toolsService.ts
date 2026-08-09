@@ -9,9 +9,9 @@ import { ILogService } from '../../../platform/log/common/logService';
 import { IChatEndpoint } from '../../../platform/networking/common/networking';
 import { LRUCache } from '../../../util/common/cache';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { Emitter, Event } from '../../../util/vs/base/common/event';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { IObservable, ObservableMap } from '../../../util/vs/base/common/observable';
+import { Emitter, Event } from '../../../util/dardcor/base/common/event';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { IObservable, ObservableMap } from '../../../util/dardcor/base/common/observable';
 import { ToolName } from './toolNames';
 import { ICopilotModelSpecificTool, ICopilotTool } from './toolsRegistry';
 

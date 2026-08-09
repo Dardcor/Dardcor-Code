@@ -5,9 +5,9 @@
 
 import * as ts from 'typescript';
 import { Range, languages, workspace } from 'vscode';
-import { timeout } from '../../../src/util/vs/base/common/async';
-import { CachedFunction, LRUCachedFunction } from '../../../src/util/vs/base/common/cache';
-import { Disposable } from '../../../src/util/vs/base/common/lifecycle';
+import { timeout } from '../../../src/util/dardcor/base/common/async';
+import { CachedFunction, LRUCachedFunction } from '../../../src/util/dardcor/base/common/cache';
+import { Disposable } from '../../../src/util/dardcor/base/common/lifecycle';
 
 export class Extension extends Disposable {
 	private readonly _testCaches = new CachedFunction((fileName: string) => {

@@ -7,7 +7,7 @@
 import { deepStrictEqual } from 'assert';
 import { promises as fs, readdirSync } from 'fs';
 import { suite, test } from 'vitest';
-import * as path from '../../../util/vs/base/common/path';
+import * as path from '../../../util/dardcor/base/common/path';
 import { Reporter, createEditsFromPseudoDiff, createEditsFromRealDiff } from '../../prompt/node/editFromDiffGeneration';
 import { Lines } from '../../prompt/node/editGeneration';
 import { applyEdits } from '../../prompt/node/intents';

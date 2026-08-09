@@ -9,13 +9,13 @@ import { ILanguageContextProviderService, ProviderTarget } from '../../../platfo
 import { ILanguageDiagnosticsService } from '../../../platform/languages/common/languageDiagnosticsService';
 import { ILogService } from '../../../platform/log/common/logService';
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { Disposable, DisposableStore, IDisposable } from '../../../util/vs/base/common/lifecycle';
-import { autorun, IObservable } from '../../../util/vs/base/common/observableInternal';
-import { URI } from '../../../util/vs/base/common/uri';
-import { Position } from '../../../util/vs/editor/common/core/position';
-import { Range } from '../../../util/vs/editor/common/core/range';
-import { Diagnostic, DiagnosticSeverity, Range as ExternalRange } from '../../../vscodeTypes';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { Disposable, DisposableStore, IDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { autorun, IObservable } from '../../../util/dardcor/base/common/observableInternal';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { Position } from '../../../util/dardcor/editor/common/core/position';
+import { Range } from '../../../util/dardcor/editor/common/core/range';
+import { Diagnostic, DiagnosticSeverity, Range as ExternalRange } from '../../../dardcorTypes';
 import { N_LINES_ABOVE, N_LINES_BELOW } from '../../xtab/common/promptCrafting';
 
 export class DiagnosticsContextContribution extends Disposable {

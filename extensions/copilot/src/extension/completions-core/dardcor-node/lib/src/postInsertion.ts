@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import { CopilotNamedAnnotationList } from '../../../../../platform/completions-core/common/openai/copilotAnnotations';
-import { IInstantiationService, ServicesAccessor } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService, ServicesAccessor } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ICompletionsTelemetryService } from '../../bridge/src/completionsTelemetryServiceBridge';
 import { ICompletionsCopilotTokenManager } from './auth/copilotTokenManager';
 import { ChangeTracker } from './changeTracker';

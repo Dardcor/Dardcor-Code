@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { createServiceIdentifier } from '../../../util/common/services';
-import { decodeBase64 } from '../../../util/vs/base/common/buffer';
-import { Event } from '../../../util/vs/base/common/event';
-import { URI } from '../../../util/vs/base/common/uri';
+import { decodeBase64 } from '../../../util/dardcor/base/common/buffer';
+import { Event } from '../../../util/dardcor/base/common/event';
+import { URI } from '../../../util/dardcor/base/common/uri';
 
 export const IChatDebugFileLoggerService = createServiceIdentifier<IChatDebugFileLoggerService>('IChatDebugFileLoggerService');
 

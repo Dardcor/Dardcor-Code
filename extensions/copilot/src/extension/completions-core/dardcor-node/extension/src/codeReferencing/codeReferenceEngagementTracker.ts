@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { TextEditor, window } from 'vscode';
-import { Disposable } from '../../../../../../util/vs/base/common/lifecycle';
-import { IInstantiationService } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { Disposable } from '../../../../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { copilotOutputLogTelemetry } from '../../../lib/src/snippy/telemetryHandlers';
 import { citationsChannelName } from './outputChannel';
 

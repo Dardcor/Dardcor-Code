@@ -5,9 +5,9 @@
 
 import { IInteractionService } from '../../../platform/chat/common/interactionService';
 import { ProgressLocation } from '../../../platform/notification/common/notificationService';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
-import { Uri } from '../../../vscodeTypes';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { Uri } from '../../../dardcorTypes';
 import { ReviewerComments, ReviewerCommentsProvider } from '../../githubPullRequest';
 import { ReviewSession } from './doReview';
 

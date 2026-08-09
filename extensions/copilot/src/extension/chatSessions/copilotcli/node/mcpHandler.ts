@@ -10,10 +10,10 @@ import { ConfigKey, IConfigurationService } from '../../../../platform/configura
 import { ILogService } from '../../../../platform/log/common/logService';
 import { IMcpService } from '../../../../platform/mcp/common/mcpService';
 import { createServiceIdentifier } from '../../../../util/common/services';
-import { Disposable, DisposableStore, IDisposable } from '../../../../util/vs/base/common/lifecycle';
-import { hasKey } from '../../../../util/vs/base/common/types';
-import { URI } from '../../../../util/vs/base/common/uri';
-import type { LanguageModelToolInformation } from '../../../../vscodeTypes';
+import { Disposable, DisposableStore, IDisposable } from '../../../../util/dardcor/base/common/lifecycle';
+import { hasKey } from '../../../../util/dardcor/base/common/types';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import type { LanguageModelToolInformation } from '../../../../dardcorTypes';
 import { GitHubMcpDefinitionProvider } from '../../../githubMcp/common/githubMcpDefinitionProvider';
 import { Session } from '../common/utils';
 

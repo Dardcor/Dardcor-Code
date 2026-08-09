@@ -10,7 +10,7 @@ import { KnownSources } from '../../../../platform/languageServer/common/languag
 import { IParserService } from '../../../../platform/parser/node/parserService';
 import { IExperimentationService } from '../../../../platform/telemetry/common/nullExperimentationService';
 import { isNotebookCellOrNotebookChatInput } from '../../../../util/common/notebooks';
-import { illegalArgument } from '../../../../util/vs/base/common/errors';
+import { illegalArgument } from '../../../../util/dardcor/base/common/errors';
 import { GenericInlinePromptProps } from '../../../context/node/resolvers/genericInlineIntentInvocation';
 import { SelectionSplitKind, SummarizedDocumentData, SummarizedDocumentWithSelection } from '../../../intents/node/testIntent/summarizedDocumentWithSelection';
 import { EarlyStopping, LeadingMarkdownStreaming } from '../../../prompt/node/intents';

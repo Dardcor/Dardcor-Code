@@ -5,7 +5,7 @@
 import assert from 'assert';
 import { suite, test } from 'vitest';
 import { FileType } from '../../../../../../platform/filesystem/common/fileTypes';
-import { URI } from '../../../../../../util/vs/base/common/uri';
+import { URI } from '../../../../../../util/dardcor/base/common/uri';
 import { FileEntry, visualFileTree } from '../visualFileTree';
 
 function joinLines(...lines: string[]): string {

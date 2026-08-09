@@ -5,8 +5,8 @@
 
 import * as l10n from '@vscode/l10n';
 import { ILogService } from '../../../../../platform/log/common/logService';
-import { CancellationToken } from '../../../../../util/vs/base/common/cancellation';
-import { LanguageModelTextPart } from '../../../../../vscodeTypes';
+import { CancellationToken } from '../../../../../util/dardcor/base/common/cancellation';
+import { LanguageModelTextPart } from '../../../../../dardcorTypes';
 import { ToolName } from '../../../../tools/common/toolNames';
 import { IToolsService } from '../../../../tools/common/toolsService';
 import { IClaudePlanFileTracker } from '../claudePlanFileTracker';

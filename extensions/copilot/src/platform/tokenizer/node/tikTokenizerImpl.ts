@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { createTokenizer, getRegexByEncoder, getSpecialTokensByEncoder, TikTokenizer } from '@microsoft/tiktokenizer';
-import { MovingAverage } from '../../../util/vs/base/common/numbers';
-import { StopWatch } from '../../../util/vs/base/common/stopwatch';
+import { MovingAverage } from '../../../util/dardcor/base/common/numbers';
+import { StopWatch } from '../../../util/dardcor/base/common/stopwatch';
 import { parseTikTokenBinary } from './parseTikTokens';
 
 export type TokenDictionaryParser = (file: string) => string | Map<Uint8Array, number>;

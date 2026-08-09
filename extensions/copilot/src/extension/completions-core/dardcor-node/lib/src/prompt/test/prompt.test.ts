@@ -7,7 +7,7 @@ import * as assert from 'assert';
 import * as sinon from 'sinon';
 import dedent from 'ts-dedent';
 import { IIgnoreService } from '../../../../../../../platform/ignore/common/ignoreService';
-import { ServicesAccessor } from '../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { ServicesAccessor } from '../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import {
 	DEFAULT_MAX_COMPLETION_LENGTH,
 	DEFAULT_MAX_PROMPT_LENGTH,

@@ -8,7 +8,7 @@ import type { RendererContext } from 'vscode-notebook-renderer';
 import { extendMarkdownItWithMermaid } from '../../src/markdownMermaid/markdownIt';
 import { buildMermaidConfig, loadExtensionConfig, registerMermaidAddons, renderMermaidBlocksInElement } from '../shared';
 import { DiagramManager } from '../shared/diagramManager';
-import { VsCodeMermaidThemeTracker } from '../shared/vsCodeTheme';
+import { VsCodeMermaidThemeTracker } from '../shared/dardcorTheme';
 
 interface MarkdownItRenderer {
 	extendMarkdownIt(fn: (md: MarkdownIt) => void): void;

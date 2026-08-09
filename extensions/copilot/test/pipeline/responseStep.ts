@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { ResponseFormat } from '../../src/platform/inlineEdits/common/dataTypes/xtabPromptOptions';
-import { assertNever } from '../../src/util/vs/base/common/assert';
-import { splitLines } from '../../src/util/vs/base/common/strings';
-import { StringText } from '../../src/util/vs/editor/common/core/text/abstractText';
+import { assertNever } from '../../src/util/dardcor/base/common/assert';
+import { splitLines } from '../../src/util/dardcor/base/common/strings';
+import { StringText } from '../../src/util/dardcor/editor/common/core/text/abstractText';
 
 export interface IGeneratedResponse {
 	readonly assistant: string;

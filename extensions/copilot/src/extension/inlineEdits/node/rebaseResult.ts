@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { MarkdownLoggable } from '../../../platform/inlineEdits/common/inlineEditLogContext';
-import { StringEdit, StringReplacement } from '../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../util/vs/editor/common/core/ranges/offsetRange';
+import { StringEdit, StringReplacement } from '../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../util/dardcor/editor/common/core/ranges/offsetRange';
 import { NesRebaseConfigs } from '../common/editRebase';
 import { CachedOrRebasedEdit } from './nextEditCache';
 

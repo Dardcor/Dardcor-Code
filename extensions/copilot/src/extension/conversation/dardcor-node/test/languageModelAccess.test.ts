@@ -19,11 +19,11 @@ import { IVSCodeExtensionContext } from '../../../../platform/extContext/common/
 import { IChatEndpoint } from '../../../../platform/networking/common/networking';
 import { ITestingServicesAccessor } from '../../../../platform/test/node/services';
 import { TokenizerType } from '../../../../util/common/tokenizer';
-import { DeferredPromise, raceTimeout } from '../../../../util/vs/base/common/async';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { Event } from '../../../../util/vs/base/common/event';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
-import { createExtensionTestingServices } from '../../../test/vscode-node/services';
+import { DeferredPromise, raceTimeout } from '../../../../util/dardcor/base/common/async';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { Event } from '../../../../util/dardcor/base/common/event';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { createExtensionTestingServices } from '../../../test/dardcor-node/services';
 import { buildUtilityAliasModelInfo, CopilotLanguageModelWrapper, LanguageModelAccess } from '../languageModelAccess';
 import { buildReasoningEffortSchemaProperty, formatPricingLabel, normalizeTokenPrices, pickDefaultReasoningEffort } from '../../common/languageModelAccess';
 

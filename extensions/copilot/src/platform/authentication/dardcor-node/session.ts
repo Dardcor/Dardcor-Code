@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { authentication, AuthenticationGetSessionOptions, AuthenticationSession, AuthenticationSessionsChangeEvent } from 'vscode';
-import { mixin } from '../../../util/vs/base/common/objects';
-import { URI } from '../../../util/vs/base/common/uri';
+import { mixin } from '../../../util/dardcor/base/common/objects';
+import { URI } from '../../../util/dardcor/base/common/uri';
 import { AuthPermissionMode, ConfigKey, IConfigurationService } from '../../configuration/common/configurationService';
 import { authProviderId, GITHUB_SCOPE_ALIGNED, GITHUB_SCOPE_READ_USER, GITHUB_SCOPE_USER_EMAIL, MinimalModeError } from '../common/authentication';
 

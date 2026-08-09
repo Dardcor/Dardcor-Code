@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { createServiceIdentifier } from '../../../util/common/services';
-import { ILinesDiffComputerOptions, MovedText } from '../../../util/vs/editor/common/diff/linesDiffComputer';
-import { DetailedLineRangeMapping } from '../../../util/vs/editor/common/diff/rangeMapping';
+import { ILinesDiffComputerOptions, MovedText } from '../../../util/dardcor/editor/common/diff/linesDiffComputer';
+import { DetailedLineRangeMapping } from '../../../util/dardcor/editor/common/diff/rangeMapping';
 
 
 export const IDiffService = createServiceIdentifier<IDiffService>('IDiffService');

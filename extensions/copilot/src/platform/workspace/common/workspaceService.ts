@@ -6,11 +6,11 @@
 import type { Event, FileSystem, NotebookData, NotebookDocument, NotebookDocumentChangeEvent, ResourceTrustRequestOptions, TextDocument, TextDocumentChangeEvent, TextEditorSelectionChangeEvent, Uri, WorkspaceEdit, WorkspaceFolder, WorkspaceFoldersChangeEvent, WorkspaceTrustRequestOptions } from 'vscode';
 import { findNotebook } from '../../../util/common/notebooks';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { Emitter } from '../../../util/vs/base/common/event';
-import { DisposableStore, IDisposable } from '../../../util/vs/base/common/lifecycle';
-import * as path from '../../../util/vs/base/common/path';
-import { extUriBiasedIgnorePathCase, relativePath } from '../../../util/vs/base/common/resources';
-import { URI } from '../../../util/vs/base/common/uri';
+import { Emitter } from '../../../util/dardcor/base/common/event';
+import { DisposableStore, IDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import * as path from '../../../util/dardcor/base/common/path';
+import { extUriBiasedIgnorePathCase, relativePath } from '../../../util/dardcor/base/common/resources';
+import { URI } from '../../../util/dardcor/base/common/uri';
 import { NotebookDocumentSnapshot } from '../../editing/common/notebookDocumentSnapshot';
 import { TextDocumentSnapshot } from '../../editing/common/textDocumentSnapshot';
 

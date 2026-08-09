@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IChatSessionService } from '../../common/chatSessionService';
-import { Event } from '../../../../util/vs/base/common/event';
+import { Event } from '../../../../util/dardcor/base/common/event';
 
 export class TestChatSessionService implements IChatSessionService {
 	declare _serviceBrand: undefined;

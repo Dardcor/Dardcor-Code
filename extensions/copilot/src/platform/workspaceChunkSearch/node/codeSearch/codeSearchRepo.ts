@@ -5,11 +5,11 @@
 import * as l10n from '@vscode/l10n';
 import { Result } from '../../../../util/common/result';
 import { CallTracker, TelemetryCorrelationId } from '../../../../util/common/telemetryCorrelationId';
-import { CancelablePromise, DeferredPromise, createCancelablePromise, raceCancellationError, raceTimeout, timeout } from '../../../../util/vs/base/common/async';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { isCancellationError } from '../../../../util/vs/base/common/errors';
-import { Emitter, Event } from '../../../../util/vs/base/common/event';
-import { Disposable, IDisposable } from '../../../../util/vs/base/common/lifecycle';
+import { CancelablePromise, DeferredPromise, createCancelablePromise, raceCancellationError, raceTimeout, timeout } from '../../../../util/dardcor/base/common/async';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { isCancellationError } from '../../../../util/dardcor/base/common/errors';
+import { Emitter, Event } from '../../../../util/dardcor/base/common/event';
+import { Disposable, IDisposable } from '../../../../util/dardcor/base/common/lifecycle';
 import { EmbeddingType } from '../../../embeddings/common/embeddingsComputer';
 import { AdoRepoId, GithubRepoId, ResolvedRepoRemoteInfo } from '../../../git/common/gitService';
 import { measureExecTime } from '../../../log/common/logExecTime';

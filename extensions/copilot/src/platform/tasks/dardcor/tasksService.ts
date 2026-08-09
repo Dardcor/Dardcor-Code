@@ -6,12 +6,12 @@
 
 import * as jsonc from 'jsonc-parser';
 import * as vscode from 'vscode';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { CancellationError } from '../../../util/vs/base/common/errors';
-import { DisposableStore } from '../../../util/vs/base/common/lifecycle';
-import { equals } from '../../../util/vs/base/common/objects';
-import { URI } from '../../../util/vs/base/common/uri';
-import { Range } from '../../../util/vs/editor/common/core/range';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { CancellationError } from '../../../util/dardcor/base/common/errors';
+import { DisposableStore } from '../../../util/dardcor/base/common/lifecycle';
+import { equals } from '../../../util/dardcor/base/common/objects';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { Range } from '../../../util/dardcor/editor/common/core/range';
 import { OffsetLineColumnConverter } from '../../editing/common/offsetLineColumnConverter';
 import { IFileSystemService } from '../../filesystem/common/fileSystemService';
 import { ILanguageDiagnosticsService } from '../../languages/common/languageDiagnosticsService';

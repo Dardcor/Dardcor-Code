@@ -13,7 +13,7 @@ import { IRequestLogger } from '../../../../platform/requestLogger/common/reques
 import { ITabsAndEditorsService } from '../../../../platform/tabs/common/tabsAndEditorsService';
 import { IExperimentationService } from '../../../../platform/telemetry/common/nullExperimentationService';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { PromptCategorizerService } from '../promptCategorizer';
 
 vi.mock('../../../prompts/node/base/promptRenderer', async importOriginal => {

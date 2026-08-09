@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { INativeEnvService } from '../../../../platform/env/common/envService';
-import { extUriBiasedIgnorePathCase } from '../../../../util/vs/base/common/resources';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { createDecorator } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { extUriBiasedIgnorePathCase } from '../../../../util/dardcor/base/common/resources';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { createDecorator } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 
 export const IClaudePlanFileTracker = createDecorator<IClaudePlanFileTracker>('claudePlanFileTracker');
 

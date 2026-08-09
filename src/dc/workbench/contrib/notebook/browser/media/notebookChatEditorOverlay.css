@@ -13,7 +13,7 @@
 	line-height: 1.4em;
 }
 
-/** Copied from src/dc/workbench/contrib/chat/browser/media/chatEditorOverlay.css **/
+/** Copied from src/vs/workbench/contrib/chat/browser/media/chatEditorOverlay.css **/
 /** Copied until we unify these, for now its separate **/
 .notebook-chat-editor-overlay-widget {
 	padding: 0px;

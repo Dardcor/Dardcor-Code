@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { expect, suite, test } from 'vitest';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { ChatImageMimeType } from '../../../conversation/common/languageModelChatMessageHelpers';
 import { getImageMimeType } from '../imageToolUtils';
 

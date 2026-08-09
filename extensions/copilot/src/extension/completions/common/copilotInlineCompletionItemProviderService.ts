@@ -5,7 +5,7 @@
 
 import type { InlineCompletionItemProvider } from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 
 export interface ICopilotInlineCompletionItemProviderService {
 	readonly _serviceBrand: undefined;

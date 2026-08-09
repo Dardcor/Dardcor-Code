@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { LineEdit, LineReplacement } from '../../../util/vs/editor/common/core/edits/lineEdit';
-import { StringEdit } from '../../../util/vs/editor/common/core/edits/stringEdit';
+import { LineEdit, LineReplacement } from '../../../util/dardcor/editor/common/core/edits/lineEdit';
+import { StringEdit } from '../../../util/dardcor/editor/common/core/edits/stringEdit';
 import { StatelessNextEditDocument } from './statelessNextEditProvider';
 
 export class IgnoreEmptyLineAndLeadingTrailingWhitespaceChanges {

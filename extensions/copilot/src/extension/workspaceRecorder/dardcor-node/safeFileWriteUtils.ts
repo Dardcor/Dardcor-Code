@@ -6,7 +6,7 @@
 import { appendFileSync, renameSync, unlinkSync, writeFileSync } from 'fs';
 import { appendFile, rename, stat, unlink, writeFile } from 'fs/promises';
 import { readFileTextOrUndefined, tryParseJson } from '../../../util/node/jsonFile';
-import { BugIndicatingError } from '../../../util/vs/base/common/errors';
+import { BugIndicatingError } from '../../../util/dardcor/base/common/errors';
 
 export class FlushableJSONFile<T> {
 	public static async loadOrCreate<T>(filePath: string, initialValue: T): Promise<FlushableJSONFile<T>> {

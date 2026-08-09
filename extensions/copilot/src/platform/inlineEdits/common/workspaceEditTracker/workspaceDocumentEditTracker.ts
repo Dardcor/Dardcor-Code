@@ -3,10 +3,10 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Disposable, toDisposable } from '../../../../util/vs/base/common/lifecycle';
-import { autorun, mapObservableArrayCached } from '../../../../util/vs/base/common/observable';
-import { AnnotatedStringEdit, IEditData, StringEdit } from '../../../../util/vs/editor/common/core/edits/stringEdit';
-import { StringText } from '../../../../util/vs/editor/common/core/text/abstractText';
+import { Disposable, toDisposable } from '../../../../util/dardcor/base/common/lifecycle';
+import { autorun, mapObservableArrayCached } from '../../../../util/dardcor/base/common/observable';
+import { AnnotatedStringEdit, IEditData, StringEdit } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { StringText } from '../../../../util/dardcor/editor/common/core/text/abstractText';
 import { DocumentId } from '../dataTypes/documentId';
 import { ObservableGit } from '../observableGit';
 import { ObservableWorkspace } from '../observableWorkspace';

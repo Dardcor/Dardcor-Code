@@ -3,10 +3,10 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Lazy } from '../../../../../util/vs/base/common/lazy';
-import { StringEdit, StringReplacement } from '../../../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../../../util/vs/editor/common/core/ranges/offsetRange';
-import { TextLength } from '../../../../../util/vs/editor/common/core/text/textLength';
+import { Lazy } from '../../../../../util/dardcor/base/common/lazy';
+import { StringEdit, StringReplacement } from '../../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { TextLength } from '../../../../../util/dardcor/editor/common/core/text/textLength';
 
 export abstract class StringFragment {
 	abstract get length(): number;

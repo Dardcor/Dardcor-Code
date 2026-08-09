@@ -5,8 +5,8 @@
 import { expect, suite, test } from 'vitest';
 import { decomposeStringEdit } from '../../../../platform/inlineEdits/common/dataTypes/editUtils';
 import { TestLogService } from '../../../../platform/testing/common/testLogService';
-import { StringEdit, StringReplacement } from '../../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
+import { StringEdit, StringReplacement } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
 import { maxAgreementOffset, maxImperfectAgreementLength, tryRebase, tryRebaseStringEdits } from '../../common/editRebase';
 
 

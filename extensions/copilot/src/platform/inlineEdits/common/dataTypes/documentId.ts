@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { CachedFunction } from '../../../../util/vs/base/common/cache';
-import { basename, extname } from '../../../../util/vs/base/common/path';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { CachedFunction } from '../../../../util/dardcor/base/common/cache';
+import { basename, extname } from '../../../../util/dardcor/base/common/path';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 
 /**
  * Refers to a document, independent of its content or a point in time.

@@ -8,10 +8,10 @@ import { getUpstreamRemote } from '../../../platform/git/common/utils';
 import { ObservableWorkspace } from '../../../platform/inlineEdits/common/observableWorkspace';
 import { ITelemetryService, multiplexProperties } from '../../../platform/telemetry/common/telemetry';
 import { LogEntry } from '../../../platform/workspaceRecorder/common/workspaceLog';
-import { RunOnceScheduler } from '../../../util/vs/base/common/async';
-import { Disposable, DisposableStore } from '../../../util/vs/base/common/lifecycle';
-import { autorun } from '../../../util/vs/base/common/observable';
-import { generateUuid } from '../../../util/vs/base/common/uuid';
+import { RunOnceScheduler } from '../../../util/dardcor/base/common/async';
+import { Disposable, DisposableStore } from '../../../util/dardcor/base/common/lifecycle';
+import { autorun } from '../../../util/dardcor/base/common/observable';
+import { generateUuid } from '../../../util/dardcor/base/common/uuid';
 import { DebugRecorder } from './debugRecorder';
 import { NES_GH_TELEMETRY_EVENT_NAME } from './nextEditProviderTelemetry';
 

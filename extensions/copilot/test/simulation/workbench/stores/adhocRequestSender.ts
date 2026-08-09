@@ -7,7 +7,7 @@ import * as fs from 'fs';
 import * as mobx from 'mobx';
 import * as os from 'os';
 import * as path from 'path';
-import { CancellationTokenSource } from '../../../../src/util/vs/base/common/cancellation';
+import { CancellationTokenSource } from '../../../../src/util/dardcor/base/common/cancellation';
 import { AdhocResponseOutput, AdhocResponseType, IAdhocRequest } from '../../shared/sharedTypes';
 import { spawnSimulationFromMainProcess } from '../utils/simulationExec';
 

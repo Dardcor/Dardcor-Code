@@ -137,7 +137,9 @@ export interface IExtensionApiFactory {
 }
 
 export function getTerminalInternalOptions(extension: IExtensionDescription, options: vscode.TerminalOptions): ITerminalInternalOptions | undefined {
+	// @ts-ignore
 	if (options.isRemoteResolverTerminal) {
+		// @ts-ignore
 		checkProposedApiEnabled(extension, 'terminalRemoteResolver');
 		return { isRemoteResolverTerminal: true };
 	}

@@ -5,10 +5,10 @@
 
 import type * as vscode from 'vscode';
 import { PositionOffsetTransformer } from '../../../../../platform/editing/common/positionOffsetTransformer';
-import { Lazy } from '../../../../../util/vs/base/common/lazy';
-import { StringEdit } from '../../../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../../../util/vs/editor/common/core/ranges/offsetRange';
-import { Range } from '../../../../../vscodeTypes';
+import { Lazy } from '../../../../../util/dardcor/base/common/lazy';
+import { StringEdit } from '../../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { Range } from '../../../../../dardcorTypes';
 
 export class ProjectedText {
 	constructor(

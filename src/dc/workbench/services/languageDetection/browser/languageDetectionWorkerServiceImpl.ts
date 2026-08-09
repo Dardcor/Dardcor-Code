@@ -205,7 +205,7 @@ export class LanguageDetectionWorkerClient extends Disposable {
 		if (!this.worker) {
 			const workerClient = this._register(this._webWorkerService.createWorkerClient<ILanguageDetectionWorker>(
 				new WebWorkerDescriptor({
-					esmModuleLocation: FileAccess.asBrowserUri('dc/workbench/services/languageDetection/browser/languageDetectionWebWorkerMain.js'),
+					esmModuleLocation: FileAccess.asBrowserUri('vs/workbench/services/languageDetection/browser/languageDetectionWebWorkerMain.js'),
 					label: 'LanguageDetectionWorker'
 				})
 			));

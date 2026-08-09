@@ -8,11 +8,11 @@ import { ConfigKey } from '../../../../platform/configuration/common/configurati
 import { InlineEditRequestLogContext } from '../../../../platform/inlineEdits/common/inlineEditLogContext';
 import { TsExpr } from '../../../../platform/inlineEdits/common/utils/tsExpr';
 import { LogEntry } from '../../../../platform/workspaceRecorder/common/workspaceLog';
-import { assertNever } from '../../../../util/vs/base/common/assert';
-import { Disposable } from '../../../../util/vs/base/common/lifecycle';
-import { IObservable, ISettableObservable } from '../../../../util/vs/base/common/observableInternal';
-import { basename, extname } from '../../../../util/vs/base/common/path';
-import { openIssueReporter } from '../../../conversation/vscode-node/feedbackReporter';
+import { assertNever } from '../../../../util/dardcor/base/common/assert';
+import { Disposable } from '../../../../util/dardcor/base/common/lifecycle';
+import { IObservable, ISettableObservable } from '../../../../util/dardcor/base/common/observableInternal';
+import { basename, extname } from '../../../../util/dardcor/base/common/path';
+import { openIssueReporter } from '../../../conversation/dardcor-node/feedbackReporter';
 import { XtabProvider } from '../../../xtab/node/xtabProvider';
 import { defaultNextEditProviderId } from '../../node/createNextEditProvider';
 import { DebugRecorder } from '../../node/debugRecorder';

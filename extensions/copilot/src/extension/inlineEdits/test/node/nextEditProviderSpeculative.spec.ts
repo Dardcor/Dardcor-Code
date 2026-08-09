@@ -26,15 +26,15 @@ import { mockNotebookService } from '../../../../platform/test/common/testNotebo
 import { TestWorkspaceService } from '../../../../platform/test/node/testWorkspaceService';
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
 import { Result } from '../../../../util/common/result';
-import { DeferredPromise } from '../../../../util/vs/base/common/async';
-import { CancellationToken, CancellationTokenSource } from '../../../../util/vs/base/common/cancellation';
-import { DisposableStore } from '../../../../util/vs/base/common/lifecycle';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { generateUuid } from '../../../../util/vs/base/common/uuid';
-import { LineReplacement } from '../../../../util/vs/editor/common/core/edits/lineEdit';
-import { StringEdit } from '../../../../util/vs/editor/common/core/edits/stringEdit';
-import { LineRange } from '../../../../util/vs/editor/common/core/ranges/lineRange';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
+import { DeferredPromise } from '../../../../util/dardcor/base/common/async';
+import { CancellationToken, CancellationTokenSource } from '../../../../util/dardcor/base/common/cancellation';
+import { DisposableStore } from '../../../../util/dardcor/base/common/lifecycle';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { generateUuid } from '../../../../util/dardcor/base/common/uuid';
+import { LineReplacement } from '../../../../util/dardcor/editor/common/core/edits/lineEdit';
+import { StringEdit } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { LineRange } from '../../../../util/dardcor/editor/common/core/ranges/lineRange';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
 import { NESInlineCompletionContext, NextEditProvider } from '../../node/nextEditProvider';
 import { ILlmNESTelemetry, NextEditProviderTelemetryBuilder, ReusedRequestKind } from '../../node/nextEditProviderTelemetry';
 

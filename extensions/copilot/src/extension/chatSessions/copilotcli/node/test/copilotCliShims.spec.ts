@@ -13,7 +13,7 @@ import { IEnvService } from '../../../../../platform/env/common/envService';
 import { IVSCodeExtensionContext } from '../../../../../platform/extContext/common/extensionContext';
 import { LogServiceImpl } from '../../../../../platform/log/common/logService';
 import { mock } from '../../../../../util/common/test/simpleMock';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { CopilotCLISDK } from '../copilotCli';
 
 type CopilotSdkModule = typeof import('@github/copilot/sdk');

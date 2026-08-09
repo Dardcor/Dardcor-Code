@@ -10,14 +10,14 @@ import { ChatLocation } from '../../../platform/chat/common/commonTypes';
 import { IEndpointProvider } from '../../../platform/endpoint/common/endpointProvider';
 import { IChatEndpoint } from '../../../platform/networking/common/networking';
 import { IWorkbenchService } from '../../../platform/workbench/common/workbenchService';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { Intent } from '../../common/constants';
-import { parseSettingsAndCommands } from '../../context/node/resolvers/vscodeContext';
+import { parseSettingsAndCommands } from '../../context/node/resolvers/dardcorContext';
 import { IBuildPromptContext } from '../../prompt/common/intents';
 import { IIntent, IIntentInvocation, IIntentInvocationContext, IIntentSlashCommandInfo, IntentLinkificationOptions, IResponseProcessorContext } from '../../prompt/node/intents';
 import { PromptRenderer, RendererIntentInvocation } from '../../prompts/node/base/promptRenderer';
-import { VscodePrompt } from '../../prompts/node/panel/vscode';
+import { VscodePrompt } from '../../prompts/node/panel/dardcor';
 import { ToolName } from '../../tools/common/toolNames';
 import { IToolsService } from '../../tools/common/toolsService';
 

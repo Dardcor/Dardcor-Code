@@ -9,10 +9,10 @@ import { IFileSystemService } from '../../../platform/filesystem/common/fileSyst
 import { IImageService } from '../../../platform/image/common/imageService';
 import { IPromptPathRepresentationService } from '../../../platform/prompts/common/promptPathRepresentationService';
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
-import { dirname } from '../../../util/vs/base/common/resources';
-import { URI } from '../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
-import { LanguageModelDataPart, LanguageModelTextPart, LanguageModelToolResult, MarkdownString } from '../../../vscodeTypes';
+import { dirname } from '../../../util/dardcor/base/common/resources';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { LanguageModelDataPart, LanguageModelTextPart, LanguageModelToolResult, MarkdownString } from '../../../dardcorTypes';
 import { IBuildPromptContext } from '../../prompt/common/intents';
 import { ToolName } from '../common/toolNames';
 import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';

@@ -20,7 +20,7 @@ vi.mock('vscode', () => ({
 	},
 }));
 
-import { registerGetVscodeInfoTool } from '../tools/getVscodeInfo';
+import { registerGetVscodeInfoTool } from '../tools/getdardcorInfo';
 
 interface VscodeInfoResult {
 	version: string;

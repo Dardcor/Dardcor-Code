@@ -10,7 +10,7 @@ import { ChatFetchResponseType, ChatLocation } from '../../../../platform/chat/c
 import { ObjectJsonSchema } from '../../../../platform/configuration/common/jsonSchema';
 import { IChatEndpoint } from '../../../../platform/networking/common/networking';
 import { extractCodeBlocks } from '../../../../util/common/markdown';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
 import { ISummarizedToolCategory } from './virtualToolTypes';
 import { MAX_GROUPS_PER_CHUNK } from './virtualToolsConstants';
 

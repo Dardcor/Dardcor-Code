@@ -8,9 +8,9 @@ import * as fs from 'fs/promises';
 import type * as vscode from 'vscode';
 import { ILanguageFeaturesService } from '../../../src/platform/languages/common/languageFeaturesService';
 import { SimulationWorkspace } from '../../../src/platform/test/node/simulationWorkspace';
-import { escapeRegExpCharacters } from '../../../src/util/vs/base/common/strings';
-import { URI } from '../../../src/util/vs/base/common/uri';
-import { Location, Range } from '../../../src/vscodeTypes';
+import { escapeRegExpCharacters } from '../../../src/util/dardcor/base/common/strings';
+import { URI } from '../../../src/util/dardcor/base/common/uri';
+import { Location, Range } from '../../../src/dardcorTypes';
 
 const REPO_NAME = 'vscode-copilot';
 const liftLSIFRange = (range: LSIF.types.Range): Range => new Range(range.start.line, range.start.character, range.end.line, range.end.character);

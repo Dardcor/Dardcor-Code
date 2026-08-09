@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { OpenAI, Raw } from '@vscode/prompt-tsx';
-import { assertNever } from '../../../util/vs/base/common/assert';
+import { assertNever } from '../../../util/dardcor/base/common/assert';
 
 /**
  * Gets the text content part out of the message.

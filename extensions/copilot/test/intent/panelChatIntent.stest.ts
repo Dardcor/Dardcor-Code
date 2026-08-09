@@ -5,7 +5,7 @@
 import * as fs from 'fs';
 import '../../src/extension/intents/node/allIntents'; // make sure all intents are registered
 import { ChatLocation } from '../../src/platform/chat/common/commonTypes';
-import { join } from '../../src/util/vs/base/common/path';
+import { join } from '../../src/util/dardcor/base/common/path';
 import { ssuite } from '../base/stest';
 import { generateIntentTest } from './intentTest';
 

@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { Memento, Uri } from 'vscode';
-import { VSBuffer } from '../../../util/vs/base/common/buffer';
-import { URI } from '../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { VSBuffer } from '../../../util/dardcor/base/common/buffer';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { IVSCodeExtensionContext } from '../../extContext/common/extensionContext';
 import { fileSystemServiceReadAsJSON, IFileSystemService } from '../../filesystem/common/fileSystemService';
 import { ILogService } from '../../log/common/logService';

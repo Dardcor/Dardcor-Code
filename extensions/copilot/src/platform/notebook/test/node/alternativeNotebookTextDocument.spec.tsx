@@ -6,10 +6,10 @@
 import { afterAll, beforeEach, describe, expect, test } from 'vitest';
 import type { NotebookDocument, NotebookDocumentContentChange, TextDocumentChangeEvent } from 'vscode';
 import { ExtHostNotebookDocumentData } from '../../../../util/common/test/shims/notebookDocument';
-import { DisposableStore } from '../../../../util/vs/base/common/lifecycle';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
-import { NotebookCellData, NotebookCellKind, NotebookData, NotebookRange, Range } from '../../../../vscodeTypes';
+import { DisposableStore } from '../../../../util/dardcor/base/common/lifecycle';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { NotebookCellData, NotebookCellKind, NotebookData, NotebookRange, Range } from '../../../../dardcorTypes';
 import { createAlternativeNotebookDocument, createAlternativeNotebookDocumentSnapshot, IAlternativeNotebookDocument, IAlternativeNotebookDocumentSnapshot, toAltNotebookCellChangeEdit, toAltNotebookChangeEdit } from '../../common/alternativeNotebookTextDocument';
 
 describe('Alternative Notebook (text) Content', () => {

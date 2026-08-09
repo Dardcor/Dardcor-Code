@@ -12,7 +12,7 @@ import { IAgentSkill, IBuiltinPromptPath, PromptsStorage } from '../../../../wor
 import { PromptsService } from '../../../../workbench/contrib/chat/common/promptSyntax/service/promptsServiceImpl.js';
 
 /** URI root for built-in skills bundled with the Agents app. */
-export const BUILTIN_SKILLS_URI = FileAccess.asFileUri('vs/sessions/skills');
+export const BUILTIN_SKILLS_URI = FileAccess.asFileUri('dc/sessions/skills');
 
 /**
  * Sessions-specific PromptsService that additionally discovers built-in skills

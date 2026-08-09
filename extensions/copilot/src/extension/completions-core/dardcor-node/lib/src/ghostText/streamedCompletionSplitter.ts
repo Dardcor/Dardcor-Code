@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import { CopilotNamedAnnotationList } from '../../../../../../platform/completions-core/common/openai/copilotAnnotations';
-import { IInstantiationService } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { FinishedCallback, RequestDelta, SolutionDecision } from '../openai/fetch';
 import { APIChoice, convertToAPIChoice } from '../openai/openai';
 import { TerseBlockTrimmer } from './blockTrimmer';

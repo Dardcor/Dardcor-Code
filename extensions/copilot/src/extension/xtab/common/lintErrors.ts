@@ -8,13 +8,13 @@ import { DocumentId } from '../../../platform/inlineEdits/common/dataTypes/docum
 import { LintOptions, LintOptionShowCode, LintOptionWarning } from '../../../platform/inlineEdits/common/dataTypes/xtabPromptOptions';
 import { IXtabHistoryEntry } from '../../../platform/inlineEdits/common/workspaceEditTracker/nesXtabHistoryTracker';
 import { ILanguageDiagnosticsService } from '../../../platform/languages/common/languageDiagnosticsService';
-import { BugIndicatingError } from '../../../util/vs/base/common/errors';
-import { isEqual } from '../../../util/vs/base/common/resources';
-import { URI } from '../../../util/vs/base/common/uri';
-import { Position } from '../../../util/vs/editor/common/core/position';
-import { Range } from '../../../util/vs/editor/common/core/range';
-import { OffsetRange } from '../../../util/vs/editor/common/core/ranges/offsetRange';
-import { Diagnostic, DiagnosticSeverity } from '../../../vscodeTypes';
+import { BugIndicatingError } from '../../../util/dardcor/base/common/errors';
+import { isEqual } from '../../../util/dardcor/base/common/resources';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { Position } from '../../../util/dardcor/editor/common/core/position';
+import { Range } from '../../../util/dardcor/editor/common/core/range';
+import { OffsetRange } from '../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { Diagnostic, DiagnosticSeverity } from '../../../dardcorTypes';
 import { PromptTags } from './tags';
 import { CurrentDocument } from './xtabCurrentDocument';
 

@@ -3,7 +3,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { expect } from 'chai';
-import { Position, Range, TextEdit } from '../../../../vscodeTypes';
+import { Position, Range, TextEdit } from '../../../../dardcorTypes';
 import { PositionOffsetTransformer } from '../positionOffsetTransformer';
 
 describe('PositionOffsetTransformer', () => {

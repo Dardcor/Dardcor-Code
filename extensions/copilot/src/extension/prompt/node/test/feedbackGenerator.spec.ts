@@ -16,12 +16,12 @@ import { NullTelemetryService } from '../../../../platform/telemetry/common/null
 import { ITelemetryService, TelemetryEventMeasurements, TelemetryEventProperties } from '../../../../platform/telemetry/common/telemetry';
 import { TestLogService } from '../../../../platform/testing/common/testLogService';
 import { createTextDocumentData } from '../../../../util/common/test/shims/textDocument';
-import { CancellationToken, CancellationTokenSource } from '../../../../util/vs/base/common/cancellation';
-import { Event } from '../../../../util/vs/base/common/event';
-import { DisposableStore } from '../../../../util/vs/base/common/lifecycle';
-import * as path from '../../../../util/vs/base/common/path';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
-import { MarkdownString, Range, Uri } from '../../../../vscodeTypes';
+import { CancellationToken, CancellationTokenSource } from '../../../../util/dardcor/base/common/cancellation';
+import { Event } from '../../../../util/dardcor/base/common/event';
+import { DisposableStore } from '../../../../util/dardcor/base/common/lifecycle';
+import * as path from '../../../../util/dardcor/base/common/path';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { MarkdownString, Range, Uri } from '../../../../dardcorTypes';
 import { CurrentChangeInput } from '../../../prompts/node/feedback/currentChange';
 import { createExtensionUnitTestingServices } from '../../../test/node/services';
 import { FeedbackGenerator, parseFeedbackResponse, parseReviewComments, sendReviewActionTelemetry } from '../feedbackGenerator';

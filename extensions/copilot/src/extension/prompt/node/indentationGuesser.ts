@@ -5,7 +5,7 @@
 
 import type { FormattingOptions, TextDocument } from 'vscode';
 import { TextDocumentSnapshot } from '../../../platform/editing/common/textDocumentSnapshot';
-import * as strings from '../../../util/vs/base/common/strings';
+import * as strings from '../../../util/dardcor/base/common/strings';
 import { isLines, Lines } from './editGeneration';
 
 /**

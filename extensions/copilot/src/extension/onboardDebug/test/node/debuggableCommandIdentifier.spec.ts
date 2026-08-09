@@ -11,10 +11,10 @@ import { ConfigKey, IConfigurationService } from '../../../../platform/configura
 import { ITestingServicesAccessor } from '../../../../platform/test/node/services';
 import { TestWorkspaceService } from '../../../../platform/test/node/testWorkspaceService';
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { basename } from '../../../../util/vs/base/common/path';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { basename } from '../../../../util/dardcor/base/common/path';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { createExtensionUnitTestingServices } from '../../../test/node/services';
 import { DebuggableCommandIdentifier } from '../../node/debuggableCommandIdentifier';
 import { ILanguageToolsProvider } from '../../node/languageToolsProvider';

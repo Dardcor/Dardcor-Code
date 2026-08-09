@@ -1,7 +1,7 @@
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation and GitHub. All rights reserved.
  *--------------------------------------------------------------------------------------------*/
-import { CharCode } from '../../../util/vs/common/charCode';
+import { CharCode } from '../../../util/dardcor/common/charCode';
 
 export interface ISimpleTextModel {
 	getLineCount(): number;

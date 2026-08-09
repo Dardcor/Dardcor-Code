@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { basename, extUriBiasedIgnorePathCase } from '../../../util/vs/base/common/resources';
-import { URI } from '../../../util/vs/base/common/uri';
+import { basename, extUriBiasedIgnorePathCase } from '../../../util/dardcor/base/common/resources';
+import { URI } from '../../../util/dardcor/base/common/uri';
 import { IWorkspaceService } from './workspaceService';
 
 /**

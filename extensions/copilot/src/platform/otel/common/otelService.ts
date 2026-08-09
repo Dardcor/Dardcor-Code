@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { createServiceIdentifier } from '../../../util/common/services';
-import type { Event } from '../../../util/vs/base/common/event';
+import type { Event } from '../../../util/dardcor/base/common/event';
 import type { OTelConfig } from './otelConfig';
 
 export const IOTelService = createServiceIdentifier<IOTelService>('IOTelService');

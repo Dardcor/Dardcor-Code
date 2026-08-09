@@ -6,9 +6,9 @@
 import type { LanguageModelToolInformation } from 'vscode';
 import { IConfigurationService } from '../../../../platform/configuration/common/configurationService';
 import { IExperimentationService } from '../../../../platform/telemetry/common/nullExperimentationService';
-import { LRUCache } from '../../../../util/vs/base/common/map';
-import { IObservable } from '../../../../util/vs/base/common/observableInternal';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { LRUCache } from '../../../../util/dardcor/base/common/map';
+import { IObservable } from '../../../../util/dardcor/base/common/observableInternal';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { computeToolGroupingMinThreshold, ToolGrouping } from './toolGrouping';
 import { IToolGrouping, IToolGroupingService } from './virtualToolTypes';
 

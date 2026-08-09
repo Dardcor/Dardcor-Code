@@ -13,11 +13,11 @@ import { RequestId, getRequestId } from '../../../../../../platform/networking/c
 import { IHeaders } from '../../../../../../platform/networking/common/fetcherService';
 import { ITelemetryService } from '../../../../../../platform/telemetry/common/telemetry';
 import { createServiceIdentifier } from '../../../../../../util/common/services';
-import { assertNever } from '../../../../../../util/vs/base/common/assert';
-import { CancellationToken } from '../../../../../../util/vs/base/common/cancellation';
-import { StopWatch } from '../../../../../../util/vs/base/common/stopwatch';
-import { generateUuid } from '../../../../../../util/vs/base/common/uuid';
-import { IInstantiationService, ServicesAccessor } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { assertNever } from '../../../../../../util/dardcor/base/common/assert';
+import { CancellationToken } from '../../../../../../util/dardcor/base/common/cancellation';
+import { StopWatch } from '../../../../../../util/dardcor/base/common/stopwatch';
+import { generateUuid } from '../../../../../../util/dardcor/base/common/uuid';
+import { IInstantiationService, ServicesAccessor } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { CancellationToken as ICancellationToken } from '../../../types/src';
 import { CopilotToken, ICompletionsCopilotTokenManager } from '../auth/copilotTokenManager';
 import { onCopilotToken } from '../auth/copilotTokenNotifier';

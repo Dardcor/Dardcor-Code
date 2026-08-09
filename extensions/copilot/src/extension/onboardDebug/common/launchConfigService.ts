@@ -6,7 +6,7 @@
 import * as l10n from '@vscode/l10n';
 import type * as vscode from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { URI } from '../../../util/vs/base/common/uri';
+import { URI } from '../../../util/dardcor/base/common/uri';
 
 export const needsWorkspaceFolderForTaskError = () => l10n.t`The model asked to run a build task, which requires a workspace folder. Please open a folder and retry.`;
 

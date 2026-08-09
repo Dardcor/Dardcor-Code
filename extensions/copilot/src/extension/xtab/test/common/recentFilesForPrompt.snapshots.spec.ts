@@ -6,8 +6,8 @@
 import { expect, suite, test } from 'vitest';
 import { DocumentId } from '../../../../platform/inlineEdits/common/dataTypes/documentId';
 import { DEFAULT_OPTIONS, PromptOptions, RecentFileClippingStrategy } from '../../../../platform/inlineEdits/common/dataTypes/xtabPromptOptions';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
-import { StringText } from '../../../../util/vs/editor/common/core/text/abstractText';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { StringText } from '../../../../util/dardcor/editor/common/core/text/abstractText';
 import { buildCodeSnippetsUsingPagedClipping } from '../../common/recentFilesForPrompt';
 
 // --- Helpers ---

@@ -10,12 +10,12 @@ import { IFileSystemService } from '../../../../platform/filesystem/common/fileS
 import { ILogService } from '../../../../platform/log/common/logService';
 import { IPromptsService } from '../../../../platform/promptFiles/common/promptsService';
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { isCancellationError } from '../../../../util/vs/base/common/errors';
-import { Emitter } from '../../../../util/vs/base/common/event';
-import { Disposable } from '../../../../util/vs/base/common/lifecycle';
-import { basename } from '../../../../util/vs/base/common/resources';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { isCancellationError } from '../../../../util/dardcor/base/common/errors';
+import { Emitter } from '../../../../util/dardcor/base/common/event';
+import { Disposable } from '../../../../util/dardcor/base/common/lifecycle';
+import { basename } from '../../../../util/dardcor/base/common/resources';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { ICopilotCLIAgents, isEnabledForCopilotCLI } from '../../copilotcli/node/copilotCli';
 import { INativeEnvService } from '../../../../platform/env/common/envService';
 

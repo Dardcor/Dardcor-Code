@@ -24,7 +24,9 @@ suite('ExtHost API', function () {
 
 	test('TerminalOptions.isRemoteResolverTerminal requires terminalRemoteResolver proposal', () => {
 		const options = { isRemoteResolverTerminal: true };
+		// @ts-ignore
 		assert.throws(() => getTerminalInternalOptions(nullExtensionDescription, options), /CANNOT use API proposal: terminalRemoteResolver/);
+		// @ts-ignore
 		assert.deepStrictEqual(getTerminalInternalOptions({ ...nullExtensionDescription, enabledApiProposals: ['terminalRemoteResolver'] }, options), { isRemoteResolverTerminal: true });
 	});
 

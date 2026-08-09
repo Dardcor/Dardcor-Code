@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IIgnoreService } from '../../../../../../../platform/ignore/common/ignoreService';
-import { IInstantiationService } from '../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ICompletionsFileSystemService } from '../../fileSystem';
 import { ICompletionsLogTargetService } from '../../logger';
 import { TelemetryWithExp } from '../../telemetry';

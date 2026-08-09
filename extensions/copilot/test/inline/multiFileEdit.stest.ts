@@ -5,8 +5,8 @@
 import * as assert from 'assert';
 import { CHAT_MODEL } from '../../src/platform/configuration/common/configurationService';
 import { TestingServiceCollection } from '../../src/platform/test/node/services';
-import { escapeRegExpCharacters } from '../../src/util/vs/base/common/strings';
-import { URI } from '../../src/util/vs/base/common/uri';
+import { escapeRegExpCharacters } from '../../src/util/dardcor/base/common/strings';
+import { URI } from '../../src/util/dardcor/base/common/uri';
 import { Configuration, ssuite, stest } from '../base/stest';
 import { assertContainsAllSnippets, assertCriteriaMetAsync, assertFileContent, assertJSON, assertNoElidedCodeComments, getFileContent, getWorkspaceDiagnostics } from '../simulation/outcomeValidators';
 import { EditTestStrategyPanel, simulatePanelCodeMapper } from '../simulation/panelCodeMapperSimulator';

@@ -12,7 +12,7 @@ import { IEndpointProvider } from '../../../platform/endpoint/common/endpointPro
 import { Diff } from '../../../platform/git/common/gitDiffService';
 import { INotificationService } from '../../../platform/notification/common/notificationService';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { PromptRenderer } from '../../prompts/node/base/promptRenderer';
 import { GitCommitMessagePrompt } from '../../prompts/node/git/gitCommitMessagePrompt';
 import { RecentCommitMessages } from '../common/repository';

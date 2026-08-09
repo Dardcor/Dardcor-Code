@@ -5,10 +5,10 @@
 
 import type { ChatRequest, NotebookCell, NotebookDocument, TextDocument, Uri } from 'vscode';
 import { isLocation, isUri } from '../../../util/common/types';
-import { StringSHA1 } from '../../../util/vs/base/common/hash';
-import { removeAnsiEscapeCodes } from '../../../util/vs/base/common/strings';
-import { isUriComponents, URI } from '../../../util/vs/base/common/uri';
-import { NotebookCellData, NotebookCellKind } from '../../../vscodeTypes';
+import { StringSHA1 } from '../../../util/dardcor/base/common/hash';
+import { removeAnsiEscapeCodes } from '../../../util/dardcor/base/common/strings';
+import { isUriComponents, URI } from '../../../util/dardcor/base/common/uri';
+import { NotebookCellData, NotebookCellKind } from '../../../dardcorTypes';
 import { INotebookService } from './notebookService';
 
 

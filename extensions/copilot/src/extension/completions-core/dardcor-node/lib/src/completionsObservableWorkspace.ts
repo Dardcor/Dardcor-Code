@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 import { DocumentId } from '../../../../../platform/inlineEdits/common/dataTypes/documentId';
 import { IObservableDocument } from '../../../../../platform/inlineEdits/common/observableWorkspace';
-import { IObservableWithChange } from '../../../../../util/vs/base/common/observableInternal';
-import { URI } from '../../../../../util/vs/base/common/uri';
-import { createDecorator as createServiceIdentifier } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IObservableWithChange } from '../../../../../util/dardcor/base/common/observableInternal';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
+import { createDecorator as createServiceIdentifier } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 
 export const ICompletionsObservableWorkspace = createServiceIdentifier<ICompletionsObservableWorkspace>('ICompletionsObservableWorkspace');
 export interface ICompletionsObservableWorkspace {

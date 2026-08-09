@@ -14,13 +14,13 @@ import { NesHistoryContextProvider } from '../../../platform/inlineEdits/common/
 import { ILogService } from '../../../platform/log/common/logService';
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
 import { isNotebookCell } from '../../../util/common/notebooks';
-import { Disposable, IDisposable } from '../../../util/vs/base/common/lifecycle';
-import { autorun, derived, derivedDisposable, observableFromEvent } from '../../../util/vs/base/common/observable';
-import { join } from '../../../util/vs/base/common/path';
-import { URI } from '../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { Disposable, IDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { autorun, derived, derivedDisposable, observableFromEvent } from '../../../util/dardcor/base/common/observable';
+import { join } from '../../../util/dardcor/base/common/path';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { IExtensionContribution } from '../../common/contributions';
-import { unificationStateObservable } from '../../completions/vscode-node/completionsUnificationContribution';
+import { unificationStateObservable } from '../../completions/dardcor-node/completionsUnificationContribution';
 import { TelemetrySender } from '../node/nextEditProviderTelemetry';
 import { ContinuousEnhancedTelemetrySender } from '../node/continuousEnhancedTelemetrySender';
 import { ExpectedEditCaptureController } from './components/expectedEditCaptureController';
@@ -30,7 +30,7 @@ import { DiagnosticsNextEditProvider } from './features/diagnosticsInlineEditPro
 import { InlineCompletionProviderImpl } from './inlineCompletionProvider';
 import { InlineEditModel } from './inlineEditModel';
 import { InlineEditLogger } from './parts/inlineEditLogger';
-import { VSCodeWorkspace } from './parts/vscodeWorkspace';
+import { VSCodeWorkspace } from './parts/dardcorWorkspace';
 import { makeSettable } from './utils/observablesUtils';
 
 const useEnhancedNotebookNESContextKey = 'github.copilot.chat.enableEnhancedNotebookNES';

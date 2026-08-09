@@ -5,17 +5,17 @@
 import { commands, extensions, window } from 'vscode';
 import { IAuthenticationService, MinimalModeError } from '../../../platform/authentication/common/authentication';
 import { TokenErrorReason } from '../../../platform/authentication/common/copilotToken';
-import { ContactSupportError, EnterpriseManagedError, GitHubLoginFailedError, InvalidTokenError, NotSignedUpError, RateLimitedError, SubscriptionExpiredError } from '../../../platform/authentication/vscode-node/copilotTokenManager';
-import { SESSION_LOGIN_MESSAGE } from '../../../platform/authentication/vscode-node/session';
+import { ContactSupportError, EnterpriseManagedError, GitHubLoginFailedError, InvalidTokenError, NotSignedUpError, RateLimitedError, SubscriptionExpiredError } from '../../../platform/authentication/dardcor-node/copilotTokenManager';
+import { SESSION_LOGIN_MESSAGE } from '../../../platform/authentication/dardcor-node/session';
 import { ConfigKey, IConfigurationService } from '../../../platform/configuration/common/configurationService';
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
 import { IEnvService } from '../../../platform/env/common/envService';
 import { ILogService } from '../../../platform/log/common/logService';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
 import { TelemetryData } from '../../../platform/telemetry/common/telemetryData';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { autorun } from '../../../util/vs/base/common/observableInternal';
-import { GHPR_EXTENSION_ID } from '../../chatSessions/vscode/chatSessionsUriHandler';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { autorun } from '../../../util/dardcor/base/common/observableInternal';
+import { GHPR_EXTENSION_ID } from '../../chatSessions/dardcor/chatSessionsUriHandler';
 import { isClientBYOKAllowed } from '../../byok/common/byokProvider';
 import { EXTENSION_ID } from '../../common/constants';
 

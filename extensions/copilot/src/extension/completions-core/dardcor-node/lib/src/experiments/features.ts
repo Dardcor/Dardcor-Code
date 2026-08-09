@@ -5,7 +5,7 @@
 
 import { ILogService } from '../../../../../../platform/log/common/logService';
 import { IExperimentationService } from '../../../../../../platform/telemetry/common/nullExperimentationService';
-import { IInstantiationService } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import {
 	DEFAULT_MAX_COMPLETION_LENGTH,
 	DEFAULT_MAX_PROMPT_LENGTH,

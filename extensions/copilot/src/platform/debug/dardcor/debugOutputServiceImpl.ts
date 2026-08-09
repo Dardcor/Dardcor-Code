@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { IDebugOutputService } from '../common/debugOutputService';
 import { getMostRecentDebugOutput, installDebugOutputListeners } from './debugOutputListener';
 

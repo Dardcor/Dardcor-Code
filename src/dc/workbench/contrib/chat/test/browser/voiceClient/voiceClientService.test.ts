@@ -269,6 +269,7 @@ suite('VoiceClientService', () => {
 
 		await service.connect(createTestWindow());
 		service.sendStartSession({ sessions: [], display_locale: '' }, 'machine');
+		// @ts-ignore
 		const questionId = service.requestNarration('cs1', 'question', 'Which region?', undefined, { pendingId: 'p1' });
 		const replyId = service.requestNarration('cs1', 'response', 'Done.');
 
@@ -282,6 +283,7 @@ suite('VoiceClientService', () => {
 		const { service } = createService();
 
 		await service.connect(createTestWindow());
+		// @ts-ignore
 		const narrationId = service.requestNarration('cs1', 'question', 'Which region?', undefined, { pendingId: 'p1' });
 
 		assert.strictEqual(narrationId, undefined);

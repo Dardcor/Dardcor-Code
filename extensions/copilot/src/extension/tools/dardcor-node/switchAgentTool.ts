@@ -6,9 +6,9 @@
 import * as vscode from 'vscode';
 import { ConfigKey, IConfigurationService } from '../../../platform/configuration/common/configurationService';
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { LanguageModelTextPart, LanguageModelToolResult, MarkdownString } from '../../../vscodeTypes';
-import { PlanAgentProvider } from '../../agents/vscode-node/planAgentProvider';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { LanguageModelTextPart, LanguageModelToolResult, MarkdownString } from '../../../dardcorTypes';
+import { PlanAgentProvider } from '../../agents/dardcor-node/planAgentProvider';
 import { ToolName } from '../common/toolNames';
 import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
 

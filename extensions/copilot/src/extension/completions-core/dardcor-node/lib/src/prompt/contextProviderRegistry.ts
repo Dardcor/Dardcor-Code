@@ -8,8 +8,8 @@ import { ConfigKey as ChatConfigKey, IConfigurationService } from '../../../../.
 import { ILanguageContextProviderService, ProviderTarget } from '../../../../../../platform/languageContextProvider/common/languageContextProviderService';
 import { IExperimentationService } from '../../../../../../platform/telemetry/common/nullExperimentationService';
 import { createServiceIdentifier } from '../../../../../../util/common/services';
-import { isCancellationError } from '../../../../../../util/vs/base/common/errors';
-import { IInstantiationService, ServicesAccessor } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { isCancellationError } from '../../../../../../util/dardcor/base/common/errors';
+import { IInstantiationService, ServicesAccessor } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import {
 	ContextItemUsageDetails,
 	ContextProvider,

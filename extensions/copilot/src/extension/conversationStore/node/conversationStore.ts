@@ -5,9 +5,9 @@
 
 import { IChatSessionService } from '../../../platform/chat/common/chatSessionService';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { TimeoutTimer } from '../../../util/vs/base/common/async';
-import { Disposable, DisposableMap } from '../../../util/vs/base/common/lifecycle';
-import { LRUCache } from '../../../util/vs/base/common/map';
+import { TimeoutTimer } from '../../../util/dardcor/base/common/async';
+import { Disposable, DisposableMap } from '../../../util/dardcor/base/common/lifecycle';
+import { LRUCache } from '../../../util/dardcor/base/common/map';
 import { Conversation } from '../../prompt/common/conversation';
 
 export const IConversationStore = createServiceIdentifier<IConversationStore>('IConversationStore');

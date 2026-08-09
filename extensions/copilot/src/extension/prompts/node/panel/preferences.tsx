@@ -7,7 +7,7 @@ import { BasePromptElementProps, PromptElement, PromptReference, PromptSizing } 
 import { ConfigKey, IConfigurationService } from '../../../../platform/configuration/common/configurationService';
 import { IVSCodeExtensionContext } from '../../../../platform/extContext/common/extensionContext';
 import { IFileSystemService } from '../../../../platform/filesystem/common/fileSystemService';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { Tag } from '../base/tag';
 
 export interface UserPreferencesProps extends BasePromptElementProps { }

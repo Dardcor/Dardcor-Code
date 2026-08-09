@@ -5,9 +5,9 @@
 
 import * as vscode from 'vscode';
 import { ILogService } from '../../../../platform/log/common/logService';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { Disposable } from '../../../../util/vs/base/common/lifecycle';
-import { createDecorator, IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { Disposable } from '../../../../util/dardcor/base/common/lifecycle';
+import { createDecorator, IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { getClaudeSlashCommandRegistry, IClaudeSlashCommandHandler } from './slashCommands/claudeSlashCommandRegistry';
 
 export interface IClaudeSlashCommandRequest {

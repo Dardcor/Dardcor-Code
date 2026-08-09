@@ -6,8 +6,8 @@
 import type * as vscode from 'vscode';
 import { IEditSurvivalTrackingSession } from '../../../platform/editSurvivalTracking/common/editSurvivalTrackerService';
 import { ChatResponseStreamImpl } from '../../../util/common/chatResponseStreamImpl';
-import { ResourceSet } from '../../../util/vs/base/common/map';
-import { ChatResponseMarkdownPart, ChatResponseNotebookEditPart, ChatResponseTextEditPart } from '../../../vscodeTypes';
+import { ResourceSet } from '../../../util/dardcor/base/common/map';
+import { ChatResponseMarkdownPart, ChatResponseNotebookEditPart, ChatResponseTextEditPart } from '../../../dardcorTypes';
 import { ChatTelemetry } from '../../prompt/node/chatParticipantTelemetry';
 import { IDocumentContext } from '../../prompt/node/documentContext';
 import { IIntent } from '../../prompt/node/intents';

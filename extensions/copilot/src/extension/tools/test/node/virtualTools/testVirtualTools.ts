@@ -5,7 +5,7 @@
 
 import type { LanguageModelToolInformation } from 'vscode';
 import { Embedding } from '../../../../../platform/embeddings/common/embeddingsComputer';
-import { CancellationToken } from '../../../../../util/vs/base/common/cancellation';
+import { CancellationToken } from '../../../../../util/dardcor/base/common/cancellation';
 import { IToolEmbeddingsComputer } from '../../../common/virtualTools/toolEmbeddingsComputer';
 
 export class TestToolEmbeddingsComputer implements IToolEmbeddingsComputer {

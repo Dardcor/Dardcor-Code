@@ -6,8 +6,8 @@
 import { BasePromptElementProps, PromptElement, PromptReference } from '@vscode/prompt-tsx';
 import { IFileSystemService } from '../../../../platform/filesystem/common/fileSystemService';
 import { formatHexdump, isBinaryContent } from '../../../../util/common/hexdump';
-import { Schemas } from '../../../../util/vs/base/common/network';
-import { Uri } from '../../../../vscodeTypes';
+import { Schemas } from '../../../../util/dardcor/base/common/network';
+import { Uri } from '../../../../dardcorTypes';
 import { Tag } from '../base/tag';
 import { CodeBlock } from './safeElements';
 

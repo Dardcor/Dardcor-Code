@@ -10,10 +10,10 @@ import { ChatFetchResponseType, ChatResponse } from '../../../../platform/chat/c
 import { toTextPart } from '../../../../platform/chat/common/globalStringUtils';
 import { ITestingServicesAccessor } from '../../../../platform/test/node/services';
 import { ChatResponseStreamImpl } from '../../../../util/common/chatResponseStreamImpl';
-import { CancellationTokenSource } from '../../../../util/vs/base/common/cancellation';
-import { DisposableStore } from '../../../../util/vs/base/common/lifecycle';
-import { generateUuid } from '../../../../util/vs/base/common/uuid';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationTokenSource } from '../../../../util/dardcor/base/common/cancellation';
+import { DisposableStore } from '../../../../util/dardcor/base/common/lifecycle';
+import { generateUuid } from '../../../../util/dardcor/base/common/uuid';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { Conversation, Turn } from '../../../prompt/common/conversation';
 import { IBuildPromptContext } from '../../../prompt/common/intents';
 import { IBuildPromptResult, nullRenderPromptResult } from '../../../prompt/node/intents';

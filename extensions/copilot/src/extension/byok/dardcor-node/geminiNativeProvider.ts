@@ -18,7 +18,7 @@ import { ITelemetryService } from '../../../platform/telemetry/common/telemetry'
 import { toErrorMessage } from '../../../util/common/errorMessage';
 import { buildOTelInputFromChatMessages } from './byokOTelHelpers';
 import { RecordedProgress } from '../../../util/common/progressRecorder';
-import { generateUuid } from '../../../util/vs/base/common/uuid';
+import { generateUuid } from '../../../util/dardcor/base/common/uuid';
 import { BYOKKnownModels, byokKnownModelsToAPIInfo, BYOKModelCapabilities, LMResponsePart } from '../common/byokProvider';
 import { toGeminiFunction as toGeminiFunctionDeclaration, ToolJsonSchema } from '../common/geminiFunctionDeclarationConverter';
 import { apiMessageToGeminiMessage, geminiMessagesToRawMessagesForLogging } from '../common/geminiMessageConverter';

@@ -5,7 +5,7 @@
 
 import type * as vscode from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { Event } from '../../../util/vs/base/common/event';
+import { Event } from '../../../util/dardcor/base/common/event';
 import { ModelConfiguration } from './dataTypes/xtabPromptOptions';
 
 export interface IInlineEditsModelService {

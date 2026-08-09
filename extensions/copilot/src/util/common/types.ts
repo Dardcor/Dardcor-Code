@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type * as vscode from '../../vscodeTypes';
-import { Location, Position, Range } from '../../vscodeTypes';
-import { URI } from '../vs/base/common/uri';
+import type * as vscode from '../../dardcorTypes';
+import { Location, Position, Range } from '../../dardcorTypes';
+import { URI } from '../dardcor/base/common/uri';
 
 export function isUri(thing: any): thing is URI | vscode.Uri {
 	// This check works for URIs from vscode, but doesn't help with type narrowing on its own, so this function exists.

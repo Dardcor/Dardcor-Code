@@ -5,14 +5,14 @@
 
 import { FileType } from '../../../platform/filesystem/common/fileTypes';
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { hasDriveLetter } from '../../../util/vs/base/common/extpath';
-import { Schemas } from '../../../util/vs/base/common/network';
-import * as path from '../../../util/vs/base/common/path';
-import { isWindows } from '../../../util/vs/base/common/platform';
-import * as resources from '../../../util/vs/base/common/resources';
-import { isUriComponents } from '../../../util/vs/base/common/uri';
-import { Uri } from '../../../vscodeTypes';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { hasDriveLetter } from '../../../util/dardcor/base/common/extpath';
+import { Schemas } from '../../../util/dardcor/base/common/network';
+import * as path from '../../../util/dardcor/base/common/path';
+import { isWindows } from '../../../util/dardcor/base/common/platform';
+import * as resources from '../../../util/dardcor/base/common/resources';
+import { isUriComponents } from '../../../util/dardcor/base/common/uri';
+import { Uri } from '../../../dardcorTypes';
 import { coalesceParts, LinkifiedPart, LinkifiedText, LinkifyLocationAnchor } from './linkifiedText';
 import { IContributedLinkifier, LinkifierContext } from './linkifyService';
 import { IStatCache } from './statCache';

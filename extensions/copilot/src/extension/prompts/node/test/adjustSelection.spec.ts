@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { StringTextDocument } from '../../../../platform/editing/common/abstractText';
 import { getStructureUsingIndentation } from '../../../../platform/parser/node/indentationStructure';
-import { Position, Range } from '../../../../vscodeTypes';
+import { Position, Range } from '../../../../dardcorTypes';
 import { getAdjustedSelection } from '../inline/adjustSelection';
 
 describe('adjustSelection', () => {

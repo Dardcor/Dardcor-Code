@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { NotebookDocument } from 'vscode';
-import { DisposableStore } from '../../../util/vs/base/common/lifecycle';
+import { DisposableStore } from '../../../util/dardcor/base/common/lifecycle';
 import { IVSCodeExtensionContext } from '../../extContext/common/extensionContext';
 import { IWorkspaceService } from '../../workspace/common/workspaceService';
 import { INotebookSummaryTracker } from '../common/notebookSummaryTracker';

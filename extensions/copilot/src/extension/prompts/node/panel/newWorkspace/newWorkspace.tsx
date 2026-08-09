@@ -13,10 +13,10 @@ import { GithubRepositoryItem, IGithubRepositoryService } from '../../../../../p
 import { IChatEndpoint } from '../../../../../platform/networking/common/networking';
 import { IProjectTemplatesIndex } from '../../../../../platform/projectTemplatesIndex/common/projectTemplatesIndex';
 import { reportProgressOnSlowPromise } from '../../../../../util/common/progress';
-import { CancellationToken } from '../../../../../util/vs/base/common/cancellation';
-import * as path from '../../../../../util/vs/base/common/path';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
-import { ChatResponseProgressPart } from '../../../../../vscodeTypes';
+import { CancellationToken } from '../../../../../util/dardcor/base/common/cancellation';
+import * as path from '../../../../../util/dardcor/base/common/path';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { ChatResponseProgressPart } from '../../../../../dardcorTypes';
 import { newId } from '../../../../intents/node/newIntent';
 import { PromptMetadata } from '../../../../prompt/common/conversation';
 import { IBuildPromptContext } from '../../../../prompt/common/intents';

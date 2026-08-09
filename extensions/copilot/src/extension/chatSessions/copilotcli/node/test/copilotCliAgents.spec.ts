@@ -9,9 +9,9 @@ import { IVSCodeExtensionContext } from '../../../../../platform/extContext/comm
 import { ILogService } from '../../../../../platform/log/common/logService';
 import { PromptFileParser } from '../../../../../platform/promptFiles/common/promptsService';
 import { IWorkspaceService } from '../../../../../platform/workspace/common/workspaceService';
-import { Event } from '../../../../../util/vs/base/common/event';
-import { DisposableStore } from '../../../../../util/vs/base/common/lifecycle';
-import { URI } from '../../../../../util/vs/base/common/uri';
+import { Event } from '../../../../../util/dardcor/base/common/event';
+import { DisposableStore } from '../../../../../util/dardcor/base/common/lifecycle';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
 import { createExtensionUnitTestingServices } from '../../../../test/node/services';
 import { CopilotCLIAgents } from '../copilotCli';
 import { MockPromptsService } from '../../../../../platform/promptFiles/test/common/mockPromptsService';

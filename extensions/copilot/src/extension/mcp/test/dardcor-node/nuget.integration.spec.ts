@@ -9,8 +9,8 @@ import { ILogService } from '../../../../platform/log/common/logService';
 import { IFetcherService } from '../../../../platform/networking/common/fetcherService';
 import { ITestingServicesAccessor, TestingServiceCollection } from '../../../../platform/test/node/services';
 import { createExtensionUnitTestingServices } from '../../../test/node/services';
-import { IMcpStdioServerConfiguration, NuGetMcpSetup } from '../../vscode-node/nuget';
-import { CommandExecutor, ICommandExecutor } from '../../vscode-node/util';
+import { IMcpStdioServerConfiguration, NuGetMcpSetup } from '../../dardcor-node/nuget';
+import { CommandExecutor, ICommandExecutor } from '../../dardcor-node/util';
 import { FixtureFetcherService } from './util';
 
 const RUN_DOTNET_CLI_TESTS = !!process.env['CI'] && !process.env['BUILD_ARTIFACTSTAGINGDIRECTORY'];

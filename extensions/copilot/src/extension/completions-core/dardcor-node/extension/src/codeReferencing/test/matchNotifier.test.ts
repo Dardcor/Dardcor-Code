@@ -6,7 +6,7 @@ import * as assert from 'assert';
 import sinon from 'sinon';
 import { commands, env } from 'vscode';
 import { IVSCodeExtensionContext } from '../../../../../../../platform/extContext/common/extensionContext';
-import { IInstantiationService, ServicesAccessor } from '../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService, ServicesAccessor } from '../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ICompletionsNotificationSender } from '../../../../lib/src/notificationSender';
 import { OutputPaneShowCommand } from '../../../../lib/src/snippy/constants';
 import { withInMemoryTelemetry } from '../../../../lib/src/test/telemetry';

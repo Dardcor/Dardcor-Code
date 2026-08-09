@@ -6,8 +6,8 @@
 import * as assert from 'assert';
 import { suite, test } from 'vitest';
 import { fileTreePartToMarkdown } from '../../../util/common/fileTree';
-import { URI } from '../../../util/vs/base/common/uri';
-import { ChatResponseFileTreePart } from '../../../vscodeTypes';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { ChatResponseFileTreePart } from '../../../dardcorTypes';
 
 
 suite('fileTreeParsing', () => {

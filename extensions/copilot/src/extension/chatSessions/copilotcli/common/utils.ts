@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { Uri } from 'vscode';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import type { internal } from '@github/copilot/sdk';
 
 export type LocalSession = NonNullable<Awaited<ReturnType<internal.LocalSessionManager['getSession']>>>;

@@ -7,7 +7,7 @@ import * as l10n from '@vscode/l10n';
 import { ChatLocation } from '../../../platform/chat/common/commonTypes';
 import { IEndpointProvider } from '../../../platform/endpoint/common/endpointProvider';
 import { isPreRelease } from '../../../platform/env/common/packagejson';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { Intent } from '../../common/constants';
 import { IIntent, IIntentInvocation, IIntentInvocationContext, IIntentSlashCommandInfo } from '../../prompt/node/intents';
 import { SetupTestsFrameworkQueryInvocation } from './testIntent/setupTestsFrameworkQueryInvocation';

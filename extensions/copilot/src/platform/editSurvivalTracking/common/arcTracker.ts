@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { AnnotatedStringEdit, BaseStringEdit, IEditData } from '../../../util/vs/editor/common/core/edits/stringEdit';
+import { AnnotatedStringEdit, BaseStringEdit, IEditData } from '../../../util/dardcor/editor/common/core/edits/stringEdit';
 import { sum } from '../../inlineEdits/common/workspaceEditTracker/nesHistoryContextProvider';
 
 /**

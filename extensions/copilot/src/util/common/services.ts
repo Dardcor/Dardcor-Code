@@ -3,11 +3,11 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { SyncDescriptor } from '../vs/platform/instantiation/common/descriptors';
-import * as insta from '../vs/platform/instantiation/common/instantiation';
-import { ServiceIdentifier, createDecorator } from '../vs/platform/instantiation/common/instantiation';
-import { InstantiationService } from '../vs/platform/instantiation/common/instantiationService';
-import { ServiceCollection } from '../vs/platform/instantiation/common/serviceCollection';
+import { SyncDescriptor } from '../dardcor/platform/instantiation/common/descriptors';
+import * as insta from '../dardcor/platform/instantiation/common/instantiation';
+import { ServiceIdentifier, createDecorator } from '../dardcor/platform/instantiation/common/instantiation';
+import { InstantiationService } from '../dardcor/platform/instantiation/common/instantiationService';
+import { ServiceCollection } from '../dardcor/platform/instantiation/common/serviceCollection';
 export { ServiceIdentifier, createDecorator as createServiceIdentifier };
 
 export interface IInstantiationServiceBuilder {

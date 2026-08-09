@@ -8,7 +8,7 @@ import zenuml from '@mermaid-js/mermaid-zenuml';
 import mermaid, { MermaidConfig } from 'mermaid';
 import { iconPacks } from './iconPackConfig';
 import { ClickDragMode, MermaidExtensionConfig, ShowControlsMode } from './config';
-import { vsCodeMermaidTheme, VsCodeMermaidThemeTracker } from './vsCodeTheme';
+import { vsCodeMermaidTheme, VsCodeMermaidThemeTracker } from './dardcorTheme';
 
 /**
  * Creates the `<pre class="mermaid-error">` node shown when a diagram fails to render.

@@ -11,8 +11,8 @@ import { ITabsAndEditorsService } from '../../../../platform/tabs/common/tabsAnd
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
 import { ILanguage, getLanguage } from '../../../../util/common/languages';
 import { findCell, findNotebook } from '../../../../util/common/notebooks';
-import { Schemas } from '../../../../util/vs/base/common/network';
-import { Position, Range } from '../../../../vscodeTypes';
+import { Schemas } from '../../../../util/dardcor/base/common/network';
+import { Position, Range } from '../../../../dardcorTypes';
 import { CodeContextRegion, CodeContextTracker } from '../../../inlineChat/node/codeContextRegion';
 import { IDocumentContext } from '../../../prompt/node/documentContext';
 

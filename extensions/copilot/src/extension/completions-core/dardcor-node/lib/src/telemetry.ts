@@ -5,8 +5,8 @@
 import { IEnvService } from '../../../../../platform/env/common/envService';
 import { RequestId } from '../../../../../platform/networking/common/fetch';
 import { createServiceIdentifier } from '../../../../../util/common/services';
-import { generateUuid } from '../../../../../util/vs/base/common/uuid';
-import { IInstantiationService, ServicesAccessor } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { generateUuid } from '../../../../../util/dardcor/base/common/uuid';
+import { IInstantiationService, ServicesAccessor } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ICompletionsTelemetryService } from '../../bridge/src/completionsTelemetryServiceBridge';
 import {
 	BuildInfo,

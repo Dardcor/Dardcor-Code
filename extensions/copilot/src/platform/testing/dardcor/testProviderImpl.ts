@@ -4,10 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { findLast } from '../../../util/vs/base/common/arraysFind';
-import { Iterable } from '../../../util/vs/base/common/iterator';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { ResourceMap } from '../../../util/vs/base/common/map';
+import { findLast } from '../../../util/dardcor/base/common/arraysFind';
+import { Iterable } from '../../../util/dardcor/base/common/iterator';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { ResourceMap } from '../../../util/dardcor/base/common/map';
 import { ITestFailure, ITestProvider } from '../common/testProvider';
 
 export class TestProvider extends Disposable implements ITestProvider {

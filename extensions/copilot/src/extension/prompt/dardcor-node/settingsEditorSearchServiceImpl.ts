@@ -5,11 +5,11 @@
 import { CancellationToken, Progress, SettingsSearchProviderOptions, SettingsSearchResult, SettingsSearchResultKind } from 'vscode';
 import { IAuthenticationService } from '../../../platform/authentication/common/authentication';
 import { Embeddings, EmbeddingType, IEmbeddingsComputer } from '../../../platform/embeddings/common/embeddingsComputer';
-import { ICombinedEmbeddingIndex, SettingListItem } from '../../../platform/embeddings/common/vscodeIndex';
+import { ICombinedEmbeddingIndex, SettingListItem } from '../../../platform/embeddings/common/dardcorIndex';
 import { ChatEndpointFamily, IEndpointProvider } from '../../../platform/endpoint/common/endpointProvider';
 import { ISettingsEditorSearchService } from '../../../platform/settingsEditor/common/settingsEditorSearchService';
 import { TelemetryCorrelationId } from '../../../util/common/telemetryCorrelationId';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { SettingsEditorSearchResultsSelector } from '../node/settingsEditorSearchResultsSelector';
 
 export class SettingsEditorSearchServiceImpl implements ISettingsEditorSearchService {

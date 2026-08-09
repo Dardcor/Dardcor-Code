@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type * as vscode from 'vscode';
-import type { IExperimentationService as ITASExperimentationService } from 'vscode-tas-client';
-import { equals } from '../../../util/vs/base/common/arrays';
-import { IntervalTimer } from '../../../util/vs/base/common/async';
-import { Emitter } from '../../../util/vs/base/common/event';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
+import type { IExperimentationService as ITASExperimentationService } from 'dardcor-tas-client';
+import { equals } from '../../../util/dardcor/base/common/arrays';
+import { IntervalTimer } from '../../../util/dardcor/base/common/async';
+import { Emitter } from '../../../util/dardcor/base/common/event';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { ICopilotTokenStore } from '../../authentication/common/copilotTokenStore';
 import { IConfigurationService } from '../../configuration/common/configurationService';
 import { IVSCodeExtensionContext } from '../../extContext/common/extensionContext';

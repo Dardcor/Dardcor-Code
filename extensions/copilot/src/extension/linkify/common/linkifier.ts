@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { CancellationError, isCancellationError } from '../../../util/vs/base/common/errors';
-import { escapeRegExpCharacters } from '../../../util/vs/base/common/strings';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { CancellationError, isCancellationError } from '../../../util/dardcor/base/common/errors';
+import { escapeRegExpCharacters } from '../../../util/dardcor/base/common/strings';
 import { LinkifiedPart, LinkifiedText, coalesceParts } from './linkifiedText';
 import type { IContributedLinkifier, ILinkifier, LinkifierContext } from './linkifyService';
 

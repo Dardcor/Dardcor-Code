@@ -7,9 +7,9 @@ import { commands, languages } from 'vscode';
 import { IAuthenticationService } from '../../../platform/authentication/common/authentication';
 import { ConfigKey, IConfigurationService } from '../../../platform/configuration/common/configurationService';
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { autorun, observableFromEvent } from '../../../util/vs/base/common/observableInternal';
-import { registerUnificationCommands } from '../../completions-core/vscode-node/completionsServiceBridges';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { autorun, observableFromEvent } from '../../../util/dardcor/base/common/observableInternal';
+import { registerUnificationCommands } from '../../completions-core/dardcor-node/completionsServiceBridges';
 import { ICopilotInlineCompletionItemProviderService } from '../common/copilotInlineCompletionItemProviderService';
 import { unificationStateObservable } from './completionsUnificationContribution';
 

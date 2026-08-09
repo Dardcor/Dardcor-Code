@@ -5,7 +5,7 @@
 
 import { Random } from '../../../src/platform/inlineEdits/test/node/random';
 import { LogEntry } from '../../../src/platform/workspaceRecorder/common/workspaceLog';
-import { assertNever } from '../../../src/util/vs/base/common/assert';
+import { assertNever } from '../../../src/util/dardcor/base/common/assert';
 import { PivotStrategy } from '../../base/simulationOptions';
 
 /**

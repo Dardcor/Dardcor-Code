@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { expect, suite, test } from 'vitest';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { convertFileTreeToChatResponseFileTree, listFilesInResponseFileTree } from '../../common/fileTreeParser';
 
 /**

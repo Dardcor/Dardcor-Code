@@ -6,8 +6,8 @@
 import * as fs from 'fs';
 import * as mobx from 'mobx';
 import * as path from 'path';
-import { RunOnceScheduler } from '../../../../src/util/vs/base/common/async';
-import { Disposable, toDisposable } from '../../../../src/util/vs/base/common/lifecycle';
+import { RunOnceScheduler } from '../../../../src/util/dardcor/base/common/async';
+import { Disposable, toDisposable } from '../../../../src/util/dardcor/base/common/lifecycle';
 import { RUN_METADATA, SIMULATION_FOLDER_NAME } from '../../shared/sharedTypes';
 import { REPO_ROOT, genericEquals } from '../utils/utils';
 import { SimulationRunner } from './simulationRunner';

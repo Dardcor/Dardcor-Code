@@ -10,10 +10,10 @@ import { LanguageId } from '../../../../platform/inlineEdits/common/dataTypes/la
 import { DiffHistoryOptions } from '../../../../platform/inlineEdits/common/dataTypes/xtabPromptOptions';
 import { StatelessNextEditDocument } from '../../../../platform/inlineEdits/common/statelessNextEditProvider';
 import { IXtabHistoryEditEntry, IXtabHistoryEntry } from '../../../../platform/inlineEdits/common/workspaceEditTracker/nesXtabHistoryTracker';
-import { LineEdit } from '../../../../util/vs/editor/common/core/edits/lineEdit';
-import { StringEdit, StringReplacement } from '../../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
-import { StringText } from '../../../../util/vs/editor/common/core/text/abstractText';
+import { LineEdit } from '../../../../util/dardcor/editor/common/core/edits/lineEdit';
+import { StringEdit, StringReplacement } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { StringText } from '../../../../util/dardcor/editor/common/core/text/abstractText';
 import { getEditDiffHistory } from '../../common/diffHistoryForPrompt';
 
 const diffHistoryOptions: DiffHistoryOptions = {

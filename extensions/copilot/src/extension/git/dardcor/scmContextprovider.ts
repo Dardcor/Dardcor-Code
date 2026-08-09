@@ -6,13 +6,13 @@
 import { IConfigurationService } from '../../../platform/configuration/common/configurationService';
 import { Diff, IGitDiffService } from '../../../platform/git/common/gitDiffService';
 import { IGitService, RepoContext } from '../../../platform/git/common/gitService';
-import { Change } from '../../../platform/git/vscode/git';
+import { Change } from '../../../platform/git/dardcor/git';
 import { Copilot } from '../../../platform/inlineCompletions/common/api';
 import { ILanguageContextProviderService, ProviderTarget } from '../../../platform/languageContextProvider/common/languageContextProviderService';
 import { ILogService } from '../../../platform/log/common/logService';
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { Disposable, DisposableStore, IDisposable } from '../../../util/vs/base/common/lifecycle';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { Disposable, DisposableStore, IDisposable } from '../../../util/dardcor/base/common/lifecycle';
 
 export class ScmContextProviderContribution extends Disposable {
 

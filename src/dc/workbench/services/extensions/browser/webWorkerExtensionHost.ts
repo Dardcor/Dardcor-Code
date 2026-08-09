@@ -93,7 +93,7 @@ export class WebWorkerExtensionHost extends Disposable implements IExtensionHost
 
 		const suffix = `?${suffixSearchParams.toString()}`;
 
-		const iframeModulePath: AppResourcePath = `dc/workbench/services/extensions/worker/webWorkerExtensionHostIframe.html`;
+		const iframeModulePath: AppResourcePath = `vs/workbench/services/extensions/worker/webWorkerExtensionHostIframe.html`;
 		if (platform.isWeb) {
 			const webEndpointUrlTemplate = this._productService.webEndpointUrlTemplate;
 			const commit = this._productService.commit;
@@ -363,6 +363,6 @@ export class WebWorkerExtensionHost extends Disposable implements IExtensionHost
 
 const extensionHostWorkerMainDescriptor = new WebWorkerDescriptor({
 	label: 'extensionHostWorkerMain',
-	esmModuleLocation: () => FileAccess.asBrowserUri('dc/workbench/api/worker/extensionHostWorkerMain.js'),
+	esmModuleLocation: () => FileAccess.asBrowserUri('vs/workbench/api/worker/extensionHostWorkerMain.js'),
 	esmModuleLocationBundler: () => new URL('../../../api/worker/extensionHostWorkerMain.ts?esm', import.meta.url),
 });

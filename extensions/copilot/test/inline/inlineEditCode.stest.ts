@@ -5,7 +5,7 @@
 import assert from 'assert';
 import { EditCodeIntent } from '../../src/extension/intents/node/editCodeIntent';
 import { TestingServiceCollection } from '../../src/platform/test/node/services';
-import { Selection } from '../../src/vscodeTypes';
+import { Selection } from '../../src/dardcorTypes';
 import { NonExtensionConfiguration, ssuite, stest } from '../base/stest';
 import { KnownDiagnosticProviders } from '../simulation/diagnosticProviders';
 import { simulateInlineChat, simulateInlineChatIntent } from '../simulation/inlineChatSimulator';

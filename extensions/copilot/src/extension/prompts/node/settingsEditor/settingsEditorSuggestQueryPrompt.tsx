@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { BasePromptElementProps, PromptElement, SystemMessage, TextChunk, UserMessage } from '@vscode/prompt-tsx';
-import { settingItemToContext, SettingListItem } from '../../../../platform/embeddings/common/vscodeIndex';
+import { settingItemToContext, SettingListItem } from '../../../../platform/embeddings/common/dardcorIndex';
 import { InstructionMessage } from '../base/instructionMessage';
 import { Tag } from '../base/tag';
 

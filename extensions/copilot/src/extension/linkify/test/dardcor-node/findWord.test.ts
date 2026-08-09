@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import assert from 'assert';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { findSymbolLocationInFile, SymbolFileCache } from '../../vscode-node/findWord';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { findSymbolLocationInFile, SymbolFileCache } from '../../dardcor-node/findWord';
 import { asParserService, createTestFile, declaration, symbol, TestParserService } from './util';
 
 suite('Find symbol location in file', () => {

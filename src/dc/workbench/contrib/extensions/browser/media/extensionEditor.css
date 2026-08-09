@@ -171,7 +171,7 @@
 }
 
 .extension-editor > .header > .details > .subtitle > .subtitle-entry:not(:empty):not(.last-non-empty) {
-	border-right: 1px solid rgba(74, 20, 140, 0.7);
+	border-right: 1px solid rgba(128, 128, 128, 0.7);
 	margin-right: 14px;
 	padding-right: 14px;
 }
@@ -474,7 +474,7 @@
 }
 
 .extension-editor > .body > .content > .details > .additional-details-container .additional-details-element:not(:last-child) {
-	border-bottom: 1px solid rgba(74, 20, 140, 0.22);
+	border-bottom: 1px solid rgba(128, 128, 128, 0.22);
 }
 
 .extension-editor > .body > .content > .details > .additional-details-container .additional-details-element > .additional-details-title {
@@ -519,7 +519,7 @@
 }
 
 .extension-editor > .body > .content > .details > .additional-details-container .more-info-container > .more-info > .more-info-entry:nth-child(odd) {
-	background-color: rgba(59, 10, 94, 0.04);
+	background-color: rgba(130, 130, 130, 0.04);
 }
 
 .extension-editor > .body > .content > .details > .additional-details-container .more-info-container > .more-info > .more-info-entry code {
@@ -579,8 +579,8 @@
 
 .extension-editor > .body > .content > .details > .content-container > .extension-pack-readme > .extension-pack > .extension-pack-content {
 	height: calc(100% - 34px);
-	border-top: 1px solid rgba(74, 20, 140, 0.22);
-	border-bottom: 1px solid rgba(74, 20, 140, 0.22);
+	border-top: 1px solid rgba(128, 128, 128, 0.22);
+	border-bottom: 1px solid rgba(128, 128, 128, 0.22);
 }
 
 .extension-editor > .body > .content > .details > .content-container > .extension-pack-readme > .extension-pack > .extension-pack-content > .monaco-scrollable-element {
@@ -616,17 +616,17 @@
 	margin-bottom: 10px;
 	font-weight: bold;
 	font-size: 120%;
-	border-bottom: 1px solid rgba(74, 20, 140, 0.22);
+	border-bottom: 1px solid rgba(128, 128, 128, 0.22);
 	padding: 3px 6px;
 	line-height: 22px;
 }
 
 .extension-editor > .body > .content table tr:nth-child(odd) {
-	background-color: rgba(59, 10, 94, 0.04);
+	background-color: rgba(130, 130, 130, 0.04);
 }
 
 .extension-editor > .body > .content table tr:not(:first-child):hover {
-	background-color: rgba(59, 10, 94, 0.15);
+	background-color: rgba(128, 128, 128, 0.15);
 }
 
 .extension-editor > .body > .content table th,
@@ -657,7 +657,7 @@
 .extension-editor code:not(:empty) {
 	font-family: var(--monaco-monospace-font);
 	font-size: 90%;
-	background-color: rgba(59, 10, 94, 0.17);
+	background-color: rgba(128, 128, 128, 0.17);
 	border-radius: 4px;
 	padding: 1px 4px;
 }

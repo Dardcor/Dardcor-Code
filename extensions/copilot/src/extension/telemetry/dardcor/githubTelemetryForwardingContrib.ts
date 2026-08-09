@@ -6,7 +6,7 @@
 import { env } from 'vscode';
 import { getGitHubRepoInfoFromContext, GithubRepoId, IGitService } from '../../../platform/git/common/gitService';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { IExtensionContribution } from '../../common/contributions';
 
 export class GithubTelemetryForwardingContrib extends Disposable implements IExtensionContribution {

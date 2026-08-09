@@ -3,10 +3,10 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { BugIndicatingError } from '../../../util/vs/base/common/errors';
-import { Position } from '../../../util/vs/editor/common/core/position';
-import { StringText } from '../../../util/vs/editor/common/core/text/abstractText';
-import { PositionOffsetTransformer } from '../../../util/vs/editor/common/core/text/positionToOffsetImpl';
+import { BugIndicatingError } from '../../../util/dardcor/base/common/errors';
+import { Position } from '../../../util/dardcor/editor/common/core/position';
+import { StringText } from '../../../util/dardcor/editor/common/core/text/abstractText';
+import { PositionOffsetTransformer } from '../../../util/dardcor/editor/common/core/text/positionToOffsetImpl';
 
 /**
  * Represents the current document state along with the cursor position within it.

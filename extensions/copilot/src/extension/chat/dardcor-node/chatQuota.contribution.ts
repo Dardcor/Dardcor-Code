@@ -5,7 +5,7 @@
 import { chat, commands, env, Uri } from 'vscode';
 import { IAuthenticationService } from '../../../platform/authentication/common/authentication';
 import { IChatQuotaService } from '../../../platform/chat/common/chatQuotaService';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { IExtensionContribution } from '../../common/contributions';
 
 export class ChatQuotaContribution extends Disposable implements IExtensionContribution {

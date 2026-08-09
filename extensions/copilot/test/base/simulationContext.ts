@@ -22,7 +22,7 @@ import { DefaultsOnlyConfigurationService } from '../../src/platform/configurati
 import { InMemoryConfigurationService } from '../../src/platform/configuration/test/common/inMemoryConfigurationService';
 import { IEmbeddingsComputer } from '../../src/platform/embeddings/common/embeddingsComputer';
 import { RemoteEmbeddingsComputer } from '../../src/platform/embeddings/common/remoteEmbeddingsComputer';
-import { ICombinedEmbeddingIndex, VSCodeCombinedIndexImpl } from '../../src/platform/embeddings/common/vscodeIndex';
+import { ICombinedEmbeddingIndex, VSCodeCombinedIndexImpl } from '../../src/platform/embeddings/common/dardcorIndex';
 import { IVSCodeExtensionContext } from '../../src/platform/extContext/common/extensionContext';
 import { IGitExtensionService } from '../../src/platform/git/common/gitExtensionService';
 import { NullGitExtensionService } from '../../src/platform/git/common/nullGitExtensionService';
@@ -30,7 +30,7 @@ import { ICompletionsFetchService } from '../../src/platform/nesFetch/common/com
 import { CompletionsFetchService } from '../../src/platform/nesFetch/node/completionsFetchServiceImpl';
 import { IProjectTemplatesIndex, ProjectTemplatesIndex } from '../../src/platform/projectTemplatesIndex/common/projectTemplatesIndex';
 import { IReleaseNotesService } from '../../src/platform/releaseNotes/common/releaseNotesService';
-import { ReleaseNotesService } from '../../src/platform/releaseNotes/vscode/releaseNotesServiceImpl';
+import { ReleaseNotesService } from '../../src/platform/releaseNotes/dardcor/releaseNotesServiceImpl';
 import { IDocsSearchClient } from '../../src/platform/remoteSearch/common/codeOrDocsSearchClient';
 import { DocsSearchClient } from '../../src/platform/remoteSearch/node/codeOrDocsSearchClientImpl';
 import { IReviewService } from '../../src/platform/review/common/reviewService';
@@ -44,7 +44,7 @@ import { IGithubAvailableEmbeddingTypesService, MockGithubAvailableEmbeddingType
 import { IWorkspaceChunkSearchService, WorkspaceChunkSearchService } from '../../src/platform/workspaceChunkSearch/node/workspaceChunkSearchService';
 import { IWorkspaceFileIndex, WorkspaceFileIndex } from '../../src/platform/workspaceChunkSearch/node/workspaceFileIndex';
 import { createServiceIdentifier } from '../../src/util/common/services';
-import { SyncDescriptor } from '../../src/util/vs/platform/instantiation/common/descriptors';
+import { SyncDescriptor } from '../../src/util/dardcor/platform/instantiation/common/descriptors';
 import { IJSONOutputPrinter, NoopJSONOutputPrinter } from '../jsonOutputPrinter';
 import { SIMULATION_FOLDER_NAME } from '../simulation/shared/sharedTypes';
 import { ITestInformation, TestInformation } from '../simulation/testInformation';

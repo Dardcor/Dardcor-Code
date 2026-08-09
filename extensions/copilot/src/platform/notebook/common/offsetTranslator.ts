@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { EndOfLine } from '../../../vscodeTypes';
+import { EndOfLine } from '../../../dardcorTypes';
 
 /**
  * Translates offsets from a string with CRLF to the equivalent offset in a string with only LF.

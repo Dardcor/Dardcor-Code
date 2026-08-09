@@ -7,7 +7,7 @@ import assert from 'assert';
 import os from 'os';
 import { IIgnoreService } from '../../../../../../../../platform/ignore/common/ignoreService';
 import { TestingServiceCollection } from '../../../../../../../../platform/test/node/services';
-import { IInstantiationService, ServicesAccessor } from '../../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService, ServicesAccessor } from '../../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ICompletionsFileSystemService } from '../../../fileSystem';
 import { createLibTestingContext } from '../../../test/context';
 import { FakeFileSystem } from '../../../test/filesystem';

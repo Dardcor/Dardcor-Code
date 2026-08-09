@@ -11,12 +11,12 @@ import { IIgnoreService } from '../../../platform/ignore/common/ignoreService';
 import { IPromptPathRepresentationService } from '../../../platform/prompts/common/promptPathRepresentationService';
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
 import { isLocation } from '../../../util/common/types';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 
-import { URI } from '../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
-import { ExtendedLanguageModelToolResult, LanguageModelPromptTsxPart, MarkdownString } from '../../../vscodeTypes';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { ExtendedLanguageModelToolResult, LanguageModelPromptTsxPart, MarkdownString } from '../../../dardcorTypes';
 import { IBuildPromptContext } from '../../prompt/common/intents';
 import { isTestFile, TestFileFinder } from '../../prompt/node/testFiles';
 import { renderPromptElementJSON } from '../../prompts/node/base/promptRenderer';

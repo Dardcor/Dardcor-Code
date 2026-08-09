@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as mobx from 'mobx';
-import { Disposable } from '../../../../src/util/vs/base/common/lifecycle';
+import { Disposable } from '../../../../src/util/dardcor/base/common/lifecycle';
 import { IBaselineTestSummary } from '../../shared/sharedTypes';
 import { EvaluationError } from './amlResults';
 import { AMLProvider } from './amlSimulations';

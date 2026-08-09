@@ -6,11 +6,11 @@
 import { CodeActionData } from '../../../../../platform/inlineEdits/common/dataTypes/codeActionData';
 import { LanguageId } from '../../../../../platform/inlineEdits/common/dataTypes/languageId';
 import { ILogger } from '../../../../../platform/log/common/logService';
-import { CancellationToken } from '../../../../../util/vs/base/common/cancellation';
-import { TextReplacement } from '../../../../../util/vs/editor/common/core/edits/textEdit';
-import { Position } from '../../../../../util/vs/editor/common/core/position';
+import { CancellationToken } from '../../../../../util/dardcor/base/common/cancellation';
+import { TextReplacement } from '../../../../../util/dardcor/editor/common/core/edits/textEdit';
+import { Position } from '../../../../../util/dardcor/editor/common/core/position';
 import { INextEditDisplayLocation } from '../../../node/nextEditResult';
-import { IVSCodeObservableDocument } from '../../parts/vscodeWorkspace';
+import { IVSCodeObservableDocument } from '../../parts/dardcorWorkspace';
 import { Diagnostic, DiagnosticCompletionItem, DiagnosticInlineEditRequestLogContext, IDiagnosticCodeAction, IDiagnosticCompletionProvider, isDiagnosticWithinDistance, log, logList } from './diagnosticsCompletions';
 
 interface IAnyCodeAction extends IDiagnosticCodeAction {

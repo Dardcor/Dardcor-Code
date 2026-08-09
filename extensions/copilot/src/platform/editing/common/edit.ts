@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type * as vscode from 'vscode';
-import { StringEdit, StringReplacement } from '../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../util/vs/editor/common/core/ranges/offsetRange';
+import { StringEdit, StringReplacement } from '../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../util/dardcor/editor/common/core/ranges/offsetRange';
 import { IDiffService } from '../../diff/common/diffService';
 import { OffsetLineColumnConverter } from './offsetLineColumnConverter';
 

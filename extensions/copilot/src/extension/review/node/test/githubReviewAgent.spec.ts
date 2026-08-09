@@ -25,9 +25,9 @@ import { createFakeStreamResponse } from '../../../../platform/test/node/fetcher
 import { TestLogService } from '../../../../platform/testing/common/testLogService';
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
 import { createTextDocumentData } from '../../../../util/common/test/shims/textDocument';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { Event } from '../../../../util/vs/base/common/event';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { Event } from '../../../../util/dardcor/base/common/event';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import {
 	createReviewComment,
 	ExcludedComment,

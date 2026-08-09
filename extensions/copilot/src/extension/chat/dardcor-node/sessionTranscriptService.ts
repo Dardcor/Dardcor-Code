@@ -14,9 +14,9 @@ import { IEnvService } from '../../../platform/env/common/envService';
 import { IVSCodeExtensionContext } from '../../../platform/extContext/common/extensionContext';
 import { IFileSystemService, createDirectoryIfNotExists } from '../../../platform/filesystem/common/fileSystemService';
 import { ILogService } from '../../../platform/log/common/logService';
-import { extUriBiasedIgnorePathCase } from '../../../util/vs/base/common/resources';
-import { URI } from '../../../util/vs/base/common/uri';
-import { generateUuid } from '../../../util/vs/base/common/uuid';
+import { extUriBiasedIgnorePathCase } from '../../../util/dardcor/base/common/resources';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { generateUuid } from '../../../util/dardcor/base/common/uuid';
 
 const TRANSCRIPT_VERSION = 1;
 const TRANSCRIPT_PRODUCER = 'copilot-agent';

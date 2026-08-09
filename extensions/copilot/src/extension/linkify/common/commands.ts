@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { UriComponents } from '../../../util/vs/base/common/uri';
+import { UriComponents } from '../../../util/dardcor/base/common/uri';
 
 // TODO: keep these commands around for backwards compatibility, but remove them in the future
 export const openFileLinkCommand = '_github.copilot.openRelativePath';

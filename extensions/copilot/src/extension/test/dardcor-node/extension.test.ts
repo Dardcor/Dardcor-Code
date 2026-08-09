@@ -5,10 +5,10 @@
 
 import assert from 'assert';
 import { ExtensionContext, ExtensionMode, Memento } from 'vscode';
-import { IDisposable } from '../../../util/vs/base/common/lifecycle';
-import { vscodeNodeContributions } from '../../extension/vscode-node/contributions';
-import { registerServices } from '../../extension/vscode-node/services';
-import { createInstantiationService } from '../../extension/vscode/extension';
+import { IDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { vscodeNodeContributions } from '../../extension/dardcor-node/contributions';
+import { registerServices } from '../../extension/dardcor-node/services';
+import { createInstantiationService } from '../../extension/dardcor/extension';
 
 suite('Extension tests', function () {
 	let disposables: IDisposable[] = [];

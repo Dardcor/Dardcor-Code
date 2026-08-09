@@ -4,10 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type * as vscode from 'vscode';
-import { AsyncIterableObject } from '../../../util/vs/base/common/async';
-import { CharCode } from '../../../util/vs/base/common/charCode';
-import { Constants } from '../../../util/vs/base/common/uint';
-import { Range, TextEdit } from '../../../vscodeTypes';
+import { AsyncIterableObject } from '../../../util/dardcor/base/common/async';
+import { CharCode } from '../../../util/dardcor/base/common/charCode';
+import { Constants } from '../../../util/dardcor/base/common/uint';
+import { Range, TextEdit } from '../../../dardcorTypes';
 import { looksLikeCode } from '../common/codeGuesser';
 import { isImportStatement } from '../common/importStatement';
 import { EditStrategy, Lines, trimLeadingWhitespace } from './editGeneration';

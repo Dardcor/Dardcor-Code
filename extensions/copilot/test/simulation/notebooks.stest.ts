@@ -20,11 +20,11 @@ import { ITestingServicesAccessor } from '../../src/platform/test/node/services'
 import { IFile, SimulationWorkspace } from '../../src/platform/test/node/simulationWorkspace';
 import { SimulationAlternativeNotebookContentService, SimulationNotebookService } from '../../src/platform/test/node/simulationWorkspaceServices';
 import { ExtHostNotebookDocumentData } from '../../src/util/common/test/shims/notebookDocument';
-import { DisposableStore } from '../../src/util/vs/base/common/lifecycle';
-import { ResourceMap } from '../../src/util/vs/base/common/map';
-import { Schemas } from '../../src/util/vs/base/common/network';
-import { URI } from '../../src/util/vs/base/common/uri';
-import { SyncDescriptor } from '../../src/util/vs/platform/instantiation/common/descriptors';
+import { DisposableStore } from '../../src/util/dardcor/base/common/lifecycle';
+import { ResourceMap } from '../../src/util/dardcor/base/common/map';
+import { Schemas } from '../../src/util/dardcor/base/common/network';
+import { URI } from '../../src/util/dardcor/base/common/uri';
+import { SyncDescriptor } from '../../src/util/dardcor/platform/instantiation/common/descriptors';
 import { ssuite, stest } from '../base/stest';
 import { getDiagnostics } from './diagnosticProviders';
 import { DiagnosticsProvider, ITestDiagnostic } from './diagnosticProviders/diagnosticsProvider';

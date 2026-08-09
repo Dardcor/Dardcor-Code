@@ -8,7 +8,7 @@ import { RootedEdit } from '../../../platform/inlineEdits/common/dataTypes/edit'
 import { DiffHistoryOptions } from '../../../platform/inlineEdits/common/dataTypes/xtabPromptOptions';
 import { StatelessNextEditDocument } from '../../../platform/inlineEdits/common/statelessNextEditProvider';
 import { IXtabHistoryEditEntry, IXtabHistoryEntry } from '../../../platform/inlineEdits/common/workspaceEditTracker/nesXtabHistoryTracker';
-import { groupAdjacentBy, pushMany } from '../../../util/vs/base/common/arrays';
+import { groupAdjacentBy, pushMany } from '../../../util/dardcor/base/common/arrays';
 import { toUniquePath } from './promptCraftingUtils';
 
 export interface EditDiffHistoryResult {

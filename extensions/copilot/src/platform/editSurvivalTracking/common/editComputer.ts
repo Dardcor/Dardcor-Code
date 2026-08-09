@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type * as vscode from 'vscode';
-import { BugIndicatingError } from '../../../util/vs/base/common/errors';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { StringEdit } from '../../../util/vs/editor/common/core/edits/stringEdit';
+import { BugIndicatingError } from '../../../util/dardcor/base/common/errors';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { StringEdit } from '../../../util/dardcor/editor/common/core/edits/stringEdit';
 import { IDiffService } from '../../diff/common/diffService';
 import { stringEditFromDiff, stringEditFromTextContentChange } from '../../editing/common/edit';
 import { IWorkspaceService } from '../../workspace/common/workspaceService';

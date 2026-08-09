@@ -11,7 +11,7 @@ import { INotebookService, VariablesResult } from '../../../../platform/notebook
 import { IPromptPathRepresentationService } from '../../../../platform/prompts/common/promptPathRepresentationService';
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
 import { getNotebookCellOutput, isJupyterNotebookUri } from '../../../../util/common/notebooks';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { IPromptEndpoint } from '../base/promptRenderer';
 import { Tag } from '../base/tag';
 import { getCharLimit } from '../inline/summarizedDocument/summarizeDocumentHelpers';

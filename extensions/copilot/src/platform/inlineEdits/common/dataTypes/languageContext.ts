@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Range } from '../../../../util/vs/editor/common/core/range';
-import { Diagnostic, Uri } from '../../../../vscodeTypes';
+import { Range } from '../../../../util/dardcor/editor/common/core/range';
+import { Diagnostic, Uri } from '../../../../dardcorTypes';
 import { ContextItem, ContextKind, SnippetContext, TraitContext, type DiagnosticBagContext } from '../../../languageServer/common/languageContextService';
 
 export type LanguageContextEntry = {

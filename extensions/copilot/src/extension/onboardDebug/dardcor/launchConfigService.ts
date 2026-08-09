@@ -6,8 +6,8 @@
 import * as JSONC from 'jsonc-parser';
 import * as vscode from 'vscode';
 import { OffsetLineColumnConverter } from '../../../platform/editing/common/offsetLineColumnConverter';
-import { cloneAndChange } from '../../../util/vs/base/common/objects';
-import { URI } from '../../../util/vs/base/common/uri';
+import { cloneAndChange } from '../../../util/dardcor/base/common/objects';
+import { URI } from '../../../util/dardcor/base/common/uri';
 import { ICommandInteractor, ILaunchConfigService, ILaunchJSON } from '../common/launchConfigService';
 
 export class LaunchConfigService implements ILaunchConfigService {

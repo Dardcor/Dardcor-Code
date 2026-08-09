@@ -3,11 +3,11 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { assertFn } from '../../../../util/vs/base/common/assert';
-import { BaseEdit } from '../../../../util/vs/editor/common/core/edits/edit';
-import { LineEdit } from '../../../../util/vs/editor/common/core/edits/lineEdit';
-import { BaseStringEdit, BaseStringReplacement, StringEdit } from '../../../../util/vs/editor/common/core/edits/stringEdit';
-import { StringText } from '../../../../util/vs/editor/common/core/text/abstractText';
+import { assertFn } from '../../../../util/dardcor/base/common/assert';
+import { BaseEdit } from '../../../../util/dardcor/editor/common/core/edits/edit';
+import { LineEdit } from '../../../../util/dardcor/editor/common/core/edits/lineEdit';
+import { BaseStringEdit, BaseStringReplacement, StringEdit } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { StringText } from '../../../../util/dardcor/editor/common/core/text/abstractText';
 import { deserializeStringEdit, SerializedEdit, serializeStringEdit } from './editUtils';
 import { RootedLineEdit } from './rootedLineEdit';
 

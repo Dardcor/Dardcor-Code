@@ -5,7 +5,7 @@
 
 import type * as vscode from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { API } from '../vscode/git';
+import { API } from '../dardcor/git';
 
 export const IGitExtensionService = createServiceIdentifier<IGitExtensionService>('IGitExtensionService');
 

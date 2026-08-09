@@ -7,9 +7,9 @@ import { IConfigurationService } from '../../../platform/configuration/common/co
 import { SKILLS_LOCATION_KEY } from '../../../platform/customInstructions/common/promptTypes';
 import { INativeEnvService } from '../../../platform/env/common/envService';
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
-import { isAbsolute } from '../../../util/vs/base/common/path';
-import { isObject } from '../../../util/vs/base/common/types';
-import { URI } from '../../../util/vs/base/common/uri';
+import { isAbsolute } from '../../../util/dardcor/base/common/path';
+import { isObject } from '../../../util/dardcor/base/common/types';
+import { URI } from '../../../util/dardcor/base/common/uri';
 
 /**
  * Resolves skill directory locations from the `chat.agentSkillsLocations` config setting.

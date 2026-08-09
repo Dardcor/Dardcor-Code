@@ -8,8 +8,8 @@ import * as os from 'os';
 import * as path from 'path';
 import { expect, it, suite } from 'vitest';
 import { StringTextDocumentWithLanguageId } from '../../../../../platform/editing/common/abstractText';
-import { findLast } from '../../../../../util/vs/base/common/arraysFind';
-import { URI } from '../../../../../util/vs/base/common/uri';
+import { findLast } from '../../../../../util/dardcor/base/common/arraysFind';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
 import { patch_to_commit, replace_explicit_tabs, text_to_patch } from '../../../node/applyPatch/parser';
 
 suite('applyPatch parser', () => {

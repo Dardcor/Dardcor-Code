@@ -5,7 +5,7 @@
 // General utility functions for all kinds of suggestions (Ghost Text, Open Copilot)
 
 import { ILogger } from '../../../../../../platform/log/common/logService';
-import { ServicesAccessor } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { ServicesAccessor } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { getBlockCloseToken } from '../../../prompt/src/parse';
 import { APIChoice } from '../openai/openai';
 import { TelemetryData, TelemetryStore, telemetry } from '../telemetry';

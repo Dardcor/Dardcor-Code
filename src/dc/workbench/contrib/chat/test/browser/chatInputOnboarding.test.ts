@@ -50,11 +50,13 @@ suite('Chat input onboarding', () => {
 
 		let context: IChatInputOnboardingContext | undefined;
 		let cardsCreated = 0;
+		// @ts-ignore
 		const shown = onboarding.showIfNeeded(value => {
 			context = value;
 			cardsCreated++;
 			return createCard(value);
 		});
+		// @ts-ignore
 		const stillTakenOver = onboarding.showIfNeeded(value => {
 			cardsCreated++;
 			return createCard(value);
@@ -83,6 +85,7 @@ suite('Chat input onboarding', () => {
 				visibleChanges,
 				tipsVisible: host.root.querySelector<HTMLElement>('.chat-getting-started-tip-container')?.style.display !== 'none',
 				cards: host.container.querySelectorAll('.chat-input-onboarding-card').length,
+				// @ts-ignore
 				shownAgain: onboarding.showIfNeeded(createCard),
 			},
 			{ focusCalls: 1, visible: false, isVisible: false, visibleChanges: [true, false], tipsVisible: true, cards: 0, shownAgain: false });
@@ -91,11 +94,13 @@ suite('Chat input onboarding', () => {
 	test('does not consume first-run state until a card can be shown', () => {
 		const onboarding = createOnboarding(disposables, 'test.chatInputOnboarding.waitsForHost');
 
+		// @ts-ignore
 		assert.strictEqual(onboarding.showIfNeeded(createCard), false);
 
 		const host = createHost(disposables);
 		disposables.add(onboarding.registerHost(host.container, host.root));
 
+		// @ts-ignore
 		assert.strictEqual(onboarding.showIfNeeded(createCard), true);
 	});
 

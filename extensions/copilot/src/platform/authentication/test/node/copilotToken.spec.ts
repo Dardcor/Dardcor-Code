@@ -4,10 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { DeferredPromise } from '../../../../util/vs/base/common/async';
-import { Event } from '../../../../util/vs/base/common/event';
-import { DisposableStore } from '../../../../util/vs/base/common/lifecycle';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { DeferredPromise } from '../../../../util/dardcor/base/common/async';
+import { Event } from '../../../../util/dardcor/base/common/event';
+import { DisposableStore } from '../../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ICAPIClientService } from '../../../endpoint/common/capiClient';
 import { IDomainService } from '../../../endpoint/common/domainService';
 import { IEnvService } from '../../../env/common/envService';

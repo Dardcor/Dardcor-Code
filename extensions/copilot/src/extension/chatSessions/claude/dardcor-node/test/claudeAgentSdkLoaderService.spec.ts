@@ -35,7 +35,7 @@ import { ConfigKey, IConfigurationService } from '../../../../../platform/config
 import { DefaultsOnlyConfigurationService } from '../../../../../platform/configuration/common/defaultsOnlyConfigurationService';
 import { InMemoryConfigurationService } from '../../../../../platform/configuration/test/common/inMemoryConfigurationService';
 import { ILogService, LogServiceImpl } from '../../../../../platform/log/common/logService';
-import { CancellationTokenSource } from '../../../../../util/vs/base/common/cancellation';
+import { CancellationTokenSource } from '../../../../../util/dardcor/base/common/cancellation';
 import { CLAUDE_SDK_EXTENSION_ID } from '../../common/claudeAgentSdkLoaderService';
 import { VsCodeClaudeAgentSdkLoaderService } from '../claudeAgentSdkLoaderService';
 

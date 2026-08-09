@@ -14,12 +14,12 @@ import { ContextKind } from '../../../../platform/languageServer/common/language
 import { StatelessNextEditDocument } from '../../../../platform/inlineEdits/common/statelessNextEditProvider';
 import { TestLanguageDiagnosticsService } from '../../../../platform/languages/common/testLanguageDiagnosticsService';
 import { Result } from '../../../../util/common/result';
-import { LineEdit } from '../../../../util/vs/editor/common/core/edits/lineEdit';
-import { StringEdit } from '../../../../util/vs/editor/common/core/edits/stringEdit';
-import { Position } from '../../../../util/vs/editor/common/core/position';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
-import { StringText } from '../../../../util/vs/editor/common/core/text/abstractText';
-import { Uri } from '../../../../vscodeTypes';
+import { LineEdit } from '../../../../util/dardcor/editor/common/core/edits/lineEdit';
+import { StringEdit } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { Position } from '../../../../util/dardcor/editor/common/core/position';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { StringText } from '../../../../util/dardcor/editor/common/core/text/abstractText';
+import { Uri } from '../../../../dardcorTypes';
 import { LintErrors } from '../../common/lintErrors';
 import { constructTaggedFile, createTaggedCurrentFileContentUsingPagedClipping, expandRangeToPageRange, getUserPrompt, PromptPieces, runGlobalBudgetCascade } from '../../common/promptCrafting';
 import { PromptTags } from '../../common/tags';

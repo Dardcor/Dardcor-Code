@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Diagnostic } from 'vscode';
-import { URI } from '../../../../../../../util/vs/base/common/uri';
-import { generateUuid } from '../../../../../../../util/vs/base/common/uuid';
-import { ServicesAccessor } from '../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { URI } from '../../../../../../../util/dardcor/base/common/uri';
+import { generateUuid } from '../../../../../../../util/dardcor/base/common/uuid';
+import { ServicesAccessor } from '../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import {
 	CodeSnippet,
 	ContextItemOrigin,

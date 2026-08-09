@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import { commands, env, QuickPick, QuickPickItem, QuickPickItemKind, Uri, window, workspace } from 'vscode';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ConfigKey } from '../../lib/src/config';
 import { CopilotConfigPrefix } from '../../lib/src/constants';
 import { AsyncCompletionManager, ICompletionsAsyncManagerService } from '../../lib/src/ghostText/asyncCompletions';

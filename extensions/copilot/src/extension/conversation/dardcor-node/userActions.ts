@@ -20,7 +20,7 @@ import { ISurveyService } from '../../../platform/survey/common/surveyService';
 import { ITelemetryService, TelemetryEventMeasurements, TelemetryEventProperties } from '../../../platform/telemetry/common/telemetry';
 import { isNotebookCellOrNotebookChatInput } from '../../../util/common/notebooks';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { Schemas } from '../../../util/vs/base/common/network';
+import { Schemas } from '../../../util/dardcor/base/common/network';
 import { Intent } from '../../common/constants';
 import { IConversationStore } from '../../conversationStore/node/conversationStore';
 import { findDiagnosticsTelemetry } from '../../inlineChat/node/diagnosticsTelemetry';

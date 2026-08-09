@@ -10,8 +10,8 @@ import { type FileRow, type RefRow, type SessionRow, type TurnRow, ISessionStore
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
 import { CopilotChatAttr, GenAiAttr, GenAiOperationName } from '../../../platform/otel/common/genAiAttributes';
 import { type ICompletedSpanData, IOTelService } from '../../../platform/otel/common/otelService';
-import { Disposable, DisposableStore } from '../../../util/vs/base/common/lifecycle';
-import { autorun } from '../../../util/vs/base/common/observableInternal';
+import { Disposable, DisposableStore } from '../../../util/dardcor/base/common/lifecycle';
+import { autorun } from '../../../util/dardcor/base/common/observableInternal';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
 import { IExtensionContribution } from '../../common/contributions';
 import {

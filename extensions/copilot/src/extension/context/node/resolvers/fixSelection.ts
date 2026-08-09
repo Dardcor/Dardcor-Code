@@ -8,7 +8,7 @@ import { ILanguageDiagnosticsService } from '../../../../platform/languages/comm
 import { IChatEndpoint } from '../../../../platform/networking/common/networking';
 import { TreeSitterAST, treeSitterToVSCodeRange, vscodeToTreeSitterRange } from '../../../../platform/parser/node/parserService';
 import { ILanguage } from '../../../../util/common/languages';
-import { Range } from '../../../../vscodeTypes';
+import { Range } from '../../../../dardcorTypes';
 import { CodeContextRegion, CodeContextTracker } from '../../../inlineChat/node/codeContextRegion';
 import { IDocumentContext } from '../../../prompt/node/documentContext';
 import { processCodeAroundSelection } from './inlineChatSelection';

@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as l10n from '@vscode/l10n';
-import { ChatRequest } from '../../../vscodeTypes';
+import { ChatRequest } from '../../../dardcorTypes';
 
 export interface IToolCallIterationIncrease {
 	copilotRequestedRoundLimit: number;

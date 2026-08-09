@@ -11,9 +11,9 @@ import { TestingServiceCollection } from '../../../../../../platform/test/node/s
 import { TestWorkspaceService } from '../../../../../../platform/test/node/testWorkspaceService';
 import { IWorkspaceService } from '../../../../../../platform/workspace/common/workspaceService';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../util/common/test/testUtils';
-import { CancellationToken, CancellationTokenSource } from '../../../../../../util/vs/base/common/cancellation';
-import { URI } from '../../../../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken, CancellationTokenSource } from '../../../../../../util/dardcor/base/common/cancellation';
+import { URI } from '../../../../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { IFolderRepositoryManager, FolderRepositoryMRUEntry } from '../../../../../chatSessions/common/folderRepositoryManager';
 import { IAgentSessionsWorkspace } from '../../../../../chatSessions/common/agentSessionsWorkspace';
 import { createExtensionUnitTestingServices } from '../../../../../test/node/services';

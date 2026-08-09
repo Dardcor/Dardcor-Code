@@ -9,12 +9,12 @@ import { compute4GramTextSimilarity } from '../../../platform/editSurvivalTracki
 import { IGitCommitMessageService } from '../../../platform/git/common/gitCommitMessageService';
 import { IGitDiffService } from '../../../platform/git/common/gitDiffService';
 import { IGitExtensionService } from '../../../platform/git/common/gitExtensionService';
-import { API, Repository } from '../../../platform/git/vscode/git';
+import { API, Repository } from '../../../platform/git/dardcor/git';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { DisposableMap, DisposableStore } from '../../../util/vs/base/common/lifecycle';
-import { basename } from '../../../util/vs/base/common/resources';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { DisposableMap, DisposableStore } from '../../../util/dardcor/base/common/lifecycle';
+import { basename } from '../../../util/dardcor/base/common/resources';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { RecentCommitMessages } from '../common/repository';
 import { GitCommitMessageGenerator } from '../node/gitCommitMessageGenerator';
 

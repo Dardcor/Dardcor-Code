@@ -11,7 +11,7 @@ import { INewWorkspacePreviewContentManager } from '../../src/extension/intents/
 import { ITestingServicesAccessor } from '../../src/platform/test/node/services';
 import { IQualifiedFile, getLanguageForFile } from '../../src/platform/test/node/simulationWorkspace';
 import { looksLikeDirectory } from '../../src/util/common/fileSystem';
-import { ChatResponseFileTreePart, Uri } from '../../src/vscodeTypes';
+import { ChatResponseFileTreePart, Uri } from '../../src/dardcorTypes';
 import { ssuite, stest } from '../base/stest';
 import { validate } from '../base/validate';
 import { compileTSWorkspace } from '../simulation/diagnosticProviders/tsc';

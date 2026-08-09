@@ -3,11 +3,11 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { compareBy, numberComparator, tieBreakComparators } from '../vs/base/common/arrays';
-import { onUnexpectedError } from '../vs/base/common/errors';
-import { Emitter, Event } from '../vs/base/common/event';
-import { Disposable, IDisposable } from '../vs/base/common/lifecycle';
-import { setTimeout0, setTimeout0IsFaster } from '../vs/base/common/platform';
+import { compareBy, numberComparator, tieBreakComparators } from '../dardcor/base/common/arrays';
+import { onUnexpectedError } from '../dardcor/base/common/errors';
+import { Emitter, Event } from '../dardcor/base/common/event';
+import { Disposable, IDisposable } from '../dardcor/base/common/lifecycle';
+import { setTimeout0, setTimeout0IsFaster } from '../dardcor/base/common/platform';
 
 export type TimeOffset = number;
 

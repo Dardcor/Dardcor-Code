@@ -7,7 +7,7 @@ import * as l10n from '@vscode/l10n';
 import { ChatLocation } from '../../../platform/chat/common/commonTypes';
 import { IEndpointProvider } from '../../../platform/endpoint/common/endpointProvider';
 import { isNotebookCellOrNotebookChatInput } from '../../../util/common/notebooks';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { Intent } from '../../common/constants';
 import { GenericPanelIntentInvocation } from '../../context/node/resolvers/genericPanelIntentInvocation';
 import { IInlineFixFeatures, InlineFixIntentInvocation, InlineFixProps } from '../../context/node/resolvers/inlineFixIntentInvocation';

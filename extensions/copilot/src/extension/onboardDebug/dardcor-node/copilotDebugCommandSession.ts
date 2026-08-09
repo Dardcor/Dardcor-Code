@@ -5,8 +5,8 @@
 
 import * as l10n from '@vscode/l10n';
 import * as vscode from 'vscode';
-import { DisposableStore } from '../../../util/vs/base/common/lifecycle';
-import { generateUuid } from '../../../util/vs/base/common/uuid';
+import { DisposableStore } from '../../../util/dardcor/base/common/lifecycle';
+import { generateUuid } from '../../../util/dardcor/base/common/uuid';
 import { ILaunchConfigService } from '../common/launchConfigService';
 import { IStartOptions } from '../node/copilotDebugWorker/shared';
 import { CopilotDebugCommandHandle } from './copilotDebugCommandHandle';

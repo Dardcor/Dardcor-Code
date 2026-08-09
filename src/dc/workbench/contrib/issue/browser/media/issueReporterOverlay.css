@@ -20,7 +20,7 @@
 	background: var(--vscode-editor-background, #1e1e1e);
 	font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, sans-serif;
 	font-size: 13px;
-	color: var(--vscode-foreground, #cccccc);
+	color: var(--vscode-foreground, #ccc);
 }
 
 .issue-reporter-wizard .wizard-toolbar {
@@ -56,18 +56,18 @@
 
 .issue-reporter-wizard *::-webkit-scrollbar-thumb,
 .issue-reporter-wizard ::-webkit-scrollbar-thumb {
-	background: var(--vscode-scrollbarSlider-background, rgba(59, 10, 94, 0.4));
+	background: var(--vscode-scrollbarSlider-background, rgba(121, 121, 121, 0.4));
 	border-radius: 0;
 }
 
 .issue-reporter-wizard *::-webkit-scrollbar-thumb:hover,
 .issue-reporter-wizard ::-webkit-scrollbar-thumb:hover {
-	background: var(--vscode-scrollbarSlider-hoverBackground, rgba(106, 27, 154, 0.7));
+	background: var(--vscode-scrollbarSlider-hoverBackground, rgba(100, 100, 100, 0.7));
 }
 
 .issue-reporter-wizard *::-webkit-scrollbar-thumb:active,
 .issue-reporter-wizard ::-webkit-scrollbar-thumb:active {
-	background: var(--vscode-scrollbarSlider-activeBackground, rgba(124, 77, 255, 0.4));
+	background: var(--vscode-scrollbarSlider-activeBackground, rgba(191, 191, 191, 0.4));
 }
 
 .issue-reporter-editor-tab {
@@ -164,7 +164,7 @@
 	border: 1px solid var(--vscode-input-border, #555);
 	border-radius: 4px;
 	background: var(--vscode-input-background, #3c3c3c);
-	color: var(--vscode-input-foreground, #cccccc);
+	color: var(--vscode-input-foreground, #ccc);
 	font-size: 12px;
 	cursor: pointer;
 	outline: none;
@@ -318,7 +318,7 @@
 	width: 10px;
 	height: 10px;
 	border-radius: 50%;
-	border: 2px solid var(--vscode-foreground, #6A1B9A);
+	border: 2px solid var(--vscode-foreground, #888);
 	background: transparent;
 	transition: background 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
 	opacity: 0.4;
@@ -340,7 +340,7 @@
 	font-size: 12px;
 	font-weight: 600;
 	white-space: nowrap;
-	color: var(--vscode-titleBar-activeForeground, #cccccc);
+	color: var(--vscode-titleBar-activeForeground, #ccc);
 	font-variant-numeric: tabular-nums;
 }
 
@@ -349,7 +349,7 @@
 	width: 2px;
 	height: 14px;
 	margin: 0 10px;
-	background: var(--vscode-titleBar-activeForeground, #6A1B9A);
+	background: var(--vscode-titleBar-activeForeground, #888);
 	opacity: 0.6;
 	vertical-align: middle;
 }
@@ -358,7 +358,7 @@
 	font-size: 12px;
 	font-weight: 600;
 	white-space: nowrap;
-	color: var(--vscode-titleBar-activeForeground, #cccccc);
+	color: var(--vscode-titleBar-activeForeground, #ccc);
 }
 
 /* Step Container */
@@ -392,7 +392,7 @@
 .issue-reporter-wizard .wizard-subtitle {
 	margin: 0;
 	font-size: 13px;
-	color: var(--vscode-descriptionForeground, #6A1B9A);
+	color: var(--vscode-descriptionForeground, #999);
 	line-height: 1.4;
 }
 
@@ -416,7 +416,7 @@
 	font-size: 13px;
 	font-family: inherit;
 	line-height: 1.5;
-	color: var(--vscode-input-foreground, #cccccc);
+	color: var(--vscode-input-foreground, #ccc);
 	background: var(--vscode-input-background, #3c3c3c);
 	border: 1px solid var(--vscode-input-border, #555);
 	border-radius: 4px;
@@ -432,7 +432,7 @@
 }
 
 .issue-reporter-wizard .wizard-textarea::placeholder {
-	color: var(--vscode-input-placeholderForeground, #6A1B9A);
+	color: var(--vscode-input-placeholderForeground, #888);
 }
 
 .issue-reporter-wizard .wizard-textarea.invalid-input {
@@ -462,7 +462,7 @@ label/control gap, so the buttons must not add their own margin. */
 	gap: 8px;
 	padding: 6px 10px;
 	background: transparent !important;
-	color: var(--vscode-foreground, #cccccc) !important;
+	color: var(--vscode-foreground, #ccc) !important;
 	border: 1px solid transparent;
 	border-radius: 4px;
 	font-size: 13px;
@@ -531,7 +531,7 @@ label/control gap, so the buttons must not add their own margin. */
 	border: 1px solid var(--vscode-input-border, #555);
 	font-size: 11px;
 	font-family: monospace;
-	color: var(--vscode-descriptionForeground, #6A1B9A);
+	color: var(--vscode-descriptionForeground, #888);
 	opacity: 0.7;
 	margin-left: 2px;
 }
@@ -562,12 +562,12 @@ label/control gap, so the buttons must not add their own margin. */
 .issue-reporter-wizard .wizard-similar-issues {
 	margin-top: 8px;
 	font-size: 12px;
-	color: var(--vscode-descriptionForeground, #6A1B9A);
+	color: var(--vscode-descriptionForeground, #999);
 }
 
 .issue-reporter-wizard .wizard-similar-heading {
 	font-weight: 600;
-	color: var(--vscode-foreground, #cccccc);
+	color: var(--vscode-foreground, #ccc);
 	margin-bottom: 4px;
 }
 
@@ -599,7 +599,7 @@ label/control gap, so the buttons must not add their own margin. */
 
 .issue-reporter-wizard .wizard-similar-state {
 	margin-left: 6px;
-	color: var(--vscode-descriptionForeground, #6A1B9A);
+	color: var(--vscode-descriptionForeground, #999);
 }
 
 .issue-reporter-wizard .wizard-type-icon {
@@ -618,7 +618,7 @@ label/control gap, so the buttons must not add their own margin. */
 }
 
 .issue-reporter-wizard .wizard-screenshots-empty {
-	color: var(--vscode-descriptionForeground, #6A1B9A);
+	color: var(--vscode-descriptionForeground, #888);
 	font-style: italic;
 	display: flex;
 	align-items: center;
@@ -692,7 +692,7 @@ label/control gap, so the buttons must not add their own margin. */
 
 .issue-reporter-wizard .wizard-screenshot-plus {
 	font-size: 28px;
-	color: var(--vscode-descriptionForeground, #6A1B9A);
+	color: var(--vscode-descriptionForeground, #888);
 }
 
 .issue-reporter-wizard .wizard-screenshot-add:hover .wizard-screenshot-plus {
@@ -705,7 +705,7 @@ label/control gap, so the buttons must not add their own margin. */
 }
 
 .issue-reporter-wizard .wizard-screenshot-add.disabled:hover .wizard-screenshot-plus {
-	color: var(--vscode-descriptionForeground, #6A1B9A);
+	color: var(--vscode-descriptionForeground, #888);
 }
 
 /* Screenshot Controls */
@@ -726,7 +726,7 @@ label/control gap, so the buttons must not add their own margin. */
 .issue-reporter-wizard .wizard-delay-label {
 	font-size: 12px;
 	white-space: nowrap;
-	color: var(--vscode-descriptionForeground, #6A1B9A);
+	color: var(--vscode-descriptionForeground, #999);
 }
 
 .issue-reporter-wizard .wizard-delay-select {
@@ -767,7 +767,7 @@ label/control gap, so the buttons must not add their own margin. */
 .issue-reporter-wizard .wizard-field-label {
 	font-size: 12px;
 	font-weight: 600;
-	color: var(--vscode-foreground, #cccccc);
+	color: var(--vscode-foreground, #ccc);
 	margin-top: 8px;
 	margin-bottom: 0;
 	display: block;
@@ -827,7 +827,7 @@ This keeps the row height constant regardless of which is visible. */
 	left: 0;
 	right: 0;
 	bottom: 0;
-	color: var(--vscode-descriptionForeground, #6A1B9A);
+	color: var(--vscode-descriptionForeground, #999);
 	font-size: 12px;
 	line-height: 1.4;
 	pointer-events: none;
@@ -1062,7 +1062,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 .issue-reporter-wizard .wizard-submit-preview,
 .issue-reporter-wizard .wizard-submit-manual {
 	background: transparent;
-	color: var(--vscode-foreground, #cccccc);
+	color: var(--vscode-foreground, #ccc);
 	border: 1px solid var(--vscode-input-border, #3c3c3c);
 }
 
@@ -1084,12 +1084,12 @@ extension field is hidden (no fixed-width placeholder needed). */
 .issue-reporter-wizard .review-label {
 	font-size: 12px;
 	font-weight: 600;
-	color: var(--vscode-foreground, #cccccc);
+	color: var(--vscode-foreground, #ccc);
 }
 
 .issue-reporter-wizard .review-value {
 	font-size: 13px;
-	color: var(--vscode-descriptionForeground, #6A1B9A);
+	color: var(--vscode-descriptionForeground, #999);
 	white-space: pre-wrap;
 	word-break: break-word;
 	max-height: 60px;
@@ -1098,7 +1098,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 }
 
 .issue-reporter-wizard .review-target-repo {
-	color: var(--vscode-descriptionForeground, #6A1B9A);
+	color: var(--vscode-descriptionForeground, #999);
 	font-size: 12px;
 }
 
@@ -1121,7 +1121,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 	margin: 0;
 	font-size: 13px;
 	font-weight: 600;
-	color: var(--vscode-foreground, #cccccc);
+	color: var(--vscode-foreground, #ccc);
 }
 
 .issue-reporter-wizard .review-diag-bulk-actions {
@@ -1202,7 +1202,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 .issue-reporter-wizard .review-performance-title {
 	font-size: 13px;
 	font-weight: 600;
-	color: var(--vscode-foreground, #cccccc);
+	color: var(--vscode-foreground, #ccc);
 }
 
 .issue-reporter-wizard .review-performance-refresh.monaco-button {
@@ -1214,7 +1214,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 
 .issue-reporter-wizard .review-performance-description {
 	font-size: 12px;
-	color: var(--vscode-descriptionForeground, #6A1B9A);
+	color: var(--vscode-descriptionForeground, #888);
 }
 
 .issue-reporter-wizard .review-diag-header {
@@ -1239,7 +1239,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 
 .issue-reporter-wizard .review-diag-check-label {
 	font-size: 12px;
-	color: var(--vscode-descriptionForeground, #6A1B9A);
+	color: var(--vscode-descriptionForeground, #888);
 	cursor: pointer;
 	white-space: nowrap;
 }
@@ -1247,7 +1247,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 .issue-reporter-wizard .review-diag-title {
 	font-size: 13px;
 	font-weight: 600;
-	color: var(--vscode-foreground, #cccccc);
+	color: var(--vscode-foreground, #ccc);
 	white-space: nowrap;
 	flex-shrink: 0;
 }
@@ -1263,7 +1263,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 .issue-reporter-wizard .review-diag-content {
 	margin-top: 6px;
 	font-size: 12px;
-	color: var(--vscode-descriptionForeground, #6A1B9A);
+	color: var(--vscode-descriptionForeground, #888);
 	max-height: 200px;
 	overflow: auto;
 }
@@ -1284,13 +1284,13 @@ extension field is hidden (no fixed-width placeholder needed). */
 .issue-reporter-wizard .review-diag-key {
 	white-space: nowrap;
 	font-weight: 600;
-	color: var(--vscode-foreground, #cccccc);
+	color: var(--vscode-foreground, #ccc);
 	width: 120px;
 }
 
 .issue-reporter-wizard .review-ext-table th {
 	font-weight: 600;
-	color: var(--vscode-foreground, #cccccc);
+	color: var(--vscode-foreground, #ccc);
 	border-bottom: 1px solid var(--vscode-input-border, #444);
 	padding-bottom: 4px;
 }
@@ -1303,7 +1303,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 .issue-reporter-wizard .review-diag-sublabel {
 	font-size: 12px;
 	font-weight: 600;
-	color: var(--vscode-foreground, #cccccc);
+	color: var(--vscode-foreground, #ccc);
 	margin-top: 6px;
 	margin-bottom: 2px;
 }
@@ -1321,7 +1321,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 
 .issue-reporter-wizard .review-diag-loading {
 	font-size: 12px;
-	color: var(--vscode-descriptionForeground, #6A1B9A);
+	color: var(--vscode-descriptionForeground, #888);
 	font-style: italic;
 	padding: 4px 0;
 }
@@ -1353,7 +1353,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 	font-size: 13px;
 	user-select: none;
 	white-space: nowrap;
-	color: var(--vscode-foreground, #cccccc);
+	color: var(--vscode-foreground, #ccc);
 	border: 1px solid var(--vscode-input-border, #555);
 	background: transparent;
 	transition: all 0.15s ease;
@@ -1361,7 +1361,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 
 .issue-reporter-wizard .wizard-nav-btn:hover {
 	background: rgba(255, 255, 255, 0.06);
-	border-color: var(--vscode-foreground, #6A1B9A);
+	border-color: var(--vscode-foreground, #999);
 }
 
 .issue-reporter-wizard .wizard-nav-btn.primary {
@@ -1405,7 +1405,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 	flex-direction: column;
 	font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, sans-serif;
 	font-size: 13px;
-	color: var(--vscode-foreground, #cccccc);
+	color: var(--vscode-foreground, #ccc);
 	outline: none !important;
 }
 
@@ -1444,7 +1444,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 	justify-content: center;
 	border: 1px solid transparent;
 	background: transparent;
-	color: var(--vscode-foreground, #cccccc);
+	color: var(--vscode-foreground, #ccc);
 	font-size: 14px;
 	flex-shrink: 0;
 }
@@ -1543,7 +1543,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 }
 
 .issue-reporter-annotation-overlay .annotation-tool-options-label {
-	color: var(--vscode-descriptionForeground, #6A1B9A);
+	color: var(--vscode-descriptionForeground, #999);
 	font-size: 11px;
 	min-width: 76px;
 }
@@ -1619,7 +1619,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 	border-radius: 4px;
 	border: 1px solid transparent;
 	background: var(--vscode-button-secondaryBackground, rgba(255, 255, 255, 0.08));
-	color: var(--vscode-button-secondaryForeground, var(--vscode-foreground, #cccccc));
+	color: var(--vscode-button-secondaryForeground, var(--vscode-foreground, #ccc));
 	cursor: pointer;
 	font-size: 11px;
 	padding: 0 6px;
@@ -1636,7 +1636,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 }
 
 .issue-reporter-annotation-overlay .annotation-opacity-value {
-	color: var(--vscode-descriptionForeground, #6A1B9A);
+	color: var(--vscode-descriptionForeground, #999);
 	font-size: 11px;
 	width: 34px;
 	text-align: right;
@@ -1646,7 +1646,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 	text-align: center;
 	padding: 6px 0;
 	font-size: 12px;
-	color: var(--vscode-descriptionForeground, #6A1B9A);
+	color: var(--vscode-descriptionForeground, #999);
 	border-bottom: 1px solid var(--vscode-panel-border, #444);
 }
 
@@ -1783,10 +1783,10 @@ extension field is hidden (no fixed-width placeholder needed). */
 	margin: 0 0 12px;
 	padding: 8px 12px;
 	border-radius: var(--vscode-cornerRadius-small);
-	background: var(--vscode-textBlockQuote-background, rgba(59, 10, 94, 0.1));
+	background: var(--vscode-textBlockQuote-background, rgba(127, 127, 127, 0.1));
 	border-left: 3px solid var(--vscode-focusBorder, #007acc);
 	font-size: 13px;
-	color: var(--vscode-descriptionForeground, #cccccc);
+	color: var(--vscode-descriptionForeground, #ccc);
 }
 .issue-reporter-wizard .wizard-issue-guidance a,
 .issue-reporter-wizard .wizard-issue-guidance a:focus,
@@ -1824,7 +1824,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 	opacity: 0.55;
 }
 .issue-reporter-wizard .review-diag-group.excluded .review-diag-title {
-	color: var(--vscode-descriptionForeground, #6A1B9A);
+	color: var(--vscode-descriptionForeground, #999);
 }
 .issue-reporter-wizard .review-diag-toggle-area {
 	display: inline-flex;
@@ -1846,7 +1846,7 @@ extension field is hidden (no fixed-width placeholder needed). */
 .issue-reporter-wizard .review-diag-chevron {
 	display: inline-flex;
 	align-items: center;
-	color: var(--vscode-foreground, #cccccc);
+	color: var(--vscode-foreground, #ccc);
 	flex-shrink: 0;
 }
 

@@ -7,8 +7,8 @@ import * as Sinon from 'sinon';
 import { Disposable, ExtensionContext } from 'vscode';
 import { CodeReference } from '..';
 import { CopilotToken, createTestExtendedTokenInfo } from '../../../../../../../platform/authentication/common/copilotToken';
-import { generateUuid } from '../../../../../../../util/vs/base/common/uuid';
-import { IInstantiationService } from '../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { generateUuid } from '../../../../../../../util/dardcor/base/common/uuid';
+import { IInstantiationService } from '../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ConnectionState } from '../../../../lib/src/snippy/connectionState';
 import { createExtensionTestingContext } from '../../test/context';
 

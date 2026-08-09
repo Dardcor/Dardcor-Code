@@ -21,7 +21,17 @@
 			"size": "150%"
 		}
 	],
+	"folder": "_folder",
+	"folderExpanded": "_folder_open",
+	"rootFolder": "_folder",
+	"rootFolderExpanded": "_folder_open",
 	"iconDefinitions": {
+		"_folder": {
+			"iconPath": "./folder.svg"
+		},
+		"_folder_open": {
+			"iconPath": "./folder.svg"
+		},
 		"_R_light": {
 			"fontCharacter": "\\E001",
 			"fontColor": "#498ba7"

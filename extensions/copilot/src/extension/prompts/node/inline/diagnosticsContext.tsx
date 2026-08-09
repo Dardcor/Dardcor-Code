@@ -9,7 +9,7 @@ import { ILogService } from '../../../../platform/log/common/logService';
 import { IParserService, treeSitterOffsetRangeToVSCodeRange, treeSitterToVSCodeRange, vscodeToTreeSitterOffsetRange, vscodeToTreeSitterRange } from '../../../../platform/parser/node/parserService';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry';
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
-import { Diagnostic, Location, Range, Uri } from '../../../../vscodeTypes';
+import { Diagnostic, Location, Range, Uri } from '../../../../dardcorTypes';
 import { asyncComputeWithTimeBudget } from '../../../context/node/resolvers/selectionContextHelpers';
 import { IDocumentContext } from '../../../prompt/node/documentContext';
 import { Tag } from '../base/tag';

@@ -5,17 +5,17 @@
 
 import type * as vscode from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { Emitter } from '../../../util/vs/base/common/event';
-import { match } from '../../../util/vs/base/common/glob';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { ResourceSet } from '../../../util/vs/base/common/map';
-import { Schemas } from '../../../util/vs/base/common/network';
-import { IObservable, observableFromEvent } from '../../../util/vs/base/common/observableInternal';
-import { dirname, isAbsolute } from '../../../util/vs/base/common/path';
-import { extUriBiasedIgnorePathCase } from '../../../util/vs/base/common/resources';
-import { isObject } from '../../../util/vs/base/common/types';
-import { URI } from '../../../util/vs/base/common/uri';
-import { FileType, Uri } from '../../../vscodeTypes';
+import { Emitter } from '../../../util/dardcor/base/common/event';
+import { match } from '../../../util/dardcor/base/common/glob';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { ResourceSet } from '../../../util/dardcor/base/common/map';
+import { Schemas } from '../../../util/dardcor/base/common/network';
+import { IObservable, observableFromEvent } from '../../../util/dardcor/base/common/observableInternal';
+import { dirname, isAbsolute } from '../../../util/dardcor/base/common/path';
+import { extUriBiasedIgnorePathCase } from '../../../util/dardcor/base/common/resources';
+import { isObject } from '../../../util/dardcor/base/common/types';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { FileType, Uri } from '../../../dardcorTypes';
 import { IRunCommandExecutionService } from '../../commands/common/runCommandExecutionService';
 import { CodeGenerationImportInstruction, CodeGenerationTextInstruction, Config, ConfigKey, IConfigurationService } from '../../configuration/common/configurationService';
 import { INativeEnvService } from '../../env/common/envService';

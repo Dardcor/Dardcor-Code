@@ -142,7 +142,7 @@ export class ThreadedBackgroundTokenizerFactory implements IDisposable {
 		};
 		const worker = this._worker = this._webWorkerService.createWorkerClient<TextMateTokenizationWorker>(
 			new WebWorkerDescriptor({
-				esmModuleLocation: FileAccess.asBrowserUri('dc/workbench/services/textMate/browser/backgroundTokenization/worker/textMateTokenizationWorker.workerMain.js'),
+				esmModuleLocation: FileAccess.asBrowserUri('vs/workbench/services/textMate/browser/backgroundTokenization/worker/textMateTokenizationWorker.workerMain.js'),
 				label: 'TextMateWorker'
 			})
 		);

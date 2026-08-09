@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { Point, SyntaxNode } from 'web-tree-sitter';
-import { BugIndicatingError } from '../../../util/vs/base/common/errors';
-import { Range, Uri } from '../../../vscodeTypes';
+import { BugIndicatingError } from '../../../util/dardcor/base/common/errors';
+import { Range, Uri } from '../../../dardcorTypes';
 
 export interface TreeSitterOffsetRange {
 	startIndex: number;

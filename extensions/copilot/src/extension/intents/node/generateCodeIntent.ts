@@ -6,7 +6,7 @@
 import * as l10n from '@vscode/l10n';
 import { ChatLocation } from '../../../platform/chat/common/commonTypes';
 import { IEndpointProvider } from '../../../platform/endpoint/common/endpointProvider';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { Intent } from '../../common/constants';
 import { GenericInlineIntentInvocation } from '../../context/node/resolvers/genericInlineIntentInvocation';
 import { EditStrategy } from '../../prompt/node/editGeneration';

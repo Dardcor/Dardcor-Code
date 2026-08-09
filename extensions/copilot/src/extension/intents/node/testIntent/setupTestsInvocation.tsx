@@ -16,12 +16,12 @@ import { ISetupTestExtension, testExtensionsForLanguage } from '../../../../plat
 import { IWorkspaceMutationManager } from '../../../../platform/testing/common/workspaceMutationManager';
 import { SetupConfirmationResult } from '../../../../platform/testing/node/setupTestDetector';
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
-import { mapFindFirst } from '../../../../util/vs/base/common/arraysFind';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { Lazy } from '../../../../util/vs/base/common/lazy';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
-import { ChatResponseExtensionsPart } from '../../../../vscodeTypes';
+import { mapFindFirst } from '../../../../util/dardcor/base/common/arraysFind';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { Lazy } from '../../../../util/dardcor/base/common/lazy';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { ChatResponseExtensionsPart } from '../../../../dardcorTypes';
 import { convertFileTreeToChatResponseFileTree, listFilesInResponseFileTree } from '../../../prompt/common/fileTreeParser';
 import { IBuildPromptContext } from '../../../prompt/common/intents';
 import { IToken, StreamingGrammar } from '../../../prompt/common/streamingGrammar';

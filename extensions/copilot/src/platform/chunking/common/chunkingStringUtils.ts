@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { splitLines } from '../../../util/vs/base/common/strings';
+import { splitLines } from '../../../util/dardcor/base/common/strings';
 
 export function truncateToMaxUtf8Length(str: string, maxBytes: number): string {
 	// utf-16 strings have at most 4 bytes per character (2 * 2)

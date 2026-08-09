@@ -6,8 +6,8 @@
 import * as assert from 'assert';
 import { expect, suite, test } from 'vitest';
 import { EditSurvivalTracker, applyEditsToRanges, compute4GramTextSimilarity } from '../../../platform/editSurvivalTracking/common/editSurvivalTracker';
-import { ISerializedStringEdit, StringEdit, StringReplacement } from '../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../util/vs/editor/common/core/ranges/offsetRange';
+import { ISerializedStringEdit, StringEdit, StringReplacement } from '../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../util/dardcor/editor/common/core/ranges/offsetRange';
 
 suite('OffsetEdit.join', () => {
 	for (let seed = 0; seed < 50; seed++) {

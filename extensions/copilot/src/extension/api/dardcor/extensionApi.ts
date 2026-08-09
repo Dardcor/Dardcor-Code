@@ -8,7 +8,7 @@ import { Copilot } from '../../../platform/inlineCompletions/common/api';
 import { ILanguageContextProviderService } from '../../../platform/languageContextProvider/common/languageContextProviderService';
 import { IScopeSelector } from '../../../platform/scopeSelection/common/scopeSelection';
 import { CopilotExtensionApi as ICopilotExtensionApi } from './api';
-import { VSCodeContextProviderApiV1 } from './vscodeContextProviderApi';
+import { VSCodeContextProviderApiV1 } from './dardcorContextProviderApi';
 
 export class CopilotExtensionApi implements ICopilotExtensionApi {
 	public static readonly version = 1;

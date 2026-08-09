@@ -6,12 +6,12 @@
 import * as assert from 'assert';
 import { suite, test } from 'vitest';
 import { DiagnosticData } from '../../../../platform/inlineEdits/common/dataTypes/diagnosticData';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { StringEdit } from '../../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
-import { StringText } from '../../../../util/vs/editor/common/core/text/abstractText';
-import { Diagnostic } from '../../vscode-node/features/diagnosticsBasedCompletions/diagnosticsCompletions';
-import { DiagnosticsCollection } from '../../vscode-node/features/diagnosticsCompletionProcessor';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { StringEdit } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { StringText } from '../../../../util/dardcor/editor/common/core/text/abstractText';
+import { Diagnostic } from '../../dardcor-node/features/diagnosticsBasedCompletions/diagnosticsCompletions';
+import { DiagnosticsCollection } from '../../dardcor-node/features/diagnosticsCompletionProcessor';
 
 // Helper function to create a Diagnostic from a mock VS Code diagnostic
 function createDiagnostic(message: string, range: OffsetRange): Diagnostic {

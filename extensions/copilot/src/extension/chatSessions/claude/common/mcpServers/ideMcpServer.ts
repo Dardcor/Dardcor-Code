@@ -6,8 +6,8 @@
 import type { McpServerConfig } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
 import { ILanguageDiagnosticsService } from '../../../../../platform/languages/common/languageDiagnosticsService';
-import { URI } from '../../../../../util/vs/base/common/uri';
-import { DiagnosticSeverity } from '../../../../../vscodeTypes';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
+import { DiagnosticSeverity } from '../../../../../dardcorTypes';
 import { IClaudeAgentSdkLoaderService } from '../claudeAgentSdkLoaderService';
 import { IClaudeMcpServerContributor, registerClaudeMcpServerContributor } from '../claudeMcpServerRegistry';
 

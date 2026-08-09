@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { EventEmitter, Uri, commands, workspace } from 'vscode';
-import { Disposable } from '../../../../util/vs/base/common/lifecycle';
+import { Disposable } from '../../../../util/dardcor/base/common/lifecycle';
 
 export class VirtualTextDocumentProvider extends Disposable {
 	private static id = 0;

@@ -28,10 +28,10 @@ import { NullExperimentationService } from '../../../../../platform/telemetry/co
 import { NullTelemetryService } from '../../../../../platform/telemetry/common/nullTelemetryService';
 import { NullWorkspaceService } from '../../../../../platform/workspace/common/workspaceService';
 import { mock } from '../../../../../util/common/test/simpleMock';
-import { DisposableStore, IReference, toDisposable } from '../../../../../util/vs/base/common/lifecycle';
-import { URI } from '../../../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
-import { ChatRequestTurn2 } from '../../../../../vscodeTypes';
+import { DisposableStore, IReference, toDisposable } from '../../../../../util/dardcor/base/common/lifecycle';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { ChatRequestTurn2 } from '../../../../../dardcorTypes';
 import { NullPromptVariablesService } from '../../../../prompt/node/promptVariablesService';
 import { createExtensionUnitTestingServices } from '../../../../test/node/services';
 import { IAgentSessionsWorkspace } from '../../../common/agentSessionsWorkspace';

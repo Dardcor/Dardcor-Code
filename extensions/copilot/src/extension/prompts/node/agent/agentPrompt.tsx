@@ -21,10 +21,10 @@ import { ITabsAndEditorsService } from '../../../../platform/tabs/common/tabsAnd
 import { ITasksService } from '../../../../platform/tasks/common/tasksService';
 import { IExperimentationService } from '../../../../platform/telemetry/common/nullExperimentationService';
 import { WorkingDirectory } from '../../../../platform/workspace/common/workingDirectory';
-import { isDefined, isString } from '../../../../util/vs/base/common/types';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
-import { ChatRequestEditedFileEventKind, Position, Range } from '../../../../vscodeTypes';
+import { isDefined, isString } from '../../../../util/dardcor/base/common/types';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { ChatRequestEditedFileEventKind, Position, Range } from '../../../../dardcorTypes';
 import { GenericBasePromptElementProps } from '../../../context/node/resolvers/genericPanelIntentInvocation';
 import { ChatVariablesCollection, extractDebugTargetSessionIds, isCustomizationsIndex } from '../../../prompt/common/chatVariablesCollection';
 import { CustomizationsIndexMetadata, getGlobalContextCacheKey, GlobalContextMessageMetadata, RenderedUserMessageMetadata, Turn } from '../../../prompt/common/conversation';

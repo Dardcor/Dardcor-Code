@@ -6,10 +6,10 @@
 import { ChatRequest, LanguageModelChat, lm } from 'vscode';
 import { ConfigKey } from '../../../platform/configuration/common/configurationService';
 import { ChatEndpointFamily } from '../../../platform/endpoint/common/endpointProvider';
-import { ExtensionContributedChatEndpoint } from '../../../platform/endpoint/vscode-node/extChatEndpoint';
+import { ExtensionContributedChatEndpoint } from '../../../platform/endpoint/dardcor-node/extChatEndpoint';
 import { IChatEndpoint } from '../../../platform/networking/common/networking';
-import { Delayer } from '../../../util/vs/base/common/async';
-import { MicrotaskDelay } from '../../../util/vs/base/common/symbols';
+import { Delayer } from '../../../util/dardcor/base/common/async';
+import { MicrotaskDelay } from '../../../util/dardcor/base/common/symbols';
 import { ProductionEndpointProvider } from './endpointProviderImpl';
 
 export class ScenarioAutomationEndpointProviderImpl extends ProductionEndpointProvider {

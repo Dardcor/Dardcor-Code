@@ -11,11 +11,11 @@ import { AbstractSearchService } from '../../../../platform/search/common/search
 import { ITabsAndEditorsService, TabChangeEvent, TabInfo } from '../../../../platform/tabs/common/tabsAndEditorsService';
 import * as glob from '../../../../util/common/glob';
 import { createTextDocumentData } from '../../../../util/common/test/shims/textDocument';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { Event } from '../../../../util/vs/base/common/event';
-import { normalize } from '../../../../util/vs/base/common/path';
-import { basename } from '../../../../util/vs/base/common/resources';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { Event } from '../../../../util/dardcor/base/common/event';
+import { normalize } from '../../../../util/dardcor/base/common/path';
+import { basename } from '../../../../util/dardcor/base/common/resources';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { TestFileFinder, isTestFile, suffix2Language } from '../testFiles';
 
 suite.skipIf(process.platform === 'win32')('TestFileFinder', function () {

@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { IAuthenticationService } from '../../../../platform/authentication/common/authentication';
 import { IConfigurationService } from '../../../../platform/configuration/common/configurationService';
 import { ILogService } from '../../../../platform/log/common/logService';
-import { Emitter } from '../../../../util/vs/base/common/event';
+import { Emitter } from '../../../../util/dardcor/base/common/event';
 
 // ---- vscode mock -----------------------------------------------------------
 

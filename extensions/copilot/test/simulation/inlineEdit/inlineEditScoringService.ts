@@ -11,11 +11,11 @@ import { RootedEdit } from '../../../src/platform/inlineEdits/common/dataTypes/e
 import { deserializeStringEdit, serializeStringEdit } from '../../../src/platform/inlineEdits/common/dataTypes/editUtils';
 import { ISerializedEdit } from '../../../src/platform/workspaceRecorder/common/workspaceLog';
 import { JSONFile } from '../../../src/util/node/jsonFile';
-import { CachedFunction } from '../../../src/util/vs/base/common/cache';
-import { equalsIfDefined, thisEqualsC } from '../../../src/util/vs/base/common/equals';
-import { isDefined } from '../../../src/util/vs/base/common/types';
-import { StringEdit } from '../../../src/util/vs/editor/common/core/edits/stringEdit';
-import { StringText } from '../../../src/util/vs/editor/common/core/text/abstractText';
+import { CachedFunction } from '../../../src/util/dardcor/base/common/cache';
+import { equalsIfDefined, thisEqualsC } from '../../../src/util/dardcor/base/common/equals';
+import { isDefined } from '../../../src/util/dardcor/base/common/types';
+import { StringEdit } from '../../../src/util/dardcor/editor/common/core/edits/stringEdit';
+import { StringText } from '../../../src/util/dardcor/editor/common/core/text/abstractText';
 
 export interface IInlineEditScoringService {
 	scoreEdit(scoredEditsFilePath: string, context: ScoringContext, docId: DocumentId, editDocumentValue: StringText, edit: RootedEdit | undefined): Promise<EditScoreResult | undefined>;

@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { isEqual } from '../../../../util/vs/base/common/resources';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
+import { isEqual } from '../../../../util/dardcor/base/common/resources';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
 
 export class DiagnosticData {
 	constructor(

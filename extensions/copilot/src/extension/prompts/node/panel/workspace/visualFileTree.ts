@@ -8,9 +8,9 @@ import { IFileSystemService } from '../../../../../platform/filesystem/common/fi
 import { FileType } from '../../../../../platform/filesystem/common/fileTypes';
 import { IIgnoreService } from '../../../../../platform/ignore/common/ignoreService';
 import { shouldAlwaysIgnoreFile } from '../../../../../platform/workspaceChunkSearch/node/workspaceFileIndex';
-import { isDefined } from '../../../../../util/vs/base/common/types';
-import { URI } from '../../../../../util/vs/base/common/uri';
-import { ServicesAccessor } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { isDefined } from '../../../../../util/dardcor/base/common/types';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
+import { ServicesAccessor } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 
 export type FileEntry =
 	| { readonly type: FileType.File; readonly uri: URI; readonly name: string }

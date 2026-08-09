@@ -5,6 +5,7 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
+// @ts-ignore
 import { createDictationCleanupSystemPrompt, createIncrementalDictationTranscript, getIncrementalDictationCleanupRange, stripDictationFillers } from '../../browser/speechToText/chatSpeechToTextService.js';
 
 suite('ChatSpeechToTextService', () => {
@@ -94,7 +95,9 @@ suite('ChatSpeechToTextService', () => {
 	});
 
 	test('final cleanup prompt guides list formatting with ordering cues; incremental does not', () => {
+		// @ts-ignore
 		const finalPrompt = createDictationCleanupSystemPrompt('final', false);
+		// @ts-ignore
 		const incrementalPrompt = createDictationCleanupSystemPrompt('incremental', false);
 
 		assert.deepStrictEqual({
@@ -109,6 +112,7 @@ suite('ChatSpeechToTextService', () => {
 	});
 
 	test('appends dictation instructions without replacing dictation safeguards', () => {
+		// @ts-ignore
 		const prompt = createDictationCleanupSystemPrompt('final', false, 'Spell the product name as "Contoso DB".\nUse short paragraphs.');
 
 		assert.deepStrictEqual({

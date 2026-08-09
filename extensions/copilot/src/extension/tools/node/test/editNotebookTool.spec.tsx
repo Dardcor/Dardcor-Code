@@ -14,11 +14,11 @@ import { PromptPathRepresentationService } from '../../../../platform/prompts/co
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry';
 import { TestWorkspaceService } from '../../../../platform/test/node/testWorkspaceService';
 import { ExtHostNotebookDocumentData } from '../../../../util/common/test/shims/notebookDocument';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { DisposableStore } from '../../../../util/vs/base/common/lifecycle';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
-import { NotebookCellData, NotebookCellKind, NotebookData, NotebookEdit, NotebookRange, Range, TextEdit, Uri } from '../../../../vscodeTypes';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { DisposableStore } from '../../../../util/dardcor/base/common/lifecycle';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { NotebookCellData, NotebookCellKind, NotebookData, NotebookEdit, NotebookRange, Range, TextEdit, Uri } from '../../../../dardcorTypes';
 import { createExtensionUnitTestingServices } from '../../../test/node/services';
 import { EditNotebookTool, IEditNotebookToolParams } from '../editNotebookTool';
 

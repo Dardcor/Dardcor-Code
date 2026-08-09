@@ -20,11 +20,11 @@ import { NesXtabHistoryTracker } from '../../../src/platform/inlineEdits/common/
 import { INotebookService } from '../../../src/platform/notebook/common/notebookService';
 import { IExperimentationService } from '../../../src/platform/telemetry/common/nullExperimentationService';
 import { IWorkspaceService } from '../../../src/platform/workspace/common/workspaceService';
-import { Event } from '../../../src/util/vs/base/common/event';
-import { CancellationToken } from '../../../src/util/vs/base/common/cancellation';
-import { OffsetRange } from '../../../src/util/vs/editor/common/core/ranges/offsetRange';
-import { generateUuid } from '../../../src/util/vs/base/common/uuid';
-import { IInstantiationService, ServicesAccessor } from '../../../src/util/vs/platform/instantiation/common/instantiation';
+import { Event } from '../../../src/util/dardcor/base/common/event';
+import { CancellationToken } from '../../../src/util/dardcor/base/common/cancellation';
+import { OffsetRange } from '../../../src/util/dardcor/editor/common/core/ranges/offsetRange';
+import { generateUuid } from '../../../src/util/dardcor/base/common/uuid';
+import { IInstantiationService, ServicesAccessor } from '../../../src/util/dardcor/platform/instantiation/common/instantiation';
 
 export interface IGeneratedCursorPrompt {
 	readonly system: string;

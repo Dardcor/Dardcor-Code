@@ -6,8 +6,8 @@
 import { EventEmitter } from 'events';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { ChatHookCommand } from 'vscode';
-import { CancellationToken, CancellationTokenSource } from '../../../../util/vs/base/common/cancellation';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { CancellationToken, CancellationTokenSource } from '../../../../util/dardcor/base/common/cancellation';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { TestLogService } from '../../../testing/common/testLogService';
 import { HookCommandResultKind } from '../../common/hookExecutor';
 import { IHooksOutputChannel } from '../../common/hooksOutputChannel';

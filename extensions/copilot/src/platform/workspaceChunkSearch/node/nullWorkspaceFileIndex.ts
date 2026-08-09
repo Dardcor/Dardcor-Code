@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { GlobIncludeOptions } from '../../../util/common/glob';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { Event } from '../../../util/vs/base/common/event';
-import { URI } from '../../../util/vs/base/common/uri';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { Event } from '../../../util/dardcor/base/common/event';
+import { URI } from '../../../util/dardcor/base/common/uri';
 import { FileRepresentation, IWorkspaceFileIndex } from './workspaceFileIndex';
 
 export class NullWorkspaceFileIndex implements IWorkspaceFileIndex {

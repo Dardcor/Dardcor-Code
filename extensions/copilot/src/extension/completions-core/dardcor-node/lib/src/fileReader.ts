@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import { createServiceIdentifier } from '../../../../../util/common/services';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ICompletionsFileSystemService } from './fileSystem';
 import { CopilotTextDocument, ITextDocument, TextDocumentIdentifier, TextDocumentResult } from './textDocument';
 import { ICompletionsTextDocumentManagerService } from './textDocumentManager';

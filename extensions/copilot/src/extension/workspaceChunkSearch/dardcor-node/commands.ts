@@ -7,8 +7,8 @@ import * as vscode from 'vscode';
 import { TriggerRemoteIndexingError } from '../../../platform/workspaceChunkSearch/node/codeSearch/codeSearchRepo';
 import { IWorkspaceChunkSearchService } from '../../../platform/workspaceChunkSearch/node/workspaceChunkSearchService';
 import { TelemetryCorrelationId } from '../../../util/common/telemetryCorrelationId';
-import { DisposableStore, IDisposable } from '../../../util/vs/base/common/lifecycle';
-import { ServicesAccessor } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { DisposableStore, IDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { ServicesAccessor } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 
 export const buildRemoteIndexCommandId = 'github.copilot.buildRemoteWorkspaceIndex';
 export const enableExternalIngestCommandId = 'github.copilot.enableExternalIngest';

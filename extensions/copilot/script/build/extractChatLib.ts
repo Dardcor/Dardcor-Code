@@ -471,10 +471,10 @@ class ChatLibExtractor {
 
 		// Pattern to match non-type imports from local vscodeTypes
 		// This regex captures imports like:
-		// - import { ChatErrorLevel } from '../../../vscodeTypes'
-		// - import * as vscodeTypes from '../../../vscodeTypes'
+		// - import { ChatErrorLevel } from '../../../dardcorTypes'
+		// - import * as vscodeTypes from '../../../dardcorTypes'
 		// But NOT type-only imports like:
-		// - import type { ChatErrorLevel } from '../../../vscodeTypes'
+		// - import type { ChatErrorLevel } from '../../../dardcorTypes'
 		const vscodeTypesImportRegex = /^(\s*import\s+)(?!type\s+)([^'"]*)\s+from\s+['"]([^'"]*\/vscodeTypes)['"];?\s*$/gm;
 
 		return content.replace(vscodeTypesImportRegex, (match, importPrefix, importClause, importPath) => {

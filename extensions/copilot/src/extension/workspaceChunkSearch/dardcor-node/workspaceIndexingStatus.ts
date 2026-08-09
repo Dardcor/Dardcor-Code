@@ -11,9 +11,9 @@ import { ICodeSearchAuthenticationService } from '../../../platform/remoteCodeSe
 import { ExternalIngestEnablement } from '../../../platform/workspaceChunkSearch/node/codeSearch/codeSearchChunkSearch';
 import { CodeSearchRepoStatus } from '../../../platform/workspaceChunkSearch/node/codeSearch/codeSearchRepo';
 import { IWorkspaceChunkSearchService, WorkspaceIndexState } from '../../../platform/workspaceChunkSearch/node/workspaceChunkSearchService';
-import { coalesce } from '../../../util/vs/base/common/arrays';
-import { Emitter, Event } from '../../../util/vs/base/common/event';
-import { Disposable, DisposableStore, IDisposable } from '../../../util/vs/base/common/lifecycle';
+import { coalesce } from '../../../util/dardcor/base/common/arrays';
+import { Emitter, Event } from '../../../util/dardcor/base/common/event';
+import { Disposable, DisposableStore, IDisposable } from '../../../util/dardcor/base/common/lifecycle';
 import { commandUri } from '../../linkify/common/commands';
 import { buildRemoteIndexCommandId, enableExternalIngestCommandId } from './commands';
 

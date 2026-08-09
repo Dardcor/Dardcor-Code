@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { ILogService } from '../../../../platform/log/common/logService';
 import { ITestingServicesAccessor, TestingServiceCollection } from '../../../../platform/test/node/services';
 import { createExtensionUnitTestingServices } from '../../../test/node/services';
-import { IInstallableMcpServer, mapServerJsonToMcpServer, McpServerType, NuGetMcpSetup, RegistryType } from '../../vscode-node/nuget';
+import { IInstallableMcpServer, mapServerJsonToMcpServer, McpServerType, NuGetMcpSetup, RegistryType } from '../../dardcor-node/nuget';
 import { FixtureCommandExecutor, FixtureFetcherService } from './util';
 
 describe('get nuget MCP server info using fake CLI', { timeout: 30_000 }, () => {

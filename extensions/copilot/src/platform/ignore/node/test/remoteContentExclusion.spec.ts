@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { beforeEach, describe, expect, suite, test, vi } from 'vitest';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { IAuthenticationService } from '../../../authentication/common/authentication';
 import { ICAPIClientService } from '../../../endpoint/common/capiClient';
 import { MockFileSystemService } from '../../../filesystem/node/test/mockFileSystemService';

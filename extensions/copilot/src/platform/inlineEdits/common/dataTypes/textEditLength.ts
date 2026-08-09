@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { TextEdit } from '../../../../util/vs/editor/common/core/edits/textEdit';
-import { Range } from '../../../../util/vs/editor/common/core/range';
-import { TextLength } from '../../../../util/vs/editor/common/core/text/textLength';
+import { TextEdit } from '../../../../util/dardcor/editor/common/core/edits/textEdit';
+import { Range } from '../../../../util/dardcor/editor/common/core/range';
+import { TextLength } from '../../../../util/dardcor/editor/common/core/text/textLength';
 import { combineTextEditInfos } from './textEditLengthHelper/combineTextEditInfos';
 import { lengthsToRange, lengthToObj, toLength } from './textEditLengthHelper/length';
 import { TextEditInfo } from './textEditLengthHelper/textEditInfo';

@@ -6,9 +6,9 @@
 import type { EffortLevel, PermissionMode } from '@anthropic-ai/claude-agent-sdk';
 import { CapturingToken } from '../../../../platform/requestLogger/common/capturingToken';
 import type { TraceContext } from '../../../../platform/otel/common/otelService';
-import { arrayEquals } from '../../../../util/vs/base/common/equals';
-import { Emitter } from '../../../../util/vs/base/common/event';
-import { Disposable } from '../../../../util/vs/base/common/lifecycle';
+import { arrayEquals } from '../../../../util/dardcor/base/common/equals';
+import { Emitter } from '../../../../util/dardcor/base/common/event';
+import { Disposable } from '../../../../util/dardcor/base/common/lifecycle';
 import type { ClaudeFolderInfo } from '../common/claudeFolderInfo';
 import type { ParsedClaudeModelId } from '../common/claudeModelId';
 import type { IClaudeSessionStateService, SessionState, SessionStateChangeEvent, UsageHandler } from '../common/claudeSessionStateService';

@@ -5,10 +5,10 @@
 
 import { createServiceIdentifier } from '../../../util/common/services';
 import { CallTracker } from '../../../util/common/telemetryCorrelationId';
-import { raceCancellationError } from '../../../util/vs/base/common/async';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { CancellationError, isCancellationError } from '../../../util/vs/base/common/errors';
-import { Disposable, IDisposable } from '../../../util/vs/base/common/lifecycle';
+import { raceCancellationError } from '../../../util/dardcor/base/common/async';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { CancellationError, isCancellationError } from '../../../util/dardcor/base/common/errors';
+import { Disposable, IDisposable } from '../../../util/dardcor/base/common/lifecycle';
 import { IEnvService } from '../../env/common/envService';
 import { ILogService } from '../../log/common/logService';
 import { ITelemetryService } from '../../telemetry/common/telemetry';

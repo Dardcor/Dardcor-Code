@@ -6,7 +6,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ChatResponseStream } from 'vscode';
 import { TestLogService } from '../../../../platform/testing/common/testLogService';
-import { ChatHookType } from '../../../../vscodeTypes';
+import { ChatHookType } from '../../../../dardcorTypes';
 import { formatHookErrorMessage, HookAbortError, HookResult, isHookAbortError, processHookResults, ProcessHookResultsOptions } from '../../node/hookResultProcessor';
 
 /**

@@ -15,9 +15,9 @@ import { IExperimentationService } from '../../../platform/telemetry/common/null
 import { type ICompletedSpanData, IOTelService } from '../../../platform/otel/common/otelService';
 import { getGitHubRepoInfoFromContext, IGitService } from '../../../platform/git/common/gitService';
 import { IGithubRepositoryService } from '../../../platform/github/common/githubService';
-import { Disposable, DisposableStore } from '../../../util/vs/base/common/lifecycle';
-import { Emitter } from '../../../util/vs/base/common/event';
-import { autorun, observableFromEventOpts } from '../../../util/vs/base/common/observableInternal';
+import { Disposable, DisposableStore } from '../../../util/dardcor/base/common/lifecycle';
+import { Emitter } from '../../../util/dardcor/base/common/event';
+import { autorun, observableFromEventOpts } from '../../../util/dardcor/base/common/observableInternal';
 import { IExtensionContribution } from '../../common/contributions';
 import { CircuitBreaker } from '../common/circuitBreaker';
 import {

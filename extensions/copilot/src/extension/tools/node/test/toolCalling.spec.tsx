@@ -9,8 +9,8 @@ import { getTextPart, roleToString } from '../../../../platform/chat/common/glob
 import { rawPartAsThinkingData } from '../../../../platform/endpoint/common/thinkingDataContainer';
 import { MockEndpoint } from '../../../../platform/endpoint/test/node/mockEndpoint';
 import { ITestingServicesAccessor } from '../../../../platform/test/node/services';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
-import { LanguageModelTextPart, LanguageModelToolResult } from '../../../../vscodeTypes';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { LanguageModelTextPart, LanguageModelToolResult } from '../../../../dardcorTypes';
 import { IBuildPromptContext } from '../../../prompt/common/intents';
 import { ToolCallRound } from '../../../prompt/common/toolCallRound';
 import { PromptRenderer } from '../../../prompts/node/base/promptRenderer';

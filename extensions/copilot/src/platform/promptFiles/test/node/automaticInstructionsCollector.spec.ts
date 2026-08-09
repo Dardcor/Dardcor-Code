@@ -17,9 +17,9 @@ import { MockPromptsService } from '../../../../platform/promptFiles/test/common
 import { TelemetryEventMeasurements, TelemetryEventProperties } from '../../../../platform/telemetry/common/telemetry';
 import { NullTelemetryService } from '../../../../platform/telemetry/common/nullTelemetryService';
 import { TestWorkspaceService } from '../../../../platform/test/node/testWorkspaceService';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { Event } from '../../../../util/vs/base/common/event';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { Event } from '../../../../util/dardcor/base/common/event';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { AutomaticInstructionsCollector, InstructionsCollectionEvent } from '../../node/automaticInstructionsCollector';
 import { InstructionFileIdPrefix, isCustomizationsIndex, isInstructionFile } from '../../../../extension/prompt/common/chatVariablesCollection';
 import { ToolName } from '../../../../extension/tools/common/toolNames';

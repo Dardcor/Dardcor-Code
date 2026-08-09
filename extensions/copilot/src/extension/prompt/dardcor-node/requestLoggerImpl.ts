@@ -21,13 +21,13 @@ import { ChatRequestScheme, ILoggedElementInfo, ILoggedRequestInfo, ILoggedToolC
 import { AbstractRequestLogger } from '../../../platform/requestLogger/node/requestLogger';
 import { ThinkingData } from '../../../platform/thinking/common/thinking';
 import { createFencedCodeBlock } from '../../../util/common/markdown';
-import { assertNever } from '../../../util/vs/base/common/assert';
-import { Codicon } from '../../../util/vs/base/common/codicons';
-import { Emitter } from '../../../util/vs/base/common/event';
-import { Iterable } from '../../../util/vs/base/common/iterator';
-import { IDisposable } from '../../../util/vs/base/common/lifecycle';
-import { generateUuid } from '../../../util/vs/base/common/uuid';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { assertNever } from '../../../util/dardcor/base/common/assert';
+import { Codicon } from '../../../util/dardcor/base/common/codicons';
+import { Emitter } from '../../../util/dardcor/base/common/event';
+import { Iterable } from '../../../util/dardcor/base/common/iterator';
+import { IDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { generateUuid } from '../../../util/dardcor/base/common/uuid';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { renderDataPartToString, renderToolResultToStringNoBudget } from './requestLoggerToolResult';
 import { WorkspaceEditRecorder } from './workspaceEditRecorder';
 

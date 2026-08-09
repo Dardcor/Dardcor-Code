@@ -54,6 +54,7 @@ suite('DictationSession', () => {
 				onDidChangeState.fire(state);
 				return finalTranscript;
 			},
+			// @ts-ignore
 			cancel() { },
 			logDictationAccuracy() { },
 		};

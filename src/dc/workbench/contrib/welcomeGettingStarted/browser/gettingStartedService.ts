@@ -208,21 +208,21 @@ export class WalkthroughsService extends Disposable implements IWalkthroughsServ
 									? {
 										type: 'svg',
 										altText: step.media.altText,
-										path: convertInternalMediaPathToFileURI(step.media.path).with({ query: JSON.stringify({ moduleId: 'dc/workbench/contrib/welcomeGettingStarted/common/media/' + step.media.path }) })
+										path: convertInternalMediaPathToFileURI(step.media.path).with({ query: JSON.stringify({ moduleId: 'vs/workbench/contrib/welcomeGettingStarted/common/media/' + step.media.path }) })
 									}
 									: step.media.type === 'markdown'
 										? {
 											type: 'markdown',
-											path: convertInternalMediaPathToFileURI(step.media.path).with({ query: JSON.stringify({ moduleId: 'dc/workbench/contrib/welcomeGettingStarted/common/media/' + step.media.path }) }),
-											base: FileAccess.asFileUri('dc/workbench/contrib/welcomeGettingStarted/common/media/'),
-											root: FileAccess.asFileUri('dc/workbench/contrib/welcomeGettingStarted/common/media/'),
+											path: convertInternalMediaPathToFileURI(step.media.path).with({ query: JSON.stringify({ moduleId: 'vs/workbench/contrib/welcomeGettingStarted/common/media/' + step.media.path }) }),
+											base: FileAccess.asFileUri('vs/workbench/contrib/welcomeGettingStarted/common/media/'),
+											root: FileAccess.asFileUri('vs/workbench/contrib/welcomeGettingStarted/common/media/'),
 										}
 										: {
 											type: 'video',
-											path: convertRelativeMediaPathsToWebviewURIs(FileAccess.asFileUri('dc/workbench/contrib/welcomeGettingStarted/common/media/'), step.media.path),
+											path: convertRelativeMediaPathsToWebviewURIs(FileAccess.asFileUri('vs/workbench/contrib/welcomeGettingStarted/common/media/'), step.media.path),
 											altText: step.media.altText,
-											root: FileAccess.asFileUri('dc/workbench/contrib/welcomeGettingStarted/common/media/'),
-											poster: step.media.poster ? convertRelativeMediaPathsToWebviewURIs(FileAccess.asFileUri('dc/workbench/contrib/welcomeGettingStarted/common/media/'), step.media.poster) : undefined
+											root: FileAccess.asFileUri('vs/workbench/contrib/welcomeGettingStarted/common/media/'),
+											poster: step.media.poster ? convertRelativeMediaPathsToWebviewURIs(FileAccess.asFileUri('vs/workbench/contrib/welcomeGettingStarted/common/media/'), step.media.poster) : undefined
 										},
 						});
 					})
@@ -687,11 +687,11 @@ export const parseDescription = (desc: string): LinkedText[] => desc.split('\n')
 
 export const convertInternalMediaPathToFileURI = (path: string) => path.startsWith('https://')
 	? URI.parse(path, true)
-	: FileAccess.asFileUri(`dc/workbench/contrib/welcomeGettingStarted/common/media/${path}`);
+	: FileAccess.asFileUri(`vs/workbench/contrib/welcomeGettingStarted/common/media/${path}`);
 
 const convertInternalMediaPathToBrowserURI = (path: string) => path.startsWith('https://')
 	? URI.parse(path, true)
-	: FileAccess.asBrowserUri(`dc/workbench/contrib/welcomeGettingStarted/common/media/${path}`);
+	: FileAccess.asBrowserUri(`vs/workbench/contrib/welcomeGettingStarted/common/media/${path}`);
 const convertInternalMediaPathsToBrowserURIs = (path: string | { hc: string; hcLight?: string; dark: string; light: string }): { hcDark: URI; hcLight: URI; dark: URI; light: URI } => {
 	if (typeof path === 'string') {
 		const converted = convertInternalMediaPathToBrowserURI(path);

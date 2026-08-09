@@ -3,21 +3,21 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import * as vscodeTypes from '../../../../vscodeTypes';
-import { CancellationTokenSource } from '../../../vs/base/common/cancellation';
-import { Emitter as EventEmitter } from '../../../vs/base/common/event';
-import { URI as Uri } from '../../../vs/base/common/uri';
-import { Diagnostic, DiagnosticRelatedInformation } from '../../../vs/workbench/api/common/extHostTypes/diagnostic';
-import { Location } from '../../../vs/workbench/api/common/extHostTypes/location';
-import { MarkdownString } from '../../../vs/workbench/api/common/extHostTypes/markdownString';
-import { NotebookCellData, NotebookCellKind, NotebookData, NotebookEdit, NotebookRange } from '../../../vs/workbench/api/common/extHostTypes/notebooks';
-import { Position } from '../../../vs/workbench/api/common/extHostTypes/position';
-import { Range } from '../../../vs/workbench/api/common/extHostTypes/range';
-import { Selection } from '../../../vs/workbench/api/common/extHostTypes/selection';
-import { SnippetString } from '../../../vs/workbench/api/common/extHostTypes/snippetString';
-import { SnippetTextEdit } from '../../../vs/workbench/api/common/extHostTypes/snippetTextEdit';
-import { SymbolInformation, SymbolKind } from '../../../vs/workbench/api/common/extHostTypes/symbolInformation';
-import { EndOfLine, TextEdit } from '../../../vs/workbench/api/common/extHostTypes/textEdit';
+import * as vscodeTypes from '../../../../dardcorTypes';
+import { CancellationTokenSource } from '../../../dardcor/base/common/cancellation';
+import { Emitter as EventEmitter } from '../../../dardcor/base/common/event';
+import { URI as Uri } from '../../../dardcor/base/common/uri';
+import { Diagnostic, DiagnosticRelatedInformation } from '../../../dardcor/workbench/api/common/extHostTypes/diagnostic';
+import { Location } from '../../../dardcor/workbench/api/common/extHostTypes/location';
+import { MarkdownString } from '../../../dardcor/workbench/api/common/extHostTypes/markdownString';
+import { NotebookCellData, NotebookCellKind, NotebookData, NotebookEdit, NotebookRange } from '../../../dardcor/workbench/api/common/extHostTypes/notebooks';
+import { Position } from '../../../dardcor/workbench/api/common/extHostTypes/position';
+import { Range } from '../../../dardcor/workbench/api/common/extHostTypes/range';
+import { Selection } from '../../../dardcor/workbench/api/common/extHostTypes/selection';
+import { SnippetString } from '../../../dardcor/workbench/api/common/extHostTypes/snippetString';
+import { SnippetTextEdit } from '../../../dardcor/workbench/api/common/extHostTypes/snippetTextEdit';
+import { SymbolInformation, SymbolKind } from '../../../dardcor/workbench/api/common/extHostTypes/symbolInformation';
+import { EndOfLine, TextEdit } from '../../../dardcor/workbench/api/common/extHostTypes/textEdit';
 import { AISearchKeyword, ChatErrorLevel, ChatInputNotificationSeverity, ChatQuestion, ChatQuestionType, ChatReferenceBinaryData, ChatReferenceDiagnostic, ChatRequestEditedFileEventKind, ChatRequestEditorData, ChatRequestNotebookData, ChatRequestTurn, ChatRequestTurn2, ChatResponseAnchorPart, ChatResponseAutoModeResolutionPart, ChatResponseClearToPreviousToolInvocationReason, ChatResponseCodeblockUriPart, ChatResponseCodeCitationPart, ChatResponseCommandButtonPart, ChatResponseConfirmationPart, ChatResponseExtensionsPart, ChatResponseExternalEditPart, ChatResponseFileTreePart, ChatResponseHookPart, ChatResponseInfoPart, ChatResponseMarkdownPart, ChatResponseMarkdownWithVulnerabilitiesPart, ChatResponseMovePart, ChatResponseNotebookEditPart, ChatResponseProgressPart, ChatResponseProgressPart2, ChatResponsePullRequestPart, ChatResponseQuestionCarouselPart, ChatResponseReferencePart, ChatResponseReferencePart2, ChatResponseTextEditPart, ChatResponseThinkingProgressPart, ChatResponseTurn, ChatResponseTurn2, ChatResponseWarningPart, ChatResponseWorkspaceEditPart, ChatSessionStatus, ChatSubagentToolInvocationData, ChatToolInvocationPart, ExcludeSettingOptions, LanguageModelChatMessage, LanguageModelChatMessageRole, LanguageModelChatToolMode, LanguageModelDataPart, LanguageModelDataPart2, LanguageModelError, LanguageModelPartAudience, LanguageModelPromptTsxPart, LanguageModelTextPart, LanguageModelTextPart2, LanguageModelThinkingPart, LanguageModelToolCallPart, LanguageModelToolExtensionSource, LanguageModelToolMCPSource, LanguageModelToolResult, LanguageModelToolResult2, LanguageModelToolResultPart, LanguageModelToolResultPart2, McpHttpServerDefinition, McpStdioServerDefinition, McpToolInvocationContentData, TextSearchMatch2 } from './chatTypes';
 import { TextDocumentChangeReason, TextEditorSelectionChangeKind, WorkspaceEdit } from './editing';
 import { ChatLocation, ChatVariableLevel, DiagnosticSeverity, ExtensionMode, FileType, TextEditorCursorStyle, TextEditorLineNumbersStyle, TextEditorRevealType } from './enums';

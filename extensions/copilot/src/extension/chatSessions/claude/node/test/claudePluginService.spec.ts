@@ -11,10 +11,10 @@ import { SKILLS_LOCATION_KEY } from '../../../../../platform/customInstructions/
 import { INativeEnvService } from '../../../../../platform/env/common/envService';
 import { NullNativeEnvService } from '../../../../../platform/env/common/nullEnvService';
 import { IWorkspaceService } from '../../../../../platform/workspace/common/workspaceService';
-import { CancellationToken } from '../../../../../util/vs/base/common/cancellation';
-import { Event } from '../../../../../util/vs/base/common/event';
-import { DisposableStore } from '../../../../../util/vs/base/common/lifecycle';
-import { URI } from '../../../../../util/vs/base/common/uri';
+import { CancellationToken } from '../../../../../util/dardcor/base/common/cancellation';
+import { Event } from '../../../../../util/dardcor/base/common/event';
+import { DisposableStore } from '../../../../../util/dardcor/base/common/lifecycle';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
 import { MockPromptsService } from '../../../../../platform/promptFiles/test/common/mockPromptsService';
 import { createExtensionUnitTestingServices } from '../../../../test/node/services';
 import { ClaudePluginService } from '../claudeSkills';

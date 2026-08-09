@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 import { IAuthenticationService } from '../../../../../platform/authentication/common/authentication';
 import { ICAPIClientService } from '../../../../../platform/endpoint/common/capiClient';
-import { ServicesAccessor } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { ServicesAccessor } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { CopilotToken } from './auth/copilotTokenManager';
 import { BuildInfo, ConfigKey, ConfigKeyType, getConfig } from './config';
 import { ICompletionsRuntimeModeService } from './util/runtimeMode';

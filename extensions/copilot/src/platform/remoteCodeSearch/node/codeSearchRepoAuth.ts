@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as l10n from '@vscode/l10n';
-import { createDecorator as createServiceIdentifier } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { createDecorator as createServiceIdentifier } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { IAuthenticationService } from '../../authentication/common/authentication';
 import { ResolvedRepoRemoteInfo } from '../../git/common/gitService';
 

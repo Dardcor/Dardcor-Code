@@ -7,7 +7,7 @@ import type { AgentInfo, Query } from '@anthropic-ai/claude-agent-sdk';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ILogService } from '../../../../../platform/log/common/logService';
 import { mock } from '../../../../../util/common/test/simpleMock';
-import { DisposableStore } from '../../../../../util/vs/base/common/lifecycle';
+import { DisposableStore } from '../../../../../util/dardcor/base/common/lifecycle';
 import { ClaudeRuntimeDataService } from '../claudeRuntimeDataService';
 
 class TestLogService extends mock<ILogService>() {

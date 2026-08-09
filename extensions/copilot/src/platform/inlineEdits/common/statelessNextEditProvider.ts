@@ -5,15 +5,15 @@
 
 import { Raw } from '@vscode/prompt-tsx';
 import { Result } from '../../../util/common/result';
-import { assert, assertNever } from '../../../util/vs/base/common/assert';
-import { DeferredPromise } from '../../../util/vs/base/common/async';
-import { CancellationToken, CancellationTokenSource } from '../../../util/vs/base/common/cancellation';
-import { URI } from '../../../util/vs/base/common/uri';
-import { LineEdit, LineReplacement, SerializedLineEdit } from '../../../util/vs/editor/common/core/edits/lineEdit';
-import { StringEdit } from '../../../util/vs/editor/common/core/edits/stringEdit';
-import { Position } from '../../../util/vs/editor/common/core/position';
-import { OffsetRange } from '../../../util/vs/editor/common/core/ranges/offsetRange';
-import { StringText } from '../../../util/vs/editor/common/core/text/abstractText';
+import { assert, assertNever } from '../../../util/dardcor/base/common/assert';
+import { DeferredPromise } from '../../../util/dardcor/base/common/async';
+import { CancellationToken, CancellationTokenSource } from '../../../util/dardcor/base/common/cancellation';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { LineEdit, LineReplacement, SerializedLineEdit } from '../../../util/dardcor/editor/common/core/edits/lineEdit';
+import { StringEdit } from '../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { Position } from '../../../util/dardcor/editor/common/core/position';
+import { OffsetRange } from '../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { StringText } from '../../../util/dardcor/editor/common/core/text/abstractText';
 import { ChatFetchResponseType, FetchResponse } from '../../chat/common/commonTypes';
 import { ILogger } from '../../log/common/logService';
 import { ISerializedOffsetRange, LogEntry, serializeOffsetRange } from '../../workspaceRecorder/common/workspaceLog';

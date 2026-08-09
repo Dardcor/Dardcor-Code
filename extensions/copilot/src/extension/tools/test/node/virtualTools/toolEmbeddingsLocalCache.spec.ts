@@ -10,8 +10,8 @@ import { IVSCodeExtensionContext } from '../../../../../platform/extContext/comm
 import { IFileSystemService } from '../../../../../platform/filesystem/common/fileSystemService';
 import { MockFileSystemService } from '../../../../../platform/filesystem/node/test/mockFileSystemService';
 import { ITestingServicesAccessor } from '../../../../../platform/test/node/services';
-import { DisposableStore } from '../../../../../util/vs/base/common/lifecycle';
-import { URI } from '../../../../../util/vs/base/common/uri';
+import { DisposableStore } from '../../../../../util/dardcor/base/common/lifecycle';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
 import { createExtensionUnitTestingServices } from '../../../../test/node/services';
 import { ToolEmbeddingLocalCache } from '../../../common/virtualTools/toolEmbeddingsLocalCache';
 

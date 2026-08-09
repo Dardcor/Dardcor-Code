@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { Emitter } from '../../../util/vs/base/common/event';
-import { DisposableStore } from '../../../util/vs/base/common/lifecycle';
-import { ResourceMap } from '../../../util/vs/base/common/map';
+import { Emitter } from '../../../util/dardcor/base/common/event';
+import { DisposableStore } from '../../../util/dardcor/base/common/lifecycle';
+import { ResourceMap } from '../../../util/dardcor/base/common/map';
 import { ITabsAndEditorsService, TabChangeEvent, TabInfo } from '../common/tabsAndEditorsService';
 
 export class TabsAndEditorsServiceImpl implements ITabsAndEditorsService {

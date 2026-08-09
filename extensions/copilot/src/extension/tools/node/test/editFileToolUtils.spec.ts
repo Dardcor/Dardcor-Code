@@ -16,9 +16,9 @@ import { MockCustomInstructionsService } from '../../../../platform/test/common/
 import { TestWorkspaceService } from '../../../../platform/test/node/testWorkspaceService';
 import { WorkspaceEdit as WorkspaceEditShim } from '../../../../util/common/test/shims/editing';
 import { createTextDocumentData, IExtHostDocumentData, setDocText } from '../../../../util/common/test/shims/textDocument';
-import { isMacintosh, isWindows } from '../../../../util/vs/base/common/platform';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { WorkspaceEdit } from '../../../../vscodeTypes';
+import { isMacintosh, isWindows } from '../../../../util/dardcor/base/common/platform';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { WorkspaceEdit } from '../../../../dardcorTypes';
 import { applyEdits as applyTextEdits } from '../../../prompt/node/intents';
 import { applyEdit, assertPathIsSafe, ConfirmationCheckResult, ContentFormatError, makeUriConfirmationChecker, MultipleMatchesError, NoChangeError, NoMatchError, setSimilarityMatchThresholdForTests } from '../editFileToolUtils';
 

@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IDiffService } from '../../../platform/diff/common/diffService';
-import { LineEdit, LineReplacement } from '../../../util/vs/editor/common/core/edits/lineEdit';
-import { LineRangeMapping } from '../../../util/vs/editor/common/diff/rangeMapping';
+import { LineEdit, LineReplacement } from '../../../util/dardcor/editor/common/core/edits/lineEdit';
+import { LineRangeMapping } from '../../../util/dardcor/editor/common/diff/rangeMapping';
 import { Lines } from '../../prompt/node/editGeneration';
 import { getTrailingArrayEmptyLineCount } from '../../prompts/node/codeMapper/codeMapper';
 

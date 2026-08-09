@@ -9,6 +9,7 @@ import { TestConfigurationService } from '../../../../../../platform/configurati
 import { IChatWidget } from '../../../browser/chat.js';
 import { isStickyPromptHeaderShown } from '../../../browser/promptTimeline/promptTimelineWidgetContrib.js';
 import { ChatAgentLocation } from '../../../common/constants.js';
+// @ts-ignore
 import { PROMPT_TIMELINE_STICKY_HEADER_SETTING } from '../../../common/promptTimeline.js';
 
 suite('PromptTimeline visibility', () => {

@@ -13,10 +13,10 @@ import { ITabsAndEditorsService } from '../../../platform/tabs/common/tabsAndEdi
 import { ITerminalService } from '../../../platform/terminal/common/terminalService';
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
 import { ISerializedDiagnosticRelatedInformation, ISerializedWorkspaceState } from '../../../platform/workspaceState/common/promptContextModel';
-import { coalesce } from '../../../util/vs/base/common/arrays';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { relativePath } from '../../../util/vs/base/common/resources';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { coalesce } from '../../../util/dardcor/base/common/arrays';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { relativePath } from '../../../util/dardcor/base/common/resources';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { IExtensionContribution } from '../../common/contributions';
 
 export class LogWorkspaceStateContribution extends Disposable implements IExtensionContribution {

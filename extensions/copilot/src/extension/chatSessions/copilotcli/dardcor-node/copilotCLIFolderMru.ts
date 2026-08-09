@@ -6,9 +6,9 @@
 import { CancellationToken, Uri } from 'vscode';
 import { IGitService } from '../../../../platform/git/common/gitService';
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
-import { raceTimeout } from '../../../../util/vs/base/common/async';
-import { ResourceMap, ResourceSet } from '../../../../util/vs/base/common/map';
-import { ChatSessionStatus } from '../../../../vscodeTypes';
+import { raceTimeout } from '../../../../util/dardcor/base/common/async';
+import { ResourceMap, ResourceSet } from '../../../../util/dardcor/base/common/map';
+import { ChatSessionStatus } from '../../../../dardcorTypes';
 import { FolderRepositoryMRUEntry, IChatFolderMruService } from '../../common/folderRepositoryManager';
 import { ICopilotCLISessionService } from '../../copilotcli/node/copilotcliSessionService';
 

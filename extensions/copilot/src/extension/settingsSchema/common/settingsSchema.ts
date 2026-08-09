@@ -5,7 +5,7 @@
 
 import type { BaseConfig } from '../../../platform/configuration/common/configurationService';
 import type { EmptyJsonSchema, JsonSchema, ObjectJsonSchema } from '../../../platform/configuration/common/jsonSchema';
-import { escapeRegExpCharacters } from '../../../util/vs/base/common/strings';
+import { escapeRegExpCharacters } from '../../../util/dardcor/base/common/strings';
 
 const advancedSettingPrefixPattern = String.raw`github\.copilot(?:\.chat)?\.advanced\.`;
 const advancedSettingPrefixRegex = new RegExp(`^${advancedSettingPrefixPattern}`);

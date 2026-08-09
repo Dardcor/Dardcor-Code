@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { ILogService } from '../../../../platform/log/common/logService';
 import { ITestingServicesAccessor, TestingServiceCollection } from '../../../../platform/test/node/services';
 import { createExtensionUnitTestingServices } from '../../../test/node/services';
-import { McpSetupCommands } from '../../vscode-node/commands';
+import { McpSetupCommands } from '../../dardcor-node/commands';
 import { FixtureFetcherService } from './util';
 
 describe('get MCP server info', { timeout: 30_000 }, () => {

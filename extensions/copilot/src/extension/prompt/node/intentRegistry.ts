@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { ChatLocation } from '../../../platform/chat/common/commonTypes';
-import { SyncDescriptor } from '../../../util/vs/platform/instantiation/common/descriptors';
+import { SyncDescriptor } from '../../../util/dardcor/platform/instantiation/common/descriptors';
 import { ContributedToolName } from '../../tools/common/toolNames';
 import { IIntent } from './intents';
 

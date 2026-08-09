@@ -11,11 +11,11 @@ import { autorunWithChanges } from '../../../platform/inlineEdits/common/utils/o
 import { ILogger, ILogService } from '../../../platform/log/common/logService';
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
 import { LRUCache } from '../../../util/common/cache';
-import { Disposable, toDisposable } from '../../../util/vs/base/common/lifecycle';
-import { mapObservableArrayCached } from '../../../util/vs/base/common/observableInternal';
-import { AnnotatedStringReplacement, StringEdit, StringReplacement } from '../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../util/vs/editor/common/core/ranges/offsetRange';
-import { StringText } from '../../../util/vs/editor/common/core/text/abstractText';
+import { Disposable, toDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { mapObservableArrayCached } from '../../../util/dardcor/base/common/observableInternal';
+import { AnnotatedStringReplacement, StringEdit, StringReplacement } from '../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { StringText } from '../../../util/dardcor/editor/common/core/text/abstractText';
 import { checkEditConsistency, EditDataWithIndex, NesRebaseConfigs, tryRebase } from '../common/editRebase';
 import type { NextEditFetchRequest } from './nextEditProvider';
 import { RebaseFailureInfo, type RebaseResult } from './rebaseResult';

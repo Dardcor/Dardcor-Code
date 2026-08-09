@@ -47,7 +47,7 @@ export function assertResolveKeybinding(mapper: IKeyboardMapper, keybinding: Key
 }
 
 export function readRawMapping<T>(file: string): Promise<T> {
-	return fs.promises.readFile(FileAccess.asFileUri(`dc/workbench/services/keybinding/test/node/${file}.js`).fsPath).then((buff) => {
+	return fs.promises.readFile(FileAccess.asFileUri(`vs/workbench/services/keybinding/test/node/${file}.js`).fsPath).then((buff) => {
 		const contents = buff.toString();
 		const func = new Function('define', contents);// CodeQL [SM01632] This is used in tests and we read the files as JS to avoid slowing down TS compilation
 		let rawMappings: T | null = null;
@@ -59,13 +59,13 @@ export function readRawMapping<T>(file: string): Promise<T> {
 }
 
 export function assertMapping(writeFileIfDifferent: boolean, mapper: IKeyboardMapper, file: string): Promise<void> {
-	const filePath = path.normalize(FileAccess.asFileUri(`dc/workbench/services/keybinding/test/node/${file}`).fsPath);
+	const filePath = path.normalize(FileAccess.asFileUri(`vs/workbench/services/keybinding/test/node/${file}`).fsPath);
 
 	return fs.promises.readFile(filePath).then((buff) => {
 		const expected = buff.toString().replace(/\r\n/g, '\n');
 		const actual = mapper.dumpDebugInfo().replace(/\r\n/g, '\n');
 		if (actual !== expected && writeFileIfDifferent) {
-			const destPath = filePath.replace(/[\/\\]out[\/\\]vs[\/\\]workbench/, '/src/dc/workbench');
+			const destPath = filePath.replace(/[\/\\]out[\/\\]vs[\/\\]workbench/, '/src/vs/workbench');
 			Promises.writeFile(destPath, actual);
 		}
 		assert.deepStrictEqual(actual, expected);

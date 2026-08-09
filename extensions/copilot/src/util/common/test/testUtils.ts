@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { afterEach, beforeEach } from 'vitest';
-import { DisposableStore, DisposableTracker, IDisposable, setDisposableTracker } from '../../vs/base/common/lifecycle';
+import { DisposableStore, DisposableTracker, IDisposable, setDisposableTracker } from '../../dardcor/base/common/lifecycle';
 
 /**
  * Use this function to ensure that all disposables are cleaned up at the end of each test in the current suite.

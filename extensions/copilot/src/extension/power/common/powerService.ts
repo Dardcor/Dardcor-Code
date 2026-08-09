@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Event } from '../../../util/vs/base/common/event';
-import { IDisposable } from '../../../util/vs/base/common/lifecycle';
-import { createDecorator } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { Event } from '../../../util/dardcor/base/common/event';
+import { IDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { createDecorator } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 
 export const IPowerService = createDecorator<IPowerService>('IPowerService');
 

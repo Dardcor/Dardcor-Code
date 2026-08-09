@@ -9,7 +9,7 @@ import { IAuthenticationService } from '../../../../platform/authentication/comm
 import { ILogger, ILogService } from '../../../../platform/log/common/logService';
 import { IFetcherService } from '../../../../platform/networking/common/fetcherService';
 import { LogEntry } from '../../../../platform/workspaceRecorder/common/workspaceLog';
-import { encodeBase64, VSBuffer } from '../../../../util/vs/base/common/buffer';
+import { encodeBase64, VSBuffer } from '../../../../util/dardcor/base/common/buffer';
 
 /**
  * Represents a feedback file with its name and content.

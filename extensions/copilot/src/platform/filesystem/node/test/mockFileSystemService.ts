@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { FileStat, FileSystemWatcher } from 'vscode';
-import { basename, dirname } from '../../../../util/vs/base/common/resources';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { basename, dirname } from '../../../../util/dardcor/base/common/resources';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { IFileSystemService } from '../../common/fileSystemService';
 import { FileType } from '../../common/fileTypes';
 

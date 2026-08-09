@@ -25,8 +25,8 @@ import { Disposable } from '../../../base/common/lifecycle.js';
 import { IActionViewItemService } from '../../../platform/actions/browser/actionViewItemService.js';
 import { IInstantiationService } from '../../../platform/instantiation/common/instantiation.js';
 import { IWorkbenchContribution } from '../../../workbench/common/contributions.js';
-import { resolveRemoteAuthority } from '../openInVSCodeUtils.js';
-import { OpenInVSCodeTitleBarWidget } from '../widget/openInVSCodeWidget.js';
+import { resolveRemoteAuthority } from '../openIndardcorUtils.js';
+import { OpenInVSCodeTitleBarWidget } from '../widget/openIndardcorWidget.js';
 
 export class OpenInVSCodeAction extends Action2 {
 	static readonly ID = 'sessions.openInVSCode';

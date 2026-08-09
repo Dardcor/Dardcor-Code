@@ -7,7 +7,7 @@
 // Refactored to use vitest
 
 import { beforeEach, describe, expect, it } from 'vitest';
-import { IGalleryMcpServerConfiguration, IMcpServerVariable, McpMappingUtility, McpServerType, McpServerVariableType, RegistryType, TransportType } from '../../vscode-node/nuget';
+import { IGalleryMcpServerConfiguration, IMcpServerVariable, McpMappingUtility, McpServerType, McpServerVariableType, RegistryType, TransportType } from '../../dardcor-node/nuget';
 
 describe('McpManagementService - getMcpServerConfigurationFromManifest', () => {
 	let service: McpMappingUtility;

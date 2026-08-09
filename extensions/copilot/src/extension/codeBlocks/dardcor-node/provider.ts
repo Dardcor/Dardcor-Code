@@ -8,9 +8,9 @@ import { ITelemetryService } from '../../../platform/telemetry/common/telemetry'
 import { getLanguage, getLanguageForResource, ILanguage, WellKnownLanguageId, wellKnownLanguages } from '../../../util/common/languages';
 import { isUri } from '../../../util/common/types';
 import { createSha256Hash } from '../../../util/common/crypto';
-import { IInstantiationService, ServicesAccessor } from '../../../util/vs/platform/instantiation/common/instantiation';
-import { Location, Range, Uri } from '../../../vscodeTypes';
-import { findWordInReferences } from '../../linkify/vscode-node/findWord';
+import { IInstantiationService, ServicesAccessor } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { Location, Range, Uri } from '../../../dardcorTypes';
+import { findWordInReferences } from '../../linkify/dardcor-node/findWord';
 import { PromptReference } from '../../prompt/common/conversation';
 
 const codeBlockScheme = 'vscode-chat-code-block';

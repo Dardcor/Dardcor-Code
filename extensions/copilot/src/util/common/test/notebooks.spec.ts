@@ -3,10 +3,10 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Uri, NotebookCellData, NotebookCellKind, NotebookData } from '../../../vscodeTypes';
+import { Uri, NotebookCellData, NotebookCellKind, NotebookData } from '../../../dardcorTypes';
 import { assert, describe, it } from 'vitest';
 import { ExtHostNotebookDocumentData } from './shims/notebookDocument';
-import { URI } from '../../vs/base/common/uri';
+import { URI } from '../../dardcor/base/common/uri';
 import { findCell, findNotebook, getNotebookAndCellFromUri, getNotebookCellOutput } from '../notebooks';
 
 

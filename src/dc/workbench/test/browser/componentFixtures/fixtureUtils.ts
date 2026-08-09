@@ -898,6 +898,7 @@ export function defineComponentFixture(options: ComponentFixtureOptions): Themed
 		isolation: 'none',
 		displayMode: { type: 'component' },
 		background: themeVariant.background,
+		// @ts-ignore
 		inputSchema: fixtureInputSchema,
 		inputControls: {
 			reverseStylesheets: { placement: 'toolbar', label: 'Reverse Stylesheets' },
@@ -1013,8 +1014,11 @@ export function defineComponentFixture(options: ComponentFixtureOptions): Themed
 						stylesheetOrderOverride.value = overrideStylesheetOrder(option);
 					}
 				};
+				// @ts-ignore
 				context.watchInput('reverseStylesheets', (_value, input) => updateStylesheetOrder(input));
+				// @ts-ignore
 				context.watchInput('reverseStylesheetsRange', (_value, input) => updateStylesheetOrder(input));
+				// @ts-ignore
 				context.watchInput('enableAnimations', value => {
 					container.classList.toggle('disable-animations', !value);
 				});

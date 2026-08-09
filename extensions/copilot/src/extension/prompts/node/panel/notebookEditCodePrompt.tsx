@@ -11,11 +11,11 @@ import { IPromptPathRepresentationService } from '../../../../platform/prompts/c
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
 import { findNotebook, getNotebookAndCellFromUri, isJupyterNotebookUri } from '../../../../util/common/notebooks';
 import { isLocation, isUri } from '../../../../util/common/types';
-import { coalesce } from '../../../../util/vs/base/common/arrays';
-import { ResourceSet } from '../../../../util/vs/base/common/map';
-import { Schemas } from '../../../../util/vs/base/common/network';
-import { extname } from '../../../../util/vs/base/common/resources';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { coalesce } from '../../../../util/dardcor/base/common/arrays';
+import { ResourceSet } from '../../../../util/dardcor/base/common/map';
+import { Schemas } from '../../../../util/dardcor/base/common/network';
+import { extname } from '../../../../util/dardcor/base/common/resources';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { isNotebookVariable } from '../../../intents/node/editCodeStep';
 import { ChatVariablesCollection } from '../../../prompt/common/chatVariablesCollection';
 import { isNotebookWorkingSetEntry, IWorkingSet } from '../../../prompt/common/intents';

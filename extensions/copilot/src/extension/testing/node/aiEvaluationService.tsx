@@ -9,8 +9,8 @@ import { Tag } from '../../../extension/prompts/node/base/tag';
 import { ChatLocation } from '../../../platform/chat/common/commonTypes';
 import { IEndpointProvider } from '../../../platform/endpoint/common/endpointProvider';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 
 export const IAIEvaluationService = createServiceIdentifier<IAIEvaluationService>('IAIEvaluationService');
 

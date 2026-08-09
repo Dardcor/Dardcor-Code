@@ -14,6 +14,7 @@ import {
 	CloudSandboxRequestError,
 	ICloudSandboxClientToken,
 	ICloudSandboxConnectionRequest,
+	// @ts-ignore
 	ICloudSandboxCredentialsService,
 	ICloudSandboxDiscoveredSession,
 	ICloudSandboxDiscoveryResult,
@@ -146,6 +147,7 @@ export class CloudSandboxCredentialsService extends Disposable implements ICloud
 					return undefined;
 				}
 				const repo = parseRepoFromTaskUrl(full.html_url);
+				// @ts-ignore
 				return {
 					environmentId: binding.environmentId,
 					sessionId: binding.sessionId,

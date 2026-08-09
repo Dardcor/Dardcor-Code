@@ -4,12 +4,12 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type * as vscode from 'vscode';
-import { ReadonlyError, illegalArgument } from '../../../vs/base/common/errors';
-import { Position } from '../../../vs/workbench/api/common/extHostTypes/position';
-import { Range } from '../../../vs/workbench/api/common/extHostTypes/range';
-import { Selection } from '../../../vs/workbench/api/common/extHostTypes/selection';
-import { SnippetString } from '../../../vs/workbench/api/common/extHostTypes/snippetString';
-import { EndOfLine } from '../../../vs/workbench/api/common/extHostTypes/textEdit';
+import { ReadonlyError, illegalArgument } from '../../../dardcor/base/common/errors';
+import { Position } from '../../../dardcor/workbench/api/common/extHostTypes/position';
+import { Range } from '../../../dardcor/workbench/api/common/extHostTypes/range';
+import { Selection } from '../../../dardcor/workbench/api/common/extHostTypes/selection';
+import { SnippetString } from '../../../dardcor/workbench/api/common/extHostTypes/snippetString';
+import { EndOfLine } from '../../../dardcor/workbench/api/common/extHostTypes/textEdit';
 
 interface ITextEditOperation {
 	range: vscode.Range;

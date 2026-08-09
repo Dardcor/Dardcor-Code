@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Event } from '../../../../util/vs/base/common/event';
+import { Event } from '../../../../util/dardcor/base/common/event';
 import { IResponseDelta } from '../../../networking/common/fetch';
 import { IChatMLFetcher, IFetchMLOptions } from '../../common/chatMLFetcher';
 import { ChatFetchResponseType, ChatResponse, ChatResponses } from '../../common/commonTypes';

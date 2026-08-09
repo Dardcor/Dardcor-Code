@@ -7,7 +7,7 @@
 import * as vscode from 'vscode';
 import { ICopilotTokenStore } from '../../../platform/authentication/common/copilotTokenStore';
 import { ConfigKey, IConfigurationService } from '../../../platform/configuration/common/configurationService';
-import { ServicesAccessor } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { ServicesAccessor } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 
 
 export function getAdditionalWelcomeMessage(accessor: ServicesAccessor): vscode.MarkdownString | undefined {

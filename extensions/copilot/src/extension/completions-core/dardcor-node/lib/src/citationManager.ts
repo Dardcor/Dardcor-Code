@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import { createServiceIdentifier } from '../../../../../util/common/services';
-import { Disposable, IDisposable } from '../../../../../util/vs/base/common/lifecycle';
+import { Disposable, IDisposable } from '../../../../../util/dardcor/base/common/lifecycle';
 import { IRange } from './textDocument';
 
 export interface IPCitationDetail {

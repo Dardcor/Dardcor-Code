@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, expect, test } from 'vitest';
-import { URI } from '../../../../../../util/vs/base/common/uri';
+import { URI } from '../../../../../../util/dardcor/base/common/uri';
 import { IBuildPromptContext } from '../../../../../prompt/common/intents';
 import { BackOffTracker, getSessionResource } from '../backgroundTodoAgentProcessor';
 

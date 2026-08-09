@@ -5,12 +5,12 @@
 
 import { IDisposable } from 'monaco-editor';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { Event } from '../../../util/vs/base/common/event';
-import { IObservable } from '../../../util/vs/base/common/observableInternal';
-import { equalsIgnoreCase } from '../../../util/vs/base/common/strings';
-import { URI } from '../../../util/vs/base/common/uri';
-import { Branch, Change, CommitOptions, CommitShortStat, DiffChange, Ref, RefQuery, Repository, RepositoryAccessDetails, RepositoryKind, Worktree } from '../vscode/git';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { Event } from '../../../util/dardcor/base/common/event';
+import { IObservable } from '../../../util/dardcor/base/common/observableInternal';
+import { equalsIgnoreCase } from '../../../util/dardcor/base/common/strings';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { Branch, Change, CommitOptions, CommitShortStat, DiffChange, Ref, RefQuery, Repository, RepositoryAccessDetails, RepositoryKind, Worktree } from '../dardcor/git';
 
 export interface RepoContext {
 	readonly rootUri: URI;

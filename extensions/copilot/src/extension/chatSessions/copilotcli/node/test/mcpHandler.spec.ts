@@ -5,7 +5,7 @@
 
 import type { SweCustomAgent } from '@github/copilot/sdk';
 import { describe, expect, it } from 'vitest';
-import type { LanguageModelToolInformation } from '../../../../../vscodeTypes';
+import type { LanguageModelToolInformation } from '../../../../../dardcorTypes';
 import { buildMcpServerMappings, type MCPServerConfig, type McpServerMappings, remapCustomAgentTools } from '../mcpHandler';
 
 function makeAgent(partial: { slug: string; tools?: string[] }): SweCustomAgent {

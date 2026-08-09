@@ -6,8 +6,8 @@
 import { expect, suite, test } from 'vitest';
 import { TextDocumentSnapshot } from '../../../../platform/editing/common/textDocumentSnapshot';
 import { createTextDocumentData, setDocText } from '../../../../util/common/test/shims/textDocument';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { ExtendedLanguageModelToolResult, LanguageModelTextPart, LanguageModelToolResult, Position, Range } from '../../../../vscodeTypes';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { ExtendedLanguageModelToolResult, LanguageModelTextPart, LanguageModelToolResult, Position, Range } from '../../../../dardcorTypes';
 import { FileContextElement, FileSelectionElement, ICompletedToolCallRound, LARGE_FILE_LINE_THRESHOLD, ToolCallRoundsElement } from '../../node/inlineChatPrompt';
 
 function createSnapshot(content: string, languageId: string = 'typescript'): TextDocumentSnapshot {

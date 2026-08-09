@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type * as vscode from 'vscode';
-import { extUriBiasedIgnorePathCase } from '../../../util/vs/base/common/resources';
+import { extUriBiasedIgnorePathCase } from '../../../util/dardcor/base/common/resources';
 import { RepositoryProperties } from './chatSessionMetadataStore';
 import { ChatSessionWorktreeProperties } from './chatSessionWorktreeService';
 

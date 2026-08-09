@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 import { CancellationToken, Position, Range } from 'vscode-languageserver-protocol';
 import { ILogger } from '../../../../../platform/log/common/logService';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { LlmNESTelemetryBuilder } from '../../../../inlineEdits/node/nextEditProviderTelemetry';
 import { GhostTextLogContext } from '../../../common/ghostTextContext';
 import { CompletionState, createCompletionState } from './completionState';

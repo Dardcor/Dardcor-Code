@@ -7,10 +7,10 @@ import { DocumentId } from '../../../platform/inlineEdits/common/dataTypes/docum
 import * as xtabPromptOptions from '../../../platform/inlineEdits/common/dataTypes/xtabPromptOptions';
 import { NoNextEditReason, StreamedEdit } from '../../../platform/inlineEdits/common/statelessNextEditProvider';
 import { ILogger } from '../../../platform/log/common/logService';
-import { LineReplacement } from '../../../util/vs/editor/common/core/edits/lineEdit';
-import { LineRange } from '../../../util/vs/editor/common/core/ranges/lineRange';
-import { OffsetRange } from '../../../util/vs/editor/common/core/ranges/offsetRange';
-import { StringText } from '../../../util/vs/editor/common/core/text/abstractText';
+import { LineReplacement } from '../../../util/dardcor/editor/common/core/edits/lineEdit';
+import { LineRange } from '../../../util/dardcor/editor/common/core/ranges/lineRange';
+import { OffsetRange } from '../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { StringText } from '../../../util/dardcor/editor/common/core/text/abstractText';
 import { ResponseTags } from '../common/tags';
 import { EditIntentParseMode, parseEditIntentFromStream } from './editIntent';
 import { linesWithBackticksRemoved } from './xtabUtils';

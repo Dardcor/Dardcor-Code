@@ -5,7 +5,7 @@
 
 import assert from 'assert';
 import { beforeAll, suite, test } from 'vitest';
-import { Range, TextEdit } from '../../../vscodeTypes';
+import { Range, TextEdit } from '../../../dardcorTypes';
 import { computeUpdatedRange } from '../common/edits';
 
 suite('findApproximateRangePostEdits', function () {

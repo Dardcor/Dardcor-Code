@@ -8,10 +8,10 @@ import { assert, expect, suite, test } from 'vitest';
 import { DocumentId } from '../../../../platform/inlineEdits/common/dataTypes/documentId';
 import { MutableObservableWorkspace } from '../../../../platform/inlineEdits/common/observableWorkspace';
 import { LogEntry } from '../../../../platform/workspaceRecorder/common/workspaceLog';
-import * as path from '../../../../util/vs/base/common/path';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { StringEdit, StringReplacement } from '../../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
+import * as path from '../../../../util/dardcor/base/common/path';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { StringEdit, StringReplacement } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
 import { ObservableWorkspaceRecordingReplayer } from '../../common/observableWorkspaceRecordingReplayer';
 import { DebugRecorder } from '../../node/debugRecorder';
 

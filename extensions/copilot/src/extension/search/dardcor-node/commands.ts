@@ -6,7 +6,7 @@
 
 import * as vscode from 'vscode';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { IFeedbackReporter } from '../../prompt/node/feedbackReporter';
 import { SearchFeedbackKind, SemanticSearchTextSearchProvider } from '../../workspaceSemanticSearch/node/semanticSearchTextSearchProvider';
 

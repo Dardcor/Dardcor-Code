@@ -2,27 +2,27 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import { GitDiffService } from '../../../src/extension/prompt/vscode-node/gitDiffService';
+import { GitDiffService } from '../../../src/extension/prompt/dardcor-node/gitDiffService';
 import { IExtensionsService } from '../../../src/platform/extensions/common/extensionsService';
-import { VSCodeExtensionsService } from '../../../src/platform/extensions/vscode/extensionsService';
+import { VSCodeExtensionsService } from '../../../src/platform/extensions/dardcor/extensionsService';
 import { IFileSystemService } from '../../../src/platform/filesystem/common/fileSystemService';
-import { VSCodeFileSystemService } from '../../../src/platform/filesystem/vscode/fileSystemServiceImpl';
+import { VSCodeFileSystemService } from '../../../src/platform/filesystem/dardcor/fileSystemServiceImpl';
 import { IGitDiffService } from '../../../src/platform/git/common/gitDiffService';
 import { IGitExtensionService } from '../../../src/platform/git/common/gitExtensionService';
-import { GitExtensionServiceImpl } from '../../../src/platform/git/vscode/gitExtensionServiceImpl';
+import { GitExtensionServiceImpl } from '../../../src/platform/git/dardcor/gitExtensionServiceImpl';
 import { INotebookService } from '../../../src/platform/notebook/common/notebookService';
 import { INotebookSummaryTracker } from '../../../src/platform/notebook/common/notebookSummaryTracker';
-import { NotebookService } from '../../../src/platform/notebook/vscode/notebookServiceImpl';
-import { NotebookSummaryTrackerImpl } from '../../../src/platform/notebook/vscode/notebookSummaryTrackerImpl';
-import { IRemoteRepositoriesService, RemoteRepositoriesService } from '../../../src/platform/remoteRepositories/vscode/remoteRepositories';
+import { NotebookService } from '../../../src/platform/notebook/dardcor/notebookServiceImpl';
+import { NotebookSummaryTrackerImpl } from '../../../src/platform/notebook/dardcor/notebookSummaryTrackerImpl';
+import { IRemoteRepositoriesService, RemoteRepositoriesService } from '../../../src/platform/remoteRepositories/dardcor/remoteRepositories';
 import { ISearchService } from '../../../src/platform/search/common/searchService';
-import { SearchServiceImpl } from '../../../src/platform/search/vscode-node/searchServiceImpl';
+import { SearchServiceImpl } from '../../../src/platform/search/dardcor-node/searchServiceImpl';
 import { ITabsAndEditorsService } from '../../../src/platform/tabs/common/tabsAndEditorsService';
-import { TabsAndEditorsServiceImpl } from '../../../src/platform/tabs/vscode/tabsAndEditorsServiceImpl';
+import { TabsAndEditorsServiceImpl } from '../../../src/platform/tabs/dardcor/tabsAndEditorsServiceImpl';
 import { ITerminalService } from '../../../src/platform/terminal/common/terminalService';
-import { TerminalServiceImpl } from '../../../src/platform/terminal/vscode/terminalServiceImpl';
+import { TerminalServiceImpl } from '../../../src/platform/terminal/dardcor/terminalServiceImpl';
 import { TestingServiceCollection } from '../../../src/platform/test/node/services';
-import { SyncDescriptor } from '../../../src/util/vs/platform/instantiation/common/descriptors';
+import { SyncDescriptor } from '../../../src/util/dardcor/platform/instantiation/common/descriptors';
 
 /**
  * Adds a select number of 'real' services to the stest when they're running

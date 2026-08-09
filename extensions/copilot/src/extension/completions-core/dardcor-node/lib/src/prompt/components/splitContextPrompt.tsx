@@ -5,7 +5,7 @@
 /** @jsxRuntime automatic */
 /** @jsxImportSource ../../../../prompt/jsx-runtime */
 
-import { IInstantiationService, ServicesAccessor } from '../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService, ServicesAccessor } from '../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ICompletionsTextDocumentManagerService } from '../../textDocumentManager';
 import { ICompletionsRecentEditsProviderService } from '../recentEdits/recentEditsProvider';
 import { CodeSnippets } from './codeSnippets';

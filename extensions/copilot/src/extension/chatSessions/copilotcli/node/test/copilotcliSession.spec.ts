@@ -18,12 +18,12 @@ import { NullTelemetryService } from '../../../../../platform/telemetry/common/n
 import type { ITelemetryService, TelemetryEventMeasurements, TelemetryEventProperties } from '../../../../../platform/telemetry/common/telemetry';
 import { TestWorkspaceService } from '../../../../../platform/test/node/testWorkspaceService';
 import { IWorkspaceService } from '../../../../../platform/workspace/common/workspaceService';
-import { CancellationToken, CancellationTokenSource } from '../../../../../util/vs/base/common/cancellation';
-import { DisposableStore } from '../../../../../util/vs/base/common/lifecycle';
-import * as path from '../../../../../util/vs/base/common/path';
-import { URI } from '../../../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
-import { ChatSessionStatus, ChatToolInvocationPart, LanguageModelTextPart, Uri } from '../../../../../vscodeTypes';
+import { CancellationToken, CancellationTokenSource } from '../../../../../util/dardcor/base/common/cancellation';
+import { DisposableStore } from '../../../../../util/dardcor/base/common/lifecycle';
+import * as path from '../../../../../util/dardcor/base/common/path';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { ChatSessionStatus, ChatToolInvocationPart, LanguageModelTextPart, Uri } from '../../../../../dardcorTypes';
 import { createExtensionUnitTestingServices } from '../../../../test/node/services';
 import { MockChatResponseStream } from '../../../../test/node/testHelpers';
 import { ExternalEditTracker } from '../../../common/externalEditTracker';

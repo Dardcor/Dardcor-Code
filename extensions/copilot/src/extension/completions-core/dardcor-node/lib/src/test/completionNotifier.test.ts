@@ -5,7 +5,7 @@
 
 import * as assert from 'assert';
 import Sinon from 'sinon';
-import { IInstantiationService, ServicesAccessor } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService, ServicesAccessor } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { CompletionNotifier, CompletionRequestedEvent } from '../completionNotifier';
 import { CompletionState, createCompletionState } from '../completionState';
 import { TelemetryWithExp } from '../telemetry';

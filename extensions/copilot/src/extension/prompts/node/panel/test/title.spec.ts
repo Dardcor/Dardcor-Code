@@ -10,7 +10,7 @@ import { StaticChatMLFetcher } from '../../../../../platform/chat/test/common/st
 import { ConfigKey, IConfigurationService } from '../../../../../platform/configuration/common/configurationService';
 import { MockEndpoint } from '../../../../../platform/endpoint/test/node/mockEndpoint';
 import { ITestingServicesAccessor } from '../../../../../platform/test/node/services';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { createExtensionUnitTestingServices } from '../../../../test/node/services';
 import { renderPromptElement } from '../../base/promptRenderer';
 import { TitlePrompt } from '../title';

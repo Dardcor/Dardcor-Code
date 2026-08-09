@@ -13,11 +13,11 @@ import { ITabsAndEditorsService } from '../../../../platform/tabs/common/tabsAnd
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
 import { ILanguage } from '../../../../util/common/languages';
 import { isJupyterNotebookUri, isNotebookCellOrNotebookChatInput } from '../../../../util/common/notebooks';
-import { illegalArgument } from '../../../../util/vs/base/common/errors';
-import { Schemas } from '../../../../util/vs/base/common/network';
-import { StringEdit } from '../../../../util/vs/editor/common/core/edits/stringEdit';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
-import { Range, Uri } from '../../../../vscodeTypes';
+import { illegalArgument } from '../../../../util/dardcor/base/common/errors';
+import { Schemas } from '../../../../util/dardcor/base/common/network';
+import { StringEdit } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { Range, Uri } from '../../../../dardcorTypes';
 import { findDiagnosticForSelectionAndPrompt, findFixRangeOfInterest, generateFixContext } from '../../../context/node/resolvers/fixSelection';
 import { generateNotebookCellContext } from '../../../context/node/resolvers/inlineChatSelection';
 import { InlineFixProps } from '../../../context/node/resolvers/inlineFixIntentInvocation';

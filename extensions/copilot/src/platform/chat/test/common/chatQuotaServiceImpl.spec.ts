@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, expect, test, vi } from 'vitest';
-import { Emitter } from '../../../../util/vs/base/common/event';
+import { Emitter } from '../../../../util/dardcor/base/common/event';
 import { IAuthenticationService } from '../../../authentication/common/authentication';
 import { ICAPIClientService } from '../../../endpoint/common/capiClient';
 import { TestLogService } from '../../../testing/common/testLogService';

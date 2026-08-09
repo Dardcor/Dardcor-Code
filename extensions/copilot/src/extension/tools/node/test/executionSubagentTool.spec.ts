@@ -7,7 +7,7 @@ import type * as vscode from 'vscode';
 import { expect, suite, test } from 'vitest';
 import { ChatFetchResponseType } from '../../../../platform/chat/common/commonTypes';
 import { ChatResponseStreamImpl } from '../../../../util/common/chatResponseStreamImpl';
-import { ChatSubagentToolInvocationData, ChatToolInvocationPart, LanguageModelTextPart } from '../../../../vscodeTypes';
+import { ChatSubagentToolInvocationData, ChatToolInvocationPart, LanguageModelTextPart } from '../../../../dardcorTypes';
 import { IBuildPromptContext } from '../../../prompt/common/intents';
 import { toolCategories, ToolCategory, ToolName } from '../../common/toolNames';
 import { CopilotToolMode, ToolRegistry } from '../../common/toolsRegistry';

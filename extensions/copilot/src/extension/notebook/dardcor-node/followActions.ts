@@ -5,8 +5,8 @@
 
 import * as vscode from 'vscode';
 import { ConfigKey, IConfigurationService } from '../../../platform/configuration/common/configurationService';
-import { Event } from '../../../util/vs/base/common/event';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
+import { Event } from '../../../util/dardcor/base/common/event';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { INotebookService } from '../../../platform/notebook/common/notebookService';
 
 const NOTEBOOK_FOLLOW_IN_SESSION_KEY = 'github.copilot.notebookFollowInSessionEnabled';

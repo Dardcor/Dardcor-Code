@@ -7,7 +7,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { serializeSingleEdit } from '../../src/platform/inlineEdits/common/dataTypes/editUtils';
-import { assert } from '../../src/util/vs/base/common/assert';
+import { assert } from '../../src/util/dardcor/base/common/assert';
 import { SimulationOptions } from '../base/simulationOptions';
 import { Configuration, ISimulationTestRuntime, SimulationSuite, SimulationTest } from '../base/stest';
 import { loadFile } from './inlineEdit/fileLoading';

@@ -6,8 +6,8 @@
 import { Raw } from '@vscode/prompt-tsx';
 import type { Uri } from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { VSBuffer } from '../../../util/vs/base/common/buffer';
-import { URI } from '../../../util/vs/base/common/uri';
+import { VSBuffer } from '../../../util/dardcor/base/common/buffer';
+import { URI } from '../../../util/dardcor/base/common/uri';
 import { ConfigKey, IConfigurationService } from '../../configuration/common/configurationService';
 import { IVSCodeExtensionContext } from '../../extContext/common/extensionContext';
 import { IFileSystemService } from '../../filesystem/common/fileSystemService';

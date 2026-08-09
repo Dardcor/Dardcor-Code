@@ -9,9 +9,9 @@ import { IChatHookService } from '../../../../platform/chat/common/chatHookServi
 import { ChatLocation } from '../../../../platform/chat/common/commonTypes';
 import { ConfigKey, IConfigurationService } from '../../../../platform/configuration/common/configurationService';
 import { IChatEndpoint } from '../../../../platform/networking/common/networking';
-import { DisposableStore } from '../../../../util/vs/base/common/lifecycle';
-import { generateUuid } from '../../../../util/vs/base/common/uuid';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { DisposableStore } from '../../../../util/dardcor/base/common/lifecycle';
+import { generateUuid } from '../../../../util/dardcor/base/common/uuid';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { MockChatHookService } from '../../../intents/test/node/mockChatHookService';
 import { ExecutionSubagentToolCallingLoop, IExecutionSubagentToolCallingLoopOptions } from '../../node/executionSubagentToolCallingLoop';
 import { createExtensionUnitTestingServices } from '../../../test/node/services';

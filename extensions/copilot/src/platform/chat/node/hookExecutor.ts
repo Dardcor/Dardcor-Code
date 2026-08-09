@@ -6,9 +6,9 @@
 import { spawn } from 'child_process';
 import { homedir } from 'os';
 import type { CancellationToken, ChatHookCommand, Uri } from 'vscode';
-import { join, win32 } from '../../../util/vs/base/common/path';
-import { isWindows } from '../../../util/vs/base/common/platform';
-import { removeAnsiEscapeCodes } from '../../../util/vs/base/common/strings';
+import { join, win32 } from '../../../util/dardcor/base/common/path';
+import { isWindows } from '../../../util/dardcor/base/common/platform';
+import { removeAnsiEscapeCodes } from '../../../util/dardcor/base/common/strings';
 import { ILogService } from '../../log/common/logService';
 import { HookCommandResultKind, IHookCommandResult, IHookExecutor } from '../common/hookExecutor';
 import { IHooksOutputChannel } from '../common/hooksOutputChannel';

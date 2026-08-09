@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { Memento } from 'vscode';
-import { ResourceMap } from '../../../../util/vs/base/common/map';
-import { basenameOrAuthority } from '../../../../util/vs/base/common/resources';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { ResourceMap } from '../../../../util/dardcor/base/common/map';
+import { basenameOrAuthority } from '../../../../util/dardcor/base/common/resources';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 
 const maxPrefixLength = 8;
 

@@ -10,10 +10,10 @@ import { TextDocumentSnapshot } from '../../../../platform/editing/common/textDo
 import { IIgnoreService } from '../../../../platform/ignore/common/ignoreService';
 import { IParserService } from '../../../../platform/parser/node/parserService';
 import { getLanguageForResource } from '../../../../util/common/languages';
-import { CharCode } from '../../../../util/vs/base/common/charCode';
-import { StringEdit } from '../../../../util/vs/editor/common/core/edits/stringEdit';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
-import { Uri } from '../../../../vscodeTypes';
+import { CharCode } from '../../../../util/dardcor/base/common/charCode';
+import { StringEdit } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { Uri } from '../../../../dardcorTypes';
 import { getStructure } from '../../../context/node/resolvers/selectionContextHelpers';
 import { CompositeElement } from '../base/common';
 import { ResponseTranslationRules } from '../base/responseTranslationRules';

@@ -5,11 +5,11 @@
 
 import { AbstractDocument } from '../../../../platform/editing/common/abstractText';
 import { OverlayNode } from '../../../../platform/parser/node/nodes';
-import { binarySearch2, equals } from '../../../../util/vs/base/common/arrays';
-import { CharCode } from '../../../../util/vs/base/common/charCode';
-import { BugIndicatingError } from '../../../../util/vs/base/common/errors';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
-import { Range } from '../../../../vscodeTypes';
+import { binarySearch2, equals } from '../../../../util/dardcor/base/common/arrays';
+import { CharCode } from '../../../../util/dardcor/base/common/charCode';
+import { BugIndicatingError } from '../../../../util/dardcor/base/common/errors';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { Range } from '../../../../dardcorTypes';
 
 export function getAdjustedSelection<TDocument extends AbstractDocument>(
 	ast: OverlayNode,

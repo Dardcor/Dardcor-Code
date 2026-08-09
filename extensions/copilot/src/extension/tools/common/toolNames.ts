@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { cloneAndChange } from '../../../util/vs/base/common/objects';
+import { cloneAndChange } from '../../../util/dardcor/base/common/objects';
 
 /**
  * Categories for tool grouping in the virtual tools system

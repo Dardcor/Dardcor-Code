@@ -814,5 +814,5 @@ export function getNotificationsPosition(configurationService: IConfigurationSer
 		return position;
 	}
 
-	return NotificationsPosition.BOTTOM_RIGHT;
+	return NotificationsPosition.BOTTOM_LEFT;
 }

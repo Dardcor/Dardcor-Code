@@ -6,7 +6,7 @@
 import { Raw } from '@vscode/prompt-tsx';
 import { describe, expect, it, vi } from 'vitest';
 import * as vscode from 'vscode';
-import type { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import type { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ChatFetchResponseType, ChatLocation } from '../../../chat/common/commonTypes';
 import { NoopOTelService, resolveOTelConfig } from '../../../otel/common/index';
 import { CustomDataPartMimeTypes } from '../../common/endpointTypes';

@@ -10,10 +10,10 @@ import { StatelessNextEditDocument } from '../../../platform/inlineEdits/common/
 import { IXtabHistoryEditEntry, IXtabHistoryEntry } from '../../../platform/inlineEdits/common/workspaceEditTracker/nesXtabHistoryTracker';
 import { ContextKind } from '../../../platform/languageServer/common/languageContextService';
 import { batchArrayElements } from '../../../util/common/arrays';
-import { assertNever } from '../../../util/vs/base/common/assert';
-import { illegalArgument } from '../../../util/vs/base/common/errors';
-import { OffsetRange } from '../../../util/vs/editor/common/core/ranges/offsetRange';
-import { StringText } from '../../../util/vs/editor/common/core/text/abstractText';
+import { assertNever } from '../../../util/dardcor/base/common/assert';
+import { illegalArgument } from '../../../util/dardcor/base/common/errors';
+import { OffsetRange } from '../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { StringText } from '../../../util/dardcor/editor/common/core/text/abstractText';
 import { expandRangeToPageRange } from './promptCrafting';
 import { countTokensForLines, toUniquePath } from './promptCraftingUtils';
 import { INeighborFileSnippet } from './similarFilesContextService';

@@ -282,7 +282,7 @@ class NotebookWorkerClient extends Disposable {
 			try {
 				this._worker = this._register(this._webWorkerService.createWorkerClient<NotebookWorker>(
 					new WebWorkerDescriptor({
-						esmModuleLocation: FileAccess.asBrowserUri('dc/workbench/contrib/notebook/common/services/notebookWebWorkerMain.js'),
+						esmModuleLocation: FileAccess.asBrowserUri('vs/workbench/contrib/notebook/common/services/notebookWebWorkerMain.js'),
 						label: 'NotebookEditorWorker'
 					})
 				));

@@ -10,7 +10,7 @@
  * Do not add any concrete dependencies here.
  */
 import { createServiceIdentifier } from '../../../../../util/common/services';
-import { ServicesAccessor } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { ServicesAccessor } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ICompletionsTelemetryService } from '../../bridge/src/completionsTelemetryServiceBridge';
 import { telemetryException } from './telemetry';
 

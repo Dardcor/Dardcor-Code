@@ -13,8 +13,8 @@ import { CancellationTokenSource, Position } from 'vscode-languageserver-protoco
 import { MutableObservableWorkspace } from '../../../../../../../../platform/inlineEdits/common/observableWorkspace';
 import { ILanguageDiagnosticsService } from '../../../../../../../../platform/languages/common/languageDiagnosticsService';
 import { TestingServiceCollection } from '../../../../../../../../platform/test/node/services';
-import { URI } from '../../../../../../../../util/vs/base/common/uri';
-import { IInstantiationService, ServicesAccessor } from '../../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { URI } from '../../../../../../../../util/dardcor/base/common/uri';
+import { IInstantiationService, ServicesAccessor } from '../../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ComponentContext, PromptElementProps, Text } from '../../../../../prompt/src/components/components';
 import { Dispatch, StateUpdater } from '../../../../../prompt/src/components/hooks';
 import { VirtualPrompt } from '../../../../../prompt/src/components/virtualPrompt';

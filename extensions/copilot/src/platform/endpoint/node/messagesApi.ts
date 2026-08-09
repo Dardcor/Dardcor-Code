@@ -6,10 +6,10 @@
 import { ContentBlockParam, DocumentBlockParam, ImageBlockParam, MessageParam, RedactedThinkingBlockParam, TextBlockParam, ThinkingBlockParam, ToolReferenceBlockParam, ToolResultBlockParam } from '@anthropic-ai/sdk/resources';
 import { Raw } from '@vscode/prompt-tsx';
 import { Response } from '../../../platform/networking/common/fetcherService';
-import { AsyncIterableObject } from '../../../util/vs/base/common/async';
-import { SSEParser } from '../../../util/vs/base/common/sseParser';
-import { generateUuid } from '../../../util/vs/base/common/uuid';
-import { IInstantiationService, ServicesAccessor } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { AsyncIterableObject } from '../../../util/dardcor/base/common/async';
+import { SSEParser } from '../../../util/dardcor/base/common/sseParser';
+import { generateUuid } from '../../../util/dardcor/base/common/uuid';
+import { IInstantiationService, ServicesAccessor } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ChatLocation } from '../../chat/common/commonTypes';
 import { ConfigKey, IConfigurationService } from '../../configuration/common/configurationService';
 import { ILogService } from '../../log/common/logService';

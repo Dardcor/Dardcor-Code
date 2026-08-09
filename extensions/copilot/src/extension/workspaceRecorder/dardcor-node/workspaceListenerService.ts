@@ -5,8 +5,8 @@
 
 import { commands, env } from 'vscode';
 import { DocumentEventLogEntryData } from '../../../platform/workspaceRecorder/common/workspaceLog';
-import { Emitter } from '../../../util/vs/base/common/event';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
+import { Emitter } from '../../../util/dardcor/base/common/event';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { IRecordableEditorLogEntry, IRecordableLogEntry, ITextModelEditReasonMetadata, IWorkspaceListenerService } from '../common/workspaceListenerService';
 
 export class WorkspacListenerService extends Disposable implements IWorkspaceListenerService {

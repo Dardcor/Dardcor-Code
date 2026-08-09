@@ -11,7 +11,7 @@ import { NoopTestToolsService } from '../../src/extension/tools/node/test/testTo
 import { IConfigurationService } from '../../src/platform/configuration/common/configurationService';
 import { InMemoryConfigurationService } from '../../src/platform/configuration/test/common/inMemoryConfigurationService';
 import { ITestingServicesAccessor } from '../../src/platform/test/node/services';
-import { SyncDescriptor } from '../../src/util/vs/platform/instantiation/common/descriptors';
+import { SyncDescriptor } from '../../src/util/dardcor/platform/instantiation/common/descriptors';
 import { SimulationTestFunction } from '../base/stest';
 import { KeywordPredicate, validate } from '../base/validate';
 import { fetchConversationScenarios, IConversationTestCase, Scenario } from './scenarioLoader';

@@ -8,9 +8,9 @@ import { Diff } from '../../src/platform/git/common/gitDiffService';
 import { TestWorkspaceService } from '../../src/platform/test/node/testWorkspaceService';
 import { IWorkspaceService } from '../../src/platform/workspace/common/workspaceService';
 import { createTextDocumentData } from '../../src/util/common/test/shims/textDocument';
-import { CancellationToken } from '../../src/util/vs/base/common/cancellation';
-import { URI } from '../../src/util/vs/base/common/uri';
-import { IInstantiationService } from '../../src/util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../src/util/dardcor/base/common/cancellation';
+import { URI } from '../../src/util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../src/util/dardcor/platform/instantiation/common/instantiation';
 import { ssuite, stest } from '../base/stest';
 
 ssuite({ title: 'git commit message', location: 'external' }, () => {

@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type * as vscode from 'vscode';
-import { Range, TextEdit } from '../../../vscodeTypes';
+import { Range, TextEdit } from '../../../dardcorTypes';
 
 export type Lines = readonly string[];
 

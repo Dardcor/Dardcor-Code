@@ -5,8 +5,8 @@
 
 import type { ChatParticipantToolToken } from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { LanguageModelTextPart } from '../../../vscodeTypes';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { LanguageModelTextPart } from '../../../dardcorTypes';
 import { ToolName } from '../../tools/common/toolNames';
 import { IToolsService } from '../../tools/common/toolsService';
 

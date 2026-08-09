@@ -5,7 +5,7 @@
 import { FetchResponse } from '../../src/platform/nesFetch/node/completionsFetchServiceImpl';
 import { getRequestId } from '../../src/platform/networking/common/fetch';
 import { IHeaders, ReportFetchEvent, Response } from '../../src/platform/networking/common/fetcherService';
-import { AsyncIterableObject } from '../../src/util/vs/base/common/async';
+import { AsyncIterableObject } from '../../src/util/dardcor/base/common/async';
 import { SQLiteSlottedCache } from './cache';
 import { CachedResponseMetadata } from './cachingChatMLFetcher';
 import { CacheableCompletionRequest } from './cachingCompletionsFetchService';

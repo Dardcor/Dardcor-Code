@@ -7,9 +7,9 @@ import type * as AgentSdk from '@anthropic-ai/claude-agent-sdk';
 import * as vscode from 'vscode';
 import { ConfigKey, IConfigurationService } from '../../../../platform/configuration/common/configurationService';
 import { ILogService } from '../../../../platform/log/common/logService';
-import { raceCancellation, raceTimeout } from '../../../../util/vs/base/common/async';
-import { Event } from '../../../../util/vs/base/common/event';
-import { DisposableStore } from '../../../../util/vs/base/common/lifecycle';
+import { raceCancellation, raceTimeout } from '../../../../util/dardcor/base/common/async';
+import { Event } from '../../../../util/dardcor/base/common/event';
+import { DisposableStore } from '../../../../util/dardcor/base/common/lifecycle';
 import { CLAUDE_SDK_EXTENSION_ID, IClaudeAgentSdkLoaderService } from '../common/claudeAgentSdkLoaderService';
 
 type SDKActivation =

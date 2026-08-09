@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { LanguageModelToolInformation } from 'vscode';
-import { assertNever } from '../../../../util/vs/base/common/assert';
-import { groupBy } from '../../../../util/vs/base/common/collections';
+import { assertNever } from '../../../../util/dardcor/base/common/assert';
+import { groupBy } from '../../../../util/dardcor/base/common/collections';
 import { getToolsForCategory, toolCategories, ToolCategory, ToolName } from '../toolNames';
 import { VIRTUAL_TOOL_NAME_PREFIX, VirtualTool } from './virtualTool';
 import * as Constant from './virtualToolsConstants';

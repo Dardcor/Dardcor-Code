@@ -253,7 +253,6 @@ export class ExtensionsViewletViewsContribution extends Disposable implements IW
 			}));
 		}
 
-
 		/*
 		 * Default popular extensions view
 		 * Separate view for popular extensions required as we need to show popular and recommended sections

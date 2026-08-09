@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { commands, Disposable } from 'vscode';
-import { IDisposable } from '../../../../../util/vs/base/common/lifecycle';
-import { IInstantiationService, type ServicesAccessor } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IDisposable } from '../../../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService, type ServicesAccessor } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { handleException } from '../../lib/src/defaultHandlers';
 import { Logger } from '../../lib/src/logger';
 

@@ -4,12 +4,12 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type * as vscode from 'vscode';
-import { Uri } from '../../vscodeTypes';
-import * as glob from '../vs/base/common/glob';
-import { Schemas } from '../vs/base/common/network';
-import { basename } from '../vs/base/common/path';
-import { isEqual } from '../vs/base/common/resources';
-import { URI } from '../vs/base/common/uri';
+import { Uri } from '../../dardcorTypes';
+import * as glob from '../dardcor/base/common/glob';
+import { Schemas } from '../dardcor/base/common/network';
+import { basename } from '../dardcor/base/common/path';
+import { isEqual } from '../dardcor/base/common/resources';
+import { URI } from '../dardcor/base/common/uri';
 
 
 export interface INotebookSection {

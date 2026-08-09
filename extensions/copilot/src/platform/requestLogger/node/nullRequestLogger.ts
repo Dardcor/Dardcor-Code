@@ -7,7 +7,7 @@ import type { RequestMetadata } from '@vscode/copilot-api';
 import type { LanguageModelToolResult2 } from 'vscode';
 import { ILoggedRequestInfo, LoggedRequest } from '../../../platform/requestLogger/common/requestLogger';
 import { AbstractRequestLogger } from '../../../platform/requestLogger/node/requestLogger';
-import { Event } from '../../../util/vs/base/common/event';
+import { Event } from '../../../util/dardcor/base/common/event';
 import { IModelAPIResponse } from '../../endpoint/common/endpointProvider';
 
 export class NullRequestLogger extends AbstractRequestLogger {

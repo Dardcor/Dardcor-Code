@@ -11,12 +11,12 @@ import { AbstractSearchService, ISearchService } from '../../../../platform/sear
 import { ITestingServicesAccessor, TestingServiceCollection } from '../../../../platform/test/node/services';
 import { TestWorkspaceService } from '../../../../platform/test/node/testWorkspaceService';
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { MarkdownString } from '../../../../util/vs/base/common/htmlContent';
-import { isWindows } from '../../../../util/vs/base/common/platform';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { SyncDescriptor } from '../../../../util/vs/platform/instantiation/common/descriptors';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { MarkdownString } from '../../../../util/dardcor/base/common/htmlContent';
+import { isWindows } from '../../../../util/dardcor/base/common/platform';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { SyncDescriptor } from '../../../../util/dardcor/platform/instantiation/common/descriptors';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { createExtensionUnitTestingServices } from '../../../test/node/services';
 import { CopilotToolMode } from '../../common/toolsRegistry';
 import { FindTextInFilesTool } from '../findTextInFilesTool';

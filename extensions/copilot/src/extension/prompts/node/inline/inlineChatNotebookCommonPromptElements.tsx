@@ -12,8 +12,8 @@ import { IWorkspaceService } from '../../../../platform/workspace/common/workspa
 import { ILanguage } from '../../../../util/common/languages';
 import { createFencedCodeBlock } from '../../../../util/common/markdown';
 import { isNotebookCellOrNotebookChatInput } from '../../../../util/common/notebooks';
-import { illegalArgument } from '../../../../util/vs/base/common/errors';
-import { Range } from '../../../../vscodeTypes';
+import { illegalArgument } from '../../../../util/dardcor/base/common/errors';
+import { Range } from '../../../../dardcorTypes';
 import { generateNotebookCellContext, getSelectionAndCodeAroundSelection } from '../../../context/node/resolvers/inlineChatSelection';
 import { CodeContextRegion, CodeContextTracker } from '../../../inlineChat/node/codeContextRegion';
 import { IDocumentContext } from '../../../prompt/node/documentContext';

@@ -16,6 +16,7 @@ import { IStringDictionary } from '../../../../../../base/common/collections.js'
 import { ILanguageModelsProviderGroup } from '../../../common/languageModelsConfiguration.js';
 import { ChatAgentLocation } from '../../../common/constants.js';
 
+// @ts-ignore
 class MockLanguageModelsService implements ILanguageModelsService {
 	_serviceBrand: undefined;
 
@@ -285,6 +286,7 @@ suite('ChatModelsViewModel', () => {
 			}
 		});
 
+		// @ts-ignore
 		viewModel = store.add(new ChatModelsViewModel(languageModelsService));
 
 		await viewModel.refresh();
@@ -599,6 +601,7 @@ suite('ChatModelsViewModel', () => {
 			});
 		}
 
+		// @ts-ignore
 		const viewModel = store.add(new ChatModelsViewModel(service));
 		return { service, viewModel };
 	}
@@ -876,6 +879,7 @@ suite('ChatModelsViewModel', () => {
 			isDefaultForLocation: {},
 		});
 
+		// @ts-ignore
 		const agentHostViewModel = store.add(new ChatModelsViewModel(service));
 		await agentHostViewModel.refresh();
 

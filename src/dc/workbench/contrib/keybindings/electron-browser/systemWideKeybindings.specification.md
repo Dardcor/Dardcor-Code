@@ -35,7 +35,7 @@ While VS Code is running (even unfocused), pressing that combination runs the co
 - **Always on.** There is no setting to enable/disable it and no first-run dialog.
 
 The `systemWide` boolean is declared in the `keybindings.json` JSON schema in
-`src/dc/workbench/services/keybinding/browser/keybindingService.ts`.
+`src/vs/workbench/services/keybinding/browser/keybindingService.ts`.
 
 ## Architecture at a glance
 
@@ -64,7 +64,7 @@ sequenceDiagram
 
 ### Renderer
 
-**`src/dc/workbench/contrib/keybindings/electron-browser/systemWideKeybindings.contribution.ts`** —
+**`src/vs/workbench/contrib/keybindings/electron-browser/systemWideKeybindings.contribution.ts`** —
 the heart of the renderer side. Registered as a workbench contribution at
 `WorkbenchPhase.AfterRestored` (never blocks startup).
 
@@ -82,7 +82,7 @@ the heart of the renderer side. Registered as a workbench contribution at
   4. reports registration failures via `INotificationService`, deduped against the last reported set
      (`lastReportedFailures`) so unchanged failures are not re-notified.
 
-**`src/dc/workbench/electron-browser/window.ts`** — handles the `vscode:runAction` IPC in the
+**`src/vs/workbench/electron-browser/window.ts`** — handles the `vscode:runAction` IPC in the
 renderer. For `request.from === 'systemWideKeybinding'` it runs the command with **exactly** the
 args configured in `keybindings.json` — unlike the `menu`/`mouse` senders it does **not** append a
 `{ from }` sentinel, so a command taking positional args receives the same payload it would from a
@@ -90,7 +90,7 @@ normal in-window keybinding. Emits the standard `workbenchActionExecuted` teleme
 
 ### IPC contract
 
-**`src/dc/platform/native/common/native.ts`**
+**`src/vs/platform/native/common/native.ts`**
 
 - `INativeSystemWideKeybinding` — `{ accelerator, commandId, args?, userSettingsLabel? }`. The
   `accelerator` is in Electron accelerator format (e.g. `Control+Cmd+A`).
@@ -99,17 +99,17 @@ normal in-window keybinding. Emits the standard `workbenchActionExecuted` teleme
 - `ICommonNativeHostService.syncSystemWideKeybindings(keybindings)` — the method exposed to the
   renderer.
 
-**`src/dc/platform/window/common/window.ts`** — `INativeRunActionInWindowRequest.from` includes
+**`src/vs/platform/window/common/window.ts`** — `INativeRunActionInWindowRequest.from` includes
 `'systemWideKeybinding'` in its union.
 
 ### Main process
 
-**`src/dc/platform/native/electron-main/nativeHostMainService.ts`** — `syncSystemWideKeybindings`
+**`src/vs/platform/native/electron-main/nativeHostMainService.ts`** — `syncSystemWideKeybindings`
 delegates to `IGlobalKeybindingsMainService.updateKeybindings(windowId, ...)`. If there is no
 `windowId` it returns `{ failed: [] }`.
 
-**`src/dc/platform/globalKeybindings/electron-main/globalKeybindingsMainService.ts`** — owns the OS
-registrations. Wired up in `src/dc/code/electron-main/app.ts` with the real Electron global:
+**`src/vs/platform/globalKeybindings/electron-main/globalKeybindingsMainService.ts`** — owns the OS
+registrations. Wired up in `src/vs/code/electron-main/app.ts` with the real Electron global:
 `services.set(IGlobalKeybindingsMainService, new SyncDescriptor(GlobalKeybindingsMainService, [globalShortcut]))`.
 
 - `IGlobalShortcutRegistry` — the tiny `register/unregister/isRegistered` subset of Electron's
@@ -141,12 +141,12 @@ registrations. Wired up in `src/dc/code/electron-main/app.ts` with the real Elec
 
 The boolean travels from `keybindings.json` to `ResolvedKeybindingItem`:
 
-- `src/dc/workbench/services/keybinding/common/keybindingIO.ts` — parses `systemWide` from each
+- `src/vs/workbench/services/keybinding/common/keybindingIO.ts` — parses `systemWide` from each
   entry (`IUserKeybindingItem`) and writes it back out on serialization.
-- `src/dc/platform/keybinding/common/keybinding.ts` — `IUserKeybindingItem.systemWide?: boolean`.
-- `src/dc/platform/keybinding/common/resolvedKeybindingItem.ts` — `ResolvedKeybindingItem.systemWide`
+- `src/vs/platform/keybinding/common/keybinding.ts` — `IUserKeybindingItem.systemWide?: boolean`.
+- `src/vs/platform/keybinding/common/resolvedKeybindingItem.ts` — `ResolvedKeybindingItem.systemWide`
   (defaults `false`; only ever `true` for user keybindings).
-- `src/dc/workbench/services/keybinding/browser/keybindingService.ts` — threads `item.systemWide`
+- `src/vs/workbench/services/keybinding/browser/keybindingService.ts` — threads `item.systemWide`
   into every `ResolvedKeybindingItem` it builds, and declares the schema property.
 
 ## Design decisions and rationale
@@ -169,12 +169,12 @@ The boolean travels from `keybindings.json` to `ResolvedKeybindingItem`:
 
 ## Testing
 
-- `src/dc/platform/globalKeybindings/test/electron-main/globalKeybindingsMainService.test.ts` — the
+- `src/vs/platform/globalKeybindings/test/electron-main/globalKeybindingsMainService.test.ts` — the
   main service against a fake `IGlobalShortcutRegistry` and fake windows service: register/reconcile,
   dedup within a window, failed-registration reporting + retry, trigger routing (focused owner,
   deterministic lowest-id, no force-focus, undefined args), cross-window conflict resolution, window
   destroy unregistration, and shutdown unregister-all. Pure electron-main (node-safe, no DOM/CSS).
-- `src/dc/workbench/contrib/keybindings/test/electron-browser/systemWideKeybindings.test.ts` — the
+- `src/vs/workbench/contrib/keybindings/test/electron-browser/systemWideKeybindings.test.ts` — the
   pure `selectSystemWideKeybindings`: eligibility filtering, unsupported (chords/modifiers),
   duplicates.
 - `keybindingIO.test.ts` / `keybindingEditing.test.ts` — round-trip of the `systemWide` flag through
@@ -183,7 +183,7 @@ The boolean travels from `keybindings.json` to `ResolvedKeybindingItem`:
 ## Gotchas for future work
 
 - Adding another `vscode:runAction` sender kind requires extending the `from` union in
-  `INativeRunActionInWindowRequest` (`src/dc/platform/window/common/window.ts`) and handling it in
+  `INativeRunActionInWindowRequest` (`src/vs/platform/window/common/window.ts`) and handling it in
   `window.ts`.
 - Accelerator strings are keyboard-layout dependent; the contribution re-syncs on
   `onDidUpdateKeybindings`, which also fires on layout changes.

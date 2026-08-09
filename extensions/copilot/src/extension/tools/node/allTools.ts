@@ -37,6 +37,6 @@ import './searchWorkspaceSymbolsTool';
 import './sessionStoreSqlTool';
 import './toolSearchTool';
 import './viewImageTool';
-import './vscodeAPITool';
-import './vscodeCmdTool';
+import './dardcorAPITool';
+import './dardcorCmdTool';
 

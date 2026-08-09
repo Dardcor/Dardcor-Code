@@ -5,7 +5,7 @@
 
 import type { CancellationToken, Uri } from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { Change, Repository } from '../vscode/git';
+import { Change, Repository } from '../dardcor/git';
 
 export const IGitDiffService = createServiceIdentifier<IGitDiffService>('IGitDiffService');
 

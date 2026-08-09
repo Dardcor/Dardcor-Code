@@ -12,15 +12,15 @@ import { IObservableDocument } from '../../../../../platform/inlineEdits/common/
 import { ILogger } from '../../../../../platform/log/common/logService';
 import { min } from '../../../../../util/common/arrays';
 import { ErrorUtils } from '../../../../../util/common/errors';
-import { CancellationToken } from '../../../../../util/vs/base/common/cancellation';
-import { LineEdit } from '../../../../../util/vs/editor/common/core/edits/lineEdit';
-import { StringReplacement } from '../../../../../util/vs/editor/common/core/edits/stringEdit';
-import { TextEdit, TextReplacement } from '../../../../../util/vs/editor/common/core/edits/textEdit';
-import { Position } from '../../../../../util/vs/editor/common/core/position';
-import { Range } from '../../../../../util/vs/editor/common/core/range';
-import { OffsetRange } from '../../../../../util/vs/editor/common/core/ranges/offsetRange';
+import { CancellationToken } from '../../../../../util/dardcor/base/common/cancellation';
+import { LineEdit } from '../../../../../util/dardcor/editor/common/core/edits/lineEdit';
+import { StringReplacement } from '../../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { TextEdit, TextReplacement } from '../../../../../util/dardcor/editor/common/core/edits/textEdit';
+import { Position } from '../../../../../util/dardcor/editor/common/core/position';
+import { Range } from '../../../../../util/dardcor/editor/common/core/range';
+import { OffsetRange } from '../../../../../util/dardcor/editor/common/core/ranges/offsetRange';
 import { INextEditDisplayLocation } from '../../../node/nextEditResult';
-import { IVSCodeObservableDocument } from '../../parts/vscodeWorkspace';
+import { IVSCodeObservableDocument } from '../../parts/dardcorWorkspace';
 import { toExternalRange, toInternalRange } from '../../utils/translations';
 
 export interface IDiagnosticCodeAction {

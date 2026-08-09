@@ -9,9 +9,9 @@ import { IConfigurationService } from '../../../../../platform/configuration/com
 import { EmbeddingType, IEmbeddingsComputer } from '../../../../../platform/embeddings/common/embeddingsComputer';
 import { IVSCodeExtensionContext } from '../../../../../platform/extContext/common/extensionContext';
 import { ITestingServicesAccessor } from '../../../../../platform/test/node/services';
-import { CancellationToken } from '../../../../../util/vs/base/common/cancellation';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
-import { LanguageModelToolExtensionSource, LanguageModelToolMCPSource } from '../../../../../vscodeTypes';
+import { CancellationToken } from '../../../../../util/dardcor/base/common/cancellation';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { LanguageModelToolExtensionSource, LanguageModelToolMCPSource } from '../../../../../dardcorTypes';
 import { createExtensionUnitTestingServices } from '../../../../test/node/services';
 import { VIRTUAL_TOOL_NAME_PREFIX, VirtualTool } from '../../../common/virtualTools/virtualTool';
 import { VirtualToolGrouper } from '../../../common/virtualTools/virtualToolGrouper';

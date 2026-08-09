@@ -13,8 +13,8 @@ import { ITabsAndEditorsService } from '../../../../platform/tabs/common/tabsAnd
 import { IExperimentationService } from '../../../../platform/telemetry/common/nullExperimentationService';
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
 import { isJupyterNotebookUri, isNotebookCellOrNotebookChatInput } from '../../../../util/common/notebooks';
-import { illegalArgument } from '../../../../util/vs/base/common/errors';
-import { Schemas } from '../../../../util/vs/base/common/network';
+import { illegalArgument } from '../../../../util/dardcor/base/common/errors';
+import { Schemas } from '../../../../util/dardcor/base/common/network';
 import { IDocumentContext } from '../../../prompt/node/documentContext';
 import { EarlyStopping, LeadingMarkdownStreaming, ReplyInterpreterMetaData } from '../../../prompt/node/intents';
 import { TextPieceClassifiers } from '../../../prompt/node/streamingEdits';

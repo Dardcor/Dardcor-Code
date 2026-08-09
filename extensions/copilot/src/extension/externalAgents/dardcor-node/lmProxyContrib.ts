@@ -5,11 +5,11 @@
 
 import * as vscode from 'vscode';
 import { IAuthenticationService } from '../../../platform/authentication/common/authentication';
-import { Disposable, MutableDisposable } from '../../../util/vs/base/common/lifecycle';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { Disposable, MutableDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { IExtensionContribution } from '../../common/contributions';
 import { LanguageModelProxyProvider } from '../node/modelProxyProvider';
-import { Event } from '../../../util/vs/base/common/event';
+import { Event } from '../../../util/dardcor/base/common/event';
 import { IConfigurationService } from '../../../platform/configuration/common/configurationService';
 
 export class LanguageModelProxyContrib extends Disposable implements IExtensionContribution {

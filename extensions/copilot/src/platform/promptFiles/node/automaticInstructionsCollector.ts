@@ -15,27 +15,27 @@ import { AgentInstructionFileType, IAgentInstructionFile, IPromptsService, Promp
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { match as globMatch, splitGlobAware } from '../../../util/vs/base/common/glob';
-import { hash } from '../../../util/vs/base/common/hash';
-import { ResourceMap, ResourceSet } from '../../../util/vs/base/common/map';
-import { basename, dirname } from '../../../util/vs/base/common/resources';
-import { posix } from '../../../util/vs/base/common/path';
-import { stringDiff } from '../../../util/vs/base/common/diff/diff';
-import { escape as escapeXml } from '../../../util/vs/base/common/strings';
-import { URI } from '../../../util/vs/base/common/uri';
-import { ParsedPromptFile } from '../../../util/vs/workbench/contrib/chat/common/promptSyntax/promptFileParser';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { match as globMatch, splitGlobAware } from '../../../util/dardcor/base/common/glob';
+import { hash } from '../../../util/dardcor/base/common/hash';
+import { ResourceMap, ResourceSet } from '../../../util/dardcor/base/common/map';
+import { basename, dirname } from '../../../util/dardcor/base/common/resources';
+import { posix } from '../../../util/dardcor/base/common/path';
+import { stringDiff } from '../../../util/dardcor/base/common/diff/diff';
+import { escape as escapeXml } from '../../../util/dardcor/base/common/strings';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { ParsedPromptFile } from '../../../util/dardcor/workbench/contrib/chat/common/promptSyntax/promptFileParser';
 import { isLocation } from '../../../util/common/types';
 import { getToolName, ToolName } from '../../../extension/tools/common/toolNames';
 import { isCustomizationsIndex, isInstructionFile, toCustomizationsIndexReference, toInstructionFileReference } from '../../../extension/prompt/common/chatVariablesCollection';
-import { getToolReferencePromptContent } from '../../../extension/prompt/vscode-node/promptVariablesService';
+import { getToolReferencePromptContent } from '../../../extension/prompt/dardcor-node/promptVariablesService';
 import { IExperimentationService } from '../../telemetry/common/nullExperimentationService';
 import { getChatSessionType, matchesSessionType } from '../../chat/common/sessionUtils';
 import { CopilotChatAttr, GenAiAttr, GenAiOperationName, IOTelService } from '../../otel/common';
 import { ICustomInstructionsService } from '../../customInstructions/common/customInstructionsService';
 import { IPromptVariablesService } from '../../../extension/prompt/node/promptVariablesService';
 import { arrayEqual } from 'diff/lib/util/array.js';
-import { structuralEquals } from '../../../util/vs/base/common/equals';
+import { structuralEquals } from '../../../util/dardcor/base/common/equals';
 
 /**
  * Telemetry payload (parity with core's `instructionsCollected` event).

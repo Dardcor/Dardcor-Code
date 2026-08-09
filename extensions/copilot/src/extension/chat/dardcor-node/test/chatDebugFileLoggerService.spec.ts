@@ -16,9 +16,9 @@ import { CopilotChatAttr, GenAiAttr, GenAiOperationName } from '../../../../plat
 import { ICompletedSpanData, IOTelService, ISpanEventData, SpanStatusCode } from '../../../../platform/otel/common/otelService';
 import { IExperimentationService, NullExperimentationService } from '../../../../platform/telemetry/common/nullExperimentationService';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry';
-import { Emitter, Event } from '../../../../util/vs/base/common/event';
-import { DisposableStore } from '../../../../util/vs/base/common/lifecycle';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { Emitter, Event } from '../../../../util/dardcor/base/common/event';
+import { DisposableStore } from '../../../../util/dardcor/base/common/lifecycle';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { ChatDebugFileLoggerService } from '../chatDebugFileLoggerService';
 
 // ── Test helpers ──

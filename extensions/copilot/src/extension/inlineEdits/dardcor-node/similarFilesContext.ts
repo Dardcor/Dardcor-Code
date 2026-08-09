@@ -3,14 +3,14 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { getSimilarFilesOptions } from '../../completions-core/vscode-node/lib/src/experiments/similarFileOptionsProvider';
-import { getPromptOptions } from '../../completions-core/vscode-node/lib/src/prompt/prompt';
-import { NeighborSource } from '../../completions-core/vscode-node/lib/src/prompt/similarFiles/neighborFiles';
-import { TelemetryWithExp } from '../../completions-core/vscode-node/lib/src/telemetry';
-import { ICompletionsTextDocumentManagerService } from '../../completions-core/vscode-node/lib/src/textDocumentManager';
-import { DocumentInfoWithOffset } from '../../completions-core/vscode-node/prompt/src/prompt';
-import { getSimilarSnippets } from '../../completions-core/vscode-node/prompt/src/snippetInclusion/similarFiles';
-import { SnippetWithProviderInfo } from '../../completions-core/vscode-node/prompt/src/snippetInclusion/snippets';
+import { getSimilarFilesOptions } from '../../completions-core/dardcor-node/lib/src/experiments/similarFileOptionsProvider';
+import { getPromptOptions } from '../../completions-core/dardcor-node/lib/src/prompt/prompt';
+import { NeighborSource } from '../../completions-core/dardcor-node/lib/src/prompt/similarFiles/neighborFiles';
+import { TelemetryWithExp } from '../../completions-core/dardcor-node/lib/src/telemetry';
+import { ICompletionsTextDocumentManagerService } from '../../completions-core/dardcor-node/lib/src/textDocumentManager';
+import { DocumentInfoWithOffset } from '../../completions-core/dardcor-node/prompt/src/prompt';
+import { getSimilarSnippets } from '../../completions-core/dardcor-node/prompt/src/snippetInclusion/similarFiles';
+import { SnippetWithProviderInfo } from '../../completions-core/dardcor-node/prompt/src/snippetInclusion/snippets';
 import { ICopilotInlineCompletionItemProviderService } from '../../completions/common/copilotInlineCompletionItemProviderService';
 import { LineRange0Based } from '../../xtab/common/lineRange';
 import { INeighborFileSnippet, ISimilarFilesContextService } from '../../xtab/common/similarFilesContextService';

@@ -5,8 +5,8 @@
 
 import type { CancellationToken } from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { AsyncIterableObject, AsyncIterableSource } from '../../../util/vs/base/common/async';
-import { Event } from '../../../util/vs/base/common/event';
+import { AsyncIterableObject, AsyncIterableSource } from '../../../util/dardcor/base/common/async';
+import { Event } from '../../../util/dardcor/base/common/event';
 import { FinishedCallback, IResponseDelta, OptionalChatRequestParams } from '../../networking/common/fetch';
 import { IChatEndpoint, IMakeChatRequestOptions } from '../../networking/common/networking';
 import { ChatResponse, ChatResponses } from './commonTypes';

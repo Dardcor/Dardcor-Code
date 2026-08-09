@@ -7,10 +7,10 @@ import { DocumentId } from '../../../platform/inlineEdits/common/dataTypes/docum
 import { IObservableDocument, ObservableWorkspace } from '../../../platform/inlineEdits/common/observableWorkspace';
 import { autorunWithChanges } from '../../../platform/inlineEdits/common/utils/observable';
 import { ILogger, ILogService } from '../../../platform/log/common/logService';
-import { Disposable, IDisposable, toDisposable } from '../../../util/vs/base/common/lifecycle';
-import { mapObservableArrayCached } from '../../../util/vs/base/common/observable';
-import { StringEdit, StringReplacement } from '../../../util/vs/editor/common/core/edits/stringEdit';
-import { StringText } from '../../../util/vs/editor/common/core/text/abstractText';
+import { Disposable, IDisposable, toDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { mapObservableArrayCached } from '../../../util/dardcor/base/common/observable';
+import { StringEdit, StringReplacement } from '../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { StringText } from '../../../util/dardcor/editor/common/core/text/abstractText';
 
 export class RejectionCollector extends Disposable {
 	private readonly _garbageCollector = this._register(new LRUGarbageCollector(20));

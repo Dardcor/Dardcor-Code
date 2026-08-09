@@ -5,7 +5,7 @@
 
 import type * as vscode from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { ExcludeSettingOptions } from '../../../vscodeTypes';
+import { ExcludeSettingOptions } from '../../../dardcorTypes';
 
 export const ISearchService = createServiceIdentifier<ISearchService>('ISearchService');
 

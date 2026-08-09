@@ -8,10 +8,10 @@ import * as l10n from '@vscode/l10n';
 import type { CancellationToken, ChatParticipantToolToken, TextDocument } from 'vscode';
 import { ILogService } from '../../../../platform/log/common/logService';
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
-import { Delayer } from '../../../../util/vs/base/common/async';
-import { DisposableStore } from '../../../../util/vs/base/common/lifecycle';
-import { isEqual } from '../../../../util/vs/base/common/resources';
-import { LanguageModelTextPart, Uri } from '../../../../vscodeTypes';
+import { Delayer } from '../../../../util/dardcor/base/common/async';
+import { DisposableStore } from '../../../../util/dardcor/base/common/lifecycle';
+import { isEqual } from '../../../../util/dardcor/base/common/resources';
+import { LanguageModelTextPart, Uri } from '../../../../dardcorTypes';
 import { IToolsService } from '../../../tools/common/toolsService';
 import { Session } from '../common/utils';
 

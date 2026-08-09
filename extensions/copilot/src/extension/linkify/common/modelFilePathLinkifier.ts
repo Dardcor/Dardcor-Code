@@ -5,9 +5,9 @@
 
 import { FileType } from '../../../platform/filesystem/common/fileTypes';
 import { getWorkspaceFileDisplayPath, IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { normalizePath as normalizeUriPath } from '../../../util/vs/base/common/resources';
-import { Location, Position, Range, Uri } from '../../../vscodeTypes';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { normalizePath as normalizeUriPath } from '../../../util/dardcor/base/common/resources';
+import { Location, Position, Range, Uri } from '../../../dardcorTypes';
 import { coalesceParts, LinkifiedPart, LinkifiedText, LinkifyLocationAnchor } from './linkifiedText';
 import { IContributedLinkifier, LinkifierContext } from './linkifyService';
 import { IStatCache } from './statCache';

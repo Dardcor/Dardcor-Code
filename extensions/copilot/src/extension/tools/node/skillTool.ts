@@ -13,11 +13,11 @@ import { IFileSystemService } from '../../../platform/filesystem/common/fileSyst
 import { FileType } from '../../../platform/filesystem/common/fileTypes';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
-import { extUriBiasedIgnorePathCase } from '../../../util/vs/base/common/resources';
-import { equalsIgnoreCase } from '../../../util/vs/base/common/strings';
-import { isString } from '../../../util/vs/base/common/types';
-import { URI } from '../../../util/vs/base/common/uri';
-import { ExtendedLanguageModelToolResult, LanguageModelTextPart, MarkdownString } from '../../../vscodeTypes';
+import { extUriBiasedIgnorePathCase } from '../../../util/dardcor/base/common/resources';
+import { equalsIgnoreCase } from '../../../util/dardcor/base/common/strings';
+import { isString } from '../../../util/dardcor/base/common/types';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { ExtendedLanguageModelToolResult, LanguageModelTextPart, MarkdownString } from '../../../dardcorTypes';
 import { isCustomizationsIndex } from '../../prompt/common/chatVariablesCollection';
 import { IBuildPromptContext } from '../../prompt/common/intents';
 import { ToolName } from '../common/toolNames';

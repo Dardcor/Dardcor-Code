@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { IExperimentationService as ITASExperimentationService } from 'vscode-tas-client';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { IExperimentationService as ITASExperimentationService } from 'dardcor-tas-client';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { CopilotToken, createTestExtendedTokenInfo } from '../../../authentication/common/copilotToken';
 import { ICopilotTokenStore } from '../../../authentication/common/copilotTokenStore';
 import { IConfigurationService } from '../../../configuration/common/configurationService';

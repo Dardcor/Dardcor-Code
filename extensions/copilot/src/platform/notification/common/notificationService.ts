@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { createServiceIdentifier } from '../../../util/common/services';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
 
 export interface MessageOptions {
 	modal?: boolean;

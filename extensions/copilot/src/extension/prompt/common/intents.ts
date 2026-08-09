@@ -9,9 +9,9 @@ import { TextDocumentSnapshot } from '../../../platform/editing/common/textDocum
 import { OpenAIContextManagementResponse } from '../../../platform/networking/common/openai';
 import { ThinkingData } from '../../../platform/thinking/common/thinking';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { ResourceMap, ResourceSet } from '../../../util/vs/base/common/map';
-import { generateUuid } from '../../../util/vs/base/common/uuid';
-import { ChatRequest } from '../../../vscodeTypes';
+import { ResourceMap, ResourceSet } from '../../../util/dardcor/base/common/map';
+import { generateUuid } from '../../../util/dardcor/base/common/uuid';
+import { ChatRequest } from '../../../dardcorTypes';
 import { getToolName } from '../../tools/common/toolNames';
 import { IToolGrouping } from '../../tools/common/virtualTools/virtualToolTypes';
 import { ChatVariablesCollection } from './chatVariablesCollection';

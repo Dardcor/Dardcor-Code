@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { CancellationToken, Uri } from 'vscode';
-import { Change, Repository } from '../vscode/git';
+import { Change, Repository } from '../dardcor/git';
 import { Diff, IGitDiffService } from './gitDiffService';
 
 export class NullGitDiffService implements IGitDiffService {

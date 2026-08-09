@@ -5,7 +5,7 @@
 
 import * as vscode from 'vscode';
 import { JsonSchema } from '../../../platform/configuration/common/jsonSchema';
-import { CancellationError } from '../../../util/vs/base/common/errors';
+import { CancellationError } from '../../../util/dardcor/base/common/errors';
 
 export class McpPickRef {
 	public _inner?: { type: 'pick'; value: vscode.QuickPick<vscode.QuickPickItem> } | { type: 'input'; value: vscode.InputBox };

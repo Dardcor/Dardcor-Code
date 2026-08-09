@@ -12,7 +12,7 @@ import { DEFAULT_OTLP_ENDPOINT } from '../../../platform/otel/common/otelConfig'
 import { IOTelService } from '../../../platform/otel/common/otelService';
 import { IOTelSqliteStore, type OTelSqliteStore } from '../../../platform/otel/node/sqlite/otelSqliteStore';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import type { IExtensionContribution } from '../../common/contributions';
 
 const OPEN_OTEL_SETTINGS_COMMAND = 'github.copilot.chat.otel.openSettings';

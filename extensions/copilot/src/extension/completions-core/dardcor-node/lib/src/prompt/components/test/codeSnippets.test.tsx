@@ -12,7 +12,7 @@ import { CodeSnippets } from '../codeSnippets';
 import * as assert from 'assert';
 import dedent from 'ts-dedent';
 import { CancellationTokenSource } from 'vscode-languageserver-protocol';
-import { ServicesAccessor } from '../../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { ServicesAccessor } from '../../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { PromptSnapshotNode } from '../../../../../prompt/src/components/components';
 import { VirtualPrompt } from '../../../../../prompt/src/components/virtualPrompt';
 import { extractNodesWitPath } from '../../../../../prompt/src/test/components/testHelpers';

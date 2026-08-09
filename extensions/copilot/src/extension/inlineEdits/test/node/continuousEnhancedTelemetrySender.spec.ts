@@ -9,9 +9,9 @@ import { DocumentId } from '../../../../platform/inlineEdits/common/dataTypes/do
 import { MutableObservableWorkspace } from '../../../../platform/inlineEdits/common/observableWorkspace';
 import { NullTelemetryService } from '../../../../platform/telemetry/common/nullTelemetryService';
 import { TelemetryEventMeasurements, TelemetryEventProperties } from '../../../../platform/telemetry/common/telemetry';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { StringEdit, StringReplacement } from '../../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { StringEdit, StringReplacement } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
 import { ContinuousEnhancedTelemetrySender } from '../../node/continuousEnhancedTelemetrySender';
 import { DebugRecorder } from '../../node/debugRecorder';
 

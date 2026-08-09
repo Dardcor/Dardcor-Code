@@ -5,11 +5,11 @@
 
 import * as path from 'path';
 import { Uri } from 'vscode';
-import { Change, DiffChange } from '../vscode/git';
+import { Change, DiffChange } from '../dardcor/git';
 import { RepoContext } from '../common/gitService';
-import { coalesce } from '../../../util/vs/base/common/arrays';
-import { ResourceSet } from '../../../util/vs/base/common/map';
-import { isEqual, relativePath } from '../../../util/vs/base/common/resources';
+import { coalesce } from '../../../util/dardcor/base/common/arrays';
+import { ResourceSet } from '../../../util/dardcor/base/common/map';
+import { isEqual, relativePath } from '../../../util/dardcor/base/common/resources';
 
 export function parseGitChangesRaw(repositoryRoot: string, raw: string): DiffChange[] {
 	const changes: Change[] = [];

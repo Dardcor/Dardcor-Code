@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Command, commands } from 'vscode';
-import { Disposable } from '../../../../../util/vs/base/common/lifecycle';
-import { IInstantiationService, ServicesAccessor } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { Disposable } from '../../../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService, ServicesAccessor } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { collectCompletionDiagnostics, formatDiagnosticsAsMarkdown } from '../../lib/src/diagnostics';
 import { telemetry, TelemetryData } from '../../lib/src/telemetry';
 import { CMDSendCompletionsFeedbackChat } from './constants';

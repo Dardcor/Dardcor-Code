@@ -7,7 +7,7 @@ import csvParse from 'csv-parse';
 import * as fs from 'fs/promises';
 import minimist from 'minimist';
 import { IAlternativeAction } from '../../src/extension/inlineEdits/node/nextEditProviderTelemetry';
-import { coalesce } from '../../src/util/vs/base/common/arrays';
+import { coalesce } from '../../src/util/dardcor/base/common/arrays';
 import { Processor } from '../../test/pipeline/alternativeAction/processor';
 import { IData, Scoring } from '../../test/pipeline/alternativeAction/types';
 import { Either, log } from '../../test/pipeline/alternativeAction/util';

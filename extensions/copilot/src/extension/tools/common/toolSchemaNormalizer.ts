@@ -9,9 +9,9 @@ import { ArrayJsonSchema, JsonSchema, ObjectJsonSchema } from '../../../platform
 import { jsonSchemaDraft7 } from '../../../platform/configuration/common/jsonSchemaDraft7';
 import { OpenAiFunctionDef, OpenAiFunctionTool } from '../../../platform/networking/common/fetch';
 import { isGeminiFamily } from '../../../platform/endpoint/common/chatModelCapabilities';
-import { Iterable } from '../../../util/vs/base/common/iterator';
-import { Lazy } from '../../../util/vs/base/common/lazy';
-import { deepClone } from '../../../util/vs/base/common/objects';
+import { Iterable } from '../../../util/dardcor/base/common/iterator';
+import { Lazy } from '../../../util/dardcor/base/common/lazy';
+import { deepClone } from '../../../util/dardcor/base/common/objects';
 
 /**
  * Normalizes tool schema for various model restrictions. This is a hack

@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 import * as assert from 'assert';
 import { BaseConfig, Config, ConfigKey } from '../../../platform/configuration/common/configurationService';
-import { ConfigurationServiceImpl } from '../../../platform/configuration/vscode/configurationServiceImpl';
-import { Event } from '../../../util/vs/base/common/event';
+import { ConfigurationServiceImpl } from '../../../platform/configuration/dardcor/configurationServiceImpl';
+import { Event } from '../../../util/dardcor/base/common/event';
 
 class TestConfigurationServiceImpl extends ConfigurationServiceImpl {
 

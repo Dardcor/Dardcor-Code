@@ -6,12 +6,12 @@ import { BasePromptElementProps, PromptElement, PromptPiece, PromptReference, Pr
 import type { Position, Selection, TextDocument } from 'vscode';
 import { TextDocumentSnapshot } from '../../../../platform/editing/common/textDocumentSnapshot';
 import { IGitExtensionService } from '../../../../platform/git/common/gitExtensionService';
-import { Repository } from '../../../../platform/git/vscode/git';
+import { Repository } from '../../../../platform/git/dardcor/git';
 import { IIgnoreService } from '../../../../platform/ignore/common/ignoreService';
 import { ILogService } from '../../../../platform/log/common/logService';
 import { IParserService } from '../../../../platform/parser/node/parserService';
-import { ServicesAccessor } from '../../../../util/vs/platform/instantiation/common/instantiation';
-import { Location, Range, Uri } from '../../../../vscodeTypes';
+import { ServicesAccessor } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { Location, Range, Uri } from '../../../../dardcorTypes';
 import { Tag } from '../base/tag';
 import { CodeBlock } from '../panel/safeElements';
 import { SymbolAtCursor } from '../panel/symbolAtCursor';

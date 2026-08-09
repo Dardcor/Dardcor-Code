@@ -6,7 +6,7 @@ import mermaid, { MermaidConfig } from 'mermaid';
 import { buildMermaidConfig, loadExtensionConfig, registerMermaidAddons, renderMermaidBlocksInElement } from '../shared';
 import { DiagramManager } from '../shared/diagramManager';
 import { IDisposable } from '../shared/disposable';
-import { VsCodeMermaidThemeTracker } from '../shared/vsCodeTheme';
+import { VsCodeMermaidThemeTracker } from '../shared/dardcorTheme';
 
 let currentAbortController: AbortController | undefined;
 let currentDisposables: IDisposable[] = [];

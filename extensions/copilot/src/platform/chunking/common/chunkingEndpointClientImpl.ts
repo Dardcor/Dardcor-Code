@@ -5,14 +5,14 @@
 
 import { RequestType } from '@vscode/copilot-api';
 import { CallTracker } from '../../../util/common/telemetryCorrelationId';
-import { coalesce } from '../../../util/vs/base/common/arrays';
-import { DeferredPromise, raceCancellationError, timeout } from '../../../util/vs/base/common/async';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { LinkedList } from '../../../util/vs/base/common/linkedList';
-import { isFalsyOrWhitespace } from '../../../util/vs/base/common/strings';
-import { Range } from '../../../util/vs/editor/common/core/range';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { coalesce } from '../../../util/dardcor/base/common/arrays';
+import { DeferredPromise, raceCancellationError, timeout } from '../../../util/dardcor/base/common/async';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { LinkedList } from '../../../util/dardcor/base/common/linkedList';
+import { isFalsyOrWhitespace } from '../../../util/dardcor/base/common/strings';
+import { Range } from '../../../util/dardcor/editor/common/core/range';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { Embedding, EmbeddingType, EmbeddingVector } from '../../embeddings/common/embeddingsComputer';
 import { IEnvService } from '../../env/common/envService';
 import { getGithubMetadataHeaders } from '../../github/common/githubApiFetcherService';

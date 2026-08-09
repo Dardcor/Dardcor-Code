@@ -7,7 +7,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { ILogger } from '../../../../platform/log/common/logService';
-import { generateUuid } from '../../../../util/vs/base/common/uuid';
+import { generateUuid } from '../../../../util/dardcor/base/common/uuid';
 import { getCopilotCliStateDir } from '../node/cliHelpers';
 
 export interface LockFileInfo {

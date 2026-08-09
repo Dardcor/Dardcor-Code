@@ -5,7 +5,7 @@
 // The following code was moved from config.ts into here to break the cyclic dependencies
 
 import { createServiceIdentifier } from '../../../../../../util/common/services';
-import { IInstantiationService } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { BlockMode } from '../../../../../completions/common/config';
 import { isSupportedLanguageId } from '../../../prompt/src/parse';
 import { ConfigKey, getConfig } from '../config';

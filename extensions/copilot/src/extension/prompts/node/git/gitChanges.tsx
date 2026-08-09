@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 import { BasePromptElementProps, PromptElement } from '@vscode/prompt-tsx';
 import { Diff } from '../../../../platform/git/common/gitDiffService';
-import { basename } from '../../../../util/vs/base/common/path';
+import { basename } from '../../../../util/dardcor/base/common/path';
 import { FilePathMode, FileVariable } from '../panel/fileVariable';
 import { UnsafeCodeBlock } from '../panel/unsafeElements';
 

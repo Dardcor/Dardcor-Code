@@ -6,10 +6,10 @@
 import { AsyncIterUtilsExt } from '../../../util/common/asyncIterableUtils';
 import { ErrorUtils } from '../../../util/common/errors';
 import { Result } from '../../../util/common/result';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { Codicon } from '../../../util/vs/base/common/codicons';
-import { IDisposable } from '../../../util/vs/base/common/lifecycle';
-import { ThemeIcon } from '../../../util/vs/base/common/themables';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { Codicon } from '../../../util/dardcor/base/common/codicons';
+import { IDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { ThemeIcon } from '../../../util/dardcor/base/common/themables';
 import { IAuthenticationService } from '../../authentication/common/authentication';
 import { getRequestId, RequestId } from '../../networking/common/fetch';
 import { FetchOptions, IFetcherService, IHeaders, Response } from '../../networking/common/fetcherService';

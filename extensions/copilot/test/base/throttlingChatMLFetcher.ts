@@ -7,9 +7,9 @@ import { AbstractChatMLFetcher } from '../../src/extension/prompt/node/chatMLFet
 import { IChatMLFetcher, IFetchMLOptions } from '../../src/platform/chat/common/chatMLFetcher';
 import { ChatFetchResponseType, ChatResponses } from '../../src/platform/chat/common/commonTypes';
 import { IConversationOptions } from '../../src/platform/chat/common/conversationOptions';
-import { IThrottledWorkerOptions } from '../../src/util/vs/base/common/async';
-import { SyncDescriptor } from '../../src/util/vs/platform/instantiation/common/descriptors';
-import { IInstantiationService } from '../../src/util/vs/platform/instantiation/common/instantiation';
+import { IThrottledWorkerOptions } from '../../src/util/dardcor/base/common/async';
+import { SyncDescriptor } from '../../src/util/dardcor/platform/instantiation/common/descriptors';
+import { IInstantiationService } from '../../src/util/dardcor/platform/instantiation/common/instantiation';
 import { PausableThrottledWorker } from './pausableThrottledWorker';
 
 /**

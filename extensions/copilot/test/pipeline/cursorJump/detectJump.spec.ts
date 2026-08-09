@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { LogDocumentId, LogEntry } from '../logRecordingTypes';
 import { detectCrossFileJump, detectSameFileJump, normalizeRelativePathForModel } from './detectJump';
 import { generateCrossFileResponse, generateSameFileResponse } from './cursorJumpResponseStep';
-import { OffsetRange } from '../../../src/util/vs/editor/common/core/ranges/offsetRange';
+import { OffsetRange } from '../../../src/util/dardcor/editor/common/core/ranges/offsetRange';
 
 const ACTIVE: LogDocumentId = 1 as LogDocumentId;
 const OTHER: LogDocumentId = 2 as LogDocumentId;

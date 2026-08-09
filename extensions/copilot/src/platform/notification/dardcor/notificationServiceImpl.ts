@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { commands, MessageOptions, Progress, ProgressOptions, window } from 'vscode';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
 import { INotificationService } from '../common/notificationService';
 
 export class NotificationService implements INotificationService {

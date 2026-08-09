@@ -23,11 +23,11 @@ import { AlternativeXmlNotebookContentProvider } from '../../common/alternativeC
 import { NullTelemetryService } from '../../../../platform/telemetry/common/nullTelemetryService';
 import { SimulationWorkspace } from '../../../../platform/test/node/simulationWorkspace';
 import { ExtHostNotebookDocumentData } from '../../../../util/common/test/shims/notebookDocument';
-import { AsyncIterableObject } from '../../../../util/vs/base/common/async';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { ResourceMap } from '../../../../util/vs/base/common/map';
-import * as path from '../../../../util/vs/base/common/path';
-import { NotebookCellData, NotebookCellKind, NotebookData, NotebookEdit, NotebookRange, Position, Range, TextEdit, Uri } from '../../../../vscodeTypes';
+import { AsyncIterableObject } from '../../../../util/dardcor/base/common/async';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { ResourceMap } from '../../../../util/dardcor/base/common/map';
+import * as path from '../../../../util/dardcor/base/common/path';
+import { NotebookCellData, NotebookCellKind, NotebookData, NotebookEdit, NotebookRange, Position, Range, TextEdit, Uri } from '../../../../dardcorTypes';
 import { LineOfText, notebookCellToCellData, summarize } from '../../common/helpers';
 import { fixture, loadFile, loadNotebook } from './utils';
 

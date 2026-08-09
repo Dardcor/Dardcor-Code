@@ -5,7 +5,7 @@
 
 import { Raw } from '@vscode/prompt-tsx';
 import { toTextParts } from '../../../platform/chat/common/globalStringUtils';
-import { OffsetRange } from '../../../util/vs/editor/common/core/ranges/offsetRange';
+import { OffsetRange } from '../../../util/dardcor/editor/common/core/ranges/offsetRange';
 
 
 /**

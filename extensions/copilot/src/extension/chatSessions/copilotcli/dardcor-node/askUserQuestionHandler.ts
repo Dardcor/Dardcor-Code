@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { ChatParticipantToolToken, commands, LanguageModelTextPart } from 'vscode';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
 import { ToolName } from '../../../tools/common/toolNames';
 import { IToolsService } from '../../../tools/common/toolsService';
 import { IQuestion, IQuestionAnswer, IUserQuestionHandler, UserInputResponse } from '../../copilotcli/node/userInputHelpers';

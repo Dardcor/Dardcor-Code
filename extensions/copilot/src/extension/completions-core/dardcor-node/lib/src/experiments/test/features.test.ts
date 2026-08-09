@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as assert from 'assert';
-import { ServicesAccessor } from '../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { ServicesAccessor } from '../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { extractRepoInfoInBackground } from '../../prompt/repository';
 import { TelemetryData } from '../../telemetry';
 import { createLibTestingContext } from '../../test/context';

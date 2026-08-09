@@ -4,12 +4,12 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { AssistantMessage, PromptElement, PromptElementProps, PromptReference, PromptSizing, SystemMessage, ToolMessage, useKeepWith, UserMessage } from '@vscode/prompt-tsx';
-import { ChatResponsePart } from '@vscode/prompt-tsx/dist/base/vscodeTypes';
+import { ChatResponsePart } from '@vscode/prompt-tsx/dist/base/dardcorTypes';
 import type { CancellationToken, ExtendedLanguageModelToolResult, Position, Progress } from 'vscode';
 import { TextDocumentSnapshot } from '../../../platform/editing/common/textDocumentSnapshot';
 import { CacheType } from '../../../platform/endpoint/common/endpointTypes';
 import { IPromptPathRepresentationService } from '../../../platform/prompts/common/promptPathRepresentationService';
-import { ChatRequest, ChatRequestEditorData, Range } from '../../../vscodeTypes';
+import { ChatRequest, ChatRequestEditorData, Range } from '../../../dardcorTypes';
 import { ChatVariablesCollection } from '../../prompt/common/chatVariablesCollection';
 import { IToolCall } from '../../prompt/common/intents';
 import { CopilotIdentityRules } from '../../prompts/node/base/copilotIdentity';

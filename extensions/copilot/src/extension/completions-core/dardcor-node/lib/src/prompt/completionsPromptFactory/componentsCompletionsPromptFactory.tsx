@@ -10,8 +10,8 @@ import { DiagnosticSeverity, type Diagnostic } from 'vscode';
 import { ICompletionsLogTargetService, logger } from '../../logger';
 
 import { IIgnoreService } from '../../../../../../../platform/ignore/common/ignoreService';
-import { URI } from '../../../../../../../util/vs/base/common/uri';
-import { IInstantiationService, ServicesAccessor } from '../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { URI } from '../../../../../../../util/dardcor/base/common/uri';
+import { IInstantiationService, ServicesAccessor } from '../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ICompletionsTelemetryService } from '../../../../bridge/src/completionsTelemetryServiceBridge';
 import { DataPipe, VirtualPrompt } from '../../../../prompt/src/components/virtualPrompt';
 import { TokenizerName } from '../../../../prompt/src/tokenization';
@@ -34,7 +34,7 @@ import { SplitContextPromptRenderer } from '../components/splitContextPromptRend
 import { Traits } from '../components/traits';
 
 import { ILanguageDiagnosticsService } from '../../../../../../../platform/languages/common/languageDiagnosticsService';
-import { generateUuid } from '../../../../../../../util/vs/base/common/uuid';
+import { generateUuid } from '../../../../../../../util/dardcor/base/common/uuid';
 import {
 	ContextProviderTelemetry,
 	getDefaultDiagnosticSettings,

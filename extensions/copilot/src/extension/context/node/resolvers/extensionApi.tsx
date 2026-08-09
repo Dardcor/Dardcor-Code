@@ -3,16 +3,16 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import { BasePromptElementProps, PromptElement, PromptPiece, PromptSizing, TextChunk } from '@vscode/prompt-tsx';
-import { ChatResponsePart } from '@vscode/prompt-tsx/dist/base/vscodeTypes';
+import { ChatResponsePart } from '@vscode/prompt-tsx/dist/base/dardcorTypes';
 import { Embedding, EmbeddingType, EmbeddingVector, IEmbeddingsComputer, rankEmbeddings } from '../../../../platform/embeddings/common/embeddingsComputer';
 import { EmbeddingCacheType, IEmbeddingsCache, LocalEmbeddingsCache, RemoteCacheType, RemoteEmbeddingsCache } from '../../../../platform/embeddings/common/embeddingsIndex';
 import { IEnvService } from '../../../../platform/env/common/envService';
 import { Progress } from '../../../../platform/notification/common/notificationService';
 import { createFencedCodeBlock } from '../../../../util/common/markdown';
 import { TelemetryCorrelationId } from '../../../../util/common/telemetryCorrelationId';
-import { sanitizeVSCodeVersion } from '../../../../util/common/vscodeVersion';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { createDecorator, IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { sanitizeVSCodeVersion } from '../../../../util/common/dardcorVersion';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { createDecorator, IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 
 type BaseApiContext = { text: string; embedding: EmbeddingVector; type: 'code' | 'command' | 'documentationCodeBlock' };
 type CodeApiContext = BaseApiContext & { type: 'code'; lang: string };

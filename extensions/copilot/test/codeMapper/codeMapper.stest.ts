@@ -11,9 +11,9 @@ import { WorkingCopyOriginalDocument } from '../../src/extension/prompts/node/in
 import { ITabsAndEditorsService } from '../../src/platform/tabs/common/tabsAndEditorsService';
 import { ITestingServicesAccessor, TestingServiceCollection } from '../../src/platform/test/node/services';
 import { IFile, SimulationWorkspace } from '../../src/platform/test/node/simulationWorkspace';
-import { isEqual } from '../../src/util/vs/base/common/resources';
-import { IInstantiationService } from '../../src/util/vs/platform/instantiation/common/instantiation';
-import { CancellationTokenSource, Selection, TextEdit } from '../../src/vscodeTypes';
+import { isEqual } from '../../src/util/dardcor/base/common/resources';
+import { IInstantiationService } from '../../src/util/dardcor/platform/instantiation/common/instantiation';
+import { CancellationTokenSource, Selection, TextEdit } from '../../src/dardcorTypes';
 import { Configuration, ISimulationTestRuntime, ssuite, stest } from '../base/stest';
 import { KnownDiagnosticProviders } from '../simulation/diagnosticProviders';
 import { setupSimulationWorkspace, teardownSimulationWorkspace, toIRange } from '../simulation/inlineChatSimulator';

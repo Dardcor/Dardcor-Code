@@ -2,8 +2,8 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import { extname } from '../vs/base/common/resources';
-import { URI } from '../vs/base/common/uri';
+import { extname } from '../dardcor/base/common/resources';
+import { URI } from '../dardcor/base/common/uri';
 
 /**
  * Interface for writing single-line comments in a given language.

@@ -5,9 +5,9 @@
 
 import { languages } from 'vscode';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
-import { Event } from '../../../util/vs/base/common/event';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { autorun, DebugOwner, observableFromEvent } from '../../../util/vs/base/common/observableInternal';
+import { Event } from '../../../util/dardcor/base/common/event';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { autorun, DebugOwner, observableFromEvent } from '../../../util/dardcor/base/common/observableInternal';
 
 export class CompletionsUnificationContribution extends Disposable {
 

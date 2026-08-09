@@ -8,11 +8,11 @@ import type { NotebookCell, NotebookDocument, TextDocument } from 'vscode';
 import { ILogger, ILogService } from '../../../../platform/log/common/logService';
 import { TestWorkspaceService } from '../../../../platform/test/node/testWorkspaceService';
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { StringSHA1 } from '../../../../util/vs/base/common/hash';
-import { NotebookCellKind, Uri } from '../../../../vscodeTypes';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { StringSHA1 } from '../../../../util/dardcor/base/common/hash';
+import { NotebookCellKind, Uri } from '../../../../dardcorTypes';
 import { LinkifiedPart, LinkifyLocationAnchor } from '../../common/linkifiedText';
-import { NotebookCellLinkifier } from '../../vscode-node/notebookCellLinkifier';
+import { NotebookCellLinkifier } from '../../dardcor-node/notebookCellLinkifier';
 import { assertPartsEqual } from '../node/util';
 
 suite('Notebook Cell Linkifier', () => {

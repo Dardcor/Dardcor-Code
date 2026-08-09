@@ -11,9 +11,9 @@ import { createServiceIdentifier } from '../../../util/common/services';
  * meaningful context to the user instead of passing a bare `true` or `{}`.
  */
 export type StrictAuthenticationPresentationOptions = AuthenticationGetSessionPresentationOptions & { detail: string };
-import { Emitter, Event } from '../../../util/vs/base/common/event';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { derived } from '../../../util/vs/base/common/observableInternal';
+import { Emitter, Event } from '../../../util/dardcor/base/common/event';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { derived } from '../../../util/dardcor/base/common/observableInternal';
 import { AuthPermissionMode, AuthProviderId, ConfigKey, IConfigurationService } from '../../configuration/common/configurationService';
 import { ILogService } from '../../log/common/logService';
 import { CopilotToken } from './copilotToken';

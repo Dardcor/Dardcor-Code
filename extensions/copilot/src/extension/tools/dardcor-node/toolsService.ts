@@ -13,12 +13,12 @@ import { IOTelService, SpanKind, SpanStatusCode } from '../../../platform/otel/c
 import { extractToolParameters } from '../../../platform/otel/node/extractToolParameters';
 import { getCurrentCapturingToken } from '../../../platform/requestLogger/node/requestLogger';
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
-import { equals as arraysEqual } from '../../../util/vs/base/common/arrays';
-import { Iterable } from '../../../util/vs/base/common/iterator';
-import { Lazy } from '../../../util/vs/base/common/lazy';
-import { isDisposable } from '../../../util/vs/base/common/lifecycle';
-import { autorunIterableDelta } from '../../../util/vs/base/common/observableInternal';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { equals as arraysEqual } from '../../../util/dardcor/base/common/arrays';
+import { Iterable } from '../../../util/dardcor/base/common/iterator';
+import { Lazy } from '../../../util/dardcor/base/common/lazy';
+import { isDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { autorunIterableDelta } from '../../../util/dardcor/base/common/observableInternal';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { getContributedToolName, getToolName, mapContributedToolNamesInSchema, mapContributedToolNamesInString, ToolName } from '../common/toolNames';
 import { ICopilotTool, ICopilotToolExtension, modelSpecificToolApplies, ToolRegistry } from '../common/toolsRegistry';
 import { BaseToolsService } from '../common/toolsService';

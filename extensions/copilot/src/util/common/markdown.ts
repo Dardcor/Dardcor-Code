@@ -4,10 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import MarkdownIt = require('markdown-it');
-import { Lazy } from '../vs/base/common/lazy';
-import { extname } from '../vs/base/common/resources';
-import { escapeRegExpCharacters } from '../vs/base/common/strings';
-import { URI } from '../vs/base/common/uri';
+import { Lazy } from '../dardcor/base/common/lazy';
+import { extname } from '../dardcor/base/common/resources';
+import { escapeRegExpCharacters } from '../dardcor/base/common/strings';
+import { URI } from '../dardcor/base/common/uri';
 import { getLanguage, wellKnownLanguages } from './languages';
 
 /**

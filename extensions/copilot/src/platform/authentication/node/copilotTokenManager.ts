@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { RequestType } from '@vscode/copilot-api';
-import { Emitter } from '../../../util/vs/base/common/event';
-import { Disposable, toDisposable } from '../../../util/vs/base/common/lifecycle';
-import { SyncDescriptor } from '../../../util/vs/platform/instantiation/common/descriptors';
+import { Emitter } from '../../../util/dardcor/base/common/event';
+import { Disposable, toDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { SyncDescriptor } from '../../../util/dardcor/platform/instantiation/common/descriptors';
 import { IConfigurationService } from '../../configuration/common/configurationService';
 import { ICAPIClientService } from '../../endpoint/common/capiClient';
 import { IDomainService } from '../../endpoint/common/domainService';

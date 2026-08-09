@@ -5,7 +5,7 @@
 
 import * as vscode from 'vscode';
 import { ISurveyService } from '../../../platform/survey/common/surveyService';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 
 export const SURVEY_SIGNAL_USAGE_ID = 'github.copilot.survey.signalUsage';
 

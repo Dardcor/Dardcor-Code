@@ -5,12 +5,12 @@
 
 import * as l10n from '@vscode/l10n';
 import type { ChatContext, ChatRequest, ChatResponseStream } from 'vscode';
-import { coalesce } from '../../../util/vs/base/common/arrays';
-import { findLast } from '../../../util/vs/base/common/arraysFind';
-import { Emitter } from '../../../util/vs/base/common/event';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { URI } from '../../../util/vs/base/common/uri';
-import { ChatRequestTurn } from '../../../vscodeTypes';
+import { coalesce } from '../../../util/dardcor/base/common/arrays';
+import { findLast } from '../../../util/dardcor/base/common/arraysFind';
+import { Emitter } from '../../../util/dardcor/base/common/event';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { ChatRequestTurn } from '../../../dardcorTypes';
 import { AuthPermissionMode, ConfigKey, IConfigurationService } from '../../configuration/common/configurationService';
 import { getGitHubRepoInfoFromContext, IGitService } from '../../git/common/gitService';
 import { IGithubRepositoryService } from '../../github/common/githubService';

@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { assert } from '../../../../util/vs/base/common/assert';
-import { StringEdit } from '../../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
+import { assert } from '../../../../util/dardcor/base/common/assert';
+import { StringEdit } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
 import { EventLogEntryData, LogEntry } from '../workspaceLog';
 import { DocumentRecording } from './documentHistory';
 import { DocumentId, DocumentStateId, InlineCompletionFetchRequest, Operation, OperationKind } from './operation';

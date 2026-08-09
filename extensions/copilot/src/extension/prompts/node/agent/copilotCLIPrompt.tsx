@@ -12,10 +12,10 @@ import { IFileSystemService } from '../../../../platform/filesystem/common/fileS
 import { IChatEndpoint } from '../../../../platform/networking/common/networking';
 import { IPromptPathRepresentationService } from '../../../../platform/prompts/common/promptPathRepresentationService';
 import { isLocation } from '../../../../util/common/types';
-import { Schemas } from '../../../../util/vs/base/common/network';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
-import { ChatReferenceBinaryData, ChatRequest, FileType } from '../../../../vscodeTypes';
+import { Schemas } from '../../../../util/dardcor/base/common/network';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { ChatReferenceBinaryData, ChatRequest, FileType } from '../../../../dardcorTypes';
 import { ChatVariablesCollection, isPromptFile, isSessionReference, PromptVariable, sessionReferenceAttachmentAttrs } from '../../../prompt/common/chatVariablesCollection';
 import { renderPromptElement } from '../base/promptRenderer';
 import { Tag } from '../base/tag';

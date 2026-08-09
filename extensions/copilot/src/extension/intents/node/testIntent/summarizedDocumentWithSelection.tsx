@@ -11,9 +11,9 @@ import { IIgnoreService } from '../../../../platform/ignore/common/ignoreService
 import { ILogService } from '../../../../platform/log/common/logService';
 import { OverlayNode } from '../../../../platform/parser/node/nodes';
 import { IParserService } from '../../../../platform/parser/node/parserService';
-import { isFalsyOrWhitespace } from '../../../../util/vs/base/common/strings';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
-import { ServicesAccessor } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { isFalsyOrWhitespace } from '../../../../util/dardcor/base/common/strings';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { ServicesAccessor } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { getStructure } from '../../../context/node/resolvers/selectionContextHelpers';
 import { PromptMetadata } from '../../../prompt/common/conversation';
 import { EarlyStopping, LeadingMarkdownStreaming, ReplyInterpreter, ReplyInterpreterMetaData } from '../../../prompt/node/intents';

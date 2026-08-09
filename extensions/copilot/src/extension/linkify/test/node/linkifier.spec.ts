@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { suite, test } from 'vitest';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
 import { coalesceParts, LinkifiedPart, LinkifyLocationAnchor } from '../../common/linkifiedText';
 import { ILinkifier, LinkifierContext } from '../../common/linkifyService';
 import { assertPartsEqual, createTestLinkifierService, workspaceFile } from './util';

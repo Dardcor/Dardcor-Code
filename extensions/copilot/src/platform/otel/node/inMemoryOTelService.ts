@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { AsyncLocalStorage } from 'async_hooks';
-import { Emitter, type Event } from '../../../util/vs/base/common/event';
+import { Emitter, type Event } from '../../../util/dardcor/base/common/event';
 import type { OTelConfig } from '../common/otelConfig';
 import { SpanStatusCode, type ICompletedSpanData, type IOTelService, type ISpanEventData, type ISpanEventRecord, type ISpanHandle, type SpanOptions, type TraceContext } from '../common/otelService';
 

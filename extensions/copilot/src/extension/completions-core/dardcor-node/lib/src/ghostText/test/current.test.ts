@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import * as assert from 'assert';
-import { generateUuid } from '../../../../../../../util/vs/base/common/uuid';
+import { generateUuid } from '../../../../../../../util/dardcor/base/common/uuid';
 import { fakeAPIChoice } from '../../openai/fetch.fake';
 import { APIChoice } from '../../openai/openai';
 import { CurrentGhostText } from '../current';

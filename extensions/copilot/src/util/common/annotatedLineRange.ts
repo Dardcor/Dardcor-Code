@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { LineRange } from '../vs/editor/common/core/ranges/lineRange';
+import { LineRange } from '../dardcor/editor/common/core/ranges/lineRange';
 
 export class AnnotatedLineRange<T> extends LineRange {
 	public static fromLineRange(range: LineRange): AnnotatedLineRange<void> {

@@ -5,9 +5,9 @@
 
 import { StatelessNextEditDocument } from '../../../platform/inlineEdits/common/statelessNextEditProvider';
 import { ChoiceLogProbs } from '../../../platform/networking/common/openai';
-import { BugIndicatingError } from '../../../util/vs/base/common/errors';
-import { Range } from '../../../util/vs/editor/common/core/range';
-import { OffsetRange, OffsetRangeSet } from '../../../util/vs/editor/common/core/ranges/offsetRange';
+import { BugIndicatingError } from '../../../util/dardcor/base/common/errors';
+import { Range } from '../../../util/dardcor/editor/common/core/range';
+import { OffsetRange, OffsetRangeSet } from '../../../util/dardcor/editor/common/core/ranges/offsetRange';
 
 /**
  * Read the selection from the document, otherwise deduce it from the last edit.

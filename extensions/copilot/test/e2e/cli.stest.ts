@@ -39,13 +39,13 @@ import { MockPromptsService } from '../../src/platform/promptFiles/test/common/m
 import { TestingServiceCollection } from '../../src/platform/test/node/services';
 import { IQualifiedFile, SimulationWorkspace } from '../../src/platform/test/node/simulationWorkspace';
 import { ChatReferenceDiagnostic } from '../../src/util/common/test/shims/chatTypes';
-import { disposableTimeout, IntervalTimer } from '../../src/util/vs/base/common/async';
-import { CancellationToken } from '../../src/util/vs/base/common/cancellation';
-import { DisposableStore, IReference } from '../../src/util/vs/base/common/lifecycle';
-import { URI } from '../../src/util/vs/base/common/uri';
-import { SyncDescriptor } from '../../src/util/vs/platform/instantiation/common/descriptors';
-import { IInstantiationService } from '../../src/util/vs/platform/instantiation/common/instantiation';
-import { ChatRequest, ChatSessionStatus, ChatToolInvocationPart, Diagnostic, DiagnosticSeverity, LanguageModelTextPart, LanguageModelToolResult2, Location, Range, Uri } from '../../src/vscodeTypes';
+import { disposableTimeout, IntervalTimer } from '../../src/util/dardcor/base/common/async';
+import { CancellationToken } from '../../src/util/dardcor/base/common/cancellation';
+import { DisposableStore, IReference } from '../../src/util/dardcor/base/common/lifecycle';
+import { URI } from '../../src/util/dardcor/base/common/uri';
+import { SyncDescriptor } from '../../src/util/dardcor/platform/instantiation/common/descriptors';
+import { IInstantiationService } from '../../src/util/dardcor/platform/instantiation/common/instantiation';
+import { ChatRequest, ChatSessionStatus, ChatToolInvocationPart, Diagnostic, DiagnosticSeverity, LanguageModelTextPart, LanguageModelToolResult2, Location, Range, Uri } from '../../src/dardcorTypes';
 import { ssuite, stest } from '../base/stest';
 
 const permissionConfirmationInvocations: Array<{ name: string; input: unknown }> = [];

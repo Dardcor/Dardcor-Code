@@ -5,7 +5,7 @@
 
 import { Chunk, PrioritizedList, PromptElement, PromptElementProps, UserMessage } from '@vscode/prompt-tsx';
 import type { LanguageModelToolResult } from 'vscode';
-import { truncate } from '../../../../util/vs/base/common/strings';
+import { truncate } from '../../../../util/dardcor/base/common/strings';
 import { IToolCall, IToolCallRound } from '../../../prompt/common/intents';
 import { Tag } from '../base/tag';
 import { ToolResult } from '../panel/toolCalling';

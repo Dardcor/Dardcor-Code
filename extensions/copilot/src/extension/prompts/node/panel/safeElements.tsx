@@ -12,8 +12,8 @@ import { ILogService } from '../../../../platform/log/common/logService';
 import { IPromptPathRepresentationService } from '../../../../platform/prompts/common/promptPathRepresentationService';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry';
 import { createFencedCodeBlock } from '../../../../util/common/markdown';
-import { basename } from '../../../../util/vs/base/common/resources';
-import { ExtensionMode } from '../../../../vscodeTypes';
+import { basename } from '../../../../util/dardcor/base/common/resources';
+import { ExtensionMode } from '../../../../dardcorTypes';
 
 
 export abstract class SafePromptElement<P extends BasePromptElementProps, S = void> extends PromptElement<P, S> {

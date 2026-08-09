@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 import { visit } from 'jsonc-parser';
 import type { CancellationToken, NotebookCell, NotebookDocument, TextDocument } from 'vscode';
-import { AsyncIterableObject } from '../../../util/vs/base/common/async';
-import { URI } from '../../../util/vs/base/common/uri';
-import { NotebookCellKind, Position, Range, Uri } from '../../../vscodeTypes';
+import { AsyncIterableObject } from '../../../util/dardcor/base/common/async';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { NotebookCellKind, Position, Range, Uri } from '../../../dardcorTypes';
 import { BaseAlternativeNotebookContentProvider } from './alternativeContentProvider';
 import { AlternativeNotebookDocument } from './alternativeNotebookDocument';
 import { EOL, getCellId, getCellIdMap, getDefaultLanguage, LineOfCellText, LineOfText, summarize } from './helpers';

@@ -4,10 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { InlineCompletionItemProvider } from 'vscode';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
-import { createContext, setup } from '../../completions-core/vscode-node/completionsServiceBridges';
-import { CopilotInlineCompletionItemProvider } from '../../completions-core/vscode-node/extension/src/vscodeInlineCompletionItemProvider';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { createContext, setup } from '../../completions-core/dardcor-node/completionsServiceBridges';
+import { CopilotInlineCompletionItemProvider } from '../../completions-core/dardcor-node/extension/src/dardcorInlineCompletionItemProvider';
 import { ICopilotInlineCompletionItemProviderService } from '../common/copilotInlineCompletionItemProviderService';
 
 export class CopilotInlineCompletionItemProviderService extends Disposable implements ICopilotInlineCompletionItemProviderService {

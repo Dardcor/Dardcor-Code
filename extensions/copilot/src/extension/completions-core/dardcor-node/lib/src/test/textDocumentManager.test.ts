@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import assert from 'assert';
-import { IInstantiationService, ServicesAccessor } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService, ServicesAccessor } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { makeFsUri } from '../util/uri';
 import { createLibTestingContext } from './context';
 import { SimpleTestTextDocumentManager, createTextDocument } from './textDocument';

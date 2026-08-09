@@ -6,9 +6,9 @@
 import type * as vscode from 'vscode';
 import { TextDocumentSnapshot } from '../../../platform/editing/common/textDocumentSnapshot';
 import { ILanguage, getLanguage } from '../../../util/common/languages';
-import { findLast } from '../../../util/vs/base/common/arraysFind';
-import { Mutable } from '../../../util/vs/base/common/types';
-import { ChatRequestEditorData, ChatRequestNotebookData, Range, Selection } from '../../../vscodeTypes';
+import { findLast } from '../../../util/dardcor/base/common/arraysFind';
+import { Mutable } from '../../../util/dardcor/base/common/types';
+import { ChatRequestEditorData, ChatRequestNotebookData, Range, Selection } from '../../../dardcorTypes';
 import { CopilotInteractiveEditorResponse } from '../../inlineChat/node/promptCraftingTypes';
 import { Turn } from '../common/conversation';
 

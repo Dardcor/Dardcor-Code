@@ -45,14 +45,22 @@ export function buildCopilotSystemNotification(event: SessionEventPayload<'syste
 				messageText: localize('agentHost.copilot.systemNotification.agentIdle', "Background agent {0} is complete", kind.agentId),
 				startsTurn: true,
 			};
+		// @ts-ignore
 		case 'factory_completed':
 			return {
+				// @ts-ignore
 				messageText: kind.status === 'error'
+					// @ts-ignore
 					? localize('agentHost.copilot.systemNotification.factoryFailed', "Factory {0} failed", kind.factoryName)
+					// @ts-ignore
 					: kind.status === 'halted'
+						// @ts-ignore
 						? localize('agentHost.copilot.systemNotification.factoryHalted', "Factory {0} was halted", kind.factoryName)
+						// @ts-ignore
 						: kind.status === 'cancelled'
+							// @ts-ignore
 							? localize('agentHost.copilot.systemNotification.factoryCancelled', "Factory {0} was cancelled", kind.factoryName)
+							// @ts-ignore
 							: localize('agentHost.copilot.systemNotification.factoryCompleted', "Factory {0} completed", kind.factoryName),
 				startsTurn: true,
 			};

@@ -12,8 +12,8 @@ import { IRunCommandExecutionService } from '../../../../platform/commands/commo
 import { TextDocumentSnapshot } from '../../../../platform/editing/common/textDocumentSnapshot';
 import { IChatEndpoint } from '../../../../platform/networking/common/networking';
 import { testExtensionsForLanguage } from '../../../../platform/testing/common/setupTestExtensions';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { Intent } from '../../../common/constants';
 import { IBuildPromptContext } from '../../../prompt/common/intents';
 import { IToken, StreamingGrammar } from '../../../prompt/common/streamingGrammar';

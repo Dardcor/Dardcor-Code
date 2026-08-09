@@ -14,9 +14,9 @@ import { TestWorkspaceService } from '../../../../../platform/test/node/testWork
 import { IWorkspaceService } from '../../../../../platform/workspace/common/workspaceService';
 import { createTextDocumentData } from '../../../../../util/common/test/shims/textDocument';
 import { ITokenizer, TokenizerType } from '../../../../../util/common/tokenizer';
-import { Event } from '../../../../../util/vs/base/common/event';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
-import { Uri } from '../../../../../vscodeTypes';
+import { Event } from '../../../../../util/dardcor/base/common/event';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { Uri } from '../../../../../dardcorTypes';
 import { createExtensionUnitTestingServices } from '../../../../test/node/services';
 import { PromptRenderer, renderPromptElementJSON } from '../../base/promptRenderer';
 import { FileVariable } from '../fileVariable';

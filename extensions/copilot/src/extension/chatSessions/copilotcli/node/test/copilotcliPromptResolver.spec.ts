@@ -8,10 +8,10 @@ import { MockFileSystemService } from '../../../../../platform/filesystem/node/t
 import { IIgnoreService, NullIgnoreService } from '../../../../../platform/ignore/common/ignoreService';
 import { ILogService } from '../../../../../platform/log/common/logService';
 import { NullWorkspaceService } from '../../../../../platform/workspace/common/workspaceService';
-import { CancellationToken } from '../../../../../util/vs/base/common/cancellation';
-import { DisposableStore } from '../../../../../util/vs/base/common/lifecycle';
-import { URI } from '../../../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../../../../util/dardcor/base/common/cancellation';
+import { DisposableStore } from '../../../../../util/dardcor/base/common/lifecycle';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { IVSCodeExtensionContext } from '../../../../../platform/extContext/common/extensionContext';
 import { MockExtensionContext } from '../../../../../platform/test/node/extensionContext';
 import { createExtensionUnitTestingServices } from '../../../../test/node/services';

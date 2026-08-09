@@ -9,8 +9,8 @@ import { IVSCodeExtensionContext } from '../../../platform/extContext/common/ext
 import { ILogService } from '../../../platform/log/common/logService';
 import { IFetcherService } from '../../../platform/networking/common/fetcherService';
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
-import { IStringDictionary } from '../../../util/vs/base/common/collections';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { IStringDictionary } from '../../../util/dardcor/base/common/collections';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { resolveModelInfo } from '../common/byokProvider';
 import { OpenAIEndpoint } from '../node/openAIEndpoint';
 import { AbstractOpenAICompatibleLMProvider, LanguageModelChatConfiguration, OpenAICompatibleLanguageModelChatInformation } from './abstractLanguageModelChatProvider';

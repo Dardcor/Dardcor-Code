@@ -5,8 +5,8 @@
 
 import * as l10n from '@vscode/l10n';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { URI } from '../../../util/vs/base/common/uri';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { URI } from '../../../util/dardcor/base/common/uri';
 
 export const HAS_IGNORED_FILES_MESSAGE = l10n.t('\n\n**Note:** Some files were excluded from the context due to content exclusion rules. Click [here](https://docs.github.com/en/copilot/managing-github-copilot-in-your-organization/configuring-content-exclusions-for-github-copilot) to learn more.');
 

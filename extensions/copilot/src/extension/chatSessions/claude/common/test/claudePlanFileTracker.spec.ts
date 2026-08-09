@@ -5,8 +5,8 @@
 
 import { describe, expect, it } from 'vitest';
 import { NullNativeEnvService } from '../../../../../platform/env/common/nullEnvService';
-import { isLinux } from '../../../../../util/vs/base/common/platform';
-import { URI } from '../../../../../util/vs/base/common/uri';
+import { isLinux } from '../../../../../util/dardcor/base/common/platform';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
 import { ClaudePlanFileTracker } from '../claudePlanFileTracker';
 
 describe('ClaudePlanFileTracker', () => {

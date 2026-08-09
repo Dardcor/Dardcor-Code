@@ -5,14 +5,14 @@
 
 import assert from 'assert';
 import { expect, suite, test } from 'vitest';
-import { range } from '../../../../util/vs/base/common/arrays';
-import { splitLines } from '../../../../util/vs/base/common/strings';
-import { LineEdit, LineReplacement } from '../../../../util/vs/editor/common/core/edits/lineEdit';
-import { StringEdit, StringReplacement } from '../../../../util/vs/editor/common/core/edits/stringEdit';
-import { TextReplacement } from '../../../../util/vs/editor/common/core/edits/textEdit';
-import { LineRange } from '../../../../util/vs/editor/common/core/ranges/lineRange';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
-import { StringText } from '../../../../util/vs/editor/common/core/text/abstractText';
+import { range } from '../../../../util/dardcor/base/common/arrays';
+import { splitLines } from '../../../../util/dardcor/base/common/strings';
+import { LineEdit, LineReplacement } from '../../../../util/dardcor/editor/common/core/edits/lineEdit';
+import { StringEdit, StringReplacement } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { TextReplacement } from '../../../../util/dardcor/editor/common/core/edits/textEdit';
+import { LineRange } from '../../../../util/dardcor/editor/common/core/ranges/lineRange';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { StringText } from '../../../../util/dardcor/editor/common/core/text/abstractText';
 import { RootedEdit } from '../../common/dataTypes/edit';
 import { decomposeStringEdit } from '../../common/dataTypes/editUtils';
 import { Permutation } from '../../common/dataTypes/permutation';

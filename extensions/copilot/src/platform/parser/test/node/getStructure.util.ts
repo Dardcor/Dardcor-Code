@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import * as fs from 'fs';
-import * as path from '../../../../util/vs/base/common/path';
+import * as path from '../../../../util/dardcor/base/common/path';
 import { OverlayNode } from '../../node/nodes';
 import { structureComputer } from '../../node/structure';
 import { WASMLanguage } from '../../node/treeSitterLanguages';

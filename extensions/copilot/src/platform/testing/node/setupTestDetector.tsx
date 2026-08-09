@@ -6,10 +6,10 @@
 import * as l10n from '@vscode/l10n';
 import type * as vscode from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { mapFindFirst } from '../../../util/vs/base/common/arraysFind';
-import { assertNever } from '../../../util/vs/base/common/assert';
-import { timeout } from '../../../util/vs/base/common/async';
-import { ChatResponseConfirmationPart, ChatResponseExtensionsPart, ChatResponseMarkdownPart, ExtensionMode, MarkdownString } from '../../../vscodeTypes';
+import { mapFindFirst } from '../../../util/dardcor/base/common/arraysFind';
+import { assertNever } from '../../../util/dardcor/base/common/assert';
+import { timeout } from '../../../util/dardcor/base/common/async';
+import { ChatResponseConfirmationPart, ChatResponseExtensionsPart, ChatResponseMarkdownPart, ExtensionMode, MarkdownString } from '../../../dardcorTypes';
 import { IRunCommandExecutionService } from '../../commands/common/runCommandExecutionService';
 import { ConfigKey, IConfigurationService } from '../../configuration/common/configurationService';
 import { TextDocumentSnapshot } from '../../editing/common/textDocumentSnapshot';

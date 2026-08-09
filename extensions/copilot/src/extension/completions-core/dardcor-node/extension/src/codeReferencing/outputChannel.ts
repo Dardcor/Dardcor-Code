@@ -5,8 +5,8 @@
 
 import { window, type OutputChannel } from 'vscode';
 import { IAuthenticationService } from '../../../../../../platform/authentication/common/authentication';
-import { Disposable, IDisposable, MutableDisposable } from '../../../../../../util/vs/base/common/lifecycle';
-import { IInstantiationService } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { Disposable, IDisposable, MutableDisposable } from '../../../../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { CopilotToken } from '../../../lib/src/auth/copilotTokenManager';
 import { onCopilotToken } from '../../../lib/src/auth/copilotTokenNotifier';
 

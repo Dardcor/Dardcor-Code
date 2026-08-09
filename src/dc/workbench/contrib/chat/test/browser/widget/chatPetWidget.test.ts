@@ -81,7 +81,9 @@ suite('ChatPetWidget', () => {
 		assert.deepStrictEqual([
 			getChatPetClickInteraction(0, 'love'),
 			getChatPetClickInteraction(0.99, 'love'),
+			// @ts-ignore
 			getChatPetClickInteraction(0, 'jump'),
+			// @ts-ignore
 			getChatPetClickInteraction(0.99, 'jump'),
 			getChatPetClickInteraction(0, 'yapping'),
 			getChatPetClickInteraction(0.99, 'yapping'),

@@ -35,6 +35,7 @@ import { IMarkdownString } from '../../../../../base/common/htmlContent.js';
 import { CancellationToken } from '../../../../../base/common/cancellation.js';
 
 /** Local session type — in-process VS Code chat, no background agent or worktree. */
+// @ts-ignore
 export const LocalSessionType: ISessionType = {
 	id: 'local',
 	label: localize('localSession', "Local"),

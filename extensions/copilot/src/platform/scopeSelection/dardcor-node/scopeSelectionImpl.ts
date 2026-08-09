@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { DocumentSymbol, Position, Range, Selection, TextEditor, ThemeIcon, l10n } from 'vscode';
-import { Codicon } from '../../../util/vs/base/common/codicons';
-import { CancellationError } from '../../../util/vs/base/common/errors';
-import { SymbolKind } from '../../../util/vs/workbench/api/common/extHostTypes/symbolInformation';
+import { Codicon } from '../../../util/dardcor/base/common/codicons';
+import { CancellationError } from '../../../util/dardcor/base/common/errors';
+import { SymbolKind } from '../../../util/dardcor/workbench/api/common/extHostTypes/symbolInformation';
 import { IDialogService } from '../../dialog/common/dialogService';
 import { TextDocumentSnapshot } from '../../editing/common/textDocumentSnapshot';
 import { ILanguageFeaturesService } from '../../languages/common/languageFeaturesService';

@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Disposable, commands } from 'vscode';
-import { DisposableStore, IDisposable } from '../../../util/vs/base/common/lifecycle';
-import { ServicesAccessor } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { DisposableStore, IDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { ServicesAccessor } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 
 export function create(accessor: ServicesAccessor): IDisposable {
 	const disposables = new DisposableStore();

@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, expect, it } from 'vitest';
-import { StringEdit, StringReplacement } from '../../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
-import { PositionOffsetTransformer } from '../../../../util/vs/editor/common/core/text/positionToOffset';
+import { StringEdit, StringReplacement } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { PositionOffsetTransformer } from '../../../../util/dardcor/editor/common/core/text/positionToOffset';
 import { getCurrentLine, isModelLineCompatible } from '../../node/cursorLineDivergence';
 
 // ============================================================================

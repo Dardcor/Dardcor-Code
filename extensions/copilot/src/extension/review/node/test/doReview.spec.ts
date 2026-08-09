@@ -16,12 +16,12 @@ import { IReviewService, ReviewComment } from '../../../../platform/review/commo
 import { IScopeSelector } from '../../../../platform/scopeSelection/common/scopeSelection';
 import { ITabsAndEditorsService } from '../../../../platform/tabs/common/tabsAndEditorsService';
 import { createPlatformServices, TestingServiceCollection } from '../../../../platform/test/node/services';
-import { CancellationToken, CancellationTokenSource } from '../../../../util/vs/base/common/cancellation';
-import { CancellationError } from '../../../../util/vs/base/common/errors';
-import { DisposableStore } from '../../../../util/vs/base/common/lifecycle';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { SyncDescriptor } from '../../../../util/vs/platform/instantiation/common/descriptors';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken, CancellationTokenSource } from '../../../../util/dardcor/base/common/cancellation';
+import { CancellationError } from '../../../../util/dardcor/base/common/errors';
+import { DisposableStore } from '../../../../util/dardcor/base/common/lifecycle';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { SyncDescriptor } from '../../../../util/dardcor/platform/instantiation/common/descriptors';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import type { FeedbackResult } from '../../../prompt/node/feedbackGenerator';
 import { combineCancellationTokens, getReviewTitle, HandleResultDependencies, handleReviewResult, ReviewGroup, ReviewSession } from '../doReview';
 

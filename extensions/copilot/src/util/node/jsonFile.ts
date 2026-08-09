@@ -5,7 +5,7 @@
 
 import { readFile, writeFile } from 'fs/promises';
 import { TaskQueue } from '../common/async';
-import { deepClone } from '../vs/base/common/objects';
+import { deepClone } from '../dardcor/base/common/objects';
 
 export class JSONFile<T> {
 	public static async readOrCreate<T>(filePath: string, initialValue: T, indent: string | number = 4): Promise<JSONFile<T>> {

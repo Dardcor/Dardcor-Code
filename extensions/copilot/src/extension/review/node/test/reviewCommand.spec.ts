@@ -9,8 +9,8 @@ import { TextDocumentSnapshot } from '../../../../platform/editing/common/textDo
 import { toCodeReviewResult } from '../../../../platform/review/common/reviewCommand';
 import { ReviewComment, ReviewSuggestion } from '../../../../platform/review/common/reviewService';
 import { createTextDocumentData } from '../../../../util/common/test/shims/textDocument';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { Range } from '../../../../vscodeTypes';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { Range } from '../../../../dardcorTypes';
 
 function createMockDocument(uri = URI.file('/test.ts'), content = 'test content') {
 	return TextDocumentSnapshot.create(createTextDocumentData(uri, content, 'typescript').document);

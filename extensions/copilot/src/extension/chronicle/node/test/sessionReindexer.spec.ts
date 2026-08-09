@@ -6,7 +6,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { IChatDebugFileLoggerService, IDebugLogEntry } from '../../../../platform/chat/common/chatDebugFileLoggerService';
 import type { ISessionStore, SessionRow, TurnRow, FileRow, RefRow } from '../../../../platform/chronicle/common/sessionStore';
-import { CancellationTokenSource } from '../../../../util/vs/base/common/cancellation';
+import { CancellationTokenSource } from '../../../../util/dardcor/base/common/cancellation';
 import { MAX_ASSISTANT_RESPONSE_LENGTH, MAX_USER_MESSAGE_LENGTH } from '../../common/sessionStoreTracking';
 import { reindexSessions, reindexCloudSessions } from '../sessionReindexer';
 import type { CloudSessionApiClient } from '../cloudSessionApiClient';

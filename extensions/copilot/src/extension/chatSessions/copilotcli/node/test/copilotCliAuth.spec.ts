@@ -11,8 +11,8 @@ import { ConfigKey, IConfigurationService } from '../../../../../platform/config
 import { IEnvService } from '../../../../../platform/env/common/envService';
 import { IVSCodeExtensionContext } from '../../../../../platform/extContext/common/extensionContext';
 import { ILogService } from '../../../../../platform/log/common/logService';
-import { DisposableStore } from '../../../../../util/vs/base/common/lifecycle';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { DisposableStore } from '../../../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { createExtensionUnitTestingServices } from '../../../../test/node/services';
 import { CopilotCLISDK } from '../copilotCli';
 

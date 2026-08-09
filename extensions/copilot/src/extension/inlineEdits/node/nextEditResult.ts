@@ -5,10 +5,10 @@
 
 import type { Command } from 'vscode';
 import { DocumentId } from '../../../platform/inlineEdits/common/dataTypes/documentId';
-import { StringReplacement } from '../../../util/vs/editor/common/core/edits/stringEdit';
-import { Position } from '../../../util/vs/editor/common/core/position';
-import { Range } from '../../../util/vs/editor/common/core/range';
-import { StringText } from '../../../util/vs/editor/common/core/text/abstractText';
+import { StringReplacement } from '../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { Position } from '../../../util/dardcor/editor/common/core/position';
+import { Range } from '../../../util/dardcor/editor/common/core/range';
+import { StringText } from '../../../util/dardcor/editor/common/core/text/abstractText';
 import type { CachedEdit } from './nextEditCache';
 import { NextEditFetchRequest } from './nextEditProvider';
 

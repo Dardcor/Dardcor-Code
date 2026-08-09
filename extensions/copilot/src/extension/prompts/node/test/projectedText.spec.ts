@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, expect, it } from 'vitest';
-import { StringEdit } from '../../../../util/vs/editor/common/core/edits/stringEdit';
+import { StringEdit } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
 import { ProjectedText } from '../inline/summarizedDocument/projectedText';
 
 describe('projectedText', () => {

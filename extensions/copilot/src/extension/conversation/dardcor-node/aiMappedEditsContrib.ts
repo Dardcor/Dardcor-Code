@@ -7,8 +7,8 @@
 import * as vscode from 'vscode';
 import { IConfigurationService } from '../../../platform/configuration/common/configurationService';
 import { IEnvService } from '../../../platform/env/common/envService';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { IExtensionContribution } from '../../common/contributions';
 import { AIMappedEditsProvider2 } from '../node/aiMappedEditsProvider';
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';

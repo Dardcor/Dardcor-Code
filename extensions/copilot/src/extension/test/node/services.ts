@@ -51,8 +51,8 @@ import { TestLogService } from '../../../platform/testing/common/testLogService'
 import { ITestProvider } from '../../../platform/testing/common/testProvider';
 import { IGithubAvailableEmbeddingTypesService, MockGithubAvailableEmbeddingTypesService } from '../../../platform/workspaceChunkSearch/common/githubAvailableEmbeddingTypes';
 import { IWorkspaceChunkSearchService, NullWorkspaceChunkSearchService } from '../../../platform/workspaceChunkSearch/node/workspaceChunkSearchService';
-import { DisposableStore } from '../../../util/vs/base/common/lifecycle';
-import { SyncDescriptor } from '../../../util/vs/platform/instantiation/common/descriptors';
+import { DisposableStore } from '../../../util/dardcor/base/common/lifecycle';
+import { SyncDescriptor } from '../../../util/dardcor/platform/instantiation/common/descriptors';
 import { ILanguageModelServer } from '../../agents/node/langModelServer';
 import { MockLanguageModelServer } from '../../agents/node/test/mockLanguageModelServer';
 import { IClaudeRuntimeDataService } from '../../chatSessions/claude/common/claudeRuntimeDataService';

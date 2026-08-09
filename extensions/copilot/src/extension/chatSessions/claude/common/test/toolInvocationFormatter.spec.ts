@@ -5,8 +5,8 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { describe, expect, it } from 'vitest';
-import { URI } from '../../../../../util/vs/base/common/uri';
-import { ChatSubagentToolInvocationData, ChatToolInvocationPart } from '../../../../../vscodeTypes';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
+import { ChatSubagentToolInvocationData, ChatToolInvocationPart } from '../../../../../dardcorTypes';
 import { ClaudeToolNames } from '../claudeTools';
 import { completeToolInvocation, createFormattedToolInvocation } from '../toolInvocationFormatter';
 

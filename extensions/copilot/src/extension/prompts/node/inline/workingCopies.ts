@@ -6,8 +6,8 @@
 import type { ChatResponseStream, ExtendedChatResponsePart } from 'vscode';
 import { PositionOffsetTransformer } from '../../../../platform/editing/common/positionOffsetTransformer';
 import { ChatResponseStreamImpl } from '../../../../util/common/chatResponseStreamImpl';
-import { StringEdit } from '../../../../util/vs/editor/common/core/edits/stringEdit';
-import { ChatResponseTextEditPart, TextEdit } from '../../../../vscodeTypes';
+import { StringEdit } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { ChatResponseTextEditPart, TextEdit } from '../../../../dardcorTypes';
 import { ProjectedDocument } from './summarizedDocument/summarizeDocument';
 
 export class WorkingCopyDerivedDocument {

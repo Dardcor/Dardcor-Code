@@ -5,8 +5,8 @@
 
 import type * as vscode from 'vscode';
 import { ITerminalService } from '../../../platform/terminal/common/terminalService';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { URI } from '../../../util/vs/base/common/uri';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { URI } from '../../../util/dardcor/base/common/uri';
 
 const MAX_BUFFER_CHARS = 2000;
 

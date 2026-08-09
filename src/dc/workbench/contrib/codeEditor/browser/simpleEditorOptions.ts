@@ -15,7 +15,7 @@ import { EditorExtensionsRegistry } from '../../../../editor/browser/editorExten
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { registerThemingParticipant } from '../../../../platform/theme/common/themeService.js';
 import { IDisposable } from '../../../../base/common/lifecycle.js';
-import { selectionBackground, inputBackground, inputForeground } from '../../../../platform/theme/common/colorRegistry.js';
+import { selectionBackground, inputBackground, inputForeground, editorSelectionBackground } from '../../../../platform/theme/common/colorRegistry.js';
 
 export function getSimpleEditorOptions(configurationService: IConfigurationService): IEditorOptions {
 	return {
@@ -93,10 +93,10 @@ export function setupSimpleEditorSelectionStyling(editorContainerSelector: strin
 				collector.addRule(`${editorContainerSelector} .monaco-editor .view-line span.inline-selected-text { color: ${inputForegroundColor}; }`);
 			}
 
-			collector.addRule(`${editorContainerSelector} .monaco-editor .selected-text { background-color: rgba(92, 45, 145, 0.6) !important; }`);
+			collector.addRule(`${editorContainerSelector} .monaco-editor .focused .selected-text { background-color: ${selectionBackgroundColor}; }`);
 		} else {
 			// Use editor selection color if theme has not set a selection background color
-			collector.addRule(`${editorContainerSelector} .monaco-editor .selected-text { background-color: rgba(92, 45, 145, 0.6) !important; }`);
+			collector.addRule(`${editorContainerSelector} .monaco-editor .focused .selected-text { background-color: ${theme.getColor(editorSelectionBackground)}; }`);
 		}
 	});
 

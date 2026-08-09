@@ -139,7 +139,7 @@ class NativeLocalizationWorkbenchContribution extends BaseLocalizationWorkbenchC
 		const loc = manifest?.contributes?.localizations?.find(x => locale.startsWith(x.languageId.toLowerCase()));
 		const languageName = loc ? (loc.languageName || locale) : locale;
 		const languageDisplayName = loc ? (loc.localizedLanguageName || loc.languageName || locale) : locale;
-		const translationsFromPack: { [key: string]: string } = translation?.contents?.['dc/workbench/contrib/localization/electron-browser/minimalTranslations'] ?? {};
+		const translationsFromPack: { [key: string]: string } = translation?.contents?.['vs/workbench/contrib/localization/electron-browser/minimalTranslations'] ?? {};
 		const promptMessageKey = extensionToInstall ? 'installAndRestartMessage' : 'showLanguagePackExtensions';
 		const useEnglish = !translationsFromPack[promptMessageKey];
 

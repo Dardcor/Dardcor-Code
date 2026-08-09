@@ -68,7 +68,7 @@
 		} else if (configuration.autoDetectColorScheme) {
 			if (configuration.colorScheme.dark) {
 				baseTheme = 'vs-dark';
-				shellBackground = '#1E1E1E';
+				shellBackground = '#000000';
 				shellForeground = '#CCCCCC';
 			} else {
 				baseTheme = 'vs';
@@ -401,7 +401,7 @@
 			if (!!safeProcess.env['VSCODE_DEV'] && globalThis._VSCODE_USE_RELATIVE_IMPORTS) {
 				workbenchUrl = '../../../workbench/workbench.desktop.main.js'; // for dev purposes only
 			} else {
-				workbenchUrl = new URL(`vs/workbench/workbench.desktop.main.js`, baseUrl).href;
+				workbenchUrl = new URL(`dc/workbench/workbench.desktop.main.js`, baseUrl).href;
 			}
 
 			const result = await import(workbenchUrl);

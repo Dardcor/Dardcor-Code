@@ -6,10 +6,10 @@
 import type { OpenAI } from 'openai';
 import { CloseEvent, ErrorEvent } from 'undici';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { CancellationError } from '../../../util/vs/base/common/errors';
-import { Emitter, Event } from '../../../util/vs/base/common/event';
-import { Disposable, IDisposable } from '../../../util/vs/base/common/lifecycle';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { CancellationError } from '../../../util/dardcor/base/common/errors';
+import { Emitter, Event } from '../../../util/dardcor/base/common/event';
+import { Disposable, IDisposable } from '../../../util/dardcor/base/common/lifecycle';
 import { QuotaSnapshots } from '../../chat/common/chatQuotaService';
 import { ConfigKey, IConfigurationService } from '../../configuration/common/configurationService';
 import { ICAPIClientService } from '../../endpoint/common/capiClient';

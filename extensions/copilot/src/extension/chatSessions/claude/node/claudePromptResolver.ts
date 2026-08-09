@@ -6,8 +6,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type * as vscode from 'vscode';
 import { isLocation } from '../../../../util/common/types';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { ChatReferenceBinaryData } from '../../../../vscodeTypes';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { ChatReferenceBinaryData } from '../../../../dardcorTypes';
 import { toAnthropicImageMediaType } from './sessionParser/claudeSessionSchema';
 
 // #region Prompt Resolution

@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { StringEdit } from '../../../util/vs/editor/common/core/edits/stringEdit';
-import { Position } from '../../../util/vs/editor/common/core/position';
-import { PositionOffsetTransformer } from '../../../util/vs/editor/common/core/text/positionToOffset';
+import { StringEdit } from '../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { Position } from '../../../util/dardcor/editor/common/core/position';
+import { PositionOffsetTransformer } from '../../../util/dardcor/editor/common/core/text/positionToOffset';
 
 /**
  * Resolves the current content of a line after applying an intermediate

@@ -39,6 +39,7 @@ suite('VoiceToolDispatchService - respondToSession', () => {
 			}
 			override notifyQuestionCarouselAnswer() { }
 		};
+		// @ts-ignore
 		return new VoiceToolDispatchService(
 			agentSessionsService,
 			chatService,

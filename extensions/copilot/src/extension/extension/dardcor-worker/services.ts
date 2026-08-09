@@ -5,7 +5,7 @@
 
 import { ExtensionContext } from 'vscode';
 import { IInstantiationServiceBuilder } from '../../../util/common/services';
-import { registerServices as registerCommonServices } from '../vscode/services';
+import { registerServices as registerCommonServices } from '../dardcor/services';
 
 // ###########################################################################################
 // ###                                                                                     ###

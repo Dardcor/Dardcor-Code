@@ -5,10 +5,10 @@
 
 import { IGitService } from '../../../../platform/git/common/gitService';
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
-import { raceTimeout } from '../../../../util/vs/base/common/async';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { ResourceMap, ResourceSet } from '../../../../util/vs/base/common/map';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { raceTimeout } from '../../../../util/dardcor/base/common/async';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { ResourceMap, ResourceSet } from '../../../../util/dardcor/base/common/map';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { FolderRepositoryMRUEntry, IChatFolderMruService } from '../../common/folderRepositoryManager';
 import { IClaudeCodeSessionService } from './sessionParser/claudeCodeSessionService';
 

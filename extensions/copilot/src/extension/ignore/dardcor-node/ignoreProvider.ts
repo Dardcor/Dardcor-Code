@@ -5,8 +5,8 @@
 
 import * as vscode from 'vscode';
 import { IIgnoreService } from '../../../platform/ignore/common/ignoreService';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { IExtensionContribution } from '../../common/contributions';
 
 class IgnoredFileProvider implements vscode.LanguageModelIgnoredFileProvider {

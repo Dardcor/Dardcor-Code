@@ -2,7 +2,7 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import { defineConfig } from '@vscode/test-cli';
+import { defineConfig } from '@dardcor/test-cli';
 import { readFileSync, writeFileSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { loadEnvFile } from 'process';

@@ -16,8 +16,8 @@ import { getWasmLanguage } from '../../../../platform/parser/node/treeSitterLang
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry';
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
 import { getLanguage } from '../../../../util/common/languages';
-import * as arrays from '../../../../util/vs/base/common/arrays';
-import { ExtensionMode, Selection, Uri } from '../../../../vscodeTypes';
+import * as arrays from '../../../../util/dardcor/base/common/arrays';
+import { ExtensionMode, Selection, Uri } from '../../../../dardcorTypes';
 import { asyncComputeWithTimeBudget } from '../../../context/node/resolvers/selectionContextHelpers';
 import { determineNodeToDocument } from '../../../prompt/node/definitionAroundCursor';
 import { CodeBlock } from './safeElements';

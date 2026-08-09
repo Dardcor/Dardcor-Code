@@ -5,7 +5,7 @@
 
 import * as stream from 'stream';
 import * as undici from 'undici';
-import { Lazy } from '../../../util/vs/base/common/lazy';
+import { Lazy } from '../../../util/dardcor/base/common/lazy';
 import { IEnvService } from '../../env/common/envService';
 import { HeadersImpl, IHeaders, ReportFetchEvent, WebSocketConnection, WebSocketConnectOptions } from '../common/fetcherService';
 import { BaseFetchFetcher, FetchImpl } from './baseFetchFetcher';

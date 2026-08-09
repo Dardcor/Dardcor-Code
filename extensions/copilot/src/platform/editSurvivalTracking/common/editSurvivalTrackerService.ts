@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type * as vscode from 'vscode';
-import { createDecorator as createServiceIdentifier, IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { createDecorator as createServiceIdentifier, IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ILogService } from '../../log/common/logService';
 import { EditCollector } from './editCollector';
 import { EditComputer } from './editComputer';

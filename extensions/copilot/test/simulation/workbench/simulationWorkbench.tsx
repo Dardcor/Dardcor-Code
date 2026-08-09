@@ -7,7 +7,7 @@ import { ipcRenderer } from 'electron';
 import * as path from 'path';
 import * as React from 'react';
 import { render } from 'react-dom';
-import { Disposable } from '../../../src/util/vs/base/common/lifecycle';
+import { Disposable } from '../../../src/util/dardcor/base/common/lifecycle';
 import { App, DisplayOptions } from './components/app';
 import { InitArgs, parseInitEventArgs as parseProcessArgv } from './initArgs';
 import { AdhocRequestOptions } from './stores/adhocRequestOptions';
@@ -93,7 +93,7 @@ function loadMonaco(): Promise<typeof import('monaco-editor')> {
 
 function doLoadMonaco(): Promise<typeof import('monaco-editor')> {
 	return new Promise<typeof import('monaco-editor')>((resolve, reject) => {
-		const amdLoader = require('../../node_modules/monaco-editor/min/vs/loader.js');
+		const amdLoader = require('../../node_modules/monaco-editor/min/dardcor/loader.js');
 		const amdRequire = amdLoader.require;
 
 		function uriFromPath(_path: string) {

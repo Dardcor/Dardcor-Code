@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { CancellationToken, NotebookCell, NotebookDocument } from 'vscode';
-import { Uri } from '../../../vscodeTypes';
+import { Uri } from '../../../dardcorTypes';
 import { AlternativeNotebookDocument } from './alternativeNotebookDocument';
 import { LineOfCellText, LineOfText } from './helpers';
 

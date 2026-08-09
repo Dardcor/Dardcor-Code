@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { readFile } from 'fs/promises';
-import { join } from '../../../../util/vs/base/common/path';
+import { join } from '../../../../util/dardcor/base/common/path';
 
 type FileRef = { filePath: string | { fullPath: string } } | {/** Relative */ fileName: string; fileContents: string };
 

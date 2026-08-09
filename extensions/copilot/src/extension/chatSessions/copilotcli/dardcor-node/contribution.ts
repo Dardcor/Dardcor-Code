@@ -5,8 +5,8 @@
 
 import * as vscode from 'vscode';
 import { ILogger, ILogService } from '../../../../platform/log/common/logService';
-import { Disposable } from '../../../../util/vs/base/common/lifecycle';
-import { ServiceCollection } from '../../../../util/vs/platform/instantiation/common/serviceCollection';
+import { Disposable } from '../../../../util/dardcor/base/common/lifecycle';
+import { ServiceCollection } from '../../../../util/dardcor/platform/instantiation/common/serviceCollection';
 import { registerAddFileReferenceCommand, registerAddSelectionCommand, registerDiffCommands } from './commands';
 import { registerCommandContext } from './commands/context';
 import { CopilotCLISessionTracker, ICopilotCLISessionTracker } from './copilotCLISessionTracker';

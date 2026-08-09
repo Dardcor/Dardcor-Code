@@ -10,8 +10,8 @@ import { SemanticSearchTextSearchProvider } from '../../src/extension/workspaceS
 import { IConversationOptions } from '../../src/platform/chat/common/conversationOptions';
 import { TestingServiceCollection } from '../../src/platform/test/node/services';
 import { SimulationWorkspace } from '../../src/platform/test/node/simulationWorkspace';
-import { CancellationToken } from '../../src/util/vs/base/common/cancellation';
-import { IInstantiationService } from '../../src/util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../src/util/dardcor/base/common/cancellation';
+import { IInstantiationService } from '../../src/util/dardcor/platform/instantiation/common/instantiation';
 import { ssuite, stest } from '../base/stest';
 import { discoverScenarios } from './scenarioLoader';
 import { fetchConversationOptions } from './scenarioTest';

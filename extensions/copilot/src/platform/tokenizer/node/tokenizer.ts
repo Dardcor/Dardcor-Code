@@ -10,10 +10,10 @@ import { getImageDimensions } from '../../../util/common/imageUtils';
 import { createServiceIdentifier } from '../../../util/common/services';
 import { ITokenizer, TokenizerType } from '../../../util/common/tokenizer';
 import { WorkerWithRpcProxy } from '../../../util/node/worker';
-import { assertNever } from '../../../util/vs/base/common/assert';
-import { Lazy } from '../../../util/vs/base/common/lazy';
-import { Disposable, toDisposable } from '../../../util/vs/base/common/lifecycle';
-import { basename, join } from '../../../util/vs/base/common/path';
+import { assertNever } from '../../../util/dardcor/base/common/assert';
+import { Lazy } from '../../../util/dardcor/base/common/lazy';
+import { Disposable, toDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { basename, join } from '../../../util/dardcor/base/common/path';
 import { ITelemetryService } from '../../telemetry/common/telemetry';
 import { TikTokenImpl } from './tikTokenizerImpl';
 

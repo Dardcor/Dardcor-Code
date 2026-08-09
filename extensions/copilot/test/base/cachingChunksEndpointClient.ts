@@ -8,10 +8,10 @@ import { ChunkingEndpointClientImpl } from '../../src/platform/chunking/common/c
 import { EmbeddingType } from '../../src/platform/embeddings/common/embeddingsComputer';
 import { createSha256Hash } from '../../src/util/common/crypto';
 import { CallTracker } from '../../src/util/common/telemetryCorrelationId';
-import { CancellationToken } from '../../src/util/vs/base/common/cancellation';
-import { URI } from '../../src/util/vs/base/common/uri';
-import { Range } from '../../src/util/vs/editor/common/core/range';
-import { IInstantiationService } from '../../src/util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../src/util/dardcor/base/common/cancellation';
+import { URI } from '../../src/util/dardcor/base/common/uri';
+import { Range } from '../../src/util/dardcor/editor/common/core/range';
+import { IInstantiationService } from '../../src/util/dardcor/platform/instantiation/common/instantiation';
 import { CHUNKING_ENDPOINT_CACHE_SALT } from '../cacheSalt';
 import { SQLiteCache } from './cache';
 import { CurrentTestRunInfo } from './simulationContext';

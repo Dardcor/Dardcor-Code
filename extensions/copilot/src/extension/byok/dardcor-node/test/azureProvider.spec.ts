@@ -6,8 +6,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BlockedExtensionService, IBlockedExtensionService } from '../../../../platform/chat/common/blockedExtensionService';
 import { ModelSupportedEndpoint } from '../../../../platform/endpoint/common/endpointProvider';
-import { DisposableStore } from '../../../../util/vs/base/common/lifecycle';
-import { SyncDescriptor } from '../../../../util/vs/platform/instantiation/common/descriptors';
+import { DisposableStore } from '../../../../util/dardcor/base/common/lifecycle';
+import { SyncDescriptor } from '../../../../util/dardcor/platform/instantiation/common/descriptors';
 import { createExtensionUnitTestingServices } from '../../../test/node/services';
 import { azureSupportedEndpointsForUrl, resolveAzureUrl } from '../azureProvider';
 

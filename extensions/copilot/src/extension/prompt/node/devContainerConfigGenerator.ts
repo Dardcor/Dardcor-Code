@@ -8,8 +8,8 @@ import { ChatFetchResponseType, ChatLocation } from '../../../platform/chat/comm
 import { DevContainerConfigFeature, DevContainerConfigGeneratorResult, DevContainerConfigIndex, DevContainerConfigTemplate } from '../../../platform/devcontainer/common/devContainerConfigurationService';
 import { IEndpointProvider } from '../../../platform/endpoint/common/endpointProvider';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
-import { escapeRegExpCharacters } from '../../../util/vs/base/common/strings';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { escapeRegExpCharacters } from '../../../util/dardcor/base/common/strings';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { PromptRenderer } from '../../prompts/node/base/promptRenderer';
 import { DevContainerConfigPrompt } from '../../prompts/node/devcontainer/devContainerConfigPrompt';
 

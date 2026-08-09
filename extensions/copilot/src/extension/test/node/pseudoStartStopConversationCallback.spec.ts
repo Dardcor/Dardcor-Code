@@ -12,10 +12,10 @@ import { IResponseDelta } from '../../../platform/networking/common/fetch';
 import { createPlatformServices } from '../../../platform/test/node/services';
 import { ChatResponseStreamImpl } from '../../../util/common/chatResponseStreamImpl';
 import { SpyChatResponseStream } from '../../../util/common/test/mockChatResponseStream';
-import { AsyncIterableSource } from '../../../util/vs/base/common/async';
-import { CancellationToken, CancellationTokenSource } from '../../../util/vs/base/common/cancellation';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
-import { ChatResponseMarkdownPart, ChatResponseMarkdownWithVulnerabilitiesPart } from '../../../vscodeTypes';
+import { AsyncIterableSource } from '../../../util/dardcor/base/common/async';
+import { CancellationToken, CancellationTokenSource } from '../../../util/dardcor/base/common/cancellation';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { ChatResponseMarkdownPart, ChatResponseMarkdownWithVulnerabilitiesPart } from '../../../dardcorTypes';
 import { PseudoStopStartResponseProcessor } from '../../prompt/node/pseudoStartStopConversationCallback';
 
 

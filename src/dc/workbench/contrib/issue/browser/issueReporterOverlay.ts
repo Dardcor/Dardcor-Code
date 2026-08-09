@@ -754,7 +754,7 @@ export class IssueReporterOverlay {
 
 	private getAllSourceOptions(): { label: string; value: IssueSource }[] {
 		return [
-			{ label: product.nameLong || localize('vscode', "Dardcor Code"), value: IssueSource.VSCode },
+			{ label: product.nameLong || localize('vscode', "Visual Studio Code"), value: IssueSource.VSCode },
 			{ label: localize('agentsWindow', "Agents Window"), value: IssueSource.AgentsWindow },
 			{ label: localize('extensionSource', "A VS Code extension"), value: IssueSource.Extension },
 			{ label: localize('marketplace', "Extensions Marketplace"), value: IssueSource.Marketplace },
@@ -1062,7 +1062,7 @@ export class IssueReporterOverlay {
 	private getIssueSourceLabel(): string {
 		switch (this.selectedIssueSource) {
 			case IssueSource.VSCode:
-				return product.nameLong || localize('vscode', "Dardcor Code");
+				return product.nameLong || localize('vscode', "Visual Studio Code");
 			case IssueSource.AgentsWindow:
 				return localize('agentsWindow', "Agents Window");
 			case IssueSource.Extension:

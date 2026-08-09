@@ -6,9 +6,9 @@
 import * as vscode from 'vscode';
 import { ObservableGit } from '../../../platform/inlineEdits/common/observableGit';
 import { WorkspaceDocumentEditHistory } from '../../../platform/inlineEdits/common/workspaceEditTracker/workspaceDocumentEditTracker';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
-import { VSCodeWorkspace } from '../../inlineEdits/vscode-node/parts/vscodeWorkspace';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { VSCodeWorkspace } from '../../inlineEdits/dardcor-node/parts/dardcorWorkspace';
 
 export class WorkspaceEditRecorder extends Disposable {
 

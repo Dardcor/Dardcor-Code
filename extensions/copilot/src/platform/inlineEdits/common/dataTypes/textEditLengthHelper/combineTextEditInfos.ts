@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { ArrayQueue } from '../../../../../util/vs/base/common/arrays.js';
+import { ArrayQueue } from '../../../../../util/dardcor/base/common/arrays.js';
 import { Length, lengthAdd, lengthDiffNonNegative, lengthEquals, lengthIsZero, lengthToObj, lengthZero, sumLengths } from './length.js';
 import { TextEditInfo } from './textEditInfo.js';
 

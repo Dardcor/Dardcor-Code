@@ -6,7 +6,7 @@
 import * as assert from 'assert';
 import { Intent } from '../../../src/extension/common/constants';
 import { IRelativeFile } from '../../../src/platform/test/node/simulationWorkspace';
-import { Uri } from '../../../src/vscodeTypes';
+import { Uri } from '../../../src/dardcorTypes';
 import { ssuite, stest } from '../../base/stest';
 import { simulateInlineChat } from '../inlineChatSimulator';
 import { assertNoStrings, assertSomeStrings, assertWorkspaceEdit, fromFixture } from '../stestUtil';

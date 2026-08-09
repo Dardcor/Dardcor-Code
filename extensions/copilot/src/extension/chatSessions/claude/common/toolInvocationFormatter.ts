@@ -7,8 +7,8 @@ import { AgentInput, BashInput, FileReadInput, GlobInput, GrepInput } from '@ant
 import Anthropic from '@anthropic-ai/sdk';
 import * as l10n from '@vscode/l10n';
 import type { ChatSimpleToolResultData, ChatTerminalToolInvocationData } from 'vscode';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { ChatSubagentToolInvocationData, ChatToolInvocationPart, MarkdownString } from '../../../../vscodeTypes';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { ChatSubagentToolInvocationData, ChatToolInvocationPart, MarkdownString } from '../../../../dardcorTypes';
 import { ClaudeToolNames, ExitPlanModeInput, LSInput } from './claudeTools';
 
 // #region Tool Result Content Extraction

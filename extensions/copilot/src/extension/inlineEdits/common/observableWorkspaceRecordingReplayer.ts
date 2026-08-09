@@ -8,14 +8,14 @@ import { deserializeStringEdit, SerializedEdit } from '../../../platform/inlineE
 import { LanguageId } from '../../../platform/inlineEdits/common/dataTypes/languageId';
 import { IObservableDocument, MutableObservableDocument, MutableObservableWorkspace } from '../../../platform/inlineEdits/common/observableWorkspace';
 import { deserializeOffsetRange, DocumentEventLogEntry, DocumentEventLogEntryData, LogEntry } from '../../../platform/workspaceRecorder/common/workspaceLog';
-import { assert } from '../../../util/vs/base/common/assert';
-import { BugIndicatingError } from '../../../util/vs/base/common/errors';
-import { Emitter } from '../../../util/vs/base/common/event';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { assertReturnsDefined } from '../../../util/vs/base/common/types';
-import { URI } from '../../../util/vs/base/common/uri';
-import { OffsetRange } from '../../../util/vs/editor/common/core/ranges/offsetRange';
-import { StringText } from '../../../util/vs/editor/common/core/text/abstractText';
+import { assert } from '../../../util/dardcor/base/common/assert';
+import { BugIndicatingError } from '../../../util/dardcor/base/common/errors';
+import { Emitter } from '../../../util/dardcor/base/common/event';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { assertReturnsDefined } from '../../../util/dardcor/base/common/types';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { OffsetRange } from '../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { StringText } from '../../../util/dardcor/editor/common/core/text/abstractText';
 
 export interface IRecordingInformation {
 	log: readonly LogEntry[];

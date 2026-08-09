@@ -6,8 +6,8 @@
 import type { RequestMetadata } from '@vscode/copilot-api';
 import type { HTMLTracer, IChatEndpointInfo, RenderPromptResult } from '@vscode/prompt-tsx';
 import type { LanguageModelToolResult2 } from 'vscode';
-import { Emitter, Event } from '../../../../util/vs/base/common/event';
-import { generateUuid } from '../../../../util/vs/base/common/uuid';
+import { Emitter, Event } from '../../../../util/dardcor/base/common/event';
+import { generateUuid } from '../../../../util/dardcor/base/common/uuid';
 import { IModelAPIResponse } from '../../../endpoint/common/endpointProvider';
 import { ThinkingData } from '../../../thinking/common/thinking';
 import { CapturingToken } from '../../common/capturingToken';

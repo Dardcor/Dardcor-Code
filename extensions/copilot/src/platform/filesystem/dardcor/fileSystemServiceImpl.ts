@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { URI } from '../../../util/vs/base/common/uri';
+import { URI } from '../../../util/dardcor/base/common/uri';
 import { assertReadFileSizeLimit, IFileSystemService } from '../common/fileSystemService';
 import { FileType } from '../common/fileTypes';
 

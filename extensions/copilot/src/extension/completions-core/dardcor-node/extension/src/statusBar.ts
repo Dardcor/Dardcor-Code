@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { commands, Disposable, languages, LanguageStatusItem, LanguageStatusSeverity, window, workspace } from 'vscode';
-import { IDisposable } from '../../../../../util/vs/base/common/lifecycle';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IDisposable } from '../../../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { CopilotConfigPrefix } from '../../lib/src/constants';
 import { CMDQuotaExceeded } from '../../lib/src/openai/fetch';
 import { StatusChangedEvent, StatusReporter } from '../../lib/src/progress';

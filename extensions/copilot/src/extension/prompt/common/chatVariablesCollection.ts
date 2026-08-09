@@ -5,8 +5,8 @@
 
 import type * as vscode from 'vscode';
 import { sessionResourceToId } from '../../../platform/chat/common/chatDebugFileLoggerService';
-import { URI } from '../../../util/vs/base/common/uri';
-import { basename } from '../../../util/vs/base/common/resources';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { basename } from '../../../util/dardcor/base/common/resources';
 
 export interface PromptVariable {
 	readonly reference: vscode.ChatPromptReference;

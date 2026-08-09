@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { createServiceIdentifier } from '../../../util/common/services';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { raceCancellationError } from '../../../util/vs/base/common/async';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { raceCancellationError } from '../../../util/dardcor/base/common/async';
 import { FileChunkAndScore } from '../../chunking/common/chunk';
 import { ILogService } from '../../log/common/logService';
 import { IExperimentationService } from '../../telemetry/common/nullExperimentationService';

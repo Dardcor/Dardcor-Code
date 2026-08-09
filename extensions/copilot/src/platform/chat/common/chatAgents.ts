@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { createServiceIdentifier } from '../../../util/common/services';
-import { IDisposable } from '../../../util/vs/base/common/lifecycle';
+import { IDisposable } from '../../../util/dardcor/base/common/lifecycle';
 import { IConversationOptions } from './conversationOptions';
 
 export const IChatAgentService = createServiceIdentifier<IChatAgentService>('IChatAgentService');

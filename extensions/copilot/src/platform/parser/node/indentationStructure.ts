@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type * as vscode from 'vscode';
-import { CharCode } from '../../../util/vs/base/common/charCode';
-import { BugIndicatingError } from '../../../util/vs/base/common/errors';
-import { Position } from '../../../vscodeTypes';
+import { CharCode } from '../../../util/dardcor/base/common/charCode';
+import { BugIndicatingError } from '../../../util/dardcor/base/common/errors';
+import { Position } from '../../../dardcorTypes';
 import { AbstractDocument } from '../../editing/common/abstractText';
 import { OverlayNode } from './nodes';
 

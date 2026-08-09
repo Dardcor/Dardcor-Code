@@ -5,8 +5,8 @@
 
 import { Range, commands, window, type Disposable } from 'vscode';
 import { CopilotNamedAnnotationList } from '../../../../../../platform/completions-core/common/openai/copilotAnnotations';
-import { DisposableStore, IDisposable } from '../../../../../../util/vs/base/common/lifecycle';
-import { IInstantiationService, type ServicesAccessor } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { DisposableStore, IDisposable } from '../../../../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService, type ServicesAccessor } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import * as constants from '../constants';
 import { registerCommand } from '../telemetry';
 import { wrapDoc } from '../textDocumentManager';

@@ -20,12 +20,12 @@ import { ITelemetryService } from '../../../../platform/telemetry/common/telemet
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
 import { findNotebook } from '../../../../util/common/notebooks';
 import { createServiceIdentifier } from '../../../../util/common/services';
-import { Queue } from '../../../../util/vs/base/common/async';
-import { Disposable, toDisposable } from '../../../../util/vs/base/common/lifecycle';
-import { ResourceMap } from '../../../../util/vs/base/common/map';
-import { isEqual } from '../../../../util/vs/base/common/resources';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
-import { Range, TextEdit } from '../../../../vscodeTypes';
+import { Queue } from '../../../../util/dardcor/base/common/async';
+import { Disposable, toDisposable } from '../../../../util/dardcor/base/common/lifecycle';
+import { ResourceMap } from '../../../../util/dardcor/base/common/map';
+import { isEqual } from '../../../../util/dardcor/base/common/resources';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { Range, TextEdit } from '../../../../dardcorTypes';
 import { OutcomeAnnotation } from '../../../inlineChat/node/promptCraftingTypes';
 import { IWorkingSet } from '../../../prompt/common/intents';
 import { EXISTING_CODE_MARKER } from '../panel/codeBlockFormattingRules';

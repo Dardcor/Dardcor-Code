@@ -6,7 +6,7 @@
 import * as l10n from '@vscode/l10n';
 import type { ChatErrorDetails, ChatResult } from 'vscode';
 import { secondsToHumanReadableTime } from '../../../util/common/time';
-import { ChatErrorLevel } from '../../../vscodeTypes';
+import { ChatErrorLevel } from '../../../dardcorTypes';
 import { GitHubOutageStatus } from '../../github/common/githubService';
 import { APIErrorResponse, APIUsage, FilterReason } from '../../networking/common/openai';
 

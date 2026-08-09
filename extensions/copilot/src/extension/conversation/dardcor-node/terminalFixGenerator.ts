@@ -12,11 +12,11 @@ import { IEndpointProvider } from '../../../platform/endpoint/common/endpointPro
 import { ILogService } from '../../../platform/log/common/logService';
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
 import { extractCodeBlocks } from '../../../util/common/markdown';
-import { IntervalTimer } from '../../../util/vs/base/common/async';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { isAbsolute } from '../../../util/vs/base/common/path';
-import { URI } from '../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { IntervalTimer } from '../../../util/dardcor/base/common/async';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { isAbsolute } from '../../../util/dardcor/base/common/path';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { PromptRenderer } from '../../prompts/node/base/promptRenderer';
 import { TerminalQuickFixFileContextPrompt, TerminalQuickFixPrompt } from '../../prompts/node/panel/terminalQuickFix';
 

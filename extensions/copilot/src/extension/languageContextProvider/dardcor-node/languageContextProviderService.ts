@@ -8,9 +8,9 @@ import { Copilot } from '../../../platform/inlineCompletions/common/api';
 import { ILanguageContextProviderService, ProviderTarget } from '../../../platform/languageContextProvider/common/languageContextProviderService';
 import { ContextItem, ContextKind, KnownSources, SnippetContext, TraitContext } from '../../../platform/languageServer/common/languageContextService';
 import { filterMap } from '../../../util/common/arrays';
-import { AsyncIterableObject } from '../../../util/vs/base/common/async';
-import { Disposable, toDisposable } from '../../../util/vs/base/common/lifecycle';
-import { URI } from '../../../util/vs/base/common/uri';
+import { AsyncIterableObject } from '../../../util/dardcor/base/common/async';
+import { Disposable, toDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { URI } from '../../../util/dardcor/base/common/uri';
 
 export class LanguageContextProviderService extends Disposable implements ILanguageContextProviderService {
 	_serviceBrand: undefined;

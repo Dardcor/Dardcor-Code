@@ -5,7 +5,7 @@
 
 import * as assert from 'assert';
 import { FileType } from '../../../../platform/filesystem/common/fileTypes';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { listRelatedFiles, listRelatedFilesRecursive, parseSkillContext, ReadDirectoryFn, resolveSkillUri } from '../../node/skillTool';
 
 suite('parseSkillContext', () => {

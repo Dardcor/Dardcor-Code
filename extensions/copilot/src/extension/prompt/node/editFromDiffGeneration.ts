@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { CharCode } from '../../../util/vs/base/common/charCode';
+import { CharCode } from '../../../util/dardcor/base/common/charCode';
 import { Lines, LinesEdit } from './editGeneration';
 import { IGuessedIndentation, computeIndentLevel2, guessIndentation } from './indentationGuesser';
 

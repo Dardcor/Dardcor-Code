@@ -15,12 +15,12 @@ import { ITestingServicesAccessor } from '../../../../platform/test/node/service
 import { TestWorkspaceService } from '../../../../platform/test/node/testWorkspaceService';
 import { IWorkspaceService, NullWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
 import { WorkingDirectory } from '../../../../platform/workspace/common/workingDirectory';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { ResourceSet } from '../../../../util/vs/base/common/map';
-import { posix } from '../../../../util/vs/base/common/path';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { SyncDescriptor } from '../../../../util/vs/platform/instantiation/common/descriptors';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { ResourceSet } from '../../../../util/dardcor/base/common/map';
+import { posix } from '../../../../util/dardcor/base/common/path';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { SyncDescriptor } from '../../../../util/dardcor/platform/instantiation/common/descriptors';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ChatVariablesCollection, CustomizationsIndexId } from '../../../prompt/common/chatVariablesCollection';
 import { IBuildPromptContext } from '../../../prompt/common/intents';
 import { createExtensionUnitTestingServices } from '../../../test/node/services';

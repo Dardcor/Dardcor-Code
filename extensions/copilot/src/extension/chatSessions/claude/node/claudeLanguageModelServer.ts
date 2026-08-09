@@ -21,12 +21,12 @@ import { IRequestLogger } from '../../../../platform/requestLogger/common/reques
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry';
 import { TelemetryData } from '../../../../platform/telemetry/common/telemetryData';
 import { ITokenizer, TokenizerType } from '../../../../util/common/tokenizer';
-import { AsyncIterableObject } from '../../../../util/vs/base/common/async';
-import { CancellationToken, CancellationTokenSource } from '../../../../util/vs/base/common/cancellation';
-import { Disposable, toDisposable } from '../../../../util/vs/base/common/lifecycle';
-import { SSEParser } from '../../../../util/vs/base/common/sseParser';
-import { generateUuid } from '../../../../util/vs/base/common/uuid';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { AsyncIterableObject } from '../../../../util/dardcor/base/common/async';
+import { CancellationToken, CancellationTokenSource } from '../../../../util/dardcor/base/common/cancellation';
+import { Disposable, toDisposable } from '../../../../util/dardcor/base/common/lifecycle';
+import { SSEParser } from '../../../../util/dardcor/base/common/sseParser';
+import { generateUuid } from '../../../../util/dardcor/base/common/uuid';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { IClaudeCodeModels } from './claudeCodeModels';
 import { PROXY_ERROR_PREFIX } from '../common/claudeMessageDispatch';
 import { IClaudeSessionStateService } from '../common/claudeSessionStateService';

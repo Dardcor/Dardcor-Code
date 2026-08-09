@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { RequestType } from '@vscode/copilot-api';
-import { Codicon } from '../../../util/vs/base/common/codicons';
+import { Codicon } from '../../../util/dardcor/base/common/codicons';
 import { IAuthenticationService } from '../../authentication/common/authentication';
 import type { ImageTelemetryMeasurements } from '../../image/common/imageTelemetry';
 import { ILogService } from '../../log/common/logService';

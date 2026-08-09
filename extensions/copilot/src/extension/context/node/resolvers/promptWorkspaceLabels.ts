@@ -11,8 +11,8 @@ import { IExperimentationService } from '../../../../platform/telemetry/common/n
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry';
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
 import { createServiceIdentifier } from '../../../../util/common/services';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
-import { Uri } from '../../../../vscodeTypes';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { Uri } from '../../../../dardcorTypes';
 
 export const IPromptWorkspaceLabels = createServiceIdentifier<IPromptWorkspaceLabels>('IPromptWorkspaceLabels');
 export interface IPromptWorkspaceLabels {

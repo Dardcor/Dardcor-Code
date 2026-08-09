@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { ExtensionContext } from 'vscode';
-import { baseActivate } from '../vscode/extension';
+import { baseActivate } from '../dardcor/extension';
 import { vscodeWebContributions } from './contributions';
 import { registerServices } from './services';
 

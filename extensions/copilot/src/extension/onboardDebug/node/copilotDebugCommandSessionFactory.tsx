@@ -9,9 +9,9 @@ import { IExtensionsService } from '../../../platform/extensions/common/extensio
 import { IPackageJson } from '../../../platform/extensions/common/packageJson';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
-import { equals } from '../../../util/vs/base/common/arrays';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { URI, UriComponents } from '../../../util/vs/base/common/uri';
+import { equals } from '../../../util/dardcor/base/common/arrays';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { URI, UriComponents } from '../../../util/dardcor/base/common/uri';
 import { ICommandInteractor, ILaunchConfigService } from '../common/launchConfigService';
 import { IDebugCommandToConfigConverter } from './commandToConfigConverter';
 import { IStartOptions, StartResult, StartResultKind } from './copilotDebugWorker/shared';

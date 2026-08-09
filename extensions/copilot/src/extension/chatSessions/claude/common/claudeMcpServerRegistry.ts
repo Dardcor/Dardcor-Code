@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { McpServerConfig } from '@anthropic-ai/claude-agent-sdk';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 
 /**
  * Interface for contributing MCP server configurations to the Claude SDK Options.

@@ -15,10 +15,10 @@ import { DefaultsOnlyConfigurationService } from '../../../../platform/configura
 import { InMemoryConfigurationService } from '../../../../platform/configuration/test/common/inMemoryConfigurationService';
 import { ILogService, LogServiceImpl } from '../../../../platform/log/common/logService';
 import { TestingServiceCollection } from '../../../../platform/test/node/services';
-import { raceTimeout } from '../../../../util/vs/base/common/async';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { Emitter, Event } from '../../../../util/vs/base/common/event';
-import { SyncDescriptor } from '../../../../util/vs/platform/instantiation/common/descriptors';
+import { raceTimeout } from '../../../../util/dardcor/base/common/async';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { Emitter, Event } from '../../../../util/dardcor/base/common/event';
+import { SyncDescriptor } from '../../../../util/dardcor/platform/instantiation/common/descriptors';
 import { GitHubMcpDefinitionProvider } from '../../common/githubMcpDefinitionProvider';
 
 /**

@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { convertSimple2RegExpPattern } from '../../../src/util/vs/base/common/strings';
+import { convertSimple2RegExpPattern } from '../../../src/util/dardcor/base/common/strings';
 
 export function grepStrToRegex(grep: string): RegExp {
 	const trimmedGrep = grep.trim();

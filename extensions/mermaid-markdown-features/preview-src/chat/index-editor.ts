@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import { initializeMermaidWebview } from './mermaidWebview';
-import { VsCodeApi } from './vscodeApi';
+import { VsCodeApi } from './dardcorApi';
 
 declare function acquireVsCodeApi(): VsCodeApi;
 const vscode = acquireVsCodeApi();

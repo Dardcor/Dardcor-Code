@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { assert, beforeAll, expect, suite, test } from 'vitest';
-import { CancellationTokenSource } from '../../../../util/vs/base/common/cancellation';
+import { CancellationTokenSource } from '../../../../util/dardcor/base/common/cancellation';
 import { ILogService } from '../../../log/common/logService';
 import { IResponseDelta } from '../../../networking/common/fetch';
 import { FinishedCompletionReason } from '../../../networking/common/openai';

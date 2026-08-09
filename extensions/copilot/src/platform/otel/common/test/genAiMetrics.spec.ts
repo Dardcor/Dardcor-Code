@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, expect, it, vi, type Mock } from 'vitest';
-import { Event } from '../../../../util/vs/base/common/event';
+import { Event } from '../../../../util/dardcor/base/common/event';
 import { GenAiAttr, GenAiOperationName, GenAiProviderName, GenAiTokenType, GitHubCopilotAttr, StdAttr } from '../genAiAttributes';
 import { GenAiMetrics } from '../genAiMetrics';
 import { resolveOTelConfig } from '../otelConfig';

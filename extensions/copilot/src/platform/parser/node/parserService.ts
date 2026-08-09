@@ -5,7 +5,7 @@
 
 import type * as vscode from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { Range } from '../../../vscodeTypes';
+import { Range } from '../../../dardcorTypes';
 import { TextDocumentSnapshot } from '../../editing/common/textDocumentSnapshot';
 import { BlockNameDetail, DetailBlock, QueryMatchTree } from './chunkGroupTypes';
 import { OverlayNode, TreeSitterExpressionInfo, TreeSitterOffsetRange, TreeSitterPointRange } from './nodes';

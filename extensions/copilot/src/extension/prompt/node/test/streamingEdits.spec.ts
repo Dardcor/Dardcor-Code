@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { assert, suite, test } from 'vitest';
-import { AsyncIterableObject, AsyncIterableSource } from '../../../../util/vs/base/common/async';
+import { AsyncIterableObject, AsyncIterableSource } from '../../../../util/dardcor/base/common/async';
 import { LineFilters, streamLines } from '../streamingEdits';
 
 suite('streamLinesInCodeBlock', function () {

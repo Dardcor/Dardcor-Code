@@ -5,7 +5,7 @@
 
 import type * as vscode from 'vscode';
 import { GlobIncludeOptions } from '../../../util/common/glob';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
 import { FileChunkAndScore } from '../../chunking/common/chunk';
 import { Embedding } from '../../embeddings/common/embeddingsComputer';
 import { IChatEndpoint } from '../../networking/common/networking';

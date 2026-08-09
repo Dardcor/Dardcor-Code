@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type * as vscode from 'vscode';
-import { splitLines } from '../../../util/vs/base/common/strings';
-import { StringEdit, StringReplacement } from '../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../util/vs/editor/common/core/ranges/offsetRange';
-import { PrefixSumComputer } from '../../../util/vs/editor/common/model/prefixSumComputer';
-import { Position, Range, TextEdit } from '../../../vscodeTypes';
+import { splitLines } from '../../../util/dardcor/base/common/strings';
+import { StringEdit, StringReplacement } from '../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { PrefixSumComputer } from '../../../util/dardcor/editor/common/model/prefixSumComputer';
+import { Position, Range, TextEdit } from '../../../dardcorTypes';
 
 export class PositionOffsetTransformer {
 	private readonly _eol: string;

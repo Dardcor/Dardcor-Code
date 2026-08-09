@@ -5,8 +5,8 @@
 
 import type { NotebookDocument, TextDocument, Uri } from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { ResourceMap } from '../../../util/vs/base/common/map';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { ResourceMap } from '../../../util/dardcor/base/common/map';
 import { IChatSessionService } from '../../chat/common/chatSessionService';
 import { IGitService } from '../../git/common/gitService';
 import { ILogService } from '../../log/common/logService';

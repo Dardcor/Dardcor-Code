@@ -6,9 +6,9 @@
 import { l10n, Uri } from 'vscode';
 import { IAuthenticationService } from '../../../platform/authentication/common/authentication';
 import { globalConfigRegistry } from '../../../platform/configuration/common/configurationService';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { autorunWithStore, observableFromEvent } from '../../../util/vs/base/common/observable';
-import { VirtualTextDocumentProvider } from '../../inlineEdits/vscode-node/utils/virtualTextDocumentProvider';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { autorunWithStore, observableFromEvent } from '../../../util/dardcor/base/common/observable';
+import { VirtualTextDocumentProvider } from '../../inlineEdits/dardcor-node/utils/virtualTextDocumentProvider';
 import { buildSettingsSchema } from '../common/settingsSchema';
 
 export class SettingsSchemaFeature extends Disposable {

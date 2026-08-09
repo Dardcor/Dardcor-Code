@@ -5,8 +5,8 @@
 
 import { AssistantMessage, BasePromptElementProps, Chunk, PrioritizedList, PromptElement, PromptPiece, PromptSizing, TokenLimit, UserMessage } from '@vscode/prompt-tsx';
 import { modelPrefersInstructionsAfterHistory } from '../../../../platform/endpoint/common/chatModelCapabilities';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { Location } from '../../../../vscodeTypes';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { Location } from '../../../../dardcorTypes';
 import { ChatVariablesCollection, PromptVariable } from '../../../prompt/common/chatVariablesCollection';
 import { IResultMetadata, Turn, TurnStatus } from '../../../prompt/common/conversation';
 import { IBuildPromptContext } from '../../../prompt/common/intents';

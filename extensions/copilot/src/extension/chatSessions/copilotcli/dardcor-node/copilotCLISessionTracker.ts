@@ -5,9 +5,9 @@
 
 import { execFile } from 'child_process';
 import { l10n, Terminal, window } from 'vscode';
-import { Disposable, IDisposable } from '../../../../util/vs/base/common/lifecycle';
-import { isWindows } from '../../../../util/vs/base/common/platform';
-import { createDecorator } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { Disposable, IDisposable } from '../../../../util/dardcor/base/common/lifecycle';
+import { isWindows } from '../../../../util/dardcor/base/common/platform';
+import { createDecorator } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 
 export const ICopilotCLISessionTracker = createDecorator<ICopilotCLISessionTracker>('ICopilotCLISessionTracker');
 

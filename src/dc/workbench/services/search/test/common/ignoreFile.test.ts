@@ -348,7 +348,7 @@ suite('Parsing .gitignore files', () => {
 			extensions/**/dist/
 			/out*/
 			/extensions/**/out/
-			src/dc/server
+			src/vs/server
 			resources/server
 			build/node_modules
 			coverage/

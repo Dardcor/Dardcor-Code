@@ -8,8 +8,8 @@ import * as vscode from 'vscode';
 import { ConfigKey, IConfigurationService } from '../../../platform/configuration/common/configurationService';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
 import { ITestFailure, ITestProvider } from '../../../platform/testing/common/testProvider';
-import { mapFindFirst } from '../../../util/vs/base/common/arraysFind';
-import { Disposable, DisposableStore } from '../../../util/vs/base/common/lifecycle';
+import { mapFindFirst } from '../../../util/dardcor/base/common/arraysFind';
+import { Disposable, DisposableStore } from '../../../util/dardcor/base/common/lifecycle';
 import { Intent } from '../../common/constants';
 import { IExtensionContribution } from '../../common/contributions';
 

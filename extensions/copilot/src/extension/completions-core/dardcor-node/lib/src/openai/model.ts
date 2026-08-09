@@ -6,8 +6,8 @@
 import { IAuthenticationService } from '../../../../../../platform/authentication/common/authentication';
 import { ICompletionModelInformation, IEndpointProvider } from '../../../../../../platform/endpoint/common/endpointProvider';
 import { createServiceIdentifier } from '../../../../../../util/common/services';
-import { Disposable } from '../../../../../../util/vs/base/common/lifecycle';
-import { IInstantiationService } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { Disposable } from '../../../../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { getUserSelectedModelConfiguration } from '../../../extension/src/modelPickerUserSelection';
 import { TokenizerName } from '../../../prompt/src/tokenization';
 import { Emitter, Event } from '../util/event';

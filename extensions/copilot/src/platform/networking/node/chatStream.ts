@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Raw } from '@vscode/prompt-tsx';
-import { hash } from '../../../util/vs/base/common/hash';
-import { LRUCache } from '../../../util/vs/base/common/map';
-import { generateUuid } from '../../../util/vs/base/common/uuid';
+import { hash } from '../../../util/dardcor/base/common/hash';
+import { LRUCache } from '../../../util/dardcor/base/common/map';
+import { generateUuid } from '../../../util/dardcor/base/common/uuid';
 import { toTextParts } from '../../chat/common/globalStringUtils';
 import { ILogService } from '../../log/common/logService';
 import { ITelemetryService, multiplexProperties } from '../../telemetry/common/telemetry';

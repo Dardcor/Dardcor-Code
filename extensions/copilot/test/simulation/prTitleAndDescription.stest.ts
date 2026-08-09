@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 import assert from 'assert';
 import { GitHubPullRequestTitleAndDescriptionGenerator } from '../../src/extension/prompt/node/githubPullRequestTitleAndDescriptionGenerator';
-import { CancellationToken } from '../../src/util/vs/base/common/cancellation';
-import { IInstantiationService } from '../../src/util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../src/util/dardcor/base/common/cancellation';
+import { IInstantiationService } from '../../src/util/dardcor/platform/instantiation/common/instantiation';
 import { ssuite, stest } from '../base/stest';
 
 function assertNoFakeIssue(result: string) {

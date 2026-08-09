@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { expect, suite, test, vi } from 'vitest';
-import { raceAndAll } from '../../vscode-node/raceAndAll';
+import { raceAndAll } from '../../dardcor-node/raceAndAll';
 
 const noopErrorHandler = () => { };
 

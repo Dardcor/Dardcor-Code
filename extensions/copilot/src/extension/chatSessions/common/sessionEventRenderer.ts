@@ -6,8 +6,8 @@
 import type { SessionEvent, ToolExecutionCompleteEvent, ToolExecutionStartEvent } from '@github/copilot/sdk';
 import * as l10n from '@vscode/l10n';
 import { ILogger } from '../../../platform/log/common/logService';
-import { URI } from '../../../util/vs/base/common/uri';
-import { ChatResponseCodeblockUriPart, ChatResponseMarkdownPart, ChatResponsePullRequestPart, ChatResponseTextEditPart, ChatResponseThinkingProgressPart, ChatToolInvocationPart, MarkdownString } from '../../../vscodeTypes';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { ChatResponseCodeblockUriPart, ChatResponseMarkdownPart, ChatResponsePullRequestPart, ChatResponseTextEditPart, ChatResponseThinkingProgressPart, ChatToolInvocationPart, MarkdownString } from '../../../dardcorTypes';
 import type { ExtendedChatResponsePart } from 'vscode';
 
 /**

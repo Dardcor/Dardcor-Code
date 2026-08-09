@@ -5,12 +5,12 @@
 
 import type { ConfigurationChangeEvent, ConfigurationScope } from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { BugIndicatingError } from '../../../util/vs/base/common/errors';
-import { Emitter, Event } from '../../../util/vs/base/common/event';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import * as objects from '../../../util/vs/base/common/objects';
-import { IObservable, observableFromEventOpts } from '../../../util/vs/base/common/observable';
-import * as types from '../../../util/vs/base/common/types';
+import { BugIndicatingError } from '../../../util/dardcor/base/common/errors';
+import { Emitter, Event } from '../../../util/dardcor/base/common/event';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import * as objects from '../../../util/dardcor/base/common/objects';
+import { IObservable, observableFromEventOpts } from '../../../util/dardcor/base/common/observable';
+import * as types from '../../../util/dardcor/base/common/types';
 import { ICopilotTokenStore } from '../../authentication/common/copilotTokenStore';
 import type { IModelCapabilityOverride } from '../../endpoint/common/chatModelCapabilities';
 import { packageJson } from '../../env/common/packagejson';

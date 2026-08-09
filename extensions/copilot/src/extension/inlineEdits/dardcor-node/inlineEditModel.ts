@@ -8,16 +8,16 @@ import { IStatelessNextEditProvider } from '../../../platform/inlineEdits/common
 import { NesHistoryContextProvider } from '../../../platform/inlineEdits/common/workspaceEditTracker/nesHistoryContextProvider';
 import { NesXtabHistoryTracker } from '../../../platform/inlineEdits/common/workspaceEditTracker/nesXtabHistoryTracker';
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
-import { Event } from '../../../util/vs/base/common/event';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { Event } from '../../../util/dardcor/base/common/event';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { NesChangeHint } from '../common/nesTriggerHint';
 import { createNextEditProvider } from '../node/createNextEditProvider';
 import { DebugRecorder } from '../node/debugRecorder';
 import { NextEditProvider } from '../node/nextEditProvider';
 import { DiagnosticsNextEditProvider } from './features/diagnosticsInlineEditProvider';
 import { InlineEditTriggerer } from './inlineEditTriggerer';
-import { VSCodeWorkspace } from './parts/vscodeWorkspace';
+import { VSCodeWorkspace } from './parts/dardcorWorkspace';
 
 export class InlineEditModel extends Disposable {
 	public readonly debugRecorder: DebugRecorder;

@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { createServiceIdentifier } from '../../../util/common/services';
-import { constObservable, IObservable } from '../../../util/vs/base/common/observableInternal';
+import { constObservable, IObservable } from '../../../util/dardcor/base/common/observableInternal';
 import { InteractionOutcome, PromptQuery } from '../../inlineChat/node/promptCraftingTypes';
 import { SearchFeedbackKind } from '../../workspaceSemanticSearch/node/semanticSearchTextSearchProvider';
 import { Conversation, Turn } from '../common/conversation';

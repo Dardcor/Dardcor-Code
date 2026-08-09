@@ -8,7 +8,7 @@ import type * as vscode from 'vscode';
 import { TextDocumentSnapshot } from '../../../../platform/editing/common/textDocumentSnapshot';
 import { ILanguageFeaturesService } from '../../../../platform/languages/common/languageFeaturesService';
 import { IChatEndpoint } from '../../../../platform/networking/common/networking';
-import { DiagnosticSeverity } from '../../../../vscodeTypes';
+import { DiagnosticSeverity } from '../../../../dardcorTypes';
 import { IBuildPromptContext } from '../../../prompt/common/intents';
 import { CopilotIdentityRules } from '../base/copilotIdentity';
 import { InstructionMessage } from '../base/instructionMessage';

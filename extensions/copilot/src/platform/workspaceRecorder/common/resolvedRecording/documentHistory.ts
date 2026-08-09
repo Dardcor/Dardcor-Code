@@ -4,10 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 
-import { findLastIdxMonotonous } from '../../../../util/vs/base/common/arraysFind';
-import { assertReturnsDefined } from '../../../../util/vs/base/common/types';
-import { StringEdit } from '../../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
+import { findLastIdxMonotonous } from '../../../../util/dardcor/base/common/arraysFind';
+import { assertReturnsDefined } from '../../../../util/dardcor/base/common/types';
+import { StringEdit } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
 import { deserializeStringEdit } from '../../../inlineEdits/common/dataTypes/editUtils';
 import { DocumentEventLogEntryData, LogEntry } from '../workspaceLog';
 import {

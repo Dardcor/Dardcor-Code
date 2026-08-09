@@ -6,7 +6,7 @@
 import type { LanguageModelChat, NotebookDocument, Uri } from 'vscode';
 import { findCell } from '../../../util/common/notebooks';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { Range } from '../../../vscodeTypes';
+import { Range } from '../../../dardcorTypes';
 import { ConfigKey, IConfigurationService } from '../../configuration/common/configurationService';
 import { modelPrefersJsonNotebookRepresentation } from '../../endpoint/common/chatModelCapabilities';
 import { IChatEndpoint } from '../../networking/common/networking';

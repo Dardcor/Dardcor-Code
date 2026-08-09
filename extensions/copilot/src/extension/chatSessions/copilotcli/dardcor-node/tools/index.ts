@@ -8,7 +8,7 @@ import { registerOpenDiffTool } from './openDiff';
 import { registerCloseDiffTool } from './closeDiff';
 import { registerGetDiagnosticsTool } from './getDiagnostics';
 import { registerGetSelectionTool, SelectionState } from './getSelection';
-import { registerGetVscodeInfoTool } from './getVscodeInfo';
+import { registerGetVscodeInfoTool } from './getdardcorInfo';
 import { registerUpdateSessionNameTool } from './updateSessionName';
 import { ILogger } from '../../../../../platform/log/common/logService';
 import { DiffStateManager } from '../diffState';

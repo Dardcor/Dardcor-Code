@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { McpGateway, McpGatewayServer, lm, type Event } from 'vscode';
-import { IDisposable } from '../../../util/vs/base/common/lifecycle';
-import { ResourceMap } from '../../../util/vs/base/common/map';
-import { URI } from '../../../util/vs/base/common/uri';
+import { IDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { ResourceMap } from '../../../util/dardcor/base/common/map';
+import { URI } from '../../../util/dardcor/base/common/uri';
 import { ILogService } from '../../log/common/logService';
 import { AbstractMcpService } from '../common/mcpService';
 

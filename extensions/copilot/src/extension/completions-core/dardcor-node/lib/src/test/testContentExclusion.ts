@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IIgnoreService } from '../../../../../../platform/ignore/common/ignoreService';
-import { CancellationToken } from '../../../../../../util/vs/base/common/cancellation';
-import { URI } from '../../../../../../util/vs/base/common/uri';
+import { CancellationToken } from '../../../../../../util/dardcor/base/common/cancellation';
+import { URI } from '../../../../../../util/dardcor/base/common/uri';
 
 export class MockIgnoreService implements IIgnoreService {
 	declare _serviceBrand: undefined;

@@ -6,7 +6,7 @@
 import * as fs from 'fs';
 import * as mobx from 'mobx';
 import * as path from 'path';
-import { Lazy } from '../../../../src/util/vs/base/common/lazy';
+import { Lazy } from '../../../../src/util/dardcor/base/common/lazy';
 import { IInitialWorkspaceState, IInteractionWorkspaceState, IWorkspaceStateFile } from '../../shared/sharedTypes';
 import { ObservablePromise } from '../utils/utils';
 

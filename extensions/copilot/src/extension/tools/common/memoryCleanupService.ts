@@ -8,9 +8,9 @@ import { IFileSystemService } from '../../../platform/filesystem/common/fileSyst
 import { FileType } from '../../../platform/filesystem/common/fileTypes';
 import { ILogService } from '../../../platform/log/common/logService';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { ResourceMap } from '../../../util/vs/base/common/map';
-import { URI } from '../../../util/vs/base/common/uri';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { ResourceMap } from '../../../util/dardcor/base/common/map';
+import { URI } from '../../../util/dardcor/base/common/uri';
 
 /**
  * Service that manages cleanup of stale memory files.

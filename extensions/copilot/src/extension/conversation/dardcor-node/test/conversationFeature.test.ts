@@ -11,18 +11,18 @@ import { IAuthenticationService } from '../../../../platform/authentication/comm
 import { CopilotToken, createTestExtendedTokenInfo } from '../../../../platform/authentication/common/copilotToken';
 import { setCopilotToken, StaticGitHubAuthenticationService } from '../../../../platform/authentication/common/staticGitHubAuthenticationService';
 import { FailingDevContainerConfigurationService, IDevContainerConfigurationService } from '../../../../platform/devcontainer/common/devContainerConfigurationService';
-import { ICombinedEmbeddingIndex, VSCodeCombinedIndexImpl } from '../../../../platform/embeddings/common/vscodeIndex';
+import { ICombinedEmbeddingIndex, VSCodeCombinedIndexImpl } from '../../../../platform/embeddings/common/dardcorIndex';
 import { IVSCodeExtensionContext } from '../../../../platform/extContext/common/extensionContext';
 import { IGitCommitMessageService, NoopGitCommitMessageService } from '../../../../platform/git/common/gitCommitMessageService';
 import { ISettingsEditorSearchService, NoopSettingsEditorSearchService } from '../../../../platform/settingsEditor/common/settingsEditorSearchService';
 import { ITestingServicesAccessor } from '../../../../platform/test/node/services';
-import { SyncDescriptor } from '../../../../util/vs/platform/instantiation/common/descriptors';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { SyncDescriptor } from '../../../../util/dardcor/platform/instantiation/common/descriptors';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { IMergeConflictService } from '../../../git/common/mergeConflictService';
-import { TestMergeConflictServiceImpl } from '../../../git/vscode/mergeConflictServiceImpl';
+import { TestMergeConflictServiceImpl } from '../../../git/dardcor/mergeConflictServiceImpl';
 import { IIntentService, IntentService } from '../../../intents/node/intentService';
 import { INewWorkspacePreviewContentManager, NewWorkspacePreviewContentManagerImpl } from '../../../intents/node/newIntent';
-import { createExtensionTestingServices } from '../../../test/vscode-node/services';
+import { createExtensionTestingServices } from '../../../test/dardcor-node/services';
 import { ConversationFeature } from '../conversationFeature';
 
 suite('Conversation feature test suite', function () {

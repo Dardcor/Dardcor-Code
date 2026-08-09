@@ -5,8 +5,8 @@
 
 import type * as vscode from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { isEqual } from '../../../util/vs/base/common/resources';
-import { DiagnosticSeverity } from '../../../vscodeTypes';
+import { isEqual } from '../../../util/dardcor/base/common/resources';
+import { DiagnosticSeverity } from '../../../dardcorTypes';
 
 export const ILanguageDiagnosticsService = createServiceIdentifier<ILanguageDiagnosticsService>('ILanguageDiagnosticService');
 

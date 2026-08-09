@@ -13,8 +13,8 @@ import { getGithubRepoIdFromFetchUrl, IGitService } from '../../../platform/git/
 import { IOctoKitService } from '../../../platform/github/common/githubService';
 import { ILogService } from '../../../platform/log/common/logService';
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
-import { Disposable, DisposableStore, IDisposable } from '../../../util/vs/base/common/lifecycle';
-import { createDecorator } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { Disposable, DisposableStore, IDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { createDecorator } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 
 export interface IGitHubOrgChatResourcesService extends IDisposable {
 	/**

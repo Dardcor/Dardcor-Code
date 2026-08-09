@@ -8,7 +8,7 @@ import * as fs from 'fs/promises';
 import * as vscode from 'vscode';
 import { z } from 'zod';
 import { ILogger } from '../../../../../platform/log/common/logService';
-import { generateUuid } from '../../../../../util/vs/base/common/uuid';
+import { generateUuid } from '../../../../../util/dardcor/base/common/uuid';
 import { DiffStateManager } from '../diffState';
 import { ReadonlyContentProvider, createReadonlyUri } from '../readonlyContentProvider';
 import { makeTextResult } from './utils';

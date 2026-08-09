@@ -13,11 +13,11 @@ import { TestWorkspaceService } from '../../../../platform/test/node/testWorkspa
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
 import { NullWorkspaceFileIndex } from '../../../../platform/workspaceChunkSearch/node/nullWorkspaceFileIndex';
 import { IWorkspaceFileIndex } from '../../../../platform/workspaceChunkSearch/node/workspaceFileIndex';
-import { Event } from '../../../../util/vs/base/common/event';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { SyncDescriptor } from '../../../../util/vs/platform/instantiation/common/descriptors';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
-import { LanguageModelTextPart, LanguageModelToolResult } from '../../../../vscodeTypes';
+import { Event } from '../../../../util/dardcor/base/common/event';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { SyncDescriptor } from '../../../../util/dardcor/platform/instantiation/common/descriptors';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { LanguageModelTextPart, LanguageModelToolResult } from '../../../../dardcorTypes';
 import { Conversation, ICopilotChatResultIn, Turn, TurnStatus } from '../../../prompt/common/conversation';
 import { IToolCall } from '../../../prompt/common/intents';
 import { ToolCallRound } from '../../../prompt/common/toolCallRound';

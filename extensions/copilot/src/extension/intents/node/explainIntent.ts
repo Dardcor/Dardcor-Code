@@ -11,8 +11,8 @@ import { TextDocumentSnapshot } from '../../../platform/editing/common/textDocum
 import { IEndpointProvider } from '../../../platform/endpoint/common/endpointProvider';
 import { IChatEndpoint } from '../../../platform/networking/common/networking';
 import { ITabsAndEditorsService } from '../../../platform/tabs/common/tabsAndEditorsService';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { Intent } from '../../common/constants';
 import { IBuildPromptContext } from '../../prompt/common/intents';
 import { IIntent, IIntentInvocation, IIntentInvocationContext, IIntentSlashCommandInfo, IResponseProcessorContext, StreamingMarkdownReplyInterpreter } from '../../prompt/node/intents';

@@ -8,7 +8,7 @@ import { IVSCodeExtensionContext } from '../../../platform/extContext/common/ext
 import { IFileSystemService } from '../../../platform/filesystem/common/fileSystemService';
 import { FileType } from '../../../platform/filesystem/common/fileTypes';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
-import { URI } from '../../../util/vs/base/common/uri';
+import { URI } from '../../../util/dardcor/base/common/uri';
 import { Tag } from '../../prompts/node/base/tag';
 import { ToolName } from '../common/toolNames';
 import { extractSessionId } from './memoryTool';

@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { Extension } from 'vscode';
-import { Event } from '../../../util/vs/base/common/event';
+import { Event } from '../../../util/dardcor/base/common/event';
 import { IExtensionsService } from '../../extensions/common/extensionsService';
 
 export class TestExtensionsService implements IExtensionsService {

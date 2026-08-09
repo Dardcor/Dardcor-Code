@@ -11,9 +11,9 @@ import { IIgnoreService, NullIgnoreService } from '../../../../../platform/ignor
 import { messageToMarkdown } from '../../../../../platform/log/common/messageStringify';
 import { ITasksService } from '../../../../../platform/tasks/common/tasksService';
 import { TestTasksService } from '../../../../../platform/tasks/common/testTasksService';
-import { URI } from '../../../../../util/vs/base/common/uri';
-import { SyncDescriptor } from '../../../../../util/vs/platform/instantiation/common/descriptors';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
+import { SyncDescriptor } from '../../../../../util/dardcor/platform/instantiation/common/descriptors';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { createExtensionUnitTestingServices } from '../../../../test/node/services';
 import { ToolName } from '../../../../tools/common/toolNames';
 import { renderPromptElement } from '../../base/promptRenderer';

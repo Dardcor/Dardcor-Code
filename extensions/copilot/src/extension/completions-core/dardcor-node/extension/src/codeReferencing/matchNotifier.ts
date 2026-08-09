@@ -5,7 +5,7 @@
 
 import { commands, env, Uri } from 'vscode';
 import { IVSCodeExtensionContext } from '../../../../../../platform/extContext/common/extensionContext';
-import { IInstantiationService, ServicesAccessor } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService, ServicesAccessor } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ICompletionsNotificationSender } from '../../../lib/src/notificationSender';
 import { OutputPaneShowCommand } from '../../../lib/src/snippy/constants';
 import { matchNotificationTelemetry, TelemetryActor } from '../../../lib/src/snippy/telemetryHandlers';

@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type * as vscode from 'vscode';
-import { ChatSubagentToolInvocationData, ChatToolInvocationPart } from '../../../vscodeTypes';
+import { ChatSubagentToolInvocationData, ChatToolInvocationPart } from '../../../dardcorTypes';
 import { ToolName } from '../common/toolNames';
 
 export interface ISubagentToolInvocationUpdate {

@@ -4,13 +4,13 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { vi } from 'vitest';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { Emitter, Event } from '../../../../util/vs/base/common/event';
-import { IObservable } from '../../../../util/vs/base/common/observableInternal';
-import { observableValue } from '../../../../util/vs/base/common/observableInternal/observables/observableValue';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { Emitter, Event } from '../../../../util/dardcor/base/common/event';
+import { IObservable } from '../../../../util/dardcor/base/common/observableInternal';
+import { observableValue } from '../../../../util/dardcor/base/common/observableInternal/observables/observableValue';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { IGitService, RepoContext } from '../../../git/common/gitService';
-import { Branch, Change, Commit, CommitOptions, CommitShortStat, DiffChange, LogOptions, Ref, RefQuery, Repository, RepositoryAccessDetails } from '../../../git/vscode/git';
+import { Branch, Change, Commit, CommitOptions, CommitShortStat, DiffChange, LogOptions, Ref, RefQuery, Repository, RepositoryAccessDetails } from '../../../git/dardcor/git';
 
 /**
  * A configurable mock implementation of IGitService for testing.

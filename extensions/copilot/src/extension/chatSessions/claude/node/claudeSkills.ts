@@ -9,12 +9,12 @@ import { INativeEnvService } from '../../../../platform/env/common/envService';
 import { IPromptsService } from '../../../../platform/promptFiles/common/promptsService';
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
 import { createServiceIdentifier } from '../../../../util/common/services';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { Disposable } from '../../../../util/vs/base/common/lifecycle';
-import { ResourceSet } from '../../../../util/vs/base/common/map';
-import { Schemas } from '../../../../util/vs/base/common/network';
-import { dirname } from '../../../../util/vs/base/common/resources';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { Disposable } from '../../../../util/dardcor/base/common/lifecycle';
+import { ResourceSet } from '../../../../util/dardcor/base/common/map';
+import { Schemas } from '../../../../util/dardcor/base/common/network';
+import { dirname } from '../../../../util/dardcor/base/common/resources';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { resolveSkillConfigLocations } from '../../common/skillConfigLocations';
 
 /** The Claude SDK loads `.claude` directories automatically — skip them to avoid duplicates. */

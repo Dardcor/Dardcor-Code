@@ -6,8 +6,8 @@
 import { assert } from 'chai';
 import { suite, test } from 'vitest';
 import type { ChatVulnerability } from 'vscode';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { MarkdownString } from '../../../../vscodeTypes';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { MarkdownString } from '../../../../dardcorTypes';
 import { CodeBlock } from '../../../prompt/common/conversation';
 import { CodeBlockInfo, CodeBlockProcessor, LineProcessor } from '../codeBlockProcessor';
 

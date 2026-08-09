@@ -10,10 +10,10 @@ import { ResponseStream } from '../../../../../../../platform/nesFetch/common/re
 import { HeadersImpl } from '../../../../../../../platform/networking/common/fetcherService';
 import { TestingServiceCollection } from '../../../../../../../platform/test/node/services';
 import { Result } from '../../../../../../../util/common/result';
-import { CancellationToken } from '../../../../../../../util/vs/base/common/cancellation';
-import { generateUuid } from '../../../../../../../util/vs/base/common/uuid';
-import { SyncDescriptor } from '../../../../../../../util/vs/platform/instantiation/common/descriptors';
-import { IInstantiationService, ServicesAccessor } from '../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../../../../../../util/dardcor/base/common/cancellation';
+import { generateUuid } from '../../../../../../../util/dardcor/base/common/uuid';
+import { SyncDescriptor } from '../../../../../../../util/dardcor/platform/instantiation/common/descriptors';
+import { IInstantiationService, ServicesAccessor } from '../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { CancellationTokenSource } from '../../../../types/src';
 import { ICompletionsCopilotTokenManager } from '../../auth/copilotTokenManager';
 import { ICompletionsStatusReporter, StatusChangedEvent, StatusReporter } from '../../progress';

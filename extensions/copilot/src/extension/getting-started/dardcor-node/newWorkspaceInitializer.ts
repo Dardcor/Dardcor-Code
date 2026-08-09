@@ -8,7 +8,7 @@ import { l10n } from 'vscode';
 import { IVSCodeExtensionContext } from '../../../platform/extContext/common/extensionContext';
 import { IFileSystemService } from '../../../platform/filesystem/common/fileSystemService';
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { INewWorkspaceStoredData, NEW_WORKSPACE_STORAGE_KEY } from '../common/newWorkspaceContext';
 
 export class NewWorkspaceInitializer extends Disposable {

@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IIgnoreService } from '../../../../../../../platform/ignore/common/ignoreService';
-import { URI } from '../../../../../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { URI } from '../../../../../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ICompletionsTelemetryService } from '../../../../bridge/src/completionsTelemetryServiceBridge';
 import { ComponentStatistics, PromptMetadata } from '../../../../prompt/src/components/components';
 import { commentBlockAsSingles } from '../../../../prompt/src/languageMarker';

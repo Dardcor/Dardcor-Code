@@ -5,9 +5,9 @@
 
 import { TextDocument, TextDocumentContentChangeEvent } from 'vscode';
 import { IAlternativeNotebookDocument } from '../../../../platform/notebook/common/alternativeNotebookTextDocument';
-import { StringEdit, StringReplacement } from '../../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
-import { StringText } from '../../../../util/vs/editor/common/core/text/abstractText';
+import { StringEdit, StringReplacement } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { StringText } from '../../../../util/dardcor/editor/common/core/text/abstractText';
 
 export function stringValueFromDoc(doc: TextDocument | IAlternativeNotebookDocument): StringText {
 	return new StringText(doc.getText());

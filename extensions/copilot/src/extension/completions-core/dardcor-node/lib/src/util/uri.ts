@@ -5,8 +5,8 @@
 
 import { platform } from 'os';
 import { normalize } from 'path';
-import { dirname as VSCODE_dirname } from '../../../../../../util/vs/base/common/resources';
-import { URI } from '../../../../../../util/vs/base/common/uri';
+import { dirname as VSCODE_dirname } from '../../../../../../util/dardcor/base/common/resources';
+import { URI } from '../../../../../../util/dardcor/base/common/uri';
 
 type URIContainer = { readonly uri: string };
 

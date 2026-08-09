@@ -10,20 +10,20 @@ import { IIgnoreService } from '../../../../platform/ignore/common/ignoreService
 import { ILogService } from '../../../../platform/log/common/logService';
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
 import { isLocation, toLocation } from '../../../../util/common/types';
-import { raceCancellation } from '../../../../util/vs/base/common/async';
-import { ResourceMap } from '../../../../util/vs/base/common/map';
-import { Schemas } from '../../../../util/vs/base/common/network';
-import * as path from '../../../../util/vs/base/common/path';
-import { extUriBiasedIgnorePathCase, relativePath } from '../../../../util/vs/base/common/resources';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
-import { ChatReferenceBinaryData, ChatReferenceDiagnostic, FileType, Location } from '../../../../vscodeTypes';
+import { raceCancellation } from '../../../../util/dardcor/base/common/async';
+import { ResourceMap } from '../../../../util/dardcor/base/common/map';
+import { Schemas } from '../../../../util/dardcor/base/common/network';
+import * as path from '../../../../util/dardcor/base/common/path';
+import { extUriBiasedIgnorePathCase, relativePath } from '../../../../util/dardcor/base/common/resources';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { ChatReferenceBinaryData, ChatReferenceDiagnostic, FileType, Location } from '../../../../dardcorTypes';
 import { ChatVariablesCollection, isCustomizationsIndex, isInstructionFile, isPromptFile } from '../../../prompt/common/chatVariablesCollection';
 import { generateUserPrompt } from '../../../prompts/node/agent/copilotCLIPrompt';
 import { getWorkingDirectory, isIsolationEnabled, IWorkspaceInfo } from '../../common/workspaceInfo';
 import { ICopilotCLIImageSupport, isImageMimeType } from './copilotCLIImageSupport';
 import { ICopilotCLISkills } from './copilotCLISkills';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
 import { IVSCodeExtensionContext } from '../../../../platform/extContext/common/extensionContext';
 
 export class CopilotCLIPromptResolver {

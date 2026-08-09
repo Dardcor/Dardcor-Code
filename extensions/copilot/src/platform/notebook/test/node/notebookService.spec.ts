@@ -7,8 +7,8 @@ import { assert, describe, it, suite } from 'vitest';
 import type * as vscode from 'vscode';
 import { _hasSupportedNotebooks, EditorAssociation, INotebookEditorContribution, RegisteredEditorPriority } from '../../../../util/common/notebooks';
 import { ExtHostNotebookDocumentData } from '../../../../util/common/test/shims/notebookDocument';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { NotebookData } from '../../../../vscodeTypes';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { NotebookData } from '../../../../dardcorTypes';
 
 describe('NotebookService', () => {
 	suite('hasSupportedNotebooks', () => {

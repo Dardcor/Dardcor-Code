@@ -11,9 +11,9 @@ import { ILogService } from '../../../platform/log/common/logService';
 import { IChatEndpoint } from '../../../platform/networking/common/networking';
 import { APIUsage } from '../../../platform/networking/common/openai';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { CancellationTokenSource } from '../../../util/vs/base/common/cancellation';
-import { generateUuid } from '../../../util/vs/base/common/uuid';
-import { LanguageModelError } from '../../../vscodeTypes';
+import { CancellationTokenSource } from '../../../util/dardcor/base/common/cancellation';
+import { generateUuid } from '../../../util/dardcor/base/common/uuid';
+import { LanguageModelError } from '../../../dardcorTypes';
 import { AnthropicAdapterFactory } from './adapters/anthropicAdapter';
 import { IAgentStreamBlock, IProtocolAdapter, IProtocolAdapterFactory, IStreamingContext } from './adapters/types';
 

@@ -14,9 +14,9 @@ import { IExperimentationService } from '../../../../platform/telemetry/common/n
 import { TestWorkspaceService } from '../../../../platform/test/node/testWorkspaceService';
 import { createTextDocumentData } from '../../../../util/common/test/shims/textDocument';
 import { ExtHostTextEditor } from '../../../../util/common/test/shims/textEditor';
-import { DisposableStore } from '../../../../util/vs/base/common/lifecycle';
-import { IReader } from '../../../../util/vs/base/common/observableInternal';
-import { Selection, TextEditorSelectionChangeKind, Uri } from '../../../../vscodeTypes';
+import { DisposableStore } from '../../../../util/dardcor/base/common/lifecycle';
+import { IReader } from '../../../../util/dardcor/base/common/observableInternal';
+import { Selection, TextEditorSelectionChangeKind, Uri } from '../../../../dardcorTypes';
 import { createExtensionUnitTestingServices } from '../../../test/node/services';
 import { NesChangeHint, NesTriggerReason } from '../../common/nesTriggerHint';
 import { NesOutcome, NextEditProvider } from '../../node/nextEditProvider';
@@ -25,8 +25,8 @@ import {
 	TRIGGER_INLINE_EDIT_AFTER_CHANGE_LIMIT,
 	TRIGGER_INLINE_EDIT_ON_SAME_LINE_COOLDOWN,
 	TRIGGER_INLINE_EDIT_REJECTION_COOLDOWN
-} from '../../vscode-node/inlineEditTriggerer';
-import { IVSCodeObservableDocument } from '../../vscode-node/parts/vscodeWorkspace';
+} from '../../dardcor-node/inlineEditTriggerer';
+import { IVSCodeObservableDocument } from '../../dardcor-node/parts/dardcorWorkspace';
 
 
 suite('InlineEditTriggerer', () => {

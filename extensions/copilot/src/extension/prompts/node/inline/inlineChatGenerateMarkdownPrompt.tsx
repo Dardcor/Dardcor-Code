@@ -7,8 +7,8 @@ import { PromptElement, PromptElementProps, PromptReference, PromptSizing, Syste
 import type * as vscode from 'vscode';
 import { IIgnoreService } from '../../../../platform/ignore/common/ignoreService';
 import { isNotebookCellOrNotebookChatInput } from '../../../../util/common/notebooks';
-import { illegalArgument } from '../../../../util/vs/base/common/errors';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { illegalArgument } from '../../../../util/dardcor/base/common/errors';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { GenericInlinePromptProps } from '../../../context/node/resolvers/genericInlineIntentInvocation';
 import { SelectionSplitKind, SummarizedDocumentData, SummarizedDocumentWithSelection } from '../../../intents/node/testIntent/summarizedDocumentWithSelection';
 import { EarlyStopping, LeadingMarkdownStreaming } from '../../../prompt/node/intents';

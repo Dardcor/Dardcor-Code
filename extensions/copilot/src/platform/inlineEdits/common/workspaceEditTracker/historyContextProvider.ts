@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { assert } from '../../../../util/vs/base/common/assert';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
-import { StringText } from '../../../../util/vs/editor/common/core/text/abstractText';
+import { assert } from '../../../../util/dardcor/base/common/assert';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { StringText } from '../../../../util/dardcor/editor/common/core/text/abstractText';
 import { DocumentId } from '../dataTypes/documentId';
 import { Edits, RootedEdit } from '../dataTypes/edit';
 import { LanguageId } from '../dataTypes/languageId';

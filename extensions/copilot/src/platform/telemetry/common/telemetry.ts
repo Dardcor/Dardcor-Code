@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 import type { TelemetrySender } from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { IDisposable } from '../../../util/vs/base/common/lifecycle';
+import { IDisposable } from '../../../util/dardcor/base/common/lifecycle';
 import type { CopilotToken } from '../../authentication/common/copilotToken';
 import { ICopilotTokenStore } from '../../authentication/common/copilotTokenStore';
 import type { TelemetryData } from './telemetryData';

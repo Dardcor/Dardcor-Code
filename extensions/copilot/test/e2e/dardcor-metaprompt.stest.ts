@@ -5,10 +5,10 @@
 
 import assert from 'assert';
 import { ChatVariablesCollection } from '../../src/extension/prompt/common/chatVariablesCollection';
-import { VscodePrompt } from '../../src/extension/prompts/node/panel/vscode';
+import { VscodePrompt } from '../../src/extension/prompts/node/panel/dardcor';
 import { IEndpointProvider } from '../../src/platform/endpoint/common/endpointProvider';
-import { CancellationToken } from '../../src/util/vs/base/common/cancellation';
-import { IInstantiationService } from '../../src/util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../src/util/dardcor/base/common/cancellation';
+import { IInstantiationService } from '../../src/util/dardcor/platform/instantiation/common/instantiation';
 import { ssuite, stest } from '../base/stest';
 
 ssuite.skip({ title: 'vscode', subtitle: 'metaprompt', location: 'panel' }, async (_) => {

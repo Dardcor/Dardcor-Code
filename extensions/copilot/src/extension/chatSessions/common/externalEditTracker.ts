@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type * as vscode from 'vscode';
-import { DeferredPromise } from '../../../util/vs/base/common/async';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { IDisposable } from '../../../util/vs/base/common/lifecycle';
-import { isEqualOrParent } from '../../../util/vs/base/common/resources';
-import { URI } from '../../../util/vs/base/common/uri';
+import { DeferredPromise } from '../../../util/dardcor/base/common/async';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { IDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { isEqualOrParent } from '../../../util/dardcor/base/common/resources';
+import { URI } from '../../../util/dardcor/base/common/uri';
 
 /**
  * Tracks ongoing external edit operations for agent tools.

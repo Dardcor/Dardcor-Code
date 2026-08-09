@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as l10n from '@vscode/l10n';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { IInstantiationService, createDecorator } from '../../../../util/vs/platform/instantiation/common/instantiation';
-import { LanguageModelTextPart } from '../../../../vscodeTypes';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { IInstantiationService, createDecorator } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { LanguageModelTextPart } from '../../../../dardcorTypes';
 import { ToolName } from '../../../tools/common/toolNames';
 import { IToolsService } from '../../../tools/common/toolsService';
 import {

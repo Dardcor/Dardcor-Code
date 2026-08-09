@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { IDisposable } from '../../../../util/vs/base/common/lifecycle';
-import { autorunHandleChanges, IObservableWithChange } from '../../../../util/vs/base/common/observable';
+import { IDisposable } from '../../../../util/dardcor/base/common/lifecycle';
+import { autorunHandleChanges, IObservableWithChange } from '../../../../util/dardcor/base/common/observable';
 
 type ObservableResult<T> = T extends IObservableWithChange<infer U, any> ? U : never;
 

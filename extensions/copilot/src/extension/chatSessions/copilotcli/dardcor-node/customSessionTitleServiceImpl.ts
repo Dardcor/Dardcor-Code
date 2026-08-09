@@ -6,8 +6,8 @@
 import { CancellationToken, ChatContext, ChatRequestTurn2 } from 'vscode';
 import { IVSCodeExtensionContext } from '../../../../platform/extContext/common/extensionContext';
 import { ILogService } from '../../../../platform/log/common/logService';
-import { SequencerByKey } from '../../../../util/vs/base/common/async';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { SequencerByKey } from '../../../../util/dardcor/base/common/async';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ChatTitleProvider } from '../../../prompt/node/title';
 import { IChatSessionMetadataStore } from '../../common/chatSessionMetadataStore';
 import { ICustomSessionTitleService } from '../common/customSessionTitleService';

@@ -5,8 +5,8 @@
 
 import * as vscode from 'vscode';
 import { ILogService } from '../../../platform/log/common/logService';
-import { Emitter } from '../../../util/vs/base/common/event';
-import { Disposable, IDisposable, toDisposable } from '../../../util/vs/base/common/lifecycle';
+import { Emitter } from '../../../util/dardcor/base/common/event';
+import { Disposable, IDisposable, toDisposable } from '../../../util/dardcor/base/common/lifecycle';
 import { IPowerService } from '../common/powerService';
 
 const RELEASE_DELAY_MS = 2 * 60 * 1000; // 2 minutes

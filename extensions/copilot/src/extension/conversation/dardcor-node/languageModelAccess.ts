@@ -33,12 +33,12 @@ import { ITelemetryService } from '../../../platform/telemetry/common/telemetry'
 import { isEncryptedThinkingDelta } from '../../../platform/thinking/common/thinking';
 import { BaseTokensPerCompletion } from '../../../platform/tokenizer/node/tokenizer';
 import { TelemetryCorrelationId } from '../../../util/common/telemetryCorrelationId';
-import { CancellationTokenSource } from '../../../util/vs/base/common/cancellation';
-import { Emitter } from '../../../util/vs/base/common/event';
-import { Disposable, MutableDisposable } from '../../../util/vs/base/common/lifecycle';
-import { isBoolean, isDefined, isNumber, isString, isStringArray } from '../../../util/vs/base/common/types';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
-import { ChatLocation as ApiChatLocation, ExtensionMode } from '../../../vscodeTypes';
+import { CancellationTokenSource } from '../../../util/dardcor/base/common/cancellation';
+import { Emitter } from '../../../util/dardcor/base/common/event';
+import { Disposable, MutableDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { isBoolean, isDefined, isNumber, isString, isStringArray } from '../../../util/dardcor/base/common/types';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { ChatLocation as ApiChatLocation, ExtensionMode } from '../../../dardcorTypes';
 import type { LMResponsePart } from '../../byok/common/byokProvider';
 import { IExtensionContribution } from '../../common/contributions';
 import { PromptRenderer } from '../../prompts/node/base/promptRenderer';

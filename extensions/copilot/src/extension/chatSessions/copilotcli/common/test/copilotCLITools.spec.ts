@@ -7,11 +7,11 @@ import { describe, expect, it } from 'vitest';
 import type { ChatPromptReference } from 'vscode';
 import { TestLogService } from '../../../../../platform/testing/common/testLogService';
 import { mock } from '../../../../../util/common/test/simpleMock';
-import { URI } from '../../../../../util/vs/base/common/uri';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
 import {
 	ChatRequestTurn2, ChatResponseMarkdownPart, ChatResponsePullRequestPart, ChatResponseThinkingProgressPart, ChatResponseTurn2, ChatToolInvocationPart, MarkdownString
-} from '../../../../../vscodeTypes';
-import { CancellationToken } from '../../../../../util/vs/base/common/cancellation';
+} from '../../../../../dardcorTypes';
+import { CancellationToken } from '../../../../../util/dardcor/base/common/cancellation';
 import {
 	buildChatHistoryFromEvents, createCopilotCLIToolInvocation, enrichToolInvocationWithSubagentMetadata, extractCdPrefix, FakeToolsService, getAffectedUrisForEditTool, isCopilotCliEditToolCall, isCopilotCLIToolThatCouldRequirePermissions, isTodoRelatedSqlQuery, processToolExecutionComplete, processToolExecutionStart, RequestIdDetails, stripReminders, ToolCall, updateTodoListFromSqlItems
 } from '../copilotCLITools';

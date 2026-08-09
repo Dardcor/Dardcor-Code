@@ -3,10 +3,10 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { autorunWithStore, IObservable, ISettableObservable, mapObservableArrayCached, observableFromEvent, observableValue, waitForState } from '../../../util/vs/base/common/observable';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { autorunWithStore, IObservable, ISettableObservable, mapObservableArrayCached, observableFromEvent, observableValue, waitForState } from '../../../util/dardcor/base/common/observable';
 import { IGitExtensionService } from '../../git/common/gitExtensionService';
-import { API } from '../../git/vscode/git';
+import { API } from '../../git/dardcor/git';
 
 export class ObservableGit extends Disposable {
 

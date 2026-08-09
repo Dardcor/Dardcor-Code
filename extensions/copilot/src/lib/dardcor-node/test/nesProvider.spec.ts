@@ -20,13 +20,13 @@ import { TestLanguageDiagnosticsService } from '../../../platform/languages/comm
 import { FetchOptions, IAbortController, IHeaders, PaginationOptions, Response } from '../../../platform/networking/common/fetcherService';
 import { IFetcher } from '../../../platform/networking/common/networking';
 import { NullTerminalService } from '../../../platform/terminal/common/terminalService';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { Emitter } from '../../../util/vs/base/common/event';
-import { URI } from '../../../util/vs/base/common/uri';
-import { StringEdit, StringReplacement } from '../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../util/vs/editor/common/core/ranges/offsetRange';
-import { ensureDependenciesAreSet } from '../../../util/vs/editor/common/core/text/positionToOffset';
-import { DiagnosticSeverity, Range } from '../../../vscodeTypes';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { Emitter } from '../../../util/dardcor/base/common/event';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { StringEdit, StringReplacement } from '../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { ensureDependenciesAreSet } from '../../../util/dardcor/editor/common/core/text/positionToOffset';
+import { DiagnosticSeverity, Range } from '../../../dardcorTypes';
 import { createNESProvider, ILogTarget, ITelemetrySender, LogLevel } from '../../node/chatLibMain';
 
 

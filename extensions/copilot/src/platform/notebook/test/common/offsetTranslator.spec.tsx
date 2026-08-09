@@ -5,7 +5,7 @@
 
 import { describe, expect, test } from 'vitest';
 import { CrLfOffsetTranslator } from '../../common/offsetTranslator';
-import { EndOfLine } from '../../../../vscodeTypes';
+import { EndOfLine } from '../../../../dardcorTypes';
 
 describe('CrLfOffsetTranslator', () => {
 	test('No CRLFs (LF only)', () => {

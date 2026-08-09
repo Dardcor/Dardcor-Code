@@ -208,7 +208,7 @@
 
 .keybindings-editor > .keybindings-body > .keybindings-table-container .monaco-table-tr .monaco-table-td .code.strong {
 	padding: 1px 4px;
-	background-color: rgba(59, 10, 94, 0.17);
+	background-color: rgba(128, 128, 128, 0.17);
 	border-radius: 4px;
 }
 

@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Result } from '../../../../util/common/result';
-import { assertNever } from '../../../../util/vs/base/common/assert';
+import { assertNever } from '../../../../util/dardcor/base/common/assert';
 import { IValidator, vArray, vBoolean, vEnum, vNumber, vObj, vRequired, vString, vUndefined, vUnion } from '../../../configuration/common/validator';
 import { ImportChanges } from './importFilteringOptions';
 

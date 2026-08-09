@@ -11,16 +11,16 @@ import { ObservableWorkspace } from '../../../platform/inlineEdits/common/observ
 import { autorunWithChanges } from '../../../platform/inlineEdits/common/utils/observable';
 import { Instant, now } from '../../../platform/inlineEdits/common/utils/utils';
 import { ISerializedOffsetRange, LogEntry } from '../../../platform/workspaceRecorder/common/workspaceLog';
-import { compareBy, numberComparator } from '../../../util/vs/base/common/arrays';
-import { Disposable, toDisposable } from '../../../util/vs/base/common/lifecycle';
-import { Schemas } from '../../../util/vs/base/common/network';
-import { mapObservableArrayCached } from '../../../util/vs/base/common/observableInternal';
-import { relative } from '../../../util/vs/base/common/path';
-import { URI } from '../../../util/vs/base/common/uri';
-import { generateUuid } from '../../../util/vs/base/common/uuid';
-import { StringEdit } from '../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../util/vs/editor/common/core/ranges/offsetRange';
-import { StringText } from '../../../util/vs/editor/common/core/text/abstractText';
+import { compareBy, numberComparator } from '../../../util/dardcor/base/common/arrays';
+import { Disposable, toDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { Schemas } from '../../../util/dardcor/base/common/network';
+import { mapObservableArrayCached } from '../../../util/dardcor/base/common/observableInternal';
+import { relative } from '../../../util/dardcor/base/common/path';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { generateUuid } from '../../../util/dardcor/base/common/uuid';
+import { StringEdit } from '../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { StringText } from '../../../util/dardcor/editor/common/core/text/abstractText';
 
 export class DebugRecorder extends Disposable {
 	private _id: number = 0;

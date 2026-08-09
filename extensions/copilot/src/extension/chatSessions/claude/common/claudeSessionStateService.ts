@@ -8,7 +8,7 @@ import type * as vscode from 'vscode';
 import { CapturingToken } from '../../../../platform/requestLogger/common/capturingToken';
 import type { TraceContext } from '../../../../platform/otel/common/otelService';
 import { createServiceIdentifier } from '../../../../util/common/services';
-import { Event } from '../../../../util/vs/base/common/event';
+import { Event } from '../../../../util/dardcor/base/common/event';
 import type { ClaudeFolderInfo } from './claudeFolderInfo';
 import type { ParsedClaudeModelId } from './claudeModelId';
 

@@ -8,7 +8,7 @@ import { IAuthenticationService } from '../../../platform/authentication/common/
 import { ConfigKey, IConfigurationService } from '../../../platform/configuration/common/configurationService';
 import { ILogService } from '../../../platform/log/common/logService';
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
-import { Disposable, IDisposable } from '../../../util/vs/base/common/lifecycle';
+import { Disposable, IDisposable } from '../../../util/dardcor/base/common/lifecycle';
 import { GitHubMcpDefinitionProvider } from '../common/githubMcpDefinitionProvider';
 
 export class GitHubMcpContrib extends Disposable {

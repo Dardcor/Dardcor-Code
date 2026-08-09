@@ -6,9 +6,9 @@ import assert from 'assert';
 import * as fs from 'fs';
 import * as path from 'path';
 import { IFile, IQualifiedFile, IRelativeFile } from '../../src/platform/test/node/simulationWorkspace';
-import { timeout } from '../../src/util/vs/base/common/async';
-import { URI } from '../../src/util/vs/base/common/uri';
-import { generateUuid } from '../../src/util/vs/base/common/uuid';
+import { timeout } from '../../src/util/dardcor/base/common/async';
+import { URI } from '../../src/util/dardcor/base/common/uri';
+import { generateUuid } from '../../src/util/dardcor/base/common/uuid';
 import { SIMULATION_FOLDER_NAME } from './shared/sharedTypes';
 import { IConversationalOutcome, IEmptyOutcome, IInlineEditOutcome, IOutcome, IWorkspaceEditOutcome } from './types';
 

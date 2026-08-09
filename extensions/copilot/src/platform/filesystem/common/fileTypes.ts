@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type * as vscode from 'vscode';
-import { URI } from '../../../util/vs/base/common/uri';
+import { URI } from '../../../util/dardcor/base/common/uri';
 
 /**
  * Taken from vscode.d.ts

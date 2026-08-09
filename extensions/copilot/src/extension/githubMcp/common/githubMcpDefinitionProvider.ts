@@ -8,8 +8,8 @@ import type { CancellationToken, McpHttpServerDefinition, McpServerDefinitionPro
 import { authProviderId, IAuthenticationService } from '../../../platform/authentication/common/authentication';
 import { AuthProviderId, ConfigKey, IConfigurationService } from '../../../platform/configuration/common/configurationService';
 import { ILogService } from '../../../platform/log/common/logService';
-import { Event } from '../../../util/vs/base/common/event';
-import { URI } from '../../../util/vs/base/common/uri';
+import { Event } from '../../../util/dardcor/base/common/event';
+import { URI } from '../../../util/dardcor/base/common/uri';
 
 const EnterpriseURLConfig = 'github-enterprise.uri';
 

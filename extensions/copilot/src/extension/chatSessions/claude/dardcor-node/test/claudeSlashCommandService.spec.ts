@@ -6,8 +6,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type * as vscode from 'vscode';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../util/common/test/testUtils';
-import { CancellationToken } from '../../../../../util/vs/base/common/cancellation';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../../../../util/dardcor/base/common/cancellation';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { createExtensionUnitTestingServices } from '../../../../test/node/services';
 import { MockChatResponseStream } from '../../../../test/node/testHelpers';
 import { ClaudeSlashCommandService, IClaudeSlashCommandRequest } from '../claudeSlashCommandService';

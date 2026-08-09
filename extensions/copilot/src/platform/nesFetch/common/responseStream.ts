@@ -5,8 +5,8 @@
 
 import { ErrorUtils } from '../../../util/common/errors';
 import { Result } from '../../../util/common/result';
-import { DeferredPromise } from '../../../util/vs/base/common/async';
-import { assertType } from '../../../util/vs/base/common/types';
+import { DeferredPromise } from '../../../util/dardcor/base/common/async';
+import { assertType } from '../../../util/dardcor/base/common/types';
 import { RequestId } from '../../networking/common/fetch';
 import { IHeaders, Response } from '../../networking/common/fetcherService';
 import { Completion } from './completionsAPI';

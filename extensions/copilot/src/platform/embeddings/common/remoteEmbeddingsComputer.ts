@@ -6,9 +6,9 @@
 import { RequestType } from '@vscode/copilot-api';
 import type { CancellationToken } from 'vscode';
 import { CallTracker, TelemetryCorrelationId } from '../../../util/common/telemetryCorrelationId';
-import { Limiter } from '../../../util/vs/base/common/async';
-import { generateUuid } from '../../../util/vs/base/common/uuid';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { Limiter } from '../../../util/dardcor/base/common/async';
+import { generateUuid } from '../../../util/dardcor/base/common/uuid';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { IAuthenticationService } from '../../authentication/common/authentication';
 import { IEndpointProvider } from '../../endpoint/common/endpointProvider';
 import { IEnvService } from '../../env/common/envService';

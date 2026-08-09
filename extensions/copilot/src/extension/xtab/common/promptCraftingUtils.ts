@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { DocumentId } from '../../../platform/inlineEdits/common/dataTypes/documentId';
-import { Schemas } from '../../../util/vs/base/common/network';
+import { Schemas } from '../../../util/dardcor/base/common/network';
 
 export function toUniquePath(documentId: DocumentId, workspaceRootPath: string | undefined): string {
 	const filePath = documentId.path;

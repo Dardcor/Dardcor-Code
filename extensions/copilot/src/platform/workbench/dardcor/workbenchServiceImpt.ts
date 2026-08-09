@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { SettingListItem } from '../../embeddings/common/vscodeIndex';
+import { SettingListItem } from '../../embeddings/common/dardcorIndex';
 import { IWorkbenchService } from '../common/workbenchService';
 
 export class WorkbenchServiceImpl implements IWorkbenchService {

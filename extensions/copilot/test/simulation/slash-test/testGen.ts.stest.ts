@@ -9,7 +9,7 @@ import { Intent } from '../../../src/extension/common/constants';
 import { TestsIntent } from '../../../src/extension/intents/node/testIntent/testIntent';
 import { ConfigKey } from '../../../src/platform/configuration/common/configurationService';
 import { deserializeWorkbenchState } from '../../../src/platform/test/node/promptContextModel';
-import { assertType } from '../../../src/util/vs/base/common/types';
+import { assertType } from '../../../src/util/dardcor/base/common/types';
 import { ssuite, stest } from '../../base/stest';
 import { generateScenarioTestRunner } from '../../e2e/scenarioTest';
 import { forInline, simulateInlineChatWithStrategy } from '../inlineChatSimulator';

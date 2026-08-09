@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { ThemeIcon } from '../../../../util/vs/base/common/themables';
+import { ThemeIcon } from '../../../../util/dardcor/base/common/themables';
 
 /**
  * Represents a specific point in time.

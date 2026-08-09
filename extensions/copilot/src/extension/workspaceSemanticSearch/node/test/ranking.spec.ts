@@ -5,8 +5,8 @@
 import { expect, it, suite } from 'vitest';
 import { FileChunk, FileChunkAndScore } from '../../../../platform/chunking/common/chunk';
 import { EmbeddingType } from '../../../../platform/embeddings/common/embeddingsComputer';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { Range } from '../../../../util/vs/editor/common/core/range';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { Range } from '../../../../util/dardcor/editor/common/core/range';
 import { combineRankingInsights } from '../combinedRank';
 
 suite('combineRankingInsights', () => {

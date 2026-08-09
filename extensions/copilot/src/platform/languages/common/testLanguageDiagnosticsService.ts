@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { Diagnostic, DiagnosticChangeEvent, Uri } from 'vscode';
-import { Emitter } from '../../../util/vs/base/common/event';
-import { ResourceMap } from '../../../util/vs/base/common/map';
+import { Emitter } from '../../../util/dardcor/base/common/event';
+import { ResourceMap } from '../../../util/dardcor/base/common/map';
 import { AbstractLanguageDiagnosticsService } from './languageDiagnosticsService';
 
 export class TestLanguageDiagnosticsService extends AbstractLanguageDiagnosticsService {

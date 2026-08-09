@@ -5,7 +5,7 @@
 
 import { languages, workspace } from 'vscode';
 import { DocumentSelector } from 'vscode-languageserver-protocol';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { isDocumentValid } from '../../lib/src/util/documentEvaluation';
 import { DocumentContext } from '../../types/src';
 

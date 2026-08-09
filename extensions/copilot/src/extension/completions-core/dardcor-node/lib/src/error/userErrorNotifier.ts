@@ -5,7 +5,7 @@
 
 import { IEnvService } from '../../../../../../platform/env/common/envService';
 import { createServiceIdentifier } from '../../../../../../util/common/services';
-import { URI } from '../../../../../../util/vs/base/common/uri';
+import { URI } from '../../../../../../util/dardcor/base/common/uri';
 import { ICompletionsLogTargetService, Logger } from '../logger';
 import { ICompletionsNotificationSender } from '../notificationSender';
 

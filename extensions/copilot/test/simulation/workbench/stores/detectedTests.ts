@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as mobx from 'mobx';
-import { Disposable, toDisposable } from '../../../../src/util/vs/base/common/lifecycle';
+import { Disposable, toDisposable } from '../../../../src/util/dardcor/base/common/lifecycle';
 import { IDetectedTestOutput } from '../../shared/sharedTypes';
 import { spawnSimulation } from '../utils/simulationExec';
 import { genericEquals } from '../utils/utils';

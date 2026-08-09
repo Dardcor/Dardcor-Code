@@ -9,11 +9,11 @@ import { IExtensionsService } from '../../../platform/extensions/common/extensio
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { isAbsolute, join, relative } from '../../../util/vs/base/common/path';
-import { count } from '../../../util/vs/base/common/strings';
-import { URI } from '../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { isAbsolute, join, relative } from '../../../util/dardcor/base/common/path';
+import { count } from '../../../util/dardcor/base/common/strings';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { PromptRenderer } from '../../prompts/node/base/promptRenderer';
 import { StartDebuggingPrompt, StartDebuggingType } from '../../prompts/node/panel/startDebugging';
 import { IStartDebuggingParsedResponse, parseLaunchConfigFromResponse } from './parseLaunchConfigFromResponse';

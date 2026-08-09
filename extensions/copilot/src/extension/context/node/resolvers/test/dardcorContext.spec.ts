@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { IWorkbenchService } from '../../../../../platform/workbench/common/workbenchService';
-import { parseSettingsAndCommands } from '../vscodeContext';
+import { parseSettingsAndCommands } from '../dardcorContext';
 
 // Mock implementation of IWorkbenchService for testing
 class MockWorkbenchService implements IWorkbenchService {

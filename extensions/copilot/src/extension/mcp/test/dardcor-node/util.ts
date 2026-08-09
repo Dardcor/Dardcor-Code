@@ -6,9 +6,9 @@
 import * as fs from 'fs/promises';
 import path from 'path';
 import { FetchOptions, IAbortController, IFetcherService, PaginationOptions, Response, WebSocketConnection } from '../../../../platform/networking/common/fetcherService';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { Event } from '../../../../util/vs/base/common/event';
-import { ICommandExecutor } from '../../vscode-node/util';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { Event } from '../../../../util/dardcor/base/common/event';
+import { ICommandExecutor } from '../../dardcor-node/util';
 
 type CommandResult = { fileName?: string; stdout?: string; exitCode: number };
 

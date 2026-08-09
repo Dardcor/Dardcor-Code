@@ -8,7 +8,7 @@ import { combineGlob } from '../../../util/common/glob';
 import { filterIngoredResources, IIgnoreService } from '../../ignore/common/ignoreService';
 import { LogExecTime } from '../../log/common/logExecTime';
 import { ILogService } from '../../log/common/logService';
-import { BaseSearchServiceImpl } from '../vscode/baseSearchServiceImpl';
+import { BaseSearchServiceImpl } from '../dardcor/baseSearchServiceImpl';
 
 export class SearchServiceImpl extends BaseSearchServiceImpl {
 

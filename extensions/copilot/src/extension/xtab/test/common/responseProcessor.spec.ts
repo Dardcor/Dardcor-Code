@@ -6,8 +6,8 @@
 import { describe, expect, it, suite, test } from 'vitest';
 import { ResponseProcessor } from '../../../../platform/inlineEdits/common/responseProcessor';
 import { AsyncIterUtils } from '../../../../util/common/asyncIterableUtils';
-import { LineEdit, LineReplacement } from '../../../../util/vs/editor/common/core/edits/lineEdit';
-import { LineRange } from '../../../../util/vs/editor/common/core/ranges/lineRange';
+import { LineEdit, LineReplacement } from '../../../../util/dardcor/editor/common/core/edits/lineEdit';
+import { LineRange } from '../../../../util/dardcor/editor/common/core/ranges/lineRange';
 
 suite('stream diffing', () => {
 

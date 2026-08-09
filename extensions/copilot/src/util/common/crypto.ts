@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { encodeHex, VSBuffer } from '../vs/base/common/buffer';
-import * as strings from '../vs/base/common/strings';
+import { encodeHex, VSBuffer } from '../dardcor/base/common/buffer';
+import * as strings from '../dardcor/base/common/strings';
 
 export async function createRequestHMAC(hmacSecret: string | undefined): Promise<string | undefined> {
 	// If we don't have the right env variables this could happen

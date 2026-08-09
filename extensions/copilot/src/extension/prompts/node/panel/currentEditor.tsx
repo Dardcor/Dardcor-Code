@@ -11,9 +11,9 @@ import { IAlternativeNotebookContentService } from '../../../../platform/noteboo
 import { ITabsAndEditorsService } from '../../../../platform/tabs/common/tabsAndEditorsService';
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
 import { findCell, findNotebook } from '../../../../util/common/notebooks';
-import { Schemas } from '../../../../util/vs/base/common/network';
-import * as path from '../../../../util/vs/base/common/path';
-import { Position, Range } from '../../../../vscodeTypes';
+import { Schemas } from '../../../../util/dardcor/base/common/network';
+import * as path from '../../../../util/dardcor/base/common/path';
+import { Position, Range } from '../../../../dardcorTypes';
 import { PromptReference } from '../../../prompt/common/conversation';
 import { IPromptEndpoint } from '../base/promptRenderer';
 import { CodeBlock } from './safeElements';

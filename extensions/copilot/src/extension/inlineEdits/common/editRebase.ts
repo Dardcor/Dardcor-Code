@@ -6,11 +6,11 @@
 import { SingleEdits } from '../../../platform/inlineEdits/common/dataTypes/edit';
 import { ILogger } from '../../../platform/log/common/logService';
 import { ErrorUtils } from '../../../util/common/errors';
-import { AnnotatedStringEdit, AnnotatedStringReplacement, IEditData, StringEdit, StringReplacement, VoidEditData } from '../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../util/vs/editor/common/core/ranges/offsetRange';
-import { StringText } from '../../../util/vs/editor/common/core/text/abstractText';
-import { DefaultLinesDiffComputer } from '../../../util/vs/editor/common/diff/defaultLinesDiffComputer/defaultLinesDiffComputer';
-import { ILinesDiffComputerOptions } from '../../../util/vs/editor/common/diff/linesDiffComputer';
+import { AnnotatedStringEdit, AnnotatedStringReplacement, IEditData, StringEdit, StringReplacement, VoidEditData } from '../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { StringText } from '../../../util/dardcor/editor/common/core/text/abstractText';
+import { DefaultLinesDiffComputer } from '../../../util/dardcor/editor/common/diff/defaultLinesDiffComputer/defaultLinesDiffComputer';
+import { ILinesDiffComputerOptions } from '../../../util/dardcor/editor/common/diff/linesDiffComputer';
 
 const TROUBLESHOOT_EDIT_CONSISTENCY = false;
 

@@ -6,7 +6,7 @@ import * as assert from 'assert';
 import * as path from 'path';
 import type { ChatResponseFileTree } from 'vscode';
 import { createTextDocumentData } from '../../src/util/common/test/shims/textDocument';
-import { URI } from '../../src/util/vs/base/common/uri';
+import { URI } from '../../src/util/dardcor/base/common/uri';
 import { rubric } from '../base/rubric';
 import { ssuite, stest } from '../base/stest';
 import { validate } from '../base/validate';

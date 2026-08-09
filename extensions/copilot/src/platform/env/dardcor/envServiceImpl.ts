@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { Platform, platform } from '../../../util/vs/base/common/platform';
+import { Platform, platform } from '../../../util/dardcor/base/common/platform';
 import { IEnvService, NameAndVersion, OperatingSystem } from '../common/envService';
 import { isPreRelease, isProduction, packageJson } from '../common/packagejson';
 

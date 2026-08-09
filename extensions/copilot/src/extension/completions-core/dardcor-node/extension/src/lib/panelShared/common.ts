@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { CancellationToken } from 'vscode';
-import { generateUuid } from '../../../../../../../util/vs/base/common/uuid';
-import { IInstantiationService, type ServicesAccessor } from '../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { generateUuid } from '../../../../../../../util/dardcor/base/common/uuid';
+import { IInstantiationService, type ServicesAccessor } from '../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { createCompletionState } from '../../../../lib/src/completionState';
 import { BlockMode } from '../../../../lib/src/config';
 import { ICompletionsFeaturesService } from '../../../../lib/src/experiments/featuresService';

@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { derived, mapObservableArrayCached, observableFromEvent } from '../../../util/vs/base/common/observable';
-import { OffsetRange } from '../../../util/vs/editor/common/core/ranges/offsetRange';
+import { derived, mapObservableArrayCached, observableFromEvent } from '../../../util/dardcor/base/common/observable';
+import { OffsetRange } from '../../../util/dardcor/editor/common/core/ranges/offsetRange';
 
 export class ObservableVsCode {
 	public static readonly instance = new ObservableVsCode();

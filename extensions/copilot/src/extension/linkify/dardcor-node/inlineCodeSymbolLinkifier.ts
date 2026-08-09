@@ -5,10 +5,10 @@
 
 import * as vscode from 'vscode';
 import { collapseRangeToStart } from '../../../util/common/range';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { CancellationError } from '../../../util/vs/base/common/errors';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
-import { SymbolInformation } from '../../../vscodeTypes';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { CancellationError } from '../../../util/dardcor/base/common/errors';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { SymbolInformation } from '../../../dardcorTypes';
 import { LinkifiedPart, LinkifiedText, LinkifySymbolAnchor } from '../common/linkifiedText';
 import { IContributedLinkifier, LinkifierContext } from '../common/linkifyService';
 import { resolveSymbolFromReferences } from './commands';

@@ -8,7 +8,7 @@ import * as yaml from 'js-yaml';
 import type { LanguageModelToolInformation, Uri } from 'vscode';
 import { IFileSystemService } from '../../../platform/filesystem/common/fileSystemService';
 import { ILogService } from '../../../platform/log/common/logService';
-import { URI } from '../../../util/vs/base/common/uri';
+import { URI } from '../../../util/dardcor/base/common/uri';
 
 interface PromptOverrideConfig {
 	readonly systemPrompt?: string;

@@ -12,7 +12,7 @@ import { modelCanUseImageURL } from '../../../../platform/endpoint/common/chatMo
 import { IImageService } from '../../../../platform/image/common/imageService';
 import { ILogService } from '../../../../platform/log/common/logService';
 import { getMimeType } from '../../../../util/common/imageUtils';
-import { Uri } from '../../../../vscodeTypes';
+import { Uri } from '../../../../dardcorTypes';
 import { IPromptEndpoint } from '../base/promptRenderer';
 
 export interface ImageProps extends BasePromptElementProps {

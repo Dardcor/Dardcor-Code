@@ -5,7 +5,7 @@
 
 import * as vscode from 'vscode';
 import { globalConfigRegistry } from '../../../platform/configuration/common/configurationService';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { IExtensionContribution } from '../../common/contributions';
 import { buildInternalConfigurationInformation } from '../common/internalConfigurationInformation';
 

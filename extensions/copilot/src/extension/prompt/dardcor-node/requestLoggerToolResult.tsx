@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { JSONTree, OutputMode, PromptElement, Raw, renderPrompt, UserMessage } from '@vscode/prompt-tsx';
-import { LanguageModelDataPart, LanguageModelPromptTsxPart } from '../../../vscodeTypes';
+import { LanguageModelDataPart, LanguageModelPromptTsxPart } from '../../../dardcorTypes';
 import { ChatImageMimeType } from '../../conversation/common/languageModelChatMessageHelpers';
 
 export async function renderToolResultToStringNoBudget(part: LanguageModelPromptTsxPart) {

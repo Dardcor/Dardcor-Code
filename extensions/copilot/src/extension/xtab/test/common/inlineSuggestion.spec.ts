@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { beforeEach, describe, expect, it } from 'vitest';
-import { Position } from '../../../../util/vs/editor/common/core/position';
-import { StringText } from '../../../../util/vs/editor/common/core/text/abstractText';
-import { ensureDependenciesAreSet } from '../../../../util/vs/editor/common/core/text/positionToOffset';
+import { Position } from '../../../../util/dardcor/editor/common/core/position';
+import { StringText } from '../../../../util/dardcor/editor/common/core/text/abstractText';
+import { ensureDependenciesAreSet } from '../../../../util/dardcor/editor/common/core/text/positionToOffset';
 import { determineIsInlineSuggestionPosition, isInlineSuggestionFromTextAfterCursor } from '../../common/inlineSuggestion';
 import { CurrentDocument } from '../../common/xtabCurrentDocument';
 

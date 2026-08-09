@@ -5,9 +5,9 @@
 
 import picomatch from 'picomatch';
 import type vscode from 'vscode';
-import * as path from '../vs/base/common/path';
-import { isWindows } from '../vs/base/common/platform';
-import { URI } from '../vs/base/common/uri';
+import * as path from '../dardcor/base/common/path';
+import { isWindows } from '../dardcor/base/common/platform';
+import { URI } from '../dardcor/base/common/uri';
 
 export function isMatch(uri: URI, glob: vscode.GlobPattern): boolean {
 	if (typeof glob === 'string') {

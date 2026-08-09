@@ -15,9 +15,9 @@ import { IExperimentationService } from '../../../platform/telemetry/common/null
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
 import { getLanguage } from '../../../util/common/languages';
-import { timeout } from '../../../util/vs/base/common/async';
-import { URI } from '../../../util/vs/base/common/uri';
-import { Diagnostic, DiagnosticSeverity } from '../../../vscodeTypes';
+import { timeout } from '../../../util/dardcor/base/common/async';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { Diagnostic, DiagnosticSeverity } from '../../../dardcorTypes';
 import { Tag } from '../../prompts/node/base/tag';
 import { ToolName } from '../common/toolNames';
 import { DiagnosticToolOutput } from './getErrorsTool';

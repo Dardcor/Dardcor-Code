@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { PromptPathRepresentationService } from '../../../../platform/prompts/common/promptPathRepresentationService';
 import { TestWorkspaceService } from '../../../../platform/test/node/testWorkspaceService';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { CodeBlock } from '../../../prompt/common/conversation';
 import { MockChatResponseStream } from '../../../test/node/testHelpers';
 import { getCodeBlocksFromResponse } from '../../node/editCodeIntent';

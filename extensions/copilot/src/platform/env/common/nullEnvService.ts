@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { WindowState } from 'vscode';
-import { Event } from '../../../util/vs/base/common/event';
-import { URI } from '../../../util/vs/base/common/uri';
+import { Event } from '../../../util/dardcor/base/common/event';
+import { URI } from '../../../util/dardcor/base/common/uri';
 import { AbstractEnvService, NameAndVersion, OperatingSystem } from './envService';
 import { packageJson } from './packagejson';
 

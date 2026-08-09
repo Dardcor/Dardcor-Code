@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { createServiceIdentifier } from '../../../util/common/services';
-import { sanitizeVSCodeVersion } from '../../../util/common/vscodeVersion';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { sanitizeVSCodeVersion } from '../../../util/common/dardcorVersion';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { Embedding, EmbeddingType, EmbeddingVector, rankEmbeddings } from '../../embeddings/common/embeddingsComputer';
 import { EmbeddingCacheType, IEmbeddingsCache, LocalEmbeddingsCache, RemoteCacheType, RemoteEmbeddingsCache } from '../../embeddings/common/embeddingsIndex';
 import { IEnvService } from '../../env/common/envService';

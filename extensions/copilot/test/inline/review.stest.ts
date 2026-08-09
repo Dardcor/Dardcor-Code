@@ -10,8 +10,8 @@ import { CHAT_MODEL } from '../../src/platform/configuration/common/configuratio
 import { TextDocumentSnapshot } from '../../src/platform/editing/common/textDocumentSnapshot';
 import { ReviewComment } from '../../src/platform/review/common/reviewService';
 import { TestingServiceCollection } from '../../src/platform/test/node/services';
-import { IInstantiationService } from '../../src/util/vs/platform/instantiation/common/instantiation';
-import { CancellationTokenSource, Range } from '../../src/vscodeTypes';
+import { IInstantiationService } from '../../src/util/dardcor/platform/instantiation/common/instantiation';
+import { CancellationTokenSource, Range } from '../../src/dardcorTypes';
 import { ssuite, stest } from '../base/stest';
 import { setupSimulationWorkspace, teardownSimulationWorkspace } from '../simulation/inlineChatSimulator';
 import { forEachModel, fromFixture } from '../simulation/stestUtil';

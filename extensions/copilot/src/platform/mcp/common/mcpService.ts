@@ -5,9 +5,9 @@
 
 import type { Event, McpGateway, McpServerDefinition } from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { Emitter } from '../../../util/vs/base/common/event';
-import { DisposableStore, IDisposable } from '../../../util/vs/base/common/lifecycle';
-import { URI } from '../../../util/vs/base/common/uri';
+import { Emitter } from '../../../util/dardcor/base/common/event';
+import { DisposableStore, IDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { URI } from '../../../util/dardcor/base/common/uri';
 
 export const IMcpService = createServiceIdentifier<IMcpService>('IMcpService');
 

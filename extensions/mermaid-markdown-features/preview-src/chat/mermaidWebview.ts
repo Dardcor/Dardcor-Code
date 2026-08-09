@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 import mermaid, { MermaidConfig } from 'mermaid';
 import { buildMermaidConfig, createMermaidErrorElement, loadExtensionConfig, markVsCodeContextAsError } from '../shared';
-import { VsCodeMermaidThemeTracker } from '../shared/vsCodeTheme';
-import { VsCodeApi } from './vscodeApi';
+import { VsCodeMermaidThemeTracker } from '../shared/dardcorTheme';
+import { VsCodeApi } from './dardcorApi';
 
 interface PanZoomState {
 	readonly scale: number;

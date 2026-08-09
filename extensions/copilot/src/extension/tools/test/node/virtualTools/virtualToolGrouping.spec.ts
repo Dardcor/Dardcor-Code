@@ -8,10 +8,10 @@ import type { LanguageModelTextPart, LanguageModelToolInformation } from 'vscode
 import { HARD_TOOL_LIMIT } from '../../../../../platform/configuration/common/configurationService';
 import { ITelemetryService } from '../../../../../platform/telemetry/common/telemetry';
 import { ITestingServicesAccessor } from '../../../../../platform/test/node/services';
-import { shuffle } from '../../../../../util/vs/base/common/arrays';
-import { CancellationToken } from '../../../../../util/vs/base/common/cancellation';
-import { groupBy } from '../../../../../util/vs/base/common/collections';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { shuffle } from '../../../../../util/dardcor/base/common/arrays';
+import { CancellationToken } from '../../../../../util/dardcor/base/common/cancellation';
+import { groupBy } from '../../../../../util/dardcor/base/common/collections';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { createExtensionUnitTestingServices } from '../../../../test/node/services';
 import { ToolGrouping } from '../../../common/virtualTools/toolGrouping';
 import { VIRTUAL_TOOL_NAME_PREFIX, VirtualTool } from '../../../common/virtualTools/virtualTool';

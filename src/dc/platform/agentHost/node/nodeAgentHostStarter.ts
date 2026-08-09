@@ -75,7 +75,7 @@ export class NodeAgentHostStarter extends Disposable implements IAgentHostStarte
 			// VS Code's agent, so `gh` inherits it. Set after the inherited
 			// env so it wins.
 			[AiAgentEnvVar]: AiAgentEnvValue,
-			VSCODE_ESM_ENTRYPOINT: 'vs/platform/agentHost/node/agentHostMain',
+			VSCODE_ESM_ENTRYPOINT: 'dc/platform/agentHost/node/agentHostMain',
 			VSCODE_PIPE_LOGGING: 'true',
 			VSCODE_VERBOSE_LOGGING: 'true',
 			[AgentHostLaunchKindEnvVar]: AgentHostLaunchKind.VSCodeCLI,

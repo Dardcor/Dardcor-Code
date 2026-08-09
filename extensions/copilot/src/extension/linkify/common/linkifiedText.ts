@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { Location, SymbolInformation, Uri } from '../../../vscodeTypes';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { Location, SymbolInformation, Uri } from '../../../dardcorTypes';
 
 export class LinkifyLocationAnchor {
 	constructor(

@@ -5,7 +5,7 @@
 
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { LineCheck } from '../../vscode-node/naturalLanguageHint';
+import { LineCheck } from '../../dardcor-node/naturalLanguageHint';
 
 suite('LineCheck.isMostlyNaturalLanguage', () => {
 

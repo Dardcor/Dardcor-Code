@@ -10,10 +10,10 @@ import { ChatFetchResponseType } from '../../../platform/chat/common/commonTypes
 import { IEndpointProvider } from '../../../platform/endpoint/common/endpointProvider';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
 import { extractNotebookOutline, INotebookOutline } from '../../../util/common/notebooks';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { DisposableStore } from '../../../util/vs/base/common/lifecycle';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
-import { ChatLocation, ExtendedLanguageModelToolResult, LanguageModelPromptTsxPart, LanguageModelTextPart, LanguageModelToolResult } from '../../../vscodeTypes';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { DisposableStore } from '../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { ChatLocation, ExtendedLanguageModelToolResult, LanguageModelPromptTsxPart, LanguageModelTextPart, LanguageModelToolResult } from '../../../dardcorTypes';
 import { ChatVariablesCollection } from '../../prompt/common/chatVariablesCollection';
 import { IBuildPromptContext } from '../../prompt/common/intents';
 import { renderPromptElement, renderPromptElementJSON } from '../../prompts/node/base/promptRenderer';

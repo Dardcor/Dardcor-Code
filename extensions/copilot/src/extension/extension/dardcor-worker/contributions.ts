@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IExtensionContributionFactory } from '../../common/contributions';
-import vscodeContributions from '../vscode/contributions';
+import vscodeContributions from '../dardcor/contributions';
 
 // ###################################################################################################
 // ###                                                                                             ###

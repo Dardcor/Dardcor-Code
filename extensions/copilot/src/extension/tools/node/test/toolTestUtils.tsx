@@ -7,7 +7,7 @@ import { PromptElement, ToolResult, UserMessage } from '@vscode/prompt-tsx';
 import type * as vscode from 'vscode';
 import { getTextPart } from '../../../../platform/chat/common/globalStringUtils';
 import { IEndpointProvider } from '../../../../platform/endpoint/common/endpointProvider';
-import { IInstantiationService, ServicesAccessor } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService, ServicesAccessor } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { PromptRenderer } from '../../../prompts/node/base/promptRenderer';
 
 export async function toolResultToString(accessor: ServicesAccessor, result: vscode.LanguageModelToolResult) {

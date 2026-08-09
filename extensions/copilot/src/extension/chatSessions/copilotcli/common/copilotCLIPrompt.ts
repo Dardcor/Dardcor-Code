@@ -5,12 +5,12 @@
 
 import type { ChatPromptReference } from 'vscode';
 import { createFilepathRegexp } from '../../../../util/common/markdown';
-import { Schemas } from '../../../../util/vs/base/common/network';
-import * as path from '../../../../util/vs/base/common/path';
-import { isEqual } from '../../../../util/vs/base/common/resources';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { Range as EditorRange } from '../../../../util/vs/editor/common/core/range';
-import { ChatReferenceDiagnostic, Diagnostic, DiagnosticSeverity, Location, Range } from '../../../../vscodeTypes';
+import { Schemas } from '../../../../util/dardcor/base/common/network';
+import * as path from '../../../../util/dardcor/base/common/path';
+import { isEqual } from '../../../../util/dardcor/base/common/resources';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { Range as EditorRange } from '../../../../util/dardcor/editor/common/core/range';
+import { ChatReferenceDiagnostic, Diagnostic, DiagnosticSeverity, Location, Range } from '../../../../dardcorTypes';
 import { PromptFileIdPrefix } from '../../../prompt/common/chatVariablesCollection';
 
 /**

@@ -6,7 +6,7 @@
 import assert from 'assert';
 import { suite, test } from 'vitest';
 import type { Memento } from 'vscode';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { WorkspaceFolderIdMap } from '../../node/codeSearch/workspaceFolderIdMap';
 
 class MockMemento implements Memento {

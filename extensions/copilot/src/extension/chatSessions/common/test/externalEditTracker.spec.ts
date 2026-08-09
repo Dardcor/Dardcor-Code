@@ -5,8 +5,8 @@
 
 import { describe, expect, it } from 'vitest';
 import { SpyChatResponseStream } from '../../../../util/common/test/mockChatResponseStream';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { ExternalEditTracker } from '../externalEditTracker';
 
 describe('ExternalEditTracker', () => {

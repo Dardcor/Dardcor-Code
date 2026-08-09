@@ -226,4 +226,8 @@ if (process.env['VSCODE_PARENT_PID']) {
 await bootstrapESM();
 
 // Load ESM entry point
-await import([`./${process.env['VSCODE_ESM_ENTRYPOINT']}.js`].join('/') /* workaround: esbuild prints some strange warnings when trying to inline? */);
+let entryPoint = process.env['VSCODE_ESM_ENTRYPOINT'] || '';
+if (entryPoint.startsWith('vs/')) {
+	entryPoint = 'dc/' + entryPoint.substring(3);
+}
+await import([`./${entryPoint}.js`].join('/') /* workaround: esbuild prints some strange warnings when trying to inline? */);

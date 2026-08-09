@@ -3,10 +3,10 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { LineEdit, LineReplacement } from '../../../../util/vs/editor/common/core/edits/lineEdit';
-import { BaseStringEdit, StringEdit } from '../../../../util/vs/editor/common/core/edits/stringEdit';
-import { StringText } from '../../../../util/vs/editor/common/core/text/abstractText';
-import { ensureDependenciesAreSet } from '../../../../util/vs/editor/common/core/text/positionToOffset';
+import { LineEdit, LineReplacement } from '../../../../util/dardcor/editor/common/core/edits/lineEdit';
+import { BaseStringEdit, StringEdit } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { StringText } from '../../../../util/dardcor/editor/common/core/text/abstractText';
+import { ensureDependenciesAreSet } from '../../../../util/dardcor/editor/common/core/text/positionToOffset';
 import { RootedEdit } from './edit';
 
 ensureDependenciesAreSet();

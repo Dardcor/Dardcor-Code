@@ -12,11 +12,11 @@ import { ConfigKey, IConfigurationService } from '../../../platform/configuratio
 import { IEditLogService } from '../../../platform/multiFileEdit/common/editLogService';
 import { ILoggedPendingRequest, IRequestLogger, LoggedInfoKind, LoggedRequestKind } from '../../../platform/requestLogger/common/requestLogger';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { IObservable } from '../../../util/vs/base/common/observableInternal';
-import { basename } from '../../../util/vs/base/common/resources';
-import { splitLinesIncludeSeparators } from '../../../util/vs/base/common/strings';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { IObservable } from '../../../util/dardcor/base/common/observableInternal';
+import { basename } from '../../../util/dardcor/base/common/resources';
+import { splitLinesIncludeSeparators } from '../../../util/dardcor/base/common/strings';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { InteractionOutcome, PromptQuery } from '../../inlineChat/node/promptCraftingTypes';
 import { Conversation, RequestDebugInformation, Turn } from '../../prompt/common/conversation';
 import { IntentInvocationMetadata } from '../../prompt/node/conversation';

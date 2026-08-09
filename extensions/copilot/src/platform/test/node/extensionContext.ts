@@ -6,9 +6,9 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import type { Memento, Uri } from 'vscode';
 import { ExtensionMode } from '../../../util/common/test/shims/enums';
-import { dirname } from '../../../util/vs/base/common/path';
-import { URI } from '../../../util/vs/base/common/uri';
-import { BrandedService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { dirname } from '../../../util/dardcor/base/common/path';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { BrandedService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 
 export function constructGlobalStateMemento(globalStatePath: string): Memento {
 	// Check if the JSON file at globalStatePath exists, if not create it

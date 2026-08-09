@@ -10,10 +10,10 @@ import { Copilot } from '../../../platform/inlineCompletions/common/api';
 import { ILanguageContextProviderService, ProviderTarget } from '../../../platform/languageContextProvider/common/languageContextProviderService';
 import { ILogService } from '../../../platform/log/common/logService';
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { Disposable, DisposableStore, IDisposable } from '../../../util/vs/base/common/lifecycle';
-import { autorun, IObservable } from '../../../util/vs/base/common/observableInternal';
-import { LanguageModelChatMessage, LanguageModelTextPart } from '../../../vscodeTypes';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { Disposable, DisposableStore, IDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { autorun, IObservable } from '../../../util/dardcor/base/common/observableInternal';
+import { LanguageModelChatMessage, LanguageModelTextPart } from '../../../dardcorTypes';
 import { IConversationStore } from '../../conversationStore/node/conversationStore';
 import { Conversation } from '../../prompt/common/conversation';
 

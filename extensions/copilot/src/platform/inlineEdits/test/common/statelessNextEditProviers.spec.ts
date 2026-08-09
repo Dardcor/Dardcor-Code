@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, expect, it } from 'vitest';
-import { LineEdit, LineReplacement } from '../../../../util/vs/editor/common/core/edits/lineEdit';
-import { StringEdit, StringReplacement } from '../../../../util/vs/editor/common/core/edits/stringEdit';
-import { LineRange } from '../../../../util/vs/editor/common/core/ranges/lineRange';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
-import { StringText } from '../../../../util/vs/editor/common/core/text/abstractText';
+import { LineEdit, LineReplacement } from '../../../../util/dardcor/editor/common/core/edits/lineEdit';
+import { StringEdit, StringReplacement } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { LineRange } from '../../../../util/dardcor/editor/common/core/ranges/lineRange';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { StringText } from '../../../../util/dardcor/editor/common/core/text/abstractText';
 import { Edits } from '../../common/dataTypes/edit';
 import { StatelessNextEditDocument } from '../../common/statelessNextEditProvider';
 import { editWouldDeleteWhatWasJustInserted2, IgnoreWhitespaceOnlyChanges } from '../../common/statelessNextEditProviders';

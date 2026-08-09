@@ -8,7 +8,7 @@ import * as vscode from 'vscode';
 import { IGitService } from '../../../platform/git/common/gitService';
 import { toGitUri } from '../../../platform/git/common/utils';
 import { IIgnoreService } from '../../../platform/ignore/common/ignoreService';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { IMergeConflictService } from '../common/mergeConflictService';
 import { MergeConflictParser } from './mergeConflictParser';
 

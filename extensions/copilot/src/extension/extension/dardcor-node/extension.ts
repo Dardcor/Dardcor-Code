@@ -7,8 +7,8 @@
 import './disableProcessReport';
 
 import { ExtensionContext } from 'vscode';
-import { resolve } from '../../../util/vs/base/common/path';
-import { baseActivate } from '../vscode/extension';
+import { resolve } from '../../../util/dardcor/base/common/path';
+import { baseActivate } from '../dardcor/extension';
 import { vscodeNodeContributions } from './contributions';
 import { registerServices } from './services';
 

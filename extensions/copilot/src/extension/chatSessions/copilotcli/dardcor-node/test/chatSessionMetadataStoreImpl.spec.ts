@@ -10,8 +10,8 @@ import { IVSCodeExtensionContext } from '../../../../../platform/extContext/comm
 import { MockFileSystemService } from '../../../../../platform/filesystem/node/test/mockFileSystemService';
 import { ILogService } from '../../../../../platform/log/common/logService';
 import { mock } from '../../../../../util/common/test/simpleMock';
-import { Emitter } from '../../../../../util/vs/base/common/event';
-import { URI } from '../../../../../util/vs/base/common/uri';
+import { Emitter } from '../../../../../util/dardcor/base/common/event';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
 import { ChatSessionWorktreeProperties } from '../../../common/chatSessionWorktreeService';
 import { IWorkspaceInfo } from '../../../common/workspaceInfo';
 import { getCopilotCLISessionDir } from '../../../copilotcli/node/cliHelpers';

@@ -21,10 +21,10 @@ import { ITelemetryService } from '../../../../platform/telemetry/common/telemet
 import { createPlatformServices } from '../../../../platform/test/node/services';
 import { NullWorkspaceFileIndex } from '../../../../platform/workspaceChunkSearch/node/nullWorkspaceFileIndex';
 import { IWorkspaceFileIndex } from '../../../../platform/workspaceChunkSearch/node/workspaceFileIndex';
-import { Event } from '../../../../util/vs/base/common/event';
-import { observableValue } from '../../../../util/vs/base/common/observableInternal/observables/observableValue';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { SyncDescriptor } from '../../../../util/vs/platform/instantiation/common/descriptors';
+import { Event } from '../../../../util/dardcor/base/common/event';
+import { observableValue } from '../../../../util/dardcor/base/common/observableInternal/observables/observableValue';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { SyncDescriptor } from '../../../../util/dardcor/platform/instantiation/common/descriptors';
 import { RepoInfoTelemetry } from '../repoInfoTelemetry';
 
 // Import Status enum - use const enum values directly since vitest doesn't handle .d.ts well

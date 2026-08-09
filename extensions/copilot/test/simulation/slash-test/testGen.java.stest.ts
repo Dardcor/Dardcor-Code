@@ -6,7 +6,7 @@
 import * as assert from 'assert';
 import * as path from 'path';
 import { Intent } from '../../../src/extension/common/constants';
-import { URI } from '../../../src/util/vs/base/common/uri';
+import { URI } from '../../../src/util/dardcor/base/common/uri';
 import { ssuite, stest } from '../../base/stest';
 import { forInline, simulateInlineChatWithStrategy } from '../inlineChatSimulator';
 import { getFileContent } from '../outcomeValidators';

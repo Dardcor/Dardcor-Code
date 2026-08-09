@@ -15,16 +15,16 @@ import { Action2 } from '../../../../../platform/actions/common/actions.js';
 import { Categories } from '../../../../../platform/action/common/actionCommonCategories.js';
 import { walkThroughContentRegistry } from '../../common/walkThroughContentProvider.js';
 
-walkThroughContentRegistry.registerProvider('dc/workbench/contrib/welcomeWalkthrough/browser/editor/vs_code_editor_walkthrough', content);
+walkThroughContentRegistry.registerProvider('vs/workbench/contrib/welcomeWalkthrough/browser/editor/vs_code_editor_walkthrough', content);
 
 const typeId = 'workbench.editors.walkThroughInput';
 const inputOptions: WalkThroughInputOptions = {
 	typeId,
 	name: localize('editorWalkThrough.title', "Editor Playground"),
-	resource: FileAccess.asBrowserUri('dc/workbench/contrib/welcomeWalkthrough/browser/editor/vs_code_editor_walkthrough.md')
+	resource: FileAccess.asBrowserUri('vs/workbench/contrib/welcomeWalkthrough/browser/editor/vs_code_editor_walkthrough.md')
 		.with({
 			scheme: Schemas.walkThrough,
-			query: JSON.stringify({ moduleId: 'dc/workbench/contrib/welcomeWalkthrough/browser/editor/vs_code_editor_walkthrough' })
+			query: JSON.stringify({ moduleId: 'vs/workbench/contrib/welcomeWalkthrough/browser/editor/vs_code_editor_walkthrough' })
 		}),
 	telemetryFrom: 'walkThrough'
 };

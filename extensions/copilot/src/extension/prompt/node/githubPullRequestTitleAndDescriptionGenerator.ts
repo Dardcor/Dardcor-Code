@@ -11,11 +11,11 @@ import { IEndpointProvider } from '../../../platform/endpoint/common/endpointPro
 import { IIgnoreService } from '../../../platform/ignore/common/ignoreService';
 import { ILogService } from '../../../platform/log/common/logService';
 import { INotificationService } from '../../../platform/notification/common/notificationService';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { DisposableStore, } from '../../../util/vs/base/common/lifecycle';
-import { isStringArray } from '../../../util/vs/base/common/types';
-import { URI } from '../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { DisposableStore, } from '../../../util/dardcor/base/common/lifecycle';
+import { isStringArray } from '../../../util/dardcor/base/common/types';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { TitleAndDescriptionProvider } from '../../githubPullRequest';
 import { PromptRenderer } from '../../prompts/node/base/promptRenderer';
 import { GitHubPullRequestPrompt } from '../../prompts/node/github/pullRequestDescriptionPrompt';

@@ -5,8 +5,8 @@
 
 import type { Uri } from 'vscode';
 import { IDocumentEventDataSetChangeReason } from '../../../platform/workspaceRecorder/common/workspaceLog';
-import { Event } from '../../../util/vs/base/common/event';
-import { createDecorator as createServiceIdentifier } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { Event } from '../../../util/dardcor/base/common/event';
+import { createDecorator as createServiceIdentifier } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 
 export const IWorkspaceListenerService = createServiceIdentifier<IWorkspaceListenerService>('IWorkspaceListenerService');
 

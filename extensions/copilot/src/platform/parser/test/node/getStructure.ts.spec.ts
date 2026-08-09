@@ -5,7 +5,7 @@
 
 import { outdent } from 'outdent';
 import { afterAll, describe, expect, it } from 'vitest';
-import { resolve } from '../../../../util/vs/base/common/path';
+import { resolve } from '../../../../util/dardcor/base/common/path';
 import { _dispose } from '../../node/parserImpl';
 import { WASMLanguage } from '../../node/treeSitterLanguages';
 import { fromFixture, srcWithAnnotatedStructure } from './getStructure.util';

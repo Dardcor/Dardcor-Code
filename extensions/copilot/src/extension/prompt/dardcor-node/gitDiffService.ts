@@ -6,13 +6,13 @@
 import { type CancellationToken, Uri, workspace } from 'vscode';
 import { Diff, IGitDiffService } from '../../../platform/git/common/gitDiffService';
 import { IGitExtensionService } from '../../../platform/git/common/gitExtensionService';
-import { Change, Repository } from '../../../platform/git/vscode/git';
+import { Change, Repository } from '../../../platform/git/dardcor/git';
 import { IIgnoreService } from '../../../platform/ignore/common/ignoreService';
 import { ILogService } from '../../../platform/log/common/logService';
 import { isUri } from '../../../util/common/types';
-import { CancellationError } from '../../../util/vs/base/common/errors';
-import * as path from '../../../util/vs/base/common/path';
-import { isEqual } from '../../../util/vs/base/common/resources';
+import { CancellationError } from '../../../util/dardcor/base/common/errors';
+import * as path from '../../../util/dardcor/base/common/path';
+import { isEqual } from '../../../util/dardcor/base/common/resources';
 
 /**
  * Maximum file size (in bytes) for reading untracked file content.

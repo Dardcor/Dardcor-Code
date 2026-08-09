@@ -6,7 +6,7 @@
 import * as assert from 'assert';
 import * as http from 'http';
 import { IFetcherService } from '../../common/fetcherService';
-import { createExtensionTestingServices } from '../../../../extension/test/vscode-node/services';
+import { createExtensionTestingServices } from '../../../../extension/test/dardcor-node/services';
 import { ITestingServicesAccessor } from '../../../test/node/services';
 
 suite('NodeFetchFetcher cache - integration', function () {

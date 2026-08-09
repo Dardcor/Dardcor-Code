@@ -5,12 +5,12 @@
 
 import * as vscode from 'vscode';
 import * as fs from 'fs';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { ResourceSet } from '../../../util/vs/base/common/map';
-import { Schemas } from '../../../util/vs/base/common/network';
-import { dirname, isEqual, joinPath } from '../../../util/vs/base/common/resources';
-import { equalsIgnoreCase } from '../../../util/vs/base/common/strings';
-import { URI } from '../../../util/vs/base/common/uri';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { ResourceSet } from '../../../util/dardcor/base/common/map';
+import { Schemas } from '../../../util/dardcor/base/common/network';
+import { dirname, isEqual, joinPath } from '../../../util/dardcor/base/common/resources';
+import { equalsIgnoreCase } from '../../../util/dardcor/base/common/strings';
+import { URI } from '../../../util/dardcor/base/common/uri';
 import { ConfigKey, IConfigurationService } from '../../configuration/common/configurationService';
 import { INativeEnvService } from '../../env/common/envService';
 import { IFileSystemService } from '../../filesystem/common/fileSystemService';
@@ -18,7 +18,7 @@ import { FileType } from '../../filesystem/common/fileTypes';
 import { ILogService } from '../../log/common/logService';
 import { IWorkspaceService } from '../../workspace/common/workspaceService';
 import { AgentInstructionFileType, AgentInstructionsLogger, IAgentInstructionFile, PromptConfig } from '../common/promptsService';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 
 // File and folder name constants. Mirrors the values in
 // `src/vs/workbench/contrib/chat/common/promptSyntax/config/promptFileLocations.ts`.

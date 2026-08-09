@@ -7,7 +7,7 @@ import sinon from 'sinon';
 import { TaskQueue } from '../async';
 
 import { assert, beforeEach, describe, it } from 'vitest';
-import { isCancellationError } from '../../vs/base/common/errors';
+import { isCancellationError } from '../../dardcor/base/common/errors';
 
 
 describe('TaskQueue', () => {

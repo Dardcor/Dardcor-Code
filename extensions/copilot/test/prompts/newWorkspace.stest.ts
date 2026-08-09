@@ -5,8 +5,8 @@
 import assert from 'assert';
 import { FileContentsGenerator } from '../../src/extension/intents/node/generateNewWorkspaceContent';
 import { NewWorkspaceContentsPromptProps } from '../../src/extension/prompts/node/panel/newWorkspace/newWorkspaceContents';
-import { CancellationToken } from '../../src/util/vs/base/common/cancellation';
-import { IInstantiationService } from '../../src/util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../src/util/dardcor/base/common/cancellation';
+import { IInstantiationService } from '../../src/util/dardcor/platform/instantiation/common/instantiation';
 import { ssuite, stest } from '../base/stest';
 
 interface IGenerateFileContentsScenario {

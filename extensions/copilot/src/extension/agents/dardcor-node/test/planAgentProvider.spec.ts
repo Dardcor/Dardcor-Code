@@ -14,9 +14,9 @@ import { IVSCodeExtensionContext } from '../../../../platform/extContext/common/
 import { IFileSystemService } from '../../../../platform/filesystem/common/fileSystemService';
 import { MockExtensionContext } from '../../../../platform/test/node/extensionContext';
 import { ITestingServicesAccessor } from '../../../../platform/test/node/services';
-import { DisposableStore } from '../../../../util/vs/base/common/lifecycle';
-import { SyncDescriptor } from '../../../../util/vs/platform/instantiation/common/descriptors';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { DisposableStore } from '../../../../util/dardcor/base/common/lifecycle';
+import { SyncDescriptor } from '../../../../util/dardcor/platform/instantiation/common/descriptors';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { createExtensionUnitTestingServices } from '../../../test/node/services';
 import { buildAgentMarkdown, DEFAULT_READ_TOOLS } from '../agentTypes';
 import { PlanAgentProvider } from '../planAgentProvider';

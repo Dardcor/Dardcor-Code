@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { IFolderRepositoryManager } from '../../../chatSessions/common/folderRepositoryManager';
 
 // #region Slug Computation

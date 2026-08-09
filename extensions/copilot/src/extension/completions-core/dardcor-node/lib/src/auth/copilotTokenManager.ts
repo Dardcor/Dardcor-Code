@@ -6,8 +6,8 @@
 import { IAuthenticationService } from '../../../../../../platform/authentication/common/authentication';
 import { CopilotToken } from '../../../../../../platform/authentication/common/copilotToken';
 import { createServiceIdentifier } from '../../../../../../util/common/services';
-import { ThrottledDelayer } from '../../../../../../util/vs/base/common/async';
-import { Disposable } from '../../../../../../util/vs/base/common/lifecycle';
+import { ThrottledDelayer } from '../../../../../../util/dardcor/base/common/async';
+import { Disposable } from '../../../../../../util/dardcor/base/common/lifecycle';
 export { CopilotToken } from '../../../../../../platform/authentication/common/copilotToken';
 
 export const ICompletionsCopilotTokenManager = createServiceIdentifier<ICompletionsCopilotTokenManager>('ICompletionsCopilotTokenManager');

@@ -5,8 +5,8 @@
 
 import { IIgnoreService } from '../../../../../../../platform/ignore/common/ignoreService';
 import { createServiceIdentifier } from '../../../../../../../util/common/services';
-import { URI } from '../../../../../../../util/vs/base/common/uri';
-import { IInstantiationService, ServicesAccessor } from '../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { URI } from '../../../../../../../util/dardcor/base/common/uri';
+import { IInstantiationService, ServicesAccessor } from '../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { CancellationToken as ICancellationToken } from '../../../../types/src';
 import { ICompletionsFileSystemService } from '../../fileSystem';
 import { LRUCacheMap } from '../../helpers/cache';

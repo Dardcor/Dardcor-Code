@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import { ITestFailure, ITestProvider } from '../../src/platform/testing/common/testProvider';
-import { Event } from '../../src/util/vs/base/common/event';
-import { URI } from '../../src/util/vs/base/common/uri';
-import { Range } from '../../src/vscodeTypes';
+import { Event } from '../../src/util/dardcor/base/common/event';
+import { URI } from '../../src/util/dardcor/base/common/uri';
+import { Range } from '../../src/dardcorTypes';
 
 export class SimulationTestProvider implements ITestProvider {
 	declare readonly _serviceBrand: undefined;

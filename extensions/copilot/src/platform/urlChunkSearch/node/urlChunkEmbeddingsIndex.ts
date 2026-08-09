@@ -5,11 +5,11 @@
 
 import { createSha256Hash } from '../../../util/common/crypto';
 import { CallTracker, TelemetryCorrelationId } from '../../../util/common/telemetryCorrelationId';
-import { raceCancellationError } from '../../../util/vs/base/common/async';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { ResourceMap } from '../../../util/vs/base/common/map';
-import { URI } from '../../../util/vs/base/common/uri';
+import { raceCancellationError } from '../../../util/dardcor/base/common/async';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { ResourceMap } from '../../../util/dardcor/base/common/map';
+import { URI } from '../../../util/dardcor/base/common/uri';
 import { IAuthenticationService } from '../../authentication/common/authentication';
 import { FileChunkAndScore, FileChunkWithEmbedding } from '../../chunking/common/chunk';
 import { ChunkableContent, ComputeBatchInfo, EmbeddingsComputeQos, IChunkingEndpointClient } from '../../chunking/common/chunkingEndpointClient';

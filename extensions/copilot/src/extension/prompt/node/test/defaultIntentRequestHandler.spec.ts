@@ -20,12 +20,12 @@ import { ITestingServicesAccessor } from '../../../../platform/test/node/service
 import { NullWorkspaceFileIndex } from '../../../../platform/workspaceChunkSearch/node/nullWorkspaceFileIndex';
 import { IWorkspaceFileIndex } from '../../../../platform/workspaceChunkSearch/node/workspaceFileIndex';
 import { ChatResponseStreamImpl } from '../../../../util/common/chatResponseStreamImpl';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { isObject, isUndefinedOrNull } from '../../../../util/vs/base/common/types';
-import { generateUuid } from '../../../../util/vs/base/common/uuid';
-import { SyncDescriptor } from '../../../../util/vs/platform/instantiation/common/descriptors';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
-import { ChatLocation, ChatResponseConfirmationPart, ChatResponseMarkdownPart, LanguageModelTextPart, LanguageModelToolResult, Uri } from '../../../../vscodeTypes';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { isObject, isUndefinedOrNull } from '../../../../util/dardcor/base/common/types';
+import { generateUuid } from '../../../../util/dardcor/base/common/uuid';
+import { SyncDescriptor } from '../../../../util/dardcor/platform/instantiation/common/descriptors';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { ChatLocation, ChatResponseConfirmationPart, ChatResponseMarkdownPart, LanguageModelTextPart, LanguageModelToolResult, Uri } from '../../../../dardcorTypes';
 import { ToolCallingLoop } from '../../../intents/node/toolCallingLoop';
 import { ToolResultMetadata } from '../../../prompts/node/panel/toolCalling';
 import { createExtensionUnitTestingServices } from '../../../test/node/services';

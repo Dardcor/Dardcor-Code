@@ -19,8 +19,8 @@ suite('ArcTracker', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 	ensureDependenciesAreSet();
 
-	const fixturesOutDir = FileAccess.asFileUri('dc/workbench/contrib/editTelemetry/test/node/data').fsPath;
-	const fixturesSrcDir = resolve(fixturesOutDir).replaceAll('\\', '/').replace('/out/dc/workbench/', '/src/dc/workbench/');
+	const fixturesOutDir = FileAccess.asFileUri('vs/workbench/contrib/editTelemetry/test/node/data').fsPath;
+	const fixturesSrcDir = resolve(fixturesOutDir).replaceAll('\\', '/').replace('/out/vs/workbench/', '/src/vs/workbench/');
 
 	function getData(name: string): IEdits {
 		const path = join(fixturesSrcDir, name + '.edits.w.json');

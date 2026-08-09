@@ -15,8 +15,8 @@ import type { ITelemetryService } from '../../../../platform/telemetry/common/te
 import type { IFetcherService } from '../../../../platform/networking/common/fetcherService';
 import type { IChatDebugFileLoggerService } from '../../../../platform/chat/common/chatDebugFileLoggerService';
 import type { IRunCommandExecutionService } from '../../../../platform/commands/common/runCommandExecutionService';
-import { CancellationTokenSource } from '../../../../util/vs/base/common/cancellation';
-import { LanguageModelTextPart } from '../../../../vscodeTypes';
+import { CancellationTokenSource } from '../../../../util/dardcor/base/common/cancellation';
+import { LanguageModelTextPart } from '../../../../dardcorTypes';
 import { ToolName } from '../../common/toolNames';
 import { ToolRegistry } from '../../common/toolsRegistry';
 

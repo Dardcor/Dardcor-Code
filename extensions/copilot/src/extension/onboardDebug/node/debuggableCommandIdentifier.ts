@@ -9,11 +9,11 @@ import { IVSCodeExtensionContext } from '../../../platform/extContext/common/ext
 import { IFileSystemService } from '../../../platform/filesystem/common/fileSystemService';
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { distinct } from '../../../util/vs/base/common/arrays';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import * as path from '../../../util/vs/base/common/path';
-import { URI } from '../../../util/vs/base/common/uri';
+import { distinct } from '../../../util/dardcor/base/common/arrays';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import * as path from '../../../util/dardcor/base/common/path';
+import { URI } from '../../../util/dardcor/base/common/uri';
 import { ILanguageToolsProvider } from './languageToolsProvider';
 
 export interface IDebuggableCommandIdentifier {

@@ -7,7 +7,7 @@
 
 import * as assert from 'assert';
 import dedent from 'ts-dedent';
-import { ServicesAccessor } from '../../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { ServicesAccessor } from '../../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { VirtualPrompt } from '../../../../../prompt/src/components/virtualPrompt';
 import { DocumentMarker } from '../../../prompt/components/marker';
 import { createCompletionRequestData } from '../../../test/completionsPrompt';

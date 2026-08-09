@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 import * as assert from 'node:assert';
 import sinon from 'sinon';
-import { generateUuid } from '../../../../../../../util/vs/base/common/uuid';
-import { IInstantiationService, ServicesAccessor } from '../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { generateUuid } from '../../../../../../../util/dardcor/base/common/uuid';
+import { IInstantiationService, ServicesAccessor } from '../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { CancellationTokenSource } from '../../../../types/src';
 import { ICompletionsFeaturesService } from '../../experiments/featuresService';
 import { fakeAPIChoice } from '../../openai/fetch.fake';

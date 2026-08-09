@@ -8,12 +8,12 @@ import type { ChatLanguageModelToolReference, ChatRequest, ChatRequestEditedFile
 import { FilterReason } from '../../../platform/networking/common/openai';
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
 import { isLocation, toLocation } from '../../../util/common/types';
-import { ResourceMap } from '../../../util/vs/base/common/map';
-import { assertType } from '../../../util/vs/base/common/types';
-import { URI } from '../../../util/vs/base/common/uri';
-import { generateUuid } from '../../../util/vs/base/common/uuid';
-import { ServicesAccessor } from '../../../util/vs/platform/instantiation/common/instantiation';
-import { Location, Range } from '../../../vscodeTypes';
+import { ResourceMap } from '../../../util/dardcor/base/common/map';
+import { assertType } from '../../../util/dardcor/base/common/types';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { generateUuid } from '../../../util/dardcor/base/common/uuid';
+import { ServicesAccessor } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { Location, Range } from '../../../dardcorTypes';
 import { InternalToolReference, IToolCallRound } from '../common/intents';
 import { ChatVariablesCollection } from './chatVariablesCollection';
 import { isContinueOnError, isSwitchToAutoOnRateLimit, isToolCallLimitAcceptance } from './specialRequestTypes';

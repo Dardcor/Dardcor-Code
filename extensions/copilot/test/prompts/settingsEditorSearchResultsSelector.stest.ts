@@ -4,10 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 import assert from 'assert';
 import { SettingsEditorSearchResultsSelector } from '../../src/extension/prompt/node/settingsEditorSearchResultsSelector';
-import { SettingListItem } from '../../src/platform/embeddings/common/vscodeIndex';
+import { SettingListItem } from '../../src/platform/embeddings/common/dardcorIndex';
 import { IEndpointProvider } from '../../src/platform/endpoint/common/endpointProvider';
-import { CancellationToken } from '../../src/util/vs/base/common/cancellation';
-import { IInstantiationService } from '../../src/util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../src/util/dardcor/base/common/cancellation';
+import { IInstantiationService } from '../../src/util/dardcor/platform/instantiation/common/instantiation';
 import { ssuite, stest } from '../base/stest';
 
 ssuite({ title: 'settingsEditorSearchResultsSelector', location: 'external' }, () => {

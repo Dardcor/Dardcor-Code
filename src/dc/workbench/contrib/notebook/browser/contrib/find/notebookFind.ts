@@ -96,7 +96,7 @@ function notebookContainsTextModel(uri: URI, textModel: ITextModel) {
 }
 
 function getSearchStringOptions(editor: ICodeEditor, opts: IFindStartOptions) {
-	// Get the search string result, following the same logic in _start function in 'dc/editor/contrib/find/browser/findController'
+	// Get the search string result, following the same logic in _start function in 'vs/editor/contrib/find/browser/findController'
 	if (opts.seedSearchStringFromSelection === 'single') {
 		const selectionSearchString = getSelectionSearchString(editor, opts.seedSearchStringFromSelection, opts.seedSearchStringFromNonEmptySelection);
 		if (selectionSearchString) {

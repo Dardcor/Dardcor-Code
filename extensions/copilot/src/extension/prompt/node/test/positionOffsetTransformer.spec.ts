@@ -6,7 +6,7 @@
 import assert from 'assert';
 import { beforeEach, suite, test } from 'vitest';
 import { PositionOffsetTransformer } from '../../../../platform/editing/common/positionOffsetTransformer';
-import { Position, Range, TextEdit } from '../../../../vscodeTypes';
+import { Position, Range, TextEdit } from '../../../../dardcorTypes';
 
 suite('PositionOffsetTransformer', () => {
 	const sampleText = `line1\nline2\nline3`;

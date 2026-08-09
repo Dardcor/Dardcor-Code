@@ -5,9 +5,9 @@
 
 import { NesActivationTelemetryContribution } from '../../../platform/inlineEdits/common/nesActivationStatusTelemetry.contribution';
 import { asContributionFactory, IExtensionContributionFactory } from '../../common/contributions';
-import * as contextContribution from '../../context/vscode/context.contribution';
+import * as contextContribution from '../../context/dardcor/context.contribution';
 import { LifecycleTelemetryContrib } from '../../telemetry/common/lifecycleTelemetryContrib';
-import { GithubTelemetryForwardingContrib } from '../../telemetry/vscode/githubTelemetryForwardingContrib';
+import { GithubTelemetryForwardingContrib } from '../../telemetry/dardcor/githubTelemetryForwardingContrib';
 
 // ###############################################################################
 // ###                                                                         ###

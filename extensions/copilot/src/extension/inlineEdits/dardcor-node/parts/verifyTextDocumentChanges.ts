@@ -5,7 +5,7 @@
 
 import { EndOfLine, TextDocument, TextDocumentChangeEvent, workspace } from 'vscode';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry';
-import { Disposable } from '../../../../util/vs/base/common/lifecycle';
+import { Disposable } from '../../../../util/dardcor/base/common/lifecycle';
 import { editFromTextDocumentContentChangeEvents } from './common';
 
 /**

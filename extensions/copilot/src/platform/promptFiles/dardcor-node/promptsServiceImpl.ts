@@ -5,14 +5,14 @@
 
 import type { ChatCustomAgent, ChatHook, ChatInstruction, ChatPlugin, ChatSkill } from 'vscode';
 import * as vscode from 'vscode';
-import { raceCancellationError } from '../../../util/vs/base/common/async';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { Emitter, Event } from '../../../util/vs/base/common/event';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { extUriBiasedIgnorePathCase } from '../../../util/vs/base/common/resources';
-import { URI } from '../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
-import { PromptFileParser } from '../../../util/vs/workbench/contrib/chat/common/promptSyntax/promptFileParser';
+import { raceCancellationError } from '../../../util/dardcor/base/common/async';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { Emitter, Event } from '../../../util/dardcor/base/common/event';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { extUriBiasedIgnorePathCase } from '../../../util/dardcor/base/common/resources';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { PromptFileParser } from '../../../util/dardcor/workbench/contrib/chat/common/promptSyntax/promptFileParser';
 import { IFileSystemService } from '../../filesystem/common/fileSystemService';
 import { IWorkspaceService } from '../../workspace/common/workspaceService';
 import { AgentInstructionsLocator } from './agentInstructionsLocator';

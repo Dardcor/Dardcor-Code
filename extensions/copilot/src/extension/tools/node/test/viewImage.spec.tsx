@@ -9,11 +9,11 @@ import { MockFileSystemService } from '../../../../platform/filesystem/node/test
 import { TestWorkspaceService } from '../../../../platform/test/node/testWorkspaceService';
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
 import { createTextDocumentData } from '../../../../util/common/test/shims/textDocument';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { SyncDescriptor } from '../../../../util/vs/platform/instantiation/common/descriptors';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
-import { LanguageModelDataPart, MarkdownString } from '../../../../vscodeTypes';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { SyncDescriptor } from '../../../../util/dardcor/platform/instantiation/common/descriptors';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { LanguageModelDataPart, MarkdownString } from '../../../../dardcorTypes';
 import { createExtensionUnitTestingServices } from '../../../test/node/services';
 import { IViewImageParams, ViewImageTool } from '../viewImageTool';
 import { toolResultToString } from './toolTestUtils';

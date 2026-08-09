@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Raw } from '@vscode/prompt-tsx';
-import { mapFindFirst } from '../../../util/vs/base/common/arraysFind';
+import { mapFindFirst } from '../../../util/dardcor/base/common/arraysFind';
 import { roleToString } from '../../chat/common/globalStringUtils';
 import { rawPartAsStatefulMarker } from '../../endpoint/common/statefulMarkerContainer';
 import { rawPartAsThinkingData } from '../../endpoint/common/thinkingDataContainer';

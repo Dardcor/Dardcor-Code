@@ -5,8 +5,8 @@
 
 import { TextDocument, Uri, ViewColumn, WebviewPanel, commands, window } from 'vscode';
 import { IVSCodeExtensionContext } from '../../../../../../platform/extContext/common/extensionContext';
-import { DisposableStore, IDisposable } from '../../../../../../util/vs/base/common/lifecycle';
-import { IInstantiationService } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { DisposableStore, IDisposable } from '../../../../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { IPosition, ITextDocument } from '../../../lib/src/textDocument';
 import { basename } from '../../../lib/src/util/uri';
 import { registerCommandWrapper } from '../telemetry';

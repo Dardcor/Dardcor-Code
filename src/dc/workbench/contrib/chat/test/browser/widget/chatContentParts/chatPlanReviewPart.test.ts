@@ -74,6 +74,7 @@ suite('ChatPlanReviewPart', () => {
 
 	function createWidget(review: IChatPlanReview, dialogService?: TestDialogService): ChatPlanReviewPart {
 		const instantiationService = workbenchInstantiationService(undefined, store);
+		// @ts-ignore
 		const feedbackService = store.add(new PlanReviewFeedbackService());
 		instantiationService.stub(IPlanReviewFeedbackService, feedbackService); instantiationService.stub(IUserInteractionService, new MockUserInteractionService());
 

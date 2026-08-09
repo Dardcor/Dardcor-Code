@@ -22,10 +22,10 @@ import { backwardCompatSetting } from '../../../util/common/backwardCompatSettin
 import { ErrorUtils } from '../../../util/common/errors';
 import { Result } from '../../../util/common/result';
 import { TokenizerType } from '../../../util/common/tokenizer';
-import { assertNever } from '../../../util/vs/base/common/assert';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { OffsetRange } from '../../../util/vs/editor/common/core/ranges/offsetRange';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { assertNever } from '../../../util/dardcor/base/common/assert';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { OffsetRange } from '../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { LintErrors } from '../common/lintErrors';
 import { constructTaggedFile, getUserPrompt, PromptPieces } from '../common/promptCrafting';
 import type { RequestTracingContext } from './xtabProvider';

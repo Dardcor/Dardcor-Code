@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { isCancellationError } from '../../../util/vs/base/common/errors';
-import { StopWatch } from '../../../util/vs/base/common/stopwatch';
+import { isCancellationError } from '../../../util/dardcor/base/common/errors';
+import { StopWatch } from '../../../util/dardcor/base/common/stopwatch';
 import { ILogService } from './logService';
 
 type MeasureCallBack<R> = (time: number, status: 'success' | 'failed' | 'cancelled', result: R | undefined) => void;

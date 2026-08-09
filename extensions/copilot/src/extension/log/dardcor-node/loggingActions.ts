@@ -18,20 +18,20 @@ import { ICAPIClientService } from '../../../platform/endpoint/common/capiClient
 import { IEnvService, isScenarioAutomation } from '../../../platform/env/common/envService';
 import { IVSCodeExtensionContext } from '../../../platform/extContext/common/extensionContext';
 import { collectErrorMessages, collectSingleLineErrorMessage, ILogService, sanitizeNetworkErrorForTelemetry } from '../../../platform/log/common/logService';
-import { outputChannel } from '../../../platform/log/vscode/outputChannelLogTarget';
+import { outputChannel } from '../../../platform/log/dardcor/outputChannelLogTarget';
 import { FetchEvent, IFetcherService, Response } from '../../../platform/networking/common/fetcherService';
 import { IFetcher, userAgentLibraryHeader } from '../../../platform/networking/common/networking';
 import { NodeFetcher } from '../../../platform/networking/node/nodeFetcher';
 import { NodeFetchFetcher } from '../../../platform/networking/node/nodeFetchFetcher';
-import { ElectronFetcher } from '../../../platform/networking/vscode-node/electronFetcher';
-import { getShadowedConfig } from '../../../platform/networking/vscode-node/fetcherServiceImpl';
+import { ElectronFetcher } from '../../../platform/networking/dardcor-node/electronFetcher';
+import { getShadowedConfig } from '../../../platform/networking/dardcor-node/fetcherServiceImpl';
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
 
-import { shuffle } from '../../../util/vs/base/common/arrays';
-import { timeout } from '../../../util/vs/base/common/async';
-import { Disposable, MutableDisposable } from '../../../util/vs/base/common/lifecycle';
-import { generateUuid } from '../../../util/vs/base/common/uuid';
-import { IInstantiationService, ServicesAccessor } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { shuffle } from '../../../util/dardcor/base/common/arrays';
+import { timeout } from '../../../util/dardcor/base/common/async';
+import { Disposable, MutableDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { generateUuid } from '../../../util/dardcor/base/common/uuid';
+import { IInstantiationService, ServicesAccessor } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { EXTENSION_ID } from '../../common/constants';
 
 interface ProxyAgentLog {

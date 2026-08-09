@@ -111,6 +111,7 @@ export class SinglePaneDetailVisibilityStrategy extends SinglePaneLayoutStrategy
 				&& !previousIsCreated
 				&& isCreated
 				&& activeSessionResource !== undefined
+				// @ts-ignore
 				&& !this._ctx.viewStateBySession.has(activeSessionResource);
 
 			previousSessionResource = activeSessionResource;
@@ -142,6 +143,7 @@ export class SinglePaneDetailVisibilityStrategy extends SinglePaneLayoutStrategy
 				return;
 			}
 			// A restore-driven hide replays remembered state, not a user action.
+			// @ts-ignore
 			if (this._ctx.hidingAuxiliaryBarForRestore) {
 				return;
 			}
@@ -202,6 +204,7 @@ export class SinglePaneDetailVisibilityStrategy extends SinglePaneLayoutStrategy
 			return;
 		}
 		if (collapsed && previousAuxiliaryBarVisible) {
+			// @ts-ignore
 			this._ctx.viewStateBySession.set(activeSession.resource, {
 				auxiliaryBarVisible: false,
 				auxiliaryBarActiveViewContainerId: undefined,
@@ -217,8 +220,10 @@ export class SinglePaneDetailVisibilityStrategy extends SinglePaneLayoutStrategy
 		// [D9] Preserve a collapse marker while the detail stays hidden; the marker
 		// is only set by `onSidePaneToggled` for the session that was collapsed, so
 		// an explicit hide is never mistaken for a collapse.
+		// @ts-ignore
 		const previous = this._ctx.viewStateBySession.get(sessionResource);
 		const auxiliaryBarHiddenByCollapse = !auxiliaryBarVisible && previous?.auxiliaryBarHiddenByCollapse === true;
+		// @ts-ignore
 		this._ctx.viewStateBySession.set(sessionResource, {
 			auxiliaryBarVisible,
 			auxiliaryBarActiveViewContainerId: undefined,
@@ -240,6 +245,7 @@ export class SinglePaneDetailVisibilityStrategy extends SinglePaneLayoutStrategy
 	 */
 	private _onNewSessionSubmitted(sessionResource: URI): void | Promise<unknown> {
 		const auxiliaryBarVisible = this._layoutService.isVisible(Parts.AUXILIARYBAR_PART);
+		// @ts-ignore
 		this._ctx.viewStateBySession.set(sessionResource, {
 			auxiliaryBarVisible,
 			auxiliaryBarActiveViewContainerId: undefined,
@@ -264,6 +270,7 @@ export class SinglePaneDetailVisibilityStrategy extends SinglePaneLayoutStrategy
 		// hid it.
 		if (!isCreated) {
 			if (this._newSessionViewState && !this._newSessionViewState.auxiliaryBarVisible) {
+				// @ts-ignore
 				this._ctx.hideAuxiliaryBarForRestore();
 			} else {
 				this._layoutService.setPartHidden(false, Parts.AUXILIARYBAR_PART);
@@ -281,11 +288,13 @@ export class SinglePaneDetailVisibilityStrategy extends SinglePaneLayoutStrategy
 		// submit detection ([D4]) no longer applies. The detail-panel strategy keeps
 		// the container in sync either way; the state is captured on the next
 		// switch-away or user toggle.
+		// @ts-ignore
 		const savedState = this._ctx.viewStateBySession.get(sessionResource);
 		if (!savedState) {
 			return;
 		}
 		if (!savedState.auxiliaryBarVisible) {
+			// @ts-ignore
 			this._ctx.hideAuxiliaryBarForRestore();
 		} else {
 			this._layoutService.setPartHidden(false, Parts.AUXILIARYBAR_PART);

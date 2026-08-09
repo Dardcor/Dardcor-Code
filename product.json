@@ -29,6 +29,7 @@
 	"tunnelApplicationName": "dardcor-code-tunnel",
 	"darwinBundleIdentifier": "com.dardcor.code",
 	"darwinIcon": "dardcor-code.icns",
+	"win32Icon": "dardcor-code.ico",
 	"linuxIconName": "dardcor-code",
 	"licenseFileName": "LICENSE.txt",
 	"reportIssueUrl": "https://github.com/dardcor/dardcor-code/issues/new",

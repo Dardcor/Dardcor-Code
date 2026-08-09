@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from 'vitest';
 import type { LanguageModelChatMessage } from 'vscode';
-import { LanguageModelChatMessageRole, LanguageModelTextPart, LanguageModelToolCallPart, LanguageModelToolResultPart } from '../../../../vscodeTypes';
+import { LanguageModelChatMessageRole, LanguageModelTextPart, LanguageModelToolCallPart, LanguageModelToolResultPart } from '../../../../dardcorTypes';
 import { buildOTelInputFromChatMessages } from '../byokOTelHelpers';
 
 describe('buildOTelInputFromChatMessages', () => {

@@ -16,9 +16,9 @@ import { ITelemetryService } from '../../../platform/telemetry/common/telemetry'
 import { TelemetryData as PlatformTelemetryData } from '../../../platform/telemetry/common/telemetryData';
 import { getCachedSha256Hash } from '../../../util/common/crypto';
 import { isNotebookCellOrNotebookChatInput } from '../../../util/common/notebooks';
-import { extUriBiasedIgnorePathCase } from '../../../util/vs/base/common/resources';
-import { URI } from '../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { extUriBiasedIgnorePathCase } from '../../../util/dardcor/base/common/resources';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { isBYOKModel } from '../../byok/node/openAIEndpoint';
 import { Intent, agentsToCommands } from '../../common/constants';
 import { DiagnosticsTelemetryData, findDiagnosticsTelemetry } from '../../inlineChat/node/diagnosticsTelemetry';

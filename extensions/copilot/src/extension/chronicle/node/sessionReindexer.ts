@@ -6,7 +6,7 @@
 import * as l10n from '@vscode/l10n';
 import type { IChatDebugFileLoggerService, IDebugLogEntry } from '../../../platform/chat/common/chatDebugFileLoggerService';
 import type { ISessionStore, SessionRow, TurnRow, FileRow, RefRow } from '../../../platform/chronicle/common/sessionStore';
-import type { CancellationToken } from '../../../util/vs/base/common/cancellation';
+import type { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
 import type { SessionEvent } from '../common/cloudSessionTypes';
 import type { CloudSessionApiClient } from './cloudSessionApiClient';
 import type { CloudSessionIdStore } from './cloudSessionIdStore';

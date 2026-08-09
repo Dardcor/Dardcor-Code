@@ -5,9 +5,9 @@
 
 import * as fs from 'fs';
 import type { FileStat, FileSystemWatcher, RelativePattern, Uri } from 'vscode';
-import { Event } from '../../../util/vs/base/common/event';
-import { dirname, isEqual } from '../../../util/vs/base/common/resources';
-import { URI } from '../../../util/vs/base/common/uri';
+import { Event } from '../../../util/dardcor/base/common/event';
+import { dirname, isEqual } from '../../../util/dardcor/base/common/resources';
+import { URI } from '../../../util/dardcor/base/common/uri';
 import { IWorkspaceService } from '../../workspace/common/workspaceService';
 import { assertReadFileSizeLimit, IFileSystemService } from '../common/fileSystemService';
 import { FileType } from '../common/fileTypes';

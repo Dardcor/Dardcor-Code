@@ -3,15 +3,15 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { assert, assertNever } from '../../../../util/vs/base/common/assert';
-import { Disposable } from '../../../../util/vs/base/common/lifecycle';
-import { LinkedList } from '../../../../util/vs/base/common/linkedList';
-import { mapObservableArrayCached } from '../../../../util/vs/base/common/observable';
-import { derived, IObservable } from '../../../../util/vs/base/common/observableInternal';
-import { LineEdit } from '../../../../util/vs/editor/common/core/edits/lineEdit';
-import { StringEdit } from '../../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
-import { StringText } from '../../../../util/vs/editor/common/core/text/abstractText';
+import { assert, assertNever } from '../../../../util/dardcor/base/common/assert';
+import { Disposable } from '../../../../util/dardcor/base/common/lifecycle';
+import { LinkedList } from '../../../../util/dardcor/base/common/linkedList';
+import { mapObservableArrayCached } from '../../../../util/dardcor/base/common/observable';
+import { derived, IObservable } from '../../../../util/dardcor/base/common/observableInternal';
+import { LineEdit } from '../../../../util/dardcor/editor/common/core/edits/lineEdit';
+import { StringEdit } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { StringText } from '../../../../util/dardcor/editor/common/core/text/abstractText';
 import { ConfigKey, IConfigurationService } from '../../../configuration/common/configurationService';
 import { IExperimentationService } from '../../../telemetry/common/nullExperimentationService';
 import { DocumentId } from '../dataTypes/documentId';

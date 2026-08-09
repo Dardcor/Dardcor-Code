@@ -17,5 +17,5 @@ export { monokaiDim } from './monokai-dim';
 export { quietLight } from './quiet-light';
 export { red } from './red';
 export { tomorrowNightBlue } from './tomorrow-night-blue';
-export { vsDark } from './vs-dark';
-export { vsLight } from './vs-light';
+export { vsDark } from './dardcor-dark';
+export { vsLight } from './dardcor-light';

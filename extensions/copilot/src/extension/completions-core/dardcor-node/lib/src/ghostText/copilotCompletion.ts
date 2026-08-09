@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import { CopilotNamedAnnotationList } from '../../../../../../platform/completions-core/common/openai/copilotAnnotations';
-import { generateUuid } from '../../../../../../util/vs/base/common/uuid';
+import { generateUuid } from '../../../../../../util/dardcor/base/common/uuid';
 import { TelemetryWithExp } from '../telemetry';
 import { IPosition, IRange, LocationFactory, TextDocumentContents } from '../textDocument';
 import { CompletionResult } from './ghostText';

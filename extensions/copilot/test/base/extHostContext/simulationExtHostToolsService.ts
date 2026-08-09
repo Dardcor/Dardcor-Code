@@ -8,16 +8,16 @@ import { getToolName, ToolName } from '../../../src/extension/tools/common/toolN
 import { ICopilotTool } from '../../../src/extension/tools/common/toolsRegistry';
 import { BaseToolsService, IToolsService } from '../../../src/extension/tools/common/toolsService';
 import { getPackagejsonToolsForTest } from '../../../src/extension/tools/node/test/testToolsService';
-import { ToolsContribution } from '../../../src/extension/tools/vscode-node/tools';
-import { ToolsService } from '../../../src/extension/tools/vscode-node/toolsService';
+import { ToolsContribution } from '../../../src/extension/tools/dardcor-node/tools';
+import { ToolsService } from '../../../src/extension/tools/dardcor-node/toolsService';
 import { packageJson } from '../../../src/platform/env/common/packagejson';
 import { ILogService } from '../../../src/platform/log/common/logService';
 import { IChatEndpoint } from '../../../src/platform/networking/common/networking';
-import { raceTimeout } from '../../../src/util/vs/base/common/async';
-import { CancellationError } from '../../../src/util/vs/base/common/errors';
-import { Iterable } from '../../../src/util/vs/base/common/iterator';
-import { observableValue } from '../../../src/util/vs/base/common/observableInternal';
-import { IInstantiationService } from '../../../src/util/vs/platform/instantiation/common/instantiation';
+import { raceTimeout } from '../../../src/util/dardcor/base/common/async';
+import { CancellationError } from '../../../src/util/dardcor/base/common/errors';
+import { Iterable } from '../../../src/util/dardcor/base/common/iterator';
+import { observableValue } from '../../../src/util/dardcor/base/common/observableInternal';
+import { IInstantiationService } from '../../../src/util/dardcor/platform/instantiation/common/instantiation';
 import { logger } from '../../simulationLogger';
 
 export class SimulationExtHostToolsService extends BaseToolsService implements IToolsService {

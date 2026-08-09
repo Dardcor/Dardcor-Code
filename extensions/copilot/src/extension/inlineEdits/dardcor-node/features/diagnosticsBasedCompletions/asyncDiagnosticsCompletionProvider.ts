@@ -6,10 +6,10 @@
 import { CodeActionData } from '../../../../../platform/inlineEdits/common/dataTypes/codeActionData';
 import { LanguageId } from '../../../../../platform/inlineEdits/common/dataTypes/languageId';
 import { ILogger } from '../../../../../platform/log/common/logService';
-import { CancellationToken } from '../../../../../util/vs/base/common/cancellation';
-import { TextReplacement } from '../../../../../util/vs/editor/common/core/edits/textEdit';
-import { Position } from '../../../../../util/vs/editor/common/core/position';
-import { IVSCodeObservableDocument } from '../../parts/vscodeWorkspace';
+import { CancellationToken } from '../../../../../util/dardcor/base/common/cancellation';
+import { TextReplacement } from '../../../../../util/dardcor/editor/common/core/edits/textEdit';
+import { Position } from '../../../../../util/dardcor/editor/common/core/position';
+import { IVSCodeObservableDocument } from '../../parts/dardcorWorkspace';
 import { Diagnostic, DiagnosticCompletionItem, DiagnosticInlineEditRequestLogContext, IDiagnosticCodeAction, IDiagnosticCompletionProvider, isDiagnosticWithinDistance, log } from './diagnosticsCompletions';
 
 class AsyncDiagnosticCompletionItem extends DiagnosticCompletionItem {

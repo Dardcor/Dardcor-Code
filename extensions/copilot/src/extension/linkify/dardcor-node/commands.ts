@@ -6,9 +6,9 @@ import { t } from '@vscode/l10n';
 import * as vscode from 'vscode';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
 import { collapseRangeToStart } from '../../../util/common/range';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { combinedDisposable } from '../../../util/vs/base/common/lifecycle';
-import { UriComponents } from '../../../util/vs/base/common/uri';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { combinedDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { UriComponents } from '../../../util/dardcor/base/common/uri';
 import { openFileLinkCommand, OpenFileLinkCommandArgs, openSymbolInFileCommand, OpenSymbolInFileCommandArgs } from '../common/commands';
 import { findBestSymbolByPath } from './findSymbol';
 

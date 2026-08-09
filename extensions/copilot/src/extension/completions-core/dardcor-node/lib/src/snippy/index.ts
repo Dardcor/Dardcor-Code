@@ -6,7 +6,7 @@ import type { IAbortSignal } from '../networking';
 import { assertShape } from '../util/typebox';
 
 import { ICAPIClientService } from '../../../../../../platform/endpoint/common/capiClient';
-import { ServicesAccessor } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { ServicesAccessor } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import * as Network from './network';
 import * as Schema from './snippy.proto';
 

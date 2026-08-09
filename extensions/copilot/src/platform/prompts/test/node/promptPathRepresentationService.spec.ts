@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { beforeEach, describe, expect, it } from 'vitest';
-import { Schemas } from '../../../../util/vs/base/common/network';
-import { isWindows } from '../../../../util/vs/base/common/platform';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { Schemas } from '../../../../util/dardcor/base/common/network';
+import { isWindows } from '../../../../util/dardcor/base/common/platform';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { TestWorkspaceService } from '../../../test/node/testWorkspaceService';
 import { PromptPathRepresentationService, TestPromptPathRepresentationService } from '../../common/promptPathRepresentationService';
 

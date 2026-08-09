@@ -15,8 +15,8 @@ import { CopilotChatAttr, GenAiAttr, GenAiOperationName, GitHubCopilotAttr, IOTe
 import { CapturingToken } from '../../../../platform/requestLogger/common/capturingToken';
 import { IRequestLogger } from '../../../../platform/requestLogger/common/requestLogger';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry';
-import { ServicesAccessor } from '../../../../util/vs/platform/instantiation/common/instantiation';
-import { ChatResponseThinkingProgressPart, LanguageModelTextPart, type ChatHookType } from '../../../../vscodeTypes';
+import { ServicesAccessor } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { ChatResponseThinkingProgressPart, LanguageModelTextPart, type ChatHookType } from '../../../../dardcorTypes';
 import { ExternalEditTracker } from '../../../chatSessions/common/externalEditTracker';
 import { ToolName } from '../../../tools/common/toolNames';
 import { IToolsService } from '../../../tools/common/toolsService';

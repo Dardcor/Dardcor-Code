@@ -11,7 +11,7 @@ import { IEndpointProvider } from '../../../platform/endpoint/common/endpointPro
 import { IEnvService } from '../../../platform/env/common/envService';
 import { IChatEndpoint } from '../../../platform/networking/common/networking';
 import { ITerminalService } from '../../../platform/terminal/common/terminalService';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { Intent } from '../../common/constants';
 import { IBuildPromptContext } from '../../prompt/common/intents';
 import { IIntent, IIntentInvocation, IIntentInvocationContext, IIntentSlashCommandInfo } from '../../prompt/node/intents';

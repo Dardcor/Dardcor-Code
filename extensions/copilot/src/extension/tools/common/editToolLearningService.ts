@@ -9,9 +9,9 @@ import { IVSCodeExtensionContext } from '../../../platform/extContext/common/ext
 import { IChatEndpoint } from '../../../platform/networking/common/networking';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { LRUCache } from '../../../util/vs/base/common/map';
-import { mapValues } from '../../../util/vs/base/common/objects';
-import { isDefined } from '../../../util/vs/base/common/types';
+import { LRUCache } from '../../../util/dardcor/base/common/map';
+import { mapValues } from '../../../util/dardcor/base/common/objects';
+import { isDefined } from '../../../util/dardcor/base/common/types';
 import { EditTools as _EditTools, EDIT_TOOL_LEARNING_STATES, IEditToolLearningData, LearningConfig, State } from './editToolLearningStates';
 import { byokEditToolNamesToToolNames, ToolName } from './toolNames';
 

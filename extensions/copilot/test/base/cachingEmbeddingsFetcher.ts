@@ -12,7 +12,7 @@ import { ILogService } from '../../src/platform/log/common/logService';
 import { IOTelService } from '../../src/platform/otel/common/otelService';
 import { ITelemetryService } from '../../src/platform/telemetry/common/telemetry';
 import { TelemetryCorrelationId } from '../../src/util/common/telemetryCorrelationId';
-import { IInstantiationService } from '../../src/util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../src/util/dardcor/platform/instantiation/common/instantiation';
 import { computeSHA256 } from './hash';
 
 export class CacheableEmbeddingRequest {

@@ -16,17 +16,17 @@ import { ICAPIClientService } from '../../../platform/endpoint/common/capiClient
 import { IDomainService } from '../../../platform/endpoint/common/domainService';
 import { IEnvService } from '../../../platform/env/common/envService';
 import { IGitExtensionService } from '../../../platform/git/common/gitExtensionService';
-import { API, Repository } from '../../../platform/git/vscode/git';
+import { API, Repository } from '../../../platform/git/dardcor/git';
 import { IIgnoreService } from '../../../platform/ignore/common/ignoreService';
 import { ILogService } from '../../../platform/log/common/logService';
 import { IFetcherService, Response } from '../../../platform/networking/common/fetcherService';
 import { Progress } from '../../../platform/notification/common/notificationService';
 import { ReviewComment, ReviewRequest } from '../../../platform/review/common/reviewService';
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import * as path from '../../../util/vs/base/common/path';
-import { generateUuid } from '../../../util/vs/base/common/uuid';
-import { MarkdownString, Range, Uri } from '../../../vscodeTypes';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import * as path from '../../../util/dardcor/base/common/path';
+import { generateUuid } from '../../../util/dardcor/base/common/uuid';
+import { MarkdownString, Range, Uri } from '../../../dardcorTypes';
 import { FeedbackResult } from '../../prompt/node/feedbackGenerator';
 
 

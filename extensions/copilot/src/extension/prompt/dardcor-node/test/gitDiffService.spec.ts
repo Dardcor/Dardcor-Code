@@ -6,13 +6,13 @@
 import { MockInstance, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as vscode from 'vscode';
 import { IGitExtensionService } from '../../../../platform/git/common/gitExtensionService';
-import { API, Change, Repository } from '../../../../platform/git/vscode/git';
+import { API, Change, Repository } from '../../../../platform/git/dardcor/git';
 import { IIgnoreService, NullIgnoreService } from '../../../../platform/ignore/common/ignoreService';
 import { ITestingServicesAccessor } from '../../../../platform/test/node/services';
-import { CancellationTokenSource } from '../../../../util/vs/base/common/cancellation';
-import { CancellationError } from '../../../../util/vs/base/common/errors';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
-import { Uri } from '../../../../vscodeTypes';
+import { CancellationTokenSource } from '../../../../util/dardcor/base/common/cancellation';
+import { CancellationError } from '../../../../util/dardcor/base/common/errors';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { Uri } from '../../../../dardcorTypes';
 import { createExtensionUnitTestingServices } from '../../../test/node/services';
 import { GitDiffService } from '../gitDiffService';
 

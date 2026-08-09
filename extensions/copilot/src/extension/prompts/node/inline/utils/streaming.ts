@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { AsyncIterableObject } from '../../../../../util/vs/base/common/async';
+import { AsyncIterableObject } from '../../../../../util/dardcor/base/common/async';
 
 export async function* replaceStringInStream(stream: AsyncIterable<string>, searchValue: string, replaceValue: string): AsyncIterable<string> {
 	let buffer = '';

@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Event } from '../../../util/vs/base/common/event';
+import { Event } from '../../../util/dardcor/base/common/event';
 import type { OTelConfig } from './otelConfig';
 import type { ICompletedSpanData, IOTelService, ISpanEventData, ISpanHandle, SpanOptions, TraceContext } from './otelService';
 

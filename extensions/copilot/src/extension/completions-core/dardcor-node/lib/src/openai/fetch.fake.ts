@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { CancellationToken } from 'vscode';
-import { generateUuid } from '../../../../../../util/vs/base/common/uuid';
+import { generateUuid } from '../../../../../../util/dardcor/base/common/uuid';
 import { getTokenizer } from '../../../prompt/src/tokenization';
 import { ICompletionsCopilotTokenManager } from '../auth/copilotTokenManager';
 import { TelemetryWithExp } from '../telemetry';

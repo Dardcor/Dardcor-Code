@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { NotebookCell, NotebookDocument, NotebookDocumentContentChange, TextDocument, TextDocumentContentChangeEvent } from 'vscode';
-import { coalesce } from '../../../util/vs/base/common/arrays';
-import { findLastIdxMonotonous } from '../../../util/vs/base/common/arraysFind';
-import { StringEdit } from '../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../util/vs/editor/common/core/ranges/offsetRange';
-import { NotebookCellKind, Position, Range } from '../../../vscodeTypes';
+import { coalesce } from '../../../util/dardcor/base/common/arrays';
+import { findLastIdxMonotonous } from '../../../util/dardcor/base/common/arraysFind';
+import { StringEdit } from '../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { NotebookCellKind, Position, Range } from '../../../dardcorTypes';
 import { stringEditFromTextContentChange } from '../../editing/common/edit';
 import { PositionOffsetTransformer } from '../../editing/common/positionOffsetTransformer';
 import { generateCellTextMarker, getBlockComment, getLineCommentStart } from './alternativeContentProvider.text';

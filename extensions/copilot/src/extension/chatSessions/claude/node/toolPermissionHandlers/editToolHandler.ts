@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { FileEditInput, FileWriteInput } from '@anthropic-ai/claude-agent-sdk/sdk-tools';
-import { URI } from '../../../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { isFileOkForTool } from '../../../../tools/node/toolUtils';
 import { ClaudeToolPermissionContext, IClaudeToolPermissionHandler } from '../../common/claudeToolPermission';
 import { registerToolPermissionHandler } from '../../common/claudeToolPermissionRegistry';

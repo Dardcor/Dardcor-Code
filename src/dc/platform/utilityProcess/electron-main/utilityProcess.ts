@@ -276,8 +276,11 @@ export class UtilityProcess extends Disposable {
 	private createEnv(configuration: IUtilityProcessConfiguration): NodeJS.ProcessEnv {
 		const env: NodeJS.ProcessEnv = configuration.env ? { ...configuration.env } : { ...deepClone(process.env) };
 
-		// Apply supported environment variables from config
-		env['VSCODE_ESM_ENTRYPOINT'] = configuration.entryPoint;
+		let entryPoint = configuration.entryPoint;
+		if (entryPoint && entryPoint.startsWith('vs/')) {
+			entryPoint = 'dc/' + entryPoint.substring(3);
+		}
+		env['VSCODE_ESM_ENTRYPOINT'] = entryPoint;
 		if (typeof configuration.parentLifecycleBound === 'number') {
 			env['VSCODE_PARENT_PID'] = String(configuration.parentLifecycleBound);
 		}

@@ -6,8 +6,8 @@
 
 import * as fs from 'fs/promises';
 import { describe, expect, test } from 'vitest';
-import * as path from '../../../../util/vs/base/common/path';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
+import * as path from '../../../../util/dardcor/base/common/path';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
 import { SummarizedDocumentLineNumberStyle } from '../inline/summarizedDocument/implementation';
 import { RemovableNode } from '../inline/summarizedDocument/summarizeDocument';
 import { fileVariableCostFn } from '../panel/fileVariable';

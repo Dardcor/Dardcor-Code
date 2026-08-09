@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type * as vscode from 'vscode';
-import { URI } from '../../../util/vs/base/common/uri';
-import { ChatResponseFileTreePart } from '../../../vscodeTypes';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { ChatResponseFileTreePart } from '../../../dardcorTypes';
 
 /**
  * Converts a markdown-style file tree into a ChatResponseFileTreePart.

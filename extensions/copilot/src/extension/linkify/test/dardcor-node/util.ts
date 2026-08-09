@@ -10,7 +10,7 @@ import { dirname, join } from 'path';
 import { TreeSitterExpressionInfo } from '../../../../platform/parser/node/nodes';
 import { IParserService, TreeSitterAST } from '../../../../platform/parser/node/parserService';
 import { WASMLanguage } from '../../../../platform/parser/node/treeSitterLanguages';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 
 export class TestParserService implements Partial<IParserService> {
 	public parseCount = 0;

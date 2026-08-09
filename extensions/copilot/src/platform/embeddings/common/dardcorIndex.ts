@@ -6,8 +6,8 @@
 import type { CancellationToken, CommandInformationResult, RelatedInformationProvider, RelatedInformationResult, SettingInformationResult } from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
 import { TelemetryCorrelationId } from '../../../util/common/telemetryCorrelationId';
-import { sanitizeVSCodeVersion } from '../../../util/common/vscodeVersion';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { sanitizeVSCodeVersion } from '../../../util/common/dardcorVersion';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { IEnvService } from '../../env/common/envService';
 import { ILogService } from '../../log/common/logService';
 import { ITelemetryService } from '../../telemetry/common/telemetry';

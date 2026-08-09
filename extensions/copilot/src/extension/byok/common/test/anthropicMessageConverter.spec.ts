@@ -6,7 +6,7 @@
 import { MessageParam, TextBlockParam } from '@anthropic-ai/sdk/resources';
 import { Raw } from '@vscode/prompt-tsx';
 import { expect, suite, test } from 'vitest';
-import { LanguageModelChatMessage, LanguageModelDataPart, LanguageModelToolResultPart } from '../../../../vscodeTypes';
+import { LanguageModelChatMessage, LanguageModelDataPart, LanguageModelToolResultPart } from '../../../../dardcorTypes';
 import { anthropicMessagesToRawMessages, anthropicMessagesToRawMessagesForLogging, apiMessageToAnthropicMessage } from '../anthropicMessageConverter';
 
 suite('apiMessageToAnthropicMessage', function () {

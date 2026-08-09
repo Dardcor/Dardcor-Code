@@ -9,11 +9,11 @@ import { ICopilotTokenManager } from '../../../../platform/authentication/common
 import { SimulationTestCopilotTokenManager } from '../../../../platform/authentication/test/node/simulationTestCopilotTokenManager';
 import { allEvents, withTelemetryCapture } from '../../../../platform/test/node/telemetry';
 import { SpyChatResponseStream } from '../../../../util/common/test/mockChatResponseStream';
-import { SyncDescriptor } from '../../../../util/vs/platform/instantiation/common/descriptors';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { SyncDescriptor } from '../../../../util/dardcor/platform/instantiation/common/descriptors';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ChatParticipantRequestHandler } from '../../../prompt/node/chatParticipantRequestHandler';
 import { TestChatRequest } from '../../../test/node/testHelpers';
-import { createExtensionTestingServices } from '../../../test/vscode-node/services';
+import { createExtensionTestingServices } from '../../../test/dardcor-node/services';
 
 
 suite('Conversation telemetry tests - Integration tests', function () {

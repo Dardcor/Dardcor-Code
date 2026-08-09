@@ -7,7 +7,7 @@ import * as vscode from 'vscode';
 import * as l10n from '@vscode/l10n';
 import { ConfigKey, IConfigurationService } from '../../../platform/configuration/common/configurationService';
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { ISessionSyncStateService, type SessionSyncState } from '../common/sessionSyncStateService';
 
 const statusTitle = l10n.t('Session Sync');

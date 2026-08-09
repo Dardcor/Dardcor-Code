@@ -9,9 +9,9 @@ import { DefaultsOnlyConfigurationService } from '../../../../platform/configura
 import { overrideNowValue } from '../../../../platform/inlineEdits/common/utils/utils';
 import { NesXtabHistoryTracker, XtabEditMergeStrategy } from '../../../../platform/inlineEdits/common/workspaceEditTracker/nesXtabHistoryTracker';
 import { NullExperimentationService } from '../../../../platform/telemetry/common/nullExperimentationService';
-import { assert } from '../../../../util/vs/base/common/assert';
-import { observableValue } from '../../../../util/vs/base/common/observable';
-import * as path from '../../../../util/vs/base/common/path';
+import { assert } from '../../../../util/dardcor/base/common/assert';
+import { observableValue } from '../../../../util/dardcor/base/common/observable';
+import * as path from '../../../../util/dardcor/base/common/path';
 import { IRecordingInformation, ObservableWorkspaceRecordingReplayer } from '../../common/observableWorkspaceRecordingReplayer';
 
 

@@ -11,8 +11,8 @@ import { IFileSystemService } from '../../../../platform/filesystem/common/fileS
 import { ILogService } from '../../../../platform/log/common/logService';
 import { IPromptPathRepresentationService } from '../../../../platform/prompts/common/promptPathRepresentationService';
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
-import { ResourceSet } from '../../../../util/vs/base/common/map';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { ResourceSet } from '../../../../util/dardcor/base/common/map';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { ChatVariablesCollection, isCustomizationsIndex, isInstructionFile } from '../../../prompt/common/chatVariablesCollection';
 import { IPromptVariablesService } from '../../../prompt/node/promptVariablesService';
 import { Tag } from '../base/tag';

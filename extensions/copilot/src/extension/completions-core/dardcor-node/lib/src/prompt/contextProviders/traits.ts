@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { ServicesAccessor } from '../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { ServicesAccessor } from '../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { Trait } from '../../../../types/src';
 import { telemetry, TelemetryProperties, TelemetryWithExp } from '../../telemetry';
 import { ResolvedContextItem } from '../contextProviderRegistry';

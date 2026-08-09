@@ -11,10 +11,10 @@ import { IDeserializedWorkspaceState } from '../../src/platform/test/node/prompt
 import { TestingServiceCollection } from '../../src/platform/test/node/services';
 import { SimulationWorkspace } from '../../src/platform/test/node/simulationWorkspace';
 import { ITestProvider } from '../../src/platform/testing/common/testProvider';
-import { assertType } from '../../src/util/vs/base/common/types';
-import { URI } from '../../src/util/vs/base/common/uri';
-import { SyncDescriptor } from '../../src/util/vs/platform/instantiation/common/descriptors';
-import { Range } from '../../src/vscodeTypes';
+import { assertType } from '../../src/util/dardcor/base/common/types';
+import { URI } from '../../src/util/dardcor/base/common/uri';
+import { SyncDescriptor } from '../../src/util/dardcor/platform/instantiation/common/descriptors';
+import { Range } from '../../src/dardcorTypes';
 import { ISimulationTestRuntime, SimulationSuite, SimulationTest, SimulationTestFunction, SimulationTestRuntime } from '../base/stest';
 import { fetchConversationScenarios, IConversationTestCase, Scenario } from '../e2e/scenarioLoader';
 import { generateScenarioTestRunner } from '../e2e/scenarioTest';

@@ -9,8 +9,8 @@ import { ConfigKey } from '../../../../platform/configuration/common/configurati
 import { DefaultsOnlyConfigurationService } from '../../../../platform/configuration/common/defaultsOnlyConfigurationService';
 import { InMemoryConfigurationService } from '../../../../platform/configuration/test/common/inMemoryConfigurationService';
 import { IIgnoreService, NullIgnoreService } from '../../../../platform/ignore/common/ignoreService';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { DocumentFilter } from '../../vscode-node/parts/documentFilter';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { DocumentFilter } from '../../dardcor-node/parts/documentFilter';
 
 describe('DocumentFilter', () => {
 

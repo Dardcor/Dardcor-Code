@@ -5,8 +5,8 @@
 import { VsCodeTextDocument } from '../../../../../platform/editing/common/abstractText';
 import { TextDocumentSnapshot } from '../../../../../platform/editing/common/textDocumentSnapshot';
 import { OverlayNode } from '../../../../../platform/parser/node/nodes';
-import { StringEdit } from '../../../../../util/vs/editor/common/core/edits/stringEdit';
-import { Range } from '../../../../../vscodeTypes';
+import { StringEdit } from '../../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { Range } from '../../../../../dardcorTypes';
 import { ICostFnFactory, IProjectedDocumentDebugInfo, ISummarizedDocumentSettings as ISummarizedDocumentSettingsImpl, RemovableNode, summarizeDocumentsSyncImpl } from './implementation';
 import { ProjectedText } from './projectedText';
 

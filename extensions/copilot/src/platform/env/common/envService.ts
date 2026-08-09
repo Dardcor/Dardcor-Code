@@ -5,8 +5,8 @@
 
 import type { Event, WindowState } from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { env } from '../../../util/vs/base/common/process';
-import { URI } from '../../../util/vs/base/common/uri';
+import { env } from '../../../util/dardcor/base/common/process';
+import { URI } from '../../../util/dardcor/base/common/uri';
 import { isPreRelease, isProduction, packageJson } from './packagejson';
 
 export enum OperatingSystem {

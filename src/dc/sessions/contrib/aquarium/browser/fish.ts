@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { VSCODE_LOGO_PATH } from './vscodeLogoPath.js';
+import { VSCODE_LOGO_PATH } from './dardcorLogoPath.js';
 
 /**
  * VS Code logo "fish" used by the Agents window aquarium. Each fish is a small

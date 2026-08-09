@@ -7,9 +7,9 @@ import { CancellationToken, LanguageModelDataPart, LanguageModelPromptTsxPart, L
 import { FileChunkAndScore } from '../../../platform/chunking/common/chunk';
 import { ILogService } from '../../../platform/log/common/logService';
 import { UrlChunkEmbeddingsIndex } from '../../../platform/urlChunkSearch/node/urlChunkEmbeddingsIndex';
-import { Lazy } from '../../../util/vs/base/common/lazy';
-import { URI } from '../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { Lazy } from '../../../util/dardcor/base/common/lazy';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { isImageDataPart } from '../../conversation/common/languageModelChatMessageHelpers';
 import { renderPromptElementJSON } from '../../prompts/node/base/promptRenderer';
 import { imageDataPartToTSX } from '../../prompts/node/panel/toolCalling';

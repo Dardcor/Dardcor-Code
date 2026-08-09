@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { CharCode } from '../../../util/vs/base/common/charCode';
-import { Position } from '../../../util/vs/editor/common/core/position';
+import { CharCode } from '../../../util/dardcor/base/common/charCode';
+import { Position } from '../../../util/dardcor/editor/common/core/position';
 
 export class OffsetLineColumnConverter {
 	private readonly _lineStartOffsets: number[];

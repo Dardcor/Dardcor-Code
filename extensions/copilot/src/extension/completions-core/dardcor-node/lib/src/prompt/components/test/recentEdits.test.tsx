@@ -7,8 +7,8 @@
 
 import * as assert from 'assert';
 import { IIgnoreService } from '../../../../../../../../platform/ignore/common/ignoreService';
-import { SyncDescriptor } from '../../../../../../../../util/vs/platform/instantiation/common/descriptors';
-import { ServicesAccessor } from '../../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { SyncDescriptor } from '../../../../../../../../util/dardcor/platform/instantiation/common/descriptors';
+import { ServicesAccessor } from '../../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { VirtualPrompt } from '../../../../../prompt/src/components/virtualPrompt';
 import { ICompletionsObservableWorkspace } from '../../../completionsObservableWorkspace';
 import { createCompletionRequestData } from '../../../test/completionsPrompt';

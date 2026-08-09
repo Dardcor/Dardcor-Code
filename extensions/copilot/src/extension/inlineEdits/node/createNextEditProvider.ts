@@ -5,7 +5,7 @@
 
 import { registerNextEditProviderId, XTabProviderId } from '../../../platform/configuration/common/configurationService';
 import { IStatelessNextEditProvider } from '../../../platform/inlineEdits/common/statelessNextEditProvider';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { XtabProvider } from '../../xtab/node/xtabProvider';
 
 export const defaultNextEditProviderId = XTabProviderId;

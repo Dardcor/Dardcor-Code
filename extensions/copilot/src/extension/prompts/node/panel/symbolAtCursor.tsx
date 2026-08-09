@@ -15,8 +15,8 @@ import { IParserService, treeSitterOffsetRangeToVSCodeRange, vscodeToTreeSitterO
 import { IScopeSelector } from '../../../../platform/scopeSelection/common/scopeSelection';
 import { ITabsAndEditorsService } from '../../../../platform/tabs/common/tabsAndEditorsService';
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
-import { basename } from '../../../../util/vs/base/common/path';
-import { ChatResponseProgressPart, Range, Selection } from '../../../../vscodeTypes';
+import { basename } from '../../../../util/dardcor/base/common/path';
+import { ChatResponseProgressPart, Range, Selection } from '../../../../dardcorTypes';
 import { CodeBlock } from './safeElements';
 import { treeSitterInfoToContext } from './symbolDefinitions';
 

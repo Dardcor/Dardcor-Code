@@ -7,7 +7,7 @@
 
 import * as assert from 'assert';
 import dedent from 'ts-dedent';
-import { IInstantiationService, ServicesAccessor } from '../../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService, ServicesAccessor } from '../../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { PromptSnapshotNode } from '../../../../../prompt/src/components/components';
 import { VirtualPrompt } from '../../../../../prompt/src/components/virtualPrompt';
 import { ensureTokenizersLoaded } from '../../../../../prompt/src/tokenization';

@@ -11,8 +11,8 @@ import { IIgnoreService } from '../../../platform/ignore/common/ignoreService';
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
 import { ChatExtGlobalPerfMark, markChatExtGlobal } from '../../../util/common/performance';
 import { IInstantiationServiceBuilder, InstantiationServiceBuilder } from '../../../util/common/services';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
-import { CopilotExtensionApi } from '../../api/vscode/extensionApi';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { CopilotExtensionApi } from '../../api/dardcor/extensionApi';
 import { ContributionCollection, IExtensionContributionFactory } from '../../common/contributions';
 
 // ##################################################################################

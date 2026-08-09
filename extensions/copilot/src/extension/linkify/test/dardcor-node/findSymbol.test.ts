@@ -5,7 +5,7 @@
 
 import assert from 'assert';
 import * as vscode from 'vscode';
-import { findBestSymbolByPath } from '../../vscode-node/findSymbol';
+import { findBestSymbolByPath } from '../../dardcor-node/findSymbol';
 
 suite('Find symbol', () => {
 	function docSymbol(name: string, ...children: vscode.DocumentSymbol[]): vscode.DocumentSymbol {

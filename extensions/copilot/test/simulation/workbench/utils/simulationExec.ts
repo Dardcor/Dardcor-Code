@@ -6,8 +6,8 @@ import * as cp from 'child_process';
 import { ipcRenderer } from 'electron';
 import { IDisposable } from 'monaco-editor';
 import * as path from 'path';
-import { AsyncIterableEmitter, AsyncIterableObject } from '../../../../src/util/vs/base/common/async';
-import { CancellationToken } from '../../../../src/util/vs/base/common/cancellation';
+import { AsyncIterableEmitter, AsyncIterableObject } from '../../../../src/util/dardcor/base/common/async';
+import { CancellationToken } from '../../../../src/util/dardcor/base/common/cancellation';
 import { REPO_ROOT } from './utils';
 
 export const SIMULATION_MAIN_PATH = path.join(REPO_ROOT, './dist/simulationMain.js');

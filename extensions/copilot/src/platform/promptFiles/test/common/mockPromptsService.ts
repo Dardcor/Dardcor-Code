@@ -4,13 +4,13 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { ChatCustomAgent, ChatHook, ChatInstruction, ChatPlugin, ChatSkill, ChatSlashCommand } from 'vscode';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { Emitter, Event } from '../../../../util/vs/base/common/event';
-import { Disposable } from '../../../../util/vs/base/common/lifecycle';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { PromptFileParser } from '../../../../util/vs/workbench/contrib/chat/common/promptSyntax/promptFileParser';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { Emitter, Event } from '../../../../util/dardcor/base/common/event';
+import { Disposable } from '../../../../util/dardcor/base/common/lifecycle';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { PromptFileParser } from '../../../../util/dardcor/workbench/contrib/chat/common/promptSyntax/promptFileParser';
 import { IPromptsService, IAgentInstructionFile, ParsedPromptFile } from '../../common/promptsService';
-import { ResourceMap } from '../../../../util/vs/base/common/map';
+import { ResourceMap } from '../../../../util/dardcor/base/common/map';
 
 export class MockPromptsService extends Disposable implements IPromptsService {
 	declare readonly _serviceBrand: undefined;

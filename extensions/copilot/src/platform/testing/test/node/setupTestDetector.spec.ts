@@ -6,7 +6,7 @@
 
 import { beforeEach, expect, suite, test, vi } from 'vitest';
 import type * as vscode from 'vscode';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { IRunCommandExecutionService } from '../../../commands/common/runCommandExecutionService';
 import { IExtensionsService } from '../../../extensions/common/extensionsService';
 import { TestExtensionsService } from '../../../test/common/testExtensionsService';

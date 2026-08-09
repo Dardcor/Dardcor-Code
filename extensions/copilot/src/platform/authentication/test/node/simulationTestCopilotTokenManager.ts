@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { BugIndicatingError } from '../../../../util/vs/base/common/errors';
-import { Emitter, Event, Relay } from '../../../../util/vs/base/common/event';
-import { safeStringify } from '../../../../util/vs/base/common/objects';
+import { BugIndicatingError } from '../../../../util/dardcor/base/common/errors';
+import { Emitter, Event, Relay } from '../../../../util/dardcor/base/common/event';
+import { safeStringify } from '../../../../util/dardcor/base/common/objects';
 import { getEditorVersionHeaders } from '../../../env/common/envService';
 import { NullEnvService } from '../../../env/common/nullEnvService';
 import { CopilotToken, createTestExtendedTokenInfo, ExtendedTokenInfo, TokenEnvelope } from '../../common/copilotToken';

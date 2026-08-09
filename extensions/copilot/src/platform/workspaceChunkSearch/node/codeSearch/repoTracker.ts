@@ -4,14 +4,14 @@
  *--------------------------------------------------------------------------------------------*/
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { coalesce } from '../../../../util/vs/base/common/arrays';
-import { CancelablePromise, createCancelablePromise, raceCancellationError, raceTimeout } from '../../../../util/vs/base/common/async';
-import { isCancellationError } from '../../../../util/vs/base/common/errors';
-import { Emitter } from '../../../../util/vs/base/common/event';
-import { Disposable } from '../../../../util/vs/base/common/lifecycle';
-import { ResourceMap } from '../../../../util/vs/base/common/map';
-import { Schemas } from '../../../../util/vs/base/common/network';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { coalesce } from '../../../../util/dardcor/base/common/arrays';
+import { CancelablePromise, createCancelablePromise, raceCancellationError, raceTimeout } from '../../../../util/dardcor/base/common/async';
+import { isCancellationError } from '../../../../util/dardcor/base/common/errors';
+import { Emitter } from '../../../../util/dardcor/base/common/event';
+import { Disposable } from '../../../../util/dardcor/base/common/lifecycle';
+import { ResourceMap } from '../../../../util/dardcor/base/common/map';
+import { Schemas } from '../../../../util/dardcor/base/common/network';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { IGitExtensionService } from '../../../git/common/gitExtensionService';
 import { getGithubRepoIdFromFetchUrl, getOrderedRemoteUrlsFromContext, getOrderedRepoInfosFromContext, GithubRepoId, IGitService, parseRemoteUrl, RepoContext, ResolvedRepoRemoteInfo } from '../../../git/common/gitService';
 import { LogExecTime } from '../../../log/common/logExecTime';

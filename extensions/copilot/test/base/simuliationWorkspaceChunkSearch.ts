@@ -14,10 +14,10 @@ import { BuildIndexTriggerReason, TriggerIndexingError } from '../../src/platfor
 import { IWorkspaceChunkSearchService, WorkspaceChunkSearchResult, WorkspaceChunkSearchSizing, WorkspaceIndexState } from '../../src/platform/workspaceChunkSearch/node/workspaceChunkSearchService';
 import { Result } from '../../src/util/common/result';
 import { TelemetryCorrelationId } from '../../src/util/common/telemetryCorrelationId';
-import { CancellationToken } from '../../src/util/vs/base/common/cancellation';
-import { Event } from '../../src/util/vs/base/common/event';
-import { Disposable } from '../../src/util/vs/base/common/lifecycle';
-import { IInstantiationService } from '../../src/util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../src/util/dardcor/base/common/cancellation';
+import { Event } from '../../src/util/dardcor/base/common/event';
+import { Disposable } from '../../src/util/dardcor/base/common/lifecycle';
+import { IInstantiationService } from '../../src/util/dardcor/platform/instantiation/common/instantiation';
 
 const searchEndpoint = 'http://localhost:4443/api/embeddings/code/search';
 

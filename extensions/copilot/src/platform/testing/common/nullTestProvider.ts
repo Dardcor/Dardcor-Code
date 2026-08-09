@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { Position, TestItem, Uri } from 'vscode';
-import { Event } from '../../../util/vs/base/common/event';
+import { Event } from '../../../util/dardcor/base/common/event';
 import { ITestFailure, ITestProvider } from './testProvider';
 
 export class NullTestProvider implements ITestProvider {

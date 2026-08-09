@@ -11,9 +11,9 @@ import { Completions, ICompletionsFetchService } from '../../../../../../../plat
 import { ResponseStream } from '../../../../../../../platform/nesFetch/common/responseStream';
 import { Response as FetcherResponse, HeadersImpl } from '../../../../../../../platform/networking/common/fetcherService';
 import { Result } from '../../../../../../../util/common/result';
-import { CancellationToken } from '../../../../../../../util/vs/base/common/cancellation';
-import { SyncDescriptor } from '../../../../../../../util/vs/platform/instantiation/common/descriptors';
-import { IInstantiationService } from '../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../../../../../../util/dardcor/base/common/cancellation';
+import { SyncDescriptor } from '../../../../../../../util/dardcor/platform/instantiation/common/descriptors';
+import { IInstantiationService } from '../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { CompletionResults, CopilotUiKind, ICompletionsOpenAIFetcherService, LiveOpenAIFetcher } from '../../openai/fetch';
 import { APIChoice } from '../../openai/openai';
 import { TelemetryWithExp } from '../../telemetry';

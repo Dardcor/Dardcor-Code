@@ -59,13 +59,13 @@ const webviewBuildOptions = {
 	platform: 'browser',
 	target: 'es2024', // Electron 34 -> Chrome 132 -> ES2024
 	entryPoints: [
-		{ in: 'src/extension/completions-core/vscode-node/extension/src/copilotPanel/webView/suggestionsPanelWebview.ts', out: 'suggestionsPanelWebview' },
+		{ in: 'src/extension/completions-core/dardcor-node/extension/src/copilotPanel/webView/suggestionsPanelWebview.ts', out: 'suggestionsPanelWebview' },
 	],
 } satisfies esbuild.BuildOptions;
 
 const nodeExtHostTestGlobs = [
 	'src/**/vscode/**/*.test.{ts,tsx}',
-	'src/**/vscode-node/**/*.test.{ts,tsx}',
+	'src/**/dardcor-node/**/*.test.{ts,tsx}',
 	// deprecated
 	'src/extension/**/*.test.{ts,tsx}'
 ];
@@ -97,7 +97,7 @@ const testBundlePlugin: esbuild.Plugin = {
 };
 
 const nodeExtHostSanityTestGlobs = [
-	'src/**/vscode-node/**/*.sanity-test.{ts,tsx}',
+	'src/**/dardcor-node/**/*.sanity-test.{ts,tsx}',
 ];
 
 const sanityTestBundlePlugin: esbuild.Plugin = {
@@ -165,7 +165,7 @@ const shimVsCodeTypesPlugin: esbuild.Plugin = {
 						try {
 							vscode = eval('require(' + JSON.stringify('vscode') + ')');
 						} catch (e) {
-							vscode = require('./src/util/common/test/shims/vscodeTypesShim.ts');
+							vscode = require('./src/util/common/test/shims/dardcorTypesShim.ts');
 						}
 					}
 					module.exports = vscode;
@@ -179,13 +179,13 @@ const shimVsCodeTypesPlugin: esbuild.Plugin = {
 const nodeExtHostBuildOptions = {
 	...baseNodeBuildOptions,
 	entryPoints: [
-		{ in: './src/extension/extension/vscode-node/extension.ts', out: 'extension' },
+		{ in: './src/extension/extension/dardcor-node/extension.ts', out: 'extension' },
 		{ in: './src/platform/parser/node/parserWorker.ts', out: 'worker2' },
 		{ in: './src/platform/tokenizer/node/tikTokenizerWorker.ts', out: 'tikTokenizerWorker' },
 		{ in: './src/platform/diff/node/diffWorkerMain.ts', out: 'diffWorker' },
 		{ in: './src/extension/chatSessions/copilotcli/node/copilotCLITodoWorker.ts', out: 'copilotCLITodoWorker' },
 		{ in: './src/extension/onboardDebug/node/copilotDebugWorker/index.ts', out: 'copilotDebugCommand' },
-		{ in: './src/extension/chatSessions/vscode-node/copilotCLIShim.ts', out: 'copilotCLIShim' },
+		{ in: './src/extension/chatSessions/dardcor-node/copilotCLIShim.ts', out: 'copilotCLIShim' },
 		{ in: './src/test-extension.ts', out: 'test-extension' },
 		{ in: './src/sanity-test-extension.ts', out: 'sanity-test-extension' },
 	],
@@ -201,7 +201,7 @@ const webExtHostBuildOptions = {
 	...baseBuildOptions,
 	platform: 'browser',
 	entryPoints: [
-		{ in: './src/extension/extension/vscode-worker/extension.ts', out: 'web' },
+		{ in: './src/extension/extension/dardcor-worker/extension.ts', out: 'web' },
 	],
 	format: 'cjs', // Necessary to export activate function from bundle for extension
 	external: [
@@ -237,7 +237,7 @@ const nodeSimulationWorkbenchUIBuildOptions = {
 		{ in: './test/simulation/workbench/simulationWorkbench.tsx', out: 'simulationWorkbench' },
 	],
 	alias: {
-		'vscode': './src/util/common/test/shims/vscodeTypesShim.ts'
+		'vscode': './src/util/common/test/shims/dardcorTypesShim.ts'
 	},
 	external: [
 		...baseNodeBuildOptions.external,

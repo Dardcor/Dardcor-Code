@@ -619,3 +619,6 @@
 .monaco-workbench .xterm.terminal.hide {
 	visibility: hidden;
 }
+
+/* Force remove terminal focus wrappers/outlines as requested by Dardcor */
+.monaco-workbench .pane-body.integrated-terminal, .monaco-workbench .pane-body.integrated-terminal:focus-within, .monaco-workbench .pane-body.integrated-terminal .xterm, .monaco-workbench .pane-body.integrated-terminal .xterm:focus, .monaco-workbench .part.panel:focus-within { outline: none !important; box-shadow: none !important; border: none !important; }

@@ -6,7 +6,7 @@ import type { ChatErrorDetails, Diagnostic, FormattingOptions, Uri, WorkspaceEdi
 import { IDeserializedWorkspaceState } from '../../src/platform/test/node/promptContextModel';
 import { ITestingServicesAccessor } from '../../src/platform/test/node/services';
 import { IFile, SimulationWorkspace } from '../../src/platform/test/node/simulationWorkspace';
-import { ResourceMap } from '../../src/util/vs/base/common/map';
+import { ResourceMap } from '../../src/util/dardcor/base/common/map';
 
 export interface IInlineEdit {
 	readonly offset: number;

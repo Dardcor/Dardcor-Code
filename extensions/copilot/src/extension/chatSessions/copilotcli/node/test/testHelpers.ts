@@ -5,10 +5,10 @@
 
 import type { SessionOptions, SweCustomAgent } from '@github/copilot/sdk';
 import type { CancellationToken, Uri } from 'vscode';
-import { Event } from '../../../../../util/vs/base/common/event';
-import { Disposable, IDisposable } from '../../../../../util/vs/base/common/lifecycle';
-import { URI } from '../../../../../util/vs/base/common/uri';
-import { generateUuid } from '../../../../../util/vs/base/common/uuid';
+import { Event } from '../../../../../util/dardcor/base/common/event';
+import { Disposable, IDisposable } from '../../../../../util/dardcor/base/common/lifecycle';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
+import { generateUuid } from '../../../../../util/dardcor/base/common/uuid';
 import { CLIAgentInfo, CopilotCLIModelInfo, ICopilotCLIAgents, ICopilotCLIModels } from '../copilotCli';
 import { ICopilotCLIImageSupport } from '../copilotCLIImageSupport';
 import { ICopilotCLISkills } from '../copilotCLISkills';

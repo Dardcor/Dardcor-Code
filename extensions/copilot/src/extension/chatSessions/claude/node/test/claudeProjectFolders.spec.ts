@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { TestWorkspaceService } from '../../../../../platform/test/node/testWorkspaceService';
-import { URI } from '../../../../../util/vs/base/common/uri';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
 import { FolderRepositoryMRUEntry, IFolderRepositoryManager } from '../../../../chatSessions/common/folderRepositoryManager';
 import { computeFolderSlug, getProjectFolders } from '../claudeProjectFolders';
 

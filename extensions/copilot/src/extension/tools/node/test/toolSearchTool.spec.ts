@@ -5,7 +5,7 @@
 
 import type * as vscode from 'vscode';
 import { describe, expect, it, vi } from 'vitest';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
 import type { ILogService } from '../../../../platform/log/common/logService';
 import type { IToolDeferralService } from '../../../../platform/networking/common/toolDeferralService';
 import type { IToolEmbeddingsComputer } from '../../common/virtualTools/toolEmbeddingsComputer';

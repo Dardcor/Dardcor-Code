@@ -6,12 +6,12 @@
 import { RequestType } from '@vscode/copilot-api';
 import { minimatch } from 'minimatch';
 import { createSha256Hash } from '../../../util/common/crypto';
-import { coalesce } from '../../../util/vs/base/common/arrays';
-import { Limiter, raceCancellationError } from '../../../util/vs/base/common/async';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { IDisposable } from '../../../util/vs/base/common/lifecycle';
-import { ResourceMap } from '../../../util/vs/base/common/map';
-import { URI } from '../../../util/vs/base/common/uri';
+import { coalesce } from '../../../util/dardcor/base/common/arrays';
+import { Limiter, raceCancellationError } from '../../../util/dardcor/base/common/async';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { IDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { ResourceMap } from '../../../util/dardcor/base/common/map';
+import { URI } from '../../../util/dardcor/base/common/uri';
 import { IAuthenticationService } from '../../authentication/common/authentication';
 import { ICAPIClientService } from '../../endpoint/common/capiClient';
 import { IFileSystemService } from '../../filesystem/common/fileSystemService';

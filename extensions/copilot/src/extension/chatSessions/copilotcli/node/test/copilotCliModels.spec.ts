@@ -11,9 +11,9 @@ import { DefaultsOnlyConfigurationService } from '../../../../../platform/config
 import { InMemoryConfigurationService } from '../../../../../platform/configuration/test/common/inMemoryConfigurationService';
 import { IVSCodeExtensionContext } from '../../../../../platform/extContext/common/extensionContext';
 import { ILogService } from '../../../../../platform/log/common/logService';
-import { Emitter } from '../../../../../util/vs/base/common/event';
-import { DisposableStore } from '../../../../../util/vs/base/common/lifecycle';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { Emitter } from '../../../../../util/dardcor/base/common/event';
+import { DisposableStore } from '../../../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { createExtensionUnitTestingServices } from '../../../../test/node/services';
 import { CopilotCLIModels, type CopilotCLIModelInfo, type ICopilotCLISDK } from '../copilotCli';
 

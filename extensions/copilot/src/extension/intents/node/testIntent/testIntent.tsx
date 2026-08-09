@@ -24,9 +24,9 @@ import { ISetupTestsDetector, isStartSetupTestConfirmation, SetupTestActionType 
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
 import { getLanguage } from '../../../../util/common/languages';
 import { isUri } from '../../../../util/common/types';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
-import { Position, Range, Selection } from '../../../../vscodeTypes';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { Position, Range, Selection } from '../../../../dardcorTypes';
 import { Intent } from '../../../common/constants';
 import { Conversation } from '../../../prompt/common/conversation';
 import { ChatTelemetryBuilder } from '../../../prompt/node/chatParticipantTelemetry';

@@ -6,7 +6,7 @@
 import { OutputMode, Raw } from '@vscode/prompt-tsx';
 import { LanguageModelChat, LanguageModelChatTool } from 'vscode';
 import { ITokenizer } from '../../../util/common/tokenizer';
-import { assertNever } from '../../../util/vs/base/common/assert';
+import { assertNever } from '../../../util/dardcor/base/common/assert';
 import { calculateImageTokenCost, estimateDocumentTokenCost } from '../../tokenizer/node/tokenizer';
 import { modelVendorHandlesCacheBreakpoints } from '../common/endpointTypes';
 import { convertToApiChatMessage } from './extChatEndpoint';

@@ -11,11 +11,11 @@ import { MockEndpoint } from '../../../platform/endpoint/test/node/mockEndpoint'
 import { ITestingServicesAccessor } from '../../../platform/test/node/services';
 import { ChatResponseStreamImpl } from '../../../util/common/chatResponseStreamImpl';
 import { createTextDocumentData } from '../../../util/common/test/shims/textDocument';
-import { AsyncIterableObject } from '../../../util/vs/base/common/async';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { URI } from '../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
-import { ChatResponseTextEditPart, Range, Selection, TextEdit, Uri } from '../../../vscodeTypes';
+import { AsyncIterableObject } from '../../../util/dardcor/base/common/async';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { ChatResponseTextEditPart, Range, Selection, TextEdit, Uri } from '../../../dardcorTypes';
 import { ISessionTurnStorage, OutcomeAnnotation } from '../../inlineChat/node/promptCraftingTypes';
 import { ChatVariablesCollection } from '../../prompt/common/chatVariablesCollection';
 import { PromptReference, getUniqueReferences } from '../../prompt/common/conversation';

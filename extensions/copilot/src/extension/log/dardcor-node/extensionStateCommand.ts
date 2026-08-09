@@ -8,7 +8,7 @@ import { IAuthenticationService } from '../../../platform/authentication/common/
 import { IEndpointProvider } from '../../../platform/endpoint/common/endpointProvider';
 import { ILogService } from '../../../platform/log/common/logService';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { IExtensionContribution } from '../../common/contributions';
 import { IToolsService } from '../../tools/common/toolsService';
 

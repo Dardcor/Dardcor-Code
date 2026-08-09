@@ -10,7 +10,7 @@ import { RootedEdit } from '../../../../platform/inlineEdits/common/dataTypes/ed
 import { ImportChanges } from '../../../../platform/inlineEdits/common/dataTypes/importFilteringOptions';
 import { LanguageId } from '../../../../platform/inlineEdits/common/dataTypes/languageId';
 import { StatelessNextEditDocument } from '../../../../platform/inlineEdits/common/statelessNextEditProvider';
-import { StringText } from '../../../../util/vs/editor/common/core/text/abstractText';
+import { StringText } from '../../../../util/dardcor/editor/common/core/text/abstractText';
 import { IgnoreImportChangesAspect } from '../../node/importFiltering';
 
 suite('IgnoreImportChangesAspect', () => {
@@ -27,9 +27,9 @@ suite('IgnoreImportChangesAspect', () => {
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { assert } from '../../../util/vs/base/common/assert';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { win32 } from '../../../util/vs/base/common/path';
+import { assert } from '../../../util/dardcor/base/common/assert';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { win32 } from '../../../util/dardcor/base/common/path';
 
 class FooBar {
 }
@@ -43,8 +43,8 @@ class FooBar {
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { assert } from '../../../util/vs/base/common/assert';
-import { win32 } from '../../../util/vs/base/common/path';
+import { assert } from '../../../util/dardcor/base/common/assert';
+import { win32 } from '../../../util/dardcor/base/common/path';
 
 class FooBar {
 }
@@ -62,10 +62,10 @@ class FooBar {
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { assert } from '../../../util/vs/base/common/assert';
-import { assert2 } from '../../../util/vs/base/common/assert2';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { win32 } from '../../../util/vs/base/common/path';
+import { assert } from '../../../util/dardcor/base/common/assert';
+import { assert2 } from '../../../util/dardcor/base/common/assert2';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { win32 } from '../../../util/dardcor/base/common/path';
 
 class FooBar {
 }
@@ -82,9 +82,9 @@ class FooBar {
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { assert } from '../../../util/vs/base/common/assert';
-import { CancellationToken2 } from '../../../util/vs/base/common/cancellation';
-import { win32 } from '../../../util/vs/base/common/path';
+import { assert } from '../../../util/dardcor/base/common/assert';
+import { CancellationToken2 } from '../../../util/dardcor/base/common/cancellation';
+import { win32 } from '../../../util/dardcor/base/common/path';
 
 class FooBar {
 }
@@ -102,9 +102,9 @@ class FooBar {
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { assert } from '../../../util/vs/base/common/assert';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { win32 } from '../../../util/vs/base/common/path';
+import { assert } from '../../../util/dardcor/base/common/assert';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { win32 } from '../../../util/dardcor/base/common/path';
 
 class FooBar {
 	test() {}

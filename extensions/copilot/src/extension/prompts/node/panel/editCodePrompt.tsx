@@ -17,10 +17,10 @@ import { IExperimentationService } from '../../../../platform/telemetry/common/n
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
 import { filepathCodeBlockMarker } from '../../../../util/common/markdown';
 import { isLocation, isUri } from '../../../../util/common/types';
-import { ResourceMap } from '../../../../util/vs/base/common/map';
-import { Schemas } from '../../../../util/vs/base/common/network';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
-import { Range, Uri } from '../../../../vscodeTypes';
+import { ResourceMap } from '../../../../util/dardcor/base/common/map';
+import { Schemas } from '../../../../util/dardcor/base/common/network';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { Range, Uri } from '../../../../dardcorTypes';
 import { GenericBasePromptElementProps } from '../../../context/node/resolvers/genericPanelIntentInvocation';
 import { IEditStepBuildPromptContext, PreviousEditCodeStep } from '../../../intents/node/editCodeStep';
 import { ChatVariablesCollection } from '../../../prompt/common/chatVariablesCollection';

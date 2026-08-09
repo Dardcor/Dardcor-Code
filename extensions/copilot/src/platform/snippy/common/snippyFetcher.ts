@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { RequestMetadata, RequestType } from '@vscode/copilot-api';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { CancellationError } from '../../../util/vs/base/common/errors';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { CancellationError } from '../../../util/dardcor/base/common/errors';
 import { IAuthenticationService } from '../../authentication/common/authentication';
 import { ICAPIClientService } from '../../endpoint/common/capiClient';
 import * as fetch from '../../networking/common/fetcherService';

@@ -6,9 +6,9 @@
 import * as vscode from 'vscode';
 import { ConfigKey, IConfigurationService } from '../../../platform/configuration/common/configurationService';
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
-import { combinedDisposable, Disposable, MutableDisposable } from '../../../util/vs/base/common/lifecycle';
-import { SyncDescriptor } from '../../../util/vs/platform/instantiation/common/descriptors';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { combinedDisposable, Disposable, MutableDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { SyncDescriptor } from '../../../util/dardcor/platform/instantiation/common/descriptors';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { IExtensionContribution } from '../../common/contributions';
 import { AskAgentProvider } from './askAgentProvider';
 import { ExploreAgentProvider } from './exploreAgentProvider';

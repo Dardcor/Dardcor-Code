@@ -6,7 +6,7 @@
 import * as fs from 'fs';
 import * as mobx from 'mobx';
 import * as path from 'path';
-import { Disposable, toDisposable } from '../../../../src/util/vs/base/common/lifecycle';
+import { Disposable, toDisposable } from '../../../../src/util/dardcor/base/common/lifecycle';
 import { IBaselineTestSummary, OLD_BASELINE_FILENAME, PRODUCED_BASELINE_FILENAME, SIMULATION_FOLDER_NAME } from '../../shared/sharedTypes';
 import { REPO_ROOT, genericEquals } from '../utils/utils';
 import { SimulationRunner } from './simulationRunner';

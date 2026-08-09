@@ -6,9 +6,9 @@
 
 import type * as vscode from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { URI } from '../../../util/vs/base/common/uri';
-import { Range } from '../../../util/vs/editor/common/core/range';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { Range } from '../../../util/dardcor/editor/common/core/range';
 
 export enum TaskStatus {
 	Started = 'started',

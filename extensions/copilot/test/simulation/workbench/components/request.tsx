@@ -6,8 +6,8 @@
 import { Badge, Text, Tooltip } from '@fluentui/react-components';
 import * as mobxlite from 'mobx-react-lite';
 import * as React from 'react';
-import { coalesce } from '../../../../src/util/vs/base/common/arrays';
-import { assertType } from '../../../../src/util/vs/base/common/types';
+import { coalesce } from '../../../../src/util/dardcor/base/common/arrays';
+import { assertType } from '../../../../src/util/dardcor/base/common/types';
 import { ISerialisedChatMessage, ISerialisedChatResponse, InterceptedRequest } from '../../shared/sharedTypes';
 import { DiffEditor } from './diffEditor';
 import { Editor } from './editor';

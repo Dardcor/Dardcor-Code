@@ -5,8 +5,8 @@
 
 import * as assert from 'assert';
 import { IIgnoreService } from '../../../../../../../../platform/ignore/common/ignoreService';
-import { SyncDescriptor } from '../../../../../../../../util/vs/platform/instantiation/common/descriptors';
-import { IInstantiationService } from '../../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { SyncDescriptor } from '../../../../../../../../util/dardcor/platform/instantiation/common/descriptors';
+import { IInstantiationService } from '../../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { accessTimes } from '../../../documentTracker';
 import { ExpTreatmentVariables } from '../../../experiments/expConfig';
 import { ICompletionsFileSystemService } from '../../../fileSystem';

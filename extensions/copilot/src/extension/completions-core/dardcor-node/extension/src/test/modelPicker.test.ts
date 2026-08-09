@@ -6,8 +6,8 @@
 import assert from 'assert';
 import sinon from 'sinon';
 import { commands, env } from 'vscode';
-import { SyncDescriptor } from '../../../../../../util/vs/platform/instantiation/common/descriptors';
-import { IInstantiationService, ServicesAccessor } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { SyncDescriptor } from '../../../../../../util/dardcor/platform/instantiation/common/descriptors';
+import { IInstantiationService, ServicesAccessor } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { AvailableModelsManager, ICompletionsModelManagerService } from '../../../lib/src/openai/model';
 import { ModelPickerManager } from './../modelPicker';
 import { createExtensionTestingContext } from './context';

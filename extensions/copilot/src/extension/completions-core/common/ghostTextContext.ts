@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { InlineEditRequestLogContext } from '../../../platform/inlineEdits/common/inlineEditLogContext';
-import { basename } from '../../../util/vs/base/common/path';
+import { basename } from '../../../util/dardcor/base/common/path';
 
 export class GhostTextLogContext extends InlineEditRequestLogContext {
 	override getDebugName(): string {

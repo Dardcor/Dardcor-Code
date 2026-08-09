@@ -3,14 +3,14 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { DeferredPromise, IntervalTimer } from '../../../../util/vs/base/common/async';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { Emitter, Event } from '../../../../util/vs/base/common/event';
-import { Disposable } from '../../../../util/vs/base/common/lifecycle';
-import { ResourceMap, ResourceSet } from '../../../../util/vs/base/common/map';
-import { isEqualOrParent } from '../../../../util/vs/base/common/resources';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { Change } from '../../../git/vscode/git';
+import { DeferredPromise, IntervalTimer } from '../../../../util/dardcor/base/common/async';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { Emitter, Event } from '../../../../util/dardcor/base/common/event';
+import { Disposable } from '../../../../util/dardcor/base/common/lifecycle';
+import { ResourceMap, ResourceSet } from '../../../../util/dardcor/base/common/map';
+import { isEqualOrParent } from '../../../../util/dardcor/base/common/resources';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { Change } from '../../../git/dardcor/git';
 import { LogExecTime } from '../../../log/common/logExecTime';
 import { ILogService } from '../../../log/common/logService';
 import { ISimulationTestContext } from '../../../simulationTestContext/common/simulationTestContext';

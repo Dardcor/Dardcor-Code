@@ -6,8 +6,8 @@
 import assert from 'assert';
 import { suite, test } from 'vitest';
 import { FileChunk } from '../../../platform/chunking/common/chunk';
-import { URI } from '../../../util/vs/base/common/uri';
-import { Range } from '../../../util/vs/editor/common/core/range';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { Range } from '../../../util/dardcor/editor/common/core/range';
 import { getSearchResults } from '../../workspaceSemanticSearch/node/semanticSearchTextSearchProvider';
 
 suite('Extract Code Snippets From Files', () => {

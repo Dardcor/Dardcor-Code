@@ -9,7 +9,7 @@ import type { CancellationToken, ChatResponseProgressPart, ChatResponseReference
 import { IResponsePart } from '../../../../platform/chat/common/chatMLFetcher';
 import { ChatLocation } from '../../../../platform/chat/common/commonTypes';
 import { IChatEndpoint } from '../../../../platform/networking/common/networking';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { IBuildPromptContext } from '../../../prompt/common/intents';
 import { IDocumentContext } from '../../../prompt/node/documentContext';
 import { IIntent, IIntentInvocation, IResponseProcessorContext, NoopReplyInterpreter, ReplyInterpreter, ReplyInterpreterMetaData } from '../../../prompt/node/intents';

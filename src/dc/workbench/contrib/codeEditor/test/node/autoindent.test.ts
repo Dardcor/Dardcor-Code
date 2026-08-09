@@ -57,7 +57,7 @@ function registerLanguageConfiguration(instantiationService: TestInstantiationSe
 	let configPath: string;
 	switch (languageId) {
 		case LanguageId.TypeScript:
-			configPath = FileAccess.asFileUri('dc/workbench/contrib/codeEditor/test/node/language-configuration.json').fsPath;
+			configPath = FileAccess.asFileUri('vs/workbench/contrib/codeEditor/test/node/language-configuration.json').fsPath;
 			break;
 		default:
 			throw new Error('Unknown languageId');

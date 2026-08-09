@@ -7,11 +7,11 @@ import * as fs from 'fs/promises';
 import { mkdir, rename } from 'fs/promises';
 import { InlineEditRequestLogContext } from '../../../../platform/inlineEdits/common/inlineEditLogContext';
 import { TaskQueue } from '../../../../util/common/async';
-import { timeout } from '../../../../util/vs/base/common/async';
-import { BugIndicatingError } from '../../../../util/vs/base/common/errors';
-import { Disposable, DisposableMap, toDisposable } from '../../../../util/vs/base/common/lifecycle';
-import * as path from '../../../../util/vs/base/common/path';
-import { FlushableJSONFile, FlushableSafeJSONLFile, getFileSize } from '../../../workspaceRecorder/vscode-node/safeFileWriteUtils';
+import { timeout } from '../../../../util/dardcor/base/common/async';
+import { BugIndicatingError } from '../../../../util/dardcor/base/common/errors';
+import { Disposable, DisposableMap, toDisposable } from '../../../../util/dardcor/base/common/lifecycle';
+import * as path from '../../../../util/dardcor/base/common/path';
+import { FlushableJSONFile, FlushableSafeJSONLFile, getFileSize } from '../../../workspaceRecorder/dardcor-node/safeFileWriteUtils';
 import { INextEditResult } from '../../node/nextEditResult';
 import { InlineEditLogger } from '../parts/inlineEditLogger';
 

@@ -7,8 +7,8 @@ import { PromptElement, PromptElementProps, PromptSizing } from '@vscode/prompt-
 import assert from 'assert';
 import { IIgnoreService } from '../../../platform/ignore/common/ignoreService';
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { Tag } from '../../prompts/node/base/tag';
 import { DocumentSummarizer } from '../../prompts/node/inline/summarizedDocument/summarizeDocumentHelpers';
 import { CodeBlock } from '../../prompts/node/panel/safeElements';

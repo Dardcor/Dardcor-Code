@@ -19,7 +19,7 @@ import { IChatWebSocketManager } from '../../../../../platform/networking/node/c
 import { IExperimentationService } from '../../../../../platform/telemetry/common/nullExperimentationService';
 import { ITelemetryService } from '../../../../../platform/telemetry/common/telemetry';
 import { ITokenizerProvider } from '../../../../../platform/tokenizer/node/tokenizer';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { IModelConfig, OpenAICompatibleTestEndpoint } from '../openaiCompatibleEndpoint';
 
 // Test fixtures for thinking content

@@ -8,9 +8,9 @@ import { Diagnostic, Range, TextDocument, workspace } from 'vscode';
 import { rangeSpanningDiagnostics } from '../../../../platform/languages/common/languageDiagnosticsService';
 import { IParserService } from '../../../../platform/parser/node/parserService';
 import { ITestingServicesAccessor } from '../../../../platform/test/node/services';
-import { Position } from '../../../../vscodeTypes';
+import { Position } from '../../../../dardcorTypes';
 import { findFixRangeOfInterest } from '../../../context/node/resolvers/fixSelection';
-import { createExtensionTestingServices } from '../../../test/vscode-node/services';
+import { createExtensionTestingServices } from '../../../test/dardcor-node/services';
 
 suite('findFixRangeOfInterest', function () {
 	let accessor: ITestingServicesAccessor;

@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { expect, suite, test } from 'vitest';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
 import { findMergeConflictMarkersRange } from '../../node/xtabUtils';
 
 

@@ -4,14 +4,14 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { WorkerWithRpcProxy } from '../../../util/node/worker';
-import { Lazy } from '../../../util/vs/base/common/lazy';
-import * as path from '../../../util/vs/base/common/path';
-import { Range } from '../../../util/vs/editor/common/core/range';
-import { LineRange } from '../../../util/vs/editor/common/core/ranges/lineRange';
+import { Lazy } from '../../../util/dardcor/base/common/lazy';
+import * as path from '../../../util/dardcor/base/common/path';
+import { Range } from '../../../util/dardcor/editor/common/core/range';
+import { LineRange } from '../../../util/dardcor/editor/common/core/ranges/lineRange';
 
 import { existsSync } from 'fs';
-import { ILinesDiffComputerOptions, MovedText } from '../../../util/vs/editor/common/diff/linesDiffComputer';
-import { DetailedLineRangeMapping, LineRangeMapping, RangeMapping } from '../../../util/vs/editor/common/diff/rangeMapping';
+import { ILinesDiffComputerOptions, MovedText } from '../../../util/dardcor/editor/common/diff/linesDiffComputer';
+import { DetailedLineRangeMapping, LineRangeMapping, RangeMapping } from '../../../util/dardcor/editor/common/diff/rangeMapping';
 import { IDiffService, IDocumentDiff } from '../common/diffService';
 import * as diffWorker from '../common/diffWorker';
 

@@ -2856,6 +2856,7 @@ export namespace ChatResponseHookPart {
 }
 
 export namespace ChatResponseVoiceProgressPart {
+	// @ts-ignore
 	export function from(part: vscode.ChatResponseVoiceProgressPart): Dto<IChatVoiceProgressPart> {
 		return {
 			kind: 'voiceProgress',
@@ -3491,6 +3492,7 @@ export namespace ChatAgentRequest {
 			attempt: request.attempt ?? 0,
 			enableCommandDetection: request.enableCommandDetection ?? true,
 			isParticipantDetected: request.isParticipantDetected ?? false,
+			// @ts-ignore
 			isVoiceModeInput: request.isVoiceModeInput,
 			sessionId,
 			sessionResource: request.sessionResource,

@@ -14,9 +14,9 @@ import { MockAuthenticationService } from '../../../../platform/ignore/node/test
 import { MockGitService } from '../../../../platform/ignore/node/test/mockGitService';
 import { MockWorkspaceService } from '../../../../platform/ignore/node/test/mockWorkspaceService';
 import { ILogService } from '../../../../platform/log/common/logService';
-import { DisposableStore } from '../../../../util/vs/base/common/lifecycle';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { parse } from '../../../../util/vs/base/common/yaml';
+import { DisposableStore } from '../../../../util/dardcor/base/common/lifecycle';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { parse } from '../../../../util/dardcor/base/common/yaml';
 import { createExtensionUnitTestingServices } from '../../../test/node/services';
 import { GitHubOrgChatResourcesService } from '../githubOrgChatResourcesService';
 import { GitHubOrgCustomAgentProvider, looksLikeNumber, yamlString } from '../githubOrgCustomAgentProvider';

@@ -6,12 +6,12 @@
 import { workspace } from 'vscode';
 import { IAuthenticationService } from '../../authentication/common/authentication';
 import { ICAPIClientService } from '../../endpoint/common/capiClient';
-import { VSCodeFileSystemService } from '../../filesystem/vscode/fileSystemServiceImpl';
+import { VSCodeFileSystemService } from '../../filesystem/dardcor/fileSystemServiceImpl';
 import { IGitExtensionService } from '../../git/common/gitExtensionService';
 import { IGitService } from '../../git/common/gitService';
 import { ILogService } from '../../log/common/logService';
 import { IRequestLogger } from '../../requestLogger/common/requestLogger';
-import { BaseSearchServiceImpl } from '../../search/vscode/baseSearchServiceImpl';
+import { BaseSearchServiceImpl } from '../../search/dardcor/baseSearchServiceImpl';
 import { IWorkspaceService } from '../../workspace/common/workspaceService';
 import { BaseIgnoreService } from '../node/ignoreServiceImpl';
 

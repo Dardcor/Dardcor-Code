@@ -5,8 +5,8 @@
 
 import * as l10n from '@vscode/l10n';
 import type * as vscode from 'vscode';
-import { count } from '../../../util/vs/base/common/strings';
-import { MarkdownString } from '../../../vscodeTypes';
+import { count } from '../../../util/dardcor/base/common/strings';
+import { MarkdownString } from '../../../dardcorTypes';
 import { ToolName } from '../common/toolNames';
 import { ToolRegistry } from '../common/toolsRegistry';
 import { formatUriForFileWidget } from '../common/toolUtils';

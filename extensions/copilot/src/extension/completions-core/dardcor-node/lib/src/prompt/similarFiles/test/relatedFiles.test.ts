@@ -7,7 +7,7 @@ import * as assert from 'assert';
 import Sinon from 'sinon';
 import type { CancellationToken } from 'vscode';
 import { CancellationTokenSource } from 'vscode-languageserver-protocol';
-import { SyncDescriptor } from '../../../../../../../../util/vs/platform/instantiation/common/descriptors';
+import { SyncDescriptor } from '../../../../../../../../util/dardcor/platform/instantiation/common/descriptors';
 import { accessTimes } from '../../../documentTracker';
 import { ExpTreatmentVariables } from '../../../experiments/expConfig';
 import { TelemetryWithExp } from '../../../telemetry';

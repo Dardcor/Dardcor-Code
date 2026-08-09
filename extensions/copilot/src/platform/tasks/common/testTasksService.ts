@@ -5,7 +5,7 @@
 
 
 import type * as vscode from 'vscode';
-import { URI } from '../../../util/vs/base/common/uri';
+import { URI } from '../../../util/dardcor/base/common/uri';
 import { ITasksService, TaskResult, TaskStatus } from './tasksService';
 
 export class TestTasksService implements ITasksService {

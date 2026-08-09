@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { LanguageModelToolInformation } from 'vscode';
 import { MockFileSystemService } from '../../../../platform/filesystem/node/test/mockFileSystemService';
 import { TestLogService } from '../../../../platform/testing/common/testLogService';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { applyConfiguredPromptOverrides, applyPromptOverrides, applyPromptOverridesFromString, resetPromptOverrideWarnings } from '../promptOverride';
 
 function makeMessages(...specs: Array<{ role: Raw.ChatRole; content: string }>): Raw.ChatMessage[] {

@@ -5,8 +5,8 @@
 
 import { ChatCompletionContentPartKind, ChatRole } from '@vscode/prompt-tsx/dist/base/output/rawTypes';
 import { expect, suite, test, vi } from 'vitest';
-import type { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
-import type { ChatRequest } from '../../../../../vscodeTypes';
+import type { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
+import type { ChatRequest } from '../../../../../dardcorTypes';
 import { ChatVariablesCollection } from '../../../../prompt/common/chatVariablesCollection';
 import { renderPromptElement } from '../../base/promptRenderer';
 import { generateUserPrompt } from '../copilotCLIPrompt';

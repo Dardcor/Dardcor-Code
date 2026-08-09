@@ -11,7 +11,7 @@ import { setCopilotToken } from '../../../../../platform/authentication/common/s
 import type { IChatEndpoint } from '../../../../../platform/networking/common/networking';
 import { TestingServiceCollection } from '../../../../../platform/test/node/services';
 import { ITokenizer, TokenizerType } from '../../../../../util/common/tokenizer';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { createExtensionUnitTestingServices } from '../../../../test/node/services';
 import { PromptRenderer } from '../../base/promptRenderer';
 import { Image } from '../image';

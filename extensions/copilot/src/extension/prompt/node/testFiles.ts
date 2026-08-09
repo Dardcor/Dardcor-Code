@@ -8,9 +8,9 @@ import { TextDocumentSnapshot } from '../../../platform/editing/common/textDocum
 import { ISearchService } from '../../../platform/search/common/searchService';
 import { ITabsAndEditorsService } from '../../../platform/tabs/common/tabsAndEditorsService';
 import { isMatch } from '../../../util/common/glob';
-import { Schemas } from '../../../util/vs/base/common/network';
-import * as resources from '../../../util/vs/base/common/resources';
-import { URI } from '../../../util/vs/base/common/uri';
+import { Schemas } from '../../../util/dardcor/base/common/network';
+import * as resources from '../../../util/dardcor/base/common/resources';
+import { URI } from '../../../util/dardcor/base/common/uri';
 
 type TestHint = {
 	prefix?: string;

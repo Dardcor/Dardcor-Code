@@ -7,8 +7,8 @@ import type { ChatLanguageModelToolReference, ChatPromptReference } from 'vscode
 import { IToolsService } from '../../src/extension/tools/common/toolsService';
 import { ITestingServicesAccessor } from '../../src/platform/test/node/services';
 import { SimulationWorkspace } from '../../src/platform/test/node/simulationWorkspace';
-import { basename } from '../../src/util/vs/base/common/resources';
-import { Location, Uri } from '../../src/vscodeTypes';
+import { basename } from '../../src/util/dardcor/base/common/resources';
+import { Location, Uri } from '../../src/dardcorTypes';
 import { IConversationTestCase } from './scenarioLoader';
 
 export interface IParsedQuery {

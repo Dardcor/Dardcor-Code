@@ -4,10 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type * as vscode from 'vscode';
-import { StringSHA1 } from '../../../vs/base/common/hash';
-import { Schemas } from '../../../vs/base/common/network';
-import { URI as Uri } from '../../../vs/base/common/uri';
-import { NotebookCellKind, NotebookCellOutput, NotebookCellOutputItem, NotebookData } from '../../../vs/workbench/api/common/extHostTypes/notebooks';
+import { StringSHA1 } from '../../../dardcor/base/common/hash';
+import { Schemas } from '../../../dardcor/base/common/network';
+import { URI as Uri } from '../../../dardcor/base/common/uri';
+import { NotebookCellKind, NotebookCellOutput, NotebookCellOutputItem, NotebookData } from '../../../dardcor/workbench/api/common/extHostTypes/notebooks';
 import { createTextDocumentData, IExtHostDocumentData } from './textDocument';
 
 interface ISimulationWorkspace {

@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { URI } from '../../../util/vs/base/common/uri';
-import { Schemas } from '../../../util/vs/base/common/network';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { Schemas } from '../../../util/dardcor/base/common/network';
 
 /**
  * A set of well-known session types

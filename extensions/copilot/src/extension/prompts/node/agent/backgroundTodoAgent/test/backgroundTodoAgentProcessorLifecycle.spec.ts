@@ -10,9 +10,9 @@ import { MockEndpoint } from '../../../../../../platform/endpoint/test/node/mock
 import { ILogService } from '../../../../../../platform/log/common/logService';
 import { IMakeChatRequestOptions } from '../../../../../../platform/networking/common/networking';
 import { ITelemetryService } from '../../../../../../platform/telemetry/common/telemetry';
-import { CancellationToken } from '../../../../../../util/vs/base/common/cancellation';
-import { DeferredPromise } from '../../../../../../util/vs/base/common/async';
-import { IInstantiationService } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../../../../../util/dardcor/base/common/cancellation';
+import { DeferredPromise } from '../../../../../../util/dardcor/base/common/async';
+import { IInstantiationService } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { IBuildPromptContext, IToolCallRound } from '../../../../../prompt/common/intents';
 import { ITodoListContextProvider } from '../../../../../prompt/node/todoListContextProvider';
 import { ToolName } from '../../../../../tools/common/toolNames';

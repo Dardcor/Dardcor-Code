@@ -6,8 +6,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { LanguageModelToolInvocationOptions } from 'vscode';
 import { mock } from '../../../../../util/common/test/simpleMock';
-import { CancellationToken } from '../../../../../util/vs/base/common/cancellation';
-import { LanguageModelTextPart, LanguageModelToolResult, LanguageModelToolResult2 } from '../../../../../vscodeTypes';
+import { CancellationToken } from '../../../../../util/dardcor/base/common/cancellation';
+import { LanguageModelTextPart, LanguageModelToolResult, LanguageModelToolResult2 } from '../../../../../dardcorTypes';
 import { ICopilotTool } from '../../../../tools/common/toolsRegistry';
 import { IToolsService } from '../../../../tools/common/toolsService';
 import { IQuestion } from '../../../copilotcli/node/userInputHelpers';

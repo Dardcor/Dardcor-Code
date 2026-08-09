@@ -6,10 +6,10 @@ import * as l10n from '@vscode/l10n';
 import { ChatResponseFileTreePart, Disposable, MarkdownString, ProgressLocation, SaveDialogOptions, Tab, TabInputText, Uri, commands, env, interactive, window, workspace } from 'vscode';
 import { IConversationOptions } from '../../../platform/chat/common/conversationOptions';
 import { ILogService } from '../../../platform/log/common/logService';
-import * as path from '../../../util/vs/base/common/path';
+import * as path from '../../../util/dardcor/base/common/path';
 import { CopilotFileScheme, CopilotWorkspaceScheme, CreateFileCommand, CreateProjectCommand, GithubWorkspaceScheme, INewWorkspacePreviewContentManager, OpenFileCommand } from '../../intents/node/newIntent';
-import { NewWorkspacePreviewFileSystemProvider } from '../../intents/vscode-node/newWorkspacePreviewFileSystemProvider';
-import { NewWorkspaceTextDocumentProvider } from '../../intents/vscode-node/newWorkspaceTextDocumentProvider';
+import { NewWorkspacePreviewFileSystemProvider } from '../../intents/dardcor-node/newWorkspacePreviewFileSystemProvider';
+import { NewWorkspaceTextDocumentProvider } from '../../intents/dardcor-node/newWorkspaceTextDocumentProvider';
 import { listFilesInResponseFileTree } from '../../prompt/common/fileTreeParser';
 
 export function registerNewWorkspaceIntentCommand(previewContentManager: INewWorkspacePreviewContentManager, logService: ILogService, options: IConversationOptions) {

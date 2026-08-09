@@ -7,7 +7,7 @@ import assert from 'assert';
 import { decodeHex } from '../../../base/common/buffer.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../base/test/common/utils.js';
 import { IRemoteAgentHostEntry, IRemoteAgentHostService, getEntryAddress, RemoteAgentHostEntryType } from '../../../platform/agentHost/common/remoteAgentHostService.js';
-import { resolveRemoteAuthority, sshAuthorityString } from '../../browser/openInVSCodeUtils.js';
+import { resolveRemoteAuthority, sshAuthorityString } from '../../browser/openIndardcorUtils.js';
 import { ISessionsProvidersService } from '../../services/sessions/browser/sessionsProvidersService.js';
 
 suite('resolveRemoteAuthority', () => {

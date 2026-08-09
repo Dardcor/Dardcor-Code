@@ -11,9 +11,9 @@ import { IChatDebugFileLoggerService, NullChatDebugFileLoggerService } from '../
 import { IVSCodeExtensionContext } from '../../../../platform/extContext/common/extensionContext';
 import { MockExtensionContext } from '../../../../platform/test/node/extensionContext';
 import { ITestingServicesAccessor, TestingServiceCollection } from '../../../../platform/test/node/services';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
-import { Uri } from '../../../../vscodeTypes';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { Uri } from '../../../../dardcorTypes';
 import { createExtensionUnitTestingServices } from '../../../test/node/services';
 import { PromptVariablesServiceImpl } from '../promptVariablesService';
 

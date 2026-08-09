@@ -15,12 +15,12 @@ import { IWorkspaceChunkSearchService, WorkspaceChunkSearchResult } from '../../
 import { GlobIncludeOptions } from '../../../../../util/common/glob';
 import { createFencedCodeBlock, getLanguageId } from '../../../../../util/common/markdown';
 import { TelemetryCorrelationId } from '../../../../../util/common/telemetryCorrelationId';
-import { raceCancellationError } from '../../../../../util/vs/base/common/async';
-import { CancellationToken } from '../../../../../util/vs/base/common/cancellation';
-import { ResourceMap } from '../../../../../util/vs/base/common/map';
-import { URI } from '../../../../../util/vs/base/common/uri';
-import { Range } from '../../../../../util/vs/editor/common/core/range';
-import { Location, Range as VSCodeRange } from '../../../../../vscodeTypes';
+import { raceCancellationError } from '../../../../../util/dardcor/base/common/async';
+import { CancellationToken } from '../../../../../util/dardcor/base/common/cancellation';
+import { ResourceMap } from '../../../../../util/dardcor/base/common/map';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
+import { Range } from '../../../../../util/dardcor/editor/common/core/range';
+import { Location, Range as VSCodeRange } from '../../../../../dardcorTypes';
 import { PromptReference } from '../../../../prompt/common/conversation';
 import { IPromptEndpoint } from '../../base/promptRenderer';
 

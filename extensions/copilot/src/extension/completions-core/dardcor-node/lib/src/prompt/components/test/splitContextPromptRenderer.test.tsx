@@ -7,7 +7,7 @@
 
 import * as assert from 'assert';
 import { CancellationTokenSource, Position } from 'vscode-languageserver-protocol';
-import { ServicesAccessor } from '../../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { ServicesAccessor } from '../../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { Chunk, PromptElementProps, PromptSnapshotNode, Text } from '../../../../../prompt/src/components/components';
 import { VirtualPrompt } from '../../../../../prompt/src/components/virtualPrompt';
 import { TokenizerName } from '../../../../../prompt/src/tokenization';

@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { StringText } from '../../../util/vs/editor/common/core/text/abstractText';
+import { StringText } from '../../../util/dardcor/editor/common/core/text/abstractText';
 
 // TODO: This should probably be language specific
 const continuations = [

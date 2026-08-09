@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { ILogService } from '../../../../../../../platform/log/common/logService';
-import { IInstantiationService, type ServicesAccessor } from '../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService, type ServicesAccessor } from '../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { asyncIterableMapFilter } from '../../../../lib/src/helpers/iterableHelpers';
 import { Logger } from '../../../../lib/src/logger';
 import { CopilotUiKind, ICompletionsOpenAIFetcherService } from '../../../../lib/src/openai/fetch';

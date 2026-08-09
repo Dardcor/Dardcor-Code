@@ -5,7 +5,7 @@
 
 import type * as vscode from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { SettingListItem } from '../../embeddings/common/vscodeIndex';
+import { SettingListItem } from '../../embeddings/common/dardcorIndex';
 
 export const IWorkbenchService = createServiceIdentifier<IWorkbenchService>('IWorkbenchService');
 

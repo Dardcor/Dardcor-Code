@@ -11,7 +11,7 @@ import { RecordingData, ResolvedRecording } from '../../../src/platform/workspac
 import { OperationKind, type Operation } from '../../../src/platform/workspaceRecorder/common/resolvedRecording/operation';
 import type { HeaderLogEntry, ISerializedEdit, ISerializedOffsetRange, LogEntry } from '../../../src/platform/workspaceRecorder/common/workspaceLog';
 import { ErrorUtils } from '../../../src/util/common/errors';
-import { StringText } from '../../../src/util/vs/editor/common/core/text/abstractText';
+import { StringText } from '../../../src/util/dardcor/editor/common/core/text/abstractText';
 import type { IWorkspaceRecordingSampleProvenance } from '../replayRecording';
 
 const WORKSPACE_RECORDING_CONTEXT_WINDOW_MS = 5 * 60 * 1000;

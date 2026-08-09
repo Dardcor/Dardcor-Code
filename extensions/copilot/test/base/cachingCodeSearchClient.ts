@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 import type { CancellationToken } from 'vscode';
 import { ICodeOrDocsSearchBaseScopingQuery, ICodeOrDocsSearchItem, ICodeOrDocsSearchMultiRepoScopingQuery, ICodeOrDocsSearchOptions, ICodeOrDocsSearchResult, ICodeOrDocsSearchSingleRepoScopingQuery, IDocsSearchClient } from '../../src/platform/remoteSearch/common/codeOrDocsSearchClient';
-import { SyncDescriptor } from '../../src/util/vs/platform/instantiation/common/descriptors';
-import { IInstantiationService } from '../../src/util/vs/platform/instantiation/common/instantiation';
+import { SyncDescriptor } from '../../src/util/dardcor/platform/instantiation/common/descriptors';
+import { IInstantiationService } from '../../src/util/dardcor/platform/instantiation/common/instantiation';
 import { CODE_SEARCH_CACHE_SALT } from '../cacheSalt';
 import { SQLiteCache } from './cache';
 import { computeSHA256 } from './hash';

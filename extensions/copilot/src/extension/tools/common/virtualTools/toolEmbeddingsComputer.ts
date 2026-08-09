@@ -9,11 +9,11 @@ import { EmbeddingsGrouper, Node } from '../../../../platform/embeddings/common/
 import { ILogService } from '../../../../platform/log/common/logService';
 import { createServiceIdentifier } from '../../../../util/common/services';
 import { TelemetryCorrelationId } from '../../../../util/common/telemetryCorrelationId';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { Lazy } from '../../../../util/vs/base/common/lazy';
-import { StopWatch } from '../../../../util/vs/base/common/stopwatch';
-import { isDefined } from '../../../../util/vs/base/common/types';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { Lazy } from '../../../../util/dardcor/base/common/lazy';
+import { StopWatch } from '../../../../util/dardcor/base/common/stopwatch';
+import { isDefined } from '../../../../util/dardcor/base/common/types';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { PreComputedToolEmbeddingsCache } from './preComputedToolEmbeddingsCache';
 import { ToolEmbeddingLocalCache } from './toolEmbeddingsLocalCache';
 import { MIN_TOOLSET_SIZE_TO_GROUP } from './virtualToolsConstants';

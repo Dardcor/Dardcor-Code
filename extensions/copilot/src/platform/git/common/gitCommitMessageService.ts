@@ -5,7 +5,7 @@
 
 import type { CancellationToken, Uri } from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { Repository } from '../vscode/git';
+import { Repository } from '../dardcor/git';
 
 export const IGitCommitMessageService = createServiceIdentifier<IGitCommitMessageService>('IGitCommitMessageService');
 

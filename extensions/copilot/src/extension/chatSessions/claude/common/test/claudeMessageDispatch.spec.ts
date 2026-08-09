@@ -12,8 +12,8 @@ import { IOTelService, type ISpanHandle } from '../../../../../platform/otel/com
 import { IRequestLogger } from '../../../../../platform/requestLogger/common/requestLogger';
 import { TestLogService } from '../../../../../platform/testing/common/testLogService';
 import { ITelemetryService, type TelemetryEventMeasurements, type TelemetryEventProperties } from '../../../../../platform/telemetry/common/telemetry';
-import type { ServicesAccessor } from '../../../../../util/vs/platform/instantiation/common/instantiation';
-import { URI } from '../../../../../util/vs/base/common/uri';
+import type { ServicesAccessor } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
 import { IToolsService } from '../../../../tools/common/toolsService';
 import { ChatFetchResponseType, type ChatFetchError } from '../../../../../platform/chat/common/commonTypes';
 import {

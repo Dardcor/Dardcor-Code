@@ -6,8 +6,8 @@
 import * as vscode from 'vscode';
 import { DevContainerConfigGeneratorArguments, DevContainerConfigGeneratorResult, IDevContainerConfigurationService } from '../../../platform/devcontainer/common/devContainerConfigurationService';
 import { ISearchService } from '../../../platform/search/common/searchService';
-import * as path from '../../../util/vs/base/common/path';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import * as path from '../../../util/dardcor/base/common/path';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { DevContainerConfigGenerator } from '../node/devContainerConfigGenerator';
 
 export class DevContainerConfigurationServiceImpl implements IDevContainerConfigurationService {

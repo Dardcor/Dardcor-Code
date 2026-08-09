@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { suite, test } from 'vitest';
-import { isWindows } from '../../../../util/vs/base/common/platform';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { isWindows } from '../../../../util/dardcor/base/common/platform';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { PromptReference } from '../../../prompt/common/conversation';
 import { LinkifyLocationAnchor } from '../../common/linkifiedText';
 import { assertPartsEqual, createTestLinkifierService, linkify, workspaceFile } from './util';

@@ -9,8 +9,8 @@ import { TextDocumentSnapshot } from '../../../../platform/editing/common/textDo
 import { IIgnoreService } from '../../../../platform/ignore/common/ignoreService';
 import { ILogService } from '../../../../platform/log/common/logService';
 import { ITabsAndEditorsService } from '../../../../platform/tabs/common/tabsAndEditorsService';
-import * as path from '../../../../util/vs/base/common/path';
-import { Location } from '../../../../vscodeTypes';
+import * as path from '../../../../util/dardcor/base/common/path';
+import { Location } from '../../../../dardcorTypes';
 import { PromptReference } from '../../../prompt/common/conversation';
 import { CurrentEditor } from './currentEditor';
 import { CodeBlock } from './safeElements';

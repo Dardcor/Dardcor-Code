@@ -7,9 +7,9 @@ import { CancellationToken as ICancellationToken } from 'vscode-languageserver-p
 import { NoNextEditReason, StatelessNextEditTelemetryBuilder } from '../../../../../../platform/inlineEdits/common/statelessNextEditProvider';
 import { ErrorUtils } from '../../../../../../util/common/errors';
 import { Result } from '../../../../../../util/common/result';
-import { assertNever } from '../../../../../../util/vs/base/common/assert';
-import { StringText } from '../../../../../../util/vs/editor/common/core/text/abstractText';
-import { IInstantiationService, ServicesAccessor } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { assertNever } from '../../../../../../util/dardcor/base/common/assert';
+import { StringText } from '../../../../../../util/dardcor/editor/common/core/text/abstractText';
+import { IInstantiationService, ServicesAccessor } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { LlmNESTelemetryBuilder } from '../../../../../inlineEdits/node/nextEditProviderTelemetry';
 import { BlockMode, shouldDoServerTrimming } from '../config';
 import { ICompletionsUserErrorNotifierService } from '../error/userErrorNotifier';

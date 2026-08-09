@@ -5,7 +5,7 @@
 
 import Parser = require('web-tree-sitter');
 import { DisposablesLRUCache } from '../../../util/common/cache';
-import { IDisposable } from '../../../util/vs/base/common/lifecycle';
+import { IDisposable } from '../../../util/dardcor/base/common/lifecycle';
 import { LanguageLoader } from './languageLoader';
 import { WASMLanguage } from './treeSitterLanguages';
 

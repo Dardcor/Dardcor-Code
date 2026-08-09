@@ -9,11 +9,11 @@ import { TreeSitterExpressionInfo } from '../../../platform/parser/node/nodes';
 import { IParserService } from '../../../platform/parser/node/parserService';
 import { getWasmLanguage } from '../../../platform/parser/node/treeSitterLanguages';
 import { getLanguageForResource } from '../../../util/common/languages';
-import { Limiter } from '../../../util/vs/base/common/async';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { escapeRegExpCharacters } from '../../../util/vs/base/common/strings';
-import { isUriComponents, URI } from '../../../util/vs/base/common/uri';
-import { IInstantiationService, ServicesAccessor } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { Limiter } from '../../../util/dardcor/base/common/async';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { escapeRegExpCharacters } from '../../../util/dardcor/base/common/strings';
+import { isUriComponents, URI } from '../../../util/dardcor/base/common/uri';
+import { IInstantiationService, ServicesAccessor } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { PromptReference } from '../../prompt/common/conversation';
 import { extractSymbolNamesInCode } from './findSymbol';
 

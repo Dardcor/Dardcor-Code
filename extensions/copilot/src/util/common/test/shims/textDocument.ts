@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type * as vscode from 'vscode';
-import { splitLines } from '../../../vs/base/common/strings';
-import { URI as Uri, UriComponents } from '../../../vs/base/common/uri';
-import { IModelChangedEvent } from '../../../vs/editor/common/model/mirrorTextModel';
-import { ExtHostDocumentData, IExtHostDocumentSaveDelegate } from '../../../vs/workbench/api/common/extHostDocumentData';
-import { EndOfLine } from '../../../vs/workbench/api/common/extHostTypes/textEdit';
+import { splitLines } from '../../../dardcor/base/common/strings';
+import { URI as Uri, UriComponents } from '../../../dardcor/base/common/uri';
+import { IModelChangedEvent } from '../../../dardcor/editor/common/model/mirrorTextModel';
+import { ExtHostDocumentData, IExtHostDocumentSaveDelegate } from '../../../dardcor/workbench/api/common/extHostDocumentData';
+import { EndOfLine } from '../../../dardcor/workbench/api/common/extHostTypes/textEdit';
 
 export interface IExtHostDocumentData {
 	readonly document: vscode.TextDocument;

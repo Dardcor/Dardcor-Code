@@ -6,7 +6,7 @@
 import { expect, suite, test } from 'vitest';
 import { NullEnvService } from '../../../../platform/env/common/nullEnvService';
 import { IFileSystemService } from '../../../../platform/filesystem/common/fileSystemService';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
 import { LinkifyLocationAnchor } from '../../common/linkifiedText';
 import { LinkifyService } from '../../common/linkifyService';
 import { assertPartsEqual, createMockFsService, createMockWorkspaceService, workspaceFile } from './util';

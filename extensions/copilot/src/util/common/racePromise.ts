@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { raceCancellation, raceTimeout } from '../vs/base/common/async';
-import { CancellationToken, CancellationTokenSource } from '../vs/base/common/cancellation';
-import { CancellationError } from '../vs/base/common/errors';
+import { raceCancellation, raceTimeout } from '../dardcor/base/common/async';
+import { CancellationToken, CancellationTokenSource } from '../dardcor/base/common/cancellation';
+import { CancellationError } from '../dardcor/base/common/errors';
 
 // sentinel value to indicate cancellation
 const CANCELLED = Symbol('cancelled');

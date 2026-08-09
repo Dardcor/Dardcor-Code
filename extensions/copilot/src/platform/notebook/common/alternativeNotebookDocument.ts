@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { NotebookCell, NotebookDocument, TextLine } from 'vscode';
-import { DEFAULT_WORD_REGEXP, getWordAtText } from '../../../util/vs/editor/common/core/wordHelper';
-import { Position, Range } from '../../../vscodeTypes';
+import { DEFAULT_WORD_REGEXP, getWordAtText } from '../../../util/dardcor/editor/common/core/wordHelper';
+import { Position, Range } from '../../../dardcorTypes';
 import { PositionOffsetTransformer } from '../../editing/common/positionOffsetTransformer';
 import { SnapshotDocumentLine } from '../../editing/common/textDocumentSnapshot';
 

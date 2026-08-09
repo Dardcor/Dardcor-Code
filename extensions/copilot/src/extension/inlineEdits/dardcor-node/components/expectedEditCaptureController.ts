@@ -11,7 +11,7 @@ import { DebugRecorderBookmark } from '../../../../platform/inlineEdits/common/d
 import { ILogger, ILogService } from '../../../../platform/log/common/logService';
 import { IFetcherService } from '../../../../platform/networking/common/fetcherService';
 import { deserializeEdit, ISerializedEdit, LogEntry, serializeEdit } from '../../../../platform/workspaceRecorder/common/workspaceLog';
-import { Disposable } from '../../../../util/vs/base/common/lifecycle';
+import { Disposable } from '../../../../util/dardcor/base/common/lifecycle';
 import { DebugRecorder } from '../../node/debugRecorder';
 import { filterLogForSensitiveFiles } from './inlineEditDebugComponent';
 import { NesFeedbackSubmitter } from './nesFeedbackSubmitter';

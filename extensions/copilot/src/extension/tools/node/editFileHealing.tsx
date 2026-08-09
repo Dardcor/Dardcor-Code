@@ -25,8 +25,8 @@ import { ObjectJsonSchema } from '../../../platform/configuration/common/jsonSch
 import { isGeminiFamily, isHiddenModelF } from '../../../platform/endpoint/common/chatModelCapabilities.js';
 import { IChatEndpoint } from '../../../platform/networking/common/networking.js';
 import { extractCodeBlocks } from '../../../util/common/markdown.js';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation.js';
-import { count } from '../../../util/vs/base/common/strings.js';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation.js';
+import { count } from '../../../util/dardcor/base/common/strings.js';
 import { findAndReplaceOne } from './editFileToolUtils.js';
 import { IReplaceStringToolParams } from './replaceStringTool.js';
 

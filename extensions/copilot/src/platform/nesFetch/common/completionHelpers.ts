@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { AsyncIterableEmitter, AsyncIterableObject } from '../../../util/vs/base/common/async';
-import { assertType } from '../../../util/vs/base/common/types';
+import { AsyncIterableEmitter, AsyncIterableObject } from '../../../util/dardcor/base/common/async';
+import { assertType } from '../../../util/dardcor/base/common/types';
 import { Completion } from './completionsAPI';
 
 

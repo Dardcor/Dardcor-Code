@@ -5,11 +5,11 @@
 
 import type { Uri } from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { getDriveLetter, hasDriveLetter } from '../../../util/vs/base/common/extpath';
-import { Schemas } from '../../../util/vs/base/common/network';
-import { isWindows } from '../../../util/vs/base/common/platform';
-import { isDefined } from '../../../util/vs/base/common/types';
-import { URI } from '../../../util/vs/base/common/uri';
+import { getDriveLetter, hasDriveLetter } from '../../../util/dardcor/base/common/extpath';
+import { Schemas } from '../../../util/dardcor/base/common/network';
+import { isWindows } from '../../../util/dardcor/base/common/platform';
+import { isDefined } from '../../../util/dardcor/base/common/types';
+import { URI } from '../../../util/dardcor/base/common/uri';
 import { IWorkspaceService } from '../../workspace/common/workspaceService';
 
 export const IPromptPathRepresentationService = createServiceIdentifier<IPromptPathRepresentationService>('IPromptPathRepresentationService');

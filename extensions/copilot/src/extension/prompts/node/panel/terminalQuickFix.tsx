@@ -7,8 +7,8 @@
 import { BasePromptElementProps, PromptElement, PromptPiece, SystemMessage, UserMessage, type PromptElementProps } from '@vscode/prompt-tsx';
 import { IEnvService } from '../../../../platform/env/common/envService';
 import { ITerminalService } from '../../../../platform/terminal/common/terminalService';
-import { basename, join } from '../../../../util/vs/base/common/path';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { basename, join } from '../../../../util/dardcor/base/common/path';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { ResponseTranslationRules } from '../base/responseTranslationRules';
 import { SafetyRules } from '../base/safetyRules';
 import { FileVariable } from './fileVariable';

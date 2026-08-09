@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { WorkerWithRpcProxy } from '../../../util/node/worker';
-import { Lazy } from '../../../util/vs/base/common/lazy';
-import * as path from '../../../util/vs/base/common/path';
+import { Lazy } from '../../../util/dardcor/base/common/lazy';
+import * as path from '../../../util/dardcor/base/common/path';
 import { TreeSitterOffsetRange, TreeSitterPointRange } from './nodes';
 import * as parser from './parserImpl';
 import { IParserService, ParserWorkerTimeoutError, TreeSitterAST } from './parserService';

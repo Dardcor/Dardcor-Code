@@ -7,8 +7,8 @@ import { Embedding, EmbeddingType } from '../../../../platform/embeddings/common
 import { EmbeddingCacheType, IEmbeddingsCache, RemoteCacheType, RemoteEmbeddingsCache } from '../../../../platform/embeddings/common/embeddingsIndex';
 import { IEnvService } from '../../../../platform/env/common/envService';
 import { ILogService } from '../../../../platform/log/common/logService';
-import { sanitizeVSCodeVersion } from '../../../../util/common/vscodeVersion';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { sanitizeVSCodeVersion } from '../../../../util/common/dardcorVersion';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { IToolEmbeddingsCache } from './toolEmbeddingsComputer';
 
 export const EMBEDDING_TYPE_FOR_TOOL_GROUPING = EmbeddingType.text3small_512;

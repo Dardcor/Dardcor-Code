@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { safeStringify } from '../vs/base/common/objects';
+import { safeStringify } from '../dardcor/base/common/objects';
 
 export namespace ErrorUtils {
 

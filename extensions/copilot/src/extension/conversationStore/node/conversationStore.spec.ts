@@ -5,7 +5,7 @@
 
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { IChatSessionService } from '../../../platform/chat/common/chatSessionService';
-import { Emitter } from '../../../util/vs/base/common/event';
+import { Emitter } from '../../../util/dardcor/base/common/event';
 import { Conversation, Turn } from '../../prompt/common/conversation';
 import { ConversationStore } from './conversationStore';
 

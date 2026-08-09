@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { FileSystem, NotebookData, NotebookDocument, NotebookDocumentChangeEvent, ResourceTrustRequestOptions, TextDocument, TextDocumentChangeEvent, TextEditorSelectionChangeEvent, Uri, WorkspaceEdit, WorkspaceFolder, WorkspaceFoldersChangeEvent, WorkspaceTrustRequestOptions } from 'vscode';
-import { Event } from '../../../../util/vs/base/common/event';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { Event } from '../../../../util/dardcor/base/common/event';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { NotebookDocumentSnapshot } from '../../../editing/common/notebookDocumentSnapshot';
 import { TextDocumentSnapshot } from '../../../editing/common/textDocumentSnapshot';
 import { IWorkspaceService } from '../../../workspace/common/workspaceService';

@@ -10,11 +10,11 @@ import { LanguageContextResponse } from '../../../../platform/inlineEdits/common
 import { DEFAULT_OPTIONS, IncludeLineNumbersOption, PromptOptions, RecentFileClippingStrategy } from '../../../../platform/inlineEdits/common/dataTypes/xtabPromptOptions';
 import { IXtabHistoryEditEntry, IXtabHistoryVisibleRangesEntry } from '../../../../platform/inlineEdits/common/workspaceEditTracker/nesXtabHistoryTracker';
 import { ContextKind } from '../../../../platform/languageServer/common/languageContextService';
-import { splitLines } from '../../../../util/vs/base/common/strings';
-import { StringEdit } from '../../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
-import { StringText } from '../../../../util/vs/editor/common/core/text/abstractText';
-import { Uri } from '../../../../vscodeTypes';
+import { splitLines } from '../../../../util/dardcor/base/common/strings';
+import { StringEdit } from '../../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { StringText } from '../../../../util/dardcor/editor/common/core/text/abstractText';
+import { Uri } from '../../../../dardcorTypes';
 import { LineRange0Based } from '../../common/lineRange';
 import { appendLanguageContextSnippets, appendNeighborFileSnippets, buildCodeSnippetsUsingPagedClipping, computeFocalPageCost, historyEntriesToCodeSnippet, selectFocalRangesWithinSpanCap } from '../../common/recentFilesForPrompt';
 import { INeighborFileSnippet } from '../../common/similarFilesContextService';

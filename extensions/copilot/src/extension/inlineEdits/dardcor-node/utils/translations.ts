@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { Range } from '../../../../util/vs/editor/common/core/range';
-import { Position } from '../../../../util/vs/editor/common/core/position';
-import { TextReplacement } from '../../../../util/vs/editor/common/core/edits/textEdit';
+import { Range } from '../../../../util/dardcor/editor/common/core/range';
+import { Position } from '../../../../util/dardcor/editor/common/core/position';
+import { TextReplacement } from '../../../../util/dardcor/editor/common/core/edits/textEdit';
 
 export function toInternalRange(range: vscode.Range): Range {
 	return new Range(range.start.line + 1, range.start.character + 1, range.end.line + 1, range.end.character + 1);

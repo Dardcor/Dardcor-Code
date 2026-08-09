@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { expect, suite, test } from 'vitest';
-import { Position, Range, TextEdit } from '../../../../vscodeTypes';
+import { Position, Range, TextEdit } from '../../../../dardcorTypes';
 import { OffsetBasedTextDocument } from '../../common/editCollector';
 
 suite('OffsetBasedTextDocument', function () {

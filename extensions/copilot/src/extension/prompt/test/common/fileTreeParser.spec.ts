@@ -5,8 +5,8 @@
 
 
 import { expect, suite, test } from 'vitest';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { ChatResponseFileTreePart } from '../../../../vscodeTypes';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { ChatResponseFileTreePart } from '../../../../dardcorTypes';
 import { convertFileTreeToChatResponseFileTree, isUnsafeNodeName } from '../../common/fileTreeParser';
 
 suite('convertFileTreeToChatResponseFileTree', () => {

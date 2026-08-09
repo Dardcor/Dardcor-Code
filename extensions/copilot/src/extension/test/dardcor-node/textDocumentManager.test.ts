@@ -6,9 +6,9 @@
 import assert from 'assert';
 import * as sinon from 'sinon';
 import { workspace } from 'vscode';
-import { ExtensionTextDocumentManager } from '../../../platform/workspace/vscode/workspaceServiceImpl';
-import { URI } from '../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { ExtensionTextDocumentManager } from '../../../platform/workspace/dardcor/workspaceServiceImpl';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { createExtensionTestingServices } from './services';
 
 suite('extension text document manager', () => {

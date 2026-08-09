@@ -8,10 +8,10 @@ import { IFileSystemService } from '../../../platform/filesystem/common/fileSyst
 import { IParserService } from '../../../platform/parser/node/parserService';
 import { IWorkspaceService } from '../../../platform/workspace/common/workspaceService';
 import { collapseRangeToStart } from '../../../util/common/range';
-import { Limiter } from '../../../util/vs/base/common/async';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { isEqualOrParent } from '../../../util/vs/base/common/resources';
-import { SymbolInformation, Uri } from '../../../vscodeTypes';
+import { Limiter } from '../../../util/dardcor/base/common/async';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { isEqualOrParent } from '../../../util/dardcor/base/common/resources';
+import { SymbolInformation, Uri } from '../../../dardcorTypes';
 import { LinkifiedPart, LinkifiedText, LinkifySymbolAnchor } from '../common/linkifiedText';
 import { IContributedLinkifier, LinkifierContext } from '../common/linkifyService';
 import { findBestSymbolByPath } from './findSymbol';

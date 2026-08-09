@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type * as vscode from 'vscode';
-import { ChatResponseAnchorPart, ChatResponseCommandButtonPart, ChatResponseConfirmationPart, ChatResponseExternalEditPart, ChatResponseFileTreePart, ChatResponseMarkdownPart } from '../../../vscodeTypes';
-import { coalesce } from '../../vs/base/common/arrays';
+import { ChatResponseAnchorPart, ChatResponseCommandButtonPart, ChatResponseConfirmationPart, ChatResponseExternalEditPart, ChatResponseFileTreePart, ChatResponseMarkdownPart } from '../../../dardcorTypes';
+import { coalesce } from '../../dardcor/base/common/arrays';
 import { ChatResponseStreamImpl } from '../chatResponseStreamImpl';
 import { isLocation, isSymbolInformation, isUri } from '../types';
 

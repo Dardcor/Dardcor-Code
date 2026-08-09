@@ -5,8 +5,8 @@
 
 import assert from 'assert';
 import { suite, test } from 'vitest';
-import { Event } from '../../../../util/vs/base/common/event';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
+import { Event } from '../../../../util/dardcor/base/common/event';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { CopilotToken, createTestExtendedTokenInfo } from '../../../authentication/common/copilotToken';
 import { ICopilotTokenStore } from '../../../authentication/common/copilotTokenStore';
 import { getEditorVersionHeaders, IEnvService } from '../../../env/common/envService';

@@ -13,9 +13,9 @@ import { ISessionTranscriptService } from '../../../platform/chat/common/session
 import { ILogService } from '../../../platform/log/common/logService';
 import { CopilotChatAttr, GenAiAttr, GenAiOperationName, GitHubCopilotAttr, IOTelService, SpanKind, SpanStatusCode, truncateForOTel } from '../../../platform/otel/common/index';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
-import { raceTimeout } from '../../../util/vs/base/common/async';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { StopWatch } from '../../../util/vs/base/common/stopwatch';
+import { raceTimeout } from '../../../util/dardcor/base/common/async';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { StopWatch } from '../../../util/dardcor/base/common/stopwatch';
 import { formatHookErrorMessage, processHookResults } from '../../intents/node/hookResultProcessor';
 import { IToolsService, isToolValidationError } from '../../tools/common/toolsService';
 import { ChatHookTelemetry } from './chatHookTelemetry';

@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { NotebookDocument, TextLine, Uri } from 'vscode';
-import { isNumber, isString } from '../../../util/vs/base/common/types';
-import { isUriComponents, UriComponents } from '../../../util/vs/base/common/uri';
-import { Position, Range, Selection } from '../../../vscodeTypes';
+import { isNumber, isString } from '../../../util/dardcor/base/common/types';
+import { isUriComponents, UriComponents } from '../../../util/dardcor/base/common/uri';
+import { Position, Range, Selection } from '../../../dardcorTypes';
 import { getAlternativeNotebookDocumentProvider } from '../../notebook/common/alternativeContent';
 import { AlternativeNotebookDocument } from '../../notebook/common/alternativeNotebookDocument';
 import { getDefaultLanguage } from '../../notebook/common/helpers';

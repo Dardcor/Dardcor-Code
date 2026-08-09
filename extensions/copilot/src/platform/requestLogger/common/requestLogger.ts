@@ -10,9 +10,9 @@ import { ChatFetchError, ChatFetchResponseType, ChatLocation, ChatResponses, Fet
 import { IResponseDelta, OptionalChatRequestParams } from '../../../platform/networking/common/fetch';
 import { IChatEndpoint, IEndpointBody } from '../../../platform/networking/common/networking';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { ThemeIcon } from '../../../util/vs/base/common/themables';
-import { OffsetRange } from '../../../util/vs/editor/common/core/ranges/offsetRange';
-import type { LanguageModelToolResult2 } from '../../../vscodeTypes';
+import { ThemeIcon } from '../../../util/dardcor/base/common/themables';
+import { OffsetRange } from '../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import type { LanguageModelToolResult2 } from '../../../dardcorTypes';
 import type { IModelAPIResponse } from '../../endpoint/common/endpointProvider';
 import { APIUsage } from '../../networking/common/openai';
 import { ThinkingData } from '../../thinking/common/thinking';

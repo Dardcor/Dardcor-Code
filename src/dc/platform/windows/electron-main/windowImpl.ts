@@ -4,6 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import electron, { BrowserWindowConstructorOptions, Display, screen } from 'electron';
+import fs from 'fs';
+import { join } from '../../../base/common/path.js';
 import { DeferredPromise, RunOnceScheduler, timeout, Delayer } from '../../../base/common/async.js';
 import { CancellationToken } from '../../../base/common/cancellation.js';
 import { toErrorMessage } from '../../../base/common/errorMessage.js';
@@ -717,6 +719,12 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 			// Create the browser window
 			mark('code/willCreateCodeBrowserWindow');
 			this._win = new electron.BrowserWindow(options);
+			if (isWindows) {
+				const customIconPath = join(this.environmentMainService.appRoot, 'public/dardcor-code.ico');
+				if (fs.existsSync(customIconPath)) {
+					this._win.setIcon(electron.nativeImage.createFromPath(customIconPath));
+				}
+			}
 			mark('code/didCreateCodeBrowserWindow');
 
 			this._id = this._win.id;
@@ -1211,9 +1219,9 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 		if (process.env.VSCODE_DEV && process.env.VSCODE_DEV_SERVER_URL) {
 			windowUrl = process.env.VSCODE_DEV_SERVER_URL; // support URL override for development
 		} else if (configuration.isSessionsWindow) {
-			windowUrl = FileAccess.asBrowserUri(`vs/sessions/electron-browser/sessions${this.environmentMainService.isBuilt ? '' : '-dev'}.html`).toString(true);
+			windowUrl = FileAccess.asBrowserUri(`dc/sessions/electron-browser/sessions${this.environmentMainService.isBuilt ? '' : '-dev'}.html`).toString(true);
 		} else {
-			windowUrl = FileAccess.asBrowserUri(`vs/code/electron-browser/workbench/workbench${this.environmentMainService.isBuilt ? '' : '-dev'}.html`).toString(true);
+			windowUrl = FileAccess.asBrowserUri(`dc/code/electron-browser/workbench/workbench${this.environmentMainService.isBuilt ? '' : '-dev'}.html`).toString(true);
 		}
 		this._win.loadURL(windowUrl);
 

@@ -7,9 +7,9 @@ import { isCodeBlockWithResource } from '../../src/extension/codeBlocks/node/cod
 import { ITabsAndEditorsService } from '../../src/platform/tabs/common/tabsAndEditorsService';
 import { TestingServiceCollection } from '../../src/platform/test/node/services';
 import { isLocation } from '../../src/util/common/types';
-import { URI } from '../../src/util/vs/base/common/uri';
-import { ServicesAccessor } from '../../src/util/vs/platform/instantiation/common/instantiation';
-import { ChatLocation, Location, Uri } from '../../src/vscodeTypes';
+import { URI } from '../../src/util/dardcor/base/common/uri';
+import { ServicesAccessor } from '../../src/util/dardcor/platform/instantiation/common/instantiation';
+import { ChatLocation, Location, Uri } from '../../src/dardcorTypes';
 import { EditingSimulationHost, EditingSimulationHostResponseProcessor, simulateEditingScenario } from './inlineChatSimulator';
 import { EditTestStrategy, IScenario, IScenarioQuery, OutcomeAnnotation } from './types';
 

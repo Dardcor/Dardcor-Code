@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import { Disposable, QuickPick, QuickPickItem, QuickPickItemKind, commands, l10n, window } from 'vscode';
-import { isWeb } from '../../../../../util/vs/base/common/platform';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { isWeb } from '../../../../../util/dardcor/base/common/platform';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ICompletionsModelManagerService } from '../../lib/src/openai/model';
 import { isCompletionEnabled, isInlineSuggestEnabled } from './config';
 import { CMDCollectDiagnosticsChat, CMDDisableCompletionsChat, CMDEnableCompletionsChat, CMDOpenDocumentationClient, CMDOpenLogsClient, CMDOpenModelPickerClient, CMDOpenPanelClient } from './constants';

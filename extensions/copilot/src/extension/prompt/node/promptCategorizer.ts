@@ -15,9 +15,9 @@ import { ITabsAndEditorsService } from '../../../platform/tabs/common/tabsAndEdi
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { CancellationTokenSource } from '../../../util/vs/base/common/cancellation';
-import { isCancellationError } from '../../../util/vs/base/common/errors';
-import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationTokenSource } from '../../../util/dardcor/base/common/cancellation';
+import { isCancellationError } from '../../../util/dardcor/base/common/errors';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { renderPromptElement } from '../../prompts/node/base/promptRenderer';
 import { PromptCategorizationPrompt } from '../../prompts/node/panel/promptCategorization';
 import { CATEGORIZE_PROMPT_TOOL_NAME, CATEGORIZE_PROMPT_TOOL_SCHEMA, isValidDomain, isValidIntent, isValidScope, PromptClassification } from '../common/promptCategorizationTaxonomy';

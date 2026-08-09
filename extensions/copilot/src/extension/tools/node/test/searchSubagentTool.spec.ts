@@ -8,8 +8,8 @@ import { expect, suite, test } from 'vitest';
 import { ChatFetchResponseType } from '../../../../platform/chat/common/commonTypes';
 import { ConfigKey } from '../../../../platform/configuration/common/configurationService';
 import { ChatResponseStreamImpl } from '../../../../util/common/chatResponseStreamImpl';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { ChatSubagentToolInvocationData, ChatToolInvocationPart, LanguageModelTextPart } from '../../../../vscodeTypes';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { ChatSubagentToolInvocationData, ChatToolInvocationPart, LanguageModelTextPart } from '../../../../dardcorTypes';
 import { toolCategories, ToolCategory, ToolName } from '../../common/toolNames';
 import { ToolRegistry } from '../../common/toolsRegistry';
 

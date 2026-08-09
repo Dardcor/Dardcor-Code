@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { expect, it, suite } from 'vitest';
-import { AsyncIterableSource, timeout } from '../../../util/vs/base/common/async';
+import { AsyncIterableSource, timeout } from '../../../util/dardcor/base/common/async';
 import { forEachStreamed, replaceStringInStream } from '../../prompts/node/inline/utils/streaming';
 
 suite('Streaming', () => {

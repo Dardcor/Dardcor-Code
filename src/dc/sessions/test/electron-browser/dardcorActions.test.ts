@@ -8,7 +8,7 @@ import { mock } from '../../../base/test/common/mock.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../base/test/common/utils.js';
 import { INativeHostService } from '../../../platform/native/common/native.js';
 import { IOpenedMainWindow } from '../../../platform/window/common/window.js';
-import { returnToVSCodeEditor, shouldShowReturnToVSCodeEditor } from '../../electron-browser/actions/vscodeActions.js';
+import { returnToVSCodeEditor, shouldShowReturnToVSCodeEditor } from '../../electron-browser/actions/dardcorActions.js';
 
 suite('VS Code Actions', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();

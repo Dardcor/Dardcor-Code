@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IChatSessionService } from '../common/chatSessionService';
-import { Event } from '../../../util/vs/base/common/event';
+import { Event } from '../../../util/dardcor/base/common/event';
 import * as vscode from 'vscode';
 
 export class ChatSessionService implements IChatSessionService {

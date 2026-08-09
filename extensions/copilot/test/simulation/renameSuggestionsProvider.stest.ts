@@ -10,9 +10,9 @@ import { RenameSuggestionsProvider } from '../../src/extension/renameSuggestions
 import { TestingServiceCollection } from '../../src/platform/test/node/services';
 import { IRelativeFile } from '../../src/platform/test/node/simulationWorkspace';
 import { deannotateSrc } from '../../src/util/common/test/annotatedSrc';
-import { CancellationToken } from '../../src/util/vs/base/common/cancellation';
-import { IInstantiationService } from '../../src/util/vs/platform/instantiation/common/instantiation';
-import { NewSymbolNameTriggerKind, Range } from '../../src/vscodeTypes';
+import { CancellationToken } from '../../src/util/dardcor/base/common/cancellation';
+import { IInstantiationService } from '../../src/util/dardcor/platform/instantiation/common/instantiation';
+import { NewSymbolNameTriggerKind, Range } from '../../src/dardcorTypes';
 import { ISimulationTestRuntime, ssuite, stest } from '../base/stest';
 import { setupSimulationWorkspace, teardownSimulationWorkspace } from './inlineChatSimulator';
 import { INLINE_INITIAL_DOC_TAG } from './shared/sharedTypes';

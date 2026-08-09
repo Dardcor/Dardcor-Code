@@ -10,11 +10,11 @@ import { IFileSystemService } from '../../../../platform/filesystem/common/fileS
 import { FileType } from '../../../../platform/filesystem/common/fileTypes';
 import { IParserService } from '../../../../platform/parser/node/parserService';
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { LinkifySymbolAnchor } from '../../common/linkifiedText';
 import { ILinkifyService, LinkifyService } from '../../common/linkifyService';
-import { SymbolLinkifier } from '../../vscode-node/symbolLinkifier';
+import { SymbolLinkifier } from '../../dardcor-node/symbolLinkifier';
 import { assertPartsEqual, createMockFsService, createMockWorkspaceService, linkify, workspaceFile } from '../node/util';
 import { asParserService, createTestFile, symbol, TestParserService } from './util';
 

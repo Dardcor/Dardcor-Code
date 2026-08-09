@@ -15,11 +15,11 @@ import { IRequestLogger } from '../../../../platform/requestLogger/common/reques
 import { ITokenizerProvider } from '../../../../platform/tokenizer/node/tokenizer';
 import { createServiceIdentifier } from '../../../../util/common/services';
 import { isLocation } from '../../../../util/common/types';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { URI } from '../../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../../util/vs/platform/instantiation/common/instantiation';
-import { ServiceCollection } from '../../../../util/vs/platform/instantiation/common/serviceCollection';
-import { ChatResponseReferencePart, Location, Uri } from '../../../../vscodeTypes';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { URI } from '../../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { ServiceCollection } from '../../../../util/dardcor/platform/instantiation/common/serviceCollection';
+import { ChatResponseReferencePart, Location, Uri } from '../../../../dardcorTypes';
 import { RendererVisualizations } from '../../../inlineChat/node/rendererVisualization';
 import { getUniqueReferences, PromptReference } from '../../../prompt/common/conversation';
 import { IBuildPromptContext } from '../../../prompt/common/intents';

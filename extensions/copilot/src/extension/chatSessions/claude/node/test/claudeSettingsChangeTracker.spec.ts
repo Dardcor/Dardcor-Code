@@ -9,8 +9,8 @@ import { FileType } from '../../../../../platform/filesystem/common/fileTypes';
 import { MockFileSystemService } from '../../../../../platform/filesystem/node/test/mockFileSystemService';
 import { TestingServiceCollection } from '../../../../../platform/test/node/services';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../util/common/test/testUtils';
-import { URI } from '../../../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { createExtensionUnitTestingServices } from '../../../../test/node/services';
 import { ClaudeSettingsChangeTracker } from '../claudeSettingsChangeTracker';
 

@@ -5,12 +5,12 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { IGitService } from '../../../../../platform/git/common/gitService';
-import { RepositoryAccessDetails } from '../../../../../platform/git/vscode/git';
+import { RepositoryAccessDetails } from '../../../../../platform/git/dardcor/git';
 import { TestWorkspaceService } from '../../../../../platform/test/node/testWorkspaceService';
 import { mock } from '../../../../../util/common/test/simpleMock';
-import { CancellationToken } from '../../../../../util/vs/base/common/cancellation';
-import { Event } from '../../../../../util/vs/base/common/event';
-import { URI } from '../../../../../util/vs/base/common/uri';
+import { CancellationToken } from '../../../../../util/dardcor/base/common/cancellation';
+import { Event } from '../../../../../util/dardcor/base/common/event';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
 import { IClaudeCodeSessionInfo } from '../sessionParser/claudeSessionSchema';
 import { IClaudeCodeSessionService } from '../sessionParser/claudeCodeSessionService';
 import { ClaudeCodeFolderMruService } from '../claudeCodeFolderMru';

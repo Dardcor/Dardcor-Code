@@ -7,8 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 import { Embedding, EmbeddingType, IEmbeddingsComputer } from '../../../../../platform/embeddings/common/embeddingsComputer';
 import { ILogService } from '../../../../../platform/log/common/logService';
 import { ITestingServicesAccessor } from '../../../../../platform/test/node/services';
-import { CancellationToken } from '../../../../../util/vs/base/common/cancellation';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../../../../util/dardcor/base/common/cancellation';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { createExtensionUnitTestingServices } from '../../../../test/node/services';
 import { IToolEmbeddingsCache, ToolEmbeddingsComputer } from '../../../common/virtualTools/toolEmbeddingsComputer';
 

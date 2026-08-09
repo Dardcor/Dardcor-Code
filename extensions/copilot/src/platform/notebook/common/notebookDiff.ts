@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { DetailedLineRangeMapping } from '../../../util/vs/editor/common/diff/rangeMapping';
+import { DetailedLineRangeMapping } from '../../../util/dardcor/editor/common/diff/rangeMapping';
 
 
 export type CellDiffInfo = {

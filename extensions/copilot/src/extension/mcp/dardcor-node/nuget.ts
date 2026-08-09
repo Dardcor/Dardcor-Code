@@ -9,9 +9,9 @@ import path from 'path';
 import { l10n } from 'vscode';
 import { ILogService } from '../../../platform/log/common/logService';
 import { IFetcherService } from '../../../platform/networking/common/fetcherService';
-import { IStringDictionary } from '../../../util/vs/base/common/collections';
-import { randomPath } from '../../../util/vs/base/common/extpath';
-import { isObject } from '../../../util/vs/base/common/types';
+import { IStringDictionary } from '../../../util/dardcor/base/common/collections';
+import { randomPath } from '../../../util/dardcor/base/common/extpath';
+import { isObject } from '../../../util/dardcor/base/common/types';
 import { ValidatePackageErrorType, ValidatePackageResult } from './commands';
 import { CommandExecutor, ICommandExecutor } from './util';
 

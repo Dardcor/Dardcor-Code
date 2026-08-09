@@ -10,9 +10,9 @@ import { IResponsePart } from '../../../platform/chat/common/chatMLFetcher';
 import { IResponseDelta } from '../../../platform/networking/common/fetch';
 import { FilterReason } from '../../../platform/networking/common/openai';
 import { isEncryptedThinkingDelta } from '../../../platform/thinking/common/thinking';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { URI } from '../../../util/vs/base/common/uri';
-import { ChatResponseClearToPreviousToolInvocationReason } from '../../../vscodeTypes';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { ChatResponseClearToPreviousToolInvocationReason } from '../../../dardcorTypes';
 import { getContributedToolName } from '../../tools/common/toolNames';
 import { IResponseProcessor, IResponseProcessorContext } from './intents';
 

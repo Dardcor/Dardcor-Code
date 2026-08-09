@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type * as vscode from 'vscode';
-import { Event } from '../../../util/vs/base/common/event';
+import { Event } from '../../../util/dardcor/base/common/event';
 import { IGitExtensionService } from './gitExtensionService';
 
 export class NullGitExtensionService implements IGitExtensionService {

@@ -5,9 +5,9 @@
 
 import * as l10n from '@vscode/l10n';
 import { Event, ExtensionTerminalOptions, Terminal, TerminalExecutedCommand, TerminalOptions, TerminalShellExecutionEndEvent, TerminalShellIntegrationChangeEvent, window, type TerminalDataWriteEvent } from 'vscode';
-import { coalesce } from '../../../util/vs/base/common/arrays';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import * as path from '../../../util/vs/base/common/path';
+import { coalesce } from '../../../util/dardcor/base/common/arrays';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import * as path from '../../../util/dardcor/base/common/path';
 import { IVSCodeExtensionContext } from '../../extContext/common/extensionContext';
 import { ITerminalService } from '../common/terminalService';
 import { getActiveTerminalBuffer, getActiveTerminalLastCommand, getActiveTerminalSelection, getActiveTerminalShellType, getBufferForTerminal, getLastCommandForTerminal, installTerminalBufferListeners } from './terminalBufferListener';

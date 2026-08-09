@@ -5,9 +5,9 @@
 
 import type { Uri } from 'vscode';
 import { afterEach, beforeEach, expect, suite, test } from 'vitest';
-import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
-import { ResourceMap } from '../../../../util/vs/base/common/map';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { CancellationToken } from '../../../../util/dardcor/base/common/cancellation';
+import { ResourceMap } from '../../../../util/dardcor/base/common/map';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { ConfigKey, IConfigurationService } from '../../../configuration/common/configurationService';
 import { DefaultsOnlyConfigurationService } from '../../../configuration/common/defaultsOnlyConfigurationService';
 import { InMemoryConfigurationService } from '../../../configuration/test/common/inMemoryConfigurationService';
@@ -18,7 +18,7 @@ import { createPlatformServices, ITestingServicesAccessor } from '../../../test/
 import { TestWorkspaceService } from '../../../test/node/testWorkspaceService';
 import { IWorkspaceService } from '../../../workspace/common/workspaceService';
 import { INativeEnvService } from '../../../env/common/envService';
-import { AgentInstructionsLocator } from '../../vscode-node/agentInstructionsLocator';
+import { AgentInstructionsLocator } from '../../dardcor-node/agentInstructionsLocator';
 import { mockFiles } from './mockFiles';
 import { PromptConfig } from '../../common/promptsService';
 

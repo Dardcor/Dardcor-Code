@@ -8,9 +8,9 @@ import { IPromptPathRepresentationService } from '../../../../../platform/prompt
 import { IWorkspaceService } from '../../../../../platform/workspace/common/workspaceService';
 import { WorkingDirectory } from '../../../../../platform/workspace/common/workingDirectory';
 import { createFencedCodeBlock } from '../../../../../util/common/markdown';
-import { CancellationToken } from '../../../../../util/vs/base/common/cancellation';
-import { URI } from '../../../../../util/vs/base/common/uri';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../../../../util/dardcor/base/common/cancellation';
+import { URI } from '../../../../../util/dardcor/base/common/uri';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ToolName } from '../../../../tools/common/toolNames';
 import { IFileTreeData, workspaceVisualFileTree } from './visualFileTree';
 

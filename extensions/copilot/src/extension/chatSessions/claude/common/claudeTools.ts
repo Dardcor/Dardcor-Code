@@ -20,7 +20,7 @@ import {
 	WebFetchInput,
 	WebSearchInput,
 } from '@anthropic-ai/claude-agent-sdk/sdk-tools';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 
 /**
  * Extended ExitPlanModeInput that includes the plan property sent by the actual tool.

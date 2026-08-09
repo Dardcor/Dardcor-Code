@@ -7,11 +7,11 @@ import type { RequestMetadata } from '@vscode/copilot-api';
 import { HTMLTracer, IChatEndpointInfo, RenderPromptResult } from '@vscode/prompt-tsx';
 import { AsyncLocalStorage } from 'async_hooks';
 import type { Event } from 'vscode';
-import type { LanguageModelToolResult2 } from '../../../vscodeTypes';
+import type { LanguageModelToolResult2 } from '../../../dardcorTypes';
 import type { IModelAPIResponse } from '../../endpoint/common/endpointProvider';
 import { CapturingToken } from '../common/capturingToken';
 import { ILoggedPendingRequest, IRequestLogger, LoggedInfo, LoggedRequest, PendingLoggedChatRequest } from '../common/requestLogger';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { IChatEndpoint } from '../../../platform/networking/common/networking';
 
 const requestLogStorage = new AsyncLocalStorage<CapturingToken>();

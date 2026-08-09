@@ -7,7 +7,7 @@ import { randomBytes } from 'crypto';
 import { createServer } from 'node:net';
 import { tmpdir } from 'os';
 import * as readline from 'readline';
-import * as path from '../../../../util/vs/base/common/path';
+import * as path from '../../../../util/dardcor/base/common/path';
 import { openVscodeUri } from './open';
 import { SimpleRPC } from './rpc';
 import { IStartOptions } from './shared';

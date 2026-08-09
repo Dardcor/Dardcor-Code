@@ -9,8 +9,8 @@
 // uses `await expect(...).rejects.toThrow()`.
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { CancellationTokenSource } from '../../../../util/vs/base/common/cancellation';
-import { DisposableStore } from '../../../../util/vs/base/common/lifecycle';
+import { CancellationTokenSource } from '../../../../util/dardcor/base/common/cancellation';
+import { DisposableStore } from '../../../../util/dardcor/base/common/lifecycle';
 import { IConfigurationService } from '../../../configuration/common/configurationService';
 import { ICAPIClientService } from '../../../endpoint/common/capiClient';
 import { NullTelemetryService } from '../../../telemetry/common/nullTelemetryService';

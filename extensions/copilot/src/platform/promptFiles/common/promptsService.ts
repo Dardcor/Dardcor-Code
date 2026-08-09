@@ -5,12 +5,12 @@
 
 import type { ChatCustomAgent, ChatHook, ChatInstruction, ChatPlugin, ChatSkill, ChatSlashCommand } from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
-import { Event } from '../../../util/vs/base/common/event';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { URI } from '../../../util/vs/base/common/uri';
-import { ParsedPromptFile } from '../../../util/vs/workbench/contrib/chat/common/promptSyntax/promptFileParser';
+import { Event } from '../../../util/dardcor/base/common/event';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { ParsedPromptFile } from '../../../util/dardcor/workbench/contrib/chat/common/promptSyntax/promptFileParser';
 
-export * from '../../../util/vs/workbench/contrib/chat/common/promptSyntax/promptFileParser';
+export * from '../../../util/dardcor/workbench/contrib/chat/common/promptSyntax/promptFileParser';
 
 export const IPromptsService = createServiceIdentifier<IPromptsService>('IPromptsService');
 

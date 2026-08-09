@@ -9,7 +9,7 @@ import { writeFileSync } from 'fs';
 import * as vscode from 'vscode';
 import { TestingServiceCollection } from '../../../src/platform/test/node/services';
 import { SimulationWorkspace } from '../../../src/platform/test/node/simulationWorkspace';
-import { isEqualOrParent } from '../../../src/util/vs/base/common/resources';
+import { isEqualOrParent } from '../../../src/util/dardcor/base/common/resources';
 import { addExtensionHostSimulationServices } from './simulationExtHostContext';
 
 export class SimulationWorkspaceExtHost extends SimulationWorkspace {

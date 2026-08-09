@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { describe, expect, it, vi } from 'vitest';
-import { DisposableStore } from '../../vs/base/common/lifecycle';
+import { DisposableStore } from '../../dardcor/base/common/lifecycle';
 import { throwIfDisposablesAreLeaked, throwIfDisposablesAreLeakedAsync } from './testUtils';
 
 describe('testUtils', () => {

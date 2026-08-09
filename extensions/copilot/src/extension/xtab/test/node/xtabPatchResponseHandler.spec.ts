@@ -8,12 +8,12 @@ import { DocumentId } from '../../../../platform/inlineEdits/common/dataTypes/do
 import { NoNextEditReason, StreamedEdit } from '../../../../platform/inlineEdits/common/statelessNextEditProvider';
 import { TestLogService } from '../../../../platform/testing/common/testLogService';
 import { AsyncIterUtils } from '../../../../util/common/asyncIterableUtils';
-import { AsyncIterableSource } from '../../../../util/vs/base/common/async';
-import { LineReplacement } from '../../../../util/vs/editor/common/core/edits/lineEdit';
-import { Position } from '../../../../util/vs/editor/common/core/position';
-import { LineRange } from '../../../../util/vs/editor/common/core/ranges/lineRange';
-import { StringText } from '../../../../util/vs/editor/common/core/text/abstractText';
-import { ensureDependenciesAreSet } from '../../../../util/vs/editor/common/core/text/positionToOffset';
+import { AsyncIterableSource } from '../../../../util/dardcor/base/common/async';
+import { LineReplacement } from '../../../../util/dardcor/editor/common/core/edits/lineEdit';
+import { Position } from '../../../../util/dardcor/editor/common/core/position';
+import { LineRange } from '../../../../util/dardcor/editor/common/core/ranges/lineRange';
+import { StringText } from '../../../../util/dardcor/editor/common/core/text/abstractText';
+import { ensureDependenciesAreSet } from '../../../../util/dardcor/editor/common/core/text/positionToOffset';
 import { FetchStreamError } from '../../common/fetchStreamError';
 import { CurrentDocument } from '../../common/xtabCurrentDocument';
 import { DuplicateAdditionRemoval, tryRemoveDuplicateAdditions, XtabPatchResponseHandler } from '../../node/xtabPatchResponseHandler';

@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { URI } from '../../../util/vs/base/common/uri';
-import { Range } from '../../../util/vs/editor/common/core/range';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { Range } from '../../../util/dardcor/editor/common/core/range';
 import { Embedding, EmbeddingDistance } from '../../embeddings/common/embeddingsComputer';
 
 export interface Chunk {

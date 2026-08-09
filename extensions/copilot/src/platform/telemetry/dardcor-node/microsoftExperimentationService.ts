@@ -6,8 +6,8 @@
 import path from 'path';
 import * as vscode from 'vscode';
 import { getExperimentationService, IExperimentationFilterProvider, TargetPopulation } from 'vscode-tas-client';
-import { platform, PlatformToString } from '../../../util/vs/base/common/platform';
-import { isObject } from '../../../util/vs/base/common/types';
+import { platform, PlatformToString } from '../../../util/dardcor/base/common/platform';
+import { isObject } from '../../../util/dardcor/base/common/types';
 import { ICopilotTokenStore } from '../../authentication/common/copilotTokenStore';
 import { IConfigurationService } from '../../configuration/common/configurationService';
 import { IEnvService } from '../../env/common/envService';
@@ -15,7 +15,7 @@ import { packageJson } from '../../env/common/packagejson';
 import { IVSCodeExtensionContext } from '../../extContext/common/extensionContext';
 import { ILogService } from '../../log/common/logService';
 import { IFetcherService } from '../../networking/common/fetcherService';
-import { FetcherService } from '../../networking/vscode-node/fetcherServiceImpl';
+import { FetcherService } from '../../networking/dardcor-node/fetcherServiceImpl';
 import { ITelemetryService } from '../common/telemetry';
 import { BaseExperimentationService, UserInfoStore } from '../node/baseExperimentationService';
 

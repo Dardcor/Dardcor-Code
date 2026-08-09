@@ -9,8 +9,8 @@ import { IObservableDocument, MutableObservableWorkspace } from '../../src/platf
 import { LogEntry } from '../../src/platform/workspaceRecorder/common/workspaceLog';
 import { ErrorUtils } from '../../src/util/common/errors';
 import { Result } from '../../src/util/common/result';
-import { coalesce } from '../../src/util/vs/base/common/arrays';
-import { StringText } from '../../src/util/vs/editor/common/core/text/abstractText';
+import { coalesce } from '../../src/util/dardcor/base/common/arrays';
+import { StringText } from '../../src/util/dardcor/editor/common/core/text/abstractText';
 import { Processor } from './alternativeAction/processor';
 import { IStringReplacement } from './alternativeAction/types';
 import { IInputRow } from './parseInput';

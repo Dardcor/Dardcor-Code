@@ -8,10 +8,10 @@ import { ConfigKey, IConfigurationService } from '../../../platform/configuratio
 import { TextDocumentSnapshot } from '../../../platform/editing/common/textDocumentSnapshot';
 import { ILogService } from '../../../platform/log/common/logService';
 import { IReviewService } from '../../../platform/review/common/reviewService';
-import { CancellationToken } from '../../../util/vs/base/common/cancellation';
-import { DisposableStore } from '../../../util/vs/base/common/lifecycle';
-import * as path from '../../../util/vs/base/common/path';
-import { IInstantiationService, ServicesAccessor } from '../../../util/vs/platform/instantiation/common/instantiation';
+import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
+import { DisposableStore } from '../../../util/dardcor/base/common/lifecycle';
+import * as path from '../../../util/dardcor/base/common/path';
+import { IInstantiationService, ServicesAccessor } from '../../../util/dardcor/platform/instantiation/common/instantiation';
 import { FeedbackGenerator } from '../../prompt/node/feedbackGenerator';
 import { CurrentChange } from '../../prompts/node/feedback/currentChange';
 

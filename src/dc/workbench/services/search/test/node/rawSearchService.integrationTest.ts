@@ -18,7 +18,7 @@ const TEST_FOLDER_QUERIES = [
 	{ folder: URI.file(path.normalize('/some/where')) }
 ];
 
-const TEST_FIXTURES = path.normalize(FileAccess.asFileUri('dc/workbench/services/search/test/node/fixtures').fsPath);
+const TEST_FIXTURES = path.normalize(FileAccess.asFileUri('vs/workbench/services/search/test/node/fixtures').fsPath);
 const MULTIROOT_QUERIES: IFolderQuery[] = [
 	{ folder: URI.file(path.join(TEST_FIXTURES, 'examples')) },
 	{ folder: URI.file(path.join(TEST_FIXTURES, 'more')) }

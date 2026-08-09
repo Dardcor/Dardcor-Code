@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 import * as assert from 'assert';
 import { TextEditor } from 'vscode';
-import { DisposableStore } from '../../../../../../../util/vs/base/common/lifecycle';
-import { IInstantiationService, ServicesAccessor } from '../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { DisposableStore } from '../../../../../../../util/dardcor/base/common/lifecycle';
+import { IInstantiationService, ServicesAccessor } from '../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { withInMemoryTelemetry } from '../../../../lib/src/test/telemetry';
 import { createExtensionTestingContext } from '../../test/context';
 import { CodeRefEngagementTracker } from '../codeReferenceEngagementTracker';

@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { Disposable } from '../../../util/vs/base/common/lifecycle';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { IDebuggableCommandIdentifier } from '../node/debuggableCommandIdentifier';
 import { COPILOT_DEBUG_COMMAND } from './copilotDebugCommandContribution';
 

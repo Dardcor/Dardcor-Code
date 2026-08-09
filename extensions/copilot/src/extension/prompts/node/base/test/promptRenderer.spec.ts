@@ -5,8 +5,8 @@
 
 import { describe, expect, test } from 'vitest';
 import { IEndpointProvider } from '../../../../../platform/endpoint/common/endpointProvider';
-import { Event } from '../../../../../util/vs/base/common/event';
-import { IInstantiationService } from '../../../../../util/vs/platform/instantiation/common/instantiation';
+import { Event } from '../../../../../util/dardcor/base/common/event';
+import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { createExtensionUnitTestingServices } from '../../../../test/node/services';
 import { CompositeElement } from '../common';
 import { renderPromptElementJSON } from '../promptRenderer';

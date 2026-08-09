@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { ILogService } from '../../platform/log/common/logService';
-import { Disposable, isDisposable } from '../../util/vs/base/common/lifecycle';
-import { StopWatch } from '../../util/vs/base/common/stopwatch';
-import { IInstantiationService, ServicesAccessor } from '../../util/vs/platform/instantiation/common/instantiation';
+import { Disposable, isDisposable } from '../../util/dardcor/base/common/lifecycle';
+import { StopWatch } from '../../util/dardcor/base/common/stopwatch';
+import { IInstantiationService, ServicesAccessor } from '../../util/dardcor/platform/instantiation/common/instantiation';
 
 export interface IExtensionContribution {
 

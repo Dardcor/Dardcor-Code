@@ -7,10 +7,10 @@ import { EXISTING_CODE_MARKER } from '../../src/extension/prompts/node/panel/cod
 import { IAIEvaluationService } from '../../src/extension/testing/node/aiEvaluationService';
 import { ITestingServicesAccessor } from '../../src/platform/test/node/services';
 import { IFile, SimulationWorkspace } from '../../src/platform/test/node/simulationWorkspace';
-import { CancellationToken } from '../../src/util/vs/base/common/cancellation';
-import { basename } from '../../src/util/vs/base/common/resources';
-import { splitLines } from '../../src/util/vs/base/common/strings';
-import { URI } from '../../src/util/vs/base/common/uri';
+import { CancellationToken } from '../../src/util/dardcor/base/common/cancellation';
+import { basename } from '../../src/util/dardcor/base/common/resources';
+import { splitLines } from '../../src/util/dardcor/base/common/strings';
+import { URI } from '../../src/util/dardcor/base/common/uri';
 import { getDiagnostics } from './diagnosticProviders';
 import { DiagnosticsProvider, ITestDiagnostic } from './diagnosticProviders/diagnosticsProvider';
 import { DiagnosticProviderId, IInlineEditOutcome, IOutcome, IWorkspaceEditOutcome, OutcomeAnnotation } from './types';

@@ -8,7 +8,7 @@ import type { Uri } from 'vscode';
 import { getTextPart } from '../../../../platform/chat/common/globalStringUtils';
 import { IChatEndpoint } from '../../../../platform/networking/common/networking';
 import { INotebookSection } from '../../../../util/common/notebooks';
-import { isNonEmptyArray } from '../../../../util/vs/base/common/arrays';
+import { isNonEmptyArray } from '../../../../util/dardcor/base/common/arrays';
 import { IBuildPromptContext } from '../../../prompt/common/intents';
 import { CopilotIdentityRules } from '../base/copilotIdentity';
 import { ResponseTranslationRules } from '../base/responseTranslationRules';

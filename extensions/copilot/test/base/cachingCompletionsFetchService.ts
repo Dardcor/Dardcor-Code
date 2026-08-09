@@ -15,10 +15,10 @@ import { IFetcherService } from '../../src/platform/networking/common/fetcherSer
 import { IRequestLogger } from '../../src/platform/requestLogger/common/requestLogger';
 import { LockMap } from '../../src/util/common/lock';
 import { Result } from '../../src/util/common/result';
-import { AsyncIterableObject, DeferredPromise, IThrottledWorkerOptions, ThrottledWorker } from '../../src/util/vs/base/common/async';
-import { CachedFunction } from '../../src/util/vs/base/common/cache';
-import { CancellationToken } from '../../src/util/vs/base/common/cancellation';
-import { assertType } from '../../src/util/vs/base/common/types';
+import { AsyncIterableObject, DeferredPromise, IThrottledWorkerOptions, ThrottledWorker } from '../../src/util/dardcor/base/common/async';
+import { CachedFunction } from '../../src/util/dardcor/base/common/cache';
+import { CancellationToken } from '../../src/util/dardcor/base/common/cancellation';
+import { assertType } from '../../src/util/dardcor/base/common/types';
 import { OPENAI_FETCHER_CACHE_SALT } from '../cacheSalt';
 import { IJSONOutputPrinter } from '../jsonOutputPrinter';
 import { InterceptedRequest, ISerialisedChatResponse, OutputType } from '../simulation/shared/sharedTypes';

@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import * as path from '../../../util/vs/base/common/path';
+import * as path from '../../../util/dardcor/base/common/path';
 import { WASMLanguage } from './treeSitterLanguages';
 import Parser = require('web-tree-sitter');
 

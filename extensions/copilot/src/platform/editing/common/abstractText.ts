@@ -3,11 +3,11 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Lazy } from '../../../util/vs/base/common/lazy';
-import { Position as CorePos } from '../../../util/vs/editor/common/core/position';
-import { OffsetRange } from '../../../util/vs/editor/common/core/ranges/offsetRange';
-import { PositionOffsetTransformer } from '../../../util/vs/editor/common/core/text/positionToOffset';
-import { Range, Position as VSCodePos } from '../../../vscodeTypes';
+import { Lazy } from '../../../util/dardcor/base/common/lazy';
+import { Position as CorePos } from '../../../util/dardcor/editor/common/core/position';
+import { OffsetRange } from '../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import { PositionOffsetTransformer } from '../../../util/dardcor/editor/common/core/text/positionToOffset';
+import { Range, Position as VSCodePos } from '../../../dardcorTypes';
 import { TextDocumentSnapshot } from './textDocumentSnapshot';
 
 /**

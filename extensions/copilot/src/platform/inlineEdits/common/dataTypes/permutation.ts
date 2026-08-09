@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { illegalArgument } from '../../../../util/vs/base/common/errors';
+import { illegalArgument } from '../../../../util/dardcor/base/common/errors';
 
 /**
  * Represents a re-arrangement of items in an array.

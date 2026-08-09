@@ -40,7 +40,7 @@ const knwonVariablesFileName = 'vscode-known-variables.json';
 suite('Color Registry', function () {
 
 	test(`update colors in ${knwonVariablesFileName}`, async function () {
-		const varFilePath = FileAccess.asFileUri(`dc/../../build/lib/stylelint/${knwonVariablesFileName}`).fsPath;
+		const varFilePath = FileAccess.asFileUri(`vs/../../build/lib/stylelint/${knwonVariablesFileName}`).fsPath;
 		const content = (await fs.promises.readFile(varFilePath)).toString();
 
 		const variablesInfo = JSON.parse(content);
@@ -196,7 +196,7 @@ function getDescription(color: ColorContribution) {
 }
 
 async function getColorsFromExtension(): Promise<{ [id: string]: string }> {
-	const extPath = FileAccess.asFileUri('dc/../../extensions').fsPath;
+	const extPath = FileAccess.asFileUri('vs/../../extensions').fsPath;
 	const extFolders = await pfs.Promises.readDirsInDir(extPath);
 	const result: { [id: string]: string } = Object.create(null);
 	for (const folder of extFolders) {

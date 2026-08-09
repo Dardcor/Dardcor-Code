@@ -5,7 +5,7 @@
 
 import { commands } from 'vscode';
 import { InProcHttpServer } from '../inProcHttpServer';
-import { DisposableStore } from '../../../../../util/vs/base/common/lifecycle';
+import { DisposableStore } from '../../../../../util/dardcor/base/common/lifecycle';
 
 export function registerCommandContext(httpServer: InProcHttpServer) {
 	setCliSessionContext(httpServer.getConnectedSessionIds().length > 0);

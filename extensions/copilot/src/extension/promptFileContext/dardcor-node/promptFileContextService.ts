@@ -12,8 +12,8 @@ import { ILanguageContextProviderService, ProviderTarget } from '../../../platfo
 import { ILogService } from '../../../platform/log/common/logService';
 import { PromptFileLangageId, PromptHeaderAttributes } from '../../../platform/promptFiles/common/promptsService';
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
-import { Disposable, DisposableStore, IDisposable } from '../../../util/vs/base/common/lifecycle';
-import { autorun, IObservable } from '../../../util/vs/base/common/observableInternal';
+import { Disposable, DisposableStore, IDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { autorun, IObservable } from '../../../util/dardcor/base/common/observableInternal';
 
 export const promptFileSelector = [PromptFileLangageId.prompt, PromptFileLangageId.instructions, PromptFileLangageId.agent];
 

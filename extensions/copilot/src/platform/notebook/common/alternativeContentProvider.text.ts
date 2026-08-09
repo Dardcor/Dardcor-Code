@@ -5,8 +5,8 @@
 import type { CancellationToken, NotebookCell, NotebookDocument, Position, Uri } from 'vscode';
 import { getLanguage } from '../../../util/common/languages';
 import { isUri } from '../../../util/common/types';
-import { findLast } from '../../../util/vs/base/common/arraysFind';
-import { EndOfLine, NotebookCellKind } from '../../../vscodeTypes';
+import { findLast } from '../../../util/dardcor/base/common/arraysFind';
+import { EndOfLine, NotebookCellKind } from '../../../dardcorTypes';
 import { BaseAlternativeNotebookContentProvider } from './alternativeContentProvider';
 import { AlternativeNotebookDocument } from './alternativeNotebookDocument';
 import { EOL, getCellIdMap, getDefaultLanguage, LineOfCellText, LineOfText, summarize, SummaryCell } from './helpers';

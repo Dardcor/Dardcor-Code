@@ -8,7 +8,7 @@ import type * as vscode from 'vscode';
 import { IEndpointProvider } from '../../../../platform/endpoint/common/endpointProvider';
 import { IChatEndpoint, IEmbeddingsEndpoint } from '../../../../platform/networking/common/networking';
 import { ITokenizer as IUtilTokenizer, TokenizerType } from '../../../../util/common/tokenizer';
-import { Event } from '../../../../util/vs/base/common/event';
+import { Event } from '../../../../util/dardcor/base/common/event';
 
 /**
  * Creates a mock tokenizer for testing

@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Disposable, Terminal, TerminalExecutedCommand, window } from 'vscode';
-import { basename } from '../../../util/vs/base/common/path';
-import { platform } from '../../../util/vs/base/common/process';
-import { removeAnsiEscapeCodes } from '../../../util/vs/base/common/strings';
+import { basename } from '../../../util/dardcor/base/common/path';
+import { platform } from '../../../util/dardcor/base/common/process';
+import { removeAnsiEscapeCodes } from '../../../util/dardcor/base/common/strings';
 
 const terminalBuffers: Map<Terminal, string[]> = new Map();
 const terminalCommands: Map<Terminal, TerminalExecutedCommand[]> = new Map();

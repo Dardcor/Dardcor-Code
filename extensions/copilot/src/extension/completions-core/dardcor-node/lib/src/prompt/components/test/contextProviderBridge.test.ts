@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as assert from 'assert';
-import { IInstantiationService, ServicesAccessor } from '../../../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { IInstantiationService, ServicesAccessor } from '../../../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { CodeSnippet, ContextProvider, ContextResolver, SupportedContextItem, Trait, type DiagnosticBag } from '../../../../../types/src';
 import { createCompletionState } from '../../../completionState';
 import { ICompletionsFeaturesService } from '../../../experiments/featuresService';

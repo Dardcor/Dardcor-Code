@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import { createServiceIdentifier } from '../../../../../../util/common/services';
-import { ServicesAccessor } from '../../../../../../util/vs/platform/instantiation/common/instantiation';
+import { ServicesAccessor } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { ICompletionsLogTargetService, Logger } from '../logger';
 import { postInsertionTasks, postRejectionTasks } from '../postInsertion';
 import { countLines, SuggestionStatus } from '../suggestions/partialSuggestions';

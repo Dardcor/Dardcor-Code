@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { Language, Query, QueryMatch, SyntaxNode } from 'web-tree-sitter';
-import { pushMany } from '../../../util/vs/base/common/arrays';
+import { pushMany } from '../../../util/dardcor/base/common/arrays';
 
 
 class LanguageQueryCache {

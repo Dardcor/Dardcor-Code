@@ -3,10 +3,10 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { CharCode } from '../../../util/vs/base/common/charCode';
-import { StringEdit, StringReplacement } from '../../../util/vs/editor/common/core/edits/stringEdit';
-import { OffsetRange } from '../../../util/vs/editor/common/core/ranges/offsetRange';
-import * as vscodeTypes from '../../../vscodeTypes';
+import { CharCode } from '../../../util/dardcor/base/common/charCode';
+import { StringEdit, StringReplacement } from '../../../util/dardcor/editor/common/core/edits/stringEdit';
+import { OffsetRange } from '../../../util/dardcor/editor/common/core/ranges/offsetRange';
+import * as vscodeTypes from '../../../dardcorTypes';
 import { IDiffService } from '../../diff/common/diffService';
 import { stringEditFromDiff } from '../../editing/common/edit';
 import { OffsetLineColumnConverter } from '../../editing/common/offsetLineColumnConverter';

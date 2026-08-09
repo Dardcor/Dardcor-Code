@@ -9,12 +9,12 @@ import { packEmbedding, unpackEmbedding } from '../../../../platform/embeddings/
 import { IVSCodeExtensionContext } from '../../../../platform/extContext/common/extensionContext';
 import { IFileSystemService } from '../../../../platform/filesystem/common/fileSystemService';
 import { readVariableLengthQuantity, writeVariableLengthQuantity } from '../../../../util/common/variableLengthQuantity';
-import { RunOnceScheduler } from '../../../../util/vs/base/common/async';
-import { VSBuffer, decodeHex, encodeHex } from '../../../../util/vs/base/common/buffer';
-import { StringSHA1 } from '../../../../util/vs/base/common/hash';
-import { Disposable } from '../../../../util/vs/base/common/lifecycle';
-import { LRUCache } from '../../../../util/vs/base/common/map';
-import { URI } from '../../../../util/vs/base/common/uri';
+import { RunOnceScheduler } from '../../../../util/dardcor/base/common/async';
+import { VSBuffer, decodeHex, encodeHex } from '../../../../util/dardcor/base/common/buffer';
+import { StringSHA1 } from '../../../../util/dardcor/base/common/hash';
+import { Disposable } from '../../../../util/dardcor/base/common/lifecycle';
+import { LRUCache } from '../../../../util/dardcor/base/common/map';
+import { URI } from '../../../../util/dardcor/base/common/uri';
 import { IToolEmbeddingsCache } from './toolEmbeddingsComputer';
 
 const EMBEDDING_CACHE_FILE_NAME = 'toolEmbeddingsCache.bin';

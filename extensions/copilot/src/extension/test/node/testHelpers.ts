@@ -5,10 +5,10 @@
 
 import type { ChatContext, ChatPromptReference, ChatRequest, ChatRequestTurn, ChatResponseTurn, ExtendedChatResponsePart, Uri } from 'vscode';
 import { ChatResponseStreamImpl } from '../../../util/common/chatResponseStreamImpl';
-import { MarkdownString } from '../../../util/vs/base/common/htmlContent';
-import { URI } from '../../../util/vs/base/common/uri';
-import { generateUuid } from '../../../util/vs/base/common/uuid';
-import * as vscodeTypes from '../../../vscodeTypes';
+import { MarkdownString } from '../../../util/dardcor/base/common/htmlContent';
+import { URI } from '../../../util/dardcor/base/common/uri';
+import { generateUuid } from '../../../util/dardcor/base/common/uuid';
+import * as vscodeTypes from '../../../dardcorTypes';
 
 export class TestChatRequest implements ChatRequest {
 	public command: string | undefined;

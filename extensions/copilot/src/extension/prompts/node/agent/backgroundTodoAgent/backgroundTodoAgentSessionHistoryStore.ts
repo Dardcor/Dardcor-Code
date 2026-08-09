@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Disposable, toDisposable } from '../../../../../util/vs/base/common/lifecycle';
+import { Disposable, toDisposable } from '../../../../../util/dardcor/base/common/lifecycle';
 import { ThinkingData } from '../../../../../platform/thinking/common/thinking';
 import { IBuildPromptContext, IToolCall, IToolCallRound } from '../../../../prompt/common/intents';
 import { ToolName } from '../../../../tools/common/toolNames';
