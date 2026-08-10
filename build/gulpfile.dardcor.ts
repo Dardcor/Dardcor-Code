@@ -386,6 +386,7 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 			.pipe(jsFilter.restore)
 			.pipe(createAsar(path.join(process.cwd(), 'node_modules'), [
 				'**/*.node',
+				'**/package.json',
 				'**/@vscode/ripgrep-universal/bin/**',
 				// Only the platform-specific Copilot CLI packages (`@github/copilot-<os>-<arch>`)
 				// need to be unpacked: the CLI is spawned as a subprocess and is a

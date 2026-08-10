@@ -84,7 +84,7 @@ export const vs_dark: IStandaloneThemeData = {
 	base: 'vs-dark',
 	inherit: false,
 	rules: [
-		{ token: '', foreground: 'D4D4D4', background: '1E1E1E' },
+		{ token: '', foreground: 'D4D4D4', background: '000000' },
 		{ token: 'invalid', foreground: 'f44747' },
 		{ token: 'emphasis', fontStyle: 'italic' },
 		{ token: 'strong', fontStyle: 'bold' },
@@ -139,7 +139,7 @@ export const vs_dark: IStandaloneThemeData = {
 		{ token: 'predefined.sql', foreground: 'FF00FF' },
 	],
 	colors: {
-		[editorBackground]: '#1E1E1E',
+		[editorBackground]: '#000000',
 		[editorForeground]: '#D4D4D4',
 		[editorInactiveSelection]: '#3A3D41',
 		[editorIndentGuide1]: '#404040',
