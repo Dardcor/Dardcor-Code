@@ -21,12 +21,9 @@
 	"win32arm64AppId": "{{D1ACE434-89C5-48D1-88D3-E2991DF85475}",
 	"win32x64UserAppId": "{{CC6B787D-37A0-49E8-AE24-8559A032BE0C}",
 	"win32arm64UserAppId": "{{3AEBF0C8-F733-4AD4-BADE-FDB816D53D7B}",
-	
 	"win32ShellNameShort": "Dardcor Code",
-	"win32MutexName": "dardcorcode",
 	"win32TunnelServiceMutex": "dardcorcode-tunnelservice",
 	"win32TunnelMutex": "dardcorcode-tunnel",
-	"tunnelApplicationName": "dardcor-code-tunnel",
 	"darwinBundleIdentifier": "com.dardcor.code",
 	"darwinIcon": "dardcor-code.icns",
 	"win32Icon": "dardcor-code.ico",
@@ -242,5 +239,6 @@
 		"reportUrl": ""
 	},
 	"quality": "stable",
-	"version": "1.132.0"
+	"version": "1.132.0",
+	"win32AppUserModelId": "Dardcor.DardcorCode"
 }
