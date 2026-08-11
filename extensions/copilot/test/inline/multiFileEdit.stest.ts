@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import * as assert from 'assert';
@@ -328,7 +328,7 @@ forEditsAndAgent((strategy, variant, model, configurations) => {
 							assertWorkspaceEdit(outcome);
 							assert.strictEqual((await getWorkspaceDiagnostics(accessor, workspace, 'tsc')).filter(d => d.kind === 'syntactic').length, 0);
 							const utilsTs = assertFileContent(outcome.files, 'utils.ts');
-							assert.ok(utilsTs.includes('Copyright (c) Microsoft Corporation. All rights reserved.'), 'copyright (c) Microsoft not found');
+							assert.ok(utilsTs.includes('Copyright (c) Dardcor Corporation. All rights reserved.'), 'copyright (c) Microsoft not found');
 							assert.ok(utilsTs.includes('Licensed under the MIT License. See License.txt in the project root for license information'), 'Licensed under the MIT License not found');
 							assertNoElidedCodeComments(outcome);
 						}

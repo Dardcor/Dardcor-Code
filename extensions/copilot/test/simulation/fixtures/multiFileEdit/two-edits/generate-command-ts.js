@@ -1,5 +1,5 @@
 /*---------------------------------------------------------
- * Copyright (C) Microsoft Corporation. All rights reserved.
+ * Copyright (C) Dardcor Corporation. All rights reserved.
  *--------------------------------------------------------*/
 import Generator from 'yeoman-generator';
 import * as prompts from './prompts.js';

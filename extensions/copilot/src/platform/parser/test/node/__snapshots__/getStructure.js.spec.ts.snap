@@ -2,7 +2,7 @@
 
 exports[`getStructure - js > source with different syntax constructs 1`] = `
 "<COMMENT>/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation and GitHub. All rights reserved.
+ *  Copyright (c) Dardcor Corporation and GitHub. All rights reserved.
  *--------------------------------------------------------------------------------------------*/
 </COMMENT><LEXICAL_DECLARATION>const name = "John Doe";
 </LEXICAL_DECLARATION><COMMENT-1>

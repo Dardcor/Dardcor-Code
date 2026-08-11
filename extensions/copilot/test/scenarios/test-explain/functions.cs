@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation and GitHub. All rights reserved.
+ *  Copyright (c) Dardcor Corporation and GitHub. All rights reserved.
  *--------------------------------------------------------------------------------------------*/
 
 public void Echo(string name)

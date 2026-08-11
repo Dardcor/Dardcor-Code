@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation and GitHub. All rights reserved.
+ *  Copyright (c) Dardcor Corporation and GitHub. All rights reserved.
  *--------------------------------------------------------------------------------------------*/
 /* eslint no-inner-declarations: "error" */
 interface Node {

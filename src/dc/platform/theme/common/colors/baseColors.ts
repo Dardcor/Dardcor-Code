@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
@@ -86,7 +86,7 @@ export const textBlockQuoteBackground = registerColor('textBlockQuote.background
 	nls.localize('textBlockQuoteBackground', "Background color for block quotes in text."));
 
 export const textBlockQuoteBorder = registerColor('textBlockQuote.border',
-	{ light: '#007acc80', dark: '#007acc80', hcDark: Color.white, hcLight: '#292929' },
+	{ light: '#7C4DFF80', dark: '#7C4DFF80', hcDark: Color.white, hcLight: '#292929' },
 	nls.localize('textBlockQuoteBorder', "Border color for block quotes in text."));
 
 

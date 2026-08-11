@@ -163,7 +163,7 @@ export default EditForm;</EXPORT_STATEMENT>
 
 exports[`getStructure - tsx > tsx source with different syntax constructs 1`] = `
 "<COMMENT>/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation and GitHub. All rights reserved.
+ *  Copyright (c) Dardcor Corporation and GitHub. All rights reserved.
  *--------------------------------------------------------------------------------------------*/
 </COMMENT><IMPORT_STATEMENT>import React, { Component, useState } from 'react';
 </IMPORT_STATEMENT><COMMENT-1>

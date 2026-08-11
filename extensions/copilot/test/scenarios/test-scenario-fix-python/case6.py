@@ -1,4 +1,4 @@
-# Copyright (c) Microsoft Corporation and GitHub. All rights reserved.
+# Copyright (c) Dardcor Corporation and GitHub. All rights reserved.
 
 def palindrome(s, inner = False):
     # given a string of lowercase letters return a palindrome obtained by removing at most one character

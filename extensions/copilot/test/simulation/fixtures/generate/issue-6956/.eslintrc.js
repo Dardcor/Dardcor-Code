@@ -26,7 +26,7 @@ module.exports = {
 		'header/header': [
 			'error',
 			'block',
-			'---------------------------------------------------------\n * Copyright (C) Microsoft Corporation. All rights reserved.\n *--------------------------------------------------------',
+			'---------------------------------------------------------\n * Copyright (C) Dardcor Corporation. All rights reserved.\n *--------------------------------------------------------',
 		],
 		'react/no-unescaped-entities': 'off',
 		'react/prop-types': 'off',

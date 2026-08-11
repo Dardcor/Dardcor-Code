@@ -1,4 +1,4 @@
-# Copyright Microsoft Corporation
+# Copyright Dardcor Corporation
 
 function Test-IsAdmin() {
     try {

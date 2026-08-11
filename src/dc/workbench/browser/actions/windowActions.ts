@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
@@ -376,12 +376,7 @@ export class ReloadWindowAction extends Action2 {
 			id: ReloadWindowAction.ID,
 			title: localize2('reloadWindow', 'Reload Window'),
 			category: Categories.Developer,
-			f1: true,
-			keybinding: {
-				weight: KeybindingWeight.WorkbenchContrib + 50,
-				when: IsDevelopmentContext,
-				primary: KeyMod.CtrlCmd | KeyCode.KeyR
-			}
+			f1: true
 		});
 	}
 

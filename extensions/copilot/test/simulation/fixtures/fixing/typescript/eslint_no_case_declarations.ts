@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation and GitHub. All rights reserved.
+ *  Copyright (c) Dardcor Corporation and GitHub. All rights reserved.
  *--------------------------------------------------------------------------------------------*/
 /* eslint no-case-declarations: "error" */
 import { Character } from './eslint_no_duplicate_case';

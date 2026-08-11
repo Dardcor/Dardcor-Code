@@ -4,8 +4,8 @@ index 30c5fc9cb..4f0b01321 100644
 +++ b/01-basic-remove-first-line
 @@ -1,5 +1,4 @@
 -/*---------------------------------------------------------------------------------------------
-- *  Copyright (c) Microsoft Corporation and GitHub. All rights reserved.
-+*  Copyright (c) Microsoft Corporation and GitHub. All rights reserved.
+- *  Copyright (c) Dardcor Corporation and GitHub. All rights reserved.
++*  Copyright (c) Dardcor Corporation and GitHub. All rights reserved.
   *--------------------------------------------------------------------------------------------*/
  import { spawn } from 'child_process';
  

@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
@@ -261,7 +261,7 @@ fn detect_installed_program(log: &log::Logger) -> io::Result<Vec<PathBuf>> {
 	//        Obtained from: Identified Developer
 	//        Last Modified: 9/23/22, 10:16 AM
 	//        Kind: Intel
-	//        Signed by: Developer ID Application: Microsoft Corporation (UBF8T346G9), Developer ID Certification Authority, Apple Root CA
+	//        Signed by: Developer ID Application: Dardcor Corporation (UBF8T346G9), Developer ID Certification Authority, Apple Root CA
 	//        Location: /Users/connor/Downloads/Visual Studio Code - Exploration 2.app
 	//
 	// So, use a simple state machine that looks for the first line, and then for

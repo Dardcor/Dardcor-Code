@@ -16,7 +16,7 @@
 		}
 	},
 	{
-		"c": " Copyright Microsoft Corporation",
+		"c": " Copyright Dardcor Corporation",
 		"t": "source.powershell comment.line.powershell",
 		"r": {
 			"dark_plus": "comment: #6A9955",

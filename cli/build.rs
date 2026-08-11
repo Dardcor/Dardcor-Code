@@ -1,9 +1,9 @@
 /*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-const FILE_HEADER: &str = "/*---------------------------------------------------------------------------------------------\n *  Copyright (c) Microsoft Corporation. All rights reserved.\n *  Licensed under the MIT License. See License.txt in the project root for license information.\n *--------------------------------------------------------------------------------------------*/";
+const FILE_HEADER: &str = "/*---------------------------------------------------------------------------------------------\n *  Copyright (c) Dardcor Corporation. All rights reserved.\n *  Licensed under the MIT License. See License.txt in the project root for license information.\n *--------------------------------------------------------------------------------------------*/";
 
 use std::{
 	collections::HashMap,
@@ -188,7 +188,7 @@ fn apply_win32_version_resources() {
 	let mut res = winresource::WindowsResource::new();
 	res.set("ProductName", name_long);
 	res.set("FileDescription", name_long);
-	res.set("CompanyName", "Microsoft Corporation");
+	res.set("CompanyName", "Dardcor Corporation");
 	res.set("LegalCopyright", "Copyright (C) 2026 Microsoft. All rights reserved");
 	res.set("FileVersion", &package_json.version);
 	res.set("ProductVersion", &package_json.version);

@@ -13,7 +13,7 @@
 		"prepare": "tsx ./build/postinstall.ts"
 	},
 	"keywords": [],
-	"author": "Microsoft Corporation",
+	"author": "Dardcor Corporation",
 	"license": "SEE LICENSE IN LICENSE",
 	"bugs": {
 		"url": "https://github.com/Microsoft/vscode/issues"

@@ -1184,7 +1184,7 @@
 		}
 	},
 	{
-		"c": " *  Copyright (c) Microsoft Corporation. All rights reserved.",
+		"c": " *  Copyright (c) Dardcor Corporation. All rights reserved.",
 		"t": "source.json.comments.snippets meta.structure.dictionary.json.comments.snippets meta.structure.dictionary.value.json.comments.snippets meta.structure.dictionary.json.comments.snippets meta.structure.dictionary.value.json.comments.snippets meta.structure.array.json.comments.snippets string.quoted.double.json.comments.snippets meta.any.json.comments.snippets string.quoted.double.json.comments.snippets",
 		"r": {
 			"dark_plus": "string: #CE9178",

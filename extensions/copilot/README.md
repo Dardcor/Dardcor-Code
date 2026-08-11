@@ -85,6 +85,6 @@ This project may contain trademarks or logos for projects, products, or services
 
 ## License
 
-Copyright (c) Microsoft Corporation. All rights reserved.
+Copyright (c) Dardcor Corporation. All rights reserved.
 
 Licensed under the [MIT](LICENSE.txt) license.

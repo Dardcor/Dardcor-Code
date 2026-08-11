@@ -16,7 +16,7 @@
 		}
 	},
 	{
-		"c": " Copyright (c) Microsoft Corporation. All rights reserved.",
+		"c": " Copyright (c) Dardcor Corporation. All rights reserved.",
 		"t": "source.asp.vb.net comment.line.apostrophe.asp",
 		"r": {
 			"dark_plus": "comment: #6A9955",

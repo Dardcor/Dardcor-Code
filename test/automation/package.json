@@ -3,7 +3,7 @@
   "version": "1.71.0",
   "description": "VS Code UI automation driver",
   "author": {
-    "name": "Microsoft Corporation"
+    "name": "Dardcor Corporation"
   },
   "license": "MIT",
   "main": "./out/index.js",

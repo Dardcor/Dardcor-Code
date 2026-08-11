@@ -1,4 +1,4 @@
-# Copyright (c) Microsoft Corporation and GitHub. All rights reserved.
+# Copyright (c) Dardcor Corporation and GitHub. All rights reserved.
 
 def subarray_min_max_sum(l):
     # given an array of size n > 1 comute min and max of sums of all subarrays of size n-1

@@ -27,10 +27,6 @@ Desain warna default Dardcor Code :
 - Semua garis di aplikasi berwarna ungu gelap : garis pembatas antar panel/sidebar/editor/panel bawah, garis pemisah di menu, garis tepi (border) tombol dan input box, garis fokus (focus border), garis selection, garis ruler editor, garis indent guide, garis scrollbar, garis pemisah antar tab, garis bawah titlebar/statusbar, garis outline, garis bracket, garis pemisah di quick pick dan dropdown, garis tepi dialog dan notification
 - Palet ungu gelap yang dipakai (semua turunan ungu tua) : #4A148C (ungu gelap utama untuk garis), #3B0A5E (ungu paling gelap untuk garis halus/pemisah tipis), #6A1B9A (ungu gelap terang untuk garis aktif/hover), #7C4DFF (ungu terang HANYA untuk garis focus aktif saat keyboard focus agar terlihat jelas)
 - ATURAN WAJIB : fitur, menu, icon, fungsi, struktur folder, ukuran, animasi, shortcut, setting tetap 100% sama persis dengan Visual Studio Code asli. Yang berbeda HANYA warna default tema : background hitam + semua garis ungu gelap
-
+- hanya warna scroll yang abu-abu
 
 ## DAFTAR BAGIAN YANG BELUM SAMA/BERUBAH MENJADI DARDCOR CODE:
-
-13. [SELESAI] File dari Visual Studio Code asli (ekstensi internal, test provider, script pipeline, dll) yang sebelumnya hilang telah dikembalikan/digabungkan ke Dardcor Code.
-14. [SELESAI] Semua folder/file bernama `vscode` atau `vs` (termasuk .vscode) diubah namanya menjadi `dardcor` (dan `.dardcor`), kecuali module krusial seperti vscode-dts agar ekstensi tetap berfungsi dengan baik.
-15. [SELESAI] Source code dari `src/vs` yang tersalin telah digabungkan struktur dan konfigurasinya ke format utama Dardcor Code di `src/dc`.

@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
@@ -413,7 +413,7 @@ or you may send a check or money order for US $5.00, including the product name,
 the open source component name, platform, and version number, to:
 
 Source Code Compliance Team
-Microsoft Corporation
+Dardcor Corporation
 One Microsoft Way
 Redmond, WA 98052
 USA

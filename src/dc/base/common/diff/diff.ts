@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
@@ -112,7 +112,7 @@ class MyArray {
 // An implementation of the difference algorithm described in
 // "An O(ND) Difference Algorithm and its variations" by Eugene W. Myers
 //
-// Copyright (C) 2008 Microsoft Corporation @minifier_do_not_preserve
+// Copyright (C) 2008 Dardcor Corporation @minifier_do_not_preserve
 //*****************************************************************************
 
 // Our total memory usage for storing history is (worst-case):

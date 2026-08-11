@@ -1,4 +1,4 @@
-# Copyright (c) Microsoft Corporation and GitHub. All rights reserved.
+# Copyright (c) Dardcor Corporation and GitHub. All rights reserved.
 
 class Person:
     def __init__(self, name, age):

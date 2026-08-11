@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
@@ -58,7 +58,7 @@ export interface IBundleESMTaskOpts {
 
 const DEFAULT_FILE_HEADER = [
 	'/*!--------------------------------------------------------',
-	' * Copyright (C) Microsoft Corporation. All rights reserved.',
+	' * Copyright (C) Dardcor Corporation. All rights reserved.',
 	' *--------------------------------------------------------*/'
 ].join('\n');
 

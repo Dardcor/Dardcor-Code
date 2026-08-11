@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 // Copy of https://github.com/microsoft/vscode/blob/969b5714b4fc54992801dceefc3269ce4e07f8f7/src/vscode-dts/vscode.proposed.inlineCompletionsAdditions.d.ts#L75

@@ -4,7 +4,7 @@ To fix the issue, you need to modify the condition in the second `else if` state
 ---FIND
 ```typescript
 /*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation and GitHub. All rights reserved.
+ *  Copyright (c) Dardcor Corporation and GitHub. All rights reserved.
  *--------------------------------------------------------------------------------------------*/
 /* eslint no-unreachable: "off" */
 /* eslint no-dupe-else-if: "error" */
@@ -24,7 +24,7 @@ export function isDeepLooseEqual(o1: unknown, o2: unknown): boolean {
 ---REPLACE
 ```typescript
 /*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation and GitHub. All rights reserved.
+ *  Copyright (c) Dardcor Corporation and GitHub. All rights reserved.
  *--------------------------------------------------------------------------------------------*/
 /* eslint no-unreachable: "off" */
 /* eslint no-dupe-else-if: "error" */

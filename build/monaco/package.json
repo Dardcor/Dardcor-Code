@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "description": "A browser based code editor",
-  "author": "Microsoft Corporation",
+  "author": "Dardcor Corporation",
   "license": "MIT",
   "typings": "./esm/dc/editor/editor.api.d.ts",
   "module": "./esm/dc/editor/editor.main.js",

@@ -4,7 +4,7 @@
 	"description": "Chat and inline editing SDK extracted from VS Code Copilot Chat",
 	"main": "dist/src/main.js",
 	"types": "dist/src/main.d.ts",
-	"author": "Microsoft Corporation",
+	"author": "Dardcor Corporation",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/microsoft/vscode-copilot-chat.git"

@@ -1,4 +1,4 @@
-# Copyright (c) Microsoft Corporation and GitHub. All rights reserved.
+# Copyright (c) Dardcor Corporation and GitHub. All rights reserved.
 
 # Program to display the Fibonacci sequence up to n-th term
 def printFibb(nterms):

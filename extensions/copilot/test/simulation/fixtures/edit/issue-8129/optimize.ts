@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
@@ -42,7 +42,7 @@ export function loaderConfig() {
 	return result;
 }
 
-const IS_OUR_COPYRIGHT_REGEXP = /Copyright \(C\) Microsoft Corporation/i;
+const IS_OUR_COPYRIGHT_REGEXP = /Copyright \(C\) Dardcor Corporation/i;
 
 function loaderPlugin(src: string, base: string, amdModuleId: string | undefined): NodeJS.ReadWriteStream {
 	return (
@@ -211,7 +211,7 @@ export interface IOptimizeAMDTaskOpts {
 
 const DEFAULT_FILE_HEADER = [
 	'/*!--------------------------------------------------------',
-	' * Copyright (C) Microsoft Corporation. All rights reserved.',
+	' * Copyright (C) Dardcor Corporation. All rights reserved.',
 	' *--------------------------------------------------------*/'
 ].join('\n');
 

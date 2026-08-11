@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------------------------
-#  Copyright (c) Microsoft Corporation and GitHub. All rights reserved.
+#  Copyright (c) Dardcor Corporation and GitHub. All rights reserved.
 # ---------------------------------------------------------------------------------------------
 # pylint line-too-long: "error"
 # pylint: disable=unused-argument, missing-module-docstring, missing-function-docstring, trailing-whitespace

@@ -32,7 +32,7 @@
 		}
 	},
 	{
-		"c": "  Copyright (c) Microsoft Corporation. All rights reserved.",
+		"c": "  Copyright (c) Dardcor Corporation. All rights reserved.",
 		"t": "source.objc comment.line.double-slash.objc",
 		"r": {
 			"dark_plus": "comment: #6A9955",
