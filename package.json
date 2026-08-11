@@ -100,6 +100,7 @@
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "^0.82.0",
+		"@electron/asar": "^4.2.1",
 		"@github/copilot": "^1.0.76",
 		"@github/copilot-sdk": "^1.0.9-preview.0",
 		"@microsoft/1ds-core-js": "^3.2.13",
@@ -212,7 +213,6 @@
 		"@vscode/vscode-perf": "^0.0.19",
 		"@webgpu/types": "^0.1.66",
 		"ansi-colors": "^3.2.3",
-		"asar": "^3.0.3",
 		"c8": "^9.1.0",
 		"chromium-pickle-js": "^0.2.0",
 		"cookie": "^0.7.2",
