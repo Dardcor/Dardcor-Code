@@ -1,0 +1,1 @@
+const {app, nativeImage} = require('electron'); app.whenReady().then(() => { const img = nativeImage.createFromPath('C:\\\\Users\\\\Dardcor\\\\Documents\\\\Code Editor\\\\Dardcor-Code\\\\public\\\\dardcor-code.ico'); console.log('Empty?', img.isEmpty(), 'Size:', img.getSize()); app.quit(); });

@@ -719,12 +719,7 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 			// Create the browser window
 			mark('code/willCreateCodeBrowserWindow');
 			this._win = new electron.BrowserWindow(options);
-			if (isWindows) {
-				const customIconPath = join(this.environmentMainService.appRoot, 'public/dardcor-code.ico');
-				if (fs.existsSync(customIconPath)) {
-					this._win.setIcon(electron.nativeImage.createFromPath(customIconPath));
-				}
-			}
+
 			mark('code/didCreateCodeBrowserWindow');
 
 			this._id = this._win.id;
