@@ -148,10 +148,10 @@ export const createVSCodeWebFileContentMapper = (extensionsRoot: string, product
 };
 
 const bundleVSCodeWebTask = task.define('bundle-vscode-web-OLD', task.series(
-	util.rimraf('out-vscode-web'),
+	util.rimraf('out-dardcor-code-web'),
 	optimize.bundleTask(
 		{
-			out: 'out-vscode-web',
+			out: 'out-dardcor-code-web',
 			esm: {
 				src: 'out-build',
 				entryPoints: vscodeWebEntryPoints,
@@ -164,15 +164,15 @@ const bundleVSCodeWebTask = task.define('bundle-vscode-web-OLD', task.series(
 
 const minifyVSCodeWebTask = task.define('minify-vscode-web-OLD', task.series(
 	bundleVSCodeWebTask,
-	util.rimraf('out-vscode-web-min'),
-	optimize.minifyTask('out-vscode-web', `https://main.vscode-cdn.net/sourcemaps/${commit}/core`)
+	util.rimraf('out-dardcor-code-web-min'),
+	optimize.minifyTask('out-dardcor-code-web', `https://main.vscode-cdn.net/sourcemaps/${commit}/core`)
 ));
 task.task(minifyVSCodeWebTask);
 
 // esbuild-based tasks (new)
 const sourceMappingURLBase = `https://main.vscode-cdn.net/sourcemaps/${commit}`;
-const esbuildBundleVSCodeWebTask = task.define('esbuild-vscode-web', () => runEsbuildBundle('out-vscode-web', false, true));
-const esbuildBundleVSCodeWebMinTask = task.define('esbuild-vscode-web-min', () => runEsbuildBundle('out-vscode-web-min', true, true, `${sourceMappingURLBase}/core`));
+const esbuildBundleVSCodeWebTask = task.define('esbuild-vscode-web', () => runEsbuildBundle('out-dardcor-code-web', false, true));
+const esbuildBundleVSCodeWebMinTask = task.define('esbuild-vscode-web-min', () => runEsbuildBundle('out-dardcor-code-web-min', true, true, `${sourceMappingURLBase}/core`));
 
 function packageTask(sourceFolderName: string, destinationFolderName: string) {
 	const destination = path.join(BUILD_ROOT, destinationFolderName);
@@ -235,7 +235,7 @@ task.task(compileWebExtensionsBuildTask);
 const dashed = (str: string) => (str ? `-${str}` : ``);
 
 ['', 'min'].forEach(minified => {
-	const sourceFolderName = `out-vscode-web${dashed(minified)}`;
+	const sourceFolderName = `out-dardcor-code-web${dashed(minified)}`;
 	const destinationFolderName = `vscode-web`;
 
 	const vscodeWebTaskCI = task.define(`vscode-web${dashed(minified)}-ci`, task.series(

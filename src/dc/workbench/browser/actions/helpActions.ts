@@ -341,7 +341,7 @@ class AskVSCodeCopilot extends Action2 {
 	constructor() {
 		super({
 			id: AskVSCodeCopilot.ID,
-			title: localize2('askVScode', 'Ask @vscode'),
+			title: localize2('askVScode', 'Ask @dardcor-code'),
 			category: Categories.Help,
 			f1: true,
 			precondition: ContextKeyExpr.and(ContextKeyExpr.equals('chatSetupHidden', false), ContextKeyExpr.equals('chatSetupDisabledInWorkspace', false), IsSessionsWindowContext.negate())
@@ -351,14 +351,13 @@ class AskVSCodeCopilot extends Action2 {
 	async run(accessor: ServicesAccessor): Promise<void> {
 		const commandService = accessor.get(ICommandService);
 		commandService.executeCommand('workbench.action.chat.open', { mode: 'agent', query: '@vscode ', isPartialQuery: true });
-
 	}
 }
 
 MenuRegistry.appendMenuItem(MenuId.MenubarHelpMenu, {
 	command: {
 		id: AskVSCodeCopilot.ID,
-		title: localize2('askVScode', 'Ask @vscode'),
+		title: localize2('askVScode', 'Ask @dardcor-code'),
 	},
 	order: 7,
 	group: '1_welcome',

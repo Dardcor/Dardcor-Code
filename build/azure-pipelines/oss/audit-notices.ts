@@ -29,7 +29,7 @@ import { parseArgs } from './utils.js';
 /** Recursively walk a directory, yielding file paths that match a predicate. */
 function walkFiles(dir: string, match: (name: string) => boolean): string[] {
 	const results: string[] = [];
-	const skipDirs = new Set(['.git', '.build', 'out', 'out-build', 'out-editor', 'out-vscode']);
+	const skipDirs = new Set(['.git', '.build', 'out', 'out-build', 'out-editor', 'out-dardcor-code']);
 
 	function walk(d: string): void {
 		let entries: fs.Dirent[];

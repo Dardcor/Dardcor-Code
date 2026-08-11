@@ -625,10 +625,10 @@ function tweakProductForServerWeb(product: typeof import('../product.json')) {
 
 ['reh', 'reh-web'].forEach(type => {
 	const bundleTask = task.define(`bundle-vscode-${type}`, task.series(
-		util.rimraf(`out-vscode-${type}`),
+		util.rimraf(`out-dardcor-code-${type}`),
 		optimize.bundleTask(
 			{
-				out: `out-vscode-${type}`,
+				out: `out-dardcor-code-${type}`,
 				esm: {
 					src: 'out-build',
 					entryPoints: [
@@ -644,8 +644,8 @@ function tweakProductForServerWeb(product: typeof import('../product.json')) {
 
 	const minifyTask = task.define(`minify-vscode-${type}`, task.series(
 		bundleTask,
-		util.rimraf(`out-vscode-${type}-min`),
-		optimize.minifyTask(`out-vscode-${type}`, `https://main.vscode-cdn.net/sourcemaps/${commit}/core`)
+		util.rimraf(`out-dardcor-code-${type}-min`),
+		optimize.minifyTask(`out-dardcor-code-${type}`, `https://main.vscode-cdn.net/sourcemaps/${commit}/core`)
 	));
 	task.task(minifyTask);
 
@@ -655,7 +655,7 @@ function tweakProductForServerWeb(product: typeof import('../product.json')) {
 		const arch = buildTarget.arch;
 
 		['', 'min'].forEach(minified => {
-			const sourceFolderName = `out-vscode-${type}${dashed(minified)}`;
+			const sourceFolderName = `out-dardcor-code-${type}${dashed(minified)}`;
 			const destinationFolderName = `vscode-${type}${dashed(platform)}${dashed(arch)}`;
 
 			const packageTasks: task.Task[] = [

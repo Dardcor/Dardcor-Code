@@ -57,7 +57,7 @@ type BuildTarget = 'desktop' | 'server' | 'server-web' | 'web';
 
 const SRC_DIR = 'src';
 const OUT_DIR = 'out';
-const OUT_VSCODE_DIR = 'out-vscode';
+const OUT_VSCODE_DIR = 'out-dardcor-code';
 
 // UTF-8 BOM - added to test files with 'utf8' in the path (matches gulp build behavior)
 const UTF8_BOM = Buffer.from([0xef, 0xbb, 0xbf]);
@@ -1207,7 +1207,7 @@ Options for 'bundle':
 	--minify           Minify the output bundles
 	--nls              Process NLS (localization) strings
 	--mangle-privates  Convert native #private fields to regular properties
-	--out <dir>        Output directory (default: out-vscode)
+	--out <dir>        Output directory (default: out-dardcor-code)
 	--target <target>  Build target: desktop (default), server, server-web, web
 	--source-map-base-url <url>  Rewrite sourceMappingURL to CDN URL
 
@@ -1218,9 +1218,9 @@ Examples:
 	npx tsx build/next/index.ts transpile --out out-build --exclude-tests
 	npx tsx build/next/index.ts bundle
 	npx tsx build/next/index.ts bundle --minify --nls
-	npx tsx build/next/index.ts bundle --nls --out out-vscode-min
-	npx tsx build/next/index.ts bundle --minify --nls --target server --out out-vscode-reh-min
-	npx tsx build/next/index.ts bundle --minify --nls --target server-web --out out-vscode-reh-web-min
+	npx tsx build/next/index.ts bundle --nls --out out-dardcor-code-min
+	npx tsx build/next/index.ts bundle --minify --nls --target server --out out-dardcor-code-reh-min
+	npx tsx build/next/index.ts bundle --minify --nls --target server-web --out out-dardcor-code-reh-web-min
 `);
 }
 

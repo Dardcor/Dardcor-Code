@@ -10,7 +10,7 @@
 	"type": "module",
 	"private": true,
 	"scripts": {
-		"start": ".\\scripts\\code.bat",
+		"start": "start /b cmd /c \"cd .dardcor-provider && npm run dev\" && .\\scripts\\code.bat",
 		"build": "npm run compile-client",
 		"package": "npm run compile-client",
 		"test": "echo Please run any of the test scripts from the scripts folder.",

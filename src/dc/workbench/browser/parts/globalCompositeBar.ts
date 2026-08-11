@@ -149,7 +149,7 @@ export class GlobalCompositeBar extends Disposable {
 	}
 
 	private get accountsVisibilityPreference(): boolean {
-		return isAccountsActionVisible(this.storageService);
+		return false;
 	}
 
 	private set accountsVisibilityPreference(value: boolean) {

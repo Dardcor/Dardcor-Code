@@ -163,15 +163,11 @@
 	height: 22px;
 }
 
-.scm-view .monaco-list-row .history-item > .graph-container.current > .graph > circle:last-child,
-.scm-view .monaco-list-row .history-item > .graph-container.incoming-changes > .graph > circle:last-child,
-.scm-view .monaco-list-row .history-item > .graph-container.outgoing-changes > .graph > circle:last-child {
+.scm-view .monaco-list-row .history-item > .graph-container.current > .graph > circle:last-child {
 	fill: var(--vscode-sideBar-background);
 }
 
-.scm-view .monaco-list-row:hover .history-item > .graph-container.current > .graph > circle:last-child,
-.scm-view .monaco-list-row:hover .history-item > .graph-container.incoming-changes > .graph > circle:last-child,
-.scm-view .monaco-list-row:hover .history-item > .graph-container.outgoing-changes > .graph > circle:last-child {
+.scm-view .monaco-list-row:hover .history-item > .graph-container.current > .graph > circle:last-child {
 	fill: var(--vscode-list-hoverBackground);
 }
 
@@ -195,18 +191,8 @@
 	stroke: var(--vscode-list-activeSelectionBackground);
 }
 
-.scm-view.scm-history-view > .monaco-list:focus .monaco-list-row.selected .history-item > .graph-container.incoming-changes > .graph > circle:last-child,
-.scm-view.scm-history-view > .monaco-list:focus .monaco-list-row.selected .history-item > .graph-container.outgoing-changes > .graph > circle:last-child {
-	fill: var(--vscode-list-activeSelectionBackground);
-}
-
 .scm-view.scm-history-view > .monaco-list .monaco-list-row.focused .history-item > .graph-container > .graph > circle:nth-of-type(2) {
 	stroke: var(--vscode-list-inactiveSelectionBackground);
-}
-
-.scm-view.scm-history-view > .monaco-list .monaco-list-row.focused .history-item > .graph-container.incoming-changes > .graph > circle:last-child,
-.scm-view.scm-history-view > .monaco-list .monaco-list-row.focused .history-item > .graph-container.outgoing-changes > .graph > circle:last-child {
-	fill: var(--vscode-list-inactiveSelectionBackground);
 }
 
 .scm-view .monaco-list-row .history-item > .label-container {
