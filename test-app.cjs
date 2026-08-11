@@ -1,1 +1,0 @@
-const {app, BrowserWindow, nativeImage} = require('electron'); app.whenReady().then(() => { const win = new BrowserWindow({width: 400, height: 400}); const img = nativeImage.createFromPath('C:\\\\Users\\\\Dardcor\\\\Documents\\\\Code Editor\\\\Dardcor-Code\\\\public\\\\dardcor-code.ico'); win.setIcon(img); setTimeout(() => app.quit(), 3000); });
