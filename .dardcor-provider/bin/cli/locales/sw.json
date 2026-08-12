@@ -1,0 +1,5 @@
+{
+  "redis": {
+    "description": "Anzisha kontena la Redis la ndani kwa kubofya mara moja (Podman au Docker) kwa ajili ya kuhifadhi ya Dardcor Code na ufuatiliaji wa mgao"
+  }
+}

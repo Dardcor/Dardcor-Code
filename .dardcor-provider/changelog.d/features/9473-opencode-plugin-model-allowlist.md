@@ -1,0 +1,1 @@
+- **feat(opencode-plugin):** added `features.visibleModels` (allowlist) and `features.hiddenModels` (blocklist) to `@Dardcor Code/opencode-plugin` — curate the OpenCode TUI/CLI model picker from 600+ catalog entries down to an operator-defined ID list that persists in `opencode.json` across config resets ([#9473](https://github.com/diegosouzapw/Dardcor Code/issues/9473))
