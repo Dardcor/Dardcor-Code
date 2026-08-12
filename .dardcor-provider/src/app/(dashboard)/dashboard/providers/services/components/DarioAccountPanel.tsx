@@ -123,7 +123,7 @@ export function DarioAccountPanel() {
     void refreshOmniConnections();
   }, [refreshAccounts, refreshOmniConnections]);
 
-  async function importFromOmniroute(connectionId: string) {
+  async function importFromDardcorCode(connectionId: string) {
     setImportBusyId(connectionId);
     setError(null);
     setNotice(null);
@@ -318,7 +318,7 @@ export function DarioAccountPanel() {
                 <Button
                   size="sm"
                   disabled={importBusyId !== null}
-                  onClick={() => void importFromOmniroute(c.id)}
+                  onClick={() => void importFromDardcorCode(c.id)}
                 >
                   {importBusyId === c.id ? "Importing…" : "Import"}
                 </Button>

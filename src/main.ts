@@ -241,7 +241,8 @@ async function startup(codeCachePath: string | undefined, nlsConfig: INLSConfigu
 					...process.env,
 					DATA_DIR: providerDataDir
 				},
-				stdio: 'ignore'
+				stdio: 'ignore',
+				shell: isWin
 			});
 			
 			app.on('before-quit', () => {

@@ -1,11 +1,11 @@
 "use client";
 
-// OmniglyphContextPageClient — the dedicated detail screen for the "omniglyph"
+// OmniglyphContextPageClient — the dedicated detail screen for the "dardcorglyph"
 // context-as-image compression engine. Four sections: economics (measured savings),
 // a real before→after (dense text vs the rendered PNG page), the fail-closed gate
 // flow, and the enable control (wired to /api/settings/compression, preview engine).
 //
-// The sample in ./sampleData.ts is a REAL render from the omniglyph package, not a mockup.
+// The sample in ./sampleData.ts is a REAL render from the dardcorglyph package, not a mockup.
 //
 // Card/Toggle are imported from their direct module paths (not the @/shared/components
 // barrel) — the barrel pulls a Node-only module that hangs vitest/jsdom.
@@ -49,11 +49,11 @@ const ECONOMICS = [
 // under the complexity gate's 80-line cap; the page composes them.
 
 function PageHeader() {
-  const t = useTranslations("omniglyph");
+  const t = useTranslations("dardcorglyph");
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-3">
-        <h1 className="text-2xl font-semibold">OmniGlyph</h1>
+        <h1 className="text-2xl font-semibold">DardcorGlyph</h1>
         <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
           {t("preview")}
         </span>
@@ -64,7 +64,7 @@ function PageHeader() {
 }
 
 function EconomicsCard() {
-  const t = useTranslations("omniglyph");
+  const t = useTranslations("dardcorglyph");
   return (
     <Card className="p-6">
       <h2 className="mb-4 text-lg font-semibold">{t("economicsTitle")}</h2>
@@ -81,7 +81,7 @@ function EconomicsCard() {
 }
 
 function BeforeAfterCard() {
-  const t = useTranslations("omniglyph");
+  const t = useTranslations("dardcorglyph");
   return (
     <Card className="p-6">
       <div className="mb-1 flex items-baseline justify-between">
@@ -126,7 +126,7 @@ function BeforeAfterCard() {
 }
 
 function GatesCard() {
-  const t = useTranslations("omniglyph");
+  const t = useTranslations("dardcorglyph");
   return (
     <Card className="p-6">
       <h2 className="mb-1 text-lg font-semibold">{t("gatesTitle")}</h2>
@@ -163,7 +163,7 @@ function EnableCard(props: {
   status: "" | "saved" | "error";
   onToggle: (next: boolean) => void;
 }) {
-  const t = useTranslations("omniglyph");
+  const t = useTranslations("dardcorglyph");
   return (
     <Card className="p-6">
       <div className="flex items-start justify-between gap-4">
@@ -182,7 +182,7 @@ function EnableCard(props: {
                 : ""}
           </span>
         </div>
-        <span data-testid="omniglyph-enable-toggle">
+        <span data-testid="dardcorglyph-enable-toggle">
           <Toggle
             size="md"
             checked={props.enabled}
@@ -209,7 +209,7 @@ export default function OmniglyphContextPageClient() {
       .then((data: CompressionConfigLite | null) => {
         const e = data?.engines ?? {};
         setEngines(e);
-        setEnabled(e.omniglyph?.enabled === true);
+        setEnabled(e.dardcorglyph?.enabled === true);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -221,7 +221,7 @@ export default function OmniglyphContextPageClient() {
     setEnabled(next);
     const nextEngines: EngineMap = {
       ...engines,
-      omniglyph: { ...(engines.omniglyph ?? { enabled: false }), enabled: next },
+      dardcorglyph: { ...(engines.dardcorglyph ?? { enabled: false }), enabled: next },
     };
     setEngines(nextEngines);
     setSaving(true);
@@ -246,7 +246,7 @@ export default function OmniglyphContextPageClient() {
   };
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-6 p-6" data-testid="omniglyph-page">
+    <div className="mx-auto flex max-w-4xl flex-col gap-6 p-6" data-testid="dardcorglyph-page">
       <PageHeader />
       <EconomicsCard />
       <BeforeAfterCard />

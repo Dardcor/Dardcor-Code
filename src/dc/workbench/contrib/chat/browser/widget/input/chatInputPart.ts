@@ -3515,6 +3515,20 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 				if (customSecondaryItem) {
 					return customSecondaryItem;
 				}
+
+				if (action.id === OpenModelPickerAction.ID && action instanceof MenuItemAction) {
+					if (!this._currentLanguageModel.get()) {
+						logChangesToStateModel(this._inputModel, `actionViewItemProvider[desktop]: _currentLanguageModel is undefined at toolbar build, forcing default for ${this._currentSessionKey}`, undefined, undefined, this.logService);
+						this.setCurrentLanguageModelToDefault();
+					}
+
+					const itemDelegate: IModelPickerDelegate = this._createModelPickerDelegate();
+					return this.modelWidget = this.instantiationService.createInstance(ModelPickerActionItem, action, itemDelegate, secondaryPickerOptions);
+				} else if (action.id === OpenModePickerAction.ID && action instanceof MenuItemAction) {
+					const delegate: IModePickerDelegate = this._createModePickerDelegate();
+					return this.modeWidget = this.instantiationService.createInstance(ModePickerActionItem, action, delegate, secondaryPickerOptions);
+				}
+
 				if ((action.id === OpenSessionTargetPickerAction.ID || action.id === OpenDelegationPickerAction.ID) && action instanceof MenuItemAction) {
 					const delegate: ISessionTypePickerDelegate = this.options.sessionTypePickerDelegate ?? {
 						getActiveSessionProvider: () => {

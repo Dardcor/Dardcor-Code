@@ -1,7 +1,7 @@
 export const HIDEABLE_SIDEBAR_ITEM_IDS = [
   // Home
   "home",
-  // OmniProxy — flat
+  // DardcorProxy — flat
   "api-manager",
   "endpoints",
   "providers",
@@ -9,7 +9,7 @@ export const HIDEABLE_SIDEBAR_ITEM_IDS = [
   "combos",
   "combos-live",
   "quota",
-  // OmniProxy > Compression Context (Settings → Combos → engines → Studio)
+  // DardcorProxy > Compression Context (Settings → Combos → engines → Studio)
   "context-settings",
   "context-combos",
   "context-caveman",
@@ -21,10 +21,10 @@ export const HIDEABLE_SIDEBAR_ITEM_IDS = [
   "context-lite",
   "context-aggressive",
   "context-ultra",
-  "context-omniglyph",
+  "context-dardcorglyph",
   "compression-studio",
   "compression-exclusions",
-  // OmniProxy > Tools
+  // DardcorProxy > Tools
   "cli-code",
   "cli-agents",
   "acp-agents",
@@ -32,10 +32,10 @@ export const HIDEABLE_SIDEBAR_ITEM_IDS = [
   "agent-bridge",
   "traffic-inspector",
   "discovery",
-  // OmniProxy > Integrations
+  // DardcorProxy > Integrations
   "api-endpoints",
   "webhooks",
-  // OmniProxy — proxy tools
+  // DardcorProxy — proxy tools
   "mitm-proxy",
   "1proxy",
   // Analytics
@@ -116,7 +116,7 @@ export type SidebarItemId = HideableSidebarItemId | AlwaysVisibleSidebarItemId;
 
 export type SidebarSectionId =
   | "home"
-  | "omni-proxy"
+  | "dardcor-proxy"
   | "analytics"
   | "costs"
   | "monitoring"

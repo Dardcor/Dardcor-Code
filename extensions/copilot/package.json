@@ -1,7 +1,7 @@
 {
   "name": "copilot-chat",
-  "displayName": "GitHub Copilot",
-  "description": "AI chat features powered by Copilot",
+  "displayName": "Dardcor Code",
+  "description": "AI chat features powered by Dardcor Code",
   "version": "0.60.0",
   "build": "1",
   "completionsCoreVersion": "1.378.1799",
@@ -57,7 +57,7 @@
   ],
   "badges": [
     {
-      "url": "https://img.shields.io/badge/GitHub%20Copilot-Subscription%20Required-orange",
+      "url": "https://img.shields.io/badge/Dardcor%20Code-Subscription%20Required-orange",
       "href": "https://github.com/github-copilot/signup?editor=vscode",
       "description": "%github.copilot.badge.signUp%"
     },
@@ -1359,7 +1359,7 @@
       {
         "id": "github.copilot.default",
         "name": "GitHubCopilot",
-        "fullName": "GitHub Copilot",
+        "fullName": "Dardcor Code",
         "description": "%copilot.description%",
         "isDefault": true,
         "locations": [
@@ -1476,7 +1476,7 @@
       {
         "id": "github.copilot.editingSession",
         "name": "GitHubCopilot",
-        "fullName": "GitHub Copilot",
+        "fullName": "Dardcor Code",
         "description": "%copilot.edits.description%",
         "isDefault": true,
         "locations": [
@@ -1489,7 +1489,7 @@
       {
         "id": "github.copilot.editingSessionEditor",
         "name": "GitHubCopilot",
-        "fullName": "GitHub Copilot",
+        "fullName": "Dardcor Code",
         "description": "%copilot.edits.description%",
         "isDefault": true,
         "locations": [
@@ -1500,7 +1500,7 @@
       {
         "id": "github.copilot.editsAgent",
         "name": "agent",
-        "fullName": "GitHub Copilot",
+        "fullName": "Dardcor Code",
         "description": "%copilot.agent.description%",
         "locations": [
           "panel"
@@ -1606,7 +1606,7 @@
       {
         "id": "github.copilot.notebook",
         "name": "GitHubCopilot",
-        "fullName": "GitHub Copilot",
+        "fullName": "Dardcor Code",
         "description": "%copilot.description%",
         "isDefault": true,
         "locations": [
@@ -1627,7 +1627,7 @@
       {
         "id": "github.copilot.notebookEditorAgent",
         "name": "GitHubCopilot",
-        "fullName": "GitHub Copilot",
+        "fullName": "Dardcor Code",
         "description": "%copilot.description%",
         "isDefault": true,
         "locations": [

@@ -77,7 +77,7 @@ const PATH_LABELS = {
   headroom: "headroom",
   lite: "lite",
   llmlingua: "llmlingua",
-  omniglyph: "omniglyph",
+  dardcorglyph: "dardcorglyph",
   rtk: "rtk",
   "session-dedup": "sessionDedup",
   ultra: "ultra",

@@ -1,5 +1,5 @@
 // Amostra REAL para o painel "antes → depois": um bloco denso de tool-defs/config
-// (1015 chars) renderizado pelo pacote omniglyph em uma página PNG 438×120.
+// (1015 chars) renderizado pelo pacote dardcorglyph em uma página PNG 438×120.
 // Números medidos: 254 tokens de texto → 84 tokens de imagem (billing 28px + 4/bloco)
 // = 66,9% de economia, dentro da faixa medida de 59–70% ponta a ponta.
 // Gerado offline via renderTextToImages — não é mockup, é a saída real da engine.

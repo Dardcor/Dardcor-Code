@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { AssistantMessage, PromptElement, PromptElementProps, PromptReference, PromptSizing, SystemMessage, ToolMessage, useKeepWith, UserMessage } from '@vscode/prompt-tsx';
-import { ChatResponsePart } from '@vscode/prompt-tsx/dist/base/dardcorTypes';
+import { ChatResponsePart } from '@vscode/prompt-tsx/dist/base/vscodeTypes';
 import type { CancellationToken, ExtendedLanguageModelToolResult, Position, Progress } from 'vscode';
 import { TextDocumentSnapshot } from '../../../platform/editing/common/textDocumentSnapshot';
 import { CacheType } from '../../../platform/endpoint/common/endpointTypes';

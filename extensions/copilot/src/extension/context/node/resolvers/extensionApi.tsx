@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import { BasePromptElementProps, PromptElement, PromptPiece, PromptSizing, TextChunk } from '@vscode/prompt-tsx';
-import { ChatResponsePart } from '@vscode/prompt-tsx/dist/base/dardcorTypes';
+import { ChatResponsePart } from '@vscode/prompt-tsx/dist/base/vscodeTypes';
 import { Embedding, EmbeddingType, EmbeddingVector, IEmbeddingsComputer, rankEmbeddings } from '../../../../platform/embeddings/common/embeddingsComputer';
 import { EmbeddingCacheType, IEmbeddingsCache, LocalEmbeddingsCache, RemoteCacheType, RemoteEmbeddingsCache } from '../../../../platform/embeddings/common/embeddingsIndex';
 import { IEnvService } from '../../../../platform/env/common/envService';

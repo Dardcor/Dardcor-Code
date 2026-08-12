@@ -6,7 +6,7 @@ import { OmniSkillCard } from "./OmniSkillCard";
 import { SkillInspectorPane } from "./SkillInspectorPane";
 import type { OmniSkill } from "./OmniSkillCard";
 
-interface OmniSkillsListProps {
+interface DardcorSkillsListProps {
   skills: OmniSkill[];
   skillsTotal: number;
   skillsPage: number;
@@ -25,7 +25,7 @@ interface OmniSkillsListProps {
   onUninstall: (skillId: string) => void;
 }
 
-export function OmniSkillsList({
+export function DardcorSkillsList({
   skills,
   skillsTotal,
   skillsPage,
@@ -42,7 +42,7 @@ export function OmniSkillsList({
   onSelectSkill,
   onSetMode,
   onUninstall,
-}: OmniSkillsListProps): JSX.Element {
+}: DardcorSkillsListProps): JSX.Element {
   const t = useTranslations("skills");
 
   const selectedSkill = selectedSkillId
@@ -156,4 +156,4 @@ export function OmniSkillsList({
   );
 }
 
-export default OmniSkillsList;
+export default DardcorSkillsList;

@@ -425,7 +425,7 @@ export default function DroidToolCard({
                     </select>
                   ) : (
                     <span className="flex-1 text-xs text-text-muted px-2 py-1.5">
-                      {cloudEnabled ? t("noApiKeysCreateOne") : t("defaultOmnirouteKey")}
+                      {cloudEnabled ? t("noApiKeysCreateOne") : t("defaultDardcorCodeKey")}
                     </span>
                   )}
                 </div>

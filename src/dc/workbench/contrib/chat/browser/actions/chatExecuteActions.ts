@@ -412,7 +412,7 @@ export class OpenModelPickerAction extends Action2 {
 			},
 			precondition: ChatContextKeys.enabled,
 			menu: {
-				id: MenuId.ChatInput,
+				id: MenuId.ChatInputSecondary,
 				order: 3,
 				group: 'navigation',
 				when:
@@ -421,7 +421,8 @@ export class OpenModelPickerAction extends Action2 {
 						ChatContextKeys.hasPendingDelegationTarget.negate(),
 						ContextKeyExpr.or(
 							ChatContextKeys.lockedToCodingAgent.negate(),
-							ChatContextKeys.chatSessionHasTargetedModels),
+							ChatContextKeys.chatSessionHasTargetedModels,
+							ChatContextKeys.agentSessionType.isEqualTo(AgentSessionProviders.Local)),
 						ContextKeyExpr.or(
 							ContextKeyExpr.equals(ChatContextKeys.location.key, ChatAgentLocation.Chat),
 							ContextKeyExpr.equals(ChatContextKeys.location.key, ChatAgentLocation.EditorInline),
@@ -506,8 +507,8 @@ export class OpenModePickerAction extends Action2 {
 			},
 			menu: [
 				{
-					id: MenuId.ChatInput,
-					order: 1,
+					id: MenuId.ChatInputSecondary,
+					order: 2,
 					when: ContextKeyExpr.and(
 						ChatContextKeys.enabled,
 						ChatContextKeys.location.isEqualTo(ChatAgentLocation.Chat),

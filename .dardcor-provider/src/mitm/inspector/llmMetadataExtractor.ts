@@ -166,7 +166,7 @@ export function extractLlmMetadata(req: InterceptedRequest): LlmMetadata | null 
   const mappedTo =
     req.mappedModel ??
     req.requestHeaders["x-dardcorCode-mapped"] ??
-    req.requestHeaders["X-Omniroute-Mapped"] ??
+    req.requestHeaders["X-DardcorCode-Mapped"] ??
     null;
 
   return {

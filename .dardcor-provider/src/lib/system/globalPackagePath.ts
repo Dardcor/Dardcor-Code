@@ -25,7 +25,7 @@ type ExistsLike = (target: string) => boolean;
  * `execImpl`/`fsExists` are injectable so the resolution logic is unit-testable without a real
  * global install.
  */
-export async function resolveGlobalOmniroutePath(
+export async function resolveGlobalDardcorCodePath(
   execImpl: ExecFileLike = execFileAsync,
   fsExists: ExistsLike = existsSync
 ): Promise<string> {

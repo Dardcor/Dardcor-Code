@@ -151,7 +151,7 @@ function CommandPaletteDialog({ onClose }: { onClose: () => void }) {
     filtered.forEach((item, flatIndex) => {
       // Look up the section/subgroup by id across the whole list, not just the
       // previous item — a section's children can interleave root items and
-      // groups (e.g. "omni-proxy" has a trailing root item after its groups),
+      // groups (e.g. "dardcor-proxy" has a trailing root item after its groups),
       // which would otherwise produce two separate "_root" subgroups sharing
       // the same React key.
       let section = sectionById.get(item.sectionId);

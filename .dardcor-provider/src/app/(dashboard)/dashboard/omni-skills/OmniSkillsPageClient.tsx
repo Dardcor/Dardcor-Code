@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Card } from "@/shared/components";
 import { SkillsConceptCard } from "@/shared/components";
 import type { SkillsProvider } from "@/lib/skills/providerSettings";
-import { OmniSkillsList } from "./components/OmniSkillsList";
+import { DardcorSkillsList } from "./components/DardcorSkillsList";
 import { OmniExecutionsTab } from "./components/OmniExecutionsTab";
 import { OmniSandboxTab } from "./components/OmniSandboxTab";
 import { OmniMarketplaceTab } from "./components/OmniMarketplaceTab";
@@ -20,7 +20,7 @@ interface Execution {
   createdAt: string;
 }
 
-export function OmniSkillsPageClient(): JSX.Element {
+export function DardcorSkillsPageClient(): JSX.Element {
   const [skills, setSkills] = useState<OmniSkill[]>([]);
   const [executions, setExecutions] = useState<Execution[]>([]);
   const [loading, setLoading] = useState(true);
@@ -250,7 +250,7 @@ export function OmniSkillsPageClient(): JSX.Element {
 
       {/* Tab content */}
       {activeTab === "skills" && (
-        <OmniSkillsList
+        <DardcorSkillsList
           skills={skills}
           skillsTotal={skillsTotal}
           skillsPage={skillsPage}
@@ -381,4 +381,4 @@ export function OmniSkillsPageClient(): JSX.Element {
   );
 }
 
-export default OmniSkillsPageClient;
+export default DardcorSkillsPageClient;

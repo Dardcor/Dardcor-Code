@@ -375,7 +375,7 @@ export default function ClineToolCard({
                       </select>
                     ) : (
                       <p className="text-sm text-text-muted">
-                        {cloudEnabled ? t("noApiKeysAvailable") : t("usingDefaultOmniroute")}
+                        {cloudEnabled ? t("noApiKeysAvailable") : t("usingDefaultDardcorCode")}
                       </p>
                     )}
                   </div>

@@ -1390,7 +1390,7 @@ export default function APIPageClient({ machineId }: Readonly<APIPageClientProps
               cloud
             </span>
             <div className="flex-1 min-w-0">
-              <span className="text-sm font-medium">{t("cloudOmniroute")}</span>
+              <span className="text-sm font-medium">{t("cloudDardcorCode")}</span>
             </div>
             <span
               className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border shrink-0 ${

@@ -23,7 +23,7 @@ import {
   isNewer,
   resolveLatestVersionCached,
 } from "@/lib/system/versionCheck";
-import { resolveGlobalOmniroutePath } from "@/lib/system/globalPackagePath";
+import { resolveGlobalDardcorCodePath } from "@/lib/system/globalPackagePath";
 // #5542 — On Windows npm is `npm.cmd`; Node ≥24 refuses to execFile a `.cmd` without
 // a shell (nodejs/node#52554 → "spawn npm ENOENT"). buildNpmExecOptions enables the
 // shell on win32 only; SERVICE_VERSION_PATTERN keeps the shell-joined version safe.
@@ -333,7 +333,7 @@ export async function POST(req: NextRequest) {
           status: "running",
           message: "Rebuilding native modules (better-sqlite3)...",
         });
-        const omniPath = await resolveGlobalOmniroutePath();
+        const omniPath = await resolveGlobalDardcorCodePath();
         await execFileAsync(
           "npm",
           ["rebuild", "better-sqlite3"],

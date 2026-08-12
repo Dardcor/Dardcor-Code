@@ -40,7 +40,7 @@ import {
 } from "@/shared/constants/sidebarVisibility";
 
 const isE2EMode = process.env.NEXT_PUBLIC_OMNIROUTE_E2E_MODE === "1";
-const DEFAULT_EXPANDED: SidebarSectionId = "omni-proxy";
+const DEFAULT_EXPANDED: SidebarSectionId = "dardcor-proxy";
 const EXPANDED_SECTIONS_KEY = "sidebar-expanded-sections";
 const PINNED_SECTIONS_KEY = "sidebar-pinned-sections";
 

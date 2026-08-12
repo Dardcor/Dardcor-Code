@@ -8,19 +8,15 @@ import { SequencerByKey } from '../../../../../../base/common/async.js';
 import { CancellationError } from '../../../../../../base/common/errors.js';
 import { URI } from '../../../../../../base/common/uri.js';
 import { type McpOAuthClient, type ProtectedResourceMetadata } from '../../../../../../platform/agentHost/common/state/protocol/state.js';
-import { ICommandService } from '../../../../../../platform/commands/common/commands.js';
 import { type AgentInfo } from '../../../../../../platform/agentHost/common/state/sessionState.js';
 import { ServicesAccessor } from '../../../../../../platform/instantiation/common/instantiation.js';
 import { ILabelService } from '../../../../../../platform/label/common/label.js';
 import { ILogService } from '../../../../../../platform/log/common/log.js';
-import { localize } from '../../../../../../nls.js';
 import { IAuthenticationMcpAccessService } from '../../../../../services/authentication/browser/authenticationMcpAccessService.js';
 import { IAuthenticationMcpService } from '../../../../../services/authentication/browser/authenticationMcpService.js';
 import { IAuthenticationMcpUsageService } from '../../../../../services/authentication/browser/authenticationMcpUsageService.js';
 import { AuthenticationSession, getDynamicAuthenticationProviderId, IAuthenticationService } from '../../../../../services/authentication/common/authentication.js';
 import { IDynamicAuthenticationProviderStorageService } from '../../../../../services/authentication/common/dynamicAuthenticationProviderStorage.js';
-import { CHAT_SETUP_ACTION_ID } from '../../actions/chatActions.js';
-import { IChatSetupResult } from '../../chatSetup/chatSetup.js';
 
 /**
  * Stable identity for an agent-host MCP server, used as the key for
@@ -298,56 +294,8 @@ export async function resolveAuthenticationInteractively(
 	protectedResources: readonly ProtectedResourceMetadata[],
 	options: IAgentHostAuthenticationOptions,
 ): Promise<boolean> {
-	const authenticationService = accessor.get(IAuthenticationService);
-	const commandService = accessor.get(ICommandService);
-	const logService = accessor.get(ILogService);
-	for (const resource of protectedResources) {
-		const resourceUri = URI.parse(resource.resource);
-		const scopes = resource.scopes_supported ?? [];
-		let token = await resolveTokenForResource(
-			resourceUri,
-			resource.authorization_servers ?? [],
-			scopes,
-			authenticationService,
-			logService,
-			options.logPrefix,
-		);
-		if (token) {
-			await forwardAuthenticationToken(options, resource.resource, scopes, token);
-			logService.info(`${options.logPrefix} Interactive authentication succeeded for ${resource.resource}`);
-			return true;
-		}
-
-		const setupResult = await commandService.executeCommand<IChatSetupResult>(CHAT_SETUP_ACTION_ID, undefined, {
-			forceSignInDialog: true,
-			additionalScopes: scopes,
-			dialogTitle: localize('agentHost.signInDialogTitle', "Sign in to use GitHub Copilot"),
-			disableChatViewReveal: true,
-			returnResult: true,
-		});
-		if (setupResult?.success === undefined) {
-			return false;
-		}
-		if (!setupResult.success) {
-			throw setupResult.error ?? new Error(localize('agentHost.signInFailed', "Failed to sign in to use GitHub Copilot."));
-		}
-		token = await resolveTokenForResource(
-			resourceUri,
-			resource.authorization_servers ?? [],
-			scopes,
-			authenticationService,
-			logService,
-			options.logPrefix,
-		);
-		if (!token) {
-			return false;
-		}
-		await forwardAuthenticationToken(options, resource.resource, scopes, token);
-		logService.info(`${options.logPrefix} Interactive authentication succeeded for ${resource.resource}`);
-		return true;
-	}
-
-	return false;
+	// Bypassed for Dardcor Provider integration
+	return true;
 }
 
 export async function resolveMcpServerAuthentication(

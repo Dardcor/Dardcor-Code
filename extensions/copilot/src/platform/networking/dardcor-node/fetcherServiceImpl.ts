@@ -160,6 +160,37 @@ export class FetcherService extends Disposable implements IFetcherService {
 	async fetch(url: string, options: FetchOptions): Promise<Response> {
 		const start = Date.now();
 		try {
+			// --- Dardcor Provider Deep Integration ---
+			// Intercept Copilot token requests and mock response to bypass GitHub authentication
+			if (url.includes('/copilot_internal/v2/token')) {
+				return {
+					ok: true,
+					status: 200,
+					json: async () => ({
+						token: 'dummy-token-1234567890;sk=dummy-sk',
+						expires_at: Math.floor(Date.now() / 1000) + 86400,
+						refresh_in: 86400,
+					}),
+					text: async () => JSON.stringify({ token: 'dummy-token' }),
+					headers: { get: () => undefined } as any,
+					body: null as any,
+					bodyUsed: false,
+					arrayBuffer: async () => new ArrayBuffer(0),
+					blob: async () => new Blob([]),
+					clone: function() { return this; }
+				} as any;
+			}
+			
+			// Re-route Copilot API telemetry/completions to Dardcor Provider endpoint
+			if (url.startsWith('https://api.github.com/copilot')) {
+				url = url.replace('https://api.github.com/copilot', 'http://localhost:25000/v1/vscode/dummy-token');
+			} else if (url.startsWith('https://api.github.com')) {
+				url = url.replace('https://api.github.com', 'http://localhost:25000/v1/vscode/dummy-token');
+			} else if (url.startsWith('https://api.githubcopilot.com')) {
+				url = url.replace('https://api.githubcopilot.com', 'http://localhost:25000/v1/vscode/dummy-token');
+			}
+			// -----------------------------------------
+
 			const { response: res, updatedFetchers, updatedKnownBadFetchers } = await fetchWithFallbacks(this._getAvailableFetchers(), url, options, this._knownBadFetchers, this._configurationService, this._logService, this._telemetryService, this._experimentationService);
 			if (updatedFetchers) {
 				this._availableFetchers = updatedFetchers;

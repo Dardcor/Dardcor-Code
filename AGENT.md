@@ -38,3 +38,7 @@ pastikan dari project Dardcor Code tidak akan membuat diluar tersebut, dan jika 
 3. [x] lalu nantinya saya ingin ketika project di build ini "C:\Users\Dardcor\Documents\Code Editor\VSCode-win32-x64" saya ingin foldernya menjadi Dardcor-Code-win32-x64 agar bukan vs code lagi
 4. [x] ok saya ingin membuat era baru saya sudah membuat folder baru ini : C:\Users\Dardcor\Documents\Code Editor\Dardcor-Code\.dardcor-provider 
 gabungkan project ini : "C:\Users\Dardcor\Documents\Code Editor\OmniRoute" kedalam folder tersebut tapi bukan omnirouter nanti, lalu hapus system sign in dari Dardcor Code karena saya ingin tanpa login untuk Dardcor Code, dan hapus tampilan copilot di sebelah kiri icon notifikasi nya. lalu tambahkan button model di sebelah kiri icon notifikasi. yang akan membuka tampilan dari dardcor-providernya
+
+5. [x] bagian open in agent hapus system login nya
+6. [x] nah gini, bagian project providernya : C:\Users\Dardcor\Documents\Code Editor\Dardcor-Code\.dardcor-provider saya ingin tanpa .env sama sekali nah saya ingin bagian login provider http://localhost:25000/dashboard/providers?cat=oauth ketika menggunakan login google nya itu belum sempurna untuk OUTH, saya ingin kamu baca project ini: C:\Users\Dardcor\Documents\Code Editor\antigravity_manager wajib baca lengkap, ambil key outhnya saja. ok kerjakan dengan serius
+7. [x] perbaiki bagian agent chat agar menggunakan provider dari `.dardcor-provider` untuk menjawab chat (sebelumnya error Language model unavailable), serta ubah identitas agent menjadi Dardcor Code (bukan copilot).

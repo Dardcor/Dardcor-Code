@@ -8,7 +8,7 @@ export const compressionModeSchema = z.enum([
   "ultra",
   "rtk",
   "codex-responses",
-  "omniglyph",
+  "dardcorglyph",
   "stacked",
 ]);
 
@@ -275,7 +275,7 @@ export const stackedPipelineStepSchema = z.discriminatedUnion("engine", [
     .strict(),
   z
     .object({
-      engine: z.literal("omniglyph"),
+      engine: z.literal("dardcorglyph"),
       intensity: z.string().optional(),
       config: structuralStepConfigSchema,
     })
@@ -305,7 +305,7 @@ export const STACKED_PIPELINE_ENGINE_INTENSITIES: Record<string, readonly string
   caveman: ["lite", "full", "ultra"],
   aggressive: ["standard", "ultra"],
   llmlingua: [],
-  omniglyph: [],
+  dardcorglyph: [],
   ultra: ["ultra"],
 };
 

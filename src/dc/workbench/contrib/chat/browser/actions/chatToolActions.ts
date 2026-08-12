@@ -132,9 +132,9 @@ export class ConfigureToolsAction extends Action2 {
 					ChatContextKeys.lockedToCodingAgent.negate(),
 					ChatContextKeys.inChatInputWindow.negate(),
 				),
-				id: MenuId.ChatInput,
+				id: MenuId.ChatInputSecondary,
 				group: 'navigation',
-				order: 100,
+				order: 4,
 			}]
 		});
 	}

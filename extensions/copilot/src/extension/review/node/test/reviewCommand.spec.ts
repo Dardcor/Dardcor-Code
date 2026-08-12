@@ -10,7 +10,7 @@ import { toCodeReviewResult } from '../../../../platform/review/common/reviewCom
 import { ReviewComment, ReviewSuggestion } from '../../../../platform/review/common/reviewService';
 import { createTextDocumentData } from '../../../../util/common/test/shims/textDocument';
 import { URI } from '../../../../util/dardcor/base/common/uri';
-import { Range } from '../../../../dardcorTypes';
+import { Range } from '../../../../vscodeTypes';
 
 function createMockDocument(uri = URI.file('/test.ts'), content = 'test content') {
 	return TextDocumentSnapshot.create(createTextDocumentData(uri, content, 'typescript').document);

@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type * as vscode from 'vscode';
-import type { IExperimentationService as ITASExperimentationService } from 'dardcor-tas-client';
+import type { IExperimentationService as ITASExperimentationService } from 'vscode-tas-client';
 import { equals } from '../../../util/dardcor/base/common/arrays';
 import { IntervalTimer } from '../../../util/dardcor/base/common/async';
 import { Emitter } from '../../../util/dardcor/base/common/event';

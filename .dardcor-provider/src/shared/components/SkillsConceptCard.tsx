@@ -14,7 +14,7 @@ type ComparisonRow = (typeof COMPARISON_ROWS)[number];
 export function SkillsConceptCard({ variant, className = "" }: SkillsConceptCardProps): JSX.Element {
   const t = useTranslations("agentSkills");
 
-  const crossLinkHref = variant === "agent" ? "/dashboard/omni-skills" : "/dashboard/agent-skills";
+  const crossLinkHref = variant === "agent" ? "/dashboard/dardcor-skills" : "/dashboard/agent-skills";
 
   const title = t(`conceptCard.${variant}.title`);
   const crossLinkLabel = t(`conceptCard.${variant}.crossLinkLabel`);
