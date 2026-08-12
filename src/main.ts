@@ -9,7 +9,7 @@ import * as os from 'node:os';
 import { performance } from 'node:perf_hooks';
 import { configurePortable } from './bootstrap-node.js';
 import { bootstrapESM } from './bootstrap-esm.js';
-import { app, protocol, crashReporter, Menu, contentTracing } from 'electron';
+import { app, protocol, crashReporter, Menu, contentTracing, shell } from 'electron';
 import minimist from 'minimist';
 import { product } from './bootstrap-meta.js';
 import { parse } from './dc/base/common/jsonc.js';
@@ -222,6 +222,47 @@ async function startup(codeCachePath: string | undefined, nlsConfig: INLSConfigu
 	// Load Main
 	await import('./dc/code/electron-main/main.js');
 	perf.mark('code/didRunMainBundle');
+
+	// --- Dardcor Provider Integration ---
+	try {
+		const { spawn } = await import('node:child_process');
+		const providerDir = path.join(import.meta.dirname, '../.dardcor-provider');
+		const providerDataDir = path.join(userDataPath, 'dardcor-provider-data');
+		
+		if (fs.existsSync(providerDir)) {
+			await mkdirpIgnoreError(providerDataDir);
+			
+			const isWin = process.platform === 'win32';
+			const npmCmd = isWin ? 'npm.cmd' : 'npm';
+			
+			const providerProcess = spawn(npmCmd, ['run', 'dev', '--', '-p', '25000'], {
+				cwd: providerDir,
+				env: {
+					...process.env,
+					DATA_DIR: providerDataDir
+				},
+				stdio: 'ignore'
+			});
+			
+			app.on('before-quit', () => {
+				if (providerProcess && !providerProcess.killed) {
+					if (isWin && providerProcess.pid) {
+						spawn('taskkill', ['/pid', providerProcess.pid.toString(), '/f', '/t']);
+					} else {
+						providerProcess.kill('SIGINT');
+					}
+				}
+			});
+			
+			// Auto open the web browser after a short delay to allow the server to start
+			setTimeout(() => {
+				shell.openExternal('http://localhost:25000').catch(console.error);
+			}, 3500);
+		}
+	} catch (err) {
+		console.error("Failed to integrate .dardcor-provider", err);
+	}
+	// ------------------------------------
 }
 
 function configureCommandlineSwitchesSync(cliArgs: NativeParsedArgs) {
