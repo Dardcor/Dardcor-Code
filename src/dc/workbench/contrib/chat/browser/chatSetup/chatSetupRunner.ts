@@ -7,7 +7,6 @@ import './media/chatSetup.css';
 import { $ } from '../../../../../base/browser/dom.js';
 import { Dialog, DialogContentsAlignment } from '../../../../../base/browser/ui/dialog/dialog.js';
 import { CancellationTokenSource } from '../../../../../base/common/cancellation.js';
-import { Codicon } from '../../../../../base/common/codicons.js';
 import { toErrorMessage } from '../../../../../base/common/errorMessage.js';
 import { MarkdownString } from '../../../../../base/common/htmlContent.js';
 import { Lazy } from '../../../../../base/common/lazy.js';
@@ -25,11 +24,11 @@ import product from '../../../../../platform/product/common/product.js';
 import { ITelemetryService, TelemetryLevel } from '../../../../../platform/telemetry/common/telemetry.js';
 import { IWorkspaceTrustManagementService, IWorkspaceTrustRequestService } from '../../../../../platform/workspace/common/workspaceTrust.js';
 import { IWorkbenchLayoutService } from '../../../../services/layout/browser/layoutService.js';
-import { ChatEntitlement, ChatEntitlementContext, ChatEntitlementService, IChatEntitlementService, isProUser } from '../../../../services/chat/common/chatEntitlementService.js';
+import { ChatEntitlement, ChatEntitlementContext } from '../../../../services/chat/common/chatEntitlementService.js';
 import { IChatWidgetService } from '../chat.js';
 import { ChatSetupController } from './chatSetupController.js';
 import { IChatSetupResult, ChatSetupAnonymous, ChatSetupError, InstallChatEvent, InstallChatClassification, ChatSetupStrategy, ChatSetupResultValue, IChatSetupRunOptions } from './chatSetup.js';
-import { GitHubPaths, IDefaultAccountService } from '../../../../../platform/defaultAccount/common/defaultAccount.js';
+import { IDefaultAccountService } from '../../../../../platform/defaultAccount/common/defaultAccount.js';
 import { IHostService } from '../../../../services/host/browser/host.js';
 import { IExtensionService } from '../../../../services/extensions/common/extensions.js';
 import { ExtensionIdentifier } from '../../../../../platform/extensions/common/extensions.js';
@@ -191,17 +190,14 @@ export class ChatSetup {
 
 	constructor(
 		private readonly context: ChatEntitlementContext,
-		private readonly controller: Lazy<ChatSetupController>,
+		_controller: Lazy<ChatSetupController>,
 		@ITelemetryService private readonly telemetryService: ITelemetryService,
-		@ILayoutService private readonly layoutService: IWorkbenchLayoutService,
-		@IChatEntitlementService private readonly chatEntitlementService: ChatEntitlementService,
 		@ILogService private readonly logService: ILogService,
 		@IChatWidgetService private readonly widgetService: IChatWidgetService,
 		@IWorkspaceTrustRequestService private readonly workspaceTrustRequestService: IWorkspaceTrustRequestService,
 		@IDefaultAccountService private readonly defaultAccountService: IDefaultAccountService,
 		@IExtensionService private readonly extensionService: IExtensionService,
 		@IWorkspaceTrustManagementService private readonly workspaceTrustManagementService: IWorkspaceTrustManagementService,
-		@IInstantiationService private readonly instantiationService: IInstantiationService,
 	) { }
 
 	skipDialog(): void {
@@ -251,14 +247,10 @@ export class ChatSetup {
 		let setupStrategy: ChatSetupStrategy;
 		if (options?.setupStrategy !== undefined) {
 			setupStrategy = options.setupStrategy; // caller provided a specific strategy, skip dialog
-		} else if (!options?.forceSignInDialog && (dialogSkipped || isProUser(this.chatEntitlementService.entitlement) || this.chatEntitlementService.entitlement === ChatEntitlement.Free)) {
-			setupStrategy = ChatSetupStrategy.DefaultSetup; // existing pro/free users setup without a dialog
-		} else if (options?.forceAnonymous === ChatSetupAnonymous.EnabledWithoutDialog) {
-			setupStrategy = ChatSetupStrategy.DefaultSetup; // anonymous setup without a dialog
 		} else {
-			setupStrategy = await this.showDialog(options);
+			// Dardcor Code: Always bypass "Sign in to use Agents" dialog
+			setupStrategy = ChatSetupStrategy.DefaultSetup;
 		}
-
 		if (setupStrategy === ChatSetupStrategy.DefaultSetup && this.defaultAccountService.getDefaultAccountAuthenticationProvider().enterprise) {
 			setupStrategy = ChatSetupStrategy.SetupWithEnterpriseProvider; // users with a configured provider go through provider setup
 		}
@@ -278,27 +270,8 @@ export class ChatSetup {
 				this.widgetService.revealWidget();
 			}
 
-			switch (setupStrategy) {
-				case ChatSetupStrategy.SetupWithEnterpriseProvider:
-					success = await this.controller.value.setupWithProvider({ useEnterpriseProvider: true, useSocialProvider: undefined, additionalScopes: options?.additionalScopes, forceAnonymous: options?.forceAnonymous, cancellationToken: setupCancellation.token });
-					break;
-				case ChatSetupStrategy.SetupWithoutEnterpriseProvider:
-					success = await this.controller.value.setupWithProvider({ useEnterpriseProvider: false, useSocialProvider: undefined, additionalScopes: options?.additionalScopes, forceAnonymous: options?.forceAnonymous, cancellationToken: setupCancellation.token });
-					break;
-				case ChatSetupStrategy.SetupWithAppleProvider:
-					success = await this.controller.value.setupWithProvider({ useEnterpriseProvider: false, useSocialProvider: 'apple', additionalScopes: options?.additionalScopes, forceAnonymous: options?.forceAnonymous, cancellationToken: setupCancellation.token });
-					break;
-				case ChatSetupStrategy.SetupWithGoogleProvider:
-					success = await this.controller.value.setupWithProvider({ useEnterpriseProvider: false, useSocialProvider: 'google', additionalScopes: options?.additionalScopes, forceAnonymous: options?.forceAnonymous, cancellationToken: setupCancellation.token });
-					break;
-				case ChatSetupStrategy.DefaultSetup:
-					success = await this.controller.value.setup({ ...options, forceAnonymous: options?.forceAnonymous, cancellationToken: setupCancellation.token });
-					break;
-				case ChatSetupStrategy.Canceled:
-					this.context.update({ later: true });
-					this.telemetryService.publicLog2<InstallChatEvent, InstallChatClassification>('commandCenter.chatInstall', { installResult: 'failedMaybeLater', installDuration: 0, signUpErrorCode: undefined, provider: undefined });
-					break;
-			}
+			// Bypass authentication completely for Dardcor Code
+			success = true;
 		} catch (error) {
 			this.logService.error(`[chat setup] Error during setup: ${toErrorMessage(error)}`);
 			success = false;
@@ -357,44 +330,6 @@ export class ChatSetup {
 		} finally {
 			store.dispose();
 		}
-	}
-
-	private async showDialog(options?: IChatSetupRunOptions): Promise<ChatSetupStrategy> {
-		const buttons = getChatSetupDialogButtons(this.context.state.entitlement, options, this.defaultAccountService.getDefaultAccountAuthenticationProvider().enterprise);
-		const dialog = this.instantiationService.createInstance(ChatSetupDialog, this.layoutService.activeContainer, {
-			title: this.getDialogTitle(options),
-			buttons,
-			icon: options?.dialogIcon ?? Codicon.copilotLarge,
-			disableCloseButton: options?.disableCloseButton ?? false,
-			footer: getChatSetupDialogFooter(options?.forceAnonymous, this.telemetryService.telemetryLevel, this.defaultAccountService.resolveGitHubUrl(GitHubPaths.copilotSettings)),
-			extraClasses: options?.dialogExtraClasses,
-			renderFooter: options?.renderDialogFooter,
-		});
-		try {
-			return await dialog.show();
-		} finally {
-			dialog.dispose();
-		}
-	}
-
-	private getDialogTitle(options?: IChatSetupRunOptions): string {
-		if (options?.dialogTitle) {
-			return options.dialogTitle;
-		}
-
-		if (this.chatEntitlementService.anonymous) {
-			if (options?.forceAnonymous) {
-				return localize('startUsing', "Start using AI Features");
-			} else {
-				return localize('enableMore', "Enable more AI features");
-			}
-		}
-
-		if (this.context.state.entitlement === ChatEntitlement.Unknown || options?.forceSignInDialog) {
-			return localize('signIn', "Sign in to use GitHub Copilot");
-		}
-
-		return localize('startUsing', "Start using AI Features");
 	}
 
 }

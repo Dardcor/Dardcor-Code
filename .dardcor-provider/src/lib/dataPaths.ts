@@ -2,7 +2,7 @@ import path from "path";
 import os from "os";
 import fs from "fs";
 
-export const APP_NAME = "dardcorCode";
+export const APP_NAME = "Dardcor-Code";
 
 function fallbackHomeDir() {
   const envHome = process.env.HOME || process.env.USERPROFILE;
@@ -29,22 +29,19 @@ function normalizeConfiguredPath(dir: unknown): string | null {
 }
 
 export function getLegacyDotDataDir() {
-  return path.join(safeHomeDir(), `.${APP_NAME}`);
+  return path.join(safeHomeDir(), `.${APP_NAME.toLowerCase()}`);
 }
 
 export function getDefaultDataDir() {
   const homeDir = safeHomeDir();
   const legacyDir = getLegacyDotDataDir();
 
-  // Preserve legacy path if it exists to avoid data loss on updates (e.g., Windows migration)
   if (fs.existsSync(legacyDir)) {
     try {
       if (fs.statSync(legacyDir).isDirectory()) {
         return legacyDir;
       }
-    } catch {
-      // Ignore stat errors
-    }
+    } catch {}
   }
 
   if (process.platform === "win32") {
@@ -52,7 +49,6 @@ export function getDefaultDataDir() {
     return path.join(appData, APP_NAME);
   }
 
-  // Support XDG on Linux/macOS when explicitly configured.
   const xdgConfigHome = normalizeConfiguredPath(process.env.XDG_CONFIG_HOME);
   if (xdgConfigHome) {
     return path.join(xdgConfigHome, APP_NAME);

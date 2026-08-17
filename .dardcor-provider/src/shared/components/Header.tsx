@@ -191,18 +191,6 @@ export default function Header({
     typeof window !== "undefined" &&
     (window as any).electronAPI?.platform === "darwin";
 
-  const handleLogout = async () => {
-    try {
-      const res = await fetch("/api/auth/logout", { method: "POST" });
-      if (res.ok) {
-        router.push("/login");
-        router.refresh();
-      }
-    } catch (err) {
-      console.error("Failed to logout:", err);
-    }
-  };
-
   return (
     <header
       className="sticky top-0 z-10 flex items-center justify-between border-b border-black/5 bg-bg px-8 py-4 dark:border-white/5"
@@ -272,14 +260,6 @@ export default function Header({
         <ThemeToggle />
         {!isE2EMode && <DegradationBadge />}
         {!isE2EMode && <TokenHealthBadge />}
-        <button
-          onClick={handleLogout}
-          className="flex items-center justify-center p-2 rounded-lg text-text-muted hover:text-red-500 hover:bg-red-500/10 transition-all"
-          title={t("logout")}
-          aria-label={t("logout")}
-        >
-          <span className="material-symbols-outlined">logout</span>
-        </button>
       </div>
     </header>
   );

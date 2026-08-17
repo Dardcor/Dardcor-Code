@@ -9,7 +9,7 @@ import * as os from 'node:os';
 import { performance } from 'node:perf_hooks';
 import { configurePortable } from './bootstrap-node.js';
 import { bootstrapESM } from './bootstrap-esm.js';
-import { app, protocol, crashReporter, Menu, contentTracing, shell } from 'electron';
+import { app, protocol, crashReporter, Menu, contentTracing } from 'electron';
 import minimist from 'minimist';
 import { product } from './bootstrap-meta.js';
 import { parse } from './dc/base/common/jsonc.js';
@@ -219,11 +219,9 @@ async function startup(codeCachePath: string | undefined, nlsConfig: INLSConfigu
 	// Bootstrap ESM
 	await bootstrapESM();
 
-	// Load Main
 	await import('./dc/code/electron-main/main.js');
 	perf.mark('code/didRunMainBundle');
 
-	// --- Dardcor Provider Integration ---
 	try {
 		const { spawn } = await import('node:child_process');
 		const providerDir = path.join(import.meta.dirname, '../.dardcor-provider');
@@ -233,16 +231,21 @@ async function startup(codeCachePath: string | undefined, nlsConfig: INLSConfigu
 			await mkdirpIgnoreError(providerDataDir);
 			
 			const isWin = process.platform === 'win32';
-			const npmCmd = isWin ? 'npm.cmd' : 'npm';
+			const runScript = path.join(providerDir, 'scripts/dev/run-next.mjs');
 			
-			const providerProcess = spawn(npmCmd, ['run', 'dev', '--', '-p', '25000'], {
+			const providerProcess = spawn('node', ['--max-old-space-size=8192', runScript, 'dev', '-p', '25000'], {
 				cwd: providerDir,
 				env: {
 					...process.env,
+					PORT: '25000',
+					DASHBOARD_PORT: '25000',
+					API_PORT: '25000',
+					OMNIROUTE_USE_TURBOPACK: '0',
 					DATA_DIR: providerDataDir
 				},
 				stdio: 'ignore',
-				shell: isWin
+				shell: false,
+				windowsHide: true
 			});
 			
 			app.on('before-quit', () => {
@@ -254,16 +257,10 @@ async function startup(codeCachePath: string | undefined, nlsConfig: INLSConfigu
 					}
 				}
 			});
-			
-			// Auto open the web browser after a short delay to allow the server to start
-			setTimeout(() => {
-				shell.openExternal('http://localhost:25000').catch(console.error);
-			}, 3500);
 		}
 	} catch (err) {
 		console.error("Failed to integrate .dardcor-provider", err);
 	}
-	// ------------------------------------
 }
 
 function configureCommandlineSwitchesSync(cliArgs: NativeParsedArgs) {

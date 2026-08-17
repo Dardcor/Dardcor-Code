@@ -685,15 +685,19 @@ export class DefaultAccountProvider extends Disposable implements IDefaultAccoun
 		}
 	}
 
-	private async findMatchingProviderSession(authProviderId: string, allScopes: string[][]): Promise<AuthenticationSession[] | undefined> {
+	private async findMatchingProviderSession(authProviderId: string, allScopes?: string[][]): Promise<AuthenticationSession[] | undefined> {
 		const sessions = await this.getSessions(authProviderId);
 		const matchingSessions = [];
 		for (const session of sessions) {
 			this.logService.debug('[DefaultAccount] Checking session with scopes', session.scopes);
-			for (const scopes of allScopes) {
-				if (this.scopesMatch(session.scopes, scopes)) {
-					matchingSessions.push(session);
+			if (Array.isArray(allScopes)) {
+				for (const scopes of allScopes) {
+					if (this.scopesMatch(session.scopes, scopes)) {
+						matchingSessions.push(session);
+					}
 				}
+			} else {
+				matchingSessions.push(session);
 			}
 		}
 		return matchingSessions.length > 0 ? matchingSessions : undefined;

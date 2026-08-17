@@ -137,6 +137,46 @@ export class AuthenticationService extends Disposable implements IAuthentication
 
 		this._registerEnvContributedAuthenticationProviders();
 		this._registerAuthenticationExtensionPointHandler();
+
+		// Dardcor Code: Inject dummy GitHub authentication provider to bypass Copilot login
+		this.registerAuthenticationProvider('github', {
+			id: 'github',
+			label: 'GitHub (Dardcor)',
+			supportsMultipleAccounts: false,
+			onDidChangeSessions: Event.None,
+			getSessions: async () => [{
+				id: 'dardcor-session',
+				accessToken: 'dardcor-token',
+				account: { id: 'dardcor-user', label: 'Dardcor User' },
+				scopes: []
+			}],
+			createSession: async () => ({
+				id: 'dardcor-session',
+				accessToken: 'dardcor-token',
+				account: { id: 'dardcor-user', label: 'Dardcor User' },
+				scopes: []
+			}),
+			removeSession: async () => {}
+		});
+		this.registerAuthenticationProvider('github-enterprise', {
+			id: 'github-enterprise',
+			label: 'GitHub Enterprise (Dardcor)',
+			supportsMultipleAccounts: false,
+			onDidChangeSessions: Event.None,
+			getSessions: async () => [{
+				id: 'dardcor-session',
+				accessToken: 'dardcor-token',
+				account: { id: 'dardcor-user', label: 'Dardcor User' },
+				scopes: []
+			}],
+			createSession: async () => ({
+				id: 'dardcor-session',
+				accessToken: 'dardcor-token',
+				account: { id: 'dardcor-user', label: 'Dardcor User' },
+				scopes: []
+			}),
+			removeSession: async () => {}
+		});
 	}
 
 	private _declaredProviders: AuthenticationProviderInformation[] = [];

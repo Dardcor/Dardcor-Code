@@ -94,22 +94,6 @@
 				"name": "Apple"
 			}
 		},
-		"providerExtensionId": "vscode.github-authentication",
-		"providerUriSetting": "github-enterprise.uri",
-		"providerScopes": [
-			[
-				"read:user",
-				"user:email",
-				"repo",
-				"workflow"
-			],
-			[
-				"user:email"
-			],
-			[
-				"read:user"
-			]
-		],
 		"entitlementUrl": "https://api.github.com/copilot_internal/user",
 		"entitlementSignupLimitedUrl": "https://api.github.com/copilot_internal/subscribe_limited_user",
 		"chatQuotaExceededContext": "github.copilot.chat.quotaExceeded",

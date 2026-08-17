@@ -50,6 +50,14 @@ if (dev) {
   ensureNativeSqlite();
 }
 
+const portIndex = process.argv.findIndex((arg) => arg === "-p" || arg === "--port");
+if (portIndex !== -1 && process.argv[portIndex + 1]) {
+  const customPort = process.argv[portIndex + 1];
+  process.env.PORT = customPort;
+  process.env.DASHBOARD_PORT = customPort;
+  process.env.API_PORT = customPort;
+}
+
 const bootstrappedEnv = bootstrapEnv();
 const runtimePorts = resolveRuntimePorts(bootstrappedEnv);
 const mergedEnv = withRuntimePortEnv(bootstrappedEnv, runtimePorts);

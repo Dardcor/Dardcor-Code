@@ -5,12 +5,12 @@ import Link from "next/link";
 export default function NotFound() {
   return (
     <div
-      className="flex flex-col items-center justify-center min-h-screen p-6 bg-bg text-text-main text-center"
+      className="flex flex-col items-center justify-center min-h-screen p-6 bg-black text-[#e6e6ef] text-center"
       role="main"
       aria-labelledby="not-found-title"
     >
       <div
-        className="text-[96px] font-extrabold leading-none mb-2 bg-gradient-to-br from-primary to-primary-hover bg-clip-text text-transparent"
+        className="text-[96px] font-extrabold leading-none mb-2 bg-gradient-to-br from-[#A855F7] to-[#7C4DFF] bg-clip-text text-transparent"
         aria-hidden="true"
       >
         404
@@ -18,23 +18,23 @@ export default function NotFound() {
       <h1 id="not-found-title" className="text-2xl font-semibold mb-2">
         Page not found
       </h1>
-      <p className="text-[15px] text-text-muted max-w-[400px] leading-relaxed mb-8">
+      <p className="text-[15px] text-[#a1a1aa] max-w-[400px] leading-relaxed mb-8">
         The page you&apos;re looking for doesn&apos;t exist or has been moved.
       </p>
       <div className="flex flex-col sm:flex-row items-center gap-3">
         <Link
           href="/dashboard"
-          className="px-8 py-3 rounded-xl text-white text-sm font-medium no-underline transition-all duration-200 motion-reduce:transition-none shadow-warm hover:-translate-y-0.5 bg-gradient-to-br from-primary to-primary-hover hover:shadow-elevated focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+          className="px-8 py-3 rounded-xl text-white text-sm font-medium no-underline transition-all duration-200 shadow-warm hover:-translate-y-0.5 bg-gradient-to-br from-[#6A1B9A] to-[#7C4DFF] hover:opacity-90"
           aria-label="Return to dashboard"
         >
           Go to Dashboard
         </Link>
         <Link
-          href="/status"
-          className="px-8 py-3 rounded-xl text-sm font-medium no-underline border border-border hover:bg-bg-alt transition-colors duration-200 motion-reduce:transition-none focus:outline-2 focus:outline-offset-2 focus:outline-primary"
-          aria-label="Open system status page"
+          href="/dashboard/providers"
+          className="px-8 py-3 rounded-xl text-sm font-medium no-underline border border-[#27272a] hover:bg-[#18181b] text-[#e6e6ef] transition-colors duration-200"
+          aria-label="Open providers page"
         >
-          System Status
+          Providers
         </Link>
       </div>
     </div>

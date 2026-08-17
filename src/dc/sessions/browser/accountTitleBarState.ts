@@ -4,9 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Codicon } from '../../base/common/codicons.js';
-import { ThemeIcon } from '../../base/common/themables.js';
-import { localize } from '../../nls.js';
-import { ChatEntitlement, IChatSentiment, IQuotaSnapshot } from '../../workbench/services/chat/common/chatEntitlementService.js';
+import type { ThemeIcon } from '../../base/common/themables.js';
+import type { ChatEntitlement, IChatSentiment, IQuotaSnapshot } from '../../workbench/services/chat/common/chatEntitlementService.js';
 import { IDefaultAccountService } from '../../platform/defaultAccount/common/defaultAccount.js';
 import { IAuthenticationService } from '../../workbench/services/authentication/common/authentication.js';
 
@@ -102,139 +101,14 @@ export function getAccountTitleBarBadgeKey(state: IAccountTitleBarState): string
 }
 
 export function getAccountTitleBarState(context: IAccountTitleBarStateContext): IAccountTitleBarState {
-	if (context.isAccountLoading) {
-		return {
-			source: 'account',
-			kind: 'default',
-			icon: ThemeIcon.modify(Codicon.loading, 'spin'),
-			label: localize('loadingAccount', "Loading Account..."),
-			ariaLabel: localize('loadingAccountAria', "Loading account"),
-			revealLabelOnHover: true,
-		};
-	}
-
-	const copilotState = getCopilotPresentation(context.entitlement, context.sentiment, context.quotas, context.usableWithoutGitHub);
-	if (copilotState) {
-		return copilotState;
-	}
-
-	if (context.accountName) {
-		return {
-			source: 'account',
-			kind: 'default',
-			icon: Codicon.account,
-			label: context.accountName,
-			revealLabelOnHover: true,
-			ariaLabel: context.accountProviderLabel
-				? localize('accountSignedInAria', "Signed in as {0} with {1}", context.accountName, context.accountProviderLabel)
-				: localize('accountSignedInAriaNameOnly', "Signed in as {0}", context.accountName),
-		};
-	}
-
 	return {
 		source: 'account',
-		kind: 'prominent',
+		kind: 'default',
 		icon: Codicon.account,
-		label: localize('signInLabel', "Sign In"),
-		ariaLabel: localize('signInAria', "Sign in to your account"),
+		label: 'Dardcor',
+		ariaLabel: 'Dardcor Code',
+		revealLabelOnHover: true,
 	};
 }
 
-function getCopilotPresentation(
-	entitlement: ChatEntitlement,
-	sentiment: IChatSentiment,
-	quotas: { readonly chat?: IQuotaSnapshot; readonly completions?: IQuotaSnapshot },
-	usableWithoutGitHub: boolean
-): IAccountTitleBarState | undefined {
-	if (sentiment.hidden) {
-		return undefined;
-	}
 
-	if (entitlement === ChatEntitlement.Unknown) {
-		if (usableWithoutGitHub) {
-			// A session type is usable without GitHub, so signing in is optional:
-			// present a calm opt-in affordance rather than alarming the user.
-			return {
-				source: 'copilot',
-				kind: 'default',
-				icon: Codicon.account,
-				label: localize('agentsSignInOptional', "Sign In"),
-				ariaLabel: localize('agentsSignInOptionalAria', "Sign in to GitHub to use more agents"),
-			};
-		}
-		return {
-			source: 'copilot',
-			kind: 'prominent',
-			icon: Codicon.account,
-			label: localize('agentsSignedOut', "Agents Signed Out"),
-			ariaLabel: localize('agentsSignedOutAria', "Agents is signed out"),
-		};
-	}
-
-	if (sentiment.disabled || sentiment.untrusted) {
-		return {
-			source: 'copilot',
-			kind: 'warning',
-			icon: Codicon.account,
-			label: localize('copilotUnavailable', "Copilot Unavailable"),
-			ariaLabel: sentiment.untrusted
-				? localize('copilotUnavailableUntrustedAria', "GitHub Copilot is unavailable in untrusted workspaces")
-				: localize('copilotUnavailableDisabledAria', "GitHub Copilot is disabled"),
-		};
-	}
-
-	const chatQuotaExceeded = quotas.chat?.percentRemaining === 0;
-	const completionsQuotaExceeded = quotas.completions?.percentRemaining === 0;
-	if (entitlement === ChatEntitlement.Free && (chatQuotaExceeded || completionsQuotaExceeded)) {
-		return {
-			source: 'copilot',
-			kind: 'warning',
-			icon: Codicon.account,
-			label: localize('copilotQuotaReached', "Quota Reached"),
-			dotBadge: 'error',
-			ariaLabel: getQuotaReachedAriaLabel(chatQuotaExceeded, completionsQuotaExceeded),
-		};
-	}
-
-	const remainingPercent = getLowestPositivePercent(quotas.chat, quotas.completions);
-	if (entitlement === ChatEntitlement.Free && typeof remainingPercent === 'number' && remainingPercent <= 25) {
-		return {
-			source: 'copilot',
-			kind: remainingPercent <= 10 ? 'warning' : 'accent',
-			icon: Codicon.account,
-			label: localize('copilotTokensRemaining', "Tokens Remaining"),
-			badge: `${remainingPercent}%`,
-			dotBadge: remainingPercent <= 10 ? 'error' : 'warning',
-			ariaLabel: localize('copilotTokensRemainingAria', "{0}% GitHub Copilot tokens remaining", remainingPercent),
-		};
-	}
-
-	return undefined;
-}
-
-function getLowestPositivePercent(...quotas: Array<IQuotaSnapshot | undefined>): number | undefined {
-	let lowest: number | undefined;
-	for (const quota of quotas) {
-		if (typeof quota?.percentRemaining !== 'number' || quota.percentRemaining <= 0) {
-			continue;
-		}
-
-		lowest = typeof lowest === 'number'
-			? Math.min(lowest, quota.percentRemaining)
-			: quota.percentRemaining;
-	}
-
-	return lowest;
-}
-
-function getQuotaReachedAriaLabel(chatQuotaExceeded: boolean, completionsQuotaExceeded: boolean): string {
-	if (chatQuotaExceeded && completionsQuotaExceeded) {
-		return localize('copilotAllQuotaReachedAria', "GitHub Copilot chat and inline suggestion quota reached");
-	}
-
-	if (chatQuotaExceeded) {
-		return localize('copilotChatQuotaReachedAria', "GitHub Copilot chat quota reached");
-	}
-
-	return localize('copilotCompletionsQuotaReachedAria', "GitHub Copilot inline suggestion quota reached");
-}

@@ -557,9 +557,13 @@ export class CodeApplication extends Disposable {
 			}
 
 			// Handle any in-page navigation
-			contents.on('will-navigate', event => {
+			contents.on('will-navigate', (event, navigationUrl) => {
 				if (BrowserViewMainService.isBrowserViewWebContents(contents)) {
 					return; // Allow navigation in integrated browser views
+				}
+
+				if (navigationUrl && (navigationUrl.startsWith('http://localhost:25000') || navigationUrl.startsWith('http://127.0.0.1:25000'))) {
+					return;
 				}
 
 				this.logService.error('webContents#will-navigate: Prevented webcontent navigation');
@@ -659,6 +663,44 @@ export class CodeApplication extends Disposable {
 
 		validatedIpcMain.on('vscode:toggleDevTools', event => event.sender.toggleDevTools());
 		validatedIpcMain.on('vscode:openDevTools', event => event.sender.openDevTools());
+
+		let providerWin: BrowserWindow | null = null;
+		validatedIpcMain.on('vscode:openProviderWindow', () => {
+			if (providerWin && !providerWin.isDestroyed()) {
+				if (providerWin.isMinimized()) {
+					providerWin.restore();
+				}
+				providerWin.focus();
+				return;
+			}
+			const iconPath = join(this.environmentMainService.appRoot, 'public', 'dardcor-code.png');
+			providerWin = new BrowserWindow({
+				width: 1200,
+				height: 800,
+				title: 'Dardcor Code Provider',
+				icon: iconPath,
+				backgroundColor: '#000000',
+				autoHideMenuBar: true,
+				webPreferences: {
+					nodeIntegration: false,
+					contextIsolation: true
+				}
+			});
+			const tryLoad = () => {
+				if (providerWin && !providerWin.isDestroyed()) {
+					providerWin.loadURL('http://localhost:25000/dashboard').catch(() => {
+						setTimeout(tryLoad, 1000);
+					});
+				}
+			};
+			tryLoad();
+			providerWin.webContents.on('did-fail-load', () => {
+				setTimeout(tryLoad, 1000);
+			});
+			providerWin.on('closed', () => {
+				providerWin = null;
+			});
+		});
 
 		validatedIpcMain.on('vscode:reloadWindow', event => event.sender.reload());
 

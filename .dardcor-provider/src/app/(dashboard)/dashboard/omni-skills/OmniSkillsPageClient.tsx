@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Card } from "@/shared/components";
 import { SkillsConceptCard } from "@/shared/components";
 import type { SkillsProvider } from "@/lib/skills/providerSettings";
-import { DardcorSkillsList } from "./components/DardcorSkillsList";
+import { DardcorSkillsList } from "./components/OmniSkillsList";
 import { OmniExecutionsTab } from "./components/OmniExecutionsTab";
 import { OmniSandboxTab } from "./components/OmniSandboxTab";
 import { OmniMarketplaceTab } from "./components/OmniMarketplaceTab";

@@ -7,7 +7,6 @@ import '../../../browser/media/sidebarActionButton.css';
 import './media/accountWidget.css';
 import './media/accountTitleBarWidget.css';
 import '../../../../workbench/contrib/chat/browser/chatStatus/media/chatStatus.css';
-import Severity from '../../../../base/common/severity.js';
 import { Disposable, DisposableStore, MutableDisposable, toDisposable } from '../../../../base/common/lifecycle.js';
 import { IObservable, runOnChange } from '../../../../base/common/observable.js';
 import { localize, localize2 } from '../../../../nls.js';
@@ -15,7 +14,7 @@ import { Action2, MenuRegistry, registerAction2, IMenuService } from '../../../.
 import { ContextKeyExpr, IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IDefaultAccountService } from '../../../../platform/defaultAccount/common/defaultAccount.js';
-import { IInstantiationService, ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
+import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../../workbench/common/contributions.js';
 import { appendUpdateMenuItems as registerUpdateMenuItems } from '../../../../workbench/contrib/update/browser/update.js';
 import { Menus } from '../../../browser/menus.js';
@@ -28,7 +27,6 @@ import { BaseActionViewItem, IBaseActionViewItemOptions } from '../../../../base
 import { Action, IAction, Separator } from '../../../../base/common/actions.js';
 import { Codicon } from '../../../../base/common/codicons.js';
 import { IHoverService } from '../../../../platform/hover/browser/hover.js';
-import { IDialogService } from '../../../../platform/dialogs/common/dialogs.js';
 import { registerUpdateTitleBarMenuPlacement } from '../../../../workbench/contrib/update/browser/updateTitleBarEntry.js';
 import { ChatEntitlement, ChatEntitlementService, getChatPlanName, IChatEntitlementService } from '../../../../workbench/services/chat/common/chatEntitlementService.js';
 import { ChatStatusDashboard, IChatStatusDashboardOptions } from '../../../../workbench/contrib/chat/browser/chatStatus/chatStatusDashboard.js';
@@ -39,8 +37,6 @@ import { ISessionsManagementService } from '../../../services/sessions/common/se
 import { observeUsableWithoutGitHub } from '../../../browser/sessionsAuthGate.js';
 import { IsPhoneLayoutContext, SessionsWelcomeVisibleContext } from '../../../common/contextkeys.js';
 import { IsAuxiliaryWindowContext } from '../../../../workbench/common/contextkeys.js';
-import { IAuthenticationAccessService } from '../../../../workbench/services/authentication/browser/authenticationAccessService.js';
-import { IAuthenticationUsageService } from '../../../../workbench/services/authentication/browser/authenticationUsageService.js';
 import { IAuthenticationService } from '../../../../workbench/services/authentication/common/authentication.js';
 import { IChatDashboardService } from '../../../browser/chatDashboardService.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
@@ -54,7 +50,6 @@ import { fromNow, safeIntl } from '../../../../base/common/date.js';
 import { language } from '../../../../base/common/platform.js';
 import { AgentHostCodexAgentEnabledSettingId } from '../../../../platform/agentHost/common/agentService.js';
 import { ChatAIDisabledSettingId } from '../../../../platform/chat/common/chatSettings.js';
-import { CHAT_SETUP_ACTION_ID } from '../../../../workbench/contrib/chat/browser/actions/chatActions.js';
 
 // --- Account Menu Items --- //
 const AccountMenu = Menus.AccountMenu;
@@ -78,72 +73,7 @@ registerUpdateTitleBarMenuPlacement(Menus.TitleBarUpdate, {
 	when: ContextKeyExpr.and(IsAuxiliaryWindowContext.toNegated(), SessionsWelcomeVisibleContext.toNegated()),
 });
 
-// Sign In (shown when signed out)
-registerAction2(class extends Action2 {
-	constructor() {
-		super({
-			id: 'workbench.action.agenticSignIn',
-			title: localize2('signIn', "Sign in to use GitHub Copilot"),
-			icon: Codicon.signIn,
-			menu: {
-				id: AccountMenu,
-				when: ContextKeyExpr.notEquals('defaultAccountStatus', 'available'),
-				group: '1_account',
-				order: 1,
-			}
-		});
-	}
-	async run(accessor: ServicesAccessor): Promise<void> {
-		await accessor.get(ICommandService).executeCommand(CHAT_SETUP_ACTION_ID);
-	}
-});
-
-// Sign Out (shown when signed in)
-registerAction2(class extends Action2 {
-	constructor() {
-		super({
-			id: 'workbench.action.agenticSignOut',
-			title: localize2('signOut', 'Sign Out'),
-			icon: Codicon.signOut,
-			menu: {
-				id: AccountMenu,
-				when: ContextKeyExpr.equals('defaultAccountStatus', 'available'),
-				group: '1_account',
-				order: 1,
-			}
-		});
-	}
-	async run(accessor: ServicesAccessor): Promise<void> {
-		const defaultAccountService = accessor.get(IDefaultAccountService);
-		const dialogService = accessor.get(IDialogService);
-		const authenticationService = accessor.get(IAuthenticationService);
-		const authenticationUsageService = accessor.get(IAuthenticationUsageService);
-		const authenticationAccessService = accessor.get(IAuthenticationAccessService);
-		const defaultAccount = await defaultAccountService.getDefaultAccount();
-		if (!defaultAccount) {
-			return;
-		}
-
-		const providerId = defaultAccount.authenticationProvider.id;
-		const accountLabel = defaultAccount.accountName;
-		const { confirmed } = await dialogService.confirm({
-			type: Severity.Info,
-			message: localize('agenticSignOutMessage', "Sign out of the Agents window?"),
-			detail: localize('agenticSignOutDetail', "This will sign out '{0}' from the Agents window.", accountLabel),
-			primaryButton: localize({ key: 'agenticSignOutButton', comment: ['&& denotes a mnemonic'] }, "&&Sign Out")
-		});
-
-		if (!confirmed) {
-			return;
-		}
-
-		const allSessions = await authenticationService.getSessions(providerId);
-		const sessions = allSessions.filter(session => session.account.label === accountLabel);
-		await Promise.all(sessions.map(session => authenticationService.removeSession(providerId, session.id)));
-		authenticationUsageService.removeAccountUsage(providerId, accountLabel);
-		authenticationAccessService.removeAllowedExtensions(providerId, accountLabel);
-	}
-});
+// Dardcor Code: No Sign In / Sign Out actions in AccountMenu
 
 // Settings (hidden on phone — no settings UI on mobile)
 MenuRegistry.appendMenuItem(AccountMenu, {
@@ -528,20 +458,6 @@ class TitleBarAccountWidget extends BaseActionViewItem {
 				copilotActionBar.push(partitioned.signOut, { icon: true, label: false });
 			}
 			this.appendCopilotUsage(copilotAccount, panelStore);
-		} else if (partitioned.signIn) {
-			const copilotAccount = append(identities, $('section.sessions-account-titlebar-panel-provider-account.signed-out', {
-				'aria-label': localize('copilotAccountSectionLabel', "Copilot account")
-			}));
-			const copilotIdentity = append(copilotAccount, $('.sessions-account-titlebar-panel-provider-identity'));
-			const accountIcon = append(copilotIdentity, $('span.sessions-account-titlebar-panel-provider-icon', { 'aria-hidden': 'true' }));
-			accountIcon.classList.add(...ThemeIcon.asClassNameArray(Codicon.github));
-			const signInActions = append(copilotIdentity, $('.sessions-account-titlebar-panel-provider-sign-in-actions'));
-			const signInActionBar = panelStore.add(new ActionBar(signInActions));
-			panelStore.add(signInActionBar.onWillRun(() => {
-				this.hoverService.hideHover(true);
-				this.clickPanelDisposable.clear();
-			}));
-			signInActionBar.push(partitioned.signIn, { icon: false, label: true });
 		}
 
 		if (hasSignedInCodexChatGPTAccount(codexAccount, codexAccountVisible)) {

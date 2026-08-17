@@ -19,7 +19,7 @@
     "url": "https://github.com/microsoft/vscode/issues"
   },
   "qna": "https://github.com/github-community/community/discussions/categories/copilot",
-  "icon": "assets/copilot.png",
+  "icon": "assets/dardcor-code.png",
   "pricing": "Trial",
   "engines": {
     "vscode": "^1.132.0",
@@ -1732,7 +1732,7 @@
     "languageModelChatProviders": [
       {
         "vendor": "copilot",
-        "displayName": "Copilot"
+        "displayName": "Dardcor Code"
       },
       {
         "vendor": "copilotcli",

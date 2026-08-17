@@ -7,11 +7,8 @@ import { Disposable } from '../../../../../base/common/lifecycle.js';
 import { localize } from '../../../../../nls.js';
 import { IWorkbenchContribution } from '../../../../common/contributions.js';
 import { IStatusbarEntry, IStatusbarEntryAccessor, IStatusbarService, StatusbarAlignment } from '../../../../services/statusbar/browser/statusbar.js';
-import { Action2, registerAction2 } from '../../../../../platform/actions/common/actions.js';
+import { registerAction2, Action2 } from '../../../../../platform/actions/common/actions.js';
 import { ServicesAccessor } from '../../../../../platform/instantiation/common/instantiation.js';
-import { IWebviewWorkbenchService } from '../../../webviewPanel/browser/webviewWorkbenchService.js';
-import { ACTIVE_GROUP } from '../../../../services/editor/common/editorService.js';
-import { Codicon } from '../../../../../base/common/codicons.js';
 
 registerAction2(class extends Action2 {
 	constructor() {
@@ -20,45 +17,9 @@ registerAction2(class extends Action2 {
 			title: { value: localize('openDardcorModel', "Open Dardcor Model"), original: 'Open Dardcor Model' }
 		});
 	}
-	async run(accessor: ServicesAccessor) {
-		const webviewWorkbenchService = accessor.get(IWebviewWorkbenchService);
-		
-		const title = 'Dardcor Provider';
-		const webview = webviewWorkbenchService.openWebview(
-			{
-				title,
-				options: {
-					enableFindWidget: true,
-					disableServiceWorker: true
-				},
-				contentOptions: {
-					allowScripts: true,
-					localResourceRoots: []
-				},
-				extension: undefined
-			},
-			'dardcorProvider',
-			title,
-			Codicon.hubot,
-			{ group: ACTIVE_GROUP, preserveFocus: false }
-		);
-
-		const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dardcor Provider</title>
-    <style>
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background-color: #000000; }
-        iframe { width: 100%; height: 100%; border: none; }
-    </style>
-</head>
-<body>
-    <iframe src="http://localhost:25000" allow="clipboard-read; clipboard-write"></iframe>
-</body>
-</html>`;
-		webview.webview.setHtml(html);
+	async run(_accessor: ServicesAccessor) {
+		const { ipcRenderer } = await import('../../../../../base/parts/sandbox/electron-browser/globals.js');
+		ipcRenderer.send('vscode:openProviderWindow');
 	}
 });
 

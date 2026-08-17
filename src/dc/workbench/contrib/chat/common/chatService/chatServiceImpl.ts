@@ -7,7 +7,7 @@ import { DeferredPromise, raceCancellationError, raceTimeout } from '../../../..
 import { CancellationToken, CancellationTokenSource } from '../../../../../base/common/cancellation.js';
 import { IStringDictionary } from '../../../../../base/common/collections.js';
 import { toErrorMessage } from '../../../../../base/common/errorMessage.js';
-import { BugIndicatingError, ErrorNoTelemetry } from '../../../../../base/common/errors.js';
+import { BugIndicatingError } from '../../../../../base/common/errors.js';
 import { Emitter, Event } from '../../../../../base/common/event.js';
 import { MarkdownString } from '../../../../../base/common/htmlContent.js';
 import { Iterable } from '../../../../../base/common/iterator.js';
@@ -568,7 +568,8 @@ export class ChatService extends Disposable implements IChatService {
 
 		const defaultAgentData = this.chatAgentService.getContributedDefaultAgent(location) ?? this.chatAgentService.getContributedDefaultAgent(ChatAgentLocation.Chat);
 		if (!defaultAgentData) {
-			throw new ErrorNoTelemetry('No default agent contributed');
+			this.logService.trace('No default agent contributed for location', location);
+			return;
 		}
 
 		// Await activation of the extension provided agent
@@ -582,9 +583,14 @@ export class ChatService extends Disposable implements IChatService {
 			});
 		}
 
-		const defaultAgent = this.chatAgentService.getActivatedAgents().find(agent => agent.id === defaultAgentData.id);
+		let defaultAgent = this.chatAgentService.getActivatedAgents().find(agent => agent.id === defaultAgentData.id);
 		if (!defaultAgent) {
-			throw new ErrorNoTelemetry('No default agent registered');
+			await raceTimeout(Event.toPromise(this.chatAgentService.onDidChangeAgents), 2000);
+			defaultAgent = this.chatAgentService.getActivatedAgents().find(agent => agent.id === defaultAgentData.id);
+		}
+		if (!defaultAgent) {
+			this.logService.trace('No default agent registered yet for', defaultAgentData.id);
+			return;
 		}
 	}
 

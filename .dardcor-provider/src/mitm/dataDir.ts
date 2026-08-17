@@ -1,7 +1,7 @@
 import os from "os";
 import path from "path";
 
-const APP_NAME = "dardcorCode";
+const APP_NAME = "Dardcor-Code";
 
 function fallbackHomeDir(): string {
   const envHome = process.env.HOME || process.env.USERPROFILE;
@@ -37,5 +37,5 @@ export function resolveMitmDataDir(): string {
     return path.join(xdgConfigHome, APP_NAME);
   }
 
-  return path.join(homeDir, `.${APP_NAME}`);
+  return path.join(homeDir, `.${APP_NAME.toLowerCase()}`);
 }

@@ -26,7 +26,7 @@ import { CountTokensCallback, ILanguageModelToolsService, IPreparedToolInvocatio
 import { IChatAgentImplementation, IChatAgentRequest, IChatAgentResult, IChatAgentService } from '../../common/participants/chatAgents.js';
 import { ChatEntitlementContext, chatRequiresSetup, IChatEntitlementService } from '../../../../services/chat/common/chatEntitlementService.js';
 import { ChatModel, ChatRequestModel, IChatRequestModel, IChatRequestVariableData } from '../../common/model/chatModel.js';
-import { ChatMode } from '../../common/chatModes.js';
+
 import { ChatRequestAgentPart, ChatRequestToolPart } from '../../common/requestParser/chatParserTypes.js';
 import { IChatProgress, IChatService } from '../../common/chatService/chatService.js';
 import { IChatRequestToolEntry } from '../../common/attachments/chatVariableEntries.js';
@@ -72,42 +72,11 @@ const ToolsAgentContextKey = ContextKeyExpr.and(
 
 export class SetupAgent extends Disposable implements IChatAgentImplementation {
 
-	static registerDefaultAgents(instantiationService: IInstantiationService, location: ChatAgentLocation, mode: ChatModeKind, context: ChatEntitlementContext, controller: Lazy<ChatSetupController>): { agent: SetupAgent; disposable: IDisposable } {
+	static registerDefaultAgents(instantiationService: IInstantiationService, location: ChatAgentLocation, mode: ChatModeKind, context: ChatEntitlementContext, controller: Lazy<ChatSetupController>): { agent: SetupAgent | undefined; disposable: IDisposable } {
 		return instantiationService.invokeFunction(accessor => {
-			const chatAgentService = accessor.get(IChatAgentService);
-
-			let description;
-			if (mode === ChatModeKind.Ask) {
-				description = ChatMode.Ask.description.get();
-			} else if (mode === ChatModeKind.Edit) {
-				description = ChatMode.Edit.description.get();
-			} else {
-				description = ChatMode.Agent.description.get();
-			}
-
-			let id: string;
-			switch (location) {
-				case ChatAgentLocation.Chat:
-					if (mode === ChatModeKind.Ask) {
-						id = 'setup.chat';
-					} else if (mode === ChatModeKind.Edit) {
-						id = 'setup.edits';
-					} else {
-						id = 'setup.agent';
-					}
-					break;
-				case ChatAgentLocation.Terminal:
-					id = 'setup.terminal';
-					break;
-				case ChatAgentLocation.EditorInline:
-					id = 'setup.editor';
-					break;
-				case ChatAgentLocation.Notebook:
-					id = 'setup.notebook';
-					break;
-			}
-
-			return SetupAgent.doRegisterAgent(instantiationService, chatAgentService, id, `${defaultChat.provider.default.name} Copilot` /* Do NOT change, this hides the username altogether in Chat */, true, description, location, mode, context, controller);
+			// Bypassed for Dardcor Code: Do not register the SetupAgent as the default agent
+			// so it does not intercept and block the chat UI waiting for Copilot.
+			return { agent: undefined, disposable: new DisposableStore() };
 		});
 	}
 
@@ -395,9 +364,9 @@ export class SetupAgent extends Disposable implements IChatAgentImplementation {
 				if (ready === 'timedout') {
 					let warningMessage: string;
 					if (this.chatEntitlementService.anonymous) {
-						warningMessage = localize('chatTookLongWarningAnonymous', "Chat took too long to get ready. Please ensure that the extension `{0}` is installed and enabled. Click restart to try again if this issue persists.", defaultChat.chatExtensionId);
+						warningMessage = localize('chatTookLongWarningAnonymous', "Chat took too long to get ready. Please ensure Dardcor Code is running. All your data is full local. Click restart to try again if this issue persists.", defaultChat.chatExtensionId);
 					} else {
-						warningMessage = localize('chatTookLongWarning', "Chat took too long to get ready. Please ensure you are signed in to {0} and that the extension `{1}` is installed and enabled. Click restart to try again if this issue persists.", defaultChat.provider.default.name, defaultChat.chatExtensionId);
+						warningMessage = localize('chatTookLongWarning', "Chat took too long to get ready. Please ensure Dardcor Code is running. All your data is full local. Click restart to try again if this issue persists.", defaultChat.provider.default.name, defaultChat.chatExtensionId);
 					}
 
 					const diagnosticInfo = this.computeDiagnosticInfo(agentActivated, agentReady, languageModelReady, toolsModelReady, requestModel, languageModelsService, chatAgentService, modeInfo);

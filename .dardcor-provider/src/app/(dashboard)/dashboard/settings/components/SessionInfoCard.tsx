@@ -143,11 +143,6 @@ export default function SessionInfoCard() {
         <Button variant="secondary" onClick={handleClearStorage}>
           {t("clearLocalData")}
         </Button>
-        {session?.authenticated && (
-          <Button variant="danger" onClick={handleLogout}>
-            {t("logout")}
-          </Button>
-        )}
       </div>
     </Card>
   );

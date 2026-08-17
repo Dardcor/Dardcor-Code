@@ -93,13 +93,22 @@ export function isOriginAllowed(
   env: NodeJS.ProcessEnv = process.env,
   options: { allowedOrigins?: Set<string>; allowedHosts?: Set<string> } = {}
 ): boolean {
-  const allowedOrigins = options.allowedOrigins ?? buildAllowedOrigins(env);
-  const allowedHosts = options.allowedHosts ?? buildAllowedHosts(env);
-
   if (!origin) {
     const host = env.LIVE_WS_HOST || DEFAULT_HOST;
     return host === "127.0.0.1" || host === "::1" || host === "localhost";
   }
+
+  const parsed = originHost(origin);
+  if (parsed) {
+    const hn = parsed.hostname.toLowerCase();
+    if (hn === "localhost" || hn === "127.0.0.1" || hn === "::1" || hn === "[::1]") {
+      return true;
+    }
+  }
+
+  const allowedOrigins = options.allowedOrigins ?? buildAllowedOrigins(env);
+  const allowedHosts = options.allowedHosts ?? buildAllowedHosts(env);
+
   if (allowedOrigins.has(origin)) return true;
   if (originHostMatches(origin, allowedHosts)) return true;
   return false;

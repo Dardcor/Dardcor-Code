@@ -12,10 +12,8 @@ import {
   toggleExpandedSection,
 } from "@/shared/utils/sidebarExpansionState";
 import { APP_CONFIG } from "@/shared/constants/appConfig";
-import DardcorCodeLogo from "./DardcorCodeLogo";
 import Button from "./Button";
 import Input from "./Input";
-import { ConfirmModal } from "./Modal";
 import CloudSyncStatus from "./CloudSyncStatus";
 import { useTranslations } from "next-intl";
 import {
@@ -92,10 +90,6 @@ export default function Sidebar({
   const t = useTranslations("sidebar");
   const tc = useTranslations("common");
   const sidebarRef = useRef<HTMLElement>(null);
-  const [showShutdownModal, setShowShutdownModal] = useState(false);
-  const [showRestartModal, setShowRestartModal] = useState(false);
-  const [isShuttingDown, setIsShuttingDown] = useState(false);
-  const [isRestarting, setIsRestarting] = useState(false);
   const [isDisconnected, setIsDisconnected] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
   const [hiddenSidebarItems, setHiddenSidebarItems] = useState<string[]>([]);
@@ -345,31 +339,6 @@ export default function Sidebar({
     });
   }, []);
 
-  const handleShutdown = async () => {
-    setIsShuttingDown(true);
-    try {
-      await fetch("/api/shutdown", { method: "POST" });
-    } catch (e) {
-      // Expected to fail as server shuts down
-    }
-    setIsShuttingDown(false);
-    setShowShutdownModal(false);
-    setIsDisconnected(true);
-  };
-
-  const handleRestart = async () => {
-    setIsRestarting(true);
-    try {
-      await fetch("/api/restart", { method: "POST" });
-    } catch (e) {
-      // Expected to fail as server restarts
-    }
-    setIsRestarting(false);
-    setShowRestartModal(false);
-    setIsDisconnected(true);
-    setTimeout(() => globalThis.location.reload(), 3000);
-  };
-
   const handleMouseEnter = useCallback(
     (e: React.MouseEvent<HTMLElement>, id: string, label: string) => {
       if (!collapsed) return;
@@ -510,16 +479,12 @@ export default function Sidebar({
             prefetch={false}
             className={cn("flex items-center", collapsed ? "justify-center" : "gap-2.5")}
           >
-            <div className="flex items-center justify-center size-8 rounded bg-linear-to-br from-[#E54D5E] to-[#C93D4E] shrink-0">
-              {customLogo ? (
-                <img
-                  src={customLogo}
-                  alt={customAppName || APP_CONFIG.name}
-                  className="size-5 object-contain"
-                />
-              ) : (
-                <DardcorCodeLogo size={18} className="text-white" />
-              )}
+            <div className="flex items-center justify-center size-9 rounded-lg overflow-hidden shrink-0">
+              <img
+                src={customLogo || "/dardcor-code.png"}
+                alt={customAppName || APP_CONFIG.name}
+                className="size-full object-contain"
+              />
             </div>
             {!collapsed && (
               <div className="flex flex-col min-w-0">
@@ -665,41 +630,6 @@ export default function Sidebar({
         </nav>
 
         {!isE2EMode && <CloudSyncStatus collapsed={collapsed} />}
-
-        <div
-          className={cn(
-            "shrink-0 border-t border-black/5 dark:border-white/5",
-            collapsed ? "p-2 flex flex-col gap-1" : "p-2 flex gap-2"
-          )}
-          style={{
-            paddingBottom: isMacElectron ? "calc(0.5rem + var(--desktop-safe-bottom))" : undefined,
-          }}
-        >
-          <button
-            onClick={() => setShowRestartModal(true)}
-            title={t("restart")}
-            className={cn(
-              "flex items-center justify-center gap-2 rounded-lg font-medium transition-all",
-              "text-amber-500 hover:bg-amber-500/10 border border-amber-500/20 hover:border-amber-500/40",
-              collapsed ? "p-2" : "flex-1 min-w-0 px-2 py-1.5 text-xs"
-            )}
-          >
-            <span className="material-symbols-outlined text-[16px]">restart_alt</span>
-            {!collapsed && <span className="truncate">{t("restart")}</span>}
-          </button>
-          <button
-            onClick={() => setShowShutdownModal(true)}
-            title={t("shutdown")}
-            className={cn(
-              "flex items-center justify-center gap-2 rounded-lg font-medium transition-all",
-              "text-red-500 hover:bg-red-500/10 border border-red-500/20 hover:border-red-500/40",
-              collapsed ? "p-2" : "flex-1 min-w-0 px-2 py-1.5 text-xs"
-            )}
-          >
-            <span className="material-symbols-outlined text-[16px]">power_settings_new</span>
-            {!collapsed && <span className="truncate">{t("shutdown")}</span>}
-          </button>
-        </div>
       </aside>
 
       {/* Styled tooltip for collapsed (mini) sidebar */}
@@ -714,30 +644,6 @@ export default function Sidebar({
           </div>
         </div>
       )}
-
-      <ConfirmModal
-        isOpen={showShutdownModal}
-        onClose={() => setShowShutdownModal(false)}
-        onConfirm={handleShutdown}
-        title={t("shutdown")}
-        message={t("shutdownConfirm")}
-        confirmText={t("shutdown")}
-        cancelText={tc("cancel")}
-        variant="danger"
-        loading={isShuttingDown}
-      />
-
-      <ConfirmModal
-        isOpen={showRestartModal}
-        onClose={() => setShowRestartModal(false)}
-        onConfirm={handleRestart}
-        title={t("restart")}
-        message={t("restartConfirm")}
-        confirmText={t("restart")}
-        cancelText={tc("cancel")}
-        variant="warning"
-        loading={isRestarting}
-      />
 
       {isDisconnected && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">

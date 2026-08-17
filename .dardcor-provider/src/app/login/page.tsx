@@ -20,43 +20,7 @@ export default function LoginPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const raf = requestAnimationFrame(() => setMounted(true));
-    async function checkAuth() {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
-
-      try {
-        const res = await fetch(`${baseUrl}/api/settings/require-login`, {
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-
-        if (res.ok) {
-          const data = await res.json();
-          if (data.nodeVersion) setNodeVersion(data.nodeVersion);
-          if (data.nodeCompatible === false) setNodeCompatible(false);
-          if (data.authenticated === true || data.requireLogin === false) {
-            router.push("/dashboard");
-            router.refresh();
-            return;
-          }
-          setHasPassword(!!data.hasPassword);
-          setSetupComplete(!!data.setupComplete);
-          setOidcEnabled(!!data.oidcEnabled);
-        } else {
-          setHasPassword(true);
-          setSetupComplete(true);
-          setOidcEnabled(false);
-        }
-      } catch (err) {
-        clearTimeout(timeoutId);
-        setHasPassword(true);
-        setSetupComplete(true);
-        setOidcEnabled(false);
-      }
-    }
-    checkAuth();
+    router.replace("/dashboard");
   }, [router]);
 
   const handleLogin = async (e) => {

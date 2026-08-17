@@ -23,13 +23,13 @@ export const viewport: Viewport = {
 
 export async function generateMetadata() {
   const settings = await getSettings();
-  const instanceName = settings?.instanceName || "DardcorCode";
+  const instanceName = settings?.instanceName || "Dardcor Code";
   const customFaviconUrl = settings?.customFaviconUrl || settings?.customFaviconBase64;
 
   return {
-    title: `${instanceName} — AI Gateway for Multi-Provider LLMs`,
+    title: `${instanceName} — Provider`,
     description:
-      "DardcorCode is an AI gateway for multi-provider LLMs. One endpoint for all your AI providers.",
+      "Dardcor Code Provider for Multi-Provider AI Models.",
     manifest: "/manifest.webmanifest",
     applicationName: instanceName,
     appleWebApp: {
@@ -44,11 +44,10 @@ export async function generateMetadata() {
       icon: customFaviconUrl
         ? "/api/settings/favicon"
         : [
+            { url: "/dardcor-code.png", type: "image/png" },
             { url: "/favicon.ico", sizes: "any" },
-            { url: "/favicon.svg", type: "image/svg+xml" },
-            { url: "/icon-512.png", type: "image/png", sizes: "512x512" },
           ],
-      apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+      apple: [{ url: "/dardcor-code.png", sizes: "180x180", type: "image/png" }],
     },
   };
 }

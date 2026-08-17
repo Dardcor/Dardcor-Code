@@ -185,17 +185,8 @@ export interface IChatSetupRequirement {
  * intentionally satisfy the entitlement-based checks so those flows keep working.
  */
 export function chatRequiresSetup(context: IChatSetupRequirement): boolean {
-	return (
-		(!context.completed && !context.hasByokModels) ||			// Setup not completed (unless BYOK models are available)
-		context.disabled ||											// Extension disabled: run setup to enable
-		context.untrusted ||										// Workspace untrusted: run setup to ask for trust
-		context.entitlement === ChatEntitlement.Available ||		// Entitlement available: run setup to sign up
-		(
-			context.entitlement === ChatEntitlement.Unknown &&		// Entitlement unknown: run setup to sign in / sign up
-			!context.anonymous &&									// unless anonymous access is enabled
-			!context.hasByokModels									// unless BYOK models are available
-		)
-	);
+	// Bypassed for Dardcor Code: Never require setup so the local provider can work without GitHub authentication blocking it
+	return false;
 }
 
 export interface IChatEntitlementService {
@@ -687,7 +678,7 @@ export class ChatEntitlementService extends Disposable implements IChatEntitleme
 
 	get sentiment(): IChatSentiment {
 		return {
-			completed: this.contextKeyService.getContextKeyValue<boolean>(ChatEntitlementContextKeys.Setup.completed.key) === true,
+			completed: true,
 			installed: this.contextKeyService.getContextKeyValue<boolean>(ChatEntitlementContextKeys.Setup.installed.key) === true,
 			hidden: this.contextKeyService.getContextKeyValue<boolean>(ChatEntitlementContextKeys.Setup.hidden.key) === true,
 			disabledInWorkspace: this.contextKeyService.getContextKeyValue<boolean>(ChatEntitlementContextKeys.Setup.disabledInWorkspace.key) === true,
@@ -1500,7 +1491,7 @@ export class ChatEntitlementContext extends Disposable {
 		this.isInternalContextKey.set(Boolean(state.organisations?.some(org => org === 'github' || org === 'microsoft' || org === 'ms-copilot' || org === 'MicrosoftCopilot')));
 		this.skuContextKey.set(state.sku);
 
-		this.completedContext.set(!!state.completed);
+		this.completedContext.set(true);
 		this.hiddenContext.set(!!state.hidden);
 		this.disabledInWorkspaceContext.set(!!state.disabledInWorkspace);
 		this.laterContext.set(!!state.later);

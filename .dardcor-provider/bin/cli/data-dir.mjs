@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const APP_NAME = "omniroute";
+const APP_NAME = "Dardcor-Code";
 
 function normalizeConfiguredPath(value) {
   if (typeof value !== "string") return null;
@@ -19,7 +19,7 @@ function safeHomeDir() {
 }
 
 export function getLegacyDotDataDir(homeDir = safeHomeDir()) {
-  return path.join(homeDir, `.${APP_NAME}`);
+  return path.join(homeDir, `.${APP_NAME.toLowerCase()}`);
 }
 
 export function getDefaultDataDir() {
@@ -31,9 +31,7 @@ export function getDefaultDataDir() {
       if (fs.statSync(legacyDir).isDirectory()) {
         return legacyDir;
       }
-    } catch {
-      // Ignore stat errors and continue to the platform default.
-    }
+    } catch {}
   }
 
   if (process.platform === "win32") {

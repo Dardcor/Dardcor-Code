@@ -937,8 +937,22 @@ function clearDbHealthCheckScheduler() {
   }
 }
 
+let jsonSyncTimer: NodeJS.Timeout | null = null;
+
+function startJsonSyncScheduler(db: SqliteDatabase) {
+  if (jsonSyncTimer) clearInterval(jsonSyncTimer);
+  if (isCloud || isBuildPhase || isAutomatedTestProcess()) return;
+  jsonSyncTimer = setInterval(() => {
+    try {
+      if (db.open) saveDbToJsonFile(db);
+    } catch {}
+  }, 10_000);
+  jsonSyncTimer.unref?.();
+}
+
 function startDbHealthCheckScheduler(db: SqliteDatabase) {
   clearDbHealthCheckScheduler();
+  startJsonSyncScheduler(db);
   if (isCloud || isBuildPhase || isAutomatedTestProcess()) return;
 
   const intervalMs = getDbHealthCheckIntervalMs();
@@ -1285,6 +1299,7 @@ export function getDbInstance(): SqliteDatabase {
   }
 
   startDbHealthCheckScheduler(db);
+  saveDbToJsonFile(db);
   // Log the resolved absolute DATA_DIR + SQLITE_FILE once at init so a
   // multi-replica / Docker volume-topology mismatch (each replica opening a
   // different on-disk DB → "phantom"/missing combos & connections) is
@@ -1318,6 +1333,7 @@ export function closeDbInstance(options?: { checkpointMode?: CheckpointMode | nu
   const checkpointMode = options?.checkpointMode ?? "TRUNCATE";
 
   try {
+    saveDbToJsonFile(db);
     if (checkpointMode) {
       try {
         if (checkpointDb(db, checkpointMode)) {
@@ -1578,22 +1594,86 @@ function migrateFromJson(db: SqliteDatabase, jsonPath: string) {
     });
 
     migrate();
+    console.log(`[DB] ✓ Synced from db.json.`);
+  } catch (err: any) {
+    console.error("[DB] Sync from db.json failed:", err?.message || String(err));
+  }
+}
 
-    const migratedPath = jsonPath + ".migrated";
-    fs.renameSync(jsonPath, migratedPath);
-    console.log(`[DB] ✓ Migration complete. Original saved as ${migratedPath}`);
+export function exportDbToJson(db: SqliteDatabase = getDbInstance()): Record<string, unknown> {
+  const result: Record<string, unknown> = {
+    providerConnections: [],
+    providerNodes: [],
+    combos: [],
+    apiKeys: [],
+    settings: {},
+    modelAliases: {},
+    mitmAlias: {},
+    pricing: {},
+    customModels: {},
+    proxyConfig: { global: null, providers: {}, combos: {}, keys: {} },
+    usageHistory: [],
+    domainCostHistory: [],
+    domainBudgets: [],
+  };
 
-    const legacyBackupDir = path.join(DATA_DIR, "db_backups");
-    if (fs.existsSync(legacyBackupDir)) {
-      const jsonBackups = fs.readdirSync(legacyBackupDir).filter((f) => f.endsWith(".json"));
-      if (jsonBackups.length > 0) {
-        console.log(
-          `[DB] Note: ${jsonBackups.length} legacy .json backups remain in ${legacyBackupDir}`
-        );
+  try {
+    if (hasTable(db, "provider_connections")) {
+      result.providerConnections = (
+        (db.prepare("SELECT * FROM provider_connections").all() as JsonRecord[]) || []
+      ).map(rowToCamel);
+    }
+    if (hasTable(db, "provider_nodes")) {
+      result.providerNodes = (
+        (db.prepare("SELECT * FROM provider_nodes").all() as JsonRecord[]) || []
+      ).map(rowToCamel);
+    }
+    if (hasTable(db, "combos")) {
+      result.combos = (
+        (db.prepare("SELECT * FROM combos").all() as JsonRecord[]) || []
+      ).map(rowToCamel);
+    }
+    if (hasTable(db, "api_keys")) {
+      result.apiKeys = (
+        (db.prepare("SELECT * FROM api_keys").all() as JsonRecord[]) || []
+      ).map(rowToCamel);
+    }
+    if (hasTable(db, "key_value")) {
+      const kvRows = (db.prepare("SELECT namespace, key, value FROM key_value").all() as {
+        namespace: string;
+        key: string;
+        value: string;
+      }[]) || [];
+      for (const row of kvRows) {
+        try {
+          const val = JSON.parse(row.value);
+          if (row.namespace === "settings") (result.settings as any)[row.key] = val;
+          else if (row.namespace === "modelAliases") (result.modelAliases as any)[row.key] = val;
+          else if (row.namespace === "mitmAlias") (result.mitmAlias as any)[row.key] = val;
+          else if (row.namespace === "pricing") (result.pricing as any)[row.key] = val;
+          else if (row.namespace === "customModels") (result.customModels as any)[row.key] = val;
+          else if (row.namespace === "proxyConfig") (result.proxyConfig as any)[row.key] = val;
+        } catch {
+          if (row.namespace === "settings") (result.settings as any)[row.key] = row.value;
+        }
       }
     }
   } catch (err) {
-    console.error("[DB] Migration from db.json failed:", err.message);
+    console.warn("[DB] JSON export warning:", err);
+  }
+
+  return result;
+}
+
+export function saveDbToJsonFile(db: SqliteDatabase = getDbInstance()): void {
+  if (isCloud || isBuildPhase || !JSON_DB_FILE) return;
+  try {
+    const data = exportDbToJson(db);
+    const tmpPath = JSON_DB_FILE + ".tmp";
+    fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), "utf-8");
+    fs.renameSync(tmpPath, JSON_DB_FILE);
+  } catch (err) {
+    console.warn("[DB] Failed to save db.json:", err);
   }
 }
 

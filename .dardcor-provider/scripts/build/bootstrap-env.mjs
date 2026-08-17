@@ -41,13 +41,13 @@ function resolveDataDir(overridePath, env = process.env) {
 
   if (process.platform === "win32") {
     const appData = env.APPDATA || join(homedir(), "AppData", "Roaming");
-    return join(appData, "omniroute");
+    return join(appData, "Dardcor-Code");
   }
 
   const xdg = env.XDG_CONFIG_HOME?.trim();
-  if (xdg) return join(resolve(xdg), "omniroute");
+  if (xdg) return join(resolve(xdg), "Dardcor-Code");
 
-  return join(homedir(), ".omniroute");
+  return join(homedir(), ".dardcor-code");
 }
 
 function getPreferredEnvFilePath(env = process.env) {

@@ -1,6 +1,6 @@
 {
   "name": "Dardcor Code",
-  "version": "3.8.50",
+  "version": "1.0.0",
   "description": "Unified AI router with 290 providers, RTK+Caveman compression, auto fallback, MCP/A2A, desktop, PWA, and OpenAI-compatible APIs.",
   "type": "module",
   "bin": {
@@ -10,7 +10,7 @@
   "files": [
     "bin/",
     "dist/",
-    "@dardcorCode/",
+    "@dardcor-code/",
     "open-sse/",
     "src/domain/",
     "src/lib/",

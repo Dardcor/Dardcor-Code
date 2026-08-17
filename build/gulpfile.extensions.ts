@@ -61,7 +61,6 @@ const compilations = [
 	'extensions/git/tsconfig.json',
 	'extensions/git-base/tsconfig.json',
 	'extensions/github/tsconfig.json',
-	'extensions/github-authentication/tsconfig.json',
 	'extensions/grunt/tsconfig.json',
 	'extensions/gulp/tsconfig.json',
 	'extensions/html-language-features/client/tsconfig.json',
@@ -76,7 +75,6 @@ const compilations = [
 	'extensions/merge-conflict/tsconfig.json',
 	'extensions/mermaid-markdown-features/tsconfig.json',
 	'extensions/terminal-suggest/tsconfig.json',
-	'extensions/microsoft-authentication/tsconfig.json',
 	'extensions/notebook-renderers/tsconfig.json',
 	'extensions/npm/tsconfig.json',
 	'extensions/php-language-features/tsconfig.json',
@@ -168,7 +166,9 @@ const tasks = compilations.map(function (tsconfigFile) {
 
 	const cleanTask = task.define(`clean-extension-${name}`, async () => {
 		await util.rimraf(out)();
-		fs.rmSync(tsBuildInfoFile, { force: true });
+		try {
+			fs.rmSync(tsBuildInfoFile, { force: true });
+		} catch {}
 	});
 
 	const transpileTask = task.define(`transpile-extension:${name}`, task.series(cleanTask, () => {

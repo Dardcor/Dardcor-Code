@@ -1094,8 +1094,12 @@ export class ChatSessionsService extends Disposable implements IChatSessionsServ
 					writer.emitOne({ chatSessionType: resolvedType, items: providerSessions });
 				} catch (err) {
 					if (!isCancellationError(err)) {
-						// Log error but continue with other providers
-						this._logService.error(`[ChatSessionsService] Failed to resolve sessions for provider ${resolvedType}`, err);
+						const errStr = String(err);
+						if (errStr.includes('ERR_CONNECTION_REFUSED') || errStr.includes('ENOTFOUND') || errStr.includes('Failed to fetch')) {
+							this._logService.debug(`[ChatSessionsService] Cloud session provider ${resolvedType} unavailable:`, err);
+						} else {
+							this._logService.error(`[ChatSessionsService] Failed to resolve sessions for provider ${resolvedType}`, err);
+						}
 					}
 				}
 			}));
@@ -1115,8 +1119,12 @@ export class ChatSessionsService extends Disposable implements IChatSessionsServ
 				await controllerEntry.controller.refresh(token);
 			} catch (err) {
 				if (!isCancellationError(err)) {
-					// Log error but continue with other providers
-					this._logService.error(`[ChatSessionsService] Failed to resolve sessions for provider ${resolvedType}`, err);
+					const errStr = String(err);
+					if (errStr.includes('ERR_CONNECTION_REFUSED') || errStr.includes('ENOTFOUND') || errStr.includes('Failed to fetch')) {
+						this._logService.debug(`[ChatSessionsService] Cloud session provider ${resolvedType} unavailable:`, err);
+					} else {
+						this._logService.error(`[ChatSessionsService] Failed to resolve sessions for provider ${resolvedType}`, err);
+					}
 				}
 			}
 		}));

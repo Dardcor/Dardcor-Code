@@ -185,8 +185,7 @@ async function refreshDashboardSessionIfNeeded(
 }
 
 function dashboardLoginRedirect(request: NextRequest, requestId: string): NextResponse {
-  const response = NextResponse.redirect(new URL(`${request.nextUrl.basePath}/login`, request.url));
-  response.cookies.delete("auth_token");
+  const response = NextResponse.redirect(new URL(`${request.nextUrl.basePath}/dashboard`, request.url));
   stampRouteResponse(response, requestId, "MANAGEMENT");
   applyCorsHeaders(response, request);
   return response;
@@ -259,7 +258,7 @@ export async function runAuthzPipeline(
 
   const requestId = generateRequestId();
 
-  if (pathname === "/") {
+  if (pathname === "/" || pathname === "/login") {
     const response = NextResponse.redirect(
       new URL(`${request.nextUrl.basePath}/dashboard`, request.url)
     );
