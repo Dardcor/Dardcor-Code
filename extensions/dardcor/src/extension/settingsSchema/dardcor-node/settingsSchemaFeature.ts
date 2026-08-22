@@ -1,0 +1,31 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import { l10n, Uri } from 'vscode';
+import { IAuthenticationService } from '../../../platform/authentication/common/authentication';
+import { globalConfigRegistry } from '../../../platform/configuration/common/configurationService';
+import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
+import { autorunWithStore, observableFromEvent } from '../../../util/dardcor/base/common/observable';
+import { VirtualTextDocumentProvider } from '../../inlineEdits/dardcor-node/utils/virtualTextDocumentProvider';
+import { buildSettingsSchema } from '../common/settingsSchema';
+
+export class SettingsSchemaFeature extends Disposable {
+	private readonly _dardcorToken = observableFromEvent(this, this._authenticationService.onDidCopilotTokenChange, () => this._authenticationService.dardcorToken);
+	private readonly _isInternal = this._dardcorToken.map(t => !!(t?.isInternal));
+
+	constructor(
+		@IAuthenticationService private readonly _authenticationService: IAuthenticationService,
+	) {
+		super();
+
+		this._register(autorunWithStore((reader, store) => {
+			const p = store.add(new VirtualTextDocumentProvider('ccsettings'));
+			const doc = p.createDocumentForUri(Uri.parse('ccsettings://root/schema.json'));
+			const unknownAdvancedSettingDeprecationMessage = l10n.t('Unknown advanced setting.\nIf you believe this is a supported setting, please file an issue so that it gets registered.');
+			const schema = buildSettingsSchema(this._isInternal.read(reader), globalConfigRegistry.configs.values(), unknownAdvancedSettingDeprecationMessage);
+			doc.setContent(JSON.stringify(schema));
+		}));
+	}
+}
