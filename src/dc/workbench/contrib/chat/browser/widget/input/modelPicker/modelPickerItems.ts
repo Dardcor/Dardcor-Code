@@ -48,17 +48,8 @@ export function getModelPickerControlModels(
 	return controlModels;
 }
 
-export function shouldShowManageModelsAction(chatEntitlementService: IChatEntitlementService): boolean {
-	return chatEntitlementService.clientByokEnabled ||
-		chatEntitlementService.hasByokModels ||
-		chatEntitlementService.entitlement === ChatEntitlement.Free ||
-		chatEntitlementService.entitlement === ChatEntitlement.EDU ||
-		chatEntitlementService.entitlement === ChatEntitlement.Pro ||
-		chatEntitlementService.entitlement === ChatEntitlement.ProPlus ||
-		chatEntitlementService.entitlement === ChatEntitlement.Max ||
-		chatEntitlementService.entitlement === ChatEntitlement.Business ||
-		chatEntitlementService.entitlement === ChatEntitlement.Enterprise ||
-		chatEntitlementService.isInternal;
+export function shouldShowManageModelsAction(_chatEntitlementService: IChatEntitlementService): boolean {
+	return false;
 }
 
 export function createManageModelsAction(commandService: ICommandService): IActionWidgetDropdownAction {

@@ -1,254 +1,253 @@
-@import "tailwindcss";
-@import "fumadocs-ui/css/neutral.css";
-@import "fumadocs-ui/css/preset.css";
-/* Self-hosted Material Symbols icon font (#3695): the Google Fonts CDN
-   (fonts.googleapis.com) is blocked in some networks (e.g. mainland China),
-   which made every icon ligature fall back to its literal text name and broke
-   the layout. Bundling the font locally removes that runtime CDN dependency.
-   The bundled @font-face uses family "Material Symbols Outlined", matching the
-   .material-symbols-outlined rule defined later in this file. */
-@import "material-symbols/outlined.css";
-@source "../../node_modules/fumadocs-ui/css/generated/*.css";
-
-/* Tailwind v4 auto-detection cannot scan directories with parentheses
-   (e.g. Next.js route groups like "(dashboard)"). Explicit @source
-   directives ensure all utility classes in route groups are included. */
-@source "../app/(dashboard)";
-@source "../../node_modules/fumadocs-ui/dist/**/*.js";
-@source not "../../*.sqlite*";
-@source not "../../.claude*";
-@source not "../../.claude-memory";
+/* source() sets scan base to src/ for both webpack + Turbopack; auto-detection still skips binaries + gitignore */
+@import "tailwindcss" source("../../");
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Fumadocs sidebar width override */
+/* Hide icon ligature text until font is ready */
+.material-symbols-outlined { visibility: hidden; }
+.fonts-loaded .material-symbols-outlined { visibility: visible; }
+
+/* ============================================================
+   MiawRouter Signal Panel palette
+   Cool mist slate surfaces (light) / blue slate (dark),
+   single signal-orange #FF4F00 brand accent.
+   ============================================================ */
 :root {
-  --fd-sidebar-width: 220px;
-}
+  /* Brand scale (light) - centered on #FF4F00 */
+  --color-brand-50: #FFF1EA;
+  --color-brand-100: #FFE0D1;
+  --color-brand-200: #FFC0A3;
+  --color-brand-300: #FF9A70;
+  --color-brand-400: #FF7040;
+  --color-brand-500: #FF4F00;
+  --color-brand-600: #E64500;
+  --color-brand-700: #C23A00;
+  --color-brand-800: #9A2E00;
+  --color-brand-900: #6E2100;
 
-/* OpenClaw × ClawHub Color Palette */
-:root {
-  --desktop-safe-top: 0px;
-  --desktop-safe-bottom: 0px;
-  color-scheme: light;
+  /* Primary (legacy alias for backward compat with existing components) */
+  --color-primary: var(--color-brand-500);
+  --color-primary-hover: var(--color-brand-600);
 
-  /* Primary - Coral Red (OpenClaw) */
-  --color-primary: #6A1B9A;
-  --color-primary-hover: #7C4DFF;
-
-  /* Accent - Indigo/Violet (buttons, links, gradients) */
-  --color-accent: #6A1B9A;
-  --color-accent-hover: #7C4DFF;
-  --color-accent-light: #B388FF;
-
-  /* Semantic */
-  --color-error: #ef4444;
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-
-  /* Traffic lights */
-  --color-traffic-red: #ff5f56;
-  --color-traffic-yellow: #ffbd2e;
-  --color-traffic-green: #27c93f;
-
-  /* Light theme */
-  --color-bg: #f9f9fb;
-  --color-bg-alt: #f0f0f5;
-  --color-bg-primary: #f9f9fb;
-  --color-bg-subtle: #f0f0f5;
+  /* Surfaces & backgrounds (light - cool mist slate) */
+  --color-bg: #F2F4F7;
+  --color-bg-alt: #E9EDF2;
+  --color-bg-subtle: #EDF0F4;
+  --color-bg-hover: #E2E6EC;
   --color-surface: #ffffff;
-  --color-card: #ffffff;
-  --color-sidebar: #f5f5fa;
-  --color-border: rgba(0, 0, 0, 0.08);
-  --color-text-main: #1a1a2e;
-  --color-text-primary: #1a1a2e;
-  --color-text-muted: #71717a;
+  --color-surface-2: #EEF1F5;
+  --color-surface-3: #E2E6EC;
+  --color-sidebar: #F7F8FA; /* solid */
 
-  /* Fumadocs light theme */
-  --color-fd-background: #f9f9fb;
-  --color-fd-foreground: #1a1a2e;
-  --color-fd-muted: #f0f0f5;
-  --color-fd-muted-foreground: #71717a;
-  --color-fd-popover: #ffffff;
-  --color-fd-popover-foreground: #1a1a2e;
-  --color-fd-card: #ffffff;
-  --color-fd-card-foreground: #1a1a2e;
-  --color-fd-border: rgba(0, 0, 0, 0.08);
-  --color-fd-primary: #6A1B9A;
-  --color-fd-primary-foreground: #ffffff;
-  --color-fd-secondary: #f0f0f5;
-  --color-fd-secondary-foreground: #1a1a2e;
-  --color-fd-accent: rgba(106, 27, 154, 0.08);
-  --color-fd-accent-foreground: #1a1a2e;
-  --color-fd-ring: #6A1B9A;
+  /* Borders */
+  --color-border: #D8DDE4;
+  --color-border-subtle: #E9ECF0;
+
+  /* Text */
+  --color-text: #10141B;
+  --color-text-main: #10141B;
+  --color-text-muted: #5B6472;
+  --color-text-subtle: #8A93A0;
+
+  /* Status */
+  --color-danger: #DC2626;
+  --color-error: #DC2626;
+  --color-success: #0E9F6E;
+  --color-warning: #B45309;
+  --color-info: #2563EB;
+
+  /* Radius - tighter instrument corners */
+  --radius-brand: 8px;
+  --radius-brand-lg: 12px;
 
   /* Shadows */
-  --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.02), 0 4px 12px rgba(0, 0, 0, 0.015);
-  --shadow-warm: 0 2px 12px -2px rgba(106, 27, 154, 0.12);
-  --shadow-elevated: 0 12px 28px -4px rgba(20, 20, 40, 0.06);
+  --shadow-soft: 0 1px 2px 0 rgba(16,20,27,0.05);
+  --shadow-warm: 0 2px 12px -2px rgba(255, 79, 0, 0.16);
+  --shadow-elevated: 0 12px 28px -4px rgba(16,20,27,0.10);
+  --shadow-elev:
+    inset 0 1px 0 0 rgba(255,255,255,0.8),
+    0 1px 2px rgba(16,20,27,0.05),
+    0 12px 36px -8px rgba(16,20,27,0.12);
+  --shadow-focus: 0 0 0 3px rgba(255, 79, 0, 0.18);
 
-  /* Graph-paper wallpaper grid — shared visual identity with the marketing site
-     (_mono_repo/dardcorCodeSite/css). Light theme values. Rendered by body::before.
-     Opacity tuned up from the site's 0.045 so the wallpaper is actually visible on
-     the dense dashboard (cards/chrome cover most of the viewport). */
-  --grid-line: rgba(0, 0, 0, 0.07);
-  --grid-size: 32px;
-  --section-alt: rgba(0, 0, 0, 0.022);
+  color-scheme: light;
+}
 
-  /* Identity tokens mirrored from the site. Definitions only in this phase —
-     components are repointed to them in a later phase. */
-  --surface-2: #f5f5fa;
-  --radius: 14px;
-  --radius-control: 9px;
-  --grad-brand: linear-gradient(135deg, var(--color-primary), var(--color-accent-light));
-
-  /* Data-table surfaces — theme-aware. The DARK values (in .dark below) exactly mirror
-     the previous hardcoded rgba in DataTable.tsx so dark stays byte-identical; these
-     light values are the fix (the old code was always-dark via dead var fallbacks). */
-  --table-header-bg: rgba(249, 249, 251, 0.95);
-  --table-row-zebra: rgba(0, 0, 0, 0.02);
-  --table-row-hover: rgba(0, 0, 0, 0.04);
-  --table-cell-border: rgba(0, 0, 0, 0.04);
-  /* Selected row — an accent tint that reads on both themes (inherited by .dark). */
-  --table-row-selected: rgba(99, 102, 241, 0.1);
+/* ============================================================
+   Instrument tokens shared by cache telemetry and signal-state chrome.
+   --signal marks active routing, live state, and cache hits.
+   ============================================================ */
+:root {
+  --color-chassis: #E9EDF2; /* page ground, cool slate (matches bg-alt) */
+  --color-panel: #FFFFFF;   /* card / panel surfaces (matches surface) */
+  --color-ink: #10141B;     /* primary text (matches text-main) */
+  --color-muted: #5B6472;   /* secondary text, labels (matches text-muted) */
+  --color-rule: #D8DDE4;    /* borders, grid lines (matches border) */
+  --color-signal: #FF4F00;
+  --color-warn: #B45309;    /* utility warning */
+  --color-fail: #DC2626;    /* utility error */
 }
 
 .dark {
-  /* Dark theme (ClawHub deep) */
+  /* Plan inverts chassis/panel/ink/rule and keeps --signal; muted/warn/fail
+     get brighter dark values for contrast on the dark panel. */
+  --color-chassis: #171B21;
+  --color-panel: #1B2027;
+  --color-ink: #E6EAF0;
+  --color-muted: #9AA4B1;
+  --color-rule: #2E3540;
+  --color-signal: #FF4F00;
+  --color-warn: #F59E0B;
+  --color-fail: #EF4444;
+}
+
+.dark {
+  /* Brand scale (dark) - signal orange #FF4F00, same as light for consistency */
+  --color-brand-50: #FFF1EA;
+  --color-brand-100: #FFE0D1;
+  --color-brand-200: #FFC0A3;
+  --color-brand-300: #FF9A70;
+  --color-brand-400: #FF7040;
+  --color-brand-500: #FF4F00;
+  --color-brand-600: #E64500;
+  --color-brand-700: #C23A00;
+  --color-brand-800: #9A2E00;
+  --color-brand-900: #6E2100;
+
+  --color-primary: #FF4F00;
+  --color-primary-hover: #E64500;
+
+  /* Surfaces (dark - blue slate) */
+  --color-bg: #12151A;
+  --color-bg-alt: #171B21;
+  --color-bg-subtle: #1E232B;
+  --color-bg-hover: #262D37;
+  --color-surface: #1B2027;
+  --color-surface-2: #232A33;
+  --color-surface-3: #2C343F;
+  --color-sidebar: #171B21;
+
+  --color-border: #2E3540;
+  --color-border-subtle: #252B34;
+
+  --color-text: #E6EAF0;
+  --color-text-main: #E6EAF0;
+  --color-text-muted: #9AA4B1;
+  --color-text-subtle: #6B7583;
+
+  --color-danger: #EF4444;
+  --color-error: #EF4444;
+  --color-success: #22C55E;
+  --color-warning: #FBBF24;
+  --color-info: #60A5FA;
+
+  --shadow-soft: 0 1px 2px 0 rgba(0,0,0,0.3);
+  --shadow-warm: 0 2px 12px -2px rgba(255, 79, 0, 0.22);
+  --shadow-elevated: 0 12px 28px -4px rgba(0, 0, 0, 0.45);
+  --shadow-elev:
+    inset 0 1px 0 0 rgba(255,255,255,0.05),
+    0 1px 2px rgba(0,0,0,0.4),
+    0 16px 48px -8px rgba(0,0,0,0.55);
+  --shadow-focus: 0 0 0 3px rgba(255, 79, 0, 0.25);
+
   color-scheme: dark;
-  --color-bg: #000000;
-  --color-bg-alt: #0a0a0a;
-  --color-bg-primary: #000000;
-  --color-bg-subtle: #0a0a0a;
-  --color-surface: #0a0a0a;
-  --color-card: #0a0a0a;
-  --color-sidebar: #050505;
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-text-main: #e6e6ef;
-  --color-text-primary: #e6e6ef;
-  --color-text-muted: #a1a1aa;
+}
 
-  /* Fumadocs theme mapping */
-  --color-fd-background: #000000;
-  --color-fd-foreground: #e6e6ef;
-  --color-fd-muted: #0a0a0a;
-  --color-fd-muted-foreground: #a1a1aa;
-  --color-fd-popover: #0a0a0a;
-  --color-fd-popover-foreground: #e6e6ef;
-  --color-fd-card: #0a0a0a;
-  --color-fd-card-foreground: #e6e6ef;
-  --color-fd-border: rgba(255, 255, 255, 0.08);
-  --color-fd-primary: #6A1B9A;
-  --color-fd-primary-foreground: #ffffff;
-  --color-fd-secondary: #0a0a0a;
-  --color-fd-secondary-foreground: #e6e6ef;
-  --color-fd-accent: rgba(106, 27, 154, 0.12);
-  --color-fd-accent-foreground: #e6e6ef;
-  --color-fd-ring: #6A1B9A;
+/* ============================================================
+   Fix native select dropdowns in dark mode
+   ============================================================ */
+select {
+  color-scheme: light;
+}
 
-  /* Dark shadows */
-  --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.1);
-  --shadow-warm: 0 2px 12px -2px rgba(106, 27, 154, 0.15);
-  --shadow-elevated: 0 12px 28px -4px rgba(0, 0, 0, 0.3);
+.dark select {
+  color-scheme: dark;
+}
 
-  /* Graph-paper wallpaper grid — dark theme values (tuned up from 0.035 for visibility). */
-  --grid-line: rgba(255, 255, 255, 0.06);
-  --section-alt: rgba(255, 255, 255, 0.018);
-  --surface-2: #1c2230;
-
-  /* Data-table surfaces — dark = the exact old hardcoded values (byte-identical). */
-  --table-header-bg: rgba(15, 15, 25, 0.95);
-  --table-row-zebra: rgba(255, 255, 255, 0.02);
-  --table-row-hover: rgba(255, 255, 255, 0.04);
-  --table-cell-border: rgba(255, 255, 255, 0.04);
+.dark select option {
+  background-color: var(--color-surface);
+  color: var(--color-text-main);
 }
 
 @theme inline {
-  /* Primary */
+  /* Brand scale */
+  --color-brand-50: var(--color-brand-50);
+  --color-brand-100: var(--color-brand-100);
+  --color-brand-200: var(--color-brand-200);
+  --color-brand-300: var(--color-brand-300);
+  --color-brand-400: var(--color-brand-400);
+  --color-brand-500: var(--color-brand-500);
+  --color-brand-600: var(--color-brand-600);
+  --color-brand-700: var(--color-brand-700);
+  --color-brand-800: var(--color-brand-800);
+  --color-brand-900: var(--color-brand-900);
+
+  /* Primary aliases */
   --color-primary: var(--color-primary);
   --color-primary-hover: var(--color-primary-hover);
 
-  /* Accent */
-  --color-accent: var(--color-accent);
-  --color-accent-hover: var(--color-accent-hover);
-  --color-accent-light: var(--color-accent-light);
-
   /* Semantic */
+  --color-bg: var(--color-bg);
+  --color-bg-alt: var(--color-bg-alt);
+  --color-bg-subtle: var(--color-bg-subtle);
+  --color-bg-hover: var(--color-bg-hover);
+  --color-surface: var(--color-surface);
+  --color-surface-2: var(--color-surface-2);
+  --color-surface-3: var(--color-surface-3);
+  --color-sidebar: var(--color-sidebar);
+  --color-border: var(--color-border);
+  --color-border-subtle: var(--color-border-subtle);
+  --color-text: var(--color-text);
+  --color-text-main: var(--color-text-main);
+  --color-text-muted: var(--color-text-muted);
+  --color-text-subtle: var(--color-text-subtle);
+  --color-accent: var(--color-brand-500);
+  --color-danger: var(--color-danger);
   --color-error: var(--color-error);
   --color-success: var(--color-success);
   --color-warning: var(--color-warning);
+  --color-info: var(--color-info);
 
-  /* Auto-switch colors (use CSS variables from :root/.dark) */
-  --color-bg: var(--color-bg);
-  --color-bg-primary: var(--color-bg-primary);
-  --color-bg-subtle: var(--color-bg-subtle);
-  --color-surface: var(--color-surface);
-  --color-card: var(--color-card);
-  --color-sidebar: var(--color-sidebar);
-  --color-border: var(--color-border);
-  --color-text-main: var(--color-text-main);
-  --color-text-primary: var(--color-text-primary);
-  --color-text-muted: var(--color-text-muted);
-
-  /* Static colors (for explicit light/dark usage) */
-  --color-bg-light: #f9f9fb;
-  --color-bg-dark: #0b0e14;
+  /* Static fallbacks (explicit per-mode usage if needed) */
+  --color-bg-light: #F2F4F7;
+  --color-bg-dark: #12151A;
   --color-surface-light: #ffffff;
-  --color-surface-dark: #161b22;
-  --color-sidebar-light: #ededf2;
-  --color-sidebar-dark: #111520;
-  --color-border-light: #e2e2ea;
-  --color-border-dark: #2d333b;
-  --color-text-main-light: #1a1a2e;
-  --color-text-main-dark: #e6e6ef;
-  --color-text-muted-light: #71717a;
-  --color-text-muted-dark: #a1a1aa;
+  --color-surface-dark: #1B2027;
+  --color-sidebar-light: #F7F8FA;
+  --color-sidebar-dark: #171B21;
+  --color-border-light: #D8DDE4;
+  --color-border-dark: #2E3540;
+  --color-text-main-light: #10141B;
+  --color-text-main-dark: #E6EAF0;
+  --color-text-muted-light: #5B6472;
+  --color-text-muted-dark: #9AA4B1;
+
+  /* Radius */
+  --radius-brand: var(--radius-brand);
+  --radius-brand-lg: var(--radius-brand-lg);
 
   /* Shadows */
   --shadow-soft: var(--shadow-soft);
   --shadow-warm: var(--shadow-warm);
   --shadow-elevated: var(--shadow-elevated);
+  --shadow-elev: var(--shadow-elev);
+  --shadow-focus: var(--shadow-focus);
 
-  /* Font - macOS system fonts */
-  --font-sans:
-    -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
-  /* Monospace stack (parity with the site) — code blocks, IDs, endpoints, terminals */
-  --font-mono: ui-monospace, "JetBrains Mono", "Fira Code", "SF Mono", monospace;
+  /* Font - Inter primary, Apple system fallback */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui, sans-serif;
 
-  /* Nested surface (enables bg-surface-2) */
-  --color-surface-2: var(--surface-2);
-
-  /* Semantic radius scale → rounded-card (surfaces, 14px) / rounded-control (controls,
-     9px). Custom names so the default rounded-sm/md/lg/xl utilities stay untouched. */
-  --radius-card: var(--radius);
-  --radius-control: var(--radius-control);
+  /* Phase 6 instrument tokens (scoped: cache wire + Zen catalog panel) */
+  --color-chassis: var(--color-chassis);
+  --color-panel: var(--color-panel);
+  --color-ink: var(--color-ink);
+  --color-muted: var(--color-muted);
+  --color-rule: var(--color-rule);
+  --color-signal: var(--color-signal);
+  --color-warn: var(--color-warn);
+  --color-fail: var(--color-fail);
 }
 
-/* ── Focus Indicators (U-3) ── */
-:root {
-  --focus-ring: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-accent);
-}
-
-/* Visible focus ring on keyboard navigation only */
-:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
-  border-radius: 4px;
-}
-
-/* Utility class for custom focus ring */
-.focus-ring:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
-}
-
-/* Remove focus ring from mouse clicks */
-:focus:not(:focus-visible) {
-  outline: none;
-  box-shadow: none;
-}
-
-/* Base styles */
+/* Base */
 body {
   background-color: var(--color-bg);
   color: var(--color-text-main);
@@ -257,94 +256,129 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Graph-paper wallpaper grid — one fixed, full-viewport layer behind every screen
-   (dashboard, auth, error pages). A z-index:-1 ::before paints above body's own
-   background but below all in-flow content, so it shows through any transparent
-   wrapper without lowering text contrast. Mirrors the marketing site exactly. */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image:
-    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
-  background-size: var(--grid-size) var(--grid-size);
-}
-
-body.electron-macos {
-  --desktop-safe-top: 30px;
-  --desktop-safe-bottom: 8px;
-}
-
-/* Selection — with fallback for browsers that don't support color-mix() */
+/* Selection - signal-tinted */
 ::selection {
-  background-color: rgba(106, 27, 154, 0.22);
-  background-color: color-mix(in srgb, var(--color-primary) 22%, transparent);
+  background-color: rgba(255, 79, 0, 0.22);
   color: var(--color-primary);
 }
-
-/* Global custom scrollbar — thin, minimal, theme-aware */
-*::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+.dark ::selection {
+  background-color: rgba(255, 79, 0, 0.30);
+  color: var(--color-brand-200);
 }
 
+/* iOS keyboard accent */
+input, textarea {
+  accent-color: var(--color-primary);
+}
+
+/* Scrollbar (custom-scrollbar utility kept for compat) */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.3);
+  border-radius: 20px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-primary);
+}
+
+/* Thin horizontal scrollbar - signal colored */
+.scroll-thin-x {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 79, 0, 0.55) transparent;
+}
+.dark .scroll-thin-x {
+  scrollbar-color: rgba(255, 79, 0, 0.55) transparent;
+}
+.scroll-thin-x::-webkit-scrollbar { height: 3px; }
+.scroll-thin-x::-webkit-scrollbar-track { background: transparent; }
+.scroll-thin-x::-webkit-scrollbar-thumb {
+  background: rgba(255, 79, 0, 0.55);
+  border-radius: 3px;
+}
+.dark .scroll-thin-x::-webkit-scrollbar-thumb {
+  background: rgba(255, 79, 0, 0.55);
+}
+
+/* Global thin mac-like scrollbars (overrides clunky Windows/Linux default) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(120, 120, 120, 0.35) transparent;
+}
+.dark * {
+  scrollbar-color: rgba(180, 180, 180, 0.3) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
 *::-webkit-scrollbar-track {
   background: transparent;
 }
-
 *::-webkit-scrollbar-thumb {
-  background-color: rgba(156, 163, 175, 0.2);
+  background-color: rgba(120, 120, 120, 0.35);
   border-radius: 9999px;
-  transition: background-color 0.2s;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
-
 *::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(156, 163, 175, 0.45);
+  background-color: rgba(120, 120, 120, 0.55);
 }
-
-*::-webkit-scrollbar-corner {
-  background: transparent;
-}
-
-/* Dark theme scrollbar — slightly brighter thumb */
 .dark *::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: rgba(180, 180, 180, 0.3);
 }
-
 .dark *::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(180, 180, 180, 0.5);
 }
 
-/* Firefox support */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(156, 163, 175, 0.2) transparent;
+/* Reusable elevated card */
+.card-soft {
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  border-radius: var(--radius-brand-lg);
+}
+.card-elev {
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-elev);
+  border-radius: var(--radius-brand-lg);
 }
 
-.dark * {
-  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
-}
-
-/* Keep .custom-scrollbar alias for backward compatibility */
-.custom-scrollbar {
-  scrollbar-width: thin;
-}
-
-/* Hero gradient */
+/* Hero gradient (compat) */
 .bg-hero-gradient {
-  background: linear-gradient(180deg, #f0f0f5 0%, #f9f9fb 100%);
+  background: linear-gradient(180deg, var(--color-bg-alt) 0%, var(--color-bg) 100%);
 }
 
-.dark .bg-hero-gradient {
-  background: linear-gradient(180deg, #0a0a0a 0%, #000000 100%);
+/* macOS Vibrancy */
+.bg-vibrancy {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.72);
 }
+.dark .bg-vibrancy {
+  background: rgba(38, 38, 38, 0.72);
+}
+
+/* macOS Traffic Lights */
+.traffic-lights {
+  display: flex;
+  gap: 8px;
+}
+.traffic-light {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+.traffic-light.red { background: #FF5F56; }
+.traffic-light.yellow { background: #FFBD2E; }
+.traffic-light.green { background: #27C93F; }
 
 /* Material Symbols */
-:where(.material-symbols-outlined) {
-  font-family: "Material Symbols Outlined", sans-serif !important;
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined', sans-serif;
   font-weight: normal;
   font-style: normal;
   font-size: 24px;
@@ -355,152 +389,320 @@ body.electron-macos {
   white-space: nowrap;
   word-wrap: normal;
   direction: ltr;
-  font-feature-settings: "liga";
-  -webkit-font-feature-settings: "liga";
+  font-feature-settings: 'liga';
+  -webkit-font-feature-settings: 'liga';
   -webkit-font-smoothing: antialiased;
-  font-variation-settings:
-    "FILL" 0,
-    "wght" 400,
-    "GRAD" 0,
-    "opsz" 24;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+.material-symbols-outlined.fill-1 {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Disable text selection on buttons */
+button {
+  -webkit-user-select: none;
   user-select: none;
 }
 
-/* Ensure icon clicks always bubble to the parent button */
-button .material-symbols-outlined,
-[role="button"] .material-symbols-outlined {
-  pointer-events: none;
+/* Tailwind v4 dropped default button cursor — restore globally */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+label[for],
+summary,
+select {
+  cursor: pointer;
 }
 
-.material-symbols-outlined.fill-1 {
-  font-variation-settings:
-    "FILL" 1,
-    "wght" 400,
-    "GRAD" 0,
-    "opsz" 24;
+button:disabled,
+[role="button"][aria-disabled="true"] {
+  cursor: not-allowed;
 }
 
-/* Animations */
+/* ============================================================
+   Animations
+   ============================================================ */
 @keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
-
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
+.animate-spin { animation: spin 1s linear infinite; }
 
 @keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
-
-.animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
+.animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
 
 @keyframes border-glow {
-  0%,
-  100% {
-    box-shadow:
-      0 0 5px rgba(106, 27, 154, 0.3),
-      0 0 10px rgba(106, 27, 154, 0.2);
-    border-color: rgba(106, 27, 154, 0.5);
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(255, 79, 0, 0.3), 0 0 10px rgba(255, 79, 0, 0.2);
+    border-color: rgba(255, 79, 0, 0.5);
   }
   50% {
-    box-shadow:
-      0 0 10px rgba(106, 27, 154, 0.5),
-      0 0 20px rgba(106, 27, 154, 0.3);
-    border-color: rgba(106, 27, 154, 0.8);
+    box-shadow: 0 0 10px rgba(255, 79, 0, 0.5), 0 0 20px rgba(255, 79, 0, 0.3);
+    border-color: rgba(255, 79, 0, 0.8);
   }
 }
+.animate-border-glow { animation: border-glow 2s ease-in-out infinite; }
 
-.animate-border-glow {
-  animation: border-glow 2s ease-in-out infinite;
+@keyframes slideInFromRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideInFromTop {
+  from { transform: translateY(-10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.slide-in-right { animation: slideInFromRight 0.25s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+.fade-in { animation: fadeIn 0.2s ease-out forwards; }
+.slide-in-top { animation: slideInFromTop 0.18s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+}
+.animate-pulse-glow { animation: pulseGlow 3s ease-in-out infinite; }
+
+/* CTA shimmer + glow pulse */
+@keyframes ctaShimmer {
+  0% { transform: translateX(-120%) skewX(-20deg); }
+  100% { transform: translateX(220%) skewX(-20deg); }
+}
+@keyframes ctaGlowPulse {
+  0%, 100% { box-shadow: 0 8px 24px -8px rgba(255, 79, 0, 0.45), 0 0 0 0 rgba(255, 79, 0, 0.5); }
+  50% { box-shadow: 0 12px 32px -8px rgba(255, 79, 0, 0.6), 0 0 0 8px rgba(255, 79, 0, 0); }
+}
+.btn-cta {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  animation: ctaGlowPulse 2.4s ease-in-out infinite;
+}
+.btn-cta::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+  animation: ctaShimmer 2.8s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+.btn-cta > * { position: relative; z-index: 2; }
+
+/* Dot Grid Background Pattern */
+.dot-grid-bg {
+  background-color: var(--color-bg);
+  background-image:
+    radial-gradient(circle at 15% 20%, rgba(255, 79, 0, 0.10) 0%, transparent 40%),
+    radial-gradient(circle at 85% 80%, rgba(255, 79, 0, 0.06) 0%, transparent 40%);
+}
+.dark .dot-grid-bg {
+  background-image:
+    radial-gradient(circle at 15% 20%, rgba(255, 79, 0, 0.18) 0%, transparent 40%),
+    radial-gradient(circle at 85% 80%, rgba(255, 79, 0, 0.10) 0%, transparent 40%);
 }
 
-/* macOS Vibrancy/Blur Effect */
-.bg-vibrancy {
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  background: rgba(255, 255, 255, 0.72);
+/* Landing-style faint grid overlay (login page only; dashboard shell no longer uses it) */
+.landing-grid {
+  background-image:
+    linear-gradient(to right, var(--color-accent) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-accent) 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: 0.08;
+}
+.dark .landing-grid {
+  opacity: 0.04;
 }
 
-.dark .bg-vibrancy {
-  background: rgba(16, 20, 30, 0.72);
-}
-
-/* macOS Traffic Lights */
-.traffic-lights {
-  display: flex;
-  gap: 8px;
-}
-
-.traffic-light {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-
-.traffic-light.red {
-  background: var(--color-traffic-red);
-}
-
-.traffic-light.yellow {
-  background: var(--color-traffic-yellow);
-}
-
-.traffic-light.green {
-  background: var(--color-traffic-green);
-}
-
-/* ── Mobile Layout Fixes (Issue #659) ── */
-@media (max-width: 768px) {
-  .ant-table-wrapper {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    max-width: 100vw;
+/* ============================================================
+   Signal Panel shared utilities
+   ============================================================ */
+@layer components {
+  /* Uppercase instrument label */
+  .label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    line-height: 1.4;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
   }
 
-  .ant-table {
-    min-width: 600px; /* Prevent columns from crushing together */
+  /* Mono metric numeral */
+  .metric {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    color: var(--color-text-main);
   }
-}
 
-/* Fix for native dropdown options visibility in dark mode */
-select option {
-  background-color: var(--color-surface);
-  color: var(--color-text-main);
-}
+  /* Thin horizontal signal rail */
+  .signal-rail {
+    height: 2px;
+    background-color: var(--color-signal);
+  }
 
-/* React Flow loads its component stylesheet after this global file in some
-   bundles, so direct background/fill declarations can lose to its shorthand
-   rules. Override the supported theme variables on our canvas instead. */
-.react-flow.dardcorCode-flow {
-  --xy-controls-button-background-color: var(--color-surface);
-  --xy-controls-button-background-color-hover: var(--color-bg-subtle);
-  --xy-controls-button-color: var(--color-text-main);
-  --xy-controls-button-color-hover: var(--color-text-main);
-  --xy-controls-button-border-color: var(--color-border);
-}
-
-/* Desktop sidebar visibility must not depend on Tailwind's hidden/lg:flex cascade
-   (ordering/specificity can collapse it). Explicit class + 1024px media query. */
-.dashboard-sidebar-desktop {
-  display: none;
-  min-height: 0;
-}
-@media (min-width: 1024px) {
-  .dashboard-sidebar-desktop {
+  /* Sidebar navigation item */
+  .nav-item {
     display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: var(--radius-brand);
+    color: var(--color-text-muted);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+    transition: background-color 150ms ease-out, color 150ms ease-out;
   }
+  .nav-item:hover {
+    background-color: var(--color-bg-hover);
+    color: var(--color-text-main);
+  }
+  .nav-item-active,
+  .nav-item-active:hover {
+    background-color: var(--color-bg-hover);
+    color: var(--color-text-main);
+    box-shadow: inset 2px 0 0 0 var(--color-signal);
+  }
+}
+
+/* Topology: router card pulse (no flying rings) + electric edge beam */
+@keyframes topology-router-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow:
+      0 0 8px #fde047,
+      0 0 20px color-mix(in srgb, var(--color-primary) 65%, transparent),
+      0 0 32px rgba(34, 211, 238, 0.4),
+      inset 0 0 10px rgba(253, 224, 71, 0.3);
+  }
+  50% {
+    transform: scale(1.06);
+    box-shadow:
+      0 0 14px #fef08a,
+      0 0 28px #facc15,
+      0 0 44px rgba(34, 211, 238, 0.6),
+      inset 0 0 14px rgba(255, 255, 255, 0.25);
+  }
+}
+@keyframes topology-router-icon-shake {
+  0%, 100% { transform: rotate(0deg) scale(1); filter: drop-shadow(0 0 2px #fde047); }
+  25% { transform: rotate(-5deg) scale(1.08); filter: drop-shadow(0 0 6px #facc15); }
+  75% { transform: rotate(5deg) scale(1.08); filter: drop-shadow(0 0 6px #22d3ee); }
+}
+@keyframes topology-router-label-flicker {
+  0%, 100% { text-shadow: 0 0 6px #fde047, 0 0 12px #22d3ee; }
+  50% { text-shadow: 0 0 10px #fff, 0 0 18px #facc15; }
+}
+@keyframes topology-edge-dash {
+  to { stroke-dashoffset: -36; }
+}
+@keyframes topology-edge-flicker {
+  0%, 100% { opacity: 0.85; }
+  40% { opacity: 1; }
+  55% { opacity: 0.55; }
+  70% { opacity: 1; }
+}
+.topology-router-core {
+  animation: topology-router-pulse 0.75s ease-in-out infinite;
+  border-color: #fde047 !important;
+}
+.topology-router-icon {
+  animation: topology-router-icon-shake 0.45s ease-in-out infinite;
+}
+.topology-router-label {
+  animation: topology-router-label-flicker 0.7s ease-in-out infinite;
+}
+.topology-router-badge {
+  box-shadow: 0 0 10px #fde047, 0 0 16px rgba(34, 211, 238, 0.6);
+}
+.topology-edge-kame {
+  stroke-dasharray: 8 6;
+  animation: topology-edge-dash 0.22s linear infinite;
+}
+.topology-edge-halo {
+  animation: topology-edge-flicker 0.18s steps(2) infinite;
+}
+.topology-edge-plasma {
+  stroke-dasharray: 14 10;
+  animation: topology-edge-dash 0.18s linear infinite, topology-edge-flicker 0.22s steps(3) infinite;
+}
+
+/* React Flow controls: match app theme */
+.react-flow-controls-custom {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+}
+
+.react-flow-controls-custom button {
+  background: var(--color-surface);
+  color: var(--color-text-main);
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.react-flow-controls-custom button:last-child {
+  border-bottom: 0;
+}
+
+.react-flow-controls-custom button:hover {
+  background: var(--color-bg-alt);
+}
+
+/* Changelog markdown body */
+.changelog-body h1 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 1.5rem 0 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.changelog-body h1:first-child { margin-top: 0; }
+.changelog-body h2 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 1rem 0 0.5rem;
+  color: var(--color-primary);
+}
+.changelog-body h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0.75rem 0 0.4rem;
+}
+.changelog-body ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+.changelog-body li { margin: 0.25rem 0; line-height: 1.6; }
+.changelog-body p { margin: 0.5rem 0; line-height: 1.6; }
+.changelog-body code {
+  background: var(--color-bg-alt);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.875em;
+  font-family: ui-monospace, monospace;
+}
+.changelog-body a {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+.changelog-body hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 1.5rem 0;
 }

@@ -1,1 +1,0 @@
-- **fix(resilience):** Enforce RPM limits with rolling leases and atomic global/provider/account admission ([#9259](https://github.com/diegosouzapw/Dardcor Code/pull/9259)). The configured global RPM budget is shared across all enabled provider connections within one process; provider/account overrides add narrower scopes.

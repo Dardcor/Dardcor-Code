@@ -1,1 +1,0 @@
-- **fix(types):** narrowed non-streaming chat response metadata inputs to the shared header contract without changing emitted metadata headers ([#9118](https://github.com/diegosouzapw/Dardcor Code/pull/9118))

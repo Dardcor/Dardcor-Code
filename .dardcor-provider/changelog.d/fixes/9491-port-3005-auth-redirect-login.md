@@ -1,1 +1,0 @@
-- **fix(auth):** redirect active sessions from /login by checking the session cookie before showing the login form. (thanks @DaDecky)

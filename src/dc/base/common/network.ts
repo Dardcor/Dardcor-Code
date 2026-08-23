@@ -367,8 +367,8 @@ class FileAccessImpl {
 			uriOrModule = 'dc/' + uriOrModule.substring(3);
 		}
 
-		if (globalThis._VSCODE_FILE_ROOT) {
-			const rootUriOrPath = globalThis._VSCODE_FILE_ROOT;
+		if ((globalThis as any)._VSCODE_FILE_ROOT) {
+			const rootUriOrPath = (globalThis as any)._VSCODE_FILE_ROOT;
 
 			// File URL (with scheme)
 			if (/^\w[\w\d+.-]*:\/\//.test(rootUriOrPath)) {

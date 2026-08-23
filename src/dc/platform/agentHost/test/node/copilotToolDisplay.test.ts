@@ -31,7 +31,7 @@ function customToolPermissionRequest(toolName: string, args: Record<string, unkn
 		kind: 'custom-tool',
 		toolName,
 		toolDescription: '',
-		args,
+		args: args as any,
 	};
 }
 

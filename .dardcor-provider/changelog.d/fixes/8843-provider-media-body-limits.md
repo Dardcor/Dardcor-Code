@@ -1,1 +1,0 @@
-- **fix(api):** Let image and video providers enforce their own request-size limits instead of rejecting media payloads at Dardcor Code's 10 MB global default ([#8843](https://github.com/diegosouzapw/Dardcor Code/pull/8843)) — thanks @artickc

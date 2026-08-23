@@ -1,1 +1,0 @@
-- **chore(ci):** stopped dependabot from grouping `ioredis` majors with routine production bumps — the package is resolved through a dynamic import in the distributed quota store, so a breaking major passes build, typecheck and both test suites and only surfaces at runtime for operators running Redis-backed quota ([#9425](https://github.com/diegosouzapw/Dardcor Code/pull/9425))

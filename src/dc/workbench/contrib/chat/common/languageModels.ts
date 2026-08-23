@@ -341,8 +341,7 @@ export interface ILanguageModelChatMetadata {
 
 export namespace ILanguageModelChatMetadata {
 	export function suitableForAgentMode(metadata: ILanguageModelChatMetadata): boolean {
-		const supportsToolsAgent = typeof metadata.capabilities?.agentMode === 'undefined' || metadata.capabilities.agentMode;
-		return supportsToolsAgent && !!metadata.capabilities?.toolCalling;
+		return metadata.capabilities?.agentMode !== false;
 	}
 
 	export function asQualifiedName(metadata: ILanguageModelChatMetadata): string {
@@ -1010,6 +1009,254 @@ export class LanguageModelsService implements ILanguageModelsService {
 		this._readVisibility();
 		this._initChatControlData();
 
+		this._vendors.set(COPILOT_VENDOR_ID, {
+			vendor: COPILOT_VENDOR_ID,
+			displayName: 'Copilot',
+			configuration: undefined,
+			managementCommand: undefined,
+			deprecation: undefined,
+			when: undefined,
+			isDefault: true,
+		});
+		this._vendors.set('dardcor', {
+			vendor: 'dardcor',
+			displayName: 'Dardcor Provider',
+			configuration: undefined,
+			managementCommand: undefined,
+			deprecation: undefined,
+			when: undefined,
+			isDefault: true,
+		});
+
+		const defaultDardcorModels: ILanguageModelChatMetadataAndIdentifier[] = [
+			{
+				identifier: 'opencode/ox-alpha-free',
+				metadata: {
+					extension: new ExtensionIdentifier('dardcor.dardcor'),
+					isDefaultForLocation: { [ChatAgentLocation.Chat]: true, [ChatAgentLocation.EditorInline]: true },
+					id: 'opencode/ox-alpha-free',
+					name: 'Ox Alpha Free (Unlimited)',
+					vendor: COPILOT_VENDOR_ID,
+					family: 'opencode/ox-alpha-free',
+					version: '1.0.0',
+					maxInputTokens: 200000,
+					maxOutputTokens: 64000,
+					isUserSelectable: true,
+					capabilities: { toolCalling: true, agentMode: true, vision: false }
+				}
+			},
+			{
+				identifier: 'opencode/big-pickle',
+				metadata: {
+					extension: new ExtensionIdentifier('dardcor.dardcor'),
+					isDefaultForLocation: {},
+					id: 'opencode/big-pickle',
+					name: 'Big Pickle (Free)',
+					vendor: COPILOT_VENDOR_ID,
+					family: 'opencode/big-pickle',
+					version: '1.0.0',
+					maxInputTokens: 200000,
+					maxOutputTokens: 64000,
+					isUserSelectable: true,
+					capabilities: { toolCalling: true, agentMode: true, vision: false }
+				}
+			},
+			{
+				identifier: 'opencode/deepseek-v4-flash-free',
+				metadata: {
+					extension: new ExtensionIdentifier('dardcor.dardcor'),
+					isDefaultForLocation: {},
+					id: 'opencode/deepseek-v4-flash-free',
+					name: 'DeepSeek V4 Flash (Free)',
+					vendor: COPILOT_VENDOR_ID,
+					family: 'opencode/deepseek-v4-flash-free',
+					version: '1.0.0',
+					maxInputTokens: 1000000,
+					maxOutputTokens: 384000,
+					isUserSelectable: true,
+					capabilities: { toolCalling: true, agentMode: true, vision: false }
+				}
+			},
+			{
+				identifier: 'opencode/mimo-v2.5-free',
+				metadata: {
+					extension: new ExtensionIdentifier('dardcor.dardcor'),
+					isDefaultForLocation: {},
+					id: 'opencode/mimo-v2.5-free',
+					name: 'MiMo V2.5 (Free)',
+					vendor: COPILOT_VENDOR_ID,
+					family: 'opencode/mimo-v2.5-free',
+					version: '1.0.0',
+					maxInputTokens: 1048576,
+					maxOutputTokens: 131072,
+					isUserSelectable: true,
+					capabilities: { toolCalling: true, agentMode: true, vision: true }
+				}
+			},
+			{
+				identifier: 'opencode/hy3-free',
+				metadata: {
+					extension: new ExtensionIdentifier('dardcor.dardcor'),
+					isDefaultForLocation: {},
+					id: 'opencode/hy3-free',
+					name: 'HY3 (Free)',
+					vendor: COPILOT_VENDOR_ID,
+					family: 'opencode/hy3-free',
+					version: '1.0.0',
+					maxInputTokens: 262144,
+					maxOutputTokens: 262144,
+					isUserSelectable: true,
+					capabilities: { toolCalling: true, agentMode: true, vision: false }
+				}
+			},
+			{
+				identifier: 'opencode/nemotron-3-ultra-free',
+				metadata: {
+					extension: new ExtensionIdentifier('dardcor.dardcor'),
+					isDefaultForLocation: {},
+					id: 'opencode/nemotron-3-ultra-free',
+					name: 'Nemotron 3 Ultra (Free)',
+					vendor: COPILOT_VENDOR_ID,
+					family: 'opencode/nemotron-3-ultra-free',
+					version: '1.0.0',
+					maxInputTokens: 128000,
+					maxOutputTokens: 64000,
+					isUserSelectable: true,
+					capabilities: { toolCalling: true, agentMode: true, vision: false }
+				}
+			},
+			{
+				identifier: 'opencode/nemotron-3.5-lightning-free',
+				metadata: {
+					extension: new ExtensionIdentifier('dardcor.dardcor'),
+					isDefaultForLocation: {},
+					id: 'opencode/nemotron-3.5-lightning-free',
+					name: 'Nemotron 3.5 Lightning (Free)',
+					vendor: COPILOT_VENDOR_ID,
+					family: 'opencode/nemotron-3.5-lightning-free',
+					version: '1.0.0',
+					maxInputTokens: 128000,
+					maxOutputTokens: 64000,
+					isUserSelectable: true,
+					capabilities: { toolCalling: true, agentMode: true, vision: false }
+				}
+			},
+			{
+				identifier: 'opencode/laguna-s-2.1-free',
+				metadata: {
+					extension: new ExtensionIdentifier('dardcor.dardcor'),
+					isDefaultForLocation: {},
+					id: 'opencode/laguna-s-2.1-free',
+					name: 'Laguna S 2.1 (Free)',
+					vendor: COPILOT_VENDOR_ID,
+					family: 'opencode/laguna-s-2.1-free',
+					version: '1.0.0',
+					maxInputTokens: 200000,
+					maxOutputTokens: 32000,
+					isUserSelectable: true,
+					capabilities: { toolCalling: true, agentMode: true, vision: false }
+				}
+			},
+			{
+				identifier: 'opencode/x-preview-f-free',
+				metadata: {
+					extension: new ExtensionIdentifier('dardcor.dardcor'),
+					isDefaultForLocation: {},
+					id: 'opencode/x-preview-f-free',
+					name: 'X Preview F (Free)',
+					vendor: COPILOT_VENDOR_ID,
+					family: 'opencode/x-preview-f-free',
+					version: '1.0.0',
+					maxInputTokens: 200000,
+					maxOutputTokens: 64000,
+					isUserSelectable: true,
+					capabilities: { toolCalling: true, agentMode: true, vision: false }
+				}
+			},
+			{
+				identifier: 'opencode/muse-spark-1.2-contributor-free',
+				metadata: {
+					extension: new ExtensionIdentifier('dardcor.dardcor'),
+					isDefaultForLocation: {},
+					id: 'opencode/muse-spark-1.2-contributor-free',
+					name: 'Muse Spark 1.2 Contributor (Free)',
+					vendor: COPILOT_VENDOR_ID,
+					family: 'opencode/muse-spark-1.2-contributor-free',
+					version: '1.0.0',
+					maxInputTokens: 200000,
+					maxOutputTokens: 64000,
+					isUserSelectable: true,
+					capabilities: { toolCalling: true, agentMode: true, vision: false }
+				}
+			}
+		];
+
+		for (const m of defaultDardcorModels) {
+			this._modelCache.set(m.identifier, m.metadata);
+		}
+
+		const fetchLocalModels = async () => {
+			try {
+				const res = await globalThis.fetch('http://127.0.0.1:25000/v1/models', {
+					headers: { 'Authorization': 'Bearer sk-dardcor-local-key' }
+				});
+				if (res.ok) {
+					const json: any = await res.json();
+					const list = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
+					const seen = new Set<string>();
+					for (const m of list) {
+						const id = typeof m === 'string' ? m : (m.id || m.name || '');
+						if (!id || id.toLowerCase() === 'auto' || id.toLowerCase() === 'claude-none') continue;
+						const canonical = id.replace(/^(ag|oc|ds|opencode)\//i, '').toLowerCase();
+						if (seen.has(canonical)) continue;
+						seen.add(canonical);
+
+						const maxContext = (typeof m === 'object' && m.capabilities?.contextWindow) ? m.capabilities.contextWindow : 200000;
+						const maxOutput = (typeof m === 'object' && m.capabilities?.maxOutput) ? m.capabilities.maxOutput : 64000;
+						const hasVision = typeof m === 'object' && m.capabilities?.vision === true;
+
+						let clean = id.replace(/^(ag|oc|ds|opencode)\//i, '');
+						const name = (typeof m === 'object' && m.name && m.name !== id) ? m.name : clean.split(/[-_]/).map((part: string) => {
+							if (['free', 'unlimited', 'pro', 'plus'].includes(part.toLowerCase())) {
+								return `(${part.charAt(0).toUpperCase() + part.slice(1)})`;
+							}
+							return part.charAt(0).toUpperCase() + part.slice(1);
+						}).join(' ');
+
+						this._modelCache.set(id, {
+							extension: new ExtensionIdentifier('dardcor.dardcor'),
+							isDefaultForLocation: {},
+							id,
+							name,
+							vendor: COPILOT_VENDOR_ID,
+							family: id,
+							version: '1.0.0',
+							maxInputTokens: maxContext,
+							maxOutputTokens: maxOutput,
+							isUserSelectable: true,
+							capabilities: {
+								toolCalling: true,
+								agentMode: true,
+								vision: hasVision
+							}
+						});
+					}
+					this._onLanguageModelChange.fire(COPILOT_VENDOR_ID);
+				}
+			} catch {
+				// ignore
+			}
+		};
+
+		void fetchLocalModels();
+
+		setTimeout(() => {
+			void fetchLocalModels();
+			for (const vendor of this._vendors.keys()) {
+				void this._resolveAllLanguageModels(vendor, true);
+			}
+		}, 0);
+
 		this._store.add(this.onDidChangeLanguageModels(() => {
 			let hasUserSelectable = false;
 			let hasNonCopilotUserSelectable = false;
@@ -1085,7 +1332,7 @@ export class LanguageModelsService implements ILanguageModelsService {
 				managementCommand: item.managementCommand,
 				deprecation: item.deprecation,
 				when: item.when,
-				isDefault: item.vendor === COPILOT_VENDOR_ID
+				isDefault: item.vendor === COPILOT_VENDOR_ID || item.vendor === 'dardcor'
 			};
 			this._vendors.set(item.vendor, vendor);
 			addedVendorIds.push(item.vendor);
@@ -1273,6 +1520,64 @@ export class LanguageModelsService implements ILanguageModelsService {
 				}
 			}
 
+			if (allModels.length === 0) {
+				try {
+					const res = await globalThis.fetch('http://127.0.0.1:25000/v1/models', {
+						headers: { 'Authorization': 'Bearer sk-dardcor-local-key' }
+					});
+					if (res.ok) {
+						const json: any = await res.json();
+						const list = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
+						const seen = new Set<string>();
+						for (const m of list) {
+							const id = typeof m === 'string' ? m : (m.id || m.name || '');
+							if (!id || id.toLowerCase() === 'auto' || id.toLowerCase() === 'claude-none') continue;
+							const canonical = id.replace(/^(ag|oc|ds|opencode)\//i, '').toLowerCase();
+							if (seen.has(canonical)) continue;
+							seen.add(canonical);
+
+							const maxContext = (typeof m === 'object' && m.capabilities?.contextWindow) ? m.capabilities.contextWindow : 200000;
+							const maxOutput = (typeof m === 'object' && m.capabilities?.maxOutput) ? m.capabilities.maxOutput : 64000;
+							const hasVision = typeof m === 'object' && m.capabilities?.vision === true;
+
+							let clean = id.replace(/^(ag|oc|ds|opencode)\//i, '');
+							const name = (typeof m === 'object' && m.name && m.name !== id) ? m.name : clean.split(/[-_]/).map((part: string) => {
+								if (['free', 'unlimited', 'pro', 'plus'].includes(part.toLowerCase())) {
+									return `(${part.charAt(0).toUpperCase() + part.slice(1)})`;
+								}
+								return part.charAt(0).toUpperCase() + part.slice(1);
+							}).join(' ');
+
+							allModels.push({
+								identifier: id,
+								metadata: {
+									extension: new ExtensionIdentifier('dardcor.dardcor'),
+									isDefaultForLocation: {},
+									id,
+									name,
+									vendor: vendorId,
+									family: id,
+									version: '1.0.0',
+									maxInputTokens: maxContext,
+									maxOutputTokens: maxOutput,
+									isUserSelectable: true,
+									capabilities: {
+										toolCalling: true,
+										agentMode: true,
+										vision: hasVision
+									}
+								}
+							});
+						}
+						if (allModels.length > 0) {
+							languageModelsGroups.push({ modelIdentifiers: allModels.map(m => m.identifier) });
+						}
+					}
+				} catch {
+					// ignore
+				}
+			}
+
 			const wasResolved = this._modelsGroups.has(vendorId);
 			const oldGroups = this._modelsGroups.get(vendorId) ?? [];
 			this._modelsGroups.set(vendorId, languageModelsGroups);
@@ -1367,10 +1672,18 @@ export class LanguageModelsService implements ILanguageModelsService {
 		this._logService.trace('[LM] registering language model provider', vendor, provider);
 
 		if (!this._vendors.has(vendor)) {
-			throw new Error(`Chat model provider uses UNKNOWN vendor ${vendor}.`);
+			this._vendors.set(vendor, {
+				vendor,
+				displayName: vendor === 'copilot' || vendor === 'dardcor' ? 'Dardcor Provider' : vendor,
+				configuration: undefined,
+				managementCommand: undefined,
+				deprecation: undefined,
+				when: undefined,
+				isDefault: true,
+			});
 		}
 		if (this._providers.has(vendor)) {
-			throw new Error(`Chat model provider for vendor ${vendor} is already registered.`);
+			this._providers.delete(vendor);
 		}
 
 		this._providers.set(vendor, provider);
@@ -1378,6 +1691,8 @@ export class LanguageModelsService implements ILanguageModelsService {
 		const modelChangeListener = provider.onDidChange(() => {
 			this._resolveAllLanguageModels(vendor, true);
 		});
+
+		void this._resolveAllLanguageModels(vendor, false);
 
 		return toDisposable(() => {
 			this._logService.trace('[LM] UNregistered language model provider', vendor);

@@ -2508,7 +2508,7 @@ export class CopilotAgentSession extends Disposable {
 				}
 				const rawArgs = params ? params['arguments'] : undefined;
 				const args = isObject(rawArgs) ? rawArgs as Record<string, unknown> : undefined;
-				return apps.callTool({ serverName, toolName: name, arguments: args, originServerName: serverName });
+				return apps.callTool({ serverName, toolName: name, arguments: args as any, originServerName: serverName });
 			}
 			case 'resources/read': {
 				const uri = params && typeof params['uri'] === 'string' ? params['uri'] : undefined;

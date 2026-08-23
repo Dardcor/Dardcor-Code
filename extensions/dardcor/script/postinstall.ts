@@ -106,15 +106,21 @@ function getCopilotPlatformPackageCandidates(): string[] {
 async function resolveCopilotCliSourceDir(): Promise<string> {
 	const tried: string[] = [];
 	for (const platformPackage of getCopilotPlatformPackageCandidates()) {
-		const sourceDir = path.join(REPO_ROOT, 'node_modules', '@github', `dardcor-${platformPackage}`);
-		tried.push(sourceDir);
-		if (fs.existsSync(path.join(sourceDir, 'sdk', 'index.js'))) {
-			return sourceDir;
+		for (const prefix of ['dardcor', 'copilot']) {
+			const sourceDir = path.join(REPO_ROOT, 'node_modules', '@github', `${prefix}-${platformPackage}`);
+			tried.push(sourceDir);
+			if (fs.existsSync(path.join(sourceDir, 'sdk', 'index.js'))) {
+				return sourceDir;
+			}
 		}
 	}
 
-	if (fs.existsSync(path.join(COPILOT_PACKAGE_DIR, 'sdk', 'index.js'))) {
-		return COPILOT_PACKAGE_DIR;
+	for (const prefix of ['dardcor', 'copilot']) {
+		const pkgDir = path.join(REPO_ROOT, 'node_modules', '@github', prefix);
+		tried.push(pkgDir);
+		if (fs.existsSync(path.join(pkgDir, 'sdk', 'index.js'))) {
+			return pkgDir;
+		}
 	}
 
 	throw new Error(`Could not find @github/dardcor SDK files. Tried: ${[COPILOT_PACKAGE_DIR, ...tried].join(', ')}`);

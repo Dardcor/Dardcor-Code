@@ -1,1 +1,0 @@
-- fix(providers): strip provider prefix in getModelTargetFormat to route GPT-5.6 models to /v1/responses (#9545)

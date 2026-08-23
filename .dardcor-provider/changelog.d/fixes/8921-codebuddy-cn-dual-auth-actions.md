@@ -1,1 +1,0 @@
-- **fix(providers):** expose both OAuth Connect and manual API-key actions for dual-auth providers such as CodeBuddy CN ([#8921](https://github.com/diegosouzapw/Dardcor Code/pull/8921)) — thanks @Llliao1113

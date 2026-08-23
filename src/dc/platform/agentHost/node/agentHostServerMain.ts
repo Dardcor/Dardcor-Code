@@ -334,7 +334,7 @@ async function main(): Promise<void> {
 		//     devDependency, so `CodexAgent._resolveSdkRoot` resolves it from
 		//     `node_modules` in dev; built/shipped installs use the env-var
 		//     override or `product.agentSdks.codex`.
-		if (isAgentEnabled(process.env[AgentHostClaudeAgentEnabledEnvVar], true) && (!environmentService.isBuilt || agentSdkDownloader.isAvailable(ClaudeSdkPackage))) {
+		if (isAgentEnabled(process.env[AgentHostClaudeAgentEnabledEnvVar], false) && (!environmentService.isBuilt || agentSdkDownloader.isAvailable(ClaudeSdkPackage))) {
 			const claudeAgent = disposables.add(instantiationService.createInstance(ClaudeAgent));
 			agentService.registerProvider(claudeAgent);
 			log('ClaudeAgent registered');

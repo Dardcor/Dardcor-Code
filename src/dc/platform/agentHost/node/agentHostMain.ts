@@ -256,7 +256,7 @@ async function startAgentHost(): Promise<void> {
 		//     env-var override or a `product.agentSdks.codex` entry.
 		// If either gate fails, the provider is not registered and never appears
 		// in the agent picker (matches the pre-CDN UX exactly).
-		if (isAgentEnabled(process.env[AgentHostClaudeAgentEnabledEnvVar], true) && (!environmentService.isBuilt || agentSdkDownloader.isAvailable(ClaudeSdkPackage))) {
+		if (isAgentEnabled(process.env[AgentHostClaudeAgentEnabledEnvVar], false) && (!environmentService.isBuilt || agentSdkDownloader.isAvailable(ClaudeSdkPackage))) {
 			agentService.registerProvider(instantiationService.createInstance(ClaudeAgent));
 		}
 		// Codex registration is one-way (register-on-enable): the env-var toggle

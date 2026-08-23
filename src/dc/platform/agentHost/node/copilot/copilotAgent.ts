@@ -979,7 +979,7 @@ export class CopilotAgent extends Disposable implements IAgent {
 	getDescriptor(): IAgentDescriptor {
 		return {
 			provider: 'copilotcli',
-			displayName: 'Copilot',
+			displayName: 'Dardcor Code',
 			description: localize('copilotAgent.description', "Copilot SDK agent running in the local agent host process"),
 			capabilities: {
 				multipleChats: { fork: true, sideChat: true },
@@ -1040,7 +1040,7 @@ export class CopilotAgent extends Disposable implements IAgent {
 		return {
 			...result.resolved,
 			...(result.account ? { account: result.account } : {}),
-		};
+		} as any;
 	}
 
 	getCustomizations(): readonly Customization[] {

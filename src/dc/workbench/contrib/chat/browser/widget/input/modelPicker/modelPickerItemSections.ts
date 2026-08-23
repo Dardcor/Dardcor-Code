@@ -23,17 +23,6 @@ export const ModelPickerSection = {
 export const RESTRICTED_MODE_TRUST_ACTION_ID = 'restrictedModeTrust';
 export const SETUP_REQUIRED_SIGN_IN_ACTION_ID = 'setupRequiredSignIn';
 
-function createSyntheticAutoItem(): IActionListItem<IActionWidgetDropdownAction> {
-	return createModelItem({
-		id: 'auto',
-		enabled: true,
-		checked: true,
-		class: undefined,
-		tooltip: localize('chat.modelPicker.auto', "Auto"),
-		label: localize('chat.modelPicker.auto', "Auto"),
-		run: () => { },
-	});
-}
 
 export function buildUnavailableStateItems(options: IBuildModelPickerItemsOptions): IActionListItem<IActionWidgetDropdownAction>[] | undefined {
 	const { restrictedMode, setupRequired, showAutoModel } = options.presentation;
@@ -116,16 +105,8 @@ export function buildUnavailableStateItems(options: IBuildModelPickerItemsOption
 
 export function buildFlatModelItems(options: IBuildModelPickerItemsOptions): IActionListItem<IActionWidgetDropdownAction>[] {
 	const items: IActionListItem<IActionWidgetDropdownAction>[] = [];
-	if (options.models.length === 0 && options.presentation.showAutoModel) {
-		items.push(createSyntheticAutoItem());
-	}
-	const autoModel = options.models.find(isAutoModel);
-	if (autoModel) {
-		const { action, ariaDescription } = createModelAction(autoModel, options.selectedModelId, options.actions.onSelect);
-		items.push(createModelItem(action, autoModel, options.openerService, undefined, options.presentation.isUBB, ariaDescription));
-	}
 	const sortedModels = options.models
-		.filter(model => model !== autoModel)
+		.filter(model => !isAutoModel(model) && model.metadata.id.toLowerCase() !== 'auto')
 		.sort((left, right) => left.metadata.vendor.localeCompare(right.metadata.vendor) || left.metadata.name.localeCompare(right.metadata.name));
 	for (const model of sortedModels) {
 		const { action, ariaDescription } = createModelAction(model, options.selectedModelId, options.actions.onSelect);
@@ -169,23 +150,17 @@ function createGroupedContext(options: IBuildModelPickerItemsOptions): IGroupedC
 
 function appendLeadingModels(context: IGroupedContext): ILanguageModelChatMetadataAndIdentifier | undefined {
 	const { options, items } = context;
-	const autoModel = options.models.find(isAutoModel);
-	if (!autoModel && options.models.length === 0 && options.presentation.showAutoModel) {
-		items.push(createSyntheticAutoItem());
-	}
-	if (autoModel) {
-		context.markPlaced(autoModel.identifier);
-		const { action, ariaDescription } = createModelAction(autoModel, options.selectedModelId, options.actions.onSelect);
-		items.push(createModelItem(action, autoModel, options.openerService, undefined, options.presentation.isUBB, ariaDescription));
-	}
 	for (const model of options.models) {
+		if (isAutoModel(model) || model.metadata.id.toLowerCase() === 'auto') {
+			continue;
+		}
 		if (!context.placed.has(model.identifier) && ILanguageModelChatMetadata.hasPromoDiscount(model.metadata)) {
 			context.markPlaced(model.identifier);
 			const { action, ariaDescription } = createModelAction(model, options.selectedModelId, options.actions.onSelect);
 			items.push(createModelItem(action, model, options.openerService, undefined, options.presentation.isUBB, ariaDescription));
 		}
 	}
-	return autoModel;
+	return undefined;
 }
 
 function appendPinnedModels(context: IGroupedContext): Set<string> {

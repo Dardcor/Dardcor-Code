@@ -2776,7 +2776,7 @@ export class CodexAgent extends Disposable implements IAgent {
 	getDescriptor(): IAgentDescriptor {
 		return {
 			provider: this.id,
-			displayName: localize('codexAgent.displayName', "Codex"),
+			displayName: localize('codexAgent.displayName', "Dardcor Code"),
 			description: localize('codexAgent.description', "Codex agent using session-selected model providers"),
 			...(this._isMultiRootEnabled() ? { capabilities: { multipleWorkingDirectories: { immutablePrimary: true } } } : {}),
 		};

@@ -128,7 +128,7 @@ export function buildSessionEventsFromTurns(turns: readonly Turn[], options: IBu
 			data: {
 				toolCallId: tc.toolCallId,
 				toolName: tc.toolName,
-				...(parsedToolInput ? { arguments: parsedToolInput } : {}),
+				...(parsedToolInput ? { arguments: parsedToolInput as any } : {}),
 			},
 		});
 		const resultText = extractToolResultText(tc.content);

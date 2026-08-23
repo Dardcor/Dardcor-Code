@@ -1,1 +1,0 @@
-- **fix(translator):** harden Claude format detection for relative message endpoints and kebab-case version metadata. (thanks @ervareza)

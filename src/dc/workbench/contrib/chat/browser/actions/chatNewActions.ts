@@ -67,15 +67,16 @@ function isNewEditSessionActionContext(arg: unknown): arg is INewEditSessionActi
 
 export function registerNewChatActions() {
 
-	// Add "New Chat" submenu to Chat view menu
+	// Add "New Chat" button to Chat view menu
 	MenuRegistry.appendMenuItem(MenuId.ViewTitle, {
-		submenu: MenuId.ChatNewMenu,
-		title: localize2('chat.newEdits.label', "New Chat"),
-		icon: Codicon.plus,
+		command: {
+			id: ACTION_ID_NEW_CHAT,
+			title: localize2('chat.newEdits.label', "New Chat"),
+			icon: Codicon.plus,
+		},
 		when: ContextKeyExpr.equals('view', ChatViewId),
 		group: 'navigation',
 		order: -1,
-		isSplitButton: true
 	});
 
 	registerAction2(class NewChatEditorAction extends Action2 {
@@ -100,7 +101,7 @@ export function registerNewChatActions() {
 				title: localize2('chat.newEdits.label', "New Chat"),
 				category: CHAT_CATEGORY,
 				icon: Codicon.plus,
-				precondition: ContextKeyExpr.and(ChatContextKeys.enabled, ChatContextKeys.location.isEqualTo(ChatAgentLocation.Chat)),
+				precondition: ChatContextKeys.enabled,
 				f1: true,
 				menu: [
 					{
@@ -330,11 +331,13 @@ async function runNewChatAction(
 ) {
 	const accessibilityService = accessor.get(IAccessibilityService);
 	const instantiationService = accessor.get(IInstantiationService);
+	const chatWidgetService = accessor.get(IChatWidgetService);
 
-	const { editingSession, chatWidget: widget } = context ?? {};
+	const widget = context?.chatWidget ?? chatWidgetService.lastFocusedWidget ?? chatWidgetService.getWidgetsByLocations(ChatAgentLocation.Chat)[0];
 	if (!widget) {
 		return;
 	}
+	const editingSession = context?.editingSession;
 
 	const voiceSessionController = accessor.get(IVoiceSessionController);
 	const voiceTarget = voiceSessionController.targetSession.get();

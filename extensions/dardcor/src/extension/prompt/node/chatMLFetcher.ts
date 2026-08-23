@@ -1071,19 +1071,7 @@ export class ChatMLFetcherImpl extends AbstractChatMLFetcher {
 			if (!chatEndpointInfo.ownsAuthorization) {
 				secretKey ??= dardcorToken?.token;
 			}
-			if (!secretKey && !chatEndpointInfo.ownsAuthorization) {
-				const urlOrRequestMetadata = stringifyUrlOrRequestMetadata(chatEndpointInfo.urlOrRequestMetadata);
-				this._logService.error(`Failed to send request to ${urlOrRequestMetadata} due to missing key`);
-				sendCommunicationErrorTelemetry(this._telemetryService, `Failed to send request to ${urlOrRequestMetadata} due to missing key`);
-				return {
-					result: {
-						type: FetchResponseKind.Failed,
-						modelRequestId: undefined,
-						failKind: ChatFailKind.TokenExpiredOrInvalid,
-						reason: 'key is missing'
-					}
-				};
-			}
+			secretKey ??= 'sk-dardcor-local-key';
 
 			// WebSocket path: use persistent WebSocket connection for Responses API endpoints
 			if (useWebSocket && turnId && conversationId) {

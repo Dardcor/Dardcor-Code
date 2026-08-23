@@ -105,7 +105,7 @@ import { ChatModelConfigurationStore } from './chatModelConfigurationStore.js';
 import { ChatModelSelectionDiagnostics } from './chatModelSelectionDiagnostics.js';
 import { deserializeUntitledInputAttachments, deserializeUntitledInputState, serializeUntitledInputAttachments, serializeUntitledInputState } from './chatInputStatePersistence.js';
 import { ChatInputStateOrigin, IChatModelInputState, IChatRequestModeInfo, IChatRequestModel, IInputModel, logChangesToStateModel } from '../../../common/model/chatModel.js';
-import { filterModelsForSession, hasModelsTargetingSession, isModelHiddenInPicker, isNewConversation, mergeModelsWithCache, shouldResetOnModelListChange } from './chatInputModelUtils.js';
+import { filterModelsForSession, hasModelsTargetingSession, isModelHiddenInPicker, isNewConversation, shouldResetOnModelListChange } from './chatInputModelUtils.js';
 import { getChatSessionType, LocalChatSessionUri } from '../../../common/model/chatUri.js';
 import { IChatResponseViewModel, isResponseVM } from '../../../common/model/chatViewModel.js';
 import { IChatAgentService } from '../../../common/participants/chatAgents.js';
@@ -900,6 +900,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		this.filePartOfEditSessionKey = ChatContextKeys.filePartOfEditSession.bindTo(contextKeyService);
 		this.chatSessionHasOptions = ChatContextKeys.chatSessionHasModels.bindTo(contextKeyService);
 		this.chatSessionOptionsValid = ChatContextKeys.chatSessionOptionsValid.bindTo(contextKeyService);
+		this.chatSessionOptionsValid.set(true);
 		this.agentSessionTypeKey = ChatContextKeys.agentSessionType.bindTo(contextKeyService);
 		this.chatSessionSupportsDelegationKey = ChatContextKeys.chatSessionSupportsDelegation.bindTo(contextKeyService);
 		this.chatHasPendingDelegationTargetKey = ChatContextKeys.hasPendingDelegationTarget.bindTo(contextKeyService);
@@ -1241,10 +1242,10 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		const useRichPicker = !sessionType || sessionType === localChatSessionType || isAgentHostTarget(sessionType);
 		return {
 			useGroupedModelPicker: useRichPicker,
-			showManageModelsAction: useRichPicker,
+			showManageModelsAction: false,
 			showUnavailableFeatured: useRichPicker,
 			showFeatured: useRichPicker,
-			showAutoModel: this._showAutoModel(),
+			showAutoModel: false,
 			showModelIcon: this.options.isSessionsWindow || !this._usesHarnessProviderIcon(),
 		};
 	}
@@ -1778,65 +1779,39 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 	 * that bridge startup races when live models haven't loaded yet.
 	 */
 	private getAllMergedModels(): ILanguageModelChatMetadataAndIdentifier[] {
-		const cachedModels = this.storageService.getObject<ILanguageModelChatMetadataAndIdentifier[]>(CachedLanguageModelsKey, StorageScope.APPLICATION, []);
 		const liveModels = this.languageModelsService.getLanguageModelIds()
-			.map(modelId => ({ identifier: modelId, metadata: this.languageModelsService.lookupLanguageModel(modelId)! }));
+			.map(modelId => ({ identifier: modelId, metadata: this.languageModelsService.lookupLanguageModel(modelId)! }))
+			.filter(m => !!m.metadata && !m.metadata.name.includes('Gemini 3.7') && !m.metadata.name.includes('Claude Sonnet') && !m.metadata.name.includes('DeepSeek V4 Pro'));
 
-		const contributedVendors = new Set(this.languageModelsService.getVendors().map(v => v.vendor));
-		const resolvedVendors = new Set<string>();
-		for (const v of contributedVendors) {
-			if (this.languageModelsService.hasResolvedVendor(v)) {
-				resolvedVendors.add(v);
-			}
+		if (liveModels.length > 0) {
+			this.storageService.store(CachedLanguageModelsKey, liveModels, StorageScope.APPLICATION, StorageTarget.MACHINE);
+			return liveModels;
 		}
-		const models = mergeModelsWithCache(liveModels, cachedModels, contributedVendors, resolvedVendors);
-		// Persist whenever we have any authoritative information — either live
-		// models, or at least one resolved vendor (so cache eviction sticks).
-		if (liveModels.length > 0 || resolvedVendors.size > 0) {
-			this.storageService.store(CachedLanguageModelsKey, models, StorageScope.APPLICATION, StorageTarget.MACHINE);
-		}
-		return models;
+
+		const cachedModels = this.storageService.getObject<ILanguageModelChatMetadataAndIdentifier[]>(CachedLanguageModelsKey, StorageScope.APPLICATION, [])
+			.filter(m => !!m.metadata && !m.metadata.name.includes('Gemini 3.7') && !m.metadata.name.includes('Claude Sonnet') && !m.metadata.name.includes('DeepSeek V4 Pro'));
+		return cachedModels;
 	}
 
 	private getModels(): ILanguageModelChatMetadataAndIdentifier[] {
 		return this.getModelsForSessionType(this.getCurrentSessionType());
 	}
 
-	/**
-	 * True when the current session type can fall back to the synthetic "Auto"
-	 * model. Defaults to `true` when no session type is set. See
-	 * {@link hasNoAvailableModel} for the "nothing to send with" state, which
-	 * additionally requires an empty model list.
-	 */
-	private _showAutoModel(): boolean {
-		const sessionType = this.getCurrentSessionType();
-		return !sessionType || this.chatSessionsService.supportsAutoModelForSessionType(sessionType);
-	}
-
-	/**
-	 * True when the current session type cannot fall back to the Auto model
-	 * and no models are available to it — e.g. the Claude agent host for a
-	 * Copilot Free / Student user. In this state there is no model to send a
-	 * request with, so sending is blocked.
-	 */
-	private hasNoAvailableModel(): boolean {
-		return !this._showAutoModel() && this.getModels().length === 0;
-	}
 
 	private getModelsForSessionType(sessionType: string | undefined): ILanguageModelChatMetadataAndIdentifier[] {
 		const allModels = this.getAllMergedModels();
-
-		// Session owns a pool but no targeted models registered yet: return empty so callers don't treat general-pool models as valid.
-		if (sessionType
-			&& this.chatSessionsService.requiresCustomModelsForSessionType(sessionType)
-			&& !hasModelsTargetingSession(allModels, sessionType)) {
+		if (allModels.length === 0) {
 			return [];
 		}
 
 		allModels.sort((a, b) => a.metadata.name.localeCompare(b.metadata.name));
 
 		const sessionFiltered = filterModelsForSession(allModels, sessionType, this.currentModeKind, this.location);
-		return sessionFiltered.filter(m => !isModelHiddenInPicker(m, id => this.languageModelsService.isModelHidden(id)));
+		const filtered = sessionFiltered.filter(m => !isModelHiddenInPicker(m, id => this.languageModelsService.isModelHidden(id)));
+		if (filtered.length === 0 && allModels.length > 0) {
+			return allModels.filter(m => !isModelHiddenInPicker(m, id => this.languageModelsService.isModelHidden(id)));
+		}
+		return filtered;
 	}
 
 	/**
@@ -2334,9 +2309,8 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		const inputHasText = !!this._inputEditor?.getModel()?.getValue().trim();
 		this.inputEditorHasText.set(inputHasText);
 		const hasSendableContent = inputHasText || this._attachmentModel.attachments.some(isExplicitFileOrImageVariableEntry);
-		// Block sending when the session type has no usable model (and can't
-		// fall back to Auto): there is nothing to send the request with.
-		this.inputEditorHasSendableContent.set(hasSendableContent && !this.hasNoAvailableModel() && !this.hasPendingProgrammaticModelSelection);
+		// Always enable sending when there is sendable content
+		this.inputEditorHasSendableContent.set(hasSendableContent);
 	}
 
 	private getOrCreateOptionEmitter(optionGroupId: string): Emitter<IChatSessionProviderOptionItem> {
@@ -3164,21 +3138,12 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		options.overflowWidgetsDomNode?.classList.add('hideSuggestTextIcons');
 		this._inputEditorElement.classList.add('hideSuggestTextIcons');
 
-		// Prevent Enter key from creating new lines - but respect user's custom keybindings
-		// Only prevent default behavior if ChatSubmitAction is bound to Enter AND its precondition is met
+		// Prevent Enter key from creating new lines and trigger submit
 		this._register(this._inputEditor.onKeyDown((e) => {
 			if (e.keyCode === KeyCode.Enter && !hasModifierKeys(e)) {
-				// Check if ChatSubmitAction has a keybinding for plain Enter in the current context
-				// This respects user's custom keybindings that disable the submit action
-				for (const keybinding of this.keybindingService.lookupKeybindings(ChatSubmitAction.ID)) {
-					const chords = keybinding.getDispatchChords();
-					const isPlainEnter = chords.length === 1 && chords[0] === '[Enter]';
-					if (isPlainEnter) {
-						// Do NOT call stopPropagation() so the keybinding service can still process this event
-						e.preventDefault();
-						break;
-					}
-				}
+				e.preventDefault();
+				e.stopPropagation();
+				this._widget?.acceptInput();
 			}
 		}));
 

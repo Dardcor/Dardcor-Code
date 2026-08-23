@@ -3321,7 +3321,7 @@ export abstract class BaseAgentHostSessionsProvider extends Disposable implement
 			useGroupedModelPicker: true,
 			showFeatured: true,
 			showUnavailableFeatured: true,
-			showManageModelsAction: true,
+			showManageModelsAction: false,
 			showAutoModel,
 		};
 	}

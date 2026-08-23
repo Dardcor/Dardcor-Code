@@ -1,1 +1,0 @@
-- fix(docker): ship MITM `_internal/` shims and `selfsigned` package in standalone bundle (#9451)

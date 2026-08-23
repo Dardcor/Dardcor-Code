@@ -3,8 +3,11 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+// @ts-ignore
 import DOMPurify, { type Config as DOMPurifyConfig } from 'dompurify';
+// @ts-ignore
 import MarkdownIt from 'markdown-it';
+// @ts-ignore
 import type Token from 'markdown-it/lib/token.mjs';
 import type { ActivationFunction } from 'vscode-notebook-renderer';
 
@@ -356,8 +359,8 @@ function addNamedHeaderRendering(md: MarkdownIt): void {
 	const slugCounter = new Map<string, number>();
 
 	const originalHeaderOpen = md.renderer.rules.heading_open;
-	md.renderer.rules.heading_open = (tokens: Token[], idx: number, options, env, self) => {
-		const title = tokens[idx + 1].children!.reduce<string>((acc: string, t: Token) => acc + t.content, '');
+	md.renderer.rules.heading_open = (tokens: any[], idx: number, options: any, env: any, self: any) => {
+		const title = tokens[idx + 1].children!.reduce((acc: string, t: any) => acc + t.content, '');
 		let slug = slugify(title);
 
 		if (slugCounter.has(slug)) {
@@ -387,7 +390,7 @@ function addNamedHeaderRendering(md: MarkdownIt): void {
 function addLinkRenderer(md: MarkdownIt): void {
 	const original = md.renderer.rules.link_open;
 
-	md.renderer.rules.link_open = (tokens: Token[], idx: number, options, env, self) => {
+	md.renderer.rules.link_open = (tokens: any[], idx: number, options: any, env: any, self: any) => {
 		const token = tokens[idx];
 		const href = token.attrGet('href');
 		if (typeof href === 'string' && href.startsWith('#')) {

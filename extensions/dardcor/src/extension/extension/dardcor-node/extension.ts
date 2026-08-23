@@ -35,7 +35,74 @@ function configureDevPackages() {
 }
 //#endregion
 
+function ensureDardcorProviderRunning() {
+	try {
+		const http = require('http');
+		const fs = require('fs');
+		const path = require('path');
+		const child_process = require('child_process');
+		const os = require('os');
+
+		const port = process.env.DARDCOR_PORT ? parseInt(process.env.DARDCOR_PORT) : 25000;
+		const req = http.get(`http://127.0.0.1:${port}/v1/models`, { timeout: 1500 }, (res: any) => {
+			res.resume();
+		});
+
+		req.on('error', () => {
+			const candidates = [
+				path.resolve(__dirname, '../../../../../../.dardcor-provider'),
+				path.resolve(process.cwd(), '.dardcor-provider'),
+				'/mnt/Data/Dardcor-Code/.dardcor-provider'
+			];
+			const providerDir = candidates.find(c => fs.existsSync(c));
+			if (!providerDir) return;
+
+			const pidFile = path.join(os.homedir(), '.dardcor', 'provider.pid');
+			const logDir = path.join(os.homedir(), '.dardcor', 'logs');
+			try { fs.mkdirSync(logDir, { recursive: true }); } catch { }
+
+			if (fs.existsSync(pidFile)) {
+				try {
+					const oldPid = parseInt(fs.readFileSync(pidFile, 'utf8').trim());
+					if (oldPid && !isNaN(oldPid)) {
+						process.kill(oldPid, 0);
+						return;
+					}
+				} catch {
+					// Stale PID
+				}
+			}
+
+			const logStream = fs.openSync(path.join(logDir, 'provider.log'), 'a');
+			let child;
+			const standaloneServer = path.join(providerDir, '.next/standalone/server.js');
+			if (fs.existsSync(standaloneServer)) {
+				child = child_process.spawn(process.execPath, [standaloneServer], {
+					cwd: path.join(providerDir, '.next/standalone'),
+					env: { ...process.env, PORT: String(port) },
+					detached: true,
+					stdio: ['ignore', logStream, logStream]
+				});
+			} else {
+				child = child_process.spawn('npm', ['run', 'dev', '--', '--port', String(port)], {
+					cwd: providerDir,
+					env: { ...process.env, PORT: String(port) },
+					detached: true,
+					stdio: ['ignore', logStream, logStream]
+				});
+			}
+			child.unref();
+			if (child.pid) {
+				try { fs.writeFileSync(pidFile, String(child.pid)); } catch { }
+			}
+		});
+	} catch {
+		// Non-fatal
+	}
+}
+
 export function activate(context: ExtensionContext, forceActivation?: boolean) {
+	ensureDardcorProviderRunning();
 
 	return baseActivate({
 		context,
@@ -45,3 +112,4 @@ export function activate(context: ExtensionContext, forceActivation?: boolean) {
 		forceActivation
 	});
 }
+

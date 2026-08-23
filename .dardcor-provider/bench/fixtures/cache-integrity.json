@@ -1,0 +1,265 @@
+{
+  "schema": "miaw-bench-fixture/1",
+  "id": "cache-integrity",
+  "name": "Cache Integrity",
+  "description": "Integrity fixture for the §10 rule: compression + translation + routing must leave cached-prefix bytes byte-identical. Every turn resends a large, byte-stable prefix — a long system prompt, two tool definitions, and a frozen migration spec pasted in turn 1 — and only the final user turn churns. The runner must assert the bytes of the stable regions (system, tools, spec) are identical before/after the pipeline and across turns; any mutation of that prefix is a correctness failure, not a tradeoff.",
+  "scenario": "cache-integrity",
+  "model": "mock/gpt-5-mini",
+  "expect": {
+    "intent": "assert byte-identical cached prefix through compression/translation/routing",
+    "byteIdenticalPrefix": true,
+    "stableRegions": ["system", "tools", "t1 spec document"],
+    "churn": "final user turn only",
+    "turnWithFullStablePrefix": ["t2", "t3", "t4"]
+  },
+  "turns": [
+    {
+      "id": "t1",
+      "note": "Session opens: stable system prompt, tool definitions, and the frozen migration spec; first question.",
+      "request": {
+        "model": "mock/gpt-5-mini",
+        "temperature": 0,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "submit_order",
+              "description": "Submit an order to Acme's order service and return the order id and total.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "items": { "type": "array", "items": { "type": "string" }, "description": "Item SKUs to order" },
+                  "customerRef": { "type": "string", "description": "Internal customer reference" }
+                },
+                "required": ["items"]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "check_inventory",
+              "description": "Check current stock level for a SKU across all warehouses.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "sku": { "type": "string" },
+                  "warehouses": { "type": "array", "items": { "type": "string" } }
+                },
+                "required": ["sku"]
+              }
+            }
+          }
+        ],
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are the migration architect for Acme's checkout-service. A legacy monolith (payments-legacy) is being replaced by the new checkout-service. Rules: (1) the frozen spec in the first user message is contractual — never reinterpret it, only ask clarifying questions; (2) any data migration must be reversible; (3) when you are confident, call submit_order or check_inventory rather than asking; (4) keep answers short and cite the spec section you are relying on."
+          },
+          {
+            "role": "user",
+            "content": "FROZEN SPEC (v2.3, contract) — Acme checkout migration.\n\n1. SCOPE. The new checkout-service replaces payments-legacy for order creation, inventory checks, and refunds. Legacy endpoint /v1/charge is frozen read-only from this point.\n\n2. ORDER MODEL. An order has: id (uuid), items (list of sku), totals (subtotal, discount, tax, shipping, total), status (draft|confirmed|shipped|voided), customerRef (opaque string, never logged). Totals are computed by the pricing module exactly as in the legacy system; the rounding rule is round-half-up on the final total only.\n\n3. INVENTORY. Stock is checked per-warehouse at confirmation time. A SKU is orderable if any single warehouse reports available > 0. Never reserve stock at draft time.\n\n4. REFUNDS. Only confirmed or shipped orders can be refunded. Refunds are full-order only; partial refunds are out of scope for v1.\n\n5. AUDIT. Every state change emits an audit event with actor, orderId, fromStatus, toStatus, and utc timestamp. Audit data lives 13 months, then archives.\n\n6. DATA MIGRATION. Legacy orders (created before cutover) are migrated with original timestamps preserved. Migration must be replayable and idempotent; a dry-run report must list counts per status.\n\n7. CUTOVER. Traffic switches at the next deploy window after migration dry-run is approved. Rollback = revert router weights; no data rewrite needed.\n\nQuestion 1: The legacy refund flow supports partial refunds for unshipped orders. Section 4 says partial refunds are out of scope for v1 — confirm we treat a partial-refund request as rejected at the API boundary."
+          }
+        ]
+      }
+    },
+    {
+      "id": "t2",
+      "note": "Same stable prefix; assistant answered, next question appended.",
+      "request": {
+        "model": "mock/gpt-5-mini",
+        "temperature": 0,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "submit_order",
+              "description": "Submit an order to Acme's order service and return the order id and total.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "items": { "type": "array", "items": { "type": "string" }, "description": "Item SKUs to order" },
+                  "customerRef": { "type": "string", "description": "Internal customer reference" }
+                },
+                "required": ["items"]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "check_inventory",
+              "description": "Check current stock level for a SKU across all warehouses.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "sku": { "type": "string" },
+                  "warehouses": { "type": "array", "items": { "type": "string" } }
+                },
+                "required": ["sku"]
+              }
+            }
+          }
+        ],
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are the migration architect for Acme's checkout-service. A legacy monolith (payments-legacy) is being replaced by the new checkout-service. Rules: (1) the frozen spec in the first user message is contractual — never reinterpret it, only ask clarifying questions; (2) any data migration must be reversible; (3) when you are confident, call submit_order or check_inventory rather than asking; (4) keep answers short and cite the spec section you are relying on."
+          },
+          {
+            "role": "user",
+            "content": "FROZEN SPEC (v2.3, contract) — Acme checkout migration.\n\n1. SCOPE. The new checkout-service replaces payments-legacy for order creation, inventory checks, and refunds. Legacy endpoint /v1/charge is frozen read-only from this point.\n\n2. ORDER MODEL. An order has: id (uuid), items (list of sku), totals (subtotal, discount, tax, shipping, total), status (draft|confirmed|shipped|voided), customerRef (opaque string, never logged). Totals are computed by the pricing module exactly as in the legacy system; the rounding rule is round-half-up on the final total only.\n\n3. INVENTORY. Stock is checked per-warehouse at confirmation time. A SKU is orderable if any single warehouse reports available > 0. Never reserve stock at draft time.\n\n4. REFUNDS. Only confirmed or shipped orders can be refunded. Refunds are full-order only; partial refunds are out of scope for v1.\n\n5. AUDIT. Every state change emits an audit event with actor, orderId, fromStatus, toStatus, and utc timestamp. Audit data lives 13 months, then archives.\n\n6. DATA MIGRATION. Legacy orders (created before cutover) are migrated with original timestamps preserved. Migration must be replayable and idempotent; a dry-run report must list counts per status.\n\n7. CUTOVER. Traffic switches at the next deploy window after migration dry-run is approved. Rollback = revert router weights; no data rewrite needed.\n\nQuestion 1: The legacy refund flow supports partial refunds for unshipped orders. Section 4 says partial refunds are out of scope for v1 — confirm we treat a partial-refund request as rejected at the API boundary."
+          },
+          {
+            "role": "assistant",
+            "content": "Correct. Section 4 is explicit: refunds are full-order only for v1. The new API rejects any refund payload carrying a partial amount with 422 and an out-of-scope code; legacy partial-refund requests keep working on payments-legacy read-only until it is retired."
+          },
+          {
+            "role": "user",
+            "content": "Question 2: Section 3 says stock is checked per-warehouse and a SKU is orderable when any single warehouse reports available > 0. What should the new service do when the inventory service is temporarily unreachable — accept the order optimistically or fail closed?"
+          }
+        ]
+      }
+    },
+    {
+      "id": "t3",
+      "note": "Same stable prefix; second answer appended, third question.",
+      "request": {
+        "model": "mock/gpt-5-mini",
+        "temperature": 0,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "submit_order",
+              "description": "Submit an order to Acme's order service and return the order id and total.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "items": { "type": "array", "items": { "type": "string" }, "description": "Item SKUs to order" },
+                  "customerRef": { "type": "string", "description": "Internal customer reference" }
+                },
+                "required": ["items"]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "check_inventory",
+              "description": "Check current stock level for a SKU across all warehouses.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "sku": { "type": "string" },
+                  "warehouses": { "type": "array", "items": { "type": "string" } }
+                },
+                "required": ["sku"]
+              }
+            }
+          }
+        ],
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are the migration architect for Acme's checkout-service. A legacy monolith (payments-legacy) is being replaced by the new checkout-service. Rules: (1) the frozen spec in the first user message is contractual — never reinterpret it, only ask clarifying questions; (2) any data migration must be reversible; (3) when you are confident, call submit_order or check_inventory rather than asking; (4) keep answers short and cite the spec section you are relying on."
+          },
+          {
+            "role": "user",
+            "content": "FROZEN SPEC (v2.3, contract) — Acme checkout migration.\n\n1. SCOPE. The new checkout-service replaces payments-legacy for order creation, inventory checks, and refunds. Legacy endpoint /v1/charge is frozen read-only from this point.\n\n2. ORDER MODEL. An order has: id (uuid), items (list of sku), totals (subtotal, discount, tax, shipping, total), status (draft|confirmed|shipped|voided), customerRef (opaque string, never logged). Totals are computed by the pricing module exactly as in the legacy system; the rounding rule is round-half-up on the final total only.\n\n3. INVENTORY. Stock is checked per-warehouse at confirmation time. A SKU is orderable if any single warehouse reports available > 0. Never reserve stock at draft time.\n\n4. REFUNDS. Only confirmed or shipped orders can be refunded. Refunds are full-order only; partial refunds are out of scope for v1.\n\n5. AUDIT. Every state change emits an audit event with actor, orderId, fromStatus, toStatus, and utc timestamp. Audit data lives 13 months, then archives.\n\n6. DATA MIGRATION. Legacy orders (created before cutover) are migrated with original timestamps preserved. Migration must be replayable and idempotent; a dry-run report must list counts per status.\n\n7. CUTOVER. Traffic switches at the next deploy window after migration dry-run is approved. Rollback = revert router weights; no data rewrite needed.\n\nQuestion 1: The legacy refund flow supports partial refunds for unshipped orders. Section 4 says partial refunds are out of scope for v1 — confirm we treat a partial-refund request as rejected at the API boundary."
+          },
+          {
+            "role": "assistant",
+            "content": "Correct. Section 4 is explicit: refunds are full-order only for v1. The new API rejects any refund payload carrying a partial amount with 422 and an out-of-scope code; legacy partial-refund requests keep working on payments-legacy read-only until it is retired."
+          },
+          {
+            "role": "user",
+            "content": "Question 2: Section 3 says stock is checked per-warehouse and a SKU is orderable when any single warehouse reports available > 0. What should the new service do when the inventory service is temporarily unreachable — accept the order optimistically or fail closed?"
+          },
+          {
+            "role": "assistant",
+            "content": "Fail closed at confirmation time. Section 3 requires a real availability check before an order becomes confirmable; an unreachable inventory service means the check cannot be satisfied, so confirmation returns 503 and the order stays draft. Do not fall back to optimistic acceptance — the spec never authorizes it."
+          },
+          {
+            "role": "user",
+            "content": "Question 3: Section 6 requires a dry-run migration report listing counts per status. Is it acceptable for the dry run to run against a point-in-time snapshot of the legacy database rather than live reads?"
+          }
+        ]
+      }
+    },
+    {
+      "id": "t4",
+      "note": "Same stable prefix; third answer appended, final question.",
+      "request": {
+        "model": "mock/gpt-5-mini",
+        "temperature": 0,
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "submit_order",
+              "description": "Submit an order to Acme's order service and return the order id and total.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "items": { "type": "array", "items": { "type": "string" }, "description": "Item SKUs to order" },
+                  "customerRef": { "type": "string", "description": "Internal customer reference" }
+                },
+                "required": ["items"]
+              }
+            }
+          },
+          {
+            "type": "function",
+            "function": {
+              "name": "check_inventory",
+              "description": "Check current stock level for a SKU across all warehouses.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "sku": { "type": "string" },
+                  "warehouses": { "type": "array", "items": { "type": "string" } }
+                },
+                "required": ["sku"]
+              }
+            }
+          }
+        ],
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are the migration architect for Acme's checkout-service. A legacy monolith (payments-legacy) is being replaced by the new checkout-service. Rules: (1) the frozen spec in the first user message is contractual — never reinterpret it, only ask clarifying questions; (2) any data migration must be reversible; (3) when you are confident, call submit_order or check_inventory rather than asking; (4) keep answers short and cite the spec section you are relying on."
+          },
+          {
+            "role": "user",
+            "content": "FROZEN SPEC (v2.3, contract) — Acme checkout migration.\n\n1. SCOPE. The new checkout-service replaces payments-legacy for order creation, inventory checks, and refunds. Legacy endpoint /v1/charge is frozen read-only from this point.\n\n2. ORDER MODEL. An order has: id (uuid), items (list of sku), totals (subtotal, discount, tax, shipping, total), status (draft|confirmed|shipped|voided), customerRef (opaque string, never logged). Totals are computed by the pricing module exactly as in the legacy system; the rounding rule is round-half-up on the final total only.\n\n3. INVENTORY. Stock is checked per-warehouse at confirmation time. A SKU is orderable if any single warehouse reports available > 0. Never reserve stock at draft time.\n\n4. REFUNDS. Only confirmed or shipped orders can be refunded. Refunds are full-order only; partial refunds are out of scope for v1.\n\n5. AUDIT. Every state change emits an audit event with actor, orderId, fromStatus, toStatus, and utc timestamp. Audit data lives 13 months, then archives.\n\n6. DATA MIGRATION. Legacy orders (created before cutover) are migrated with original timestamps preserved. Migration must be replayable and idempotent; a dry-run report must list counts per status.\n\n7. CUTOVER. Traffic switches at the next deploy window after migration dry-run is approved. Rollback = revert router weights; no data rewrite needed.\n\nQuestion 1: The legacy refund flow supports partial refunds for unshipped orders. Section 4 says partial refunds are out of scope for v1 — confirm we treat a partial-refund request as rejected at the API boundary."
+          },
+          {
+            "role": "assistant",
+            "content": "Correct. Section 4 is explicit: refunds are full-order only for v1. The new API rejects any refund payload carrying a partial amount with 422 and an out-of-scope code; legacy partial-refund requests keep working on payments-legacy read-only until it is retired."
+          },
+          {
+            "role": "user",
+            "content": "Question 2: Section 3 says stock is checked per-warehouse and a SKU is orderable when any single warehouse reports available > 0. What should the new service do when the inventory service is temporarily unreachable — accept the order optimistically or fail closed?"
+          },
+          {
+            "role": "assistant",
+            "content": "Fail closed at confirmation time. Section 3 requires a real availability check before an order becomes confirmable; an unreachable inventory service means the check cannot be satisfied, so confirmation returns 503 and the order stays draft. Do not fall back to optimistic acceptance — the spec never authorizes it."
+          },
+          {
+            "role": "user",
+            "content": "Question 3: Section 6 requires a dry-run migration report listing counts per status. Is it acceptable for the dry run to run against a point-in-time snapshot of the legacy database rather than live reads?"
+          },
+          {
+            "role": "assistant",
+            "content": "Yes — a point-in-time snapshot is the safer choice and still satisfies section 6. Take the snapshot with replication lag quiesced, label the dry-run report with the snapshot timestamp, and re-run against live reads only for the final approval run."
+          },
+          {
+            "role": "user",
+            "content": "Question 4: Draft orders that were never confirmed before cutover — do they migrate, or are they dropped? I need the rule stated before we freeze the migration script."
+          }
+        ]
+      }
+    }
+  ]
+}

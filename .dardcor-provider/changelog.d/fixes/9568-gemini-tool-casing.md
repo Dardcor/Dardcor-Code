@@ -1,1 +1,0 @@
-- **fix(translator):** restore original tool name casing in Gemini/Antigravity response translators ([#9568](https://github.com/diegosouzapw/Dardcor Code/issues/9568))

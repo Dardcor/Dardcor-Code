@@ -1,1 +1,0 @@
-- **feat(providers): add UnoRouter provider** — UnoRouter is an OpenAI-compatible routing gateway supporting hundreds of models. It is now registered as an API-key provider. ([#8978](https://github.com/diegosouzapw/Dardcor Code/issues/8978))

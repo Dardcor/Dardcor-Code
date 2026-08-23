@@ -1,1 +1,0 @@
-- **feat(usage):** surface Claude thinking token counts to clients. (thanks @luoyide)

@@ -16,7 +16,7 @@ import { IsAuxiliaryWindowContext, IsSessionsWindowContext } from '../../../comm
 import { URI } from '../../../../base/common/uri.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 import { LocalChatSessionUri } from './model/chatUri.js';
-import { clearUserSelectedSessionType, getRememberedSessionType, hasPreferredCopilotHarness, storeUserSelectedSessionType } from './chatSessionTypePreference.js';
+import { clearUserSelectedSessionType, getRememberedSessionType, storeUserSelectedSessionType } from './chatSessionTypePreference.js';
 import { IAgentHostEnablementService } from '../../../../platform/agentHost/common/agentHostEnablementService.js';
 
 export { ChatAIDisabledSettingId } from '../../../../platform/chat/common/chatSettings.js';
@@ -302,10 +302,6 @@ export function getComputedDefaultSessionType(
 		return localChatSessionType;
 	}
 
-	if (agentHostEnabled && configurationService.getValue<boolean>(ChatConfiguration.DefaultToCopilotHarness)) {
-		return SessionType.AgentHostCopilot;
-	}
-
 	if (isEditorLocalAgentEnabled(configurationService, workspace)) {
 		return localChatSessionType;
 	}
@@ -406,20 +402,6 @@ export function resolveDefaultNewChatSessionType(
 	const remembered = getUsableRememberedSessionType(storageService, configurationService, chatSessionsService, workspace);
 	if (remembered && remembered !== localChatSessionType) {
 		return { sessionType: remembered, isPreferCopilotHarnessSwap: false };
-	}
-
-	// One-time migration: when the agent host is enabled and the user has opted
-	// in via `chat.editor.preferCopilotHarness`, swap an existing local editor
-	// session to Copilot exactly once (guarded by the persisted marker). Never
-	// swap when the agent host is disabled, since the Copilot harness would be
-	// unavailable. This function does not persist the marker itself; the caller
-	// marks it only after applying the swap, so a caller that discards the
-	// result does not consume the one-time migration.
-	if (options?.currentSessionType === localChatSessionType
-		&& agentHostEnabled
-		&& configurationService.getValue<boolean>(ChatConfiguration.EditorPreferCopilotHarness)
-		&& !hasPreferredCopilotHarness(storageService)) {
-		return { sessionType: SessionType.AgentHostCopilot, isPreferCopilotHarnessSwap: true };
 	}
 
 	return { sessionType: getDefaultNewChatSessionType(configurationService, chatSessionsService, storageService, workspace, agentHostEnabled, options), isPreferCopilotHarnessSwap: false };

@@ -1,1 +1,0 @@
-- **fix(codex):** strip orphaned tool outputs from compacted conversations. (thanks @raflyazf)

@@ -6,6 +6,8 @@
 import { app, BrowserWindow, desktopCapturer, Details, globalShortcut, GPUFeatureStatus, powerMonitor, protocol, screen as electronScreen, session, Session, systemPreferences, WebFrameMain } from 'electron';
 import { addUNCHostToAllowlist, disableUNCAccessRestrictions } from '../../base/node/unc.js';
 import { validatedIpcMain } from '../../base/parts/ipc/electron-main/ipcMain.js';
+import { fork, ChildProcess } from 'child_process';
+import { existsSync } from 'fs';
 import { hostname, release } from 'os';
 import { initWindowsVersionInfo } from '../../base/node/windowsVersion.js';
 import { VSBuffer } from '../../base/common/buffer.js';
@@ -664,8 +666,60 @@ export class CodeApplication extends Disposable {
 		validatedIpcMain.on('vscode:toggleDevTools', event => event.sender.toggleDevTools());
 		validatedIpcMain.on('vscode:openDevTools', event => event.sender.openDevTools());
 
+		let providerProcess: ChildProcess | null = null;
+		const startProviderProcess = () => {
+			if (providerProcess && !providerProcess.killed) {
+				return;
+			}
+			const providerDir = join(this.environmentMainService.appRoot, '.dardcor-provider');
+			const standaloneServer = join(providerDir, '.next', 'standalone', 'server.js');
+			const nextBin = join(providerDir, 'node_modules', 'next', 'dist', 'bin', 'next');
+			const dataDir = join(this.environmentMainService.userDataPath, 'dardcor-provider');
+			const env = {
+				...process.env,
+				PORT: '25000',
+				HOSTNAME: '127.0.0.1',
+				DATA_DIR: dataDir,
+				NODE_ENV: 'production',
+				ELECTRON_RUN_AS_NODE: '1'
+			};
+
+			try {
+				if (existsSync(standaloneServer)) {
+					providerProcess = fork(standaloneServer, [], {
+						cwd: join(providerDir, '.next', 'standalone'),
+						env,
+						stdio: 'ignore'
+					});
+				} else if (existsSync(nextBin)) {
+					providerProcess = fork(nextBin, ['start', '--port', '25000'], {
+						cwd: providerDir,
+						env,
+						stdio: 'ignore'
+					});
+				}
+				if (providerProcess) {
+					providerProcess.on('exit', () => {
+						providerProcess = null;
+					});
+				}
+			} catch (e) {
+				this.logService.error('Failed to spawn provider process', e);
+			}
+		};
+
+		startProviderProcess();
+
+		app.on('will-quit', () => {
+			if (providerProcess) {
+				providerProcess.kill();
+				providerProcess = null;
+			}
+		});
+
 		let providerWin: BrowserWindow | null = null;
 		validatedIpcMain.on('vscode:openProviderWindow', () => {
+			startProviderProcess();
 			if (providerWin && !providerWin.isDestroyed()) {
 				if (providerWin.isMinimized()) {
 					providerWin.restore();
@@ -677,7 +731,7 @@ export class CodeApplication extends Disposable {
 			providerWin = new BrowserWindow({
 				width: 1200,
 				height: 800,
-				title: 'Dardcor Code Provider',
+				title: 'Dardcor Code - Router',
 				icon: iconPath,
 				backgroundColor: '#000000',
 				autoHideMenuBar: true,
@@ -714,10 +768,79 @@ export class CodeApplication extends Disposable {
 		//#endregion
 	}
 
+	private ensureDardcorProviderRunning(): void {
+		try {
+			const http = require('http');
+			const fs = require('fs');
+			const path = require('path');
+			const child_process = require('child_process');
+			const os = require('os');
+
+			const port = process.env.DARDCOR_PORT ? parseInt(process.env.DARDCOR_PORT) : 25000;
+			const req = http.get(`http://127.0.0.1:${port}/v1/models`, { timeout: 1000 }, (res: any) => {
+				res.resume();
+			});
+
+			req.on('error', () => {
+				const candidates = [
+					path.resolve(this.environmentMainService.appRoot, '.dardcor-provider'),
+					path.resolve(process.cwd(), '.dardcor-provider'),
+					'/mnt/Data/Dardcor-Code/.dardcor-provider'
+				];
+				const providerDir = candidates.find(c => fs.existsSync(c));
+				if (!providerDir) return;
+
+				const pidFile = path.join(os.homedir(), '.dardcor', 'provider.pid');
+				const logDir = path.join(os.homedir(), '.dardcor', 'logs');
+				try { fs.mkdirSync(logDir, { recursive: true }); } catch { }
+
+				if (fs.existsSync(pidFile)) {
+					try {
+						const oldPid = parseInt(fs.readFileSync(pidFile, 'utf8').trim());
+						if (oldPid && !isNaN(oldPid)) {
+							process.kill(oldPid, 0);
+							return;
+						}
+					} catch {
+						// Stale PID
+					}
+				}
+
+				const logStream = fs.openSync(path.join(logDir, 'provider.log'), 'a');
+				let child;
+				const standaloneServer = path.join(providerDir, '.next/standalone/server.js');
+				if (fs.existsSync(standaloneServer)) {
+					child = child_process.spawn(process.execPath, [standaloneServer], {
+						cwd: path.join(providerDir, '.next/standalone'),
+						env: { ...process.env, PORT: String(port) },
+						detached: true,
+						stdio: ['ignore', logStream, logStream]
+					});
+				} else {
+					child = child_process.spawn('npm', ['run', 'dev', '--', '--port', String(port)], {
+						cwd: providerDir,
+						env: { ...process.env, PORT: String(port) },
+						detached: true,
+						stdio: ['ignore', logStream, logStream]
+					});
+				}
+				child.unref();
+				if (child.pid) {
+					try { fs.writeFileSync(pidFile, String(child.pid)); } catch { }
+				}
+				this.logService.info(`Dardcor Provider auto-started on port ${port} (PID: ${child.pid})`);
+			});
+		} catch (err) {
+			this.logService.warn('Failed to auto-start Dardcor Provider:', err);
+		}
+	}
+
 	async startup(): Promise<void> {
 		this.logService.debug('Starting VS Code');
 		this.logService.debug(`from: ${this.environmentMainService.appRoot}`);
 		this.logService.debug('args:', this.environmentMainService.args);
+
+		this.ensureDardcorProviderRunning();
 
 		// Make sure we associate the program with the app user model id
 		// This will help Windows to associate the running program with

@@ -1,1 +1,0 @@
-- **fix(combo):** the Combo "Add model" picker now respects hidden-model visibility for every model source — system catalog, fallback, passthrough/node aliases, custom rows and auto-fetched models — instead of drowning the list in 500+ unavailable entries ([#9218](https://github.com/diegosouzapw/Dardcor Code/pull/9218)) — thanks @szzhoujiarui

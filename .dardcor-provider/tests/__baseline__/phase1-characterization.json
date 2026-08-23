@@ -1,0 +1,956 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "scripts/test-baseline.mjs --record",
+  "generatedAt": "2026-08-09T01:37:36.176Z",
+  "meta": {
+    "numTotalTests": 1980,
+    "numPassedTests": 1834,
+    "numFailedTests": 87,
+    "numSkippedTests": 59,
+    "numTotalFiles": 201,
+    "numFailedFiles": 23
+  },
+  "catalogReconciliation": {
+    "catalogPath": "tests/__baseline__/known-fails.txt",
+    "catalogEntries": 24,
+    "matched": [
+      "tests/unit/claude-header-forwarding.test.js :: proxyAwareFetch — api.anthropic.com routing routes api.anthropic.com to gotScraping (non-streaming) and returns ok response",
+      "tests/unit/oauth-cursor-auto-import.test.js :: GET /api/oauth/cursor/auto-import extracts tokens using exact keys",
+      "tests/unit/oauth-cursor-auto-import.test.js :: GET /api/oauth/cursor/auto-import falls back to fuzzy key matching on macOS when exact keys are missing",
+      "tests/unit/oauth-cursor-auto-import.test.js :: GET /api/oauth/cursor/auto-import linux uses single hardcoded path and original error message",
+      "tests/unit/oauth-cursor-auto-import.test.js :: GET /api/oauth/cursor/auto-import returns descriptive error if macOS db file exists but cannot be opened",
+      "tests/unit/oauth-cursor-auto-import.test.js :: GET /api/oauth/cursor/auto-import returns login-prompt error when tokens are missing even after fallback",
+      "tests/unit/oauth-cursor-auto-import.test.js :: GET /api/oauth/cursor/auto-import returns not-found when no macOS cursor db paths are accessible",
+      "tests/unit/oauth-cursor-auto-import.test.js :: GET /api/oauth/cursor/auto-import unsupported platform returns 400",
+      "tests/unit/oauth-cursor-auto-import.test.js :: GET /api/oauth/cursor/auto-import unwraps JSON-encoded string values",
+      "tests/unit/openai-to-claude.test.js :: openaiToClaudeResponse omits empty Read pages tool argument before emitting Claude input deltas",
+      "tests/unit/translator-request-normalization.test.js :: request normalization claudeToOpenAIRequest flattens text-only content arrays into string",
+      "tests/unit/translator-request-normalization.test.js :: request normalization filterToOpenAIFormat flattens text-only arrays to string",
+      "tests/unit/translator-request-normalization.test.js :: request normalization parseSSELine supports provider raw NDJSON stream lines",
+      "tests/unit/translator-request-normalization.test.js :: request normalization translateRequest keeps /v1/messages Claude->OpenAI text payloads string-safe"
+    ],
+    "stale": [
+      "tests/unit/rtk.test.js :: RTK flag default off, toggle works",
+      "tests/unit/rtk.test.js :: compressMessages (disabled) returns null when disabled",
+      "tests/unit/rtk.test.js :: compressMessages (enabled) compresses Claude array-form tool_result text parts",
+      "tests/unit/rtk.test.js :: compressMessages (enabled) compresses Claude string-form tool_result",
+      "tests/unit/rtk.test.js :: compressMessages (enabled) compresses OpenAI tool message (string content)",
+      "tests/unit/rtk.test.js :: compressMessages (enabled) handles mix of messages without crashing",
+      "tests/unit/rtk.test.js :: compressMessages (enabled) never produces empty content (R14 guard)",
+      "tests/unit/rtk.test.js :: compressMessages (enabled) skips below MIN_COMPRESS_SIZE (<500 bytes)",
+      "tests/unit/rtk.test.js :: compressMessages (enabled) skips is_error tool_result",
+      "tests/unit/rtk.test.js :: compressMessages (enabled) skips when body has no messages"
+    ],
+    "unmatched": [
+      "tests/translator/bugs-toClaude-context.test.js :: OpenAI → Claude context mapping assistant reasoning_content becomes a thinking block",
+      "tests/translator/golden-request.test.js :: GOLDEN request: OpenAI → Kiro full body (image base64 + tool_result)",
+      "tests/translator/golden-url-header.test.js :: GOLDEN buildHeaders (default executor providers) anthropic → headers (apiKey / oauth)",
+      "tests/translator/golden-url-header.test.js :: GOLDEN buildHeaders (default executor providers) cline → headers (apiKey / oauth)",
+      "tests/translator/golden-url-header.test.js :: GOLDEN buildHeaders (default executor providers) kimi → headers (apiKey / oauth)",
+      "tests/translator/golden-url-header.test.js :: GOLDEN buildUrl (default executor providers) blackbox → url (stream + non-stream)",
+      "tests/unit/codex-image-fetch.test.js :: CodexExecutor image handling execute() prefetches images before sending to upstream",
+      "tests/unit/codex-image-fetch.test.js :: CodexExecutor image handling fetches 1MB remote image and inlines it as base64 data URI",
+      "tests/unit/combo-autoswitch.test.js :: detectRequiredCapabilities web_search tool -> search",
+      "tests/unit/combo-autoswitch.test.js :: reorderByCapabilities keeps order when no model matches",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) McpArgs decode decodes name, toolName, toolCallId, and typed args map",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) McpArgs decode handles empty args map",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) McpResult error / toolNotFound builds error result (field 2)",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) McpResult error / toolNotFound builds toolNotFound result (field 5)",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) McpResult image content builds image item with raw bytes + mime type",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) McpResult image content builds mixed text + image content",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) McpResult success builds success with multiple text items",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) McpResult success builds success with single text content",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) McpResult success marks is_error=true",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) McpToolDefinition accepts flat tool shape (no .function wrapper)",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) McpToolDefinition encodes name, description, input_schema (Value), provider, tool_name",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) McpToolDefinition preserves nested JSON-schema types",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) encodeMcpTools produces empty bytes for no tools",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) encodeMcpTools wraps multiple tool defs as repeated field 1",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) google.protobuf.Value round-trip encodes/decodes array of mixed",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) google.protobuf.Value round-trip encodes/decodes bool false",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) google.protobuf.Value round-trip encodes/decodes bool true",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) google.protobuf.Value round-trip encodes/decodes deeply nested",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) google.protobuf.Value round-trip encodes/decodes empty object",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) google.protobuf.Value round-trip encodes/decodes flat object",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) google.protobuf.Value round-trip encodes/decodes float",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) google.protobuf.Value round-trip encodes/decodes integer",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) google.protobuf.Value round-trip encodes/decodes nested object",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) google.protobuf.Value round-trip encodes/decodes null",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) google.protobuf.Value round-trip encodes/decodes string",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService executor helpers (cursor.js) buildAgentRunFrame encodes a text-only run request with system + model",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService executor helpers (cursor.js) buildAgentRunFrame encodes conversation_history from prior turns including tool calls/results",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService executor helpers (cursor.js) buildAgentRunFrame encodes mcp_tools (field 4) when tools are provided",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService executor helpers (cursor.js) buildAgentRunFrame omits mcp_tools when no tools provided",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService executor helpers (cursor.js) isAgentCapableRequest accepts array text content",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService executor helpers (cursor.js) isAgentCapableRequest accepts history with assistant tool_calls + tool results",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService executor helpers (cursor.js) isAgentCapableRequest accepts plain text content",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService executor helpers (cursor.js) isAgentCapableRequest accepts request with tools declared",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService executor helpers (cursor.js) isAgentCapableRequest rejects missing messages",
+      "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService executor helpers (cursor.js) isAgentCapableRequest rejects non-text (image) content",
+      "tests/unit/cursor-models.test.js :: Cursor live model catalog fetches the account-specific catalog and caches it",
+      "tests/unit/db-concurrent.test.js :: DB Concurrency — atomic safety 100 parallel saveRequestUsage → no count loss",
+      "tests/unit/db-concurrent.test.js :: DB Concurrency — atomic safety daily summary aggregates correctly under parallel writes",
+      "tests/unit/db-concurrent.test.js :: DB Concurrency — atomic safety mixed concurrent: usage + details + connections + aliases",
+      "tests/unit/executor-const-guard.test.js :: antigravity retry (intentional change: 429=6, 503=3) 429 attempts = 6",
+      "tests/unit/force-stream-config.test.js :: forceStream provider config keeps forced-stream providers streaming for JSON clients when body.stream is false",
+      "tests/unit/force-stream-config.test.js :: forceStream provider config keeps forced-stream providers streaming for JSON clients when body.stream is undefined",
+      "tests/unit/image-fetch-hardening.test.js :: fetchImageAsBase64 hardening accepts valid PNG from public host",
+      "tests/unit/kiro-terminal-integrity.test.js :: Kiro terminal integrity recovery bounds the retry HTTP error body",
+      "tests/unit/kiro-terminal-integrity.test.js :: Kiro terminal integrity recovery surfaces retry HTTP failures as SSE after heartbeat commits headers",
+      "tests/unit/mimo-free.live.test.js :: MiMo Free anti-abuse gate (live) chat WITH Chrome User-Agent → 200",
+      "tests/unit/request-details-tab.test.js :: backupDbLite — excludes requestDetails, keeps critical data backup file omits requestDetails rows but keeps other tables",
+      "tests/unit/request-details-tab.test.js :: getDistinctProviders — providers route (no full-row parse) returns unique provider list without parsing data blobs",
+      "tests/unit/request-details-tab.test.js :: request details — tab crash-risk cases oversized field → stored truncated + reparseable (no circular)",
+      "tests/unit/security-audit.test.js :: AUDIT-001: Synchronous restart guard mitmIsRestarting should be reset on max-restarts early return",
+      "tests/unit/security-audit.test.js :: AUDIT-001: Synchronous restart guard mitmIsRestarting should be set before first await expression",
+      "tests/unit/security-audit.test.js :: AUDIT-002: API key masking byApiKey object keys should use masked key, not raw key",
+      "tests/unit/security-audit.test.js :: AUDIT-002: API key masking getUsageHistory should use apiKeyMasked instead of apiKey",
+      "tests/unit/security-audit.test.js :: AUDIT-002: API key masking getUsageStats should use apiKeyMasked in byApiKey entries",
+      "tests/unit/security-audit.test.js :: AUDIT-002: API key masking source should contain maskApiKey function",
+      "tests/unit/security-audit.test.js :: AUDIT-003: Proxy URL validation source should contain validateProxyUrl function",
+      "tests/unit/security-audit.test.js :: AUDIT-004: Atomic lock file for MITM startup manager.js should define LOCK_FILE constant",
+      "tests/unit/security-audit.test.js :: AUDIT-004: Atomic lock file for MITM startup should clean up lock file on all exit paths",
+      "tests/unit/security-audit.test.js :: AUDIT-004: Atomic lock file for MITM startup should use O_EXCL flag (wx) for atomic creation",
+      "tests/unit/security-audit.test.js :: AUDIT-018: XSS escaping in OAuth callback should escape ampersand, angle brackets, and quotes",
+      "tests/unit/security-audit.test.js :: AUDIT-018: XSS escaping in OAuth callback should use safeMessage in rendered HTML, not raw message",
+      "tests/unit/security-audit.test.js :: AUDIT-018: XSS escaping in OAuth callback source should contain escapeHtml function",
+      "tests/unit/windsurf-executor.test.js :: WindsurfExecutor class PROVIDERS.windsurf baseUrl is the chat endpoint (registry in sync)",
+      "tests/unit/windsurf-executor.test.js :: WindsurfExecutor class buildUrl returns the GetChatMessage endpoint",
+      "tests/unit/windsurf-executor.test.js :: WindsurfExecutor class constructor wires config from PROVIDERS.windsurf"
+    ]
+  },
+  "categories": {
+    "known-oauth-cursor-auto-import": {
+      "label": "Known fail — Cursor OAuth auto-import (catalog match)",
+      "evidence": "Matches known-fails.txt lines 2-9; all 8 failures in tests/unit/oauth-cursor-auto-import.test.js (exact/fuzzy key extraction, macOS/linux path handling, error branches)"
+    },
+    "known-claude-header-forwarding": {
+      "label": "Known fail — proxyAwareFetch anthropic routing (catalog match)",
+      "evidence": "Matches known-fails.txt line 1; tests/unit/claude-header-forwarding.test.js — routes api.anthropic.com to gotScraping; expect(vi.fn()).toHaveBeenCalledOnce got 0"
+    },
+    "known-openai-to-claude-read-pages": {
+      "label": "Known fail — openaiToClaudeResponse Read pages arg (catalog match)",
+      "evidence": "Matches known-fails.txt line 10; tests/unit/openai-to-claude.test.js — omits empty Read pages tool argument; expected defined, got undefined"
+    },
+    "known-translator-request-normalization": {
+      "label": "Known fail — translator request normalization (catalog match)",
+      "evidence": "Matches known-fails.txt lines 21-24; tests/unit/translator-request-normalization.test.js — text-only content array flattening (claudeToOpenAIRequest:28, filterToOpenAIFormat), parseSSELine NDJSON (got null), translateRequest string-safety (got 'object')"
+    },
+    "collection-missing-cloud-module": {
+      "label": "Collection fail — cloud/ worker module absent",
+      "evidence": "tests/unit/embeddings.cloud.test.js:1 imports '/cloud/src/handlers/embeddings.js'; the cloud/ worker dir is not part of this repo (documented in CLAUDE.md) — vitest JSON: 'Cannot find module'"
+    },
+    "collection-node-test-runner-file": {
+      "label": "Collection fail — node:test file not a vitest suite",
+      "evidence": "tests/unit/kimchi.test.js:1 and tests/unit/kimchi-strip-reasoning.test.js:18 import describe/it from 'node:test'; vitest JSON: 'No test suite found in file'"
+    },
+    "collection-missing-dependency-lowdb": {
+      "label": "Collection fail — lowdb dependency not installed",
+      "evidence": "tests/unit/db-benchmark.test.js lazy-imports 'lowdb'; lowdb absent from tests/node_modules and root node_modules — vitest JSON: 'Cannot find package lowdb'"
+    },
+    "live-provider-anti-abuse": {
+      "label": "Live provider call — MiMo free anti-abuse gate",
+      "evidence": "tests/unit/mimo-free.live.test.js:58:22 — real network call to the MiMo free chat endpoint returned 400, expected 200; the bootstrap JWT call in the same file passed, so the endpoint is reachable but the anti-abuse gate rejects this IP/UA/environment"
+    },
+    "env-native-dep-better-sqlite3": {
+      "label": "Env native dependency — better-sqlite3 bindings missing",
+      "evidence": "tests/unit/request-details-tab.test.js backupDbLite case — 'Could not locate the bindings file … better_sqlite3.node'; better-sqlite3 is optionalDependencies with no prebuilt binding; adapter falls back to node:sqlite"
+    },
+    "test-infra-vitest-mock-missing-export": {
+      "label": "Test infra — vi.mock missing formatHeadroomSizeLog export",
+      "evidence": "tests/unit/force-stream-config.test.js:148:5 — '[vitest] No \"formatHeadroomSizeLog\" export is defined on the \"../../open-sse/rtk/headroom.js\" mock'; chatCore.js:240 calls it"
+    },
+    "test-infra-source-path-cwd": {
+      "label": "Test infra — cwd-relative source path resolution (ENOENT)",
+      "evidence": "tests/unit/security-audit.test.js:12-15 and 13 further sites use path.resolve('src/lib/db/repos/usageRepo.js'), path.resolve('src/lib/network/outboundProxy.js'), path.resolve('src/lib/oauth/utils/server.js'), path.resolve('src/mitm/manager.js'); vitest cwd is tests/ so these resolve to tests/src/… which does not exist — ENOENT"
+    },
+    "test-infra-cursor-proto-missing-export": {
+      "label": "Test infra — cursor agent proto/cursor exports absent",
+      "evidence": "tests/unit/cursor-agent-proto.test.js:13 imports from open-sse/utils/cursorProtobuf.js and :17 from open-sse/executors/cursor.js; 35 failures are TypeError '<name> is not a function' for encodeAgentValue, encodeMcpToolDefinition, encodeMcpTools, decodeMcpArgs, encodeMcpResultSuccess/Error/ToolNotFound, isAgentCapableRequest, buildAgentRunFrame"
+    },
+    "golden-snapshot-mismatch": {
+      "label": "Golden snapshot drift — provider payload/URL/header snapshots",
+      "evidence": "tests/translator/golden-request.test.js (OpenAI→Kiro full body) and tests/translator/golden-url-header.test.js (blackbox url, anthropic/cline/kimi headers) — 5 committed snapshot mismatches (upstream payload drift since snapshot was frozen)"
+    },
+    "translator-reasoning-content-loss": {
+      "label": "Translator behavior — reasoning_content dropped",
+      "evidence": "tests/translator/bugs-toClaude-context.test.js:28:59 — 'reasoning_content lost: expected … to contain \"my hidden reasoning\"' — assistant reasoning_content not mapped to a thinking block"
+    },
+    "combo-capability-detection": {
+      "label": "Combo capability detection / reorder behavior",
+      "evidence": "tests/unit/combo-autoswitch.test.js:42:29 (web_search tool → 'search' capability, got false) and :71:17 (reorderByCapabilities keeps order when no model matches, toBe identity mismatch)"
+    },
+    "db-concurrent-atomicity": {
+      "label": "DB concurrency — parallel writes lose updates (flaky count)",
+      "evidence": "tests/unit/db-concurrent.test.js:40:33 (expected 2 to be 100), :88:49 (expected 12-13 to be 50 — count varies run-to-run), :167:24 (expected 1 to be 50); driver is the adapter fallback — better-sqlite3 absent, node:sqlite in use (Node v26.4.0). Recorded flaky: the lost-update count is scheduling-dependent; the gate compares the digit-stripped class signature"
+    },
+    "executor-retry-const-drift": {
+      "label": "Executor retry constants drift (429/503)",
+      "evidence": "tests/unit/executor-const-guard.test.js:43:57 — 'antigravity retry (intentional change: 429=6, 503=3) 429 attempts = 6' — expected 6 retries on 429, runtime gave 3"
+    },
+    "windsurf-registry-mismatch": {
+      "label": "Windsurf registry/executor mismatch (codeium vs windsurf)",
+      "evidence": "tests/unit/windsurf-executor.test.js:168:31 and :190:27 — baseUrl is https://server.codeium.com/exa.languagetool… not server.self-serve.windsurf.com; :194:31 — TypeError reading baseUrl of undefined (PROVIDERS.windsurf)"
+    },
+    "request-details-handler-null": {
+      "label": "Request-details handler — null deref",
+      "evidence": "tests/unit/request-details-tab.test.js:97:16 — 'TypeError: Cannot read properties of null (reading request)' in oversized-field store path"
+    },
+    "request-details-providers-route": {
+      "label": "Request-details providers route — missing providers",
+      "evidence": "tests/unit/request-details-tab.test.js:161:18 — getDistinctProviders returned ['openai'], expected to include 'anthropic'"
+    },
+    "kiro-terminal-integrity": {
+      "label": "Kiro terminal integrity — recovery path errors",
+      "evidence": "tests/unit/kiro-terminal-integrity.test.js:703:3 and :719:3 — both fail with 'Error: STACK_TRACE_ERROR' in retry/recovery paths after heartbeat commits headers"
+    },
+    "codex-image-prefetch-behavior": {
+      "label": "Codex image prefetch — input_image block not produced",
+      "evidence": "tests/unit/codex-image-fetch.test.js:81:70 and :159:70 — with global.fetch mocked to return a 1MB image, prefetchImages/execute do not inline data:image/jpeg;base64 into an input_image block (startsWith check failed)"
+    },
+    "cursor-models-resolve-behavior": {
+      "label": "Cursor model catalog — resolve returns null on mocked 200",
+      "evidence": "tests/unit/cursor-models.test.js:74:51 — with global.fetch mocked to a 200 protobuf response, resolveCursorModels resolves null instead of { models: [...] }"
+    },
+    "test-infra-dns-lookup-mock-shape": {
+      "label": "Test infra — DNS lookup mock shape vs {all:true} contract",
+      "evidence": "tests/unit/image-fetch-hardening.test.js:25-26 mocks lookup to a single {address} object, but image.js:44 calls lookup(hostname, {all:true}) which returns an array — records.length is undefined → resolvePinnedIps returns null for every public host; test at :58:19 expects a data URI"
+    }
+  },
+  "failures": [
+    {
+      "id": "tests/translator/bugs-toClaude-context.test.js :: OpenAI → Claude context mapping assistant reasoning_content becomes a thinking block",
+      "category": "translator-reasoning-content-loss",
+      "kind": "assertion",
+      "file": "tests/translator/bugs-toClaude-context.test.js",
+      "firstLine": "AssertionError: reasoning_content lost: expected '{\"model\":\"m\",\"max_tokens\":64000,\"stre…' to contain 'my hidden reasoning'",
+      "signature": "8f4f2a86a7b9e205b3c23c5d70acec06aaeb41d222e7a36b20b07a6a48c129c9"
+    },
+    {
+      "id": "tests/translator/golden-request.test.js :: GOLDEN request: OpenAI → Kiro full body (image base64 + tool_result)",
+      "category": "golden-snapshot-mismatch",
+      "kind": "assertion",
+      "file": "tests/translator/golden-request.test.js",
+      "firstLine": "Error: Snapshot `GOLDEN request: OpenAI → Kiro > full body (image base64 + tool_result) 1` mismatched",
+      "signature": "c54a3b3e49b5ddcc1484daee6ec6bc5e3597c8686b180dd92df47be3cabde189"
+    },
+    {
+      "id": "tests/translator/golden-url-header.test.js :: GOLDEN buildHeaders (default executor providers) anthropic → headers (apiKey / oauth)",
+      "category": "golden-snapshot-mismatch",
+      "kind": "assertion",
+      "file": "tests/translator/golden-url-header.test.js",
+      "firstLine": "Error: Snapshot `GOLDEN buildHeaders (default executor providers) > anthropic → headers (apiKey / oauth) 1` mismatched",
+      "signature": "894b477900fdb972a1e303d4417643d1f753da2eac6da14bb7b3350b6fa8e0df"
+    },
+    {
+      "id": "tests/translator/golden-url-header.test.js :: GOLDEN buildHeaders (default executor providers) cline → headers (apiKey / oauth)",
+      "category": "golden-snapshot-mismatch",
+      "kind": "assertion",
+      "file": "tests/translator/golden-url-header.test.js",
+      "firstLine": "Error: Snapshot `GOLDEN buildHeaders (default executor providers) > cline → headers (apiKey / oauth) 1` mismatched",
+      "signature": "d417ea9186e7408fd6787f24330c4b36608dfa83e9cd390d53af03b1e3a2753c"
+    },
+    {
+      "id": "tests/translator/golden-url-header.test.js :: GOLDEN buildHeaders (default executor providers) kimi → headers (apiKey / oauth)",
+      "category": "golden-snapshot-mismatch",
+      "kind": "assertion",
+      "file": "tests/translator/golden-url-header.test.js",
+      "firstLine": "Error: Snapshot `GOLDEN buildHeaders (default executor providers) > kimi → headers (apiKey / oauth) 1` mismatched",
+      "signature": "32874a24aac4c00c8735c9486fa26000193ad56c974876c30a6c7b4bf3712429"
+    },
+    {
+      "id": "tests/translator/golden-url-header.test.js :: GOLDEN buildUrl (default executor providers) blackbox → url (stream + non-stream)",
+      "category": "golden-snapshot-mismatch",
+      "kind": "assertion",
+      "file": "tests/translator/golden-url-header.test.js",
+      "firstLine": "Error: Snapshot `GOLDEN buildUrl (default executor providers) > blackbox → url (stream + non-stream) 1` mismatched",
+      "signature": "d944cf733f956c4d7af50234a771c77a19eed51b9d7213b23b5b63a898510a4d"
+    },
+    {
+      "id": "tests/unit/claude-header-forwarding.test.js :: proxyAwareFetch — api.anthropic.com routing routes api.anthropic.com to gotScraping (non-streaming) and returns ok response",
+      "category": "known-claude-header-forwarding",
+      "kind": "assertion",
+      "file": "tests/unit/claude-header-forwarding.test.js",
+      "firstLine": "AssertionError: expected \"vi.fn()\" to be called once, but got 0 times",
+      "signature": "99a069a3d6b2974070db62e7e85c8f3c12b35f6b87b9a323a7ea37c27d0b94a2"
+    },
+    {
+      "id": "tests/unit/codex-image-fetch.test.js :: CodexExecutor image handling execute() prefetches images before sending to upstream",
+      "category": "codex-image-prefetch-behavior",
+      "kind": "assertion",
+      "file": "tests/unit/codex-image-fetch.test.js",
+      "firstLine": "AssertionError: expected false to be true // Object.is equality",
+      "signature": "bf1d6fa6ad7f20b0660f9985522eb935e0feda9c555c9319ec3fde55c76b03aa"
+    },
+    {
+      "id": "tests/unit/codex-image-fetch.test.js :: CodexExecutor image handling fetches 1MB remote image and inlines it as base64 data URI",
+      "category": "codex-image-prefetch-behavior",
+      "kind": "assertion",
+      "file": "tests/unit/codex-image-fetch.test.js",
+      "firstLine": "AssertionError: expected false to be true // Object.is equality",
+      "signature": "2e8521f76c528dd87e8de4d5512f6b2e5c5dc207f22ca2e06516e27240316abe"
+    },
+    {
+      "id": "tests/unit/combo-autoswitch.test.js :: detectRequiredCapabilities web_search tool -> search",
+      "category": "combo-capability-detection",
+      "kind": "assertion",
+      "file": "tests/unit/combo-autoswitch.test.js",
+      "firstLine": "AssertionError: expected false to be true // Object.is equality",
+      "signature": "8e728da6d16740861fe04a646f7f4db7814b0fb329277f3aa01bc9c4ff3a6f89"
+    },
+    {
+      "id": "tests/unit/combo-autoswitch.test.js :: reorderByCapabilities keeps order when no model matches",
+      "category": "combo-capability-detection",
+      "kind": "assertion",
+      "file": "tests/unit/combo-autoswitch.test.js",
+      "firstLine": "AssertionError: expected [ 'deepseek/deepseek-chat', …(1) ] to be [ 'deepseek/deepseek-chat', …(1) ] // Object.is equality",
+      "signature": "3cde1d8b3eb929715bd3bf12c27b34eb7da7881576c83e9fd4cba663ea6cb5a8"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) encodeMcpTools produces empty bytes for no tools",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_1__.encodeMcpTools) is not a function",
+      "signature": "5623d1c0fca36921b7b81728c50abb3f627360cf2ec2eaf330ac629def4011a6"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) encodeMcpTools wraps multiple tool defs as repeated field 1",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_1__.encodeMcpTools) is not a function",
+      "signature": "b7df40070de3ad0780224056260c9d89994f7ded4021744b82d427d03e48538f"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) google.protobuf.Value round-trip encodes/decodes array of mixed",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_1__.encodeAgentValue) is not a function",
+      "signature": "ba28ae2ff971997ea72b0bb4200d4bab1bd8dfbd9cff38a52cdf4880c9b6b08f"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) google.protobuf.Value round-trip encodes/decodes bool false",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_1__.encodeAgentValue) is not a function",
+      "signature": "ba28ae2ff971997ea72b0bb4200d4bab1bd8dfbd9cff38a52cdf4880c9b6b08f"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) google.protobuf.Value round-trip encodes/decodes bool true",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_1__.encodeAgentValue) is not a function",
+      "signature": "ba28ae2ff971997ea72b0bb4200d4bab1bd8dfbd9cff38a52cdf4880c9b6b08f"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) google.protobuf.Value round-trip encodes/decodes deeply nested",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_1__.encodeAgentValue) is not a function",
+      "signature": "ba28ae2ff971997ea72b0bb4200d4bab1bd8dfbd9cff38a52cdf4880c9b6b08f"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) google.protobuf.Value round-trip encodes/decodes empty object",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_1__.encodeAgentValue) is not a function",
+      "signature": "ba28ae2ff971997ea72b0bb4200d4bab1bd8dfbd9cff38a52cdf4880c9b6b08f"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) google.protobuf.Value round-trip encodes/decodes flat object",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_1__.encodeAgentValue) is not a function",
+      "signature": "ba28ae2ff971997ea72b0bb4200d4bab1bd8dfbd9cff38a52cdf4880c9b6b08f"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) google.protobuf.Value round-trip encodes/decodes float",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_1__.encodeAgentValue) is not a function",
+      "signature": "ba28ae2ff971997ea72b0bb4200d4bab1bd8dfbd9cff38a52cdf4880c9b6b08f"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) google.protobuf.Value round-trip encodes/decodes integer",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_1__.encodeAgentValue) is not a function",
+      "signature": "ba28ae2ff971997ea72b0bb4200d4bab1bd8dfbd9cff38a52cdf4880c9b6b08f"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) google.protobuf.Value round-trip encodes/decodes nested object",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_1__.encodeAgentValue) is not a function",
+      "signature": "ba28ae2ff971997ea72b0bb4200d4bab1bd8dfbd9cff38a52cdf4880c9b6b08f"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) google.protobuf.Value round-trip encodes/decodes null",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_1__.encodeAgentValue) is not a function",
+      "signature": "ba28ae2ff971997ea72b0bb4200d4bab1bd8dfbd9cff38a52cdf4880c9b6b08f"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) google.protobuf.Value round-trip encodes/decodes string",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_1__.encodeAgentValue) is not a function",
+      "signature": "ba28ae2ff971997ea72b0bb4200d4bab1bd8dfbd9cff38a52cdf4880c9b6b08f"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) McpArgs decode decodes name, toolName, toolCallId, and typed args map",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_1__.encodeAgentValue) is not a function",
+      "signature": "e59fa73e32a0e2f4038aceccf30ac2919080ac3080e70b3f240be1e511fe7136"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) McpArgs decode handles empty args map",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_1__.decodeMcpArgs) is not a function",
+      "signature": "89a51a157015769981abd35c708b695407f1b930c0a1185d4ff60ba2acb530d7"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) McpResult error / toolNotFound builds error result (field 2)",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_1__.encodeMcpResultError) is not a function",
+      "signature": "e1682b72162ca94f2a9456d2060bbd35721bfb8ce667cc64b2e53f2993abd6d6"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) McpResult error / toolNotFound builds toolNotFound result (field 5)",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_1__.encodeMcpResultToolNotFound) is not a function",
+      "signature": "21d35d0e739b227e5d35cc09278bb04f0669830d260709a7049dd03ff980b26d"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) McpResult image content builds image item with raw bytes + mime type",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_1__.encodeMcpResultSuccess) is not a function",
+      "signature": "16d6dce20c342f82280577f7db4f0fe7e534b77f1f4cd6f6de22d342c9c39ae5"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) McpResult image content builds mixed text + image content",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_1__.encodeMcpResultSuccess) is not a function",
+      "signature": "aab766fb8767df8b944c6a3b4fdcadbe5c2a40256ae584ffd315824b1d052aad"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) McpResult success builds success with multiple text items",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_1__.encodeMcpResultSuccess) is not a function",
+      "signature": "fb3c5a3bb51e817a7f9ff02e371089c6d3918a540f24002bd5b541549f16b7f0"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) McpResult success builds success with single text content",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_1__.encodeMcpResultSuccess) is not a function",
+      "signature": "558dbddab8ec7d9e3bd3347b5662dc49258134206f5fc6543a28fb332e51c822"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) McpResult success marks is_error=true",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_1__.encodeMcpResultSuccess) is not a function",
+      "signature": "8c947aa2f8dea452fddb51a23ff2fc1a5fe12b3735c0d9aabc4c3d37a5a524b3"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) McpToolDefinition accepts flat tool shape (no .function wrapper)",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_1__.encodeMcpToolDefinition) is not a function",
+      "signature": "d53354d83667cb4021dbc77de11b5e6232249e5e50a3889a731aa227d9013f1a"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) McpToolDefinition encodes name, description, input_schema (Value), provider, tool_name",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_1__.encodeMcpToolDefinition) is not a function",
+      "signature": "2c21c69b0dfb15168311ea121741f959a65abe94c37d343174535c130f4d7a47"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService codec (cursorProtobuf.js) McpToolDefinition preserves nested JSON-schema types",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_1__.encodeMcpToolDefinition) is not a function",
+      "signature": "53f08b73478030f609682e943a459863d15ad3c9de42ad5e9e5f6c8ff638ba19"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService executor helpers (cursor.js) buildAgentRunFrame encodes a text-only run request with system + model",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_2__.buildAgentRunFrame) is not a function",
+      "signature": "080911df18fefc6b0d987538e1542fe5107e5b38b1ef8e4ac661e126c3a61683"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService executor helpers (cursor.js) buildAgentRunFrame encodes conversation_history from prior turns including tool calls/results",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_2__.buildAgentRunFrame) is not a function",
+      "signature": "b456ee2f39078ead7d2be0c72d5878b9923646df0965ab07c35c267ebce86eea"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService executor helpers (cursor.js) buildAgentRunFrame encodes mcp_tools (field 4) when tools are provided",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_2__.buildAgentRunFrame) is not a function",
+      "signature": "fc946f28218ce4a7a8cab0b9fb42be25721b60daf52782284d6488968b343a5e"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService executor helpers (cursor.js) buildAgentRunFrame omits mcp_tools when no tools provided",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_2__.buildAgentRunFrame) is not a function",
+      "signature": "182bfc2afa8a8be3ba2a483c27b212b25dee9ff88a684dfd2420fffe6d69974c"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService executor helpers (cursor.js) isAgentCapableRequest accepts array text content",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_2__.isAgentCapableRequest) is not a function",
+      "signature": "b4bbd24e5828845a95279955f8e081142b19c542161dbb9471dd4debc0e52388"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService executor helpers (cursor.js) isAgentCapableRequest accepts history with assistant tool_calls + tool results",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_2__.isAgentCapableRequest) is not a function",
+      "signature": "230bedde87c44bd493acd1d9ae2ded2c4112c5f6f980c6b99a9544729ae8dca9"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService executor helpers (cursor.js) isAgentCapableRequest accepts plain text content",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_2__.isAgentCapableRequest) is not a function",
+      "signature": "da6edaef50e07668c7b8c25d9d00b6fbf880a4a30a9ad9fb1f2208b9e4beed52"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService executor helpers (cursor.js) isAgentCapableRequest accepts request with tools declared",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_2__.isAgentCapableRequest) is not a function",
+      "signature": "47d289a9a111a4c47eb3b28c91a25ab87a7da6c09f225af939efef8fe352a942"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService executor helpers (cursor.js) isAgentCapableRequest rejects missing messages",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_2__.isAgentCapableRequest) is not a function",
+      "signature": "96b3ecca417e03d0db4ef93670c85a5fca3c012ddae7f726e9b2f52fddf2f98c"
+    },
+    {
+      "id": "tests/unit/cursor-agent-proto.test.js :: Cursor AgentService executor helpers (cursor.js) isAgentCapableRequest rejects non-text (image) content",
+      "category": "test-infra-cursor-proto-missing-export",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-agent-proto.test.js",
+      "firstLine": "TypeError: (0 , __vite_ssr_import_2__.isAgentCapableRequest) is not a function",
+      "signature": "7296b1c8ec7720c2c6d53209788bf8086907a71bf6704f23ce5291755eec3708"
+    },
+    {
+      "id": "tests/unit/cursor-models.test.js :: Cursor live model catalog fetches the account-specific catalog and caches it",
+      "category": "cursor-models-resolve-behavior",
+      "kind": "assertion",
+      "file": "tests/unit/cursor-models.test.js",
+      "firstLine": "Error: expected null to deeply equal { models: [ { …(2) } ] }",
+      "signature": "103c8cb45c90ee8b056a983600d5869871bdcae766b4cb4e6134dd92c9770ee5"
+    },
+    {
+      "id": "tests/unit/db-benchmark.test.js :: [collection]",
+      "category": "collection-missing-dependency-lowdb",
+      "kind": "collection",
+      "file": "tests/unit/db-benchmark.test.js",
+      "firstLine": "Cannot find package 'lowdb' imported from /mnt/Data/miawrouter/tests/unit/db-benchmark.test.js",
+      "signature": "c04ea4ecdacdd6fcb7e4abf448e08f3e74b137af653050389e12a6dd177845a0"
+    },
+    {
+      "id": "tests/unit/db-concurrent.test.js :: DB Concurrency — atomic safety 100 parallel saveRequestUsage → no count loss",
+      "category": "db-concurrent-atomicity",
+      "kind": "assertion",
+      "file": "tests/unit/db-concurrent.test.js",
+      "firstLine": "AssertionError: expected 2 to be 100 // Object.is equality",
+      "signature": "022a026ea6aa49f72f77898fdedadcfa4fe32e8756dc0bd594b4b0cdee6bb5a5",
+      "flaky": true,
+      "classSignature": "73141a9afadee35fcf029ecdb567dc666964b9a98dd7ac1deef6a7c058c3b575"
+    },
+    {
+      "id": "tests/unit/db-concurrent.test.js :: DB Concurrency — atomic safety daily summary aggregates correctly under parallel writes",
+      "category": "db-concurrent-atomicity",
+      "kind": "assertion",
+      "file": "tests/unit/db-concurrent.test.js",
+      "firstLine": "AssertionError: expected 1 to be 50 // Object.is equality",
+      "signature": "2d50cc0d4bab2a6a35e1c855ce5676060c79e543a78c22e6e110834a8d86a9ba",
+      "flaky": true,
+      "classSignature": "73141a9afadee35fcf029ecdb567dc666964b9a98dd7ac1deef6a7c058c3b575"
+    },
+    {
+      "id": "tests/unit/db-concurrent.test.js :: DB Concurrency — atomic safety mixed concurrent: usage + details + connections + aliases",
+      "category": "db-concurrent-atomicity",
+      "kind": "assertion",
+      "file": "tests/unit/db-concurrent.test.js",
+      "firstLine": "AssertionError: expected 18 to be 50 // Object.is equality",
+      "signature": "cf12177661629a925583205a5fb77f4291650c91f3f9e1760d5e86d561501054",
+      "flaky": true,
+      "classSignature": "73141a9afadee35fcf029ecdb567dc666964b9a98dd7ac1deef6a7c058c3b575"
+    },
+    {
+      "id": "tests/unit/embeddings.cloud.test.js :: [collection]",
+      "category": "collection-missing-cloud-module",
+      "kind": "collection",
+      "file": "tests/unit/embeddings.cloud.test.js",
+      "firstLine": "Cannot find module '/cloud/src/handlers/embeddings.js' imported from /mnt/Data/miawrouter/tests/unit/embeddings.cloud.test.js",
+      "signature": "a28612ba58ab6449b99f46b47f572512ee61602efdbf136a56f1705977c9af94"
+    },
+    {
+      "id": "tests/unit/executor-const-guard.test.js :: antigravity retry (intentional change: 429=6, 503=3) 429 attempts = 6",
+      "category": "executor-retry-const-drift",
+      "kind": "assertion",
+      "file": "tests/unit/executor-const-guard.test.js",
+      "firstLine": "AssertionError: expected 3 to be 6 // Object.is equality",
+      "signature": "6d58d66274f44e49dc6dd6dae0f1c0047e158129153ee1355e2874686a5bf1a7"
+    },
+    {
+      "id": "tests/unit/image-fetch-hardening.test.js :: fetchImageAsBase64 hardening accepts valid PNG from public host",
+      "category": "test-infra-dns-lookup-mock-shape",
+      "kind": "assertion",
+      "file": "tests/unit/image-fetch-hardening.test.js",
+      "firstLine": "AssertionError: expected null not to be null",
+      "signature": "efa38a7ae1b095667e93eb816e13eb678e301a646b6e9b82f9c9744c5e794b6a"
+    },
+    {
+      "id": "tests/unit/kimchi-strip-reasoning.test.js :: [collection]",
+      "category": "collection-node-test-runner-file",
+      "kind": "collection",
+      "file": "tests/unit/kimchi-strip-reasoning.test.js",
+      "firstLine": "No test suite found in file /mnt/Data/miawrouter/tests/unit/kimchi-strip-reasoning.test.js",
+      "signature": "14288bc7f1a0f4be28906216fca27453a43f1f282800c7d346d50df07aafdc6a"
+    },
+    {
+      "id": "tests/unit/kimchi.test.js :: [collection]",
+      "category": "collection-node-test-runner-file",
+      "kind": "collection",
+      "file": "tests/unit/kimchi.test.js",
+      "firstLine": "No test suite found in file /mnt/Data/miawrouter/tests/unit/kimchi.test.js",
+      "signature": "d0f8bdb1ac62e45257be84ffb7ba35e240fc16a0c5268b97dfffa89ddb4da778"
+    },
+    {
+      "id": "tests/unit/kiro-terminal-integrity.test.js :: Kiro terminal integrity recovery bounds the retry HTTP error body",
+      "category": "kiro-terminal-integrity",
+      "kind": "assertion",
+      "file": "tests/unit/kiro-terminal-integrity.test.js",
+      "firstLine": "Error: STACK_TRACE_ERROR",
+      "signature": "68f97c761dd5528a3b458d00744655889e27f5800099415bdbec3fa996b6b9b0"
+    },
+    {
+      "id": "tests/unit/kiro-terminal-integrity.test.js :: Kiro terminal integrity recovery surfaces retry HTTP failures as SSE after heartbeat commits headers",
+      "category": "kiro-terminal-integrity",
+      "kind": "assertion",
+      "file": "tests/unit/kiro-terminal-integrity.test.js",
+      "firstLine": "Error: STACK_TRACE_ERROR",
+      "signature": "68f97c761dd5528a3b458d00744655889e27f5800099415bdbec3fa996b6b9b0"
+    },
+    {
+      "id": "tests/unit/mimo-free.live.test.js :: MiMo Free anti-abuse gate (live) chat WITH Chrome User-Agent → 200",
+      "category": "live-provider-anti-abuse",
+      "kind": "assertion",
+      "file": "tests/unit/mimo-free.live.test.js",
+      "firstLine": "AssertionError: expected 400 to be 200 // Object.is equality",
+      "signature": "e748385de4f1897d094d73fd7e1eb5e9bcb413cef0d74d058ca9756b0a7755f5"
+    },
+    {
+      "id": "tests/unit/oauth-cursor-auto-import.test.js :: GET /api/oauth/cursor/auto-import extracts tokens using exact keys",
+      "category": "known-oauth-cursor-auto-import",
+      "kind": "assertion",
+      "file": "tests/unit/oauth-cursor-auto-import.test.js",
+      "firstLine": "AssertionError: expected false to be true // Object.is equality",
+      "signature": "5eed6de32b6d5cbe271371a4138070d83ca414fffaee806125e4912cf38021c2"
+    },
+    {
+      "id": "tests/unit/oauth-cursor-auto-import.test.js :: GET /api/oauth/cursor/auto-import falls back to fuzzy key matching on macOS when exact keys are missing",
+      "category": "known-oauth-cursor-auto-import",
+      "kind": "assertion",
+      "file": "tests/unit/oauth-cursor-auto-import.test.js",
+      "firstLine": "AssertionError: expected false to be true // Object.is equality",
+      "signature": "fc609cd6c2214c087cc60785edeb2d557ccb032018043f56c11b2eb06debb424"
+    },
+    {
+      "id": "tests/unit/oauth-cursor-auto-import.test.js :: GET /api/oauth/cursor/auto-import linux uses single hardcoded path and original error message",
+      "category": "known-oauth-cursor-auto-import",
+      "kind": "assertion",
+      "file": "tests/unit/oauth-cursor-auto-import.test.js",
+      "firstLine": "AssertionError: expected 'Cursor database not found. Checked lo…' to be 'Cursor database not found. Make sure …' // Object.is equality",
+      "signature": "fd976eb68634e194c64219fb2d3633f0356ade26c3a027d0aab14a78a8144564"
+    },
+    {
+      "id": "tests/unit/oauth-cursor-auto-import.test.js :: GET /api/oauth/cursor/auto-import returns descriptive error if macOS db file exists but cannot be opened",
+      "category": "known-oauth-cursor-auto-import",
+      "kind": "assertion",
+      "file": "tests/unit/oauth-cursor-auto-import.test.js",
+      "firstLine": "AssertionError: the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string",
+      "signature": "1f863cc4ae66c60a291a3af04bf024fc56f9b7c067e49110fa2b0ab8b4c20e58"
+    },
+    {
+      "id": "tests/unit/oauth-cursor-auto-import.test.js :: GET /api/oauth/cursor/auto-import returns login-prompt error when tokens are missing even after fallback",
+      "category": "known-oauth-cursor-auto-import",
+      "kind": "assertion",
+      "file": "tests/unit/oauth-cursor-auto-import.test.js",
+      "firstLine": "AssertionError: the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string",
+      "signature": "1f863cc4ae66c60a291a3af04bf024fc56f9b7c067e49110fa2b0ab8b4c20e58"
+    },
+    {
+      "id": "tests/unit/oauth-cursor-auto-import.test.js :: GET /api/oauth/cursor/auto-import returns not-found when no macOS cursor db paths are accessible",
+      "category": "known-oauth-cursor-auto-import",
+      "kind": "assertion",
+      "file": "tests/unit/oauth-cursor-auto-import.test.js",
+      "firstLine": "AssertionError: expected 'Cursor database not found. Checked lo…' to contain 'Cursor database not found in known ma…'",
+      "signature": "f548a8f761dd974bef1821916c7e9b9fdbf6457d13a7719c1154cdc78257be7d"
+    },
+    {
+      "id": "tests/unit/oauth-cursor-auto-import.test.js :: GET /api/oauth/cursor/auto-import unsupported platform returns 400",
+      "category": "known-oauth-cursor-auto-import",
+      "kind": "assertion",
+      "file": "tests/unit/oauth-cursor-auto-import.test.js",
+      "firstLine": "AssertionError: expected 200 to be 400 // Object.is equality",
+      "signature": "c46ea688f8554fc6f8c3105053a16ad22c06d0a2f87b358dc24cfacc8216eb63"
+    },
+    {
+      "id": "tests/unit/oauth-cursor-auto-import.test.js :: GET /api/oauth/cursor/auto-import unwraps JSON-encoded string values",
+      "category": "known-oauth-cursor-auto-import",
+      "kind": "assertion",
+      "file": "tests/unit/oauth-cursor-auto-import.test.js",
+      "firstLine": "AssertionError: expected false to be true // Object.is equality",
+      "signature": "bbacbbbcf434e931d4859af2553149c952ca9f870c5c5e0407d1892080d3f6aa"
+    },
+    {
+      "id": "tests/unit/openai-to-claude.test.js :: openaiToClaudeResponse omits empty Read pages tool argument before emitting Claude input deltas",
+      "category": "known-openai-to-claude-read-pages",
+      "kind": "assertion",
+      "file": "tests/unit/openai-to-claude.test.js",
+      "firstLine": "AssertionError: expected undefined to be defined",
+      "signature": "f8bfa92738c965aff247c9dff074d7968cf707966f56eb17bda4ee9af9dedadb"
+    },
+    {
+      "id": "tests/unit/request-details-tab.test.js :: backupDbLite — excludes requestDetails, keeps critical data backup file omits requestDetails rows but keeps other tables",
+      "category": "env-native-dep-better-sqlite3",
+      "kind": "assertion",
+      "file": "tests/unit/request-details-tab.test.js",
+      "firstLine": "Error: Could not locate the bindings file. Tried:",
+      "signature": "0ad5da973142b7a6ed7787c31bafe57a52e82ca047a747b03d9bbbdbb06c8027"
+    },
+    {
+      "id": "tests/unit/request-details-tab.test.js :: getDistinctProviders — providers route (no full-row parse) returns unique provider list without parsing data blobs",
+      "category": "request-details-providers-route",
+      "kind": "assertion",
+      "file": "tests/unit/request-details-tab.test.js",
+      "firstLine": "AssertionError: expected [ 'openai' ] to include 'anthropic'",
+      "signature": "1388c6cf8ce8f2ed2a1e897adb1939798413a766d76e663e3f2663fb6fe82bd3"
+    },
+    {
+      "id": "tests/unit/request-details-tab.test.js :: request details — tab crash-risk cases oversized field → stored truncated + reparseable (no circular)",
+      "category": "request-details-handler-null",
+      "kind": "assertion",
+      "file": "tests/unit/request-details-tab.test.js",
+      "firstLine": "TypeError: Cannot read properties of null (reading 'request')",
+      "signature": "2b411ae7f75009b6937c6ca6dac748783451aead6495ada6936e371beaae5cb3"
+    },
+    {
+      "id": "tests/unit/security-audit.test.js :: AUDIT-001: Synchronous restart guard mitmIsRestarting should be reset on max-restarts early return",
+      "category": "test-infra-source-path-cwd",
+      "kind": "assertion",
+      "file": "tests/unit/security-audit.test.js",
+      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/miawrouter/tests/src/mitm/manager.js'",
+      "signature": "1cb13d04ac52bb5baaf2806bdce9e546f076d6f81ad9f0c26e1105eb868839d7"
+    },
+    {
+      "id": "tests/unit/security-audit.test.js :: AUDIT-001: Synchronous restart guard mitmIsRestarting should be set before first await expression",
+      "category": "test-infra-source-path-cwd",
+      "kind": "assertion",
+      "file": "tests/unit/security-audit.test.js",
+      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/miawrouter/tests/src/mitm/manager.js'",
+      "signature": "1cb13d04ac52bb5baaf2806bdce9e546f076d6f81ad9f0c26e1105eb868839d7"
+    },
+    {
+      "id": "tests/unit/security-audit.test.js :: AUDIT-002: API key masking byApiKey object keys should use masked key, not raw key",
+      "category": "test-infra-source-path-cwd",
+      "kind": "assertion",
+      "file": "tests/unit/security-audit.test.js",
+      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/miawrouter/tests/src/lib/db/repos/usageRepo.js'",
+      "signature": "4394bfb35ba4cb3e5b48f25e5cfebc69f417bacf8a7ddf671fc7943724105769"
+    },
+    {
+      "id": "tests/unit/security-audit.test.js :: AUDIT-002: API key masking getUsageHistory should use apiKeyMasked instead of apiKey",
+      "category": "test-infra-source-path-cwd",
+      "kind": "assertion",
+      "file": "tests/unit/security-audit.test.js",
+      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/miawrouter/tests/src/lib/db/repos/usageRepo.js'",
+      "signature": "4394bfb35ba4cb3e5b48f25e5cfebc69f417bacf8a7ddf671fc7943724105769"
+    },
+    {
+      "id": "tests/unit/security-audit.test.js :: AUDIT-002: API key masking getUsageStats should use apiKeyMasked in byApiKey entries",
+      "category": "test-infra-source-path-cwd",
+      "kind": "assertion",
+      "file": "tests/unit/security-audit.test.js",
+      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/miawrouter/tests/src/lib/db/repos/usageRepo.js'",
+      "signature": "4394bfb35ba4cb3e5b48f25e5cfebc69f417bacf8a7ddf671fc7943724105769"
+    },
+    {
+      "id": "tests/unit/security-audit.test.js :: AUDIT-002: API key masking source should contain maskApiKey function",
+      "category": "test-infra-source-path-cwd",
+      "kind": "assertion",
+      "file": "tests/unit/security-audit.test.js",
+      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/miawrouter/tests/src/lib/db/repos/usageRepo.js'",
+      "signature": "4394bfb35ba4cb3e5b48f25e5cfebc69f417bacf8a7ddf671fc7943724105769"
+    },
+    {
+      "id": "tests/unit/security-audit.test.js :: AUDIT-003: Proxy URL validation source should contain validateProxyUrl function",
+      "category": "test-infra-source-path-cwd",
+      "kind": "assertion",
+      "file": "tests/unit/security-audit.test.js",
+      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/miawrouter/tests/src/lib/network/outboundProxy.js'",
+      "signature": "16f4507b5d0254174bed89926db53761e5d0fecd0b2cbfe57a114834a7e33a01"
+    },
+    {
+      "id": "tests/unit/security-audit.test.js :: AUDIT-004: Atomic lock file for MITM startup manager.js should define LOCK_FILE constant",
+      "category": "test-infra-source-path-cwd",
+      "kind": "assertion",
+      "file": "tests/unit/security-audit.test.js",
+      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/miawrouter/tests/src/mitm/manager.js'",
+      "signature": "1cb13d04ac52bb5baaf2806bdce9e546f076d6f81ad9f0c26e1105eb868839d7"
+    },
+    {
+      "id": "tests/unit/security-audit.test.js :: AUDIT-004: Atomic lock file for MITM startup should clean up lock file on all exit paths",
+      "category": "test-infra-source-path-cwd",
+      "kind": "assertion",
+      "file": "tests/unit/security-audit.test.js",
+      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/miawrouter/tests/src/mitm/manager.js'",
+      "signature": "1cb13d04ac52bb5baaf2806bdce9e546f076d6f81ad9f0c26e1105eb868839d7"
+    },
+    {
+      "id": "tests/unit/security-audit.test.js :: AUDIT-004: Atomic lock file for MITM startup should use O_EXCL flag (wx) for atomic creation",
+      "category": "test-infra-source-path-cwd",
+      "kind": "assertion",
+      "file": "tests/unit/security-audit.test.js",
+      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/miawrouter/tests/src/mitm/manager.js'",
+      "signature": "1cb13d04ac52bb5baaf2806bdce9e546f076d6f81ad9f0c26e1105eb868839d7"
+    },
+    {
+      "id": "tests/unit/security-audit.test.js :: AUDIT-018: XSS escaping in OAuth callback should escape ampersand, angle brackets, and quotes",
+      "category": "test-infra-source-path-cwd",
+      "kind": "assertion",
+      "file": "tests/unit/security-audit.test.js",
+      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/miawrouter/tests/src/lib/oauth/utils/server.js'",
+      "signature": "b0ab5c0a407fafd85752b1516f04f0cdf1e1e533372f10d9a7ec4f82fe16eac3"
+    },
+    {
+      "id": "tests/unit/security-audit.test.js :: AUDIT-018: XSS escaping in OAuth callback should use safeMessage in rendered HTML, not raw message",
+      "category": "test-infra-source-path-cwd",
+      "kind": "assertion",
+      "file": "tests/unit/security-audit.test.js",
+      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/miawrouter/tests/src/lib/oauth/utils/server.js'",
+      "signature": "b0ab5c0a407fafd85752b1516f04f0cdf1e1e533372f10d9a7ec4f82fe16eac3"
+    },
+    {
+      "id": "tests/unit/security-audit.test.js :: AUDIT-018: XSS escaping in OAuth callback source should contain escapeHtml function",
+      "category": "test-infra-source-path-cwd",
+      "kind": "assertion",
+      "file": "tests/unit/security-audit.test.js",
+      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/miawrouter/tests/src/lib/oauth/utils/server.js'",
+      "signature": "b0ab5c0a407fafd85752b1516f04f0cdf1e1e533372f10d9a7ec4f82fe16eac3"
+    },
+    {
+      "id": "tests/unit/translator-request-normalization.test.js :: request normalization claudeToOpenAIRequest flattens text-only content arrays into string",
+      "category": "known-translator-request-normalization",
+      "kind": "assertion",
+      "file": "tests/unit/translator-request-normalization.test.js",
+      "firstLine": "AssertionError: expected [ { type: 'text', text: 'hi' }, …(1) ] to be 'hi\\nthere' // Object.is equality",
+      "signature": "ba6455b4c03ddca879cd6a504e47789f18f47292ab749ea1fb4b88b0d8970ff8"
+    },
+    {
+      "id": "tests/unit/translator-request-normalization.test.js :: request normalization filterToOpenAIFormat flattens text-only arrays to string",
+      "category": "known-translator-request-normalization",
+      "kind": "assertion",
+      "file": "tests/unit/translator-request-normalization.test.js",
+      "firstLine": "AssertionError: expected [ { type: 'text', text: 'a' }, …(1) ] to be 'a\\nb' // Object.is equality",
+      "signature": "94144a4ebb2a915a2f13c5e4e47f117678419008acc913781fcab01dbc4bc64c"
+    },
+    {
+      "id": "tests/unit/translator-request-normalization.test.js :: request normalization parseSSELine supports provider raw NDJSON stream lines",
+      "category": "known-translator-request-normalization",
+      "kind": "assertion",
+      "file": "tests/unit/translator-request-normalization.test.js",
+      "firstLine": "AssertionError: expected null to deeply equal { model: 'gpt-oss:120b', …(2) }",
+      "signature": "1f2542ae901e63800ef509a114ca7bfd2409b1b168d83077145db5c74fa21aeb"
+    },
+    {
+      "id": "tests/unit/translator-request-normalization.test.js :: request normalization translateRequest keeps /v1/messages Claude->OpenAI text payloads string-safe",
+      "category": "known-translator-request-normalization",
+      "kind": "assertion",
+      "file": "tests/unit/translator-request-normalization.test.js",
+      "firstLine": "AssertionError: expected 'object' to be 'string' // Object.is equality",
+      "signature": "a0811737c8085e71af3ad93154043d86f4456fb64498a111f412fed6c1da587c"
+    },
+    {
+      "id": "tests/unit/windsurf-executor.test.js :: WindsurfExecutor class buildUrl returns the GetChatMessage endpoint",
+      "category": "windsurf-registry-mismatch",
+      "kind": "assertion",
+      "file": "tests/unit/windsurf-executor.test.js",
+      "firstLine": "AssertionError: expected 'https://server.codeium.com/exa.langua…' to be 'https://server.self-serve.windsurf.co…' // Object.is equality",
+      "signature": "fce4836ab218d715bae340df7f3abf251f8ff0c770eaa80589d643fd73b1d672"
+    },
+    {
+      "id": "tests/unit/windsurf-executor.test.js :: WindsurfExecutor class constructor wires config from PROVIDERS.windsurf",
+      "category": "windsurf-registry-mismatch",
+      "kind": "assertion",
+      "file": "tests/unit/windsurf-executor.test.js",
+      "firstLine": "AssertionError: expected 'https://server.codeium.com/exa.langua…' to contain 'server.self-serve.windsurf.com'",
+      "signature": "746b0974b2398c4532da6c74729fd43d049ac2158bfd35aae279ce5def3417c5"
+    },
+    {
+      "id": "tests/unit/windsurf-executor.test.js :: WindsurfExecutor class PROVIDERS.windsurf baseUrl is the chat endpoint (registry in sync)",
+      "category": "windsurf-registry-mismatch",
+      "kind": "assertion",
+      "file": "tests/unit/windsurf-executor.test.js",
+      "firstLine": "TypeError: Cannot read properties of undefined (reading 'baseUrl')",
+      "signature": "4bb5167756179424a6c83fb81c3b22337f9088ffb7554c702ee232760fe6aca6"
+    }
+  ]
+}

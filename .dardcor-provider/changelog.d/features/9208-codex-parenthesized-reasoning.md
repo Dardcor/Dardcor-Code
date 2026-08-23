@@ -1,1 +1,0 @@
-- **feat(codex):** accept parenthesized GPT-5.6 reasoning overrides. (thanks @seakleangnhak)

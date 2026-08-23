@@ -1200,7 +1200,7 @@ export function getPermissionDisplay(request: PermissionRequest, workingDirector
 		case 'custom-tool': {
 			// Custom tool overrides (e.g. our shell tool). Extract the actual
 			// tool args from the SDK's wrapper envelope.
-			const args = request.args;
+			const args = request.args as Record<string, unknown> | undefined;
 			const sdkToolName = str(request.toolName);
 			if (args && sdkToolName && isShellTool(sdkToolName) && typeof args.command === 'string') {
 				stripRedundantCdPrefix(sdkToolName, args, workingDirectory);

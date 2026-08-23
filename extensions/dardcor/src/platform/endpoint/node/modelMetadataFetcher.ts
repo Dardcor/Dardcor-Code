@@ -256,44 +256,100 @@ export class ModelMetadataFetcher extends Disposable implements IModelMetadataFe
 			return;
 		}
 		const requestStartTime = Date.now();
-
-		let dardcorToken: string;
-		try {
-			dardcorToken = (await this._authService.getCopilotToken()).token;
-		} catch (e) {
-			// No Copilot auth (e.g. signed-out BYOK-only mode).
-			this._lastFetchTime = Date.now();
-			this._lastFetchError = e;
-			return;
-		}
-
+		const DARDCOR_PORT = process.env.DARDCOR_PORT ? parseInt(process.env.DARDCOR_PORT) : 25000;
+		const DARDCOR_KEY = process.env.DARDCOR_API_KEY || 'sk-dardcor-local-key';
 		const requestId = generateUuid();
-		const requestMetadata: RequestMetadata = { type: RequestType.Models, isModelLab: this._isModelLab };
 
 		try {
-			const response = await this._instantiationService.invokeFunction(getRequest, {
-				endpointOrUrl: requestMetadata,
-				secretKey: dardcorToken,
-				intent: 'model-access',
-				requestId,
+			const res = await globalThis.fetch(`http://127.0.0.1:${DARDCOR_PORT}/v1/models`, {
+				headers: { 'Authorization': `Bearer ${DARDCOR_KEY}` }
+			});
+
+			if (!res.ok) {
+				throw new Error(`Failed to fetch models from local router: HTTP ${res.status}`);
+			}
+
+			const json: any = await res.json();
+			const rawList: any[] = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
+
+			const seenIds = new Set<string>();
+			const cleanList: any[] = [];
+			for (const m of rawList) {
+				const id = typeof m === 'string' ? m : (m.id || m.name || '');
+				if (!id || id.toLowerCase() === 'auto' || id.toLowerCase() === 'claude-none') {
+					continue;
+				}
+				const canonicalKey = id.replace(/^(ag|oc|ds|opencode)\//i, '').toLowerCase();
+				if (seenIds.has(canonicalKey)) {
+					continue;
+				}
+				seenIds.add(canonicalKey);
+				cleanList.push(m);
+			}
+
+			const formatModelName = (id: string, originalName?: string): string => {
+				if (originalName && originalName !== id) {
+					return originalName;
+				}
+				let clean = id.replace(/^(ag|oc|ds|opencode)\//i, '');
+				return clean
+					.split(/[-_]/)
+					.map(part => {
+						if (['free', 'unlimited', 'pro', 'plus'].includes(part.toLowerCase())) {
+							return `(${part.charAt(0).toUpperCase() + part.slice(1)})`;
+						}
+						return part.charAt(0).toUpperCase() + part.slice(1);
+					})
+					.join(' ');
+			};
+
+			this._familyMap.clear();
+			this._completionsFamilyMap.clear();
+
+			const data: IModelAPIResponse[] = cleanList.map((m: any, idx: number) => {
+				const id = typeof m === 'string' ? m : (m.id || m.name || `model-${idx}`);
+				const name = (typeof m === 'object' && m.name && m.name !== id) ? m.name : formatModelName(id);
+				const maxContext = (typeof m === 'object' && m.capabilities?.contextWindow) ? m.capabilities.contextWindow : 200000;
+				const maxOutput = (typeof m === 'object' && m.capabilities?.maxOutput) ? m.capabilities.maxOutput : 64000;
+				const hasVision = typeof m === 'object' && m.capabilities?.vision === true;
+				const hasThinking = typeof m === 'object' && (m.capabilities?.reasoning === true || !!m.capabilities?.thinkingFormat);
+
+				return {
+					id,
+					name,
+					vendor: 'copilot',
+					urlOrRequestMetadata: 'http://127.0.0.1:25000/v1/chat/completions',
+					model_picker_enabled: true,
+					showInModelPicker: true,
+					is_chat_default: idx === 0,
+					is_chat_fallback: idx === 0,
+					version: '1.0.0',
+					capabilities: {
+						type: 'chat',
+						family: id,
+						tokenizer: 'o200k_base',
+						limits: {
+							max_prompt_tokens: maxContext,
+							max_output_tokens: maxOutput,
+							max_context_window_tokens: maxContext,
+							vision: { max_prompt_images: hasVision ? 10 : 0 }
+						},
+						supports: {
+							parallel_tool_calls: true,
+							tool_calls: true,
+							toolCalling: true,
+							agentMode: true,
+							streaming: true,
+							vision: hasVision,
+							thinking: hasThinking
+						}
+					}
+				} as any;
 			});
 
 			this._lastFetchTime = Date.now();
-			this._logService.info(`Fetched model metadata in ${Date.now() - requestStartTime}ms ${requestId}`);
+			this._logService.info(`Fetched ${data.length} models in ${Date.now() - requestStartTime}ms ${requestId}`);
 
-			if (response.status < 200 || response.status >= 300) {
-				// If we're rate limited and have models, we should just return
-				if (response.status === 429 && this._familyMap.size > 0) {
-					this._logService.warn(`Rate limited while fetching models ${requestId}`);
-					return;
-				}
-				throw new Error(await this._getErrorMessage(`Failed to fetch models (${requestId}): ${(await response.text()) || response.statusText || `HTTP ${response.status}`}`));
-			}
-
-			this._familyMap.clear();
-
-			const data: IModelAPIResponse[] = (await response.json()).data;
-			this._requestLogger.logModelListCall(requestId, requestMetadata, data);
 			for (let model of data) {
 				model = await this._hydrateResolvedModel(model);
 				const isCompletionModel = isCompletionModelInformation(model);

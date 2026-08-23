@@ -70,7 +70,7 @@ export function spawnTsgo(projectPath: string, config: { taskName: string; noEmi
 			if (code === 0) {
 				Promise.resolve(onComplete?.()).then(() => resolve(), reject);
 			} else {
-				reject(new Error(`tsgo exited with code ${code ?? 'unknown'}`));
+				reject(new Error(`tsgo exited with code ${code ?? 'unknown'} for ${projectPath}`));
 			}
 		});
 

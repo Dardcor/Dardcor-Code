@@ -34,10 +34,9 @@ if (typeof vscodeGlobal !== 'undefined' && typeof vscodeGlobal.context !== 'unde
 	}
 }
 // _VSCODE environment
-else if (globalThis._VSCODE_PRODUCT_JSON && globalThis._VSCODE_PACKAGE_JSON) {
-	// Obtain values from product.json and package.json-data
-	product = globalThis._VSCODE_PRODUCT_JSON as unknown as IProductConfiguration;
-	const packageConfiguration = globalThis._VSCODE_PACKAGE_JSON as unknown as IPackageConfiguration;
+else if ((globalThis as any)._VSCODE_PRODUCT_JSON && (globalThis as any)._VSCODE_PACKAGE_JSON) {
+	product = (globalThis as any)._VSCODE_PRODUCT_JSON as unknown as IProductConfiguration;
+	const packageConfiguration = (globalThis as any)._VSCODE_PACKAGE_JSON as unknown as IPackageConfiguration;
 
 	// Running out of sources
 	if (env['VSCODE_DEV']) {

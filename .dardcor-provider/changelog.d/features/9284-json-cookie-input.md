@@ -1,1 +1,0 @@
-- **feat(providers):** accept JSON cookie objects in normalizeSessionCookieHeader (#9284 — thanks @AIB1TAL0S)

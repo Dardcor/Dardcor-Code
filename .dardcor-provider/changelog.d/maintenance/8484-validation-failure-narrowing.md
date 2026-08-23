@@ -1,1 +1,0 @@
-- **fix(types):** reuse the validation failure predicate when building malformed-body responses so the existing error envelope remains type-safe and unchanged.

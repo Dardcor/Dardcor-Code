@@ -1,1 +1,0 @@
-- **fix(types):** preserved the known first-failure record while reading Anthropic thinking-signature recovery details so TypeScript 7 keeps the retry result union narrow ([#8484](https://github.com/diegosouzapw/Dardcor Code/issues/8484))

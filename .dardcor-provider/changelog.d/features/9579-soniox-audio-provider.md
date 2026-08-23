@@ -1,1 +1,0 @@
-- **feat(audio):** Soniox STT + TTS provider (`sx`) — async speech-to-text (`stt-async-v5`, `stt-async-v4`) and real-time text-to-speech (`tts-rt-v1`) ([#9579](https://github.com/diegosouzapw/Dardcor Code/pull/9579))

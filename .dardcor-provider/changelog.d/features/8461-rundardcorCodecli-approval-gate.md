@@ -1,1 +1,0 @@
-- feat(copilot): add approval gate for runDardcor CodeCli commands (#8461)

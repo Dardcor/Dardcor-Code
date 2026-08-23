@@ -6,7 +6,8 @@
 import * as esbuild from 'esbuild';
 import * as fs from 'fs';
 import { copyFile, mkdir, readdir, rename } from 'fs/promises';
-import { glob } from 'glob';
+import * as globPkg from 'glob';
+const glob = (globPkg as any).glob || globPkg;
 import * as path from 'path';
 
 const REPO_ROOT = import.meta.dirname;
@@ -38,14 +39,16 @@ const baseNodeBuildOptions = {
 		'applicationinsights-native-metrics',
 		'@opentelemetry/instrumentation',
 		'@azure/opentelemetry-instrumentation-azure-sdk',
-		'electron', // this is for simulation workbench,
+		'electron',
 		'sqlite3',
-		'node-pty', // Required by @github/copilot
+		'node-pty',
 		'@github/copilot',
+		'@vscode/l10n',
+		'@vscode/prompt-tsx',
 		...(isDev ? [] : ['dotenv', 'source-map-support'])
 	],
 	platform: 'node',
-	mainFields: ['module', 'main'], // needed for jsonc-parser,
+	mainFields: ['module', 'main'],
 	define: {
 		'process.env.APPLICATIONINSIGHTS_CONFIGURATION_CONTENT': JSON.stringify(JSON.stringify({
 			proxyHttpUrl: '',
@@ -54,82 +57,9 @@ const baseNodeBuildOptions = {
 	},
 } satisfies esbuild.BuildOptions;
 
-const webviewBuildOptions = {
-	...baseBuildOptions,
-	platform: 'browser',
-	target: 'es2024', // Electron 34 -> Chrome 132 -> ES2024
-	entryPoints: [
-		{ in: 'src/extension/completions-core/dardcor-node/extension/src/copilotPanel/webView/suggestionsPanelWebview.ts', out: 'suggestionsPanelWebview' },
-	],
-} satisfies esbuild.BuildOptions;
-
-const nodeExtHostTestGlobs = [
-	'src/**/vscode/**/*.test.{ts,tsx}',
-	'src/**/dardcor-node/**/*.test.{ts,tsx}',
-	// deprecated
-	'src/extension/**/*.test.{ts,tsx}'
-];
-
-const testBundlePlugin: esbuild.Plugin = {
-	name: 'testBundlePlugin',
-	setup(build) {
-		build.onResolve({ filter: /[\/\\]test-extension\.ts$/ }, args => {
-			if (args.kind !== 'entry-point') {
-				return;
-			}
-			return { path: path.resolve(args.path) };
-		});
-		build.onLoad({ filter: /[\/\\]test-extension\.ts$/ }, async args => {
-			let files = await glob(nodeExtHostTestGlobs, { cwd: REPO_ROOT, posix: true, ignore: ['src/extension/completions-core/**/*'] });
-			files = files.map(f => path.posix.relative('src', f));
-			if (files.length === 0) {
-				throw new Error('No extension tests found');
-			}
-			return {
-				contents: files
-					.map(f => `require('./${f}');`)
-					.join(''),
-				watchDirs: files.map(path.dirname),
-				watchFiles: files,
-			};
-		});
-	}
-};
-
-const nodeExtHostSanityTestGlobs = [
-	'src/**/dardcor-node/**/*.sanity-test.{ts,tsx}',
-];
-
-const sanityTestBundlePlugin: esbuild.Plugin = {
-	name: 'sanityTestBundlePlugin',
-	setup(build) {
-		build.onResolve({ filter: /[\/\\]sanity-test-extension\.ts$/ }, args => {
-			if (args.kind !== 'entry-point') {
-				return;
-			}
-			return { path: path.resolve(args.path) };
-		});
-		build.onLoad({ filter: /[\/\\]sanity-test-extension\.ts$/ }, async args => {
-			let files = await glob(nodeExtHostSanityTestGlobs, { cwd: REPO_ROOT, posix: true, ignore: ['src/extension/completions-core/**/*'] });
-			files = files.map(f => path.posix.relative('src', f));
-			if (files.length === 0) {
-				throw new Error('No extension tests found');
-			}
-			return {
-				contents: files
-					.map(f => `require('./${f}');`)
-					.join(''),
-				watchDirs: files.map(path.dirname),
-				watchFiles: files,
-			};
-		});
-	}
-};
-
 const importMetaPlugin: esbuild.Plugin = {
 	name: 'claudeAgentSdkImportMetaPlugin',
 	setup(build) {
-		// Handle import.meta.url in @anthropic-ai/claude-agent-sdk package
 		build.onLoad({ filter: /node_modules[\/\\]@anthropic-ai[\/\\]claude-agent-sdk[\/\\].*\.mjs$/ }, async (args) => {
 			const contents = await fs.promises.readFile(args.path, 'utf8');
 			return {
@@ -143,39 +73,6 @@ const importMetaPlugin: esbuild.Plugin = {
 	}
 };
 
-const shimVsCodeTypesPlugin: esbuild.Plugin = {
-	name: 'shimVsCodeTypesPlugin',
-	setup(build) {
-		// Create a virtual module that will try to require vscode at runtime
-		build.onResolve({ filter: /^vscode$/ }, args => {
-			return {
-				path: 'vscode-dynamic',
-				namespace: 'vscode-fallback'
-			};
-		});
-
-		build.onLoad({ filter: /^vscode-dynamic$/, namespace: 'vscode-fallback' }, () => {
-			return {
-				contents: `
-					let vscode;
-					// See test/simulationExtension/extension.js for where and why this is created.
-					if (typeof COPILOT_SIMULATION_VSCODE !== 'undefined') {
-						vscode = COPILOT_SIMULATION_VSCODE;
-					} else {
-						try {
-							vscode = eval('require(' + JSON.stringify('vscode') + ')');
-						} catch (e) {
-							vscode = require('./src/util/common/test/shims/dardcorTypesShim.ts');
-						}
-					}
-					module.exports = vscode;
-				`,
-				resolveDir: REPO_ROOT
-			};
-		});
-	}
-};
-
 const nodeExtHostBuildOptions = {
 	...baseNodeBuildOptions,
 	entryPoints: [
@@ -183,14 +80,9 @@ const nodeExtHostBuildOptions = {
 		{ in: './src/platform/parser/node/parserWorker.ts', out: 'worker2' },
 		{ in: './src/platform/tokenizer/node/tikTokenizerWorker.ts', out: 'tikTokenizerWorker' },
 		{ in: './src/platform/diff/node/diffWorkerMain.ts', out: 'diffWorker' },
-		{ in: './src/extension/chatSessions/copilotcli/node/copilotCLITodoWorker.ts', out: 'copilotCLITodoWorker' },
-		{ in: './src/extension/onboardDebug/node/copilotDebugWorker/index.ts', out: 'copilotDebugCommand' },
-		{ in: './src/extension/chatSessions/dardcor-node/copilotCLIShim.ts', out: 'copilotCLIShim' },
-		{ in: './src/test-extension.ts', out: 'test-extension' },
-		{ in: './src/sanity-test-extension.ts', out: 'sanity-test-extension' },
 	],
 	loader: { '.ps1': 'text' },
-	plugins: [testBundlePlugin, sanityTestBundlePlugin, importMetaPlugin],
+	plugins: [importMetaPlugin],
 	external: [
 		...baseNodeBuildOptions.external,
 		'vscode'
@@ -210,50 +102,7 @@ const webExtHostBuildOptions = {
 	]
 } satisfies esbuild.BuildOptions;
 
-const nodeExtHostSimulationTestOptions = {
-	...nodeExtHostBuildOptions,
-	outdir: '.vscode/extensions/test-extension/dist',
-	entryPoints: [
-		{ in: '.vscode/extensions/test-extension/main.ts', out: './simulation-extension' }
-	]
-} satisfies esbuild.BuildOptions;
 
-const nodeSimulationBuildOptions = {
-	...baseNodeBuildOptions,
-	entryPoints: [
-		{ in: './test/simulationMain.ts', out: 'simulationMain' },
-	],
-	plugins: [testBundlePlugin, shimVsCodeTypesPlugin],
-	external: [
-		...baseNodeBuildOptions.external,
-	]
-} satisfies esbuild.BuildOptions;
-
-const nodeSimulationWorkbenchUIBuildOptions = {
-	...baseNodeBuildOptions,
-	platform: 'browser', // @ulugbekna: important to target 'browser' for correct bundling using 'window'
-	mainFields: ['browser', 'module', 'main'],
-	entryPoints: [
-		{ in: './test/simulation/workbench/simulationWorkbench.tsx', out: 'simulationWorkbench' },
-	],
-	alias: {
-		'vscode': './src/util/common/test/shims/dardcorTypesShim.ts'
-	},
-	external: [
-		...baseNodeBuildOptions.external,
-
-		'../../node_modules/monaco-editor/*',
-
-		// @ulugbekna: libs provided by node that need to be specified manually because of 'platform' is set to 'browser'
-		'fs',
-		'os',
-		'path',
-		'readline',
-		'child_process',
-		'http',
-		'assert',
-	],
-} satisfies esbuild.BuildOptions;
 
 async function typeScriptServerPluginPackageJsonInstall(): Promise<void> {
 	await mkdir('./node_modules/@vscode/copilot-typescript-server-plugin', { recursive: true });
@@ -402,11 +251,7 @@ async function main() {
 		await Promise.all([
 			esbuild.build(nodeExtHostBuildOptions),
 			esbuild.build(webExtHostBuildOptions),
-			esbuild.build(nodeSimulationBuildOptions),
-			esbuild.build(nodeSimulationWorkbenchUIBuildOptions),
-			esbuild.build(nodeExtHostSimulationTestOptions),
 			esbuild.build(typeScriptServerPluginBuildOptions),
-			esbuild.build(webviewBuildOptions),
 		]);
 
 		// Run postinstall to copy static build assets (wasm, tiktoken, cli) to dist/.

@@ -1,1 +1,0 @@
-- fix(api): consult LiteLLM pricing_synced layer in resolveCatalogPricing so deployed models absent from models.dev and defaults get pricing in /v1/models (#9364)

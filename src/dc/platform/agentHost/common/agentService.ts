@@ -227,14 +227,7 @@ export function affectsAgentHostProviderPreference(event: IConfigurationChangeEv
 }
 
 export function shouldSurfaceLocalAgentHostProvider(provider: AgentProvider, configurationService: IConfigurationService, isSessionsWindow: boolean): boolean {
-	switch (provider) {
-		case CLAUDE_AGENT_PROVIDER_ID:
-			return true;
-		case CODEX_AGENT_PROVIDER_ID:
-			return configurationService.getValue<boolean>(isSessionsWindow ? AgentHostCodexAgentEnabledSettingId : CodexPreferAgentHostEditorSettingId) === true;
-		default:
-			return true;
-	}
+	return false;
 }
 
 // -- Codex agent settings --------------------------------------------------------

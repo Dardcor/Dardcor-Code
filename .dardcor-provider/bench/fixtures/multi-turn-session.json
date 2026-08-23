@@ -1,0 +1,243 @@
+{
+  "schema": "miaw-bench-fixture/1",
+  "id": "multi-turn-session",
+  "name": "Multi-Turn Session",
+  "description": "A long, tool-free iterative feature session: a developer hones a health-check endpoint across six turns. The system prompt is byte-stable across every turn and the conversation history grows monotonically, so the request prefix is stable and the tail churns — the shape L0 prefix caching and history-aging compression target. No tool calls; pure chat traffic.",
+  "scenario": "multi-turn-session",
+  "model": "mock/gpt-5-mini",
+  "expect": {
+    "intent": "exercise L0 prefix stability on a growing pure-chat history and history-aging on old turns",
+    "cacheWarmPrefix": true,
+    "prefixChurn": "tail-only"
+  },
+  "turns": [
+    {
+      "id": "t1",
+      "note": "Initial request for a health-check endpoint.",
+      "request": {
+        "model": "mock/gpt-5-mini",
+        "temperature": 0,
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are the backend engineer for Acme's checkout-service (Node, ESM, Express). Answer with short, concrete code. Keep endpoints minimal: no external dependencies, no premature abstractions. Always show the full file when it changes."
+          },
+          {
+            "role": "user",
+            "content": "Add a GET /healthz endpoint that returns 200 with {status:\"ok\"} when the process can serve traffic. Keep it minimal."
+          }
+        ]
+      }
+    },
+    {
+      "id": "t2",
+      "note": "Engineer iterates: needs a readiness signal beyond liveness.",
+      "request": {
+        "model": "mock/gpt-5-mini",
+        "temperature": 0,
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are the backend engineer for Acme's checkout-service (Node, ESM, Express). Answer with short, concrete code. Keep endpoints minimal: no external dependencies, no premature abstractions. Always show the full file when it changes."
+          },
+          {
+            "role": "user",
+            "content": "Add a GET /healthz endpoint that returns 200 with {status:\"ok\"} when the process can serve traffic. Keep it minimal."
+          },
+          {
+            "role": "assistant",
+            "content": "app.get(\"/healthz\", (req, res) => { res.json({ status: \"ok\" }); });"
+          },
+          {
+            "role": "user",
+            "content": "Good, but I also need /readyz that only returns ok once the database pool has an open connection. Add a tiny readiness check that queries SELECT 1."
+          }
+        ]
+      }
+    },
+    {
+      "id": "t3",
+      "note": "Engineer iterates: readiness must fail loudly, not hang.",
+      "request": {
+        "model": "mock/gpt-5-mini",
+        "temperature": 0,
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are the backend engineer for Acme's checkout-service (Node, ESM, Express). Answer with short, concrete code. Keep endpoints minimal: no external dependencies, no premature abstractions. Always show the full file when it changes."
+          },
+          {
+            "role": "user",
+            "content": "Add a GET /healthz endpoint that returns 200 with {status:\"ok\"} when the process can serve traffic. Keep it minimal."
+          },
+          {
+            "role": "assistant",
+            "content": "app.get(\"/healthz\", (req, res) => { res.json({ status: \"ok\" }); });"
+          },
+          {
+            "role": "user",
+            "content": "Good, but I also need /readyz that only returns ok once the database pool has an open connection. Add a tiny readiness check that queries SELECT 1."
+          },
+          {
+            "role": "assistant",
+            "content": "app.get(\"/readyz\", async (req, res) => { try { await pool.query(\"SELECT 1\"); res.json({ status: \"ok\" }); } catch { res.status(503).json({ status: \"unavailable\" }); } });"
+          },
+          {
+            "role": "user",
+            "content": "The readiness probe must not hang forever when the pool is wedged. Wrap the check in a timeout so it answers 503 within 2 seconds even if the query never resolves."
+          }
+        ]
+      }
+    },
+    {
+      "id": "t4",
+      "note": "Engineer iterates: extract the probe so the timeout is testable.",
+      "request": {
+        "model": "mock/gpt-5-mini",
+        "temperature": 0,
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are the backend engineer for Acme's checkout-service (Node, ESM, Express). Answer with short, concrete code. Keep endpoints minimal: no external dependencies, no premature abstractions. Always show the full file when it changes."
+          },
+          {
+            "role": "user",
+            "content": "Add a GET /healthz endpoint that returns 200 with {status:\"ok\"} when the process can serve traffic. Keep it minimal."
+          },
+          {
+            "role": "assistant",
+            "content": "app.get(\"/healthz\", (req, res) => { res.json({ status: \"ok\" }); });"
+          },
+          {
+            "role": "user",
+            "content": "Good, but I also need /readyz that only returns ok once the database pool has an open connection. Add a tiny readiness check that queries SELECT 1."
+          },
+          {
+            "role": "assistant",
+            "content": "app.get(\"/readyz\", async (req, res) => { try { await pool.query(\"SELECT 1\"); res.json({ status: \"ok\" }); } catch { res.status(503).json({ status: \"unavailable\" }); } });"
+          },
+          {
+            "role": "user",
+            "content": "The readiness probe must not hang forever when the pool is wedged. Wrap the check in a timeout so it answers 503 within 2 seconds even if the query never resolves."
+          },
+          {
+            "role": "assistant",
+            "content": "async function probeReady(pool, ms) { const timer = new Promise((r) => setTimeout(() => r(false), ms)); const ok = pool.query(\"SELECT 1\").then(() => true); return (await Promise.race([timer, ok])) === true; } app.get(\"/readyz\", async (req, res) => { const ready = await probeReady(pool, 2000); res.status(ready ? 200 : 503).json({ status: ready ? \"ok\" : \"unavailable\" }); });"
+          },
+          {
+            "role": "user",
+            "content": "Extract probeReady into its own module src/readyProbe.js so it can be unit-tested with a fake pool, and wire it into the route. Show both files."
+          }
+        ]
+      }
+    },
+    {
+      "id": "t5",
+      "note": "Engineer iterates: report latency and error reason in the probe response.",
+      "request": {
+        "model": "mock/gpt-5-mini",
+        "temperature": 0,
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are the backend engineer for Acme's checkout-service (Node, ESM, Express). Answer with short, concrete code. Keep endpoints minimal: no external dependencies, no premature abstractions. Always show the full file when it changes."
+          },
+          {
+            "role": "user",
+            "content": "Add a GET /healthz endpoint that returns 200 with {status:\"ok\"} when the process can serve traffic. Keep it minimal."
+          },
+          {
+            "role": "assistant",
+            "content": "app.get(\"/healthz\", (req, res) => { res.json({ status: \"ok\" }); });"
+          },
+          {
+            "role": "user",
+            "content": "Good, but I also need /readyz that only returns ok once the database pool has an open connection. Add a tiny readiness check that queries SELECT 1."
+          },
+          {
+            "role": "assistant",
+            "content": "app.get(\"/readyz\", async (req, res) => { try { await pool.query(\"SELECT 1\"); res.json({ status: \"ok\" }); } catch { res.status(503).json({ status: \"unavailable\" }); } });"
+          },
+          {
+            "role": "user",
+            "content": "The readiness probe must not hang forever when the pool is wedged. Wrap the check in a timeout so it answers 503 within 2 seconds even if the query never resolves."
+          },
+          {
+            "role": "assistant",
+            "content": "async function probeReady(pool, ms) { const timer = new Promise((r) => setTimeout(() => r(false), ms)); const ok = pool.query(\"SELECT 1\").then(() => true); return (await Promise.race([timer, ok])) === true; } app.get(\"/readyz\", async (req, res) => { const ready = await probeReady(pool, 2000); res.status(ready ? 200 : 503).json({ status: ready ? \"ok\" : \"unavailable\" }); });"
+          },
+          {
+            "role": "user",
+            "content": "Extract probeReady into its own module src/readyProbe.js so it can be unit-tested with a fake pool, and wire it into the route. Show both files."
+          },
+          {
+            "role": "assistant",
+            "content": "// src/readyProbe.js\nexport async function probeReady(pool, ms) { const timer = new Promise((r) => setTimeout(() => r({ ok: false, reason: \"timeout\" }), ms)); const ok = pool.query(\"SELECT 1\").then(() => ({ ok: true })).catch((e) => ({ ok: false, reason: e.message })); return Promise.race([timer, ok]); } // route: app.get(\"/readyz\", async (req, res) => { const r = await probeReady(pool, 2000); res.status(r.ok ? 200 : 503).json({ status: r.ok ? \"ok\" : \"unavailable\", reason: r.reason }); });"
+          },
+          {
+            "role": "user",
+            "content": "One more refinement: when the probe fails, include the latency in milliseconds in the response body so ops can see how slow the check was. Keep the timeout at 2 seconds."
+          }
+        ]
+      }
+    },
+    {
+      "id": "t6",
+      "note": "Engineer iterates: add latency reporting; session wraps up.",
+      "request": {
+        "model": "mock/gpt-5-mini",
+        "temperature": 0,
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are the backend engineer for Acme's checkout-service (Node, ESM, Express). Answer with short, concrete code. Keep endpoints minimal: no external dependencies, no premature abstractions. Always show the full file when it changes."
+          },
+          {
+            "role": "user",
+            "content": "Add a GET /healthz endpoint that returns 200 with {status:\"ok\"} when the process can serve traffic. Keep it minimal."
+          },
+          {
+            "role": "assistant",
+            "content": "app.get(\"/healthz\", (req, res) => { res.json({ status: \"ok\" }); });"
+          },
+          {
+            "role": "user",
+            "content": "Good, but I also need /readyz that only returns ok once the database pool has an open connection. Add a tiny readiness check that queries SELECT 1."
+          },
+          {
+            "role": "assistant",
+            "content": "app.get(\"/readyz\", async (req, res) => { try { await pool.query(\"SELECT 1\"); res.json({ status: \"ok\" }); } catch { res.status(503).json({ status: \"unavailable\" }); } });"
+          },
+          {
+            "role": "user",
+            "content": "The readiness probe must not hang forever when the pool is wedged. Wrap the check in a timeout so it answers 503 within 2 seconds even if the query never resolves."
+          },
+          {
+            "role": "assistant",
+            "content": "async function probeReady(pool, ms) { const timer = new Promise((r) => setTimeout(() => r(false), ms)); const ok = pool.query(\"SELECT 1\").then(() => true); return (await Promise.race([timer, ok])) === true; } app.get(\"/readyz\", async (req, res) => { const ready = await probeReady(pool, 2000); res.status(ready ? 200 : 503).json({ status: ready ? \"ok\" : \"unavailable\" }); });"
+          },
+          {
+            "role": "user",
+            "content": "Extract probeReady into its own module src/readyProbe.js so it can be unit-tested with a fake pool, and wire it into the route. Show both files."
+          },
+          {
+            "role": "assistant",
+            "content": "// src/readyProbe.js\nexport async function probeReady(pool, ms) { const timer = new Promise((r) => setTimeout(() => r({ ok: false, reason: \"timeout\" }), ms)); const ok = pool.query(\"SELECT 1\").then(() => ({ ok: true })).catch((e) => ({ ok: false, reason: e.message })); return Promise.race([timer, ok]); } // route: app.get(\"/readyz\", async (req, res) => { const r = await probeReady(pool, 2000); res.status(r.ok ? 200 : 503).json({ status: r.ok ? \"ok\" : \"unavailable\", reason: r.reason }); });"
+          },
+          {
+            "role": "user",
+            "content": "One more refinement: when the probe fails, include the latency in milliseconds in the response body so ops can see how slow the check was. Keep the timeout at 2 seconds."
+          },
+          {
+            "role": "assistant",
+            "content": "export async function probeReady(pool, ms) { const start = Date.now(); const timer = new Promise((r) => setTimeout(() => r({ ok: false, reason: \"timeout\", latencyMs: ms }), ms)); const ok = pool.query(\"SELECT 1\").then(() => ({ ok: true, latencyMs: Date.now() - start })).catch((e) => ({ ok: false, reason: e.message, latencyMs: Date.now() - start })); return Promise.race([timer, ok]); }"
+          },
+          {
+            "role": "user",
+            "content": "Looks good. Wire /readyz to the new probeReady signature and run the lint step in CI. Ship it."
+          }
+        ]
+      }
+    }
+  ]
+}

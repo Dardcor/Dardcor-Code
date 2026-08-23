@@ -78,13 +78,18 @@
     }
   ],
   "activationEvents": [
+    "*",
     "onStartupFinished",
+    "onChatParticipant:github.dardcor.default",
+    "onChatParticipant:github.dardcor.editsAgent",
+    "onChatParticipant:github.dardcor.editingSession",
+    "onLanguageModelChat:copilot",
     "onLanguageModelChat:dardcor",
     "onUri",
     "onFileSystem:ccreq",
     "onFileSystem:ccsettings"
   ],
-  "main": "./dist/extension",
+  "main": "./dist/extension.js",
   "l10n": "./l10n",
   "enabledApiProposals": [
     "agentSessionsWorkspace",
@@ -152,6 +157,16 @@
     "chatSessionCustomizationProvider"
   ],
   "contributes": {
+    "languageModels": [
+      {
+        "vendor": "copilot",
+        "displayName": "Copilot"
+      },
+      {
+        "vendor": "dardcor",
+        "displayName": "Dardcor Provider"
+      }
+    ],
     "languageModelTools": [
       {
         "name": "dardcor_searchCodebase",
@@ -1358,7 +1373,7 @@
     "chatParticipants": [
       {
         "id": "github.dardcor.default",
-        "name": "GitHubCopilot",
+        "name": "dardcor",
         "fullName": "Dardcor Code",
         "description": "%dardcor.description%",
         "isDefault": true,
@@ -1475,7 +1490,7 @@
       },
       {
         "id": "github.dardcor.editingSession",
-        "name": "GitHubCopilot",
+        "name": "dardcor",
         "fullName": "Dardcor Code",
         "description": "%dardcor.edits.description%",
         "isDefault": true,
@@ -1488,7 +1503,7 @@
       },
       {
         "id": "github.dardcor.editingSessionEditor",
-        "name": "GitHubCopilot",
+        "name": "dardcor",
         "fullName": "Dardcor Code",
         "description": "%dardcor.edits.description%",
         "isDefault": true,
@@ -1605,7 +1620,7 @@
       },
       {
         "id": "github.dardcor.notebook",
-        "name": "GitHubCopilot",
+        "name": "dardcor",
         "fullName": "Dardcor Code",
         "description": "%dardcor.description%",
         "isDefault": true,
@@ -1626,7 +1641,7 @@
       },
       {
         "id": "github.dardcor.notebookEditorAgent",
-        "name": "GitHubCopilot",
+        "name": "dardcor",
         "fullName": "Dardcor Code",
         "description": "%dardcor.description%",
         "isDefault": true,
@@ -7244,7 +7259,7 @@
     "@anthropic-ai/claude-agent-sdk": "0.2.112",
     "@anthropic-ai/sdk": "^0.82.0",
     "@github/blackbird-external-ingest-utils": "^0.3.0",
-    "@github/dardcor": "^1.0.73",
+    "@github/dardcor": "npm:@github/copilot@^1.0.73",
     "@google/genai": "^1.22.0",
     "@humanwhocodes/gitignore-to-minimatch": "1.0.2",
     "@microsoft/tiktokenizer": "^1.0.10",
@@ -7266,7 +7281,7 @@
     "@opentelemetry/sdk-trace-node": "^2.5.1",
     "@opentelemetry/semantic-conventions": "^1.39.0",
     "@sinclair/typebox": "^0.34.41",
-    "@vscode/dardcor-api": "^0.4.3",
+    "@vscode/dardcor-api": "npm:@vscode/copilot-api@^0.4.3",
     "@vscode/extension-telemetry": "^1.5.1",
     "@vscode/l10n": "^0.0.18",
     "@vscode/prompt-tsx": "^0.4.0-alpha.8",

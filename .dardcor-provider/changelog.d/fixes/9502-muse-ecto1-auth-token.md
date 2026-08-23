@@ -1,1 +1,0 @@
-- fix(muse-spark-web): document the ecto1: WS auth token requirement in the credential hint, spec, and error message (#9502)

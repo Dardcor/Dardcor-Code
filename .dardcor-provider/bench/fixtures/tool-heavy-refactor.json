@@ -1,0 +1,314 @@
+{
+  "schema": "miaw-bench-fixture/1",
+  "id": "tool-heavy-refactor",
+  "name": "Tool-Heavy Refactor",
+  "description": "A coding agent refactoring a TypeScript order service across multiple tool-call turns (read file, grep usages, apply patch). Full wire-body history per turn so the conversation prefix is stable and grows. Tool results deliberately exercise distinct RTK output filters: read-numbered (file read), grep (usage scan), git-diff (patch confirmation).",
+  "scenario": "tool-heavy-refactor",
+  "model": "mock/gpt-5-mini",
+  "expect": {
+    "intent": "exercise tool-result compression filters and L0 prefix warm-up across a tool-call-heavy session",
+    "cacheWarmPrefix": true,
+    "rtkFiltersLikelyHit": ["read-numbered", "grep", "git-diff"]
+  },
+  "turns": [
+    {
+      "id": "t1",
+      "note": "Agent reads the target file before refactoring.",
+      "request": {
+        "model": "mock/gpt-5-mini",
+        "temperature": 0,
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are Acme's coding agent for the checkout-service repository (TypeScript, ESM). Follow repo conventions: ESM imports, no external dependencies, plain functions over classes. Make the smallest diff that satisfies the request and preserve existing behavior unless asked to change it."
+          },
+          {
+            "role": "user",
+            "content": "Refactor src/orderService.ts: extract the pricing-calculation block into a new module src/pricing.ts and make orderService.ts delegate to it. First show me the current file."
+          },
+          {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call_read_order",
+                "type": "function",
+                "function": { "name": "read_file", "arguments": "{\"path\":\"src/orderService.ts\"}" }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "t2",
+      "note": "File content returns (read-numbered shape); agent scans for pricing usages before editing.",
+      "request": {
+        "model": "mock/gpt-5-mini",
+        "temperature": 0,
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are Acme's coding agent for the checkout-service repository (TypeScript, ESM). Follow repo conventions: ESM imports, no external dependencies, plain functions over classes. Make the smallest diff that satisfies the request and preserve existing behavior unless asked to change it."
+          },
+          {
+            "role": "user",
+            "content": "Refactor src/orderService.ts: extract the pricing-calculation block into a new module src/pricing.ts and make orderService.ts delegate to it. First show me the current file."
+          },
+          {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call_read_order",
+                "type": "function",
+                "function": { "name": "read_file", "arguments": "{\"path\":\"src/orderService.ts\"}" }
+              }
+            ]
+          },
+          {
+            "role": "tool",
+            "tool_call_id": "call_read_order",
+            "content": "1 | import { computeShipping } from \"./shipping.js\";\n2 | import type { CartItem, Customer, Order } from \"./types.js\";\n3 |\n4 | export function buildOrder(customer: Customer, items: CartItem[]): Order {\n5 |   let subtotal = 0;\n6 |   for (const item of items) subtotal += item.unitPrice * item.quantity;\n7 |   const discount = applyMemberDiscount(subtotal, customer.tier);\n8 |   const tax = subtotal * 0.08;\n9 |   const shipping = computeShipping(items);\n10 |   const total = subtotal - discount + tax + shipping;\n11 |   return { customer, items, subtotal, discount, tax, shipping, total, status: \"draft\" };\n12 | }\n13 |\n14 | export function applyMemberDiscount(subtotal: number, tier: string): number {\n15 |   const rates = { bronze: 0, silver: 0.05, gold: 0.1, platinum: 0.15 };\n16 |   const rate = rates[tier] ?? 0;\n17 |   return Math.round(subtotal * rate * 100) / 100;\n18 | }\n19 |\n20 | export function validateOrder(order: Order): string[] {\n21 |   const errors: string[] = [];\n22 |   if (order.items.length === 0) errors.push(\"order has no items\");\n23 |   for (const item of order.items) {\n24 |     if (item.quantity <= 0) errors.push(\"bad quantity for \" + item.sku);\n25 |   }\n26 |   return errors;\n27 | }"
+          },
+          {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call_grep_pricing",
+                "type": "function",
+                "function": { "name": "grep", "arguments": "{\"pattern\":\"applyMemberDiscount|subtotal\",\"path\":\"src\"}" }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "t3",
+      "note": "grep scan returns matches; agent edits by writing the extracted module plus the delegating diff.",
+      "request": {
+        "model": "mock/gpt-5-mini",
+        "temperature": 0,
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are Acme's coding agent for the checkout-service repository (TypeScript, ESM). Follow repo conventions: ESM imports, no external dependencies, plain functions over classes. Make the smallest diff that satisfies the request and preserve existing behavior unless asked to change it."
+          },
+          {
+            "role": "user",
+            "content": "Refactor src/orderService.ts: extract the pricing-calculation block into a new module src/pricing.ts and make orderService.ts delegate to it. First show me the current file."
+          },
+          {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call_read_order",
+                "type": "function",
+                "function": { "name": "read_file", "arguments": "{\"path\":\"src/orderService.ts\"}" }
+              }
+            ]
+          },
+          {
+            "role": "tool",
+            "tool_call_id": "call_read_order",
+            "content": "1 | import { computeShipping } from \"./shipping.js\";\n2 | import type { CartItem, Customer, Order } from \"./types.js\";\n3 |\n4 | export function buildOrder(customer: Customer, items: CartItem[]): Order {\n5 |   let subtotal = 0;\n6 |   for (const item of items) subtotal += item.unitPrice * item.quantity;\n7 |   const discount = applyMemberDiscount(subtotal, customer.tier);\n8 |   const tax = subtotal * 0.08;\n9 |   const shipping = computeShipping(items);\n10 |   const total = subtotal - discount + tax + shipping;\n11 |   return { customer, items, subtotal, discount, tax, shipping, total, status: \"draft\" };\n12 | }\n13 |\n14 | export function applyMemberDiscount(subtotal: number, tier: string): number {\n15 |   const rates = { bronze: 0, silver: 0.05, gold: 0.1, platinum: 0.15 };\n16 |   const rate = rates[tier] ?? 0;\n17 |   return Math.round(subtotal * rate * 100) / 100;\n18 | }\n19 |\n20 | export function validateOrder(order: Order): string[] {\n21 |   const errors: string[] = [];\n22 |   if (order.items.length === 0) errors.push(\"order has no items\");\n23 |   for (const item of order.items) {\n24 |     if (item.quantity <= 0) errors.push(\"bad quantity for \" + item.sku);\n25 |   }\n26 |   return errors;\n27 | }"
+          },
+          {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call_grep_pricing",
+                "type": "function",
+                "function": { "name": "grep", "arguments": "{\"pattern\":\"applyMemberDiscount|subtotal\",\"path\":\"src\"}" }
+              }
+            ]
+          },
+          {
+            "role": "tool",
+            "tool_call_id": "call_grep_pricing",
+            "content": "src/orderService.ts:7:  const discount = applyMemberDiscount(subtotal, customer.tier);\nsrc/orderService.ts:15:  const rates = { bronze: 0, silver: 0.05, gold: 0.1, platinum: 0.15 };\nsrc/orderService.ts:16:  const rate = rates[tier] ?? 0;\nsrc/orderService.ts:18:  return Math.round(subtotal * rate * 100) / 100;\nsrc/api/orderApi.ts:12:  const order = buildOrder(customer, items);\nsrc/api/orderApi.ts:18:  res.status(200).json({ orderId: order.id, total: order.total });"
+          },
+          {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call_edit_split",
+                "type": "function",
+                "function": {
+                  "name": "edit_file",
+                  "arguments": "{\"path\":\"src/orderService.ts\",\"patch\":\"@@ -1,12 +1,9 @@\\n import { computeShipping } from \\\"./shipping.js\\\";\\n-import type { CartItem, Customer, Order } from \\\"./types.js\\\";\\n+import type { Order } from \\\"./types.js\\\";\\n+import { calculatePricing } from \\\"./pricing.js\\\";\\n \\n export function buildOrder(customer: Customer, items: CartItem[]): Order {\\n-  let subtotal = 0;\\n-  for (const item of items) subtotal += item.unitPrice * item.quantity;\\n-  const discount = applyMemberDiscount(subtotal, customer.tier);\\n-  const tax = subtotal * 0.08;\\n-  const shipping = computeShipping(items);\\n-  const total = subtotal - discount + tax + shipping;\\n+  const pricing = calculatePricing(customer, items);\\n+  const shipping = computeShipping(items);\\n+  const total = pricing.total + shipping;\\n   return { customer, items, subtotal, discount, tax, shipping, total, status: \\\"draft\\\" };\\n }\"}"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "t4",
+      "note": "Patch applied; git diff confirms the change; agent reports the refactor.",
+      "request": {
+        "model": "mock/gpt-5-mini",
+        "temperature": 0,
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are Acme's coding agent for the checkout-service repository (TypeScript, ESM). Follow repo conventions: ESM imports, no external dependencies, plain functions over classes. Make the smallest diff that satisfies the request and preserve existing behavior unless asked to change it."
+          },
+          {
+            "role": "user",
+            "content": "Refactor src/orderService.ts: extract the pricing-calculation block into a new module src/pricing.ts and make orderService.ts delegate to it. First show me the current file."
+          },
+          {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call_read_order",
+                "type": "function",
+                "function": { "name": "read_file", "arguments": "{\"path\":\"src/orderService.ts\"}" }
+              }
+            ]
+          },
+          {
+            "role": "tool",
+            "tool_call_id": "call_read_order",
+            "content": "1 | import { computeShipping } from \"./shipping.js\";\n2 | import type { CartItem, Customer, Order } from \"./types.js\";\n3 |\n4 | export function buildOrder(customer: Customer, items: CartItem[]): Order {\n5 |   let subtotal = 0;\n6 |   for (const item of items) subtotal += item.unitPrice * item.quantity;\n7 |   const discount = applyMemberDiscount(subtotal, customer.tier);\n8 |   const tax = subtotal * 0.08;\n9 |   const shipping = computeShipping(items);\n10 |   const total = subtotal - discount + tax + shipping;\n11 |   return { customer, items, subtotal, discount, tax, shipping, total, status: \"draft\" };\n12 | }\n13 |\n14 | export function applyMemberDiscount(subtotal: number, tier: string): number {\n15 |   const rates = { bronze: 0, silver: 0.05, gold: 0.1, platinum: 0.15 };\n16 |   const rate = rates[tier] ?? 0;\n17 |   return Math.round(subtotal * rate * 100) / 100;\n18 | }\n19 |\n20 | export function validateOrder(order: Order): string[] {\n21 |   const errors: string[] = [];\n22 |   if (order.items.length === 0) errors.push(\"order has no items\");\n23 |   for (const item of order.items) {\n24 |     if (item.quantity <= 0) errors.push(\"bad quantity for \" + item.sku);\n25 |   }\n26 |   return errors;\n27 | }"
+          },
+          {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call_grep_pricing",
+                "type": "function",
+                "function": { "name": "grep", "arguments": "{\"pattern\":\"applyMemberDiscount|subtotal\",\"path\":\"src\"}" }
+              }
+            ]
+          },
+          {
+            "role": "tool",
+            "tool_call_id": "call_grep_pricing",
+            "content": "src/orderService.ts:7:  const discount = applyMemberDiscount(subtotal, customer.tier);\nsrc/orderService.ts:15:  const rates = { bronze: 0, silver: 0.05, gold: 0.1, platinum: 0.15 };\nsrc/orderService.ts:16:  const rate = rates[tier] ?? 0;\nsrc/orderService.ts:18:  return Math.round(subtotal * rate * 100) / 100;\nsrc/api/orderApi.ts:12:  const order = buildOrder(customer, items);\nsrc/api/orderApi.ts:18:  res.status(200).json({ orderId: order.id, total: order.total });"
+          },
+          {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call_edit_split",
+                "type": "function",
+                "function": {
+                  "name": "edit_file",
+                  "arguments": "{\"path\":\"src/orderService.ts\",\"patch\":\"@@ -1,12 +1,9 @@\\n import { computeShipping } from \\\"./shipping.js\\\";\\n-import type { CartItem, Customer, Order } from \\\"./types.js\\\";\\n+import type { Order } from \\\"./types.js\\\";\\n+import { calculatePricing } from \\\"./pricing.js\\\";\\n \\n export function buildOrder(customer: Customer, items: CartItem[]): Order {\\n-  let subtotal = 0;\\n-  for (const item of items) subtotal += item.unitPrice * item.quantity;\\n-  const discount = applyMemberDiscount(subtotal, customer.tier);\\n-  const tax = subtotal * 0.08;\\n-  const shipping = computeShipping(items);\\n-  const total = subtotal - discount + tax + shipping;\\n+  const pricing = calculatePricing(customer, items);\\n+  const shipping = computeShipping(items);\\n+  const total = pricing.total + shipping;\\n   return { customer, items, subtotal, discount, tax, shipping, total, status: \\\"draft\\\" };\\n }\"}"
+                }
+              }
+            ]
+          },
+          {
+            "role": "tool",
+            "tool_call_id": "call_edit_split",
+            "content": "diff --git a/src/orderService.ts b/src/orderService.ts\nindex 3f2a1c9..b81d0e4 100644\n--- a/src/orderService.ts\n+++ b/src/orderService.ts\n@@ -1,12 +1,9 @@\n import { computeShipping } from \"./shipping.js\";\n-import type { CartItem, Customer, Order } from \"./types.js\";\n+import type { Order } from \"./types.js\";\n+import { calculatePricing } from \"./pricing.js\";\n \n export function buildOrder(customer: Customer, items: CartItem[]): Order {\n-  let subtotal = 0;\n-  for (const item of items) subtotal += item.unitPrice * item.quantity;\n-  const discount = applyMemberDiscount(subtotal, customer.tier);\n-  const tax = subtotal * 0.08;\n-  const shipping = computeShipping(items);\n-  const total = subtotal - discount + tax + shipping;\n+  const pricing = calculatePricing(customer, items);\n+  const shipping = computeShipping(items);\n+  const total = pricing.total + shipping;\n   return { customer, items, subtotal, discount, tax, shipping, total, status: \"draft\" };\n }\n"
+          },
+          {
+            "role": "assistant",
+            "content": "Done. Extracted the pricing block into src/pricing.ts (calculatePricing now owns subtotal, member discount and tax) and orderService.ts delegates to it. The diff above is the only behavioral change: total is now pricing.total plus shipping."
+          }
+        ]
+      }
+    },
+    {
+      "id": "t5",
+      "note": "Follow-up: update the unit tests; agent reads the test file next.",
+      "request": {
+        "model": "mock/gpt-5-mini",
+        "temperature": 0,
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are Acme's coding agent for the checkout-service repository (TypeScript, ESM). Follow repo conventions: ESM imports, no external dependencies, plain functions over classes. Make the smallest diff that satisfies the request and preserve existing behavior unless asked to change it."
+          },
+          {
+            "role": "user",
+            "content": "Refactor src/orderService.ts: extract the pricing-calculation block into a new module src/pricing.ts and make orderService.ts delegate to it. First show me the current file."
+          },
+          {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call_read_order",
+                "type": "function",
+                "function": { "name": "read_file", "arguments": "{\"path\":\"src/orderService.ts\"}" }
+              }
+            ]
+          },
+          {
+            "role": "tool",
+            "tool_call_id": "call_read_order",
+            "content": "1 | import { computeShipping } from \"./shipping.js\";\n2 | import type { CartItem, Customer, Order } from \"./types.js\";\n3 |\n4 | export function buildOrder(customer: Customer, items: CartItem[]): Order {\n5 |   let subtotal = 0;\n6 |   for (const item of items) subtotal += item.unitPrice * item.quantity;\n7 |   const discount = applyMemberDiscount(subtotal, customer.tier);\n8 |   const tax = subtotal * 0.08;\n9 |   const shipping = computeShipping(items);\n10 |   const total = subtotal - discount + tax + shipping;\n11 |   return { customer, items, subtotal, discount, tax, shipping, total, status: \"draft\" };\n12 | }\n13 |\n14 | export function applyMemberDiscount(subtotal: number, tier: string): number {\n15 |   const rates = { bronze: 0, silver: 0.05, gold: 0.1, platinum: 0.15 };\n16 |   const rate = rates[tier] ?? 0;\n17 |   return Math.round(subtotal * rate * 100) / 100;\n18 | }\n19 |\n20 | export function validateOrder(order: Order): string[] {\n21 |   const errors: string[] = [];\n22 |   if (order.items.length === 0) errors.push(\"order has no items\");\n23 |   for (const item of order.items) {\n24 |     if (item.quantity <= 0) errors.push(\"bad quantity for \" + item.sku);\n25 |   }\n26 |   return errors;\n27 | }"
+          },
+          {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call_grep_pricing",
+                "type": "function",
+                "function": { "name": "grep", "arguments": "{\"pattern\":\"applyMemberDiscount|subtotal\",\"path\":\"src\"}" }
+              }
+            ]
+          },
+          {
+            "role": "tool",
+            "tool_call_id": "call_grep_pricing",
+            "content": "src/orderService.ts:7:  const discount = applyMemberDiscount(subtotal, customer.tier);\nsrc/orderService.ts:15:  const rates = { bronze: 0, silver: 0.05, gold: 0.1, platinum: 0.15 };\nsrc/orderService.ts:16:  const rate = rates[tier] ?? 0;\nsrc/orderService.ts:18:  return Math.round(subtotal * rate * 100) / 100;\nsrc/api/orderApi.ts:12:  const order = buildOrder(customer, items);\nsrc/api/orderApi.ts:18:  res.status(200).json({ orderId: order.id, total: order.total });"
+          },
+          {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call_edit_split",
+                "type": "function",
+                "function": {
+                  "name": "edit_file",
+                  "arguments": "{\"path\":\"src/orderService.ts\",\"patch\":\"@@ -1,12 +1,9 @@\\n import { computeShipping } from \\\"./shipping.js\\\";\\n-import type { CartItem, Customer, Order } from \\\"./types.js\\\";\\n+import type { Order } from \\\"./types.js\\\";\\n+import { calculatePricing } from \\\"./pricing.js\\\";\\n \\n export function buildOrder(customer: Customer, items: CartItem[]): Order {\\n-  let subtotal = 0;\\n-  for (const item of items) subtotal += item.unitPrice * item.quantity;\\n-  const discount = applyMemberDiscount(subtotal, customer.tier);\\n-  const tax = subtotal * 0.08;\\n-  const shipping = computeShipping(items);\\n-  const total = subtotal - discount + tax + shipping;\\n+  const pricing = calculatePricing(customer, items);\\n+  const shipping = computeShipping(items);\\n+  const total = pricing.total + shipping;\\n   return { customer, items, subtotal, discount, tax, shipping, total, status: \\\"draft\\\" };\\n }\"}"
+                }
+              }
+            ]
+          },
+          {
+            "role": "tool",
+            "tool_call_id": "call_edit_split",
+            "content": "diff --git a/src/orderService.ts b/src/orderService.ts\nindex 3f2a1c9..b81d0e4 100644\n--- a/src/orderService.ts\n+++ b/src/orderService.ts\n@@ -1,12 +1,9 @@\n import { computeShipping } from \"./shipping.js\";\n-import type { CartItem, Customer, Order } from \"./types.js\";\n+import type { Order } from \"./types.js\";\n+import { calculatePricing } from \"./pricing.js\";\n \n export function buildOrder(customer: Customer, items: CartItem[]): Order {\n-  let subtotal = 0;\n-  for (const item of items) subtotal += item.unitPrice * item.quantity;\n-  const discount = applyMemberDiscount(subtotal, customer.tier);\n-  const tax = subtotal * 0.08;\n-  const shipping = computeShipping(items);\n-  const total = subtotal - discount + tax + shipping;\n+  const pricing = calculatePricing(customer, items);\n+  const shipping = computeShipping(items);\n+  const total = pricing.total + shipping;\n   return { customer, items, subtotal, discount, tax, shipping, total, status: \"draft\" };\n }\n"
+          },
+          {
+            "role": "assistant",
+            "content": "Done. Extracted the pricing block into src/pricing.ts (calculatePricing now owns subtotal, member discount and tax) and orderService.ts delegates to it. The diff above is the only behavioral change: total is now pricing.total plus shipping."
+          },
+          {
+            "role": "user",
+            "content": "Now update the unit tests in test/orderService.test.ts to cover the new pricing module, and re-run lint. Read the test file first."
+          },
+          {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call_read_tests",
+                "type": "function",
+                "function": { "name": "read_file", "arguments": "{\"path\":\"test/orderService.test.ts\"}" }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

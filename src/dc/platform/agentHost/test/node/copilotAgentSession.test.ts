@@ -550,7 +550,7 @@ function toPermissionRequest(request: TestPermissionRequest): PermissionRequest 
 				...request,
 			};
 		case 'custom-tool':
-			return { toolDescription: '', toolName: '', ...request };
+			return { toolDescription: '', toolName: '', ...request } as any;
 	}
 }
 

@@ -1,1 +1,0 @@
-- **chore(types):** align semantic cache signature inputs with the numeric request contract so both cache-write paths remain runtime-equivalent while TypeScript 7 checks them safely ([#9117](https://github.com/diegosouzapw/Dardcor Code/pull/9117))

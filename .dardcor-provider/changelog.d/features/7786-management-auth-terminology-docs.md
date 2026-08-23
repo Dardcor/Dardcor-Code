@@ -1,1 +1,0 @@
-- **docs:** add management authentication terminology guide ([#7786](https://github.com/diegosouzapw/Dardcor Code/issues/7786))

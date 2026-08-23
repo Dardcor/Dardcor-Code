@@ -55,7 +55,7 @@ abstract class SubmitAction extends Action2 {
 		const context = args[0] as IChatExecuteActionContext | undefined;
 		const telemetryService = accessor.get(ITelemetryService);
 		const widgetService = accessor.get(IChatWidgetService);
-		const widget = context?.widget ?? widgetService.lastFocusedWidget;
+		const widget = context?.widget ?? widgetService.lastFocusedWidget ?? widgetService.getWidgetsByLocations(ChatAgentLocation.Chat)[0];
 
 		// Check if there's a pending delegation target
 		const pendingDelegationTarget = widget?.input.pendingDelegationTarget;
@@ -189,14 +189,6 @@ export class ChatSubmitAction extends SubmitAction {
 
 	constructor() {
 		const menuCondition = ChatContextKeys.chatModeKind.isEqualTo(ChatModeKind.Ask);
-		const precondition = ContextKeyExpr.and(
-			ChatContextKeys.inputHasSendableContent,
-			ContextKeyExpr.or(whenNotInProgress, ChatContextKeys.editingRequestType.isEqualTo(ChatContextKeys.EditingRequestType.Sent)),
-			ChatContextKeys.chatSessionOptionsValid,
-			// A submission that is being routed/dispatched off-model (omni-chat)
-			// disables sending until it resolves or the draft changes.
-			ChatContextKeys.inputSubmitPending.negate(),
-		);
 
 		super({
 			id: ChatSubmitAction.ID,
@@ -204,7 +196,7 @@ export class ChatSubmitAction extends SubmitAction {
 			f1: false,
 			category: CHAT_CATEGORY,
 			icon: Codicon.arrowUpCompact,
-			precondition,
+			precondition: undefined,
 			toggled: {
 				condition: ChatContextKeys.lockedToCodingAgent,
 				icon: Codicon.arrowUpCompact,
@@ -749,18 +741,7 @@ export class ChatEditingSessionSubmitAction extends SubmitAction {
 	static readonly ID = 'workbench.action.edits.submit';
 
 	constructor() {
-		const notInProgressOrEditing = ContextKeyExpr.and(
-			ContextKeyExpr.or(whenNoActiveRequest, ChatContextKeys.editingRequestType.isEqualTo(ChatContextKeys.EditingRequestType.Sent)),
-			ChatContextKeys.editingRequestType.notEqualsTo(ChatContextKeys.EditingRequestType.Queue),
-			ChatContextKeys.editingRequestType.notEqualsTo(ChatContextKeys.EditingRequestType.Steer)
-		);
-
 		const menuCondition = ChatContextKeys.chatModeKind.notEqualsTo(ChatModeKind.Ask);
-		const precondition = ContextKeyExpr.and(
-			ChatContextKeys.inputHasSendableContent,
-			notInProgressOrEditing,
-			ChatContextKeys.chatSessionOptionsValid
-		);
 
 		super({
 			id: ChatEditingSessionSubmitAction.ID,
@@ -768,14 +749,20 @@ export class ChatEditingSessionSubmitAction extends SubmitAction {
 			f1: false,
 			category: CHAT_CATEGORY,
 			icon: Codicon.arrowUpCompact,
-			precondition,
+			precondition: undefined,
+			keybinding: {
+				when: ContextKeyExpr.and(
+					ChatContextKeys.inChatInput,
+					ChatContextKeys.withinEditSessionDiff.negate(),
+				),
+				primary: KeyCode.Enter,
+				weight: KeybindingWeight.EditorContrib
+			},
 			menu: [
 				{
 					id: MenuId.ChatExecute,
 					order: 4,
-					when: ContextKeyExpr.and(
-						notInProgressOrEditing,
-						menuCondition),
+					when: menuCondition,
 					group: 'navigation',
 					alt: {
 						id: 'workbench.action.chat.sendToNewChat',

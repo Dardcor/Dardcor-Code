@@ -10,16 +10,75 @@ import { IStatusbarEntry, IStatusbarEntryAccessor, IStatusbarService, StatusbarA
 import { registerAction2, Action2 } from '../../../../../platform/actions/common/actions.js';
 import { ServicesAccessor } from '../../../../../platform/instantiation/common/instantiation.js';
 
+import { Codicon } from '../../../../../base/common/codicons.js';
+import { IWebviewWorkbenchService } from '../../../webviewPanel/browser/webviewWorkbenchService.js';
+import { IEditorGroupsService } from '../../../../services/editor/common/editorGroupsService.js';
+import { WebviewInput } from '../../../webviewPanel/browser/webviewEditorInput.js';
+
+let activeDardcorRouterInput: WebviewInput | undefined;
+
 registerAction2(class extends Action2 {
 	constructor() {
 		super({
 			id: 'dardcor.model.open',
-			title: { value: localize('openDardcorModel', "Open Dardcor Model"), original: 'Open Dardcor Model' }
+			title: { value: localize('openDardcorModel', "Open Miawrouter"), original: 'Open Miawrouter' }
 		});
 	}
-	async run(_accessor: ServicesAccessor) {
-		const { ipcRenderer } = await import('../../../../../base/parts/sandbox/electron-browser/globals.js');
-		ipcRenderer.send('vscode:openProviderWindow');
+	async run(accessor: ServicesAccessor) {
+		const webviewWorkbenchService = accessor.get(IWebviewWorkbenchService);
+		const editorGroupService = accessor.get(IEditorGroupsService);
+		const title = 'Miawrouter';
+
+		if (activeDardcorRouterInput && !activeDardcorRouterInput.isDisposed()) {
+			webviewWorkbenchService.revealWebview(activeDardcorRouterInput, editorGroupService.activeGroup, false);
+			return;
+		}
+
+		const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: #000000;
+    overflow: hidden;
+  }
+  iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: #000000;
+  }
+</style>
+</head>
+<body>
+  <iframe src="http://localhost:25000/dashboard" allow="clipboard-read; clipboard-write; fullscreen"></iframe>
+</body>
+</html>`;
+
+		activeDardcorRouterInput = webviewWorkbenchService.openWebview(
+			{
+				title,
+				options: {
+					enableFindWidget: false,
+					disableServiceWorker: true
+				},
+				contentOptions: {
+					allowScripts: true,
+					allowForms: true
+				},
+				extension: undefined
+			},
+			'dardcor.router',
+			title,
+			Codicon.hubot,
+			{ group: editorGroupService.activeGroup, preserveFocus: false }
+		);
+		activeDardcorRouterInput.webview.setHtml(html);
 	}
 });
 
@@ -47,9 +106,9 @@ export class ChatStatusBarEntry extends Disposable implements IWorkbenchContribu
 
 	private getEntryProps(): IStatusbarEntry {
 		return {
-			name: localize('modelStatus', "Model Status"),
-			text: '$(hubot) Model',
-			ariaLabel: localize('modelStatusAria', "Model status"),
+			name: localize('modelStatus', "Miawrouter Status"),
+			text: '$(hubot) Miawrouter',
+			ariaLabel: localize('modelStatusAria', "Miawrouter status"),
 			command: 'dardcor.model.open',
 			showInAllWindows: true
 		} satisfies IStatusbarEntry;

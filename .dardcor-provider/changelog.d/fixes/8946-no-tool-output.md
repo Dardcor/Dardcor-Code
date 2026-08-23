@@ -1,1 +1,0 @@
-- fix(compression): drop orphan custom_tool_call/local_shell_call/apply_patch_call on compaction restore (#8946)

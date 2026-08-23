@@ -250,12 +250,9 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 			provideLanguageModelChatResponse: this._provideLanguageModelChatResponse.bind(this),
 			provideTokenCount: this._provideTokenCount.bind(this)
 		};
+		this._register(vscode.lm.registerLanguageModelChatProvider('copilot', provider));
 		this._register(vscode.lm.registerLanguageModelChatProvider('dardcor', provider));
 		this._register(this._authenticationService.onDidAuthenticationChange(() => {
-			if (!this._authenticationService.anyGitHubSession) {
-				this._currentModels = [];
-			}
-			// Auth changed which means models could've changed. Fire the event
 			this._onDidChange.fire();
 		}));
 		this._register(this._endpointProvider.onDidModelsRefresh(() => {
@@ -267,29 +264,19 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 	}
 
 	private async _provideLanguageModelChatInfo(options: { silent: boolean }, token: vscode.CancellationToken): Promise<vscode.LanguageModelChatInformation[]> {
-		const session = await this._getToken();
-		if (!session) {
-			// Return cached models until we have auth reacquired
-			// We clear this list in onDidAuthenticationChange so signed out should still have model picker clear
-			return this._currentModels;
-		}
-
 		const models: vscode.LanguageModelChatInformation[] = [];
 		const allEndpoints = await this._endpointProvider.getAllChatEndpoints();
 		if (!allEndpoints.length) {
 			return this._currentModels;
 		}
-		const chatEndpoints = allEndpoints.filter(e => e.showInModelPicker || e.model === 'gpt-4o-mini');
-		const autoEndpoint = await this._automodeService.resolveAutoModeEndpoint(undefined, allEndpoints);
-		chatEndpoints.push(autoEndpoint);
-		let defaultChatEndpoint: IChatEndpoint;
+		const chatEndpoints = allEndpoints.filter(e => !(e instanceof AutoChatEndpoint) && e.model.toLowerCase() !== 'auto');
+		let defaultChatEndpoint: IChatEndpoint = chatEndpoints[0];
 		const defaultExpModel = this._expService.getTreatmentVariable<string>('chat.defaultLanguageModel')?.replace('dardcor/', '');
-		if (this._authenticationService.dardcorToken?.isNoAuthUser || !defaultExpModel || defaultExpModel === AutoChatEndpoint.pseudoModelId) {
-			// No auth, no experiment, and exp that sets auto to default all get default model
-			defaultChatEndpoint = autoEndpoint;
-		} else {
-			// Find exp default
-			defaultChatEndpoint = chatEndpoints.find(e => e.model === defaultExpModel) || autoEndpoint;
+		if (defaultExpModel && defaultExpModel !== AutoChatEndpoint.pseudoModelId) {
+			const found = chatEndpoints.find(e => e.model === defaultExpModel);
+			if (found) {
+				defaultChatEndpoint = found;
+			}
 		}
 
 		const seenFamilies = new Set<string>();
@@ -321,7 +308,12 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 
 			// Counting tokens requires instantiating the tokenizers, which makes this process use a lot of memory.
 			// Let's cache the results across extension activations
-			const baseCount = await this._promptBaseCountCache.getBaseCount(endpoint);
+			let baseCount = 0;
+			try {
+				baseCount = await this._promptBaseCountCache.getBaseCount(endpoint);
+			} catch {
+				baseCount = 0;
+			}
 			const multiplier = endpoint.multiplier !== undefined ? `${endpoint.multiplier}x` : undefined;
 			let modelDetail: string | undefined;
 
@@ -336,6 +328,10 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 
 			const session = this._authenticationService.anyGitHubSession;
 			const isDefault = endpoint === defaultChatEndpoint;
+
+			const promptLimit = endpoint.modelMaxPromptTokens > 0 ? endpoint.modelMaxPromptTokens : 200000;
+			const maxInputTokens = Math.max(promptLimit - baseCount - BaseTokensPerCompletion, 4096);
+			const maxOutputTokens = endpoint.maxOutputTokens > 0 ? endpoint.maxOutputTokens : 64000;
 
 			const model: vscode.LanguageModelChatInformation = {
 				id: endpoint instanceof AutoChatEndpoint ? AutoChatEndpoint.pseudoModelId : endpoint.model,
@@ -357,8 +353,8 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 				detail: modelDetail,
 				statusIcon: endpoint.degradationReason ? new vscode.ThemeIcon('warning') : undefined,
 				version: endpoint.version,
-				maxInputTokens: endpoint.modelMaxPromptTokens - baseCount - BaseTokensPerCompletion,
-				maxOutputTokens: endpoint.maxOutputTokens,
+				maxInputTokens,
+				maxOutputTokens,
 				requiresAuthorization: session && { label: session.account.label },
 				isDefault: {
 					[ApiChatLocation.Panel]: isDefault,
@@ -366,7 +362,7 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 					[ApiChatLocation.Notebook]: isDefault,
 					[ApiChatLocation.Editor]: endpoint instanceof AutoChatEndpoint, // inline chat gets 'Auto' by default
 				},
-				isUserSelectable: endpoint.showInModelPicker,
+				isUserSelectable: true,
 				warningText: endpoint instanceof AutoChatEndpoint ? undefined : (() => {
 					const texts: Record<string, string> = { ...endpoint.warningText };
 					if (endpoint.degradationReason) {
@@ -376,8 +372,9 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 				})(),
 				promo: endpoint instanceof AutoChatEndpoint ? undefined : endpoint.promo,
 				capabilities: {
-					imageInput: endpoint instanceof AutoChatEndpoint ? true : endpoint.supportsVision,
-					toolCalling: endpoint.supportsToolCalls,
+					imageInput: endpoint instanceof AutoChatEndpoint ? true : (endpoint.supportsVision ?? true),
+					toolCalling: true,
+					agentMode: true,
 				},
 				...buildConfigurationSchema(endpoint, preferLongContext),
 			};
@@ -576,19 +573,20 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 	}
 
 	private async _getToken(): Promise<CopilotToken | undefined> {
-		if (!this._authenticationService.hasCopilotTokenSource) {
-			this._logService.warn('[LanguageModelAccess] LanguageModel/Embeddings are not available without a Copilot token source');
-			return undefined;
-		}
-
 		try {
 			const dardcorToken = await this._authenticationService.getCopilotToken();
-			return dardcorToken;
-		} catch (e) {
-			this._logService.warn('[LanguageModelAccess] LanguageModel/Embeddings are not available without auth token');
-			this._logService.error(e);
-			return undefined;
+			if (dardcorToken) {
+				return dardcorToken;
+			}
+		} catch {
+			// ignore
 		}
+
+		return new CopilotToken({
+			token: 'dummy-token-1234567890;sk=dummy-sk',
+			expires_at: Math.floor(Date.now() / 1000) + 86400,
+			refresh_in: 86400,
+		});
 	}
 }
 

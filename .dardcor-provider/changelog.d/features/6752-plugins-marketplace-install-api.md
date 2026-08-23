@@ -1,1 +1,0 @@
-- **feat(api):** add plugins marketplace install endpoint with checksum verification ([#6752](https://github.com/diegosouzapw/Dardcor Code/issues/6752))

@@ -160,9 +160,9 @@ export class FetcherService extends Disposable implements IFetcherService {
 	async fetch(url: string, options: FetchOptions): Promise<Response> {
 		const start = Date.now();
 		try {
-			// --- Dardcor Provider Deep Integration ---
-			// Intercept Copilot token requests and mock response to bypass GitHub authentication
-			if (url.includes('/dardcor_internal/v2/token')) {
+			// --- Dardcor Provider & MiawRouter Deep Integration ---
+			// 1. Intercept Copilot token requests and mock response to bypass GitHub authentication
+			if (url.includes('/dardcor_internal/v2/token') || url.includes('/copilot_internal/v2/token')) {
 				return {
 					ok: true,
 					status: 200,
@@ -180,15 +180,166 @@ export class FetcherService extends Disposable implements IFetcherService {
 					clone: function() { return this; }
 				} as any;
 			}
-			
-			// Re-route Copilot API telemetry/completions to Dardcor Provider endpoint
-			if (url.startsWith('https://api.github.com/dardcor')) {
-				url = url.replace('https://api.github.com/dardcor', 'http://localhost:25000/v1/vscode/dummy-token');
-			} else if (url.startsWith('https://api.github.com')) {
-				url = url.replace('https://api.github.com', 'http://localhost:25000/v1/vscode/dummy-token');
-			} else if (url.startsWith('https://api.githubdardcor.com')) {
-				url = url.replace('https://api.githubdardcor.com', 'http://localhost:25000/v1/vscode/dummy-token');
+
+			// 2. Dynamically fetch models from internal Dardcor Provider (port 25000 only)
+			if (url.endsWith('/models') || url.includes('/models?') || url.includes('/models/')) {
+				const DARDCOR_PORT = process.env.DARDCOR_PORT ? parseInt(process.env.DARDCOR_PORT) : 25000;
+				const DARDCOR_KEY = process.env.DARDCOR_API_KEY || 'sk-dardcor-local-key';
+
+				let rawList: any[] = [];
+				try {
+					const modelsRes = await globalThis.fetch(`http://127.0.0.1:${DARDCOR_PORT}/v1/models`, {
+						headers: { 'Authorization': `Bearer ${DARDCOR_KEY}` }
+					});
+					if (modelsRes.ok) {
+						const json: any = await modelsRes.json();
+						rawList = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
+					}
+				} catch {
+					// continue
+				}
+
+				// Deduplicate and filter out unwanted internal tokens
+				const seenIds = new Set<string>();
+				const cleanList: any[] = [];
+				for (const m of rawList) {
+					const id = typeof m === 'string' ? m : (m.id || m.name || '');
+					if (!id || id.toLowerCase() === 'auto' || id.toLowerCase() === 'claude-none') {
+						continue;
+					}
+					const canonicalKey = id.replace(/^(ag|oc|ds|opencode)\//i, '').toLowerCase();
+					if (seenIds.has(canonicalKey)) {
+						continue;
+					}
+					seenIds.add(canonicalKey);
+					cleanList.push(m);
+				}
+
+				const formatModelName = (id: string, originalName?: string): string => {
+					if (originalName && originalName !== id) {
+						return originalName;
+					}
+					let clean = id.replace(/^(ag|oc|ds|opencode)\//i, '');
+					return clean
+						.split(/[-_]/)
+						.map(part => {
+							if (['free', 'unlimited', 'pro', 'plus'].includes(part.toLowerCase())) {
+								return `(${part.charAt(0).toUpperCase() + part.slice(1)})`;
+							}
+							return part.charAt(0).toUpperCase() + part.slice(1);
+						})
+						.join(' ');
+				};
+
+				const data = cleanList.map((m: any, idx: number) => {
+					const id = typeof m === 'string' ? m : (m.id || m.name || `model-${idx}`);
+					const name = (typeof m === 'object' && m.name && m.name !== id) ? m.name : formatModelName(id);
+					const maxContext = (typeof m === 'object' && m.capabilities?.contextWindow) ? m.capabilities.contextWindow : 200000;
+					const maxOutput = (typeof m === 'object' && m.capabilities?.maxOutput) ? m.capabilities.maxOutput : 64000;
+					const hasVision = typeof m === 'object' && m.capabilities?.vision === true;
+					const hasThinking = typeof m === 'object' && (m.capabilities?.reasoning === true || !!m.capabilities?.thinkingFormat);
+
+					return {
+						id,
+						name,
+						vendor: 'copilot',
+						model_picker_enabled: true,
+						showInModelPicker: true,
+						is_chat_default: idx === 0,
+						is_chat_fallback: idx === 0,
+						version: '1.0.0',
+						capabilities: {
+							type: 'chat',
+							family: id,
+							tokenizer: 'o200k_base',
+							limits: {
+								max_prompt_tokens: maxContext,
+								max_output_tokens: maxOutput,
+								max_context_window_tokens: maxContext,
+								vision: { max_prompt_images: hasVision ? 10 : 0 }
+							},
+							supports: {
+								parallel_tool_calls: true,
+								tool_calls: true,
+								toolCalling: true,
+								agentMode: true,
+								streaming: true,
+								vision: hasVision,
+								thinking: hasThinking
+							}
+						}
+					};
+				});
+
+				if (data.length > 0) {
+					return {
+						ok: true,
+						status: 200,
+						json: async () => ({ data }),
+						text: async () => JSON.stringify({ data }),
+						headers: { get: (h: string) => h.toLowerCase() === 'content-type' ? 'application/json' : undefined } as any,
+						body: null as any,
+						bodyUsed: false,
+						arrayBuffer: async () => Buffer.from(JSON.stringify({ data })),
+						blob: async () => new Blob([JSON.stringify({ data })]),
+						clone: function() { return this; }
+					} as any;
+				}
 			}
+			
+			// 3. Re-route completions and API calls strictly to internal provider (port 25000 only)
+			const DARDCOR_PORT = process.env.DARDCOR_PORT ? parseInt(process.env.DARDCOR_PORT) : 25000;
+			const DARDCOR_KEY = process.env.DARDCOR_API_KEY || 'sk-dardcor-local-key';
+
+			if (options?.body && typeof options.body === 'string' && url.includes('/chat/completions')) {
+				try {
+					const parsed = JSON.parse(options.body);
+					if (!parsed.model || parsed.model.toLowerCase() === 'auto' || parsed.model.toLowerCase() === 'default' || parsed.model === 'gpt-4o' || parsed.model === 'copilot') {
+						parsed.model = 'opencode/ox-alpha-free';
+					}
+					parsed.stream = true;
+					if (parsed.model === 'opencode/ox-alpha-free' || parsed.model === 'ox-alpha-free') {
+						parsed.reasoning_effort = 'high';
+						parsed.thinking = { type: 'enabled', budget_tokens: 32768 };
+					}
+					// Prompt cache optimization: mark system message and deterministically sort tools
+					if (Array.isArray(parsed.messages) && parsed.messages.length > 0) {
+						if (parsed.messages[0].role === 'system' && !parsed.messages[0].cache_control) {
+							parsed.messages[0].cache_control = { type: 'ephemeral' };
+						}
+					}
+					if (Array.isArray(parsed.tools) && parsed.tools.length > 1) {
+						parsed.tools.sort((a: any, b: any) => (a.function?.name || a.name || '').localeCompare(b.function?.name || b.name || ''));
+					}
+					options.body = JSON.stringify(parsed);
+				} catch {
+					// pass
+				}
+			}
+
+			if (url.includes('/chat/completions')) {
+				url = `http://127.0.0.1:${DARDCOR_PORT}/v1/chat/completions`;
+			} else if (url.includes('/responses')) {
+				url = `http://127.0.0.1:${DARDCOR_PORT}/v1/responses`;
+			} else if (url.includes('/messages')) {
+				url = `http://127.0.0.1:${DARDCOR_PORT}/v1/messages`;
+			} else if (url.includes('/embeddings')) {
+				url = `http://127.0.0.1:${DARDCOR_PORT}/v1/embeddings`;
+			} else if (url.startsWith('https://api.github.com/dardcor')) {
+				url = url.replace('https://api.github.com/dardcor', `http://127.0.0.1:${DARDCOR_PORT}/v1`);
+			} else if (url.startsWith('https://api.github.com')) {
+				url = url.replace('https://api.github.com', `http://127.0.0.1:${DARDCOR_PORT}/v1`);
+			} else if (url.startsWith('https://api.githubdardcor.com')) {
+				url = url.replace('https://api.githubdardcor.com', `http://127.0.0.1:${DARDCOR_PORT}/v1`);
+			}
+
+			if (!options.headers) {
+				options.headers = {};
+			}
+			(options.headers as any)['Authorization'] = `Bearer ${DARDCOR_KEY}`;
+			(options.headers as any)['authorization'] = `Bearer ${DARDCOR_KEY}`;
+			(options.headers as any)['Connection'] = 'keep-alive';
+			(options.headers as any)['Keep-Alive'] = 'timeout=600, max=1000';
 			// -----------------------------------------
 
 			const { response: res, updatedFetchers, updatedKnownBadFetchers } = await fetchWithFallbacks(this._getAvailableFetchers(), url, options, this._knownBadFetchers, this._configurationService, this._logService, this._telemetryService, this._experimentationService);

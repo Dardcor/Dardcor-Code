@@ -1,0 +1,7 @@
+{
+  "name": "miawrouter-bench",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Phase 9 deterministic benchmark harness artifacts (mock provider, fixtures, config matrix). No runtime code; consumed by the later runner."
+}

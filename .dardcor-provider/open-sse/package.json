@@ -1,7 +1,0 @@
-{
-  "name": "@dardcorCode/open-sse",
-  "version": "3.8.50",
-  "description": "Dardcor Code streaming engine — handles provider dispatch, protocol translation, and SSE streaming",
-  "type": "module",
-  "private": true
-}

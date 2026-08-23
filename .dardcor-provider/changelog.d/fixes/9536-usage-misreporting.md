@@ -1,1 +1,0 @@
-- fix(backend): map cache tokens in OpenAI-to-Claude non-streaming usage translation (#9536)

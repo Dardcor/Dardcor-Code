@@ -1,1 +1,0 @@
-- **Database**: The `node:sqlite` fallback now uses SQLite's native backup API and real immediate write transactions, improving backup consistency and concurrent-write behavior when `better-sqlite3` is unavailable

@@ -1,1 +1,0 @@
-- fix(quality): tighten eslintWarnings baseline 5000->0 to match the gate's suppressions-applied measurement (unblocks require-tighten on every code PR)

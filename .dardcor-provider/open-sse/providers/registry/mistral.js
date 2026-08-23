@@ -1,0 +1,41 @@
+export default {
+  id: "mistral",
+  priority: 80,
+  alias: "mistral",
+  display: {
+    name: "Mistral",
+    icon: "air",
+    color: "#FF7000",
+    textIcon: "MI",
+    website: "https://mistral.ai",
+    notice: {
+      apiKeyUrl: "https://console.mistral.ai/api-keys",
+    },
+  },
+  category: "apikey",
+  hasFree: true,
+  transport: {
+    baseUrl: "https://api.mistral.ai/v1/chat/completions",
+    validateUrl: "https://api.mistral.ai/v1/models",
+    quirks: {
+      dropClientMetadata: true,
+    },
+  },
+  models: [
+    { id: "mistral-large-latest", name: "Mistral Large 3" },
+    { id: "codestral-latest", name: "Codestral (Latest)" },
+    { id: "codestral-2501", name: "Codestral 25.01" },
+    { id: "ministral-8b-latest", name: "Ministral 8B", isFreeTier: true },
+    { id: "ministral-3b-latest", name: "Ministral 3B", isFreeTier: true },
+    { id: "pixtral-large-latest", name: "Pixtral Large" },
+    { id: "pixtral-12b-2409", name: "Pixtral 12B" },
+    { id: "open-mistral-nemo", name: "Mistral Nemo", isFreeTier: true },
+    { id: "mistral-medium-latest", name: "Mistral Medium 3" },
+    { id: "mistral-small-latest", name: "Mistral Small 4" },
+    { id: "devstral-latest", name: "Devstral 2" },
+    { id: "mistral-embed", name: "Mistral Embed", kind: "embedding" },
+  ],
+  passthroughModels: true,
+  serviceKinds: ["llm","imageToText","embedding"],
+  embeddingConfig: { baseUrl: "https://api.mistral.ai/v1/embeddings", authType: "apikey", authHeader: "bearer" },
+};

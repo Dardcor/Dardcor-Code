@@ -2609,7 +2609,7 @@ export class ChatWidget extends Disposable implements IChatWidget {
 	}
 
 	async acceptInput(query?: string, options?: IChatAcceptInputOptions): Promise<IChatResponseModel | undefined> {
-		if (this._readOnly || this.input.hasPendingProgrammaticModelSelection) {
+		if (this._readOnly) {
 			return undefined;
 		}
 
@@ -2782,6 +2782,13 @@ export class ChatWidget extends Disposable implements IChatWidget {
 			await this.input.generating;
 			if (Date.now() - start > generatingAutoSubmitWindow) {
 				return;
+			}
+		}
+
+		if (!this._viewModel) {
+			const ref = this.chatService.startNewLocalSession(this.location, { debugOwner: 'ChatWidget#_acceptInput' });
+			if (ref) {
+				this.setModel(ref.object);
 			}
 		}
 

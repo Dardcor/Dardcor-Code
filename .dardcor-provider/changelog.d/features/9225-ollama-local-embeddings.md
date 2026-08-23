@@ -1,1 +1,0 @@
-- **feat(ollama):** add Ollama Local embedding support via /v1/embeddings. (thanks @HaoNgo232)

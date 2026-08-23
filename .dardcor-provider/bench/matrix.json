@@ -1,0 +1,337 @@
+{
+  "schema": "miaw-bench-matrix/1",
+  "schemaVersion": 1,
+  "documentedLimitations": {
+    "realProviders": {
+      "implemented": false,
+      "note": "Network stays opt-in for the later runner. Phase 9 provides only the offline mock provider (bench/mockProvider.js); a real-provider mode must be added behind an explicit flag in the runner, never as the default."
+    },
+    "perFilterToggling": {
+      "implemented": false,
+      "note": "RTK filters are auto-detected per tool_result (open-sse/rtk/autodetect.js) and are not individually toggleable. The matrix toggles rtkEnabled as a whole; individual filters are exercised by fixture content (see expect.rtkFiltersLikelyHit on each fixture)."
+    },
+    "l0Toggle": {
+      "implemented": false,
+      "note": "L0 prompt-cache orchestration (open-sse/cache/l0.js) runs automatically for OpenAI-shaped bodies and has no user-facing toggle. 'L0-only' configs therefore mean L1/L2/L3 disabled while L0 remains active; the matrix models L0 via the mock provider's deterministic cache-read/cache-creation accounting."
+    },
+    "l2RequiresEmbeddings": {
+      "implemented": false,
+      "note": "L2 semantic cache embeds via the gateway's /v1/embeddings (src/lib/cache/semanticEmbed.js, semanticCacheModel setting). In offline runs the runner must either wire an embeddings backend or accept L2 failing closed to a miss (spec: an embedding failure is a miss, never an error)."
+    }
+  },
+  "fixtures": [
+    "tool-heavy-refactor",
+    "large-file-read",
+    "multi-turn-session",
+    "cache-integrity"
+  ],
+  "dimensions": {
+    "cacheLayers": {
+      "L0": { "knob": "automatic (open-sse/cache/l0.js)", "note": "provider prompt-cache orchestration; always active for messages[] bodies; modeled by mock provider usage" },
+      "L1": { "knob": "cacheL1Enabled", "note": "exact-response cache; default true; temperature=0 only" },
+      "L2": { "knob": "cacheL2Enabled + semanticCacheThreshold + semanticCacheModel", "note": "semantic response cache; default false; needs embeddings backend" },
+      "L3": { "knob": "cacheL3Enabled + cacheL3MinChars", "note": "content-address dedup; default false; default min chars 1000" }
+    },
+    "compressionModes": {
+      "rtk": {
+        "knob": "rtkEnabled",
+        "note": "auto-detected tool-result filters",
+        "filters": ["git-diff", "git-status", "git-log", "grep", "find", "ls", "tree", "dedup-log", "smart-truncate", "read-numbered", "search-list", "build-output"]
+      },
+      "caveman": { "knob": "cavemanEnabled + cavemanLevel", "levels": ["lite", "full", "ultra", "wenyan-lite", "wenyan", "wenyan-ultra"], "note": "system-prompt output saver; level default full" },
+      "ponytail": { "knob": "ponytailEnabled + ponytailLevel", "levels": ["lite", "full", "ultra"], "note": "system-prompt output saver; level default full" },
+      "headroom": { "knob": "headroomEnabled + headroomUrl", "requiresNetwork": true, "note": "external local /v1/compress proxy; excluded from offline runs" },
+      "pxpipe": { "knob": "pxpipeEnabled", "requiresClaudeFormat": true, "note": "image-rendering compressor; Claude-format only; excluded from OpenAI-format runs" }
+    },
+    "routingStrategies": {
+      "fallback": { "knob": "comboStrategy: \"fallback\"", "note": "sequential model attempts, fall through on error (default)" },
+      "round-robin": { "knob": "comboStrategy: \"round-robin\"", "note": "rotates the starting model per request (getRotatedModels)" },
+      "fusion": { "knob": "comboStrategy: \"fusion\"", "note": "parallel panel fan-out + judge synthesis (handleFusionChat)" }
+    },
+    "streaming": ["stream", "non-stream"]
+  },
+  "configs": [
+    {
+      "id": "all-off",
+      "description": "Baseline: no cache layers, no compression, default fallback routing, non-streaming.",
+      "stream": false,
+      "settings": {
+        "cacheL1Enabled": false,
+        "cacheL2Enabled": false,
+        "cacheL3Enabled": false,
+        "rtkEnabled": false,
+        "cavemanEnabled": false,
+        "ponytailEnabled": false,
+        "comboStrategy": "fallback"
+      }
+    },
+    {
+      "id": "all-on",
+      "description": "Everything enabled: L1+L2+L3 caches, rtk+caveman+ponytail compression, round-robin routing, streaming.",
+      "stream": true,
+      "settings": {
+        "cacheL1Enabled": true,
+        "cacheL2Enabled": true,
+        "cacheL3Enabled": true,
+        "semanticCacheThreshold": 0.92,
+        "cacheL3MinChars": 1000,
+        "rtkEnabled": true,
+        "cavemanEnabled": true,
+        "cavemanLevel": "full",
+        "ponytailEnabled": true,
+        "ponytailLevel": "full",
+        "comboStrategy": "round-robin"
+      }
+    },
+    {
+      "id": "l0-only",
+      "description": "Only L0 provider-prompt-cache (automatic); L1/L2/L3 and compression off.",
+      "stream": false,
+      "settings": {
+        "cacheL1Enabled": false,
+        "cacheL2Enabled": false,
+        "cacheL3Enabled": false,
+        "rtkEnabled": false,
+        "cavemanEnabled": false,
+        "ponytailEnabled": false,
+        "comboStrategy": "fallback"
+      }
+    },
+    {
+      "id": "l1-only",
+      "description": "Only L1 exact-response cache; everything else off.",
+      "stream": false,
+      "settings": {
+        "cacheL1Enabled": true,
+        "cacheL2Enabled": false,
+        "cacheL3Enabled": false,
+        "rtkEnabled": false,
+        "cavemanEnabled": false,
+        "ponytailEnabled": false,
+        "comboStrategy": "fallback"
+      }
+    },
+    {
+      "id": "l2-only",
+      "description": "Only L2 semantic cache; everything else off. Requires an embeddings backend or L2 fails closed to miss.",
+      "stream": false,
+      "settings": {
+        "cacheL1Enabled": false,
+        "cacheL2Enabled": true,
+        "semanticCacheThreshold": 0.92,
+        "cacheL3Enabled": false,
+        "rtkEnabled": false,
+        "cavemanEnabled": false,
+        "ponytailEnabled": false,
+        "comboStrategy": "fallback"
+      }
+    },
+    {
+      "id": "l3-only",
+      "description": "Only L3 content-address dedup; everything else off.",
+      "stream": false,
+      "settings": {
+        "cacheL1Enabled": false,
+        "cacheL2Enabled": false,
+        "cacheL3Enabled": true,
+        "cacheL3MinChars": 1000,
+        "rtkEnabled": false,
+        "cavemanEnabled": false,
+        "ponytailEnabled": false,
+        "comboStrategy": "fallback"
+      }
+    },
+    {
+      "id": "comp-rtk",
+      "description": "RTK tool-result compression only (auto-detected filters); no caches, no injectors.",
+      "stream": false,
+      "settings": {
+        "cacheL1Enabled": false,
+        "cacheL2Enabled": false,
+        "cacheL3Enabled": false,
+        "rtkEnabled": true,
+        "cavemanEnabled": false,
+        "ponytailEnabled": false,
+        "comboStrategy": "fallback"
+      }
+    },
+    {
+      "id": "comp-caveman",
+      "description": "Caveman output saver only (level full).",
+      "stream": false,
+      "settings": {
+        "cacheL1Enabled": false,
+        "cacheL2Enabled": false,
+        "cacheL3Enabled": false,
+        "rtkEnabled": false,
+        "cavemanEnabled": true,
+        "cavemanLevel": "full",
+        "ponytailEnabled": false,
+        "comboStrategy": "fallback"
+      }
+    },
+    {
+      "id": "comp-ponytail",
+      "description": "Ponytail output saver only (level full).",
+      "stream": false,
+      "settings": {
+        "cacheL1Enabled": false,
+        "cacheL2Enabled": false,
+        "cacheL3Enabled": false,
+        "rtkEnabled": false,
+        "cavemanEnabled": false,
+        "ponytailEnabled": true,
+        "ponytailLevel": "full",
+        "comboStrategy": "fallback"
+      }
+    },
+    {
+      "id": "comp-all",
+      "description": "Stacked compression: rtk + caveman + ponytail together.",
+      "stream": false,
+      "settings": {
+        "cacheL1Enabled": false,
+        "cacheL2Enabled": false,
+        "cacheL3Enabled": false,
+        "rtkEnabled": true,
+        "cavemanEnabled": true,
+        "cavemanLevel": "full",
+        "ponytailEnabled": true,
+        "ponytailLevel": "full",
+        "comboStrategy": "fallback"
+      }
+    },
+    {
+      "id": "route-fallback",
+      "description": "Fallback routing strategy only.",
+      "stream": false,
+      "settings": {
+        "cacheL1Enabled": false,
+        "cacheL2Enabled": false,
+        "cacheL3Enabled": false,
+        "rtkEnabled": false,
+        "cavemanEnabled": false,
+        "ponytailEnabled": false,
+        "comboStrategy": "fallback"
+      }
+    },
+    {
+      "id": "route-round-robin",
+      "description": "Round-robin routing strategy only.",
+      "stream": false,
+      "settings": {
+        "cacheL1Enabled": false,
+        "cacheL2Enabled": false,
+        "cacheL3Enabled": false,
+        "rtkEnabled": false,
+        "cavemanEnabled": false,
+        "ponytailEnabled": false,
+        "comboStrategy": "round-robin"
+      }
+    },
+    {
+      "id": "route-fusion",
+      "description": "Fusion routing strategy only (parallel panel + judge).",
+      "stream": false,
+      "settings": {
+        "cacheL1Enabled": false,
+        "cacheL2Enabled": false,
+        "cacheL3Enabled": false,
+        "rtkEnabled": false,
+        "cavemanEnabled": false,
+        "ponytailEnabled": false,
+        "comboStrategy": "fusion"
+      }
+    },
+    {
+      "id": "all-off-stream",
+      "description": "Baseline, streaming variant (same knobs as all-off).",
+      "stream": true,
+      "settings": {
+        "cacheL1Enabled": false,
+        "cacheL2Enabled": false,
+        "cacheL3Enabled": false,
+        "rtkEnabled": false,
+        "cavemanEnabled": false,
+        "ponytailEnabled": false,
+        "comboStrategy": "fallback"
+      }
+    },
+    {
+      "id": "all-on-nonstream",
+      "description": "Everything enabled, non-streaming variant.",
+      "stream": false,
+      "settings": {
+        "cacheL1Enabled": true,
+        "cacheL2Enabled": true,
+        "cacheL3Enabled": true,
+        "semanticCacheThreshold": 0.92,
+        "cacheL3MinChars": 1000,
+        "rtkEnabled": true,
+        "cavemanEnabled": true,
+        "cavemanLevel": "full",
+        "ponytailEnabled": true,
+        "ponytailLevel": "full",
+        "comboStrategy": "round-robin"
+      }
+    },
+    {
+      "id": "l0-only-stream",
+      "description": "L0-only, streaming variant.",
+      "stream": true,
+      "settings": {
+        "cacheL1Enabled": false,
+        "cacheL2Enabled": false,
+        "cacheL3Enabled": false,
+        "rtkEnabled": false,
+        "cavemanEnabled": false,
+        "ponytailEnabled": false,
+        "comboStrategy": "fallback"
+      }
+    },
+    {
+      "id": "comp-rtk-stream",
+      "description": "RTK compression only, streaming variant.",
+      "stream": true,
+      "settings": {
+        "cacheL1Enabled": false,
+        "cacheL2Enabled": false,
+        "cacheL3Enabled": false,
+        "rtkEnabled": true,
+        "cavemanEnabled": false,
+        "ponytailEnabled": false,
+        "comboStrategy": "fallback"
+      }
+    }
+  ],
+  "runs": [
+    { "id": "run-001", "config": "all-off", "fixture": "tool-heavy-refactor" },
+    { "id": "run-002", "config": "all-on", "fixture": "tool-heavy-refactor" },
+    { "id": "run-003", "config": "l0-only", "fixture": "tool-heavy-refactor" },
+    { "id": "run-004", "config": "comp-rtk", "fixture": "tool-heavy-refactor" },
+    { "id": "run-005", "config": "comp-caveman", "fixture": "tool-heavy-refactor" },
+    { "id": "run-006", "config": "comp-ponytail", "fixture": "tool-heavy-refactor" },
+    { "id": "run-007", "config": "comp-all", "fixture": "tool-heavy-refactor" },
+    { "id": "run-008", "config": "all-off-stream", "fixture": "tool-heavy-refactor" },
+    { "id": "run-009", "config": "comp-rtk-stream", "fixture": "tool-heavy-refactor" },
+    { "id": "run-010", "config": "all-off", "fixture": "large-file-read" },
+    { "id": "run-011", "config": "all-on", "fixture": "large-file-read" },
+    { "id": "run-012", "config": "l3-only", "fixture": "large-file-read" },
+    { "id": "run-013", "config": "comp-rtk", "fixture": "large-file-read" },
+    { "id": "run-014", "config": "comp-ponytail", "fixture": "large-file-read" },
+    { "id": "run-015", "config": "all-off", "fixture": "multi-turn-session" },
+    { "id": "run-016", "config": "all-on", "fixture": "multi-turn-session" },
+    { "id": "run-017", "config": "l0-only", "fixture": "multi-turn-session" },
+    { "id": "run-018", "config": "l1-only", "fixture": "multi-turn-session" },
+    { "id": "run-019", "config": "l2-only", "fixture": "multi-turn-session" },
+    { "id": "run-020", "config": "comp-caveman", "fixture": "multi-turn-session" },
+    { "id": "run-021", "config": "l0-only-stream", "fixture": "multi-turn-session" },
+    { "id": "run-022", "config": "all-off", "fixture": "cache-integrity" },
+    { "id": "run-023", "config": "all-on", "fixture": "cache-integrity" },
+    { "id": "run-024", "config": "l0-only", "fixture": "cache-integrity" },
+    { "id": "run-025", "config": "comp-all", "fixture": "cache-integrity" },
+    { "id": "run-026", "config": "route-fallback", "fixture": "cache-integrity" },
+    { "id": "run-027", "config": "route-round-robin", "fixture": "cache-integrity" },
+    { "id": "run-028", "config": "route-fusion", "fixture": "cache-integrity" }
+  ]
+}

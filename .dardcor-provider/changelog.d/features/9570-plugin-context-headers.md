@@ -1,1 +1,0 @@
-- feat(plugins): expose client request headers in plugin onRequest/onResponse context (#9570)

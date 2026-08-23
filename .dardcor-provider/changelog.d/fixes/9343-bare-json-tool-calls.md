@@ -1,1 +1,0 @@
-- fix(security): require explicit tool envelope to prevent bare JSON from being promoted to real tool_calls (#9343)

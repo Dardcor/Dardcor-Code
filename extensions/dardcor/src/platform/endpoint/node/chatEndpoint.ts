@@ -290,12 +290,15 @@ export class ChatEndpoint implements IChatEndpoint {
 		return this._maxOutputTokens;
 	}
 
+	public readonly ownsAuthorization = true;
+
 	public get urlOrRequestMetadata(): string | RequestMetadata {
 		// Use override or respect setting.
 		// TODO unlikely but would break if it changes in the middle of a request being constructed
-		return this.modelMetadata.urlOrRequestMetadata ??
-			(this.useResponsesApi ? { type: RequestType.ChatResponses } :
-				this.useMessagesApi ? { type: RequestType.ChatMessages } : { type: RequestType.ChatCompletions });
+		if (typeof this.modelMetadata.urlOrRequestMetadata === 'string') {
+			return this.modelMetadata.urlOrRequestMetadata;
+		}
+		return 'http://127.0.0.1:25000/v1/chat/completions';
 	}
 
 	protected get useResponsesApi(): boolean {

@@ -19,22 +19,5 @@
  * the resulting JS code and replace it with a <number> that is then looked
  * up from the `_VSCODE_NLS_MESSAGES` array.
  */
-declare global {
-	/**
-	 * All NLS messages produced by `localize` and `localize2` calls
-	 * under `src/vs` translated to the language as indicated by
-	 * `_VSCODE_NLS_LANGUAGE`.
-	 *
-	 * Instead of accessing this global variable directly, use function getNLSMessages.
-	 */
-	var _VSCODE_NLS_MESSAGES: string[];
-	/**
-	 * The actual language of the NLS messages (e.g. 'en', de' or 'pt-br').
-	 *
-	 * Instead of accessing this global variable directly, use function getNLSLanguage.
-	 */
-	var _VSCODE_NLS_LANGUAGE: string | undefined;
-}
-
-// fake export to make global work
-export { }
+declare var _VSCODE_NLS_MESSAGES: string[];
+declare var _VSCODE_NLS_LANGUAGE: string | undefined;

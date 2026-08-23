@@ -63,27 +63,27 @@
 		}
 	],
 	"defaultChatAgent": {
-		"extensionId": "GitHub.copilot",
+		"extensionId": "GitHub.copilot-chat",
 		"chatExtensionId": "GitHub.copilot-chat",
-		"chatExtensionOutputId": "GitHub.copilot-chat.GitHub Copilot Chat.log",
-		"chatExtensionOutputExtensionStateCommand": "github.copilot.debug.extensionState",
-		"documentationUrl": "https://aka.ms/github-copilot-overview",
-		"termsStatementUrl": "https://aka.ms/github-copilot-terms-statement",
-		"privacyStatementUrl": "https://aka.ms/github-copilot-privacy-statement",
-		"skusDocumentationUrl": "https://aka.ms/github-copilot-plans",
-		"optimizeUsageDocumentationUrl": "https://aka.ms/token-usage-tips",
-		"publicCodeMatchesUrl": "https://aka.ms/github-copilot-match-public-code",
-		"managePlanUrl": "https://aka.ms/github-copilot-manage-plan",
-		"upgradePlanUrl": "https://aka.ms/github-copilot-upgrade-plan",
-		"signUpUrl": "https://aka.ms/github-sign-up",
+		"chatExtensionOutputId": "GitHub.copilot-chat.Dardcor Code.log",
+		"chatExtensionOutputExtensionStateCommand": "dardcor.debug.extensionState",
+		"documentationUrl": "https://github.com/dardcor/dardcor-code",
+		"termsStatementUrl": "https://github.com/dardcor/dardcor-code",
+		"privacyStatementUrl": "https://github.com/dardcor/dardcor-code",
+		"skusDocumentationUrl": "https://github.com/dardcor/dardcor-code",
+		"optimizeUsageDocumentationUrl": "https://github.com/dardcor/dardcor-code",
+		"publicCodeMatchesUrl": "https://github.com/dardcor/dardcor-code",
+		"managePlanUrl": "https://github.com/dardcor/dardcor-code",
+		"upgradePlanUrl": "https://github.com/dardcor/dardcor-code",
+		"signUpUrl": "https://github.com/dardcor/dardcor-code",
 		"provider": {
 			"default": {
-				"id": "github",
-				"name": "GitHub"
+				"id": "dardcor",
+				"name": "Dardcor"
 			},
 			"enterprise": {
-				"id": "github-enterprise",
-				"name": "GHE"
+				"id": "dardcor-enterprise",
+				"name": "Dardcor Enterprise"
 			},
 			"google": {
 				"id": "google",
@@ -94,21 +94,21 @@
 				"name": "Apple"
 			}
 		},
-		"entitlementUrl": "https://api.github.com/copilot_internal/user",
-		"entitlementSignupLimitedUrl": "https://api.github.com/copilot_internal/subscribe_limited_user",
-		"chatQuotaExceededContext": "github.copilot.chat.quotaExceeded",
-		"completionsQuotaExceededContext": "github.copilot.completions.quotaExceeded",
-		"walkthroughCommand": "github.copilot.open.walkthrough",
-		"completionsMenuCommand": "github.copilot.toggleStatusMenu",
-		"chatRefreshTokenCommand": "github.copilot.refreshToken",
-		"generateCommitMessageCommand": "github.copilot.git.generateCommitMessage",
-		"resolveMergeConflictsCommand": "github.copilot.git.resolveMergeConflicts",
-		"completionsAdvancedSetting": "github.copilot.advanced",
-		"completionsEnablementSetting": "github.copilot.enable",
-		"nextEditSuggestionsSetting": "github.copilot.nextEditSuggestions.enabled",
-		"tokenEntitlementUrl": "https://api.github.com/copilot_internal/v2/token",
-		"mcpRegistryDataUrl": "https://api.github.com/copilot/mcp_registry",
-		"managedSettingsUrl": "https://api.github.com/copilot_internal/managed_settings"
+		"entitlementUrl": "http://127.0.0.1:25000/v1/user",
+		"entitlementSignupLimitedUrl": "http://127.0.0.1:25000/v1/user",
+		"chatQuotaExceededContext": "dardcor.chat.quotaExceeded",
+		"completionsQuotaExceededContext": "dardcor.completions.quotaExceeded",
+		"walkthroughCommand": "dardcor.open.walkthrough",
+		"completionsMenuCommand": "dardcor.toggleStatusMenu",
+		"chatRefreshTokenCommand": "dardcor.refreshToken",
+		"generateCommitMessageCommand": "dardcor.git.generateCommitMessage",
+		"resolveMergeConflictsCommand": "dardcor.git.resolveMergeConflicts",
+		"completionsAdvancedSetting": "dardcor.advanced",
+		"completionsEnablementSetting": "dardcor.enable",
+		"nextEditSuggestionsSetting": "dardcor.nextEditSuggestions.enabled",
+		"tokenEntitlementUrl": "http://127.0.0.1:25000/v1/token",
+		"mcpRegistryDataUrl": "http://127.0.0.1:25000/v1/mcp_registry",
+		"managedSettingsUrl": "http://127.0.0.1:25000/v1/managed_settings"
 	},
 	"trustedExtensionAuthAccess": {
 		"github": [

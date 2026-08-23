@@ -102,8 +102,8 @@ function getWorkerBootstrapUrl(label: string, workerScriptUrl: string, workerLoa
 		`/*${label}*/`,
 		`globalThis._VSCODE_NLS_MESSAGES = ${JSON.stringify(getNLSMessages())};`,
 		`globalThis._VSCODE_NLS_LANGUAGE = ${JSON.stringify(getNLSLanguage())};`,
-		`globalThis._VSCODE_FILE_ROOT = ${JSON.stringify(globalThis._VSCODE_FILE_ROOT)};`,
-		`globalThis._VSCODE_PRODUCT_JSON = ${JSON.stringify(globalThis._VSCODE_PRODUCT_JSON)};`,
+		`globalThis._VSCODE_FILE_ROOT = ${JSON.stringify((globalThis as any)._VSCODE_FILE_ROOT)};`,
+		`globalThis._VSCODE_PRODUCT_JSON = ${JSON.stringify((globalThis as any)._VSCODE_PRODUCT_JSON)};`,
 		`const ttPolicy = globalThis.trustedTypes?.createPolicy('defaultWorkerFactory', { createScriptURL: value => value });`,
 		`globalThis.workerttPolicy = ttPolicy;`,
 

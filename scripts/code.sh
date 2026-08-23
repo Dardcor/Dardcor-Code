@@ -36,10 +36,16 @@ function code() {
 		return
 	fi
 
+	# Auto-start Dardcor Provider with anti-collision
+	if [[ -f "./scripts/ensure-provider.sh" ]]; then
+		./scripts/ensure-provider.sh || true
+	fi
+
 	# Configuration
 	export NODE_ENV=development
 	export VSCODE_DEV=1
 	export VSCODE_CLI=1
+	export DARDCOR_PORT=25000
 	export ELECTRON_ENABLE_STACK_DUMPING=1
 	export ELECTRON_ENABLE_LOGGING=1
 

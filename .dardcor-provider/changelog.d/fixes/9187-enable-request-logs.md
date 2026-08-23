@@ -1,1 +1,0 @@
-- **fix(db):** honor the `ENABLE_REQUEST_LOGS` environment override for detailed request persistence. (thanks @RobertsXML)

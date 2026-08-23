@@ -7,7 +7,7 @@ import { findLast } from '../../../../../base/common/arraysFind.js';
 import { CancellationToken } from '../../../../../base/common/cancellation.js';
 import { IStringDictionary } from '../../../../../base/common/collections.js';
 import { Emitter, Event } from '../../../../../base/common/event.js';
-import { IMarkdownString } from '../../../../../base/common/htmlContent.js';
+import { IMarkdownString, MarkdownString } from '../../../../../base/common/htmlContent.js';
 import { Iterable } from '../../../../../base/common/iterator.js';
 import { Disposable, IDisposable, toDisposable } from '../../../../../base/common/lifecycle.js';
 import { revive, Revived } from '../../../../../base/common/marshalling.js';
@@ -372,7 +372,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				if (!agent.isCore) {
 					extensionAgentRegistered = true;
 				}
-				if (agent.id === 'chat.setup' || agent.id === 'github.copilot.editsAgent') {
+				if (agent.id === 'chat.setup' || agent.id === 'github.copilot.editsAgent' || agent.id === 'github.dardcor.editsAgent') {
 					// TODO@roblourens firing the event below probably isn't necessary but leave it alone for now
 					toolsAgentRegistered = true;
 				} else {
@@ -450,13 +450,17 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 	}
 
 	getDefaultAgent(location: ChatAgentLocation, mode: ChatModeKind = ChatModeKind.Ask): IChatAgent | undefined {
-		return this._preferExtensionAgent(this.getActivatedAgents().filter(a => {
+		const matching = this._preferExtensionAgent(this.getActivatedAgents().filter(a => {
 			if (mode && !a.modes.includes(mode)) {
 				return false;
 			}
 
 			return !!a.isDefault && a.locations.includes(location);
 		}));
+		if (matching) {
+			return matching;
+		}
+		return this._preferExtensionAgent(this.getActivatedAgents().filter(a => !!a.isDefault)) ?? this.getActivatedAgents()[0];
 	}
 
 	public get hasToolsAgent(): boolean {
@@ -509,9 +513,15 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 
 	getActivatedAgents(): IChatAgent[] {
 		return Array.from(this._agents.values())
-			.filter(a => !!a.impl)
 			.filter(a => this._agentIsEnabled(a.data.id))
-			.map(a => new MergedChatAgent(a.data, a.impl!));
+			.map(a => new MergedChatAgent(a.data, a.impl ?? {
+				invoke: async (request, progress, history, token) => {
+					if (a.impl) {
+						return a.impl.invoke(request, progress, history, token);
+					}
+					return {};
+				}
+			}));
 	}
 
 	getAgentsByName(name: string): IChatAgentData[] {
@@ -539,15 +549,111 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 
 	async invokeAgent(id: string, request: IChatAgentRequest, progress: (parts: IChatProgress[]) => void, history: IChatAgentHistoryEntry[], token: CancellationToken): Promise<IChatAgentResult> {
 		markChat(request.sessionResource, ChatPerfMark.AgentWillInvoke);
-		const data = this._agents.get(id);
+		let data = this._agents.get(id);
 		if (!data?.impl) {
-			throw new Error(`No activated agent with id "${id}"`);
+			for (let i = 0; i < 5 && !data?.impl; i++) {
+				await new Promise(r => setTimeout(r, 50));
+				data = this._agents.get(id);
+			}
+		}
+		const impl = data?.impl ?? Array.from(this._agents.values()).find(a => !!a.impl)?.impl;
+		if (impl) {
+			this._onWillInvokeAgent.fire({ agentId: id, request });
+			const result = await impl.invoke(request, progress, history, token);
+			markChat(request.sessionResource, ChatPerfMark.AgentDidInvoke);
+			return result;
 		}
 
-		this._onWillInvokeAgent.fire({ agentId: id, request });
-		const result = await data.impl.invoke(request, progress, history, token);
-		markChat(request.sessionResource, ChatPerfMark.AgentDidInvoke);
-		return result;
+		// Direct local streaming fallback to Dardcor Router at port 25000
+		try {
+			const messages: any[] = [];
+			for (const h of history) {
+				if (h.request?.message) {
+					messages.push({ role: 'user', content: h.request.message });
+				}
+				if (h.response) {
+					const text = h.response.map((r: any) => (r && typeof r === 'object' && 'content' in r && r.content ? r.content.value : '')).join('');
+					if (text) {
+						messages.push({ role: 'assistant', content: text });
+					}
+				}
+			}
+			const currentPrompt = typeof request.message === 'string' ? request.message : (request.message as any)?.text || String(request.message || '');
+			messages.push({ role: 'user', content: currentPrompt.trim() || 'hello' });
+
+			let modelName = 'ox-alpha-free';
+			try {
+				const modelsRes = await fetch('http://127.0.0.1:25000/v1/models');
+				if (modelsRes.ok) {
+					const modelsData = await modelsRes.json() as any;
+					if (Array.isArray(modelsData?.data) && modelsData.data.length > 0) {
+						modelName = modelsData.data[0].id;
+					}
+				}
+			} catch { }
+
+			const res = await fetch('http://127.0.0.1:25000/v1/chat/completions', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Bearer sk-dardcor-local-key'
+				},
+				body: JSON.stringify({
+					model: modelName,
+					messages,
+					stream: true
+				})
+			});
+
+			if (!res.ok) {
+				const errorText = await res.text();
+				progress([{
+					kind: 'markdownContent',
+					content: new MarkdownString(`⚠️ Local Router Error (${res.status}): ${errorText}`)
+				}]);
+				return {};
+			}
+
+			const reader = res.body?.getReader();
+			if (reader) {
+				const decoder = new TextDecoder();
+				let buffer = '';
+				while (true) {
+					if (token.isCancellationRequested) {
+						reader.cancel();
+						break;
+					}
+					const { done, value } = await reader.read();
+					if (done) break;
+					buffer += decoder.decode(value, { stream: true });
+					const lines = buffer.split('\n');
+					buffer = lines.pop() ?? '';
+					for (const line of lines) {
+						const trimmed = line.trim();
+						if (!trimmed || !trimmed.startsWith('data:')) continue;
+						const jsonStr = trimmed.slice(5).trim();
+						if (jsonStr === '[DONE]') continue;
+						try {
+							const parsed = JSON.parse(jsonStr);
+							const delta = parsed.choices?.[0]?.delta?.content || '';
+							if (delta) {
+								progress([{
+									kind: 'markdownContent',
+									content: new MarkdownString(delta)
+								}]);
+							}
+						} catch { }
+					}
+				}
+			}
+			return {};
+		} catch (e: any) {
+			progress([{
+				kind: 'markdownContent',
+				content: new MarkdownString(`⚠️ Local Router Connection Error: ${e.message || String(e)}`)
+			}]);
+			return {};
+		}
 	}
 
 	setRequestTools(id: string, requestId: string, tools: UserSelectedTools): void {

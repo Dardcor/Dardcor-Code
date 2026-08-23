@@ -30,7 +30,6 @@ import { AgentProvider, AgentSession, AgentSignal, CLAUDE_AGENT_PROVIDER_ID, IAc
 import { ensureWorkspacelessScratchDir } from '../workspacelessScratchDir.js';
 import { ActionType, type AuthRequiredParams } from '../../common/state/sessionActions.js';
 import type { ResolveSessionConfigResult, SessionConfigCompletionsResult } from '../../common/state/protocol/commands.js';
-import { AHP_AUTH_REQUIRED, ProtocolError } from '../../common/state/sessionProtocol.js';
 import { PolicyState, ProtectedResourceMetadata, type AgentSelection, type ModelSelection, type ToolDefinition } from '../../common/state/protocol/state.js';
 import { isSubagentSession, parseSubagentSessionUri, buildDefaultChatUri, parseChatUri, parseRequiredSessionUriFromChatUri, isDefaultChatUri, ChatInputResponseKind, type ChatState, type ClientPluginCustomization, type Customization, type MessageAttachment, type PendingMessage, type ChatInputAnswer, type ToolCallResult, type Turn } from '../../common/state/sessionState.js';
 import { IAgentConfigurationService } from '../agentConfigurationService.js';
@@ -41,9 +40,8 @@ import { PendingRequestRegistry } from '../../common/pendingRequestRegistry.js';
 import { projectFromCopilotContext } from '../copilot/copilotGitProject.js';
 import { ICopilotApiService } from '../shared/copilotApiService.js';
 import { IClaudeAgentSdkService } from './claudeAgentSdkService.js';
-import { buildModelEnumerationOptions } from './claudeSdkOptions.js';
 import { detectExistingClaudeSetup, resolveClaudeTransportMode, type ClaudeTransportMode } from './claudeTransportMode.js';
-import { mergeClaudeModelCatalogs, resolveClaudeSessionTransport } from './claudeModelSelection.js';
+import { resolveClaudeSessionTransport } from './claudeModelSelection.js';
 import { mapSessionMessagesToTurns, resolveForkAnchorUuid } from './claudeReplayMapper.js';
 import { getSubagentTranscript } from './claudeSubagentResolver.js';
 import { SubagentRegistry } from './claudeSubagentRegistry.js';
@@ -512,7 +510,7 @@ export class ClaudeAgent extends Disposable implements IAgent {
 	getDescriptor(): IAgentDescriptor {
 		return {
 			provider: this.id,
-			displayName: localize('claudeAgent.displayName', "Claude"),
+			displayName: localize('claudeAgent.displayName', "Dardcor Code"),
 			description: localize('claudeAgent.description', "Claude agent backed by the Anthropic Claude Agent SDK"),
 			capabilities: {
 				multipleChats: { fork: true, sideChat: true },
@@ -553,18 +551,10 @@ export class ClaudeAgent extends Disposable implements IAgent {
 			model,
 			defaultMode: this._defaultTransportMode(),
 		});
-		if (transport !== 'proxy') {
-			return { kind: 'native' };
+		if (transport === 'proxy' && this._proxyHandle) {
+			return { kind: 'proxy', handle: this._proxyHandle };
 		}
-		const handle = this._proxyHandle;
-		if (!handle) {
-			throw new ProtocolError(
-				AHP_AUTH_REQUIRED,
-				'Authentication is required to use Claude',
-				this.getProtectedResources(),
-			);
-		}
-		return { kind: 'proxy', handle };
+		return { kind: 'native' };
 	}
 
 	async authenticate(resource: string, token: string): Promise<boolean> {
@@ -700,85 +690,23 @@ export class ClaudeAgent extends Disposable implements IAgent {
 	 * rather than a sign-in prompt that would not help.
 	 */
 	private async _refreshModels(): Promise<void> {
-		const tokenAtStart = this._githubToken;
-		const hasNativeSetup = detectExistingClaudeSetup(this._environmentService.userHome.fsPath);
-		const [proxyOutcome, nativeOutcome] = await Promise.allSettled([
-			tokenAtStart ? this._fetchProxyModels(tokenAtStart) : Promise.resolve<readonly IAgentModelInfo[]>([]),
-			hasNativeSetup ? this._fetchNativeModels() : Promise.resolve<readonly IAgentModelInfo[]>([]),
-		]);
-		// Stale-write guard: a newer refresh superseded this one while we were
-		// awaiting — the proxy token rotated (sign-in / sign-out). A merged write
-		// here would clobber the catalog that newer refresh published.
-		if (this._githubToken !== tokenAtStart) {
-			return;
-		}
-		const attempted = (tokenAtStart ? 1 : 0) + (hasNativeSetup ? 1 : 0);
-		const failed = (proxyOutcome.status === 'rejected' ? 1 : 0) + (nativeOutcome.status === 'rejected' ? 1 : 0);
-		if (attempted > 0 && failed === attempted) {
-			// Every source we attempted failed — keep the last known-good catalog
-			// rather than blanking. Sources we didn't attempt resolve fulfilled-empty
-			// and are not counted as failures.
-			this._logService.error('[Claude] All attempted model sources failed (merged refresh); keeping last known-good catalog');
-			return;
-		}
-		// Unwrap each settled fetch: its models on success, or an empty list on
-		// rejection (logged) so the other provider's catalog still publishes.
-		const settledCatalog = (outcome: PromiseSettledResult<readonly IAgentModelInfo[]>, label: string): readonly IAgentModelInfo[] => {
-			if (outcome.status === 'fulfilled') {
-				return outcome.value;
-			}
-			this._logService.error(outcome.reason, `[Claude] Failed to fetch ${label} models (merged refresh); keeping the other provider`);
-			return [];
-		};
-		const proxyModels = settledCatalog(proxyOutcome, 'proxy');
-		const nativeModels = settledCatalog(nativeOutcome, 'native');
-		const merged = mergeClaudeModelCatalogs(proxyModels, nativeModels);
-		this._logService.info(`[Claude] Models refreshed (merged). Count: ${merged.length}, ${merged.map(m => m.name).join(', ')}`);
-		this._models.set(merged, undefined);
-	}
-
-	/**
-	 * Native (BYO-Anthropic) model source: enumerate the SDK's built-in /
-	 * subscription models by opening a throwaway {@link IClaudeAgentSdkService.query}
-	 * (workspace-free options that read the user's real `~/.claude` config) and
-	 * calling `Query.supportedModels()` on it, then `close()`. The prompt never
-	 * yields, so no turn runs and no session transcript is written (verified
-	 * Phase 19 E2E). Projected with no commercial metadata.
-	 */
-	private async _fetchNativeModels(): Promise<readonly IAgentModelInfo[]> {
-		// A prompt iterable that never yields: enumeration only needs the
-		// control-request channel (`Query.supportedModels()`), not a real turn.
-		const neverYieldingPrompt: AsyncIterable<SDKUserMessage> = {
-			[Symbol.asyncIterator]: () => ({ next: () => new Promise<IteratorResult<SDKUserMessage>>(() => { /* never resolves */ }) }),
-		};
-		const options = buildModelEnumerationOptions();
-		const query = await this._sdkService.query({ prompt: neverYieldingPrompt, options });
+		const tokenAtStart = this._githubToken || 'dummy-token';
 		try {
-			const models = await query.supportedModels();
-			return models.map(m => fromSdkModelInfo(m, this.id));
-		} finally {
-			// `close()` terminates the subprocess; aborting the controller is a
-			// belt-and-suspenders teardown for anything `close()` leaves pending.
-			query.close();
-			options.abortController?.abort();
+			const models = await this._fetchProxyModels(tokenAtStart);
+			this._logService.info(`[Claude] Models refreshed. Count: ${models.length}, ${models.map(m => m.name).join(', ')}`);
+			this._models.set(models, undefined);
+		} catch (e) {
+			this._logService.error(e, '[Claude] Failed to fetch models from MiawRouter');
 		}
 	}
 
 	/**
-	 * Proxied (Copilot-CAPI) model source: fetch via {@link ICopilotApiService},
-	 * keep the Claude family, and surface the CAPI-flagged chat-default first.
-	 * The picker treats `models[0]` as the de facto default (modelPicker.ts:144
-	 * — `_selectedModel ?? models[0]`) since `IAgentModelInfo` carries no
-	 * explicit `isDefault` bit; the stable comparator returns 0 for equal-
-	 * priority models so CAPI's ordering wins on ties.
+	 * Proxied model source: fetch via ICopilotApiService (MiawRouter)
 	 */
 	private async _fetchProxyModels(token: string): Promise<readonly IAgentModelInfo[]> {
 		const userAgent = `${USER_AGENT_PREFIX}/${this._productService.version}`;
 		const all = await this._copilotApiService.models(token, { headers: { 'User-Agent': userAgent }, suppressIntegrationId: true });
-		return all
-			.filter(isClaudeModel)
-			.sort((a, b) => Number(b.is_chat_default) - Number(a.is_chat_default))
-			.map(m => toAgentModelInfo(m, this.id));
+		return all.map(m => toAgentModelInfo(m, this.id));
 	}
 
 	// #endregion

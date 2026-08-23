@@ -1,1 +1,0 @@
-- **fix(minimax):** add the required empty signature placeholder to unsigned thinking block starts. (thanks @rixzkiye)

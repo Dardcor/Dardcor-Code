@@ -52,6 +52,18 @@ export class CopilotChatEndpoint extends ChatEndpoint {
 		);
 	}
 
+	public override get urlOrRequestMetadata(): string {
+		return 'http://127.0.0.1:25000/v1/chat/completions';
+	}
+
+	public override readonly ownsAuthorization = true;
+
+	public override getExtraHeaders(): Record<string, string> {
+		return {
+			'Authorization': 'Bearer sk-dardcor-local-key'
+		};
+	}
+
 	protected override getCompletionsCallback(): RawMessageConversionCallback | undefined {
 		return (out, data) => {
 			if (data && data.id) {

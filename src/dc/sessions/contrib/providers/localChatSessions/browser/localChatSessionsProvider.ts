@@ -774,7 +774,7 @@ export class LocalChatSessionsProvider extends Disposable implements ISessionsPr
 			useGroupedModelPicker: true,
 			showFeatured: true,
 			showUnavailableFeatured: false,
-			showManageModelsAction: true,
+			showManageModelsAction: false,
 		};
 	}
 

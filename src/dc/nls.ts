@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 export function getNLSMessages(): string[] {
-	return globalThis._VSCODE_NLS_MESSAGES;
+	return (globalThis as any)._VSCODE_NLS_MESSAGES;
 }
 
 export function getNLSLanguage(): string | undefined {
-	return globalThis._VSCODE_NLS_LANGUAGE;
+	return (globalThis as any)._VSCODE_NLS_LANGUAGE;
 }
 
 declare const document: { location?: { hash?: string } } | undefined;

@@ -87,20 +87,13 @@ export class ConversationFeature implements IExtensionContribution {
 		const activationBlockerDeferred = new DeferredPromise<void>();
 		this.activationBlocker = activationBlockerDeferred.p;
 
-		// Activation and chat enablement can be driven by either a Copilot token OR the presence of a BYOK model.
-		let hasByokModels = false;
+		// Activation and chat enablement is always active for local router port 25000
+		let hasByokModels = true;
 		const reevaluate = () => {
-			const hasToken = !!authenticationService.dardcorToken;
-			const shouldActivate = hasToken || hasByokModels;
-			if (hasToken) {
-				this.logService.info(`dardcor token sku: ${authenticationService.dardcorToken?.sku ?? ''}`);
-			}
+			const shouldActivate = true;
 			this.enabled = shouldActivate;
 			this.activated = shouldActivate;
-			if (shouldActivate && !activationBlockerDeferred.isSettled) {
-				if (hasToken) {
-					markChatExtGlobal(ChatExtGlobalPerfMark.DidWaitForCopilotToken);
-				}
+			if (!activationBlockerDeferred.isSettled) {
 				activationBlockerDeferred.complete();
 			}
 		};

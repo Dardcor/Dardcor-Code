@@ -133,7 +133,7 @@ configurationRegistry.registerConfiguration({
 		[AgentHostClaudeAgentEnabledSettingId]: {
 			type: 'boolean',
 			description: nls.localize('chat.agentHost.claudeAgent.enabled', "When enabled, the agent host registers the Claude provider, subject to the Claude SDK being reachable. The agent host process must be restarted for changes to take effect."),
-			default: true,
+			default: false,
 			tags: ['experimental', 'advanced'],
 			// Owns the policy so the account-side preview-features flag can disable Claude across all surfaces.
 			policy: {
