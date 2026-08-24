@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="../images/miawrouter.png?1" alt="MiawRouter Dashboard" width="800"/>
+  <img src="../images/dardcor-code.png?1" alt="Dardcor Code Dashboard" width="800"/>
   
-  # MiawRouter - 免费 AI 路由器
+  # Dardcor Code - 免费 AI 路由器
   
   **永不停歇的编程体验。智能回退，自动路由到免费和廉价的 AI 模型。**
   
@@ -12,12 +12,12 @@
   </p>
   
   
-  [🚀 快速开始](#-quick-start) • [💡 特性](#-key-features) • [📖 设置](#-setup) • [🌐 网站](https://miawrouter.web.id)
+  [🚀 快速开始](#-quick-start) • [💡 特性](#-key-features) • [📖 设置](#-setup) • [🌐 网站](https://dardcor-code.web.id)
 </div>
 
 ---
 
-## 🤔 为什么选择 MiawRouter？
+## 🤔 为什么选择 Dardcor Code？
 
 **停止浪费金钱和触碰限制：**
 
@@ -26,7 +26,7 @@
 - ❌ 昂贵的 API（每个提供商 $20-50/月）
 - ❌ 手动在提供商之间切换
 
-**MiawRouter 解决方案：**
+**Dardcor Code 解决方案：**
 
 - ✅ **最大化订阅价值** - 追踪配额，在重置前用尽每一分
 - ✅ **自动回退** - 订阅 廉价 → 免费，零停机时间
@@ -45,7 +45,7 @@
        │ http://localhost:21128/v1
        ↓
 ┌─────────────────────────────────────────────┐
-│           MiawRouter (Smart Router)            │
+│           Dardcor Code (Smart Router)            │
 │  • 格式转换 (OpenAI ↔ Claude)               │
 │  • 配额追踪 (Quota tracking)                │
 │  • 自动刷新 OAuth Token                     │
@@ -66,8 +66,8 @@
 **1. 全局安装：**
 
 ```bash
-npm install -g miawrouter
-miawrouter
+npm install -g dardcor-code
+dardcor-code
 ```
 
 🎉 仪表板将在 `http://localhost:21128` 打开
@@ -89,7 +89,7 @@ Claude Code/Codex/Gemini CLI/OpenClaw/Cursor/Cline 设置:
 
 **替代方案：从源码运行（此仓库）：**
 
-此仓库包是私有的（`miawrouter-app`），因此源码/Docker 执行是预期的本地开发路径。
+此仓库包是私有的（`dardcor-code-app`），因此源码/Docker 执行是预期的本地开发路径。
 
 ```bash
 cp .env.example .env
@@ -112,7 +112,7 @@ PORT=21128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run 
 
 ## 🛠️ 支持的 CLI 工具
 
-MiawRouter 与所有主流 AI 编程工具无缝协作：
+Dardcor Code 与所有主流 AI 编程工具无缝协作：
 
 <div align="center">
   <table>
@@ -363,7 +363,7 @@ Combo: "my-coding-stack"
 
 格式间无缝转换：
 - **OpenAI** ↔ **Claude** ↔ **Gemini** ↔ **OpenAI Responses**
-- 您的 CLI 工具发送 OpenAI 格式 → MiawRouter 转换 → 提供商接收原生格式
+- 您的 CLI 工具发送 OpenAI 格式 → Dardcor Code 转换 → 提供商接收原生格式
 - 适用于任何支持自定义 OpenAI 端点的工具
 
 ### 👥 多账户支持
@@ -417,7 +417,7 @@ Combo: "my-coding-stack"
 > **💡 重要 - 理解仪表板成本：**
 > 
 > 使用分析中显示的“成本”**仅用于追踪和比较目的**。
-> MiawRouter 本身**从不向您收费**。您只需直接向提供商付款（如果使用付费服务）。
+> Dardcor Code 本身**从不向您收费**。您只需直接向提供商付款（如果使用付费服务）。
 > 
 > 您直接使用付费 API 时需要支付的金额。您的实际成本 = **$0**（iFlow 是免费无限制的）。
 > 
@@ -452,15 +452,15 @@ Combo: "my-coding-stack"
 
 ---
 
-### 📊 理解 MiawRouter 成本和计费
+### 📊 理解 Dardcor Code 成本和计费
 
-**MiawRouter 计费现实：**
+**Dardcor Code 计费现实：**
 
-✅ **MiawRouter 软件 = 永远免费**开源，从不收费）  
+✅ **Dardcor Code 软件 = 永远免费**开源，从不收费）  
 ✅ **仪表板“成本” = 仅显示/追踪**（非实际账单）  
 ✅ **您直接向提供商付款**（订阅或 API 费用）  
 ✅ **免费提供商保持免费**（iFlow, Kiro, Qwen = $0 无限制）  
-❌ **MiawRouter 从不发送发票**或向您的卡收费
+❌ **Dardcor Code 从不发送发票**或向您的卡收费
 
 **成本显示如何工作：**
 
@@ -476,9 +476,9 @@ Combo: "my-coding-stack"
 
 **付款规则：**
 - **订阅提供商**（Claude Code, Codex）：通过他们的网站直接向他们付款
-- **廉价提供商**（GLM, MiniMax）：直接向他们付款，MiawRouter 只是路由
+- **廉价提供商**（GLM, MiniMax）：直接向他们付款，Dardcor Code 只是路由
 - **免费**（iFlow, Kiro, Qwen）：真正永远免费，没有隐藏费用
-- **MiawRouter**：从不收取任何费用，永远
+- **Dardcor Code**：从不收取任何费用，永远
 
 ---
 
@@ -560,16 +560,16 @@ Access via: WhatsApp, Telegram, Slack, Discord, iMessage, Signal...
 </details>
 
 <details>
-<summary><b>💳 MiawRouter 会向我收费吗？</b></summary>
+<summary><b>💳 Dardcor Code 会向我收费吗？</b></summary>
 
 **不会。** 9 是免费的开源软件，在您自己的计算机上运行。它从不向您收费。
 
 **您只需支付：**
 - ✅ **订阅提供商**（Claude Code $20/月, Codex $20-200/月）→ 在他们的网站上直接向他们付款
-- ✅ **廉价提供商**（GLM, MiniMax）→ 直接向他们付款，MiawRouter 只是路由您的请求
-- ❌ **MiawRouter 本身** → **从不收取任何费用，永远**
+- ✅ **廉价提供商**（GLM, MiniMax）→ 直接向他们付款，Dardcor Code 只是路由您的请求
+- ❌ **Dardcor Code 本身** → **从不收取任何费用，永远**
 
-MiawRouter 是本地代理/路由器。它没有您的信用卡，不能发送发票，也没有计费系统。完全免费的软件。
+Dardcor Code 是本地代理/路由器。它没有您的信用卡，不能发送发票，也没有计费系统。完全免费的软件。
 
 </details>
 
@@ -583,9 +583,9 @@ MiawRouter 是本地代理/路由器。它没有您的信用卡，不能发送�
 - **Kiro**：通过 AWS Builder ID 免费无限制 Claude 模型
 - **Qwen**：通过设备认证免费无限制访问 Qwen 模型
 
-Router 只是将您的请求路由到它们 - 没有“陷阱”或未来计费。它们是真正的免费服务，MiawRouter 使它们易于使用并支持回退。
+Router 只是将您的请求路由到它们 - 没有“陷阱”或未来计费。它们是真正的免费服务，Dardcor Code 使它们易于使用并支持回退。
 
-**注意：** 一些订阅提供商（Antigravity, GitHub Copilot）可能有免费预览期，后来可能变成付费，但这会由这些提供商明确宣布，而不是 MiawRouter。
+**注意：** 一些订阅提供商（Antigravity, GitHub Copilot）可能有免费预览期，后来可能变成付费，但这会由这些提供商明确宣布，而不是 Dardcor Code。
 
 </details>
 
@@ -610,7 +610,7 @@ Router 只是将您的请求路由到它们 - 没有“陷阱”或未来计费�
 
 3. **最后使用订阅提供商：**
    - 仅当您已经拥有它们时
-   - MiawRouter 通过配额追踪帮助最大化其价值
+   - Dardcor Code 通过配额追踪帮助最大化其价值
 
 **结果：** 大多数用户可以仅使用免费层以 $0/月运行！
 
@@ -619,20 +619,20 @@ Router 只是将您的请求路由到它们 - 没有“陷阱”或未来计费�
 <details>
 <summary><b>📈 如果我的使用量突然激增怎么办？</b></summary>
 
-MiawRouter 的智能回退可防止意外费用：
+Dardcor Code 的智能回退可防止意外费用：
 
 **场景：** 您正在进行编程冲刺并耗尽了配额
 
-**没有 MiawRouter：**
+**没有 Dardcor Code：**
 - ❌ 遇到速率限制 → 工作停止 → 沮丧
 - ❌ 或：意外累积巨额 API 账单
 
-**有 MiawRouter：**
+**有 Dardcor Code：**
 - ✅订阅达到限制 → 自动回退到廉价层
 - ✅ 廉价层变得昂贵 → 自动回退到免费层
 - ✅ 永不停止编程 → 可预测的成本
 
-**您在控制中：** 在仪表板中设置每个提供商的支出限制，MiawRouter 会遵守它们。
+**您在控制中：** 在仪表板中设置每个提供商的支出限制，Dardcor Code 会遵守它们。
 
 </details>
 
@@ -656,7 +656,7 @@ Models:
   cc/claude-haiku-4-5-20251001
 ```
 
-**专业提示：** 使用 Opus 处理复杂任务，Sonnet 追求速度。MiawRouter 追踪每个模型的配额！
+**专业提示：** 使用 Opus 处理复杂任务，Sonnet 追求速度。Dardcor Code 追踪每个模型的配额！
 
 ### OpenAI Codex (Plus/Pro)
 
@@ -822,7 +822,7 @@ Models:
 ```
 Settings → Models → Advanced:
   OpenAI API Base URL: http://localhost:21128/v1
-  OpenAI API Key: [from miawrouter dashboard]
+  OpenAI API Key: [from dardcor-code dashboard]
   Model: cc/claude-opus-4-6
 ```
 
@@ -835,7 +835,7 @@ Settings → Models → Advanced:
 ```json
 {
   "anthropic_api_base": "http://localhost:21128/v1",
-  "anthropic_api_key": "your-miawrouter-api-key"
+  "anthropic_api_key": "your-dardcor-code-api-key"
 }
 ```
 
@@ -843,7 +843,7 @@ Settings → Models → Advanced:
 
 ```bash
 export OPENAI_BASE_URL="http://localhost:21128"
-export OPENAI_API_KEY="your-miawrouter-api-key"
+export OPENAI_API_KEY="your-dardcor-code-api-key"
 
 codex "your prompt"
 ```
@@ -863,15 +863,15 @@ Dashboard → CLI Tools →Claw → Select Model → Apply
   "agents": {
     "defaults": {
       "model": {
-        "primary": "miawrouter/if/glm-4.7"
+        "primary": "dardcor-code/if/glm-4.7"
       }
     }
   },
   "models": {
     "providers": {
-      "miawrouter": {
+      "dardcor-code": {
         "baseUrl": "http://127.0.0.1:21128/v1",
-        "apiKey": "sk_miawrouter",
+        "apiKey": "sk_dardcor-code",
         "api": "openai-completions",
         "models": [
           {
@@ -885,7 +885,7 @@ Dashboard → CLI Tools →Claw → Select Model → Apply
 }
 ```
 
-> **注意：** OpenClaw 仅适用于本地 MiawRouter。使用 `127.0.0.1` 而不是 `localhost` 以避免 IPv6 解析问题。
+> **注意：** OpenClaw 仅适用于本地 Dardcor Code。使用 `127.0.0.1` 而不是 `localhost` 以避免 IPv6 解析问题。
 
 ### Cline / Continue / RooCode
 
@@ -906,19 +906,19 @@ Model: cc/claudeus-4-6
 ```bash
 # Clone and install
 git clone .git
-cd miawrouter
+cd dardcor-code
 npm install
 npm run build
 
 # Configure
 export JWT_SECRET="your-secure-secret-change-this"
 export INITIAL_PASSWORD="your-password"
-export DATA_DIR="/var/lib/miawrouter"
+export DATA_DIR="/var/lib/dardcor-code"
 export PORT="21128"
 export HOSTNAME="0.0.0.0"
 export NODE_ENV="production"
 export NEXT_PUBLIC_BASE_URLhttp://localhost:21128"
-export NEXT_PUBLIC_CLOUD_URL="https://miawrouter.web.id"
+export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.web.id"
 export API_KEY_SECRET="endpoint-proxy-api-key-secret"
 export MACHINE_ID_SALT="endpoint-proxy-salt"
 
@@ -927,7 +927,7 @@ npm run start
 
 # Or use PM2
 npm install -g pm2
-pm2 start npm --name miawrouter -- start
+pm2 start npm --name dardcor-code -- start
 pm2 save
 pm2 startup
 ```
@@ -936,26 +936,26 @@ pm2 startup
 
 ```bash
 # Build image (from repository root)
-docker build -t miawrouter .
+docker build -t dardcor-code .
 
 # Run container (command used in current setup)
 docker run -d \
-  --name miawrouter  -p 21128:21128 \
-  --env-file /root/dev/miawrouter/.env \
-  -v miawrouter-data:/app/data \
-  -v miawrouter-usage:/root/.miawrouter \
-  miawrouter
+  --name dardcor-code  -p 21128:21128 \
+  --env-file /root/dev/dardcor-code/.env \
+  -v dardcor-code-data:/app/data \
+  -v dardcor-code-usage:/root/.dardcor-code \
+  dardcor-code
 ```
 
 便携式命令（如果您已在仓库根目录）：
 
 ```bash
 docker run -d \
-  --name miawrouter \
+  --name dardcor-code \
   -p 21128:21128 \
   --env-file ./.env \
-  -v miawrouter-data:/app/data \
-  -v miawrouter-usage:/root/.miawrouter \
+  -v dardcor-code-data:/app/data \
+  -v dardcor-code-usage:/root/.dardcor-code \
   9
 ```
 
@@ -966,25 +966,25 @@ docker run -d \
 有用命令：
 
 ```bash
-docker logs -f miawrouter
-docker restart miawrouter
-docker stop miawrouter && docker rm miawrouter
+docker logs -f dardcor-code
+docker restart dardcor-code
+docker stop dardcor-code && docker rm dardcor-code
 ```
 
 ### 环境变量
 
 | 变量 | 默认值 | 描述 |
 |----------|---------|-------------|
-| `JWT_SECRET` | 自动生成（`~/.miawrouter/jwt-secret`） | 仪表板认证 cookie 的 JWT 签名密钥（设置可在多实例间共享） |
+| `JWT_SECRET` | 自动生成（`~/.dardcor-code/jwt-secret`） | 仪表板认证 cookie 的 JWT 签名密钥（设置可在多实例间共享） |
 | `INITIAL_PASSWORD` | unset | 无默认密码；仅限本地的可选引导（无已保存哈希时）。未设置时请通过 localhost 创建密码 |
-| `DATA_DIR` | `~/.miawrouter` | 主应用数据库位置（`db.json`） |
+| `DATA_DIR` | `~/.dardcor-code` | 主应用数据库位置（`db.json`） |
 | `PORT` | 框架默认值 | 服务端口（示例中为 `21128`） |
 | `HOSTNAME` | 框架默认值 | 绑定主机（Docker 默认为 `0.0.0.0`） |
 | `NODE_ENV` | 运行时默认值 | 部署时设置 `production` |
 | `BASE_URL` |http://localhost:21128` | 云同步作业使用的服务器端内部基础 URL |
-| `CLOUD_URL` | `https://miawrouter.web.id` | 服务器端云同步端点基础 URL |
+| `CLOUD_URL` | `https://dardcor-code.web.id` | 服务器端云同步端点基础 URL |
 | `NEXT_PUBLIC_BASE_URL` | `http://localhost:3000` | 向后兼容/公共基础 URL（服务器运行时优先使用 `BASE_URL`） |
-| `NEXT_PUBLIC_CLOUD_URL` | `https://miawrouter.web.id` | 向后兼容/公共云 URL（服务器运行时优先使用 `CLOUD_URL`） |
+| `NEXT_PUBLIC_CLOUD_URL` | `https://dardcor-code.web.id` | 向后兼容/公共云 URL（服务器运行时优先使用 `CLOUD_URL`） |
 | `API_KEY_SECRET` | `endpoint-proxy-api-secret` | 生成的 API Key 的 HMAC 密钥 |
 | `MACHINE_ID_SALT` | `endpoint-proxy-salt` | 稳定机器 ID 哈希的盐值 |
 | `ENABLE_REQUEST_LOGS` | `false` | 在 `logs/` 下启用请求/响应日志 |
@@ -1001,7 +1001,7 @@ docker stop miawrouter && docker rm miawrouter
 ### 运行时文件和存储
 
 - 主应用状态：`${DATA_DIR}/db.json`（提供商、组合、别名、密钥、设置），由 `src/lib/localDb.js` 管理。
-- 使用历史和日志：`~/.miawrouter/usage.json` 和 `~/.miawrouter/log.txt`，由 `src/lib/usageDb.js` 管理。
+- 使用历史和日志：`~/.dardcor-code/usage.json` 和 `~/.dardcor-code/log.txt`，由 `src/lib/usageDb.js` 管理。
 - 可选请求/转换器日志：当 `ENABLE_REQUEST_LOGS=true` 时为 `<repo>/logs/...`。
 - 使用存储当前遵循 `~/.9` 路径逻辑，独立于 `DATA_DIR`。
 
@@ -1063,7 +1063,7 @@ docker stop miawrouter && docker rm miawrouter
 - 添加组合：`cc/claude-opus-4-6 → glm/glm-4.7 → if/kimi-k2-thinking`
 
 **OAuth token 过期**
-- 由 MiawRouter 自动刷新
+- 由 Dardcor Code 自动刷新
 - 如果问题持续：仪表板 → 提供商 → 重新
 
 **高成本**
@@ -1076,14 +1076,14 @@ docker stop miawrouter && docker rm miawrouter
 
 **云端同步错误**
 - 验证 `BASE_URL` 指向您正在运行的实例（例如：`http://localhost:21128`）
-- 验证 `CLOUD_URL` 指向您预期的云端端点（例如：`https://miawrouter.web.id`）
+- 验证 `CLOUD_URL` 指向您预期的云端端点（例如：`https://dardcor-code.web.id`）
 - 尽可能保持 `NEXT_PUBLIC_*` 值与服务器端值一致。
 
 **云端端点 `stream=false` 返回 500（`Unexpected token 'd'...`）**
-- 症状通常出现在公共云端端点（`https://miawrouter.web.id/v1`）的非流式调用上。
+- 症状通常出现在公共云端端点（`https://dardcor-code.web.id/v1`）的非流式调用上。
 - 根本原因：上游返回 SSE 负载（`data: ...`）而客户端期望 JSON。
 - 变通方法：对云端直接调用使用 `stream=true`。
-- 当上游返回 `text/event-stream` 时，本地 MiawRouter 运行时包含 SSE→JSON 回退用于非流式调用。
+- 当上游返回 `text/event-stream` 时，本地 Dardcor Code 运行时包含 SSE→JSON 回退用于非流式调用。
 
 **云端显示已连接，但请求仍然失败并显示 `Invalid API key`**
 - 从本地仪表板（`/api/keys`）创建新密钥并运行云端同步（`Enable Cloud` 然后 `Sync Now`）。
@@ -1154,7 +1154,7 @@ Authorization: Bearer your-api-key
 - `tester/security/test-docker-hardening.sh`
   - 构建 Docker 镜像并验证加固检查（`/api/cloud/auth` 认证保护、`REQUIRE_API_KEY`、安全认证 cookie 行为）。
 - `tester/security/test-cloud-openai-compatible.sh`
-  - 使用提供的模型/密钥向云端端点（`https://miawrouter.web.id/v1/chat/completions`）发送直接的 OpenAI 兼容请求。
+  - 使用提供的模型/密钥向云端端点（`https://dardcor-code.web.id/v1/chat/completions`）发送直接的 OpenAI 兼容请求。
 - `tester/security/test-cloud-sync-and-call.sh`
   - 端到端流程：创建本地密钥 -> 启用/同步云端 -> 带重试调用云端端点。
   - 包含使用 `stream` 的回退检查，以区分认证错误和非流式解析问题。
@@ -1174,7 +1174,7 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 
 - 本地运行时（`http://127.0.0.1:21128/v1/chat/completions`）：使用 `stream=false` 和 `stream=true` 都可以工作。
 - Docker 运行时（容器暴露的相同 API 路径）：加固检查通过，云端认证保护工作，启用时严格 API 密钥模式工作。
-- 公共云端端点（`https://miawrouter.web.id/v1/chat/completions`）：
+- 公共云端端点（`https://dardcor-code.web.id/v1/chat/completions`）：
   - `stream=true`：预期成功（返回 SSE 块）。
   - `stream=false`：当上游向非流式客户端路径返回 SSE 内容时，可能失败并显示 `500` + 解析错误（`Unexpected token 'd'`）。
 
@@ -1212,14 +1212,14 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 
 ## 📧 支持
 
-- **网站**：[miawrouter.web.id](https://miawrouter.web.id)
+- **网站**：[dardcor-code.web.id](https://dardcor-code.web.id)
 - **GitHub**：
 
 ---
 
 ## 👥 贡献者
 
-感谢所有帮助让 MiawRouter 变得更好的贡献者！
+感谢所有帮助让 Dardcor Code 变得更好的贡献者！
 
 ---
 

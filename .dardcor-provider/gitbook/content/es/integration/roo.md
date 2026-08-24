@@ -1,12 +1,12 @@
 # Integración con Roo AI Assistant
 
-Integra MiawRouter con Roo AI Assistant para acceder a múltiples modelos de IA a través de una interfaz unificada.
+Integra Dardcor Code con Roo AI Assistant para acceder a múltiples modelos de IA a través de una interfaz unificada.
 
 ## Requisitos previos
 
 - Roo AI Assistant instalado
-- API key de MiawRouter desde el [dashboard](https://miawrouter.web.id/dashboard)
-- MiawRouter ejecutándose (local o en la nube)
+- API key de Dardcor Code desde el [dashboard](https://dardcor-code.web.id/dashboard)
+- Dardcor Code ejecutándose (local o en la nube)
 
 ## Pasos de configuración
 
@@ -20,21 +20,21 @@ Inicia Roo AI Assistant y abre el panel de configuración.
 2. Selecciona **Ollama** como tipo de proveedor
 3. Configura los siguientes ajustes:
 
-**Para MiawRouter local:**
+**Para Dardcor Code local:**
 ```
 Base URL: http://localhost:21128/v1
 API Key: your-api-key-from-dashboard
 ```
 
-**Para MiawRouter en la nube:**
+**Para Dardcor Code en la nube:**
 ```
-Base URL: https://miawrouter.web.id/v1
+Base URL: https://dardcor-code.web.id/v1
 API Key: your-api-key-from-dashboard
 ```
 
 ### 3. Seleccionar modelo
 
-Elige entre los modelos disponibles de MiawRouter:
+Elige entre los modelos disponibles de Dardcor Code:
 
 **Modelos Claude:**
 - `cc/claude-opus-4-5-20251101` - El más capaz
@@ -54,7 +54,7 @@ Elige entre los modelos disponibles de MiawRouter:
 Envía un mensaje de prueba para verificar la integración:
 
 ```
-Hello! Can you confirm you're connected through MiawRouter?
+Hello! Can you confirm you're connected through Dardcor Code?
 ```
 
 ## Ejemplos de uso
@@ -87,19 +87,19 @@ Modelo: cx/deepseek-reasoner
 ## Solución de problemas
 
 ### Connection Failed
-- Verifica que MiawRouter esté corriendo: `curl http://localhost:21128/health`
+- Verifica que Dardcor Code esté corriendo: `curl http://localhost:21128/health`
 - Verifica que la API key sea correcta
 - Asegúrate de que la Base URL incluya el sufijo `/v1`
 
 ### Modelo no disponible
 - Verifica que el nombre del modelo coincida exactamente (sensible a mayúsculas)
-- Verifica que el modelo esté habilitado en tu plan de MiawRouter
+- Verifica que el modelo esté habilitado en tu plan de Dardcor Code
 - Intenta otro modelo de la lista
 
 ### Respuestas lentas
 - Cambia a modelos más rápidos (haiku, flash)
 - Verifica la conexión de red
-- Monitorea los logs de MiawRouter por problemas
+- Monitorea los logs de Dardcor Code por problemas
 
 ## Configuración avanzada
 

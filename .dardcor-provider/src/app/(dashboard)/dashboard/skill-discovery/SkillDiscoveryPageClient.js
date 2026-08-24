@@ -6,7 +6,7 @@ import { cn } from "@/shared/utils/cn";
 import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
 
 const API_URL = "/api/skill-discovery";
-const MIAWROUTER = "miawrouter";
+const DARDCOR CODE = "dardcor-code";
 
 function SourceStatus({ source }) {
   const up = source.available === true;
@@ -52,14 +52,14 @@ function CopyButton({ value, label = "Copy" }) {
 }
 
 function InstallModal({ skill, targets, onClose, onDone }) {
-  const [mode, setMode] = useState(MIAWROUTER);
+  const [mode, setMode] = useState(DARDCOR CODE);
   const [cliId, setCliId] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
 
-  const miawTarget = targets.find((t) => t.id === MIAWROUTER);
-  const detectedClis = targets.filter((t) => t.id !== MIAWROUTER);
+  const dardcorTarget = targets.find((t) => t.id === DARDCOR CODE);
+  const detectedClis = targets.filter((t) => t.id !== DARDCOR CODE);
   const availableClis = detectedClis.filter((t) => t.available);
 
   useEffect(() => {
@@ -92,7 +92,7 @@ function InstallModal({ skill, targets, onClose, onDone }) {
         <div className="flex items-center justify-between px-5 py-4 border-b border-border-subtle">
           <div className="min-w-0">
             <h2 className="text-sm font-semibold text-text-main truncate">Install {skill.name}</h2>
-            <p className="text-xs text-text-muted">{skill.source === MIAWROUTER ? "Built-in catalog skill" : "skills.sh skill"}</p>
+            <p className="text-xs text-text-muted">{skill.source === DARDCOR CODE ? "Built-in catalog skill" : "skills.sh skill"}</p>
           </div>
           <button
             type="button"
@@ -109,11 +109,11 @@ function InstallModal({ skill, targets, onClose, onDone }) {
             <>
               <div className="space-y-2">
                 <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">Install target</span>
-                <label className={cn("flex items-start gap-2 rounded-lg border p-3 cursor-pointer", mode === MIAWROUTER ? "border-primary/40 bg-primary/5" : "border-border-subtle")}>
-                  <input type="radio" name="target" className="mt-0.5" checked={mode === MIAWROUTER} onChange={() => setMode(MIAWROUTER)} />
+                <label className={cn("flex items-start gap-2 rounded-lg border p-3 cursor-pointer", mode === DARDCOR CODE ? "border-primary/40 bg-primary/5" : "border-border-subtle")}>
+                  <input type="radio" name="target" className="mt-0.5" checked={mode === DARDCOR CODE} onChange={() => setMode(DARDCOR CODE)} />
                   <span className="text-xs">
-                    <span className="font-medium text-text-main">{miawTarget?.label || "MiawRouter global registry"}</span>
-                    <span className="block text-text-muted">Records the skill and writes its manifest into the MiawRouter registry.</span>
+                    <span className="font-medium text-text-main">{dardcorTarget?.label || "Dardcor Code global registry"}</span>
+                    <span className="block text-text-muted">Records the skill and writes its manifest into the Dardcor Code registry.</span>
                   </span>
                 </label>
                 {availableClis.length > 0 && (
@@ -130,7 +130,7 @@ function InstallModal({ skill, targets, onClose, onDone }) {
                     <input type="radio" name="target" className="mt-0.5" checked={mode === "both"} onChange={() => setMode("both")} />
                     <span className="text-xs">
                       <span className="font-medium text-text-main">Both</span>
-                      <span className="block text-text-muted">MiawRouter registry plus all detected CLI targets.</span>
+                      <span className="block text-text-muted">Dardcor Code registry plus all detected CLI targets.</span>
                     </span>
                   </label>
                 )}
@@ -154,7 +154,7 @@ function InstallModal({ skill, targets, onClose, onDone }) {
               {availableClis.length === 0 && (
                 <p className="text-xs text-text-muted">
                   No supported CLI targets were detected on this host. You can still install into the
-                  MiawRouter registry, or copy the command from the Manual CLI section.
+                  Dardcor Code registry, or copy the command from the Manual CLI section.
                 </p>
               )}
 
@@ -202,7 +202,7 @@ function InstallModal({ skill, targets, onClose, onDone }) {
 
 function SkillCard({ skill, targets, onInstall }) {
   const installed = skill.installed === true;
-  const isRemote = skill.source !== MIAWROUTER;
+  const isRemote = skill.source !== DARDCOR CODE;
   return (
     <Card padding="sm" className="overflow-hidden">
       <div className="flex items-start justify-between gap-3">
@@ -290,7 +290,7 @@ export default function SkillDiscoveryPageClient() {
 
   const installedCount = useMemo(() => items.filter((s) => s.installed).length, [items]);
 
-  const detectedClis = targets.filter((t) => t.id !== MIAWROUTER && t.available);
+  const detectedClis = targets.filter((t) => t.id !== DARDCOR CODE && t.available);
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-1 sm:px-0">
@@ -378,7 +378,7 @@ export default function SkillDiscoveryPageClient() {
           />
         </div>
         <div className="flex items-center gap-1 p-0.5 rounded-lg bg-bg-subtle border border-border-subtle">
-          {[{ v: "all", l: "All" }, { v: MIAWROUTER, l: "Built-in" }, { v: "skills.sh", l: "skills.sh" }].map((f) => (
+          {[{ v: "all", l: "All" }, { v: DARDCOR CODE, l: "Built-in" }, { v: "skills.sh", l: "skills.sh" }].map((f) => (
             <button
               key={f.v}
               onClick={() => setSourceFilter(f.v)}
@@ -456,7 +456,7 @@ export default function SkillDiscoveryPageClient() {
           <span className="material-symbols-outlined text-[16px] text-text-muted mt-0.5">info</span>
           <div className="text-xs text-text-muted space-y-1">
             <p>
-              <strong className="text-text-main">Install</strong> records the skill in the MiawRouter global
+              <strong className="text-text-main">Install</strong> records the skill in the Dardcor Code global
               registry and writes its manifest. CLI installs surface the canonical{" "}
               <code className="font-mono">npx skills add</code> command.
             </p>

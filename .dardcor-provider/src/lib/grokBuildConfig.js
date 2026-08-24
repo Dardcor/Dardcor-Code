@@ -1,15 +1,15 @@
-// New writes use the miawrouter slot; legacy "9router" slots/markers stay
+// New writes use the dardcor-code slot; legacy "9router" slots/markers stay
 // readable so existing ~/.grok/config.toml files keep working (REBRAND §5).
-export const GROK_MAIN_MODEL_SLOT = "miawrouter";
+export const GROK_MAIN_MODEL_SLOT = "dardcor-code";
 export const LEGACY_GROK_MAIN_MODEL_SLOT = "9router";
 export const GROK_BUILTIN_DEFAULT = "grok-build";
 export const GROK_SUBAGENT_TYPES = ["general-purpose", "explore", "plan"];
 
-const UNSET_SENTINEL = "__miawrouter_unset__";
+const UNSET_SENTINEL = "__dardcor-code_unset__";
 const MODELS_SECTION = "models";
 const SUBAGENT_MODELS_SECTION = "subagents.models";
 
-// Legacy markers are matched for reads; new writes only emit the miawrouter forms.
+// Legacy markers are matched for reads; new writes only emit the dardcor-code forms.
 const LEGACY_UNSET_SENTINEL = "__9router_unset__";
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -24,10 +24,10 @@ const sectionRegExp = (section) =>
 const modelSlot = (type) => `${GROK_MAIN_MODEL_SLOT}-${type}`;
 const legacyModelSlot = (type) => `${LEGACY_GROK_MAIN_MODEL_SLOT}-${type}`;
 
-const previousDefaultRegExp = /^# (?:miawrouter|9router)-prev-default = "([^"]*)"[ \t]*\r?\n?/m;
+const previousDefaultRegExp = /^# (?:dardcor-code|9router)-prev-default = "([^"]*)"[ \t]*\r?\n?/m;
 const previousSubagentRegExp = (type) =>
   new RegExp(
-    `^# (?:miawrouter|9router)-prev-subagent-${escapeRegExp(type)} = "([^"]*)"[ \\t]*\\r?\\n?`,
+    `^# (?:dardcor-code|9router)-prev-subagent-${escapeRegExp(type)} = "([^"]*)"[ \\t]*\\r?\\n?`,
     "m",
   );
 
@@ -84,7 +84,7 @@ function deleteSectionField(toml, section, key) {
 
 // Parse a model section by slot, falling back to the legacy 9router-* variant.
 function parseModelSection(toml, slot) {
-  const legacy = slot.replace(/^miawrouter/, LEGACY_GROK_MAIN_MODEL_SLOT);
+  const legacy = slot.replace(/^dardcor-code/, LEGACY_GROK_MAIN_MODEL_SLOT);
   const resolved = sectionRegExp(`model.${slot}`).test(toml) ? slot
     : sectionRegExp(`model.${legacy}`).test(toml) ? legacy
     : null;
@@ -109,7 +109,7 @@ function buildModelSection({ slot, model, baseUrl, apiKey, contextWindow, name }
     `model = ${tomlString(model)}`,
     `base_url = ${tomlString(baseUrl)}`,
     `name = ${tomlString(name)}`,
-    `description = ${tomlString("Routed via MiawRouter gateway")}`,
+    `description = ${tomlString("Routed via Dardcor Code gateway")}`,
     `api_backend = "chat_completions"`,
   ];
   if (apiKey) lines.push(`api_key = ${tomlString(apiKey)}`);
@@ -144,7 +144,7 @@ function rememberPreviousDefault(toml) {
   if (previousDefaultRegExp.test(toml)) return toml;
   const current = getSectionField(toml, MODELS_SECTION, "default");
   if (!current || current === GROK_MAIN_MODEL_SLOT || current === LEGACY_GROK_MAIN_MODEL_SLOT) return toml;
-  return insertMarker(toml, `# miawrouter-prev-default = ${tomlString(current)}\n`);
+  return insertMarker(toml, `# dardcor-code-prev-default = ${tomlString(current)}\n`);
 }
 
 function restorePreviousDefault(toml) {
@@ -164,7 +164,7 @@ function rememberPreviousSubagent(toml, type) {
   const previous = current == null ? UNSET_SENTINEL : current;
   return insertMarker(
     toml,
-    `# miawrouter-prev-subagent-${type} = ${tomlString(previous)}\n`,
+    `# dardcor-code-prev-subagent-${type} = ${tomlString(previous)}\n`,
   );
 }
 
@@ -217,7 +217,7 @@ export function applyGrokBuildConfig(
     baseUrl,
     apiKey,
     contextWindow,
-    name: "MiawRouter",
+    name: "Dardcor Code",
   });
   next = setSectionField(next, MODELS_SECTION, "default", GROK_MAIN_MODEL_SLOT);
 
@@ -233,7 +233,7 @@ export function applyGrokBuildConfig(
           baseUrl,
           apiKey,
           contextWindow: selected.contextWindow,
-          name: `MiawRouter ${type}`,
+          name: `Dardcor Code ${type}`,
         });
         next = setSectionField(next, SUBAGENT_MODELS_SECTION, type, slot);
       } else {

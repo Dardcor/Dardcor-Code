@@ -18,7 +18,7 @@ async function readJsonBody(request) {
 
 /**
  * POST /api/skill-discovery/[id]/uninstall
- * Body: { target: "miawrouter" | "cli" | "both" }
+ * Body: { target: "dardcor-code" | "cli" | "both" }
  *
  * Removes only installer-owned files/records for the target.
  */
@@ -30,7 +30,7 @@ export async function POST(request, { params }) {
     const body = await readJsonBody(request);
     if (body === null) return Response.json({ error: "Invalid JSON body" }, { status: 400 });
     const { id } = await params;
-    const target = typeof body?.target === "string" ? body.target : "miawrouter";
+    const target = typeof body?.target === "string" ? body.target : "dardcor-code";
     const result = await uninstallSkill(decodeURIComponent(id), target);
     if (!result.ok) {
       const status = result.code === "NOT_INSTALLED" ? 404 : result.code === "UNKNOWN_TARGET" ? 400 : 409;

@@ -202,7 +202,7 @@ export async function isTailscaleRunningStrict() {
   }
 }
 
-// Check if a system-level tailscaled is running (uses system socket, not MiawRouter's custom one).
+// Check if a system-level tailscaled is running (uses system socket, not Dardcor Code's custom one).
 export function isSystemDaemonRunning() {
   if (IS_WINDOWS || !SYSTEM_TAILSCALE_SOCKET || !fs.existsSync(SYSTEM_TAILSCALE_SOCKET)) return false;
   const bin = getTailscaleBin();
@@ -528,7 +528,7 @@ export function isDaemonAlive() {
  * Start tailscaled.
  * - With sudoPassword: TUN mode (root) → Funnel TLS works
  * - Without: userspace-networking fallback (no sudo, but Funnel TLS unstable)
- * State always lives in ~/.miawrouter/tailscale/ via --statedir.
+ * State always lives in ~/.dardcor-code/tailscale/ via --statedir.
  */
 export async function startDaemonWithPassword(sudoPassword) {
   if (IS_WINDOWS) {

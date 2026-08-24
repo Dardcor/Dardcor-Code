@@ -1,6 +1,6 @@
 // GET/POST /api/settings/database: CLI token header must be VALIDATED against
 // the canonical machine-derived token, not just present. An arbitrary
-// x-miaw-cli-token value must still require password re-auth (401).
+// x-dardcor-cli-token value must still require password re-auth (401).
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -52,8 +52,8 @@ describe("GET /api/settings/database", () => {
     expect(mocks.exportDb).not.toHaveBeenCalled();
   });
 
-  it("arbitrary x-miaw-cli-token value cannot bypass password re-auth", async () => {
-    const res = await GET(request({ "x-miaw-cli-token": "not-the-real-token" }));
+  it("arbitrary x-dardcor-cli-token value cannot bypass password re-auth", async () => {
+    const res = await GET(request({ "x-dardcor-cli-token": "not-the-real-token" }));
 
     expect(res.status).toBe(401);
     expect(mocks.exportDb).not.toHaveBeenCalled();
@@ -63,7 +63,7 @@ describe("GET /api/settings/database", () => {
   it("valid CLI token skips password re-auth", async () => {
     mocks.hasValidCliToken.mockResolvedValue(true);
 
-    const res = await GET(request({ "x-miaw-cli-token": "real-token" }));
+    const res = await GET(request({ "x-dardcor-cli-token": "real-token" }));
 
     expect(res.status).toBe(200);
     expect(mocks.exportDb).toHaveBeenCalled();
@@ -73,7 +73,7 @@ describe("GET /api/settings/database", () => {
   it("valid password header passes when no CLI token", async () => {
     mocks.verifyDashboardPassword.mockResolvedValue(true);
 
-    const res = await GET(request({ "x-miaw-password": "correct-password" }));
+    const res = await GET(request({ "x-dardcor-password": "correct-password" }));
 
     expect(res.status).toBe(200);
     expect(mocks.exportDb).toHaveBeenCalled();
@@ -96,9 +96,9 @@ describe("POST /api/settings/database", () => {
     expect(mocks.importDb).not.toHaveBeenCalled();
   });
 
-  it("arbitrary x-miaw-cli-token value cannot bypass password re-auth", async () => {
+  it("arbitrary x-dardcor-cli-token value cannot bypass password re-auth", async () => {
     const res = await POST(
-      request({ "x-miaw-cli-token": "not-the-real-token" }, { password: "pw", settings: {} }),
+      request({ "x-dardcor-cli-token": "not-the-real-token" }, { password: "pw", settings: {} }),
     );
 
     expect(res.status).toBe(401);
@@ -110,7 +110,7 @@ describe("POST /api/settings/database", () => {
     mocks.hasValidCliToken.mockResolvedValue(true);
 
     const res = await POST(
-      request({ "x-miaw-cli-token": "real-token" }, { password: "pw", settings: {} }),
+      request({ "x-dardcor-cli-token": "real-token" }, { password: "pw", settings: {} }),
     );
 
     expect(res.status).toBe(200);
@@ -127,22 +127,22 @@ describe("POST /api/settings/database", () => {
     expect(mocks.importDb).toHaveBeenCalled();
   });
 
-  it("x-miaw-password header takes precedence over the body password", async () => {
+  it("x-dardcor-password header takes precedence over the body password", async () => {
     // Header password is correct, body password is wrong → header must win.
     mocks.verifyDashboardPassword.mockImplementation(async (pw) => pw === "header-password");
 
     const res = await POST(
-      request({ "x-miaw-password": "header-password" }, { password: "wrong-body-password", settings: {} }),
+      request({ "x-dardcor-password": "header-password" }, { password: "wrong-body-password", settings: {} }),
     );
 
     expect(res.status).toBe(200);
     expect(mocks.verifyDashboardPassword).toHaveBeenCalledWith("header-password");
   });
 
-  it("x-miaw-password header alone (no body password) authenticates", async () => {
+  it("x-dardcor-password header alone (no body password) authenticates", async () => {
     mocks.verifyDashboardPassword.mockResolvedValue(true);
 
-    const res = await POST(request({ "x-miaw-password": "header-password" }, { settings: {} }));
+    const res = await POST(request({ "x-dardcor-password": "header-password" }, { settings: {} }));
 
     expect(res.status).toBe(200);
     expect(mocks.importDb).toHaveBeenCalled();
@@ -152,7 +152,7 @@ describe("POST /api/settings/database", () => {
     mocks.verifyDashboardPassword.mockResolvedValue(true);
 
     const res = await POST(
-      request({ "x-miaw-password": "header-password" }, { password: "legacy-body-password", settings: { mitmRouterBaseUrl: "http://localhost:21128" } }),
+      request({ "x-dardcor-password": "header-password" }, { password: "legacy-body-password", settings: { mitmRouterBaseUrl: "http://localhost:21128" } }),
     );
 
     expect(res.status).toBe(200);

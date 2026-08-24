@@ -14,7 +14,7 @@ afterEach(() => {
 });
 
 function createBuildFixture(distDir) {
-  const projectRoot = mkdtempSync(join(tmpdir(), "miawrouter-standalone-assets-"));
+  const projectRoot = mkdtempSync(join(tmpdir(), "dardcor-code-standalone-assets-"));
   fixtures.push(projectRoot);
   const buildRoot = join(projectRoot, distDir);
   mkdirSync(join(buildRoot, "standalone"), { recursive: true });
@@ -116,15 +116,15 @@ describe("standalone weak-secret gate wrapper", () => {
 
   it("wraps the nested workspace-traced CLI standalone too", () => {
     const projectRoot = createBuildFixture(".next-cli-build");
-    mkdirSync(join(projectRoot, ".next-cli-build", "standalone", "miawrouter"), { recursive: true });
+    mkdirSync(join(projectRoot, ".next-cli-build", "standalone", "dardcor-code"), { recursive: true });
     writeFileSync(join(projectRoot, "secret-policy.cjs"), "// fake root policy\nmodule.exports = {};\n");
-    writeFileSync(join(projectRoot, ".next-cli-build", "standalone", "miawrouter", "server.js"), "// cli real server\n");
+    writeFileSync(join(projectRoot, ".next-cli-build", "standalone", "dardcor-code", "server.js"), "// cli real server\n");
 
     copyStandaloneAssets({ projectRoot, distDir: ".next-cli-build" });
 
-    expect(readFileSync(join(projectRoot, ".next-cli-build", "standalone", "miawrouter", "server.js"), "utf8"))
+    expect(readFileSync(join(projectRoot, ".next-cli-build", "standalone", "dardcor-code", "server.js"), "utf8"))
       .toContain(GATE_MARK);
-    expect(readFileSync(join(projectRoot, ".next-cli-build", "standalone", "miawrouter", "next-server.js"), "utf8"))
+    expect(readFileSync(join(projectRoot, ".next-cli-build", "standalone", "dardcor-code", "next-server.js"), "utf8"))
       .toBe("// cli real server\n");
   });
 

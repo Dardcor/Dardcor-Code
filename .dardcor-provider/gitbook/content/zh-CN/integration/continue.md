@@ -1,13 +1,13 @@
 # Continue VSCode 扩展集成
 
-将 MiawRouter 与 Continue 扩展集成,直接在 Visual Studio Code 中获得 AI 协助。
+将 Dardcor Code 与 Continue 扩展集成,直接在 Visual Studio Code 中获得 AI 协助。
 
 ## 前置要求
 
 - 已安装 Visual Studio Code
 - 从 VSCode 市场安装了 Continue 扩展
-- 来自 [仪表盘](https://miawrouter.web.id/dashboard) 的 MiawRouter API key
-- MiawRouter 正在运行(本地或云端)
+- 来自 [仪表盘](https://dardcor-code.web.id/dashboard) 的 Dardcor Code API key
+- Dardcor Code 正在运行(本地或云端)
 
 ## 配置步骤
 
@@ -18,7 +18,7 @@
 3. 输入 "Continue: Open Config" 并选择
 4. 这会打开 `~/.continue/config.json`
 
-### 2. 添加 MiawRouter 模型配置
+### 2. 添加 Dardcor Code 模型配置
 
 将以下配置添加到 `config.json`:
 
@@ -27,7 +27,7 @@
 {
   "models": [
     {
-      "title": "MiawRouter - Claude Opus",
+      "title": "Dardcor Code - Claude Opus",
       "provider": "openai",
       "model": "cc/claude-opus-4-5-20251101",
       "apiKey": "your-api-key-from-dashboard",
@@ -42,28 +42,28 @@
 {
   "models": [
     {
-      "title": "MiawRouter - Claude Opus (Best)",
+      "title": "Dardcor Code - Claude Opus (Best)",
       "provider": "openai",
       "model": "cc/claude-opus-4-5-20251101",
       "apiKey": "your-api-key-from-dashboard",
       "apiBase": "http://localhost:21128/v1"
     },
     {
-      "title": "MiawRouter - Claude Sonnet (Balanced)",
+      "title": "Dardcor Code - Claude Sonnet (Balanced)",
       "provider": "openai",
       "model": "cc/claude-sonnet-4-20250514",
       "apiKey": "your-api-key-from-dashboard",
       "apiBase": "http://localhost:21128/v1"
     },
     {
-      "title": "MiawRouter - DeepSeek Chat (Code)",
+      "title": "Dardcor Code - DeepSeek Chat (Code)",
       "provider": "openai",
       "model": "cx/deepseek-chat",
       "apiKey": "your-api-key-from-dashboard",
       "apiBase": "http://localhost:21128/v1"
     },
     {
-      "title": "MiawRouter - Claude Haiku (Fast)",
+      "title": "Dardcor Code - Claude Haiku (Fast)",
       "provider": "openai",
       "model": "cc/claude-haiku-4-20250514",
       "apiKey": "your-api-key-from-dashboard",
@@ -73,10 +73,10 @@
 }
 ```
 
-**云端 MiawRouter:**
+**云端 Dardcor Code:**
 将 `apiBase` 替换为:
 ```json
-"apiBase": "https://miawrouter.web.id/v1"
+"apiBase": "https://dardcor-code.web.id/v1"
 ```
 
 ### 3. 保存并重新加载
@@ -89,7 +89,7 @@
 
 1. 打开 Continue 侧边栏(点击左侧 Continue 图标)
 2. 点击顶部模型选择下拉菜单
-3. 选择你偏好的 MiawRouter 模型
+3. 选择你偏好的 Dardcor Code 模型
 
 ## 可用模型
 
@@ -139,7 +139,7 @@
 {
   "models": [
     {
-      "title": "MiawRouter - Code Expert",
+      "title": "Dardcor Code - Code Expert",
       "provider": "openai",
       "model": "cx/deepseek-chat",
       "apiKey": "your-api-key",
@@ -158,7 +158,7 @@
 {
   "models": [
     {
-      "title": "MiawRouter - Creative Writer",
+      "title": "Dardcor Code - Creative Writer",
       "provider": "openai",
       "model": "cc/claude-opus-4-5-20251101",
       "apiKey": "your-api-key",
@@ -204,13 +204,13 @@
 ## 故障排除
 
 ### 模型无响应
-- 确认 MiawRouter 正在运行:`curl http://localhost:21128/health`
+- 确认 Dardcor Code 正在运行:`curl http://localhost:21128/health`
 - 检查 config.json 中的 API key
 - 查看 VSCode 开发者控制台错误:`Help` → `Toggle Developer Tools`
 
 ### 选错模型
 - 点击 Continue 侧边栏的模型下拉菜单
-- 选择正确的 MiawRouter 模型
+- 选择正确的 Dardcor Code 模型
 - 模型名必须完全匹配(大小写敏感)
 
 ### 配置未加载
@@ -221,7 +221,7 @@
 ### 性能缓慢
 - 切换到更快的模型(haiku、flash)
 - 在 contextProviders 中减少上下文大小
-- 检查到 MiawRouter 的网络延迟
+- 检查到 Dardcor Code 的网络延迟
 
 ## 最佳实践
 

@@ -1,9 +1,9 @@
 {
-  "name": "miawrouter-tests",
+  "name": "dardcor-code-tests",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Unit tests for miawrouter embeddings endpoint",
+  "description": "Unit tests for dardcor-code embeddings endpoint",
   "scripts": {
     "test": "vitest run --reporter=verbose",
     "test:watch": "vitest --reporter=verbose"

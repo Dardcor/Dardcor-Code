@@ -10,7 +10,7 @@ let tempDir;
 let db;
 
 beforeAll(async () => {
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "miawrouter-concurrent-"));
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dardcor-code-concurrent-"));
   process.env.DATA_DIR = tempDir;
   vi.resetModules();
   db = await import("@/lib/db/index.js");

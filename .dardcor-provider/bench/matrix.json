@@ -1,5 +1,5 @@
 {
-  "schema": "miaw-bench-matrix/1",
+  "schema": "dardcor-bench-matrix/1",
   "schemaVersion": 1,
   "documentedLimitations": {
     "realProviders": {

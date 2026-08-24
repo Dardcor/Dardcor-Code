@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { SweCustomAgent } from '@github/dardcor/sdk';
+import type { SweCustomAgent } from '@github/copilot/sdk';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { IVSCodeExtensionContext } from '../../../../../platform/extContext/common/extensionContext';
 import { ILogService } from '../../../../../platform/log/common/logService';

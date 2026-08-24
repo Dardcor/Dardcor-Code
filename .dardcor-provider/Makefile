@@ -1,20 +1,20 @@
-SNAPSHOT_DIR ?= ../miawrouter-snapshots
+SNAPSHOT_DIR ?= ../dardcor-code-snapshots
 LABEL ?= manual
 
 .PHONY: snapshot restore upstream-diff check-branding bench bench-record bench-verify
 
 snapshot:
 	@mkdir -p "$(SNAPSHOT_DIR)"
-	@archive="$(SNAPSHOT_DIR)/miawrouter-$(LABEL)-$$(date +%Y%m%d-%H%M%S).tar.gz"; \
+	@archive="$(SNAPSHOT_DIR)/dardcor-code-$(LABEL)-$$(date +%Y%m%d-%H%M%S).tar.gz"; \
 	tar -czf "$$archive" \
-		--exclude='miawrouter/node_modules' \
-		--exclude='miawrouter/.next' \
-		--exclude='miawrouter/dist' \
-		--exclude='miawrouter/build' \
-		--exclude='miawrouter/graphify-out' \
-		-C .. miawrouter; \
+		--exclude='dardcor-code/node_modules' \
+		--exclude='dardcor-code/.next' \
+		--exclude='dardcor-code/dist' \
+		--exclude='dardcor-code/build' \
+		--exclude='dardcor-code/graphify-out' \
+		-C .. dardcor-code; \
 	printf '%s\n' "$$archive"; \
-	ls -1t "$(SNAPSHOT_DIR)"/miawrouter-*.tar.gz 2>/dev/null | tail -n +21 | xargs -r rm -f
+	ls -1t "$(SNAPSHOT_DIR)"/dardcor-code-*.tar.gz 2>/dev/null | tail -n +21 | xargs -r rm -f
 
 restore:
 	@test -n "$(SNAP)" || { printf '%s\n' 'Usage: make restore SNAP=<archive>'; exit 2; }

@@ -233,9 +233,9 @@ export function getNavigation(lang) {
 
 // Static config (logo, urls, default English nav for backward compatibility).
 export const DOCS_CONFIG = {
-  title: "MiawRouter Documentation",
+  title: "Dardcor Code Documentation",
   description: "Local AI routing gateway - one OpenAI-compatible endpoint, many providers",
-  logo: "MiawRouter",
-  appUrl: "https://miawrouter.web.id",
+  logo: "Dardcor Code",
+  appUrl: "https://dardcor-code.web.id",
   navigation: getNavigation(DEFAULT_LANG)
 };

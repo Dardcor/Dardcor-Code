@@ -1,9 +1,9 @@
 นี่คือเอกสารแปลภาษาไทยของไฟล์ Markdown ต้นฉบับ โดยรักษาโครงสร้างและซินแท็กซ์ทางเทคนิคทั้งหมดไว้เหมือนเดิม
 
 <div align="center">
-  <img src="../images/miawrouter.png?1" alt="แดชบอร์ด MiawRouter" width="800"/>
+  <img src="../images/dardcor-code.png?1" alt="แดชบอร์ด Dardcor Code" width="800"/>
   
-  # MiawRouter - Free AI Router
+  # Dardcor Code - Free AI Router
   
   
   **ผู้ให้บริการ AI ฟรีสำหรับ OpenClaw**
@@ -13,12 +13,12 @@
   </p>
   
   
-  [🚀 เริ่มต้นใช้งาน](#-quick-start) • [💡 ฟีเจอร์](#-key-features) • [📖 การตั้งค่า](#-setup-guide) • [🌐 เว็บไซต์](https://miawrouter.web.id)
+  [🚀 เริ่มต้นใช้งาน](#-quick-start) • [💡 ฟีเจอร์](#-key-features) • [📖 การตั้งค่า](#-setup-guide) • [🌐 เว็บไซต์](https://dardcor-code.web.id)
 </div>
 
 ---
 
-## 🤔 ทำไมต้อง MiawRouter?
+## 🤔 ทำไมต้อง Dardcor Code?
 
 **หยุดเสียเงินและเจอขีดจำกัด:**
 
@@ -27,7 +27,7 @@
 - ❌ ค่า API แพง ($20-50/เดือน ต่อผู้ให้บริการแต่ละราย)
 - ❌ ต้องสลับผู้ให้บริการด้วยตนเอง
 
-**MiawRouter แก้ปัญหาเหล่านี้:**
+**Dardcor Code แก้ปัญหาเหล่านี้:**
 
 - ✅ **ประหยัดโทเค็น RTK** - บีบอัดผลลัพธ์จากเครื่องมือ (`git diff`, `grep`, `ls`...) ก่อนส่งให้ LLM
 - ✅ **เพิ่มประสิทธิภาพสมาชิก** - ติดตามโควตา ใช้ทุกบิตก่อนรีเซ็ต
@@ -47,7 +47,7 @@
        │ http://localhost:21128/v1
        ↓
 ┌─────────────────────────────────────────────┐
-│           MiawRouter (Smart Router)            │
+│           Dardcor Code (Smart Router)            │
 │  • RTK Token Saver (ตัดโทเค็น tool_result) │
 │  • แปลงรูปแบบ (OpenAI ↔ Claude)           │
 │  • ติดตามโควตา                              │
@@ -69,8 +69,8 @@
 **1. ติดตั้งแบบ Global:**
 
 ```bash
-npm install -g miawrouter
-miawrouter
+npm install -g dardcor-code
+dardcor-code
 ```
 
 🎉 เปิดแดชบอร์ดที่ `http://localhost:21128`
@@ -92,7 +92,7 @@ miawrouter
 
 **วิธีอื่น: รันจากซอร์สโค้ด (เก็บรักษาไว้ใน repo นี้):**
 
-Repo นี้เป็น private package (`miawrouter-app`) ดังนั้นการรันจากซอร์ส/Docker คือเส้นทางพัฒนาท้องถิ่นที่คาดไว้
+Repo นี้เป็น private package (`dardcor-code-app`) ดังนั้นการรันจากซอร์ส/Docker คือเส้นทางพัฒนาท้องถิ่นที่คาดไว้
 
 ```bash
 cp .env.example .env
@@ -115,7 +115,7 @@ URL ค่าเริ่มต้น:
 
 ## 🛠️ เครื่องมือ CLI ที่รองรับ
 
-MiawRouter ทำงานได้อย่างราบรื่นกับเครื่องมือเขียนโค้ด AI ทุกประเภท:
+Dardcor Code ทำงานได้อย่างราบรื่นกับเครื่องมือเขียนโค้ด AI ทุกประเภท:
 
 <div align="center">
   <table>
@@ -353,10 +353,10 @@ MiawRouter ทำงานได้อย่างราบรื่นกับ
 
 ### 🧠 Headroom Token Saver
 
-Headroom เป็นตัวเลือกและทำงานแยกกัน MiawRouter เรียก endpoint `/v1/compress` ของ Headroom จากนั้นยังคงเลือกเส้นทาง, fallback, auth และติดตามการใช้งานตามปกติ:
+Headroom เป็นตัวเลือกและทำงานแยกกัน Dardcor Code เรียก endpoint `/v1/compress` ของ Headroom จากนั้นยังคงเลือกเส้นทาง, fallback, auth และติดตามการใช้งานตามปกติ:
 
 ```
-Client → MiawRouter → Headroom /v1/compress → MiawRouter → provider
+Client → Dardcor Code → Headroom /v1/compress → Dardcor Code → provider
 ```
 
 ตั้งค่าท้องถิ่น:
@@ -375,7 +375,7 @@ headroom proxy --port 8787
 http://host.docker.internal:8787
 ```
 
-ถ้า Headroom ดับหรือคืน error, MiawRouter จะ fail open และส่งคำขอต้นฉบับ
+ถ้า Headroom ดับหรือคืน error, Dardcor Code จะ fail open และส่งคำขอต้นฉบับ
 
 ### 🐴 Ponytail (Lazy Senior Dev)
 
@@ -416,7 +416,7 @@ Combo: "my-coding-stack"
 
 แปลงรูปแบบได้อย่างราบรื่น:
 - **OpenAI** ↔ **Claude** ↔ **Gemini** ↔ **Cursor** ↔ **Kiro** ↔ **Vertex** ↔ **Antigravity** ↔ **Ollama** ↔ **OpenAI Responses**
-- เครื่องมือ CLI ของคุณส่งรูปแบบ OpenAI → MiawRouter แปลง → ผู้ให้บริการได้รับรูปแบบต้นฉบับ
+- เครื่องมือ CLI ของคุณส่งรูปแบบ OpenAI → Dardcor Code แปลง → ผู้ให้บริการได้รับรูปแบบต้นฉบับ
 - ใช้ได้กับเครื่องมือใดก็ได้ที่รองรับ custom OpenAI endpoints
 
 ### 👥 รองรับหลายบัญชี
@@ -557,16 +557,16 @@ Combo: "openclaw-free"
 ## ❓ คำถามที่พบบ่อย
 
 <details>
-<summary><b>💳 MiawRouter เก็บเงินฉันหรือไม่?</b></summary>
+<summary><b>💳 Dardcor Code เก็บเงินฉันหรือไม่?</b></summary>
 
-**ไม่.** MiawRouter เป็นซอฟต์แวร์ฟรีแบบ open source ที่ทำงานบนเครื่องของคุณเอง มันไม่มีวันเรียกเก็บเงินจากคุณ
+**ไม่.** Dardcor Code เป็นซอฟต์แวร์ฟรีแบบ open source ที่ทำงานบนเครื่องของคุณเอง มันไม่มีวันเรียกเก็บเงินจากคุณ
 
 **คุณจ่ายเงินเฉพาะ:**
 - ✅ **ผู้ให้บริการสมาชิก** (Claude Code $20/เดือน, Codex $20-200/เดือน) → จ่ายตรงให้พวกเขาบนเว็บไซต์ของพวกเขา
-- ✅ **ผู้ให้บริการราคาถูก** (GLM, MiniMax) → จ่ายตรงให้พวกเขา, MiawRouter แค่เลือกเส้นทางคำขอของคุณ
-- ❌ **ตัว MiawRouter เอง** → **ไม่มีวันเรียกเก็บเงินใดๆ ทั้งสิ้น**
+- ✅ **ผู้ให้บริการราคาถูก** (GLM, MiniMax) → จ่ายตรงให้พวกเขา, Dardcor Code แค่เลือกเส้นทางคำขอของคุณ
+- ❌ **ตัว Dardcor Code เอง** → **ไม่มีวันเรียกเก็บเงินใดๆ ทั้งสิ้น**
 
-MiawRouter เป็น proxy/router ท้องถิ่น มันไม่มีบัตรเครดิตของคุณ, ไม่สามารถส่งใบแจ้งหนี้ได้ และไม่มีระบบชำระเงิน เป็นซอฟต์แวร์ฟรีทั้งหมด
+Dardcor Code เป็น proxy/router ท้องถิ่น มันไม่มีบัตรเครดิตของคุณ, ไม่สามารถส่งใบแจ้งหนี้ได้ และไม่มีระบบชำระเงิน เป็นซอฟต์แวร์ฟรีทั้งหมด
 
 </details>
 
@@ -580,7 +580,7 @@ MiawRouter เป็น proxy/router ท้องถิ่น มันไม่
 - **OpenCode Free**: ไม่ต้องยืนยันตัวตน, ดึงโมเดลอัตโนมัติ
 - **Vertex AI**: $300 เครดิตฟรีสำหรับ Gemini 3 Pro
 
-MiawRouter แค่เลือกเส้นทางคำขอของคุณไปหาพวกเขา — ไม่มี "กับดัก" หรือการเรียกเก็บเงินในอนาคต เป็นบริการที่ฟรีจริงๆ และ MiawRouter ทำให้ใช้งานง่ายด้วยการรองรับ fallback
+Dardcor Code แค่เลือกเส้นทางคำขอของคุณไปหาพวกเขา — ไม่มี "กับดัก" หรือการเรียกเก็บเงินในอนาคต เป็นบริการที่ฟรีจริงๆ และ Dardcor Code ทำให้ใช้งานง่ายด้วยการรองรับ fallback
 
 </details>
 
@@ -604,7 +604,7 @@ MiawRouter แค่เลือกเส้นทางคำขอของค
    **ค่าใช้จ่ายเพิ่มเติม:** จ่ายเฉพาะที่ใช้
 
 3. **ใช้ผู้ให้บริการสมาชิก** ก็ต่อเมื่อมีอยู่แล้ว:
-   - MiawRouter ช่วยเพิ่มประสิทธิภาพมูลค่าของพวกเขาผ่านการติดตามโควตา
+   - Dardcor Code ช่วยเพิ่มประสิทธิภาพมูลค่าของพวกเขาผ่านการติดตามโควตา
 
 **ผลลัพธ์:** ผู้ใช้ส่วนใหญ่สามารถทำงานที่ $0/เดือน โดยใช้เฉพาะชั้นฟรี!
 
@@ -623,7 +623,7 @@ MiawRouter แค่เลือกเส้นทางคำขอของค
 - เพิ่ม combo: `cc/claude-opus-4-6 → glm/glm-5.1 → kr/claude-sonnet-4.5`
 
 **OAuth Token หมดอายุ**
-- รีเฟรชอัตโนมัติโดย MiawRouter
+- รีเฟรชอัตโนมัติโดย Dardcor Code
 - ถ้าปัญหายังคงอยู่: แดชบอร์ด → ผู้ให้บริการ → เชื่อมต่อใหม่
 
 **ค่าใช้จ่ายสูง**
@@ -685,14 +685,14 @@ Authorization: Bearer your-api-key
 
 ## 📧 สนับสนุน
 
-- **เว็บไซต์**: [miawrouter.web.id](https://miawrouter.web.id)
+- **เว็บไซต์**: [dardcor-code.web.id](https://dardcor-code.web.id)
 - **GitHub**: 
 
 ---
 
 ## 👥 ผู้มีส่วนร่วม
 
-ขอขอบคุณผู้มีส่วนร่วมทุกคนที่ช่วยทำให้ MiawRouter ดียิ่งขึ้น!
+ขอขอบคุณผู้มีส่วนร่วมทุกคนที่ช่วยทำให้ Dardcor Code ดียิ่งขึ้น!
 
 ---
 

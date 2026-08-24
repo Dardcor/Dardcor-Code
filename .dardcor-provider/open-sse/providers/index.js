@@ -49,7 +49,7 @@ for (const entry of REGISTRY) {
 }
 
 // Import OmniRoute's curated free-model rows only for providers that already have
-// a MiawRouter runtime entry. Catalog-only providers stay out of PROVIDER_MODELS so
+// a Dardcor Code runtime entry. Catalog-only providers stay out of PROVIDER_MODELS so
 // model validation cannot make an unavailable provider routable.
 const registryById = new Map(REGISTRY.map((entry) => [entry.id, entry]));
 for (const row of FREE_TIER_MODEL_RECORDS) {

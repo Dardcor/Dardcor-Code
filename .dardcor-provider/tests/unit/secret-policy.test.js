@@ -56,7 +56,7 @@ let tempDir;
 
 beforeEach(() => {
   saveEnv();
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "miawrouter-secret-policy-"));
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dardcor-code-secret-policy-"));
   process.env.DATA_DIR = tempDir;
   vi.resetModules();
 });

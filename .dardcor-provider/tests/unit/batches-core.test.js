@@ -7,7 +7,7 @@ import { createBatchService, parseJsonl, resolveBatchPath } from "../../src/lib/
 const dirs = [];
 afterEach(() => { for (const dir of dirs.splice(0)) fs.rmSync(dir, { recursive: true, force: true }); });
 
-function tempDir() { const dir = fs.mkdtempSync(path.join(os.tmpdir(), "miaw-batch-")); dirs.push(dir); return dir; }
+function tempDir() { const dir = fs.mkdtempSync(path.join(os.tmpdir(), "dardcor-batch-")); dirs.push(dir); return dir; }
 
 function memoryStore(initial = []) {
   const rows = new Map(initial.map((row) => [row.id, { ...row }]));

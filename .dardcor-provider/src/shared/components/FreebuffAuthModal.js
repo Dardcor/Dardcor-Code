@@ -206,7 +206,7 @@ export default function FreebuffAuthModal({ isOpen, onSuccess, onClose }) {
                     <span>⚡ One-Click Login via Freebuff.com</span>
                   </h4>
                   <p className="text-xs text-text-muted mt-0.5">
-                    Authenticate in your browser; MiawRouter automatically captures the token.
+                    Authenticate in your browser; Dardcor Code automatically captures the token.
                   </p>
                 </div>
               </div>

@@ -9,7 +9,7 @@ import os from "os";
 
 const execAsync = promisify(exec);
 
-const PROVIDER_NAME = "MiawRouter";
+const PROVIDER_NAME = "Dardcor Code";
 const API_KEY_ENV = "OPENAI_API_KEY";
 
 const getHermesDir = () => path.join(os.homedir(), ".hermes");
@@ -92,7 +92,7 @@ const readEnvFile = async () => {
   }
 };
 
-  // Detect MiawRouter by base_url containing localhost/127.0.0.1 or matching tunnel URL
+  // Detect Dardcor Code by base_url containing localhost/127.0.0.1 or matching tunnel URL
 const has9RouterConfig = (modelCfg) => {
   if (!modelCfg?.base_url) return false;
   return modelCfg.provider === "custom" && /localhost|127\.0\.0\.1|0\.0\.0\.0/.test(modelCfg.base_url);

@@ -2,22 +2,22 @@ import pkg from "../../../package.json" with { type: "json" };
 
 // App configuration
 export const APP_CONFIG = {
-  name: "MiawRouter Proxy",
+  name: "Dardcor Code",
   description: "AI Infrastructure Management",
   version: pkg.version,
 };
 
 // GitHub configuration
 export const GITHUB_CONFIG = {
-  changelogUrl: "https://raw.githubusercontent.com/miawrouter/miawrouter/refs/heads/master/CHANGELOG.md",
-  donateUrl: "https://miawrouter.web.id/api/donate",
+  changelogUrl: "https://raw.githubusercontent.com/dardcor-code/dardcor-code/refs/heads/master/CHANGELOG.md",
+  donateUrl: "https://dardcor-code.web.id/api/donate",
 };
 
 // Updater configuration
 export const UPDATER_CONFIG = {
-  npmPackageName: "miawrouter",
-  installCmd: "npm i -g miawrouter",
-  installCmdLatest: "npm i -g miawrouter@latest --prefer-online",
+  npmPackageName: "dardcor-code",
+  installCmd: "npm i -g dardcor-code",
+  installCmdLatest: "npm i -g dardcor-code@latest --prefer-online",
   shutdownCountdownSec: 3,
   exitDelayMs: 500,
   statusPort: 21129,

@@ -28,7 +28,7 @@ export default function FeatureFlagsClient() {
           Feature flags
         </h1>
         <p className="text-sm text-text-muted">
-          Enable advanced router behaviors. Changes are saved immediately in MiawRouter settings.
+          Enable advanced router behaviors. Changes are saved immediately in Dardcor Code settings.
         </p>
       </div>
 

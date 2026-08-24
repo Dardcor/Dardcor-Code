@@ -7,7 +7,7 @@ let tempDir;
 const originalDataDir = process.env.DATA_DIR;
 
 beforeEach(() => {
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "miawrouter-secret-"));
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dardcor-code-secret-"));
   process.env.DATA_DIR = tempDir;
   vi.resetModules();
 });

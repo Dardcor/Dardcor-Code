@@ -644,7 +644,7 @@ export default function A2aPageClient() {
             <p>
               <strong className="text-text-main">Agent-to-Agent (A2A)</strong>{" "}
               is an open protocol for agent interoperability. This page shows
-              {"MiawRouter\u2019s agent card, the endpoint other agents can reach, and"}
+              {"Dardcor Code\u2019s agent card, the endpoint other agents can reach, and"}
               the skills it advertises.
             </p>
             <p>

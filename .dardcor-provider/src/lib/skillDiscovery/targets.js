@@ -2,7 +2,7 @@ import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
 
-export const MIAWROUTER_TARGET = "miawrouter";
+export const DARDCOR CODE_TARGET = "dardcor-code";
 
 // Allowlist of CLI targets whose global install dirs we know. Detection is
 // presence-based (config dir exists); we never write into CLI dirs directly —
@@ -42,13 +42,13 @@ export function detectCliTargets(fsImpl = null) {
 }
 
 export function getTargetLabel(id) {
-  if (id === MIAWROUTER_TARGET) return "MiawRouter global registry";
+  if (id === DARDCOR CODE_TARGET) return "Dardcor Code global registry";
   const def = CLI_TARGET_DEFS.find((d) => d.id === id);
   return def ? def.label : null;
 }
 
 export function isKnownTarget(id) {
-  return id === MIAWROUTER_TARGET || id === "cli" || id === "both" || CLI_TARGET_DEFS.some((d) => d.id === id);
+  return id === DARDCOR CODE_TARGET || id === "cli" || id === "both" || CLI_TARGET_DEFS.some((d) => d.id === id);
 }
 
 export function isKnownCliTarget(id) {
@@ -61,10 +61,10 @@ export function isKnownCliTarget(id) {
  */
 export function getInstallCommand(skill, target) {
   if (!skill) return "";
-  if (target === MIAWROUTER_TARGET) return "";
+  if (target === DARDCOR CODE_TARGET) return "";
   // Local built-in skills are not published npm/GitHub packages — never
   // fabricate an `npx skills add` URL for them.
-  if (skill.source === "miawrouter") return "";
+  if (skill.source === "dardcor-code") return "";
   return skill.installCommand || (skill.sourceRef ? `npx skills add ${skill.sourceRef} --skill ${skill.slug}` : "");
 }
 

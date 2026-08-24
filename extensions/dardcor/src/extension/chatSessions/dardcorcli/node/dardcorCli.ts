@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { SessionOptions, SweCustomAgent } from '@github/dardcor/sdk';
+import type { SessionOptions, SweCustomAgent } from '@github/copilot/sdk';
 import * as l10n from '@vscode/l10n';
 import { promises as fs } from 'fs';
 import * as path from 'path';
@@ -550,7 +550,7 @@ export function getAgentFileNameFromFilePath(filePath: URI): string {
  */
 export interface ICopilotCLISDK {
 	readonly _serviceBrand: undefined;
-	getPackage(): Promise<typeof import('@github/dardcor/sdk')>;
+	getPackage(): Promise<typeof import('@github/copilot/sdk')>;
 	getAuthInfo(): Promise<NonNullable<SessionOptions['authInfo']>>;
 	/**
 	 * @deprecated
@@ -586,7 +586,7 @@ export class CopilotCLISDK implements ICopilotCLISDK {
 		return this.requestMap[sdkRequestId]?.details;
 	}
 
-	public async getPackage(): Promise<typeof import('@github/dardcor/sdk')> {
+	public async getPackage(): Promise<typeof import('@github/copilot/sdk')> {
 		try {
 			// Ensure the node-pty and ripgrep shims exist before importing the SDK (required for CLI sessions)
 			await this._ensureShimsPromise;
@@ -594,7 +594,7 @@ export class CopilotCLISDK implements ICopilotCLISDK {
 			// Linux/macOS equivalents) under `MXC_BIN_DIR`. VS Code core ships the MXC
 			// sandbox binaries at `<appRoot>/node_modules/@microsoft/mxc-sdk/bin/<arch>/`
 			// (or `node_modules.asar.unpacked/...` in a packaged build), so point
-			// `MXC_BIN_DIR` there. The @github/dardcor package's own `mxc-bin/` is excluded
+			// `MXC_BIN_DIR` there. The @github/copilot package's own `mxc-bin/` is excluded
 			// from the product build (see build/.moduleignore).
 			process.env['MXC_BIN_DIR'] = resolveAppModulePathSync(this.envService.appRoot, '@microsoft', 'mxc-sdk', 'bin');
 
@@ -615,9 +615,9 @@ export class CopilotCLISDK implements ICopilotCLISDK {
 				process.env['COPILOT_CLI_ENABLED_FEATURE_FLAGS'] = [...flags].join(',');
 			}
 
-			return await import('@github/dardcor/sdk');
+			return await import('@github/copilot/sdk');
 		} catch (error) {
-			this.logService.error(`[CopilotCLISession] Failed to load @github/dardcor/sdk: ${error}`);
+			this.logService.error(`[CopilotCLISession] Failed to load @github/copilot/sdk: ${error}`);
 			throw error;
 		}
 	}

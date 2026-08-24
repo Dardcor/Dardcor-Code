@@ -67,7 +67,7 @@ const { ensureSqliteRuntime, buildEnvWithRuntime } = require("./hooks/sqliteRunt
 const { ensureTrayRuntime } = require("./hooks/trayRuntime");
 const args = process.argv.slice(2);
 
-// Subcommands (`miawrouter xai video …`) run against an already-running gateway
+// Subcommands (`dardcor-code xai video …`) run against an already-running gateway
 // and bypass the launcher flow (no runtime self-heal, no server spawn).
 if (args[0] === "xai" && args[1] === "video") {
   const { run } = require("./src/cli/commands/xaiVideo");
@@ -80,8 +80,8 @@ if (args[0] === "xai" && args[1] === "video") {
   return;
 }
 
-// `miawrouter migrate --from-9router` reads a legacy 9router install through
-// its authenticated export API and imports into the running MiawRouter gateway.
+// `dardcor-code migrate --from-9router` reads a legacy 9router install through
+// its authenticated export API and imports into the running Dardcor Code gateway.
 // Pure HTTP + read-only legacy data-dir access — no server spawn, no source-tree writes.
 if (args[0] === "migrate") {
   const { run } = require("./src/cli/commands/migrate");
@@ -95,7 +95,7 @@ if (args[0] === "migrate") {
 }
 
 // Self-heal SQLite runtime deps (sql.js + better-sqlite3) into the data dir
-// runtime folder (new: ~/.miawrouter/runtime; legacy ~/.9router/runtime is
+// runtime folder (new: ~/.dardcor-code/runtime; legacy ~/.9router/runtime is
 // read back so existing installs keep working). Best-effort — sql.js is
 // required, better-sqlite3 is optional. Logs to stderr only on failure.
 try { ensureSqliteRuntime({ silent: true }); } catch {}
@@ -125,9 +125,9 @@ function getDisplayHost() {
   return host === DEFAULT_HOST ? "localhost" : host;
 }
 const MAX_PORT_ATTEMPTS = 10;
-// Identifiers for killAllAppProcesses - only kill miawrouter specifically
+// Identifiers for killAllAppProcesses - only kill dardcor-code specifically
 const PROCESS_IDENTIFIERS = [
-  'miawrouter'  // Only package name - avoid killing other apps
+  'dardcor-code'  // Only package name - avoid killing other apps
 ];
 
 // Parse arguments
@@ -207,8 +207,8 @@ function compareVersions(a, b) {
 // Get app data dir (matches app/src/lib/dataDir.js convention)
 function getAppDataDir() {
   return process.platform === "win32"
-    ? path.join(process.env.APPDATA || "", "miawrouter")
-    : path.join(os.homedir(), ".miawrouter");
+    ? path.join(process.env.APPDATA || "", "dardcor-code")
+    : path.join(os.homedir(), ".dardcor-code");
 }
 
 // Kill PID from file (best-effort, removes file after)
@@ -265,7 +265,7 @@ function killCloudflaredByAppPort(appPort) {
   return pids;
 }
 
-// Kill all miawrouter processes
+// Kill all dardcor-code processes
 function killAllAppProcesses(appPort) {
   return new Promise((resolve) => {
     try {
@@ -292,12 +292,12 @@ function killAllAppProcesses(appPort) {
           });
           const lines = output.split("\n").slice(1).filter(l => l.trim());
           lines.forEach(line => {
-            // Whitelist: real node process running miawrouter/cli.js (legacy 9router too),
+            // Whitelist: real node process running dardcor-code/cli.js (legacy 9router too),
             // or next-server. Avoids killing editors/grep/strace/cursor that just have
-            // "miawrouter" in cmdline.
+            // "dardcor-code" in cmdline.
             const cmd = line.toLowerCase();
             const isAppProcess =
-              (cmd.includes("node") && (cmd.includes("miawrouter") || cmd.includes("9router")) && (cmd.includes("cli.js") || cmd.includes("\\miawrouter") || cmd.includes("/miawrouter") || cmd.includes("\\9router") || cmd.includes("/9router")))
+              (cmd.includes("node") && (cmd.includes("dardcor-code") || cmd.includes("9router")) && (cmd.includes("cli.js") || cmd.includes("\\dardcor-code") || cmd.includes("/dardcor-code") || cmd.includes("\\9router") || cmd.includes("/9router")))
               || cmd.includes("next-server");
             if (isAppProcess) {
               const match = line.match(/^"(\d+)"/);
@@ -319,11 +319,11 @@ function killAllAppProcesses(appPort) {
           const lines = output.split('\n');
 
           lines.forEach(line => {
-            // Whitelist: real node process running miawrouter/cli.js (legacy 9router too),
+            // Whitelist: real node process running dardcor-code/cli.js (legacy 9router too),
             // or next-server. Avoids killing grep/strace/editors/cursor that incidentally match.
             const cmd = line.toLowerCase();
             const isAppProcess =
-              (cmd.includes("node") && (cmd.includes("miawrouter") || cmd.includes("9router")) && (cmd.includes("cli.js") || cmd.includes("/miawrouter") || cmd.includes("/9router")))
+              (cmd.includes("node") && (cmd.includes("dardcor-code") || cmd.includes("9router")) && (cmd.includes("cli.js") || cmd.includes("/dardcor-code") || cmd.includes("/9router")))
               || cmd.includes("next-server");
             if (isAppProcess) {
               const parts = line.trim().split(/\s+/);
@@ -811,7 +811,7 @@ function startServer(updatePromise) {
             process.on("SIGHUP", () => {});
 
             console.log(`\n⏳ Switching to tray mode... (icon already visible in menu bar)`);
-            console.log(`🔔 MiawRouter is running in tray (PID: ${process.pid})`);
+            console.log(`🔔 Dardcor Code is running in tray (PID: ${process.pid})`);
             console.log(`   Server: http://${displayHost}:${port}`);
             console.log(`\n💡 You can close this terminal. Right-click tray icon to quit.\n`);
 
@@ -830,7 +830,7 @@ function startServer(updatePromise) {
           });
           bgProcess.unref();
 
-          console.log(`🔔 MiawRouter is now running in background (PID: ${bgProcess.pid})`);
+          console.log(`🔔 Dardcor Code is now running in background (PID: ${bgProcess.pid})`);
           console.log(`   Server: http://${displayHost}:${port}`);
           console.log(`\n💡 You can close this terminal. Right-click tray icon to quit.\n`);
 

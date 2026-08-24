@@ -45,15 +45,15 @@ describe("grokBuildConfig", () => {
     const result = applyGrokBuildConfig(BASE_CONFIG, APPLY_INPUT);
     const parsed = parseGrokBuildConfig(result);
 
-    expect(parsed.default).toBe("miawrouter");
+    expect(parsed.default).toBe("dardcor-code");
     expect(parsed.model).toMatchObject({
       model: "cx/gpt-5.6-sol",
       base_url: "http://127.0.0.1:21128/v1",
       context_window: 400000,
     });
     expect(parsed.subagentMappings).toMatchObject({
-      "general-purpose": "miawrouter-general-purpose",
-      explore: "miawrouter-explore",
+      "general-purpose": "dardcor-code-general-purpose",
+      explore: "dardcor-code-explore",
       plan: "grok-4.5",
     });
     expect(parsed.subagentModels["general-purpose"]).toMatchObject({
@@ -79,13 +79,13 @@ describe("grokBuildConfig", () => {
     expect(parsed.subagentModels["general-purpose"]).toMatchObject({ model: "cc/claude-sonnet-5" });
   });
 
-  it("re-writes a legacy config onto the miawrouter slot without losing settings", () => {
+  it("re-writes a legacy config onto the dardcor-code slot without losing settings", () => {
     const legacyConfig = `[models]\ndefault = "9router"\n\n[model.9router]\nmodel = "cx/gpt-5.6-sol"\nbase_url = "http://127.0.0.1:20128/v1"\n`;
     const result = applyGrokBuildConfig(legacyConfig, APPLY_INPUT);
     const parsed = parseGrokBuildConfig(result);
-    expect(parsed.default).toBe("miawrouter");
+    expect(parsed.default).toBe("dardcor-code");
     expect(parsed.model.model).toBe("cx/gpt-5.6-sol");
-    expect(result).toContain("[model.miawrouter]");
+    expect(result).toContain("[model.dardcor-code]");
   });
 
   it("preserves unrelated config sections", () => {
@@ -109,10 +109,10 @@ describe("grokBuildConfig", () => {
       },
     });
 
-    expect(result.match(/^\[model\.miawrouter\]$/gm)).toHaveLength(1);
-    expect(result.match(/^\[model\.miawrouter-general-purpose\]$/gm)).toHaveLength(1);
-    expect(result.match(/^\[model\.miawrouter-explore\]$/gm)).toHaveLength(1);
-    expect(result.match(/^# miawrouter-prev-subagent-explore/gm)).toHaveLength(1);
+    expect(result.match(/^\[model\.dardcor-code\]$/gm)).toHaveLength(1);
+    expect(result.match(/^\[model\.dardcor-code-general-purpose\]$/gm)).toHaveLength(1);
+    expect(result.match(/^\[model\.dardcor-code-explore\]$/gm)).toHaveLength(1);
+    expect(result.match(/^# dardcor-code-prev-subagent-explore/gm)).toHaveLength(1);
     expect(parseGrokBuildConfig(result).model).toMatchObject({
       model: "cc/claude-opus-4.8",
       context_window: 1000000,
@@ -136,8 +136,8 @@ describe("grokBuildConfig", () => {
     const parsed = parseGrokBuildConfig(result);
     expect(parsed.subagentMappings.explore).toBe("grok-build");
     expect(parsed.subagentModels.explore).toBeNull();
-    expect(result).not.toContain("[model.miawrouter-explore]");
-    expect(parsed.subagentMappings["general-purpose"]).toBe("miawrouter-general-purpose");
+    expect(result).not.toContain("[model.dardcor-code-explore]");
+    expect(parsed.subagentMappings["general-purpose"]).toBe("dardcor-code-general-purpose");
   });
 
   it("reset restores previous default and all previous subagent mappings", () => {
@@ -152,8 +152,8 @@ describe("grokBuildConfig", () => {
       explore: "grok-build",
       plan: "grok-4.5",
     });
-    expect(reset).not.toContain("[model.miawrouter-");
-    expect(reset).not.toContain("miawrouter-prev-");
+    expect(reset).not.toContain("[model.dardcor-code-");
+    expect(reset).not.toContain("dardcor-code-prev-");
     expect(reset).toContain("[mcp_servers.example]");
   });
 
@@ -167,7 +167,7 @@ describe("grokBuildConfig", () => {
     });
     const reset = resetGrokBuildConfig(applied);
 
-    expect(parseGrokBuildConfig(applied).subagentMappings.plan).toBe("miawrouter-plan");
+    expect(parseGrokBuildConfig(applied).subagentMappings.plan).toBe("dardcor-code-plan");
     expect(parseGrokBuildConfig(reset).subagentMappings.plan).toBeNull();
     expect(reset).not.toContain("[subagents.models]");
     expect(reset).toContain("[mcp_servers.x]");
@@ -184,14 +184,14 @@ describe("grokBuildConfig", () => {
 
     const parsed = parseGrokBuildConfig(updatedMainOnly);
     expect(parsed.model.model).toBe("gemini/gemini-3.1-pro");
-    expect(parsed.subagentMappings.explore).toBe("miawrouter-explore");
+    expect(parsed.subagentMappings.explore).toBe("dardcor-code-explore");
     expect(parsed.subagentModels.explore.model).toBe("gemini/gemini-3-flash");
   });
 
   it("returns stable slot names only for supported subagent types", () => {
-    expect(getGrokSubagentSlot("general-purpose")).toBe("miawrouter-general-purpose");
-    expect(getGrokSubagentSlot("explore")).toBe("miawrouter-explore");
-    expect(getGrokSubagentSlot("plan")).toBe("miawrouter-plan");
+    expect(getGrokSubagentSlot("general-purpose")).toBe("dardcor-code-general-purpose");
+    expect(getGrokSubagentSlot("explore")).toBe("dardcor-code-explore");
+    expect(getGrokSubagentSlot("plan")).toBe("dardcor-code-plan");
     expect(getGrokSubagentSlot("unknown")).toBeNull();
   });
 });

@@ -1,13 +1,13 @@
 # Tích hợp Continue VSCode Extension
 
-Tích hợp MiawRouter với extension Continue để mang trợ lý AI trực tiếp vào Visual Studio Code.
+Tích hợp Dardcor Code với extension Continue để mang trợ lý AI trực tiếp vào Visual Studio Code.
 
 ## Yêu cầu
 
 - Visual Studio Code đã cài đặt
 - Extension Continue đã cài đặt từ VSCode marketplace
-- MiawRouter API key từ [dashboard](https://miawrouter.web.id/dashboard)
-- MiawRouter đang chạy (cục bộ hoặc cloud)
+- Dardcor Code API key từ [dashboard](https://dardcor-code.web.id/dashboard)
+- Dardcor Code đang chạy (cục bộ hoặc cloud)
 
 ## Các bước Cấu hình
 
@@ -18,7 +18,7 @@ Tích hợp MiawRouter với extension Continue để mang trợ lý AI trực t
 3. Gõ "Continue: Open Config" và chọn
 4. Mở `~/.continue/config.json`
 
-### 2. Thêm Cấu hình Model MiawRouter
+### 2. Thêm Cấu hình Model Dardcor Code
 
 Thêm cấu hình sau vào `config.json`:
 
@@ -27,7 +27,7 @@ Thêm cấu hình sau vào `config.json`:
 {
   "models": [
     {
-      "title": "MiawRouter - Claude Opus",
+      "title": "Dardcor Code - Claude Opus",
       "provider": "openai",
       "model": "cc/claude-opus-4-5-20251101",
       "apiKey": "your-api-key-from-dashboard",
@@ -42,28 +42,28 @@ Thêm cấu hình sau vào `config.json`:
 {
   "models": [
     {
-      "title": "MiawRouter - Claude Opus (Best)",
+      "title": "Dardcor Code - Claude Opus (Best)",
       "provider": "openai",
       "model": "cc/claude-opus-4-5-20251101",
       "apiKey": "your-api-key-from-dashboard",
       "apiBase": "http://localhost:21128/v1"
     },
     {
-      "title": "MiawRouter - Claude Sonnet (Balanced)",
+      "title": "Dardcor Code - Claude Sonnet (Balanced)",
       "provider": "openai",
       "model": "cc/claude-sonnet-4-20250514",
       "apiKey": "your-api-key-from-dashboard",
       "apiBase": "http://localhost:21128/v1"
     },
     {
-      "title": "MiawRouter - DeepSeek Chat (Code)",
+      "title": "Dardcor Code - DeepSeek Chat (Code)",
       "provider": "openai",
       "model": "cx/deepseek-chat",
       "apiKey": "your-api-key-from-dashboard",
       "apiBase": "http://localhost:21128/v1"
     },
     {
-      "title": "MiawRouter - Claude Haiku (Fast)",
+      "title": "Dardcor Code - Claude Haiku (Fast)",
       "provider": "openai",
       "model": "cc/claude-haiku-4-20250514",
       "apiKey": "your-api-key-from-dashboard",
@@ -73,10 +73,10 @@ Thêm cấu hình sau vào `config.json`:
 }
 ```
 
-**Cho Cloud MiawRouter:**
+**Cho Cloud Dardcor Code:**
 Thay `apiBase` bằng:
 ```json
-"apiBase": "https://miawrouter.web.id/v1"
+"apiBase": "https://dardcor-code.web.id/v1"
 ```
 
 ### 3. Lưu và Reload
@@ -89,7 +89,7 @@ Thay `apiBase` bằng:
 
 1. Mở sidebar Continue (click icon Continue trong panel trái)
 2. Click dropdown chọn model ở trên cùng
-3. Chọn model MiawRouter ưa thích
+3. Chọn model Dardcor Code ưa thích
 
 ## Model có sẵn
 
@@ -139,7 +139,7 @@ Thêm system prompt tùy chỉnh cho hành vi cụ thể:
 {
   "models": [
     {
-      "title": "MiawRouter - Code Expert",
+      "title": "Dardcor Code - Code Expert",
       "provider": "openai",
       "model": "cx/deepseek-chat",
       "apiKey": "your-api-key",
@@ -158,7 +158,7 @@ Thêm system prompt tùy chỉnh cho hành vi cụ thể:
 {
   "models": [
     {
-      "title": "MiawRouter - Creative Writer",
+      "title": "Dardcor Code - Creative Writer",
       "provider": "openai",
       "model": "cc/claude-opus-4-5-20251101",
       "apiKey": "your-api-key",
@@ -204,13 +204,13 @@ Cấu hình context Continue gửi đến model:
 ## Troubleshooting
 
 ### Model không phản hồi
-- Kiểm tra MiawRouter đang chạy: `curl http://localhost:21128/health`
+- Kiểm tra Dardcor Code đang chạy: `curl http://localhost:21128/health`
 - Xác minh API key trong config.json
 - Kiểm tra VSCode Developer Console để xem lỗi: `Help` → `Toggle Developer Tools`
 
 ### Chọn sai Model
 - Click dropdown model trong sidebar Continue
-- Chọn đúng model MiawRouter
+- Chọn đúng model Dardcor Code
 - Tên model phải khớp chính xác (case-sensitive)
 
 ### Cấu hình không Load
@@ -221,7 +221,7 @@ Cấu hình context Continue gửi đến model:
 ### Hiệu năng Chậm
 - Chuyển sang model nhanh hơn (haiku, flash)
 - Giảm context size trong contextProviders
-- Kiểm tra độ trễ network đến MiawRouter
+- Kiểm tra độ trễ network đến Dardcor Code
 
 ## Best Practices
 

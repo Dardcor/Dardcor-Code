@@ -1,5 +1,5 @@
 {
-  "schema": "miaw-bench-fixture/1",
+  "schema": "dardcor-bench-fixture/1",
   "id": "cache-integrity",
   "name": "Cache Integrity",
   "description": "Integrity fixture for the §10 rule: compression + translation + routing must leave cached-prefix bytes byte-identical. Every turn resends a large, byte-stable prefix — a long system prompt, two tool definitions, and a frozen migration spec pasted in turn 1 — and only the final user turn churns. The runner must assert the bytes of the stable regions (system, tools, spec) are identical before/after the pipeline and across turns; any mutation of that prefix is a correctness failure, not a tradeoff.",

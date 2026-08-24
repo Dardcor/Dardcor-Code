@@ -27,7 +27,7 @@ function getLinuxCertConfig() {
   // Fallback to Debian default if none exist
   return LINUX_CERT_PATHS[0];
 }
-const ROOT_CA_CN = "MiawRouter MITM Root CA";
+const ROOT_CA_CN = "Dardcor Code MITM Root CA";
 // Legacy CN deleted on install so a previous 9Router CA doesn't linger in stores.
 const LEGACY_ROOT_CA_CN = "9Router MITM Root CA";
 
@@ -107,7 +107,7 @@ async function installCert(sudoPassword, certPath) {
 
 async function installCertMac(sudoPassword, certPath) {
   // Remove all old certs with same name first to avoid duplicate/stale cert conflict
-  const deleteOld = `security delete-certificate -c "MiawRouter MITM Root CA" -c "9Router MITM Root CA" /Library/Keychains/System.keychain 2>/dev/null || true`;
+  const deleteOld = `security delete-certificate -c "Dardcor Code MITM Root CA" -c "9Router MITM Root CA" /Library/Keychains/System.keychain 2>/dev/null || true`;
   const install = `security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "${certPath}"`;
   try {
     await execWithPassword(`${deleteOld} && ${install}`, sudoPassword);
@@ -177,12 +177,12 @@ async function uninstallCertWindows() {
 
 function checkCertInstalledLinux() {
   const config = getLinuxCertConfig();
-  const certFile = `${config.dir}/miawrouter-root-ca.crt`;
+  const certFile = `${config.dir}/dardcor-code-root-ca.crt`;
   return Promise.resolve(fs.existsSync(certFile));
 }
 
 async function updateNssDatabases(certPath, action = 'add') {
-  const certName = "MiawRouter MITM Root CA";
+  const certName = "Dardcor Code MITM Root CA";
   
   const script = `
     if ! command -v certutil &> /dev/null; then
@@ -234,7 +234,7 @@ async function installCertLinux(sudoPassword, certPath) {
   }
   
   const config = getLinuxCertConfig();
-  const destFile = `${config.dir}/miawrouter-root-ca.crt`;
+  const destFile = `${config.dir}/dardcor-code-root-ca.crt`;
   
   // Copy to the discovered directory and execute the specific update command
   const cmd = `cp "${certPath}" "${destFile}" && (${config.cmd} 2>/dev/null || true)`;
@@ -257,7 +257,7 @@ async function uninstallCertLinux(sudoPassword) {
   }
   
   const config = getLinuxCertConfig();
-  const destFile = `${config.dir}/miawrouter-root-ca.crt`;
+  const destFile = `${config.dir}/dardcor-code-root-ca.crt`;
   const cmd = `rm -f "${destFile}" && (${config.cmd} 2>/dev/null || true)`;
   
   try {

@@ -1,6 +1,6 @@
 # Security Policy
 
-Security policy for the MiawRouter local AI routing gateway and dashboard. This document covers the current state of the project (version 0.5.50). Claims here are backed by `docs/AUDIT.md` (the governing audit for this tree) and by the current source where follow-up fixes landed after that audit.
+Security policy for the Dardcor Code local AI routing gateway and dashboard. This document covers the current state of the project (version 0.5.50). Claims here are backed by `docs/AUDIT.md` (the governing audit for this tree) and by the current source where follow-up fixes landed after that audit.
 
 ## Supported version
 

@@ -1,12 +1,12 @@
 services:
-  miawrouter:
-    image: miawrouter:latest
-    container_name: miawrouter
+  dardcor-code:
+    image: dardcor-code:latest
+    container_name: dardcor-code
     restart: always
     ports:
       - "21128:21128"
     volumes:
-      - miawrouter-data:/app/data
+      - dardcor-code-data:/app/data
     env_file:
       - .env
     environment:
@@ -26,5 +26,5 @@ services:
       - "8787:8787"
 
 volumes:
-  miawrouter-data:
-    name: miawrouter-data
+  dardcor-code-data:
+    name: dardcor-code-data

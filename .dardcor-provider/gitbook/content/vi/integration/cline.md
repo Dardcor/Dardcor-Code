@@ -1,13 +1,13 @@
 # Tích hợp Cline
 
-Tích hợp MiawRouter với extension Cline VSCode để định tuyến request AI qua hệ thống routing thông minh của MiawRouter.
+Tích hợp Dardcor Code với extension Cline VSCode để định tuyến request AI qua hệ thống routing thông minh của Dardcor Code.
 
 ## Yêu cầu
 
 - Visual Studio Code đã cài đặt
 - Extension Cline đã cài đặt từ VSCode marketplace
-- MiawRouter đang chạy cục bộ hoặc cloud endpoint đã cấu hình
-- API key từ MiawRouter dashboard
+- Dardcor Code đang chạy cục bộ hoặc cloud endpoint đã cấu hình
+- API key từ Dardcor Code dashboard
 
 ## Setup
 
@@ -25,33 +25,33 @@ Tích hợp MiawRouter với extension Cline VSCode để định tuyến reques
 
 ### 3. Cấu hình Base URL
 
-Đặt base URL tới endpoint MiawRouter:
+Đặt base URL tới endpoint Dardcor Code:
 
-**Cho MiawRouter cục bộ:**
+**Cho Dardcor Code cục bộ:**
 ```
 http://localhost:21128/v1
 ```
 
-**Cho MiawRouter cloud:**
+**Cho Dardcor Code cloud:**
 ```
-https://miawrouter.web.id
+https://dardcor-code.web.id
 ```
 
 **Các bước:**
-1. Trong field **Base URL**, nhập endpoint MiawRouter
+1. Trong field **Base URL**, nhập endpoint Dardcor Code
 2. Đảm bảo bao gồm `/v1` ở cuối
 
 ### 4. Thêm API Key
 
-1. Trong field **API Key**, nhập API key MiawRouter của bạn
-2. Bạn có thể tìm API key trong MiawRouter dashboard tại **Settings → API Keys**
-3. Key bắt đầu bằng `sk-miawrouter-`
+1. Trong field **API Key**, nhập API key Dardcor Code của bạn
+2. Bạn có thể tìm API key trong Dardcor Code dashboard tại **Settings → API Keys**
+3. Key bắt đầu bằng `sk-dardcor-code-`
 
 ### 5. Chọn Model
 
 1. Trong dropdown **Model**, bạn có thể:
    - Chọn từ model có sẵn (nếu Cline auto-detect)
-   - Nhập tên model thủ công từ cấu hình MiawRouter
+   - Nhập tên model thủ công từ cấu hình Dardcor Code
 
 2. Tên model phổ biến:
    - `gpt-4`
@@ -71,13 +71,13 @@ Cline settings của bạn nên trông như sau:
 ```
 API Provider: Ollama
 Base URL: http://localhost:21128/v1
-API Key: sk-miawrouter-xxxxxxxxxxxxx
+API Key: sk-dardcor-code-xxxxxxxxxxxxx
 Model: gpt-4
 ```
 
 ## Model có sẵn
 
-Bạn có thể dùng bất kỳ model nào đã cấu hình trong MiawRouter dashboard. Ví dụ phổ biến:
+Bạn có thể dùng bất kỳ model nào đã cấu hình trong Dardcor Code dashboard. Ví dụ phổ biến:
 
 | Tên Model | Provider | Mô tả |
 |------------|----------|-------------|
@@ -94,64 +94,64 @@ Bạn có thể dùng bất kỳ model nào đã cấu hình trong MiawRouter da
 1. Mở panel Cline trong VSCode
 2. Gõ tin nhắn vào input chat
 3. Nhấn Enter để gửi
-4. Cline sẽ dùng MiawRouter để xử lý request
+4. Cline sẽ dùng Dardcor Code để xử lý request
 
 ### Tạo Code
 
 1. Yêu cầu Cline tạo code: "Create a React component for a login form"
-2. Cline sẽ tạo code qua MiawRouter
+2. Cline sẽ tạo code qua Dardcor Code
 3. Xem và chấp nhận code được tạo
 
 ### Giải thích Code
 
 1. Chọn code trong editor
 2. Hỏi Cline: "Explain this code"
-3. Nhận giải thích AI qua MiawRouter
+3. Nhận giải thích AI qua Dardcor Code
 
 ### Thao tác File
 
 1. Yêu cầu Cline tạo, sửa hoặc xóa files
-2. Cline sẽ dùng MiawRouter để hiểu context và thực hiện thay đổi
+2. Cline sẽ dùng Dardcor Code để hiểu context và thực hiện thay đổi
 3. Xem thay đổi trước khi chấp nhận
 
 ## Troubleshooting
 
 ### Lỗi "Connection Failed"
 
-1. Xác minh MiawRouter đang chạy: `curl http://localhost:21128/health`
+1. Xác minh Dardcor Code đang chạy: `curl http://localhost:21128/health`
 2. Kiểm tra base URL đúng và bao gồm `/v1`
 3. Đảm bảo không firewall nào chặn port 21128
 4. Thử khởi động lại VSCode
 
 ### Lỗi "Invalid API Key"
 
-1. Xác minh API key trong MiawRouter dashboard
-2. Đảm bảo bạn sao chép đầy đủ key bao gồm prefix `sk-miawrouter-`
+1. Xác minh API key trong Dardcor Code dashboard
+2. Đảm bảo bạn sao chép đầy đủ key bao gồm prefix `sk-dardcor-code-`
 3. Kiểm tra API key chưa hết hạn
 4. Thử tạo API key mới
 
 ### Lỗi "Model Not Found"
 
-1. Xác minh tên model khớp chính xác với cấu hình MiawRouter
-2. Kiểm tra kết nối provider đang hoạt động trong MiawRouter dashboard
+1. Xác minh tên model khớp chính xác với cấu hình Dardcor Code
+2. Kiểm tra kết nối provider đang hoạt động trong Dardcor Code dashboard
 3. Đảm bảo model có sẵn trong các provider đã kết nối
 4. Thử dùng tên model đầy đủ (ví dụ: `openai/gpt-4` thay vì `gpt-4`)
 
 ### Cline không phản hồi
 
 1. Kiểm tra panel output Cline để xem thông báo lỗi
-2. Xác minh MiawRouter instance đang chạy và healthy
+2. Xác minh Dardcor Code instance đang chạy và healthy
 3. Thử reload cửa sổ VSCode (Cmd/Ctrl + Shift + P → "Reload Window")
-4. Kiểm tra logs MiawRouter để xem lỗi
+4. Kiểm tra logs Dardcor Code để xem lỗi
 
 ## Cấu hình Nâng cao
 
 ### Dùng Cloud Endpoint
 
-Để dùng MiawRouter cloud endpoint thay vì localhost:
+Để dùng Dardcor Code cloud endpoint thay vì localhost:
 
-1. Trong Cline settings, đặt Base URL: `https://miawrouter.web.id`
-2. Đảm bảo bạn đã cấu hình API key trong MiawRouter cloud dashboard
+1. Trong Cline settings, đặt Base URL: `https://dardcor-code.web.id`
+2. Đảm bảo bạn đã cấu hình API key trong Dardcor Code cloud dashboard
 3. Đảm bảo cloud endpoint đang hoạt động và truy cập được
 
 ### Nhiều Model
@@ -173,16 +173,16 @@ Nếu gặp vấn đề timeout với request lớn:
 ## Best Practices
 
 1. **Dùng Model phù hợp**: Chọn model nhanh (như Haiku hoặc Flash) cho task đơn giản, model mạnh hơn (như Opus hoặc GPT-4) cho task phức tạp
-2. **Theo dõi Usage**: Kiểm tra MiawRouter dashboard để xem thống kê và chi phí
+2. **Theo dõi Usage**: Kiểm tra Dardcor Code dashboard để xem thống kê và chi phí
 3. **Quản lý Context**: Giữ cuộc trò chuyện tập trung để giảm token usage
 4. **Chuyển Model**: Chuyển model dựa trên độ phức tạp task để tối ưu chi phí và hiệu năng
 5. **Bảo mật API Key**: Không bao giờ commit API key vào version control
 
-## Tích hợp với Tính năng MiawRouter
+## Tích hợp với Tính năng Dardcor Code
 
 ### Định tuyến Model
 
-MiawRouter tự động định tuyến request đến provider tốt nhất hiện có dựa trên:
+Dardcor Code tự động định tuyến request đến provider tốt nhất hiện có dựa trên:
 - Tính khả dụng của model
 - Trạng thái sức khỏe provider
 - Tối ưu chi phí
@@ -190,11 +190,11 @@ MiawRouter tự động định tuyến request đến provider tốt nhất hi�
 
 ### Hỗ trợ Fallback
 
-Nếu một provider thất bại, MiawRouter tự động fallback sang provider khác đã cấu hình trong dashboard.
+Nếu một provider thất bại, Dardcor Code tự động fallback sang provider khác đã cấu hình trong dashboard.
 
 ### Theo dõi Usage
 
-Giám sát usage Cline qua MiawRouter dashboard:
+Giám sát usage Cline qua Dardcor Code dashboard:
 - Tổng request
 - Token usage
 - Chi phí mỗi model

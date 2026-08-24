@@ -1,6 +1,6 @@
 /**
- * `miawrouter xai video` — generate a Grok Imagine video through the local
- * MiawRouter gateway and save the result as an MP4 file.
+ * `dardcor-code xai video` — generate a Grok Imagine video through the local
+ * Dardcor Code gateway and save the result as an MP4 file.
  *
  * Flow: POST /v1/videos/generations → poll GET /v1/videos/{request_id}
  * until done/failed/timeout → download video.url → atomic rename.
@@ -23,9 +23,9 @@ const TERMINAL_STATUSES = new Set(["done", "failed", "completed", "error", "expi
 const FAILED_STATUSES = new Set(["failed", "error", "expired", "cancelled"]);
 
 const HELP = `
-Usage: miawrouter xai video --prompt "..." [options]
+Usage: dardcor-code xai video --prompt "..." [options]
 
-Generate a Grok Imagine video via your local MiawRouter gateway
+Generate a Grok Imagine video via your local Dardcor Code gateway
 (requires a connected xAI account — Grok Build OAuth or API key).
 
 Options:
@@ -39,7 +39,7 @@ Options:
   --timeout <seconds>     Max wait for the job (default: ${DEFAULT_TIMEOUT_SEC})
   --port <port>           Gateway port (default: ${DEFAULT_PORT})
   --host <host>           Gateway host (default: ${DEFAULT_HOST})
-  --api-key <key>         MiawRouter API key (or env MIAW_API_KEY / NINE_ROUTER_API_KEY)
+  --api-key <key>         Dardcor Code API key (or env DARDCOR_API_KEY / NINE_ROUTER_API_KEY)
   -h, --help              Show this help
 `;
 
@@ -54,7 +54,7 @@ function parseArgs(argv) {
     timeoutSec: DEFAULT_TIMEOUT_SEC,
     port: DEFAULT_PORT,
     host: DEFAULT_HOST,
-    apiKey: process.env.MIAW_API_KEY || process.env.NINE_ROUTER_API_KEY || null,
+    apiKey: process.env.DARDCOR_API_KEY || process.env.NINE_ROUTER_API_KEY || null,
     pollIntervalMs: DEFAULT_POLL_INTERVAL_MS,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -258,8 +258,8 @@ async function run(argv) {
     }
 
     const requestId = create.body.request_id;
-    // New x-miaw-connection-id wins; legacy x-9router-connection-id still read.
-    const connectionId = create.headers["x-miaw-connection-id"] || create.headers["x-9router-connection-id"] || null;
+    // New x-dardcor-connection-id wins; legacy x-9router-connection-id still read.
+    const connectionId = create.headers["x-dardcor-connection-id"] || create.headers["x-9router-connection-id"] || null;
     console.log(`📋 Job accepted: ${requestId}`);
 
     let lastLine = "";

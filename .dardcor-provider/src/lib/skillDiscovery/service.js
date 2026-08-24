@@ -10,7 +10,7 @@ import {
   SKILLS_SH_MIN_QUERY,
 } from "./sources";
 import {
-  MIAWROUTER_TARGET,
+  DARDCOR CODE_TARGET,
   detectCliTargets,
   isKnownTarget,
   isKnownCliTarget,
@@ -21,7 +21,7 @@ import { createInstallStore } from "./store";
 import { sanitizeSlug, sha256, redactMetadata } from "./security";
 import { detectInstalledSkills } from "./installed";
 
-const SOURCE_IDS = Object.freeze(["miawrouter", "skills.sh"]);
+const SOURCE_IDS = Object.freeze(["dardcor-code", "skills.sh"]);
 const MAX_QUERY = 100;
 
 function defaultFetch() {
@@ -83,7 +83,7 @@ async function loadAll({ fetchImpl, query, useRemote = true } = {}) {
   const fetchFn = fetchImpl || defaultFetch();
   const local = localItems();
 
-  const sources = [{ id: "miawrouter", available: true, count: local.length, error: null }];
+  const sources = [{ id: "dardcor-code", available: true, count: local.length, error: null }];
   let remote = [];
   const q = String(query || "").trim();
 
@@ -187,7 +187,7 @@ export async function listSkills({ query, source, installed, fetchImpl, useRemot
 
   const cli = cliTargets || detectCliTargets();
   const targets = [
-    { id: MIAWROUTER_TARGET, label: getTargetLabel(MIAWROUTER_TARGET), available: true },
+    { id: DARDCOR CODE_TARGET, label: getTargetLabel(DARDCOR CODE_TARGET), available: true },
     ...cli.map((t) => ({ id: t.id, label: t.label, available: t.available })),
   ];
 
@@ -196,7 +196,7 @@ export async function listSkills({ query, source, installed, fetchImpl, useRemot
     counts: {
       total: resolved.items.length,
       filtered: filtered.length,
-      local: resolved.items.filter((i) => i.source === "miawrouter").length,
+      local: resolved.items.filter((i) => i.source === "dardcor-code").length,
       remote: resolved.items.filter((i) => i.source === "skills.sh").length,
       installed: resolved.items.filter((i) => i.installed).length,
     },
@@ -207,7 +207,7 @@ export async function listSkills({ query, source, installed, fetchImpl, useRemot
 }
 
 /**
- * Get a single skill by its fully-qualified id (`miawrouter/<slug>` or
+ * Get a single skill by its fully-qualified id (`dardcor-code/<slug>` or
  * `skills.sh/<slug>`), including install targets and the canonical command.
  */
 export async function getSkill(id, { fetchImpl, store, detect } = {}) {
@@ -243,11 +243,11 @@ function manifestForSkill(skill) {
 }
 
 /**
- * Install a skill into the MiawRouter global registry by writing a manifest
+ * Install a skill into the Dardcor Code global registry by writing a manifest
  * file under DATA_DIR/skills/<slug>/ and recording ownership. Never downloads
  * or executes third-party files.
  */
-async function installToMiawrouter(skill, fsImpl, dataDir) {
+async function installToDardcor Code(skill, fsImpl, dataDir) {
   const fsx = fsImpl || fs;
   const base = dataDir || DATA_DIR;
   const slug = sanitizeSlug(skill.slug);
@@ -258,8 +258,8 @@ async function installToMiawrouter(skill, fsImpl, dataDir) {
   const content = JSON.stringify(manifest, null, 2);
   await fsx.writeFile(filePath, content, "utf8");
   return {
-    id: MIAWROUTER_TARGET,
-    label: getTargetLabel(MIAWROUTER_TARGET),
+    id: DARDCOR CODE_TARGET,
+    label: getTargetLabel(DARDCOR CODE_TARGET),
     installedAt: manifest.installedAt,
     ownedFiles: ["skill.json"],
     checksum: sha256(content),
@@ -282,11 +282,11 @@ export async function installSkill(id, target, { cliId, fetchImpl, fsImpl, store
   const recordStore = store || createInstallStore();
   const installedTargets = [];
 
-  if (target === MIAWROUTER_TARGET || target === "both") {
-    installedTargets.push(await installToMiawrouter(skill, fsImpl, dataDir));
+  if (target === DARDCOR CODE_TARGET || target === "both") {
+    installedTargets.push(await installToDardcor Code(skill, fsImpl, dataDir));
   }
 
-  if (target !== MIAWROUTER_TARGET) {
+  if (target !== DARDCOR CODE_TARGET) {
     const detected = (cliTargets || detectCliTargets()).filter((t) => t.available);
     const wanted = cliId ? detected.filter((t) => t.id === cliId) : detected;
     if (cliId && !isKnownCliTarget(cliId)) {
@@ -338,7 +338,7 @@ export async function installSkill(id, target, { cliId, fetchImpl, fsImpl, store
  * given target.
  */
 export async function uninstallSkill(id, target, { fsImpl, store, dataDir } = {}) {
-  if (target !== MIAWROUTER_TARGET && !isKnownCliTarget(target)) {
+  if (target !== DARDCOR CODE_TARGET && !isKnownCliTarget(target)) {
     return { ok: false, code: "UNKNOWN_TARGET", error: "Unknown install target" };
   }
   const recordStore = store || createInstallStore();
@@ -348,7 +348,7 @@ export async function uninstallSkill(id, target, { fsImpl, store, dataDir } = {}
   if (!existing) return { ok: false, code: "NOT_INSTALLED", error: `Skill is not installed for target "${target}"` };
 
   const removed = [];
-  if (target === MIAWROUTER_TARGET) {
+  if (target === DARDCOR CODE_TARGET) {
     const fsx = fsImpl || fs;
     const base = dataDir || DATA_DIR;
     const dir = path.join(base, "skills", sanitizeSlug(record.slug));

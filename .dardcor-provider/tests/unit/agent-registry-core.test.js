@@ -3,7 +3,7 @@ import { createAgentRegistry, normalizeAgentStatus } from "../../src/lib/agents/
 import { getAgentLifecycle, recordAgentLifecycle } from "../../src/lib/agents/lifecycle.js";
 
 describe("agent registry core", () => {
-  beforeEach(() => { delete globalThis.__miawrouterAgentLifecycle; });
+  beforeEach(() => { delete globalThis.__dardcor-codeAgentLifecycle; });
 
   it("derives honest states only from status checks", () => {
     expect(normalizeAgentStatus({ installed: false })).toMatchObject({ state: "unavailable", available: false, running: false });

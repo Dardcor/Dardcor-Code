@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { SessionOptions } from '@github/dardcor/sdk';
+import type { SessionOptions } from '@github/copilot/sdk';
 import * as l10n from '@vscode/l10n';
 import type { CancellationToken, ChatParticipantToolToken, TextDocument } from 'vscode';
 import { ILogService } from '../../../../platform/log/common/logService';

@@ -9,7 +9,7 @@ import os from "os";
 
 const execAsync = promisify(exec);
 
-const PROVIDER_NAME = "MiawRouter";
+const PROVIDER_NAME = "Dardcor Code";
 
 const getDeepSeekDir = () => path.join(os.homedir(), ".deepseek");
 const getDeepSeekConfigPath = () => path.join(getDeepSeekDir(), "config.toml");
@@ -51,8 +51,8 @@ const parseToml = (content) => {
     return result;
 };
 
-// Build TOML config for MiawRouter (openai provider mode)
-const buildMiawRouterConfig = (baseUrl, apiKey, model) => {
+// Build TOML config for Dardcor Code (openai provider mode)
+const buildDardcor CodeConfig = (baseUrl, apiKey, model) => {
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
     return `provider = "openai"
 
@@ -92,7 +92,7 @@ const readConfigToml = async () => {
     }
 };
 
-// Detect MiawRouter by checking if provider is "openai" and base_url points to localhost/127.0.0.1
+// Detect Dardcor Code by checking if provider is "openai" and base_url points to localhost/127.0.0.1
 const has9RouterConfig = (config) => {
     if (!config) return false;
     const provider = config.provider;
@@ -132,7 +132,7 @@ export async function POST(request) {
         const dir = getDeepSeekDir();
         await fs.mkdir(dir, { recursive: true });
 
-        const newConfig = buildMiawRouterConfig(baseUrl, apiKey || "sk_miawrouter", model);
+        const newConfig = buildDardcor CodeConfig(baseUrl, apiKey || "sk_dardcor-code", model);
         await fs.writeFile(getDeepSeekConfigPath(), newConfig);
 
         return NextResponse.json({

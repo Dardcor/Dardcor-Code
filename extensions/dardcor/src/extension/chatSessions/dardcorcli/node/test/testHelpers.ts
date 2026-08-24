@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { SessionOptions, SweCustomAgent } from '@github/dardcor/sdk';
+import type { SessionOptions, SweCustomAgent } from '@github/copilot/sdk';
 import type { CancellationToken, Uri } from 'vscode';
 import { Event } from '../../../../../util/dardcor/base/common/event';
 import { Disposable, IDisposable } from '../../../../../util/dardcor/base/common/lifecycle';

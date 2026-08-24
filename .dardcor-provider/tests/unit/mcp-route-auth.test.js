@@ -47,7 +47,7 @@ describe("MCP route authorization", () => {
 
   it("records accepted tool-call forwarding without recording notifications", async () => {
     canAccessLocalOnlyRoute.mockResolvedValue(true);
-    delete globalThis.__miawrouterMcpHealth;
+    delete globalThis.__dardcor-codeMcpHealth;
     const { POST } = await import("@/app/api/mcp/[plugin]/message/route.js");
 
     await POST(new Request("http://localhost/api/mcp/browsermcp/message", {
@@ -61,6 +61,6 @@ describe("MCP route authorization", () => {
       headers: { "content-type": "application/json" },
     }), context);
 
-    expect(globalThis.__miawrouterMcpHealth.invocations.get("browsermcp")).toHaveLength(1);
+    expect(globalThis.__dardcor-codeMcpHealth.invocations.get("browsermcp")).toHaveLength(1);
   });
 });

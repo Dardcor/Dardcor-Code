@@ -1,18 +1,18 @@
 <div align="center">
-  <img src="../images/miawrouter.png?1" alt="Bảng điều khiển MiawRouter" width="800"/>
+  <img src="../images/dardcor-code.png?1" alt="Bảng điều khiển Dardcor Code" width="800"/>
   
-  # MiawRouter - Free AI Router & Token Saver
+  # Dardcor Code - Free AI Router & Token Saver
   
   
   **Kết nối tất cả công cụ AI Code (Claude Code, Codex, Cursor, Cline, Copilot, Antigravity...) tới 40+ Nhà cung cấp AI & 100+ Mô hình.**
   
   
-  [🚀 Bắt đầu nhanh](#-quick-start) • [💡 Tính năng](#-key-features) • [📖 Cài đặt](#-setup-guide) • [🌐 Website](https://miawrouter.web.id)
+  [🚀 Bắt đầu nhanh](#-quick-start) • [💡 Tính năng](#-key-features) • [📖 Cài đặt](#-setup-guide) • [🌐 Website](https://dardcor-code.web.id)
 </div>
 
 ---
 
-## 🤔 Tại sao chọn MiawRouter?
+## 🤔 Tại sao chọn Dardcor Code?
 
 **Ngừng lãng phí tiền bạc, token và không bao giờ lo chạm giới hạn (rate limit):**
 
@@ -22,7 +22,7 @@
 - ❌ Chi phí API đắt đỏ ($20-50/tháng cho từng nhà cung cấp)
 - ❌ Phải chuyển đổi thủ công giữa các nhà cung cấp AI
 
-**MiawRouter giải quyết vấn đề này:**
+**Dardcor Code giải quyết vấn đề này:**
 
 - ✅ **Tối đa hóa gói đăng ký** - Theo dõi hạn mức, tận dụng triệt để trước khi reset
 - ✅ **Tự động dự phòng (Auto Fallback)** - Gói đăng ký → Giá rẻ → Miễn phí, không lo downtime
@@ -41,7 +41,7 @@
        │ http://localhost:21128/v1
        ↓
 ┌─────────────────────────────────────────────┐
-│           MiawRouter (Smart Router)            │
+│           Dardcor Code (Smart Router)            │
 │  • RTK Token Saver (nén tool_result token) │
 │  • Dịch chuyển định dạng (OpenAI ↔ Claude) │
 │  • Quota tracking (theo dõi hạn mức)       │
@@ -63,8 +63,8 @@
 **1. Cài đặt toàn cục:**
 
 ```bash
-npm install -g miawrouter
-miawrouter
+npm install -g dardcor-code
+dardcor-code
 ```
 
 🎉 Bảng điều khiển (Dashboard) sẽ tự động mở tại `http://localhost:21128`
@@ -86,7 +86,7 @@ Cài đặt Claude Code/Codex/OpenClaw/Cursor/Cline/Antigravity:
 
 **Phương án khác: chạy từ mã nguồn (repository này):**
 
-Gói kho lưu trữ này là riêng tư (`miawrouter-app`), vì vậy việc chạy từ nguồn/Docker là cách phát triển cục bộ mặc định.
+Gói kho lưu trữ này là riêng tư (`dardcor-code-app`), vì vậy việc chạy từ nguồn/Docker là cách phát triển cục bộ mặc định.
 
 ```bash
 cp .env.example .env
@@ -111,7 +111,7 @@ URL mặc định:
 
 ## 🛠️ Các công cụ CLI được hỗ trợ
 
-MiawRouter hoạt động liền mạch với tất cả các công cụ code AI chính:
+Dardcor Code hoạt động liền mạch với tất cả các công cụ code AI chính:
 
 <div align="center">
   <table>
@@ -362,7 +362,7 @@ Combo: "my-coding-stack"
 
 Dịch chuyển liền mạch giữa các định dạng:
 - **OpenAI** ↔ **Claude** ↔ **Gemini** ↔ **OpenAI Responses**
-- Công cụ CLI của bạn gửi định dạng OpenAI → MiawRouter dịch chuyển → Nhà cung cấp nhận định dạng gốc
+- Công cụ CLI của bạn gửi định dạng OpenAI → Dardcor Code dịch chuyển → Nhà cung cấp nhận định dạng gốc
 - Hoạt động với mọi công cụ hỗ trợ endpoint OpenAI tùy chỉnh
 
 ### 👥 Hỗ trợ Đa tài khoản
@@ -416,11 +416,11 @@ Dịch chuyển liền mạch giữa các định dạng:
 > **💡AN TRỌNG - Hiểu về Chi phí trên Bảng điều khiển:**
 > 
 > "Chi phí" hiển thị trong Phân tích sử dụng là **chỉ để theo dõi và so sánh**. 
-> Bản thân MiawRouter **không bao giờ thu phí** bạn bất cứ thứ gì. Bạn chỉ trả tiền trực tiếp cho các nhà cung cấp (nếu sử dụng dịch vụ trả phí).
+> Bản thân Dardcor Code **không bao giờ thu phí** bạn bất cứ thứ gì. Bạn chỉ trả tiền trực tiếp cho các nhà cung cấp (nếu sử dụng dịch vụ trả phí).
 > 
 > số tiền bạn sẽ phải trả nếu sử dụng API trả phí trực tiếp. Chi phí thực tế của bạn = **$0** (iFlow miễn phí không giới hạn).
 > 
-> định tuyến qua MiawRouter!
+> định tuyến qua Dardcor Code!
 
 ### 🌐 Triển khai ở bất cứ đâu
 
@@ -452,15 +452,15 @@ Dịch chuyển liền mạch giữa các định dạng:
 
 ---
 
-### 📊 Hiểu về Chi phí & Thanh toán của MiawRouter
+### 📊 Hiểu về Chi phí & Thanh toán của Dardcor Code
 
-**Thực tế Thanh toán MiawRouter:**
+**Thực tế Thanh toán Dardcor Code:**
 
-✅ **Phần mềm MiawRouter = MIỄN PHÍ mãi mãi** (mã nguồn mở, không bao giờ thu phí)  
+✅ **Phần mềm Dardcor Code = MIỄN PHÍ mãi mãi** (mã nguồn mở, không bao giờ thu phí)  
 ✅ **"Chi phí" trên bảng điều khiển = Chỉ để Hiển thị/Theo dõi** (không phải hóa đơn thực tế)  
  **Bạn trả tiền trực tiếp cho nhà cung cấp** (gói đăng ký hoặc phí API)  
 ✅ **Nhà cung cấp MIỄN PHÍ vẫn MIỄN PHÍ** (iFlow, Kiro, Qwen = $0 không giới hạn)  
-❌ **MiawRouter không bao giờ gửi hóa đơn** hoặc tính phí thẻ của bạn
+❌ **Dardcor Code không bao giờ gửi hóa đơn** hoặc tính phí thẻ của bạn
 
 **Cách Hoạt động của Hiển thị Chi phí:**
 
@@ -477,7 +477,7 @@ Kiểm tra Thực tế:
 
 **Quy tắc Thanh toán:**
 - **Nhà cung cấp gói đăng ký** (Claude Code, Codex): Trả tiền trực tiếp cho họ qua website của họ
-- **Nhà cung cấp giá rẻ** (GLM, MiniMax): Trả tiền trực tiếp cho họ, MiawRouter chỉ định tuyến
+- **Nhà cung cấp giá rẻ** (GLM, MiniMax): Trả tiền trực tiếp cho họ, Dardcor Code chỉ định tuyến
 - **9**: Không bao giờ thu phí bất cứ thứ gì, ever
 
 ---
@@ -559,16 +559,16 @@ Truy cập qua: WhatsApp, Telegram, Slack, Discord, iMessage, Signal...
 </details>
 
 <details>
-<summary><b>💳 Tôi có bị MiawRouter tính phí không?</b></summary>
+<summary><b>💳 Tôi có bị Dardcor Code tính phí không?</b></summary>
 
-**Không.** MiawRouter là phần mềm miễn phí, mã nguồn mở chạy trên máy tính của chính bạn. Nó không bao giờ tính phí bạn bất cứ thứ gì.
+**Không.** Dardcor Code là phần mềm miễn phí, mã nguồn mở chạy trên máy tính của chính bạn. Nó không bao giờ tính phí bạn bất cứ thứ gì.
 
 **Bạn chỉ trả tiền:**
 - ✅ **Nhà cung cấp gói đăng ký** (Claude Code $20/tháng, Codex $20-200/tháng) → Trả tiền trực tiếp cho họ trên website của họ
-- ✅ **Nhà cung cấp giá rẻ** (GLM, MiniMax) → Trả tiền trực tiếp cho họ, MiawRouter chỉ định tuyến yêu cầu của bạn
-- ❌ **Bản thân MiawRouter** → **Không bao giờ tính phí bất cứ thứ gì, ever**
+- ✅ **Nhà cung cấp giá rẻ** (GLM, MiniMax) → Trả tiền trực tiếp cho họ, Dardcor Code chỉ định tuyến yêu cầu của bạn
+- ❌ **Bản thân Dardcor Code** → **Không bao giờ tính phí bất cứ thứ gì, ever**
 
-MiawRouter là một proxy/router cục bộ. Nó không cóẻ tín dụng của bạn, không thể gửi hóa đơn và không có hệ thống thanh toán. Đó là phần mềm hoàn toàn miễn phí.
+Dardcor Code là một proxy/router cục bộ. Nó không cóẻ tín dụng của bạn, không thể gửi hóa đơn và không có hệ thống thanh toán. Đó là phần mềm hoàn toàn miễn phí.
 
 </details>
 
@@ -582,9 +582,9 @@ MiawRouter là một proxy/router cục bộ. Nó không cóẻ tín dụng củ
 - **Kiro**: Các mô hình Claude miễn phí không giới hạn qua AWS Builder ID  
 - **Qwen**: Truy cập miễn phí không giới hạn vào các mô hình Qwen qua xác thực thiết bị
 
-MiawRouter chỉ định tuyến yêu cầu của bạn đến họ - không có "cạm bẫy" hay thanh toán trong tương lai. Đó là các dịch vụ thực sự miễn phí, và MiawRouter giúp chúng dễ sử dụng với hỗ trợ dự phòng.
+Dardcor Code chỉ định tuyến yêu cầu của bạn đến họ - không có "cạm bẫy" hay thanh toán trong tương lai. Đó là các dịch vụ thực sự miễn phí, và Dardcor Code giúp chúng dễ sử dụng với hỗ trợ dự phòng.
 
-**Lưu ý:** số nhà cung cấp gói đăng ký (Antigravity, GitHub Copilot) có thể có các khoảng thời gian dùng thử miễn phí có thể trở thành trả phí sau này, nhưng điều này sẽ được các nhà cung cấp đó thông báo rõ ràng, không phải MiawRouter.
+**Lưu ý:** số nhà cung cấp gói đăng ký (Antigravity, GitHub Copilot) có thể có các khoảng thời gian dùng thử miễn phí có thể trở thành trả phí sau này, nhưng điều này sẽ được các nhà cung cấp đó thông báo rõ ràng, không phải Dardcor Code.
 
 </details>
 
@@ -609,7 +609,7 @@ MiawRouter chỉ định tuyến yêu cầu của bạn đến họ - không có
 
 3. **Sử dụng nhà cung cấp gói đăng ký cuối cùng:**
    - Chỉ khi bạn đã có chúng
-   - MiawRouter giúp tối đa hóa giá trị của chúng thông qua theo dõi hạn mức
+   - Dardcor Code giúp tối đa hóa giá trị của chúng thông qua theo dõi hạn mức
 
 **Kết quả:** Hầu hết người dùng có thể hoạt động ở mức $0/tháng chỉ sử dụng các tầng miễn phí!
 
@@ -618,20 +618,20 @@ MiawRouter chỉ định tuyến yêu cầu của bạn đến họ - không có
 <details>
 <summary><b>📈 Điều gì xảy ra nếu mức sử dụng của tôi đột ngột tăng vọt?</b></summary>
 
-Cơ chế dự phòng thông minh của MiawRouter ngăn chặn các khoản phí bất ngờ:
+Cơ chế dự phòng thông minh của Dardcor Code ngăn chặn các khoản phí bất ngờ:
 
 **Kịch bản:** Bạn đang trong giai đoạn code nước rút và vượt qua các hạn mức
 
-**Không có MiawRouter:**
+**Không có Dardcor Code:**
 - ❌ Chạm giới hạn tốc độ → Công việc dừng lại → Thất vọng
 - ❌ Hoặc: Vô tình tích lũy hóa đơn API khổng lồ
 
-**Có MiawRouter:**
+**Có Dardcor Code:**
 - ✅ Gói đăng ký chạm giới hạn → Tự động dự phòng sang tầng giá rẻ
 - ✅ Tầng giá rẻ trở nên đắt đỏ → Tự động dự phòng sang tầng miễn phí
 - ✅ Không bao giờ ngừng code → Chi phí dự đoán được
 
-**Bạn nắm quyền kiểm soát:** Đặt giới hạn chi tiêu cho mỗi nhà cung cấp trong bảng điều khiển, và MiawRouter sẽ tuân thủ chúng.
+**Bạn nắm quyền kiểm soát:** Đặt giới hạn chi tiêu cho mỗi nhà cung cấp trong bảng điều khiển, và Dardcor Code sẽ tuân thủ chúng.
 
 </details>
 
@@ -655,7 +655,7 @@ Các mô hình:
   cc/claude-haiku-4-5-20251001
 ```
 
-**Mẹo Chuyên nghiệp:** Sử dụng Opus cho các tác vụ phức tạp, Sonnet cho tốc độ. MiawRouter theo dõi hạn mức cho mỗi mô hình!
+**Mẹo Chuyên nghiệp:** Sử dụng Opus cho các tác vụ phức tạp, Sonnet cho tốc độ. Dardcor Code theo dõi hạn mức cho mỗi mô hình!
 
 ### OpenAI Codex (Plus/Pro)
 
@@ -824,7 +824,7 @@ Chi phí: $0 mãi mãi!
 ```
 Settings → Models → Advanced:
   OpenAI API Base URL: http://localhost:21128/v1
-  OpenAI API Key: [từ bảng điều khiển miawrouter]
+  OpenAI API Key: [từ bảng điều khiển dardcor-code]
   Model: cc/claude-opus-4-6
 ``Hoặc sử dụng combo: `premium-coding`
 
@@ -835,7 +835,7 @@ Chỉnh sửa `~/.claude/config.json`:
 ```json
 {
   "anthropic_api_base": "http://localhost:21128/v1",
-  "anthropic_api_key": "your-miawrouter-api-key"
+  "anthropic_api_key": "your-dardcor-code-api-key"
 }
 ```
 
@@ -843,7 +843,7 @@ Chỉnh sửa `~/.claude/config.json`:
 
 ```bash
 export OPENAI_BASE_URL="http://localhost:21128"
-export OPENAI_API_KEY="your-miawrouter-api-key"
+export OPENAI_API_KEY="your-dardcor-code-api-key"
 
 codex "prompt của bạn"
 ```
@@ -863,15 +863,15 @@ Bảng điều khiển → CLI Tools → OpenClaw → Chọn Mô hình → Áp d
   "agents": {
     "defaults": {
       "model": {
-        "primary": "miawrouter/if/glm-4.7"
+        "primary": "dardcor-code/if/glm-4.7"
       }
     }
   },
   "models": {
     "providers": {
-      "miawrouter": {
+      "dardcor-code": {
         "baseUrl": "://127.0.0.1:21128/v1",
-        "apiKey": "sk_miawrouter",
+        "apiKey": "sk_dardcor-code",
         "api": "openai-completions",
         "models": [
           {
@@ -885,7 +885,7 @@ Bảng điều khiển → CLI Tools → OpenClaw → Chọn Mô hình → Áp d
 }
 ```
 
-> **Lưu ý:** OpenClaw chỉ hoạt động với MiawRouter cục bộ. Sử dụng `127.0.0.1` thay vì `localhost` để tránh các vấn đề phân giải6.
+> **Lưu ý:** OpenClaw chỉ hoạt động với Dardcor Code cục bộ. Sử dụng `127.0.0.1` thay vì `localhost` để tránh các vấn đề phân giải6.
 
 ### Cline / Continue / RooCode
 
@@ -906,19 +906,19 @@ Model: cc/claude-opus-4-6
 ```bash
 # Clone và cài đặt
 git clone .git
-cd miawrouter
+cd dardcor-code
 npm install
 npm run build
 
 # Cấu hình
 export JWT="your-secure-secret-change-this"
 export INITIAL_PASSWORD="your-password"
-export DATA_DIR="/var/lib/miawrouter"
+export DATA_DIR="/var/lib/dardcor-code"
 export PORT="21128"
 export HOSTNAME="0.0.0.0"
 export NODE_ENV="production"
 export NEXT_PUBLIC_BASE_URL="http://localhost:21128"
-export NEXT_PUBLIC_CLOUD_URL="https://miawrouter.web.id"
+export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.web.id"
 export API_KEY_SECRET="endpoint-proxy-api-key-secret"
 export MACHINE_ID_SALT="endpoint-proxy-salt"
 
@@ -927,7 +927,7 @@ npm run start
 
 # Hoặc sử dụng PM2
 npm install -g pm2
-pm2 start --name miawrouter -- start
+pm2 start --name dardcor-code -- start
 pm2 save
 pm2 startup
 ```
@@ -936,28 +936,28 @@ pm2 startup
 
 ```bash
 # Build image (từ gốc kho lưu trữ)
-docker build -t miawrouter .
+docker build -t dardcor-code .
 
 # Chạy container (lệnh được sử dụng trong thiết lập hiện tại)
 docker run -d \
-  --name miawrouter \
+  --name dardcor-code \
   -p 21128:21128 \
-  --env-file /root/dev/miawrouter/.env \
-  -v miawrouter-data:/app/data \
-  -v miawrouter-usage:/root/.miawrouter \
-  miawrouter
+  --env-file /root/dev/dardcor-code/.env \
+  -v dardcor-code-data:/app/data \
+  -v dardcor-code-usage:/root/.dardcor-code \
+  dardcor-code
 ```
 
 Lệnh di động (nếu bạn đã ở gốc kho lưu trữ):
 
 ```bash
 docker run -d \
-  --name miawrouter \
+  --name dardcor-code \
   -p 21128:21128 \
   --env-file ./.env \
-  -v miawrouter-data:/app/data \
-  -v miawrouter-usage:/root/.miawrouter \
-  miawrouter
+  -v dardcor-code-data:/app/data \
+  -v dardcor-code-usage:/root/.dardcor-code \
+  dardcor-code
 ```
 
 Mặc định container:
@@ -967,25 +967,25 @@ Mặc định container:
 Các lệnh hữu ích:
 
 ```bash
-docker logs -f miawrouter
- restart miawrouter
-docker stop miawrouter && docker rm miawrouter
+docker logs -f dardcor-code
+ restart dardcor-code
+docker stop dardcor-code && docker rm dardcor-code
 ```
 
 ### Biến môi trường
 
 | Biến | Mặc định | Mô tả |
 |----------|---------|-------------|
-| `JWT_SECRET` | Tự động sinh (`~/.miawrouter/jwt-secret`) | Bí mật ký JWT cho cookie xác thực bảng điều khiển (đặt để chia sẻ giữa nhiều instance) |
+| `JWT_SECRET` | Tự động sinh (`~/.dardcor-code/jwt-secret`) | Bí mật ký JWT cho cookie xác thực bảng điều khiển (đặt để chia sẻ giữa nhiều instance) |
 | `INITIAL_PASSWORD` | unset | Bootstrap tùy chọn chỉ dành cho local khi chưa có hash được lưu. Nếu không đặt, hãy tạo mật khẩu qua localhost |
-| `DATA_DIR` | `~/.miawrouter` |ị trí cơ sở dữ liệu ứng dụng chính (`db.json`) |
+| `DATA_DIR` | `~/.dardcor-code` |ị trí cơ sở dữ liệu ứng dụng chính (`db.json`) |
 | `PORT` | framework default | Cổng dịch vụ (`21128` trong các ví dụ) |
 | `HOSTNAME` | framework default | Bind host (Docker mặc định là `0.0.0.0`) |
 | `NODE_ENV` | runtime default | Đặt `production` để triển khai |
 | `BASE_URL` | `http://localhost:21128` | URL cơ sở nội bộ phía máy chủ được sử dụng bởi các tác vụ đồng bộ đám mây |
-| `CLOUD_URL` | `https://miawrouter.web.id` | URL cơ sở endpoint đồng bộ đám mây phía máy chủ |
+| `CLOUD_URL` | `https://dardcor-code.web.id` | URL cơ sở endpoint đồng bộ đám mây phía máy chủ |
 | `NEXT_PUBLIC_BASE_URL` | `http://localhost:3000` | URL cơ sở tương thích ngược/công khai (ưu tiên `BASE_URL` cho runtime máy chủ) |
-| `NEXT_PUBLIC_CLOUD_URL` | `https://miawrouter.web.id` | URL đám mây tương thích ngược/công khai (ưu tiên `CLOUD_URL` cho runtime máy chủ) |
+| `NEXT_PUBLIC_CLOUD_URL` | `https://dardcor-code.web.id` | URL đám mây tương thích ngược/công khai (ưu tiên `CLOUD_URL` cho runtime máy chủ) |
 | `API_KEY_SECRET` | `endpoint-proxy-api-key-secret` | B mật HMAC cho các API key được tạo |
 | `MACHINE_ID_SALT` | `endpoint-proxy-salt` | Salt cho việc băm ID máy ổn định |
 | `ENABLE_REQUEST_LOGS` | `false` | Bật log request/response dưới `logs/` |
@@ -1002,9 +1002,9 @@ Ghi chú:
 ### Tệp Runtime và Lưu trữ
 
 - Trạng thái ứng dụng chính: `${DATA_DIR}/db.json` (nhà cung cấp, combo, alias, key, cài đặt), được quản lý bởi `src/lib/localDb.js`.
-- Lịch sử sử dụng và log: `~/.miawrouter/usage.json` và `~/.miawrouter/log.txt`, được quản lý bởi `src/lib/usageDb.js`.
+- Lịch sử sử dụng và log: `~/.dardcor-code/usage.json` và `~/.dardcor-code/log.txt`, được quản lý bởi `src/lib/usageDb.js`.
 - request/translator tùy chọn: `<repo>/logs/...` khi `ENABLE_REQUEST_LOGS=true`.
-- Lưu trữ sử dụng hiện tại tuân theo logic đường dẫn `~/.miawrouter` và độc lập với `DATA_DIR`.
+- Lưu trữ sử dụng hiện tại tuân theo logic đường dẫn `~/.dardcor-code` và độc lập với `DATA_DIR`.
 
 </details>
 
@@ -1066,7 +1066,7 @@ Ghi chú:
 - Thêm combo: `cc/claude-opus-4-6 → glm/glm-4.7 → if/kimi-k2-thinking`
 
 **Token OAuth hết hạn**
-- Tự động làm mới bởi MiawRouter
+- Tự động làm mới bởi Dardcor Code
 - Nếu sự cố vẫn tiếp diễn: Bảng điều khiển → Nhà cung cấp → Kết nối lại
 
 **Chi phí cao**
@@ -1079,14 +1079,14 @@ Ghi chú:
 
 **Lỗi đồng bộ đám mây**
 - Xác minh `BASE_URL` trỏ đến phiên bản đang chạy của bạn (ví dụ: `http://localhost:21128`)
-- Xác minh `CLOUD_URL` trỏ đến endpoint đám mây dự kiến của bạn (ví dụ: `https://miawrouter.web.id`)
+- Xác minh `CLOUD_URL` trỏ đến endpoint đám mây dự kiến của bạn (ví dụ: `https://dardcor-code.web.id`)
 - Giữ các giá trị `NEXT_PUBLIC_*` phù hợp với giá trị phía máy chủ khi có thể.
 
 **Endpoint đám mây `stream=false` trả về 500 (`Unexpected token 'd'...`)**
-- Triệu chứng thường xuất hiện trên endpoint đám mây công khai (`https://miawrouter.web.id/v1`) cho các lệnh gọi không phát trực tiếp (non-streaming).
+- Triệu chứng thường xuất hiện trên endpoint đám mây công khai (`https://dardcor-code.web.id/v1`) cho các lệnh gọi không phát trực tiếp (non-streaming).
 - Nguyên nhân gốc rễ: upstream trả về payload SSE (`data: ...`) trong khi client mong đợi JSON.
 -ải pháp thay thế: sử dụng `stream=true` cho các lệnh gọi trực tiếp đến đám mây.
-- Runtime MiawRouter cục bộ bao gồm dự phòng SSE→JSON cho các lệnh gọi không phát trực tiếp khi upstream trả về `text/event-stream`.
+- Runtime Dardcor Code cục bộ bao gồm dự phòng SSE→JSON cho các lệnh gọi không phát trực tiếp khi upstream trả về `text/event-stream`.
 
 **Đám mây báo đã kết nối, nhưng yêu cầu vẫn thất bại với `Invalid API key`**
 - Tạo một key mới từ bảng điều khiển cục bộ (`/api/keys`) và chạy đồng bộ đám mây (`Enable Cloud` sau đó `Sync Now`).
@@ -1157,7 +1157,7 @@ Authorization: Bearer your-api-key
 - `tester/security/test-docker-hardening.sh`
   - Build image Docker và xác thực các kiểm tra hardening (`/api/cloud/auth` auth guard, `REQUIRE_API_KEY`, hành vi cookie xác thực bảo).
 - `tester/security/test-cloud-openai-compatible.sh`
-  - Gửi một yêu cầu tương thích OpenAI trực tiếp đến endpoint đám mây (`https://miawrouter.web.id/v1/chat/completions`) với mô hình/key được cung cấp.
+  - Gửi một yêu cầu tương thích OpenAI trực tiếp đến endpoint đám mây (`https://dardcor-code.web.id/v1/chat/completions`) với mô hình/key được cung cấp.
 - `tester/security/test-cloud-sync-and-call.sh`
   - Quy trình end-to-end: tạo key cục bộ -> bật/đồng bộ đám mây -> gọi endpoint đám mây với thử lại.
   - Bao gồm kiểm tra dự phòng với `stream=true` để phân biệt lỗi xác thực với các vấn đề phân tích phát trực tiếp.
@@ -1177,7 +1177,7 @@ Hành vi dự kiến từ việc xác thực gần đây:
 
 - cục bộ (`http://127.0.0.1:21128/v1/chat/completions`): hoạt động với `stream=false` và `stream=true`.
 - Runtime Docker (cùng đường dẫn API được expose bởi container): các kiểm tra hardening đạt, cloud auth guard hoạt động, chế độ API key nghiêm ngặt hoạt động khi được bật.
-- Endpoint đám mây công khai (`https://miawrouter.web.id/v1/chat/completions`):
+- Endpoint đám mây công khai (`https://dardcor-code.web.id/v1/chat/completions`):
   - `stream=true`: dự kiến thành công (trả về các khối SSE).
   - `stream=false`: có thể thất bại với `500` + lỗi phân tích (`Unexpected token 'd'`) khi upstream trả về nội dung SSE cho đường dẫn client không phát trực tiếp.
 
@@ -1215,13 +1215,13 @@ Tài liệu tham khảo kiến trúc đầy đủ: [`docs/ARCHITECTURE.md`](../d
 
 ## 📧 Hỗ trợ
 
-- **Website**: [miawrouter.web.id](https://miawrouter.web.id)
+- **Website**: [dardcor-code.web.id](https://dardcor-code.web.id)
 
 ---
 
 ## 👥 Người đóng góp
 
-Cảm ơn tất cả những người đã đóng góp giúp MiawRouter tốt hơn!
+Cảm ơn tất cả những người đã đóng góp giúp Dardcor Code tốt hơn!
 
 ---
 

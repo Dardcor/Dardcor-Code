@@ -1,6 +1,6 @@
 # 安装
 
-MiawRouter 的详细安装指南,附故障排除技巧。
+Dardcor Code 的详细安装指南,附故障排除技巧。
 
 ---
 
@@ -34,34 +34,34 @@ npm --version
 全局安装,任何位置都能使用:
 
 ```bash
-npm install -g miawrouter
+npm install -g dardcor-code
 ```
 
-**启动 MiawRouter:**
+**启动 Dardcor Code:**
 
 ```bash
-miawrouter
+dardcor-code
 ```
 
 **优势:**
 - ✅ 任意目录均可运行
-- ✅ 命令简单:`miawrouter`
-- ✅ 通过 `npm update -g miawrouter` 自动更新
+- ✅ 命令简单:`dardcor-code`
+- ✅ 通过 `npm update -g dardcor-code` 自动更新
 
 ### 方式 2:本地安装
 
 在特定项目中安装:
 
 ```bash
-mkdir my-miawrouter
-cd my-miawrouter
-npm install miawrouter
+mkdir my-dardcor-code
+cd my-dardcor-code
+npm install dardcor-code
 ```
 
-**启动 MiawRouter:**
+**启动 Dardcor Code:**
 
 ```bash
-npx miawrouter
+npx dardcor-code
 ```
 
 **优势:**
@@ -75,7 +75,7 @@ npx miawrouter
 
 ```bash
 git clone .git
-cd miawrouter/app
+cd dardcor-code/app
 npm install
 npm run build
 npm start
@@ -93,13 +93,13 @@ npm start
 ### 启动服务器
 
 ```bash
-miawrouter
+dardcor-code
 ```
 
 **发生了什么:**
 1. 服务器启动在 `http://localhost:21128`
 2. 仪表盘在浏览器中自动打开
-3. 数据目录创建在 `~/.miawrouter`
+3. 数据目录创建在 `~/.dardcor-code`
 4. API key 自动生成
 
 ### 仪表盘登录
@@ -122,7 +122,7 @@ miawrouter
 
 **API key 格式示例:**
 ```
-miaw_1234567890abcdef1234567890abcdef
+dardcor_1234567890abcdef1234567890abcdef
 ```
 
 ---
@@ -193,7 +193,7 @@ export JWT_SECRET="your-secure-secret-change-this"
 export INITIAL_PASSWORD="your-password"
 
 # Storage
-export DATA_DIR="~/.miawrouter"
+export DATA_DIR="~/.dardcor-code"
 
 # Server
 export PORT="21128"
@@ -205,11 +205,11 @@ export ENABLE_REQUEST_LOGS="false"
 
 ### 数据目录
 
-**默认位置:** `~/.miawrouter`
+**默认位置:** `~/.dardcor-code`
 
 **内容:**
 ```
-~/.miawrouter/
+~/.dardcor-code/
   ├── db.json           # 数据库(提供商、组合、使用)
   ├── api-keys.json     # API keys
   └── logs/             # 请求日志(若启用)
@@ -219,7 +219,7 @@ export ENABLE_REQUEST_LOGS="false"
 
 ```bash
 export DATA_DIR="/custom/path"
-miawrouter
+dardcor-code
 ```
 
 ### 端口配置
@@ -230,13 +230,13 @@ miawrouter
 
 ```bash
 export PORT="3000"
-miawrouter
+dardcor-code
 ```
 
 **或用命令行:**
 
 ```bash
-miawrouter --port 3000
+dardcor-code --port 3000
 ```
 
 ---
@@ -263,14 +263,14 @@ kill -9 <PID>
 **方案 2:使用其他端口**
 
 ```bash
-miawrouter --port 3000
+dardcor-code --port 3000
 ```
 
 ### 权限被拒绝
 
 **错误:**
 ```
-Error: EACCES: permission denied, mkdir '/usr/local/lib/node_modules/miawrouter'
+Error: EACCES: permission denied, mkdir '/usr/local/lib/node_modules/dardcor-code'
 ```
 
 **方案:使用 sudo(不推荐)或修复 npm 权限**
@@ -283,7 +283,7 @@ echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
 source ~/.bashrc
 
 # 然后重新安装
-npm install -g miawrouter
+npm install -g dardcor-code
 ```
 
 ### Node.js 版本过低
@@ -345,23 +345,23 @@ ping google.com
 
 ### 内存占用过高
 
-**问题:** MiawRouter 占用过多 RAM
+**问题:** Dardcor Code 占用过多 RAM
 
 **方案:重启服务器**
 
 ```bash
 # 停止
-pkill -f miawrouter
+pkill -f dardcor-code
 
 # 启动
-miawrouter
+dardcor-code
 ```
 
 **或用 PM2 自动重启:**
 
 ```bash
 npm install -g pm2
-pm2 start miawrouter --name miawrouter
+pm2 start dardcor-code --name dardcor-code
 pm2 save
 ```
 
@@ -372,8 +372,8 @@ pm2 save
 ### 本地开发
 
 ```bash
-npm install -g miawrouter
-miawrouter
+npm install -g dardcor-code
+dardcor-code
 ```
 
 **适用场景:** 个人编码、测试
@@ -382,7 +382,7 @@ miawrouter
 
 ```bash
 # 安装
-npm install -g miawrouter
+npm install -g dardcor-code
 
 # 配置
 export JWT_SECRET="your-secure-secret"
@@ -391,7 +391,7 @@ export NODE_ENV="production"
 
 # 用 PM2 启动
 npm install -g pm2
-pm2 start miawrouter --name miawrouter
+pm2 start dardcor-code --name dardcor-code
 pm2 save
 pm2 startup
 ```
@@ -401,15 +401,15 @@ pm2 startup
 ### Docker
 
 ```bash
-docker pull miawrouter/miawrouter:latest
+docker pull dardcor-code/dardcor-code:latest
 
 docker run -d \
   -p 21128:21128 \
   -e JWT_SECRET="your-secure-secret" \
   -e INITIAL_PASSWORD="your-password" \
-  -v miawrouter-data:/root/.miawrouter \
-  --name miawrouter \
-  miawrouter/miawrouter:latest
+  -v dardcor-code-data:/root/.dardcor-code \
+  --name dardcor-code \
+  dardcor-code/dardcor-code:latest
 ```
 
 **适用场景:** 容器化部署、Kubernetes
@@ -444,13 +444,13 @@ server {
 ### 移除全局安装
 
 ```bash
-npm uninstall -g miawrouter
+npm uninstall -g dardcor-code
 ```
 
 ### 移除数据目录
 
 ```bash
-rm -rf ~/.miawrouter
+rm -rf ~/.dardcor-code
 ```
 
 ### 移除配置
@@ -458,7 +458,7 @@ rm -rf ~/.miawrouter
 ```bash
 # 从 shell 配置中移除环境变量
 nano ~/.bashrc  # 或 ~/.zshrc
-# 删除 miawrouter 相关的 export
+# 删除 dardcor-code 相关的 export
 ```
 
 ---
@@ -473,6 +473,6 @@ nano ~/.bashrc  # 或 ~/.zshrc
 
 ## 需要帮助?
 
-- **网站**: [miawrouter.web.id](https://miawrouter.web.id)
+- **网站**: [dardcor-code.web.id](https://dardcor-code.web.id)
 - **GitHub**: 
 - **Issues**: [/issues](/issues)

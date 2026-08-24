@@ -1,5 +1,4 @@
 import { Inter } from "next/font/google";
-import { GoogleAnalytics } from "@next/third-parties/google";
 import "material-symbols/outlined.css";
 import "./globals.css";
 import { ThemeProvider } from "@/shared/components/ThemeProvider";
@@ -17,10 +16,16 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: "MiawRouter - AI Infrastructure Management",
+  title: "Dardcor Code - AI Infrastructure Management",
   description: "One endpoint for all your AI providers. Manage keys, monitor usage, and scale effortlessly.",
   icons: {
-    icon: "/favicon.svg",
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/dardcor-code.png", type: "image/png" },
+      { url: "/favicon.svg", type: "image/svg+xml" }
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/dardcor-code.png"
   },
 };
 
@@ -44,7 +49,6 @@ export default function RootLayout({ children }) {
             {children}
           </RuntimeI18nProvider>
         </ThemeProvider>
-        <GoogleAnalytics gaId={"G-LC959F603F"} />
       </body>
     </html>
   );

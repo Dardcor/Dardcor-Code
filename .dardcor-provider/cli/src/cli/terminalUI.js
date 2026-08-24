@@ -67,14 +67,14 @@ async function startTerminalUI(port) {
   // Configure API client
   api.configure({ port });
 
-  const basePath = ["MiawRouter"];
+  const basePath = ["Dardcor Code"];
 
   // Prime header cache before first render
   await refreshHeaderBg(port);
 
   // Main menu
   await showMenuWithBack({
-    title: "📡 MiawRouter Terminal UI",
+    title: "📡 Dardcor Code Terminal UI",
     breadcrumb: basePath,
     headerContent: () => getHeader(port),
     items: [

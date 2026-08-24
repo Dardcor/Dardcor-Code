@@ -2,8 +2,8 @@
 /**
  * bench/verify.mjs — Phase 9 regression verifier.
  *
- * Compares a freshly generated report (bench/report.js `miaw-bench-report/1`)
- * against a user-recorded baseline (`miaw-bench-baseline/1`, written only by
+ * Compares a freshly generated report (bench/report.js `dardcor-bench-report/1`)
+ * against a user-recorded baseline (`dardcor-bench-baseline/1`, written only by
  * `bench/run.mjs --record-baseline` from an actual completed run) and fails
  * when any compared metric crosses its threshold. Null metrics are skipped,
  * never treated as 0.
@@ -153,7 +153,7 @@ function parseThresholds(args) {
 function usage() {
   return `Usage: node bench/verify.mjs --report <report.json> --baseline <baseline.json> [--threshold key=value ...]
 
-Compares a miaw-bench-report/1 against a miaw-bench-baseline/1 and exits
+Compares a dardcor-bench-report/1 against a dardcor-bench-baseline/1 and exits
 nonzero on regression. Null metrics are skipped, never compared as 0.
 
 Default thresholds:

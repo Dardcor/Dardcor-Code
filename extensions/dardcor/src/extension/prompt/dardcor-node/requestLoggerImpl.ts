@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { RequestMetadata, RequestType } from '@vscode/dardcor-api';
+import { RequestMetadata, RequestType } from '@vscode/copilot-api';
 import { HTMLTracer, IChatEndpointInfo, RenderPromptResult } from '@vscode/prompt-tsx';
 import { CancellationToken, DocumentLink, DocumentLinkProvider, ExtendedLanguageModelToolResult, LanguageModelDataPart, LanguageModelPromptTsxPart, LanguageModelTextPart, LanguageModelToolResult2, languages, Range, TextDocument, Uri, workspace } from 'vscode';
 import { IChatDebugFileLoggerService } from '../../../platform/chat/common/chatDebugFileLoggerService';

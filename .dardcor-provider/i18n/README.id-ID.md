@@ -1,20 +1,20 @@
 <div align="center">
-  <img src="../images/miawrouter.png?1" alt="MiawRouter Dashboard" width="800"/>
+  <img src="../images/dardcor-code.png?1" alt="Dardcor Code Dashboard" width="800"/>
 
-  # MiawRouter - Router AI Gratis
+  # Dardcor Code - Router AI Gratis
 
   **Jangan berhenti ngoding. Otomatis dialihkan ke model AI gratis & murah dengan smart fallback.**
 
   **Hubungkan semua tool AI coding (Claude Code, Cursor, Antigravity, Copilot, Codex, Gemini, OpenCode, Cline, OpenClaw...) ke 40+ provider AI dan 100+ model.**
 
-  [🚀 Mulai Cepat](#-mulai-cepat) • [💡 Fitur](#-fitur-utama) • [📖 Setup](#-panduan-setup) • [🌐 Website](https://miawrouter.web.id)
+  [🚀 Mulai Cepat](#-mulai-cepat) • [💡 Fitur](#-fitur-utama) • [📖 Setup](#-panduan-setup) • [🌐 Website](https://dardcor-code.web.id)
 
   [🇻🇳 Tiếng Việt](./README.vi.md) • [🇨🇳 中文](./README.zh-CN.md) • [🇯🇵 日本語](./README.ja-JP.md) • [🇮🇩 Bahasa Indonesia](./README.id-ID.md)
 </div>
 
 ---
 
-## 🤔 Kenapa MiawRouter?
+## 🤔 Kenapa Dardcor Code?
 
 **Berhenti buang-buang uang dan terhambat limit:**
 
@@ -23,7 +23,7 @@
 - ❌ API mahal ($20–50/bulan per provider)
 - ❌ Harus gonta-ganti provider secara manual
 
-**MiawRouter menyelesaikan itu semua:**
+**Dardcor Code menyelesaikan itu semua:**
 
 - ✅ **Maksimalkan langganan** - lacak kuota dan habiskan sebelum reset
 - ✅ **Fallback otomatis** - langganan → murah → gratis, tanpa downtime
@@ -42,7 +42,7 @@
        │ http://localhost:21128/v1
        ↓
 ┌─────────────────────────────────────────┐
-│         MiawRouter (Smart Router)          │
+│         Dardcor Code (Smart Router)          │
 │  • Konversi format (OpenAI ↔ Claude)    │
 │  • Pelacakan kuota                      │
 │  • Refresh token otomatis               │
@@ -64,8 +64,8 @@ Hasil: ngoding tanpa berhenti, biaya minimum
 **1. Install secara global:**
 
 ```bash
-npm install -g miawrouter
-miawrouter
+npm install -g dardcor-code
+dardcor-code
 ```
 
 🎉 Dashboard terbuka di `http://localhost:21128`
@@ -87,7 +87,7 @@ Konfigurasi Claude Code/Codex/Gemini CLI/OpenClaw/Cursor/Cline:
 
 **Alternatif: jalankan dari source (repo ini):**
 
-Paket repo ini bersifat privat (`miawrouter-app`), jadi menjalankan dari source/Docker adalah jalur yang diharapkan untuk pengembangan lokal.
+Paket repo ini bersifat privat (`dardcor-code-app`), jadi menjalankan dari source/Docker adalah jalur yang diharapkan untuk pengembangan lokal.
 
 ```bash
 cp .env.example .env
@@ -110,7 +110,7 @@ URL default:
 
 ## 🛠️ Tool CLI yang Didukung
 
-MiawRouter bekerja mulus dengan semua tool AI coding utama:
+Dardcor Code bekerja mulus dengan semua tool AI coding utama:
 
 <div align="center">
   <table>
@@ -361,7 +361,7 @@ Combo: "my-coding-stack"
 
 Konversi mulus antar format:
 - **OpenAI** ↔ **Claude** ↔ **Gemini** ↔ **OpenAI Responses**
-- Tool CLI mengirim dalam format OpenAI → MiawRouter mengonversi → provider menerima dalam format nativenya
+- Tool CLI mengirim dalam format OpenAI → Dardcor Code mengonversi → provider menerima dalam format nativenya
 - Bekerja dengan semua tool yang mendukung custom OpenAI endpoint
 
 ### 👥 Dukungan Multi-akun
@@ -415,7 +415,7 @@ Konversi mulus antar format:
 > **💡 PENTING - tentang biaya di dashboard:**
 >
 > "Biaya" yang ditampilkan pada analitik penggunaan **hanya untuk pelacakan dan perbandingan**.
-> MiawRouter sendiri **tidak menagih apa pun**. Kamu hanya membayar langsung ke provider jika memakai layanan berbayar.
+> Dardcor Code sendiri **tidak menagih apa pun**. Kamu hanya membayar langsung ke provider jika memakai layanan berbayar.
 >
 > itu adalah jumlah yang seharusnya kamu bayar bila memakai API berbayar secara langsung. Biaya sebenarnya = **$0** (iFlow gratis tanpa batas).
 >
@@ -450,14 +450,14 @@ Konversi mulus antar format:
 
 ---
 
-### 📊 Tentang Biaya dan Penagihan MiawRouter
+### 📊 Tentang Biaya dan Penagihan Dardcor Code
 
-**Fakta soal penagihan MiawRouter:**
+**Fakta soal penagihan Dardcor Code:**
 
 ✅ **"Biaya" di dashboard = tampilan/pelacakan saja** (bukan tagihan sungguhan)
 ✅ **Pembayaran langsung ke provider** (langganan atau biaya API)
 ✅ **Provider gratis tetap gratis** (iFlow, Kiro, Qwen = $0 unlimited)
-❌ **MiawRouter tidak mengirim invoice** atau menagih kartumu
+❌ **Dardcor Code tidak mengirim invoice** atau menagih kartumu
 
 **Cara kerja tampilan biaya:**
 
@@ -476,8 +476,8 @@ Kenyataannya:
 
 **Aturan pembayaran:**
 - **Provider langganan** (Claude Code, Codex): bayar langsung di website masing-masing
-- **Provider murah** (GLM, MiniMax): bayar langsung, MiawRouter hanya melakukan routing
-- **MiawRouter**: tidak menagih apa pun
+- **Provider murah** (GLM, MiniMax): bayar langsung, Dardcor Code hanya melakukan routing
+- **Dardcor Code**: tidak menagih apa pun
 
 ---
 
@@ -552,7 +552,7 @@ Cara akses: WhatsApp, Telegram, Slack, Discord, iMessage, Signal...
 <details>
 <summary><b>📊 Kenapa dashboard menampilkan biaya yang besar?</b></summary>
 
-Dashboard melacak pemakaian token dan menampilkan **estimasi biaya** seandainya kamu memakai API berbayar secara langsung. Ini **bukan tagihan nyata**, melainkan acuan untuk melihat berapa banyak yang kamu hemat dengan memakai model gratis atau langganan yang sudah ada lewat MiawRouter.
+Dashboard melacak pemakaian token dan menampilkan **estimasi biaya** seandainya kamu memakai API berbayar secara langsung. Ini **bukan tagihan nyata**, melainkan acuan untuk melihat berapa banyak yang kamu hemat dengan memakai model gratis atau langganan yang sudah ada lewat Dardcor Code.
 
 **Contoh:**
 - **Kenyataan:** sedang memakai iFlow (gratis unlimited)
@@ -561,16 +561,16 @@ Dashboard melacak pemakaian token dan menampilkan **estimasi biaya** seandainya 
 </details>
 
 <details>
-<summary><b>💳 Apakah MiawRouter menagih saya?</b></summary>
+<summary><b>💳 Apakah Dardcor Code menagih saya?</b></summary>
 
-**Tidak.** MiawRouter adalah software open source gratis yang berjalan di komputermu sendiri. Tidak ada penagihan sama sekali.
+**Tidak.** Dardcor Code adalah software open source gratis yang berjalan di komputermu sendiri. Tidak ada penagihan sama sekali.
 
 **Kamu membayar ke:**
 - ✅ **Provider langganan** (Claude Code $20/bulan, Codex $20-200/bulan) → bayar langsung di website masing-masing
-- ✅ **Provider murah** (GLM, MiniMax) → bayar langsung, MiawRouter hanya me-routing request
-- ❌ **MiawRouter sendiri** → **tidak menagih apa pun**
+- ✅ **Provider murah** (GLM, MiniMax) → bayar langsung, Dardcor Code hanya me-routing request
+- ❌ **Dardcor Code sendiri** → **tidak menagih apa pun**
 
-MiawRouter adalah proxy/router lokal. Ia tidak menyimpan informasi kartu kredit, tidak bisa mengirim invoice, dan tidak punya sistem penagihan. Sepenuhnya software gratis.
+Dardcor Code adalah proxy/router lokal. Ia tidak menyimpan informasi kartu kredit, tidak bisa mengirim invoice, dan tidak punya sistem penagihan. Sepenuhnya software gratis.
 
 </details>
 
@@ -584,9 +584,9 @@ Ini adalah layanan gratis yang disediakan masing-masing perusahaan:
 - **Kiro**: model Claude gratis unlimited via AWS Builder ID
 - **Qwen**: akses gratis unlimited ke model Qwen via device authentication
 
-MiawRouter hanya me-routing request — tidak ada "jebakan" atau tagihan di kemudian hari. Layanannya memang gratis, dan MiawRouter membuatnya lebih mudah dipakai dengan dukungan fallback.
+Dardcor Code hanya me-routing request — tidak ada "jebakan" atau tagihan di kemudian hari. Layanannya memang gratis, dan Dardcor Code membuatnya lebih mudah dipakai dengan dukungan fallback.
 
-**Catatan:** beberapa provider langganan (Antigravity, GitHub Copilot) punya masa preview gratis dan bisa jadi berbayar nanti, tetapi hal itu diumumkan secara jelas oleh provider tersebut, bukan oleh MiawRouter.
+**Catatan:** beberapa provider langganan (Antigravity, GitHub Copilot) punya masa preview gratis dan bisa jadi berbayar nanti, tetapi hal itu diumumkan secara jelas oleh provider tersebut, bukan oleh Dardcor Code.
 
 </details>
 
@@ -611,7 +611,7 @@ MiawRouter hanya me-routing request — tidak ada "jebakan" atau tagihan di kemu
 
 3. **Gunakan provider langganan paling akhir:**
    - Hanya jika kamu memang sudah punya
-   - MiawRouter memaksimalkan nilainya lewat pelacakan kuota
+   - Dardcor Code memaksimalkan nilainya lewat pelacakan kuota
 
 **Hasil:** sebagian besar pengguna bisa jalan dengan $0/bulan hanya dengan tier gratis!
 
@@ -620,20 +620,20 @@ MiawRouter hanya me-routing request — tidak ada "jebakan" atau tagihan di kemu
 <details>
 <summary><b>📈 Bagaimana kalau pemakaian tiba-tiba melonjak?</b></summary>
 
-Smart fallback MiawRouter mencegah tagihan tak terduga:
+Smart fallback Dardcor Code mencegah tagihan tak terduga:
 
 **Skenario:** kuota habis di tengah sprint coding
 
-**Tanpa MiawRouter:**
+**Tanpa Dardcor Code:**
 - ❌ Kena rate limit → kerja berhenti → frustrasi
 - ❌ Atau: tagihan API mahal tanpa disengaja
 
-**Dengan MiawRouter:**
+**Dengan Dardcor Code:**
 - ✅ Langganan mencapai batas → otomatis fallback ke tier murah
 - ✅ Tier murah jadi mahal → otomatis fallback ke tier gratis
 - ✅ Ngoding tidak berhenti → biaya tetap terprediksi
 
-**Kamu yang pegang kendali:** atur batas pengeluaran per provider di dashboard, dan MiawRouter akan mematuhinya.
+**Kamu yang pegang kendali:** atur batas pengeluaran per provider di dashboard, dan Dardcor Code akan mematuhinya.
 
 </details>
 
@@ -657,7 +657,7 @@ Model:
   cc/claude-haiku-4-5-20251001
 ```
 
-**Tips pro:** pakai Opus untuk tugas kompleks, Sonnet kalau mengutamakan kecepatan. MiawRouter melacak kuota per model!
+**Tips pro:** pakai Opus untuk tugas kompleks, Sonnet kalau mengutamakan kecepatan. Dardcor Code melacak kuota per model!
 
 ### OpenAI Codex (Plus/Pro)
 
@@ -835,9 +835,9 @@ Biaya bulanan: $0
 
 ```bash
 docker run -d \
-  --name miawrouter \
+  --name dardcor-code \
   -p 21128:21128 \
-  -v miawrouter-data:/app/data \
+  -v dardcor-code-data:/app/data \
   -e PORT=21128 \
   -e BASE_URL=http://localhost:21128 \
 ```
@@ -850,8 +850,8 @@ Dashboard: `http://localhost:21128/dashboard`
 <summary><b>VPS / Cloud</b></summary>
 
 ```bash
-npm install -g miawrouter
-PORT=21128 HOSTNAME=0.0.0.0 BASE_URL=https://your-domain.com miawrouter
+npm install -g dardcor-code
+PORT=21128 HOSTNAME=0.0.0.0 BASE_URL=https://your-domain.com dardcor-code
 ```
 
 Disarankan menaruhnya di belakang reverse proxy (Nginx/Caddy) dengan HTTPS, dan membatasi akses hanya untuk dirimu sendiri.
@@ -905,6 +905,6 @@ Kontribusi sangat diterima!
 
 <div align="center">
 
-**Kalau MiawRouter membantumu, kasih ⭐ di GitHub!**
+**Kalau Dardcor Code membantumu, kasih ⭐ di GitHub!**
 
 </div>

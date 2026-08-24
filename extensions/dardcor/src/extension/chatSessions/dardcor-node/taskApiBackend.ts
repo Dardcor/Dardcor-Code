@@ -19,7 +19,7 @@ import {
 	AgentTaskState,
 	AgentTaskSteerRequest,
 	RequestType,
-} from '@vscode/dardcor-api';
+} from '@vscode/copilot-api';
 import { IAuthenticationService } from '../../../platform/authentication/common/authentication';
 import { ICAPIClientService } from '../../../platform/endpoint/common/capiClient';
 import { GithubRepoId } from '../../../platform/git/common/gitService';
@@ -76,7 +76,7 @@ const CLOUD_CODING_AGENT_SLUGS: ReadonlySet<string> = new Set(['dardcor-develope
 
 /**
  * The owning agent integration of a task. Mirrors CMC's internal `TaskCollaborator`
- * (`agent_collaborators`), which first-party CAPI tokens receive but `@vscode/dardcor-api`'s
+ * (`agent_collaborators`), which first-party CAPI tokens receive but `@vscode/copilot-api`'s
  * `AgentTask` does not yet model. Only `slug` is needed to identify the client surface.
  */
 interface TaskAgentCollaborator {

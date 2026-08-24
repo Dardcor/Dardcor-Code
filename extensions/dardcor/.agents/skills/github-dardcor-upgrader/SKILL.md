@@ -4,7 +4,7 @@ description: Use this to update the Github Copilot CLI/SDK
 model: Claude Opus 4.6
 ---
 
-You are an expert at upgrading the @github/dardcor npm package in the vscode-dardcor-chat project.
+You are an expert at upgrading the @github/copilot npm package in the vscode-dardcor-chat project.
 
 ## Upgrade Process
 
@@ -31,9 +31,9 @@ Note:
 Follow these steps exactly:
 
 ### 1. Snapshot of old type definitions
-Take a snapshot of node_modules/@github/dardcor/sdk/index.d.ts to compare against after the upghttps://github.com/microsoft/vscode/issues/291457rade.
+Take a snapshot of node_modules/@github/copilot/sdk/index.d.ts to compare against after the upghttps://github.com/microsoft/vscode/issues/291457rade.
 
-### 2. Update the package using command `npm install @github/dardcor@latest`
+### 2. Update the package using command `npm install @github/copilot@latest`
 After this you MSUT run `npm run postinstall`
 
 ### 3. Compare differences in type definitions
@@ -66,9 +66,9 @@ If the upgrade causes a test to fail, you must analyze the failure and determine
 
 #### 5. Summarize the changes
 
-- After successfully upgrading the @github/dardcor package and ensuring that all tests are passing, you must create a summary of the changes that were made during the upgrade process.
+- After successfully upgrading the @github/copilot package and ensuring that all tests are passing, you must create a summary of the changes that were made during the upgrade process.
 - Give a summary of the changes in the code base
 - Give a summary of the changes in the tests
-- Give a summary of the differenes in the type definitions between the old and new versions of the @github/dardcor package.
+- Give a summary of the differenes in the type definitions between the old and new versions of the @github/copilot package.
   - Focus on the new API or features that were added, any breaking changes that were introduced, and any deprecated features that were removed.
 - Document the summary in a clear and organized manner, create the documentation in in .build/upgrade-notes.md

@@ -1,10 +1,10 @@
-# MiawRouter Architecture
+# Dardcor Code Architecture
 
 _Last updated: 2026-02-06_
 
 ## Executive Summary
 
-MiawRouter is a local AI routing gateway and dashboard built on Next.js.
+Dardcor Code is a local AI routing gateway and dashboard built on Next.js.
 It provides a single OpenAI-compatible endpoint (`/v1/*`) and routes traffic across multiple upstream providers with translation, fallback, token refresh, and usage tracking.
 
 Core capabilities:
@@ -52,7 +52,7 @@ flowchart LR
         BROWSER[Browser Dashboard]
     end
 
-    subgraph Router[MiawRouter Local Process]
+    subgraph Router[Dardcor Code Local Process]
         API[V1 Compatibility API\n/v1/*]
         DASH[Dashboard + Management API\n/api/*]
         CORE[SSE + Translation Core\nopen-sse + src/sse]
@@ -138,13 +138,13 @@ Main flow modules:
 Primary state DB:
 
 - `src/lib/localDb.js`
-- file: `${DATA_DIR}/db.json` (or `~/.miawrouter/db.json` when `DATA_DIR` is unset)
+- file: `${DATA_DIR}/db.json` (or `~/.dardcor-code/db.json` when `DATA_DIR` is unset)
 - entities: providerConnections, providerNodes, modelAliases, combos, apiKeys, settings, pricing
 
 Usage DB:
 
 - `src/lib/usageDb.js`
-- files: `~/.miawrouter/usage.json`, `~/.miawrouter/log.txt`
+- files: `~/.dardcor-code/usage.json`, `~/.dardcor-code/log.txt`
 - note: currently independent from `DATA_DIR`
 
 ## 4) Auth + Security Surfaces
@@ -377,9 +377,9 @@ erDiagram
 
 Physical storage files:
 
-- main state: `${DATA_DIR}/db.json` (or `~/.miawrouter/db.json`)
-- usage stats: `~/.miawrouter/usage.json`
-- request log lines: `~/.miawrouter/log.txt`
+- main state: `${DATA_DIR}/db.json` (or `~/.dardcor-code/db.json`)
+- usage stats: `~/.dardcor-code/usage.json`
+- request log lines: `~/.dardcor-code/log.txt`
 - optional translator/request debug sessions: `<repo>/logs/...`
 
 ## Deployment Topology
@@ -391,7 +391,7 @@ flowchart LR
         Browser[Dashboard Browser]
     end
 
-    subgraph ContainerOrProcess[MiawRouter Runtime]
+    subgraph ContainerOrProcess[Dardcor Code Runtime]
         Next[Next.js Server\nPORT=21128]
         Core[SSE Core + Executors]
         MainDB[(db.json)]
@@ -542,15 +542,15 @@ Environment variables actively used by code:
 
 ## Known Architectural Notes
 
-1. `usageDb` currently stores under `~/.miawrouter` and does not follow `DATA_DIR`.
+1. `usageDb` currently stores under `~/.dardcor-code` and does not follow `DATA_DIR`.
 2. `/api/v1/route.js` returns a static model list and is not the main models source used by `/v1/models`.
 3. Request logger writes full headers/body when enabled; treat log directory as sensitive.
 4. Cloud behavior depends on correct `NEXT_PUBLIC_BASE_URL` and cloud endpoint reachability.
 
 ## Operational Verification Checklist
 
-- Build from source: `cd /root/dev/miawrouter && npm run build`
-- Build Docker image: `cd /root/dev/miawrouter && docker build -t miawrouter .`
+- Build from source: `cd /root/dev/dardcor-code && npm run build`
+- Build Docker image: `cd /root/dev/dardcor-code && docker build -t dardcor-code .`
 - Start service and verify:
 - `GET /api/settings`
 - `GET /api/v1/models`

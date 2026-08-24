@@ -1,25 +1,25 @@
 ---
-name: miawrouter-web-search
-description: Web search via MiawRouter /v1/search using Tavily / Exa / Brave / Serper / SearXNG / Google PSE / Linkup / SearchAPI / You.com / Perplexity. Use when the user wants to search the web, look up information, find articles, or query a search engine.
+name: dardcor-code-web-search
+description: Web search via Dardcor Code /v1/search using Tavily / Exa / Brave / Serper / SearXNG / Google PSE / Linkup / SearchAPI / You.com / Perplexity. Use when the user wants to search the web, look up information, find articles, or query a search engine.
 ---
 
-# MiawRouter — Web Search
+# Dardcor Code — Web Search
 
-Requires `MIAW_URL` (and `MIAW_KEY` if auth enabled). See https://miawrouter.web.id/skills/miawrouter/SKILL.md for setup.
+Requires `DARDCOR_URL` (and `DARDCOR_KEY` if auth enabled). See https://dardcor-code.web.id/skills/dardcor-code/SKILL.md for setup.
 
 ## Discover
 
 ```bash
-curl $MIAW_URL/v1/models/web | jq '.data[] | select(.kind=="webSearch") | .id'
+curl $DARDCOR_URL/v1/models/web | jq '.data[] | select(.kind=="webSearch") | .id'
 # Per-provider params (searchTypes, maxResults, required options like cx for google-pse)
-curl "$MIAW_URL/v1/models/info?id=tavily/search"
+curl "$DARDCOR_URL/v1/models/info?id=tavily/search"
 ```
 
 IDs end in `/search` (e.g. `tavily/search`). Combos (`owned_by:"combo"`) chain providers with auto-fallback.
 
 ## Endpoint
 
-`POST $MIAW_URL/v1/search`
+`POST $DARDCOR_URL/v1/search`
 
 | Field | Required | Notes |
 |---|---|---|
@@ -32,18 +32,18 @@ IDs end in `/search` (e.g. `tavily/search`). Combos (`owned_by:"combo"`) chain p
 ## Examples
 
 ```bash
-curl -X POST $MIAW_URL/v1/search \
-  -H "Authorization: Bearer $MIAW_KEY" \
+curl -X POST $DARDCOR_URL/v1/search \
+  -H "Authorization: Bearer $DARDCOR_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"model":"tavily","query":"MiawRouter open source","max_results":5}'
+  -d '{"model":"tavily","query":"Dardcor Code open source","max_results":5}'
 ```
 
 JS:
 
 ```js
-const r = await fetch(`${process.env.MIAW_URL}/v1/search`, {
+const r = await fetch(`${process.env.DARDCOR_URL}/v1/search`, {
   method: "POST",
-  headers: { "Authorization": `Bearer ${process.env.MIAW_KEY}`, "Content-Type": "application/json" },
+  headers: { "Authorization": `Bearer ${process.env.DARDCOR_KEY}`, "Content-Type": "application/json" },
   body: JSON.stringify({ model: "search-combo", query: "latest LLM benchmarks", max_results: 10 }),
 });
 console.log(await r.json());
@@ -54,7 +54,7 @@ console.log(await r.json());
 ```json
 {
   "provider": "tavily",
-  "query": "MiawRouter open source",
+  "query": "Dardcor Code open source",
   "results": [
     {
       "title": "...", "url": "https://...", "display_url": "github.com/...",

@@ -43,7 +43,7 @@ describe("OmniRoute Free Tier catalog import", () => {
     }
   });
 
-  it("keeps existing MiawRouter providers active and enriches their model metadata", () => {
+  it("keeps existing Dardcor Code providers active and enriches their model metadata", () => {
     const runtimeIds = new Set(REGISTRY.map((entry) => entry.id));
     for (const provider of FREE_TIER_PROVIDERS.filter((entry) => entry.available)) {
       expect(runtimeIds.has(provider.id), provider.id).toBe(true);

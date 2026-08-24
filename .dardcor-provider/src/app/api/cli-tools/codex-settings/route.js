@@ -14,8 +14,8 @@ const getCodexDir = () => path.join(os.homedir(), ".codex");
 const getCodexConfigPath = () => path.join(getCodexDir(), "config.toml");
 const getCodexAuthPath = () => path.join(getCodexDir(), "auth.json");
 
-// New writes use "miawrouter"; legacy "9router" config slots stay readable.
-const PROVIDER_KEY = "miawrouter";
+// New writes use "dardcor-code"; legacy "9router" config slots stay readable.
+const PROVIDER_KEY = "dardcor-code";
 const LEGACY_PROVIDER_KEY = "9router";
 const isOurs = (s) => s === PROVIDER_KEY || s === LEGACY_PROVIDER_KEY;
 
@@ -78,7 +78,7 @@ const readConfig = async () => {
   }
 };
 
-// Check if config has MiawRouter settings
+// Check if config has Dardcor Code settings
 const has9RouterConfig = (config) => {
   if (!config) return false;
   return config.includes(`model_provider = "${PROVIDER_KEY}"`)
@@ -136,16 +136,16 @@ export async function POST(request) {
       parsed = parsedToWritable(parseTOML(existingConfig));
     } catch { /* No existing config */ }
 
-    // Update only MiawRouter related fields (api_key goes to auth.json, not config.toml)
+    // Update only Dardcor Code related fields (api_key goes to auth.json, not config.toml)
     parsed.model = model;
     parsed.model_provider = PROVIDER_KEY;
 
-    // Update or create miawrouter provider section (no api_key - Codex reads from auth.json)
+    // Update or create dardcor-code provider section (no api_key - Codex reads from auth.json)
     // Ensure /v1 suffix is added only once
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
     deleteNestedSection(parsed, `model_providers.${LEGACY_PROVIDER_KEY}`);
     setNestedSection(parsed, `model_providers.${PROVIDER_KEY}`, {
-      name: "MiawRouter",
+      name: "Dardcor Code",
       base_url: normalizedBaseUrl,
       wire_api: "responses",
     });
@@ -204,13 +204,13 @@ export async function DELETE() {
       throw error;
     }
 
-    // Remove MiawRouter related root fields only if they point to miawrouter (legacy too)
+    // Remove Dardcor Code related root fields only if they point to dardcor-code (legacy too)
     if (isOurs(parsed.model_provider)) {
       delete parsed.model;
       delete parsed.model_provider;
     }
 
-    // Remove miawrouter provider section (legacy slot too)
+    // Remove dardcor-code provider section (legacy slot too)
     deleteNestedSection(parsed, `model_providers.${PROVIDER_KEY}`);
     deleteNestedSection(parsed, `model_providers.${LEGACY_PROVIDER_KEY}`);
 
@@ -239,7 +239,7 @@ export async function DELETE() {
 
     return NextResponse.json({
       success: true,
-      message: "MiawRouter settings removed successfully",
+      message: "Dardcor Code settings removed successfully",
     });
   } catch (error) {
     console.log("Error resetting codex settings:", error);

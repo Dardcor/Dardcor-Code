@@ -96,7 +96,7 @@ export default function SecretManager({ webhook, onClose, onUpdate }) {
             <strong className="text-text-main">How it works:</strong> Each
             delivery includes an{" "}
             <code className="bg-surface-2 px-1 rounded text-[11px]">
-              x-miaw-signature
+              x-dardcor-signature
             </code>{" "}
             header with the HMAC-SHA256 digest of{" "}
             <code className="bg-surface-2 px-1 rounded text-[11px]">
@@ -108,10 +108,10 @@ export default function SecretManager({ webhook, onClose, onUpdate }) {
               signature = HMAC-SHA256(secret, timestamp + &quot;.&quot; + body)
             </p>
             <p className="font-mono text-[11px] mt-1">
-              x-miaw-signature: sha256=&#123;hex_digest&#125;
+              x-dardcor-signature: sha256=&#123;hex_digest&#125;
             </p>
             <p className="font-mono text-[11px] mt-1">
-              x-miaw-timestamp: &#123;unix_seconds&#125;
+              x-dardcor-timestamp: &#123;unix_seconds&#125;
             </p>
           </div>
           <p>

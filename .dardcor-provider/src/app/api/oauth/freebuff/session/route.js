@@ -6,7 +6,7 @@ export async function POST() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "User-Agent": "MiawRouter-Freebuff-Client/1.0",
+        "User-Agent": "Dardcor Code-Freebuff-Client/1.0",
       },
     });
 

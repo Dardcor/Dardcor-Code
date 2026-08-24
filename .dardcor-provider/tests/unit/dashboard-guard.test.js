@@ -257,7 +257,7 @@ describe("dashboard guard local-only access", () => {
   it("allows local-only route with valid CLI token", async () => {
     const response = await proxy(request("/api/mcp/filesystem/sse", {
       host: "router.example.com",
-      "x-miaw-cli-token": "cli-token",
+      "x-dardcor-cli-token": "cli-token",
     }));
 
     expect(response).toBe(mocks.nextResponse);
@@ -303,7 +303,7 @@ describe("dashboard guard always-protected routes", () => {
   it("allows /api/auth/oidc/test with a valid CLI token", async () => {
     const response = await proxy(request("/api/auth/oidc/test", {
       host: "router.example.com",
-      "x-miaw-cli-token": "cli-token",
+      "x-dardcor-cli-token": "cli-token",
     }));
 
     expect(response).toBe(mocks.nextResponse);

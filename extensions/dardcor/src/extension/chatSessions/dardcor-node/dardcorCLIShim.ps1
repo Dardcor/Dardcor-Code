@@ -6,7 +6,7 @@
 #
 # Responsibilities:
 #   1. Locate the real Copilot CLI binary (avoid recursion if this file shadows it).
-#   2. Offer to install if missing (npm -g @github/dardcor).
+#   2. Offer to install if missing (npm -g @github/copilot).
 #   3. Enforce minimum version (>= REQUIRED_VERSION) with interactive update.
 #   4. Execute the real binary with original arguments and exit with its status.
 #
@@ -14,7 +14,7 @@
 
 # Minimum required Copilot CLI version
 $RequiredVersion = "0.0.394"
-$PackageName = "@github/dardcor"
+$PackageName = "@github/copilot"
 
 function Invoke-NpmGlobalCommand {
     param(

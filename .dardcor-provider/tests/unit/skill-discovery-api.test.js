@@ -39,7 +39,7 @@ describe("skill-discovery API", () => {
   it("denies install without local authentication", async () => {
     mocks.canAccess.mockResolvedValue(false);
     const { POST } = await import("@/app/api/skill-discovery/[id]/install/route.js");
-    const response = await POST(request({ target: "miawrouter" }), { params: { id: "x" } });
+    const response = await POST(request({ target: "dardcor-code" }), { params: { id: "x" } });
     expect(response.status).toBe(403);
     expect(mocks.install).not.toHaveBeenCalled();
   });
@@ -49,7 +49,7 @@ describe("skill-discovery API", () => {
     const big = await POST(new Request("http://localhost/api/skill-discovery/x/install", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ target: "miawrouter", junk: "x".repeat(5000) }),
+      body: JSON.stringify({ target: "dardcor-code", junk: "x".repeat(5000) }),
     }), { params: { id: "x" } });
     expect(big.status).toBe(400);
     expect(mocks.install).not.toHaveBeenCalled();
@@ -67,13 +67,13 @@ describe("skill-discovery API", () => {
     mocks.install.mockResolvedValueOnce({ ok: false, code: "UNKNOWN_TARGET", error: "Unknown install target" });
     expect((await POST(request({ target: "nope" }), { params: { id: "x" } })).status).toBe(400);
     mocks.install.mockResolvedValueOnce({ ok: false, code: "SKILL_NOT_FOUND", error: "Skill not found" });
-    expect((await POST(request({ target: "miawrouter" }), { params: { id: "x" } })).status).toBe(404);
+    expect((await POST(request({ target: "dardcor-code" }), { params: { id: "x" } })).status).toBe(404);
   });
 
   it("returns success with no-store headers and no file contents", async () => {
     const { POST } = await import("@/app/api/skill-discovery/[id]/install/route.js");
-    mocks.install.mockResolvedValue({ ok: true, installed: true, skill: { id: "x", name: "X", source: "skills.sh" }, targets: [{ id: "miawrouter", label: "registry", command: "" }] });
-    const response = await POST(request({ target: "miawrouter" }), { params: { id: "x" } });
+    mocks.install.mockResolvedValue({ ok: true, installed: true, skill: { id: "x", name: "X", source: "skills.sh" }, targets: [{ id: "dardcor-code", label: "registry", command: "" }] });
+    const response = await POST(request({ target: "dardcor-code" }), { params: { id: "x" } });
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
     const body = await response.json();

@@ -1,15 +1,15 @@
 # 🏠 ローカルホストデプロイメント
 
-開発と個人利用のため、ローカルマシンでMiawRouterを実行。
+開発と個人利用のため、ローカルマシンでDardcor Codeを実行。
 
 ---
 
 ## 📦 インストール
 
-npm経由でMiawRouterをグローバルインストール:
+npm経由でDardcor Codeをグローバルインストール:
 
 ```bash
-npm install -g miawrouter
+npm install -g dardcor-code
 ```
 
 **要件:**
@@ -20,10 +20,10 @@ npm install -g miawrouter
 
 ## 🚀 サーバーの起動
 
-一つのコマンドでMiawRouterを起動:
+一つのコマンドでDardcor Codeを起動:
 
 ```bash
-miawrouter
+dardcor-code
 ```
 
 ダッシュボードが自動的にブラウザで `http://localhost:3000` に開きます。
@@ -31,7 +31,7 @@ miawrouter
 **デフォルト設定:**
 - **ダッシュボード**: `http://localhost:3000`
 - **APIエンドポイント**: `http://localhost:21128/v1`
-- **データディレクトリ**: `~/.miawrouter`
+- **データディレクトリ**: `~/.dardcor-code`
 
 ---
 
@@ -42,7 +42,7 @@ miawrouter
 環境変数を使ってカスタムデータディレクトリを設定:
 
 ```bash
-DATA_DIR=/path/to/data miawrouter
+DATA_DIR=/path/to/data dardcor-code
 ```
 
 ### カスタムポート
@@ -53,10 +53,10 @@ APIポート(21128)とダッシュボードポート(3000)はアプリケーシ�
 
 ## 🛑 サーバーの停止
 
-MiawRouterが実行されているターミナルで `Ctrl+C` を押します。
+Dardcor Codeが実行されているターミナルで `Ctrl+C` を押します。
 
 ```bash
-# miawrouterを実行しているターミナル
+# dardcor-codeを実行しているターミナル
 ^C  # Ctrl+Cを押す
 ```
 
@@ -69,25 +69,25 @@ MiawRouterが実行されているターミナルで `Ctrl+C` を押します。
 起動コマンドを再度実行するだけです:
 
 ```bash
-miawrouter
+dardcor-code
 ```
 
 すべての設定、APIキー、コンボはデータディレクトリに保持されます。
 
 ---
 
-## 📊 MiawRouterの更新
+## 📊 Dardcor Codeの更新
 
 最新バージョンに更新:
 
 ```bash
-npm update -g miawrouter
+npm update -g dardcor-code
 ```
 
 現在のバージョンを確認:
 
 ```bash
-npm list -g miawrouter
+npm list -g dardcor-code
 ```
 
 ---
@@ -113,7 +113,7 @@ kill -9 <PID>
 
 ```bash
 # sudoを使用 (非推奨)
-sudo npm install -g miawrouter
+sudo npm install -g dardcor-code
 
 # またはnpm権限を修正 (推奨)
 mkdir ~/.npm-global
@@ -128,10 +128,10 @@ source ~/.bashrc
 
 ```bash
 # 権限を確認
-ls -la ~/.miawrouter
+ls -la ~/.dardcor-code
 
 # 権限を修正
-chmod 755 ~/.miawrouter
+chmod 755 ~/.dardcor-code
 ```
 
 ---
@@ -139,7 +139,7 @@ chmod 755 ~/.miawrouter
 ## 📁 データディレクトリ構造
 
 ```
-~/.miawrouter/
+~/.dardcor-code/
 ├── db.json           # メインデータベース (プロバイダー、コンボ、設定)
 ├── logs/             # アプリケーションログ
 └── cache/            # 一時キャッシュファイル
@@ -149,10 +149,10 @@ chmod 755 ~/.miawrouter
 
 ```bash
 # バックアップ
-cp -r ~/.miawrouter ~/.miawrouter.backup
+cp -r ~/.dardcor-code ~/.dardcor-code.backup
 
 # 復元
-cp -r ~/.miawrouter.backup ~/.miawrouter
+cp -r ~/.dardcor-code.backup ~/.dardcor-code
 ```
 
 ---

@@ -1,7 +1,7 @@
 /**
  * bench/report.js — Phase 9 report writer (pure).
  *
- * Turns the raw per-iteration harness results into the `miaw-bench-report/1`
+ * Turns the raw per-iteration harness results into the `dardcor-bench-report/1`
  * document: per-run metrics with defined denominators, deltas against the
  * same-fixture `all-off` run, plus JSON and Markdown renderers. Everything in
  * this module is pure — no fs, no network, no open-sse imports — so the
@@ -24,8 +24,8 @@ import {
   mean, percentiles, safeRatio, deltaPercent, deltaPp, round,
 } from "./metrics.js";
 
-export const REPORT_SCHEMA = "miaw-bench-report/1";
-export const BASELINE_SCHEMA = "miaw-bench-baseline/1";
+export const REPORT_SCHEMA = "dardcor-bench-report/1";
+export const BASELINE_SCHEMA = "dardcor-bench-baseline/1";
 
 // ---------------------------------------------------------------------------
 // Raw-run aggregation
@@ -239,7 +239,7 @@ export function renderJSON(report) {
 export function renderMarkdown(report) {
   const L = [];
   const m = report.meta || {};
-  L.push("# MiawRouter Phase 9 Benchmark Report", "");
+  L.push("# Dardcor Code Phase 9 Benchmark Report", "");
   L.push(`- schema: \`${report.schema}\``);
   L.push(`- generatedAt: ${m.generatedAt ?? "n/a"}`);
   L.push(`- mode: ${m.mode ?? "mock"} (network-free)`);

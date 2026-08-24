@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * scripts/check-branding.mjs — MiawRouter Phase 8 branding gate (docs/REBRAND.md).
+ * scripts/check-branding.mjs — Dardcor Code Phase 8 branding gate (docs/REBRAND.md).
  *
  * Scans the tree for pre-rebrand identifiers, excluding build artifacts and
  * binary assets exactly like the §1 inventory command. Hits land in three
@@ -56,10 +56,10 @@ export const PROVENANCE_ALLOWLIST = [
   "docs/PHASE1-BASELINE-TRIAGE.md",
   "docs/CHANGELOG.md",
   "CHANGELOG.md",
-  "MIAWROUTER_CLONE_PLAYBOOK.md",
+  "DARDCOR CODE_CLONE_PLAYBOOK.md",
   "docs/superpowers/**", // subtree, prefix-matched
   "scripts/check-branding.mjs", // the gate itself: defines every scan term it searches for
-  "MIAWROUTER_AGENT_PROMPT_V2.md", // frozen planning/provenance: names the upstream it studied
+  "DARDCOR CODE_AGENT_PROMPT_V2.md", // frozen planning/provenance: names the upstream it studied
   // Gate self-tests: they necessarily embed every scan term as test fixtures.
   "tests/unit/branding-gate.test.js",
   "tests/unit/rebrand-phase8.test.js",
@@ -74,7 +74,7 @@ export const PROVENANCE_ALLOWLIST = [
  * terms, not line numbers).
  */
 export const COMPAT_ALIASES = {
-  // §5: TOKEN_SAVER_HEADER — new writes x-miaw-token-saver, legacy x-9router-token-saver kept read-only.
+  // §5: TOKEN_SAVER_HEADER — new writes x-dardcor-token-saver, legacy x-9router-token-saver kept read-only.
   "open-sse/config/runtimeConfig.js": ["X-9Router", "9router"],
   // §5: chatCore reads both headers (new wins).
   "open-sse/handlers/chatCore.js": ["X-9Router", "9router"],
@@ -88,7 +88,7 @@ export const COMPAT_ALIASES = {
   // §5: legacy config dir reads — ~/.9router, ~/.9router/db.json (lines 83, 192, 858),
   // legacy process-name matches (kill stale 9router installs), legacy Win AppData path.
   "cli/cli.js": ["9router", ".9router"],
-  // §5: legacy MIAW_CLI_APP_DIR read fallback + build log strings.
+  // §5: legacy DARDCOR_CLI_APP_DIR read fallback + build log strings.
   "cli/scripts/build-cli.js": ["NINEROUTER", "9router"],
   "cli/scripts/buildMitm.js": ["NINEROUTER"],
   // §5: macOS launchd label / Windows registry key com.9router.autostart (line 7).
@@ -108,14 +108,14 @@ export const COMPAT_ALIASES = {
   "src/app/api/settings/database/route.js": ["9r_"],
   "src/app/api/v1/models/route.js": ["9router", "9r_"],
   "custom-server.js": ["9r_"],
-  // §5: legacy NINEROUTER_PROXY_CLIENT_MAX_BODY_SIZE read fallback (primary is MIAW_).
+  // §5: legacy NINEROUTER_PROXY_CLIENT_MAX_BODY_SIZE read fallback (primary is DARDCOR_).
   "next.config.mjs": ["NINEROUTER"],
   // §5: JSDoc references the API's has9Router response field (kept as-is).
   "cli/src/cli/api/client.js": ["9router"],
   // §5: appUpdater/updater keep matching legacy 9router process names + ~/.9router read fallback.
   "src/lib/appUpdater.js": ["9router", ".9router"],
   "src/lib/updater/updater.js": ["9router", ".9router"],
-  // §5: client config writers emit miawrouter; legacy 9router slots/markers stay readable.
+  // §5: client config writers emit dardcor-code; legacy 9router slots/markers stay readable.
   "src/lib/grokBuildConfig.js": ["9router"],
   "src/app/api/cli-tools/grok-build-settings/route.js": ["9router"],
   "src/app/api/cli-tools/opencode-settings/route.js": ["9router"],
@@ -133,12 +133,12 @@ export const COMPAT_ALIASES = {
   "src/app/api/cli-tools/copilot-settings/route.js": ["9router", "9router"],
   "src/app/api/cli-tools/droid-settings/route.js": ["9router", "9router"],
   "src/app/api/cli-tools/deepseek-tui-settings/route.js": ["9router", "9router"],
-  // §5: localStorage preset keys — new writes miawrouter, legacy 9router read.
+  // §5: localStorage preset keys — new writes dardcor-code, legacy 9router read.
   "src/app/(dashboard)/dashboard/cli-tools/components/BaseUrlSelect.js": ["9router"],
   "src/app/(dashboard)/dashboard/cli-tools/components/EndpointPresetControl.js": ["9router"],
   // §5 (Phase 8 UI batch): ToolCard components keep the has9Router contract field
   // and legacy config-slot reads (custom:9Router ids, "9router" provider keys,
-  // "9router/" model prefixes); new writes emit miawrouter forms.
+  // "9router/" model prefixes); new writes emit dardcor-code forms.
   "src/app/(dashboard)/dashboard/cli-tools/components/DroidToolCard.js": ["9router"],
   "src/app/(dashboard)/dashboard/cli-tools/components/ToolSummaryCard.js": ["9router"],
   "src/app/(dashboard)/dashboard/cli-tools/components/CopilotToolCard.js": ["9router"],
@@ -154,7 +154,7 @@ export const COMPAT_ALIASES = {
   "src/app/(dashboard)/dashboard/cli-tools/components/JcodeToolCard.js": ["9router"],
   // §5: upstream-diff reverse-map legitimately names every old identifier it displays.
   "scripts/upstream-diff.mjs": ["9router", "9r_", "NINEROUTER", "X-9Router", "20127", "20128", "20129", "9router.com"],
-  // §5 migration implementation: `miawrouter migrate --from-9router` reads the
+  // §5 migration implementation: `dardcor-code migrate --from-9router` reads the
   // legacy install's token scheme, data dir, ports, headers and slot identifiers.
   "cli/src/cli/commands/migrate.js": ["9router", "X-9Router", "20128", ".9router", "9router.com"],
   // §5 migration test + fixture: synthetic legacy export with legacy URLs,
@@ -163,7 +163,7 @@ export const COMPAT_ALIASES = {
   "tests/unit/fixtures/legacy-9router-export.json": ["9router", "20128", "9router.com"],
   // §5 grok legacy-reader test: asserts parse/rewrite of old slots & markers.
   "tests/unit/grok-build-config.test.js": ["9router", "20128"],
-  // §5 real tests: legacy ~/.9router db path read fallback (primary ~/.miawrouter).
+  // §5 real tests: legacy ~/.9router db path read fallback (primary ~/.dardcor-code).
   "tests/translator/real/thinking.real.test.js": [".9router", "9router"],
   "tests/translator/real/all-formats.real.test.js": [".9router", "9router"],
   "tests/translator/real/vision-capability-survey.real.test.js": [".9router", "9router"],
@@ -247,13 +247,13 @@ function trimSnippet(line, max = 120) {
  * Unlike COMPAT_ALIASES (term-span overlap), these match a whole line against
  * a regex: a hit is compat only when its entire line matches one of the
  * patterns for that file. This allows the READMEs to keep exactly the
- * `miawrouter migrate --from-9router` flag literal without letting any other
+ * `dardcor-code migrate --from-9router` flag literal without letting any other
  * old-brand line through. Patterns are anchored so future brand mentions on
  * the same line still fail.
  */
 export const LINE_PATTERN_COMPAT = {
-  "README.md": [/miawrouter migrate --from-9router/],
-  "cli/README.md": [/miawrouter migrate --from-9router/],
+  "README.md": [/dardcor-code migrate --from-9router/],
+  "cli/README.md": [/dardcor-code migrate --from-9router/],
 };
 
 function lineIsPatternCompat(relPath, line) {
@@ -400,7 +400,7 @@ function main() {
     process.exit(2);
   }
 
-  console.log(`MiawRouter branding gate (docs/REBRAND.md) — ${root}`);
+  console.log(`Dardcor Code branding gate (docs/REBRAND.md) — ${root}`);
   console.log(`Scanned ${result.scannedFiles} files with hits.`);
 
   printBucket("FORBIDDEN (gate fails on any):", result.forbidden, true);

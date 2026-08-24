@@ -4,10 +4,10 @@
 
 ## How It Works
 
-MiawRouter uses intelligent routing to maximize your existing subscriptions, minimize costs, and ensure 24/7 availability:
+Dardcor Code uses intelligent routing to maximize your existing subscriptions, minimize costs, and ensure 24/7 availability:
 
 ```
-Request → MiawRouter → Check Tier 1 (Subscription)
+Request → Dardcor Code → Check Tier 1 (Subscription)
                      ↓ quota exhausted
                      Check Tier 2 (Cheap)
                      ↓ budget limit
@@ -43,7 +43,7 @@ Request → MiawRouter → Check Tier 1 (Subscription)
 
 ## Automatic Switching
 
-MiawRouter monitors quota in real-time and switches providers automatically:
+Dardcor Code monitors quota in real-time and switches providers automatically:
 
 ### Scenario 1: Subscription Quota Exhausted
 
@@ -85,7 +85,7 @@ User request → cc/claude-opus-4-5
 
 ## Model Selection Logic
 
-MiawRouter selects the best model based on:
+Dardcor Code selects the best model based on:
 
 1. **Quota availability** - Check if provider has remaining quota
 2. **Cost tier** - Prefer subscription → cheap → free
@@ -134,7 +134,7 @@ Dashboard → Settings → Budget Control
 → Monthly limit: $50
 ```
 
-When budget reached, MiawRouter automatically switches to free tier.
+When budget reached, Dardcor Code automatically switches to free tier.
 
 **3. Configure Fallback Order**
 

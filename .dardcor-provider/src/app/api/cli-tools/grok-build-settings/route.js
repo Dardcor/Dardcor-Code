@@ -109,7 +109,7 @@ export async function POST(request) {
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
     const toml = applyGrokBuildConfig(await readConfigToml(), {
       baseUrl: normalizedBaseUrl,
-      apiKey: apiKey || "sk_miawrouter",
+      apiKey: apiKey || "sk_dardcor-code",
       model: selectedModel,
       contextWindow: normalizeContextWindow(contextWindow, selectedModel),
       subagentModels: normalizeSubagentModels(subagentModels),
@@ -144,7 +144,7 @@ export async function DELETE() {
     await fs.writeFile(configPath, resetGrokBuildConfig(toml));
     return NextResponse.json({
       success: true,
-      message: "MiawRouter model slots removed from Grok Build",
+      message: "Dardcor Code model slots removed from Grok Build",
     });
   } catch (error) {
     console.log("Error resetting grok-build settings:", error);

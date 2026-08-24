@@ -210,7 +210,7 @@ describe("bench static contracts (fixtures + matrix)", () => {
       const fixture = JSON.parse(
         readFileSync(new URL(`../../bench/fixtures/${id}.json`, import.meta.url), "utf8")
       );
-      expect(fixture.schema).toBe("miaw-bench-fixture/1");
+      expect(fixture.schema).toBe("dardcor-bench-fixture/1");
       expect(fixture.id).toBe(id);
       expect(Array.isArray(fixture.turns)).toBe(true);
       expect(fixture.turns.length).toBeGreaterThan(1);
@@ -234,7 +234,7 @@ describe("bench static contracts (fixtures + matrix)", () => {
     const matrix = JSON.parse(
       readFileSync(new URL("../../bench/matrix.json", import.meta.url), "utf8")
     );
-    expect(matrix.schema).toBe("miaw-bench-matrix/1");
+    expect(matrix.schema).toBe("dardcor-bench-matrix/1");
 
     const strategies = Object.keys(matrix.dimensions.routingStrategies);
     const configIds = new Set(matrix.configs.map((c) => c.id));

@@ -50,8 +50,8 @@ export default function Sidebar({ onClose }) {
       {/* Logo */}
       <div className="px-5 py-5 flex flex-col gap-2 border-b border-border-subtle">
         <Link href="/dashboard/usage" className="flex items-center gap-3">
-          <div className="flex items-center justify-center size-8 rounded-[var(--radius-brand)] bg-gradient-to-br from-brand-500 to-brand-700 shadow-[var(--shadow-warm)]">
-            <span className="material-symbols-outlined text-white text-[18px]">hub</span>
+          <div className="flex items-center justify-center size-9 rounded-[var(--radius-brand)] shadow-[var(--shadow-warm)] overflow-hidden bg-[#121118] p-0.5 border border-[#262335]">
+            <img src="/dardcor-code.png" alt="Dardcor Code" className="size-full object-contain" />
           </div>
           <div className="flex flex-col">
             <h1 className="text-base font-semibold tracking-tight text-text-main">

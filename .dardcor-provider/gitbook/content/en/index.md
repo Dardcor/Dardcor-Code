@@ -1,14 +1,14 @@
-# Welcome to MiawRouter
+# Welcome to Dardcor Code
 
 **Use Claude, Codex, Gemini for FREE • Ultra-cheap alternatives from $0.20/1M tokens**
 
-MiawRouter is an AI model router that maximizes your subscription value and minimizes costs through intelligent routing and automatic fallback.
+Dardcor Code is an AI model router that maximizes your subscription value and minimizes costs through intelligent routing and automatic fallback.
 
 ---
 
-## What is MiawRouter?
+## What is Dardcor Code?
 
-MiawRouter is a smart proxy that sits between your coding tools (Cursor, Cline, Claude Desktop) and AI providers. It automatically routes requests to the best available model based on quota, cost, and availability.
+Dardcor Code is a smart proxy that sits between your coding tools (Cursor, Cline, Claude Desktop) and AI providers. It automatically routes requests to the best available model based on quota, cost, and availability.
 
 **Stop wasting money:**
 - ❌ Subscription quota expires unused every month
@@ -65,7 +65,7 @@ Works with any tool that supports custom OpenAI endpoints:
 
 ---
 
-## Why Choose MiawRouter?
+## Why Choose Dardcor Code?
 
 ### Maximize Subscriptions
 
@@ -102,10 +102,10 @@ Get started in 2 minutes:
 
 ```bash
 # Install globally
-npm install -g miawrouter
+npm install -g dardcor-code
 
 # Start (dashboard opens automatically)
-miawrouter
+dardcor-code
 ```
 
 🎉 **Dashboard opens** → Connect providers → Start coding!
@@ -140,7 +140,7 @@ Model: cc/claude-opus-4-5-20251101
 
 ### For Mobile/Remote Coding
 
-- Use cloud deployment (https://miawrouter.web.id)
+- Use cloud deployment (https://dardcor-code.web.id)
 - Access from iPad, phone, anywhere
 - No localhost limitations
 - Cloudflare edge network (300+ locations)

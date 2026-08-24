@@ -1,12 +1,12 @@
 # Tích hợp Roo AI Assistant
 
-Tích hợp MiawRouter với Roo AI Assistant để truy cập nhiều model AI qua một giao diện thống nhất.
+Tích hợp Dardcor Code với Roo AI Assistant để truy cập nhiều model AI qua một giao diện thống nhất.
 
 ## Yêu cầu
 
 - Roo AI Assistant đã cài đặt
-- MiawRouter API key từ [dashboard](https://miawrouter.web.id/dashboard)
-- MiawRouter đang chạy (cục bộ hoặc cloud)
+- Dardcor Code API key từ [dashboard](https://dardcor-code.web.id/dashboard)
+- Dardcor Code đang chạy (cục bộ hoặc cloud)
 
 ## Các bước Cấu hình
 
@@ -20,21 +20,21 @@ Khởi chạy Roo AI Assistant và mở panel settings.
 2. Chọn **Ollama** làm provider type
 3. Cấu hình các settings sau:
 
-**Cho MiawRouter cục bộ:**
+**Cho Dardcor Code cục bộ:**
 ```
 Base URL: http://localhost:21128/v1
 API Key: your-api-key-from-dashboard
 ```
 
-**Cho MiawRouter cloud:**
+**Cho Dardcor Code cloud:**
 ```
-Base URL: https://miawrouter.web.id/v1
+Base URL: https://dardcor-code.web.id/v1
 API Key: your-api-key-from-dashboard
 ```
 
 ### 3. Chọn Model
 
-Chọn từ các model MiawRouter có sẵn:
+Chọn từ các model Dardcor Code có sẵn:
 
 **Claude Models:**
 - `cc/claude-opus-4-5-20251101` - Mạnh nhất
@@ -54,7 +54,7 @@ Chọn từ các model MiawRouter có sẵn:
 Gửi tin nhắn test để xác minh tích hợp:
 
 ```
-Hello! Can you confirm you're connected through MiawRouter?
+Hello! Can you confirm you're connected through Dardcor Code?
 ```
 
 ## Ví dụ Sử dụng
@@ -87,19 +87,19 @@ Model: cx/deepseek-reasoner
 ## Troubleshooting
 
 ### Connection Failed
-- Xác minh MiawRouter đang chạy: `curl http://localhost:21128/health`
+- Xác minh Dardcor Code đang chạy: `curl http://localhost:21128/health`
 - Kiểm tra API key đúng
 - Đảm bảo Base URL bao gồm hậu tố `/v1`
 
 ### Model không khả dụng
 - Kiểm tra tên model khớp chính xác (case-sensitive)
-- Xác minh model được bật trong MiawRouter plan
+- Xác minh model được bật trong Dardcor Code plan
 - Thử model khác từ danh sách
 
 ### Phản hồi Chậm
 - Chuyển sang model nhanh hơn (haiku, flash)
 - Kiểm tra kết nối network
-- Theo dõi logs MiawRouter để xem vấn đề
+- Theo dõi logs Dardcor Code để xem vấn đề
 
 ## Cấu hình Nâng cao
 

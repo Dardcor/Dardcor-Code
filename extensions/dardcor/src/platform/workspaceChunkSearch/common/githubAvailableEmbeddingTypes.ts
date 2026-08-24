@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { RequestType } from '@vscode/dardcor-api';
+import { RequestType } from '@vscode/copilot-api';
 import * as l10n from '@vscode/l10n';
 import { Result } from '../../../util/common/result';
 import { createServiceIdentifier } from '../../../util/common/services';

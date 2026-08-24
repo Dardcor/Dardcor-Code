@@ -8,22 +8,22 @@
 .fonts-loaded .material-symbols-outlined { visibility: visible; }
 
 /* ============================================================
-   MiawRouter Signal Panel palette
+   Dardcor Code Signal Panel palette
    Cool mist slate surfaces (light) / blue slate (dark),
-   single signal-orange #FF4F00 brand accent.
+   single signal-orange #A855F7 brand accent.
    ============================================================ */
 :root {
-  /* Brand scale (light) - centered on #FF4F00 */
-  --color-brand-50: #FFF1EA;
-  --color-brand-100: #FFE0D1;
-  --color-brand-200: #FFC0A3;
-  --color-brand-300: #FF9A70;
-  --color-brand-400: #FF7040;
-  --color-brand-500: #FF4F00;
-  --color-brand-600: #E64500;
-  --color-brand-700: #C23A00;
-  --color-brand-800: #9A2E00;
-  --color-brand-900: #6E2100;
+  /* Brand scale (light) - centered on #A855F7 */
+  --color-brand-50: #FAF5FF;
+  --color-brand-100: #F3E8FF;
+  --color-brand-200: #E9D5FF;
+  --color-brand-300: #D8B4FE;
+  --color-brand-400: #C084FC;
+  --color-brand-500: #A855F7;
+  --color-brand-600: #9333EA;
+  --color-brand-700: #7E22CE;
+  --color-brand-800: #6B21A8;
+  --color-brand-900: #581C87;
 
   /* Primary (legacy alias for backward compat with existing components) */
   --color-primary: var(--color-brand-500);
@@ -62,13 +62,13 @@
 
   /* Shadows */
   --shadow-soft: 0 1px 2px 0 rgba(16,20,27,0.05);
-  --shadow-warm: 0 2px 12px -2px rgba(255, 79, 0, 0.16);
+  --shadow-warm: 0 2px 12px -2px rgba(168, 85, 247, 0.16);
   --shadow-elevated: 0 12px 28px -4px rgba(16,20,27,0.10);
   --shadow-elev:
     inset 0 1px 0 0 rgba(255,255,255,0.8),
     0 1px 2px rgba(16,20,27,0.05),
     0 12px 36px -8px rgba(16,20,27,0.12);
-  --shadow-focus: 0 0 0 3px rgba(255, 79, 0, 0.18);
+  --shadow-focus: 0 0 0 3px rgba(168, 85, 247, 0.18);
 
   color-scheme: light;
 }
@@ -83,7 +83,7 @@
   --color-ink: #10141B;     /* primary text (matches text-main) */
   --color-muted: #5B6472;   /* secondary text, labels (matches text-muted) */
   --color-rule: #D8DDE4;    /* borders, grid lines (matches border) */
-  --color-signal: #FF4F00;
+  --color-signal: #A855F7;
   --color-warn: #B45309;    /* utility warning */
   --color-fail: #DC2626;    /* utility error */
 }
@@ -96,39 +96,39 @@
   --color-ink: #E6EAF0;
   --color-muted: #9AA4B1;
   --color-rule: #2E3540;
-  --color-signal: #FF4F00;
+  --color-signal: #A855F7;
   --color-warn: #F59E0B;
   --color-fail: #EF4444;
 }
 
 .dark {
-  /* Brand scale (dark) - signal orange #FF4F00, same as light for consistency */
-  --color-brand-50: #FFF1EA;
-  --color-brand-100: #FFE0D1;
-  --color-brand-200: #FFC0A3;
-  --color-brand-300: #FF9A70;
-  --color-brand-400: #FF7040;
-  --color-brand-500: #FF4F00;
-  --color-brand-600: #E64500;
-  --color-brand-700: #C23A00;
-  --color-brand-800: #9A2E00;
-  --color-brand-900: #6E2100;
+  /* Brand scale (dark) - signal orange #A855F7, same as light for consistency */
+  --color-brand-50: #FAF5FF;
+  --color-brand-100: #F3E8FF;
+  --color-brand-200: #E9D5FF;
+  --color-brand-300: #D8B4FE;
+  --color-brand-400: #C084FC;
+  --color-brand-500: #A855F7;
+  --color-brand-600: #9333EA;
+  --color-brand-700: #7E22CE;
+  --color-brand-800: #6B21A8;
+  --color-brand-900: #581C87;
 
-  --color-primary: #FF4F00;
-  --color-primary-hover: #E64500;
+  --color-primary: #A855F7;
+  --color-primary-hover: #9333EA;
 
   /* Surfaces (dark - blue slate) */
-  --color-bg: #12151A;
-  --color-bg-alt: #171B21;
-  --color-bg-subtle: #1E232B;
-  --color-bg-hover: #262D37;
-  --color-surface: #1B2027;
-  --color-surface-2: #232A33;
-  --color-surface-3: #2C343F;
-  --color-sidebar: #171B21;
+  --color-bg: #09090B;
+  --color-bg-alt: #0D0D12;
+  --color-bg-subtle: #14131C;
+  --color-bg-hover: #1F1C2B;
+  --color-surface: #121118;
+  --color-surface-2: #181622;
+  --color-surface-3: #201D2E;
+  --color-sidebar: #0D0D12;
 
-  --color-border: #2E3540;
-  --color-border-subtle: #252B34;
+  --color-border: #262335;
+  --color-border-subtle: #1C1A27;
 
   --color-text: #E6EAF0;
   --color-text-main: #E6EAF0;
@@ -142,13 +142,13 @@
   --color-info: #60A5FA;
 
   --shadow-soft: 0 1px 2px 0 rgba(0,0,0,0.3);
-  --shadow-warm: 0 2px 12px -2px rgba(255, 79, 0, 0.22);
+  --shadow-warm: 0 2px 12px -2px rgba(168, 85, 247, 0.22);
   --shadow-elevated: 0 12px 28px -4px rgba(0, 0, 0, 0.45);
   --shadow-elev:
     inset 0 1px 0 0 rgba(255,255,255,0.05),
     0 1px 2px rgba(0,0,0,0.4),
     0 16px 48px -8px rgba(0,0,0,0.55);
-  --shadow-focus: 0 0 0 3px rgba(255, 79, 0, 0.25);
+  --shadow-focus: 0 0 0 3px rgba(168, 85, 247, 0.25);
 
   color-scheme: dark;
 }
@@ -210,13 +210,13 @@ select {
 
   /* Static fallbacks (explicit per-mode usage if needed) */
   --color-bg-light: #F2F4F7;
-  --color-bg-dark: #12151A;
+  --color-bg-dark: #09090B;
   --color-surface-light: #ffffff;
-  --color-surface-dark: #1B2027;
+  --color-surface-dark: #121118;
   --color-sidebar-light: #F7F8FA;
-  --color-sidebar-dark: #171B21;
+  --color-sidebar-dark: #0D0D12;
   --color-border-light: #D8DDE4;
-  --color-border-dark: #2E3540;
+  --color-border-dark: #262335;
   --color-text-main-light: #10141B;
   --color-text-main-dark: #E6EAF0;
   --color-text-muted-light: #5B6472;
@@ -258,11 +258,11 @@ body {
 
 /* Selection - signal-tinted */
 ::selection {
-  background-color: rgba(255, 79, 0, 0.22);
+  background-color: rgba(168, 85, 247, 0.22);
   color: var(--color-primary);
 }
 .dark ::selection {
-  background-color: rgba(255, 79, 0, 0.30);
+  background-color: rgba(168, 85, 247, 0.30);
   color: var(--color-brand-200);
 }
 
@@ -289,19 +289,19 @@ input, textarea {
 /* Thin horizontal scrollbar - signal colored */
 .scroll-thin-x {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 79, 0, 0.55) transparent;
+  scrollbar-color: rgba(168, 85, 247, 0.55) transparent;
 }
 .dark .scroll-thin-x {
-  scrollbar-color: rgba(255, 79, 0, 0.55) transparent;
+  scrollbar-color: rgba(168, 85, 247, 0.55) transparent;
 }
 .scroll-thin-x::-webkit-scrollbar { height: 3px; }
 .scroll-thin-x::-webkit-scrollbar-track { background: transparent; }
 .scroll-thin-x::-webkit-scrollbar-thumb {
-  background: rgba(255, 79, 0, 0.55);
+  background: rgba(168, 85, 247, 0.55);
   border-radius: 3px;
 }
 .dark .scroll-thin-x::-webkit-scrollbar-thumb {
-  background: rgba(255, 79, 0, 0.55);
+  background: rgba(168, 85, 247, 0.55);
 }
 
 /* Global thin mac-like scrollbars (overrides clunky Windows/Linux default) */
@@ -435,12 +435,12 @@ button:disabled,
 
 @keyframes border-glow {
   0%, 100% {
-    box-shadow: 0 0 5px rgba(255, 79, 0, 0.3), 0 0 10px rgba(255, 79, 0, 0.2);
-    border-color: rgba(255, 79, 0, 0.5);
+    box-shadow: 0 0 5px rgba(168, 85, 247, 0.3), 0 0 10px rgba(168, 85, 247, 0.2);
+    border-color: rgba(168, 85, 247, 0.5);
   }
   50% {
-    box-shadow: 0 0 10px rgba(255, 79, 0, 0.5), 0 0 20px rgba(255, 79, 0, 0.3);
-    border-color: rgba(255, 79, 0, 0.8);
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.5), 0 0 20px rgba(168, 85, 247, 0.3);
+    border-color: rgba(168, 85, 247, 0.8);
   }
 }
 .animate-border-glow { animation: border-glow 2s ease-in-out infinite; }
@@ -473,8 +473,8 @@ button:disabled,
   100% { transform: translateX(220%) skewX(-20deg); }
 }
 @keyframes ctaGlowPulse {
-  0%, 100% { box-shadow: 0 8px 24px -8px rgba(255, 79, 0, 0.45), 0 0 0 0 rgba(255, 79, 0, 0.5); }
-  50% { box-shadow: 0 12px 32px -8px rgba(255, 79, 0, 0.6), 0 0 0 8px rgba(255, 79, 0, 0); }
+  0%, 100% { box-shadow: 0 8px 24px -8px rgba(168, 85, 247, 0.45), 0 0 0 0 rgba(168, 85, 247, 0.5); }
+  50% { box-shadow: 0 12px 32px -8px rgba(168, 85, 247, 0.6), 0 0 0 8px rgba(168, 85, 247, 0); }
 }
 .btn-cta {
   position: relative;
@@ -500,13 +500,13 @@ button:disabled,
 .dot-grid-bg {
   background-color: var(--color-bg);
   background-image:
-    radial-gradient(circle at 15% 20%, rgba(255, 79, 0, 0.10) 0%, transparent 40%),
-    radial-gradient(circle at 85% 80%, rgba(255, 79, 0, 0.06) 0%, transparent 40%);
+    radial-gradient(circle at 15% 20%, rgba(168, 85, 247, 0.10) 0%, transparent 40%),
+    radial-gradient(circle at 85% 80%, rgba(168, 85, 247, 0.06) 0%, transparent 40%);
 }
 .dark .dot-grid-bg {
   background-image:
-    radial-gradient(circle at 15% 20%, rgba(255, 79, 0, 0.18) 0%, transparent 40%),
-    radial-gradient(circle at 85% 80%, rgba(255, 79, 0, 0.10) 0%, transparent 40%);
+    radial-gradient(circle at 15% 20%, rgba(168, 85, 247, 0.18) 0%, transparent 40%),
+    radial-gradient(circle at 85% 80%, rgba(168, 85, 247, 0.10) 0%, transparent 40%);
 }
 
 /* Landing-style faint grid overlay (login page only; dashboard shell no longer uses it) */

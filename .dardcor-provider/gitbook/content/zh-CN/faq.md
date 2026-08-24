@@ -1,12 +1,12 @@
 # 常见问题
 
-关于 MiawRouter 的常见问题。
+关于 Dardcor Code 的常见问题。
 
 ---
 
-## 什么是 MiawRouter?
+## 什么是 Dardcor Code?
 
-**MiawRouter 是一款 AI 模型路由工具,能够最大化你的订阅价值并最小化成本。**
+**Dardcor Code 是一款 AI 模型路由工具,能够最大化你的订阅价值并最小化成本。**
 
 它使用 3 层回退系统在多个 AI 提供商之间智能路由请求:
 1. **订阅层** - 充分利用你已付费的 Claude Code、Codex、Gemini 配额
@@ -22,7 +22,7 @@
 
 ## 价格是如何计算的?
 
-**MiawRouter 采用三层定价策略:**
+**Dardcor Code 采用三层定价策略:**
 
 ### 第 1 层:订阅(优先使用)
 - **Claude Code**(Pro/Max):$20-100/月 - 5 小时 + 每周配额
@@ -47,9 +47,9 @@
 
 ---
 
-## MiawRouter 是免费的吗?
+## Dardcor Code 是免费的吗?
 
-**是的,MiawRouter 本身 100% 免费且开源。**
+**是的,Dardcor Code 本身 100% 免费且开源。**
 
 **可用的免费层提供商:**
 - **Gemini CLI** - 每月 180K 次补全(免费 Google 账户)
@@ -93,7 +93,7 @@
 
 ## 可以同时使用多个提供商吗?
 
-**可以!这正是 MiawRouter 的核心功能。**
+**可以!这正是 Dardcor Code 的核心功能。**
 
 **通过组合(Combos),你可以把多个提供商串联起来实现自动回退:**
 
@@ -126,7 +126,7 @@
 
 ## 配额跟踪是如何工作的?
 
-**MiawRouter 为所有提供商提供实时配额跟踪:**
+**Dardcor Code 为所有提供商提供实时配额跟踪:**
 
 **功能:**
 - **Token 消耗** - 每次请求的输入/输出 tokens
@@ -151,17 +151,17 @@
 
 ---
 
-## MiawRouter 能配合 Cursor 使用吗?
+## Dardcor Code 能配合 Cursor 使用吗?
 
 **可以,但 Cursor 需要使用云端 endpoint。**
 
 **问题:** Cursor IDE 不支持 localhost endpoint。
 
-**解决方案:** 使用 MiawRouter 云端部署:
+**解决方案:** 使用 Dardcor Code 云端部署:
 
 ```
 Cursor Settings → Models → Advanced:
-  OpenAI API Base URL: https://miawrouter.web.id/v1
+  OpenAI API Base URL: https://dardcor-code.web.id/v1
   OpenAI API Key: [从仪表盘获取]
   Model: cc/claude-opus-4-5-20251101
 ```
@@ -170,7 +170,7 @@ Cursor Settings → Models → Advanced:
 ```bash
 # 部署到 VPS
 git clone .git
-cd miawrouter/app
+cd dardcor-code/app
 npm install && npm run build
 npm start
 
@@ -189,14 +189,14 @@ npm start
 
 ---
 
-## 可以自托管 MiawRouter 吗?
+## 可以自托管 Dardcor Code 吗?
 
-**可以!MiawRouter 支持多种部署方式:**
+**可以!Dardcor Code 支持多种部署方式:**
 
 ### Localhost(默认)
 ```bash
-npm install -g miawrouter
-miawrouter
+npm install -g dardcor-code
+dardcor-code
 → 仪表盘: http://localhost:3000
 → API: http://localhost:21128/v1
 ```
@@ -204,7 +204,7 @@ miawrouter
 ### VPS/云
 ```bash
 git clone .git
-cd miawrouter/app
+cd dardcor-code/app
 npm install && npm run build
 
 export JWT_SECRET="your-secure-secret"
@@ -216,23 +216,23 @@ npm start
 
 ### Docker
 ```bash
-docker build -t miawrouter .
+docker build -t dardcor-code .
 docker run -d \
   -p 3000:3000 \
   -e JWT_SECRET="your-secret" \
-  -v miawrouter-data:/app/data \
-  miawrouter
+  -v dardcor-code-data:/app/data \
+  dardcor-code
 ```
 
 ### Cloudflare Workers
 ```bash
-cd miawrouter/app
+cd dardcor-code/app
 npm run deploy:cloudflare
 ```
 
 **环境变量:**
 - `JWT_SECRET` - **生产环境必须修改!**
-- `DATA_DIR` - 数据库存储路径(默认:`~/.miawrouter`)
+- `DATA_DIR` - 数据库存储路径(默认:`~/.dardcor-code`)
 - `INITIAL_PASSWORD` - 仪表盘登录(无默认值;仅本地的可选引导,未设置时通过 localhost 创建密码)
 - `NODE_ENV` - 部署时设为 `production`
 
@@ -242,11 +242,11 @@ npm run deploy:cloudflare
 
 ## 我的数据安全吗?
 
-**是的,MiawRouter 优先考虑安全和隐私:**
+**是的,Dardcor Code 优先考虑安全和隐私:**
 
 **本地存储:**
-- 所有数据存储在本地 `~/.miawrouter`(或自定义 `DATA_DIR`)
-- 不会发送数据到 MiawRouter 服务器
+- 所有数据存储在本地 `~/.dardcor-code`(或自定义 `DATA_DIR`)
+- 不会发送数据到 Dardcor Code 服务器
 - OAuth tokens 使用 JWT 加密
 
 **无遥测:**
@@ -265,31 +265,31 @@ npm run deploy:cloudflare
 - 云端部署启用 HTTPS
 - 定期轮换 API keys
 
-**MiawRouter 存储的内容:**
+**Dardcor Code 存储的内容:**
 - 提供商 OAuth tokens(加密)
 - API keys(加密)
 - 使用统计(仅本地)
 - 组合配置
 
-**MiawRouter 不存储的内容:**
+**Dardcor Code 不存储的内容:**
 - 你的 prompt 或响应
 - 你生成的代码
 - 个人信息
 
 ---
 
-## 如何更新 MiawRouter?
+## 如何更新 Dardcor Code?
 
 **更新方式取决于安装类型:**
 
 ### 全局 NPM 安装
 ```bash
-npm update -g miawrouter
+npm update -g dardcor-code
 ```
 
 ### 本地安装
 ```bash
-cd miawrouter/app
+cd dardcor-code/app
 git pull origin main
 npm install
 npm run build
@@ -298,23 +298,23 @@ npm start
 
 ### Docker
 ```bash
-docker pull miawrouter:latest
-docker stop miawrouter
-docker rm miawrouter
+docker pull dardcor-code:latest
+docker stop dardcor-code
+docker rm dardcor-code
 docker run -d \
   -p 3000:3000 \
-  -v miawrouter-data:/app/data \
-  miawrouter:latest
+  -v dardcor-code-data:/app/data \
+  dardcor-code:latest
 ```
 
 **查看版本:**
 ```bash
-miawrouter --version
+dardcor-code --version
 ```
 
 **破坏性变更:**
 - 查看 [CHANGELOG.md](/blob/main/CHANGELOG.md)
-- 大版本更新前备份 `~/.miawrouter`
+- 大版本更新前备份 `~/.dardcor-code`
 - 阅读大版本的迁移指南
 
 ---
@@ -337,7 +337,7 @@ miawrouter --version
    ```bash
    # Fork 仓库
    git clone .git
-   cd miawrouter
+   cd dardcor-code
    
    # 创建分支
    git checkout -b feature/your-feature
@@ -378,7 +378,7 @@ miawrouter --version
 
 ## 需要更多帮助?
 
-- **文档:** [miawrouter.web.id/docs](https://miawrouter.web.id/docs)
+- **文档:** [dardcor-code.web.id/docs](https://dardcor-code.web.id/docs)
 - **GitHub:** 
 - **Issues:** [/issues](/issues)
 - **故障排除:** [troubleshooting.md](troubleshooting.md)

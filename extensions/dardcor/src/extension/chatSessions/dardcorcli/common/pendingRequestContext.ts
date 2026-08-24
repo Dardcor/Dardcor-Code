@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { Attachment, SendOptions } from '@github/dardcor/sdk';
+import type { Attachment, SendOptions } from '@github/copilot/sdk';
 
 export interface ICopilotCLIPendingRequestContext {
 	readonly prompt: string;

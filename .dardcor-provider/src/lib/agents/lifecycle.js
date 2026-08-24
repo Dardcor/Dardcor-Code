@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 
-const STORE_KEY = "__miawrouterAgentLifecycle";
+const STORE_KEY = "__dardcor-codeAgentLifecycle";
 const MAX_RECORDS = 100;
 
 function store() {

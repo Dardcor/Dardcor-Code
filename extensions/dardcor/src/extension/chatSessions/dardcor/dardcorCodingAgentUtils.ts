@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { AgentTaskState } from '@vscode/dardcor-api';
+import type { AgentTaskState } from '@vscode/copilot-api';
 import * as vscode from 'vscode';
 import { getGithubRepoIdFromFetchUrl, GithubRepoId, IGitService } from '../../../platform/git/common/gitService';
 import { ILogService } from '../../../platform/log/common/logService';

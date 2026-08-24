@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { RequestMetadata, RequestType } from '@vscode/dardcor-api';
+import { RequestMetadata, RequestType } from '@vscode/copilot-api';
 import { ITokenizer } from '../../../util/common/tokenizer';
 import { IEmbeddingsEndpoint } from '../../networking/common/networking';
 import { ITokenizerProvider } from '../../tokenizer/node/tokenizer';

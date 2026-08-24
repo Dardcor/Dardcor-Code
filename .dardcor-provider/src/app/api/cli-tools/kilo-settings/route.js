@@ -46,10 +46,10 @@ const readJson = async (filePath) => {
 
 const has9RouterConfig = (auth) => {
   if (!auth) return false;
-  const entry = auth["openai-compatible"] || auth["miawrouter"] || auth["9router"];
+  const entry = auth["openai-compatible"] || auth["dardcor-code"] || auth["9router"];
   if (!entry) return false;
   const baseUrl = entry.baseUrl || entry.baseURL || "";
-  return baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1") || baseUrl.includes("miawrouter") || baseUrl.includes("9router");
+  return baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1") || baseUrl.includes("dardcor-code") || baseUrl.includes("9router");
 };
 
 export async function GET() {
@@ -94,7 +94,7 @@ export async function POST(request) {
     // Best-effort: update VS Code extension settings
     try {
       const vscode = (await readJson(getVscodeSettingsPath())) || {};
-      vscode["kilocode.customProvider"] = { name: "MiawRouter", baseURL: normalizedBaseUrl, apiKey };
+      vscode["kilocode.customProvider"] = { name: "Dardcor Code", baseURL: normalizedBaseUrl, apiKey };
       vscode["kilocode.defaultModel"] = model;
       await fs.writeFile(getVscodeSettingsPath(), JSON.stringify(vscode, null, 2));
     } catch { /* VS Code settings not writable */ }
@@ -113,7 +113,7 @@ export async function DELETE() {
       return NextResponse.json({ success: true, message: "No settings file to reset" });
     }
     delete auth["openai-compatible"];
-    delete auth["miawrouter"];
+    delete auth["dardcor-code"];
     delete auth["9router"];
     await fs.writeFile(getAuthPath(), JSON.stringify(auth, null, 2));
 
@@ -126,7 +126,7 @@ export async function DELETE() {
       }
     } catch { /* ignore */ }
 
-    return NextResponse.json({ success: true, message: "MiawRouter settings removed from Kilo Code" });
+    return NextResponse.json({ success: true, message: "Dardcor Code settings removed from Kilo Code" });
   } catch (error) {
     console.log("Error resetting kilo settings:", error);
     return NextResponse.json({ error: "Failed to reset kilo settings" }, { status: 500 });

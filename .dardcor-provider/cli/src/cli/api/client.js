@@ -13,9 +13,9 @@ const DEFAULT_CONFIG = {
   protocol: "http:",
 };
 
-const CLI_TOKEN_HEADER = "x-miaw-cli-token";
-const CLI_TOKEN_SALT = "miaw-cli-auth";
-const APP_NAME = "miawrouter";
+const CLI_TOKEN_HEADER = "x-dardcor-cli-token";
+const CLI_TOKEN_SALT = "dardcor-cli-auth";
+const APP_NAME = "dardcor-code";
 
 function getDataDir() {
   if (process.env.DATA_DIR) return process.env.DATA_DIR;

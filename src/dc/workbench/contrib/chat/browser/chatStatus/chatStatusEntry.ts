@@ -21,13 +21,13 @@ registerAction2(class extends Action2 {
 	constructor() {
 		super({
 			id: 'dardcor.model.open',
-			title: { value: localize('openDardcorModel', "Open Miawrouter"), original: 'Open Miawrouter' }
+			title: { value: localize('openDardcorModel', "Open Dardcor Code"), original: 'Open Dardcor Code' }
 		});
 	}
 	async run(accessor: ServicesAccessor) {
 		const webviewWorkbenchService = accessor.get(IWebviewWorkbenchService);
 		const editorGroupService = accessor.get(IEditorGroupsService);
-		const title = 'Miawrouter';
+		const title = 'Dardcor Code';
 
 		if (activeDardcorRouterInput && !activeDardcorRouterInput.isDisposed()) {
 			webviewWorkbenchService.revealWebview(activeDardcorRouterInput, editorGroupService.activeGroup, false);
@@ -39,24 +39,92 @@ registerAction2(class extends Action2 {
 <head>
 <meta charset="utf-8">
 <style>
+  * { box-sizing: border-box; }
   html, body {
     margin: 0;
     padding: 0;
     width: 100%;
     height: 100%;
-    background: #000000;
+    background: #09090b;
+    color: #e4e4e7;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     overflow: hidden;
+  }
+  #loader {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background: #09090b;
+    z-index: 10;
+    transition: opacity 0.3s ease;
+  }
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(168, 85, 247, 0.2);
+    border-top-color: #a855f7;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  .text {
+    font-size: 14px;
+    color: #a1a1aa;
   }
   iframe {
     width: 100%;
     height: 100%;
     border: none;
-    background: #000000;
+    background: #09090b;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  iframe.loaded {
+    opacity: 1;
   }
 </style>
 </head>
 <body>
-  <iframe src="http://localhost:25000/dashboard" allow="clipboard-read; clipboard-write; fullscreen"></iframe>
+  <div id="loader">
+    <div class="spinner"></div>
+    <div class="text">Connecting to Dardcor Code...</div>
+  </div>
+  <iframe id="frame" src="http://127.0.0.1:25000/dashboard" allow="clipboard-read; clipboard-write; fullscreen"></iframe>
+  <script>
+    const frame = document.getElementById('frame');
+    const loader = document.getElementById('loader');
+    
+    function checkAndShow() {
+      fetch('http://127.0.0.1:25000/api/health')
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.ok) {
+            frame.classList.add('loaded');
+            loader.style.opacity = '0';
+            setTimeout(() => { loader.style.display = 'none'; }, 300);
+          } else {
+            setTimeout(checkAndShow, 1000);
+          }
+        })
+        .catch(() => {
+          setTimeout(checkAndShow, 1000);
+        });
+    }
+
+    frame.addEventListener('load', () => {
+      frame.classList.add('loaded');
+      loader.style.opacity = '0';
+      setTimeout(() => { loader.style.display = 'none'; }, 300);
+    });
+
+    checkAndShow();
+  </script>
 </body>
 </html>`;
 
@@ -106,9 +174,9 @@ export class ChatStatusBarEntry extends Disposable implements IWorkbenchContribu
 
 	private getEntryProps(): IStatusbarEntry {
 		return {
-			name: localize('modelStatus', "Miawrouter Status"),
-			text: '$(hubot) Miawrouter',
-			ariaLabel: localize('modelStatusAria', "Miawrouter status"),
+			name: localize('modelStatus', "Dardcor Code Status"),
+			text: '$(hubot) Dardcor Code',
+			ariaLabel: localize('modelStatusAria', "Dardcor Code status"),
 			command: 'dardcor.model.open',
 			showInAllWindows: true
 		} satisfies IStatusbarEntry;

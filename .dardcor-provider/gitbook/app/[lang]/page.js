@@ -15,7 +15,7 @@ export default async function LangHomePage({ params }) {
   const { lang } = await params;
   if (!isValidLang(lang)) notFound();
 
-  const content = loadContent(lang, "index") || "# MiawRouter Documentation\n\nContent coming soon...";
+  const content = loadContent(lang, "index") || "# Dardcor Code Documentation\n\nContent coming soon...";
   const headings = extractHeadings(content);
 
   return (

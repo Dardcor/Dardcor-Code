@@ -82,8 +82,8 @@ describe("api-endpoints dashboard contract", () => {
   });
 
   it("uses placeholder credentials, never real ones", () => {
-    expect(client).toContain("$MIAWROUTER_BASE_URL");
-    expect(client).toContain("$MIAWROUTER_API_KEY");
+    expect(client).toContain("$DARDCOR CODE_BASE_URL");
+    expect(client).toContain("$DARDCOR CODE_API_KEY");
     // No real keys or paths
     expect(client).not.toContain("sk-");
     expect(client).not.toContain("/home/");

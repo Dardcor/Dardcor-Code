@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { UserInputRequestedEvent } from '@github/dardcor/sdk';
+import type { UserInputRequestedEvent } from '@github/copilot/sdk';
 import type { CancellationToken, ChatParticipantToolToken } from 'vscode';
 import { createServiceIdentifier } from '../../../../util/common/services';
 

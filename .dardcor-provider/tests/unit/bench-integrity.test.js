@@ -20,7 +20,7 @@ const CONFIG = { id: "all-on", stream: true, settings: { rtkEnabled: true } };
 // A minimal cache-integrity-shaped fixture: stable system/tools/spec, tail churns.
 function makeFixture({ turns }) {
   return {
-    schema: "miaw-bench-fixture/1",
+    schema: "dardcor-bench-fixture/1",
     id: "cache-integrity",
     expect: {
       byteIdenticalPrefix: true,

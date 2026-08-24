@@ -1,7 +1,7 @@
 const { err } = require("../logger");
 const { fetchRouter, pipeSSE } = require("./base");
 
-// Map Copilot endpoint → MiawRouter path
+// Map Copilot endpoint → Dardcor Code path
 const URL_MAP = {
   "/chat/completions": "/v1/chat/completions",
   "/v1/messages":      "/v1/messages",
@@ -16,7 +16,7 @@ function resolveRouterPath(reqUrl) {
 }
 
 /**
- * Intercept Copilot request — replace model and forward to matching MiawRouter endpoint
+ * Intercept Copilot request — replace model and forward to matching Dardcor Code endpoint
  */
 async function intercept(req, res, bodyBuffer, mappedModel) {
   try {

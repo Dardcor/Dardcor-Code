@@ -25,16 +25,16 @@ import { join } from "node:path";
 // tlsClientDownloadDir.ts: without an explicit `downloadDir` the library
 // defaults to its own package node_modules/tls-client-node/bin, which is
 // root-owned on global installs and fails with EACCES for normal users.
-const TLS_DOWNLOAD_DIR = join(process.env.DATA_DIR || join(homedir(), ".miawrouter"), "tls-client", "bin");
+const TLS_DOWNLOAD_DIR = join(process.env.DATA_DIR || join(homedir(), ".dardcor-code"), "tls-client", "bin");
 
 const DEFAULT_TIMEOUT_MS =
-  Number.parseInt(process.env.MIAW_TLS_TIMEOUT_MS || "", 10) || 60_000;
+  Number.parseInt(process.env.DARDCOR_TLS_TIMEOUT_MS || "", 10) || 60_000;
 // Grace added to the wire timeout before the JS-level hard race fires. Under
 // healthy operation the binding honors `timeoutMilliseconds` and rejects on
 // its own; the JS race only wins when the koffi-loaded native call is wedged
 // (which the binding's own timer can't escape).
 const HARD_TIMEOUT_GRACE_MS =
-  Number.parseInt(process.env.MIAW_TLS_GRACE_MS || "", 10) || 10_000;
+  Number.parseInt(process.env.DARDCOR_TLS_GRACE_MS || "", 10) || 10_000;
 
 let clientPromise = null;
 let exitHookInstalled = false;
@@ -82,7 +82,7 @@ async function getClient() {
       const mod = await import(/* turbopackOptional: true */ "tls-client-node");
       const { TLSClient } = mod;
       // Native mode loads the shared library directly via koffi, avoiding the
-      // managed sidecar's localhost HTTP calls that MiawRouter's global fetch
+      // managed sidecar's localhost HTTP calls that Dardcor Code's global fetch
       // proxy patch interferes with.
       const client = new TLSClient({ runtimeMode: "native", downloadDir: TLS_DOWNLOAD_DIR });
       await client.start();

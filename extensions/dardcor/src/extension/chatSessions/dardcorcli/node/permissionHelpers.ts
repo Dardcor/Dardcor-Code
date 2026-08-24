@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { Attachment, PermissionRequestedEvent } from '@github/dardcor/sdk';
+import type { Attachment, PermissionRequestedEvent } from '@github/copilot/sdk';
 import { platform } from 'node:os';
 import type { CancellationToken, ChatParticipantToolToken, ChatResponseStream } from 'vscode';
 import { ILogService } from '../../../../platform/log/common/logService';
@@ -440,7 +440,7 @@ function codeBlock(obj: unknown): string {
 }
 
 
-/** TYPES FROM @github/dardcor */
+/** TYPES FROM @github/copilot */
 
 /**
  * A permission request which will be used to check tool or path usage against config and/or request user approval.

@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { SessionOptions } from '@github/dardcor/sdk';
+import type { SessionOptions } from '@github/copilot/sdk';
 import { mkdir, mkdtemp, rm, writeFile as writeNodeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

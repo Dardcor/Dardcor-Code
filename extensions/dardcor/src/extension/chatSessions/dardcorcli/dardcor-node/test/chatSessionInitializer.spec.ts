@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { SweCustomAgent } from '@github/dardcor/sdk';
+import type { SweCustomAgent } from '@github/copilot/sdk';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type * as vscode from 'vscode';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configurationService';

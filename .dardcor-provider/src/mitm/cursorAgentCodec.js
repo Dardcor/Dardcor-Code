@@ -438,7 +438,7 @@ function buildSuccessTrailer() {
 
 function buildErrorTrailer() {
   return wrapFrame(Buffer.from(JSON.stringify({
-    error: { code: "internal", message: "MiawRouter routing failed" },
+    error: { code: "internal", message: "Dardcor Code routing failed" },
   })), 2);
 }
 

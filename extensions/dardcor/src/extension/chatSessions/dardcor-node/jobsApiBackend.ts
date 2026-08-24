@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { RemoteAgentJobPayload } from '@vscode/dardcor-api';
+import { RemoteAgentJobPayload } from '@vscode/copilot-api';
 import * as vscode from 'vscode';
 import { l10n } from 'vscode';
 import { GithubRepoId } from '../../../platform/git/common/gitService';

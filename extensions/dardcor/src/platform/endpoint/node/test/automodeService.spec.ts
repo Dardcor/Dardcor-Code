@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { RequestType } from '@vscode/dardcor-api';
+import { RequestType } from '@vscode/copilot-api';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ChatRequest } from 'vscode';
 import { IInstantiationService } from '../../../../util/dardcor/platform/instantiation/common/instantiation';

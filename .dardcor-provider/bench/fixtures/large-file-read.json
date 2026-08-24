@@ -1,5 +1,5 @@
 {
-  "schema": "miaw-bench-fixture/1",
+  "schema": "dardcor-bench-fixture/1",
   "id": "large-file-read",
   "name": "Large File Read",
   "description": "An agent auditing a large generated route file. The tool result carries a big synthetic file whose body contains two near-identical large blocks (content-addressable for L3 dedup) and whose line volume stresses read/smart-truncate handling; a follow-up grep returns a long repetitive match list (dedup-log shape). Full wire-body history per turn.",

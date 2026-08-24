@@ -1,12 +1,12 @@
 # Integración con OpenAI Codex CLI
 
-Integra MiawRouter con OpenAI Codex CLI para enrutar tus solicitudes de la API de OpenAI a través del sistema de enrutamiento inteligente de MiawRouter.
+Integra Dardcor Code con OpenAI Codex CLI para enrutar tus solicitudes de la API de OpenAI a través del sistema de enrutamiento inteligente de Dardcor Code.
 
 ## Requisitos previos
 
 - OpenAI Codex CLI instalado
-- MiawRouter ejecutándose localmente o endpoint en la nube configurado
-- API key del dashboard de MiawRouter
+- Dardcor Code ejecutándose localmente o endpoint en la nube configurado
+- API key del dashboard de Dardcor Code
 
 ## Configuración
 
@@ -15,11 +15,11 @@ Integra MiawRouter con OpenAI Codex CLI para enrutar tus solicitudes de la API d
 Establece las siguientes variables de entorno en tu archivo de configuración del shell (`~/.bashrc`, `~/.zshrc`, o `~/.bash_profile`):
 
 ```bash
-# Base URL for MiawRouter
+# Base URL for Dardcor Code
 export OPENAI_BASE_URL="http://localhost:21128/v1"
 
-# API Key from MiawRouter dashboard
-export OPENAI_API_KEY="your-miawrouter-api-key"
+# API Key from Dardcor Code dashboard
+export OPENAI_API_KEY="your-dardcor-code-api-key"
 ```
 
 ### 2. Recargar la configuración del shell
@@ -39,7 +39,7 @@ echo $OPENAI_API_KEY
 
 ## Modelos disponibles
 
-MiawRouter proporciona los siguientes modelos de Codex:
+Dardcor Code proporciona los siguientes modelos de Codex:
 
 | ID del modelo | Descripción |
 |----------|-------------|
@@ -77,7 +77,7 @@ También puedes configurar Codex CLI usando un archivo de configuración. Crea o
 ```json
 {
   "baseUrl": "http://localhost:21128/v1",
-  "apiKey": "your-miawrouter-api-key",
+  "apiKey": "your-dardcor-code-api-key",
   "defaultModel": "cx/gpt-5.2-codex"
 }
 ```
@@ -88,7 +88,7 @@ También puedes configurar Codex CLI usando un archivo de configuración. Crea o
 
 Si encuentras errores de autenticación:
 
-1. Verifica que tu API key sea correcta en el dashboard de MiawRouter
+1. Verifica que tu API key sea correcta en el dashboard de Dardcor Code
 2. Verifica que la variable de entorno `OPENAI_API_KEY` esté configurada
 3. Asegúrate de que la API key no haya expirado
 
@@ -96,7 +96,7 @@ Si encuentras errores de autenticación:
 
 Si encuentras errores de conexión:
 
-1. Verifica que MiawRouter esté corriendo: `curl http://localhost:21128/health`
+1. Verifica que Dardcor Code esté corriendo: `curl http://localhost:21128/health`
 2. Verifica que las variables de entorno estén configuradas correctamente
 3. Asegúrate de que ningún firewall esté bloqueando el puerto 21128
 
@@ -104,19 +104,19 @@ Si encuentras errores de conexión:
 
 Si obtienes errores de "modelo no disponible":
 
-1. Verifica que el nombre del modelo coincida con tu configuración de MiawRouter
-2. Verifica que la conexión del proveedor de OpenAI esté activa en el dashboard de MiawRouter
+1. Verifica que el nombre del modelo coincida con tu configuración de Dardcor Code
+2. Verifica que la conexión del proveedor de OpenAI esté activa en el dashboard de Dardcor Code
 3. Asegúrate de que el modelo esté disponible en tus proveedores conectados
 
 ## Endpoint en la nube
 
-Para usar el endpoint en la nube de MiawRouter en lugar de localhost:
+Para usar el endpoint en la nube de Dardcor Code en lugar de localhost:
 
 ```bash
-export OPENAI_BASE_URL="https://miawrouter.web.id"
+export OPENAI_BASE_URL="https://dardcor-code.web.id"
 ```
 
-Asegúrate de haber configurado tu API key en el dashboard en la nube de MiawRouter.
+Asegúrate de haber configurado tu API key en el dashboard en la nube de Dardcor Code.
 
 ## Configuración avanzada
 

@@ -6,7 +6,7 @@ Tạo các tổ hợp model tùy chỉnh với fallback tự động. Combo cho 
 
 ## Combos là gì?
 
-Combos là **chuỗi fallback tùy chỉnh** bạn tạo trong dashboard. Thay vì dùng một model duy nhất, bạn định nghĩa một chuỗi các model mà MiawRouter sẽ thử theo thứ tự.
+Combos là **chuỗi fallback tùy chỉnh** bạn tạo trong dashboard. Thay vì dùng một model duy nhất, bạn định nghĩa một chuỗi các model mà Dardcor Code sẽ thử theo thứ tự.
 
 **Ví dụ:**
 ```
@@ -22,7 +22,7 @@ Models:
 Model: premium-coding
 ```
 
-MiawRouter tự động thử từng model theo thứ tự cho đến khi thành công.
+Dardcor Code tự động thử từng model theo thứ tự cho đến khi thành công.
 
 ---
 
@@ -348,7 +348,7 @@ Sửa `~/.claude/config.json`:
 ```json
 {
   "anthropic_api_base": "http://localhost:21128/v1",
-  "anthropic_api_key": "your-miawrouter-api-key",
+  "anthropic_api_key": "your-dardcor-code-api-key",
   "model": "budget-combo"
 }
 ```
@@ -357,7 +357,7 @@ Sửa `~/.claude/config.json`:
 
 ```bash
 export OPENAI_BASE_URL="http://localhost:21128"
-export OPENAI_API_KEY="your-miawrouter-api-key"
+export OPENAI_API_KEY="your-dardcor-code-api-key"
 
 codex --model quality-first "your prompt"
 ```
@@ -474,7 +474,7 @@ Dashboard → Combos → Edit → Budget:
   Monthly limit: $50
 ```
 
-Khi đạt giới hạn, MiawRouter bỏ qua model trả phí và chỉ dùng free tier.
+Khi đạt giới hạn, Dardcor Code bỏ qua model trả phí và chỉ dùng free tier.
 
 ### Bật/Tắt Model trong Combo
 

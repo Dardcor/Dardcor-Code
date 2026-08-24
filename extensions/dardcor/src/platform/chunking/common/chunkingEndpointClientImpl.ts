@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { RequestType } from '@vscode/dardcor-api';
+import { RequestType } from '@vscode/copilot-api';
 import { CallTracker } from '../../../util/common/telemetryCorrelationId';
 import { coalesce } from '../../../util/dardcor/base/common/arrays';
 import { DeferredPromise, raceCancellationError, timeout } from '../../../util/dardcor/base/common/async';

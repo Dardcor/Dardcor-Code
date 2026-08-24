@@ -2,7 +2,7 @@ import { getApiKeys } from "@/lib/localDb";
 import { UPDATER_CONFIG } from "@/shared/constants/config";
 import { getConsistentMachineId } from "@/shared/utils/machineId";
 
-const CLI_TOKEN_SALT = "miaw-cli-auth";
+const CLI_TOKEN_SALT = "dardcor-cli-auth";
 
 function createSilentWavFile() {
   const sampleRate = 16000;
@@ -46,7 +46,7 @@ async function getInternalHeaders() {
 
   const headers = { "Content-Type": "application/json" };
   if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
-  headers["x-miaw-cli-token"] = await getConsistentMachineId(CLI_TOKEN_SALT);
+  headers["x-dardcor-cli-token"] = await getConsistentMachineId(CLI_TOKEN_SALT);
   return headers;
 }
 

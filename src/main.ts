@@ -224,39 +224,83 @@ async function startup(codeCachePath: string | undefined, nlsConfig: INLSConfigu
 
 	try {
 		const { spawn } = await import('node:child_process');
+		const net = await import('node:net');
 		const providerDir = path.join(import.meta.dirname, '../.dardcor-provider');
 		const providerDataDir = path.join(userDataPath, 'dardcor-provider-data');
 		
 		if (fs.existsSync(providerDir)) {
 			await mkdirpIgnoreError(providerDataDir);
 			
-			const isWin = process.platform === 'win32';
-			const runScript = path.join(providerDir, 'scripts/dev/run-next.mjs');
-			
-			const providerProcess = spawn('node', ['--max-old-space-size=8192', runScript, 'dev', '-p', '25000'], {
-				cwd: providerDir,
-				env: {
-					...process.env,
-					PORT: '25000',
-					DASHBOARD_PORT: '25000',
-					API_PORT: '25000',
-					OMNIROUTE_USE_TURBOPACK: '0',
-					DATA_DIR: providerDataDir
-				},
-				stdio: 'ignore',
-				shell: false,
-				windowsHide: true
+			const isPortListening = await new Promise<boolean>((resolve) => {
+				const socket = net.connect({ host: '127.0.0.1', port: 25000 }, () => {
+					socket.destroy();
+					resolve(true);
+				});
+				socket.on('error', () => {
+					socket.destroy();
+					resolve(false);
+				});
 			});
-			
-			app.on('before-quit', () => {
-				if (providerProcess && !providerProcess.killed) {
-					if (isWin && providerProcess.pid) {
-						spawn('taskkill', ['/pid', providerProcess.pid.toString(), '/f', '/t']);
-					} else {
-						providerProcess.kill('SIGINT');
-					}
+
+			if (!isPortListening) {
+				const isWin = process.platform === 'win32';
+				const nextBin = path.join(providerDir, 'node_modules/next/dist/bin/next');
+				const standaloneServer = path.join(providerDir, '.next/standalone/server.js');
+				
+				let spawnArgs: [string, string[], import('node:child_process').SpawnOptions];
+
+				if (fs.existsSync(standaloneServer)) {
+					spawnArgs = ['node', ['server.js'], {
+						cwd: path.join(providerDir, '.next/standalone'),
+						env: {
+							...process.env,
+							PORT: '25000',
+							HOSTNAME: '127.0.0.1',
+							DATA_DIR: providerDataDir
+						},
+						stdio: 'ignore',
+						windowsHide: true
+					}];
+				} else if (fs.existsSync(nextBin)) {
+					spawnArgs = ['node', ['--max-old-space-size=4096', nextBin, 'dev', '--webpack', '--port', '25000'], {
+						cwd: providerDir,
+						env: {
+							...process.env,
+							PORT: '25000',
+							HOSTNAME: '127.0.0.1',
+							DATA_DIR: providerDataDir
+						},
+						stdio: 'ignore',
+						windowsHide: true
+					}];
+				} else {
+					const npmCmd = isWin ? 'npm.cmd' : 'npm';
+					spawnArgs = [npmCmd, ['run', 'dev:webpack'], {
+						cwd: providerDir,
+						env: {
+							...process.env,
+							PORT: '25000',
+							HOSTNAME: '127.0.0.1',
+							DATA_DIR: providerDataDir
+						},
+						stdio: 'ignore',
+						shell: isWin,
+						windowsHide: true
+					}];
 				}
-			});
+
+				const providerProcess = spawn(...spawnArgs);
+				
+				app.on('before-quit', () => {
+					if (providerProcess && !providerProcess.killed) {
+						if (isWin && providerProcess.pid) {
+							spawn('taskkill', ['/pid', providerProcess.pid.toString(), '/f', '/t'], { windowsHide: true });
+						} else {
+							providerProcess.kill('SIGINT');
+						}
+					}
+				});
+			}
 		}
 	} catch (err) {
 		console.error("Failed to integrate .dardcor-provider", err);

@@ -36,7 +36,7 @@ function saveEnv() {
 }
 
 beforeEach(() => {
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "miawrouter-reqapikey-"));
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dardcor-code-reqapikey-"));
   process.env.DATA_DIR = tempDir;
   delete process.env.REQUIRE_API_KEY;
   delete global._dbAdapter;

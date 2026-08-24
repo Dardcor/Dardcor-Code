@@ -1,12 +1,12 @@
 # よくある質問
 
-MiawRouterに関する一般的な質問。
+Dardcor Codeに関する一般的な質問。
 
 ---
 
-## MiawRouterとは?
+## Dardcor Codeとは?
 
-**MiawRouterは、サブスクリプションの価値を最大化し、コストを最小限に抑えるAIモデルルーターです。**
+**Dardcor Codeは、サブスクリプションの価値を最大化し、コストを最小限に抑えるAIモデルルーターです。**
 
 3階層フォールバックシステムを使用して、複数のAIプロバイダー間でリクエストをインテリジェントにルーティングします:
 1. **サブスクリプション階層** - すでに支払っているClaude Code、Codex、Geminiのクォータを最大化
@@ -22,7 +22,7 @@ MiawRouterに関する一般的な質問。
 
 ## 料金体系はどうなっていますか?
 
-**MiawRouterは3階層の料金戦略を使用します:**
+**Dardcor Codeは3階層の料金戦略を使用します:**
 
 ### Tier 1: サブスクリプション(最初に最大化)
 - **Claude Code** (Pro/Max): 月$20〜100 - 5時間 + 週次クォータ
@@ -47,9 +47,9 @@ MiawRouterに関する一般的な質問。
 
 ---
 
-## MiawRouterは無料ですか?
+## Dardcor Codeは無料ですか?
 
-**はい、MiawRouter自体は100%無料でオープンソースです。**
+**はい、Dardcor Code自体は100%無料でオープンソースです。**
 
 **利用可能な無料階層プロバイダー:**
 - **Gemini CLI** - 月18万コンプリーション(無料Googleアカウント)
@@ -93,7 +93,7 @@ MiawRouterに関する一般的な質問。
 
 ## 複数のプロバイダーを使用できますか?
 
-**はい! これはMiawRouterのコア機能です。**
+**はい! これはDardcor Codeのコア機能です。**
 
 **コンボにより、複数のプロバイダーを自動フォールバック付きで連鎖させることができます:**
 
@@ -126,7 +126,7 @@ Dashboard → Combos → Create New
 
 ## クォータトラッキングはどのように機能しますか?
 
-**MiawRouterはすべてのプロバイダーのクォータをリアルタイムで追跡します:**
+**Dardcor Codeはすべてのプロバイダーのクォータをリアルタイムで追跡します:**
 
 **機能:**
 - **トークン消費** - リクエストごとの入出力トークン
@@ -151,17 +151,17 @@ Dashboard → Providers → Quota Tracking
 
 ---
 
-## MiawRouterはCursorで動作しますか?
+## Dardcor CodeはCursorで動作しますか?
 
 **はい、ただしCursorはクラウドエンドポイントが必要です。**
 
 **問題:** Cursor IDEはlocalhostエンドポイントをサポートしていません。
 
-**解決策:** MiawRouterクラウドデプロイメントを使用:
+**解決策:** Dardcor Codeクラウドデプロイメントを使用:
 
 ```
 Cursor Settings → Models → Advanced:
-  OpenAI API Base URL: https://miawrouter.web.id/v1
+  OpenAI API Base URL: https://dardcor-code.web.id/v1
   OpenAI API Key: [ダッシュボードから取得]
   Model: cc/claude-opus-4-5-20251101
 ```
@@ -170,7 +170,7 @@ Cursor Settings → Models → Advanced:
 ```bash
 # VPSへデプロイ
 git clone .git
-cd miawrouter/app
+cd dardcor-code/app
 npm install && npm run build
 npm start
 
@@ -189,14 +189,14 @@ npm start
 
 ---
 
-## MiawRouterをセルフホストできますか?
+## Dardcor Codeをセルフホストできますか?
 
-**はい! MiawRouterは複数のデプロイメントオプションをサポートします:**
+**はい! Dardcor Codeは複数のデプロイメントオプションをサポートします:**
 
 ### Localhost(デフォルト)
 ```bash
-npm install -g miawrouter
-miawrouter
+npm install -g dardcor-code
+dardcor-code
 → Dashboard: http://localhost:3000
 → API: http://localhost:21128/v1
 ```
@@ -204,7 +204,7 @@ miawrouter
 ### VPS/クラウド
 ```bash
 git clone .git
-cd miawrouter/app
+cd dardcor-code/app
 npm install && npm run build
 
 export JWT_SECRET="your-secure-secret"
@@ -216,23 +216,23 @@ npm start
 
 ### Docker
 ```bash
-docker build -t miawrouter .
+docker build -t dardcor-code .
 docker run -d \
   -p 3000:3000 \
   -e JWT_SECRET="your-secret" \
-  -v miawrouter-data:/app/data \
-  miawrouter
+  -v dardcor-code-data:/app/data \
+  dardcor-code
 ```
 
 ### Cloudflare Workers
 ```bash
-cd miawrouter/app
+cd dardcor-code/app
 npm run deploy:cloudflare
 ```
 
 **環境変数:**
 - `JWT_SECRET` - **本番環境で必ず変更!**
-- `DATA_DIR` - データベース保存パス(デフォルト: `~/.miawrouter`)
+- `DATA_DIR` - データベース保存パス(デフォルト: `~/.dardcor-code`)
 - `INITIAL_PASSWORD` - ダッシュボードログイン(デフォルトなし；未設定なら localhost 経由でパスワードを作成するローカル専用のオプション)
 - `NODE_ENV` - デプロイ時は`production`に設定
 
@@ -242,11 +242,11 @@ npm run deploy:cloudflare
 
 ## データは安全ですか?
 
-**はい、MiawRouterはセキュリティとプライバシーを優先します:**
+**はい、Dardcor Codeはセキュリティとプライバシーを優先します:**
 
 **ローカルストレージ:**
-- すべてのデータは`~/.miawrouter`(またはカスタム`DATA_DIR`)にローカル保存
-- MiawRouterサーバーへのデータ送信なし
+- すべてのデータは`~/.dardcor-code`(またはカスタム`DATA_DIR`)にローカル保存
+- Dardcor Codeサーバーへのデータ送信なし
 - OAuthトークンはJWTで暗号化
 
 **テレメトリなし:**
@@ -265,31 +265,31 @@ npm run deploy:cloudflare
 - クラウドデプロイでHTTPSを有効化
 - APIキーを定期的にローテーション
 
-**MiawRouterが保存するもの:**
+**Dardcor Codeが保存するもの:**
 - プロバイダーOAuthトークン(暗号化)
 - APIキー(暗号化)
 - 使用統計(ローカルのみ)
 - コンボ設定
 
-**MiawRouterが保存しないもの:**
+**Dardcor Codeが保存しないもの:**
 - プロンプトやレスポンス
 - 生成したコード
 - 個人情報
 
 ---
 
-## MiawRouterを更新するには?
+## Dardcor Codeを更新するには?
 
 **更新方法はインストールタイプによって異なります:**
 
 ### グローバルNPMインストール
 ```bash
-npm update -g miawrouter
+npm update -g dardcor-code
 ```
 
 ### ローカルインストール
 ```bash
-cd miawrouter/app
+cd dardcor-code/app
 git pull origin main
 npm install
 npm run build
@@ -298,23 +298,23 @@ npm start
 
 ### Docker
 ```bash
-docker pull miawrouter:latest
-docker stop miawrouter
-docker rm miawrouter
+docker pull dardcor-code:latest
+docker stop dardcor-code
+docker rm dardcor-code
 docker run -d \
   -p 3000:3000 \
-  -v miawrouter-data:/app/data \
-  miawrouter:latest
+  -v dardcor-code-data:/app/data \
+  dardcor-code:latest
 ```
 
 **バージョンを確認:**
 ```bash
-miawrouter --version
+dardcor-code --version
 ```
 
 **破壊的変更:**
 - [CHANGELOG.md](/blob/main/CHANGELOG.md)を確認
-- メジャー更新前に`~/.miawrouter`をバックアップ
+- メジャー更新前に`~/.dardcor-code`をバックアップ
 - メジャーバージョンの移行ガイドを確認
 
 ---
@@ -337,7 +337,7 @@ miawrouter --version
    ```bash
    # リポジトリをフォーク
    git clone .git
-   cd miawrouter
+   cd dardcor-code
    
    # ブランチを作成
    git checkout -b feature/your-feature
@@ -378,7 +378,7 @@ miawrouter --version
 
 ## さらにヘルプが必要?
 
-- **ドキュメント:** [miawrouter.web.id/docs](https://miawrouter.web.id/docs)
+- **ドキュメント:** [dardcor-code.web.id/docs](https://dardcor-code.web.id/docs)
 - **GitHub:** 
 - **Issues:** [/issues](/issues)
 - **トラブルシューティング:** [troubleshooting.md](troubleshooting.md)

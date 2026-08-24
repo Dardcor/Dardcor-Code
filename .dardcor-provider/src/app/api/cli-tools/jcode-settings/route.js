@@ -13,15 +13,15 @@ const execAsync = promisify(exec);
 const getJcodeConfigDir = () => path.join(os.homedir(), ".jcode");
 const getConfigPath = () => path.join(getJcodeConfigDir(), "config.toml");
 
-// New writes use "miawrouter"; legacy "9router" slots/env names stay readable.
-const PROVIDER_KEY = "miawrouter";
+// New writes use "dardcor-code"; legacy "9router" slots/env names stay readable.
+const PROVIDER_KEY = "dardcor-code";
 const LEGACY_PROVIDER_KEY = "9router";
-const ENV_KEY = "JCODE_MIAWROUTER_API_KEY";
+const ENV_KEY = "JCODE_DARDCOR CODE_API_KEY";
 const LEGACY_ENV_KEY = "JCODE_9ROUTER_API_KEY";
 
 const getProviderEnvPath = () => {
   const configDir = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config");
-  return path.join(configDir, "jcode", "provider-miawrouter.env");
+  return path.join(configDir, "jcode", "provider-dardcor-code.env");
 };
 
 const checkJcodeInstalled = async () => {
@@ -160,7 +160,7 @@ export async function POST(request) {
       base_url: normalizedBaseUrl,
       auth: "bearer",
       api_key_env: ENV_KEY,
-      env_file: "provider-miawrouter.env",
+      env_file: "provider-dardcor-code.env",
       default_model: models && models.length > 0 ? models[0] : "cc/claude-opus-4-7",
       requires_api_key: true,
     };
@@ -182,7 +182,7 @@ export async function POST(request) {
 
     return NextResponse.json({
       success: true,
-      message: "jcode configured successfully. Use: jcode --provider-profile miawrouter",
+      message: "jcode configured successfully. Use: jcode --provider-profile dardcor-code",
       configPath: getConfigPath(),
     });
   } catch (error) {
@@ -214,7 +214,7 @@ export async function DELETE() {
 
     return NextResponse.json({
       success: true,
-      message: "Miawrouter configuration removed from jcode",
+      message: "Dardcor Code configuration removed from jcode",
     });
   } catch (error) {
     console.error("Error removing jcode configuration:", error);

@@ -1,6 +1,6 @@
 # インストール
 
-トラブルシューティングのヒント付きのMiawRouter詳細インストールガイド。
+トラブルシューティングのヒント付きのDardcor Code詳細インストールガイド。
 
 ---
 
@@ -31,37 +31,37 @@ npm --version
 
 ### 方法1: グローバルインストール (推奨)
 
-どこからでも使用できるようにMiawRouterをグローバルインストール:
+どこからでも使用できるようにDardcor Codeをグローバルインストール:
 
 ```bash
-npm install -g miawrouter
+npm install -g dardcor-code
 ```
 
-**MiawRouterを起動:**
+**Dardcor Codeを起動:**
 
 ```bash
-miawrouter
+dardcor-code
 ```
 
 **利点:**
 - ✅ どのディレクトリからでも実行
-- ✅ シンプルなコマンド: `miawrouter`
-- ✅ `npm update -g miawrouter` で自動更新
+- ✅ シンプルなコマンド: `dardcor-code`
+- ✅ `npm update -g dardcor-code` で自動更新
 
 ### 方法2: ローカルインストール
 
 特定のプロジェクトにインストール:
 
 ```bash
-mkdir my-miawrouter
-cd my-miawrouter
-npm install miawrouter
+mkdir my-dardcor-code
+cd my-dardcor-code
+npm install dardcor-code
 ```
 
-**MiawRouterを起動:**
+**Dardcor Codeを起動:**
 
 ```bash
-npx miawrouter
+npx dardcor-code
 ```
 
 **利点:**
@@ -75,7 +75,7 @@ GitHubからクローンしてビルド:
 
 ```bash
 git clone .git
-cd miawrouter/app
+cd dardcor-code/app
 npm install
 npm run build
 npm start
@@ -93,13 +93,13 @@ npm start
 ### サーバーを起動
 
 ```bash
-miawrouter
+dardcor-code
 ```
 
 **何が起こるか:**
 1. サーバーが `http://localhost:21128` で起動
 2. ダッシュボードが自動的にブラウザで開く
-3. `~/.miawrouter` にデータディレクトリが作成される
+3. `~/.dardcor-code` にデータディレクトリが作成される
 4. APIキーが自動生成される
 
 ### ダッシュボードログイン
@@ -122,7 +122,7 @@ Dashboard → Settings → API Keys
 
 **APIキー形式の例:**
 ```
-miaw_1234567890abcdef1234567890abcdef
+dardcor_1234567890abcdef1234567890abcdef
 ```
 
 ---
@@ -193,7 +193,7 @@ export JWT_SECRET="your-secure-secret-change-this"
 export INITIAL_PASSWORD="your-password"
 
 # ストレージ
-export DATA_DIR="~/.miawrouter"
+export DATA_DIR="~/.dardcor-code"
 
 # サーバー
 export PORT="21128"
@@ -205,11 +205,11 @@ export ENABLE_REQUEST_LOGS="false"
 
 ### データディレクトリ
 
-**デフォルトの場所:** `~/.miawrouter`
+**デフォルトの場所:** `~/.dardcor-code`
 
 **内容:**
 ```
-~/.miawrouter/
+~/.dardcor-code/
   ├── db.json           # データベース (プロバイダー、コンボ、使用量)
   ├── api-keys.json     # APIキー
   └── logs/             # リクエストログ (有効化されている場合)
@@ -219,7 +219,7 @@ export ENABLE_REQUEST_LOGS="false"
 
 ```bash
 export DATA_DIR="/custom/path"
-miawrouter
+dardcor-code
 ```
 
 ### ポート設定
@@ -230,13 +230,13 @@ miawrouter
 
 ```bash
 export PORT="3000"
-miawrouter
+dardcor-code
 ```
 
 **またはコマンドラインで:**
 
 ```bash
-miawrouter --port 3000
+dardcor-code --port 3000
 ```
 
 ---
@@ -263,14 +263,14 @@ kill -9 <PID>
 **解決策2: 別のポートを使用**
 
 ```bash
-miawrouter --port 3000
+dardcor-code --port 3000
 ```
 
 ### Permission Denied
 
 **エラー:**
 ```
-Error: EACCES: permission denied, mkdir '/usr/local/lib/node_modules/miawrouter'
+Error: EACCES: permission denied, mkdir '/usr/local/lib/node_modules/dardcor-code'
 ```
 
 **解決策: sudoを使用 (非推奨) またはnpm権限を修正**
@@ -283,7 +283,7 @@ echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
 source ~/.bashrc
 
 # 再度インストール
-npm install -g miawrouter
+npm install -g dardcor-code
 ```
 
 ### Node.jsバージョンが古すぎる
@@ -345,23 +345,23 @@ Dashboard → Provider → Disconnect → Reconnect
 
 ### 高メモリ使用量
 
-**問題:** MiawRouterがRAMを使いすぎている
+**問題:** Dardcor CodeがRAMを使いすぎている
 
 **解決策: サーバーを再起動**
 
 ```bash
 # 停止
-pkill -f miawrouter
+pkill -f dardcor-code
 
 # 起動
-miawrouter
+dardcor-code
 ```
 
 **または自動再起動にPM2を使用:**
 
 ```bash
 npm install -g pm2
-pm2 start miawrouter --name miawrouter
+pm2 start dardcor-code --name dardcor-code
 pm2 save
 ```
 
@@ -372,8 +372,8 @@ pm2 save
 ### ローカル開発
 
 ```bash
-npm install -g miawrouter
-miawrouter
+npm install -g dardcor-code
+dardcor-code
 ```
 
 **ユースケース:** 個人コーディング、テスト
@@ -382,7 +382,7 @@ miawrouter
 
 ```bash
 # インストール
-npm install -g miawrouter
+npm install -g dardcor-code
 
 # 設定
 export JWT_SECRET="your-secure-secret"
@@ -391,7 +391,7 @@ export NODE_ENV="production"
 
 # PM2で起動
 npm install -g pm2
-pm2 start miawrouter --name miawrouter
+pm2 start dardcor-code --name dardcor-code
 pm2 save
 pm2 startup
 ```
@@ -401,15 +401,15 @@ pm2 startup
 ### Docker
 
 ```bash
-docker pull miawrouter/miawrouter:latest
+docker pull dardcor-code/dardcor-code:latest
 
 docker run -d \
   -p 21128:21128 \
   -e JWT_SECRET="your-secure-secret" \
   -e INITIAL_PASSWORD="your-password" \
-  -v miawrouter-data:/root/.miawrouter \
-  --name miawrouter \
-  miawrouter/miawrouter:latest
+  -v dardcor-code-data:/root/.dardcor-code \
+  --name dardcor-code \
+  dardcor-code/dardcor-code:latest
 ```
 
 **ユースケース:** コンテナデプロイ、Kubernetes
@@ -444,13 +444,13 @@ server {
 ### グローバルインストールを削除
 
 ```bash
-npm uninstall -g miawrouter
+npm uninstall -g dardcor-code
 ```
 
 ### データディレクトリを削除
 
 ```bash
-rm -rf ~/.miawrouter
+rm -rf ~/.dardcor-code
 ```
 
 ### 設定を削除
@@ -458,7 +458,7 @@ rm -rf ~/.miawrouter
 ```bash
 # シェル設定から環境変数を削除
 nano ~/.bashrc  # または ~/.zshrc
-# miawrouter関連のエクスポートを削除
+# dardcor-code関連のエクスポートを削除
 ```
 
 ---
@@ -473,6 +473,6 @@ nano ~/.bashrc  # または ~/.zshrc
 
 ## ヘルプが必要?
 
-- **ウェブサイト**: [miawrouter.web.id](https://miawrouter.web.id)
+- **ウェブサイト**: [dardcor-code.web.id](https://dardcor-code.web.id)
 - **GitHub**: 
 - **Issues**: [/issues](/issues)

@@ -20,7 +20,7 @@ const DOCUMENTED_FREE_IDS = new Set(["big-pickle", "ox-alpha-free"]);
 
 // globalThis keeps the cache across Next.js dev hot reloads (module-level `let`
 // is reset on every HMR reload and would refetch + lose the diff baseline).
-const GLOBAL_KEY = "__miaw_opencode_catalog_v1__";
+const GLOBAL_KEY = "__dardcor_opencode_catalog_v1__";
 
 function getGlobal() {
   globalThis[GLOBAL_KEY] ||= {

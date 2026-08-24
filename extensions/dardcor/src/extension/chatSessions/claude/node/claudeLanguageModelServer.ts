@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { MessageParam } from '@anthropic-ai/sdk/resources';
-import { RequestMetadata, RequestType } from '@vscode/dardcor-api';
+import { RequestMetadata, RequestType } from '@vscode/copilot-api';
 import { Raw } from '@vscode/prompt-tsx';
 import * as http from 'http';
 import { IChatMLFetcher, Source } from '../../../../platform/chat/common/chatMLFetcher';

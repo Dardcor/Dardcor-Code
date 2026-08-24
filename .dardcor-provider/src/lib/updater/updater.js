@@ -9,7 +9,7 @@ const path = require("path");
 const fs = require("fs");
 const os = require("os");
 
-const packageName = process.env.UPDATER_PKG_NAME || "miawrouter";
+const packageName = process.env.UPDATER_PKG_NAME || "dardcor-code";
 const port = parseInt(process.env.UPDATER_PORT || "21129", 10);
 const tailLines = parseInt(process.env.UPDATER_TAIL_LINES || "8", 10);
 const maxRetries = parseInt(process.env.UPDATER_RETRIES || "3", 10);
@@ -29,8 +29,8 @@ function getDataDir() {
     : path.join(os.homedir(), ".9router");
   if (fs.existsSync(legacy)) return legacy;
   return process.platform === "win32"
-    ? path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "miawrouter")
-    : path.join(os.homedir(), ".miawrouter");
+    ? path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "dardcor-code")
+    : path.join(os.homedir(), ".dardcor-code");
 }
 const updateDir = path.join(getDataDir(), "update");
 try { fs.mkdirSync(updateDir, { recursive: true }); } catch { /* best effort */ }

@@ -1,6 +1,6 @@
 /**
  * bench/mockProvider.js — Phase 9 deterministic mock upstream for the
- * benchmark harness (MIAWROUTER_AGENT_PROMPT_V2.md §10).
+ * benchmark harness (DARDCOR CODE_AGENT_PROMPT_V2.md §10).
  *
  * A network-free, OpenAI-compatible chat-completions provider. It stands in
  * for any real LLM API during fixture replay so the harness runs offline in CI.

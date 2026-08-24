@@ -1,6 +1,6 @@
 /**
- * `miawrouter migrate --from-9router` — migrate an existing 9router install
- * into this MiawRouter gateway.
+ * `dardcor-code migrate --from-9router` — migrate an existing 9router install
+ * into this Dardcor Code gateway.
  *
  * Data never travels as raw SQLite bytes. The command reads the legacy
  * installation through the same authenticated export/import API the dashboard
@@ -10,8 +10,8 @@
  *
  * Auth: the legacy server accepts the legacy CLI token (`x-9r-cli-token`,
  * derived from the legacy data dir's machine-id + auth/cli-secret under the
- * `9r-cli-auth` salt); the target accepts the new token (`x-miaw-cli-token`,
- * `miaw-cli-auth`). Either side may fall back to its dashboard password.
+ * `9r-cli-auth` salt); the target accepts the new token (`x-dardcor-cli-token`,
+ * `dardcor-cli-auth`). Either side may fall back to its dashboard password.
  *
  * Branded local defaults (localhost:20128 → :21128, legacy token-saver /
  * connection-id headers, `9router` provider/model slot identifiers) are
@@ -45,9 +45,9 @@ const DEFAULT_TARGET_PORT = 21128;
 const LEGACY_CLI_TOKEN_SALT = "9r-cli-auth";
 const LEGACY_CLI_TOKEN_HEADER = "x-9r-cli-token";
 const LEGACY_PASSWORD_HEADER = "x-9r-password";
-const TARGET_CLI_TOKEN_SALT = "miaw-cli-auth";
-const TARGET_CLI_TOKEN_HEADER = "x-miaw-cli-token";
-const TARGET_PASSWORD_HEADER = "x-miaw-password";
+const TARGET_CLI_TOKEN_SALT = "dardcor-cli-auth";
+const TARGET_CLI_TOKEN_HEADER = "x-dardcor-cli-token";
+const TARGET_PASSWORD_HEADER = "x-dardcor-password";
 
 const EXPORT_PATH = "/api/settings/database";
 const REQUEST_TIMEOUT_MS = 60000;
@@ -77,10 +77,10 @@ const REWRITE_COLLECTIONS = new Set([
 ]);
 
 const HELP = `
-Usage: miawrouter migrate --from-9router [options]
+Usage: dardcor-code migrate --from-9router [options]
 
 Migrate data from a legacy 9router install (same machine) into this
-MiawRouter gateway. Reads the source only through the authenticated
+Dardcor Code gateway. Reads the source only through the authenticated
 export API — never copies data.sqlite, never writes into the source.
 
 Options:
@@ -89,8 +89,8 @@ Options:
   --legacy-port <port>    Legacy gateway port (default: ${DEFAULT_LEGACY_PORT})
   --legacy-dir <dir>      Legacy data dir holding machine-id + auth/cli-secret
                           (default: ~/.9router, Win %APPDATA%\\9router)
-  --host <host>           Target MiawRouter host (default: ${DEFAULT_TARGET_HOST})
-  --port <port>           Target MiawRouter port (default: ${DEFAULT_TARGET_PORT})
+  --host <host>           Target Dardcor Code host (default: ${DEFAULT_TARGET_HOST})
+  --port <port>           Target Dardcor Code port (default: ${DEFAULT_TARGET_PORT})
   --legacy-password <pw>  Legacy dashboard password (fallback when the legacy
                           CLI token is rejected, e.g. different machine)
   --target-password <pw>  Target dashboard password (fallback for import)
@@ -109,8 +109,8 @@ function defaultLegacyDir() {
 
 function defaultTargetDir() {
   return process.platform === "win32"
-    ? path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "miawrouter")
-    : path.join(os.homedir(), ".miawrouter");
+    ? path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "dardcor-code")
+    : path.join(os.homedir(), ".dardcor-code");
 }
 
 function computeCliToken({ raw, secret, salt }) {
@@ -158,14 +158,14 @@ function rewriteLocalString(value) {
   let out = value;
   // Legacy client header names → new names (specific rules run first so the
   // generic slot rewrite below cannot mangle them).
-  out = out.replace(/x-9router-token-saver/gi, "x-miaw-token-saver");
-  out = out.replace(/x-9router-connection-id/gi, "x-miaw-connection-id");
+  out = out.replace(/x-9router-token-saver/gi, "x-dardcor-token-saver");
+  out = out.replace(/x-9router-connection-id/gi, "x-dardcor-connection-id");
   // Local gateway port 20128 → 21128 (legacy runtime port → new runtime port).
   out = out.replace(/(localhost|127\.0\.0\.1|0\.0\.0\.0):20128\b/gi, "$1:21128");
-  // `9router` slot identifiers: bare token or `9router/…` model prefix → miawrouter.
+  // `9router` slot identifiers: bare token or `9router/…` model prefix → dardcor-code.
   // The `9router.com` cloud domain and pinned upstream-contract strings are never
   // matched (followed by `.`, which the negative lookahead rejects).
-  out = out.replace(/\b9router\b(?!\.com)/gi, "miawrouter");
+  out = out.replace(/\b9router\b(?!\.com)/gi, "dardcor-code");
   return out;
 }
 
@@ -281,7 +281,7 @@ async function exportFrom(host, port, cliToken, cliHeader, password, passwordHea
 }
 
 // Import: CLI token first; on 401 retry with the target dashboard password.
-// The password travels ONLY in the x-miaw-password header — the DB payload body
+// The password travels ONLY in the x-dardcor-password header — the DB payload body
 // is sent byte-identical, so the password can never enter body logging.
 async function importTo(host, port, cliToken, payload, password) {
   let res = await httpJson({
@@ -375,7 +375,7 @@ function printReport(report) {
   if (counts.source) {
     console.log(`  Source export : ${counts.source.providerConnections} connections, ${counts.source.providerNodes} custom providers, ${counts.source.combos} combos, ${counts.source.apiKeys} API keys`);
   }
-  console.log(`  Rewritten     : local URLs/headers/slots → MiawRouter names (source payload untouched)`);
+  console.log(`  Rewritten     : local URLs/headers/slots → Dardcor Code names (source payload untouched)`);
   console.log(`  Target import : ${counts.target ? `${counts.target.providerConnections} connections, ${counts.target.combos} combos, ${counts.target.apiKeys} API keys` : "done"}`);
   console.log("");
   console.log("Honest notes:");
@@ -397,7 +397,7 @@ async function run(argv) {
     return 0;
   }
   if (!opts.from9router) {
-    console.error("❌ Use: miawrouter migrate --from-9router [options]");
+    console.error("❌ Use: dardcor-code migrate --from-9router [options]");
     console.log(HELP);
     return 1;
   }

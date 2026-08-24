@@ -1,17 +1,17 @@
 # Cursor 集成
 
-将 MiawRouter 与 Cursor IDE 集成,通过 MiawRouter 的智能路由系统转发你的 AI 请求。
+将 Dardcor Code 与 Cursor IDE 集成,通过 Dardcor Code 的智能路由系统转发你的 AI 请求。
 
 ## 前置要求
 
 - 已安装 Cursor IDE
 - Cursor Pro 账户(使用自定义 API endpoint 必需)
-- 已配置 MiawRouter 云端 endpoint
-- 来自 MiawRouter 仪表盘的 API key
+- 已配置 Dardcor Code 云端 endpoint
+- 来自 Dardcor Code 仪表盘的 API key
 
 ## ⚠️ 重要说明
 
-> **必须使用云端 Endpoint**:Cursor 会通过自己的服务器转发请求,不支持 localhost endpoint。你必须使用 MiawRouter 云端 endpoint:`https://miawrouter.web.id`
+> **必须使用云端 Endpoint**:Cursor 会通过自己的服务器转发请求,不支持 localhost endpoint。你必须使用 Dardcor Code 云端 endpoint:`https://dardcor-code.web.id`
 
 > **必须有 Cursor Pro**:此功能需要 Cursor Pro 账户才能使用自定义 API endpoint。
 
@@ -30,35 +30,35 @@
 
 ### 3. 配置 Base URL
 
-将 base URL 设为 MiawRouter 云端 endpoint:
+将 base URL 设为 Dardcor Code 云端 endpoint:
 
 ```
-https://miawrouter.web.id
+https://dardcor-code.web.id
 ```
 
 **步骤:**
 1. 在 Models 设置中找到 **Base URL** 字段
-2. 输入:`https://miawrouter.web.id`
+2. 输入:`https://dardcor-code.web.id`
 3. 点击 **Save**
 
 ### 4. 添加 API Key
 
-1. 在 **API Key** 字段中输入你的 MiawRouter API key
-2. 可在 MiawRouter 仪表盘 **Settings → API Keys** 中找到 API key
+1. 在 **API Key** 字段中输入你的 Dardcor Code API key
+2. 可在 Dardcor Code 仪表盘 **Settings → API Keys** 中找到 API key
 3. 点击 **Save**
 
 ### 5. 添加自定义模型
 
 1. 点击 **View All Models** 按钮
 2. 点击 **Add Custom Model**
-3. 输入 MiawRouter 配置中的模型名(例如 `gpt-4`、`claude-opus-4-5` 等)
+3. 输入 Dardcor Code 配置中的模型名(例如 `gpt-4`、`claude-opus-4-5` 等)
 4. 点击 **Add**
 
 ### 6. 选择模型
 
 1. 在 Cursor 聊天界面,点击模型选择下拉菜单
 2. 从列表中选择你的自定义模型
-3. 开始在 Cursor 中使用 MiawRouter!
+3. 开始在 Cursor 中使用 Dardcor Code!
 
 ## 配置示例
 
@@ -66,14 +66,14 @@ https://miawrouter.web.id
 
 ```
 OpenAI API: ✓ 已启用
-Base URL: https://miawrouter.web.id
-API Key: sk-miawrouter-xxxxxxxxxxxxx
+Base URL: https://dardcor-code.web.id
+API Key: sk-dardcor-code-xxxxxxxxxxxxx
 Custom Models: gpt-4, claude-opus-4-5, gemini-2.0-flash
 ```
 
 ## 可用模型
 
-你可以使用 MiawRouter 仪表盘中配置的任意模型。常见示例:
+你可以使用 Dardcor Code 仪表盘中配置的任意模型。常见示例:
 
 | 模型名 | 提供商 | 描述 |
 |------------|----------|-------------|
@@ -89,61 +89,61 @@ Custom Models: gpt-4, claude-opus-4-5, gemini-2.0-flash
 
 1. 打开 Cursor 聊天(Cmd/Ctrl + L)
 2. 从下拉菜单中选择模型
-3. 通过 MiawRouter 与 AI 对话
+3. 通过 Dardcor Code 与 AI 对话
 
 ### 内联代码生成
 
 1. 在编辑器中选中代码
 2. 按 Cmd/Ctrl + K
 3. 输入 prompt
-4. Cursor 会通过 MiawRouter 生成代码
+4. Cursor 会通过 Dardcor Code 生成代码
 
 ### 代码解释
 
 1. 在编辑器中选中代码
 2. 按 Cmd/Ctrl + L
 3. 询问 "Explain this code"
-4. 通过 MiawRouter 获得 AI 驱动的解释
+4. 通过 Dardcor Code 获得 AI 驱动的解释
 
 ## 故障排除
 
 ### "Invalid API Key" 错误
 
-1. 在 MiawRouter 仪表盘中确认 API key
-2. 确保复制了包含 `sk-miawrouter-` 前缀在内的完整 key
+1. 在 Dardcor Code 仪表盘中确认 API key
+2. 确保复制了包含 `sk-dardcor-code-` 前缀在内的完整 key
 3. 检查 API key 是否过期
 4. 尝试重新生成 API key
 
 ### "Model Not Found" 错误
 
-1. 确认模型名与 MiawRouter 配置完全一致
-2. 检查 MiawRouter 仪表盘中提供商连接是否激活
+1. 确认模型名与 Dardcor Code 配置完全一致
+2. 检查 Dardcor Code 仪表盘中提供商连接是否激活
 3. 确认连接的提供商中包含该模型
 4. 尝试使用完整模型名(例如用 `openai/gpt-4` 代替 `gpt-4`)
 
 ### 连接问题
 
-1. 确认使用的是云端 endpoint:`https://miawrouter.web.id`
+1. 确认使用的是云端 endpoint:`https://dardcor-code.web.id`
 2. 检查网络连接
-3. 确认 MiawRouter 云端服务运行正常
+3. 确认 Dardcor Code 云端服务运行正常
 4. 若启用了 VPN 或代理,尝试关闭
 
 ### Localhost 无法使用
 
-> **请记住**:Cursor 不支持 localhost endpoint。你必须使用云端 endpoint `https://miawrouter.web.id`。如果需要使用本地 MiawRouter 实例,可以考虑使用 ngrok 之类的隧道服务把本地 endpoint 暴露到公网。
+> **请记住**:Cursor 不支持 localhost endpoint。你必须使用云端 endpoint `https://dardcor-code.web.id`。如果需要使用本地 Dardcor Code 实例,可以考虑使用 ngrok 之类的隧道服务把本地 endpoint 暴露到公网。
 
 ## 云端 Endpoint 设置
 
-如果你在本地运行 MiawRouter 并希望搭配 Cursor 使用:
+如果你在本地运行 Dardcor Code 并希望搭配 Cursor 使用:
 
-1. 在 MiawRouter 设置中启用云端 endpoint
-2. 在 MiawRouter 仪表盘中配置云端 endpoint URL
+1. 在 Dardcor Code 设置中启用云端 endpoint
+2. 在 Dardcor Code 仪表盘中配置云端 endpoint URL
 3. 在 Cursor 设置中使用该云端 URL
-4. 确保本地 MiawRouter 实例可从互联网访问
+4. 确保本地 Dardcor Code 实例可从互联网访问
 
 ## 最佳实践
 
-1. **使用模型别名**:为常用模型在 MiawRouter 中创建简短别名
-2. **监控使用**:在 MiawRouter 仪表盘查看用量统计和成本
+1. **使用模型别名**:为常用模型在 Dardcor Code 中创建简短别名
+2. **监控使用**:在 Dardcor Code 仪表盘查看用量统计和成本
 3. **轮换 API Keys**:为安全起见定期轮换 API key
 4. **测试模型**:尝试不同模型,找到最适合你场景的那个

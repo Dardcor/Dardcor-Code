@@ -207,7 +207,7 @@ export default function PrivacyPageClient() {
           Privacy
         </h1>
         <p className="text-sm text-text-muted">
-          Control what MiawRouter retains locally and which providers it routes to. MiawRouter never
+          Control what Dardcor Code retains locally and which providers it routes to. Dardcor Code never
           sends your data anywhere except the providers you connect — nothing leaves your machine otherwise.
         </p>
       </div>
@@ -286,7 +286,7 @@ export default function PrivacyPageClient() {
         </div>
         <p className="text-xs text-text-muted mt-3">
           Provider-side prompt caching (L0) is controlled by the upstream provider and its pricing —
-          MiawRouter cannot force it off. The blocked-providers list is enforced at routing time in
+          Dardcor Code cannot force it off. The blocked-providers list is enforced at routing time in
           strict and local-only modes; local-only additionally routes only to self-hosted connections.
         </p>
       </Card>
@@ -448,7 +448,7 @@ export default function PrivacyPageClient() {
       <Card title="Training & your data" icon="school">
         <div className="flex flex-col gap-3 text-sm text-text-muted">
           <p>
-            MiawRouter cannot force an external provider to exclude your data from training. Once a
+            Dardcor Code cannot force an external provider to exclude your data from training. Once a
             request reaches a provider, its use of that data (including model training) is governed by
             that provider&apos;s terms — not by this router.
           </p>

@@ -1,15 +1,15 @@
 # Enrutamiento inteligente y fallback automático
 
-MiawRouter enruta automáticamente tus solicitudes a través del mejor proveedor disponible usando un sistema de fallback de 3 niveles. Nunca dejes de codificar debido a límites de cuota o rate-limiting.
+Dardcor Code enruta automáticamente tus solicitudes a través del mejor proveedor disponible usando un sistema de fallback de 3 niveles. Nunca dejes de codificar debido a límites de cuota o rate-limiting.
 
 ---
 
 ## Cómo funciona
 
-MiawRouter usa enrutamiento inteligente para maximizar tus suscripciones existentes, minimizar costos y garantizar disponibilidad 24/7:
+Dardcor Code usa enrutamiento inteligente para maximizar tus suscripciones existentes, minimizar costos y garantizar disponibilidad 24/7:
 
 ```
-Solicitud → MiawRouter → Verificar Nivel 1 (Suscripción)
+Solicitud → Dardcor Code → Verificar Nivel 1 (Suscripción)
                        ↓ cuota agotada
                        Verificar Nivel 2 (Barato)
                        ↓ límite de presupuesto
@@ -45,7 +45,7 @@ Solicitud → MiawRouter → Verificar Nivel 1 (Suscripción)
 
 ## Cambio automático
 
-MiawRouter monitorea la cuota en tiempo real y cambia de proveedor automáticamente:
+Dardcor Code monitorea la cuota en tiempo real y cambia de proveedor automáticamente:
 
 ### Escenario 1: Cuota de suscripción agotada
 
@@ -87,7 +87,7 @@ Solicitud del usuario → cc/claude-opus-4-5
 
 ## Lógica de selección de modelo
 
-MiawRouter selecciona el mejor modelo según:
+Dardcor Code selecciona el mejor modelo según:
 
 1. **Disponibilidad de cuota** - Verifica si el proveedor tiene cuota restante
 2. **Nivel de costo** - Prefiere suscripción → barato → gratis
@@ -136,7 +136,7 @@ Dashboard → Settings → Budget Control
 → Límite mensual: $50
 ```
 
-Cuando se alcanza el presupuesto, MiawRouter cambia automáticamente al nivel gratis.
+Cuando se alcanza el presupuesto, Dardcor Code cambia automáticamente al nivel gratis.
 
 **3. Configurar el orden de fallback**
 

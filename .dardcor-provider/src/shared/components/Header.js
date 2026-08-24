@@ -108,7 +108,7 @@ const getPageInfo = (pathname) => {
   if (pathname.includes("/mitm"))
     return {
       title: "MITM Proxy",
-      description: "Intercept CLI tool traffic and route through MiawRouter",
+      description: "Intercept CLI tool traffic and route through Dardcor Code",
       icon: "security",
       breadcrumbs: [],
     };
@@ -136,7 +136,7 @@ const getPageInfo = (pathname) => {
   if (pathname.includes("/skills"))
     return {
       title: "Agent Skills",
-      description: "Copy a link and paste to your AI to use MiawRouter — no install needed",
+      description: "Copy a link and paste to your AI to use Dardcor Code — no install needed",
       icon: "extension",
       breadcrumbs: [],
     };

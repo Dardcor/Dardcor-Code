@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { RequestType, type RequestMetadata } from '@vscode/dardcor-api';
+import { RequestType, type RequestMetadata } from '@vscode/copilot-api';
 import assert from 'assert';
 import { suite, test } from 'vitest';
 import { Event } from '../../../../util/dardcor/base/common/event';

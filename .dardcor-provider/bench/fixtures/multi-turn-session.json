@@ -1,5 +1,5 @@
 {
-  "schema": "miaw-bench-fixture/1",
+  "schema": "dardcor-bench-fixture/1",
   "id": "multi-turn-session",
   "name": "Multi-Turn Session",
   "description": "A long, tool-free iterative feature session: a developer hones a health-check endpoint across six turns. The system prompt is byte-stable across every turn and the conversation history grows monotonically, so the request prefix is stable and the tail churns — the shape L0 prefix caching and history-aging compression target. No tool calls; pure chat traffic.",

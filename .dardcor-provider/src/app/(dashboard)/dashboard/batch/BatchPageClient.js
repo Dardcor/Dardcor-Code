@@ -85,7 +85,7 @@ function PageHeader({ loading, refresh, onNewBatch, hasProviders }) {
         </h1>
         <p className="text-sm text-text-muted mt-1">
           Submit and manage batch LLM requests. Send large workloads through the
-          MiawRouter gateway with progress tracking and result retrieval.
+          Dardcor Code gateway with progress tracking and result retrieval.
         </p>
       </div>
       <div className="flex items-center gap-2">

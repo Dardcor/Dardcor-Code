@@ -1,23 +1,23 @@
 ---
-name: miawrouter-embeddings
-description: Generate vector embeddings via MiawRouter /v1/embeddings using OpenAI / Gemini / Mistral / Voyage / Nvidia / GitHub embedding models for RAG, semantic search, similarity. Use when the user wants embeddings, vectors, RAG, semantic search, or to embed text.
+name: dardcor-code-embeddings
+description: Generate vector embeddings via Dardcor Code /v1/embeddings using OpenAI / Gemini / Mistral / Voyage / Nvidia / GitHub embedding models for RAG, semantic search, similarity. Use when the user wants embeddings, vectors, RAG, semantic search, or to embed text.
 ---
 
-# MiawRouter — Embeddings
+# Dardcor Code — Embeddings
 
-Requires `MIAW_URL` (and `MIAW_KEY` if auth enabled). See https://miawrouter.web.id/skills/miawrouter/SKILL.md for setup.
+Requires `DARDCOR_URL` (and `DARDCOR_KEY` if auth enabled). See https://dardcor-code.web.id/skills/dardcor-code/SKILL.md for setup.
 
 ## Discover
 
 ```bash
-curl $MIAW_URL/v1/models/embedding | jq '.data[].id'
+curl $DARDCOR_URL/v1/models/embedding | jq '.data[].id'
 # Per-model dimensions
-curl "$MIAW_URL/v1/models/info?id=openai/text-embedding-3-small"
+curl "$DARDCOR_URL/v1/models/info?id=openai/text-embedding-3-small"
 ```
 
 ## Endpoint
 
-`POST $MIAW_URL/v1/embeddings`
+`POST $DARDCOR_URL/v1/embeddings`
 
 | Field | Required | Notes |
 |---|---|---|
@@ -29,8 +29,8 @@ curl "$MIAW_URL/v1/models/info?id=openai/text-embedding-3-small"
 ## Examples
 
 ```bash
-curl -X POST $MIAW_URL/v1/embeddings \
-  -H "Authorization: Bearer $MIAW_KEY" \
+curl -X POST $DARDCOR_URL/v1/embeddings \
+  -H "Authorization: Bearer $DARDCOR_KEY" \
   -H "Content-Type: application/json" \
   -d '{"model":"openai/text-embedding-3-small","input":["hello","world"]}'
 ```
@@ -38,9 +38,9 @@ curl -X POST $MIAW_URL/v1/embeddings \
 JS:
 
 ```js
-const r = await fetch(`${process.env.MIAW_URL}/v1/embeddings`, {
+const r = await fetch(`${process.env.DARDCOR_URL}/v1/embeddings`, {
   method: "POST",
-  headers: { "Authorization": `Bearer ${process.env.MIAW_KEY}`, "Content-Type": "application/json" },
+  headers: { "Authorization": `Bearer ${process.env.DARDCOR_KEY}`, "Content-Type": "application/json" },
   body: JSON.stringify({ model: "gemini/text-embedding-004", input: "RAG chunk text" }),
 });
 const { data } = await r.json();

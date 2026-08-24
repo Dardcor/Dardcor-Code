@@ -223,7 +223,7 @@ export async function replayTurn({ turn, config, runId, provider, countTokens, c
       onDisconnect: null,
       clientRawRequest,
       connectionId: runId,
-      userAgent: "miawrouter-bench/1",
+      userAgent: "dardcor-code-bench/1",
       apiKey: "bench-router-key",
       ccFilterNaming: false,
       ...settings,
@@ -245,7 +245,7 @@ export async function replayTurn({ turn, config, runId, provider, countTokens, c
       };
     }
 
-    const cacheHit = (result.response.headers.get("x-miaw-cache") || "").toUpperCase() === "HIT";
+    const cacheHit = (result.response.headers.get("x-dardcor-cache") || "").toUpperCase() === "HIT";
     const { latencyMs, ttfbMs } = await drainResponseBody(result.response);
 
     let usage = null;

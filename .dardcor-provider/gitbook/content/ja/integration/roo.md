@@ -1,12 +1,12 @@
 # Roo AIアシスタント統合
 
-MiawRouterをRoo AIアシスタントと統合し、統一インターフェイスから複数のAIモデルにアクセスします。
+Dardcor CodeをRoo AIアシスタントと統合し、統一インターフェイスから複数のAIモデルにアクセスします。
 
 ## 前提条件
 
 - Roo AIアシスタントがインストール済み
-- [ダッシュボード](https://miawrouter.web.id/dashboard)からのMiawRouter APIキー
-- MiawRouterが動作中 (ローカルまたはクラウド)
+- [ダッシュボード](https://dardcor-code.web.id/dashboard)からのDardcor Code APIキー
+- Dardcor Codeが動作中 (ローカルまたはクラウド)
 
 ## 設定手順
 
@@ -20,21 +20,21 @@ Roo AIアシスタントを起動し、設定パネルを開きます。
 2. プロバイダータイプとして **Ollama** を選択
 3. 以下の設定を行う:
 
-**ローカルMiawRouter用:**
+**ローカルDardcor Code用:**
 ```
 Base URL: http://localhost:21128/v1
 API Key: your-api-key-from-dashboard
 ```
 
-**クラウドMiawRouter用:**
+**クラウドDardcor Code用:**
 ```
-Base URL: https://miawrouter.web.id/v1
+Base URL: https://dardcor-code.web.id/v1
 API Key: your-api-key-from-dashboard
 ```
 
 ### 3. モデルを選択
 
-利用可能なMiawRouterモデルから選択:
+利用可能なDardcor Codeモデルから選択:
 
 **Claudeモデル:**
 - `cc/claude-opus-4-5-20251101` - 最も高性能
@@ -54,7 +54,7 @@ API Key: your-api-key-from-dashboard
 統合を確認するためにテストメッセージを送信:
 
 ```
-Hello! Can you confirm you're connected through MiawRouter?
+Hello! Can you confirm you're connected through Dardcor Code?
 ```
 
 ## 使用例
@@ -87,19 +87,19 @@ Model: cx/deepseek-reasoner
 ## トラブルシューティング
 
 ### 接続失敗
-- MiawRouterが動作中か確認: `curl http://localhost:21128/health`
+- Dardcor Codeが動作中か確認: `curl http://localhost:21128/health`
 - APIキーが正しいか確認
 - Base URLに `/v1` サフィックスが含まれていることを確認
 
 ### モデルが利用不可
 - モデル名が正確に一致するか確認 (大文字小文字を区別)
-- MiawRouterプランでモデルが有効か確認
+- Dardcor Codeプランでモデルが有効か確認
 - リストから別のモデルを試す
 
 ### 応答が遅い
 - より高速なモデルへ切替 (haiku、flash)
 - ネットワーク接続を確認
-- 問題についてMiawRouterログをモニター
+- 問題についてDardcor Codeログをモニター
 
 ## 高度な設定
 

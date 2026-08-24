@@ -40,10 +40,10 @@ Dashboard → API Keys → Create New
 → Copia la API key (comienza con "zhipu-")
 ```
 
-**Paso 3: Agregar a MiawRouter**
+**Paso 3: Agregar a Dardcor Code**
 
 ```bash
-miawrouter
+dardcor-code
 # Dashboard → Providers → Add API Key
 
 Provider: glm
@@ -112,10 +112,10 @@ Dashboard → API Management → Create Key
 → Copia la API key
 ```
 
-**Paso 3: Agregar a MiawRouter**
+**Paso 3: Agregar a Dardcor Code**
 
 ```bash
-miawrouter
+dardcor-code
 # Dashboard → Providers → Add API Key
 
 Provider: minimax
@@ -184,10 +184,10 @@ Dashboard → API Keys → Create New
 → Copia la API key
 ```
 
-**Paso 3: Agregar a MiawRouter**
+**Paso 3: Agregar a Dardcor Code**
 
 ```bash
-miawrouter
+dardcor-code
 # Dashboard → Providers → Add API Key
 
 Provider: kimi
@@ -247,7 +247,7 @@ Total: 10M tokens = $9 plano
 ```
 Settings → Models → Advanced:
   OpenAI API Base URL: http://localhost:21128/v1
-  OpenAI API Key: [desde el dashboard de miawrouter]
+  OpenAI API Key: [desde el dashboard de dardcor-code]
   Model: glm/glm-4.7
 ```
 

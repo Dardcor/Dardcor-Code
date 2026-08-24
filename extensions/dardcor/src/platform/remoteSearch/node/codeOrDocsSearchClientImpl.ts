@@ -2,7 +2,7 @@
  *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import { RequestMetadata, RequestType } from '@vscode/dardcor-api';
+import { RequestMetadata, RequestType } from '@vscode/copilot-api';
 import { TokenizerType } from '../../../util/common/tokenizer';
 import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
 import { CancellationError, isCancellationError } from '../../../util/dardcor/base/common/errors';

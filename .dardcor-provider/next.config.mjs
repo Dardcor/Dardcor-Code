@@ -13,9 +13,9 @@ const projectRoot = dirname(fileURLToPath(import.meta.url));
 const tracingRoot = process.env.NEXT_TRACING_ROOT_MODE === "workspace"
   ? join(projectRoot, "..")
   : projectRoot;
-// MIAW_PROXY_CLIENT_MAX_BODY_SIZE is the primary knob; the legacy
+// DARDCOR_PROXY_CLIENT_MAX_BODY_SIZE is the primary knob; the legacy
 // NINEROUTER_PROXY_CLIENT_MAX_BODY_SIZE name is still read as a fallback.
-const proxyClientMaxBodySize = process.env.MIAW_PROXY_CLIENT_MAX_BODY_SIZE || process.env.NINEROUTER_PROXY_CLIENT_MAX_BODY_SIZE || "128mb";
+const proxyClientMaxBodySize = process.env.DARDCOR_PROXY_CLIENT_MAX_BODY_SIZE || process.env.NINEROUTER_PROXY_CLIENT_MAX_BODY_SIZE || "128mb";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -30,7 +30,7 @@ const nextConfig = {
   // it. Keeping it external preserves the real `import.meta.url` at runtime.
   serverExternalPackages: ["better-sqlite3", "sql.js", "node:sqlite", "bun:sqlite", "open", "tls-client-node", "playwright"],
   turbopack: {
-    root: tracingRoot
+    root: projectRoot
   },
   outputFileTracingRoot: tracingRoot,
   outputFileTracingExcludes: {

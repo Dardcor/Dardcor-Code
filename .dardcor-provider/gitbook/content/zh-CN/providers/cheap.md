@@ -40,10 +40,10 @@
 → 复制 API key(以 "zhipu-" 开头)
 ```
 
-**步骤 3:添加到 MiawRouter**
+**步骤 3:添加到 Dardcor Code**
 
 ```bash
-miawrouter
+dardcor-code
 # 仪表盘 → 提供商 → 添加 API Key
 
 Provider: glm
@@ -112,10 +112,10 @@ Model: glm/glm-4.7
 → 复制 API key
 ```
 
-**步骤 3:添加到 MiawRouter**
+**步骤 3:添加到 Dardcor Code**
 
 ```bash
-miawrouter
+dardcor-code
 # 仪表盘 → 提供商 → 添加 API Key
 
 Provider: minimax
@@ -184,10 +184,10 @@ Model: minimax/MiniMax-M2.1
 → 复制 API key
 ```
 
-**步骤 3:添加到 MiawRouter**
+**步骤 3:添加到 Dardcor Code**
 
 ```bash
-miawrouter
+dardcor-code
 # 仪表盘 → 提供商 → 添加 API Key
 
 Provider: kimi
@@ -247,7 +247,7 @@ Model: kimi/kimi-latest
 ```
 Settings → Models → Advanced:
   OpenAI API Base URL: http://localhost:21128/v1
-  OpenAI API Key: [从 miawrouter 仪表盘获取]
+  OpenAI API Key: [从 dardcor-code 仪表盘获取]
   Model: glm/glm-4.7
 ```
 

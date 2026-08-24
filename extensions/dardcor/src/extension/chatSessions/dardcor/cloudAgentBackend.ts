@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { AgentTaskCreatePullRequestResponse, AgentTaskGetResponse, AgentTaskSessionEvent, AgentTaskState } from '@vscode/dardcor-api';
+import { AgentTaskCreatePullRequestResponse, AgentTaskGetResponse, AgentTaskSessionEvent, AgentTaskState } from '@vscode/copilot-api';
 import { GithubRepoId } from '../../../platform/git/common/gitService';
 import { PullRequestSearchItem, SessionInfo } from '../../../platform/github/common/githubAPI';
 

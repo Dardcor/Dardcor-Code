@@ -1,10 +1,10 @@
 # その他ツール統合
 
-MiawRouterはOpenAI API形式をサポートする任意のツールと互換性があります。このガイドでは、様々なツールやカスタムアプリケーション向けの汎用統合パターンを説明します。
+Dardcor CodeはOpenAI API形式をサポートする任意のツールと互換性があります。このガイドでは、様々なツールやカスタムアプリケーション向けの汎用統合パターンを説明します。
 
 ## 概要
 
-MiawRouterはOpenAI互換APIエンドポイントを提供し、以下と動作します:
+Dardcor CodeはOpenAI互換APIエンドポイントを提供し、以下と動作します:
 - カスタムスクリプトとアプリケーション
 - APIクライアントとテストツール
 - CLIツールとユーティリティ
@@ -13,20 +13,20 @@ MiawRouterはOpenAI互換APIエンドポイントを提供し、以下と動作�
 
 ## 汎用セットアップパターン
 
-任意のOpenAI互換ツールは以下の設定でMiawRouterに接続できます:
+任意のOpenAI互換ツールは以下の設定でDardcor Codeに接続できます:
 
-**ローカルMiawRouter:**
+**ローカルDardcor Code:**
 ```
 Base URL: http://localhost:21128/v1
 API Key: your-api-key-from-dashboard
-Model: 任意のMiawRouterモデル (cc/*, cx/*, glm/*など)
+Model: 任意のDardcor Codeモデル (cc/*, cx/*, glm/*など)
 ```
 
-**クラウドMiawRouter:**
+**クラウドDardcor Code:**
 ```
-Base URL: https://miawrouter.web.id/v1
+Base URL: https://dardcor-code.web.id/v1
 API Key: your-api-key-from-dashboard
-Model: 任意のMiawRouterモデル (cc/*, cx/*, glm/*など)
+Model: 任意のDardcor Codeモデル (cc/*, cx/*, glm/*など)
 ```
 
 ## 利用可能なモデル
@@ -318,9 +318,9 @@ def chat_with_retry(prompt, max_retries=3):
 
 ### 接続の問題
 
-**問題:** MiawRouterに接続できない
+**問題:** Dardcor Codeに接続できない
 ```bash
-# MiawRouterが動作中か確認
+# Dardcor Codeが動作中か確認
 curl http://localhost:21128/health
 
 # 期待されるレスポンス:
@@ -328,7 +328,7 @@ curl http://localhost:21128/health
 ```
 
 **解決策:**
-- MiawRouterが動作中か確認
+- Dardcor Codeが動作中か確認
 - ポート21128がブロックされていないか確認
 - 正しいbase URLを確認 (`/v1`を含む)
 
@@ -366,7 +366,7 @@ Error: Request timed out after 30s
 **解決策:**
 - クライアント設定でタイムアウトを増やす
 - 時間制約のあるタスクには高速モデルを使用
-- MiawRouterへのネットワーク接続を確認
+- Dardcor Codeへのネットワーク接続を確認
 
 ### レート制限
 

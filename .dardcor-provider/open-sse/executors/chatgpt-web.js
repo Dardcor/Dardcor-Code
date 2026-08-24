@@ -2,7 +2,7 @@
  * ChatGptWebExecutor — ChatGPT Web Session Provider (minimal text-chat port).
  *
  * ESM port of OmniRoute's open-sse/executors/chatgpt-web.ts, adapted to the
- * shared MiawRouter webTlsClient transport and the local executor contract
+ * shared Dardcor Code webTlsClient transport and the local executor contract
  * (see kimi-web.js / deepseek-web.js for the pattern).
  *
  * Auth pipeline (per request):

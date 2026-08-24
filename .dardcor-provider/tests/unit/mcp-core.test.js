@@ -3,7 +3,7 @@ import { PassThrough } from "node:stream";
 import {
   MCP_SCOPES,
   createMcpCore,
-  createMiawToolRegistry,
+  createDardcorToolRegistry,
   createStdioTransport,
 } from "../../src/lib/mcp/core.js";
 import { createMcpHttpHandler } from "../../src/lib/mcp/http.js";
@@ -31,7 +31,7 @@ describe("MCP core", () => {
   it("handles newline-delimited JSON-RPC over stdio", async () => {
     const input = new PassThrough();
     const output = new PassThrough();
-    const core = createMcpCore({ registry: createMiawToolRegistry(dependencies()) });
+    const core = createMcpCore({ registry: createDardcorToolRegistry(dependencies()) });
     const line = new Promise((resolve) => output.once("data", (chunk) => resolve(chunk.toString())));
     const transport = createStdioTransport(core, { input, output, auth: auth() });
 
@@ -42,7 +42,7 @@ describe("MCP core", () => {
   });
 
   it("negotiates MCP initialize and Streamable HTTP SSE", async () => {
-    const core = createMcpCore({ registry: createMiawToolRegistry(dependencies()) });
+    const core = createMcpCore({ registry: createDardcorToolRegistry(dependencies()) });
     const handler = createMcpHttpHandler({ core, authorize: async () => auth() });
     const response = await handler(new Request("http://localhost/api/mcp", {
       method: "POST",
@@ -56,7 +56,7 @@ describe("MCP core", () => {
   });
 
   it("negotiates a supported client protocol version", async () => {
-    const core = createMcpCore({ registry: createMiawToolRegistry(dependencies()) });
+    const core = createMcpCore({ registry: createDardcorToolRegistry(dependencies()) });
     const response = await core.handle({
       jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2024-11-05" },
     }, auth());
@@ -66,7 +66,7 @@ describe("MCP core", () => {
 
   it("processes notifications without returning a JSON-RPC response", async () => {
     const deps = dependencies();
-    const core = createMcpCore({ registry: createMiawToolRegistry(deps) });
+    const core = createMcpCore({ registry: createDardcorToolRegistry(deps) });
     const response = await core.handle({
       jsonrpc: "2.0", method: "tools/call", params: { name: "models.list", arguments: {} },
     }, auth());
@@ -76,7 +76,7 @@ describe("MCP core", () => {
   });
 
   it("advertises only the bounded read-only registry", async () => {
-    const core = createMcpCore({ registry: createMiawToolRegistry(dependencies()) });
+    const core = createMcpCore({ registry: createDardcorToolRegistry(dependencies()) });
     const response = await core.handle({ jsonrpc: "2.0", id: 1, method: "tools/list" }, auth());
 
     expect(response.result.tools.map((tool) => tool.name)).toEqual([
@@ -92,7 +92,7 @@ describe("MCP core", () => {
   });
 
   it("rejects unauthenticated and under-scoped calls", async () => {
-    const core = createMcpCore({ registry: createMiawToolRegistry(dependencies()) });
+    const core = createMcpCore({ registry: createDardcorToolRegistry(dependencies()) });
     const request = { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "memory.list", arguments: {} } };
 
     expect((await core.handle(request, { authenticated: false, scopes: [] })).error.code).toBe(-32001);
@@ -101,7 +101,7 @@ describe("MCP core", () => {
 
   it("validates tool arguments before invocation", async () => {
     const deps = dependencies();
-    const core = createMcpCore({ registry: createMiawToolRegistry(deps) });
+    const core = createMcpCore({ registry: createDardcorToolRegistry(deps) });
     const response = await core.handle({
       jsonrpc: "2.0",
       id: 3,
@@ -117,7 +117,7 @@ describe("MCP core", () => {
     const audit = vi.fn();
     const deps = dependencies({ listModels: () => new Promise(() => {}) });
     const core = createMcpCore({
-      registry: createMiawToolRegistry(deps),
+      registry: createDardcorToolRegistry(deps),
       timeoutMs: 10,
       audit,
     });
@@ -140,7 +140,7 @@ describe("MCP core", () => {
     let rejectLate;
     const late = new Promise((_, reject) => { rejectLate = reject; });
     const core = createMcpCore({
-      registry: createMiawToolRegistry(dependencies({ listModels: () => late })),
+      registry: createDardcorToolRegistry(dependencies({ listModels: () => late })),
       timeoutMs: 5,
     });
     const response = await core.handle({
@@ -153,7 +153,7 @@ describe("MCP core", () => {
   });
 
   it("returns structured tool content and strips provider credentials", async () => {
-    const core = createMcpCore({ registry: createMiawToolRegistry(dependencies()) });
+    const core = createMcpCore({ registry: createDardcorToolRegistry(dependencies()) });
     const response = await core.handle({
       jsonrpc: "2.0",
       id: 4,

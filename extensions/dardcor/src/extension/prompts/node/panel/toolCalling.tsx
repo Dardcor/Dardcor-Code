@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { RequestMetadata, RequestType } from '@vscode/dardcor-api';
+import { RequestMetadata, RequestType } from '@vscode/copilot-api';
 import { AssistantMessage, BasePromptElementProps, Chunk, IfEmpty, Image, JSONTree, PromptElement, PromptElementProps, PromptMetadata, PromptPiece, PromptSizing, TokenLimit, ToolCall, ToolMessage, useKeepWith, UserMessage } from '@vscode/prompt-tsx';
 import type { ChatParticipantToolToken, LanguageModelToolInvocationOptions, LanguageModelToolResult2, LanguageModelToolTokenizationOptions } from 'vscode';
 import { IAuthenticationService } from '../../../../platform/authentication/common/authentication';

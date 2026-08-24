@@ -1,7 +1,7 @@
 // deepseek-web.js — DeepSeek Web (chat.deepseek.com) executor.
 //
 // ESM port of OmniRoute's open-sse/executors/deepseek-web.ts, adapted to
-// MiawRouter conventions (see kimi-web.js / grok-web.js for the local pattern):
+// Dardcor Code conventions (see kimi-web.js / grok-web.js for the local pattern):
 //
 //   - Auth:     `userToken` credential (raw token or JSON-wrapped {"value":...}),
 //               exchanged for a short-lived access token via /v0/users/current.

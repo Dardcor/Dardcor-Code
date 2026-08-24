@@ -1,14 +1,14 @@
-# MiawRouterへようこそ
+# Dardcor Codeへようこそ
 
 **Claude、Codex、Geminiを無料で利用 • 100万トークンあたり$0.20からの超低価格な代替手段**
 
-MiawRouterは、インテリジェントなルーティングと自動フォールバックを通じて、サブスクリプションの価値を最大化し、コストを最小限に抑えるAIモデルルーターです。
+Dardcor Codeは、インテリジェントなルーティングと自動フォールバックを通じて、サブスクリプションの価値を最大化し、コストを最小限に抑えるAIモデルルーターです。
 
 ---
 
-## MiawRouterとは?
+## Dardcor Codeとは?
 
-MiawRouterは、コーディングツール(Cursor、Cline、Claude Desktop)とAIプロバイダーの間に位置するスマートプロキシです。クォータ、コスト、可用性に基づいて、リクエストを最適なモデルへ自動的にルーティングします。
+Dardcor Codeは、コーディングツール(Cursor、Cline、Claude Desktop)とAIプロバイダーの間に位置するスマートプロキシです。クォータ、コスト、可用性に基づいて、リクエストを最適なモデルへ自動的にルーティングします。
 
 **お金を無駄にしないために:**
 - ❌ サブスクリプションのクォータが毎月未使用のまま失効
@@ -65,7 +65,7 @@ MiniMax経由で200万: $0.40
 
 ---
 
-## なぜMiawRouterを選ぶのか?
+## なぜDardcor Codeを選ぶのか?
 
 ### サブスクリプションを最大化
 
@@ -102,10 +102,10 @@ MiniMax経由で200万: $0.40
 
 ```bash
 # グローバルインストール
-npm install -g miawrouter
+npm install -g dardcor-code
 
 # 起動(ダッシュボードが自動で開きます)
-miawrouter
+dardcor-code
 ```
 
 🎉 **ダッシュボードが開く** → プロバイダーを接続 → コーディング開始!
@@ -140,7 +140,7 @@ Model: cc/claude-opus-4-5-20251101
 
 ### モバイル/リモートコーディング向け
 
-- クラウドデプロイ(https://miawrouter.web.id)を使用
+- クラウドデプロイ(https://dardcor-code.web.id)を使用
 - iPad、スマホ、どこからでもアクセス
 - localhost制限なし
 - Cloudflareエッジネットワーク(300以上のロケーション)

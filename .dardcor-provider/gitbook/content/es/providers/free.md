@@ -31,7 +31,7 @@ Los proveedores del nivel gratis son tu **fallback** cuando se agota la cuota de
 **Paso 1: Conectar vía Dashboard**
 
 ```bash
-miawrouter
+dardcor-code
 # Dashboard → Providers → Connect iFlow
 ```
 
@@ -91,7 +91,7 @@ Model: if/kimi-k2-thinking
 **Paso 1: Conectar vía Dashboard**
 
 ```bash
-miawrouter
+dardcor-code
 # Dashboard → Providers → Connect Qwen
 ```
 
@@ -144,7 +144,7 @@ Model: qw/qwen3-coder-plus
 **Paso 1: Conectar vía Dashboard**
 
 ```bash
-miawrouter
+dardcor-code
 # Dashboard → Providers → Connect Kiro
 ```
 
@@ -200,7 +200,7 @@ Model: kr/claude-sonnet-4.5
 ```
 Settings → Models → Advanced:
   OpenAI API Base URL: http://localhost:21128/v1
-  OpenAI API Key: [desde el dashboard de miawrouter]
+  OpenAI API Key: [desde el dashboard de dardcor-code]
   Model: if/kimi-k2-thinking
 ```
 

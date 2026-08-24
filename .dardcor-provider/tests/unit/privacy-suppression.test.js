@@ -15,7 +15,7 @@ async function freshDb() {
 }
 
 beforeAll(async () => {
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "miawrouter-privacy-"));
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dardcor-code-privacy-"));
   process.env.DATA_DIR = tempDir;
   db = await freshDb();
   await db.updateSettings({ enableObservability: true, observabilityBatchSize: 1 });

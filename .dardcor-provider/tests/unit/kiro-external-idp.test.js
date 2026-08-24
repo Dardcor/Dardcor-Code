@@ -176,7 +176,7 @@ describe("Kiro external_idp (CLIProxyAPI) import and refresh", () => {
       expired: new Date(Date.now() + 3600_000).toISOString(),
     };
 
-    const response = await POST(new Request("https://miawrouter.local/api/oauth/kiro/import-cli-proxy", {
+    const response = await POST(new Request("https://dardcor-code.local/api/oauth/kiro/import-cli-proxy", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cliProxyAuth }),

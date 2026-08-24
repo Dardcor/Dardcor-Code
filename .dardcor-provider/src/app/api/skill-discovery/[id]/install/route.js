@@ -29,9 +29,9 @@ function errorStatus(code) {
 
 /**
  * POST /api/skill-discovery/[id]/install
- * Body: { target: "miawrouter" | "cli" | "both", cliId?: "claude" }
+ * Body: { target: "dardcor-code" | "cli" | "both", cliId?: "claude" }
  *
- * Installs into the MiawRouter global registry and/or records detected CLI
+ * Installs into the Dardcor Code global registry and/or records detected CLI
  * targets with their canonical manual command. Never executes shells or
  * downloads third-party files.
  */
@@ -43,7 +43,7 @@ export async function POST(request, { params }) {
     const body = await readJsonBody(request);
     if (body === null) return Response.json({ error: "Invalid JSON body" }, { status: 400 });
     const { id } = await params;
-    const target = typeof body?.target === "string" ? body.target : "miawrouter";
+    const target = typeof body?.target === "string" ? body.target : "dardcor-code";
     const cliId = typeof body?.cliId === "string" ? body.cliId : undefined;
     const result = await installSkill(decodeURIComponent(id), target, { cliId });
     if (!result.ok) {

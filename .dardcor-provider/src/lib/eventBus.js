@@ -23,12 +23,12 @@ export const EVENT_TYPES = Object.freeze({
 const MAX_LISTENERS = 50;
 
 // Global bus survives Next.js dev hot-reload (module state resets on reload).
-if (!global._miawrouterEventBus) {
-  global._miawrouterEventBus = new EventEmitter();
-  global._miawrouterEventBus.setMaxListeners(MAX_LISTENERS);
+if (!global._dardcorEventBus) {
+  global._dardcorEventBus = new EventEmitter();
+  global._dardcorEventBus.setMaxListeners(MAX_LISTENERS);
 }
 
-export const eventBus = global._miawrouterEventBus;
+export const eventBus = global._dardcorEventBus;
 
 // Subscribe with duplicate protection and a visible cap. Returns an unsub fn.
 // The cap warns instead of silently growing, so a leaked route connection

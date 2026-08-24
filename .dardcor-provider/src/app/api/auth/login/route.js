@@ -7,7 +7,7 @@ import { isOidcConfigured } from "@/lib/auth/oidc";
 import { checkLock, recordFail, recordSuccess, getClientIp } from "@/lib/auth/loginLimiter";
 import { isLocalRequest } from "@/dashboardGuard";
 
-const RESET_HINT = "Forgot password? Use MiawRouter CLI: Settings > Clear Dashboard Password, then set a new one from the local machine.";
+const RESET_HINT = "Forgot password? Use Dardcor Code CLI: Settings > Clear Dashboard Password, then set a new one from the local machine.";
 const NO_STORE_HEADERS = { "Cache-Control": "no-store" };
 const MIN_SETUP_PASSWORD_LENGTH = 8;
 

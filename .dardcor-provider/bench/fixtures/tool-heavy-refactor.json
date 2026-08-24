@@ -1,5 +1,5 @@
 {
-  "schema": "miaw-bench-fixture/1",
+  "schema": "dardcor-bench-fixture/1",
   "id": "tool-heavy-refactor",
   "name": "Tool-Heavy Refactor",
   "description": "A coding agent refactoring a TypeScript order service across multiple tool-call turns (read file, grep usages, apply patch). Full wire-body history per turn so the conversation prefix is stable and grows. Tool results deliberately exercise distinct RTK output filters: read-numbered (file read), grep (usage scan), git-diff (patch confirmation).",

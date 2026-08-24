@@ -1,13 +1,13 @@
 <div align="center">
-  <img src="./images/miawrouter.png?1" alt="داشبورد MiawRouter" width="800"/>
+  <img src="./images/dardcor-code.png?1" alt="داشبورد Dardcor Code" width="800"/>
   
-  # MiawRouter - مسیریاب رایگان هوش مصنوعی و ذخیره‌ساز توکن
+  # Dardcor Code - مسیریاب رایگان هوش مصنوعی و ذخیره‌ساز توکن
   
   
   **همه ابزارهای کدنویسی مبتنی بر هوش مصنوعی (Claude Code، Cursor، Antigravity، Copilot، Codex، Gemini، OpenCode، Cline، OpenClaw...) را به بیش از ۴۰ ارائه‌دهنده و ۱۰۰+ مدل متصل کنید.**
   
 
-[🚀 شروع سریع](#-شروع-سریع) • [💡 ویژگی‌ها](#-ویژگی‌های-کلیدی) • [📖 راه‌اندازی](#-راهنمای-راه‌اندازی) • [🌐 وب‌سایت](https://miawrouter.web.id)
+[🚀 شروع سریع](#-شروع-سریع) • [💡 ویژگی‌ها](#-ویژگی‌های-کلیدی) • [📖 راه‌اندازی](#-راهنمای-راه‌اندازی) • [🌐 وب‌سایت](https://dardcor-code.web.id)
 
 [🇻🇳 Tiếng Việt](./i18n/README.vi.md) • [🇨🇳 中文](./i18n/README.zh-CN.md) • [🇯🇵 日本語](./i18n/README.ja-JP.md) • [🇷🇺 Русский](./i18n/README.ru.md) • [🇮🇷 فارسی](./i18n/README.fa_IR.md)
 
@@ -15,7 +15,7 @@
 
 ---
 
-## 🤔 چرا MiawRouter؟
+## 🤔 چرا Dardcor Code؟
 
 **هدررفت پول، توکن و برخورد با محدودیت‌ها را متوقف کنید:**
 
@@ -25,7 +25,7 @@
 - ❌ APIهای گران قیمت (۲۰ تا ۵۰ دلار در ماه برای هر ارائه‌دهنده)
 - ❌ جابجایی دستی بین ارائه‌دهندگان
 
-**MiawRouter این مشکلات را حل می‌کند:**
+**Dardcor Code این مشکلات را حل می‌کند:**
 
 - ✅ **حداکثر استفاده از اشتراک‌ها** - پیگیری سهمیه، استفاده از هر ذره قبل از بازنشانی
 - ✅ **بازگشت خودکار** - اشتراک → ارزان → رایگان، بدون توقف
@@ -44,7 +44,7 @@
        │ http://localhost:21128/v1
        ↓
 ┌─────────────────────────────────────────────┐
-│           MiawRouter (مسیریاب هوشمند)          │
+│           Dardcor Code (مسیریاب هوشمند)          │
 │  • ذخیره‌ساز توکن RTK (کاهش توکن‌های tool_result) │
 │  • ترجمه قالب (OpenAI ↔ Claude)             │
 │  • پیگیری سهمیه                             │
@@ -66,8 +66,8 @@
 **۱. نصب سراسری:**
 
 ```bash
-npm install -g miawrouter
-miawrouter
+npm install -g dardcor-code
+dardcor-code
 ```
 
 🎉 داشبورد در آدرس `http://localhost:21128` باز می‌شود
@@ -89,7 +89,7 @@ miawrouter
 
 **روش جایگزین: اجرا از سورس (این مخزن):**
 
-بسته این مخزن خصوصی است (`miawrouter-app`)، بنابراین اجرا از سورس/داکر مسیر معمول توسعه محلی است.
+بسته این مخزن خصوصی است (`dardcor-code-app`)، بنابراین اجرا از سورس/داکر مسیر معمول توسعه محلی است.
 
 ```bash
 cp .env.example .env
@@ -113,7 +113,7 @@ PORT=21128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run 
 
 ## 🛠️ ابزارهای خط فرمان پشتیبانی شده
 
-MiawRouter به‌طور یکپارچه با تمام ابزارهای اصلی کدنویسی هوش مصنوعی کار می‌کند:
+Dardcor Code به‌طور یکپارچه با تمام ابزارهای اصلی کدنویسی هوش مصنوعی کار می‌کند:
 
 <div align="center">
   <table>
@@ -355,10 +355,10 @@ MiawRouter به‌طور یکپارچه با تمام ابزارهای اصلی 
 
 ### 🧠 ذخیره‌ساز توکن Headroom
 
-Headroom اختیاری است و به‌طور جداگانه اجرا می‌شود. MiawRouter نقطه پایانی محلی `/v1/compress` Headroom را فراخوانی کرده، سپس مسیریابی معمولی، بازگشت، احراز هویت و پیگیری مصرف را ادامه می‌دهد:
+Headroom اختیاری است و به‌طور جداگانه اجرا می‌شود. Dardcor Code نقطه پایانی محلی `/v1/compress` Headroom را فراخوانی کرده، سپس مسیریابی معمولی، بازگشت، احراز هویت و پیگیری مصرف را ادامه می‌دهد:
 
 ```
-کلاینت → MiawRouter → Headroom /v1/compress → MiawRouter → ارائه‌دهنده
+کلاینت → Dardcor Code → Headroom /v1/compress → Dardcor Code → ارائه‌دهنده
 ```
 
 راه‌اندازی محلی:
@@ -380,7 +380,7 @@ http://headroom:8787
 http://host.docker.internal:8787
 ```
 
-اگر Headroom از کار بیفتد یا خطا برگرداند، MiawRouter به‌حالت بازگشت باز می‌شود و درخواست اصلی را ارسال می‌کند.
+اگر Headroom از کار بیفتد یا خطا برگرداند، Dardcor Code به‌حالت بازگشت باز می‌شود و درخواست اصلی را ارسال می‌کند.
 
 ### 🐴 دم‌اسب (توسعه‌دهنده ارشد تنبل)
 
@@ -422,7 +422,7 @@ http://host.docker.internal:8787
 ترجمه یکپارچه بین قالب‌ها:
 
 - **OpenAI** ↔ **Claude** ↔ **Gemini** ↔ **Cursor** ↔ **Kiro** ↔ **Vertex** ↔ **Antigravity** ↔ **Ollama** ↔ **OpenAI Responses**
-- ابزار خط فرمان شما قالب OpenAI ارسال می‌کند → MiawRouter ترجمه می‌کند → ارائه‌دهنده قالب بومی دریافت می‌کند
+- ابزار خط فرمان شما قالب OpenAI ارسال می‌کند → Dardcor Code ترجمه می‌کند → ارائه‌دهنده قالب بومی دریافت می‌کند
 - با هر ابزاری که از نقاط پایانی سفارشی OpenAI پشتیبانی می‌کند کار می‌کند
 
 ### 👥 پشتیبانی از چند حساب
@@ -476,7 +476,7 @@ http://host.docker.internal:8787
 > **💡 مهم - درک هزینه‌های داشبورد:**
 >
 > "هزینه" نمایش داده شده در تحلیل استفاده **فقط برای پیگیری و مقایسه** است.
-> خود MiawRouter **هرگز از شما هزینه‌ای دریافت نمی‌کند**. شما فقط مستقیماً به ارائه‌دهندگان هزینه می‌پردازید (در صورت استفاده از خدمات پولی).
+> خود Dardcor Code **هرگز از شما هزینه‌ای دریافت نمی‌کند**. شما فقط مستقیماً به ارائه‌دهندگان هزینه می‌پردازید (در صورت استفاده از خدمات پولی).
 >
 >
 
@@ -508,15 +508,15 @@ http://host.docker.internal:8787
 
 ---
 
-### 📊 درک هزینه‌ها و صورتحساب MiawRouter
+### 📊 درک هزینه‌ها و صورتحساب Dardcor Code
 
-**واقعیت صورتحساب MiawRouter:**
+**واقعیت صورتحساب Dardcor Code:**
 
-✅ **نرم‌افزار MiawRouter = رایگان برای همیشه** (منبع باز، هرگز هزینه‌ای دریافت نمی‌کند)  
+✅ **نرم‌افزار Dardcor Code = رایگان برای همیشه** (منبع باز، هرگز هزینه‌ای دریافت نمی‌کند)  
 ✅ **"هزینه‌های" داشبورد = فقط نمایش/پیگیری** (صورتحساب واقعی نیستند)  
 ✅ **شما مستقیماً به ارائه‌دهندگان هزینه می‌پردازید** (اشتراک‌ها یا هزینه‌های API)  
 ✅ **ارائه‌دهندگان رایگان واقعاً رایگان هستند** (iFlow، Kiro، Qwen = ۰ دلار نامحدود)  
-❌ **MiawRouter هرگز صورتحساب ارسال نمی‌کند** یا کارت شما را شارژ نمی‌کند
+❌ **Dardcor Code هرگز صورتحساب ارسال نمی‌کند** یا کارت شما را شارژ نمی‌کند
 
 **نحوه عملکرد نمایش هزینه:**
 
@@ -537,9 +537,9 @@ http://host.docker.internal:8787
 **قوانین پرداخت:**
 
 - **ارائه‌دهندگان اشتراک** (Claude Code، Codex): مستقیماً از طریق وب‌سایت‌هایشان به آنها پرداخت کنید
-- **ارائه‌دهندگان ارزان** (GLM، MiniMax): مستقیماً به آنها پرداخت کنید، MiawRouter فقط مسیریابی می‌کند
+- **ارائه‌دهندگان ارزان** (GLM، MiniMax): مستقیماً به آنها پرداخت کنید، Dardcor Code فقط مسیریابی می‌کند
 - **ارائه‌دهندگان رایگان** (iFlow، Kiro، Qwen): واقعاً برای همیشه رایگان، بدون هزینه پنهان
-- **MiawRouter**: هرگز هیچ هزینه‌ای دریافت نمی‌کند، همیشه
+- **Dardcor Code**: هرگز هیچ هزینه‌ای دریافت نمی‌کند، همیشه
 
 ---
 
@@ -617,7 +617,7 @@ http://host.docker.internal:8787
 <details>
 <summary><b>📊 چرا داشبورد من هزینه‌های بالا نشان می‌دهد؟</b></summary>
 
-داشبورد مصرف توکن شما را پیگیری کرده و **هزینه‌های تخمینی** را نشان می‌دهد گویی مستقیماً از APIهای پولی استفاده می‌کنید. این **صورتحساب واقعی نیست** - این یک مرجع برای نشان دادن میزان پس‌انداز شما با استفاده از مدل‌های رایگان یا اشتراک‌های موجود از طریق MiawRouter است.
+داشبورد مصرف توکن شما را پیگیری کرده و **هزینه‌های تخمینی** را نشان می‌دهد گویی مستقیماً از APIهای پولی استفاده می‌کنید. این **صورتحساب واقعی نیست** - این یک مرجع برای نشان دادن میزان پس‌انداز شما با استفاده از مدل‌های رایگان یا اشتراک‌های موجود از طریق Dardcor Code است.
 
 **مثال:**
 
@@ -627,17 +627,17 @@ http://host.docker.internal:8787
 </details>
 
 <details>
-<summary><b>💳 آیا توسط MiawRouter شارژ می‌شوم؟</b></summary>
+<summary><b>💳 آیا توسط Dardcor Code شارژ می‌شوم؟</b></summary>
 
-**خیر.** MiawRouter نرم‌افزاری رایگان و منبع باز است که روی رایانه خودتان اجرا می‌شود. هرگز از شما هزینه‌ای دریافت نمی‌کند.
+**خیر.** Dardcor Code نرم‌افزاری رایگان و منبع باز است که روی رایانه خودتان اجرا می‌شود. هرگز از شما هزینه‌ای دریافت نمی‌کند.
 
 **شما فقط پرداخت می‌کنید:**
 
 - ✅ **ارائه‌دهندگان اشتراک** (Claude Code ۲۰ دلار/ماه، Codex ۲۰-۲۰۰ دلار/ماه) → مستقیماً در وب‌سایت‌هایشان به آنها پرداخت کنید
-- ✅ **ارائه‌دهندگان ارزان** (GLM، MiniMax) → مستقیماً به آنها پرداخت کنید، MiawRouter فقط درخواست‌های شما را مسیریابی می‌کند
-- ❌ **خود MiawRouter** → **هرگز هیچ هزینه‌ای دریافت نمی‌کند، همیشه**
+- ✅ **ارائه‌دهندگان ارزان** (GLM، MiniMax) → مستقیماً به آنها پرداخت کنید، Dardcor Code فقط درخواست‌های شما را مسیریابی می‌کند
+- ❌ **خود Dardcor Code** → **هرگز هیچ هزینه‌ای دریافت نمی‌کند، همیشه**
 
-MiawRouter یک پروکسی/مسیریاب محلی است. کارت اعتباری شما را ندارد، نمی‌تواند صورتحساب ارسال کند و سیستم صورتحساب ندارد. این نرم‌افزار کاملاً رایگان است.
+Dardcor Code یک پروکسی/مسیریاب محلی است. کارت اعتباری شما را ندارد، نمی‌تواند صورتحساب ارسال کند و سیستم صورتحساب ندارد. این نرم‌افزار کاملاً رایگان است.
 
 </details>
 
@@ -652,7 +652,7 @@ MiawRouter یک پروکسی/مسیریاب محلی است. کارت اعتبا
 - **OpenCode Free**: پروکسی عبوری بدون احراز هویت، مدل‌ها به‌طور خودکار از `opencode.ai/zen/v1/models` دریافت می‌شوند
 - **Vertex AI**: ۳۰۰ دلار اعتبار رایگان برای حساب‌های جدید Google Cloud (۹۰ روز)
 
-MiawRouter فقط درخواست‌های شما را به آنها مسیریابی می‌کند - هیچ "دام" یا صورتحساب آینده‌ای وجود ندارد. آنها واقعاً خدمات رایگان هستند و MiawRouter استفاده از آنها را با پشتیبانی از بازگشت آسان می‌کند.
+Dardcor Code فقط درخواست‌های شما را به آنها مسیریابی می‌کند - هیچ "دام" یا صورتحساب آینده‌ای وجود ندارد. آنها واقعاً خدمات رایگان هستند و Dardcor Code استفاده از آنها را با پشتیبانی از بازگشت آسان می‌کند.
 
 **لایه‌های رایگان متوقف شده (دیگر توصیه نمی‌شوند):**
 
@@ -687,7 +687,7 @@ MiawRouter فقط درخواست‌های شما را به آنها مسیریا
 
 ۳. **از ارائه‌دهندگان اشتراک در آخر استفاده کنید:**
    - فقط در صورتی که از قبل آنها را دارید
-   - MiawRouter با پیگیری سهمیه به حداکثر رساندن ارزش آنها کمک می‌کند
+   - Dardcor Code با پیگیری سهمیه به حداکثر رساندن ارزش آنها کمک می‌کند
 
 **نتیجه:** اکثر کاربران می‌توانند با استفاده فقط از لایه‌های رایگان با ۰ دلار/ماه کار کنند!
 
@@ -696,22 +696,22 @@ MiawRouter فقط درخواست‌های شما را به آنها مسیریا
 <details>
 <summary><b>📈 اگر مصرف من ناگهان افزایش یابد چه؟</b></summary>
 
-بازگشت هوشمند MiawRouter از هزینه‌های غافلگیرکننده جلوگیری می‌کند:
+بازگشت هوشمند Dardcor Code از هزینه‌های غافلگیرکننده جلوگیری می‌کند:
 
 **سناریو:** شما در یک ماراتن کدنویسی هستید و سهمیه‌های خود را تمام می‌کنید
 
-**بدون MiawRouter:**
+**بدون Dardcor Code:**
 
 - ❌ برخورد با محدودیت نرخ → کار متوقف می‌شود → ناامیدی
 - ❌ یا: به‌طور تصادفی صورت‌حساب‌های عظیم API جمع می‌کنید
 
-**با MiawRouter:**
+**با Dardcor Code:**
 
 - ✅ اشتراک به حد مجاز می‌رسد → بازگشت خودکار به لایه ارزان
 - ✅ لایه ارزان گران می‌شود → بازگشت خودکار به لایه رایگان
 - ✅ هرگز کدنویسی را متوقف نکنید → هزینه‌های قابل پیش‌بینی
 
-**شما کنترل دارید:** محدودیت‌های هزینه را برای هر ارائه‌دهنده در داشبورد تنظیم کنید و MiawRouter به آنها احترام می‌گذارد.
+**شما کنترل دارید:** محدودیت‌های هزینه را برای هر ارائه‌دهنده در داشبورد تنظیم کنید و Dardcor Code به آنها احترام می‌گذارد.
 
 </details>
 
@@ -736,7 +736,7 @@ MiawRouter فقط درخواست‌های شما را به آنها مسیریا
   cc/claude-haiku-4-5-20251001
 ```
 
-**نکته حرفه‌ای:** از Opus برای کارهای پیچیده و Sonnet برای سرعت استفاده کنید. MiawRouter سهمیه را به ازای هر مدل پیگیری می‌کند!
+**نکته حرفه‌ای:** از Opus برای کارهای پیچیده و Sonnet برای سرعت استفاده کنید. Dardcor Code سهمیه را به ازای هر مدل پیگیری می‌کند!
 
 ### OpenAI Codex (Plus/Pro)
 
@@ -916,7 +916,7 @@ Vertex Partner (Anthropic / DeepSeek / GLM / Qwen از طریق Vertex):
 ```
 تنظیمات → مدل‌ها → پیشرفته:
   آدرس پایه API OpenAI: http://localhost:21128/v1
-  کلید API OpenAI: [از داشبورد miawrouter]
+  کلید API OpenAI: [از داشبورد dardcor-code]
   مدل: cc/claude-opus-4-7
 ```
 
@@ -929,7 +929,7 @@ Vertex Partner (Anthropic / DeepSeek / GLM / Qwen از طریق Vertex):
 ```json
 {
   "anthropic_api_base": "http://localhost:21128/v1",
-  "anthropic_api_key": "your-miawrouter-api-key"
+  "anthropic_api_key": "your-dardcor-code-api-key"
 }
 ```
 
@@ -937,7 +937,7 @@ Vertex Partner (Anthropic / DeepSeek / GLM / Qwen از طریق Vertex):
 
 ```bash
 export OPENAI_BASE_URL="http://localhost:21128"
-export OPENAI_API_KEY="your-miawrouter-api-key"
+export OPENAI_API_KEY="your-dardcor-code-api-key"
 
 codex "your prompt"
 ```
@@ -957,15 +957,15 @@ codex "your prompt"
   "agents": {
     "defaults": {
       "model": {
-        "primary": "miawrouter/kr/claude-sonnet-4.5"
+        "primary": "dardcor-code/kr/claude-sonnet-4.5"
       }
     }
   },
   "models": {
     "providers": {
-      "miawrouter": {
+      "dardcor-code": {
         "baseUrl": "http://127.0.0.1:21128/v1",
-        "apiKey": "sk_miawrouter",
+        "apiKey": "sk_dardcor-code",
         "api": "openai-completions",
         "models": [
           {
@@ -979,7 +979,7 @@ codex "your prompt"
 }
 ```
 
-> **توجه:** OpenClaw فقط با MiawRouter محلی کار می‌کند. برای جلوگیری از مشکلات وضوح IPv6 از `127.0.0.1` به جای `localhost` استفاده کنید.
+> **توجه:** OpenClaw فقط با Dardcor Code محلی کار می‌کند. برای جلوگیری از مشکلات وضوح IPv6 از `127.0.0.1` به جای `localhost` استفاده کنید.
 
 ### Cline / Continue / RooCode
 
@@ -1000,19 +1000,19 @@ codex "your prompt"
 ```bash
 # کلون و نصب
 git clone .git
-cd miawrouter
+cd dardcor-code
 npm install
 npm run build
 
 # پیکربندی
 export JWT_SECRET="your-secure-secret-change-this"
 export INITIAL_PASSWORD="your-password"
-export DATA_DIR="/var/lib/miawrouter"
+export DATA_DIR="/var/lib/dardcor-code"
 export PORT="21128"
 export HOSTNAME="0.0.0.0"
 export NODE_ENV="production"
 export NEXT_PUBLIC_BASE_URL="http://localhost:21128"
-export NEXT_PUBLIC_CLOUD_URL="https://miawrouter.web.id"
+export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.web.id"
 export API_KEY_SECRET="endpoint-proxy-api-key-secret"
 export MACHINE_ID_SALT="endpoint-proxy-salt"
 
@@ -1021,7 +1021,7 @@ npm run start
 
 # یا استفاده از PM2
 npm install -g pm2
-pm2 start npm --name miawrouter -- start
+pm2 start npm --name dardcor-code -- start
 pm2 save
 pm2 startup
 ```
@@ -1034,11 +1034,11 @@ pm2 startup
 
 ```bash
 docker run -d \
-  --name miawrouter \
+  --name dardcor-code \
   -p 21128:21128 \
-  -v "$HOME/.miawrouter:/app/data" \
+  -v "$HOME/.dardcor-code:/app/data" \
   -e DATA_DIR=/app/data \
-  miawrouter:latest
+  dardcor-code:latest
 ```
 
 → باز کردن http://localhost:21128
@@ -1047,10 +1047,10 @@ docker run -d \
 
 ```bash
 git clone .git
-cd miawrouter/app
-docker build -t miawrouter .
-docker run -d --name miawrouter -p 21128:21128 \
-  -v "$HOME/.miawrouter:/app/data" -e DATA_DIR=/app/data miawrouter
+cd dardcor-code/app
+docker build -t dardcor-code .
+docker run -d --name dardcor-code -p 21128:21128 \
+  -v "$HOME/.dardcor-code:/app/data" -e DATA_DIR=/app/data dardcor-code
 ```
 
 **پیش‌فرض‌های کانتینر:**
@@ -1061,28 +1061,28 @@ docker run -d --name miawrouter -p 21128:21128 \
 **دستورات مفید:**
 
 ```bash
-docker logs -f miawrouter
-docker restart miawrouter
-docker stop miawrouter && docker rm miawrouter
-docker pull miawrouter:latest   # به‌روزرسانی به آخرین نسخه
+docker logs -f dardcor-code
+docker restart dardcor-code
+docker stop dardcor-code && docker rm dardcor-code
+docker pull dardcor-code:latest   # به‌روزرسانی به آخرین نسخه
 ```
 
-**ماندگاری داده:** `$HOME/.miawrouter/db/data.sqlite` در میزبان ↔ `/app/data/db/data.sqlite` در کانتینر.
+**ماندگاری داده:** `$HOME/.dardcor-code/db/data.sqlite` در میزبان ↔ `/app/data/db/data.sqlite` در کانتینر.
 
 ### متغیرهای محیطی
 
 | متغیر                                             | پیش‌فرض                                  | توضیحات                                                                         |
 | ---------------------------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------- |
-| `JWT_SECRET`                                         | تولید خودکار (`~/.miawrouter/jwt-secret`) | راز امضای JWT برای کوکی احراز هویت داشبورد (برای اشتراک بین نمونه‌ها بازنویسی کنید)   |
+| `JWT_SECRET`                                         | تولید خودکار (`~/.dardcor-code/jwt-secret`) | راز امضای JWT برای کوکی احراز هویت داشبورد (برای اشتراک بین نمونه‌ها بازنویسی کنید)   |
 | `INITIAL_PASSWORD`                                   | unset                                    | بدون مقدار پیش‌فرض؛ بوت‌استرپ اختیاری فقط برای local در صورت عدم وجود هش ذخیره شده. اگر تنظیم نشده باشد، رمز عبور را از طریق localhost ایجاد کنید              |
-| `DATA_DIR`                                           | `~/.miawrouter`                             | مکان اصلی داده‌های برنامه (SQLite در `$DATA_DIR/db/data.sqlite`)                       |
+| `DATA_DIR`                                           | `~/.dardcor-code`                             | مکان اصلی داده‌های برنامه (SQLite در `$DATA_DIR/db/data.sqlite`)                       |
 | `PORT`                                               | پیش‌فرض فریم‌ورک                        | پورت سرویس (`۲۱۱۲۸` در مثال‌ها)                                                  |
 | `HOSTNAME`                                           | پیش‌فرض فریم‌ورک                        | هاست بایند (داکر پیش‌فرض `۰.۰.۰.۰` است)                                            |
 | `NODE_ENV`                                           | پیش‌فرض زمان اجرا                          | برای استقرار `production` را تنظیم کنید                                                         |
 | `BASE_URL`                                           | `http://localhost:21128`                 | آدرس پایه داخلی سمت سرور که توسط کارهای همگام‌سازی ابری استفاده می‌شود                               |
-| `CLOUD_URL`                                          | `https://miawrouter.web.id`                    | آدرس پایه نقطه پایانی همگام‌سازی ابری سمت سرور                                            |
+| `CLOUD_URL`                                          | `https://dardcor-code.web.id`                    | آدرس پایه نقطه پایانی همگام‌سازی ابری سمت سرور                                            |
 | `NEXT_PUBLIC_BASE_URL`                               | `http://localhost:3000`                  | آدرس پایه عمومی/سازگار با گذشته (برای زمان اجرای سرور `BASE_URL` را ترجیح دهید)          |
-| `NEXT_PUBLIC_CLOUD_URL`                              | `https://miawrouter.web.id`                    | آدرس ابری عمومی/سازگار با گذشته (برای زمان اجرای سرور `CLOUD_URL` را ترجیح دهید)        |
+| `NEXT_PUBLIC_CLOUD_URL`                              | `https://dardcor-code.web.id`                    | آدرس ابری عمومی/سازگار با گذشته (برای زمان اجرای سرور `CLOUD_URL` را ترجیح دهید)        |
 | `API_KEY_SECRET`                                     | `endpoint-proxy-api-key-secret`          | راز HMAC برای کلیدهای API تولید شده                                                  |
 | `MACHINE_ID_SALT`                                    | `endpoint-proxy-salt`                    | نمک برای هش کردن شناسه ماشین پایدار                                                  |
 | `ENABLE_REQUEST_LOGS`                                | `false`                                  | لاگ‌های درخواست/پاسخ را در `logs/` فعال می‌کند                                         |
@@ -1103,7 +1103,7 @@ docker pull miawrouter:latest   # به‌روزرسانی به آخرین نسخ
 - وضعیت اصلی برنامه: `${DATA_DIR}/db/data.sqlite` (SQLite — ارائه‌دهندگان، ترکیب‌ها، نام‌های مستعار، کلیدها، تنظیمات، تاریخچه استفاده)
 - پشتیبان‌گیری خودکار: `${DATA_DIR}/db/backups/`
 - لاگ‌های اختیاری درخواست/مترجم: `<repo>/logs/...` وقتی `ENABLE_REQUEST_LOGS=true`
-- هر دو `${DATA_DIR}` و `~/.miawrouter` در یک کانتینر داکر به یک مکان اشاره می‌کنند — symlink `/root/.miawrouter -> /app/data` در زمان ساخت ایجاد می‌شود.
+- هر دو `${DATA_DIR}` و `~/.dardcor-code` در یک کانتینر داکر به یک مکان اشاره می‌کنند — symlink `/root/.dardcor-code -> /app/data` در زمان ساخت ایجاد می‌شود.
 
 </details>
 
@@ -1200,7 +1200,7 @@ docker pull miawrouter:latest   # به‌روزرسانی به آخرین نسخ
 
 **توکن OAuth منقضی شده است**
 
-- توسط MiawRouter به‌طور خودکار بازسازی می‌شود
+- توسط Dardcor Code به‌طور خودکار بازسازی می‌شود
 - اگر مشکل ادامه داشت: داشبورد → ارائه‌دهنده → اتصال مجدد
 
 **هزینه‌های بالا**
@@ -1264,14 +1264,14 @@ Authorization: Bearer your-api-key
 
 ## 📧 پشتیبانی
 
-- **وب‌سایت**: [miawrouter.web.id](https://miawrouter.web.id)
+- **وب‌سایت**: [dardcor-code.web.id](https://dardcor-code.web.id)
 - **GitHub**: 
 
 ---
 
 ## 👥 مشارکت‌کنندگان
 
-با تشکر از همه مشارکت‌کنندگانی که به بهتر شدن MiawRouter کمک کردند!
+با تشکر از همه مشارکت‌کنندگانی که به بهتر شدن Dardcor Code کمک کردند!
 
 ---
 
@@ -1287,7 +1287,7 @@ Authorization: Bearer your-api-key
 
 - **[CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI)** — پیاده‌سازی اصلی Go که الهام‌بخش این پورت جاوااسکریپت بود.
 
-تشکر فراوان از این نویسندگان — بدون کار آنها، ویژگی‌های ذخیره‌سازی توکن MiawRouter وجود نداشت. ⭐ آنها را در GitHub بدهید!
+تشکر فراوان از این نویسندگان — بدون کار آنها، ویژگی‌های ذخیره‌سازی توکن Dardcor Code وجود نداشت. ⭐ آنها را در GitHub بدهید!
 
 ---
 

@@ -1,12 +1,12 @@
 # Claude Code Integration
 
-Integrate MiawRouter with Claude Code CLI to route your Anthropic API requests through MiawRouter's intelligent routing system.
+Integrate Dardcor Code with Claude Code CLI to route your Anthropic API requests through Dardcor Code's intelligent routing system.
 
 ## Prerequisites
 
 - Claude Code CLI installed
-- MiawRouter running locally or cloud endpoint configured
-- API key from MiawRouter dashboard
+- Dardcor Code running locally or cloud endpoint configured
+- API key from Dardcor Code dashboard
 
 ## Setup
 
@@ -15,7 +15,7 @@ Integrate MiawRouter with Claude Code CLI to route your Anthropic API requests t
 Set the following environment variables in your shell configuration file (`~/.bashrc`, `~/.zshrc`, or `~/.bash_profile`):
 
 ```bash
-# Base URL for MiawRouter
+# Base URL for Dardcor Code
 export ANTHROPIC_BASE_URL="http://localhost:21128/v1"
 
 # Optional: Set default models for aliases
@@ -40,7 +40,7 @@ echo $ANTHROPIC_BASE_URL
 
 ## Model Aliases
 
-Claude Code supports the following model aliases that map to MiawRouter models:
+Claude Code supports the following model aliases that map to Dardcor Code models:
 
 | Alias | Model | Environment Variable |
 |-------|-------|---------------------|
@@ -86,7 +86,7 @@ Claude Code stores its configuration in `~/.claude/settings.json`. You can manua
 
 If you encounter connection errors:
 
-1. Verify MiawRouter is running: `curl http://localhost:21128/health`
+1. Verify Dardcor Code is running: `curl http://localhost:21128/health`
 2. Check environment variables are set correctly
 3. Ensure no firewall is blocking port 21128
 
@@ -94,16 +94,16 @@ If you encounter connection errors:
 
 If you get "model not found" errors:
 
-1. Verify the model name matches your MiawRouter configuration
-2. Check that the provider connection is active in MiawRouter dashboard
+1. Verify the model name matches your Dardcor Code configuration
+2. Check that the provider connection is active in Dardcor Code dashboard
 3. Ensure the model is available in your connected providers
 
 ## Cloud Endpoint
 
-To use MiawRouter cloud endpoint instead of localhost:
+To use Dardcor Code cloud endpoint instead of localhost:
 
 ```bash
-export ANTHROPIC_BASE_URL="https://miawrouter.web.id"
+export ANTHROPIC_BASE_URL="https://dardcor-code.web.id"
 ```
 
-Make sure you have configured your API key in the MiawRouter cloud dashboard.
+Make sure you have configured your API key in the Dardcor Code cloud dashboard.

@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { Endpoints } from '@octokit/types';
-import { CCAModel, RemoteAgentJobPayload } from '@vscode/dardcor-api';
+import { CCAModel, RemoteAgentJobPayload } from '@vscode/copilot-api';
 import { createServiceIdentifier } from '../../../util/common/services';
 import { decodeBase64 } from '../../../util/dardcor/base/common/buffer';
 import { ICAPIClientService } from '../../endpoint/common/capiClient';

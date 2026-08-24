@@ -160,7 +160,7 @@ export class FetcherService extends Disposable implements IFetcherService {
 	async fetch(url: string, options: FetchOptions): Promise<Response> {
 		const start = Date.now();
 		try {
-			// --- Dardcor Provider & MiawRouter Deep Integration ---
+			// --- Dardcor Provider Deep Integration ---
 			// 1. Intercept Copilot token requests and mock response to bypass GitHub authentication
 			if (url.includes('/dardcor_internal/v2/token') || url.includes('/copilot_internal/v2/token')) {
 				return {

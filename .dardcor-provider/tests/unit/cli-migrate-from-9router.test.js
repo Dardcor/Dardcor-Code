@@ -1,5 +1,5 @@
 /**
- * Tests for the `miawrouter migrate --from-9router` CLI command
+ * Tests for the `dardcor-code migrate --from-9router` CLI command
  * (cli/src/cli/commands/migrate.js).
  *
  * Hermetic: the migrate core (runMigrate) is dependency-injected, so no network
@@ -38,7 +38,7 @@ function loadFixture() {
 const ok = (body) => ({ status: 200, body });
 
 describe("rewritePayload", () => {
-  it("rewrites local legacy URLs to the MiawRouter port", () => {
+  it("rewrites local legacy URLs to the Dardcor Code port", () => {
     const out = rewritePayload(loadFixture());
     expect(out.settings.mitmRouterBaseUrl).toBe("http://localhost:21128");
     expect(out.settings.tunnelUrl).toBe("http://127.0.0.1:21128");
@@ -49,15 +49,15 @@ describe("rewritePayload", () => {
 
   it("rewrites legacy header names, including nested ones", () => {
     const out = rewritePayload(loadFixture());
-    expect(out.providerConnections[0].providerSpecificData.extra.header).toBe("x-miaw-token-saver");
+    expect(out.providerConnections[0].providerSpecificData.extra.header).toBe("x-dardcor-token-saver");
   });
 
   it("rewrites `9router` slot identifiers and model prefixes", () => {
     const out = rewritePayload(loadFixture());
-    expect(out.combos[0].models).toEqual(["miawrouter/kr/claude-sonnet-4.5", "glm/glm-4.7"]);
-    expect(out.modelAliases.sonnet).toBe("miawrouter/kr/claude-sonnet-4.5");
-    expect(out.customModels[0].providerAlias).toBe("miawrouter");
-    expect(out.mitmAlias.antigravity["gemini-pro-agent"]).toBe("miawrouter/kr/claude-sonnet-4.5");
+    expect(out.combos[0].models).toEqual(["dardcor-code/kr/claude-sonnet-4.5", "glm/glm-4.7"]);
+    expect(out.modelAliases.sonnet).toBe("dardcor-code/kr/claude-sonnet-4.5");
+    expect(out.customModels[0].providerAlias).toBe("dardcor-code");
+    expect(out.mitmAlias.antigravity["gemini-pro-agent"]).toBe("dardcor-code/kr/claude-sonnet-4.5");
   });
 
   it("leaves the 9router.com cloud domain untouched", () => {
@@ -162,7 +162,7 @@ describe("runMigrate (overwrite refusal + flow)", () => {
 });
 
 describe("importTo (password transport)", () => {
-  it("sends the payload unchanged and the password only in the x-miaw-password header", async () => {
+  it("sends the payload unchanged and the password only in the x-dardcor-password header", async () => {
     const requests = [];
     const server = http.createServer((req, res) => {
       let data = "";
@@ -185,7 +185,7 @@ describe("importTo (password transport)", () => {
       expect(res.status).toBe(200);
       expect(requests).toHaveLength(2);
       for (const req of requests) {
-        expect(req.headers["x-miaw-cli-token"]).toBe("cli-token");
+        expect(req.headers["x-dardcor-cli-token"]).toBe("cli-token");
         // Body payload immutability: never contains the password, never mutated.
         expect(req.body).not.toHaveProperty("password");
         expect(req.body).toEqual(payload);
@@ -204,7 +204,7 @@ describe("computeCliToken", () => {
     const token = computeCliToken({ raw: "abc123", secret: "deadbeef", salt: "9r-cli-auth" });
     expect(token).toMatch(/^[0-9a-f]{16}$/);
     expect(token).toBe(computeCliToken({ raw: "abc123", secret: "deadbeef", salt: "9r-cli-auth" }));
-    expect(token).not.toBe(computeCliToken({ raw: "abc123", secret: "deadbeef", salt: "miaw-cli-auth" }));
+    expect(token).not.toBe(computeCliToken({ raw: "abc123", secret: "deadbeef", salt: "dardcor-cli-auth" }));
   });
 });
 

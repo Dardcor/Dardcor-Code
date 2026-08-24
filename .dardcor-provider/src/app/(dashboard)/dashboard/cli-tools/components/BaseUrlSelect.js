@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { UPDATER_CONFIG } from "@/shared/constants/config";
 
-const STORAGE_KEY = "miawrouter.cliToolEndpointPresets";
+const STORAGE_KEY = "dardcor-code.cliToolEndpointPresets";
 // Legacy key read so presets saved under the old name keep showing.
 const LEGACY_STORAGE_KEY = "9router.cliToolEndpointPresets";
 const CUSTOM_VALUE = "__custom__";

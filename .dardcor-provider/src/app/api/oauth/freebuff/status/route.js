@@ -16,7 +16,7 @@ export async function POST(request) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "User-Agent": "MiawRouter-Freebuff-Client/1.0",
+        "User-Agent": "Dardcor Code-Freebuff-Client/1.0",
       },
       body: JSON.stringify({
         fingerprintId,

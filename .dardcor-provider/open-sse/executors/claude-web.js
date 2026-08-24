@@ -106,7 +106,7 @@ function makeTlsUnavailableResult(body) {
     503,
     "Claude Web requires the optional tls-client-node dependency for its browser TLS " +
       "fingerprint, but it is not installed. Install tls-client-node and let its native " +
-      "binary download (see ~/.miawrouter/tls-client), then retry.",
+      "binary download (see ~/.dardcor-code/tls-client), then retry.",
     body
   );
 }

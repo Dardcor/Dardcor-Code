@@ -57,8 +57,8 @@ beforeEach(() => __test__.resetCatalogCache());
 
 describe("skill discovery service", () => {
   it("normalizes local and remote skills with distinct sources", () => {
-    const local = normalizeLocalSkill({ id: "miawrouter-chat", name: "Chat", description: "d" });
-    expect(local.source).toBe("miawrouter");
+    const local = normalizeLocalSkill({ id: "dardcor-code-chat", name: "Chat", description: "d" });
+    expect(local.source).toBe("dardcor-code");
     expect(local.installed).toBe(true);
 
     const remote = normalizeSkillsShSkill(SEARCH_ROWS.skills[0]);
@@ -121,7 +121,7 @@ describe("skill discovery service", () => {
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "skilltest-"));
     const store = createInstallStore(path.join(tmp, "records.json"));
     const { fn } = makeFetch();
-    const installed = await installSkill("vercel-react-best-practices", "miawrouter", { fetchImpl: fn, dataDir: tmp, store, detect: noDetect });
+    const installed = await installSkill("vercel-react-best-practices", "dardcor-code", { fetchImpl: fn, dataDir: tmp, store, detect: noDetect });
     expect(installed.ok).toBe(true);
 
     const result = await listSkills({ fetchImpl: fn, cliTargets: CLIS, store, detect: noDetect });
@@ -132,18 +132,18 @@ describe("skill discovery service", () => {
   it("filters by source and installed state", async () => {
     const { fn } = makeFetch();
     const result = await listSkills({ fetchImpl: fn, cliTargets: CLIS, detect: noDetect });
-    expect(result.items.some((i) => i.slug === "miawrouter-chat")).toBe(true);
+    expect(result.items.some((i) => i.slug === "dardcor-code-chat")).toBe(true);
     const installed = await listSkills({ fetchImpl: fn, installed: "true", cliTargets: CLIS, detect: noDetect });
     expect(installed.items.every((i) => i.installed)).toBe(true);
   });
 
-  it("installs into the miawrouter registry without executing or downloading", async () => {
+  it("installs into the dardcor-code registry without executing or downloading", async () => {
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "skilltest-"));
     const store = createInstallStore(path.join(tmp, "records.json"));
     const { fn } = makeFetch();
-    const result = await installSkill("miawrouter-chat", "miawrouter", { fetchImpl: fn, dataDir: tmp, store, detect: noDetect });
+    const result = await installSkill("dardcor-code-chat", "dardcor-code", { fetchImpl: fn, dataDir: tmp, store, detect: noDetect });
     expect(result.ok).toBe(true);
-    const manifest = await fs.readFile(path.join(tmp, "skills", "miawrouter-chat", "skill.json"), "utf8");
+    const manifest = await fs.readFile(path.join(tmp, "skills", "dardcor-code-chat", "skill.json"), "utf8");
     const parsed = JSON.parse(manifest);
     expect(parsed.name).toBe("Chat");
     expect(JSON.stringify(parsed)).not.toMatch(/token|secret|password/i);
@@ -172,7 +172,7 @@ describe("skill discovery service", () => {
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "skilltest-"));
     const store = createInstallStore(path.join(tmp, "records.json"));
     const { fn } = makeFetch();
-    const result = await installSkill("miawrouter-chat", "cli", {
+    const result = await installSkill("dardcor-code-chat", "cli", {
       fetchImpl: fn,
       cliId: "claude",
       cliTargets: CLIS,
@@ -188,10 +188,10 @@ describe("skill discovery service", () => {
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "skilltest-"));
     const store = createInstallStore(path.join(tmp, "records.json"));
     const { fn } = makeFetch();
-    const unknown = await installSkill("miawrouter-chat", "nope", { fetchImpl: fn, store, dataDir: tmp, detect: noDetect });
+    const unknown = await installSkill("dardcor-code-chat", "nope", { fetchImpl: fn, store, dataDir: tmp, detect: noDetect });
     expect(unknown).toMatchObject({ ok: false, code: "UNKNOWN_TARGET" });
 
-    const missing = await installSkill("miawrouter-chat", "cli", {
+    const missing = await installSkill("dardcor-code-chat", "cli", {
       fetchImpl: fn,
       cliId: "codex",
       cliTargets: [],
@@ -206,11 +206,11 @@ describe("skill discovery service", () => {
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "skilltest-"));
     const store = createInstallStore(path.join(tmp, "records.json"));
     const { fn } = makeFetch();
-    await installSkill("miawrouter-chat", "miawrouter", { fetchImpl: fn, dataDir: tmp, store, detect: noDetect });
-    const removed = await uninstallSkill("miawrouter/miawrouter-chat", "miawrouter", { dataDir: tmp, store });
+    await installSkill("dardcor-code-chat", "dardcor-code", { fetchImpl: fn, dataDir: tmp, store, detect: noDetect });
+    const removed = await uninstallSkill("dardcor-code/dardcor-code-chat", "dardcor-code", { dataDir: tmp, store });
     expect(removed.ok).toBe(true);
     expect(removed.removed).toContain("skill.json");
     const records = await listInstalled({ store });
-    expect(records.find((r) => r.slug === "miawrouter-chat")).toBeUndefined();
+    expect(records.find((r) => r.slug === "dardcor-code-chat")).toBeUndefined();
   });
 });

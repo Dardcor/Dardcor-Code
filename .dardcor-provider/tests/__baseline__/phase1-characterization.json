@@ -599,7 +599,7 @@
       "category": "collection-missing-dependency-lowdb",
       "kind": "collection",
       "file": "tests/unit/db-benchmark.test.js",
-      "firstLine": "Cannot find package 'lowdb' imported from /mnt/Data/miawrouter/tests/unit/db-benchmark.test.js",
+      "firstLine": "Cannot find package 'lowdb' imported from /mnt/Data/dardcor-code/tests/unit/db-benchmark.test.js",
       "signature": "c04ea4ecdacdd6fcb7e4abf448e08f3e74b137af653050389e12a6dd177845a0"
     },
     {
@@ -637,7 +637,7 @@
       "category": "collection-missing-cloud-module",
       "kind": "collection",
       "file": "tests/unit/embeddings.cloud.test.js",
-      "firstLine": "Cannot find module '/cloud/src/handlers/embeddings.js' imported from /mnt/Data/miawrouter/tests/unit/embeddings.cloud.test.js",
+      "firstLine": "Cannot find module '/cloud/src/handlers/embeddings.js' imported from /mnt/Data/dardcor-code/tests/unit/embeddings.cloud.test.js",
       "signature": "a28612ba58ab6449b99f46b47f572512ee61602efdbf136a56f1705977c9af94"
     },
     {
@@ -661,7 +661,7 @@
       "category": "collection-node-test-runner-file",
       "kind": "collection",
       "file": "tests/unit/kimchi-strip-reasoning.test.js",
-      "firstLine": "No test suite found in file /mnt/Data/miawrouter/tests/unit/kimchi-strip-reasoning.test.js",
+      "firstLine": "No test suite found in file /mnt/Data/dardcor-code/tests/unit/kimchi-strip-reasoning.test.js",
       "signature": "14288bc7f1a0f4be28906216fca27453a43f1f282800c7d346d50df07aafdc6a"
     },
     {
@@ -669,7 +669,7 @@
       "category": "collection-node-test-runner-file",
       "kind": "collection",
       "file": "tests/unit/kimchi.test.js",
-      "firstLine": "No test suite found in file /mnt/Data/miawrouter/tests/unit/kimchi.test.js",
+      "firstLine": "No test suite found in file /mnt/Data/dardcor-code/tests/unit/kimchi.test.js",
       "signature": "d0f8bdb1ac62e45257be84ffb7ba35e240fc16a0c5268b97dfffa89ddb4da778"
     },
     {
@@ -797,7 +797,7 @@
       "category": "test-infra-source-path-cwd",
       "kind": "assertion",
       "file": "tests/unit/security-audit.test.js",
-      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/miawrouter/tests/src/mitm/manager.js'",
+      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/dardcor-code/tests/src/mitm/manager.js'",
       "signature": "1cb13d04ac52bb5baaf2806bdce9e546f076d6f81ad9f0c26e1105eb868839d7"
     },
     {
@@ -805,7 +805,7 @@
       "category": "test-infra-source-path-cwd",
       "kind": "assertion",
       "file": "tests/unit/security-audit.test.js",
-      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/miawrouter/tests/src/mitm/manager.js'",
+      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/dardcor-code/tests/src/mitm/manager.js'",
       "signature": "1cb13d04ac52bb5baaf2806bdce9e546f076d6f81ad9f0c26e1105eb868839d7"
     },
     {
@@ -813,7 +813,7 @@
       "category": "test-infra-source-path-cwd",
       "kind": "assertion",
       "file": "tests/unit/security-audit.test.js",
-      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/miawrouter/tests/src/lib/db/repos/usageRepo.js'",
+      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/dardcor-code/tests/src/lib/db/repos/usageRepo.js'",
       "signature": "4394bfb35ba4cb3e5b48f25e5cfebc69f417bacf8a7ddf671fc7943724105769"
     },
     {
@@ -821,7 +821,7 @@
       "category": "test-infra-source-path-cwd",
       "kind": "assertion",
       "file": "tests/unit/security-audit.test.js",
-      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/miawrouter/tests/src/lib/db/repos/usageRepo.js'",
+      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/dardcor-code/tests/src/lib/db/repos/usageRepo.js'",
       "signature": "4394bfb35ba4cb3e5b48f25e5cfebc69f417bacf8a7ddf671fc7943724105769"
     },
     {
@@ -829,7 +829,7 @@
       "category": "test-infra-source-path-cwd",
       "kind": "assertion",
       "file": "tests/unit/security-audit.test.js",
-      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/miawrouter/tests/src/lib/db/repos/usageRepo.js'",
+      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/dardcor-code/tests/src/lib/db/repos/usageRepo.js'",
       "signature": "4394bfb35ba4cb3e5b48f25e5cfebc69f417bacf8a7ddf671fc7943724105769"
     },
     {
@@ -837,7 +837,7 @@
       "category": "test-infra-source-path-cwd",
       "kind": "assertion",
       "file": "tests/unit/security-audit.test.js",
-      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/miawrouter/tests/src/lib/db/repos/usageRepo.js'",
+      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/dardcor-code/tests/src/lib/db/repos/usageRepo.js'",
       "signature": "4394bfb35ba4cb3e5b48f25e5cfebc69f417bacf8a7ddf671fc7943724105769"
     },
     {
@@ -845,7 +845,7 @@
       "category": "test-infra-source-path-cwd",
       "kind": "assertion",
       "file": "tests/unit/security-audit.test.js",
-      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/miawrouter/tests/src/lib/network/outboundProxy.js'",
+      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/dardcor-code/tests/src/lib/network/outboundProxy.js'",
       "signature": "16f4507b5d0254174bed89926db53761e5d0fecd0b2cbfe57a114834a7e33a01"
     },
     {
@@ -853,7 +853,7 @@
       "category": "test-infra-source-path-cwd",
       "kind": "assertion",
       "file": "tests/unit/security-audit.test.js",
-      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/miawrouter/tests/src/mitm/manager.js'",
+      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/dardcor-code/tests/src/mitm/manager.js'",
       "signature": "1cb13d04ac52bb5baaf2806bdce9e546f076d6f81ad9f0c26e1105eb868839d7"
     },
     {
@@ -861,7 +861,7 @@
       "category": "test-infra-source-path-cwd",
       "kind": "assertion",
       "file": "tests/unit/security-audit.test.js",
-      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/miawrouter/tests/src/mitm/manager.js'",
+      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/dardcor-code/tests/src/mitm/manager.js'",
       "signature": "1cb13d04ac52bb5baaf2806bdce9e546f076d6f81ad9f0c26e1105eb868839d7"
     },
     {
@@ -869,7 +869,7 @@
       "category": "test-infra-source-path-cwd",
       "kind": "assertion",
       "file": "tests/unit/security-audit.test.js",
-      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/miawrouter/tests/src/mitm/manager.js'",
+      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/dardcor-code/tests/src/mitm/manager.js'",
       "signature": "1cb13d04ac52bb5baaf2806bdce9e546f076d6f81ad9f0c26e1105eb868839d7"
     },
     {
@@ -877,7 +877,7 @@
       "category": "test-infra-source-path-cwd",
       "kind": "assertion",
       "file": "tests/unit/security-audit.test.js",
-      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/miawrouter/tests/src/lib/oauth/utils/server.js'",
+      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/dardcor-code/tests/src/lib/oauth/utils/server.js'",
       "signature": "b0ab5c0a407fafd85752b1516f04f0cdf1e1e533372f10d9a7ec4f82fe16eac3"
     },
     {
@@ -885,7 +885,7 @@
       "category": "test-infra-source-path-cwd",
       "kind": "assertion",
       "file": "tests/unit/security-audit.test.js",
-      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/miawrouter/tests/src/lib/oauth/utils/server.js'",
+      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/dardcor-code/tests/src/lib/oauth/utils/server.js'",
       "signature": "b0ab5c0a407fafd85752b1516f04f0cdf1e1e533372f10d9a7ec4f82fe16eac3"
     },
     {
@@ -893,7 +893,7 @@
       "category": "test-infra-source-path-cwd",
       "kind": "assertion",
       "file": "tests/unit/security-audit.test.js",
-      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/miawrouter/tests/src/lib/oauth/utils/server.js'",
+      "firstLine": "Error: ENOENT: no such file or directory, open '/mnt/Data/dardcor-code/tests/src/lib/oauth/utils/server.js'",
       "signature": "b0ab5c0a407fafd85752b1516f04f0cdf1e1e533372f10d9a7ec4f82fe16eac3"
     },
     {

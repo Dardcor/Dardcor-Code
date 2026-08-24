@@ -61,7 +61,7 @@ const integer = (options = {}) => ({ type: "integer", ...options });
 const LATEST_PROTOCOL_VERSION = "2025-06-18";
 const SUPPORTED_PROTOCOL_VERSIONS = new Set(["2024-11-05", "2025-03-26", LATEST_PROTOCOL_VERSION]);
 
-export function createMiawToolRegistry(deps) {
+export function createDardcorToolRegistry(deps) {
   return [
     {
       name: "providers.list", description: "List configured providers without credentials.",
@@ -148,7 +148,7 @@ export function createMcpCore({ registry, timeoutMs = 10_000, audit = () => {} }
           ? request.params.protocolVersion
           : LATEST_PROTOCOL_VERSION,
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: "miawrouter", version: "1.0.0" },
+        serverInfo: { name: "dardcor-code", version: "1.0.0" },
       },
     });
     if (request.method === "notifications/initialized") return null;

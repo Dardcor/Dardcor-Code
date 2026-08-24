@@ -401,8 +401,8 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
   if (cacheWrite?.layers?.length) {
     try {
       const entry = { status: 200, body: JSON.stringify(translatedResponse), contentType: "application/json" };
-      respHeaders["X-Miaw-Cache"] = "MISS";
-      respHeaders["X-Miaw-Cache-Layer"] = cacheWrite.layers.includes("L2") ? "L2" : "L1";
+      respHeaders["X-Dardcor-Cache"] = "MISS";
+      respHeaders["X-Dardcor-Cache-Layer"] = cacheWrite.layers.includes("L2") ? "L2" : "L1";
       if (cacheWrite.layers.includes("L2")) {
         l2Store({
           provider, model, scope: cacheWrite.scope, sourceFormat, targetFormat, body: cacheWrite.body, key: cacheWrite.key, value: entry,

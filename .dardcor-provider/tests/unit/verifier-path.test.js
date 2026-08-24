@@ -12,7 +12,7 @@ afterEach(() => {
 
 describe("baseline verifier paths", () => {
   it("matches a known failure outside an /app checkout", () => {
-    const dir = mkdtempSync(path.join(tmpdir(), "miaw-baseline-"));
+    const dir = mkdtempSync(path.join(tmpdir(), "dardcor-baseline-"));
     tempDirs.push(dir);
     const resultsPath = path.join(dir, "results.json");
     writeFileSync(resultsPath, JSON.stringify({

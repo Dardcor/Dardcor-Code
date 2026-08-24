@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { SessionOptions } from '@github/dardcor/sdk';
+import type { SessionOptions } from '@github/copilot/sdk';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ChatParticipantToolToken, ChatResponseStream } from 'vscode';
 import { ConfigKey, IConfigurationService } from '../../../../../platform/configuration/common/configurationService';

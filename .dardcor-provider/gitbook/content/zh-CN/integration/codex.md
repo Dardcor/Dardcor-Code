@@ -1,12 +1,12 @@
 # OpenAI Codex CLI 集成
 
-将 MiawRouter 与 OpenAI Codex CLI 集成,通过 MiawRouter 的智能路由系统转发你的 OpenAI API 请求。
+将 Dardcor Code 与 OpenAI Codex CLI 集成,通过 Dardcor Code 的智能路由系统转发你的 OpenAI API 请求。
 
 ## 前置要求
 
 - 已安装 OpenAI Codex CLI
-- MiawRouter 本地运行或已配置云端 endpoint
-- 来自 MiawRouter 仪表盘的 API key
+- Dardcor Code 本地运行或已配置云端 endpoint
+- 来自 Dardcor Code 仪表盘的 API key
 
 ## 设置
 
@@ -15,11 +15,11 @@
 在 shell 配置文件(`~/.bashrc`、`~/.zshrc` 或 `~/.bash_profile`)中设置以下环境变量:
 
 ```bash
-# MiawRouter 的 Base URL
+# Dardcor Code 的 Base URL
 export OPENAI_BASE_URL="http://localhost:21128/v1"
 
-# 来自 MiawRouter 仪表盘的 API Key
-export OPENAI_API_KEY="your-miawrouter-api-key"
+# 来自 Dardcor Code 仪表盘的 API Key
+export OPENAI_API_KEY="your-dardcor-code-api-key"
 ```
 
 ### 2. 重新加载 Shell 配置
@@ -39,7 +39,7 @@ echo $OPENAI_API_KEY
 
 ## 可用模型
 
-MiawRouter 提供以下 Codex 模型:
+Dardcor Code 提供以下 Codex 模型:
 
 | 模型 ID | 描述 |
 |----------|-------------|
@@ -77,7 +77,7 @@ codex --model cx/gpt-5.1-codex-max "Explain what this code does: $(cat myfile.js
 ```json
 {
   "baseUrl": "http://localhost:21128/v1",
-  "apiKey": "your-miawrouter-api-key",
+  "apiKey": "your-dardcor-code-api-key",
   "defaultModel": "cx/gpt-5.2-codex"
 }
 ```
@@ -88,7 +88,7 @@ codex --model cx/gpt-5.1-codex-max "Explain what this code does: $(cat myfile.js
 
 遇到认证错误时:
 
-1. 在 MiawRouter 仪表盘中确认 API key 正确
+1. 在 Dardcor Code 仪表盘中确认 API key 正确
 2. 检查 `OPENAI_API_KEY` 环境变量已设置
 3. 确认 API key 未过期
 
@@ -96,7 +96,7 @@ codex --model cx/gpt-5.1-codex-max "Explain what this code does: $(cat myfile.js
 
 遇到连接错误时:
 
-1. 确认 MiawRouter 正在运行:`curl http://localhost:21128/health`
+1. 确认 Dardcor Code 正在运行:`curl http://localhost:21128/health`
 2. 检查环境变量设置是否正确
 3. 确保防火墙没有阻止 21128 端口
 
@@ -104,19 +104,19 @@ codex --model cx/gpt-5.1-codex-max "Explain what this code does: $(cat myfile.js
 
 出现 "model not available" 错误时:
 
-1. 确认模型名与 MiawRouter 配置一致
-2. 检查 MiawRouter 仪表盘中 OpenAI 提供商连接是否激活
+1. 确认模型名与 Dardcor Code 配置一致
+2. 检查 Dardcor Code 仪表盘中 OpenAI 提供商连接是否激活
 3. 确认连接的提供商中包含该模型
 
 ## 云端 Endpoint
 
-使用 MiawRouter 云端 endpoint 而非 localhost:
+使用 Dardcor Code 云端 endpoint 而非 localhost:
 
 ```bash
-export OPENAI_BASE_URL="https://miawrouter.web.id"
+export OPENAI_BASE_URL="https://dardcor-code.web.id"
 ```
 
-确保已在 MiawRouter 云端仪表盘中配置 API key。
+确保已在 Dardcor Code 云端仪表盘中配置 API key。
 
 ## 高级配置
 

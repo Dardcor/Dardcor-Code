@@ -1,6 +1,6 @@
 # ☁️ クラウドデプロイメント
 
-リモートアクセスと本番利用のため、VPSまたはDockerにMiawRouterをデプロイ。
+リモートアクセスと本番利用のため、VPSまたはDockerにDardcor Codeをデプロイ。
 
 ---
 
@@ -17,7 +17,7 @@
 
 ```bash
 git clone .git
-cd miawrouter/app
+cd dardcor-code/app
 ```
 
 ### ステップ2: 依存関係をインストール
@@ -39,7 +39,7 @@ npm run build
 ```bash
 export JWT_SECRET="your-secure-secret-change-this-to-random-string"
 export INITIAL_PASSWORD="your-secure-password"
-export DATA_DIR="/var/lib/miawrouter"
+export DATA_DIR="/var/lib/dardcor-code"
 export NODE_ENV="production"
 ```
 
@@ -49,15 +49,15 @@ export NODE_ENV="production"
 |----------|---------|-------------|
 | `JWT_SECRET` | 自動生成 | **本番環境では必ず変更!** JWTトークンの署名に使用 |
 | `INITIAL_PASSWORD` | unset | デフォルトパスワードなし；未設定なら localhost 経由でパスワードを作成するローカル専用のオプション |
-| `DATA_DIR` | `~/.miawrouter` | データベースとデータの保存パス |
+| `DATA_DIR` | `~/.dardcor-code` | データベースとデータの保存パス |
 | `NODE_ENV` | `development` | デプロイ時は `production` に設定 |
 | `ENABLE_REQUEST_LOGS` | `false` | デバッグリクエスト/レスポンスログを有効化 |
 
 ### ステップ5: データディレクトリを作成
 
 ```bash
-sudo mkdir -p /var/lib/miawrouter
-sudo chown $USER:$USER /var/lib/miawrouter
+sudo mkdir -p /var/lib/dardcor-code
+sudo chown $USER:$USER /var/lib/dardcor-code
 ```
 
 ### ステップ6: アプリケーションを起動
@@ -74,8 +74,8 @@ PM2はアプリケーションを稼働させ続け、クラッシュ時に再�
 # PM2をグローバルにインストール
 npm install -g pm2
 
-# PM2でMiawRouterを起動
-pm2 start npm --name miawrouter -- start
+# PM2でDardcor Codeを起動
+pm2 start npm --name dardcor-code -- start
 
 # PM2設定を保存
 pm2 save
@@ -89,13 +89,13 @@ pm2 startup
 
 ```bash
 # ログを表示
-pm2 logs miawrouter
+pm2 logs dardcor-code
 
 # アプリケーションを再起動
-pm2 restart miawrouter
+pm2 restart dardcor-code
 
 # アプリケーションを停止
-pm2 stop miawrouter
+pm2 stop dardcor-code
 
 # ステータスを表示
 pm2 status
@@ -147,17 +147,17 @@ CMD ["npm", "run", "start"]
 
 ```bash
 # イメージをビルド
-docker build -t miawrouter .
+docker build -t dardcor-code .
 
 # コンテナを実行
 docker run -d \
-  --name miawrouter \
+  --name dardcor-code \
   -p 3000:3000 \
   -p 21128:21128 \
   -e JWT_SECRET="your-secure-secret-change-this" \
   -e INITIAL_PASSWORD="your-secure-password" \
-  -v miawrouter-data:/app/data \
-  miawrouter
+  -v dardcor-code-data:/app/data \
+  dardcor-code
 ```
 
 ### オプション2: Docker Compose
@@ -168,9 +168,9 @@ docker run -d \
 version: '3.8'
 
 services:
-  miawrouter:
+  dardcor-code:
     build: .
-    container_name: miawrouter
+    container_name: dardcor-code
     ports:
       - "3000:3000"
       - "21128:21128"
@@ -180,11 +180,11 @@ services:
       - INITIAL_PASSWORD=your-secure-password
       - DATA_DIR=/app/data
     volumes:
-      - miawrouter-data:/app/data
+      - dardcor-code-data:/app/data
     restart: unless-stopped
 
 volumes:
-  miawrouter-data:
+  dardcor-code-data:
 ```
 
 **Docker Composeで実行:**
@@ -223,7 +223,7 @@ sudo apt install nginx
 
 ### ステップ2: Nginxを設定
 
-`/etc/nginx/sites-available/miawrouter` を作成:
+`/etc/nginx/sites-available/dardcor-code` を作成:
 
 ```nginx
 server {
@@ -247,7 +247,7 @@ server {
     ssl_ciphers HIGH:!aNULL:!MD5;
     ssl_prefer_server_ciphers on;
 
-    # Proxy to MiawRouter
+    # Proxy to Dardcor Code
     location / {
         proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
@@ -284,7 +284,7 @@ server {
 
 ```bash
 # シンボリックリンクを作成
-sudo ln -s /etc/nginx/sites-available/miawrouter /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/dardcor-code /etc/nginx/sites-enabled/
 
 # 設定をテスト
 sudo nginx -t
@@ -333,7 +333,7 @@ sudo ufw allow 22/tcp
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
 
-# リバースプロキシを使用しない場合、MiawRouterポートを許可
+# リバースプロキシを使用しない場合、Dardcor Codeポートを許可
 sudo ufw allow 3000/tcp
 sudo ufw allow 21128/tcp
 
@@ -363,22 +363,22 @@ ssh -L 3000:localhost:3000 user@your-server.com
 # システムパッケージを更新
 sudo apt update && sudo apt upgrade -y
 
-# MiawRouterを更新
-cd /path/to/miawrouter/app
+# Dardcor Codeを更新
+cd /path/to/dardcor-code/app
 git pull
 npm install
 npm run build
-pm2 restart miawrouter
+pm2 restart dardcor-code
 ```
 
 ### 5. バックアップ戦略
 
 ```bash
 # データディレクトリをバックアップ
-tar -czf miawrouter-backup-$(date +%Y%m%d).tar.gz /var/lib/miawrouter
+tar -czf dardcor-code-backup-$(date +%Y%m%d).tar.gz /var/lib/dardcor-code
 
 # 自動毎日バックアップ (crontabに追加)
-0 2 * * * tar -czf /backups/miawrouter-$(date +\%Y\%m\%d).tar.gz /var/lib/miawrouter
+0 2 * * * tar -czf /backups/dardcor-code-$(date +\%Y\%m\%d).tar.gz /var/lib/dardcor-code
 ```
 
 ---
@@ -392,7 +392,7 @@ tar -czf miawrouter-backup-$(date +%Y%m%d).tar.gz /var/lib/miawrouter
 pm2 status
 
 # ログを表示
-pm2 logs miawrouter --lines 100
+pm2 logs dardcor-code --lines 100
 
 # リソースをモニタリング
 pm2 monit
@@ -429,20 +429,20 @@ netstat -tulpn | grep -E '3000|21128'
 
 ```bash
 # ログを確認
-pm2 logs miawrouter
+pm2 logs dardcor-code
 
 # ポートが使用中か確認
 sudo lsof -i :3000
 sudo lsof -i :21128
 
 # 環境変数を確認
-pm2 env miawrouter
+pm2 env dardcor-code
 ```
 
 ### Nginx 502 Bad Gateway
 
 ```bash
-# MiawRouterが実行中か確認
+# Dardcor Codeが実行中か確認
 pm2 status
 
 # Nginxエラーログを確認
@@ -460,8 +460,8 @@ SSEサポート用にNginx設定で `proxy_buffering off` が設定されてい�
 
 ```bash
 # データディレクトリ権限を修正
-sudo chown -R $USER:$USER /var/lib/miawrouter
-chmod 755 /var/lib/miawrouter
+sudo chown -R $USER:$USER /var/lib/dardcor-code
+chmod 755 /var/lib/dardcor-code
 ```
 
 ---

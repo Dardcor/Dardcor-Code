@@ -10,8 +10,8 @@ import { UPDATER_CONFIG } from "@/shared/constants/config";
 import { getConsistentMachineId } from "@/shared/utils/machineId";
 
 const APP_PORT = UPDATER_CONFIG.appPort;
-const CLI_TOKEN_HEADER = "x-miaw-cli-token";
-const CLI_TOKEN_SALT = "miaw-cli-auth";
+const CLI_TOKEN_HEADER = "x-dardcor-cli-token";
+const CLI_TOKEN_SALT = "dardcor-cli-auth";
 const LOCAL_MCP_PREFIX = `http://localhost:${APP_PORT}/api/mcp/`;
 
 let cachedCliToken = null;

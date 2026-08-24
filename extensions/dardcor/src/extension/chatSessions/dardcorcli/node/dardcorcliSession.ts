@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { Attachment, SendOptions, SessionOptions, ToolExecutionCompleteEvent, ToolExecutionStartEvent } from '@github/dardcor/sdk';
+import type { Attachment, SendOptions, SessionOptions, ToolExecutionCompleteEvent, ToolExecutionStartEvent } from '@github/copilot/sdk';
 import * as l10n from '@vscode/l10n';
 import * as cp from 'child_process';
 import * as crypto from 'crypto';

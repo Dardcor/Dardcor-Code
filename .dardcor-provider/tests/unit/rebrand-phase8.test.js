@@ -45,12 +45,12 @@ describe("locale catalogs (public/i18n/literals)", () => {
     }
   });
 
-  it("the 4 universal MiawRouter keys exist in every catalog", () => {
+  it("the 4 universal Dardcor Code keys exist in every catalog", () => {
     const universal = [
-      "Intercept CLI tool traffic and route through MiawRouter",
-      "Use Antigravity IDE & GitHub Copilot → with ANY provider/model from MiawRouter",
-      "Antigravity/Copilot IDE request → DNS redirect to localhost:443 → MITM proxy intercepts → MiawRouter → response to Antigravity/Copilot",
-      "sk_miawrouter (default)",
+      "Intercept CLI tool traffic and route through Dardcor Code",
+      "Use Antigravity IDE & GitHub Copilot → with ANY provider/model from Dardcor Code",
+      "Antigravity/Copilot IDE request → DNS redirect to localhost:443 → MITM proxy intercepts → Dardcor Code → response to Antigravity/Copilot",
+      "sk_dardcor-code (default)",
     ];
     for (const f of files) {
       const parsed = JSON.parse(read(`public/i18n/literals/${f}`));
@@ -60,67 +60,67 @@ describe("locale catalogs (public/i18n/literals)", () => {
     }
   });
 
-  it("big catalogs (km, fa, th, zh-CN) carry the full MiawRouter key set", () => {
+  it("big catalogs (km, fa, th, zh-CN) carry the full Dardcor Code key set", () => {
     const big = ["km.json", "fa.json", "th.json", "zh-CN.json"];
     for (const f of big) {
       const parsed = JSON.parse(read(`public/i18n/literals/${f}`));
-      expect(parsed["How MiawRouter Works"]).toBeTypeOf("string");
+      expect(parsed["How Dardcor Code Works"]).toBeTypeOf("string");
       expect(parsed["Point your CLI tools to http://localhost:21128"]).toBeTypeOf("string");
-      expect(parsed["MiawRouter (Entry)"]).toBeTypeOf("string");
-      expect(parsed["Configure miawrouter as an OpenAI-compatible provider to route all jcode requests through miawrouter's optimization layer."]).toBeTypeOf("string");
-      expect(parsed["npm install -g miawrouter"]).toBeTypeOf("string");
+      expect(parsed["Dardcor Code (Entry)"]).toBeTypeOf("string");
+      expect(parsed["Configure dardcor-code as an OpenAI-compatible provider to route all jcode requests through dardcor-code's optimization layer."]).toBeTypeOf("string");
+      expect(parsed["npm install -g dardcor-code"]).toBeTypeOf("string");
     }
   });
 });
 
 describe("skills (skills/ + src/shared/constants/skills.js)", () => {
   const ids = [
-    "miawrouter",
-    "miawrouter-chat",
-    "miawrouter-embeddings",
-    "miawrouter-image",
-    "miawrouter-stt",
-    "miawrouter-tts",
-    "miawrouter-video",
-    "miawrouter-web-fetch",
-    "miawrouter-web-search",
+    "dardcor-code",
+    "dardcor-code-chat",
+    "dardcor-code-embeddings",
+    "dardcor-code-image",
+    "dardcor-code-stt",
+    "dardcor-code-tts",
+    "dardcor-code-video",
+    "dardcor-code-web-fetch",
+    "dardcor-code-web-search",
   ];
 
-  it("skill directories are renamed to miawrouter-*", () => {
+  it("skill directories are renamed to dardcor-code-*", () => {
     const dirs = fs.readdirSync(SKILLS_DIR).filter((e) => fs.statSync(path.join(SKILLS_DIR, e)).isDirectory());
     expect(dirs.sort()).toEqual([...ids].sort());
   });
 
-  it("every skill SKILL.md uses MIAW_URL/MIAW_KEY, port 21128, and no legacy tokens", () => {
+  it("every skill SKILL.md uses DARDCOR_URL/DARDCOR_KEY, port 21128, and no legacy tokens", () => {
     for (const id of ids) {
       const md = read(`skills/${id}/SKILL.md`);
       expect(md.match(LEGACY_RE), `${id} SKILL.md has legacy token`).toBeNull();
-      expect(md).toContain("MIAW_URL");
-      expect(md).toContain("MIAW_KEY");
+      expect(md).toContain("DARDCOR_URL");
+      expect(md).toContain("DARDCOR_KEY");
       expect(md).toContain(`name: ${id}`);
       expect(md).not.toContain("localhost:20128");
       expect(md).not.toContain("NINEROUTER_");
     }
   });
 
-  it("skills.js constants emit miawrouter ids and the product domain", () => {
+  it("skills.js constants emit dardcor-code ids and the product domain", () => {
     const src = read("src/shared/constants/skills.js");
     expect(src.match(LEGACY_RE)).toBeNull();
-    expect(src).toContain('id: "miawrouter"');
-    expect(src).toContain('id: "miawrouter-chat"');
-    expect(src).toContain("miawrouter.web.id");
-    expect(src).toContain('name: "MiawRouter (Entry)"');
+    expect(src).toContain('id: "dardcor-code"');
+    expect(src).toContain('id: "dardcor-code-chat"');
+    expect(src).toContain("dardcor-code.web.id");
+    expect(src).toContain('name: "Dardcor Code (Entry)"');
     expect(src).not.toContain("decolua");
   });
 
-  it("dashboard skills page references the miawrouter entry skill", () => {
+  it("dashboard skills page references the dardcor-code entry skill", () => {
     const page = read("src/app/(dashboard)/dashboard/skills/page.js");
-    expect(page).toContain('getSkillRawUrl("miawrouter")');
+    expect(page).toContain('getSkillRawUrl("dardcor-code")');
     expect(page.match(LEGACY_RE)).toBeNull();
   });
 });
 
-describe("CLI-tool components: writes use miawrouter, reads keep legacy compat", () => {
+describe("CLI-tool components: writes use dardcor-code, reads keep legacy compat", () => {
   const display = (file) => read(`src/app/(dashboard)/dashboard/cli-tools/components/${file}`);
 
   it("no user-facing default API key or old port remains in any ToolCard", () => {
@@ -132,17 +132,17 @@ describe("CLI-tool components: writes use miawrouter, reads keep legacy compat",
     }
   });
 
-  it("client config previews write miawrouter provider slots/env names", () => {
-    expect(display("GrokBuildToolCard.js")).toContain('const MODEL_SLOT = "miawrouter"');
-    expect(display("CodexToolCard.js")).toContain('model_provider = "miawrouter"');
-    expect(display("CodexToolCard.js")).toContain("[model_providers.miawrouter]");
-    expect(display("CopilotToolCard.js")).toContain('name: "MiawRouter"');
-    expect(display("OpenCodeToolCard.js")).toContain('"miawrouter": {');
-    expect(display("OpenClawToolCard.js")).toContain('"miawrouter": {');
-    expect(display("OpenClawToolCard.js")).toContain("miawrouter/${selectedModel");
-    expect(display("JcodeToolCard.js")).toContain("[providers.miawrouter]");
-    expect(display("JcodeToolCard.js")).toContain("JCODE_MIAWROUTER_API_KEY");
-    expect(display("DroidToolCard.js")).toContain("custom:MiawRouter-${i}");
+  it("client config previews write dardcor-code provider slots/env names", () => {
+    expect(display("GrokBuildToolCard.js")).toContain('const MODEL_SLOT = "dardcor-code"');
+    expect(display("CodexToolCard.js")).toContain('model_provider = "dardcor-code"');
+    expect(display("CodexToolCard.js")).toContain("[model_providers.dardcor-code]");
+    expect(display("CopilotToolCard.js")).toContain('name: "Dardcor Code"');
+    expect(display("OpenCodeToolCard.js")).toContain('"dardcor-code": {');
+    expect(display("OpenClawToolCard.js")).toContain('"dardcor-code": {');
+    expect(display("OpenClawToolCard.js")).toContain("dardcor-code/${selectedModel");
+    expect(display("JcodeToolCard.js")).toContain("[providers.dardcor-code]");
+    expect(display("JcodeToolCard.js")).toContain("JCODE_DARDCOR CODE_API_KEY");
+    expect(display("DroidToolCard.js")).toContain("custom:Dardcor Code-${i}");
   });
 
   it("legacy read surfaces survive: legacy slots, has9Router contract, localStorage key", () => {
@@ -167,7 +167,7 @@ describe("CLI-tool components: writes use miawrouter, reads keep legacy compat",
         .replace(/custom:9Router/g, "")
         .replace(/\["9router"\]/g, "")
         .replace(/startsWith\("9router\/"\)/g, "")
-        .replace(/replace\(\/\^\(miawrouter\|9router\)\\\//g, "")
+        .replace(/replace\(\/\^\(dardcor-code\|9router\)\\\//g, "")
         .replace(/\| providers\?\.\["9router"\]/g, "");
       expect(stripped.match(/9Router|9router/), `${f} still displays legacy brand`).toBeNull();
     }
@@ -188,15 +188,15 @@ describe("CLI-tool components: writes use miawrouter, reads keep legacy compat",
 });
 
 describe("manifest / meta / assets", () => {
-  it("PWA manifest and page metadata use MiawRouter", () => {
-    expect(read("src/app/manifest.js")).toContain("MiawRouter");
+  it("PWA manifest and page metadata use Dardcor Code", () => {
+    expect(read("src/app/manifest.js")).toContain("Dardcor Code");
     expect(read("src/app/manifest.js")).not.toContain("9Router");
-    expect(read("src/app/layout.js")).toContain("MiawRouter");
+    expect(read("src/app/layout.js")).toContain("Dardcor Code");
   });
 
   it("Phase 6 instrument mark assets exist and contain no text glyphs", () => {
     for (const rel of [
-      "public/miawrouter-mark.svg",
+      "public/dardcor-code-mark.svg",
       "public/favicon.svg",
       "public/icons/icon-192.svg",
       "public/icons/icon-512.svg",
@@ -223,7 +223,7 @@ describe("Phase 8 regression fixes", () => {
 
   it("OpenCodeToolCard legacy fallback is fully optional-chained (no null-deref)", () => {
     const src = read("src/app/(dashboard)/dashboard/cli-tools/components/OpenCodeToolCard.js");
-    expect(src).toContain('status.config.provider["miawrouter"]?.options?.baseURL || status.config.provider["9router"]?.options?.baseURL');
+    expect(src).toContain('status.config.provider["dardcor-code"]?.options?.baseURL || status.config.provider["9router"]?.options?.baseURL');
     expect(src).not.toContain('provider["9router"].options.baseURL');
   });
 

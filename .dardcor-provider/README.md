@@ -1,12 +1,12 @@
-# MiawRouter
+# Dardcor Code
 
 A local AI routing gateway with a built-in dashboard. It exposes one OpenAI-compatible endpoint (`/v1/*`) and routes traffic across 40+ upstream providers, handling format translation, model-combo fallback, multi-account fallback, OAuth and API-key credential management, token refresh, quota and usage tracking, and optional cloud sync.
 
-MiawRouter runs on your machine. Nothing leaves it unless you point it at a provider.
+Dardcor Code runs on your machine. Nothing leaves it unless you point it at a provider.
 
 - **Dashboard**: `http://127.0.0.1:21128/dashboard`
 - **API**: `http://127.0.0.1:21128/v1` (OpenAI-compatible)
-- **Data directory**: `~/.miawrouter` (SQLite database, secrets, logs)
+- **Data directory**: `~/.dardcor-code` (SQLite database, secrets, logs)
 - **Runtime port**: `21128` (dev `21127`, updater/status `21129`)
 
 ---
@@ -16,8 +16,8 @@ MiawRouter runs on your machine. Nothing leaves it unless you point it at a prov
 ### Install globally (CLI)
 
 ```bash
-npm install -g miawrouter
-miawrouter
+npm install -g dardcor-code
+dardcor-code
 ```
 
 The dashboard opens automatically at `http://127.0.0.1:21128/dashboard`.
@@ -40,12 +40,12 @@ PORT=21128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://127.0.0.1:21128 npm run 
 ### Docker (local image)
 
 ```bash
-docker build -t miawrouter .
-docker run -d --name miawrouter -p 21128:21128 \
-  -v "$HOME/.miawrouter:/app/data" -e DATA_DIR=/app/data miawrouter
+docker build -t dardcor-code .
+docker run -d --name dardcor-code -p 21128:21128 \
+  -v "$HOME/.dardcor-code:/app/data" -e DATA_DIR=/app/data dardcor-code
 ```
 
-See [DOCKER.md](DOCKER.md) for details. The image is built and run locally under the name `miawrouter`; there is no published remote image.
+See [DOCKER.md](DOCKER.md) for details. The image is built and run locally under the name `dardcor-code`; there is no published remote image.
 
 ---
 
@@ -68,10 +68,10 @@ Claude Code / Codex / Cursor / Cline / any OpenAI-compatible tool:
 ### Migrating from a legacy installation
 
 ```bash
-miawrouter migrate --from-9router
+dardcor-code migrate --from-9router
 ```
 
-Reads providers, keys, and combos from a legacy install through its authenticated export API and imports them into MiawRouter. See `miawrouter migrate --help`.
+Reads providers, keys, and combos from a legacy install through its authenticated export API and imports them into Dardcor Code. See `dardcor-code migrate --help`.
 
 ---
 
@@ -86,14 +86,14 @@ Reads providers, keys, and combos from a legacy install through its authenticate
 
 ### Response caching (L0–L3)
 
-MiawRouter includes four fail-open cache layers under `open-sse/cache/`:
+Dardcor Code includes four fail-open cache layers under `open-sse/cache/`:
 
 - **L0** — prompt-cache orchestration: stable-prefix tracking and breakpoint insertion so token compressors never mutate a prefix a provider has cached.
 - **L1** — exact-match response cache: in-memory TTL + bounded LRU keyed by a SHA-256 hash of the normalized request. Deterministic (`temperature=0`/seed-pinned), non-streaming, tool-free requests only.
 - **L2** — semantic response cache: reuses responses for semantically similar requests using real embeddings (injected `semanticEmbed` callback hitting the local `/v1/embeddings` route) plus cosine similarity.
 - **L3** — content-address dedup: replaces a large block in the mutable last message with a compact reference only when an identical block already exists earlier in the same request context.
 
-Every layer fails open: cache errors never break the request path. Toggle them in Dashboard → Endpoint settings. A request can opt out per call with the `X-Miaw-Token-Saver: off` header.
+Every layer fails open: cache errors never break the request path. Toggle them in Dashboard → Endpoint settings. A request can opt out per call with the `X-Dardcor-Token-Saver: off` header.
 
 ---
 
@@ -113,12 +113,12 @@ See [SECURITY.md](SECURITY.md) for the full threat model.
 
 ## Environment variables
 
-`MIAW_*` names are primary where the runtime defines them; standard `PORT` / `DATA_DIR` / `HOSTNAME` remain as documented. See `.env.example` for the full contract.
+`DARDCOR_*` names are primary where the runtime defines them; standard `PORT` / `DATA_DIR` / `HOSTNAME` remain as documented. See `.env.example` for the full contract.
 
 | Variable | Default | Description |
 | --- | --- | --- |
 | `PORT` | `21128` | Service port |
-| `DATA_DIR` | `~/.miawrouter` | Main app data location (SQLite at `$DATA_DIR/db/data.sqlite`) |
+| `DATA_DIR` | `~/.dardcor-code` | Main app data location (SQLite at `$DATA_DIR/db/data.sqlite`) |
 | `HOSTNAME` | framework default | Bind host (Docker default `0.0.0.0`) |
 | `JWT_SECRET` | auto-generated 0600 file | Dashboard auth cookie signing secret |
 | `API_KEY_SECRET` | auto-generated 0600 file | HMAC secret for generated API keys |
@@ -126,10 +126,10 @@ See [SECURITY.md](SECURITY.md) for the full threat model.
 | `INITIAL_PASSWORD` | unset | Optional local-only first-login bootstrap |
 | `REQUIRE_API_KEY` | `true` (fresh installs) | Gate `/v1/*` behind a valid API key |
 | `BASE_URL` | `http://localhost:21128` | Internal base URL for cloud sync jobs; stays local by default |
-| `CLOUD_URL` | `https://miawrouter.web.id` | Cloud sync endpoint base (config, never a hardcoded remote default for requests) |
+| `CLOUD_URL` | `https://dardcor-code.web.id` | Cloud sync endpoint base (config, never a hardcoded remote default for requests) |
 | `ENABLE_REQUEST_LOGS` | `false` | Request/response logs under `logs/` |
-| `MIAW_PROXY_CLIENT_MAX_BODY_SIZE` | `128mb` | Max client body size for the proxy route |
-| `MIAW_API_KEY` | — | API key the CLI uses when talking to the gateway |
+| `DARDCOR_PROXY_CLIENT_MAX_BODY_SIZE` | `128mb` | Max client body size for the proxy route |
+| `DARDCOR_API_KEY` | — | API key the CLI uses when talking to the gateway |
 
 ---
 
@@ -143,7 +143,7 @@ Token-saver and cache features exist and are enabled through the dashboard, but 
 
 - `src/` — Next.js app: dashboard and `/v1` compat APIs
 - `open-sse/` — provider-agnostic routing/translation engine (usable standalone)
-- `cli/` — the `miawrouter` launcher package (install/start/tray, published separately)
+- `cli/` — the `dardcor-code` launcher package (install/start/tray, published separately)
 - `tests/` — independent vitest suite (not wired into root `npm test`; see CLAUDE.md)
 - `docs/` — architecture, audit, security, and migration records
 

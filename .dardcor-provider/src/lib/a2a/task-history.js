@@ -1,4 +1,4 @@
-const STORE_KEY = "__miawrouterA2aTasks";
+const STORE_KEY = "__dardcor-codeA2aTasks";
 const DEFAULT_MAX_TASKS = 100;
 
 function store() {

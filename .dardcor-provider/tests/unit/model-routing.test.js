@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 const originalDataDir = process.env.DATA_DIR;
 
 async function setupDb() {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "miawrouter-model-routing-"));
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dardcor-code-model-routing-"));
   process.env.DATA_DIR = tempDir;
   vi.resetModules();
 

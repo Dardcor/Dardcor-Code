@@ -321,7 +321,7 @@
 			"request": "attach",
 			"port": 9223,
 			"outFiles": [
-				"${workspaceFolder}/node_modules/@vscode/dardcor-typescript-server-plugin/dist/**/*.js",
+				"${workspaceFolder}/node_modules/@vscode/copilot-typescript-server-plugin/dist/**/*.js",
 			],
 			"presentation": {
 				"group": "2_launch"

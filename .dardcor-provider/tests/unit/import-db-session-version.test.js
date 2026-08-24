@@ -11,7 +11,7 @@ const origDataDir = process.env.DATA_DIR;
 const origJwt = process.env.JWT_SECRET;
 
 beforeEach(() => {
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "miawrouter-importver-"));
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dardcor-code-importver-"));
   process.env.DATA_DIR = tempDir;
   process.env.JWT_SECRET = "a-strong-real-secret-value-12345";
   delete global._dbAdapter;

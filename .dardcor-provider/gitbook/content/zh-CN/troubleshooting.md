@@ -1,6 +1,6 @@
 # 故障排除
 
-使用 MiawRouter 时常见的问题与解决方案。
+使用 Dardcor Code 时常见的问题与解决方案。
 
 ---
 
@@ -78,7 +78,7 @@
 **解决方案:**
 
 1. **自动刷新(默认):**
-   MiawRouter 会自动刷新 token。等待 30 秒后重试。
+   Dardcor Code 会自动刷新 token。等待 30 秒后重试。
 
 2. **手动重连:**
    ```
@@ -135,15 +135,15 @@
 **问题:** 出现 "ECONNREFUSED" 或 "Cannot connect to localhost:21128"。
 
 **原因:**
-- MiawRouter 未运行
+- Dardcor Code 未运行
 - 端口 21128 被阻止
 - 防火墙拦截连接
 
 **解决方案:**
 
-1. **启动 MiawRouter:**
+1. **启动 Dardcor Code:**
    ```bash
-   miawrouter
+   dardcor-code
    ```
    仪表盘应该在 http://localhost:3000 打开。
 
@@ -164,7 +164,7 @@
 4. **使用云端 endpoint:**
    如果 localhost 不行(例如 Cursor IDE):
    ```
-   Endpoint: https://miawrouter.web.id/v1
+   Endpoint: https://dardcor-code.web.id/v1
    ```
 
 ---
@@ -175,15 +175,15 @@
 
 **原因:**
 - 端口 3000 被占用
-- MiawRouter 崩溃
+- Dardcor Code 崩溃
 - 浏览器缓存问题
 
 **解决方案:**
 
-1. **确认 MiawRouter 是否运行:**
+1. **确认 Dardcor Code 是否运行:**
    ```bash
    # 检查进程
-   ps aux | grep miawrouter
+   ps aux | grep dardcor-code
    
    # 检查端口 3000
    lsof -i :3000
@@ -199,13 +199,13 @@
    taskkill /PID <PID> /F
    ```
 
-3. **重启 MiawRouter:**
+3. **重启 Dardcor Code:**
    ```bash
    # 停止
-   pkill -f miawrouter
+   pkill -f dardcor-code
    
    # 启动
-   miawrouter
+   dardcor-code
    ```
 
 4. **清除浏览器缓存:**
@@ -320,8 +320,8 @@
 
 2. **检查 key 格式:**
    ```
-   正确: miaw_xxxxxxxxxxxxxxxxxxxxxxxx
-   错误: 缺少 miaw_ 前缀
+   正确: dardcor_xxxxxxxxxxxxxxxxxxxxxxxx
+   错误: 缺少 dardcor_ 前缀
    ```
 
 3. **检查 CLI 配置中的 key:**
@@ -333,13 +333,13 @@
    Settings → API Key
    
    # 环境变量
-   export OPENAI_API_KEY="miaw_your_key"
+   export OPENAI_API_KEY="dardcor_your_key"
    ```
 
 4. **测试 API key:**
    ```bash
    curl http://localhost:21128/v1/models \
-     -H "Authorization: Bearer miaw_your_key"
+     -H "Authorization: Bearer dardcor_your_key"
    ```
 
 ---
@@ -347,5 +347,5 @@
 ## 需要更多帮助?
 
 - **GitHub Issues:** [/issues](/issues)
-- **文档:** [miawrouter.web.id/docs](https://miawrouter.web.id/docs)
+- **文档:** [dardcor-code.web.id/docs](https://dardcor-code.web.id/docs)
 - **常见问题:** [faq.md](faq.md)

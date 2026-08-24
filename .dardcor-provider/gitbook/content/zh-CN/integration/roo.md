@@ -1,12 +1,12 @@
 # Roo AI 助手集成
 
-将 MiawRouter 与 Roo AI 助手集成,通过统一界面访问多个 AI 模型。
+将 Dardcor Code 与 Roo AI 助手集成,通过统一界面访问多个 AI 模型。
 
 ## 前置要求
 
 - 已安装 Roo AI 助手
-- 来自 [仪表盘](https://miawrouter.web.id/dashboard) 的 MiawRouter API key
-- MiawRouter 正在运行(本地或云端)
+- 来自 [仪表盘](https://dardcor-code.web.id/dashboard) 的 Dardcor Code API key
+- Dardcor Code 正在运行(本地或云端)
 
 ## 配置步骤
 
@@ -20,21 +20,21 @@
 2. 选择 **Ollama** 作为 provider 类型
 3. 配置以下设置:
 
-**本地 MiawRouter:**
+**本地 Dardcor Code:**
 ```
 Base URL: http://localhost:21128/v1
 API Key: your-api-key-from-dashboard
 ```
 
-**云端 MiawRouter:**
+**云端 Dardcor Code:**
 ```
-Base URL: https://miawrouter.web.id/v1
+Base URL: https://dardcor-code.web.id/v1
 API Key: your-api-key-from-dashboard
 ```
 
 ### 3. 选择模型
 
-从可用的 MiawRouter 模型中选择:
+从可用的 Dardcor Code 模型中选择:
 
 **Claude 模型:**
 - `cc/claude-opus-4-5-20251101` - 最强
@@ -54,7 +54,7 @@ API Key: your-api-key-from-dashboard
 发送测试消息验证集成:
 
 ```
-Hello! Can you confirm you're connected through MiawRouter?
+Hello! Can you confirm you're connected through Dardcor Code?
 ```
 
 ## 使用示例
@@ -87,19 +87,19 @@ Hello! Can you confirm you're connected through MiawRouter?
 ## 故障排除
 
 ### 连接失败
-- 确认 MiawRouter 正在运行:`curl http://localhost:21128/health`
+- 确认 Dardcor Code 正在运行:`curl http://localhost:21128/health`
 - 检查 API key 是否正确
 - 确保 Base URL 末尾包含 `/v1`
 
 ### 模型不可用
 - 检查模型名是否完全匹配(大小写敏感)
-- 确认 MiawRouter 套餐中已启用该模型
+- 确认 Dardcor Code 套餐中已启用该模型
 - 尝试列表中的其他模型
 
 ### 响应缓慢
 - 切换到更快的模型(haiku、flash)
 - 检查网络连接
-- 查看 MiawRouter 日志排查问题
+- 查看 Dardcor Code 日志排查问题
 
 ## 高级配置
 

@@ -440,7 +440,7 @@ const server = http2.createSecureServer({ ...sslOptions, allowHTTP1: true }, asy
     const bodyBuffer = await collectBodyRaw(req);
     if (ENABLE_FILE_LOG) dumpRequest(req, bodyBuffer, "raw");
 
-    // Anti-loop: skip requests from MiawRouter
+    // Anti-loop: skip requests from Dardcor Code
     if (req.headers[INTERNAL_REQUEST_HEADER.name] === INTERNAL_REQUEST_HEADER.value) {
       return passthrough(req, res, bodyBuffer);
     }

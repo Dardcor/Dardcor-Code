@@ -1,6 +1,6 @@
 import { createA2ASkillRegistry } from "@/lib/a2a/core";
 import { a2aDependencies } from "@/lib/a2a/adapters";
-import { createMiawToolRegistry } from "@/lib/mcp/core";
+import { createDardcorToolRegistry } from "@/lib/mcp/core";
 import { mcpDependencies } from "@/lib/mcp/adapters";
 import { agentRegistry } from "@/lib/agents/service";
 import { AI_PROVIDERS } from "@/shared/constants/providers";
@@ -76,7 +76,7 @@ function serializeAgent(agent) {
 export function createDiscoveryService(overrides = {}) {
   const dependencies = {
     a2aRegistry: () => createA2ASkillRegistry(a2aDependencies),
-    mcpRegistry: () => createMiawToolRegistry(mcpDependencies),
+    mcpRegistry: () => createDardcorToolRegistry(mcpDependencies),
     skills: SKILLS,
     endpoints: API_ENDPOINT_CATALOG,
     providers: AI_PROVIDERS,

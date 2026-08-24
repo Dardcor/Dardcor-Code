@@ -23,7 +23,7 @@ const {
 const tempDirs = [];
 
 function createTempDir() {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "miawrouter-cli-build-"));
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dardcor-code-cli-build-"));
   tempDirs.push(tempDir);
   return tempDir;
 }
@@ -63,7 +63,7 @@ describe("CLI build server artifacts", () => {
   ]) {
     it(`merges complete API routes and provider chunks for the ${name} layout`, () => {
       const root = createTempDir();
-      const appDir = path.join(root, "miawrouter");
+      const appDir = path.join(root, "dardcor-code");
       const buildDistDir = path.join(appDir, ".next-cli-build");
       const cliAppDir = path.join(root, "cli-app");
       const standaloneDir = standalonePath(appDir, buildDistDir);

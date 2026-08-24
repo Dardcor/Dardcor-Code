@@ -24,7 +24,7 @@ const PERIODS = [
 ];
 
 const POLL_MS = 30_000; // background poll to keep stats fresh
-const STORAGE_KEY = "miawrouter.cacheStatsPanel.v1";
+const STORAGE_KEY = "dardcor-code.cacheStatsPanel.v1";
 
 const LAYER_META = {
   L0: { name: "Provider L0", note: "prompt cache · provider-confirmed" },

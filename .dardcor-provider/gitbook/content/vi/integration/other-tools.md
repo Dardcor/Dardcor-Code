@@ -1,10 +1,10 @@
 # Tích hợp các Công cụ khác
 
-MiawRouter tương thích với mọi công cụ hỗ trợ format API OpenAI. Hướng dẫn này bao gồm pattern tích hợp tổng quát cho nhiều công cụ và ứng dụng tùy chỉnh.
+Dardcor Code tương thích với mọi công cụ hỗ trợ format API OpenAI. Hướng dẫn này bao gồm pattern tích hợp tổng quát cho nhiều công cụ và ứng dụng tùy chỉnh.
 
 ## Tổng quan
 
-MiawRouter cung cấp API endpoint tương thích OpenAI hoạt động với:
+Dardcor Code cung cấp API endpoint tương thích OpenAI hoạt động với:
 - Script và ứng dụng tùy chỉnh
 - API client và công cụ test
 - Công cụ CLI và utility
@@ -13,20 +13,20 @@ MiawRouter cung cấp API endpoint tương thích OpenAI hoạt động với:
 
 ## Pattern Setup Tổng quát
 
-Mọi công cụ tương thích OpenAI có thể kết nối đến MiawRouter bằng các cài đặt sau:
+Mọi công cụ tương thích OpenAI có thể kết nối đến Dardcor Code bằng các cài đặt sau:
 
-**MiawRouter cục bộ:**
+**Dardcor Code cục bộ:**
 ```
 Base URL: http://localhost:21128/v1
 API Key: your-api-key-from-dashboard
-Model: any MiawRouter model (cc/*, cx/*, glm/*, etc.)
+Model: any Dardcor Code model (cc/*, cx/*, glm/*, etc.)
 ```
 
-**MiawRouter cloud:**
+**Dardcor Code cloud:**
 ```
-Base URL: https://miawrouter.web.id/v1
+Base URL: https://dardcor-code.web.id/v1
 API Key: your-api-key-from-dashboard
-Model: any MiawRouter model (cc/*, cx/*, glm/*, etc.)
+Model: any Dardcor Code model (cc/*, cx/*, glm/*, etc.)
 ```
 
 ## Model có sẵn
@@ -318,9 +318,9 @@ def chat_with_retry(prompt, max_retries=3):
 
 ### Vấn đề Connection
 
-**Vấn đề:** Không kết nối được đến MiawRouter
+**Vấn đề:** Không kết nối được đến Dardcor Code
 ```bash
-# Check if MiawRouter is running
+# Check if Dardcor Code is running
 curl http://localhost:21128/health
 
 # Expected response:
@@ -328,7 +328,7 @@ curl http://localhost:21128/health
 ```
 
 **Giải pháp:**
-- Xác minh MiawRouter đang chạy
+- Xác minh Dardcor Code đang chạy
 - Kiểm tra port 21128 không bị chặn
 - Đảm bảo base URL đúng (bao gồm `/v1`)
 
@@ -366,7 +366,7 @@ Error: Request timed out after 30s
 **Giải pháp:**
 - Tăng timeout trong cấu hình client
 - Dùng model nhanh hơn cho task nhạy cảm về thời gian
-- Kiểm tra kết nối network đến MiawRouter
+- Kiểm tra kết nối network đến Dardcor Code
 
 ### Rate Limiting
 

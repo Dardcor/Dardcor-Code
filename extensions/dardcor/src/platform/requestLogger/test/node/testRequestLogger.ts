@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { RequestMetadata } from '@vscode/dardcor-api';
+import type { RequestMetadata } from '@vscode/copilot-api';
 import type { HTMLTracer, IChatEndpointInfo, RenderPromptResult } from '@vscode/prompt-tsx';
 import type { LanguageModelToolResult2 } from 'vscode';
 import { Emitter, Event } from '../../../../util/dardcor/base/common/event';

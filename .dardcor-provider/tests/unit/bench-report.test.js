@@ -165,7 +165,7 @@ describe("bench/report.js buildReport", () => {
     const json = renderJSON(report);
     expect(JSON.parse(json).schema).toBe(REPORT_SCHEMA);
     const md = renderMarkdown(report);
-    expect(md).toContain("# MiawRouter Phase 9 Benchmark Report");
+    expect(md).toContain("# Dardcor Code Phase 9 Benchmark Report");
     expect(md).toContain("run-001");
     expect(md).toContain("savings%");
   });

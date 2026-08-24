@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { RequestMetadata } from '@vscode/dardcor-api';
+import { RequestMetadata } from '@vscode/copilot-api';
 import { Raw } from '@vscode/prompt-tsx';
 import * as http from 'http';
 import type OpenAI from 'openai';

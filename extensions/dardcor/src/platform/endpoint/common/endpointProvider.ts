@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 
-import { RequestMetadata } from '@vscode/dardcor-api';
+import { RequestMetadata } from '@vscode/copilot-api';
 import type { LanguageModelChat } from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
 import { TokenizerType } from '../../../util/common/tokenizer';

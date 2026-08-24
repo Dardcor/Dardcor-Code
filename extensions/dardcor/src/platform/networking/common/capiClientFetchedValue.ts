@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { MakeRequestOptions, RequestMetadata } from '@vscode/dardcor-api';
+import type { MakeRequestOptions, RequestMetadata } from '@vscode/copilot-api';
 import { createAdvancedFetch } from '../../../shared-fetch-utils/common/advancedFetcher';
 import type { HttpResponse } from '../../../shared-fetch-utils/common/fetchTypes';
 import { FetchedValue } from '../../../shared-fetch-utils/common/fetchedValue';

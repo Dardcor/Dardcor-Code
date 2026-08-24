@@ -18,11 +18,11 @@ const MATERIALIZATION_TIMEOUT_MS = 4000;
 const MATERIALIZATION_POLL_INTERVAL_MS = 100;
 
 /**
- * Copies the node-pty files from VS Code's installation into a @github/dardcor location.
+ * Copies the node-pty files from VS Code's installation into a @github/copilot location.
  *
- * MUST be called before any `import('@github/dardcor/sdk')` or `import('@github/dardcor')`.
+ * MUST be called before any `import('@github/copilot/sdk')` or `import('@github/copilot')`.
  *
- * @github/dardcor bundles the node-pty code and it is no longer possible to shim the package
+ * @github/copilot bundles the node-pty code and it is no longer possible to shim the package
  * via Node module resolution from a marketplace install location (which lives outside VS
  * Code's app tree). For built-in installs `require('node-pty')` walks up into VS Code's
  * own `node_modules` and this shim is a no-op (the `shims.txt` placeholder skips it). For

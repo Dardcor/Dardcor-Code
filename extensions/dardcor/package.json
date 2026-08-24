@@ -6832,7 +6832,7 @@
     ],
     "typescriptServerPlugins": [
       {
-        "name": "@vscode/dardcor-typescript-server-plugin",
+        "name": "@vscode/copilot-typescript-server-plugin",
         "enableForWorkspaceTypeScriptVersions": true
       }
     ],
@@ -7259,7 +7259,7 @@
     "@anthropic-ai/claude-agent-sdk": "0.2.112",
     "@anthropic-ai/sdk": "^0.82.0",
     "@github/blackbird-external-ingest-utils": "^0.3.0",
-    "@github/dardcor": "npm:@github/copilot@^1.0.73",
+    "@github/copilot": "npm:@github/copilot@^1.0.73",
     "@google/genai": "^1.22.0",
     "@humanwhocodes/gitignore-to-minimatch": "1.0.2",
     "@microsoft/tiktokenizer": "^1.0.10",
@@ -7281,7 +7281,7 @@
     "@opentelemetry/sdk-trace-node": "^2.5.1",
     "@opentelemetry/semantic-conventions": "^1.39.0",
     "@sinclair/typebox": "^0.34.41",
-    "@vscode/dardcor-api": "npm:@vscode/copilot-api@^0.4.3",
+    "@vscode/copilot-api": "npm:@vscode/copilot-api@^0.4.3",
     "@vscode/extension-telemetry": "^1.5.1",
     "@vscode/l10n": "^0.0.18",
     "@vscode/prompt-tsx": "^0.4.0-alpha.8",

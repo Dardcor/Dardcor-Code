@@ -1,19 +1,19 @@
 # Docker
 
-Run MiawRouter in a container. The image is built and run **locally** under the name `miawrouter`; there is no published remote image.
+Run Dardcor Code in a container. The image is built and run **locally** under the name `dardcor-code`; there is no published remote image.
 
 ---
 
 ## Quick start
 
 ```bash
-docker build -t miawrouter .
+docker build -t dardcor-code .
 docker run -d \
-  --name miawrouter \
+  --name dardcor-code \
   -p 21128:21128 \
-  -v "$HOME/.miawrouter:/app/data" \
+  -v "$HOME/.dardcor-code:/app/data" \
   -e DATA_DIR=/app/data \
-  miawrouter
+  dardcor-code
 ```
 
 App listens on port `21128`. Open: http://localhost:21128
@@ -21,20 +21,20 @@ App listens on port `21128`. Open: http://localhost:21128
 ## Manage container
 
 ```bash
-docker logs -f miawrouter        # view logs
-docker stop miawrouter           # stop
-docker start miawrouter          # start again
-docker rm -f miawrouter          # remove
+docker logs -f dardcor-code        # view logs
+docker stop dardcor-code           # stop
+docker start dardcor-code          # start again
+docker rm -f dardcor-code          # remove
 ```
 
 ## Data persistence
 
 ```bash
--v "$HOME/.miawrouter:/app/data" \
+-v "$HOME/.dardcor-code:/app/data" \
 -e DATA_DIR=/app/data
 ```
 
-Without `DATA_DIR`, the app falls back to `~/.miawrouter/` (macOS/Linux) or `%APPDATA%\miawrouter\` (Windows). In the container, `DATA_DIR=/app/data` makes the bind mount work.
+Without `DATA_DIR`, the app falls back to `~/.dardcor-code/` (macOS/Linux) or `%APPDATA%\dardcor-code\` (Windows). In the container, `DATA_DIR=/app/data` makes the bind mount work.
 
 Data layout under `$DATA_DIR/`:
 
@@ -46,35 +46,35 @@ $DATA_DIR/
 └── ...                   # certs, logs, runtime configs
 ```
 
-Host path: `$HOME/.miawrouter/db/data.sqlite`
+Host path: `$HOME/.dardcor-code/db/data.sqlite`
 Container path: `/app/data/db/data.sqlite`
 
 ## Optional env vars
 
 ```bash
 docker run -d \
-  --name miawrouter \
+  --name dardcor-code \
   -p 21128:21128 \
-  -v "$HOME/.miawrouter:/app/data" \
+  -v "$HOME/.dardcor-code:/app/data" \
   -e DATA_DIR=/app/data \
   -e PORT=21128 \
   -e HOSTNAME=0.0.0.0 \
   -e DEBUG=true \
-  miawrouter
+  dardcor-code
 ```
 
 ## Optional Headroom sidecar
 
-The MiawRouter image does not bundle Python or Headroom. To use Headroom in Docker, run it as a separate service and point MiawRouter at that proxy:
+The Dardcor Code image does not bundle Python or Headroom. To use Headroom in Docker, run it as a separate service and point Dardcor Code at that proxy:
 
 ```yaml
 services:
-  miawrouter:
-    image: miawrouter:latest
+  dardcor-code:
+    image: dardcor-code:latest
     ports:
       - "21128:21128"
     volumes:
-      - "$HOME/.miawrouter:/app/data"
+      - "$HOME/.dardcor-code:/app/data"
     environment:
       DATA_DIR: /app/data
       HEADROOM_URL: http://headroom:8787
@@ -94,8 +94,8 @@ If Headroom runs on the Docker host instead of as a sidecar, use `http://host.do
 ## Update to latest
 
 ```bash
-docker build -t miawrouter .
-docker rm -f miawrouter
+docker build -t dardcor-code .
+docker rm -f dardcor-code
 # re-run the quick start command
 ```
 
@@ -106,12 +106,12 @@ docker rm -f miawrouter
 ## Build image locally (test)
 
 ```bash
-docker build -t miawrouter .
+docker build -t dardcor-code .
 
 docker run --rm -p 21128:21128 \
-  -v "$HOME/.miawrouter:/app/data" \
+  -v "$HOME/.dardcor-code:/app/data" \
   -e DATA_DIR=/app/data \
-  miawrouter
+  dardcor-code
 ```
 
-There is no CI publish step: the image stays local. `docker-compose.yml` at the repo root defines the same `miawrouter` service (port `21128`, volume `miawrouter-data`) with an optional Headroom sidecar.
+There is no CI publish step: the image stays local. `docker-compose.yml` at the repo root defines the same `dardcor-code` service (port `21128`, volume `dardcor-code-data`) with an optional Headroom sidecar.

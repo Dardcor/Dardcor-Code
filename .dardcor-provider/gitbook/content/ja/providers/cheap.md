@@ -40,10 +40,10 @@ Dashboard → API Keys → Create New
 → APIキーをコピー ("zhipu-"で始まる)
 ```
 
-**ステップ3: MiawRouterに追加**
+**ステップ3: Dardcor Codeに追加**
 
 ```bash
-miawrouter
+dardcor-code
 # Dashboard → Providers → Add API Key
 
 Provider: glm
@@ -112,10 +112,10 @@ Dashboard → API Management → Create Key
 → APIキーをコピー
 ```
 
-**ステップ3: MiawRouterに追加**
+**ステップ3: Dardcor Codeに追加**
 
 ```bash
-miawrouter
+dardcor-code
 # Dashboard → Providers → Add API Key
 
 Provider: minimax
@@ -184,10 +184,10 @@ Dashboard → API Keys → Create New
 → APIキーをコピー
 ```
 
-**ステップ3: MiawRouterに追加**
+**ステップ3: Dardcor Codeに追加**
 
 ```bash
-miawrouter
+dardcor-code
 # Dashboard → Providers → Add API Key
 
 Provider: kimi
@@ -247,7 +247,7 @@ Model: kimi/kimi-latest
 ```
 Settings → Models → Advanced:
   OpenAI API Base URL: http://localhost:21128/v1
-  OpenAI API Key: [miawrouterダッシュボードから取得]
+  OpenAI API Key: [dardcor-codeダッシュボードから取得]
   Model: glm/glm-4.7
 ```
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-const STORAGE_KEY = "miawrouter.cliToolEndpointPresets";
+const STORAGE_KEY = "dardcor-code.cliToolEndpointPresets";
 // Legacy key read so presets saved under the old name keep showing.
 const LEGACY_STORAGE_KEY = "9router.cliToolEndpointPresets";
 

@@ -405,7 +405,7 @@ export default function WebhooksPageClient() {
               your endpoint verify that deliveries came from your router.
               Each delivery includes an{" "}
               <code className="bg-surface-2 px-1 rounded text-[11px]">
-                x-miaw-signature
+                x-dardcor-signature
               </code>{" "}
               header containing the HMAC-SHA256 digest.
             </p>

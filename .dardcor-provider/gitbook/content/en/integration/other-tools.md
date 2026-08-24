@@ -1,10 +1,10 @@
 # Other Tools Integration
 
-MiawRouter is compatible with any tool that supports the OpenAI API format. This guide covers generic integration patterns for various tools and custom applications.
+Dardcor Code is compatible with any tool that supports the OpenAI API format. This guide covers generic integration patterns for various tools and custom applications.
 
 ## Overview
 
-MiawRouter provides an OpenAI-compatible API endpoint that works with:
+Dardcor Code provides an OpenAI-compatible API endpoint that works with:
 - Custom scripts and applications
 - API clients and testing tools
 - CLI tools and utilities
@@ -13,20 +13,20 @@ MiawRouter provides an OpenAI-compatible API endpoint that works with:
 
 ## Generic Setup Pattern
 
-Any OpenAI-compatible tool can connect to MiawRouter using these settings:
+Any OpenAI-compatible tool can connect to Dardcor Code using these settings:
 
-**Local MiawRouter:**
+**Local Dardcor Code:**
 ```
 Base URL: http://localhost:21128/v1
 API Key: your-api-key-from-dashboard
-Model: any MiawRouter model (cc/*, cx/*, glm/*, etc.)
+Model: any Dardcor Code model (cc/*, cx/*, glm/*, etc.)
 ```
 
-**Cloud MiawRouter:**
+**Cloud Dardcor Code:**
 ```
-Base URL: https://miawrouter.web.id/v1
+Base URL: https://dardcor-code.web.id/v1
 API Key: your-api-key-from-dashboard
-Model: any MiawRouter model (cc/*, cx/*, glm/*, etc.)
+Model: any Dardcor Code model (cc/*, cx/*, glm/*, etc.)
 ```
 
 ## Available Models
@@ -318,9 +318,9 @@ def chat_with_retry(prompt, max_retries=3):
 
 ### Connection Issues
 
-**Problem:** Cannot connect to MiawRouter
+**Problem:** Cannot connect to Dardcor Code
 ```bash
-# Check if MiawRouter is running
+# Check if Dardcor Code is running
 curl http://localhost:21128/health
 
 # Expected response:
@@ -328,7 +328,7 @@ curl http://localhost:21128/health
 ```
 
 **Solution:**
-- Verify MiawRouter is running
+- Verify Dardcor Code is running
 - Check port 21128 is not blocked
 - Ensure correct base URL (include `/v1`)
 
@@ -366,7 +366,7 @@ Error: Request timed out after 30s
 **Solution:**
 - Increase timeout in client configuration
 - Use faster models for time-sensitive tasks
-- Check network connection to MiawRouter
+- Check network connection to Dardcor Code
 
 ### Rate Limiting
 

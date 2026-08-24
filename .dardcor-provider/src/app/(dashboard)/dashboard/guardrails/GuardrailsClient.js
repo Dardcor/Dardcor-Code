@@ -28,7 +28,7 @@ export default function GuardrailsClient() {
           Guardrails
         </h1>
         <p className="text-sm text-text-muted">
-          Current access and network protections enforced by this MiawRouter instance.
+          Current access and network protections enforced by this Dardcor Code instance.
         </p>
       </div>
 

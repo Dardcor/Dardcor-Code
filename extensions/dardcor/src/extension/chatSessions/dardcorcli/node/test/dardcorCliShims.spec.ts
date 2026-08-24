@@ -16,7 +16,7 @@ import { mock } from '../../../../../util/common/test/simpleMock';
 import { IInstantiationService } from '../../../../../util/dardcor/platform/instantiation/common/instantiation';
 import { CopilotCLISDK } from '../dardcorCli';
 
-type CopilotSdkModule = typeof import('@github/dardcor/sdk');
+type CopilotSdkModule = typeof import('@github/copilot/sdk');
 
 class TestExtensionContext extends mock<IVSCodeExtensionContext>() {
 	public override readonly workspaceState = {

@@ -38,7 +38,7 @@ describe("baseline gate comparison", () => {
   });
 
   it("failureSignature normalizes the repo root so path prefix changes do not break the signature", () => {
-    const rooted = sig("Cannot find module 'x' imported from /mnt/Data/miawrouter/tests/unit/a.test.js");
+    const rooted = sig("Cannot find module 'x' imported from /mnt/Data/dardcor-code/tests/unit/a.test.js");
     const bare = sig("Cannot find module 'x' imported from <ROOT>/tests/unit/a.test.js");
     expect(rooted).toBe(bare);
   });
@@ -143,13 +143,13 @@ describe("baseline gate comparison", () => {
     const run = {
       testResults: [
         {
-          name: "/mnt/Data/miawrouter/tests/unit/embeddings.cloud.test.js",
+          name: "/mnt/Data/dardcor-code/tests/unit/embeddings.cloud.test.js",
           status: "failed",
-          message: "Cannot find module '/cloud/src/handlers/embeddings.js' imported from /mnt/Data/miawrouter/tests/unit/embeddings.cloud.test.js",
+          message: "Cannot find module '/cloud/src/handlers/embeddings.js' imported from /mnt/Data/dardcor-code/tests/unit/embeddings.cloud.test.js",
           assertionResults: [],
         },
         {
-          name: "/mnt/Data/miawrouter/tests/unit/db-concurrent.test.js",
+          name: "/mnt/Data/dardcor-code/tests/unit/db-concurrent.test.js",
           status: "failed",
           assertionResults: [
             { status: "failed", fullName: "atomic safety 100 parallel", failureMessages: ["AssertionError: expected 2 to be 100"] },

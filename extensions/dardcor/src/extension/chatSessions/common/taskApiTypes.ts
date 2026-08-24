@@ -6,7 +6,7 @@
 /**
  * Local helpers for the Mission Control Task API: the option bags used at call sites and
  * the {@link ITaskApiClient} abstraction. The wire-format types themselves live in
- * `@vscode/dardcor-api` (`AgentTask*`).
+ * `@vscode/copilot-api` (`AgentTask*`).
  */
 
 import type {
@@ -17,7 +17,7 @@ import type {
 	AgentTaskListEventsResponse,
 	AgentTaskListResponse,
 	AgentTaskSteerRequest,
-} from '@vscode/dardcor-api';
+} from '@vscode/copilot-api';
 
 export interface ListTasksOptions {
 	readonly page?: number;

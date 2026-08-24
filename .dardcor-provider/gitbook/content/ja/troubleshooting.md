@@ -1,6 +1,6 @@
 # トラブルシューティング
 
-MiawRouter利用時の一般的な問題と解決策。
+Dardcor Code利用時の一般的な問題と解決策。
 
 ---
 
@@ -78,7 +78,7 @@ MiawRouter利用時の一般的な問題と解決策。
 **解決策:**
 
 1. **自動更新(デフォルト):**
-   MiawRouterは自動的にトークンを更新します。30秒待ってから再試行。
+   Dardcor Codeは自動的にトークンを更新します。30秒待ってから再試行。
 
 2. **手動で再接続:**
    ```
@@ -135,15 +135,15 @@ MiawRouter利用時の一般的な問題と解決策。
 **問題:** 「ECONNREFUSED」または「Cannot connect to localhost:21128」。
 
 **原因:**
-- MiawRouterが起動していない
+- Dardcor Codeが起動していない
 - ポート21128がブロックされている
 - ファイアウォールが接続をブロック
 
 **解決策:**
 
-1. **MiawRouterを起動:**
+1. **Dardcor Codeを起動:**
    ```bash
-   miawrouter
+   dardcor-code
    ```
    ダッシュボードがhttp://localhost:3000で開くはず
 
@@ -164,7 +164,7 @@ MiawRouter利用時の一般的な問題と解決策。
 4. **クラウドエンドポイントを使用:**
    localhostが動作しない場合(例: Cursor IDE):
    ```
-   Endpoint: https://miawrouter.web.id/v1
+   Endpoint: https://dardcor-code.web.id/v1
    ```
 
 ---
@@ -175,15 +175,15 @@ MiawRouter利用時の一般的な問題と解決策。
 
 **原因:**
 - ポート3000がすでに使用中
-- MiawRouterがクラッシュした
+- Dardcor Codeがクラッシュした
 - ブラウザキャッシュの問題
 
 **解決策:**
 
-1. **MiawRouterが実行中か確認:**
+1. **Dardcor Codeが実行中か確認:**
    ```bash
    # プロセスを確認
-   ps aux | grep miawrouter
+   ps aux | grep dardcor-code
    
    # ポート3000を確認
    lsof -i :3000
@@ -199,13 +199,13 @@ MiawRouter利用時の一般的な問題と解決策。
    taskkill /PID <PID> /F
    ```
 
-3. **MiawRouterを再起動:**
+3. **Dardcor Codeを再起動:**
    ```bash
    # 停止
-   pkill -f miawrouter
+   pkill -f dardcor-code
    
    # 起動
-   miawrouter
+   dardcor-code
    ```
 
 4. **ブラウザキャッシュをクリア:**
@@ -320,8 +320,8 @@ MiawRouter利用時の一般的な問題と解決策。
 
 2. **キー形式を確認:**
    ```
-   正しい: miaw_xxxxxxxxxxxxxxxxxxxxxxxx
-   誤り: miaw_プレフィックスがない
+   正しい: dardcor_xxxxxxxxxxxxxxxxxxxxxxxx
+   誤り: dardcor_プレフィックスがない
    ```
 
 3. **CLI設定でキーを確認:**
@@ -333,13 +333,13 @@ MiawRouter利用時の一般的な問題と解決策。
    Settings → API Key
    
    # 環境変数
-   export OPENAI_API_KEY="miaw_your_key"
+   export OPENAI_API_KEY="dardcor_your_key"
    ```
 
 4. **APIキーをテスト:**
    ```bash
    curl http://localhost:21128/v1/models \
-     -H "Authorization: Bearer miaw_your_key"
+     -H "Authorization: Bearer dardcor_your_key"
    ```
 
 ---
@@ -347,5 +347,5 @@ MiawRouter利用時の一般的な問題と解決策。
 ## さらにヘルプが必要?
 
 - **GitHub Issues:** [/issues](/issues)
-- **ドキュメント:** [miawrouter.web.id/docs](https://miawrouter.web.id/docs)
+- **ドキュメント:** [dardcor-code.web.id/docs](https://dardcor-code.web.id/docs)
 - **FAQ:** [faq.md](faq.md)

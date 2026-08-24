@@ -1,7 +1,7 @@
 {
-  "name": "miawrouter-app",
+  "name": "dardcor-code-app",
   "version": "0.1.4",
-  "description": "MiawRouter web dashboard",
+  "description": "Dardcor Code web dashboard",
   "private": true,
   "scripts": {
     "dev": "next dev --port 25000",

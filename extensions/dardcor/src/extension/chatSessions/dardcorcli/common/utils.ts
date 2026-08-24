@@ -5,7 +5,7 @@
 
 import type { Uri } from 'vscode';
 import { URI } from '../../../../util/dardcor/base/common/uri';
-import type { internal } from '@github/dardcor/sdk';
+import type { internal } from '@github/copilot/sdk';
 
 export type LocalSession = NonNullable<Awaited<ReturnType<internal.LocalSessionManager['getSession']>>>;
 export type Session = LocalSession;

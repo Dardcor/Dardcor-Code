@@ -93,14 +93,14 @@ describe("bench/verify.mjs compareRun", () => {
 
 describe("bench/verify.mjs verifyReport", () => {
   const report = {
-    schema: "miaw-bench-report/1",
+    schema: "dardcor-bench-report/1",
     runs: [
       { runId: "run-001", ...CUR() },
       { runId: "run-002", tokens: { savingsPct: 40 }, layers: { L0: { hitRate: 0.5 }, L1: { hitRate: 0.8 }, L2: { hitRate: null } }, latency: { p95: 100 }, costUsd: null },
     ],
   };
   const baseline = {
-    schema: "miaw-bench-baseline/1",
+    schema: "dardcor-bench-baseline/1",
     runs: {
       "run-001": BASE,
       "run-002": { ...BASE, latency: { p95: 200 } }, // baseline p95 higher than current — fine
@@ -143,7 +143,7 @@ describe("bench/verify.mjs verifyReport", () => {
   });
 
   it("rejects a baseline with the wrong schema instead of false-passing", () => {
-    expect(() => verifyReport({ report, baseline: { schema: "miaw-bench-baseline/999", runs: {} } }))
+    expect(() => verifyReport({ report, baseline: { schema: "dardcor-bench-baseline/999", runs: {} } }))
       .toThrow(/baseline schema mismatch/);
   });
 

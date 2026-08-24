@@ -29,7 +29,7 @@ let tempDir;
 
 beforeEach(() => {
   saveEnv();
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "miawrouter-instrumentation-"));
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dardcor-code-instrumentation-"));
   process.env.DATA_DIR = tempDir;
   process.env.NEXT_RUNTIME = "nodejs";
   vi.resetModules();

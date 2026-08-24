@@ -19,7 +19,7 @@ function restoreEnv(keys) {
 
 beforeEach(() => {
   saveEnv(ENV_KEYS);
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "miawrouter-dbsess-"));
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dardcor-code-dbsess-"));
   process.env.DATA_DIR = tempDir;
   delete process.env.INITIAL_PASSWORD;
   vi.resetModules();

@@ -45,7 +45,7 @@ const SAMPLE_MEMORY = {
   id: "mem_001",
   userId: "default",
   sessionId: "",
-  content: "MiawRouter uses a gateway pattern for LLM routing.",
+  content: "Dardcor Code uses a gateway pattern for LLM routing.",
   metadata: { tags: ["architecture"] },
   createdAt: "2026-08-13T00:00:00.000Z",
   updatedAt: "2026-08-13T00:00:00.000Z",

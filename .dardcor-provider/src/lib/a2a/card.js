@@ -1,6 +1,6 @@
 export function createAgentCard(skills, baseUrl) {
   return {
-    name: "MiawRouter Local Agent",
+    name: "Dardcor Code Local Agent",
     description: "Authenticated, read-only local provider and usage introspection.",
     protocolVersion: "0.3.0",
     version: "1.0.0",

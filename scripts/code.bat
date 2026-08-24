@@ -22,10 +22,16 @@ set CODE=".build\electron\%NAMESHORT%"
 :: Manage built-in extensions
 if "%~1"=="--builtin" goto builtin
 
+:: Auto-start Dardcor Provider with anti-collision
+if exist "scripts\ensure-provider.js" (
+	node scripts\ensure-provider.js
+)
+
 :: Configuration
 set NODE_ENV=development
 set VSCODE_DEV=1
 set VSCODE_CLI=1
+set DARDCOR_PORT=25000
 set ELECTRON_ENABLE_LOGGING=1
 set ELECTRON_ENABLE_STACK_DUMPING=1
 

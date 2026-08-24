@@ -12,8 +12,8 @@ const execAsync = promisify(exec);
 const getConfigDir = () => path.join(os.homedir(), ".config", "opencode");
 const getConfigPath = () => path.join(getConfigDir(), "opencode.json");
 
-// New writes use "miawrouter"; legacy "9router" provider/model slots stay readable.
-const PROVIDER_KEY = "miawrouter";
+// New writes use "dardcor-code"; legacy "9router" provider/model slots stay readable.
+const PROVIDER_KEY = "dardcor-code";
 const LEGACY_PROVIDER_KEY = "9router";
 const modelKey = (m) => `${PROVIDER_KEY}/${m}`;
 const isOurs = (s) => typeof s === "string" && (s.startsWith(`${PROVIDER_KEY}/`) || s.startsWith(`${LEGACY_PROVIDER_KEY}/`));
@@ -119,13 +119,13 @@ export async function POST(request) {
     } catch { /* No existing config */ }
 
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
-    const keyToUse = apiKey || "sk_miawrouter";
+    const keyToUse = apiKey || "sk_dardcor-code";
     const effectiveSubagentModel = subagentModel || modelsArray[0];
 
     // Ensure provider object
     if (!config.provider) config.provider = {};
 
-    // Preserve any existing miawrouter (or legacy 9router) provider entry and its models
+    // Preserve any existing dardcor-code (or legacy 9router) provider entry and its models
     const existingProvider = config.provider[PROVIDER_KEY] || config.provider[LEGACY_PROVIDER_KEY]
       || { npm: "@ai-sdk/openai-compatible", options: {}, models: {} };
 
@@ -255,7 +255,7 @@ export async function DELETE(request) {
         config.model = modelKey(remainingModels[0]);
       }
     } else {
-      // No specific model - remove entire miawrouter provider (legacy slot too)
+      // No specific model - remove entire dardcor-code provider (legacy slot too)
       if (config.provider) {
         delete config.provider[PROVIDER_KEY];
         delete config.provider[LEGACY_PROVIDER_KEY];
@@ -274,7 +274,7 @@ export async function DELETE(request) {
 
     return NextResponse.json({
       success: true,
-      message: modelToRemove ? `Model "${modelToRemove}" removed` : "MiawRouter settings removed from OpenCode",
+      message: modelToRemove ? `Model "${modelToRemove}" removed` : "Dardcor Code settings removed from OpenCode",
     });
   } catch (error) {
     console.log("Error resetting opencode settings:", error);

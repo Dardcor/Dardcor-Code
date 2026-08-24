@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { RequestType } from '@vscode/dardcor-api';
+import { RequestType } from '@vscode/copilot-api';
 import type { ChatRequest } from 'vscode';
 import { FetchedValue } from '../../../shared-fetch-utils/common/fetchedValue';
 import { createServiceIdentifier } from '../../../util/common/services';

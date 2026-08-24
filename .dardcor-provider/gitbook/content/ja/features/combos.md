@@ -6,7 +6,7 @@
 
 ## コンボとは?
 
-コンボはダッシュボードで作成する**カスタムフォールバックチェーン**です。単一モデルを使う代わりに、MiawRouterが順番に試すモデルのシーケンスを定義します。
+コンボはダッシュボードで作成する**カスタムフォールバックチェーン**です。単一モデルを使う代わりに、Dardcor Codeが順番に試すモデルのシーケンスを定義します。
 
 **例:**
 ```
@@ -22,7 +22,7 @@
 Model: premium-coding
 ```
 
-MiawRouterは成功するまで各モデルを順番に自動的に試します。
+Dardcor Codeは成功するまで各モデルを順番に自動的に試します。
 
 ---
 
@@ -348,7 +348,7 @@ Settings → Models → Advanced:
 ```json
 {
   "anthropic_api_base": "http://localhost:21128/v1",
-  "anthropic_api_key": "your-miawrouter-api-key",
+  "anthropic_api_key": "your-dardcor-code-api-key",
   "model": "budget-combo"
 }
 ```
@@ -357,7 +357,7 @@ Settings → Models → Advanced:
 
 ```bash
 export OPENAI_BASE_URL="http://localhost:21128"
-export OPENAI_API_KEY="your-miawrouter-api-key"
+export OPENAI_API_KEY="your-dardcor-code-api-key"
 
 codex --model quality-first "your prompt"
 ```
@@ -474,7 +474,7 @@ Dashboard → Combos → Edit → Budget:
   Monthly limit: $50
 ```
 
-上限に達すると、MiawRouterは有料モデルをスキップして無料階層のみを使用。
+上限に達すると、Dardcor Codeは有料モデルをスキップして無料階層のみを使用。
 
 ### コンボ内のモデルを有効/無効
 

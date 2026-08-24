@@ -75,7 +75,7 @@ export const OPENAI_COMPAT_BASE = "https://api.openai.com/v1";
 export const ANTHROPIC_COMPAT_BASE = "https://api.anthropic.com/v1";
 
 // Antigravity IDE client version reported to the quota/chat backend
-// (X-Client-Version + User-Agent). Keep this static even when MiawRouter runs
+// (X-Client-Version + User-Agent). Keep this static even when Dardcor Code runs
 // on Linux: the provider profile intentionally matches the IDE client, not the
 // server host.
 export const ANTIGRAVITY_IDE_VERSION = "2.8.1";

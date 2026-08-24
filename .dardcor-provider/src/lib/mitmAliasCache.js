@@ -7,8 +7,8 @@ import os from "os";
 
 const DATA_DIR = process.env.DATA_DIR
   || (process.platform === "win32"
-    ? path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "miawrouter")
-    : path.join(os.homedir(), ".miawrouter"));
+    ? path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "dardcor-code")
+    : path.join(os.homedir(), ".dardcor-code"));
 
 const CACHE_FILE = path.join(DATA_DIR, "mitm", "aliases.json");
 

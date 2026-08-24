@@ -24,7 +24,7 @@ function loadRootCAWithDataDir(dataDir) {
 
 describe("MITM Root CA generation", () => {
   it("creates Root CA files synchronously for direct server startup", () => {
-    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "miawrouter-mitm-ca-"));
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "dardcor-code-mitm-ca-"));
     const { generateRootCA } = loadRootCAWithDataDir(dataDir);
 
     generateRootCA();

@@ -25,10 +25,10 @@ export function serializeSkill(skill = {}) {
 }
 
 function curlExample(endpoint) {
-  const base = `$MIAWROUTER_BASE_URL${endpoint.path}`;
+  const base = `$DARDCOR CODE_BASE_URL${endpoint.path}`;
   const method = endpoint.method === "GET" ? "" : ` -X ${endpoint.method}`;
   const apiKey = endpoint.auth === "public-api-key"
-    ? ' -H "Authorization: Bearer $MIAWROUTER_API_KEY"'
+    ? ' -H "Authorization: Bearer $DARDCOR CODE_API_KEY"'
     : "";
   return `curl${method}${apiKey} "${base}"`;
 }

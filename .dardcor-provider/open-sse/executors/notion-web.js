@@ -43,7 +43,7 @@ const USER_AGENT =
 const NOTION_CLIENT_VERSION = "23.13.20260720.1949";
 const NOTION_TLS_PROFILE = "chrome_146"; // matches the Chrome UA we send
 const NOTION_TIMEOUT_MS =
-  Number.parseInt(process.env.MIAW_NOTION_TLS_TIMEOUT_MS || "", 10) || 180_000;
+  Number.parseInt(process.env.DARDCOR_NOTION_TLS_TIMEOUT_MS || "", 10) || 180_000;
 
 // Browser fingerprint headers — make requests look like real Chromium.
 const BROWSER_HEADERS = {

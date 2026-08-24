@@ -49,7 +49,7 @@ afterEach(async () => {
   guard.canAccessLocalOnlyRoute.mockResolvedValue(true);
   const localDb = await import("@/lib/localDb");
   localDb.getSettings.mockResolvedValue({ ...mockSettings });
-  delete globalThis.__miawrouterA2aTasks;
+  delete globalThis.__dardcor-codeA2aTasks;
 });
 
 // ── Helpers ────────────────────────────────────────────────────────
@@ -75,7 +75,7 @@ describe("A2A status API", () => {
     const body = await res.json();
 
     expect(body.agentCard).toBeDefined();
-    expect(body.agentCard.name).toBe("MiawRouter Local Agent");
+    expect(body.agentCard.name).toBe("Dardcor Code Local Agent");
     expect(body.agentCard.version).toBeTruthy();
     expect(body.agentCard.description).toBeTruthy();
     expect(body.agentCard.capabilities).toBeDefined();

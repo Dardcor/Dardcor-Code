@@ -1,15 +1,15 @@
 # 🏠 Triển khai Localhost
 
-Chạy MiawRouter trên máy cá nhân để phát triển và dùng cá nhân.
+Chạy Dardcor Code trên máy cá nhân để phát triển và dùng cá nhân.
 
 ---
 
 ## 📦 Cài đặt
 
-Cài đặt MiawRouter toàn cục qua npm:
+Cài đặt Dardcor Code toàn cục qua npm:
 
 ```bash
-npm install -g miawrouter
+npm install -g dardcor-code
 ```
 
 **Yêu cầu:**
@@ -20,10 +20,10 @@ npm install -g miawrouter
 
 ## 🚀 Khởi động Server
 
-Khởi động MiawRouter với một lệnh duy nhất:
+Khởi động Dardcor Code với một lệnh duy nhất:
 
 ```bash
-miawrouter
+dardcor-code
 ```
 
 Dashboard sẽ tự động mở trong trình duyệt tại `http://localhost:3000`
@@ -31,7 +31,7 @@ Dashboard sẽ tự động mở trong trình duyệt tại `http://localhost:30
 **Cấu hình mặc định:**
 - **Dashboard**: `http://localhost:3000`
 - **API Endpoint**: `http://localhost:21128/v1`
-- **Data Directory**: `~/.miawrouter`
+- **Data Directory**: `~/.dardcor-code`
 
 ---
 
@@ -42,7 +42,7 @@ Dashboard sẽ tự động mở trong trình duyệt tại `http://localhost:30
 Đặt thư mục data tùy chỉnh qua biến môi trường:
 
 ```bash
-DATA_DIR=/path/to/data miawrouter
+DATA_DIR=/path/to/data dardcor-code
 ```
 
 ### Custom Port
@@ -53,10 +53,10 @@ Port API (21128) và port dashboard (3000) được cấu hình trong applicatio
 
 ## 🛑 Dừng Server
 
-Nhấn `Ctrl+C` trong terminal đang chạy MiawRouter.
+Nhấn `Ctrl+C` trong terminal đang chạy Dardcor Code.
 
 ```bash
-# In the terminal running miawrouter
+# In the terminal running dardcor-code
 ^C  # Press Ctrl+C
 ```
 
@@ -69,25 +69,25 @@ Server sẽ shutdown an toàn và lưu mọi dữ liệu.
 Chỉ cần chạy lệnh start lại:
 
 ```bash
-miawrouter
+dardcor-code
 ```
 
 Mọi cấu hình, API keys và combos được giữ lại trong thư mục data.
 
 ---
 
-## 📊 Cập nhật MiawRouter
+## 📊 Cập nhật Dardcor Code
 
 Cập nhật phiên bản mới nhất:
 
 ```bash
-npm update -g miawrouter
+npm update -g dardcor-code
 ```
 
 Kiểm tra version hiện tại:
 
 ```bash
-npm list -g miawrouter
+npm list -g dardcor-code
 ```
 
 ---
@@ -113,7 +113,7 @@ Nếu gặp lỗi permission khi cài đặt:
 
 ```bash
 # Use sudo (not recommended)
-sudo npm install -g miawrouter
+sudo npm install -g dardcor-code
 
 # Or fix npm permissions (recommended)
 mkdir ~/.npm-global
@@ -128,10 +128,10 @@ Nếu thư mục data không truy cập được:
 
 ```bash
 # Check permissions
-ls -la ~/.miawrouter
+ls -la ~/.dardcor-code
 
 # Fix permissions
-chmod 755 ~/.miawrouter
+chmod 755 ~/.dardcor-code
 ```
 
 ---
@@ -139,7 +139,7 @@ chmod 755 ~/.miawrouter
 ## 📁 Cấu trúc Data Directory
 
 ```
-~/.miawrouter/
+~/.dardcor-code/
 ├── db.json           # Main database (providers, combos, settings)
 ├── logs/             # Application logs
 └── cache/            # Temporary cache files
@@ -149,10 +149,10 @@ chmod 755 ~/.miawrouter
 
 ```bash
 # Backup
-cp -r ~/.miawrouter ~/.miawrouter.backup
+cp -r ~/.dardcor-code ~/.dardcor-code.backup
 
 # Restore
-cp -r ~/.miawrouter.backup ~/.miawrouter
+cp -r ~/.dardcor-code.backup ~/.dardcor-code
 ```
 
 ---

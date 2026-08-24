@@ -85,7 +85,7 @@ function withConnectionHeader(response, connectionId) {
   const headers = new Headers(response.headers);
   // Video jobs are account-bound upstream — clients echo this back as
   // `x-connection-id` on GET polls so the same account is used.
-  headers.set("x-miaw-connection-id", String(connectionId));
+  headers.set("x-dardcor-connection-id", String(connectionId));
   return new Response(response.body, { status: response.status, headers });
 }
 

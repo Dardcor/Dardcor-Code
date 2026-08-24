@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Card } from "@/shared/components";
 
 const MAX_COUNT = 999999;
-const STORAGE_KEY = "miawrouter.cacheWire.v2"; // versioned — bumped from v1 (log → latest-line shape) to discard stale payloads
+const STORAGE_KEY = "dardcor-code.cacheWire.v2"; // versioned — bumped from v1 (log → latest-line shape) to discard stale payloads
 const ACT_MS = 1200; // transient activity window, cleared by a ref-managed timer
 const LAYER_IDX = { L0: 1, L1: 2, L2: 3, L3: 4 }; // pipeline order past Router
 const KIND_META = {
@@ -352,7 +352,7 @@ export default function CacheWire() {
         >
           <EndpointNode label="Client" icon="terminal" stat={`${fmt(state.events)} events`} title="Client: the AI tool sending requests" />
           <RouteSeg active={!!act} kind={act?.kind} />
-          <EndpointNode label="Router" icon="hub" stat={`${fmt(state.events)} events`} title="MiawRouter gateway — cache events seen" />
+          <EndpointNode label="Router" icon="hub" stat={`${fmt(state.events)} events`} title="Dardcor Code gateway — cache events seen" />
           {NODES.map((layer) => (
             <div key={layer} className="flex items-center gap-x-1">
               <RouteSeg

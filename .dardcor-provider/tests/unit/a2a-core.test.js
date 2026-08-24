@@ -56,7 +56,7 @@ describe("A2A core", () => {
   });
 
   it("bridges the real task lifecycle to dashboard history", async () => {
-    delete globalThis.__miawrouterA2aTasks;
+    delete globalThis.__dardcor-codeA2aTasks;
     const core = createA2ACore({ registry: createA2ASkillRegistry(deps()) });
     const sent = await core.handle({ jsonrpc: "2.0", id: 30, method: "message/send", params: { skill: "health.current", arguments: {} } }, auth);
 

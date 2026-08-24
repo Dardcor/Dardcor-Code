@@ -39,7 +39,7 @@ describe("discovery endpoint catalog", () => {
 
     expect(keys(skill).join(" ")).not.toMatch(/token|secret|password|authorization|cookie|headers|payload|pathOnDisk/i);
     expect(keys(endpoint).join(" ")).not.toMatch(/token|secret|password|authorization|cookie|headers|payload|pathOnDisk/i);
-    expect(endpoint.curl).toContain("$MIAWROUTER_API_KEY");
+    expect(endpoint.curl).toContain("$DARDCOR CODE_API_KEY");
     expect(JSON.stringify({ skill, endpoint })).not.toContain("do-not-return");
   });
 });

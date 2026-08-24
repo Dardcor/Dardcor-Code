@@ -696,12 +696,12 @@ export class ClaudeAgent extends Disposable implements IAgent {
 			this._logService.info(`[Claude] Models refreshed. Count: ${models.length}, ${models.map(m => m.name).join(', ')}`);
 			this._models.set(models, undefined);
 		} catch (e) {
-			this._logService.error(e, '[Claude] Failed to fetch models from MiawRouter');
+			this._logService.error(e, '[Claude] Failed to fetch models from Dardcor Code');
 		}
 	}
 
 	/**
-	 * Proxied model source: fetch via ICopilotApiService (MiawRouter)
+	 * Proxied model source: fetch via ICopilotApiService (Dardcor Code)
 	 */
 	private async _fetchProxyModels(token: string): Promise<readonly IAgentModelInfo[]> {
 		const userAgent = `${USER_AGENT_PREFIX}/${this._productService.version}`;

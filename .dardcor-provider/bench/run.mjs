@@ -4,7 +4,7 @@
  *
  * Replays the bench fixtures through the REAL chat pipeline (RTK/caveman/
  * ponytail → L0 begin → translation → executor) with the deterministic
- * MockProvider as the only upstream, then writes a `miaw-bench-report/1`
+ * MockProvider as the only upstream, then writes a `dardcor-bench-report/1`
  * document as JSON and Markdown.
  *
  * Guarantees:
@@ -160,7 +160,7 @@ async function main(argv) {
 
   // --- inputs --------------------------------------------------------------
   const matrix = JSON.parse(await readText(opt.matrix));
-  if (matrix.schema !== "miaw-bench-matrix/1") throw new Error(`matrix schema mismatch: ${matrix.schema}`);
+  if (matrix.schema !== "dardcor-bench-matrix/1") throw new Error(`matrix schema mismatch: ${matrix.schema}`);
   const fixtureIds = new Set(matrix.fixtures);
   for (const id of opt.fixtures) {
     if (!fixtureIds.has(id)) throw new Error(`unknown fixture "${id}" (valid: ${[...fixtureIds].join(", ")})`);

@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="../images/miawrouter.png?1" alt="Панель управления MiawRouter" width="800"/>
+  <img src="../images/dardcor-code.png?1" alt="Панель управления Dardcor Code" width="800"/>
   
-  # MiawRouter - Free AI Router
+  # Dardcor Code - Free AI Router
   
   **Никогда не прекращайте кодить. Автоматическая маршрутизация к БЕСПЛАТНЫМ и дешёвым AI-моделям с умным механизмом резервирования.**
   
@@ -12,12 +12,12 @@
   </p>
   
   
-  [🚀 Быстрый старт](#-quick-start) • [💡 Возможности](#-key-features) • [📖 Установка](#-setup-guide) • [🌐 Сайт](https://miawrouter.web.id)
+  [🚀 Быстрый старт](#-quick-start) • [💡 Возможности](#-key-features) • [📖 Установка](#-setup-guide) • [🌐 Сайт](https://dardcor-code.web.id)
 </div>
 
 ---
 
-## 🤔 Почему MiawRouter?
+## 🤔 Почему Dardcor Code?
 
 **Перестаньте тратить деньги и упираться в лимиты:**
 
@@ -26,7 +26,7 @@
 - ❌ Дорогие API ($20-50/мес за каждого провайдера)
 - ❌ Приходится вручную переключаться между провайдерами
 
-**MiawRouter решает это:**
+**Dardcor Code решает это:**
 
 - ✅ **Максимум из подписки** — Отслеживает квоту, использует каждый бит до сброса
 - ✅ **Автоматическое резервирование** — Подписка → Дёшево → Бесплатно, нулевой простой
@@ -45,7 +45,7 @@
        │ http://localhost:21128/v1
        ↓
 ┌────────────────────────────────────────┐
-│           MiawRouter (Smart Router)        │
+│           Dardcor Code (Smart Router)        │
 │  • Format translation (OpenAI ↔ Claude) │
 │  • Quota tracking                       │
 │  • Auto token refresh                   │
@@ -67,8 +67,8 @@ Result: Never stop coding, minimal cost
 **1. Глобальная установка:**
 
 ```bash
-npm install -g miawrouter
-miawrouter
+npm install -g dardcor-code
+dardcor-code
 ```
 
 🎉 Панель управления откроется на `http://localhost:21128`
@@ -90,7 +90,7 @@ miawrouter
 
 **Альтернатива: запуск из исходников (этот репозиторий):**
 
-Пакет этого репозитория приватный (`miawrouter-app`), поэтому запуск из исходников/Docker — это ожидаемый путь локальной разработки.
+Пакет этого репозитория приватный (`dardcor-code-app`), поэтому запуск из исходников/Docker — это ожидаемый путь локальной разработки.
 
 ```bash
 cp .env.example .env
@@ -113,7 +113,7 @@ URL по умолчанию:
 
 ## 🛠️ Поддерживаемые CLI-инструменты
 
-MiawRouter бесшовно работает со всеми основными AI-инструментами для кодинга:
+Dardcor Code бесшовно работает со всеми основными AI-инструментами для кодинга:
 
 <div align="center">
   <table>
@@ -364,7 +364,7 @@ Combo: "my-coding-stack"
 
 Бесшовная трансляция между форматами:
 - **OpenAI** ↔ **Claude** ↔ **Gemini** ↔ **OpenAI Responses**
-- Ваш CLI-инструмент отправляет формат OpenAI → MiawRouter транслирует → Провайдер получает родной формат
+- Ваш CLI-инструмент отправляет формат OpenAI → Dardcor Code транслирует → Провайдер получает родной формат
 - Работает с любым инструментом, поддерживающим пользовательский эндпоинт OpenAI
 
 ### 👥 Поддержка нескольких аккаунтов
@@ -418,11 +418,11 @@ Combo: "my-coding-stack"
 > **💡 ВАЖНО - Понимание «Затрат» на панели управления:**
 > 
 > «Затраты», показанные в Аналитике использования, предназначены **только для отслеживания и сравнения**. 
-> Сам MiawRouter **никогда ничего не взимает** с вас. Вы платите напрямую провайдерам (если используете платные сервисы).
+> Сам Dardcor Code **никогда ничего не взимает** с вас. Вы платите напрямую провайдерам (если используете платные сервисы).
 > 
 > сумму, которую вы заплатили бы при прямом использовании платного API. Ваши фактические затраты = **$0** (iFlow бесплатен без ограничений).
 > 
-> маршрутизацию через MiawRouter!
+> маршрутизацию через Dardcor Code!
 
 ### 🌐 Развёртывание где угодно
 
@@ -454,15 +454,15 @@ Combo: "my-coding-stack"
 
 ---
 
-### 📊 Понимание затрат и оплаты в MiawRouter
+### 📊 Понимание затрат и оплаты в Dardcor Code
 
-**Реальность оплаты MiawRouter:**
+**Реальность оплаты Dardcor Code:**
 
-✅ **Софт MiawRouter = БЕСПЛАТНО навсегда** (открытый код, никогда не взимает плату)  
+✅ **Софт Dardcor Code = БЕСПЛАТНО навсегда** (открытый код, никогда не взимает плату)  
 ✅ **«Затраты» на панели = Только для отображения/отслеживания** (не реальный счёт)  
 ✅ **Вы платите напрямую провайдерам** (подписка или плата за API)  
 ✅ **БЕСПЛАТНЫЕ провайдеры остаются БЕСПЛАТНЫМИ** (iFlow, Kiro, Qwen = $0 без ограничений)  
-❌ **MiawRouter никогда не выставляет счёт** и не списывает с вашей карты
+❌ **Dardcor Code никогда не выставляет счёт** и не списывает с вашей карты
 
 **Как работает отображение затрат:**
 
@@ -479,9 +479,9 @@ Combo: "my-coding-stack"
 
 **Правила оплаты:**
 - **Провайдеры подписки** (Claude Code, Codex): Платите им напрямую через их сайт
-- **Дешёвые провайдеры** (GLM, MiniMax): Платите им напрямую, MiawRouter только маршрутизирует
+- **Дешёвые провайдеры** (GLM, MiniMax): Платите им напрямую, Dardcor Code только маршрутизирует
 - **БЕСПЛАТНЫЕ провайдеры** (iFlow, Kiro, Qwen): Действительно бесплатны навсегда, без скрытых платежей
-- **MiawRouter**: Никогда ничего не взимает, никогда
+- **Dardcor Code**: Никогда ничего не взимает, никогда
 
 ---
 
@@ -563,16 +563,16 @@ Combo: "openclaw-free"
 </details>
 
 <details>
-<summary><b>💳 Взимает ли с меня плату MiawRouter?</b></summary>
+<summary><b>💳 Взимает ли с меня плату Dardcor Code?</b></summary>
 
-**Нет.** MiawRouter — это бесплатное ПО с открытым кодом, работающее на вашем собственном компьютере. Оно никогда ничего с вас не взимает.
+**Нет.** Dardcor Code — это бесплатное ПО с открытым кодом, работающее на вашем собственном компьютере. Оно никогда ничего с вас не взимает.
 
 **Вы платите только:**
 - ✅ **Провайдерам подписки** (Claude Code $20/мес, Codex $20-200/мес) → Платите им напрямую на их сайте
-- ✅ **Дешёвым провайдерам** (GLM, MiniMax) → Платите им напрямую, MiawRouter только маршрутизирует ваши запросы
-- ❌ **Самому MiawRouter** → **Никогда ничего не взимает, никогда**
+- ✅ **Дешёвым провайдерам** (GLM, MiniMax) → Платите им напрямую, Dardcor Code только маршрутизирует ваши запросы
+- ❌ **Самому Dardcor Code** → **Никогда ничего не взимает, никогда**
 
-MiawRouter — это локальный прокси/роутер. У него нет вашей кредитной карты, он не может выставлять счета и не имеет платёжной системы. Это полностью бесплатное ПО.
+Dardcor Code — это локальный прокси/роутер. У него нет вашей кредитной карты, он не может выставлять счета и не имеет платёжной системы. Это полностью бесплатное ПО.
 
 </details>
 
@@ -586,9 +586,9 @@ MiawRouter — это локальный прокси/роутер. У него 
 - **Kiro**: Бесплатные безлимитные модели Claude через AWS Builder ID  
 - **Qwen**: Бесплатный безлимитный доступ к моделям Qwen через аутентификацию устройства
 
-MiawRouter только маршрутизирует ваши запросы к ним — никаких «ловушек» или будущих платежей. Это действительно бесплатные сервисы, а MiawRouter облегчает их использование с поддержкой резервирования.
+Dardcor Code только маршрутизирует ваши запросы к ним — никаких «ловушек» или будущих платежей. Это действительно бесплатные сервисы, а Dardcor Code облегчает их использование с поддержкой резервирования.
 
-**Примечание:** Некоторые провайдеры подписки (Antigravity, GitHub Copilot) могут иметь бесплатные пробные периоды, которые позже становятся платными, но об этом чётко уведомляют сами провайдеры, а не MiawRouter.
+**Примечание:** Некоторые провайдеры подписки (Antigravity, GitHub Copilot) могут иметь бесплатные пробные периоды, которые позже становятся платными, но об этом чётко уведомляют сами провайдеры, а не Dardcor Code.
 
 </details>
 
@@ -613,7 +613,7 @@ MiawRouter только маршрутизирует ваши запросы к 
 
 3. **Используйте провайдеров подписки в последнюю очередь:**
    - Только если они у вас уже есть
-   - MiawRouter помогает максимизировать их ценность через отслеживание квоты
+   - Dardcor Code помогает максимизировать их ценность через отслеживание квоты
 
 **Результат:** Большинство пользователей могут работать за $0/мес, используя только бесплатные уровни!
 
@@ -622,20 +622,20 @@ MiawRouter только маршрутизирует ваши запросы к 
 <details>
 <summary><b>📈 Что если моё использование внезапно вырастет?</b></summary>
 
-Умный механизм резервирования MiawRouter предотвращает неожиданные расходы:
+Умный механизм резервирования Dardcor Code предотвращает неожиданные расходы:
 
 **Сценарий:** Вы в спринте кодинга и превышаете квоты
 
-**Без MiawRouter:**
+**Без Dardcor Code:**
 - ❌ Упёрлись в rate limit → Работа остановилась → Разочарование
 - ❌ Или: Случайно накопили огромный счёт за API
 
-**С MiawRouter:**
+**С Dardcor Code:**
 - ✅ Подписка упёрлась в лимит → Авторезервирование на дешёвый уровень
 - ✅ Дешёвый уровень становится дорогим → Авторезервирование на бесплатный уровень
 - ✅ Никогда не прекращаете кодить → Предсказуемая стоимость
 
-**Вы контролируете:** Установите лимиты расходов на каждого провайдера в панели, и MiawRouter будет их соблюдать.
+**Вы контролируете:** Установите лимиты расходов на каждого провайдера в панели, и Dardcor Code будет их соблюдать.
 
 </details>
 
@@ -659,7 +659,7 @@ MiawRouter только маршрутизирует ваши запросы к 
   cc/claude-haiku-4-5-20251001
 ```
 
-**Профи-совет:** Используйте Opus для сложных задач, Sonnet для скорости. MiawRouter отслеживает квоту для каждой модели!
+**Профи-совет:** Используйте Opus для сложных задач, Sonnet для скорости. Dardcor Code отслеживает квоту для каждой модели!
 
 ### OpenAI Codex (Plus/Pro)
 
@@ -828,7 +828,7 @@ MiawRouter только маршрутизирует ваши запросы к 
 ```
 Settings → Models → Advanced:
   OpenAI API Base URL: http://localhost:21128/v1
-  OpenAI API Key: [из панели управления miawrouter]
+  OpenAI API Key: [из панели управления dardcor-code]
   Model: cc/claude-opus-4-6
 ```
 
@@ -841,7 +841,7 @@ Settings → Models → Advanced:
 ```json
 {
   "anthropic_api_base": "http://localhost:21128/v1",
-  "anthropic_api_key": "your-miawrouter-api-key"
+  "anthropic_api_key": "your-dardcor-code-api-key"
 }
 ```
 
@@ -849,7 +849,7 @@ Settings → Models → Advanced:
 
 ```bash
 export OPENAI_BASE_URL="http://localhost:21128"
-export OPENAI_API_KEY="your-miawrouter-api-key"
+export OPENAI_API_KEY="your-dardcor-code-api-key"
 
 codex "ваш промпт"
 ```
@@ -869,15 +869,15 @@ codex "ваш промпт"
   "agents": {
     "defaults": {
       "model": {
-        "primary": "miawrouter/if/glm-4.7"
+        "primary": "dardcor-code/if/glm-4.7"
       }
     }
   },
   "models": {
     "providers": {
-      "miawrouter": {
+      "dardcor-code": {
         "baseUrl": "http://127.0.0.1:21128/v1",
-        "apiKey": "sk_miawrouter",
+        "apiKey": "sk_dardcor-code",
         "api": "openai-completions",
         "models": [
           {
@@ -891,7 +891,7 @@ codex "ваш промпт"
 }
 ```
 
-> **Примечание:** OpenClaw работает только с локальным MiawRouter. Используйте `127.0.0.1` вместо `localhost`, чтобы избежать проблем с разрешением имён.
+> **Примечание:** OpenClaw работает только с локальным Dardcor Code. Используйте `127.0.0.1` вместо `localhost`, чтобы избежать проблем с разрешением имён.
 
 ### Cline / Continue / RooCode
 
@@ -912,19 +912,19 @@ Model: cc/claude-opus-4-6
 ```bash
 # Clone and install
 git clone .git
-cd miawrouter
+cd dardcor-code
 npm install
 npm run build
 
 # Configure
 export JWT="your-secure-secret-change-this"
 export INITIAL_PASSWORD="your-password"
-export DATA_DIR="/var/lib/miawrouter"
+export DATA_DIR="/var/lib/dardcor-code"
 export PORT="21128"
 export HOSTNAME="0.0.0.0"
 export NODE_ENV="production"
 export NEXT_PUBLIC_BASE_URL="http://localhost:21128"
-export NEXT_PUBLIC_CLOUD_URL="https://miawrouter.web.id"
+export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.web.id"
 export API_KEY_SECRET="endpoint-proxy-api-key-secret"
 export MACHINE_ID_SALT="endpoint-proxy-salt"
 
@@ -933,7 +933,7 @@ npm run start
 
 # Or use PM2
 npm install -g pm2
-pm2 start --name miawrouter -- start
+pm2 start --name dardcor-code -- start
 pm2 save
 pm2 startup
 ```
@@ -942,28 +942,28 @@ pm2 startup
 
 ```bash
 # Build image (from repository root)
-docker build -t miawrouter .
+docker build -t dardcor-code .
 
 # Run container (command used in current setup)
 docker run -d \
-  --name miawrouter \
+  --name dardcor-code \
   -p 21128:21128 \
-  --env-file /root/dev/miawrouter/.env \
-  -v miawrouter-data:/app/data \
-  -v miawrouter-usage:/root/.miawrouter \
-  miawrouter
+  --env-file /root/dev/dardcor-code/.env \
+  -v dardcor-code-data:/app/data \
+  -v dardcor-code-usage:/root/.dardcor-code \
+  dardcor-code
 ```
 
 Портативная команда (если вы уже в корне репозитория):
 
 ```bash
 docker run -d \
-  --name miawrouter \
+  --name dardcor-code \
   -p 21128:21128 \
   --env-file ./.env \
-  -v miawrouter-data:/app/data \
-  -v miawrouter-usage:/root/.miawrouter \
-  miawrouter
+  -v dardcor-code-data:/app/data \
+  -v dardcor-code-usage:/root/.dardcor-code \
+  dardcor-code
 ```
 
 Значения по умолчанию контейнера:
@@ -973,25 +973,25 @@ docker run -d \
 Полезные команды:
 
 ```bash
-docker logs -f miawrouter
-docker restart miawrouter
-docker stop miawrouter && docker rm miawrouter
+docker logs -f dardcor-code
+docker restart dardcor-code
+docker stop dardcor-code && docker rm dardcor-code
 ```
 
 ### Переменные окружения
 
 | Переменная | По умолчанию | Описание |
 |----------|---------|-------------|
-| `JWT_SECRET` | Автогенерация (`~/.miawrouter/jwt-secret`) | Секрет подписи JWT для cookie аутентификации панели (задайте для общего доступа между инстансами) |
+| `JWT_SECRET` | Автогенерация (`~/.dardcor-code/jwt-secret`) | Секрет подписи JWT для cookie аутентификации панели (задайте для общего доступа между инстансами) |
 | `INITIAL_PASSWORD` | unset | Опциональная локальная bootstrap-настройка при отсутствии сохранённого хеша. Если не задана, создайте пароль через localhost |
-| `DATA_DIR` | `~/.miawrouter` | Расположение основной БД приложения (`db.json`) |
+| `DATA_DIR` | `~/.dardcor-code` | Расположение основной БД приложения (`db.json`) |
 | `PORT` | framework default | Порт сервиса (`21128` в примерах) |
 | `HOSTNAME` | framework default | Bind host (Docker по умолчанию `0.0.0.0`) |
 | `NODE_ENV` | runtime default | Установите `production` для развёртывания |
 | `BASE_URL` | `http://localhost:21128` | Внутренний серверный базовый URL для задач облачной синхронизации |
-| `CLOUD_URL` | `https://miawrouter.web.id` | Серверный базовый URL эндпоинта облачной синхронизации |
+| `CLOUD_URL` | `https://dardcor-code.web.id` | Серверный базовый URL эндпоинта облачной синхронизации |
 | `NEXT_PUBLIC_BASE_URL` | `http://localhost:3000` | Обратно совместимый/публичный базовый URL (приоритет `BASE_URL` для серверного рантайма) |
-| `NEXT_PUBLIC_CLOUD_URL` | `https://miawrouter.web.id` | Обратно совместимый/публичный облачный URL (приоритет `CLOUD_URL` для серверного рантайма) |
+| `NEXT_PUBLIC_CLOUD_URL` | `https://dardcor-code.web.id` | Обратно совместимый/публичный облачный URL (приоритет `CLOUD_URL` для серверного рантайма) |
 | `API_KEY_SECRET` | `endpoint-proxy-api-key-secret` | HMAC-секрет для генерируемых API-ключей |
 | `MACHINE_ID_SALT` | `endpoint-proxy-salt` | Соль для стабильного хеширования ID машины |
 | `ENABLE_REQUEST_LOGS` | `false` | Включить лог запросов/ответов в `logs/` |
@@ -1008,9 +1008,9 @@ docker stop miawrouter && docker rm miawrouter
 ### Runtime-файлы и хранилище
 
 - Основное состояние приложения: `${DATA_DIR}/db.json` (провайдеры, комбо, alias, ключи, настройки), управляется `src/lib/localDb.js`.
-- История использования и логи: `~/.miawrouter/usage.json` и `~/.miawrouter/log.txt`, управляется `src/lib/usageDb.js`.
+- История использования и логи: `~/.dardcor-code/usage.json` и `~/.dardcor-code/log.txt`, управляется `src/lib/usageDb.js`.
 - Опциональные логи запросов/транслятора: `<repo>/logs/...` при `ENABLE_REQUEST_LOGS=true`.
-- Хранилище использования следует логике пути `~/.miawrouter` и независимо от `DATA_DIR`.
+- Хранилище использования следует логике пути `~/.dardcor-code` и независимо от `DATA_DIR`.
 
 </details>
 
@@ -1072,7 +1072,7 @@ docker stop miawrouter && docker rm miawrouter
 - Добавьте комбо: `cc/claude-opus-4-6 → glm/glm-4.7 → if/kimi-k2-thinking`
 
 **OAuth-токен истёк**
-- Автообновление MiawRouter
+- Автообновление Dardcor Code
 - Если проблема сохраняется: Панель управления → Провайдеры → Переподключить
 
 **Высокие затраты**
@@ -1085,14 +1085,14 @@ docker stop miawrouter && docker rm miawrouter
 
 **Ошибки облачной синхронизации**
 - Убедитесь, что `BASE_URL` указывает на ваш работающий инстанс (например, `http://localhost:21128`)
-- Убедитесь, что `CLOUD_URL` указывает на ожидаемый облачный эндпоинт (например, `https://miawrouter.web.id`)
+- Убедитесь, что `CLOUD_URL` указывает на ожидаемый облачный эндпоинт (например, `https://dardcor-code.web.id`)
 - По возможности держите значения `NEXT_PUBLIC_*` согласованными с серверными значениями.
 
 **Облачный эндпоинт `stream=false` возвращает 500 (`Unexpected token 'd'...`)**
-- Симптом обычно появляется на публичном облачном эндпоинте (`https://miawrouter.web.id/v1`) для непотоковых (non-streaming) вызовов.
+- Симптом обычно появляется на публичном облачном эндпоинте (`https://dardcor-code.web.id/v1`) для непотоковых (non-streaming) вызовов.
 - Корневая причина: upstream возвращает SSE-payload (`data: ...`), тогда как клиент ожидает JSON.
 - Обходное решение: используйте `stream=true` для прямых вызовов в облако.
-- Локальный рантайм MiawRouter включает резервирование SSE→JSON для непотоковых вызовов, когда upstream возвращает `text/event-stream`.
+- Локальный рантайм Dardcor Code включает резервирование SSE→JSON для непотоковых вызовов, когда upstream возвращает `text/event-stream`.
 
 **Облако сообщает о подключении, но запрос всё равно падает с `Invalid API key`**
 - Создайте новый ключ в локальной панели (`/api/keys`) и запустите облачную синхронизацию (`Enable Cloud`, затем `Sync Now`).
@@ -1163,7 +1163,7 @@ Authorization: Bearer your-api-key
 - `tester/security/test-docker-hardening.sh`
   - Собирает Docker-образ и проверяет hardening-проверки (`/api/cloud/auth` auth guard, `REQUIRE_API_KEY`, безопасное поведение cookie аутентификации).
 - `tester/security/test-cloud-openai-compatible.sh`
-  - Отправляет OpenAI-совместимый запрос напрямую на облачный эндпоинт (`https://miawrouter.web.id/v1/chat/completions`) с указанной моделью/ключом.
+  - Отправляет OpenAI-совместимый запрос напрямую на облачный эндпоинт (`https://dardcor-code.web.id/v1/chat/completions`) с указанной моделью/ключом.
 - `tester/security/test-cloud-sync-and-call.sh`
   - End-to-end процесс: создание локального ключа → включение/синхронизация облака → вызов облачного эндпоинта с повтором.
   - Включает резервную проверку с `stream=true`, чтобы отличить ошибки аутентификации от проблем разбора потока.
@@ -1183,7 +1183,7 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 
 - Локально (`http://127.0.0.1:21128/v1/chat/completions`): работает с `stream=false` и `stream=true`.
 - Docker-рантайм (тот же API-путь, экспонируемый контейнером): hardening-проверки проходят, cloud auth guard работает, строгий режим API-ключа работает при включении.
-- Публичный облачный эндпоинт (`https://miawrouter.web.id/v1/chat/completions`):
+- Публичный облачный эндпоинт (`https://dardcor-code.web.id/v1/chat/completions`):
   - `stream=true`: ожидается успех (возвращает SSE-чанки).
   - `stream=false`: может падать с `500` + ошибкой разбора (`Unexpected token 'd'`), когда upstream возвращает SSE-контент для непотокового клиентского пути.
 
@@ -1221,14 +1221,14 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 
 ## 📧 Поддержка
 
-- **Сайт**: [miawrouter.web.id](https://miawrouter.web.id)
+- **Сайт**: [dardcor-code.web.id](https://dardcor-code.web.id)
 - **GitHub**: 
 
 ---
 
 ## 👥 Контрибьюторы
 
-Спасибо всем, кто помогает делать MiawRouter лучше!
+Спасибо всем, кто помогает делать Dardcor Code лучше!
 
 ---
 

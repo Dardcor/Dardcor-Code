@@ -5,7 +5,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import * as vscode from 'vscode';
-import type { AgentTask, AgentTaskCreateRequest, AgentTaskGetResponse, AgentTaskListEventsResponse, AgentTaskListResponse, AgentTaskSessionEvent, AgentTaskState, AgentTaskSteerRequest, AgentTaskCreatePullRequestResponse } from '@vscode/dardcor-api';
+import type { AgentTask, AgentTaskCreateRequest, AgentTaskGetResponse, AgentTaskListEventsResponse, AgentTaskListResponse, AgentTaskSessionEvent, AgentTaskState, AgentTaskSteerRequest, AgentTaskCreatePullRequestResponse } from '@vscode/copilot-api';
 import { GithubRepoId, IGitService } from '../../../../platform/git/common/gitService';
 import { PullRequestSearchItem, SessionInfo } from '../../../../platform/github/common/githubAPI';
 import { TestLogService } from '../../../../platform/testing/common/testLogService';

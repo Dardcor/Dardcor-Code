@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { RequestMetadata } from '@vscode/dardcor-api';
+import type { RequestMetadata } from '@vscode/copilot-api';
 import type { LanguageModelToolResult2 } from 'vscode';
 import { ILoggedRequestInfo, LoggedRequest } from '../../../platform/requestLogger/common/requestLogger';
 import { AbstractRequestLogger } from '../../../platform/requestLogger/node/requestLogger';

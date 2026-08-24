@@ -1,6 +1,6 @@
 # Installation
 
-Detailed installation guide for MiawRouter with troubleshooting tips.
+Detailed installation guide for Dardcor Code with troubleshooting tips.
 
 ---
 
@@ -31,37 +31,37 @@ npm --version
 
 ### Method 1: Global Installation (Recommended)
 
-Install MiawRouter globally to use from anywhere:
+Install Dardcor Code globally to use from anywhere:
 
 ```bash
-npm install -g miawrouter
+npm install -g dardcor-code
 ```
 
-**Start MiawRouter:**
+**Start Dardcor Code:**
 
 ```bash
-miawrouter
+dardcor-code
 ```
 
 **Benefits:**
 - ✅ Run from any directory
-- ✅ Simple command: `miawrouter`
-- ✅ Auto-updates with `npm update -g miawrouter`
+- ✅ Simple command: `dardcor-code`
+- ✅ Auto-updates with `npm update -g dardcor-code`
 
 ### Method 2: Local Installation
 
 Install in a specific project:
 
 ```bash
-mkdir my-miawrouter
-cd my-miawrouter
-npm install miawrouter
+mkdir my-dardcor-code
+cd my-dardcor-code
+npm install dardcor-code
 ```
 
-**Start MiawRouter:**
+**Start Dardcor Code:**
 
 ```bash
-npx miawrouter
+npx dardcor-code
 ```
 
 **Benefits:**
@@ -75,7 +75,7 @@ Clone and build from GitHub:
 
 ```bash
 git clone .git
-cd miawrouter/app
+cd dardcor-code/app
 npm install
 npm run build
 npm start
@@ -93,13 +93,13 @@ npm start
 ### Start the Server
 
 ```bash
-miawrouter
+dardcor-code
 ```
 
 **What happens:**
 1. Server starts on `http://localhost:21128`
 2. Dashboard opens automatically in browser
-3. Data directory created at `~/.miawrouter`
+3. Data directory created at `~/.dardcor-code`
 4. API key generated automatically
 
 ### Dashboard Login
@@ -122,7 +122,7 @@ Dashboard → Settings → API Keys
 
 **Example API key format:**
 ```
-miaw_1234567890abcdef1234567890abcdef
+dardcor_1234567890abcdef1234567890abcdef
 ```
 
 ---
@@ -193,7 +193,7 @@ export JWT_SECRET="your-secure-secret-change-this"
 export INITIAL_PASSWORD="your-password"
 
 # Storage
-export DATA_DIR="~/.miawrouter"
+export DATA_DIR="~/.dardcor-code"
 
 # Server
 export PORT="21128"
@@ -205,11 +205,11 @@ export ENABLE_REQUEST_LOGS="false"
 
 ### Data Directory
 
-**Default location:** `~/.miawrouter`
+**Default location:** `~/.dardcor-code`
 
 **Contents:**
 ```
-~/.miawrouter/
+~/.dardcor-code/
   ├── db.json           # Database (providers, combos, usage)
   ├── api-keys.json     # API keys
   └── logs/             # Request logs (if enabled)
@@ -219,7 +219,7 @@ export ENABLE_REQUEST_LOGS="false"
 
 ```bash
 export DATA_DIR="/custom/path"
-miawrouter
+dardcor-code
 ```
 
 ### Port Configuration
@@ -230,13 +230,13 @@ miawrouter
 
 ```bash
 export PORT="3000"
-miawrouter
+dardcor-code
 ```
 
 **Or use command line:**
 
 ```bash
-miawrouter --port 3000
+dardcor-code --port 3000
 ```
 
 ---
@@ -263,14 +263,14 @@ kill -9 <PID>
 **Solution 2: Use different port**
 
 ```bash
-miawrouter --port 3000
+dardcor-code --port 3000
 ```
 
 ### Permission Denied
 
 **Error:**
 ```
-Error: EACCES: permission denied, mkdir '/usr/local/lib/node_modules/miawrouter'
+Error: EACCES: permission denied, mkdir '/usr/local/lib/node_modules/dardcor-code'
 ```
 
 **Solution: Use sudo (not recommended) or fix npm permissions**
@@ -283,7 +283,7 @@ echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
 source ~/.bashrc
 
 # Then install again
-npm install -g miawrouter
+npm install -g dardcor-code
 ```
 
 ### Node.js Version Too Old
@@ -345,23 +345,23 @@ Dashboard → Provider → Disconnect → Reconnect
 
 ### High Memory Usage
 
-**Issue:** MiawRouter using too much RAM
+**Issue:** Dardcor Code using too much RAM
 
 **Solution: Restart server**
 
 ```bash
 # Stop
-pkill -f miawrouter
+pkill -f dardcor-code
 
 # Start
-miawrouter
+dardcor-code
 ```
 
 **Or use PM2 for auto-restart:**
 
 ```bash
 npm install -g pm2
-pm2 start miawrouter --name miawrouter
+pm2 start dardcor-code --name dardcor-code
 pm2 save
 ```
 
@@ -372,8 +372,8 @@ pm2 save
 ### Local Development
 
 ```bash
-npm install -g miawrouter
-miawrouter
+npm install -g dardcor-code
+dardcor-code
 ```
 
 **Use case:** Personal coding, testing
@@ -382,7 +382,7 @@ miawrouter
 
 ```bash
 # Install
-npm install -g miawrouter
+npm install -g dardcor-code
 
 # Configure
 export JWT_SECRET="your-secure-secret"
@@ -391,7 +391,7 @@ export NODE_ENV="production"
 
 # Start with PM2
 npm install -g pm2
-pm2 start miawrouter --name miawrouter
+pm2 start dardcor-code --name dardcor-code
 pm2 save
 pm2 startup
 ```
@@ -401,15 +401,15 @@ pm2 startup
 ### Docker
 
 ```bash
-docker pull miawrouter/miawrouter:latest
+docker pull dardcor-code/dardcor-code:latest
 
 docker run -d \
   -p 21128:21128 \
   -e JWT_SECRET="your-secure-secret" \
   -e INITIAL_PASSWORD="your-password" \
-  -v miawrouter-data:/root/.miawrouter \
-  --name miawrouter \
-  miawrouter/miawrouter:latest
+  -v dardcor-code-data:/root/.dardcor-code \
+  --name dardcor-code \
+  dardcor-code/dardcor-code:latest
 ```
 
 **Use case:** Containerized deployment, Kubernetes
@@ -444,13 +444,13 @@ server {
 ### Remove Global Installation
 
 ```bash
-npm uninstall -g miawrouter
+npm uninstall -g dardcor-code
 ```
 
 ### Remove Data Directory
 
 ```bash
-rm -rf ~/.miawrouter
+rm -rf ~/.dardcor-code
 ```
 
 ### Remove Configuration
@@ -458,7 +458,7 @@ rm -rf ~/.miawrouter
 ```bash
 # Remove environment variables from shell config
 nano ~/.bashrc  # or ~/.zshrc
-# Delete miawrouter-related exports
+# Delete dardcor-code-related exports
 ```
 
 ---
@@ -473,6 +473,6 @@ nano ~/.bashrc  # or ~/.zshrc
 
 ## Need Help?
 
-- **Website**: [miawrouter.web.id](https://miawrouter.web.id)
+- **Website**: [dardcor-code.web.id](https://dardcor-code.web.id)
 - **GitHub**: 
 - **Issues**: [/issues](/issues)

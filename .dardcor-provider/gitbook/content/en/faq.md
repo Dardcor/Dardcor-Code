@@ -1,12 +1,12 @@
 # Frequently Asked Questions
 
-Common questions about MiawRouter.
+Common questions about Dardcor Code.
 
 ---
 
-## What is MiawRouter?
+## What is Dardcor Code?
 
-**MiawRouter is an AI model router that maximizes your subscription value and minimizes costs.**
+**Dardcor Code is an AI model router that maximizes your subscription value and minimizes costs.**
 
 It intelligently routes requests across multiple AI providers using a 3-tier fallback system:
 1. **Subscription tier** - Maximize Claude Code, Codex, Gemini quotas you already pay for
@@ -22,7 +22,7 @@ It intelligently routes requests across multiple AI providers using a 3-tier fal
 
 ## How does pricing work?
 
-**MiawRouter uses a 3-tier pricing strategy:**
+**Dardcor Code uses a 3-tier pricing strategy:**
 
 ### Tier 1: Subscription (Maximize First)
 - **Claude Code** (Pro/Max): $20-100/month - 5-hour + weekly quota
@@ -47,9 +47,9 @@ It intelligently routes requests across multiple AI providers using a 3-tier fal
 
 ---
 
-## Is MiawRouter free?
+## Is Dardcor Code free?
 
-**Yes, MiawRouter itself is 100% free and open source.**
+**Yes, Dardcor Code itself is 100% free and open source.**
 
 **Free tier providers available:**
 - **Gemini CLI** - 180K completions/month (FREE Google account)
@@ -91,7 +91,7 @@ See [providers documentation](providers/subscription.md) for details.
 
 ## Can I use multiple providers?
 
-**Yes! This is MiawRouter's core feature.**
+**Yes! This is Dardcor Code's core feature.**
 
 **Combos allow you to chain multiple providers with automatic fallback:**
 
@@ -124,7 +124,7 @@ See [combos documentation](features/combos.md) for examples.
 
 ## How does quota tracking work?
 
-**MiawRouter tracks quota in real-time for all providers:**
+**Dardcor Code tracks quota in real-time for all providers:**
 
 **Features:**
 - **Token consumption** - Input/output tokens per request
@@ -149,17 +149,17 @@ See [quota tracking documentation](features/quota-tracking.md) for details.
 
 ---
 
-## Does MiawRouter work with Cursor?
+## Does Dardcor Code work with Cursor?
 
 **Yes, but Cursor requires a cloud endpoint.**
 
 **Problem:** Cursor IDE doesn't support localhost endpoints.
 
-**Solution:** Use MiawRouter cloud deployment:
+**Solution:** Use Dardcor Code cloud deployment:
 
 ```
 Cursor Settings → Models → Advanced:
-  OpenAI API Base URL: https://miawrouter.web.id/v1
+  OpenAI API Base URL: https://dardcor-code.web.id/v1
   OpenAI API Key: [from dashboard]
   Model: cc/claude-opus-4-5-20251101
 ```
@@ -168,7 +168,7 @@ Cursor Settings → Models → Advanced:
 ```bash
 # Deploy to VPS
 git clone .git
-cd miawrouter/app
+cd dardcor-code/app
 npm install && npm run build
 npm start
 
@@ -187,14 +187,14 @@ See [Cursor integration guide](integration/cursor.md) for details.
 
 ---
 
-## Can I self-host MiawRouter?
+## Can I self-host Dardcor Code?
 
-**Yes! MiawRouter supports multiple deployment options:**
+**Yes! Dardcor Code supports multiple deployment options:**
 
 ### Localhost (Default)
 ```bash
-npm install -g miawrouter
-miawrouter
+npm install -g dardcor-code
+dardcor-code
 → Dashboard: http://localhost:3000
 → API: http://localhost:21128/v1
 ```
@@ -202,7 +202,7 @@ miawrouter
 ### VPS/Cloud
 ```bash
 git clone .git
-cd miawrouter/app
+cd dardcor-code/app
 npm install && npm run build
 
 export JWT_SECRET="your-secure-secret"
@@ -214,23 +214,23 @@ npm start
 
 ### Docker
 ```bash
-docker build -t miawrouter .
+docker build -t dardcor-code .
 docker run -d \
   -p 3000:3000 \
   -e JWT_SECRET="your-secret" \
-  -v miawrouter-data:/app/data \
-  miawrouter
+  -v dardcor-code-data:/app/data \
+  dardcor-code
 ```
 
 ### Cloudflare Workers
 ```bash
-cd miawrouter/app
+cd dardcor-code/app
 npm run deploy:cloudflare
 ```
 
 **Environment variables:**
 - `JWT_SECRET` - **MUST change in production!**
-- `DATA_DIR` - Database storage path (default: `~/.miawrouter`)
+- `DATA_DIR` - Database storage path (default: `~/.dardcor-code`)
 - `INITIAL_PASSWORD` - Dashboard login (no default; optional local-only bootstrap — if unset, create the password through localhost)
 - `NODE_ENV` - Set to `production` for deploy
 
@@ -240,11 +240,11 @@ See [deployment guide](getting-started/installation.md#deployment) for details.
 
 ## Is my data secure?
 
-**Yes, MiawRouter prioritizes security and privacy:**
+**Yes, Dardcor Code prioritizes security and privacy:**
 
 **Local storage:**
-- All data stored locally in `~/.miawrouter` (or custom `DATA_DIR`)
-- No data sent to MiawRouter servers
+- All data stored locally in `~/.dardcor-code` (or custom `DATA_DIR`)
+- No data sent to Dardcor Code servers
 - OAuth tokens encrypted with JWT
 
 **No telemetry:**
@@ -263,31 +263,31 @@ See [deployment guide](getting-started/installation.md#deployment) for details.
 - Enable HTTPS for cloud deployments
 - Rotate API keys regularly
 
-**What MiawRouter stores:**
+**What Dardcor Code stores:**
 - Provider OAuth tokens (encrypted)
 - API keys (encrypted)
 - Usage statistics (local only)
 - Combo configurations
 
-**What MiawRouter does NOT store:**
+**What Dardcor Code does NOT store:**
 - Your prompts or responses
 - Code you generate
 - Personal information
 
 ---
 
-## How do I update MiawRouter?
+## How do I update Dardcor Code?
 
 **Update methods depend on installation type:**
 
 ### Global NPM Install
 ```bash
-npm update -g miawrouter
+npm update -g dardcor-code
 ```
 
 ### Local Install
 ```bash
-cd miawrouter/app
+cd dardcor-code/app
 git pull origin main
 npm install
 npm run build
@@ -296,23 +296,23 @@ npm start
 
 ### Docker
 ```bash
-docker pull miawrouter:latest
-docker stop miawrouter
-docker rm miawrouter
+docker pull dardcor-code:latest
+docker stop dardcor-code
+docker rm dardcor-code
 docker run -d \
   -p 3000:3000 \
-  -v miawrouter-data:/app/data \
-  miawrouter:latest
+  -v dardcor-code-data:/app/data \
+  dardcor-code:latest
 ```
 
 **Check version:**
 ```bash
-miawrouter --version
+dardcor-code --version
 ```
 
 **Breaking changes:**
 - Check [CHANGELOG.md](/blob/main/CHANGELOG.md)
-- Backup `~/.miawrouter` before major updates
+- Backup `~/.dardcor-code` before major updates
 - Review migration guides for major versions
 
 ---
@@ -335,7 +335,7 @@ miawrouter --version
    ```bash
    # Fork repo
    git clone .git
-   cd miawrouter
+   cd dardcor-code
    
    # Create branch
    git checkout -b feature/your-feature
@@ -376,7 +376,7 @@ See [CONTRIBUTING.md](/blob/main/CONTRIBUTING.md) for details.
 
 ## Need More Help?
 
-- **Documentation:** [miawrouter.web.id/docs](https://miawrouter.web.id/docs)
+- **Documentation:** [dardcor-code.web.id/docs](https://dardcor-code.web.id/docs)
 - **GitHub:** 
 - **Issues:** [/issues](/issues)
 - **Troubleshooting:** [troubleshooting.md](troubleshooting.md)

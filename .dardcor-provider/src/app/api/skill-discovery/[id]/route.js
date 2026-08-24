@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSkill } from "@/lib/skillDiscovery/service";
-import { detectCliTargets, MIAWROUTER_TARGET, getTargetLabel } from "@/lib/skillDiscovery/targets";
+import { detectCliTargets, DARDCOR CODE_TARGET, getTargetLabel } from "@/lib/skillDiscovery/targets";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +17,7 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "Skill not found" }, { status: 404, headers: { "Cache-Control": "no-store" } });
     }
     const targets = [
-      { id: MIAWROUTER_TARGET, label: getTargetLabel(MIAWROUTER_TARGET), available: true },
+      { id: DARDCOR CODE_TARGET, label: getTargetLabel(DARDCOR CODE_TARGET), available: true },
       ...detectCliTargets().map((t) => ({ id: t.id, label: t.label, available: t.available })),
     ];
     return NextResponse.json({ skill, targets }, { headers: { "Cache-Control": "no-store" } });

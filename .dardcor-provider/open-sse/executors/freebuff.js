@@ -15,7 +15,7 @@ const MODEL_TO_AGENT = {
   "kimi/kimi-k3": "base3-free-kimi-k3-eco",
 };
 
-const MIAWCODE_PROMPT = "You are MiawCode (Miaw AI), an expert AI coding assistant and intelligent pair programmer built into MiawCode IDE.";
+const MIAWCODE_PROMPT = "You are DardcorCode (Dardcor AI), an expert AI coding assistant and intelligent pair programmer built into DardcorCode IDE.";
 
 // Cache session per token to avoid spamming session endpoint
 const sessionCache = new Map();
@@ -131,20 +131,20 @@ export class FreebuffExecutor extends BaseExecutor {
     const agentId = MODEL_TO_AGENT[effectiveModel] || MODEL_TO_AGENT[cleanModel] || "base3-free-mimo";
     const runId = await this.startRun(token, agentId, proxyOptions);
 
-    // Ensure MiawCode system prompt is present
+    // Ensure DardcorCode system prompt is present
     const rawMessages = Array.isArray(body?.messages) ? [...body.messages] : [];
-    let hasMiawSystem = false;
+    let hasDardcorSystem = false;
     for (const msg of rawMessages) {
       if (msg.role === "system") {
-        if (typeof msg.content === "string" && (msg.content.includes("MiawCode") || msg.content.includes("Miaw AI"))) {
-          hasMiawSystem = true;
+        if (typeof msg.content === "string" && (msg.content.includes("DardcorCode") || msg.content.includes("Dardcor AI"))) {
+          hasDardcorSystem = true;
           break;
         }
       }
     }
 
     const messages = rawMessages.map(m => ({ ...m }));
-    if (!hasMiawSystem) {
+    if (!hasDardcorSystem) {
       const existingSys = messages.find(m => m.role === "system");
       if (existingSys) {
         existingSys.content = `${MIAWCODE_PROMPT}\n${existingSys.content}`;

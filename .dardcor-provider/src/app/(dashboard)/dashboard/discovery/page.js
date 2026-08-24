@@ -1,6 +1,6 @@
 import DiscoveryPageClient from "./DiscoveryPageClient";
 
-export const metadata = { title: "Discovery — MiawRouter" };
+export const metadata = { title: "Discovery — Dardcor Code" };
 
 export default function DiscoveryPage() {
   return <DiscoveryPageClient />;

@@ -31,7 +31,7 @@
 **步骤 1:通过仪表盘连接**
 
 ```bash
-miawrouter
+dardcor-code
 # 仪表盘 → 提供商 → 连接 iFlow
 ```
 
@@ -91,7 +91,7 @@ Model: if/kimi-k2-thinking
 **步骤 1:通过仪表盘连接**
 
 ```bash
-miawrouter
+dardcor-code
 # 仪表盘 → 提供商 → 连接 Qwen
 ```
 
@@ -144,7 +144,7 @@ Model: qw/qwen3-coder-plus
 **步骤 1:通过仪表盘连接**
 
 ```bash
-miawrouter
+dardcor-code
 # 仪表盘 → 提供商 → 连接 Kiro
 ```
 
@@ -200,7 +200,7 @@ Model: kr/claude-sonnet-4.5
 ```
 Settings → Models → Advanced:
   OpenAI API Base URL: http://localhost:21128/v1
-  OpenAI API Key: [从 miawrouter 仪表盘获取]
+  OpenAI API Key: [从 dardcor-code 仪表盘获取]
   Model: if/kimi-k2-thinking
 ```
 

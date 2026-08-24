@@ -31,7 +31,7 @@ Free tier providers are your **fallback** when subscription and cheap quota exha
 **Step 1: Connect via Dashboard**
 
 ```bash
-miawrouter
+dardcor-code
 # Dashboard → Providers → Connect iFlow
 ```
 
@@ -91,7 +91,7 @@ Model: if/kimi-k2-thinking
 **Step 1: Connect via Dashboard**
 
 ```bash
-miawrouter
+dardcor-code
 # Dashboard → Providers → Connect Qwen
 ```
 
@@ -144,7 +144,7 @@ Model: qw/qwen3-coder-plus
 **Step 1: Connect via Dashboard**
 
 ```bash
-miawrouter
+dardcor-code
 # Dashboard → Providers → Connect Kiro
 ```
 
@@ -200,7 +200,7 @@ Model: kr/claude-sonnet-4.5
 ```
 Settings → Models → Advanced:
   OpenAI API Base URL: http://localhost:21128/v1
-  OpenAI API Key: [from miawrouter dashboard]
+  OpenAI API Key: [from dardcor-code dashboard]
   Model: if/kimi-k2-thinking
 ```
 

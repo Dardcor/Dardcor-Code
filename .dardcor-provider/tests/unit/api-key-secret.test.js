@@ -20,7 +20,7 @@ const ENV_KEYS = ["DATA_DIR", "API_KEY_SECRET"];
 
 beforeEach(() => {
   saveEnv(ENV_KEYS);
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "miawrouter-apikey-"));
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dardcor-code-apikey-"));
   process.env.DATA_DIR = tempDir;
 });
 

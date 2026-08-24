@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { AgentTaskSession } from '@vscode/dardcor-api';
+import { AgentTaskSession } from '@vscode/copilot-api';
 import { PullRequestSearchItem } from '../../../platform/github/common/githubAPI';
 import { IOctoKitService } from '../../../platform/github/common/githubService';
 import { ILogService } from '../../../platform/log/common/logService';

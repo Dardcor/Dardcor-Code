@@ -5,7 +5,7 @@
 
 import * as pathLib from 'path';
 import * as vscode from 'vscode';
-import type { AgentTaskSessionEvent, AgentTaskState } from '@vscode/dardcor-api';
+import type { AgentTaskSessionEvent, AgentTaskState } from '@vscode/copilot-api';
 import { l10n, Uri } from 'vscode';
 import { IAuthenticationService } from '../../../platform/authentication/common/authentication';
 import { ConfigKey, IConfigurationService } from '../../../platform/configuration/common/configurationService';

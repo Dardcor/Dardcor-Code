@@ -36,8 +36,8 @@ afterEach(() => {
 describe("scanBranding", () => {
   it("clean tree: ok, zero hits", () => {
     const root = makeTree({
-      "src/ok.js": 'export const NAME = "miawrouter";\n',
-      "README.md": "# MiawRouter\n",
+      "src/ok.js": 'export const NAME = "dardcor-code";\n',
+      "README.md": "# Dardcor Code\n",
     });
     const result = scanBranding({ root });
     expect(result.ok).toBe(true);
@@ -211,7 +211,7 @@ describe("scanText / walkBranding", () => {
   it("provenance and compat tables match REBRAND.md §3–§5", () => {
     expect(PROVENANCE_ALLOWLIST).toContain("LICENSE");
     expect(PROVENANCE_ALLOWLIST).toContain("docs/REBRAND.md");
-    expect(PROVENANCE_ALLOWLIST).toContain("MIAWROUTER_CLONE_PLAYBOOK.md");
+    expect(PROVENANCE_ALLOWLIST).toContain("DARDCOR CODE_CLONE_PLAYBOOK.md");
     expect(COMPAT_ALIASES["cli/cli.js"]).toEqual([".9router"]);
     expect(COMPAT_ALIASES["open-sse/config/appConstants.js"]).toEqual(["9router"]);
     expect(COMPAT_ALIASES["cli/src/cli/tray/autostart.js"]).toContain(".9router");
@@ -229,14 +229,14 @@ describe("scanText / walkBranding", () => {
     expect(COMPAT_ALIASES["tests/unit/kimi-usage.test.js"]).toContain("9router");
     expect(COMPAT_ALIASES["tests/unit/cursor-agent-proto.test.js"]).toContain("9router");
     // Gate self-tests + frozen planning doc are provenance.
-    expect(PROVENANCE_ALLOWLIST).toContain("MIAWROUTER_AGENT_PROMPT_V2.md");
+    expect(PROVENANCE_ALLOWLIST).toContain("DARDCOR CODE_AGENT_PROMPT_V2.md");
     expect(PROVENANCE_ALLOWLIST).toContain("tests/unit/branding-gate.test.js");
     expect(PROVENANCE_ALLOWLIST).toContain("tests/unit/rebrand-phase8.test.js");
   });
 
   it("LINE_PATTERN_COMPAT allows only the exact migration flag line in READMEs", () => {
     // The exact flag literal line is compat.
-    const ok = scanText("miawrouter migrate --from-9router\n", "README.md");
+    const ok = scanText("dardcor-code migrate --from-9router\n", "README.md");
     expect(ok.length).toBeGreaterThan(0);
     expect(ok.every((h) => h.compat)).toBe(true);
     // Any other old-brand line in the same file is still forbidden.
@@ -244,7 +244,7 @@ describe("scanText / walkBranding", () => {
     expect(bad.length).toBeGreaterThan(0);
     expect(bad.every((h) => !h.compat)).toBe(true);
     // Same flag line in a file without a pattern entry stays forbidden.
-    const other = scanText("miawrouter migrate --from-9router\n", "src/other.js");
+    const other = scanText("dardcor-code migrate --from-9router\n", "src/other.js");
     expect(other.every((h) => !h.compat)).toBe(true);
     expect(LINE_PATTERN_COMPAT["cli/README.md"]).toBeDefined();
   });

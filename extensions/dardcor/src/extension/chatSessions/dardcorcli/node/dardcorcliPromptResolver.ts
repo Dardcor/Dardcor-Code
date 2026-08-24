@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { Attachment } from '@github/dardcor/sdk';
+import type { Attachment } from '@github/copilot/sdk';
 import type * as vscode from 'vscode';
 import { IFileSystemService } from '../../../../platform/filesystem/common/fileSystemService';
 import { IIgnoreService } from '../../../../platform/ignore/common/ignoreService';

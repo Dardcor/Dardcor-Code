@@ -32,7 +32,7 @@ Provider tier subscription là lựa chọn **chính** - bạn đã trả tiền
 **Bước 1: Kết nối qua Dashboard**
 
 ```bash
-miawrouter
+dardcor-code
 # Dashboard opens → Providers → Connect Claude Code
 ```
 
@@ -82,7 +82,7 @@ Model: cc/claude-opus-4-5-20251101
 **Bước 1: Kết nối qua Dashboard**
 
 ```bash
-miawrouter
+dardcor-code
 # Dashboard → Providers → Connect Codex
 ```
 
@@ -134,7 +134,7 @@ Model: cx/gpt-5.2-codex
 **Bước 1: Kết nối qua Dashboard**
 
 ```bash
-miawrouter
+dardcor-code
 # Dashboard → Providers → Connect Gemini CLI
 ```
 
@@ -186,7 +186,7 @@ Model: gc/gemini-3-flash-preview
 **Bước 1: Kết nối qua Dashboard**
 
 ```bash
-miawrouter
+dardcor-code
 # Dashboard → Providers → Connect GitHub
 ```
 
@@ -236,7 +236,7 @@ Model: gh/gpt-5
 **Bước 1: Kết nối qua Dashboard**
 
 ```bash
-miawrouter
+dardcor-code
 # Dashboard → Providers → Connect Antigravity
 ```
 
@@ -292,7 +292,7 @@ Model: ag/gemini-3-pro-high
 ```
 Settings → Models → Advanced:
   OpenAI API Base URL: http://localhost:21128/v1
-  OpenAI API Key: [from miawrouter dashboard]
+  OpenAI API Key: [from dardcor-code dashboard]
   Model: cc/claude-opus-4-5-20251101
 ```
 
@@ -316,7 +316,7 @@ Use in CLI: premium-coding
 
 ## Quota Tracking
 
-MiawRouter theo dõi quota thời gian thực:
+Dardcor Code theo dõi quota thời gian thực:
 
 - **Tiêu thụ token** - Tokens input/output mỗi request
 - **Đếm ngược reset** - Thời gian đến lần reset tiếp theo
@@ -385,7 +385,7 @@ Night: Cheap/free tier
 ### "OAuth token expired"
 
 **Giải pháp:**
-- Auto-refresh bởi MiawRouter
+- Auto-refresh bởi Dardcor Code
 - Nếu vẫn lỗi: Dashboard → Provider → Reconnect
 
 ### "Rate limiting"

@@ -18,7 +18,7 @@ describe('CopilotCLI SDK Upgrade', function () {
 	});
 
 	it('should be able to load the SDK without errors', async function () {
-		await import('@github/dardcor/sdk');
+		await import('@github/copilot/sdk');
 	}, 10000);
 
 	it('should not contain new native binaries nor removed native binaries', async function () {
@@ -39,7 +39,7 @@ describe('CopilotCLI SDK Upgrade', function () {
 			path.join('prebuilds', 'linuxmusl-x64', 'cli-native.node'),
 			path.join('prebuilds', 'win32-arm64', 'cli-native.node'),
 			path.join('prebuilds', 'win32-x64', 'cli-native.node'),
-			// Native modules present in the raw @github/dardcor package. Root
+			// Native modules present in the raw @github/copilot package. Root
 			// prebuilds are stripped from the shipped extension by .vscodeignore.
 			path.join('prebuilds', 'darwin-arm64', 'runtime.node'),
 			path.join('prebuilds', 'darwin-x64', 'runtime.node'),
@@ -49,7 +49,7 @@ describe('CopilotCLI SDK Upgrade', function () {
 			path.join('prebuilds', 'linuxmusl-x64', 'runtime.node'),
 			path.join('prebuilds', 'win32-arm64', 'runtime.node'),
 			path.join('prebuilds', 'win32-x64', 'runtime.node'),
-			// Second copy of native prebuilds re-shipped by the @github/dardcor/sdk subpackage
+			// Second copy of native prebuilds re-shipped by the @github/copilot/sdk subpackage
 			// (previously hidden by a broad sdk/prebuilds/** exclusion that masked the node-pty files we used to shim in at test setup).
 			path.join('sdk', 'prebuilds', 'darwin-arm64', 'runtime.node'),
 			path.join('sdk', 'prebuilds', 'darwin-x64', 'runtime.node'),
@@ -160,8 +160,8 @@ describe('CopilotCLI SDK Upgrade', function () {
 		}
 	}, 30000);
 
-	it('should be able to load the @github/dardcor module without errors', async function () {
-		await import('@github/dardcor/sdk');
+	it('should be able to load the @github/copilot module without errors', async function () {
+		await import('@github/copilot/sdk');
 	});
 });
 

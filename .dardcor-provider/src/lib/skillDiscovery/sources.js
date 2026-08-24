@@ -71,11 +71,11 @@ export function normalizeSkillsShSkill(row) {
 /** Local catalog skills are built-in and therefore already installed. */
 export function normalizeLocalSkill(skill) {
   return {
-    id: `miawrouter/${skill.id}`,
+    id: `dardcor-code/${skill.id}`,
     slug: skill.id,
     name: skill.name,
     description: skill.description || "",
-    source: "miawrouter",
+    source: "dardcor-code",
     sourceRef: null,
     url: null,
     installs: 0,

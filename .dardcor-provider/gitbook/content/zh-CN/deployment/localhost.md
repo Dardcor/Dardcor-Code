@@ -1,15 +1,15 @@
 # 🏠 本地部署
 
-在本机运行 MiawRouter,用于开发和个人使用。
+在本机运行 Dardcor Code,用于开发和个人使用。
 
 ---
 
 ## 📦 安装
 
-通过 npm 全局安装 MiawRouter:
+通过 npm 全局安装 Dardcor Code:
 
 ```bash
-npm install -g miawrouter
+npm install -g dardcor-code
 ```
 
 **要求:**
@@ -20,10 +20,10 @@ npm install -g miawrouter
 
 ## 🚀 启动服务器
 
-一条命令启动 MiawRouter:
+一条命令启动 Dardcor Code:
 
 ```bash
-miawrouter
+dardcor-code
 ```
 
 仪表盘会自动在浏览器中打开,地址为 `http://localhost:3000`
@@ -31,7 +31,7 @@ miawrouter
 **默认配置:**
 - **仪表盘**: `http://localhost:3000`
 - **API Endpoint**: `http://localhost:21128/v1`
-- **数据目录**: `~/.miawrouter`
+- **数据目录**: `~/.dardcor-code`
 
 ---
 
@@ -42,7 +42,7 @@ miawrouter
 通过环境变量设置自定义数据目录:
 
 ```bash
-DATA_DIR=/path/to/data miawrouter
+DATA_DIR=/path/to/data dardcor-code
 ```
 
 ### 自定义端口
@@ -53,10 +53,10 @@ API 端口(21128)和仪表盘端口(3000)在应用中配置。如需修改,你�
 
 ## 🛑 停止服务器
 
-在运行 MiawRouter 的终端中按 `Ctrl+C`。
+在运行 Dardcor Code 的终端中按 `Ctrl+C`。
 
 ```bash
-# 在运行 miawrouter 的终端中
+# 在运行 dardcor-code 的终端中
 ^C  # 按 Ctrl+C
 ```
 
@@ -69,25 +69,25 @@ API 端口(21128)和仪表盘端口(3000)在应用中配置。如需修改,你�
 再次运行启动命令即可:
 
 ```bash
-miawrouter
+dardcor-code
 ```
 
 所有配置、API keys 和组合都保存在数据目录中。
 
 ---
 
-## 📊 更新 MiawRouter
+## 📊 更新 Dardcor Code
 
 更新到最新版本:
 
 ```bash
-npm update -g miawrouter
+npm update -g dardcor-code
 ```
 
 查看当前版本:
 
 ```bash
-npm list -g miawrouter
+npm list -g dardcor-code
 ```
 
 ---
@@ -113,7 +113,7 @@ kill -9 <PID>
 
 ```bash
 # 使用 sudo(不推荐)
-sudo npm install -g miawrouter
+sudo npm install -g dardcor-code
 
 # 或修复 npm 权限(推荐)
 mkdir ~/.npm-global
@@ -128,10 +128,10 @@ source ~/.bashrc
 
 ```bash
 # 检查权限
-ls -la ~/.miawrouter
+ls -la ~/.dardcor-code
 
 # 修复权限
-chmod 755 ~/.miawrouter
+chmod 755 ~/.dardcor-code
 ```
 
 ---
@@ -139,7 +139,7 @@ chmod 755 ~/.miawrouter
 ## 📁 数据目录结构
 
 ```
-~/.miawrouter/
+~/.dardcor-code/
 ├── db.json           # 主数据库(提供商、组合、设置)
 ├── logs/             # 应用日志
 └── cache/            # 临时缓存文件
@@ -149,10 +149,10 @@ chmod 755 ~/.miawrouter
 
 ```bash
 # 备份
-cp -r ~/.miawrouter ~/.miawrouter.backup
+cp -r ~/.dardcor-code ~/.dardcor-code.backup
 
 # 恢复
-cp -r ~/.miawrouter.backup ~/.miawrouter
+cp -r ~/.dardcor-code.backup ~/.dardcor-code
 ```
 
 ---

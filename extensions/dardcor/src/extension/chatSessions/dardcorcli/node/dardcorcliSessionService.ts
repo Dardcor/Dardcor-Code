@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { internal, LocalSessionMetadata, SessionContext, SessionEvent, SessionOptions, SweCustomAgent } from '@github/dardcor/sdk';
+import type { internal, LocalSessionMetadata, SessionContext, SessionEvent, SessionOptions, SweCustomAgent } from '@github/copilot/sdk';
 import * as l10n from '@vscode/l10n';
 import { createReadStream } from 'node:fs';
 import { devNull } from 'node:os';

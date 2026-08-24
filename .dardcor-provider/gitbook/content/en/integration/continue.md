@@ -1,13 +1,13 @@
 # Continue VSCode Extension Integration
 
-Integrate MiawRouter with Continue extension to bring AI assistance directly into Visual Studio Code.
+Integrate Dardcor Code with Continue extension to bring AI assistance directly into Visual Studio Code.
 
 ## Prerequisites
 
 - Visual Studio Code installed
 - Continue extension installed from VSCode marketplace
-- MiawRouter API key from [dashboard](https://miawrouter.web.id/dashboard)
-- MiawRouter running (local or cloud)
+- Dardcor Code API key from [dashboard](https://dardcor-code.web.id/dashboard)
+- Dardcor Code running (local or cloud)
 
 ## Configuration Steps
 
@@ -18,7 +18,7 @@ Integrate MiawRouter with Continue extension to bring AI assistance directly int
 3. Type "Continue: Open Config" and select it
 4. This opens `~/.continue/config.json`
 
-### 2. Add MiawRouter Model Configuration
+### 2. Add Dardcor Code Model Configuration
 
 Add the following configuration to your `config.json`:
 
@@ -27,7 +27,7 @@ Add the following configuration to your `config.json`:
 {
   "models": [
     {
-      "title": "MiawRouter - Claude Opus",
+      "title": "Dardcor Code - Claude Opus",
       "provider": "openai",
       "model": "cc/claude-opus-4-5-20251101",
       "apiKey": "your-api-key-from-dashboard",
@@ -42,28 +42,28 @@ Add the following configuration to your `config.json`:
 {
   "models": [
     {
-      "title": "MiawRouter - Claude Opus (Best)",
+      "title": "Dardcor Code - Claude Opus (Best)",
       "provider": "openai",
       "model": "cc/claude-opus-4-5-20251101",
       "apiKey": "your-api-key-from-dashboard",
       "apiBase": "http://localhost:21128/v1"
     },
     {
-      "title": "MiawRouter - Claude Sonnet (Balanced)",
+      "title": "Dardcor Code - Claude Sonnet (Balanced)",
       "provider": "openai",
       "model": "cc/claude-sonnet-4-20250514",
       "apiKey": "your-api-key-from-dashboard",
       "apiBase": "http://localhost:21128/v1"
     },
     {
-      "title": "MiawRouter - DeepSeek Chat (Code)",
+      "title": "Dardcor Code - DeepSeek Chat (Code)",
       "provider": "openai",
       "model": "cx/deepseek-chat",
       "apiKey": "your-api-key-from-dashboard",
       "apiBase": "http://localhost:21128/v1"
     },
     {
-      "title": "MiawRouter - Claude Haiku (Fast)",
+      "title": "Dardcor Code - Claude Haiku (Fast)",
       "provider": "openai",
       "model": "cc/claude-haiku-4-20250514",
       "apiKey": "your-api-key-from-dashboard",
@@ -73,10 +73,10 @@ Add the following configuration to your `config.json`:
 }
 ```
 
-**For Cloud MiawRouter:**
+**For Cloud Dardcor Code:**
 Replace `apiBase` with:
 ```json
-"apiBase": "https://miawrouter.web.id/v1"
+"apiBase": "https://dardcor-code.web.id/v1"
 ```
 
 ### 3. Save and Reload
@@ -89,7 +89,7 @@ Replace `apiBase` with:
 
 1. Open Continue sidebar (click Continue icon in left panel)
 2. Click model selector dropdown at the top
-3. Choose your preferred MiawRouter model
+3. Choose your preferred Dardcor Code model
 
 ## Available Models
 
@@ -139,7 +139,7 @@ Add custom system prompts for specific behaviors:
 {
   "models": [
     {
-      "title": "MiawRouter - Code Expert",
+      "title": "Dardcor Code - Code Expert",
       "provider": "openai",
       "model": "cx/deepseek-chat",
       "apiKey": "your-api-key",
@@ -158,7 +158,7 @@ Adjust model behavior with parameters:
 {
   "models": [
     {
-      "title": "MiawRouter - Creative Writer",
+      "title": "Dardcor Code - Creative Writer",
       "provider": "openai",
       "model": "cc/claude-opus-4-5-20251101",
       "apiKey": "your-api-key",
@@ -204,13 +204,13 @@ Configure what context Continue sends to the model:
 ## Troubleshooting
 
 ### Model Not Responding
-- Check MiawRouter is running: `curl http://localhost:21128/health`
+- Check Dardcor Code is running: `curl http://localhost:21128/health`
 - Verify API key in config.json
 - Check VSCode Developer Console for errors: `Help` → `Toggle Developer Tools`
 
 ### Wrong Model Selected
 - Click model dropdown in Continue sidebar
-- Select correct MiawRouter model
+- Select correct Dardcor Code model
 - Model name must match exactly (case-sensitive)
 
 ### Configuration Not Loading
@@ -221,7 +221,7 @@ Configure what context Continue sends to the model:
 ### Slow Performance
 - Switch to faster models (haiku, flash)
 - Reduce context size in contextProviders
-- Check network latency to MiawRouter
+- Check network latency to Dardcor Code
 
 ## Best Practices
 

@@ -46,12 +46,12 @@ const readSettings = async () => {
   }
 };
 
-// New writes use "custom:MiawRouter"; legacy "custom:9Router" ids stay readable.
-const MODEL_PREFIX = "custom:MiawRouter";
+// New writes use "custom:Dardcor Code"; legacy "custom:9Router" ids stay readable.
+const MODEL_PREFIX = "custom:Dardcor Code";
 const LEGACY_MODEL_PREFIX = "custom:9Router";
 const isOurs = (id) => typeof id === "string" && (id.startsWith(MODEL_PREFIX) || id.startsWith(LEGACY_MODEL_PREFIX));
 
-// Check if settings has MiawRouter customModels
+// Check if settings has Dardcor Code customModels
 const has9RouterConfig = (settings) => {
   if (!settings || !settings.customModels) return false;
   return settings.customModels.some(m => isOurs(m.id));
@@ -116,7 +116,7 @@ export async function POST(request) {
       settings.customModels = [];
     }
 
-    // Remove all existing MiawRouter (legacy 9Router) configs
+    // Remove all existing Dardcor Code (legacy 9Router) configs
     settings.customModels = settings.customModels.filter(m => !isOurs(m.id));
 
     // Normalize baseUrl to ensure /v1 suffix
@@ -196,7 +196,7 @@ export async function DELETE() {
       throw error;
     }
 
-    // Remove MiawRouter customModels (legacy 9Router too)
+    // Remove Dardcor Code customModels (legacy 9Router too)
     if (settings.customModels) {
       settings.customModels = settings.customModels.filter(m => !isOurs(m.id));
       
@@ -211,7 +211,7 @@ export async function DELETE() {
 
     return NextResponse.json({
       success: true,
-      message: "MiawRouter settings removed successfully",
+      message: "Dardcor Code settings removed successfully",
     });
   } catch (error) {
     console.log("Error resetting droid settings:", error);

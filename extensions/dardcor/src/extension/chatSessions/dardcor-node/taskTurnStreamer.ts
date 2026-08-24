@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { AgentTaskGetResponse, AgentTaskSessionEvent } from '@vscode/dardcor-api';
+import type { AgentTaskGetResponse, AgentTaskSessionEvent } from '@vscode/copilot-api';
 import * as vscode from 'vscode';
 import { ILogService } from '../../../platform/log/common/logService';
 import { CLI_TOOL_EVENT_HANDLERS } from '../dardcorcli/common/dardcorCLITools';

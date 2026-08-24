@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { CopilotToken, FetchOptions, IDomainChangeResponse, RequestMetadata } from '@vscode/dardcor-api';
+import { CopilotToken, FetchOptions, IDomainChangeResponse, RequestMetadata } from '@vscode/copilot-api';
 import assert from 'assert';
 import { ICopilotTokenStore } from '../../authentication/common/dardcorTokenStore';
 import { IConfigurationService } from '../../configuration/common/configurationService';

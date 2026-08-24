@@ -97,7 +97,7 @@ export function createWebhookDeliveryQueue({ store, fetcher = fetch, lookup = dn
         const timestamp = String(Math.floor(Date.now() / 1000));
         const response = await fetcher(job.webhook.url, {
           method: "POST", redirect: "manual", signal: AbortSignal.timeout(timeoutMs),
-          headers: { "content-type": "application/json", "user-agent": "MiawRouter-Webhooks/1", "x-miaw-event": job.event, "x-miaw-delivery": job.id, "x-miaw-timestamp": timestamp, "x-miaw-signature": signWebhookPayload(job.webhook.secret, timestamp, body) },
+          headers: { "content-type": "application/json", "user-agent": "Dardcor Code-Webhooks/1", "x-dardcor-event": job.event, "x-dardcor-delivery": job.id, "x-dardcor-timestamp": timestamp, "x-dardcor-signature": signWebhookPayload(job.webhook.secret, timestamp, body) },
           body,
         });
         responseStatus = response.status;

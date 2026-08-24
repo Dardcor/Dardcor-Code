@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { FetchOptions, RequestMetadata } from '@vscode/dardcor-api';
+import type { FetchOptions, RequestMetadata } from '@vscode/copilot-api';
 import { Response } from '../../../networking/common/fetcherService';
 
 /**

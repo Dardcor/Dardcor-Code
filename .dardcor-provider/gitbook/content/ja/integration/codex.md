@@ -1,12 +1,12 @@
 # OpenAI Codex CLI統合
 
-MiawRouterをOpenAI Codex CLIと統合し、OpenAI APIリクエストをMiawRouterのインテリジェントルーティングシステム経由でルーティングします。
+Dardcor CodeをOpenAI Codex CLIと統合し、OpenAI APIリクエストをDardcor Codeのインテリジェントルーティングシステム経由でルーティングします。
 
 ## 前提条件
 
 - OpenAI Codex CLIがインストール済み
-- MiawRouterがローカルで動作中、またはクラウドエンドポイントが設定済み
-- MiawRouterダッシュボードからのAPIキー
+- Dardcor Codeがローカルで動作中、またはクラウドエンドポイントが設定済み
+- Dardcor CodeダッシュボードからのAPIキー
 
 ## セットアップ
 
@@ -15,11 +15,11 @@ MiawRouterをOpenAI Codex CLIと統合し、OpenAI APIリクエストをMiawRout
 シェル設定ファイル (`~/.bashrc`、`~/.zshrc`、または `~/.bash_profile`) で以下の環境変数を設定:
 
 ```bash
-# MiawRouter用Base URL
+# Dardcor Code用Base URL
 export OPENAI_BASE_URL="http://localhost:21128/v1"
 
-# MiawRouterダッシュボードからのAPIキー
-export OPENAI_API_KEY="your-miawrouter-api-key"
+# Dardcor CodeダッシュボードからのAPIキー
+export OPENAI_API_KEY="your-dardcor-code-api-key"
 ```
 
 ### 2. シェル設定をリロード
@@ -39,7 +39,7 @@ echo $OPENAI_API_KEY
 
 ## 利用可能なモデル
 
-MiawRouterは以下のCodexモデルを提供します:
+Dardcor Codeは以下のCodexモデルを提供します:
 
 | モデルID | 説明 |
 |----------|-------------|
@@ -77,7 +77,7 @@ codex --model cx/gpt-5.1-codex-max "Explain what this code does: $(cat myfile.js
 ```json
 {
   "baseUrl": "http://localhost:21128/v1",
-  "apiKey": "your-miawrouter-api-key",
+  "apiKey": "your-dardcor-code-api-key",
   "defaultModel": "cx/gpt-5.2-codex"
 }
 ```
@@ -88,7 +88,7 @@ codex --model cx/gpt-5.1-codex-max "Explain what this code does: $(cat myfile.js
 
 認証エラーが発生した場合:
 
-1. MiawRouterダッシュボードでAPIキーが正しいか確認
+1. Dardcor CodeダッシュボードでAPIキーが正しいか確認
 2. `OPENAI_API_KEY` 環境変数が設定されているか確認
 3. APIキーが期限切れでないか確認
 
@@ -96,7 +96,7 @@ codex --model cx/gpt-5.1-codex-max "Explain what this code does: $(cat myfile.js
 
 接続エラーが発生した場合:
 
-1. MiawRouterが動作中か確認: `curl http://localhost:21128/health`
+1. Dardcor Codeが動作中か確認: `curl http://localhost:21128/health`
 2. 環境変数が正しく設定されているか確認
 3. ファイアウォールがポート21128をブロックしていないか確認
 
@@ -104,19 +104,19 @@ codex --model cx/gpt-5.1-codex-max "Explain what this code does: $(cat myfile.js
 
 「model not available」エラーが発生した場合:
 
-1. モデル名がMiawRouter設定と一致するか確認
-2. MiawRouterダッシュボードでOpenAIプロバイダー接続がアクティブか確認
+1. モデル名がDardcor Code設定と一致するか確認
+2. Dardcor CodeダッシュボードでOpenAIプロバイダー接続がアクティブか確認
 3. 接続されたプロバイダーでモデルが利用可能か確認
 
 ## クラウドエンドポイント
 
-localhostの代わりにMiawRouterクラウドエンドポイントを使用するには:
+localhostの代わりにDardcor Codeクラウドエンドポイントを使用するには:
 
 ```bash
-export OPENAI_BASE_URL="https://miawrouter.web.id"
+export OPENAI_BASE_URL="https://dardcor-code.web.id"
 ```
 
-MiawRouterクラウドダッシュボードでAPIキーが設定されていることを確認してください。
+Dardcor CodeクラウドダッシュボードでAPIキーが設定されていることを確認してください。
 
 ## 高度な設定
 

@@ -1,13 +1,13 @@
 # Continue VSCode拡張機能統合
 
-MiawRouterをContinue拡張機能と統合し、Visual Studio Codeに直接AIアシスタンスを導入します。
+Dardcor CodeをContinue拡張機能と統合し、Visual Studio Codeに直接AIアシスタンスを導入します。
 
 ## 前提条件
 
 - Visual Studio Codeがインストール済み
 - VSCodeマーケットプレイスからContinue拡張機能がインストール済み
-- [ダッシュボード](https://miawrouter.web.id/dashboard)からのMiawRouter APIキー
-- MiawRouterが動作中 (ローカルまたはクラウド)
+- [ダッシュボード](https://dardcor-code.web.id/dashboard)からのDardcor Code APIキー
+- Dardcor Codeが動作中 (ローカルまたはクラウド)
 
 ## 設定手順
 
@@ -18,7 +18,7 @@ MiawRouterをContinue拡張機能と統合し、Visual Studio Codeに直接AIア
 3. 「Continue: Open Config」と入力して選択
 4. `~/.continue/config.json` が開きます
 
-### 2. MiawRouterモデル設定を追加
+### 2. Dardcor Codeモデル設定を追加
 
 以下の設定を `config.json` に追加:
 
@@ -27,7 +27,7 @@ MiawRouterをContinue拡張機能と統合し、Visual Studio Codeに直接AIア
 {
   "models": [
     {
-      "title": "MiawRouter - Claude Opus",
+      "title": "Dardcor Code - Claude Opus",
       "provider": "openai",
       "model": "cc/claude-opus-4-5-20251101",
       "apiKey": "your-api-key-from-dashboard",
@@ -42,28 +42,28 @@ MiawRouterをContinue拡張機能と統合し、Visual Studio Codeに直接AIア
 {
   "models": [
     {
-      "title": "MiawRouter - Claude Opus (Best)",
+      "title": "Dardcor Code - Claude Opus (Best)",
       "provider": "openai",
       "model": "cc/claude-opus-4-5-20251101",
       "apiKey": "your-api-key-from-dashboard",
       "apiBase": "http://localhost:21128/v1"
     },
     {
-      "title": "MiawRouter - Claude Sonnet (Balanced)",
+      "title": "Dardcor Code - Claude Sonnet (Balanced)",
       "provider": "openai",
       "model": "cc/claude-sonnet-4-20250514",
       "apiKey": "your-api-key-from-dashboard",
       "apiBase": "http://localhost:21128/v1"
     },
     {
-      "title": "MiawRouter - DeepSeek Chat (Code)",
+      "title": "Dardcor Code - DeepSeek Chat (Code)",
       "provider": "openai",
       "model": "cx/deepseek-chat",
       "apiKey": "your-api-key-from-dashboard",
       "apiBase": "http://localhost:21128/v1"
     },
     {
-      "title": "MiawRouter - Claude Haiku (Fast)",
+      "title": "Dardcor Code - Claude Haiku (Fast)",
       "provider": "openai",
       "model": "cc/claude-haiku-4-20250514",
       "apiKey": "your-api-key-from-dashboard",
@@ -73,10 +73,10 @@ MiawRouterをContinue拡張機能と統合し、Visual Studio Codeに直接AIア
 }
 ```
 
-**クラウドMiawRouter用:**
+**クラウドDardcor Code用:**
 `apiBase` を以下に置き換え:
 ```json
-"apiBase": "https://miawrouter.web.id/v1"
+"apiBase": "https://dardcor-code.web.id/v1"
 ```
 
 ### 3. 保存してリロード
@@ -89,7 +89,7 @@ MiawRouterをContinue拡張機能と統合し、Visual Studio Codeに直接AIア
 
 1. Continueサイドバーを開く (左パネルのContinueアイコンをクリック)
 2. 上部のモデルセレクタードロップダウンをクリック
-3. お好みのMiawRouterモデルを選択
+3. お好みのDardcor Codeモデルを選択
 
 ## 利用可能なモデル
 
@@ -139,7 +139,7 @@ MiawRouterをContinue拡張機能と統合し、Visual Studio Codeに直接AIア
 {
   "models": [
     {
-      "title": "MiawRouter - Code Expert",
+      "title": "Dardcor Code - Code Expert",
       "provider": "openai",
       "model": "cx/deepseek-chat",
       "apiKey": "your-api-key",
@@ -158,7 +158,7 @@ MiawRouterをContinue拡張機能と統合し、Visual Studio Codeに直接AIア
 {
   "models": [
     {
-      "title": "MiawRouter - Creative Writer",
+      "title": "Dardcor Code - Creative Writer",
       "provider": "openai",
       "model": "cc/claude-opus-4-5-20251101",
       "apiKey": "your-api-key",
@@ -204,13 +204,13 @@ Continueがモデルに送信するコンテキストを設定:
 ## トラブルシューティング
 
 ### モデルが応答しない
-- MiawRouterが動作中か確認: `curl http://localhost:21128/health`
+- Dardcor Codeが動作中か確認: `curl http://localhost:21128/health`
 - config.jsonのAPIキーを確認
 - エラーについてVSCode開発者コンソールを確認: `Help` → `Toggle Developer Tools`
 
 ### 間違ったモデルが選択されている
 - Continueサイドバーのモデルドロップダウンをクリック
-- 正しいMiawRouterモデルを選択
+- 正しいDardcor Codeモデルを選択
 - モデル名は正確に一致する必要があります (大文字小文字を区別)
 
 ### 設定が読み込まれない
@@ -221,7 +221,7 @@ Continueがモデルに送信するコンテキストを設定:
 ### パフォーマンスが遅い
 - より高速なモデルへ切替 (haiku、flash)
 - contextProvidersでコンテキストサイズを削減
-- MiawRouterへのネットワークレイテンシを確認
+- Dardcor Codeへのネットワークレイテンシを確認
 
 ## ベストプラクティス
 

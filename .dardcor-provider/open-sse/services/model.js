@@ -49,8 +49,8 @@ export function parseModel(modelStr) {
     return { provider: null, model: null, isAlias: false, providerAlias: null };
   }
 
-  // Strip leading router namespace prefixes like "miawrouter/" or "miawcode/" or "9router/"
-  const cleanStr = modelStr.replace(/^(miawrouter|miawcode|9router)\//i, "");
+  // Strip leading router namespace prefixes like "dardcor-code/" or "dardcorcode/" or "9router/"
+  const cleanStr = modelStr.replace(/^(dardcor-code|dardcorcode|9router)\//i, "");
 
   // Check if standard format: provider/model or alias/model
   if (cleanStr.includes("/")) {

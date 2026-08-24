@@ -1,15 +1,15 @@
 # 🏠 Localhost Deployment
 
-Run MiawRouter on your local machine for development and personal use.
+Run Dardcor Code on your local machine for development and personal use.
 
 ---
 
 ## 📦 Installation
 
-Install MiawRouter globally via npm:
+Install Dardcor Code globally via npm:
 
 ```bash
-npm install -g miawrouter
+npm install -g dardcor-code
 ```
 
 **Requirements:**
@@ -20,10 +20,10 @@ npm install -g miawrouter
 
 ## 🚀 Starting the Server
 
-Start MiawRouter with a single command:
+Start Dardcor Code with a single command:
 
 ```bash
-miawrouter
+dardcor-code
 ```
 
 The dashboard will automatically open in your browser at `http://localhost:3000`
@@ -31,7 +31,7 @@ The dashboard will automatically open in your browser at `http://localhost:3000`
 **Default Configuration:**
 - **Dashboard**: `http://localhost:3000`
 - **API Endpoint**: `http://localhost:21128/v1`
-- **Data Directory**: `~/.miawrouter`
+- **Data Directory**: `~/.dardcor-code`
 
 ---
 
@@ -42,7 +42,7 @@ The dashboard will automatically open in your browser at `http://localhost:3000`
 Set a custom data directory using environment variable:
 
 ```bash
-DATA_DIR=/path/to/data miawrouter
+DATA_DIR=/path/to/data dardcor-code
 ```
 
 ### Custom Port
@@ -53,10 +53,10 @@ The API port (21128) and dashboard port (3000) are configured in the application
 
 ## 🛑 Stopping the Server
 
-Press `Ctrl+C` in the terminal where MiawRouter is running.
+Press `Ctrl+C` in the terminal where Dardcor Code is running.
 
 ```bash
-# In the terminal running miawrouter
+# In the terminal running dardcor-code
 ^C  # Press Ctrl+C
 ```
 
@@ -69,25 +69,25 @@ The server will gracefully shut down and save all data.
 Simply run the start command again:
 
 ```bash
-miawrouter
+dardcor-code
 ```
 
 All your configurations, API keys, and combos are preserved in the data directory.
 
 ---
 
-## 📊 Updating MiawRouter
+## 📊 Updating Dardcor Code
 
 Update to the latest version:
 
 ```bash
-npm update -g miawrouter
+npm update -g dardcor-code
 ```
 
 Check your current version:
 
 ```bash
-npm list -g miawrouter
+npm list -g dardcor-code
 ```
 
 ---
@@ -113,7 +113,7 @@ If you encounter permission errors during installation:
 
 ```bash
 # Use sudo (not recommended)
-sudo npm install -g miawrouter
+sudo npm install -g dardcor-code
 
 # Or fix npm permissions (recommended)
 mkdir ~/.npm-global
@@ -128,10 +128,10 @@ If the data directory is not accessible:
 
 ```bash
 # Check permissions
-ls -la ~/.miawrouter
+ls -la ~/.dardcor-code
 
 # Fix permissions
-chmod 755 ~/.miawrouter
+chmod 755 ~/.dardcor-code
 ```
 
 ---
@@ -139,7 +139,7 @@ chmod 755 ~/.miawrouter
 ## 📁 Data Directory Structure
 
 ```
-~/.miawrouter/
+~/.dardcor-code/
 ├── db.json           # Main database (providers, combos, settings)
 ├── logs/             # Application logs
 └── cache/            # Temporary cache files
@@ -149,10 +149,10 @@ chmod 755 ~/.miawrouter
 
 ```bash
 # Backup
-cp -r ~/.miawrouter ~/.miawrouter.backup
+cp -r ~/.dardcor-code ~/.dardcor-code.backup
 
 # Restore
-cp -r ~/.miawrouter.backup ~/.miawrouter
+cp -r ~/.dardcor-code.backup ~/.dardcor-code
 ```
 
 ---

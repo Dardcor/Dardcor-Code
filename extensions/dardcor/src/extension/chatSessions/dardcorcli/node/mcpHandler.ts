@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { SessionOptions, SweCustomAgent } from '@github/dardcor/sdk';
+import type { SessionOptions, SweCustomAgent } from '@github/copilot/sdk';
 import type { CancellationToken } from 'vscode';
 import { IAuthenticationService } from '../../../../platform/authentication/common/authentication';
 import { ConfigKey, IConfigurationService } from '../../../../platform/configuration/common/configurationService';

@@ -30,8 +30,8 @@ const readConfig = async () => {
   }
 };
 
-// New writes use "MiawRouter"; legacy "9Router" entry name stays readable.
-const ENTRY_NAME = "MiawRouter";
+// New writes use "Dardcor Code"; legacy "9Router" entry name stays readable.
+const ENTRY_NAME = "Dardcor Code";
 const LEGACY_ENTRY_NAME = "9Router";
 
 const has9RouterConfig = (config) => {
@@ -85,7 +85,7 @@ export async function POST(request) {
     } catch { /* No existing config */ }
 
     const endpointUrl = `${baseUrl}/chat/completions#models.ai.azure.com`;
-    const keyToUse = apiKey || "sk_miawrouter";
+    const keyToUse = apiKey || "sk_dardcor-code";
 
     const newEntry = {
       name: ENTRY_NAME,
@@ -102,7 +102,7 @@ export async function POST(request) {
       })),
     };
 
-    // Replace existing MiawRouter (or legacy 9Router) entry or append
+    // Replace existing Dardcor Code (or legacy 9Router) entry or append
     const idx = config.findIndex((e) => e.name === ENTRY_NAME || e.name === LEGACY_ENTRY_NAME);
     if (idx >= 0) {
       config[idx] = newEntry;
@@ -145,7 +145,7 @@ export async function DELETE() {
 
     return NextResponse.json({
       success: true,
-      message: "MiawRouter removed from Copilot config",
+      message: "Dardcor Code removed from Copilot config",
     });
   } catch (error) {
     console.log("Error resetting copilot settings:", error);

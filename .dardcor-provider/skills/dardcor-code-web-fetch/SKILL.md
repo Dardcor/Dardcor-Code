@@ -1,25 +1,25 @@
 ---
-name: miawrouter-web-fetch
-description: Fetch URL → markdown / text / HTML via MiawRouter /v1/web/fetch using Firecrawl / Jina Reader / Tavily Extract / Exa Contents. Use when the user wants to scrape a webpage, extract URL content, read article, or convert a URL to markdown.
+name: dardcor-code-web-fetch
+description: Fetch URL → markdown / text / HTML via Dardcor Code /v1/web/fetch using Firecrawl / Jina Reader / Tavily Extract / Exa Contents. Use when the user wants to scrape a webpage, extract URL content, read article, or convert a URL to markdown.
 ---
 
-# MiawRouter — Web Fetch
+# Dardcor Code — Web Fetch
 
-Requires `MIAW_URL` (and `MIAW_KEY` if auth enabled). See https://miawrouter.web.id/skills/miawrouter/SKILL.md for setup.
+Requires `DARDCOR_URL` (and `DARDCOR_KEY` if auth enabled). See https://dardcor-code.web.id/skills/dardcor-code/SKILL.md for setup.
 
 ## Discover
 
 ```bash
-curl $MIAW_URL/v1/models/web | jq '.data[] | select(.kind=="webFetch") | .id'
+curl $DARDCOR_URL/v1/models/web | jq '.data[] | select(.kind=="webFetch") | .id'
 # Per-provider params
-curl "$MIAW_URL/v1/models/info?id=firecrawl/fetch"
+curl "$DARDCOR_URL/v1/models/info?id=firecrawl/fetch"
 ```
 
 IDs end in `/fetch` (e.g. `firecrawl/fetch`, `jina/fetch`). `fetch-combo` chains providers with auto-fallback.
 
 ## Endpoint
 
-`POST $MIAW_URL/v1/web/fetch`
+`POST $DARDCOR_URL/v1/web/fetch`
 
 | Field | Required | Notes |
 |---|---|---|
@@ -32,32 +32,32 @@ IDs end in `/fetch` (e.g. `firecrawl/fetch`, `jina/fetch`). `fetch-combo` chains
 
 ### Jina Reader
 ```bash
-curl -X POST $MIAW_URL/v1/web/fetch \
-  -H "Authorization: Bearer $MIAW_KEY" \
+curl -X POST $DARDCOR_URL/v1/web/fetch \
+  -H "Authorization: Bearer $DARDCOR_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"model":"jina-reader","url":"https://miawrouter.web.id","format":"markdown"}'
+  -d '{"model":"jina-reader","url":"https://dardcor-code.web.id","format":"markdown"}'
 ```
 
 ### Exa
 ```bash
-curl -X POST $MIAW_URL/v1/web/fetch \
-  -H "Authorization: Bearer $MIAW_KEY" \
+curl -X POST $DARDCOR_URL/v1/web/fetch \
+  -H "Authorization: Bearer $DARDCOR_KEY" \
   -H "Content-Type: application/json" \
   -d '{"model":"exa","url":"https://example.com","format":"markdown","max_characters":0}'
 ```
 
 ### Firecrawl
 ```bash
-curl -X POST $MIAW_URL/v1/web/fetch \
-  -H "Authorization: Bearer $MIAW_KEY" \
+curl -X POST $DARDCOR_URL/v1/web/fetch \
+  -H "Authorization: Bearer $DARDCOR_KEY" \
   -H "Content-Type: application/json" \
   -d '{"model":"firecrawl","url":"https://example.com","format":"markdown","max_characters":0}'
 ```
 
 ### Tavily
 ```bash
-curl -X POST $MIAW_URL/v1/web/fetch \
-  -H "Authorization: Bearer $MIAW_KEY" \
+curl -X POST $DARDCOR_URL/v1/web/fetch \
+  -H "Authorization: Bearer $DARDCOR_KEY" \
   -H "Content-Type: application/json" \
   -d '{"model":"tavily","url":"https://example.com","format":"markdown","max_characters":0}'
 ```
@@ -66,9 +66,9 @@ curl -X POST $MIAW_URL/v1/web/fetch \
 JS:
 
 ```js
-const r = await fetch(`${process.env.MIAW_URL}/v1/web/fetch`, {
+const r = await fetch(`${process.env.DARDCOR_URL}/v1/web/fetch`, {
   method: "POST",
-  headers: { "Authorization": `Bearer ${process.env.MIAW_KEY}`, "Content-Type": "application/json" },
+  headers: { "Authorization": `Bearer ${process.env.DARDCOR_KEY}`, "Content-Type": "application/json" },
   body: JSON.stringify({ model: "fetch-combo", url: "https://example.com", format: "markdown", max_characters: 5000 }),
 });
 const { data } = await r.json();

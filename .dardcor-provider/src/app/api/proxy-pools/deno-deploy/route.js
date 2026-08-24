@@ -69,7 +69,7 @@ export async function POST(request) {
       headers,
       body: JSON.stringify({
         slug: projectName,
-        labels: { "custom.kind": "miawrouter-relay" },
+        labels: { "custom.kind": "dardcor-code-relay" },
         config: {
           install: "deno install",
           runtime: {

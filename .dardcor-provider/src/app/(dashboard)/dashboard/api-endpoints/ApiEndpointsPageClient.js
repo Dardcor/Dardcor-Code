@@ -341,13 +341,13 @@ export default function ApiEndpointsPageClient() {
           <div className="text-xs text-text-muted space-y-1">
             <p>
               <strong className="text-text-main">cURL examples</strong> use placeholders
-              like <code className="px-1 rounded bg-surface-2">$MIAWROUTER_BASE_URL</code> and{" "}
-              <code className="px-1 rounded bg-surface-2">$MIAWROUTER_API_KEY</code>. Replace
+              like <code className="px-1 rounded bg-surface-2">$DARDCOR CODE_BASE_URL</code> and{" "}
+              <code className="px-1 rounded bg-surface-2">$DARDCOR CODE_API_KEY</code>. Replace
               them with your actual gateway URL and key.
             </p>
             <p>
               <strong className="text-text-main">Local-only</strong> endpoints are accessible
-              only from the machine running MiawRouter.{" "}
+              only from the machine running Dardcor Code.{" "}
               <strong className="text-text-main">Experimental</strong> endpoints may change
               without notice.
             </p>

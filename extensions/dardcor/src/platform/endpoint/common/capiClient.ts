@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { CAPIClient, MakeRequestOptions, RequestMetadata, RequestType } from '@vscode/dardcor-api';
+import { CAPIClient, MakeRequestOptions, RequestMetadata, RequestType } from '@vscode/copilot-api';
 import { createServiceIdentifier } from '../../../util/common/services';
 import { IEnvService } from '../../env/common/envService';
 import { IFetcherService, NO_FETCH_TELEMETRY, WebSocketConnection } from '../../networking/common/fetcherService';

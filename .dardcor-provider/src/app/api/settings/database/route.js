@@ -5,7 +5,7 @@ import { verifyDashboardPassword } from "@/lib/auth/dashboardSession";
 import { hasValidCliToken } from "@/dashboardGuard";
 
 // Legacy x-9r-password still read so an already-saved dashboard export flow keeps working.
-const PASSWORD_HEADER = "x-miaw-password";
+const PASSWORD_HEADER = "x-dardcor-password";
 const LEGACY_PASSWORD_HEADER = "x-9r-password";
 
 export async function GET(request) {
@@ -24,7 +24,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    // Header password wins: the migrate CLI sends it out-of-band (x-miaw-password)
+    // Header password wins: the migrate CLI sends it out-of-band (x-dardcor-password)
     // so the dashboard password never rides inside the DB payload body. The body
     // `password` field is still accepted for legacy callers (dashboard import).
     // The password value is never logged, echoed, or stored.

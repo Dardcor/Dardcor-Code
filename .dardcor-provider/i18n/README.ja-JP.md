@@ -1,20 +1,20 @@
 <div align="center">
-  <img src="../images/miawrouter.png?1" alt="MiawRouter Dashboard" width="800"/>
+  <img src="../images/dardcor-code.png?1" alt="Dardcor Code Dashboard" width="800"/>
 
-  # MiawRouter - 無料 AI ルーター
+  # Dardcor Code - 無料 AI ルーター
 
   **コーディングを止めない。スマートフォールバックで無料＆格安AIモデルに自動ルーティング。**
 
   **すべてのAIコーディングツール（Claude Code、Cursor、Antigravity、Copilot、Codex、Gemini、OpenCode、Cline、OpenClaw...）を40以上のAIプロバイダーと100以上のモデルに接続。**
 
-  [🚀 クイックスタート](#-クイックスタート) • [💡 機能](#-主な機能) • [📖 セットアップ](#-セットアップガイド) • [🌐 ウェブサイト](https://miawrouter.web.id)
+  [🚀 クイックスタート](#-クイックスタート) • [💡 機能](#-主な機能) • [📖 セットアップ](#-セットアップガイド) • [🌐 ウェブサイト](https://dardcor-code.web.id)
 
   [🇻🇳 Tiếng Việt](./README.vi.md) • [🇨🇳 中文](./README.zh-CN.md) • [🇯🇵 日本語](./README.ja-JP.md)
 </div>
 
 ---
 
-## 🤔 なぜMiawRouter？
+## 🤔 なぜDardcor Code？
 
 **お金の無駄遣いと制限に悩まされるのはもう終わりです：**
 
@@ -23,7 +23,7 @@
 - ❌ 高額なAPI（プロバイダーごとに月額$20〜50）
 - ❌ プロバイダー間の手動切り替え
 
-**MiawRouterが解決します：**
+**Dardcor Codeが解決します：**
 
 - ✅ **サブスクリプションを最大化** - クオータを追跡し、リセット前にすべて使い切る
 - ✅ **自動フォールバック** - サブスクリプション → 格安 → 無料、ダウンタイムゼロ
@@ -42,7 +42,7 @@
        │ http://localhost:21128/v1
        ↓
 ┌─────────────────────────────────────────┐
-│        MiawRouter（スマートルーター）        │
+│        Dardcor Code（スマートルーター）        │
 │  • フォーマット変換（OpenAI ↔ Claude）   │
 │  • クオータ追跡                          │
 │  • 自動トークンリフレッシュ               │
@@ -64,8 +64,8 @@
 **1. グローバルインストール：**
 
 ```bash
-npm install -g miawrouter
-miawrouter
+npm install -g dardcor-code
+dardcor-code
 ```
 
 🎉 ダッシュボードが `http://localhost:21128` で開きます
@@ -87,7 +87,7 @@ Claude Code/Codex/Gemini CLI/OpenClaw/Cursor/Clineの設定:
 
 **代替方法: ソースから実行（このリポジトリ）：**
 
-このリポジトリパッケージはプライベート（`miawrouter-app`）のため、ソース/Docker実行がローカル開発の想定パスです。
+このリポジトリパッケージはプライベート（`dardcor-code-app`）のため、ソース/Docker実行がローカル開発の想定パスです。
 
 ```bash
 cp .env.example .env
@@ -110,7 +110,7 @@ PORT=21128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run 
 
 ## 🛠️ 対応CLIツール
 
-MiawRouterはすべての主要AIコーディングツールとシームレスに連携します：
+Dardcor Codeはすべての主要AIコーディングツールとシームレスに連携します：
 
 <div align="center">
   <table>
@@ -361,7 +361,7 @@ MiawRouterはすべての主要AIコーディングツールとシームレス�
 
 フォーマット間のシームレスな変換：
 - **OpenAI** ↔ **Claude** ↔ **Gemini** ↔ **OpenAI Responses**
-- CLIツールがOpenAIフォーマットで送信 → MiawRouterが変換 → プロバイダーがネイティブフォーマットで受信
+- CLIツールがOpenAIフォーマットで送信 → Dardcor Codeが変換 → プロバイダーがネイティブフォーマットで受信
 - カスタムOpenAIエンドポイントをサポートするすべてのツールで動作
 
 ### 👥 マルチアカウント対応
@@ -415,7 +415,7 @@ MiawRouterはすべての主要AIコーディングツールとシームレス�
 > **💡 重要 - ダッシュボードのコストについて：**
 >
 > 使用状況分析に表示される「コスト」は**追跡と比較目的のみ**です。
-> MiawRouter自体は**一切課金しません**。有料サービスを使用する場合のみ、プロバイダーに直接支払います。
+> Dardcor Code自体は**一切課金しません**。有料サービスを使用する場合のみ、プロバイダーに直接支払います。
 >
 >
 
@@ -449,14 +449,14 @@ MiawRouterはすべての主要AIコーディングツールとシームレス�
 
 ---
 
-### 📊 MiawRouterのコストと課金について
+### 📊 Dardcor Codeのコストと課金について
 
-**MiawRouterの課金の実態：**
+**Dardcor Codeの課金の実態：**
 
 ✅ **ダッシュボードの「コスト」= 表示/追跡のみ**（実際の請求ではない）
 ✅ **プロバイダーに直接支払い**（サブスクリプションまたはAPI料金）
 ✅ **無料プロバイダーは無料のまま**（iFlow、Kiro、Qwen = $0 無制限）
-❌ **MiawRouterは請求書を送ったり**カードに課金したりしません
+❌ **Dardcor Codeは請求書を送ったり**カードに課金したりしません
 
 **コスト表示の仕組み：**
 
@@ -473,8 +473,8 @@ MiawRouterはすべての主要AIコーディングツールとシームレス�
 
 **支払いルール：**
 - **サブスクリプションプロバイダー**（Claude Code、Codex）：各ウェブサイトで直接支払い
-- **格安プロバイダー**（GLM、MiniMax）：直接支払い、MiawRouterはルーティングのみ
-- **MiawRouter**：一切課金しない
+- **格安プロバイダー**（GLM、MiniMax）：直接支払い、Dardcor Codeはルーティングのみ
+- **Dardcor Code**：一切課金しない
 
 ---
 
@@ -549,7 +549,7 @@ vs. $20 + 制限に引っかかる = フラストレーション
 <details>
 <summary><b>📊 ダッシュボードに高額なコストが表示されるのはなぜ？</b></summary>
 
-ダッシュボードはトークン使用量を追跡し、有料APIを直接使用した場合の**推定コスト**を表示します。これは**実際の課金ではなく**、MiawRouterを通じて無料モデルや既存のサブスクリプションを使用することでどれだけ節約しているかを示すための参考値です。
+ダッシュボードはトークン使用量を追跡し、有料APIを直接使用した場合の**推定コスト**を表示します。これは**実際の課金ではなく**、Dardcor Codeを通じて無料モデルや既存のサブスクリプションを使用することでどれだけ節約しているかを示すための参考値です。
 
 **例：**
 - **実際:** iFlow（無料無制限）を使用中
@@ -558,16 +558,16 @@ vs. $20 + 制限に引っかかる = フラストレーション
 </details>
 
 <details>
-<summary><b>💳 MiawRouterに課金されますか？</b></summary>
+<summary><b>💳 Dardcor Codeに課金されますか？</b></summary>
 
-**いいえ。** MiawRouterはあなたのコンピューター上で動作する無料のオープンソースソフトウェアです。一切課金しません。
+**いいえ。** Dardcor Codeはあなたのコンピューター上で動作する無料のオープンソースソフトウェアです。一切課金しません。
 
 **支払い先：**
 - ✅ **サブスクリプションプロバイダー**（Claude Code $20/月、Codex $20-200/月）→ 各ウェブサイトで直接支払い
-- ✅ **格安プロバイダー**（GLM、MiniMax）→ 直接支払い、MiawRouterはリクエストをルーティングするだけ
-- ❌ **MiawRouter自体** → **一切課金しない**
+- ✅ **格安プロバイダー**（GLM、MiniMax）→ 直接支払い、Dardcor Codeはリクエストをルーティングするだけ
+- ❌ **Dardcor Code自体** → **一切課金しない**
 
-MiawRouterはローカルプロキシ/ルーターです。クレジットカード情報を持たず、請求書を送信できず、課金システムもありません。完全に無料のソフトウェアです。
+Dardcor Codeはローカルプロキシ/ルーターです。クレジットカード情報を持たず、請求書を送信できず、課金システムもありません。完全に無料のソフトウェアです。
 
 </details>
 
@@ -581,9 +581,9 @@ MiawRouterはローカルプロキシ/ルーターです。クレジットカー
 - **Kiro**: AWS Builder ID経由で無料無制限Claudeモデル
 - **Qwen**: デバイス認証経由でQwenモデルに無料無制限アクセス
 
-MiawRouterはリクエストをルーティングするだけで、「罠」や将来の課金はありません。本当に無料のサービスであり、MiawRouterはフォールバックサポートでそれらを使いやすくしています。
+Dardcor Codeはリクエストをルーティングするだけで、「罠」や将来の課金はありません。本当に無料のサービスであり、Dardcor Codeはフォールバックサポートでそれらを使いやすくしています。
 
-**注意:** 一部のサブスクリプションプロバイダー（Antigravity、GitHub Copilot）には無料プレビュー期間があり、後に有料になる可能性がありますが、それはMiawRouterではなく各プロバイダーから明確に告知されます。
+**注意:** 一部のサブスクリプションプロバイダー（Antigravity、GitHub Copilot）には無料プレビュー期間があり、後に有料になる可能性がありますが、それはDardcor Codeではなく各プロバイダーから明確に告知されます。
 
 </details>
 
@@ -608,7 +608,7 @@ MiawRouterはリクエストをルーティングするだけで、「罠」や�
 
 3. **サブスクリプションプロバイダーは最後に使用：**
    - 既にお持ちの場合のみ
-   - MiawRouterがクオータ追跡で価値を最大化
+   - Dardcor Codeがクオータ追跡で価値を最大化
 
 **結果:** ほとんどのユーザーは無料ティアのみで月額$0で運用可能！
 
@@ -617,20 +617,20 @@ MiawRouterはリクエストをルーティングするだけで、「罠」や�
 <details>
 <summary><b>📈 使用量が突然急増したら？</b></summary>
 
-MiawRouterのスマートフォールバックが予期しない課金を防止します：
+Dardcor Codeのスマートフォールバックが予期しない課金を防止します：
 
 **シナリオ:** コーディングスプリント中にクオータを使い切った
 
-**MiawRouterなし：**
+**Dardcor Codeなし：**
 - ❌ レート制限に到達 → 作業停止 → フラストレーション
 - ❌ または: 意図せず高額なAPI請求が発生
 
-**MiawRouterあり：**
+**Dardcor Codeあり：**
 - ✅ サブスクリプションが上限に達する → 格安ティアに自動フォールバック
 - ✅ 格安ティアが高くなる → 無料ティアに自動フォールバック
 - ✅ コーディングが止まらない → 予測可能なコスト
 
-**あなたがコントロール:** ダッシュボードでプロバイダーごとの支出上限を設定し、MiawRouterはそれを遵守します。
+**あなたがコントロール:** ダッシュボードでプロバイダーごとの支出上限を設定し、Dardcor Codeはそれを遵守します。
 
 </details>
 
@@ -654,7 +654,7 @@ MiawRouterのスマートフォールバックが予期しない課金を防止�
   cc/claude-haiku-4-5-20251001
 ```
 
-**プロのヒント:** 複雑なタスクにはOpus、スピード重視ならSonnet。MiawRouterはモデルごとにクオータを追跡します！
+**プロのヒント:** 複雑なタスクにはOpus、スピード重視ならSonnet。Dardcor Codeはモデルごとにクオータを追跡します！
 
 ### OpenAI Codex (Plus/Pro)
 
@@ -823,7 +823,7 @@ CLIでの使用: premium-coding
 ```
 設定 → Models → Advanced:
   OpenAI API Base URL: http://localhost:21128/v1
-  OpenAI API Key: [miawrouterダッシュボードから]
+  OpenAI API Key: [dardcor-codeダッシュボードから]
   Model: cc/claude-opus-4-6
 ```
 
@@ -836,7 +836,7 @@ CLIでの使用: premium-coding
 ```json
 {
   "anthropic_api_base": "http://localhost:21128/v1",
-  "anthropic_api_key": "your-miawrouter-api-key"
+  "anthropic_api_key": "your-dardcor-code-api-key"
 }
 ```
 
@@ -844,7 +844,7 @@ CLIでの使用: premium-coding
 
 ```bash
 export OPENAI_BASE_URL="http://localhost:21128"
-export OPENAI_API_KEY="your-miawrouter-api-key"
+export OPENAI_API_KEY="your-dardcor-code-api-key"
 
 codex "your prompt"
 ```
@@ -864,15 +864,15 @@ codex "your prompt"
   "agents": {
     "defaults": {
       "model": {
-        "primary": "miawrouter/if/glm-4.7"
+        "primary": "dardcor-code/if/glm-4.7"
       }
     }
   },
   "models": {
     "providers": {
-      "miawrouter": {
+      "dardcor-code": {
         "baseUrl": "http://127.0.0.1:21128/v1",
-        "apiKey": "sk_miawrouter",
+        "apiKey": "sk_dardcor-code",
         "api": "openai-completions",
         "models": [
           {
@@ -886,7 +886,7 @@ codex "your prompt"
 }
 ```
 
-> **注意:** OpenClawはローカルのMiawRouterのみで動作します。IPv6解決の問題を避けるため、`localhost` ではなく `127.0.0.1` を使用してください。
+> **注意:** OpenClawはローカルのDardcor Codeのみで動作します。IPv6解決の問題を避けるため、`localhost` ではなく `127.0.0.1` を使用してください。
 
 ### Cline / Continue / RooCode
 
@@ -907,19 +907,19 @@ Model: cc/claude-opus-4-6
 ```bash
 # クローンとインストール
 git clone .git
-cd miawrouter
+cd dardcor-code
 npm install
 npm run build
 
 # 設定
 export JWT_SECRET="your-secure-secret-change-this"
 export INITIAL_PASSWORD="your-password"
-export DATA_DIR="/var/lib/miawrouter"
+export DATA_DIR="/var/lib/dardcor-code"
 export PORT="21128"
 export HOSTNAME="0.0.0.0"
 export NODE_ENV="production"
 export NEXT_PUBLIC_BASE_URL="http://localhost:21128"
-export NEXT_PUBLIC_CLOUD_URL="https://miawrouter.web.id"
+export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.web.id"
 export API_KEY_SECRET="endpoint-proxy-api-key-secret"
 export MACHINE_ID_SALT="endpoint-proxy-salt"
 
@@ -928,7 +928,7 @@ npm run start
 
 # またはPM2を使用
 npm install -g pm2
-pm2 start npm --name miawrouter -- start
+pm2 start npm --name dardcor-code -- start
 pm2 save
 pm2 startup
 ```
@@ -937,28 +937,28 @@ pm2 startup
 
 ```bash
 # イメージをビルド（リポジトリルートから）
-docker build -t miawrouter .
+docker build -t dardcor-code .
 
 # コンテナを実行（現在のセットアップで使用しているコマンド）
 docker run -d \
-  --name miawrouter \
+  --name dardcor-code \
   -p 21128:21128 \
-  --env-file /root/dev/miawrouter/.env \
-  -v miawrouter-data:/app/data \
-  -v miawrouter-usage:/root/.miawrouter \
-  miawrouter
+  --env-file /root/dev/dardcor-code/.env \
+  -v dardcor-code-data:/app/data \
+  -v dardcor-code-usage:/root/.dardcor-code \
+  dardcor-code
 ```
 
 ポータブルコマンド（リポジトリルートにいる場合）：
 
 ```bash
 docker run -d \
-  --name miawrouter \
+  --name dardcor-code \
   -p 21128:21128 \
   --env-file ./.env \
-  -v miawrouter-data:/app/data \
-  -v miawrouter-usage:/root/.miawrouter \
-  miawrouter
+  -v dardcor-code-data:/app/data \
+  -v dardcor-code-usage:/root/.dardcor-code \
+  dardcor-code
 ```
 
 コンテナのデフォルト：
@@ -968,25 +968,25 @@ docker run -d \
 便利なコマンド：
 
 ```bash
-docker logs -f miawrouter
-docker restart miawrouter
-docker stop miawrouter && docker rm miawrouter
+docker logs -f dardcor-code
+docker restart dardcor-code
+docker stop dardcor-code && docker rm dardcor-code
 ```
 
 ### 環境変数
 
 | 変数 | デフォルト | 説明 |
 |------|-----------|------|
-| `JWT_SECRET` | 自動生成（`~/.miawrouter/jwt-secret`） | ダッシュボード認証クッキーのJWT署名シークレット（複数インスタンス間で共有する場合に設定） |
+| `JWT_SECRET` | 自動生成（`~/.dardcor-code/jwt-secret`） | ダッシュボード認証クッキーのJWT署名シークレット（複数インスタンス間で共有する場合に設定） |
 | `INITIAL_PASSWORD` | unset | 保存されたハッシュがない場合のオプションのローカル専用ブートストラップ。未設定の場合は localhost 経由でパスワードを作成 |
-| `DATA_DIR` | `~/.miawrouter` | メインアプリのデータベース格納場所（`db.json`） |
+| `DATA_DIR` | `~/.dardcor-code` | メインアプリのデータベース格納場所（`db.json`） |
 | `PORT` | フレームワークデフォルト | サービスポート（例では`21128`） |
 | `HOSTNAME` | フレームワークデフォルト | バインドホスト（Dockerデフォルトは`0.0.0.0`） |
 | `NODE_ENV` | ランタイムデフォルト | デプロイ時は`production`に設定 |
 | `BASE_URL` | `http://localhost:21128` | クラウド同期ジョブで使用されるサーバーサイド内部ベースURL |
-| `CLOUD_URL` | `https://miawrouter.web.id` | サーバーサイドのクラウド同期エンドポイントベースURL |
+| `CLOUD_URL` | `https://dardcor-code.web.id` | サーバーサイドのクラウド同期エンドポイントベースURL |
 | `NEXT_PUBLIC_BASE_URL` | `http://localhost:3000` | 後方互換/公開ベースURL（サーバーランタイムには`BASE_URL`を推奨） |
-| `NEXT_PUBLIC_CLOUD_URL` | `https://miawrouter.web.id` | 後方互換/公開クラウドURL（サーバーランタイムには`CLOUD_URL`を推奨） |
+| `NEXT_PUBLIC_CLOUD_URL` | `https://dardcor-code.web.id` | 後方互換/公開クラウドURL（サーバーランタイムには`CLOUD_URL`を推奨） |
 | `API_KEY_SECRET` | `endpoint-proxy-api-key-secret` | 生成されたAPIキーのHMACシークレット |
 | `MACHINE_ID_SALT` | `endpoint-proxy-salt` | 安定したマシンIDハッシュのソルト |
 | `ENABLE_REQUEST_LOGS` | `false` | `logs/` 配下のリクエスト/レスポンスログを有効化 |
@@ -1003,9 +1003,9 @@ docker stop miawrouter && docker rm miawrouter
 ### ランタイムファイルとストレージ
 
 - メインアプリ状態: `${DATA_DIR}/db.json`（プロバイダー、コンボ、エイリアス、キー、設定）、`src/lib/localDb.js` で管理。
-- 使用履歴とログ: `~/.miawrouter/usage.json` と `~/.miawrouter/log.txt`、`src/lib/usageDb.js` で管理。
+- 使用履歴とログ: `~/.dardcor-code/usage.json` と `~/.dardcor-code/log.txt`、`src/lib/usageDb.js` で管理。
 - オプションのリクエスト/トランスレーターログ: `ENABLE_REQUEST_LOGS=true` 時に `<repo>/logs/...`。
-- 使用状況ストレージは現在 `~/.miawrouter` パスロジックに従い、`DATA_DIR` とは独立しています。
+- 使用状況ストレージは現在 `~/.dardcor-code` パスロジックに従い、`DATA_DIR` とは独立しています。
 
 </details>
 
@@ -1066,7 +1066,7 @@ docker stop miawrouter && docker rm miawrouter
 - コンボを追加: `cc/claude-opus-4-6 → glm/glm-4.7 → if/kimi-k2-thinking`
 
 **OAuthトークンの期限切れ**
-- MiawRouterが自動リフレッシュ
+- Dardcor Codeが自動リフレッシュ
 - 問題が続く場合: ダッシュボード → Provider → 再接続
 
 **高コスト**
@@ -1126,14 +1126,14 @@ Authorization: Bearer your-api-key
 
 ## 📧 サポート
 
-- **ウェブサイト**: [miawrouter.web.id](https://miawrouter.web.id)
+- **ウェブサイト**: [dardcor-code.web.id](https://dardcor-code.web.id)
 - **GitHub**: 
 
 ---
 
 ## 👥 コントリビューター
 
-MiawRouterの改善に貢献してくださったすべてのコントリビューターに感謝します！
+Dardcor Codeの改善に貢献してくださったすべてのコントリビューターに感謝します！
 
 ---
 

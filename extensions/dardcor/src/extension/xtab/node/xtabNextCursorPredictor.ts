@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Raw } from '@vscode/prompt-tsx';
-import { RequestType } from '@vscode/dardcor-api';
+import { RequestType } from '@vscode/copilot-api';
 import { ChatFetchResponseType, ChatLocation } from '../../../platform/chat/common/commonTypes';
 import { ConfigKey, IConfigurationService } from '../../../platform/configuration/common/configurationService';
 import { IEndpointProvider } from '../../../platform/endpoint/common/endpointProvider';

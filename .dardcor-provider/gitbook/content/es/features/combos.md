@@ -6,7 +6,7 @@ Crea combinaciones de modelos personalizadas con fallback automático. Los combo
 
 ## ¿Qué son los combos?
 
-Los combos son **cadenas de fallback personalizadas** que creas en el dashboard. En lugar de usar un solo modelo, defines una secuencia de modelos que MiawRouter intenta en orden.
+Los combos son **cadenas de fallback personalizadas** que creas en el dashboard. En lugar de usar un solo modelo, defines una secuencia de modelos que Dardcor Code intenta en orden.
 
 **Ejemplo:**
 ```
@@ -22,7 +22,7 @@ Modelos:
 Model: premium-coding
 ```
 
-MiawRouter intenta automáticamente cada modelo en secuencia hasta que uno tenga éxito.
+Dardcor Code intenta automáticamente cada modelo en secuencia hasta que uno tenga éxito.
 
 ---
 
@@ -348,7 +348,7 @@ Edita `~/.claude/config.json`:
 ```json
 {
   "anthropic_api_base": "http://localhost:21128/v1",
-  "anthropic_api_key": "your-miawrouter-api-key",
+  "anthropic_api_key": "your-dardcor-code-api-key",
   "model": "budget-combo"
 }
 ```
@@ -357,7 +357,7 @@ Edita `~/.claude/config.json`:
 
 ```bash
 export OPENAI_BASE_URL="http://localhost:21128"
-export OPENAI_API_KEY="your-miawrouter-api-key"
+export OPENAI_API_KEY="your-dardcor-code-api-key"
 
 codex --model quality-first "your prompt"
 ```
@@ -474,7 +474,7 @@ Dashboard → Combos → Edit → Budget:
   Monthly limit: $50
 ```
 
-Cuando se alcanza el límite, MiawRouter omite los modelos de pago y usa solo el nivel gratis.
+Cuando se alcanza el límite, Dardcor Code omite los modelos de pago y usa solo el nivel gratis.
 
 ### Habilitar/Deshabilitar modelos en un combo
 

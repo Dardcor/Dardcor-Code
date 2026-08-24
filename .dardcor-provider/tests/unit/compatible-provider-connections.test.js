@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 const originalDataDir = process.env.DATA_DIR;
 
 async function setupTestContext(nodeData) {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "miawrouter-compatible-provider-"));
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dardcor-code-compatible-provider-"));
   process.env.DATA_DIR = tempDir;
   vi.resetModules();
   vi.doMock("next/server", () => ({
@@ -39,7 +39,7 @@ async function setupTestContext(nodeData) {
 }
 
 function makeRequest(provider, name = "Test Connection") {
-  return new Request("https://miawrouter.local/api/providers", {
+  return new Request("https://dardcor-code.local/api/providers", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

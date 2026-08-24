@@ -1,6 +1,6 @@
 # はじめに
 
-MiawRouterを5分で起動し、AIリクエストをインテリジェントにルーティングし始めましょう。
+Dardcor Codeを5分で起動し、AIリクエストをインテリジェントにルーティングし始めましょう。
 
 ---
 
@@ -9,7 +9,7 @@ MiawRouterを5分で起動し、AIリクエストをインテリジェントに�
 ### 1. インストール
 
 ```bash
-npm install -g miawrouter
+npm install -g dardcor-code
 ```
 
 **要件:** Node.js 20+ ([インストール詳細](getting-started/installation.md))
@@ -17,7 +17,7 @@ npm install -g miawrouter
 ### 2. 起動
 
 ```bash
-miawrouter
+dardcor-code
 ```
 
 🎉 **ダッシュボードが自動的に開きます** (`http://localhost:21128`)
@@ -43,7 +43,7 @@ Dashboard → Providers → Connect [Provider]
 **例: Claude Code**
 1. 「Connect Claude Code」をクリック
 2. Claudeアカウントでログイン
-3. MiawRouterを認可
+3. Dardcor Codeを認可
 4. ✅ 完了! モデルを使用: `cc/claude-opus-4-5-20251101`
 
 #### オプションB: APIキー(低価格プロバイダー)
@@ -83,14 +83,14 @@ Dashboard → Providers → Connect [Free Provider]
 
 ## 4. CLIツールで使用
 
-コーディングツールをMiawRouterに向けます:
+コーディングツールをDardcor Codeに向けます:
 
 ### Cursor IDE
 
 ```
 Settings → Models → Advanced:
   OpenAI API Base URL: http://localhost:21128/v1
-  OpenAI API Key: [miawrouterダッシュボードから取得]
+  OpenAI API Key: [dardcor-codeダッシュボードから取得]
   Model: cc/claude-opus-4-5-20251101
 ```
 
@@ -101,7 +101,7 @@ Settings → Models → Advanced:
 ```json
 {
   "anthropic_api_base": "http://localhost:21128/v1",
-  "anthropic_api_key": "your-miawrouter-api-key"
+  "anthropic_api_key": "your-dardcor-code-api-key"
 }
 ```
 
@@ -118,7 +118,7 @@ Model: cc/claude-opus-4-5-20251101
 
 ```bash
 export OPENAI_BASE_URL="http://localhost:21128"
-export OPENAI_API_KEY="your-miawrouter-api-key"
+export OPENAI_API_KEY="your-dardcor-code-api-key"
 
 codex "your prompt"
 ```
@@ -242,6 +242,6 @@ CLIで使用: premium-coding
 
 ## ヘルプが必要?
 
-- **ウェブサイト**: [miawrouter.web.id](https://miawrouter.web.id)
+- **ウェブサイト**: [dardcor-code.web.id](https://dardcor-code.web.id)
 - **GitHub**: 
 - **Issues**: [/issues](/issues)

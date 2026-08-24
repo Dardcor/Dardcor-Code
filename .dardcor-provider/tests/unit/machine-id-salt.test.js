@@ -19,7 +19,7 @@ function restoreEnv(keys) {
 
 beforeEach(() => {
   saveEnv(["DATA_DIR", "MACHINE_ID_SALT"]);
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "miawrouter-mid-"));
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dardcor-code-mid-"));
   process.env.DATA_DIR = tempDir;
   vi.resetModules();
 });
@@ -80,7 +80,7 @@ describe("app-side getConsistentMachineId — salt resolution", () => {
   it("explicit salt callers unaffected by weak MACHINE_ID_SALT", async () => {
     process.env.MACHINE_ID_SALT = "endpoint-proxy-salt";
     const getId = await loadApp();
-    const id = await getId("miaw-cli-auth");
+    const id = await getId("dardcor-cli-auth");
     expect(id).toMatch(/^[0-9a-f]{16}$/);
   });
 });

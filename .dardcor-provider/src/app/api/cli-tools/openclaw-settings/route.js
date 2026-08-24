@@ -9,8 +9,8 @@ import os from "os";
 
 const execAsync = promisify(exec);
 
-// New writes use "miawrouter"; legacy "9router" provider/model slots stay readable.
-const PROVIDER_KEY = "miawrouter";
+// New writes use "dardcor-code"; legacy "9router" provider/model slots stay readable.
+const PROVIDER_KEY = "dardcor-code";
 const LEGACY_PROVIDER_KEY = "9router";
 const modelKey = (m) => `${PROVIDER_KEY}/${m}`;
 const isOurs = (s) => typeof s === "string" && (s.startsWith(`${PROVIDER_KEY}/`) || s.startsWith(`${LEGACY_PROVIDER_KEY}/`));
@@ -62,13 +62,13 @@ const readSettings = async () => {
   }
 };
 
-// Check if settings has MiawRouter config
+// Check if settings has Dardcor Code config
 const has9RouterConfig = (settings) => {
   if (!settings || !settings.models || !settings.models.providers) return false;
   return !!settings.models.providers[PROVIDER_KEY] || !!settings.models.providers[LEGACY_PROVIDER_KEY];
 };
 
-// Read per-agent models.json and return current model id (without "miawrouter/" prefix)
+// Read per-agent models.json and return current model id (without "dardcor-code/" prefix)
 const readAgentModel = async (agentDir) => {
   try {
     const modelsPath = path.join(agentDir, "models.json");
@@ -171,7 +171,7 @@ export async function POST(request) {
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
     const fullModelId = modelKey(model);
 
-    // Remove all old miawrouter/* (and legacy 9router/*) entries from agents.defaults.models
+    // Remove all old dardcor-code/* (and legacy 9router/*) entries from agents.defaults.models
     Object.keys(settings.agents.defaults.models)
       .filter((k) => isOurs(k))
       .forEach((k) => { delete settings.agents.defaults.models[k]; });
@@ -183,12 +183,12 @@ export async function POST(request) {
     const allModelIds = new Set([model]);
     Object.values(agentModels).forEach((m) => { if (m) allModelIds.add(m); });
 
-    // Add fresh miawrouter models to allowlist
+    // Add fresh dardcor-code models to allowlist
     allModelIds.forEach((m) => {
       settings.agents.defaults.models[modelKey(m)] = {};
     });
 
-    // Remove old miawrouter model from each agent in agents.list. The
+    // Remove old dardcor-code model from each agent in agents.list. The
     // model field may be a plain string or `{ primary, fallbacks }`.
     if (settings.agents.list) {
       settings.agents.list = settings.agents.list.map((agent) => {
@@ -200,7 +200,7 @@ export async function POST(request) {
       });
     }
 
-    // Update models.providers.miawrouter with all models
+    // Update models.providers.dardcor-code with all models
     settings.models.providers[PROVIDER_KEY] = {
       baseUrl: normalizedBaseUrl,
       apiKey: apiKey || "your_api_key",
@@ -261,7 +261,7 @@ export async function DELETE() {
       throw error;
     }
 
-    // Remove miawrouter from models.providers (legacy 9router slot too)
+    // Remove dardcor-code from models.providers (legacy 9router slot too)
     if (settings.models && settings.models.providers) {
       delete settings.models.providers[PROVIDER_KEY];
       delete settings.models.providers[LEGACY_PROVIDER_KEY];
@@ -272,7 +272,7 @@ export async function DELETE() {
       }
     }
 
-    // Remove miawrouter models from agents.defaults.models allowlist
+    // Remove dardcor-code models from agents.defaults.models allowlist
     if (settings.agents?.defaults?.models) {
       const keysToRemove = Object.keys(settings.agents.defaults.models).filter((k) => isOurs(k));
       for (const key of keysToRemove) {
@@ -283,7 +283,7 @@ export async function DELETE() {
       }
     }
 
-    // Reset agents.defaults.model.primary if it uses miawrouter
+    // Reset agents.defaults.model.primary if it uses dardcor-code
     if (isOurs(settings.agents?.defaults?.model?.primary)) {
       delete settings.agents.defaults.model.primary;
     }
@@ -293,7 +293,7 @@ export async function DELETE() {
 
     return NextResponse.json({
       success: true,
-      message: "MiawRouter settings removed successfully",
+      message: "Dardcor Code settings removed successfully",
     });
   } catch (error) {
     console.log("Error resetting openclaw settings:", error);

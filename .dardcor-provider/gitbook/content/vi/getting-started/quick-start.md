@@ -1,6 +1,6 @@
 # Bắt đầu
 
-Khởi chạy MiawRouter trong 5 phút và bắt đầu định tuyến các request AI một cách thông minh.
+Khởi chạy Dardcor Code trong 5 phút và bắt đầu định tuyến các request AI một cách thông minh.
 
 ---
 
@@ -9,7 +9,7 @@ Khởi chạy MiawRouter trong 5 phút và bắt đầu định tuyến các req
 ### 1. Cài đặt
 
 ```bash
-npm install -g miawrouter
+npm install -g dardcor-code
 ```
 
 **Yêu cầu:** Node.js 20+ ([Chi tiết cài đặt](getting-started/installation.md))
@@ -17,7 +17,7 @@ npm install -g miawrouter
 ### 2. Khởi chạy
 
 ```bash
-miawrouter
+dardcor-code
 ```
 
 🎉 **Dashboard tự động mở** tại `http://localhost:21128`
@@ -43,7 +43,7 @@ Dashboard → Providers → Connect [Provider]
 **Ví dụ: Claude Code**
 1. Click "Connect Claude Code"
 2. Đăng nhập tài khoản Claude
-3. Cho phép MiawRouter
+3. Cho phép Dardcor Code
 4. ✅ Xong! Dùng model: `cc/claude-opus-4-5-20251101`
 
 #### Cách B: API Key (Cheap Provider)
@@ -83,14 +83,14 @@ Dashboard → Providers → Connect [Free Provider]
 
 ## 4. Dùng trong CLI Tools
 
-Trỏ công cụ code của bạn tới MiawRouter:
+Trỏ công cụ code của bạn tới Dardcor Code:
 
 ### Cursor IDE
 
 ```
 Settings → Models → Advanced:
   OpenAI API Base URL: http://localhost:21128/v1
-  OpenAI API Key: [from miawrouter dashboard]
+  OpenAI API Key: [from dardcor-code dashboard]
   Model: cc/claude-opus-4-5-20251101
 ```
 
@@ -101,7 +101,7 @@ Sửa `~/.claude/config.json`:
 ```json
 {
   "anthropic_api_base": "http://localhost:21128/v1",
-  "anthropic_api_key": "your-miawrouter-api-key"
+  "anthropic_api_key": "your-dardcor-code-api-key"
 }
 ```
 
@@ -118,7 +118,7 @@ Model: cc/claude-opus-4-5-20251101
 
 ```bash
 export OPENAI_BASE_URL="http://localhost:21128"
-export OPENAI_API_KEY="your-miawrouter-api-key"
+export OPENAI_API_KEY="your-dardcor-code-api-key"
 
 codex "your prompt"
 ```
@@ -242,6 +242,6 @@ Daily routine:
 
 ## Cần trợ giúp?
 
-- **Website**: [miawrouter.web.id](https://miawrouter.web.id)
+- **Website**: [dardcor-code.web.id](https://dardcor-code.web.id)
 - **GitHub**: 
 - **Issues**: [/issues](/issues)

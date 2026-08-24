@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Card } from "@/shared/components";
 
 const MAX_COUNT = 999999;
-const STORAGE_KEY = "miawrouter.tokenSaverWire.v1"; // versioned — bump to discard stale sessionStorage payloads
+const STORAGE_KEY = "dardcor-code.tokenSaverWire.v1"; // versioned — bump to discard stale sessionStorage payloads
 const ACT_MS = 480;
 const STAGE_IDS = ["caveman", "ponytail", "rtk", "headroom", "pxpipe", "provider"];
 const STAGE_IDX = { caveman: 1, ponytail: 2, rtk: 3, headroom: 4, pxpipe: 5, provider: 6 }; // pipeline order past Client

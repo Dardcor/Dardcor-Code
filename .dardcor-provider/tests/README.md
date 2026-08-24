@@ -1,4 +1,4 @@
-# MiawRouter Embeddings Tests
+# Dardcor Code Embeddings Tests
 
 Unit tests for the `/v1/embeddings` endpoint implementation.
 

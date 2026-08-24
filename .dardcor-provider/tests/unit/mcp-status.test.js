@@ -105,7 +105,7 @@ beforeEach(async () => {
 afterEach(() => {
   vi.restoreAllMocks();
   // Clean global health store
-  delete globalThis.__miawrouterMcpHealth;
+  delete globalThis.__dardcor-codeMcpHealth;
 });
 
 // ── Tests ──────────────────────────────────────────────────────────

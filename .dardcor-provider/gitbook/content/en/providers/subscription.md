@@ -32,7 +32,7 @@ Subscription tier providers are your **primary** choice - you're already paying 
 **Step 1: Connect via Dashboard**
 
 ```bash
-miawrouter
+dardcor-code
 # Dashboard opens → Providers → Connect Claude Code
 ```
 
@@ -82,7 +82,7 @@ Model: cc/claude-opus-4-5-20251101
 **Step 1: Connect via Dashboard**
 
 ```bash
-miawrouter
+dardcor-code
 # Dashboard → Providers → Connect Codex
 ```
 
@@ -134,7 +134,7 @@ Model: cx/gpt-5.2-codex
 **Step 1: Connect via Dashboard**
 
 ```bash
-miawrouter
+dardcor-code
 # Dashboard → Providers → Connect Gemini CLI
 ```
 
@@ -186,7 +186,7 @@ Model: gc/gemini-3-flash-preview
 **Step 1: Connect via Dashboard**
 
 ```bash
-miawrouter
+dardcor-code
 # Dashboard → Providers → Connect GitHub
 ```
 
@@ -236,7 +236,7 @@ Model: gh/gpt-5
 **Step 1: Connect via Dashboard**
 
 ```bash
-miawrouter
+dardcor-code
 # Dashboard → Providers → Connect Antigravity
 ```
 
@@ -292,7 +292,7 @@ Model: ag/gemini-3-pro-high
 ```
 Settings → Models → Advanced:
   OpenAI API Base URL: http://localhost:21128/v1
-  OpenAI API Key: [from miawrouter dashboard]
+  OpenAI API Key: [from dardcor-code dashboard]
   Model: cc/claude-opus-4-5-20251101
 ```
 
@@ -316,7 +316,7 @@ Use in CLI: premium-coding
 
 ## Quota Tracking
 
-MiawRouter tracks quota in real-time:
+Dardcor Code tracks quota in real-time:
 
 - **Token consumption** - Input/output tokens per request
 - **Reset countdown** - Time until next quota reset
@@ -385,7 +385,7 @@ Night: Cheap/free tier
 ### "OAuth token expired"
 
 **Solution:**
-- Auto-refreshed by MiawRouter
+- Auto-refreshed by Dardcor Code
 - If issues: Dashboard → Provider → Reconnect
 
 ### "Rate limiting"

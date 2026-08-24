@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Các vấn đề và giải pháp phổ biến khi dùng MiawRouter.
+Các vấn đề và giải pháp phổ biến khi dùng Dardcor Code.
 
 ---
 
@@ -78,7 +78,7 @@ Các vấn đề và giải pháp phổ biến khi dùng MiawRouter.
 **Giải pháp:**
 
 1. **Auto-refresh (mặc định):**
-   MiawRouter tự refresh tokens. Đợi 30 giây rồi thử lại.
+   Dardcor Code tự refresh tokens. Đợi 30 giây rồi thử lại.
 
 2. **Kết nối lại thủ công:**
    ```
@@ -135,15 +135,15 @@ Các vấn đề và giải pháp phổ biến khi dùng MiawRouter.
 **Vấn đề:** Lỗi "ECONNREFUSED" hoặc "Cannot connect to localhost:21128".
 
 **Nguyên nhân:**
-- MiawRouter không chạy
+- Dardcor Code không chạy
 - Port 21128 bị chặn
 - Firewall chặn kết nối
 
 **Giải pháp:**
 
-1. **Khởi động MiawRouter:**
+1. **Khởi động Dardcor Code:**
    ```bash
-   miawrouter
+   dardcor-code
    ```
    Dashboard sẽ mở tại http://localhost:3000
 
@@ -164,7 +164,7 @@ Các vấn đề và giải pháp phổ biến khi dùng MiawRouter.
 4. **Dùng cloud endpoint:**
    Nếu localhost không hoạt động (ví dụ: Cursor IDE):
    ```
-   Endpoint: https://miawrouter.web.id/v1
+   Endpoint: https://dardcor-code.web.id/v1
    ```
 
 ---
@@ -175,15 +175,15 @@ Các vấn đề và giải pháp phổ biến khi dùng MiawRouter.
 
 **Nguyên nhân:**
 - Port 3000 đã được dùng
-- MiawRouter bị crash
+- Dardcor Code bị crash
 - Vấn đề cache browser
 
 **Giải pháp:**
 
-1. **Kiểm tra MiawRouter có chạy không:**
+1. **Kiểm tra Dardcor Code có chạy không:**
    ```bash
    # Check process
-   ps aux | grep miawrouter
+   ps aux | grep dardcor-code
    
    # Check port 3000
    lsof -i :3000
@@ -199,13 +199,13 @@ Các vấn đề và giải pháp phổ biến khi dùng MiawRouter.
    taskkill /PID <PID> /F
    ```
 
-3. **Khởi động lại MiawRouter:**
+3. **Khởi động lại Dardcor Code:**
    ```bash
    # Stop
-   pkill -f miawrouter
+   pkill -f dardcor-code
    
    # Start
-   miawrouter
+   dardcor-code
    ```
 
 4. **Xóa cache browser:**
@@ -320,8 +320,8 @@ Các vấn đề và giải pháp phổ biến khi dùng MiawRouter.
 
 2. **Xác minh format key:**
    ```
-   Correct: miaw_xxxxxxxxxxxxxxxxxxxxxxxx
-   Wrong: Missing miaw_ prefix
+   Correct: dardcor_xxxxxxxxxxxxxxxxxxxxxxxx
+   Wrong: Missing dardcor_ prefix
    ```
 
 3. **Kiểm tra key trong CLI config:**
@@ -333,13 +333,13 @@ Các vấn đề và giải pháp phổ biến khi dùng MiawRouter.
    Settings → API Key
    
    # Environment variable
-   export OPENAI_API_KEY="miaw_your_key"
+   export OPENAI_API_KEY="dardcor_your_key"
    ```
 
 4. **Test API key:**
    ```bash
    curl http://localhost:21128/v1/models \
-     -H "Authorization: Bearer miaw_your_key"
+     -H "Authorization: Bearer dardcor_your_key"
    ```
 
 ---
@@ -347,5 +347,5 @@ Các vấn đề và giải pháp phổ biến khi dùng MiawRouter.
 ## Cần trợ giúp thêm?
 
 - **GitHub Issues:** [/issues](/issues)
-- **Documentation:** [miawrouter.web.id/docs](https://miawrouter.web.id/docs)
+- **Documentation:** [dardcor-code.web.id/docs](https://dardcor-code.web.id/docs)
 - **FAQ:** [faq.md](faq.md)

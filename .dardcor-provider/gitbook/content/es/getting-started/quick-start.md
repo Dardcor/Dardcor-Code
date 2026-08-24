@@ -1,6 +1,6 @@
 # Empezar
 
-Pon en marcha MiawRouter en 5 minutos y comienza a enrutar solicitudes de IA de forma inteligente.
+Pon en marcha Dardcor Code en 5 minutos y comienza a enrutar solicitudes de IA de forma inteligente.
 
 ---
 
@@ -9,7 +9,7 @@ Pon en marcha MiawRouter en 5 minutos y comienza a enrutar solicitudes de IA de 
 ### 1. Instalar
 
 ```bash
-npm install -g miawrouter
+npm install -g dardcor-code
 ```
 
 **Requisitos:** Node.js 20+ ([Detalles de instalación](getting-started/installation.md))
@@ -17,7 +17,7 @@ npm install -g miawrouter
 ### 2. Iniciar
 
 ```bash
-miawrouter
+dardcor-code
 ```
 
 🎉 **El dashboard se abre automáticamente** en `http://localhost:21128`
@@ -43,7 +43,7 @@ Dashboard → Providers → Connect [Provider]
 **Ejemplo: Claude Code**
 1. Clic en "Connect Claude Code"
 2. Inicia sesión con tu cuenta de Claude
-3. Autoriza MiawRouter
+3. Autoriza Dardcor Code
 4. ✅ ¡Listo! Usa el modelo: `cc/claude-opus-4-5-20251101`
 
 #### Opción B: API Key (Proveedores baratos)
@@ -83,14 +83,14 @@ Dashboard → Providers → Connect [Free Provider]
 
 ## 4. Usar en herramientas CLI
 
-Apunta tu herramienta de codificación a MiawRouter:
+Apunta tu herramienta de codificación a Dardcor Code:
 
 ### Cursor IDE
 
 ```
 Settings → Models → Advanced:
   OpenAI API Base URL: http://localhost:21128/v1
-  OpenAI API Key: [desde el dashboard de miawrouter]
+  OpenAI API Key: [desde el dashboard de dardcor-code]
   Model: cc/claude-opus-4-5-20251101
 ```
 
@@ -101,7 +101,7 @@ Edita `~/.claude/config.json`:
 ```json
 {
   "anthropic_api_base": "http://localhost:21128/v1",
-  "anthropic_api_key": "your-miawrouter-api-key"
+  "anthropic_api_key": "your-dardcor-code-api-key"
 }
 ```
 
@@ -118,7 +118,7 @@ Model: cc/claude-opus-4-5-20251101
 
 ```bash
 export OPENAI_BASE_URL="http://localhost:21128"
-export OPENAI_API_KEY="your-miawrouter-api-key"
+export OPENAI_API_KEY="your-dardcor-code-api-key"
 
 codex "your prompt"
 ```
@@ -242,6 +242,6 @@ Rutina diaria:
 
 ## ¿Necesitas ayuda?
 
-- **Sitio web**: [miawrouter.web.id](https://miawrouter.web.id)
+- **Sitio web**: [dardcor-code.web.id](https://dardcor-code.web.id)
 - **GitHub**: 
 - **Issues**: [/issues](/issues)

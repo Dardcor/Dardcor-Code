@@ -1,12 +1,12 @@
 # Claude Code統合
 
-MiawRouterをClaude Code CLIと統合し、AnthropicのAPIリクエストをMiawRouterのインテリジェントルーティングシステム経由でルーティングします。
+Dardcor CodeをClaude Code CLIと統合し、AnthropicのAPIリクエストをDardcor Codeのインテリジェントルーティングシステム経由でルーティングします。
 
 ## 前提条件
 
 - Claude Code CLIがインストール済み
-- MiawRouterがローカルで動作中、またはクラウドエンドポイントが設定済み
-- MiawRouterダッシュボードからのAPIキー
+- Dardcor Codeがローカルで動作中、またはクラウドエンドポイントが設定済み
+- Dardcor CodeダッシュボードからのAPIキー
 
 ## セットアップ
 
@@ -15,7 +15,7 @@ MiawRouterをClaude Code CLIと統合し、AnthropicのAPIリクエストをMiaw
 シェル設定ファイル (`~/.bashrc`、`~/.zshrc`、または `~/.bash_profile`) で以下の環境変数を設定:
 
 ```bash
-# MiawRouter用Base URL
+# Dardcor Code用Base URL
 export ANTHROPIC_BASE_URL="http://localhost:21128/v1"
 
 # オプション: エイリアス用のデフォルトモデルを設定
@@ -40,7 +40,7 @@ echo $ANTHROPIC_BASE_URL
 
 ## モデルエイリアス
 
-Claude CodeはMiawRouterモデルにマッピングされる以下のモデルエイリアスをサポート:
+Claude CodeはDardcor Codeモデルにマッピングされる以下のモデルエイリアスをサポート:
 
 | エイリアス | モデル | 環境変数 |
 |-------|-------|---------------------|
@@ -86,7 +86,7 @@ Claude Codeは設定を `~/.claude/settings.json` に保存します。必要に
 
 接続エラーが発生した場合:
 
-1. MiawRouterが動作中か確認: `curl http://localhost:21128/health`
+1. Dardcor Codeが動作中か確認: `curl http://localhost:21128/health`
 2. 環境変数が正しく設定されているか確認
 3. ファイアウォールがポート21128をブロックしていないか確認
 
@@ -94,16 +94,16 @@ Claude Codeは設定を `~/.claude/settings.json` に保存します。必要に
 
 「model not found」エラーが発生した場合:
 
-1. モデル名がMiawRouterの設定と一致しているか確認
-2. MiawRouterダッシュボードでプロバイダー接続がアクティブか確認
+1. モデル名がDardcor Codeの設定と一致しているか確認
+2. Dardcor Codeダッシュボードでプロバイダー接続がアクティブか確認
 3. 接続されたプロバイダーでモデルが利用可能か確認
 
 ## クラウドエンドポイント
 
-localhostの代わりにMiawRouterクラウドエンドポイントを使用するには:
+localhostの代わりにDardcor Codeクラウドエンドポイントを使用するには:
 
 ```bash
-export ANTHROPIC_BASE_URL="https://miawrouter.web.id"
+export ANTHROPIC_BASE_URL="https://dardcor-code.web.id"
 ```
 
-MiawRouterクラウドダッシュボードでAPIキーが設定されていることを確認してください。
+Dardcor CodeクラウドダッシュボードでAPIキーが設定されていることを確認してください。

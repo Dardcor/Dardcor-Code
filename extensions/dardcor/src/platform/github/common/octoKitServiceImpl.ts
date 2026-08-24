@@ -2,7 +2,7 @@
  *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import { CCAModel, RemoteAgentJobPayload, RequestType } from '@vscode/dardcor-api';
+import { CCAModel, RemoteAgentJobPayload, RequestType } from '@vscode/copilot-api';
 import type { AuthenticationSession } from 'vscode';
 import { IAuthenticationService } from '../../authentication/common/authentication';
 import { ICAPIClientService } from '../../endpoint/common/capiClient';

@@ -44,7 +44,7 @@ function tryConnect(port) {
 // either exits or opens the port, and always reaps the child and temp dir.
 async function runBootScenario(env) {
   const port = await getFreePort();
-  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "miawrouter-boot-weak-"));
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "dardcor-code-boot-weak-"));
   const child = spawn(process.execPath, [SERVER], {
     env: {
       ...process.env,

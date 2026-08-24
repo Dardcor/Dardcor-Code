@@ -1,6 +1,6 @@
 # ☁️ Despliegue en la nube
 
-Despliega MiawRouter en VPS o Docker para acceso remoto y uso en producción.
+Despliega Dardcor Code en VPS o Docker para acceso remoto y uso en producción.
 
 ---
 
@@ -17,7 +17,7 @@ Despliega MiawRouter en VPS o Docker para acceso remoto y uso en producción.
 
 ```bash
 git clone .git
-cd miawrouter/app
+cd dardcor-code/app
 ```
 
 ### Paso 2: Instalar dependencias
@@ -39,7 +39,7 @@ Crea un archivo `.env` o exporta variables:
 ```bash
 export JWT_SECRET="your-secure-secret-change-this-to-random-string"
 export INITIAL_PASSWORD="your-secure-password"
-export DATA_DIR="/var/lib/miawrouter"
+export DATA_DIR="/var/lib/dardcor-code"
 export NODE_ENV="production"
 ```
 
@@ -49,15 +49,15 @@ export NODE_ENV="production"
 |----------|---------|-------------|
 | `JWT_SECRET` | Auto-generado | **¡DEBE cambiarse en producción!** Usado para firmar tokens JWT |
 | `INITIAL_PASSWORD` | unset | Sin contraseña por defecto; bootstrap opcional solo local — si no se define, crea la contraseña a través de localhost |
-| `DATA_DIR` | `~/.miawrouter` | Ruta de almacenamiento de la base de datos |
+| `DATA_DIR` | `~/.dardcor-code` | Ruta de almacenamiento de la base de datos |
 | `NODE_ENV` | `development` | Establece a `production` para despliegue |
 | `ENABLE_REQUEST_LOGS` | `false` | Habilita logs de debug de request/response |
 
 ### Paso 5: Crear el directorio de datos
 
 ```bash
-sudo mkdir -p /var/lib/miawrouter
-sudo chown $USER:$USER /var/lib/miawrouter
+sudo mkdir -p /var/lib/dardcor-code
+sudo chown $USER:$USER /var/lib/dardcor-code
 ```
 
 ### Paso 6: Iniciar la aplicación
@@ -74,8 +74,8 @@ PM2 mantiene tu aplicación corriendo y la reinicia en caso de crash:
 # Instalar PM2 globalmente
 npm install -g pm2
 
-# Iniciar MiawRouter con PM2
-pm2 start npm --name miawrouter -- start
+# Iniciar Dardcor Code con PM2
+pm2 start npm --name dardcor-code -- start
 
 # Guardar la configuración de PM2
 pm2 save
@@ -89,13 +89,13 @@ pm2 startup
 
 ```bash
 # Ver logs
-pm2 logs miawrouter
+pm2 logs dardcor-code
 
 # Reiniciar aplicación
-pm2 restart miawrouter
+pm2 restart dardcor-code
 
 # Detener aplicación
-pm2 stop miawrouter
+pm2 stop dardcor-code
 
 # Ver estado
 pm2 status
@@ -147,17 +147,17 @@ CMD ["npm", "run", "start"]
 
 ```bash
 # Construir imagen
-docker build -t miawrouter .
+docker build -t dardcor-code .
 
 # Ejecutar contenedor
 docker run -d \
-  --name miawrouter \
+  --name dardcor-code \
   -p 3000:3000 \
   -p 21128:21128 \
   -e JWT_SECRET="your-secure-secret-change-this" \
   -e INITIAL_PASSWORD="your-secure-password" \
-  -v miawrouter-data:/app/data \
-  miawrouter
+  -v dardcor-code-data:/app/data \
+  dardcor-code
 ```
 
 ### Opción 2: Docker Compose
@@ -168,9 +168,9 @@ Crea `docker-compose.yml`:
 version: '3.8'
 
 services:
-  miawrouter:
+  dardcor-code:
     build: .
-    container_name: miawrouter
+    container_name: dardcor-code
     ports:
       - "3000:3000"
       - "21128:21128"
@@ -180,11 +180,11 @@ services:
       - INITIAL_PASSWORD=your-secure-password
       - DATA_DIR=/app/data
     volumes:
-      - miawrouter-data:/app/data
+      - dardcor-code-data:/app/data
     restart: unless-stopped
 
 volumes:
-  miawrouter-data:
+  dardcor-code-data:
 ```
 
 **Ejecutar con Docker Compose:**
@@ -223,7 +223,7 @@ sudo apt install nginx
 
 ### Paso 2: Configurar Nginx
 
-Crea `/etc/nginx/sites-available/miawrouter`:
+Crea `/etc/nginx/sites-available/dardcor-code`:
 
 ```nginx
 server {
@@ -247,7 +247,7 @@ server {
     ssl_ciphers HIGH:!aNULL:!MD5;
     ssl_prefer_server_ciphers on;
 
-    # Proxy to MiawRouter
+    # Proxy to Dardcor Code
     location / {
         proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
@@ -284,7 +284,7 @@ server {
 
 ```bash
 # Crear enlace simbólico
-sudo ln -s /etc/nginx/sites-available/miawrouter /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/dardcor-code /etc/nginx/sites-enabled/
 
 # Probar configuración
 sudo nginx -t
@@ -333,7 +333,7 @@ sudo ufw allow 22/tcp
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
 
-# Si NO usas proxy reverso, permite los puertos de MiawRouter
+# Si NO usas proxy reverso, permite los puertos de Dardcor Code
 sudo ufw allow 3000/tcp
 sudo ufw allow 21128/tcp
 
@@ -363,22 +363,22 @@ ssh -L 3000:localhost:3000 user@your-server.com
 # Actualizar paquetes del sistema
 sudo apt update && sudo apt upgrade -y
 
-# Actualizar MiawRouter
-cd /path/to/miawrouter/app
+# Actualizar Dardcor Code
+cd /path/to/dardcor-code/app
 git pull
 npm install
 npm run build
-pm2 restart miawrouter
+pm2 restart dardcor-code
 ```
 
 ### 5. Estrategia de respaldo
 
 ```bash
 # Respaldar el directorio de datos
-tar -czf miawrouter-backup-$(date +%Y%m%d).tar.gz /var/lib/miawrouter
+tar -czf dardcor-code-backup-$(date +%Y%m%d).tar.gz /var/lib/dardcor-code
 
 # Respaldo automatizado diario (agregar a crontab)
-0 2 * * * tar -czf /backups/miawrouter-$(date +\%Y\%m\%d).tar.gz /var/lib/miawrouter
+0 2 * * * tar -czf /backups/dardcor-code-$(date +\%Y\%m\%d).tar.gz /var/lib/dardcor-code
 ```
 
 ---
@@ -392,7 +392,7 @@ tar -czf miawrouter-backup-$(date +%Y%m%d).tar.gz /var/lib/miawrouter
 pm2 status
 
 # Ver logs
-pm2 logs miawrouter --lines 100
+pm2 logs dardcor-code --lines 100
 
 # Monitorear recursos
 pm2 monit
@@ -429,20 +429,20 @@ netstat -tulpn | grep -E '3000|21128'
 
 ```bash
 # Verificar logs
-pm2 logs miawrouter
+pm2 logs dardcor-code
 
 # Verificar si los puertos están en uso
 sudo lsof -i :3000
 sudo lsof -i :21128
 
 # Verificar variables de entorno
-pm2 env miawrouter
+pm2 env dardcor-code
 ```
 
 ### Nginx 502 Bad Gateway
 
 ```bash
-# Verificar si MiawRouter está corriendo
+# Verificar si Dardcor Code está corriendo
 pm2 status
 
 # Verificar logs de error de Nginx
@@ -460,8 +460,8 @@ Asegúrate de que `proxy_buffering off` esté configurado en Nginx para soporte 
 
 ```bash
 # Corregir permisos del directorio de datos
-sudo chown -R $USER:$USER /var/lib/miawrouter
-chmod 755 /var/lib/miawrouter
+sudo chown -R $USER:$USER /var/lib/dardcor-code
+chmod 755 /var/lib/dardcor-code
 ```
 
 ---

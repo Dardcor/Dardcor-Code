@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { RequestType, type RequestMetadata } from '@vscode/dardcor-api';
+import { RequestType, type RequestMetadata } from '@vscode/copilot-api';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { IAuthenticationService } from '../../../../platform/authentication/common/authentication';
 import { CopilotToken, createTestExtendedTokenInfo } from '../../../../platform/authentication/common/dardcorToken';

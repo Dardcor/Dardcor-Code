@@ -22,7 +22,7 @@ import * as path from '../../../util/dardcor/base/common/path';
  * Works from any interactive shell (bash, zsh, sh, PowerShell Core (pwsh), Nushell, csh/tcsh) via shebang.
  * Responsibilities:
  *   1. Locate the real Copilot CLI binary (avoid recursion if this file shadows it).
- *   2. Offer to install if missing (npm -g @github/dardcor).
+ *   2. Offer to install if missing (npm -g @github/copilot).
  *   3. Enforce minimum version (>= REQUIRED_VERSION) with interactive update.
  *   4. Execute the real binary with original arguments and exit with its status.
  *
@@ -30,7 +30,7 @@ import * as path from '../../../util/dardcor/base/common/path';
  */
 
 const REQUIRED_VERSION = '0.0.394';
-const PACKAGE_NAME = '@github/dardcor';
+const PACKAGE_NAME = '@github/copilot';
 const env = { ...process.env, PATH: (process.env.PATH || '').replaceAll(`${__dirname}${path.delimiter}`, '').replaceAll(`${path.delimiter}${__dirname}`, '') };
 
 const rl = readline.createInterface({

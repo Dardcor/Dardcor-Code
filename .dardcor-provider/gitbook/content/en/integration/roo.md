@@ -1,12 +1,12 @@
 # Roo AI Assistant Integration
 
-Integrate MiawRouter with Roo AI Assistant to access multiple AI models through a unified interface.
+Integrate Dardcor Code with Roo AI Assistant to access multiple AI models through a unified interface.
 
 ## Prerequisites
 
 - Roo AI Assistant installed
-- MiawRouter API key from [dashboard](https://miawrouter.web.id/dashboard)
-- MiawRouter running (local or cloud)
+- Dardcor Code API key from [dashboard](https://dardcor-code.web.id/dashboard)
+- Dardcor Code running (local or cloud)
 
 ## Configuration Steps
 
@@ -20,21 +20,21 @@ Launch Roo AI Assistant and open the settings panel.
 2. Select **Ollama** as the provider type
 3. Configure the following settings:
 
-**For Local MiawRouter:**
+**For Local Dardcor Code:**
 ```
 Base URL: http://localhost:21128/v1
 API Key: your-api-key-from-dashboard
 ```
 
-**For Cloud MiawRouter:**
+**For Cloud Dardcor Code:**
 ```
-Base URL: https://miawrouter.web.id/v1
+Base URL: https://dardcor-code.web.id/v1
 API Key: your-api-key-from-dashboard
 ```
 
 ### 3. Select Model
 
-Choose from available MiawRouter models:
+Choose from available Dardcor Code models:
 
 **Claude Models:**
 - `cc/claude-opus-4-5-20251101` - Most capable
@@ -54,7 +54,7 @@ Choose from available MiawRouter models:
 Send a test message to verify the integration:
 
 ```
-Hello! Can you confirm you're connected through MiawRouter?
+Hello! Can you confirm you're connected through Dardcor Code?
 ```
 
 ## Usage Examples
@@ -87,19 +87,19 @@ Model: cx/deepseek-reasoner
 ## Troubleshooting
 
 ### Connection Failed
-- Verify MiawRouter is running: `curl http://localhost:21128/health`
+- Verify Dardcor Code is running: `curl http://localhost:21128/health`
 - Check API key is correct
 - Ensure Base URL includes `/v1` suffix
 
 ### Model Not Available
 - Check model name matches exactly (case-sensitive)
-- Verify model is enabled in your MiawRouter plan
+- Verify model is enabled in your Dardcor Code plan
 - Try a different model from the list
 
 ### Slow Responses
 - Switch to faster models (haiku, flash)
 - Check network connection
-- Monitor MiawRouter logs for issues
+- Monitor Dardcor Code logs for issues
 
 ## Advanced Configuration
 

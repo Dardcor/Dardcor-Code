@@ -1,14 +1,14 @@
-# Chào mừng đến với MiawRouter
+# Chào mừng đến với Dardcor Code
 
 **Dùng Claude, Codex, Gemini MIỄN PHÍ • Lựa chọn siêu rẻ từ $0.20/1M tokens**
 
-MiawRouter là bộ định tuyến mô hình AI giúp tối đa hóa giá trị subscription và giảm chi phí thông qua định tuyến thông minh và fallback tự động.
+Dardcor Code là bộ định tuyến mô hình AI giúp tối đa hóa giá trị subscription và giảm chi phí thông qua định tuyến thông minh và fallback tự động.
 
 ---
 
-## MiawRouter là gì?
+## Dardcor Code là gì?
 
-MiawRouter là một proxy thông minh nằm giữa các công cụ lập trình của bạn (Cursor, Cline, Claude Desktop) và các nhà cung cấp AI. Nó tự động định tuyến request đến model tốt nhất hiện có dựa trên quota, chi phí và tính khả dụng.
+Dardcor Code là một proxy thông minh nằm giữa các công cụ lập trình của bạn (Cursor, Cline, Claude Desktop) và các nhà cung cấp AI. Nó tự động định tuyến request đến model tốt nhất hiện có dựa trên quota, chi phí và tính khả dụng.
 
 **Đừng lãng phí tiền:**
 - ❌ Quota subscription hết hạn mỗi tháng mà không dùng đến
@@ -65,7 +65,7 @@ Hoạt động với mọi công cụ hỗ trợ custom OpenAI endpoint:
 
 ---
 
-## Tại sao chọn MiawRouter?
+## Tại sao chọn Dardcor Code?
 
 ### Tối đa hóa Subscription
 
@@ -102,10 +102,10 @@ Bắt đầu trong 2 phút:
 
 ```bash
 # Install globally
-npm install -g miawrouter
+npm install -g dardcor-code
 
 # Start (dashboard opens automatically)
-miawrouter
+dardcor-code
 ```
 
 🎉 **Dashboard mở** → Kết nối provider → Bắt đầu code!
@@ -140,7 +140,7 @@ Model: cc/claude-opus-4-5-20251101
 
 ### Cho Mobile/Remote Coding
 
-- Dùng cloud deployment (https://miawrouter.web.id)
+- Dùng cloud deployment (https://dardcor-code.web.id)
 - Truy cập từ iPad, điện thoại, mọi nơi
 - Không bị giới hạn localhost
 - Mạng Cloudflare edge (300+ vị trí)

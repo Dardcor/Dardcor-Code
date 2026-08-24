@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { RequestMetadata, RequestType } from '@vscode/dardcor-api';
+import { RequestMetadata, RequestType } from '@vscode/copilot-api';
 import { CancellationToken } from '../../../util/dardcor/base/common/cancellation';
 import { CancellationError } from '../../../util/dardcor/base/common/errors';
 import { IAuthenticationService } from '../../authentication/common/authentication';

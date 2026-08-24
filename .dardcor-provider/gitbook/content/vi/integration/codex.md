@@ -1,12 +1,12 @@
 # Tích hợp OpenAI Codex CLI
 
-Tích hợp MiawRouter với OpenAI Codex CLI để định tuyến request API OpenAI qua hệ thống routing thông minh của MiawRouter.
+Tích hợp Dardcor Code với OpenAI Codex CLI để định tuyến request API OpenAI qua hệ thống routing thông minh của Dardcor Code.
 
 ## Yêu cầu
 
 - OpenAI Codex CLI đã cài đặt
-- MiawRouter đang chạy cục bộ hoặc cloud endpoint đã cấu hình
-- API key từ MiawRouter dashboard
+- Dardcor Code đang chạy cục bộ hoặc cloud endpoint đã cấu hình
+- API key từ Dardcor Code dashboard
 
 ## Setup
 
@@ -15,11 +15,11 @@ Tích hợp MiawRouter với OpenAI Codex CLI để định tuyến request API 
 Đặt các biến môi trường sau trong file cấu hình shell (`~/.bashrc`, `~/.zshrc`, hoặc `~/.bash_profile`):
 
 ```bash
-# Base URL for MiawRouter
+# Base URL for Dardcor Code
 export OPENAI_BASE_URL="http://localhost:21128/v1"
 
-# API Key from MiawRouter dashboard
-export OPENAI_API_KEY="your-miawrouter-api-key"
+# API Key from Dardcor Code dashboard
+export OPENAI_API_KEY="your-dardcor-code-api-key"
 ```
 
 ### 2. Reload Shell Configuration
@@ -39,7 +39,7 @@ echo $OPENAI_API_KEY
 
 ## Model có sẵn
 
-MiawRouter cung cấp các model Codex sau:
+Dardcor Code cung cấp các model Codex sau:
 
 | Model ID | Mô tả |
 |----------|-------------|
@@ -77,7 +77,7 @@ Bạn cũng có thể cấu hình Codex CLI qua file cấu hình. Tạo hoặc s
 ```json
 {
   "baseUrl": "http://localhost:21128/v1",
-  "apiKey": "your-miawrouter-api-key",
+  "apiKey": "your-dardcor-code-api-key",
   "defaultModel": "cx/gpt-5.2-codex"
 }
 ```
@@ -88,7 +88,7 @@ Bạn cũng có thể cấu hình Codex CLI qua file cấu hình. Tạo hoặc s
 
 Nếu gặp lỗi xác thực:
 
-1. Xác minh API key đúng trong MiawRouter dashboard
+1. Xác minh API key đúng trong Dardcor Code dashboard
 2. Kiểm tra biến môi trường `OPENAI_API_KEY` đã set
 3. Đảm bảo API key chưa hết hạn
 
@@ -96,7 +96,7 @@ Nếu gặp lỗi xác thực:
 
 Nếu gặp lỗi kết nối:
 
-1. Xác minh MiawRouter đang chạy: `curl http://localhost:21128/health`
+1. Xác minh Dardcor Code đang chạy: `curl http://localhost:21128/health`
 2. Kiểm tra biến môi trường đã set đúng
 3. Đảm bảo không firewall nào chặn port 21128
 
@@ -104,19 +104,19 @@ Nếu gặp lỗi kết nối:
 
 Nếu gặp lỗi "model not available":
 
-1. Xác minh tên model khớp với cấu hình MiawRouter
-2. Kiểm tra kết nối provider OpenAI đang hoạt động trong MiawRouter dashboard
+1. Xác minh tên model khớp với cấu hình Dardcor Code
+2. Kiểm tra kết nối provider OpenAI đang hoạt động trong Dardcor Code dashboard
 3. Đảm bảo model có sẵn trong các provider đã kết nối
 
 ## Cloud Endpoint
 
-Để dùng MiawRouter cloud endpoint thay vì localhost:
+Để dùng Dardcor Code cloud endpoint thay vì localhost:
 
 ```bash
-export OPENAI_BASE_URL="https://miawrouter.web.id"
+export OPENAI_BASE_URL="https://dardcor-code.web.id"
 ```
 
-Đảm bảo bạn đã cấu hình API key trong MiawRouter cloud dashboard.
+Đảm bảo bạn đã cấu hình API key trong Dardcor Code cloud dashboard.
 
 ## Cấu hình Nâng cao
 

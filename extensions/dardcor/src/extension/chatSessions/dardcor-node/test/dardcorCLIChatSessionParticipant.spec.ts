@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Attachment, SessionOptions, SweCustomAgent } from '@github/dardcor/sdk';
+import { Attachment, SessionOptions, SweCustomAgent } from '@github/copilot/sdk';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as vscode from 'vscode';
 import { Uri } from 'vscode';

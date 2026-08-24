@@ -237,7 +237,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   }
 
   // Per-request opt-out: client can bypass all token savers via header.
-  // New x-miaw-token-saver wins; legacy x-9router-token-saver still accepted.
+  // New x-dardcor-token-saver wins; legacy x-9router-token-saver still accepted.
   const saverHeaderValue =
     clientRawRequest?.headers?.[TOKEN_SAVER_HEADER] ??
     clientRawRequest?.headers?.[LEGACY_TOKEN_SAVER_HEADER];
@@ -384,9 +384,9 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
 
   // --- L1/L2 response cache: lookup before provider dispatch ---
   // Only deterministic (temperature=0 / seed-pinned) non-streaming, tool-free
-  // requests are cacheable. X-Miaw-Bypass: cache-l1,cache-l2,cache-l3.
+  // requests are cacheable. X-Dardcor-Bypass: cache-l1,cache-l2,cache-l3.
   const cacheBypass = new Set(
-    (clientRawRequest?.headers?.["x-miaw-bypass"] || "")
+    (clientRawRequest?.headers?.["x-dardcor-bypass"] || "")
       .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean)
   );
   const l1On = !!cacheL1Enabled && !cacheBypass.has("cache-l1") && !cacheBypass.has("cache");
@@ -451,8 +451,8 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
               headers: {
                 "Content-Type": entry.contentType || "application/json",
                 "Access-Control-Allow-Origin": "*",
-                "X-Miaw-Cache": "HIT",
-                "X-Miaw-Cache-Layer": layer,
+                "X-Dardcor-Cache": "HIT",
+                "X-Dardcor-Cache-Layer": layer,
               },
             }),
           };

@@ -60,7 +60,7 @@ const treeSitterGrammars: ITreeSitterGrammar[] = [
 ];
 
 const REPO_ROOT = path.join(__dirname, '..');
-const COPILOT_PACKAGE_DIR = path.join(REPO_ROOT, 'node_modules', '@github', 'dardcor');
+const COPILOT_PACKAGE_DIR = path.join(REPO_ROOT, 'node_modules', '@github', 'copilot');
 const COPILOT_CLI_TOP_LEVEL_DIRS = [
 	'worker',
 	'definitions',
@@ -74,7 +74,7 @@ const COPILOT_CLI_TOP_LEVEL_DIRS = [
 	'pvrecorder',
 	'mxc-bin',
 	'clipboard',
-	'dardcor-sdk',
+	'copilot-sdk',
 	'schemas',
 	'preloads',
 ];
@@ -123,7 +123,7 @@ async function resolveCopilotCliSourceDir(): Promise<string> {
 		}
 	}
 
-	throw new Error(`Could not find @github/dardcor SDK files. Tried: ${[COPILOT_PACKAGE_DIR, ...tried].join(', ')}`);
+	throw new Error(`Could not find @github/copilot SDK files. Tried: ${[COPILOT_PACKAGE_DIR, ...tried].join(', ')}`);
 }
 
 async function ensureCopilotSdkExport() {

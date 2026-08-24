@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { RequestType } from '@vscode/dardcor-api';
+import { RequestType } from '@vscode/copilot-api';
 import { Emitter } from '../../../util/dardcor/base/common/event';
 import { Disposable } from '../../../util/dardcor/base/common/lifecycle';
 import { IAuthenticationService } from '../../authentication/common/authentication';

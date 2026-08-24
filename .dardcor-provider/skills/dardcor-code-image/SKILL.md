@@ -1,23 +1,23 @@
 ---
-name: miawrouter-image
-description: Generate images via MiawRouter /v1/images/generations using OpenAI / Gemini Imagen / DALL-E / FLUX / MiniMax / SDWebUI / ComfyUI / Codex models. Use when the user wants to create, generate, draw, or render an image, picture, or text-to-image (txt2img).
+name: dardcor-code-image
+description: Generate images via Dardcor Code /v1/images/generations using OpenAI / Gemini Imagen / DALL-E / FLUX / MiniMax / SDWebUI / ComfyUI / Codex models. Use when the user wants to create, generate, draw, or render an image, picture, or text-to-image (txt2img).
 ---
 
-# MiawRouter — Image Generation
+# Dardcor Code — Image Generation
 
-Requires `MIAW_URL` (and `MIAW_KEY` if auth enabled). See https://miawrouter.web.id/skills/miawrouter/SKILL.md for setup.
+Requires `DARDCOR_URL` (and `DARDCOR_KEY` if auth enabled). See https://dardcor-code.web.id/skills/dardcor-code/SKILL.md for setup.
 
 ## Discover
 
 ```bash
-curl $MIAW_URL/v1/models/image | jq '.data[].id'
+curl $DARDCOR_URL/v1/models/image | jq '.data[].id'
 # Per-model params/options (size enum, quality enum, capabilities like edit)
-curl "$MIAW_URL/v1/models/info?id=openai/dall-e-3"
+curl "$DARDCOR_URL/v1/models/info?id=openai/dall-e-3"
 ```
 
 ## Endpoint
 
-`POST $MIAW_URL/v1/images/generations`
+`POST $DARDCOR_URL/v1/images/generations`
 
 | Field | Required | Notes |
 |---|---|---|
@@ -35,8 +35,8 @@ Add query `?response_format=binary` to receive raw image bytes (handy for saving
 Save to file (binary):
 
 ```bash
-curl -X POST "$MIAW_URL/v1/images/generations?response_format=binary" \
-  -H "Authorization: Bearer $MIAW_KEY" \
+curl -X POST "$DARDCOR_URL/v1/images/generations?response_format=binary" \
+  -H "Authorization: Bearer $DARDCOR_KEY" \
   -H "Content-Type: application/json" \
   -d '{"model":"gemini/gemini-3-pro-image-preview","prompt":"watercolor mountains at sunrise","size":"1024x1024"}' \
   --output out.png
@@ -45,9 +45,9 @@ curl -X POST "$MIAW_URL/v1/images/generations?response_format=binary" \
 JS (URL response):
 
 ```js
-const r = await fetch(`${process.env.MIAW_URL}/v1/images/generations`, {
+const r = await fetch(`${process.env.DARDCOR_URL}/v1/images/generations`, {
   method: "POST",
-  headers: { "Authorization": `Bearer ${process.env.MIAW_KEY}`, "Content-Type": "application/json" },
+  headers: { "Authorization": `Bearer ${process.env.DARDCOR_KEY}`, "Content-Type": "application/json" },
   body: JSON.stringify({ model: "gemini/gemini-3-pro-image-preview", prompt: "neon city", size: "1024x1024" }),
 });
 const { data } = await r.json();

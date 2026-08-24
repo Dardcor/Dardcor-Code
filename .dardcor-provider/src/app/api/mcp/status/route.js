@@ -3,7 +3,7 @@ import { isRunning } from "@/lib/mcp/stdioSseBridge";
 import { LOCAL_STDIO_PLUGINS, DEFAULT_PLUGINS } from "@/shared/constants/coworkPlugins";
 import { canAccessLocalOnlyRoute } from "@/dashboardGuard";
 
-const G_KEY = "__miawrouterMcpHealth";
+const G_KEY = "__dardcor-codeMcpHealth";
 
 function getHealthStore() {
   if (!globalThis[G_KEY]) {

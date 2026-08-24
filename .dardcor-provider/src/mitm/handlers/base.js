@@ -6,7 +6,7 @@ const ROUTER_BASE = String(process.env.MITM_ROUTER_BASE || DEFAULT_LOCAL_ROUTER)
   .replace(/\/+$/, "") || DEFAULT_LOCAL_ROUTER;
 const API_KEY = process.env.ROUTER_API_KEY;
 
-// Headers that must not be forwarded to MiawRouter
+// Headers that must not be forwarded to Dardcor Code
 const STRIP_HEADERS = new Set([
   "host", "content-length", "connection", "transfer-encoding",
   "content-type", "content-encoding", "authorization", "te",
@@ -14,7 +14,7 @@ const STRIP_HEADERS = new Set([
 ]);
 
 /**
- * Send body to MiawRouter at the given path and return the fetch Response object.
+ * Send body to Dardcor Code at the given path and return the fetch Response object.
  * Optionally forwards client headers (stripped of hop-by-hop / overridden keys).
  */
 async function fetchRouter(openaiBody, path = "/v1/chat/completions", clientHeaders = {}) {
@@ -71,7 +71,7 @@ async function pipeSSE(routerRes, res, dumper) {
  * Reads SSE data: lines, parses JSON, calls transformFn(parsed, state),
  * and writes returned SSE strings to the client response.
  *
- * @param {Response} routerRes - Fetch Response from MiawRouter
+ * @param {Response} routerRes - Fetch Response from Dardcor Code
  * @param {http.ServerResponse} res - Client response
  * @param {Function} transformFn - (parsedChunk, state) => string|string[]|null
  * @param {object} state - Mutable state object shared across chunks and flush
@@ -150,7 +150,7 @@ async function pipeTransformedSSE(routerRes, res, transformFn, state) {
  * Reads SSE data: lines, parses JSON, calls transformFn(parsed, state),
  * and writes returned Uint8Array frames to the client response.
  *
- * @param {Response} routerRes - Fetch Response from MiawRouter
+ * @param {Response} routerRes - Fetch Response from Dardcor Code
  * @param {http.ServerResponse} res - Client response
  * @param {Function} transformFn - (parsedChunk, state) => Uint8Array|Uint8Array[]|null
  * @param {object} state - Mutable state object shared across chunks and flush

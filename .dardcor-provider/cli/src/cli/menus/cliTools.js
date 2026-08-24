@@ -360,10 +360,10 @@ async function buildOpenClawHeader() {
     ].join("\n");
   }
 
-  // Extract MiawRouter provider config (legacy "9router" slot accepted).
-  const provider = settings?.models?.providers?.["miawrouter"] || settings?.models?.providers?.["9router"];
+  // Extract Dardcor Code provider config (legacy "9router" slot accepted).
+  const provider = settings?.models?.providers?.["dardcor-code"] || settings?.models?.providers?.["9router"];
   const primary = settings?.agents?.defaults?.model?.primary || "";
-  const model = primary.startsWith("miawrouter/") || primary.startsWith("9router/")
+  const model = primary.startsWith("dardcor-code/") || primary.startsWith("9router/")
     ? primary.slice(primary.indexOf("/") + 1)
     : (provider?.models?.[0]?.id || "");
   const lines = [`Status:   ${COLORS.green}✓ Configured${COLORS.reset}`];

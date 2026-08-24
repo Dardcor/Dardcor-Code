@@ -1,6 +1,6 @@
 # Cài đặt
 
-Hướng dẫn cài đặt chi tiết cho MiawRouter với mẹo troubleshooting.
+Hướng dẫn cài đặt chi tiết cho Dardcor Code với mẹo troubleshooting.
 
 ---
 
@@ -31,37 +31,37 @@ npm --version
 
 ### Cách 1: Cài Global (Khuyên dùng)
 
-Cài MiawRouter toàn cục để dùng ở bất kỳ đâu:
+Cài Dardcor Code toàn cục để dùng ở bất kỳ đâu:
 
 ```bash
-npm install -g miawrouter
+npm install -g dardcor-code
 ```
 
-**Khởi động MiawRouter:**
+**Khởi động Dardcor Code:**
 
 ```bash
-miawrouter
+dardcor-code
 ```
 
 **Lợi ích:**
 - ✅ Chạy từ mọi thư mục
-- ✅ Lệnh đơn giản: `miawrouter`
-- ✅ Auto-update với `npm update -g miawrouter`
+- ✅ Lệnh đơn giản: `dardcor-code`
+- ✅ Auto-update với `npm update -g dardcor-code`
 
 ### Cách 2: Cài Local
 
 Cài trong project cụ thể:
 
 ```bash
-mkdir my-miawrouter
-cd my-miawrouter
-npm install miawrouter
+mkdir my-dardcor-code
+cd my-dardcor-code
+npm install dardcor-code
 ```
 
-**Khởi động MiawRouter:**
+**Khởi động Dardcor Code:**
 
 ```bash
-npx miawrouter
+npx dardcor-code
 ```
 
 **Lợi ích:**
@@ -75,7 +75,7 @@ Clone và build từ GitHub:
 
 ```bash
 git clone .git
-cd miawrouter/app
+cd dardcor-code/app
 npm install
 npm run build
 npm start
@@ -93,13 +93,13 @@ npm start
 ### Khởi động Server
 
 ```bash
-miawrouter
+dardcor-code
 ```
 
 **Điều gì xảy ra:**
 1. Server khởi động tại `http://localhost:21128`
 2. Dashboard tự động mở trong browser
-3. Data directory được tạo tại `~/.miawrouter`
+3. Data directory được tạo tại `~/.dardcor-code`
 4. API key được tạo tự động
 
 ### Đăng nhập Dashboard
@@ -122,7 +122,7 @@ Dashboard → Settings → API Keys
 
 **Ví dụ format API key:**
 ```
-miaw_1234567890abcdef1234567890abcdef
+dardcor_1234567890abcdef1234567890abcdef
 ```
 
 ---
@@ -193,7 +193,7 @@ export JWT_SECRET="your-secure-secret-change-this"
 export INITIAL_PASSWORD="your-password"
 
 # Storage
-export DATA_DIR="~/.miawrouter"
+export DATA_DIR="~/.dardcor-code"
 
 # Server
 export PORT="21128"
@@ -205,11 +205,11 @@ export ENABLE_REQUEST_LOGS="false"
 
 ### Data Directory
 
-**Vị trí mặc định:** `~/.miawrouter`
+**Vị trí mặc định:** `~/.dardcor-code`
 
 **Nội dung:**
 ```
-~/.miawrouter/
+~/.dardcor-code/
   ├── db.json           # Database (providers, combos, usage)
   ├── api-keys.json     # API keys
   └── logs/             # Request logs (if enabled)
@@ -219,7 +219,7 @@ export ENABLE_REQUEST_LOGS="false"
 
 ```bash
 export DATA_DIR="/custom/path"
-miawrouter
+dardcor-code
 ```
 
 ### Cấu hình Port
@@ -230,13 +230,13 @@ miawrouter
 
 ```bash
 export PORT="3000"
-miawrouter
+dardcor-code
 ```
 
 **Hoặc dùng command line:**
 
 ```bash
-miawrouter --port 3000
+dardcor-code --port 3000
 ```
 
 ---
@@ -263,14 +263,14 @@ kill -9 <PID>
 **Giải pháp 2: Dùng port khác**
 
 ```bash
-miawrouter --port 3000
+dardcor-code --port 3000
 ```
 
 ### Permission Denied
 
 **Lỗi:**
 ```
-Error: EACCES: permission denied, mkdir '/usr/local/lib/node_modules/miawrouter'
+Error: EACCES: permission denied, mkdir '/usr/local/lib/node_modules/dardcor-code'
 ```
 
 **Giải pháp: Dùng sudo (không khuyến nghị) hoặc fix npm permissions**
@@ -283,7 +283,7 @@ echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
 source ~/.bashrc
 
 # Then install again
-npm install -g miawrouter
+npm install -g dardcor-code
 ```
 
 ### Node.js Phiên bản quá cũ
@@ -345,23 +345,23 @@ Dashboard → Provider → Disconnect → Reconnect
 
 ### Sử dụng RAM cao
 
-**Vấn đề:** MiawRouter dùng quá nhiều RAM
+**Vấn đề:** Dardcor Code dùng quá nhiều RAM
 
 **Giải pháp: Khởi động lại server**
 
 ```bash
 # Stop
-pkill -f miawrouter
+pkill -f dardcor-code
 
 # Start
-miawrouter
+dardcor-code
 ```
 
 **Hoặc dùng PM2 để auto-restart:**
 
 ```bash
 npm install -g pm2
-pm2 start miawrouter --name miawrouter
+pm2 start dardcor-code --name dardcor-code
 pm2 save
 ```
 
@@ -372,8 +372,8 @@ pm2 save
 ### Phát triển cục bộ
 
 ```bash
-npm install -g miawrouter
-miawrouter
+npm install -g dardcor-code
+dardcor-code
 ```
 
 **Use case:** Code cá nhân, testing
@@ -382,7 +382,7 @@ miawrouter
 
 ```bash
 # Install
-npm install -g miawrouter
+npm install -g dardcor-code
 
 # Configure
 export JWT_SECRET="your-secure-secret"
@@ -391,7 +391,7 @@ export NODE_ENV="production"
 
 # Start with PM2
 npm install -g pm2
-pm2 start miawrouter --name miawrouter
+pm2 start dardcor-code --name dardcor-code
 pm2 save
 pm2 startup
 ```
@@ -401,15 +401,15 @@ pm2 startup
 ### Docker
 
 ```bash
-docker pull miawrouter/miawrouter:latest
+docker pull dardcor-code/dardcor-code:latest
 
 docker run -d \
   -p 21128:21128 \
   -e JWT_SECRET="your-secure-secret" \
   -e INITIAL_PASSWORD="your-password" \
-  -v miawrouter-data:/root/.miawrouter \
-  --name miawrouter \
-  miawrouter/miawrouter:latest
+  -v dardcor-code-data:/root/.dardcor-code \
+  --name dardcor-code \
+  dardcor-code/dardcor-code:latest
 ```
 
 **Use case:** Containerized deployment, Kubernetes
@@ -444,13 +444,13 @@ server {
 ### Gỡ Global Installation
 
 ```bash
-npm uninstall -g miawrouter
+npm uninstall -g dardcor-code
 ```
 
 ### Xóa Data Directory
 
 ```bash
-rm -rf ~/.miawrouter
+rm -rf ~/.dardcor-code
 ```
 
 ### Xóa Cấu hình
@@ -458,7 +458,7 @@ rm -rf ~/.miawrouter
 ```bash
 # Remove environment variables from shell config
 nano ~/.bashrc  # or ~/.zshrc
-# Delete miawrouter-related exports
+# Delete dardcor-code-related exports
 ```
 
 ---
@@ -473,6 +473,6 @@ nano ~/.bashrc  # or ~/.zshrc
 
 ## Cần trợ giúp?
 
-- **Website**: [miawrouter.web.id](https://miawrouter.web.id)
+- **Website**: [dardcor-code.web.id](https://dardcor-code.web.id)
 - **GitHub**: 
 - **Issues**: [/issues](/issues)

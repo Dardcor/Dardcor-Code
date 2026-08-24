@@ -1,13 +1,13 @@
 import { canAccessLocalOnlyRoute, hasValidCliToken } from "@/dashboardGuard";
 import { mcpDependencies } from "@/lib/mcp/adapters";
-import { MCP_SCOPES, createMcpCore, createMiawToolRegistry } from "@/lib/mcp/core";
+import { MCP_SCOPES, createMcpCore, createDardcorToolRegistry } from "@/lib/mcp/core";
 import { createMcpHttpHandler } from "@/lib/mcp/http";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const ALL_SCOPES = Object.values(MCP_SCOPES);
-const registry = createMiawToolRegistry(mcpDependencies);
+const registry = createDardcorToolRegistry(mcpDependencies);
 const core = createMcpCore({
   registry,
   timeoutMs: 10_000,
@@ -15,7 +15,7 @@ const core = createMcpCore({
 });
 
 function requestedScopes(request) {
-  const header = request.headers.get("x-miaw-mcp-scopes");
+  const header = request.headers.get("x-dardcor-mcp-scopes");
   if (!header) return ALL_SCOPES;
   const requested = header.split(/[ ,]+/).filter(Boolean);
   return requested.filter((scope) => ALL_SCOPES.includes(scope));

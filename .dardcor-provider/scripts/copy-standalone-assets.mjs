@@ -5,7 +5,7 @@ import { dirname, join, resolve } from "node:path";
 // Tiny CJS wrapper that replaces the Next-generated standalone server.js. It
 // refuses to boot with a known-weak supplied secret before any listener opens,
 // then loads the real server (stashed next to it as next-server.js).
-const SECRET_GATE_WRAPPER = `// miawrouter weak-secret gate: refuse to boot with a known-weak supplied
+const SECRET_GATE_WRAPPER = `// dardcor-code weak-secret gate: refuse to boot with a known-weak supplied
 // secret before any listener opens. Managed by scripts/copy-standalone-assets.mjs.
 "use strict";
 require("./secret-policy.cjs").assertNoWeakSecrets();

@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as pathLib from 'path';
-import { AgentTaskGetResponse, AgentTaskSession, AgentTaskSessionEvent, AgentTaskState } from '@vscode/dardcor-api';
-import type { SessionEvent } from '@github/dardcor/sdk';
+import { AgentTaskGetResponse, AgentTaskSession, AgentTaskSessionEvent, AgentTaskState } from '@vscode/copilot-api';
+import type { SessionEvent } from '@github/copilot/sdk';
 import * as vscode from 'vscode';
 import { ChatRequestTurn, ChatRequestTurn2, ChatResponseMarkdownPart, ChatResponseMultiDiffPart, ChatResponseProgressPart, ChatResponseThinkingProgressPart, ChatResponseTurn2, ChatResult, ChatToolInvocationPart, MarkdownString, Uri } from 'vscode';
 import { IGitService } from '../../../platform/git/common/gitService';

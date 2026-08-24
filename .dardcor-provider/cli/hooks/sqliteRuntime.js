@@ -16,8 +16,8 @@ function getDataDir() {
     : path.join(os.homedir(), ".9router");
   if (fs.existsSync(legacy)) return legacy;
   return process.platform === "win32"
-    ? path.join(process.env.APPDATA || os.homedir(), "miawrouter")
-    : path.join(os.homedir(), ".miawrouter");
+    ? path.join(process.env.APPDATA || os.homedir(), "dardcor-code")
+    : path.join(os.homedir(), ".dardcor-code");
 }
 
 function getRuntimeDir() {
@@ -36,10 +36,10 @@ function ensureRuntimeDir() {
   const pkgPath = path.join(dir, "package.json");
   if (!fs.existsSync(pkgPath)) {
     fs.writeFileSync(pkgPath, JSON.stringify({
-      name: "miawrouter-runtime",
+      name: "dardcor-code-runtime",
       version: "1.0.0",
       private: true,
-      description: "User-writable runtime deps for miawrouter (better-sqlite3 native binary)",
+      description: "User-writable runtime deps for dardcor-code (better-sqlite3 native binary)",
     }, null, 2));
   }
   return dir;

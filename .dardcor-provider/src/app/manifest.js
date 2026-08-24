@@ -1,7 +1,7 @@
 export default function manifest() {
   return {
-    name: 'MiawRouter - AI Infrastructure Management',
-    short_name: 'MiawRouter',
+    name: 'Dardcor Code - AI Infrastructure Management',
+    short_name: 'Dardcor Code',
     description: 'One endpoint for all your AI providers. Manage keys, monitor usage, and scale effortlessly.',
     start_url: '/',
     display: 'standalone',
@@ -9,6 +9,16 @@ export default function manifest() {
     theme_color: '#0a0a0a',
     orientation: 'portrait-primary',
     icons: [
+      {
+        src: '/dardcor-code.png',
+        sizes: '512x512',
+        type: 'image/png',
+      },
+      {
+        src: '/favicon.ico',
+        sizes: '48x48',
+        type: 'image/x-icon',
+      },
       {
         src: '/icons/icon-192.svg',
         sizes: '192x192',
@@ -18,12 +28,6 @@ export default function manifest() {
         src: '/icons/icon-512.svg',
         sizes: '512x512',
         type: 'image/svg+xml',
-      },
-      {
-        src: '/icons/icon-512.svg',
-        sizes: '512x512',
-        type: 'image/svg+xml',
-        purpose: 'maskable',
       },
     ],
   }

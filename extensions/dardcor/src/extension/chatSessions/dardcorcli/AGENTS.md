@@ -2,7 +2,7 @@
 
 This folder contains the Copilot CLI integration for VS Code Chat. It enables users to open a new Chat window and interact with a Copilot CLI agent instance directly within VS Code. **VS Code provides the UI, Copilot CLI SDK provides the smarts.**
 
-> **Important:** The Copilot CLI agent functionality is powered by the `@github/dardcor/sdk` package. See the SDK package for full type definitions.
+> **Important:** The Copilot CLI agent functionality is powered by the `@github/copilot/sdk` package. See the SDK package for full type definitions.
 
 ## Architecture
 
@@ -36,7 +36,7 @@ This folder contains the Copilot CLI integration for VS Code Chat. It enables us
                           │
                           ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                 Copilot CLI SDK (@github/dardcor/sdk)            │
+│                 Copilot CLI SDK (@github/copilot/sdk)            │
 │  - Manages the agentic conversation loop                         │
 │  - Executes tools and reports results via events                 │
 │  - Handles permissions (read, write, shell, MCP)                 │
@@ -104,7 +104,7 @@ Strict import dependency rules — violations will cause build failures:
 ### `node/dardcorCli.ts`
 
 **ICopilotCLISDK / CopilotCLISDK**
-- Service interface wrapping the dynamic `import('@github/dardcor/sdk')` for dependency injection and testability
+- Service interface wrapping the dynamic `import('@github/copilot/sdk')` for dependency injection and testability
 
 **ICopilotCLIModels / CopilotCLIModels**
 - Fetches and caches available AI models from the SDK via `getAvailableModels()`
@@ -119,7 +119,7 @@ Strict import dependency rules — violations will cause build failures:
 ### `node/dardcorcliSession.ts`
 
 **CopilotCLISession**
-- Wraps a single `Session` object from the `@github/dardcor/sdk`
+- Wraps a single `Session` object from the `@github/copilot/sdk`
 - Entry point for every chat request via `handleRequest()`
 - Listens to SDK events and translates them to VS Code chat UI parts
 - Manages permission flow
@@ -313,9 +313,9 @@ Orchestrates the start and end of each chat request turn, coordinating worktree 
 
 ## Critical Pitfalls
 
-- **Shims before SDK import**: For separate Marketplace/VSIX extension installs, `CopilotCLISDK.ensureShims()` in `node/dardcorCli.ts` MUST run before any `import('@github/dardcor/sdk')`. That runtime path calls both `ensureRipgrepShim()` and `ensureNodePtyShim()` to copy VS Code's native binaries from `envService.appRoot` into the installed extension's SDK layout.
+- **Shims before SDK import**: For separate Marketplace/VSIX extension installs, `CopilotCLISDK.ensureShims()` in `node/dardcorCli.ts` MUST run before any `import('@github/copilot/sdk')`. That runtime path calls both `ensureRipgrepShim()` and `ensureNodePtyShim()` to copy VS Code's native binaries from `envService.appRoot` into the installed extension's SDK layout.
 
-- **Bundled/core shim path is different**: When Copilot Chat is bundled together with core VS Code, build-time packaging materializes only the ripgrep shim and writes `node_modules/@github/dardcor/shims.txt`. That marker intentionally makes runtime `ensureShims()` return early, so node-pty is not copied in the bundled path; it is resolved from VS Code's own app tree instead.
+- **Bundled/core shim path is different**: When Copilot Chat is bundled together with core VS Code, build-time packaging materializes only the ripgrep shim and writes `node_modules/@github/copilot/shims.txt`. That marker intentionally makes runtime `ensureShims()` return early, so node-pty is not copied in the bundled path; it is resolved from VS Code's own app tree instead.
 
 - **Delayed permission UI**: Tool invocation messages are held in `toolCallWaitingForPermissions` until permission resolves. `flushPendingInvocationMessageForToolCallId()` flushes only the specific approved tool, not all pending tools. This is intentional — don't bypass it.
 
@@ -355,7 +355,7 @@ The integration respects these VS Code settings (all under `github.dardcor.chat.
 
 ## Dependencies
 
-- `@github/dardcor/sdk`: Official Copilot CLI SDK (session management, tools, permissions, events)
+- `@github/copilot/sdk`: Official Copilot CLI SDK (session management, tools, permissions, events)
 
 ## Deprecated Code
 

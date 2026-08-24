@@ -1,12 +1,12 @@
 # Tích hợp Claude Code
 
-Tích hợp MiawRouter với Claude Code CLI để định tuyến request API Anthropic qua hệ thống routing thông minh của MiawRouter.
+Tích hợp Dardcor Code với Claude Code CLI để định tuyến request API Anthropic qua hệ thống routing thông minh của Dardcor Code.
 
 ## Yêu cầu
 
 - Claude Code CLI đã cài đặt
-- MiawRouter đang chạy cục bộ hoặc cloud endpoint đã cấu hình
-- API key từ MiawRouter dashboard
+- Dardcor Code đang chạy cục bộ hoặc cloud endpoint đã cấu hình
+- API key từ Dardcor Code dashboard
 
 ## Setup
 
@@ -15,7 +15,7 @@ Tích hợp MiawRouter với Claude Code CLI để định tuyến request API A
 Đặt các biến môi trường sau trong file cấu hình shell (`~/.bashrc`, `~/.zshrc`, hoặc `~/.bash_profile`):
 
 ```bash
-# Base URL for MiawRouter
+# Base URL for Dardcor Code
 export ANTHROPIC_BASE_URL="http://localhost:21128/v1"
 
 # Optional: Set default models for aliases
@@ -40,7 +40,7 @@ echo $ANTHROPIC_BASE_URL
 
 ## Model Aliases
 
-Claude Code hỗ trợ các alias model sau ánh xạ sang model MiawRouter:
+Claude Code hỗ trợ các alias model sau ánh xạ sang model Dardcor Code:
 
 | Alias | Model | Biến môi trường |
 |-------|-------|---------------------|
@@ -86,7 +86,7 @@ Claude Code lưu cấu hình trong `~/.claude/settings.json`. Bạn có thể s�
 
 Nếu gặp lỗi kết nối:
 
-1. Xác minh MiawRouter đang chạy: `curl http://localhost:21128/health`
+1. Xác minh Dardcor Code đang chạy: `curl http://localhost:21128/health`
 2. Kiểm tra biến môi trường đã set đúng
 3. Đảm bảo không firewall nào chặn port 21128
 
@@ -94,16 +94,16 @@ Nếu gặp lỗi kết nối:
 
 Nếu gặp lỗi "model not found":
 
-1. Xác minh tên model khớp với cấu hình MiawRouter
-2. Kiểm tra kết nối provider đang hoạt động trong MiawRouter dashboard
+1. Xác minh tên model khớp với cấu hình Dardcor Code
+2. Kiểm tra kết nối provider đang hoạt động trong Dardcor Code dashboard
 3. Đảm bảo model có sẵn trong các provider đã kết nối
 
 ## Cloud Endpoint
 
-Để dùng MiawRouter cloud endpoint thay vì localhost:
+Để dùng Dardcor Code cloud endpoint thay vì localhost:
 
 ```bash
-export ANTHROPIC_BASE_URL="https://miawrouter.web.id"
+export ANTHROPIC_BASE_URL="https://dardcor-code.web.id"
 ```
 
-Đảm bảo bạn đã cấu hình API key trong MiawRouter cloud dashboard.
+Đảm bảo bạn đã cấu hình API key trong Dardcor Code cloud dashboard.

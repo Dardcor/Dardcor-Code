@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { SessionOptions } from '@github/dardcor/sdk';
+import type { SessionOptions } from '@github/copilot/sdk';
 import * as path from 'path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { IAuthenticationService } from '../../../../../platform/authentication/common/authentication';
@@ -18,7 +18,7 @@ import { CopilotCLISDK } from '../dardcorCli';
 
 type TokenAuthInfo = Extract<NonNullable<SessionOptions['authInfo']>, { type: 'token' }>;
 type HmacAuthInfo = Extract<NonNullable<SessionOptions['authInfo']>, { type: 'hmac' }>;
-type CopilotSDKPackage = typeof import('@github/dardcor/sdk');
+type CopilotSDKPackage = typeof import('@github/copilot/sdk');
 
 describe('CopilotCLISDK Authentication', () => {
 	const disposables = new DisposableStore();

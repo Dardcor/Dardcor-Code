@@ -1,56 +1,56 @@
-# miawrouter
+# dardcor-code
 
-CLI launcher for the MiawRouter local AI routing gateway and dashboard.
+CLI launcher for the Dardcor Code local AI routing gateway and dashboard.
 
-`miawrouter` installs, starts, and manages the MiawRouter server locally. The server exposes one OpenAI-compatible endpoint (`/v1`) and a dashboard, and routes requests across 40+ upstream providers with format translation, fallback, credential management, quota tracking, and token refresh.
+`dardcor-code` installs, starts, and manages the Dardcor Code server locally. The server exposes one OpenAI-compatible endpoint (`/v1`) and a dashboard, and routes requests across 40+ upstream providers with format translation, fallback, credential management, quota tracking, and token refresh.
 
 ---
 
 ## Install
 
 ```bash
-npm install -g miawrouter
+npm install -g dardcor-code
 ```
 
 Or run directly:
 
 ```bash
-npx miawrouter
+npx dardcor-code
 ```
 
 ## Start
 
 ```bash
-miawrouter
+dardcor-code
 ```
 
 - Dashboard: `http://127.0.0.1:21128/dashboard`
 - API: `http://127.0.0.1:21128/v1`
-- Data directory: `~/.miawrouter`
+- Data directory: `~/.dardcor-code`
 
 ### CLI options
 
 ```bash
-miawrouter                    # start with default settings
-miawrouter --port 8080        # custom port
-miawrouter --no-browser       # don't open the browser
-miawrouter --log              # show server logs
-miawrouter --tray             # run in system tray mode
-miawrouter --skip-update      # skip the auto-update check
-miawrouter --help             # show all options
+dardcor-code                    # start with default settings
+dardcor-code --port 8080        # custom port
+dardcor-code --no-browser       # don't open the browser
+dardcor-code --log              # show server logs
+dardcor-code --tray             # run in system tray mode
+dardcor-code --skip-update      # skip the auto-update check
+dardcor-code --help             # show all options
 ```
 
 ### Migrate from a legacy installation
 
 ```bash
-miawrouter migrate --from-9router
+dardcor-code migrate --from-9router
 ```
 
-Reads providers, keys, and combos from a legacy install through its authenticated export API and imports them into the running MiawRouter gateway. See `miawrouter migrate --help`.
+Reads providers, keys, and combos from a legacy install through its authenticated export API and imports them into the running Dardcor Code gateway. See `dardcor-code migrate --help`.
 
 ---
 
-## Point a CLI tool at MiawRouter
+## Point a CLI tool at Dardcor Code
 
 ```
 Claude Code / Codex / Cursor / Cline / any OpenAI-compatible tool:
@@ -65,9 +65,9 @@ Any tool that supports an OpenAI- or Claude-compatible API works.
 
 ## Data location
 
-- **macOS/Linux**: `~/.miawrouter` (SQLite at `~/.miawrouter/db/data.sqlite`)
-- **Windows**: `%APPDATA%\miawrouter`
-- **Docker**: `/app/data` (mount `~/.miawrouter` to persist)
+- **macOS/Linux**: `~/.dardcor-code` (SQLite at `~/.dardcor-code/db/data.sqlite`)
+- **Windows**: `%APPDATA%\dardcor-code`
+- **Docker**: `/app/data` (mount `~/.dardcor-code` to persist)
 
 ---
 

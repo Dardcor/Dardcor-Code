@@ -1,12 +1,12 @@
 # Integración con Claude Code
 
-Integra MiawRouter con Claude Code CLI para enrutar tus solicitudes de la API de Anthropic a través del sistema de enrutamiento inteligente de MiawRouter.
+Integra Dardcor Code con Claude Code CLI para enrutar tus solicitudes de la API de Anthropic a través del sistema de enrutamiento inteligente de Dardcor Code.
 
 ## Requisitos previos
 
 - Claude Code CLI instalado
-- MiawRouter ejecutándose localmente o endpoint en la nube configurado
-- API key del dashboard de MiawRouter
+- Dardcor Code ejecutándose localmente o endpoint en la nube configurado
+- API key del dashboard de Dardcor Code
 
 ## Configuración
 
@@ -15,7 +15,7 @@ Integra MiawRouter con Claude Code CLI para enrutar tus solicitudes de la API de
 Establece las siguientes variables de entorno en tu archivo de configuración del shell (`~/.bashrc`, `~/.zshrc`, o `~/.bash_profile`):
 
 ```bash
-# Base URL for MiawRouter
+# Base URL for Dardcor Code
 export ANTHROPIC_BASE_URL="http://localhost:21128/v1"
 
 # Optional: Set default models for aliases
@@ -40,7 +40,7 @@ echo $ANTHROPIC_BASE_URL
 
 ## Aliases de modelos
 
-Claude Code soporta los siguientes aliases de modelos que mapean a modelos de MiawRouter:
+Claude Code soporta los siguientes aliases de modelos que mapean a modelos de Dardcor Code:
 
 | Alias | Modelo | Variable de entorno |
 |-------|-------|---------------------|
@@ -86,7 +86,7 @@ Claude Code almacena su configuración en `~/.claude/settings.json`. Puedes edit
 
 Si encuentras errores de conexión:
 
-1. Verifica que MiawRouter esté corriendo: `curl http://localhost:21128/health`
+1. Verifica que Dardcor Code esté corriendo: `curl http://localhost:21128/health`
 2. Verifica que las variables de entorno estén configuradas correctamente
 3. Asegúrate de que ningún firewall esté bloqueando el puerto 21128
 
@@ -94,16 +94,16 @@ Si encuentras errores de conexión:
 
 Si obtienes errores de "modelo no encontrado":
 
-1. Verifica que el nombre del modelo coincida con tu configuración de MiawRouter
-2. Verifica que la conexión del proveedor esté activa en el dashboard de MiawRouter
+1. Verifica que el nombre del modelo coincida con tu configuración de Dardcor Code
+2. Verifica que la conexión del proveedor esté activa en el dashboard de Dardcor Code
 3. Asegúrate de que el modelo esté disponible en tus proveedores conectados
 
 ## Endpoint en la nube
 
-Para usar el endpoint en la nube de MiawRouter en lugar de localhost:
+Para usar el endpoint en la nube de Dardcor Code en lugar de localhost:
 
 ```bash
-export ANTHROPIC_BASE_URL="https://miawrouter.web.id"
+export ANTHROPIC_BASE_URL="https://dardcor-code.web.id"
 ```
 
-Asegúrate de haber configurado tu API key en el dashboard en la nube de MiawRouter.
+Asegúrate de haber configurado tu API key en el dashboard en la nube de Dardcor Code.

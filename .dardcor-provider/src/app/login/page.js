@@ -154,7 +154,7 @@ export default function LoginPage() {
       <div className="landing-grid absolute inset-0 pointer-events-none" aria-hidden="true" />
       <div className="relative z-10 w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary mb-2">MiawRouter</h1>
+          <h1 className="text-3xl font-bold text-primary mb-2">Dardcor Code</h1>
           <p className="text-text-muted">
             {authMode === "oidc" && oidcConfigured
               ? "Sign in with your OIDC provider to access the dashboard"
@@ -232,7 +232,7 @@ export default function LoginPage() {
                   <div className="flex flex-col gap-3">
                     <p className="text-sm">This dashboard has no password set yet.</p>
                     <p className="text-xs text-text-muted">
-                      Password setup is only allowed from the machine running MiawRouter.
+                      Password setup is only allowed from the machine running Dardcor Code.
                     </p>
                     <div className="rounded-lg border border-border/60 p-3 bg-sidebar/40 font-mono text-xs">
                       Open this dashboard through localhost in a browser on the host machine, create
@@ -287,7 +287,7 @@ export default function LoginPage() {
                       <p className="text-xs text-text-muted">
                         {resetHint || (
                           <>
-                            Forgot password? Clear the stored password via MiawRouter CLI on the host{" "}
+                            Forgot password? Clear the stored password via Dardcor Code CLI on the host{" "}
                             {">"} <b>Settings</b> {">"} <b>Clear Dashboard Password</b>, then set a
                             new one from the local machine.
                           </>

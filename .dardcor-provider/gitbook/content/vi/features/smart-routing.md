@@ -4,10 +4,10 @@
 
 ## Cách hoạt động
 
-MiawRouter dùng định tuyến thông minh để tối đa hóa subscription hiện có, giảm chi phí và đảm bảo khả dụng 24/7:
+Dardcor Code dùng định tuyến thông minh để tối đa hóa subscription hiện có, giảm chi phí và đảm bảo khả dụng 24/7:
 
 ```
-Request → MiawRouter → Check Tier 1 (Subscription)
+Request → Dardcor Code → Check Tier 1 (Subscription)
                      ↓ quota exhausted
                      Check Tier 2 (Cheap)
                      ↓ budget limit
@@ -43,7 +43,7 @@ Request → MiawRouter → Check Tier 1 (Subscription)
 
 ## Chuyển đổi Tự động
 
-MiawRouter giám sát quota thời gian thực và chuyển provider tự động:
+Dardcor Code giám sát quota thời gian thực và chuyển provider tự động:
 
 ### Kịch bản 1: Hết Quota Subscription
 
@@ -85,7 +85,7 @@ User request → cc/claude-opus-4-5
 
 ## Logic chọn Model
 
-MiawRouter chọn model tốt nhất dựa trên:
+Dardcor Code chọn model tốt nhất dựa trên:
 
 1. **Khả dụng quota** - Kiểm tra provider còn quota không
 2. **Tier chi phí** - Ưu tiên subscription → cheap → free
@@ -134,7 +134,7 @@ Dashboard → Settings → Budget Control
 → Monthly limit: $50
 ```
 
-Khi đạt ngân sách, MiawRouter tự động chuyển sang free tier.
+Khi đạt ngân sách, Dardcor Code tự động chuyển sang free tier.
 
 **3. Cấu hình Thứ tự Fallback**
 

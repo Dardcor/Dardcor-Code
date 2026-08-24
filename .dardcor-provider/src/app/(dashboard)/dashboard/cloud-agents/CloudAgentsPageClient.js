@@ -395,7 +395,7 @@ export default function CloudAgentsPageClient() {
             </p>
             <p>
               <strong className="text-text-main">CLI Agents</strong>{" "}
-              are command-line tools configured to use MiawRouter as their backend provider.
+              are command-line tools configured to use Dardcor Code as their backend provider.
             </p>
             <p>
               <strong className="text-text-main">Status</strong>{" "}

@@ -18,11 +18,11 @@ const MATERIALIZATION_TIMEOUT_MS = 4000;
 const MATERIALIZATION_POLL_INTERVAL_MS = 100;
 
 /**
- * Copies the ripgrep files from VS Code's installation into a @github/dardcor location
+ * Copies the ripgrep files from VS Code's installation into a @github/copilot location
  *
- * MUST be called before any `import('@github/dardcor/sdk')` or `import('@github/dardcor')`.
+ * MUST be called before any `import('@github/copilot/sdk')` or `import('@github/copilot')`.
  *
- * @github/dardcor bundles the ripgrep code
+ * @github/copilot bundles the ripgrep code
  *
  * @param extensionPath The extension's path (where to create the shim)
  * @param vscodeAppRoot VS Code's installation path (where ripgrep is located)

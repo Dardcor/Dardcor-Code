@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
  *   },
  *   context: {
  *     requests,          // requests evaluated by the cache pipeline
- *     bypassed,          // skipped cache (streaming, tools, X-Miaw-Token-Saver: off, ...)
+ *     bypassed,          // skipped cache (streaming, tools, X-Dardcor-Token-Saver: off, ...)
  *     dispatched,        // actually sent upstream
  *     bypassReasons: {}  // optional { [reason]: count }
  *   },

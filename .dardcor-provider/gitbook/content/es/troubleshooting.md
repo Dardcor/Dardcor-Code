@@ -1,6 +1,6 @@
 # Solución de problemas
 
-Problemas comunes y soluciones al usar MiawRouter.
+Problemas comunes y soluciones al usar Dardcor Code.
 
 ---
 
@@ -78,7 +78,7 @@ Problemas comunes y soluciones al usar MiawRouter.
 **Soluciones:**
 
 1. **Refresh automático (por defecto):**
-   MiawRouter refresca automáticamente los tokens. Espera 30 segundos y reintenta.
+   Dardcor Code refresca automáticamente los tokens. Espera 30 segundos y reintenta.
 
 2. **Reconexión manual:**
    ```
@@ -135,15 +135,15 @@ Problemas comunes y soluciones al usar MiawRouter.
 **Problema:** "ECONNREFUSED" o "Cannot connect to localhost:21128".
 
 **Causas:**
-- MiawRouter no está ejecutándose
+- Dardcor Code no está ejecutándose
 - Puerto 21128 bloqueado
 - Firewall bloqueando la conexión
 
 **Soluciones:**
 
-1. **Inicia MiawRouter:**
+1. **Inicia Dardcor Code:**
    ```bash
-   miawrouter
+   dardcor-code
    ```
    El dashboard debe abrir en http://localhost:3000
 
@@ -164,7 +164,7 @@ Problemas comunes y soluciones al usar MiawRouter.
 4. **Usa el endpoint en la nube:**
    Si localhost no funciona (ej. Cursor IDE):
    ```
-   Endpoint: https://miawrouter.web.id/v1
+   Endpoint: https://dardcor-code.web.id/v1
    ```
 
 ---
@@ -175,15 +175,15 @@ Problemas comunes y soluciones al usar MiawRouter.
 
 **Causas:**
 - Puerto 3000 ya en uso
-- MiawRouter crasheó
+- Dardcor Code crasheó
 - Problemas de caché del navegador
 
 **Soluciones:**
 
-1. **Verifica si MiawRouter está ejecutándose:**
+1. **Verifica si Dardcor Code está ejecutándose:**
    ```bash
    # Verifica el proceso
-   ps aux | grep miawrouter
+   ps aux | grep dardcor-code
    
    # Verifica el puerto 3000
    lsof -i :3000
@@ -199,13 +199,13 @@ Problemas comunes y soluciones al usar MiawRouter.
    taskkill /PID <PID> /F
    ```
 
-3. **Reinicia MiawRouter:**
+3. **Reinicia Dardcor Code:**
    ```bash
    # Detener
-   pkill -f miawrouter
+   pkill -f dardcor-code
    
    # Iniciar
-   miawrouter
+   dardcor-code
    ```
 
 4. **Limpia la caché del navegador:**
@@ -320,8 +320,8 @@ Problemas comunes y soluciones al usar MiawRouter.
 
 2. **Verifica el formato de la key:**
    ```
-   Correcto: miaw_xxxxxxxxxxxxxxxxxxxxxxxx
-   Incorrecto: Falta el prefijo miaw_
+   Correcto: dardcor_xxxxxxxxxxxxxxxxxxxxxxxx
+   Incorrecto: Falta el prefijo dardcor_
    ```
 
 3. **Verifica la key en la configuración del CLI:**
@@ -333,13 +333,13 @@ Problemas comunes y soluciones al usar MiawRouter.
    Settings → API Key
    
    # Variable de entorno
-   export OPENAI_API_KEY="miaw_your_key"
+   export OPENAI_API_KEY="dardcor_your_key"
    ```
 
 4. **Prueba la API key:**
    ```bash
    curl http://localhost:21128/v1/models \
-     -H "Authorization: Bearer miaw_your_key"
+     -H "Authorization: Bearer dardcor_your_key"
    ```
 
 ---
@@ -347,5 +347,5 @@ Problemas comunes y soluciones al usar MiawRouter.
 ## ¿Necesitas más ayuda?
 
 - **GitHub Issues:** [/issues](/issues)
-- **Documentación:** [miawrouter.web.id/docs](https://miawrouter.web.id/docs)
+- **Documentación:** [dardcor-code.web.id/docs](https://dardcor-code.web.id/docs)
 - **FAQ:** [faq.md](faq.md)

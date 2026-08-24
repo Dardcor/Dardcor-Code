@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
- * scripts/upstream-diff.mjs — MiawRouter Phase 8 upstream drift check.
+ * scripts/upstream-diff.mjs — Dardcor Code Phase 8 upstream drift check.
  *
  * Spawns `diff -ru` between the upstream reference tree (../9router-reference)
  * and the current tree, with the same excludes the old Makefile target used.
  * The diff output is a display-only text stream: rebrand identifiers are
- * reverse-mapped (miawrouter → 9router, 21127 → 20127, …) so genuine upstream
+ * reverse-mapped (dardcor-code → 9router, 21127 → 20127, …) so genuine upstream
  * drift is readable and the identity rename itself doesn't flood the diff.
  *
  * The reverse-map touches only the emitted text — the underlying diff and its
@@ -34,12 +34,12 @@ const EXCLUDES = [
 
 /** Reverse map applied to diff display text only (identity map from docs/REBRAND.md §2). */
 const REVERSE_MAP = [
-  [/miawrouter\.web\.id/gi, "9router.com"],
-  [/miawrouter/gi, "9router"],
-  [/miaw_/gi, "9r_"],
-  [/MIAW_/gi, "NINEROUTER_"],
-  [/x-miaw/gi, "x-9router"],
-  [/X-Miaw/gi, "X-9Router"],
+  [/dardcor-code\.web\.id/gi, "9router.com"],
+  [/dardcor-code/gi, "9router"],
+  [/dardcor_/gi, "9r_"],
+  [/DARDCOR_/gi, "NINEROUTER_"],
+  [/x-dardcor/gi, "x-9router"],
+  [/X-Dardcor/gi, "X-9Router"],
   [/21127/g, "20127"],
   [/21128/g, "20128"],
   [/21129/g, "20129"],
