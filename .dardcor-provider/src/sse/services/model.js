@@ -99,22 +99,70 @@ export async function getModelInfo(modelStr) {
         }
       }
 
-      // 2. Check family matching for active providers when standard provider is not active
+      // 2. Check family matching and intelligent fallback for active providers
       const modelLower = parsed.model.toLowerCase();
-      if (modelLower.startsWith("gemini-") && activeProviderIds.has("antigravity") && !activeProviderIds.has("gemini")) {
-        return { provider: "antigravity", model: parsed.model };
+
+      // Auto / generic / default routing when standard provider is not active
+      if (["auto", "default", "copilot", "chat", "gpt-4o", "gpt-4o-mini", "gpt-4"].includes(modelLower)) {
+        if (!activeProviderIds.has("openai") && !activeProviderIds.has("copilot")) {
+          if (activeProviderIds.has("antigravity")) {
+            return { provider: "antigravity", model: "gemini-2.5-flash" };
+          }
+          if (activeProviderIds.has("claude") || activeProviderIds.has("anthropic")) {
+            return { provider: activeProviderIds.has("claude") ? "claude" : "anthropic", model: "claude-3-5-sonnet-20241022" };
+          }
+          if (activeProviderIds.has("gemini")) {
+            return { provider: "gemini", model: "gemini-2.5-flash" };
+          }
+          const firstProvider = Array.from(activeProviderIds)[0];
+          return { provider: firstProvider, model: parsed.model };
+        }
       }
-      if (modelLower.startsWith("claude-") && activeProviderIds.has("antigravity") && !activeProviderIds.has("anthropic") && !activeProviderIds.has("claude-oauth")) {
-        return { provider: "antigravity", model: parsed.model };
+
+      // Gemini family routing
+      if (modelLower.startsWith("gemini-") || modelLower === "gemini") {
+        if (activeProviderIds.has("antigravity") && !activeProviderIds.has("gemini") && !activeProviderIds.has("gemini-cli")) {
+          if (modelLower.includes("3.7")) {
+            return { provider: "antigravity", model: "gemini-3.7-flash-high" };
+          }
+          if (modelLower.includes("3.6")) {
+            return { provider: "antigravity", model: "gemini-3.6-flash-high" };
+          }
+          if (modelLower.includes("3.5")) {
+            return { provider: "antigravity", model: "gemini-3.5-flash-high" };
+          }
+          return { provider: "antigravity", model: "gemini-2.5-flash" };
+        }
       }
+
+      // Claude family routing
+      if (modelLower.startsWith("claude-") || modelLower === "claude") {
+        if (activeProviderIds.has("antigravity") && !activeProviderIds.has("anthropic") && !activeProviderIds.has("claude-oauth")) {
+          if (modelLower.includes("opus")) {
+            return { provider: "antigravity", model: "claude-opus-4-6-thinking" };
+          }
+          return { provider: "antigravity", model: "claude-sonnet-4-6" };
+        }
+      }
+
       if (modelLower.startsWith("gpt-oss-") && activeProviderIds.has("antigravity")) {
-        return { provider: "antigravity", model: parsed.model };
+        return { provider: "antigravity", model: "gpt-oss-120b-medium" };
       }
+
       if (modelLower.startsWith("claude-") && activeProviderIds.has("github") && !activeProviderIds.has("anthropic")) {
         return { provider: "github", model: parsed.model };
       }
       if (modelLower.startsWith("gpt-") && activeProviderIds.has("github") && !activeProviderIds.has("openai")) {
         return { provider: "github", model: parsed.model };
+      }
+
+      // If only 1 active provider in DB, fallback all unmatched models to it
+      if (activeProviderIds.size === 1) {
+        const onlyProvider = Array.from(activeProviderIds)[0];
+        if (onlyProvider === "antigravity") {
+          return { provider: "antigravity", model: "gemini-2.5-flash" };
+        }
+        return { provider: onlyProvider, model: parsed.model };
       }
     }
   } catch (err) {

@@ -70,7 +70,7 @@ const normalizeSubagentModels = (value) => {
   return result;
 };
 
-const hasDardcor CodeConfig = (settings) => Boolean(settings?.model?.base_url);
+const hasDardcorCodeConfig = (settings) => Boolean(settings?.model?.base_url);
 
 export async function GET() {
   try {
@@ -87,7 +87,7 @@ export async function GET() {
     return NextResponse.json({
       installed: true,
       settings,
-      hasDardcor Code: hasDardcor CodeConfig(settings),
+      hasDardcorCode: hasDardcorCodeConfig(settings),
       configPath: getGrokConfigPath(),
     });
   } catch (error) {

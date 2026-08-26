@@ -48,7 +48,7 @@ const readConfig = async () => {
   }
 };
 
-const hasDardcor CodeConfig = (config) => {
+const hasDardcorCodeConfig = (config) => {
   if (!config?.provider) return false;
   return !!config.provider["dardcor-code"];
 };
@@ -73,7 +73,7 @@ export async function GET() {
     return NextResponse.json({
       installed: true,
       config,
-      hasDardcor Code: hasDardcor CodeConfig(config),
+      hasDardcorCode: hasDardcorCodeConfig(config),
       configPath: getConfigPath(),
         opencode: {
           models: Object.keys(modelMap),

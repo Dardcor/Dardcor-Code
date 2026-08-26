@@ -44,7 +44,7 @@ const readConfig = async () => {
   }
 };
 
-const hasDardcor CodeConfig = (config) => {
+const hasDardcorCodeConfig = (config) => {
   if (!config || !config.providers) return false;
 
   const providers = config.providers;
@@ -118,12 +118,12 @@ export async function GET() {
   }
 
   const config = await readConfig();
-  const hasDardcor Code = hasDardcor CodeConfig(config);
+  const hasDardcorCode = hasDardcorCodeConfig(config);
 
   return NextResponse.json({
     installed: true,
     config,
-    hasDardcor Code,
+    hasDardcorCode,
     configPath: getConfigPath(),
   });
 }

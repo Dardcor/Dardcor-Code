@@ -44,7 +44,7 @@ const readJson = async (filePath) => {
   }
 };
 
-const hasDardcor CodeConfig = (auth) => {
+const hasDardcorCodeConfig = (auth) => {
   if (!auth) return false;
   const entry = auth["openai-compatible"] || auth["dardcor-code"];
   if (!entry) return false;
@@ -62,7 +62,7 @@ export async function GET() {
     return NextResponse.json({
       installed: true,
       settings: { auth: auth ? Object.keys(auth) : [] },
-      hasDardcor Code: hasDardcor CodeConfig(auth),
+      hasDardcorCode: hasDardcorCodeConfig(auth),
       authPath: getAuthPath(),
     });
   } catch (error) {

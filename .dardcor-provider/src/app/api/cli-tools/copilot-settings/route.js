@@ -30,12 +30,12 @@ const readConfig = async () => {
   }
 };
 
-const hasDardcor CodeConfig = (config) => {
+const hasDardcorCodeConfig = (config) => {
   if (!Array.isArray(config)) return false;
   return config.some((entry) => entry.name === "Dardcor Code");
 };
 
-const getDardcor CodeEntry = (config) => {
+const getDardcorCodeEntry = (config) => {
   if (!Array.isArray(config)) return null;
   return config.find((entry) => entry.name === "Dardcor Code") || null;
 };
@@ -44,12 +44,12 @@ const getDardcor CodeEntry = (config) => {
 export async function GET() {
   try {
     const config = await readConfig();
-    const entry = getDardcor CodeEntry(config);
+    const entry = getDardcorCodeEntry(config);
 
     return NextResponse.json({
       installed: true,
       config,
-      hasDardcor Code: hasDardcor CodeConfig(config),
+      hasDardcorCode: hasDardcorCodeConfig(config),
       configPath: getConfigPath(),
       currentModel: entry?.models?.[0]?.id || null,
       currentUrl: entry?.models?.[0]?.url || null,

@@ -44,7 +44,7 @@ const readJson = async (filePath) => {
   }
 };
 
-const hasDardcor CodeConfig = (globalState) => {
+const hasDardcorCodeConfig = (globalState) => {
   if (!globalState) return false;
   const isOpenAi =
     globalState.actModeApiProvider === "openai" || globalState.planModeApiProvider === "openai";
@@ -67,7 +67,7 @@ export async function GET() {
         openAiBaseUrl: globalState?.openAiBaseUrl,
         openAiModelId: globalState?.openAiModelId,
       },
-      hasDardcor Code: hasDardcor CodeConfig(globalState),
+      hasDardcorCode: hasDardcorCodeConfig(globalState),
       globalStatePath: getGlobalStatePath(),
     });
   } catch (error) {

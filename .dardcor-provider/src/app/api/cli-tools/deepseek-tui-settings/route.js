@@ -52,7 +52,7 @@ const parseToml = (content) => {
 };
 
 // Build TOML config for Dardcor Code (openai provider mode)
-const buildDardcor CodeConfig = (baseUrl, apiKey, model) => {
+const buildDardcorCodeConfig = (baseUrl, apiKey, model) => {
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
     return `provider = "openai"
 
@@ -93,7 +93,7 @@ const readConfigToml = async () => {
 };
 
 // Detect Dardcor Code by checking if provider is "openai" and base_url points to localhost/127.0.0.1
-const hasDardcor CodeConfig = (config) => {
+const hasDardcorCodeConfig = (config) => {
     if (!config) return false;
     const provider = config.provider;
     if (provider !== "openai") return false;
@@ -113,7 +113,7 @@ export async function GET() {
         return NextResponse.json({
             installed: true,
             settings: config,
-            hasDardcor Code: hasDardcor CodeConfig(config),
+            hasDardcorCode: hasDardcorCodeConfig(config),
             configPath: getDeepSeekConfigPath(),
         });
     } catch (error) {
@@ -132,7 +132,7 @@ export async function POST(request) {
         const dir = getDeepSeekDir();
         await fs.mkdir(dir, { recursive: true });
 
-        const newConfig = buildDardcor CodeConfig(baseUrl, apiKey || "sk_dardcor-code", model);
+        const newConfig = buildDardcorCodeConfig(baseUrl, apiKey || "sk_dardcor-code", model);
         await fs.writeFile(getDeepSeekConfigPath(), newConfig);
 
         return NextResponse.json({

@@ -1,6 +1,6 @@
 {
   "name": "dardcor-code-app",
-  "version": "0.5.55",
+  "version": "1.0.0",
   "description": "Dardcor Code web dashboard",
   "private": true,
   "scripts": {

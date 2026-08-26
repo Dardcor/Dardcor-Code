@@ -47,7 +47,7 @@ const readSettings = async () => {
 };
 
 // Check if settings has Dardcor Code customModels
-const hasDardcor CodeConfig = (settings) => {
+const hasDardcorCodeConfig = (settings) => {
   if (!settings || !settings.customModels) return false;
   return settings.customModels.some(m => m.id?.startsWith("custom:Dardcor Code"));
 };
@@ -70,7 +70,7 @@ export async function GET() {
     return NextResponse.json({
       installed: true,
       settings,
-      hasDardcor Code: hasDardcor CodeConfig(settings),
+      hasDardcorCode: hasDardcorCodeConfig(settings),
       settingsPath: getDroidSettingsPath(),
     });
   } catch (error) {

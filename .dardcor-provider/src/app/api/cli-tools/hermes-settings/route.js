@@ -94,7 +94,7 @@ const readEnvFile = async () => {
 };
 
 // Detect dardcor-code by base_url containing localhost/127.0.0.1 or matching tunnel URL
-const hasDardcor CodeConfig = (modelCfg) => {
+const hasDardcorCodeConfig = (modelCfg) => {
   if (!modelCfg?.base_url) return false;
   return modelCfg.provider === "custom" && /localhost|127\.0\.0\.1|0\.0\.0\.0/.test(modelCfg.base_url);
 };
@@ -110,7 +110,7 @@ export async function GET() {
     return NextResponse.json({
       installed: true,
       settings: { model },
-      hasDardcor Code: hasDardcor CodeConfig(model),
+      hasDardcorCode: hasDardcorCodeConfig(model),
       configPath: getHermesConfigPath(),
     });
   } catch (error) {

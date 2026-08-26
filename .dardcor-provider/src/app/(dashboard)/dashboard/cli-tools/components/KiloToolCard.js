@@ -48,7 +48,7 @@ export default function KiloToolCard({ tool, isExpanded, onToggle, baseUrl, apiK
 
   const getConfigStatus = () => {
     if (!status?.installed) return null;
-    return status.hasDardcor Code ? "configured" : "not_configured";
+    return status.hasDardcorCode ? "configured" : "not_configured";
   };
 
   const configStatus = getConfigStatus();

@@ -354,7 +354,7 @@ export default function OpenClawToolCard({
                 <Button variant="primary" size="sm" onClick={handleApplySettings} disabled={!selectedModel} loading={applying}>
                   <span className="material-symbols-outlined text-[14px] mr-1">save</span>Apply
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleResetSettings} disabled={!openclawStatus?.hasDardcor Code} loading={restoring}>
+                <Button variant="outline" size="sm" onClick={handleResetSettings} disabled={!openclawStatus?.hasDardcorCode} loading={restoring}>
                   <span className="material-symbols-outlined text-[14px] mr-1">restore</span>Reset
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => setShowManualConfigModal(true)}>

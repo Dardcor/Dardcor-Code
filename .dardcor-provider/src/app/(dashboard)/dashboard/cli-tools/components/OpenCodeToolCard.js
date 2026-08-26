@@ -97,7 +97,7 @@ export default function OpenCodeToolCard({ tool, isExpanded, onToggle, baseUrl, 
   const getConfigStatus = () => {
     if (!status?.installed) return null;
     if (!status.config) return "not_configured";
-    if (!status.hasDardcor Code) return "not_configured";
+    if (!status.hasDardcorCode) return "not_configured";
     const url = status.config?.provider?.["dardcor-code"]?.options?.baseURL || "";
     return matchKnownEndpoint(url, { tunnelPublicUrl, tailscaleUrl }) ? "configured" : "other";
   };
@@ -439,7 +439,7 @@ export default function OpenCodeToolCard({ tool, isExpanded, onToggle, baseUrl, 
                 <Button variant="primary" size="sm" onClick={handleApply} disabled={selectedModels.length === 0} loading={applying}>
                   <span className="material-symbols-outlined text-[14px] mr-1">save</span>Apply
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleReset} disabled={!status.hasDardcor Code} loading={restoring}>
+                <Button variant="outline" size="sm" onClick={handleReset} disabled={!status.hasDardcorCode} loading={restoring}>
                   <span className="material-symbols-outlined text-[14px] mr-1">restore</span>Reset
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => setShowManualConfigModal(true)}>

@@ -101,13 +101,13 @@ export async function GET() {
     }
 
     const settings = await readSettings();
-    const hasDardcor Code = !!(settings?.env?.ANTHROPIC_BASE_URL);
+    const hasDardcorCode = !!(settings?.env?.ANTHROPIC_BASE_URL);
     const claudeJson = await readClaudeJson();
 
     return NextResponse.json({
       installed: true,
       settings: settings,
-      hasDardcor Code: hasDardcor Code,
+      hasDardcorCode: hasDardcorCode,
       exaMcpEnabled: !!claudeJson?.mcpServers?.exa,
       settingsPath: getClaudeSettingsPath(),
     });
