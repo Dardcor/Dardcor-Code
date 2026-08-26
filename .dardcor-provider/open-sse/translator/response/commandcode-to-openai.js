@@ -13,7 +13,7 @@
  *   {"type":"finish",...}
  *
  * Each upstream "event" arrives as one JSON object per line — we receive it as a string chunk
- * already split per line by the upstream SSE/JSON-line reader in Dardcor Code.
+ * already split per line by the upstream SSE/JSON-line reader in dardcor-code.
  */
 import { register } from "../index.js";
 import { FORMATS } from "../formats.js";

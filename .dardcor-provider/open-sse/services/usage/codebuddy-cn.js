@@ -129,7 +129,7 @@ async function getCodeBuddyUsage(providerId, accessToken, apiKey, providerSpecif
     });
 
     const basePkg = refills[0] || accounts[0] || {};
-    const plan = basePkg.PackageName || basePkg.SubProductName || "";
+    const plan = basePkg.PackageName || basePkg.SubProductName || "CodeBuddy";
 
     return { plan, quotas };
   } catch (error) {

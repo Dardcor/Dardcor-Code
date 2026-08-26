@@ -80,8 +80,7 @@ function getCodexReviewRateLimit(data) {
   }) || null;
 }
 
-export async function getCodexUsage(accessToken, providerSpecificData = null, proxyOptions = null) {
-  const persistedPlan = providerSpecificData?.chatgptPlanType || "";
+export async function getCodexUsage(accessToken, proxyOptions = null) {
   try {
     const response = await proxyAwareFetch(CODEX_CONFIG.usageUrl, {
       method: "GET",
@@ -92,10 +91,7 @@ export async function getCodexUsage(accessToken, providerSpecificData = null, pr
     }, proxyOptions);
 
     if (!response.ok) {
-      return {
-        plan: persistedPlan,
-        message: `Codex connected. Usage API temporarily unavailable (${response.status}).`,
-      };
+      return { message: `Codex connected. Usage API temporarily unavailable (${response.status}).` };
     }
 
     const data = await response.json();
@@ -108,7 +104,7 @@ export async function getCodexUsage(accessToken, providerSpecificData = null, pr
     appendCodexQuotaWindows(quotas, "review", reviewRateLimit);
 
     return {
-      plan: data.plan_type || data.summary?.plan || persistedPlan,
+      plan: data.plan_type || data.summary?.plan || "unknown",
       limitReached: getCodexRateLimitBody(normalRateLimit)?.limit_reached || false,
       reviewLimitReached: getCodexRateLimitBody(reviewRateLimit)?.limit_reached || false,
       resetCredits: { availableCount: availableResetCredits },

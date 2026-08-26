@@ -10,7 +10,6 @@ import { getCodexUsage, consumeCodexRateLimitResetCredit, getCodexRateLimitReset
 export { consumeCodexRateLimitResetCredit, getCodexRateLimitResetCredits };
 import { getKiroUsage } from "./usage/kiro.js";
 import { getMiniMaxUsage } from "./usage/minimax.js";
-import { normalizePlan } from "./usage/shared.js";
 import { getCodeBuddyCnUsage, getCodeBuddyIntlUsage } from "./usage/codebuddy-cn.js";
 import { getGrokCliUsage } from "./usage/grok-cli.js";
 import { getKimiUsage } from "./usage/kimi.js";
@@ -34,8 +33,8 @@ const USAGE_HANDLERS = {
   github: (c) => getGitHubUsage(c.accessToken, c.providerSpecificData, c.proxyOptions),
   "gemini-cli": (c) => getGeminiUsage(c.accessToken, c.providerDataWithProjectId, c.proxyOptions),
   antigravity: (c) => getAntigravityUsage(c.accessToken, c.providerSpecificData, c.proxyOptions),
-  claude: (c) => getClaudeUsage(c.accessToken, c.providerSpecificData, c.proxyOptions),
-  codex: (c) => getCodexUsage(c.accessToken, c.providerSpecificData, c.proxyOptions),
+  claude: (c) => getClaudeUsage(c.accessToken, c.proxyOptions, { force: c.force }),
+  codex: (c) => getCodexUsage(c.accessToken, c.proxyOptions),
   kiro: (c) => getKiroUsage(c.accessToken, c.providerSpecificData, c.proxyOptions),
   qoder: async (c) => {
     // PAT (pt-...) connections must be exchanged to a job token before the
@@ -57,7 +56,7 @@ const USAGE_HANDLERS = {
   deepseek: (c) => getDeepseekUsage(c.apiKey, c.proxyOptions),
 };
 
-export async function getUsageForProvider(connection, proxyOptions = null) {
+export async function getUsageForProvider(connection, proxyOptions = null, options = {}) {
   const { provider, accessToken, apiKey, providerSpecificData, projectId } = connection;
   const providerDataWithProjectId = {
     ...(providerSpecificData || {}),
@@ -65,11 +64,14 @@ export async function getUsageForProvider(connection, proxyOptions = null) {
   };
 
   const handler = USAGE_HANDLERS[provider];
-  if (!handler) return { plan: "Unknown", message: `Usage API not implemented for ${provider}` };
-
-  const result = await handler({ provider, accessToken, apiKey, providerSpecificData, providerDataWithProjectId, proxyOptions });
-  return {
-    ...result,
-    plan: normalizePlan(result?.plan),
-  };
+  if (!handler) return { message: `Usage API not implemented for ${provider}` };
+  return await handler({
+    provider,
+    accessToken,
+    apiKey,
+    providerSpecificData,
+    providerDataWithProjectId,
+    proxyOptions,
+    force: options.force === true,
+  });
 }

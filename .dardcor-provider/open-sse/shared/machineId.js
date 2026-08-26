@@ -13,7 +13,7 @@ function loadRawMachineId() {
   return cachedRawId;
 }
 
-export async function getConsistentMachineId(salt) {
+export async function getConsistentMachineId(salt = "endpoint-proxy-salt") {
   const rawId = loadRawMachineId();
   return crypto.createHash("sha256").update(rawId + salt).digest("hex").substring(0, 16);
 }

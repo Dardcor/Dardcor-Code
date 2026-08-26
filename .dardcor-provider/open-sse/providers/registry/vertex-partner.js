@@ -20,41 +20,10 @@ export default {
   transport: {
     baseUrl: "https://aiplatform.googleapis.com",
   },
-  models: [{
-  id: "deepseek-ai/deepseek-v3.2-maas",
-  name: "DeepSeek V3.2 (Vertex)"
-}, {
-  id: "qwen/qwen3-next-80b-a3b-thinking-maas",
-  name: "Qwen3 Next 80B Thinking (Vertex)"
-}, {
-  id: "qwen/qwen3-next-80b-a3b-instruct-maas",
-  name: "Qwen3 Next 80B Instruct (Vertex)"
-}, {
-  id: "zai-org/glm-5-maas",
-  name: "GLM-5 (Vertex)"
-}, {
-  "id": "DeepSeek-V4-Flash",
-  "name": "DeepSeek V4 Flash"
-}, {
-  "id": "DeepSeek-V4-Pro",
-  "name": "DeepSeek V4 Pro"
-}, {
-  "id": "Qwen3.6-35B-A3B",
-  "name": "Qwen 3.6 35B A3B"
-}, {
-  "id": "GLM-5.1-FP8",
-  "name": "GLM 5.1"
-}, {
-  "id": "claude-opus-4-8",
-  "name": "Claude Opus 4.8"
-}, {
-  "id": "claude-opus-4-7",
-  "name": "Claude Opus 4.7"
-}, {
-  "id": "claude-opus-4-6",
-  "name": "Claude Opus 4.6"
-}, {
-  "id": "claude-sonnet-4-6",
-  "name": "Claude Sonnet 4.6"
-}],
+  models: [
+    { id: "deepseek-ai/deepseek-v3.2-maas", name: "DeepSeek V3.2 (Vertex)" },
+    { id: "qwen/qwen3-next-80b-a3b-thinking-maas", name: "Qwen3 Next 80B Thinking (Vertex)" },
+    { id: "qwen/qwen3-next-80b-a3b-instruct-maas", name: "Qwen3 Next 80B Instruct (Vertex)" },
+    { id: "zai-org/glm-5-maas", name: "GLM-5 (Vertex)" },
+  ],
 };

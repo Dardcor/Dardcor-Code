@@ -11,25 +11,16 @@ const MODEL_MAP = {
   "pplx-auto": ["concise", "pplx_pro"],
   "pplx-sonar": ["copilot", "experimental"],
   "pplx-gpt": ["copilot", "gpt54"],
-  "pplx-gpt-5.6-terra": ["search", "gpt56_terra"],
-  "pplx-gpt-5.6-sol": ["search", "gpt56_sol"],
   "pplx-gemini": ["copilot", "gemini31pro_high"],
   "pplx-sonnet": ["copilot", "claude46sonnet"],
   "pplx-opus": ["copilot", "claude46opus"],
-  "pplx-glm": ["search", "glm_5_2"],
-  "pplx-kimi": ["search", "kimik26instant"],
-  "pplx-grok-4.5": ["search", "grok45low"],
   "pplx-nemotron": ["copilot", "nv_nemotron_3_super"],
 };
 
 const THINKING_MAP = {
   "pplx-gpt": "gpt54_thinking",
-  "pplx-gpt-5.6-terra": "gpt56_terra_thinking",
-  "pplx-gpt-5.6-sol": "gpt56_sol_thinking",
   "pplx-sonnet": "claude46sonnetthinking",
   "pplx-opus": "claude46opusthinking",
-  "pplx-kimi": "kimik26thinking",
-  "pplx-grok-4.5": "grok45medium",
 };
 
 const CITATION_RE = /\[\d+\]/g;

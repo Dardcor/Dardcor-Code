@@ -5,23 +5,11 @@ import { GithubExecutor } from "./github.js";
 import { IFlowExecutor } from "./iflow.js";
 import { QoderExecutor } from "./qoder.js";
 import { KiroExecutor } from "./kiro.js";
-import { KimiWebExecutor } from "./kimi-web.js";
-import { ChatGptWebExecutor } from "./chatgpt-web.js";
-import { ClaudeWebExecutor } from "./claude-web.js";
-import { GeminiWebExecutor } from "./gemini-web.js";
-import { DeepSeekWebExecutor } from "./deepseek-web.js";
-import { NotionWebExecutor } from "./notion-web.js";
-import { QwenWebExecutor } from "./qwen-web.js";
-import { ZaiWebExecutor } from "./zai-web.js";
-import { VeniceWebExecutor } from "./venice-web.js";
-import { V0VercelWebExecutor } from "./v0-vercel-web.js";
 import { KimchiExecutor } from "./kimchi.js";
 import { CodexExecutor } from "./codex.js";
 import { CursorExecutor } from "./cursor.js";
 import { VertexExecutor } from "./vertex.js";
 import { OpenCodeExecutor } from "./opencode.js";
-import { OpenCodeGoExecutor } from "./opencode-go.js";
-import { OpenCodeZenExecutor } from "./opencode-zen.js";
 import { GrokWebExecutor } from "./grok-web.js";
 import { GrokCliExecutor } from "./grok-cli.js";
 import { PerplexityWebExecutor } from "./perplexity-web.js";
@@ -36,8 +24,6 @@ import ZedExecutor from "./zed.js";
 import WindsurfExecutor from "./windsurf.js";
 import { DefaultExecutor } from "./default.js";
 import { DevinCliExecutor } from "./devin-cli.js";
-import { ManusWebExecutor } from "./manus-web.js";
-import { FreebuffExecutor } from "./freebuff.js";
 
 const executors = {
   antigravity: new AntigravityExecutor(),
@@ -47,16 +33,6 @@ const executors = {
   iflow: new IFlowExecutor(),
   qoder: new QoderExecutor(),
   kiro: new KiroExecutor(),
-  "kimi-web": new KimiWebExecutor(),
-  "chatgpt-web": new ChatGptWebExecutor(),
-  "claude-web": new ClaudeWebExecutor(),
-  "gemini-web": new GeminiWebExecutor(),
-  "deepseek-web": new DeepSeekWebExecutor(),
-  "notion-web": new NotionWebExecutor(),
-  "qwen-web": new QwenWebExecutor(),
-  "zai-web": new ZaiWebExecutor(),
-  "venice-web": new VeniceWebExecutor(),
-  "v0-vercel-web": new V0VercelWebExecutor(),
   kimchi: new KimchiExecutor(),
   codex: new CodexExecutor(),
   cursor: new CursorExecutor(),
@@ -64,11 +40,6 @@ const executors = {
   vertex: new VertexExecutor("vertex"),
   "vertex-partner": new VertexExecutor("vertex-partner"),
   opencode: new OpenCodeExecutor(),
-  "opencode-go": new OpenCodeGoExecutor(),
-  "opencode-zen": new OpenCodeZenExecutor(),
-  freebuff: new FreebuffExecutor(),
-  fb: new FreebuffExecutor(), // Alias for freebuff
-  "freebuff-com": new FreebuffExecutor(), // Alias
   "grok-web": new GrokWebExecutor(),
   "grok-cli": new GrokCliExecutor(),
   gcli: new GrokCliExecutor(), // Alias
@@ -85,7 +56,6 @@ const executors = {
   zed: new ZedExecutor(),
   windsurf: new WindsurfExecutor(),
   "devin-cli": new DevinCliExecutor(),
-  "manus-web": new ManusWebExecutor(),
 };
 
 const defaultCache = new Map();
@@ -108,24 +78,12 @@ export { GithubExecutor } from "./github.js";
 export { IFlowExecutor } from "./iflow.js";
 export { QoderExecutor } from "./qoder.js";
 export { KiroExecutor } from "./kiro.js";
-export { KimiWebExecutor } from "./kimi-web.js";
-export { ChatGptWebExecutor } from "./chatgpt-web.js";
-export { ClaudeWebExecutor } from "./claude-web.js";
-export { GeminiWebExecutor } from "./gemini-web.js";
-export { DeepSeekWebExecutor } from "./deepseek-web.js";
-export { NotionWebExecutor } from "./notion-web.js";
-export { QwenWebExecutor } from "./qwen-web.js";
-export { ZaiWebExecutor } from "./zai-web.js";
-export { VeniceWebExecutor } from "./venice-web.js";
-export { V0VercelWebExecutor } from "./v0-vercel-web.js";
 export { KimchiExecutor } from "./kimchi.js";
 export { CodexExecutor } from "./codex.js";
 export { CursorExecutor } from "./cursor.js";
 export { VertexExecutor } from "./vertex.js";
 export { DefaultExecutor } from "./default.js";
 export { OpenCodeExecutor } from "./opencode.js";
-export { OpenCodeGoExecutor } from "./opencode-go.js";
-export { OpenCodeZenExecutor } from "./opencode-zen.js";
 export { GrokWebExecutor } from "./grok-web.js";
 export { GrokCliExecutor } from "./grok-cli.js";
 export { PerplexityWebExecutor } from "./perplexity-web.js";
@@ -139,4 +97,3 @@ export { default as TraeExecutor } from "./trae.js";
 export { default as ZedExecutor } from "./zed.js";
 export { default as WindsurfExecutor } from "./windsurf.js";
 export { DevinCliExecutor } from "./devin-cli.js";
-export { ManusWebExecutor } from "./manus-web.js";

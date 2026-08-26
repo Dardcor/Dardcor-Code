@@ -19,19 +19,6 @@ for (const entry of REGISTRY) {
 
 const BUILTIN_MODEL_ALIASES = {
   "grok-build": "gcli/grok-build",
-  "ox-alpha-free": "opencode/ox-alpha-free",
-  "ox-alpha": "opencode/ox-alpha-free",
-  "ox_alpha": "opencode/ox-alpha-free",
-  "big-pickle": "opencode/big-pickle",
-  "deepseek-v4-flash-free": "opencode/deepseek-v4-flash-free",
-  "x-preview-f-free": "opencode/x-preview-f-free",
-  "muse-spark-1.2-contributor-free": "opencode/muse-spark-1.2-contributor-free",
-  "mimo-v2.5-free": "opencode/mimo-v2.5-free",
-  "hy3-free": "opencode/hy3-free",
-  "nemotron-3-ultra-free": "opencode/nemotron-3-ultra-free",
-  "nemotron-3.5-lightning-free": "opencode/nemotron-3.5-lightning-free",
-  "laguna-s-2.1-free": "opencode/laguna-s-2.1-free",
-  "north-mini-code-free": "opencode/north-mini-code-free",
 };
 
 /**
@@ -49,14 +36,11 @@ export function parseModel(modelStr) {
     return { provider: null, model: null, isAlias: false, providerAlias: null };
   }
 
-  // Strip leading router namespace prefixes like "dardcor-code/" or "dardcorcode/" or "9router/"
-  const cleanStr = modelStr.replace(/^(dardcor-code|dardcorcode|9router)\//i, "");
-
   // Check if standard format: provider/model or alias/model
-  if (cleanStr.includes("/")) {
-    const firstSlash = cleanStr.indexOf("/");
-    const providerOrAlias = cleanStr.slice(0, firstSlash);
-    const model = cleanStr.slice(firstSlash + 1);
+  if (modelStr.includes("/")) {
+    const firstSlash = modelStr.indexOf("/");
+    const providerOrAlias = modelStr.slice(0, firstSlash);
+    const model = modelStr.slice(firstSlash + 1);
     const provider = resolveProviderAlias(providerOrAlias);
     return { provider, model, isAlias: false, providerAlias: providerOrAlias };
   }
@@ -64,7 +48,7 @@ export function parseModel(modelStr) {
   // Alias format (model alias, not provider alias)
   return {
     provider: null,
-    model: cleanStr,
+    model: modelStr,
     isAlias: true,
     providerAlias: null,
   };
@@ -140,8 +124,6 @@ export async function getModelInfoCore(modelStr, aliasesOrGetter) {
 
 // Config-driven prefix → provider inference (first match wins, fallback "openai").
 const MODEL_PREFIX_PROVIDERS = [
-  [/-free$/, "opencode"],
-  [/^big-pickle$/, "opencode"],
   [/^claude-/, "anthropic"],
   [/^gemini-/, "gemini"],
   [/^gpt-/, "openai"],

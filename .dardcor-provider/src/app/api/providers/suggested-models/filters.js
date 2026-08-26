@@ -1,13 +1,5 @@
-// Fixed upstream URL per filter type. The route ignores any client-supplied
-// `url` query param and fetches only these, so /api/providers/suggested-models
-// cannot be used as an authenticated SSRF proxy.
-import { OPENCODE_MODELS_URL, classifyModelFree } from "@/lib/catalog/opencodeCatalog";
-
-export const FILTER_URLS = {
-  "openrouter-free": "https://openrouter.ai/api/v1/models",
-  "opencode-free": OPENCODE_MODELS_URL,
-  "mimo-free": "https://models.dev/api.json",
-};
+// Free OpenCode models that don't use the "-free" id suffix
+const KNOWN_FREE_OPENCODE_MODELS = ["big-pickle"];
 
 export const FILTERS = {
   "openrouter-free": (models) =>
@@ -21,11 +13,9 @@ export const FILTERS = {
       .map((m) => ({ id: m.id, name: m.name, contextLength: m.context_length }))
       .sort((a, b) => b.contextLength - a.contextLength),
 
-  // Shared classifier: documented free id, -free suffix, explicit zero pricing, or settings override
-  // (no hardcoded rotating list — the free set changes upstream).
   "opencode-free": (models) =>
     models
-      .filter((m) => classifyModelFree(m))
+      .filter((m) => m.id?.endsWith("-free") || KNOWN_FREE_OPENCODE_MODELS.includes(m.id))
       .map((m) => ({ id: m.id, name: m.id })),
 
   // models.dev returns a large catalog; keep only mimo models

@@ -5,8 +5,6 @@ import PropTypes from "prop-types";
 import { Button, Badge, Input, Modal, Select } from "@/shared/components";
 import { AI_PROVIDERS } from "@/shared/constants/providers";
 import { planBulkAdd } from "@/shared/utils/bulkAdd";
-import { getWebSessionCredentialRequirement } from "@/shared/services/webSessionCredentials";
-import WebSessionCredentialGuide from "./WebSessionCredentialGuide";
 
 const BULK_PLACEHOLDER = `name1|sk-key1\nname2|sk-key2\nsk-key-only-auto-named`;
 
@@ -15,29 +13,10 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
   const isOllamaLocal = provider === "ollama-local";
   const isCookie = authType === "cookie";
   const isXaiApiKey = provider === "xai" && !isCookie;
-  const webRequirement = getWebSessionCredentialRequirement(provider);
-  const isWebSession = !!webRequirement && webRequirement.kind !== "none";
-  const isWebToken = isWebSession && webRequirement.kind === "token";
-  // Bulk wording uses a single-word credential name; multi-cookie names like "sso + sso-rw" fall back to "cookie".
-  const webBulkTokenName = isWebSession
-    ? (isWebToken && /^[\w-]+$/.test(webRequirement.credentialName)
-        ? webRequirement.credentialName
-        : isWebToken
-          ? "token"
-          : "cookie")
-    : null;
-  const credentialLabel = isWebSession
-    ? (isWebToken ? "Web session token" : "Session Cookie")
-    : isCookie
-      ? "Cookie Value"
-      : provider === "qoder"
-        ? "Personal Access Token (PAT)"
-        : "API Key";
-  const credentialPlaceholder = isWebSession
-    ? webRequirement.placeholder
-    : isCookie
-      ? (provider === "grok-web" ? "sso=xxxxx... or just the raw value" : "eyJhbGciOi...")
-      : (isXaiApiKey ? "xai-..." : provider === "qoder" ? "pt-..." : "");
+  const credentialLabel = isCookie ? "Cookie Value" : provider === "qoder" ? "Personal Access Token (PAT)" : "API Key";
+  const credentialPlaceholder = isCookie
+    ? (provider === "grok-web" ? "sso=xxxxx... or just the raw value" : "eyJhbGciOi...")
+    : (isXaiApiKey ? "xai-..." : provider === "qoder" ? "pt-..." : "");
 
   const isAzure = provider === "azure";
   const isCloudflareAi = provider === "cloudflare-ai";
@@ -65,13 +44,9 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
   const [saving, setSaving] = useState(false);
   const bulkPlaceholder = isCloudflareAi
     ? `name1|sk-key1|acc123456\nname2|sk-key2|def789012\nsk-key-only-auto-named`
-    : isWebSession
-      ? (isWebToken
-          ? `name1|${webBulkTokenName}1\nname2|${webBulkTokenName}2\n${webBulkTokenName}-only-auto-named`
-          : `name1|cookie1\nname2|cookie2\ncookie-only-auto-named`)
-      : provider === "qoder"
-        ? `name1|pt-xxxxx\nname2|pt-yyyyy\npt-only-auto-named`
-        : BULK_PLACEHOLDER;
+    : provider === "qoder"
+      ? `name1|pt-xxxxx\nname2|pt-yyyyy\npt-only-auto-named`
+      : BULK_PLACEHOLDER;
 
   const [mode, setMode] = useState("single"); // "single" | "bulk"
   const [bulkText, setBulkText] = useState("");
@@ -213,7 +188,7 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
   if (!provider) return null;
 
   return (
-    <Modal isOpen={isOpen} title={isWebSession ? (isWebToken ? `Add ${providerName || provider} web token` : `Add ${providerName || provider} session cookie`) : `Add ${providerName || provider} ${credentialLabel}`} onClose={onClose}>
+    <Modal isOpen={isOpen} title={`Add ${providerName || provider} ${credentialLabel}`} onClose={onClose}>
       <div className="flex flex-col gap-4">
         {/* Mode switcher */}
         <div className="flex gap-2">
@@ -226,18 +201,13 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
             <p className="text-xs text-text-muted">
               {isCloudflareAi
                 ? <>One key per line. Format: <code>name|apiKey|accountId</code> or just <code>apiKey</code> (auto-named by index).</>
-                : isWebSession
-                  ? (isWebToken
-                      ? <>One web session token per line. Format: <code>name|{webBulkTokenName}</code> or just <code>{webBulkTokenName}</code> (auto-named by index).</>
-                      : <>One session cookie per line. Format: <code>name|cookie</code> or just <code>cookie</code> (auto-named by index).</>)
-                  : provider === "qoder"
-                    ? <>One PAT per line. Format: <code>name|pt-...</code> or just <code>pt-...</code> (auto-named by index).</>
-                    : <>One key per line. Format: <code>name|apiKey</code> or just <code>apiKey</code> (auto-named by index).</>
+                : provider === "qoder"
+                  ? <>One PAT per line. Format: <code>name|pt-...</code> or just <code>pt-...</code> (auto-named by index).</>
+                  : <>One key per line. Format: <code>name|apiKey</code> or just <code>apiKey</code> (auto-named by index).</>
               }
             </p>
             <textarea
               className="w-full rounded border border-accent/30 bg-sidebar p-2 text-sm font-mono resize-y min-h-[140px] focus:outline-none focus:ring-1 focus:ring-primary"
-              aria-label={isWebSession ? (isWebToken ? "Web session tokens, one per line" : "Session cookies, one per line") : "API keys, one per line"}
               placeholder={bulkPlaceholder}
               value={bulkText}
               onChange={(e) => setBulkText(e.target.value)}
@@ -279,27 +249,19 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
             </div>
           </div>
         )}
-        {isWebSession && (
-          <WebSessionCredentialGuide
-            providerName={providerName || provider}
-            requirement={webRequirement}
-            website={website}
-          />
-        )}
         {!isOllamaLocal && (
           <div className="flex gap-2">
             <Input
               label={credentialLabel}
-              type={isWebSession ? "password" : (isCookie ? "text" : "password")}
+              type={isCookie ? "text" : "password"}
               value={formData.apiKey}
               onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
               placeholder={credentialPlaceholder}
               className="flex-1"
-              hint={isWebSession ? `Credential: ${webRequirement.credentialName}. Paste the ${isWebToken ? "token" : "cookie"} value from your own signed-in ${providerName || provider} web session${isWebToken ? ", or a DevTools HAR export if the provider supports it" : ""}.` : undefined}
             />
             <div className="pt-6">
               <Button onClick={handleValidate} disabled={!formData.apiKey || validating || saving} variant="secondary">
-                {validating ? "Checking..." : isWebSession ? (isWebToken ? "Check token" : "Check cookie") : "Check"}
+                {validating ? "Checking..." : "Check"}
               </Button>
             </div>
           </div>
@@ -309,7 +271,7 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
             Use a direct xAI API key from console.x.ai. This is separate from Grok Build OAuth.
           </p>
         )}
-        {isCookie && authHint && !isWebSession && (
+        {isCookie && authHint && (
           <p className="text-xs text-text-muted">
             {authHint}
             {website && (

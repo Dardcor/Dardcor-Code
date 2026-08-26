@@ -158,7 +158,7 @@ function decodeAgentFrames(buffer, onFrame) {
 }
 
 function createRequestContextResponse() {
-  // AgentService asks every run for client context. Dardcor Code has no IDE file
+  // AgentService asks every run for client context. dardcor-code has no IDE file
   // context, so acknowledge with an empty RequestContext.
   const requestContextSuccess = agentMessage(1, new Uint8Array());
   const requestContextResult = agentMessage(1, requestContextSuccess);
@@ -567,14 +567,14 @@ export class CursorExecutor extends BaseExecutor {
             }
 
             // AgentService requests IDE context before producing a response.
-            // Return an empty context; Dardcor Code is not coupled to an editor.
+            // Return an empty context; dardcor-code is not coupled to an editor.
             if (serverMessage.has(2)) {
               const execRequest = decodeMessage(serverMessage.get(2)[0].value);
               if (execRequest.has(10)) {
                 session.write(createRequestContextResponse());
               } else {
                 // Every other ExecServerMessage variant is an editor-backed tool
-                // (shell, read, write, …) that Dardcor Code cannot service. Fail the
+                // (shell, read, write, …) that dardcor-code cannot service. Fail the
                 // turn rather than narrating protocol state as assistant text.
                 debugLog(`[CURSOR AGENT] Unsupported exec request fields: ${[...execRequest.keys()].join(",")}`);
                 finished = true;
@@ -618,7 +618,7 @@ export class CursorExecutor extends BaseExecutor {
           created,
           model,
           choices: [{ index: 0, message: { role: "assistant", content: content || null, ...(reasoning ? { reasoning_content: reasoning } : {}) }, finish_reason: "stop" }],
-          usage: estimateUsage(body, content, FORMATS.OPENAI, model),
+          usage: estimateUsage(body, content.length, FORMATS.OPENAI),
         }), { headers: { "Content-Type": "application/json" } }),
         url,
         headers,
@@ -856,7 +856,7 @@ export class CursorExecutor extends BaseExecutor {
       message.tool_calls = toolCalls;
     }
 
-    const usage = estimateUsage(body, finalContent, FORMATS.OPENAI, model);
+    const usage = estimateUsage(body, finalContent.length, FORMATS.OPENAI);
 
     const completion = {
       id: responseId,
@@ -1079,7 +1079,7 @@ export class CursorExecutor extends BaseExecutor {
       chunks.push(chatChunkSse({ id: responseId, created, model, delta: { role: "assistant", content: "" } }));
     }
 
-    const usage = estimateUsage(body, totalContent, FORMATS.OPENAI, model);
+    const usage = estimateUsage(body, totalContent.length, FORMATS.OPENAI);
 
     chunks.push(
       `data: ${JSON.stringify({

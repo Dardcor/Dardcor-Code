@@ -9,6 +9,9 @@ import { PROVIDERS } from "../../providers/index.js";
 import { getCapabilitiesForModel } from "../../providers/capabilities.js";
 import { DEFAULT_MAX_TOKENS } from "../../config/runtimeConfig.js";
 
+const CACHE_CONTROL_5M = { type: "ephemeral" };
+const CACHE_CONTROL_1H = { type: "ephemeral", ttl: "1h" };
+
 // Check if message has valid non-empty content
 export function hasValidContent(msg) {
   if (typeof msg.content === "string" && msg.content.trim()) return true;
@@ -124,32 +127,38 @@ export function normalizeClaudePassthrough(body, model = "") {
     if (Object.keys(body.output_config).length === 0) delete body.output_config;
   }
 
-  // 2. Hoist mid-conversation system messages into the top-level system field
+  // 2. Fold mid-conversation system messages into the neighbouring turn.
+  // Hoisting them into body.system would insert volatile content (token counters,
+  // reminders) ahead of the whole conversation and invalidate the prefix cache on
+  // every request. Folding in place keeps the cached prefix stable.
   if (Array.isArray(body.messages)) {
-    const systemBlocks = [];
     const messages = [];
     for (const msg of body.messages) {
-      if (msg.role === ROLE.SYSTEM) {
-        const text = typeof msg.content === "string"
-          ? msg.content
-          : Array.isArray(msg.content)
-            ? msg.content.map(b => (typeof b === "string" ? b : b?.text || "")).join("\n")
-            : "";
-        if (text.trim()) systemBlocks.push({ type: CLAUDE_BLOCK.TEXT, text });
+      if (msg.role !== ROLE.SYSTEM) {
+        messages.push(msg);
         continue;
       }
-      messages.push(msg);
-    }
+      const text = typeof msg.content === "string"
+        ? msg.content
+        : Array.isArray(msg.content)
+          ? msg.content.map(b => (typeof b === "string" ? b : b?.text || "")).join("\n")
+          : "";
+      if (!text.trim()) continue;
 
-    if (systemBlocks.length > 0) {
-      const existing = Array.isArray(body.system)
-        ? body.system
-        : typeof body.system === "string" && body.system.trim()
-          ? [{ type: "text", text: body.system }]
-          : [];
-      body.system = [...existing, ...systemBlocks];
-      body.messages = messages;
+      // Copy-on-write: the caller's body is reused across account-fallback
+      // attempts, so folding must never mutate the original message.
+      const block = { type: CLAUDE_BLOCK.TEXT, text };
+      const prev = messages[messages.length - 1];
+      if (prev?.role === ROLE.USER) {
+        const content = typeof prev.content === "string"
+          ? [{ type: CLAUDE_BLOCK.TEXT, text: prev.content }]
+          : Array.isArray(prev.content) ? [...prev.content] : [];
+        messages[messages.length - 1] = { ...prev, content: [...content, block] };
+        continue;
+      }
+      messages.push({ role: ROLE.USER, content: [block] });
     }
+    body.messages = messages;
   }
 
   // 3. Drop thinking blocks whose signature is not Claude's (combo mixes models,
@@ -182,8 +191,72 @@ export function normalizeClaudePassthrough(body, model = "") {
   return body;
 }
 
+// Put a 5m breakpoint on the last cache-eligible block of a message.
+// thinking/redacted_thinking blocks do not accept cache_control.
+function markLastCacheableBlock(msg) {
+  if (!Array.isArray(msg?.content)) return false;
+  for (let i = msg.content.length - 1; i >= 0; i--) {
+    const block = msg.content[i];
+    if (typeof block !== "object" || block === null) continue;
+    if (block.type === CLAUDE_BLOCK.THINKING || block.type === CLAUDE_BLOCK.REDACTED_THINKING) continue;
+    block.cache_control = { ...CACHE_CONTROL_5M };
+    return true;
+  }
+  return false;
+}
+
+// Re-anchor cache breakpoints on a Claude passthrough body (same policy as
+// prepareClaudeRequest): last tool + last system block at 1h, last assistant at 5m.
+// The client's own markers point at pre-normalization offsets, so they are dropped.
+// Must run LAST, after every step that can reshape system/tools/messages
+// (normalize, tool dedupe, token savers) — otherwise the anchor drifts off the tail.
+export function anchorClaudeCache(body) {
+  if (!body || typeof body !== "object") return body;
+
+  if (Array.isArray(body.system)) {
+    const last = body.system.length - 1;
+    body.system.forEach((block, i) => {
+      if (typeof block !== "object" || block === null) return;
+      if (i === last) block.cache_control = { ...CACHE_CONTROL_1H };
+      else delete block.cache_control;
+    });
+  }
+
+  if (Array.isArray(body.tools)) {
+    const last = body.tools.length - 1;
+    body.tools.forEach((tool, i) => {
+      if (i === last) tool.cache_control = { ...CACHE_CONTROL_1H };
+      else delete tool.cache_control;
+    });
+  }
+
+  if (Array.isArray(body.messages)) {
+    let anchored = null;
+    for (let i = body.messages.length - 1; i >= 0; i--) {
+      const msg = body.messages[i];
+      if (!Array.isArray(msg.content)) continue;
+      for (const block of msg.content) delete block.cache_control;
+
+      // Prefer the last assistant turn: it ends a completed exchange, so the
+      // prefix up to it stays byte-stable across the following requests.
+      if (anchored || msg.role !== ROLE.ASSISTANT) continue;
+      anchored = markLastCacheableBlock(msg);
+    }
+
+    // First turn of a conversation has no assistant yet — anchor the final
+    // message instead, so the opening prompt is cached rather than paid twice.
+    if (!anchored) {
+      for (let i = body.messages.length - 1; i >= 0 && !anchored; i--) {
+        anchored = markLastCacheableBlock(body.messages[i]);
+      }
+    }
+  }
+
+  return body;
+}
+
 // Prepare request for Claude format endpoints
-// - Preserve client-provided cache_control (breakpoint orchestration lives in cache/l0.js)
+// - Cleanup cache_control
 // - Filter empty messages
 // - Add thinking block for Anthropic endpoint (provider === "claude")
 // - Fix tool_use/tool_result ordering
@@ -217,19 +290,32 @@ export function prepareClaudeRequest(body, provider = null, apiKey = null, conne
     }
   }
 
-  // 1. System: cache_control is preserved exactly as the client sent it —
-  // breakpoint insertion/repair is owned by the L0 cache orchestration
-  // (open-sse/cache/l0.js), which also enforces the 4-breakpoint ceiling.
+  // 1. System: remove all cache_control, add only to last block with ttl 1h
+  if (body.system && Array.isArray(body.system)) {
+    body.system = body.system.map((block, i) => {
+      const { cache_control, ...rest } = block;
+      if (i === body.system.length - 1) {
+        return { ...rest, cache_control: { type: "ephemeral", ttl: "1h" } };
+      }
+      return rest;
+    });
+  }
 
   // 2. Messages: process in optimized passes
   if (body.messages && Array.isArray(body.messages)) {
     const len = body.messages.length;
     let filtered = [];
 
-    // Pass 1: filter empty messages. cache_control on content blocks is
-    // preserved byte-identically — never deleted/recreated here.
+    // Pass 1: remove cache_control + filter empty messages
     for (let i = 0; i < len; i++) {
       const msg = body.messages[i];
+
+      // Remove cache_control from content blocks
+      if (Array.isArray(msg.content)) {
+        for (const block of msg.content) {
+          delete block.cache_control;
+        }
+      }
 
       // Keep final assistant even if empty, otherwise check valid content
       const isFinalAssistant = i === len - 1 && msg.role === "assistant";
@@ -249,12 +335,25 @@ export function prepareClaudeRequest(body, provider = null, apiKey = null, conne
     const lastMessageIsUser = lastMessage?.role === "user";
     const thinkingEnabled = body.thinking?.type === "enabled" && lastMessageIsUser;
 
-    // Pass 2 (reverse): handle thinking for Anthropic. cache_control is not
-    // auto-added here — L0 inserts missing breakpoints after a stable prefix.
+    // Pass 2 (reverse): add cache_control to last assistant + handle thinking for Anthropic
+    let lastAssistantProcessed = false;
     for (let i = filtered.length - 1; i >= 0; i--) {
       const msg = filtered[i];
 
       if (msg.role === "assistant" && Array.isArray(msg.content)) {
+        // Add cache_control to last non-thinking block of first (from end) assistant with content
+        // thinking/redacted_thinking blocks do not support cache_control
+        if (!lastAssistantProcessed && msg.content.length > 0) {
+          for (let j = msg.content.length - 1; j >= 0; j--) {
+            const block = msg.content[j];
+            if (block.type !== CLAUDE_BLOCK.THINKING && block.type !== CLAUDE_BLOCK.REDACTED_THINKING) {
+              block.cache_control = { type: "ephemeral" };
+              break;
+            }
+          }
+          lastAssistantProcessed = true;
+        }
+
         // Handle thinking blocks for Anthropic-compatible endpoints.
         if (handlesThinkingBlocks(provider)) {
           let hasToolUse = false;
@@ -301,8 +400,7 @@ export function prepareClaudeRequest(body, provider = null, apiKey = null, conne
   // 3. Tools: filter built-in tools for non-Anthropic providers, then handle cache_control
   if (body.tools && Array.isArray(body.tools)) {
     // Strip built-in tools (e.g. web_search_20250305) and normalize to Anthropic-native shape
-    // (drop `type` field, fold `function.{name,description,parameters}`) for non-Anthropic providers.
-    // cache_control is preserved exactly as provided — L0 adds missing breakpoints.
+    // (drop `type` field, fold `function.{name,description,parameters}`) for non-Anthropic providers
     if (provider !== "claude") {
       body.tools = body.tools
         .filter(tool => !tool.type || tool.type === "function")
@@ -312,13 +410,20 @@ export function prepareClaudeRequest(body, provider = null, apiKey = null, conne
               name: tool.function.name,
               description: tool.function.description,
               input_schema: tool.function.parameters,
-              ...(tool.cache_control && { cache_control: tool.cache_control }),
             };
           }
           const { type, ...rest } = tool;
           return rest;
         });
     }
+
+    body.tools = body.tools.map((tool, i) => {
+      const { cache_control, ...rest } = tool;
+      if (i === body.tools.length - 1) {
+        return { ...rest, cache_control: { type: "ephemeral", ttl: "1h" } };
+      }
+      return rest;
+    });
 
     // Remove tools array and tool_choice if empty after filtering
     if (body.tools.length === 0) {

@@ -5,9 +5,7 @@ import { getDefaultModel } from "open-sse/config/providerModels.js";
 import { resolveOllamaLocalHost, resolveXiaomiTokenplanBaseUrl, PROVIDERS } from "open-sse/config/providers.js";
 import { openaiToCommandCodeRequest } from "open-sse/translator/request/openai-to-commandcode.js";
 import { resolveQoderCredentials, resolveQoderModels } from "open-sse/services/qoderModels.js";
-import { probeKimiWebToken } from "open-sse/executors/kimi-web.js";
 import { normalizeProviderId } from "@/lib/providerNormalization";
-import { validateWebSessionCredential } from "@/shared/services/webSessionCredentials";
 
 // Probe a webSearch/webFetch provider using its searchConfig/fetchConfig.
 // Returns true if API key is accepted (status !== 401 && !== 403).
@@ -296,13 +294,6 @@ export async function POST(request) {
             headers: { "Authorization": `Bearer ${apiKey}` },
           });
           isValid = openrouterRes.ok;
-          break;
-
-        case "tokenrouter":
-          const tokenrouterRes = await fetch("https://api.tokenrouter.com/v1/models", {
-            headers: { "Authorization": `Bearer ${apiKey}` },
-          });
-          isValid = tokenrouterRes.ok;
           break;
 
         case "glm":
@@ -605,54 +596,7 @@ export async function POST(request) {
           break;
         }
 
-        case "kimi-web": {
-          // Connect-RPC auth probe. The generic OpenAI probe below would derive
-          // /models from the Connect endpoint and post unframed JSON, treating
-          // any non-401/403 (including 400 invalid_argument) as valid — unsafe.
-          // A Connect-framed request with an empty message is rejected at the
-          // protocol layer without generating a completion; only 401/403 mean
-          // the access_token is bad.
-          const probe = await probeKimiWebToken(apiKey);
-          if (probe.valid) {
-            isValid = true;
-          } else {
-            isValid = false;
-            error = probe.error || "Invalid access_token";
-          }
-          break;
-        }
-
-        case "manus-web": {
-          const normalizedApiKey = apiKey.replace(/^cookie\s*:\s*/i, "").trim();
-          const sessionToken = normalizedApiKey.includes("=")
-            ? normalizedApiKey.match(/(?:^|;\s*)session_id=([^;\s]+)/)?.[1]
-            : normalizedApiKey;
-          if (!sessionToken) {
-            isValid = false;
-            error = "Cookie header must contain session_id";
-            break;
-          }
-          const probe = await fetch("https://api.manus.im/user.v1.UserService/GetAvailableCredits", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${sessionToken}`,
-              "Connect-Protocol-Version": "1",
-              Origin: "https://manus.im",
-              Referer: "https://manus.im/",
-            },
-            body: "{}",
-            signal: AbortSignal.timeout(8000),
-          });
-          isValid = probe.status !== 401 && probe.status !== 403;
-          if (!isValid) error = "Invalid Manus session_id cookie";
-          break;
-        }
-
         default: {
-          const webCredential = validateWebSessionCredential(provider, apiKey);
-          if (webCredential) return NextResponse.json(webCredential);
-
           // Generic probe for OpenAI-compatible providers (config-driven from PROVIDERS)
           const cfg = PROVIDERS[provider];
           if (!cfg || cfg.format !== "openai" || !cfg.baseUrl) {

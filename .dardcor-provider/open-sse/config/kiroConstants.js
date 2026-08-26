@@ -3,7 +3,7 @@
  *
  * Mirrors the behaviour of `internal/translator/kiro/common/constants.go` and
  * `internal/translator/kiro/claude/kiro_claude_request.go` from the
- * CLIProxyAPIPlus reference implementation, scoped down to what Dardcor Code needs:
+ * CLIProxyAPIPlus reference implementation, scoped down to what dardcor-code needs:
  *
  *   - `-agentic` model suffix detection + chunked-write system prompt
  *   - reasoning / thinking trigger detection (Anthropic-Beta header,
@@ -11,7 +11,7 @@
  *   - schema-specific native effort fields for supported GPT and Claude models
  *   - legacy `<thinking_mode>` system-prompt injection for other models
  *
- * Kiro upstream does not advertise `-agentic` model IDs; they are a Dardcor Code
+ * Kiro upstream does not advertise `-agentic` model IDs; they are a dardcor-code
  * fiction. The suffix is stripped before the request leaves this process.
  */
 
@@ -48,7 +48,7 @@ export const KIRO_THINKING_BUDGET_DEFAULT = 16000;
 
 /**
  * Resolve a Kiro model after consuming the generic model(level) suffix.
- * The suffix is a Dardcor Code request override, not part of Kiro's upstream model id.
+ * The suffix is a dardcor-code request override, not part of Kiro's upstream model id.
  */
 export function resolveKiroModelIntent(model) {
   const { cleanModel, override } = parseSuffix(model);
@@ -265,7 +265,7 @@ export function isThinkingEnabled(body, headers, model) {
 }
 
 /**
- * Detect whether a model id refers to a Dardcor Code synthetic agentic variant.
+ * Detect whether a model id refers to a dardcor-code synthetic agentic variant.
  * Agentic variants share the same upstream model as the base; the only
  * difference is the chunked-write system prompt this module injects.
  *
@@ -288,7 +288,7 @@ export function stripAgenticSuffix(model) {
 }
 
 /**
- * Detect whether a model id is a Dardcor Code synthetic thinking variant
+ * Detect whether a model id is a dardcor-code synthetic thinking variant
  * (e.g. `claude-sonnet-4.5-thinking`). Same upstream model as the base; the
  * only difference is `<thinking_mode>enabled</thinking_mode>` injection.
  *
@@ -315,7 +315,7 @@ export function stripThinkingSuffix(model) {
 }
 
 /**
- * Resolve a Dardcor Code model id to the real upstream Kiro model id, plus flags
+ * Resolve a dardcor-code model id to the real upstream Kiro model id, plus flags
  * describing which behaviours the suffixes implied.
  *
  *   resolveKiroModel("claude-sonnet-4.5-thinking-agentic")

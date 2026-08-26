@@ -45,7 +45,6 @@ export const MAX_RATE_LIMIT_COOLDOWN_MS = 30 * 60 * 1000;
 const COOLDOWN = {
   long: 2 * 60 * 1000,
   short: 5 * 1000,
-  ban: 30 * 60 * 1000, // permanent ban / disabled — won't self-resolve
 };
 
 /**
@@ -59,56 +58,21 @@ const COOLDOWN = {
  */
 export const ERROR_RULES = [
   // --- Text-based rules (checked first, order = priority) ---
-
-  // Auth / invalid API key (fixed cooldown — no backoff, won't self-resolve)
-  { text: "invalid api key",           cooldownMs: COOLDOWN.long },
-  { text: "invalid_key",               cooldownMs: COOLDOWN.long },
-  { text: "no credentials",            cooldownMs: COOLDOWN.long },
-  { text: "unauthorized",              cooldownMs: COOLDOWN.long },
-  { text: "authentication",            cooldownMs: COOLDOWN.long },
-
-  // Permanent ban / account blocked (fixed cooldown — no backoff)
-  { text: "permanently banned",        cooldownMs: COOLDOWN.ban },
-  { text: "account disabled",          cooldownMs: COOLDOWN.ban },
-  { text: "account suspended",         cooldownMs: COOLDOWN.ban },
-  { text: "suspended",                 cooldownMs: COOLDOWN.ban },
-
-  // Content filter / safety policy (fixed cooldown)
-  { text: "content policy",            cooldownMs: COOLDOWN.long },
-  { text: "content_filter",            cooldownMs: COOLDOWN.long },
-  { text: "safety",                    cooldownMs: COOLDOWN.long },
-
-  // Context length overflow (fixed cooldown — request-level, may resolve on next request)
-  { text: "context_length_exceeded",   cooldownMs: TRANSIENT_COOLDOWN_MS },
-  { text: "context length",            cooldownMs: TRANSIENT_COOLDOWN_MS },
-  { text: "maximum context",           cooldownMs: TRANSIENT_COOLDOWN_MS },
-  { text: "token limit",               cooldownMs: TRANSIENT_COOLDOWN_MS },
-  { text: "too many tokens",           cooldownMs: TRANSIENT_COOLDOWN_MS },
-
-  // Existing text rules
-  { text: "request not allowed",       cooldownMs: COOLDOWN.short },
+  { text: "no credentials",           cooldownMs: COOLDOWN.long },
+  { text: "request not allowed",      cooldownMs: COOLDOWN.short },
   { text: "improperly formed request", cooldownMs: COOLDOWN.long },
-
-  // Rate limits (exponential backoff)
-  { text: "rate limit",                backoff: true },
-  { text: "too many requests",         backoff: true },
-  { text: "quota exceeded",            backoff: true },
-  { text: "capacity",                  backoff: true },
-  { text: "overloaded",                backoff: true },
+  { text: "rate limit",               backoff: true },
+  { text: "too many requests",        backoff: true },
+  { text: "quota exceeded",           backoff: true },
+  { text: "capacity",                 backoff: true },
+  { text: "overloaded",               backoff: true },
 
   // --- Status-based rules (fallback when text doesn't match) ---
   { status: 401, cooldownMs: COOLDOWN.long },
   { status: 402, cooldownMs: COOLDOWN.long },
   { status: 403, cooldownMs: COOLDOWN.long },
   { status: 404, cooldownMs: COOLDOWN.long },
-  { status: 406, cooldownMs: COOLDOWN.long },
   { status: 429, backoff: true },
-
-  // Server errors (transient cooldown — no backoff)
-  { status: 500, cooldownMs: TRANSIENT_COOLDOWN_MS },
-  { status: 502, cooldownMs: TRANSIENT_COOLDOWN_MS },
-  { status: 503, cooldownMs: TRANSIENT_COOLDOWN_MS },
-  { status: 504, cooldownMs: TRANSIENT_COOLDOWN_MS },
 ];
 
 // Backward compat: COOLDOWN_MS object (used by index.js re-export)

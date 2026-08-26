@@ -10,12 +10,11 @@
 import { CLOUD_CODE_API, LOAD_CODE_ASSIST_HEADERS, ANTIGRAVITY_LOAD_CODE_ASSIST_HEADERS, LOAD_CODE_ASSIST_METADATA } from "../config/appConstants.js";
 
 // ─── Cache ────────────────────────────────────────────────────────────────────
-// connectionId -> { projectId: string|null, fetchedAt: number }
+// connectionId -> { projectId: string, fetchedAt: number }
 const projectIdCache = new Map();
 
 /** How long a cached project ID is considered fresh (1 hour). */
 const CACHE_TTL_MS = 60 * 60 * 1000;
-const FAILED_CACHE_TTL_MS = 5 * 60 * 1000;
 
 // ─── Pending-fetch deduplication ─────────────────────────────────────────────
 // connectionId -> { promise: Promise<string|null>, controller: AbortController, startedAt: number }
@@ -82,20 +81,14 @@ startCacheCleanup();
  *
  * @param {string} connectionId - The connection identifier for cache keying
  * @param {string} accessToken  - Valid OAuth access token
- * @param {string} [provider]   - Provider key, controls endpoint + headers selection
- * @param {object} [options]    - Behavior options
- * @param {boolean} [options.allowOnboarding=true] - When false, skip the onboardUser
- *        polling fallback and return null if loadCodeAssist yields no project (fast
- *        request path; callers fall back to executor-side project generation).
  * @returns {Promise<string|null>} Real project ID or null
  */
-export async function getProjectIdForConnection(connectionId, accessToken, provider = "gemini-cli", options = {}) {
+export async function getProjectIdForConnection(connectionId, accessToken, provider = "gemini-cli") {
     if (!connectionId || !accessToken) return null;
 
     // Return cached value if still fresh
     const cached = projectIdCache.get(connectionId);
-    const cacheTtl = cached?.projectId ? CACHE_TTL_MS : FAILED_CACHE_TTL_MS;
-    if (cached && Date.now() - cached.fetchedAt < cacheTtl) {
+    if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
         return cached.projectId;
     }
 
@@ -109,17 +102,15 @@ export async function getProjectIdForConnection(connectionId, accessToken, provi
 
     const promise = (async () => {
         try {
-            const projectId = await fetchProjectId(accessToken, controller.signal, provider, options);
+            const projectId = await fetchProjectId(accessToken, controller.signal, provider);
             if (projectId) {
                 projectIdCache.set(connectionId, {projectId, fetchedAt: Date.now()});
                 return projectId;
             }
             console.warn("[ProjectId] could not fetch projectId for connection", connectionId.slice(0, 8));
-            projectIdCache.set(connectionId, {projectId: null, fetchedAt: Date.now()});
             return null;
         } catch (error) {
             console.warn(`[ProjectId] Error fetching project ID: ${error.message}`);
-            projectIdCache.set(connectionId, {projectId: null, fetchedAt: Date.now()});
             return null;
         } finally {
             pendingFetches.delete(connectionId);
@@ -158,17 +149,13 @@ export function removeConnection(connectionId) {
 
 /**
  * Fetch project ID via loadCodeAssist endpoint.
- * Falls back to onboardUser when loadCodeAssist returns no project,
- * unless onboarding is disabled (fast request path).
+ * Falls back to onboardUser when loadCodeAssist returns no project.
  *
  * @param {string}      accessToken
  * @param {AbortSignal} signal
- * @param {string}      provider
- * @param {object}      [options]
- * @param {boolean}     [options.allowOnboarding=true] - false skips onboardUser polling
  * @returns {Promise<string|null>}
  */
-async function fetchProjectId(accessToken, signal, provider, options = {}) {
+async function fetchProjectId(accessToken, signal, provider) {
     const endpoints = CLOUD_CODE_API[provider] || CLOUD_CODE_API["gemini-cli"];
     const headers = provider === "antigravity" ? ANTIGRAVITY_LOAD_CODE_ASSIST_HEADERS : LOAD_CODE_ASSIST_HEADERS;
     const response = await fetch(endpoints.loadCodeAssist, {
@@ -186,12 +173,6 @@ async function fetchProjectId(accessToken, signal, provider, options = {}) {
     const data = await response.json();
     const projectId = extractProjectId(data);
     if (projectId) return projectId;
-
-    // Fast request path: no onboardUser polling on the hot chat path — let the
-    // executor fall back to its own project generation instead of blocking.
-    if (options.allowOnboarding === false) {
-        return null;
-    }
 
     // Determine the tier to use for onboarding
     let tierID = "legacy-tier";
@@ -257,8 +238,7 @@ async function onboardUser(accessToken, tierID, externalSignal, endpoints, provi
                     console.log(`[ProjectId] Successfully onboarded, project ID: ${projectId}`);
                     return projectId;
                 }
-                console.warn("[ProjectId] onboardUser completed without project_id");
-                return null;
+                throw new Error("onboardUser done but no project_id in response");
             }
 
             // Server not done yet – wait and retry

@@ -33,13 +33,6 @@ export default {
   imageConfig: { baseUrl: "https://ai-gateway.vercel.sh/v1/images/generations" },
   searchViaChat: { defaultModel: "openai/gpt-4o-mini", pricingUrl: "https://vercel.com/docs/ai-gateway/pricing" },
   modelsFetcher: { url: "https://ai-gateway.vercel.sh/v1/models", type: "openai" },
-  models: [
-    { id: "openai/gpt-4.1", name: "openai/gpt-4.1" },
-    { id: "anthropic/claude-4-sonnet", name: "anthropic/claude-4-sonnet" },
-    { id: "google/gemini-2.5-pro", name: "google/gemini-2.5-pro" },
-    { id: "moonshotai/kimi-k2", name: "moonshotai/kimi-k2" },
-    { id: "vercel/v0-1.5-md", name: "vercel/v0-1.5-md" },
-  ],
   passthroughModels: true,
   features: {
     usage: true,

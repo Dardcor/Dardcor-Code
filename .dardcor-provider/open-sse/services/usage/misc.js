@@ -73,7 +73,9 @@ export async function getOllamaUsage(apiKey, providerSpecificData, proxyOptions 
     }, proxyOptions).then((r) => (r.ok ? r.json() : null)).catch(() => null);
 
     const planRaw = typeof me?.Plan === "string" ? me.Plan : "";
-    const plan = planRaw ? planRaw.trim() : "";
+    const plan = planRaw
+      ? planRaw.charAt(0).toUpperCase() + planRaw.slice(1).toLowerCase()
+      : "Ollama Cloud";
 
     const limits = data?.limits && typeof data.limits === "object" ? data.limits : {};
 
@@ -158,7 +160,9 @@ export async function getGlmUsage(apiKey, provider, proxyOptions = null) {
     }
 
     const levelRaw = typeof data.level === "string" ? data.level : "";
-    const plan = levelRaw.trim();
+    const plan = levelRaw
+      ? levelRaw.charAt(0).toUpperCase() + levelRaw.slice(1).toLowerCase()
+      : "Unknown";
 
     return { plan, quotas };
   } catch (error) {
@@ -216,6 +220,7 @@ export async function getVercelAiGatewayUsage(apiKey, proxyOptions = null) {
 
     if (balance <= 0 && totalUsed <= 0) {
       return {
+        plan: "Pay-as-you-go",
         message: "Vercel AI Gateway connected. No credit allocation found (BYOK or unfunded account).",
         quotas: {},
       };
@@ -224,6 +229,7 @@ export async function getVercelAiGatewayUsage(apiKey, proxyOptions = null) {
     // "Used (USD)": how much has been spent this month (no fixed cap → unlimited).
     // "Remaining (USD)": balance remaining out of the $5 monthly allocation.
     return {
+      plan: "Pay-as-you-go",
       quotas: {
         "Used (USD)": {
           used: totalUsed,

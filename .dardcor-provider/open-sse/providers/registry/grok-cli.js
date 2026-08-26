@@ -66,40 +66,18 @@ export default {
       503: { attempts: 2, delayMs: 1500 },
     },
   },
-  models: [{
-  id: GROK_CLI_MODEL,
-  name: "Grok Build",
-  contextLength: 500000,
-  maxOutputTokens: 64000
-}, {
-  id: "grok-4.5",
-  name: "Grok 4.5"
-}, {
-  id: "grok-4.6",
-  name: "Grok 4.6",
-  contextLength: 500000,
-  maxOutputTokens: 64000
-}, {
-  id: "grok-4.5-high",
-  name: "Grok 4.5 (High)",
-  upstreamModelId: "grok-4.5"
-}, {
-  id: "grok-4.5-medium",
-  name: "Grok 4.5 (Medium)",
-  upstreamModelId: "grok-4.5"
-}, {
-  id: "grok-4.5-low",
-  name: "Grok 4.5 (Low)",
-  upstreamModelId: "grok-4.5"
-}, {
-  "id": "grok-composer-2.5-fast",
-  "name": "Composer 2.5",
-  "contextLength": 200000,
-  "supportsReasoning": false,
-  "toolCalling": true,
-  "targetFormat": "openai-responses",
-  "unsupportedParams": ["presencePenalty", "frequencyPenalty", "logprobs", "topLogprobs"]
-}],
+  models: [
+    {
+      id: GROK_CLI_MODEL,
+      name: "Grok Build",
+      contextLength: 500000,
+      maxOutputTokens: 64000,
+    },
+    { id: "grok-4.5", name: "Grok 4.5" },
+    { id: "grok-4.5-high", name: "Grok 4.5 (High)", upstreamModelId: "grok-4.5" },
+    { id: "grok-4.5-medium", name: "Grok 4.5 (Medium)", upstreamModelId: "grok-4.5" },
+    { id: "grok-4.5-low", name: "Grok 4.5 (Low)", upstreamModelId: "grok-4.5" },
+  ],
   features: {
     usage: true,
   },

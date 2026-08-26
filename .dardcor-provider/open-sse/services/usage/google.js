@@ -4,7 +4,6 @@
 
 import { CLIENT_METADATA } from "../../config/appConstants.js";
 import { ANTIGRAVITY_IDE_USER_AGENT, ANTIGRAVITY_IDE_VERSION, ANTIGRAVITY_OAUTH_CLIENT } from "../../providers/shared.js";
-import antigravityProvider from "../../providers/registry/antigravity.js";
 import { U, parseResetTime, normalizeCloudCodeProjectId, fetchWithTimeout } from "./shared.js";
 
 // Antigravity API config (from Quotio) — urls from registry, oauth client + dynamic UA kept here
@@ -14,50 +13,6 @@ const ANTIGRAVITY_CONFIG = {
   userAgent: ANTIGRAVITY_IDE_USER_AGENT,
 };
 
-const ANTIGRAVITY_QUOTA_MODEL_KEYS = new Map(
-  antigravityProvider.models.flatMap((model) =>
-    [model.id, model.upstreamModelId, model.alias, ...(model.aliases || [])]
-      .filter(Boolean)
-      .map((key) => [key, model.id])
-  )
-);
-
-function normalizeAntigravityQuotaModelKey(modelKey) {
-  const key = modelKey.replace(/^models\//, "");
-  return ANTIGRAVITY_QUOTA_MODEL_KEYS.get(key) || key;
-}
-
-function resolveAntigravityPlan(subscriptionInfo) {
-  const currentTier = subscriptionInfo?.currentTier;
-  const paidTier = subscriptionInfo?.paidTier;
-  const defaultTier = Array.isArray(subscriptionInfo?.allowedTiers)
-    ? subscriptionInfo.allowedTiers.find((tier) => tier?.isDefault)
-    : null;
-  const candidates = [
-    paidTier?.id,
-    currentTier?.id,
-    subscriptionInfo?.subscriptionType,
-    subscriptionInfo?.tier,
-    defaultTier?.id,
-    paidTier?.name,
-    currentTier?.name,
-  ];
-
-  for (const candidate of candidates) {
-    if (typeof candidate !== "string") continue;
-    const tokens = new Set(candidate.toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean));
-    if (tokens.has("ULTRA")) return "Ultra";
-    if (tokens.has("PRO") || tokens.has("PREMIUM") || (tokens.has("GOOGLE") && tokens.has("ONE")) || (tokens.has("ONE") && tokens.has("AI"))) return "Pro";
-    if (tokens.has("ENTERPRISE")) return "Enterprise";
-    if (tokens.has("BUSINESS") || tokens.has("STANDARD")) return "Business";
-    if (tokens.has("PLUS")) return "Plus";
-    if (tokens.has("LITE") || tokens.has("LIGHT")) return "Lite";
-    if (tokens.has("FREE") || tokens.has("INDIVIDUAL") || tokens.has("LEGACY")) return "Free";
-  }
-
-  return "Unknown";
-}
-
 /**
  * Gemini CLI Usage — fetch per-model quota via Cloud Code Assist API.
  * Uses retrieveUserQuota (same endpoint as `gemini /stats`) returning
@@ -65,19 +20,18 @@ function resolveAntigravityPlan(subscriptionInfo) {
  */
 export async function getGeminiUsage(accessToken, providerSpecificData, proxyOptions = null) {
   if (!accessToken) {
-    return { message: "Gemini CLI access token not available." };
+    return { plan: "Free", message: "Gemini CLI access token not available." };
   }
 
   try {
     // Resolve project id: prefer connection-stored id, else loadCodeAssist lookup.
     // #1271: OAuth save stores projectId on the connection, not providerSpecificData.
     let projectId = normalizeCloudCodeProjectId(providerSpecificData?.projectId);
-    let plan = "";
+    let plan = "Free";
 
-    // Subscription fetch is fail-open and also supplies the plan tier when projectId is already stored.
-    const subInfo = await getGeminiSubscriptionInfo(accessToken, proxyOptions);
-    if (subInfo) {
-      if (!projectId) projectId = normalizeCloudCodeProjectId(subInfo?.cloudaicompanionProject);
+    if (!projectId) {
+      const subInfo = await getGeminiSubscriptionInfo(accessToken, proxyOptions);
+      projectId = normalizeCloudCodeProjectId(subInfo?.cloudaicompanionProject);
       plan = subInfo?.currentTier?.name || plan;
     }
 
@@ -205,18 +159,35 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
 
     // Parse model quotas (inspired by vscode-antigravity-cockpit)
     if (data.models) {
+      // Filter only recommended/important models (must match PROVIDER_MODELS ag ids)
+      const importantModels = [
+        'gemini-3.7-flash-high',
+        'gemini-3.7-flash-medium',
+        'gemini-3.7-flash-low',
+        'gemini-3.6-flash-high',
+        'gemini-3.6-flash-medium',
+        'gemini-3.6-flash-low',
+        'gemini-3.5-flash-low',
+        'gemini-3.5-flash-extra-low',
+        'gemini-pro-agent',
+        'gemini-3.1-pro-low',
+        'claude-sonnet-4-6',
+        'claude-opus-4-6-thinking',
+        'gpt-oss-120b-medium',
+        // Image generation models
+        'gemini-3.1-flash-image',
+      ];
+
       for (const [modelKey, info] of Object.entries(data.models)) {
         // Skip models without quota info
         if (!info.quotaInfo) {
           continue;
         }
 
-        // Internal discovery entries are not user-selectable.
-        if (info.isInternal) {
+        // Skip internal models and non-important models
+        if (info.isInternal || !importantModels.includes(modelKey)) {
           continue;
         }
-
-        const normalizedModelKey = normalizeAntigravityQuotaModelKey(modelKey);
 
         const remainingFraction = info.quotaInfo.remainingFraction || 0;
         const remainingPercentage = remainingFraction * 100;
@@ -226,19 +197,20 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
         const remaining = Math.round(total * remainingFraction);
         const used = total - remaining;
 
-        quotas[normalizedModelKey] = {
+        // Use modelKey as key (matches PROVIDER_MODELS id)
+        quotas[modelKey] = {
           used,
           total,
           resetAt: parseResetTime(info.quotaInfo.resetTime),
           remainingPercentage,
           unlimited: false,
-          displayName: info.displayName || normalizedModelKey,
+          displayName: info.displayName || modelKey,
         };
       }
     }
 
     return {
-      plan: resolveAntigravityPlan(subscriptionInfo),
+      plan: subscriptionInfo?.currentTier?.name || "Unknown",
       quotas,
       subscriptionInfo,
     };

@@ -112,13 +112,11 @@ function createNoOpLogger() {
  * @param {string} sourceFormat - Source format from client (claude, openai, etc.)
  * @param {string} targetFormat - Target format to provider (antigravity, gemini-cli, etc.)
  * @param {string} model - Model name
- * @param {object} [options] - Optional overrides
- * @param {boolean} [options.enabled] - When false, return no-op logger regardless of env
  * @returns {Promise<object>} Promise that resolves to logger object with methods to log each stage
  */
-export async function createRequestLogger(sourceFormat, targetFormat, model, options) {
-  // Return no-op logger if explicitly disabled or env-disabled
-  if (options?.enabled === false || !LOGGING_ENABLED) {
+export async function createRequestLogger(sourceFormat, targetFormat, model) {
+  // Return no-op logger if logging is disabled
+  if (!LOGGING_ENABLED) {
     return createNoOpLogger();
   }
   

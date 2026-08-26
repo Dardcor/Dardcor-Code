@@ -61,6 +61,7 @@ export async function getDeepseekUsage(apiKey = null, proxyOptions = null) {
 
     if (response.status === 401 || response.status === 403) {
       return {
+        plan: "DeepSeek",
         message: "DeepSeek authentication failed. Check the API key.",
       };
     }
@@ -68,6 +69,7 @@ export async function getDeepseekUsage(apiKey = null, proxyOptions = null) {
     if (!response.ok) {
       const errText = await response.text().catch(() => "");
       return {
+        plan: "DeepSeek",
         message: `DeepSeek balance API error (${response.status})${errText ? `: ${errText.slice(0, 120)}` : ""}`,
       };
     }
@@ -80,10 +82,12 @@ export async function getDeepseekUsage(apiKey = null, proxyOptions = null) {
     const balances = parseBalanceInfos(data);
     if (balances.length === 0) {
       return {
+        plan: "DeepSeek",
         message: "DeepSeek connected. No balance data returned.",
       };
     }
 
+    const isAvailable = data.is_available === true || data.isAvailable === true;
     const quotas = {};
     for (const b of balances) {
       const total = Math.max(0, b.totalBalance);
@@ -99,6 +103,7 @@ export async function getDeepseekUsage(apiKey = null, proxyOptions = null) {
     }
 
     return {
+      plan: isAvailable ? "DeepSeek" : "DeepSeek (Insufficient Balance)",
       quotas,
     };
   } catch (error) {

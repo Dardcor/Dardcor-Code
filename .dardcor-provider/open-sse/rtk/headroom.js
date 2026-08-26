@@ -6,8 +6,6 @@ import {
 } from "../translator/request/openai-responses.js";
 
 const DEFAULT_TIMEOUT_MS = 3000;
-const FAILED_ENDPOINT_COOLDOWN_MS = 30_000;
-const failedEndpoints = new Map();
 
 function jsonBytes(value) {
   try {
@@ -20,8 +18,6 @@ function jsonBytes(value) {
 function messagePayload(body) {
   if (Array.isArray(body?.messages)) return body.messages;
   if (Array.isArray(body?.input)) return body.input;
-  const gemini = collectGeminiHeadroomMessages(body);
-  if (gemini) return gemini.messages;
   const kiro = collectKiroHeadroomMessages(body);
   if (kiro) return kiro.messages;
   return null;
@@ -38,7 +34,7 @@ function captureSizeSnapshot(body) {
   return {
     bodyBytes: jsonBytes(body),
     messageBytes: messages ? jsonBytes(messages) : 0,
-    toolSchemaBytes: jsonBytes(body?.tools || body?.request?.tools || []),
+    toolSchemaBytes: jsonBytes(body?.tools || []),
     toolHistoryBytes: jsonBytes(toolHistory),
   };
 }
@@ -165,26 +161,6 @@ function collectKiroHeadroomMessages(body) {
   return messages.length > 0 ? { messages, targets } : null;
 }
 
-function collectGeminiHeadroomMessages(body) {
-  const root = Array.isArray(body?.request?.contents) ? body.request : body;
-  if (!Array.isArray(root?.contents)) return null;
-  const messages = [];
-  const targets = [];
-  const addParts = (role, value) => {
-    const parts = Array.isArray(value?.parts) ? value.parts : [];
-    for (const part of parts) {
-      if (typeof part?.text !== "string") continue;
-      messages.push({ role, content: part.text });
-      targets.push({ object: part, key: "text" });
-    }
-  };
-  addParts("system", root.systemInstruction);
-  for (const content of root.contents) {
-    addParts(content?.role === "model" ? "assistant" : "user", content);
-  }
-  return messages.length > 0 ? { messages, targets } : null;
-}
-
 function textFromHeadroomMessage(message) {
   const content = message?.content;
   if (typeof content === "string") return content;
@@ -230,40 +206,10 @@ function applyKiroHeadroomMessages(projection, compressedMessages, diagnostics) 
   return true;
 }
 
-function applyGeminiHeadroomMessages(projection, compressedMessages, diagnostics) {
-  if (!Array.isArray(compressedMessages) || compressedMessages.length !== projection.messages.length) {
-    setDiagnostic(diagnostics, "proxy response did not match Gemini message count");
-    return false;
-  }
-  const updates = [];
-  for (let i = 0; i < projection.messages.length; i++) {
-    const expected = projection.messages[i];
-    const actual = compressedMessages[i];
-    if (!actual || actual.role !== expected.role) {
-      setDiagnostic(diagnostics, "proxy response did not preserve Gemini message order");
-      return false;
-    }
-    const text = textFromHeadroomMessage(actual);
-    if (text === null) {
-      setDiagnostic(diagnostics, "proxy response missing Gemini text content");
-      return false;
-    }
-    updates.push({ target: projection.targets[i], text });
-  }
-  for (const update of updates) update.target.object[update.target.key] = update.text;
-  return true;
-}
-
 // POST messages to Headroom /v1/compress; returns compressed messages + stats or null.
 async function callCompress(url, messages, model, timeoutMs, compressUserMessages, diagnostics) {
   const endpoint = buildCompressEndpoint(url);
   diagnostics.endpoint = maskEndpoint(endpoint);
-  const retryAt = failedEndpoints.get(endpoint) || 0;
-  if (retryAt > Date.now()) {
-    setDiagnostic(diagnostics, "proxy temporarily unavailable");
-    return null;
-  }
-  if (retryAt) failedEndpoints.delete(endpoint);
   const payload = { messages, model };
   if (compressUserMessages) payload.config = { compress_user_messages: true };
   let res;
@@ -275,12 +221,10 @@ async function callCompress(url, messages, model, timeoutMs, compressUserMessage
       signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (error) {
-    failedEndpoints.set(endpoint, Date.now() + FAILED_ENDPOINT_COOLDOWN_MS);
     setDiagnostic(diagnostics, `request failed: ${describeFetchError(error)}`);
     return null;
   }
   if (!res.ok) {
-    failedEndpoints.set(endpoint, Date.now() + FAILED_ENDPOINT_COOLDOWN_MS);
     setDiagnostic(diagnostics, `proxy returned HTTP ${res.status}`);
     return null;
   }
@@ -289,7 +233,6 @@ async function callCompress(url, messages, model, timeoutMs, compressUserMessage
     setDiagnostic(diagnostics, "proxy response missing messages[]");
     return null;
   }
-  failedEndpoints.delete(endpoint);
   return data;
 }
 
@@ -365,19 +308,6 @@ export async function compressWithHeadroom(body, { enabled, url, model, format, 
       const data = await callCompress(url, projection.messages, model, timeoutMs, compressUserMessages, diagnostics || {});
       if (!data) return null;
       if (!applyKiroHeadroomMessages(projection, data.messages, diagnostics)) return null;
-      if (diagnostics) diagnostics.after = captureSizeSnapshot(body);
-      return data;
-    }
-
-    if (format === "antigravity" || format === "gemini" || format === "gemini-cli") {
-      const projection = collectGeminiHeadroomMessages(body);
-      if (!projection) {
-        setDiagnostic(diagnostics, `${format} request did not project to messages[]`);
-        return null;
-      }
-      const data = await callCompress(url, projection.messages, model, timeoutMs, compressUserMessages, diagnostics || {});
-      if (!data) return null;
-      if (!applyGeminiHeadroomMessages(projection, data.messages, diagnostics)) return null;
       if (diagnostics) diagnostics.after = captureSizeSnapshot(body);
       return data;
     }

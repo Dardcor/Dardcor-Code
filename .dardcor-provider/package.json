@@ -1,8 +1,13 @@
 {
   "name": "dardcor-code-app",
-  "version": "0.1.4",
+  "version": "1.0.0",
   "description": "Dardcor Code web dashboard",
   "private": true,
+  "type": "module",
+  "imports": {
+    "open-sse/*": "./open-sse/*",
+    "@/*": "./src/*"
+  },
   "scripts": {
     "dev": "next dev --port 25000",
     "dev:webpack": "next dev --webpack --port 25000",

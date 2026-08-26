@@ -9,8 +9,8 @@ export const APP_CONFIG = {
 
 // GitHub configuration
 export const GITHUB_CONFIG = {
-  changelogUrl: "https://raw.githubusercontent.com/dardcor-code/dardcor-code/refs/heads/master/CHANGELOG.md",
-  donateUrl: "https://dardcor-code.web.id/api/donate",
+  changelogUrl: "https://raw.githubusercontent.com/Dardcor/Dardcor-Code/refs/heads/main/CHANGELOG.md",
+  donateUrl: "https://dardcor-code.com/api/donate",
 };
 
 // Updater configuration
@@ -20,7 +20,7 @@ export const UPDATER_CONFIG = {
   installCmdLatest: "npm i -g dardcor-code@latest --prefer-online",
   shutdownCountdownSec: 3,
   exitDelayMs: 500,
-  statusPort: 21129,
+  statusPort: 25001,
   statusPollIntervalMs: 1000,
   statusLogTailLines: 8,
   installRetries: 3,
@@ -29,7 +29,7 @@ export const UPDATER_CONFIG = {
   waitForExitMinMs: 5000,
   waitForExitMaxMs: 20000,
   waitForExitCheckMs: 500,
-  appPort: 21128,
+  appPort: 25000,
 };
 
 // Theme configuration

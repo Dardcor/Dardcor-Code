@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/shared/utils/cn";
 import { APP_CONFIG } from "@/shared/constants/config";
 
-const SIDEBAR_VERSION = "V0.1.4";
+const SIDEBAR_VERSION = "v1.0.0";
 
 const mainNavItems = [
   { href: "/dashboard/usage", label: "Usage", icon: "bar_chart" },

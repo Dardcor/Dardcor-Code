@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card, Button, Input, Select, Toggle } from "@/shared/components";
-import ProviderIcon from "@/shared/components/ProviderIcon";
 import { AI_PROVIDERS, AUTH_METHODS } from "@/shared/constants/config";
 
 const providerOptions = Object.values(AI_PROVIDERS).map((p) => ({
@@ -110,17 +109,12 @@ export default function NewProviderPage() {
               <div
                 className="size-10 rounded-lg flex items-center justify-center bg-bg border border-border"
               >
-                <ProviderIcon
-                  key={selectedProvider.id}
-                  providerId={selectedProvider.id}
-                  alt={selectedProvider.name}
-                  size={32}
-                  className="object-contain rounded-lg"
-                  fallbackText={
-                    selectedProvider.textIcon || selectedProvider.id.slice(0, 2).toUpperCase()
-                  }
-                  fallbackColor={selectedProvider.color}
-                />
+                <span
+                  className="material-symbols-outlined text-xl"
+                  style={{ color: selectedProvider.color }}
+                >
+                  {selectedProvider.icon}
+                </span>
               </div>
               <div>
                 <p className="font-medium">{selectedProvider.name}</p>
@@ -223,3 +217,4 @@ export default function NewProviderPage() {
     </div>
   );
 }
+

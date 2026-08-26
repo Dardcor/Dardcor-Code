@@ -221,9 +221,7 @@ export function buildKimiHeaders(deviceId) {
     : `kimi-${Date.now()}`;
 
   return {
-    // Pinned upstream contract (docs/REBRAND.md §4): the msh upstream rejects
-    // requests whose X-Msh-Platform is not exactly "9router". Do not rename.
-    "X-Msh-Platform": "9router",
+    "X-Msh-Platform": "dardcor-code",
     "X-Msh-Version": getAppPackageVersion(),
     "X-Msh-Device-Name": deviceName,
     "X-Msh-Device-Model": deviceModel,

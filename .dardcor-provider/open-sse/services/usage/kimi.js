@@ -26,7 +26,7 @@ function getKimiPlanName(level) {
   if (!level) return "";
   const key = String(level);
   if (PLAN_LEVELS[key]) return PLAN_LEVELS[key];
-  return key.trim();
+  return key.replace(/^LEVEL_/, "").toLowerCase();
 }
 
 /** Best-effort extract human message from Kimi error JSON (403 body is Connect-RPC-ish). */
@@ -138,6 +138,7 @@ export async function getKimiUsage(
 
     if (!response.ok) {
       return {
+        plan: "Kimi Coding",
         message: formatKimiUsageError(response.status, responseText),
       };
     }
@@ -147,6 +148,7 @@ export async function getKimiUsage(
       data = JSON.parse(responseText || "{}");
     } catch {
       return {
+        plan: "Kimi Coding",
         message: "Kimi Coding connected. Invalid JSON response from API.",
       };
     }
@@ -191,7 +193,7 @@ export async function getKimiUsage(
     }
 
     const membershipLevel = data?.user?.membership?.level;
-    const planName = getKimiPlanName(membershipLevel) || "";
+    const planName = getKimiPlanName(membershipLevel) || "Kimi Coding";
 
     if (Object.keys(quotas).length > 0) {
       return { plan: planName, quotas };

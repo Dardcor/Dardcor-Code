@@ -1,12 +1,6 @@
 // Provider definitions
 import REGISTRY from "open-sse/providers/registry/index.js";
 import { RISK_NOTICE } from "@/shared/constants/providersDisplay";
-import {
-  FREE_TIER_PROVIDERS as FREE_TIER_CATALOG,
-  FREE_TIER_PROVIDER_BY_ID,
-  FREE_TIER_CATALOG_SOURCE,
-  isFreeTierProviderAvailable,
-} from "open-sse/config/freeTierCatalog.js";
 
 const MEDIA_ENTRY_KEYS = [
   "serviceKinds", "ttsConfig", "sttConfig", "embeddingConfig",
@@ -32,7 +26,6 @@ function buildProviderEntry(r) {
     ...mediaFields,
     ...(r.priority !== undefined ? { priority: r.priority } : {}),
     ...(r.hasFree ? { hasFree: true } : {}),
-    ...(r.billingTier ? { billingTier: r.billingTier } : {}),
     ...(r.thinkingConfig ? { thinkingConfig: r.thinkingConfig } : {}),
     ...(r.regions ? { regions: r.regions, defaultRegion: r.defaultRegion } : {}),
     ...(r.hasProviderSpecificData ? { hasProviderSpecificData: true } : {}),
@@ -50,21 +43,7 @@ const byCategory = (cat) => Object.fromEntries(
 );
 
 export const FREE_PROVIDERS = byCategory("free");
-const CATALOG_ONLY_FREE_TIER_PROVIDERS = Object.fromEntries(
-  FREE_TIER_CATALOG
-    .filter((provider) => !provider.available)
-    .map((provider) => [provider.id, {
-      ...provider,
-      serviceKinds: provider.serviceKinds || ["llm"],
-      notice: provider.notice || { text: provider.unavailableReason },
-    }])
-);
-export const FREE_TIER_PROVIDERS = {
-  ...byCategory("freeTier"),
-  ...CATALOG_ONLY_FREE_TIER_PROVIDERS,
-};
-export const FREE_TIER_CATALOG_PROVIDERS = FREE_TIER_PROVIDER_BY_ID;
-export { FREE_TIER_CATALOG_SOURCE, isFreeTierProviderAvailable };
+export const FREE_TIER_PROVIDERS = byCategory("freeTier");
 
 // Thinking config definitions
 // options: list of selectable modes ("auto" = no override from server)
@@ -119,12 +98,7 @@ export function isCustomEmbeddingProvider(providerId) {
 }
 
 // All providers (combined)
-// Catalog-only rows remain visible through FREE_TIER_PROVIDERS, but are excluded
-// from the connectable/routable provider map until a compatible runtime exists.
-const ROUTABLE_FREE_TIER_PROVIDERS = Object.fromEntries(
-  Object.entries(FREE_TIER_PROVIDERS).filter(([, provider]) => !provider.disabled)
-);
-export const AI_PROVIDERS = { ...FREE_PROVIDERS, ...ROUTABLE_FREE_TIER_PROVIDERS, ...OAUTH_PROVIDERS, ...APIKEY_PROVIDERS, ...WEB_COOKIE_PROVIDERS };
+export const AI_PROVIDERS = { ...FREE_PROVIDERS, ...FREE_TIER_PROVIDERS, ...OAUTH_PROVIDERS, ...APIKEY_PROVIDERS, ...WEB_COOKIE_PROVIDERS };
 
 // Auth methods
 export const AUTH_METHODS = {

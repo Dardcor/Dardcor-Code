@@ -33,24 +33,13 @@ export function openaiToClaudeRequest(model, body, stream) {
 
   // Messages
   result.messages = [];
-  // System content as Claude blocks, preserving per-part cache_control instead
-  // of flattening to a joined string (client breakpoints must survive).
-  const systemBlocks = [];
-  // Extra system text from response_format handling, appended after the blocks.
-  const systemExtraTexts = [];
+  const systemParts = [];
 
   if (body.messages && Array.isArray(body.messages)) {
-    // Extract system messages as text blocks (cache_control preserved verbatim)
+    // Extract system messages
     for (const msg of body.messages) {
-      if (msg.role !== ROLE.SYSTEM) continue;
-      if (typeof msg.content === "string") {
-        if (msg.content) systemBlocks.push({ type: CLAUDE_BLOCK.TEXT, text: msg.content });
-      } else if (Array.isArray(msg.content)) {
-        for (const part of msg.content) {
-          if (part?.type === OPENAI_BLOCK.TEXT && part.text) {
-            systemBlocks.push(preserveCache(part, { type: CLAUDE_BLOCK.TEXT, text: part.text }));
-          }
-        }
+      if (msg.role === ROLE.SYSTEM) {
+        systemParts.push(typeof msg.content === "string" ? msg.content : extractTextContent(msg.content, "\n"));
       }
     }
 
@@ -107,10 +96,22 @@ export function openaiToClaudeRequest(model, body, stream) {
 
     flushCurrentMessage();
 
-    // No cache_control breakpoints are auto-added here: client-provided
-    // cache_control blocks survive translation untouched, and missing ones are
-    // inserted by the L0 cache orchestration (open-sse/cache/l0.js) only after
-    // a stable prefix is observed for two session turns.
+    // Add cache_control to last assistant message
+    for (let i = result.messages.length - 1; i >= 0; i--) {
+      const message = result.messages[i];
+      if (message.role === ROLE.ASSISTANT && Array.isArray(message.content) && message.content.length > 0) {
+        // Find the last block that can have cache_control (not thinking blocks)
+        const validBlockTypes = [CLAUDE_BLOCK.TEXT, CLAUDE_BLOCK.TOOL_USE, CLAUDE_BLOCK.TOOL_RESULT, CLAUDE_BLOCK.IMAGE];
+        for (let j = message.content.length - 1; j >= 0; j--) {
+          const block = message.content[j];
+          if (validBlockTypes.includes(block.type)) {
+            block.cache_control = { type: "ephemeral" };
+            break;
+          }
+        }
+        break;
+      }
+    }
   }
 
   // Handle response_format for JSON mode
@@ -118,24 +119,28 @@ export function openaiToClaudeRequest(model, body, stream) {
     const responseFormat = body.response_format;
     if (responseFormat.type === "json_schema" && responseFormat.json_schema?.schema) {
       const schemaJson = JSON.stringify(responseFormat.json_schema.schema, null, 2);
-      systemExtraTexts.push(`You must respond with valid JSON that strictly follows this JSON schema:
+      systemParts.push(`You must respond with valid JSON that strictly follows this JSON schema:
 \`\`\`json
 ${schemaJson}
 \`\`\`
 Respond ONLY with the JSON object, no other text.`);
     } else if (responseFormat.type === "json_object") {
-      systemExtraTexts.push("You must respond with valid JSON. Respond ONLY with a JSON object, no other text.");
+      systemParts.push("You must respond with valid JSON. Respond ONLY with a JSON object, no other text.");
     }
   }
 
-  // System with Claude Code prompt. Client system blocks (with their
-  // cache_control) come first, response_format text appended last — matching
-  // the pre-existing content order.
+  // System with Claude Code prompt and cache_control
   const claudeCodePrompt = { type: CLAUDE_BLOCK.TEXT, text: CLAUDE_SYSTEM_PROMPT };
-  if (systemExtraTexts.length > 0) {
-    systemBlocks.push({ type: CLAUDE_BLOCK.TEXT, text: systemExtraTexts.join("\n") });
+
+  if (systemParts.length > 0) {
+    const systemText = systemParts.join("\n");
+    result.system = [
+      claudeCodePrompt,
+      { type: CLAUDE_BLOCK.TEXT, text: systemText, cache_control: { type: "ephemeral", ttl: "1h" } }
+    ];
+  } else {
+    result.system = [claudeCodePrompt];
   }
-  result.system = [claudeCodePrompt, ...systemBlocks];
 
   // Tools - convert from OpenAI format to Claude format with prefix for OAuth
   if (body.tools && Array.isArray(body.tools)) {
@@ -168,9 +173,12 @@ Respond ONLY with the JSON object, no other text.`);
       result.tools.push({
         name: toolName,
         description: toolData.description || "",
-        input_schema: toolData.parameters || toolData.input_schema || { type: "object", properties: {}, required: [] },
-        ...(tool.cache_control && { cache_control: tool.cache_control })
+        input_schema: toolData.parameters || toolData.input_schema || { type: "object", properties: {}, required: [] }
       });
+    }
+
+    if (result.tools.length > 0) {
+      result.tools[result.tools.length - 1].cache_control = { type: "ephemeral", ttl: "1h" };
     }
   }
 
@@ -187,11 +195,6 @@ Respond ONLY with the JSON object, no other text.`);
   }
 
   return result;
-}
-
-// Copy client cache_control verbatim (byte-identical) onto a translated block.
-function preserveCache(part, block) {
-  return part && part.cache_control ? { ...block, cache_control: part.cache_control } : block;
 }
 
 // Get content blocks from single message
@@ -212,39 +215,39 @@ function getContentBlocksFromMessage(msg, toolNameMap = new Map()) {
     } else if (Array.isArray(msg.content)) {
       for (const part of msg.content) {
         if (part.type === OPENAI_BLOCK.TEXT && part.text) {
-          blocks.push(preserveCache(part, { type: CLAUDE_BLOCK.TEXT, text: part.text }));
+          blocks.push({ type: CLAUDE_BLOCK.TEXT, text: part.text });
         } else if (part.type === CLAUDE_BLOCK.TOOL_RESULT) {
-          blocks.push(preserveCache(part, {
+          blocks.push({
             type: CLAUDE_BLOCK.TOOL_RESULT,
             tool_use_id: part.tool_use_id,
             content: part.content,
             ...(part.is_error && { is_error: part.is_error })
-          }));
+          });
         } else if (part.type === OPENAI_BLOCK.IMAGE_URL) {
           const url = part.image_url.url;
           const parsed = parseDataUri(url);
           if (parsed) {
-            blocks.push(preserveCache(part, {
+            blocks.push({
               type: CLAUDE_BLOCK.IMAGE,
               source: { type: "base64", media_type: parsed.mimeType, data: parsed.base64 }
-            }));
+            });
           } else if (url.startsWith("http://") || url.startsWith("https://")) {
-            blocks.push(preserveCache(part, {
+            blocks.push({
               type: CLAUDE_BLOCK.IMAGE,
               source: { type: "url", url }
-            }));
+            });
           }
         } else if (part.type === OPENAI_BLOCK.IMAGE && part.source) {
-          blocks.push(preserveCache(part, { type: CLAUDE_BLOCK.IMAGE, source: part.source }));
+          blocks.push({ type: CLAUDE_BLOCK.IMAGE, source: part.source });
         } else if (part.type === OPENAI_BLOCK.FILE && part.file) {
           // OpenAI file block -> Claude document (PDF only; Claude rejects other mimes).
           const fileData = part.file.file_data;
           const parsed = parseDataUri(fileData);
           if (parsed && parsed.mimeType === "application/pdf") {
-            blocks.push(preserveCache(part, {
+            blocks.push({
               type: CLAUDE_BLOCK.DOCUMENT,
               source: { type: "base64", media_type: parsed.mimeType, data: parsed.base64 }
-            }));
+            });
           }
         }
       }
@@ -253,10 +256,10 @@ function getContentBlocksFromMessage(msg, toolNameMap = new Map()) {
     if (Array.isArray(msg.content)) {
       for (const part of msg.content) {
         if (part.type === OPENAI_BLOCK.TEXT && part.text) {
-          blocks.push(preserveCache(part, { type: CLAUDE_BLOCK.TEXT, text: part.text }));
+          blocks.push({ type: CLAUDE_BLOCK.TEXT, text: part.text });
         } else if (part.type === CLAUDE_BLOCK.TOOL_USE) {
           // Tool name already has prefix from tool declarations, keep as-is
-          blocks.push(preserveCache(part, { type: CLAUDE_BLOCK.TOOL_USE, id: part.id, name: part.name, input: part.input }));
+          blocks.push({ type: CLAUDE_BLOCK.TOOL_USE, id: part.id, name: part.name, input: part.input });
         } else if (part.type === CLAUDE_BLOCK.THINKING) {
           // Include thinking block but strip cache_control (not allowed on thinking blocks)
           const { cache_control, ...thinkingBlock } = part;

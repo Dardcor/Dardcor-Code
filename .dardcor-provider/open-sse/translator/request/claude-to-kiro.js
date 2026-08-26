@@ -11,7 +11,7 @@
  * repairs partial parallel calls, and flattens compacted structured references
  * that can no longer be represented safely.
  *
- * It also handles the Dardcor Code-synthetic `-agentic` / `-thinking` suffixes and
+ * It also handles the dardcor-code-synthetic `-agentic` / `-thinking` suffixes and
  * the `<thinking_mode>enabled</thinking_mode>` reasoning trigger, matching
  * buildKiroPayload.
  */
@@ -287,6 +287,18 @@ export function claudeToKiroRequest(model, body, stream, credentials) {
     toolSpecs,
     nameMap,
   });
+  // canonicalizeKiroConversation() already ran its second-chance repair (flatten
+  // every structured tool turn to text, then re-validate). A body that is STILL
+  // invalid here cannot be made shippable, and Kiro answers it with
+  // 400 {"message":"Improperly formed request.","reason":"REQUEST_BODY_INVALID"}.
+  // Fail locally instead: chatCore turns a falsy return into a 400 without
+  // spending an upstream call or a per-account cooldown. The taxonomy
+  // (role:N | pair:N | id:N | spec:N | orphan:0 | current) names the offending
+  // turn so the shape can be diagnosed from the log alone.
+  if (!canonical.valid) {
+    console.error(`[Kiro] refusing invalid conversation (claude → kiro): ${(canonical.errors || []).join(", ") || "unknown"} | turns=${(canonical.history || []).length + 1}`);
+    return null;
+  }
   const replayCurrent = canonical.currentMessage.userInputMessage;
   const userInputMessage = {
     content: replayCurrent.content || "",

@@ -53,7 +53,6 @@ import p50 from "./jina-reader.js";
 import p51 from "./kilocode.js";
 import p52 from "./kimchi.js";
 import p53 from "./kimi.js";
-import p122 from "./kimi-web.js";
 import p54 from "./kiro.js";
 import p55 from "./linkup.js";
 import p56 from "./local-device.js";
@@ -120,30 +119,8 @@ import p116 from "./tokenrouter.js";
 import p117 from "./selfhosted-stt.js";
 import p118 from "./selfhosted-tts.js";
 import p119 from "./selfhosted-embedding.js";
-import p120 from "./meta-model-api.js";
-import p121 from "./opencode-zen.js";
-import p123 from "./chatgpt-web.js";
-import p124 from "./claude-web.js";
-import p125 from "./gemini-web.js";
-import p126 from "./deepseek-web.js";
-import p127 from "./notion-web.js";
-import p128 from "./qwen-web.js";
-import p129 from "./zai-web.js";
-import p130 from "./venice-web.js";
-import p131 from "./v0-vercel-web.js";
-import p132 from "./manus-web.js";
-import p133 from "./ai21.js";
-import p134 from "./deepinfra.js";
-import p135 from "./friendliai.js";
-import p136 from "./github-models.js";
-import p137 from "./inception.js";
-import p138 from "./nous-research.js";
-import p139 from "./reka.js";
-import p140 from "./freebuff.js";
-import p141 from "./gorouter.js";
-import p142 from "./tabitoken.js";
-import p143 from "./unikey.js";
-import p144 from "./openagentic.js";
+import p120 from "./fish-audio.js";
+import p121 from "./alitp-intl.js";
 
 export default [
   p0,
@@ -200,7 +177,6 @@ export default [
   p51,
   p52,
   p53,
-  p122,
   p54,
   p55,
   p56,
@@ -267,26 +243,4 @@ export default [
   p119,
   p120,
   p121,
-  p123,
-  p124,
-  p125,
-  p126,
-  p127,
-  p128,
-  p129,
-  p130,
-  p131,
-  p132,
-  p133,
-  p134,
-  p135,
-  p136,
-  p137,
-  p138,
-  p139,
-  p140,
-  p141,
-  p142,
-  p143,
-  p144,
 ];

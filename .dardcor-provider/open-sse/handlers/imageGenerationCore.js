@@ -35,7 +35,6 @@ export async function handleImageGenerationCore({
   binaryOutput = false,
   onCredentialsRefreshed,
   onRequestSuccess,
-  privacyMode = "normal",
 }) {
   const { provider, model } = modelInfo;
 
@@ -51,12 +50,10 @@ export async function handleImageGenerationCore({
     );
   }
 
-  const promptSuffix = privacyMode === "normal" ? ` | prompt="${body.prompt.slice(0, 50)}..."` : "";
-
   // Executor-delegating adapters: skip manual URL/headers/body, use the proven executor flow
   if (adapter.useExecutor && adapter.executeViaExecutor) {
     try {
-      log?.debug?.("IMAGE", `${provider.toUpperCase()} | ${model}${promptSuffix} (executor)`);
+      log?.debug?.("IMAGE", `${provider.toUpperCase()} | ${model} | prompt="${body.prompt.slice(0, 50)}..." (executor)`);
       const responseBody = await adapter.executeViaExecutor(model, body, credentials, log);
       if (onRequestSuccess) await onRequestSuccess();
       const normalized = adapter.normalize(responseBody, body.prompt);
@@ -106,7 +103,7 @@ export async function handleImageGenerationCore({
     return createErrorResult(HTTP_STATUS.BAD_REQUEST, error.message || `Invalid ${provider} image request`);
   }
 
-  log?.debug?.("IMAGE", `${provider.toUpperCase()} | ${model}${promptSuffix}`);
+  log?.debug?.("IMAGE", `${provider.toUpperCase()} | ${model} | prompt="${body.prompt.slice(0, 50)}..."`);
 
   let providerResponse;
   try {

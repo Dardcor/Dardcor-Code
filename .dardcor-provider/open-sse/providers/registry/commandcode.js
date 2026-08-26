@@ -18,10 +18,8 @@ export default {
     },
   },
   category: "apikey",
-  hasFree: true,
   transport: {
     baseUrl: "https://api.commandcode.ai/alpha/generate",
-    validateUrl: "https://api.commandcode.ai/provider/v1/models",
     format: "commandcode",
     forceStream: true,
     headers: {
@@ -30,73 +28,16 @@ export default {
     },
   },
   models: [
-    // Claude Models
-    { id: "claude-sonnet-5", name: "Claude Sonnet 5", contextLength: 1000000 },
-    { id: "claude-sonnet-4-6", name: "Claude Sonnet 4.6", contextLength: 1000000 },
-    { id: "claude-fable-5", name: "Claude Fable 5", contextLength: 1000000 },
-    { id: "claude-opus-5", name: "Claude Opus 5", contextLength: 1000000 },
-    { id: "claude-opus-4-8", name: "Claude Opus 4.8", contextLength: 1000000 },
-    { id: "claude-opus-4-7", name: "Claude Opus 4.7", contextLength: 1000000 },
-    { id: "claude-haiku-4-5-20251001", name: "Claude Haiku 4.5", contextLength: 200000 },
-    // OpenAI / Codex Models
-    { id: "gpt-5.6-sol", name: "GPT-5.6 Sol", contextLength: 1050000 },
-    { id: "gpt-5.6-terra", name: "GPT-5.6 Terra", contextLength: 1050000 },
-    { id: "gpt-5.6-luna", name: "GPT-5.6 Luna", contextLength: 1050000 },
-    { id: "gpt-5.5", name: "GPT-5.5", contextLength: 400000 },
-    { id: "gpt-5.4", name: "GPT-5.4", contextLength: 400000 },
-    { id: "gpt-5.3-codex", name: "GPT-5.3 Codex", contextLength: 400000 },
-    { id: "gpt-5.4-mini", name: "GPT-5.4 Mini", contextLength: 400000 },
-    // DeepSeek Models
-    { id: "deepseek/deepseek-v4-pro", name: "DeepSeek V4 Pro", contextLength: 1000000 },
-    { id: "deepseek/deepseek-v4-flash", name: "DeepSeek V4 Flash", contextLength: 1000000 },
-    // Kimi Models
-    { id: "moonshotai/Kimi-K3", name: "Kimi K3", contextLength: 1000000 },
-    { id: "moonshotai/Kimi-K2.7-Code", name: "Kimi K2.7 Code", contextLength: 256000 },
-    { id: "moonshotai/Kimi-K2.7-Code-Highspeed", name: "Kimi K2.7 Code HighSpeed", contextLength: 262000 },
-    { id: "moonshotai/Kimi-K2.6", name: "Kimi K2.6", contextLength: 256000 },
-    { id: "moonshotai/Kimi-K2.5", name: "Kimi K2.5", contextLength: 256000 },
-    // GLM Models
-    { id: "zai-org/GLM-5.3", name: "GLM 5.3", contextLength: 1000000 },
-    { id: "zai-org/GLM-5.2", name: "GLM 5.2", contextLength: 1000000 },
-    { id: "zai-org/GLM-5.2-Fast", name: "GLM 5.2 Fast", contextLength: 1000000 },
-    { id: "zai-org/GLM-5.1", name: "GLM 5.1", contextLength: 200000 },
-    { id: "zai-org/GLM-5", name: "GLM 5", contextLength: 200000 },
-    // MiniMax Models
-    { id: "MiniMaxAI/MiniMax-M3", name: "MiniMax M3", contextLength: 1000000 },
-    { id: "MiniMaxAI/MiniMax-M2.7", name: "MiniMax M2.7", contextLength: 200000 },
-    { id: "MiniMaxAI/MiniMax-M2.5", name: "MiniMax M2.5", contextLength: 200000 },
-    // MiMo Models
-    { id: "xiaomi/mimo-v2.5-pro", name: "MiMo V2.5 Pro", contextLength: 1000000 },
-    { id: "xiaomi/mimo-v2.5", name: "MiMo V2.5", contextLength: 1000000 },
-    // Qwen Models
-    { id: "Qwen/Qwen3.8-Max", name: "Qwen 3.8 Max", contextLength: 1000000 },
-    { id: "Qwen/Qwen3.8-27B", name: "Qwen 3.8 27B", contextLength: 262144 },
-    { id: "Qwen/Qwen3.7-Max", name: "Qwen 3.7 Max", contextLength: 1000000 },
-    { id: "Qwen/Qwen3.7-Plus", name: "Qwen 3.7 Plus", contextLength: 1000000 },
-    { id: "Qwen/Qwen3.7-Flash", name: "Qwen 3.7 Flash", contextLength: 1000000 },
-    { id: "Qwen/Qwen3.6-Max-Preview", name: "Qwen 3.6 Max Preview", contextLength: 200000 },
-    { id: "Qwen/Qwen3.6-Plus", name: "Qwen 3.6 Plus", contextLength: 200000 },
-    // StepFun Models
-    { id: "stepfun/Step-3.7-Flash", name: "Step 3.7 Flash", contextLength: 256000 },
-    { id: "stepfun/Step-3.5-Flash", name: "Step 3.5 Flash", contextLength: 1000000 },
-    // Tencent Models
-    { id: "tencent/hy3-paid", name: "Tencent Hy3", contextLength: 262144 },
-    // Gemini Models
-    { id: "google/gemini-3.7-flash", name: "Gemini 3.7 Flash", contextLength: 1048576 },
-    { id: "google/gemini-3.6-flash", name: "Gemini 3.6 Flash", contextLength: 1000000 },
-    { id: "google/gemini-3.5-flash", name: "Gemini 3.5 Flash", contextLength: 1000000 },
-    { id: "google/gemini-3.5-flash-lite", name: "Gemini 3.5 Flash Lite", contextLength: 1000000 },
-    { id: "google/gemini-3.1-flash-lite", name: "Gemini 3.1 Flash Lite", contextLength: 1000000 },
-    // Other Specialist Models
-    { id: "sakana/fugu-ultra", name: "Fugu Ultra", contextLength: 1000000 },
-    { id: "nvidia/nemotron-3-ultra-550b-a55b", name: "Nemotron 3 Ultra", contextLength: 1000000 },
-    { id: "thinkingmachines/inkling", name: "Inkling", contextLength: 256000 },
-    { id: "thinkingmachines/inkling-small", name: "Inkling Small", contextLength: 1000000 },
-    { id: "poolside/laguna-s-2.1-free", name: "Laguna S 2.1 (Free)", contextLength: 256000, isFreeTier: true },
-    { id: "meta/muse-spark-1.1", name: "Muse Spark 1.1", contextLength: 1048576 },
-    { id: "meta/muse-spark-1.2", name: "Muse Spark 1.2", contextLength: 1048576 },
-    { id: "meta/muse-spark-1.2-contributor", name: "Muse Spark 1.2 Contributor", contextLength: 1048576 },
-    { id: "xai/grok-4.5", name: "Grok 4.5", contextLength: 500000 },
-    { id: "xai/grok-4.6", name: "Grok 4.6", contextLength: 500000 }
+    { id: "deepseek/deepseek-v4-pro", name: "DeepSeek V4 Pro" },
+    { id: "deepseek/deepseek-v4-flash", name: "DeepSeek V4 Flash" },
+    { id: "moonshotai/Kimi-K2.6", name: "Kimi K2.6" },
+    { id: "moonshotai/Kimi-K2.5", name: "Kimi K2.5" },
+    { id: "zai-org/GLM-5.1", name: "GLM 5.1" },
+    { id: "zai-org/GLM-5", name: "GLM 5" },
+    { id: "MiniMaxAI/MiniMax-M2.7", name: "MiniMax M2.7" },
+    { id: "MiniMaxAI/MiniMax-M2.5", name: "MiniMax M2.5" },
+    { id: "Qwen/Qwen3.6-Max-Preview", name: "Qwen 3.6 Max Preview" },
+    { id: "Qwen/Qwen3.6-Plus", name: "Qwen 3.6 Plus" },
+    { id: "stepfun/Step-3.5-Flash", name: "Step 3.5 Flash" },
   ],
 };

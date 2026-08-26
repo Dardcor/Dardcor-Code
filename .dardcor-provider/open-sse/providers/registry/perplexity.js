@@ -22,19 +22,10 @@ export default {
     baseUrl: "https://api.perplexity.ai/chat/completions",
     validateUrl: "https://api.perplexity.ai/models",
   },
-  models: [{
-  id: "sonar-pro",
-  name: "Sonar Pro"
-}, {
-  id: "sonar",
-  name: "Sonar"
-}, {
-  "id": "sonar-deep-research",
-  "name": "Sonar Deep Research"
-}, {
-  "id": "sonar-reasoning-pro",
-  "name": "Sonar Reasoning Pro"
-}],
+  models: [
+    { id: "sonar-pro", name: "Sonar Pro" },
+    { id: "sonar", name: "Sonar" },
+  ],
   serviceKinds: ["llm","webSearch"],
   searchViaChat: {
     defaultModel: "sonar",

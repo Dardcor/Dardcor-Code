@@ -18,7 +18,6 @@ import {
   KIMCHI_CONFIG,
 } from "@/lib/oauth/constants/oauth";
 import { buildClineHeaders } from "@/shared/utils/clineAuth";
-import { validateWebSessionCredential } from "@/shared/services/webSessionCredentials";
 
 // OAuth provider test endpoints
 const OAUTH_TEST_CONFIG = {
@@ -125,19 +124,6 @@ const OAUTH_TEST_CONFIG = {
     softFailMessage: {
       402: "Connected, but Grok Build credits are exhausted (spending limit). Add credits or upgrade SuperGrok.",
     },
-  },
-  freebuff: {
-    url: "https://www.codebuff.com/api/v1/freebuff/session",
-    method: "POST",
-    authHeader: "Authorization",
-    authPrefix: "Bearer ",
-    extraHeaders: {
-      "Content-Type": "application/json",
-      "User-Agent": "Freebuff-CLI/0.0.105",
-    },
-    body: JSON.stringify({}),
-    acceptStatuses: [200, 400],
-    refreshable: false,
   },
 };
 
@@ -758,18 +744,6 @@ async function testApiKeyConnection(connection, effectiveProxy = null) {
         const valid = !!(data && data.user);
         return { valid, error: valid ? null : "Session expired — re-paste cookie" };
       }
-      case "kimi-web": {
-        // Connect-RPC auth probe: the generic OpenAI probe cannot speak the
-        // 5-byte envelope. A Connect-framed request with an empty message is
-        // rejected at the protocol layer (no paid completion generated);
-        // only 401/403 mean the access_token is bad.
-        const { probeKimiWebToken } = await import("open-sse/executors/kimi-web.js");
-        const probe = await probeKimiWebToken(
-          connection.apiKey,
-          (url, opts) => fetchWithConnectionProxy(url, opts, effectiveProxy)
-        );
-        return { valid: probe.valid, error: probe.valid ? null : (probe.error || "Invalid access_token") };
-      }
       case "opencode-go": {
         const res = await fetchWithConnectionProxy("https://opencode.ai/zen/go/v1/chat/completions", {
           method: "POST",
@@ -814,135 +788,29 @@ async function testApiKeyConnection(connection, effectiveProxy = null) {
         );
         return { valid: exRes.ok, error: exRes.ok ? null : "Invalid Personal Access Token" };
       }
-      case "freebuff": {
-        const token = connection.apiKey || connection.accessToken || "";
-        const res = await fetchWithConnectionProxy("https://www.codebuff.com/api/v1/freebuff/session", {
-          method: "POST",
+case "llm7": {
+        const baseUrl = connection.providerSpecificData?.baseUrl || "https://api.llm7.io/v1";
+        const res = await fetchWithConnectionProxy(`${baseUrl.replace(/\/$/, "")}/models`, {
+          headers: { Authorization: `Bearer ${connection.apiKey}` },
+        }, effectiveProxy);
+        return { valid: res.ok, error: res.ok ? null : "Invalid API key or base URL" };
+      }
+      case "kimchi": {
+        // Dual-auth: same validation endpoint as the OAuth flow — the token (API key
+        // or OAuth access token) is sent as Authorization: Bearer.
+        const url = KIMCHI_CONFIG.validationUrl || "https://api.cast.ai/v1/llm/openai/supported-providers";
+        const res = await fetchWithConnectionProxy(url, {
+          method: "GET",
           headers: {
-            "Authorization": `Bearer ${token}`,
-            "User-Agent": "Freebuff-CLI/0.0.105",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({}),
-        }, effectiveProxy);
-        const valid = res.status !== 401 && res.status !== 403;
-        return { valid, error: valid ? null : "Invalid Freebuff token" };
-      }
-      case "opencode": {
-        const res = await fetchWithConnectionProxy("https://opencode.ai/zen/v1/models", {
-          headers: { "x-opencode-client": "desktop" },
-        }, effectiveProxy);
-        return { valid: res.ok, error: res.ok ? null : "OpenCode public endpoint unreachable" };
-      }
-      case "opencode-zen": {
-        const key = connection.apiKey || connection.accessToken || "";
-        const res = await fetchWithConnectionProxy("https://opencode.ai/zen/v1/models", {
-          headers: {
-            "Authorization": `Bearer ${key}`,
-            "x-opencode-client": "desktop",
-          },
-        }, effectiveProxy);
-        const valid = res.status !== 401 && res.status !== 403;
-        return { valid, error: valid ? null : "Invalid OpenCode Zen API key" };
-      }
-      case "commandcode": {
-        const res = await fetchWithConnectionProxy("https://api.commandcode.ai/provider/v1/models", {
-          headers: { Authorization: `Bearer ${connection.apiKey}` },
-        }, effectiveProxy);
-        const valid = res.status !== 401 && res.status !== 403;
-        return { valid, error: valid ? null : "Invalid CommandCode API key" };
-      }
-      case "bazaarlink": {
-        const res = await fetchWithConnectionProxy("https://bazaarlink.ai/api/v1/models", {
-          headers: { Authorization: `Bearer ${connection.apiKey}` },
-        }, effectiveProxy);
-        const valid = res.status !== 401 && res.status !== 403;
-        return { valid, error: valid ? null : "Invalid Bazaarlink API key" };
-      }
-      case "api-airforce": {
-        const res = await fetchWithConnectionProxy("https://api.airforce/v1/models", {
-          headers: { Authorization: `Bearer ${connection.apiKey}` },
-        }, effectiveProxy);
-        const valid = res.status !== 401 && res.status !== 403;
-        return { valid, error: valid ? null : "Invalid API.airforce key" };
-      }
-      case "kilo-gateway": {
-        const res = await fetchWithConnectionProxy("https://api.kilo.ai/api/gateway/models", {
-          headers: { Authorization: `Bearer ${connection.apiKey}` },
-        }, effectiveProxy);
-        const valid = res.status !== 401 && res.status !== 403;
-        return { valid, error: valid ? null : "Invalid Kilo Gateway key" };
-      }
-      case "llm7": {
-        const res = await fetchWithConnectionProxy("https://api.llm7.io/v1/models", {
-          headers: { Authorization: `Bearer ${connection.apiKey}` },
-        }, effectiveProxy);
-        const valid = res.status !== 401 && res.status !== 403;
-        return { valid, error: valid ? null : "Invalid LLM7 key" };
-      }
-      case "sambanova": {
-        const res = await fetchWithConnectionProxy("https://api.sambanova.ai/v1/models", {
-          headers: { Authorization: `Bearer ${connection.apiKey}` },
-        }, effectiveProxy);
-        const valid = res.status !== 401 && res.status !== 403;
-        return { valid, error: valid ? null : "Invalid SambaNova API key" };
-      }
-      case "github-models": {
-        const res = await fetchWithConnectionProxy("https://models.github.ai/catalog/models", {
-          headers: {
+            Accept: "application/json",
             Authorization: `Bearer ${connection.apiKey}`,
-            Accept: "application/vnd.github+json",
+            "User-Agent": "kimchi/0.1.40",
           },
         }, effectiveProxy);
-        const valid = res.status !== 401 && res.status !== 403;
-        return { valid, error: valid ? null : "Invalid GitHub Personal Access Token" };
+        return { valid: res.ok, error: res.ok ? null : "Invalid API key", refreshed: false };
       }
-      case "inception": {
-        const res = await fetchWithConnectionProxy("https://api.inceptionlabs.ai/v1/models", {
-          headers: { Authorization: `Bearer ${connection.apiKey}` },
-        }, effectiveProxy);
-        const valid = res.status !== 401 && res.status !== 403;
-        return { valid, error: valid ? null : "Invalid Inception API key" };
-      }
-      case "nous-research": {
-        const res = await fetchWithConnectionProxy("https://inference-api.nousresearch.com/v1/models", {
-          headers: { Authorization: `Bearer ${connection.apiKey}` },
-        }, effectiveProxy);
-        const valid = res.status !== 401 && res.status !== 403;
-        return { valid, error: valid ? null : "Invalid Nous Research API key" };
-      }
-      case "friendliai": {
-        const res = await fetchWithConnectionProxy("https://inference.friendli.ai/v1/models", {
-          headers: { Authorization: `Bearer ${connection.apiKey}` },
-        }, effectiveProxy);
-        const valid = res.status !== 401 && res.status !== 403;
-        return { valid, error: valid ? null : "Invalid FriendliAI API key" };
-      }
-      case "ai21": {
-        const res = await fetchWithConnectionProxy("https://api.ai21.com/studio/v1/models", {
-          headers: { Authorization: `Bearer ${connection.apiKey}` },
-        }, effectiveProxy);
-        const valid = res.status !== 401 && res.status !== 403;
-        return { valid, error: valid ? null : "Invalid AI21 API key" };
-      }
-      case "morph": {
-        const res = await fetchWithConnectionProxy("https://api.morphllm.com/v1/models", {
-          headers: { Authorization: `Bearer ${connection.apiKey}` },
-        }, effectiveProxy);
-        const valid = res.status !== 401 && res.status !== 403;
-        return { valid, error: valid ? null : "Invalid Morph API key" };
-      }
-      case "bluesminds": {
-        const res = await fetchWithConnectionProxy("https://api.bluesminds.com/v1/models", {
-          headers: { Authorization: `Bearer ${connection.apiKey}` },
-        }, effectiveProxy);
-        const valid = res.status !== 401 && res.status !== 403;
-        return { valid, error: valid ? null : "Invalid BluesMinds API key" };
-      }
-      default: {
-        const webCredential = validateWebSessionCredential(connection.provider, connection.apiKey);
-        return webCredential || { valid: false, error: "Provider test not supported" };
-      }
+      default:
+        return { valid: false, error: "Provider test not supported" };
     }
   } catch (err) {
     return { valid: false, error: err.message };

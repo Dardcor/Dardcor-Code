@@ -21,6 +21,7 @@ const proxyClientMaxBodySize = process.env.DARDCOR_PROXY_CLIENT_MAX_BODY_SIZE ||
 const nextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
   output: "standalone",
+  allowedDevOrigins: ["127.0.0.1", "localhost"],
   // `open` must stay external. It derives its own directory from `import.meta.url`, and
   // webpack replaces that with the absolute path of the BUILD machine as a string literal.
   // A release built on macOS therefore ships `file:///Users/.../open/index.js`, which
@@ -49,6 +50,11 @@ const nextConfig = {
     optimizePackageImports: ["@xyflow/react", "@dnd-kit/core", "@dnd-kit/sortable", "material-symbols", "marked"],
   },
   webpack: (config, { isServer }) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "open-sse": join(projectRoot, "open-sse"),
+      "@": join(projectRoot, "src"),
+    };
     // Ignore fs/path modules in browser bundle
     if (!isServer) {
       config.resolve.fallback = {

@@ -3,7 +3,6 @@
  */
 
 import { FORMATS } from "../translator/formats.js";
-import { countBodyTokens, countTextTokens } from "./tokenizer.js";
 
 // Legacy per-chunk usage console line; off by default (superseded by "📊 done")
 const DEBUG_USAGE = process.env.LOG_USAGE_VERBOSE === "1";
@@ -333,17 +332,19 @@ export function mergeUsage(prev, next) {
 }
 
 /**
- * Estimate input tokens from request body.
- * Uses the shared token counter: exact BPE for OpenAI-family models,
- * honest chars/4 estimate otherwise.
- * @param {object} body - Request body (may carry its own .model)
- * @param {string} [model] - Model id; defaults to body.model
+ * Estimate input tokens from request body
+ * Calculate total body size for more accurate estimation
  */
-export function estimateInputTokens(body, model) {
+export function estimateInputTokens(body) {
   if (!body || typeof body !== "object") return 0;
 
   try {
-    return countBodyTokens(body, model);
+    // Calculate total body size (includes messages, tools, system, thinking config, etc.)
+    const bodyStr = JSON.stringify(body);
+    const totalChars = bodyStr.length;
+
+    // Estimate: ~4 chars per token (rough average across all tokenizers)
+    return Math.ceil(totalChars / 4);
   } catch (err) {
     // Fallback if stringify fails
     return 0;
@@ -351,18 +352,11 @@ export function estimateInputTokens(body, model) {
 }
 
 /**
- * Estimate output tokens. Pass the accumulated content string to get an
- * exact BPE count for OpenAI-family models; a bare char count keeps the
- * legacy chars/4 estimate (there's no text to tokenize).
- * @param {string|number} content - Content text or accumulated char count
- * @param {string} [model] - Model id
+ * Estimate output tokens from content length
  */
-export function estimateOutputTokens(content, model) {
-  if (!content || content <= 0) return 0;
-  if (typeof content === "string") {
-    return countTextTokens(content, model);
-  }
-  return Math.max(1, Math.floor(content / 4));
+export function estimateOutputTokens(contentLength) {
+  if (!contentLength || contentLength <= 0) return 0;
+  return Math.max(1, Math.floor(contentLength / 4));
 }
 
 /**
@@ -393,14 +387,13 @@ export function formatUsage(inputTokens, outputTokens, targetFormat) {
 /**
  * Estimate full usage when provider doesn't return it
  * @param {object} body - Request body for input token estimation
- * @param {number|string} contentLength - Content length/text for output token estimation
+ * @param {number} contentLength - Content length for output token estimation
  * @param {string} targetFormat - Target format from FORMATS constant
- * @param {string} [model] - Model id; defaults to body.model
  */
-export function estimateUsage(body, contentLength, targetFormat = FORMATS.OPENAI, model) {
+export function estimateUsage(body, contentLength, targetFormat = FORMATS.OPENAI) {
   return formatUsage(
-    estimateInputTokens(body, model),
-    estimateOutputTokens(contentLength, model),
+    estimateInputTokens(body),
+    estimateOutputTokens(contentLength),
     targetFormat
   );
 }

@@ -10,9 +10,6 @@ export const MITM_TOOLS = {
     mitmDomain: "daily-cloudcode-pa.googleapis.com",
     modelAliases: ["gemini-3.7-flash-high", "gemini-3.7-flash-medium", "gemini-3.7-flash-low", "gemini-3.6-flash-high", "gemini-3.6-flash-medium", "gemini-3.6-flash-low", "gemini-3.5-flash-low", "gemini-3-flash-agent", "gemini-3.5-flash-extra-low", "gemini-3.1-pro-low", "gemini-pro-agent", "claude-sonnet-4-6", "claude-opus-4-6-thinking", "gpt-oss-120b-medium", "gemini-3-flash"],
     defaultModels: [
-      { id: "gemini-3.7-flash-high", name: "Gemini 3.7 Flash (High)", alias: "gemini-3.7-flash-high" },
-      { id: "gemini-3.7-flash-medium", name: "Gemini 3.7 Flash (Medium)", alias: "gemini-3.7-flash-medium" },
-      { id: "gemini-3.7-flash-low", name: "Gemini 3.7 Flash (Low)", alias: "gemini-3.7-flash-low" },
       { id: "gemini-3.6-flash-high", name: "Gemini 3.6 Flash (High)", alias: "gemini-3.6-flash-high" },
       { id: "gemini-3.6-flash-medium", name: "Gemini 3.6 Flash (Medium)", alias: "gemini-3.6-flash-medium" },
       { id: "gemini-3.6-flash-low", name: "Gemini 3.6 Flash (Low)", alias: "gemini-3.6-flash-low" },
@@ -60,8 +57,13 @@ export const MITM_TOOLS = {
     color: "#FF6B00",
     description: "Kiro IDE with MITM",
     configType: "mitm",
-    mitmDomain: "q.us-east-1.amazonaws.com",
+    mitmDomain: "runtime.us-east-1.kiro.dev",
     defaultModels: [
+      // Kiro's agent/"vibe" mode sends modelId "auto" for the main turn and "simple-task"
+      // for background sub-tasks (verified via MITM request dump of generateAssistantResponse).
+      // Both need a mappable slot — otherwise getMappedModel returns null and the chat call
+      // is passed through to AWS instead of being routed to the chosen provider.
+      { id: "auto", name: "Auto (Kiro Agent)", alias: "auto" },
       { id: "claude-sonnet-5", name: "Claude Sonnet 5", alias: "claude-sonnet-5" },
       { id: "claude-sonnet-4.5", name: "Claude Sonnet 4.5", alias: "claude-sonnet-4.5" },
       { id: "claude-sonnet-4", name: "Claude Sonnet 4", alias: "claude-sonnet-4" },
@@ -74,21 +76,20 @@ export const MITM_TOOLS = {
       { id: "simple-task", name: "Qwen3 Coder Next", alias: "simple-task" },
     ],
   },
-  cursor: {
-    id: "cursor",
-    name: "Cursor",
-    image: "/providers/cursor.png",
-    color: "#000000",
-    description: "Cursor IDE with MITM",
-    configType: "mitm",
-    mitmDomain: "api2.cursor.sh",
-    modelAliases: ["composer-2.5-fast", "default"],
-    routingAvailable: true,
-    defaultModels: [
-      { id: "composer-2.5-fast", name: "Composer 2.5 Fast (Free)", alias: "composer-2.5-fast" },
-      { id: "default", name: "Auto / Default", alias: "default" },
-    ],
-  },
+  // cursor: {
+  //   id: "cursor",
+  //   name: "Cursor",
+  //   image: "/providers/cursor.png",
+  //   color: "#000000",
+  //   description: "Cursor IDE with MITM",
+  //   configType: "mitm",
+  //   mitmDomain: "api2.cursor.sh",
+  //   defaultModels: [
+  //     { id: "claude-sonnet-4-5", name: "Claude Sonnet 4.5", alias: "claude-sonnet-4-5" },
+  //     { id: "claude-opus-4", name: "Claude Opus 4", alias: "claude-opus-4" },
+  //     { id: "gpt-4o", name: "GPT-4o", alias: "gpt-4o" },
+  //   ],
+  // },
 };
 
 // CLI Tools configuration
@@ -143,10 +144,10 @@ export const CLI_TOOLS = {
   },
   cowork: {
     id: "cowork",
-    name: "Claude Desktop",
+    name: "Claude Cowork",
     image: "/providers/claude.png",
     color: "#D97757",
-    description: "Claude Desktop — third-party inference & MCP tools via Dardcor Code",
+    description: "Claude Desktop Cowork (third-party inference)",
     configType: "custom",
   },
   hermes: {
@@ -174,7 +175,7 @@ export const CLI_TOOLS = {
     configType: "guide",
     requiresExternalUrl: true,
     notes: [
-      { type: "info", text: "Free plans currently use Composer 2.5 Fast. Auto uses wire model \"default\" when Cursor makes it available for the account. Dardcor Code maps either slot without changing Cursor entitlements." },
+      { type: "warning", text: "Requires Cursor Pro account to use this feature." },
       { type: "cloudCheck", text: "Cursor routes requests through its own server, so local endpoint is not supported. Please enable Tunnel or Cloud Endpoint in Settings." },
     ],
     guideSteps: [
@@ -318,133 +319,6 @@ amp --model "{{model}}"
   "model": {
     "name": "{{model}}"
   }
-}`,
-    },
-  },
-  pi: {
-    id: "pi",
-    name: "Pi CLI",
-    color: "#6E56CF",
-    description: "Pi coding agent CLI — OpenAI-compatible provider via environment",
-    docsUrl: "https://pi.dev/docs/latest/providers",
-    configType: "guide",
-    defaultCommand: "pi",
-    notes: [
-      { type: "info", text: "Pi reads OpenAI-compatible credentials from OPENAI_API_KEY / OPENAI_BASE_URL, or stores them via /login in ~/.pi/agent/auth.json. Custom OpenAI-compatible providers can also be declared in ~/.pi/agent/models.json." },
-      { type: "warning", text: "Use a Dardcor Code dashboard API key, never an upstream provider secret." },
-    ],
-    guideSteps: [
-      { step: 1, title: "Install Pi", desc: "npm install -g --ignore-scripts @earendil-works/pi-coding-agent (or curl -fsSL https://pi.dev/install.sh | sh)" },
-      { step: 2, title: "API Key", type: "apiKeySelector" },
-      { step: 3, title: "Base URL", value: "{{baseUrl}}", copyable: true },
-      { step: 4, title: "Select Model", type: "modelSelector" },
-    ],
-    codeBlock: {
-      language: "bash",
-      code: `export OPENAI_API_KEY="{{apiKey}}"
-export OPENAI_BASE_URL="{{baseUrl}}"
-pi --model "{{model}}"
-# In interactive mode, switch models with /model (or Ctrl+L)`,
-    },
-  },
-  zed: {
-    id: "zed",
-    name: "Zed IDE",
-    image: "/providers/zed.png",
-    color: "#3F3F46",
-    description: "Zed editor — custom OpenAI-compatible provider",
-    docsUrl: "https://zed.dev/docs/ai/use-api-access",
-    configType: "guide",
-    notes: [
-      { type: "info", text: "Zed stores provider keys in your system keychain when entered in the LLM Providers UI." },
-      { type: "warning", text: "Do not put API keys in settings.json. Even when declaring the provider there, enter the key in the provider settings UI (or set its env var)." },
-    ],
-    guideSteps: [
-      { step: 1, title: "Open Agent Settings", desc: "Run \"agent: open settings\" or open Settings → AI → LLM Providers." },
-      { step: 2, title: "Add Provider", desc: "Click \"Add Provider\" in the LLM Providers section and pick OpenAI-compatible." },
-      { step: 3, title: "API URL", value: "{{baseUrl}}", copyable: true },
-      { step: 4, title: "API Key", type: "apiKeySelector" },
-      { step: 5, title: "Select Model", type: "modelSelector" },
-      { step: 6, title: "Save Config", desc: "Or declare the provider in your Zed settings file (settings.json):" },
-    ],
-    codeBlock: {
-      language: "json",
-      code: `{
-  "language_models": {
-    "openai_compatible": {
-      "dardcor-code": {
-        "api_url": "{{baseUrl}}",
-        "available_models": [
-          { "name": "{{model}}", "max_tokens": 128000 }
-        ]
-      }
-    }
-  }
-}`,
-    },
-  },
-  zcode: {
-    id: "zcode",
-    name: "ZCode",
-    color: "#2563EB",
-    description: "ZCode desktop app (zcode.z.ai) — OpenAI-compatible provider in API Key mode",
-    docsUrl: "https://zcode.z.ai/en/docs/configuration",
-    installUrl: "https://zcode.z.ai",
-    configType: "guide",
-    notes: [
-      { type: "info", text: "The custom OpenAI URL field takes the full URL and does not append /chat/completions for you — include it verbatim or model requests fail." },
-      { type: "warning", text: "ZCode saves the key with the provider config on this machine. Use a Dardcor Code dashboard API key, not an upstream provider secret." },
-    ],
-    guideSteps: [
-      { step: 1, title: "Install ZCode", desc: "Download the desktop app from zcode.z.ai and sign in." },
-      { step: 2, title: "Open Model Settings", desc: "Open the Model Settings panel (provider selector → Manage Models) and click \"Add Provider\" at the bottom of the provider list." },
-      { step: 3, title: "Name the provider", desc: "Name it (e.g. \"Dardcor Code\") and switch the connection mode to \"Use API Key\"." },
-      { step: 4, title: "API Key", type: "apiKeySelector" },
-      { step: 5, title: "Custom OpenAI URL", desc: "Must include /chat/completions in the URL.", value: "{{baseUrl}}/chat/completions", copyable: true },
-      { step: 6, title: "Select Model", type: "modelSelector" },
-      { step: 7, title: "Save & Enable", desc: "Turn on the enable switch — ZCode fetches the model list from the endpoint automatically." },
-    ],
-    codeBlock: {
-      language: "json",
-      code: `{
-  "provider": {
-    "name": "Dardcor Code",
-    "connectionMode": "API Key",
-    "apiUrl": "{{baseUrl}}/chat/completions",
-    "apiKey": "{{apiKey}}",
-    "model": "{{model}}"
-  }
-}`,
-    },
-  },
-  trae: {
-    id: "trae",
-    name: "Trae",
-    image: "/providers/trae.png",
-    color: "#0D9488",
-    description: "Trae IDE — custom OpenAI-compatible provider (direct config, not Trae OAuth)",
-    docsUrl: "https://docs.trae.ai/ide/models",
-    configType: "guide",
-    notes: [
-      { type: "info", text: "This card uses Trae's built-in custom model provider (Settings → Models → Add Model → Custom Config). Trae subscription sign-in via OAuth lives under Dashboard → Providers and is a separate path." },
-      { type: "warning", text: "Trae validates the key against the endpoint when you add the model. Use a Dardcor Code dashboard API key, not an upstream provider secret." },
-    ],
-    guideSteps: [
-      { step: 1, title: "Open Model Settings", desc: "Go to Settings → Models and click \"Add Model\"." },
-      { step: 2, title: "Choose Custom Config", desc: "Select \"Custom Config\" and set API format to \"OpenAI Chat Completions\"." },
-      { step: 3, title: "Request URL", desc: "Toggle \"Full URL\" off and enter the base URL below. With \"Full URL\" on, append /chat/completions.", value: "{{baseUrl}}", copyable: true },
-      { step: 4, title: "API Key", type: "apiKeySelector" },
-      { step: 5, title: "Select Model", type: "modelSelector" },
-      { step: 6, title: "Add Model", desc: "Click \"Add Model\" — Trae checks the key, then select the model in chat." },
-    ],
-    codeBlock: {
-      language: "json",
-      code: `{
-  "name": "Dardcor Code",
-  "apiFormat": "OpenAI Chat Completions",
-  "requestUrl": "{{baseUrl}}/chat/completions",
-  "modelId": "{{model}}",
-  "apiKey": "{{apiKey}}"
 }`,
     },
   },

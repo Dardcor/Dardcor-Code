@@ -13,13 +13,6 @@ export {
   getModelQuotaFamily
 } from "open-sse/config/providerModels.js";
 
-export {
-  FREE_TIER_MODEL_RECORDS,
-  FREE_TIER_MODELS_BY_PROVIDER,
-  UNAVAILABLE_FREE_TIER_PROVIDER_IDS,
-  isFreeTierProviderAvailable,
-} from "open-sse/config/freeTierCatalog.js";
-
 import { AI_PROVIDERS, isOpenAICompatibleProvider } from "./providers.js";
 import { PROVIDER_MODELS as MODELS } from "open-sse/config/providerModels.js";
 

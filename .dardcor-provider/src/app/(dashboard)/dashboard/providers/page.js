@@ -25,7 +25,6 @@ import { useNotificationStore } from "@/store/notificationStore";
 import { useHeaderSearchStore } from "@/store/headerSearchStore";
 import ModelAvailabilityBadge from "./components/ModelAvailabilityBadge";
 import AddCompatibleModal from "./components/AddCompatibleModal";
-import OpenCodeZenPanel from "./components/OpenCodeZenPanel";
 
 function getStatusDisplay(connected, error, errorCode) {
   const parts = [];
@@ -310,8 +309,6 @@ export default function ProvidersPage() {
     .filter(
       ([, info]) =>
         !info.hidden &&
-        !info.disabled &&
-        info.available !== false &&
         matchSearch(info.name) &&
         (info.serviceKinds ?? ["llm"]).includes("llm"),
     )
@@ -340,14 +337,6 @@ export default function ProvidersPage() {
       if (ca !== cb) return ca - cb;
       return (a.name || "").localeCompare(b.name || "");
     });
-  const webCookieEntries = sortByPriority(
-    Object.entries(WEB_COOKIE_PROVIDERS).filter(
-      ([, info]) => !info.hidden && matchSearch(info.name),
-    ),
-    "cookie",
-  );
-  const webCookieAuthTypes = (providerId) =>
-    providerId === "kimi-web" ? ["cookie", "apikey", "api_key"] : "cookie";
   const isApikeySearching = !!searchQuery.trim();
   const visibleApikeyEntries =
     isApikeySearching || showAllApikey
@@ -369,7 +358,6 @@ export default function ProvidersPage() {
     freeEntries.length > 0 ||
     freeTierEntries.length > 0 ||
     apikeyEntries.length > 0 ||
-    webCookieEntries.length > 0 ||
     compatibleProviders.length > 0 ||
     anthropicCompatibleProviders.length > 0;
 
@@ -483,9 +471,6 @@ export default function ProvidersPage() {
       </div>
       )}
 
-      {/* OpenCode Zen catalog status */}
-      <OpenCodeZenPanel />
-
       {/* Free Tier Providers */}
       {(freeEntries.length > 0 || freeTierEntries.length > 0) && (
       <div className="flex flex-col gap-4">
@@ -597,28 +582,26 @@ export default function ProvidersPage() {
       </div>
       )}
 
-      {/* Web Cookie Providers — hidden from UI; backend data preserved */}
-      {false && webCookieEntries.length > 0 && (
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg sm:text-xl font-semibold flex items-center gap-2 leading-tight">
+      {/* Web Cookie Providers — use browser subscription cookie instead of API key */}
+      {/* <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold flex items-center gap-2">
             Web Cookie Providers{" "}
           </h2>
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
-          {webCookieEntries.map(([key, info]) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {Object.entries(WEB_COOKIE_PROVIDERS).map(([key, info]) => (
             <ApiKeyProviderCard
               key={key}
               providerId={key}
               provider={info}
-              stats={getProviderStats(key, webCookieAuthTypes(key))}
-              authType="cookie"
-              onToggle={(active) => handleToggleProvider(key, webCookieAuthTypes(key), active)}
+              stats={getProviderStats(key, "apikey")}
+              authType="apikey"
+              onToggle={(active) => handleToggleProvider(key, "apikey", active)}
             />
           ))}
         </div>
-      </div>
-      )}
+      </div> */}
 
       <AddCompatibleModal
         variant="openai"
@@ -706,7 +689,6 @@ function ProviderCard({ providerId, provider, stats, authType, onToggle }) {
                 alt={provider.name}
                 size={30}
                 className="object-contain rounded-lg max-w-[32px] max-h-[32px]"
-                fallbackIcon={provider.icon}
                 fallbackText={
                   provider.textIcon || provider.id.slice(0, 2).toUpperCase()
                 }
@@ -730,14 +712,6 @@ function ProviderCard({ providerId, provider, stats, authType, onToggle }) {
                 ) : (
                   <>
                     {getStatusDisplay(connected, error, errorCode)}
-                    {provider.billingTier === "subscription" && (
-                      <Badge variant="default" size="sm">
-                        <span className="flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[12px]">workspace_premium</span>
-                          Subscription
-                        </span>
-                      </Badge>
-                    )}
                     {errorTime && (
                       <span className="text-text-muted">{errorTime}</span>
                     )}
@@ -753,13 +727,13 @@ function ProviderCard({ providerId, provider, stats, authType, onToggle }) {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
+                  onToggle(!allDisabled ? false : true);
                 }}
               >
                 <Toggle
                   size="sm"
                   checked={!allDisabled}
-                  onChange={onToggle}
-                  ariaLabel={`${provider.name} routing`}
+                  onChange={() => {}}
                   title={allDisabled ? "Enable provider" : "Disable provider"}
                 />
               </div>
@@ -776,10 +750,8 @@ ProviderCard.propTypes = {
   provider: PropTypes.shape({
     id: PropTypes.string.isRequired,
     name: PropTypes.string.isRequired,
-    icon: PropTypes.string,
     color: PropTypes.string,
     textIcon: PropTypes.string,
-    billingTier: PropTypes.string,
   }).isRequired,
   stats: PropTypes.shape({
     connected: PropTypes.number,
@@ -845,7 +817,6 @@ function ApiKeyProviderCard({
                 alt={provider.name}
                 size={30}
                 className="object-contain rounded-lg max-w-[30px] max-h-[30px]"
-                fallbackIcon={provider.icon}
                 fallbackText={
                   provider.textIcon || provider.id.slice(0, 2).toUpperCase()
                 }
@@ -867,14 +838,6 @@ function ApiKeyProviderCard({
                 ) : (
                   <>
                     {getStatusDisplay(connected, error, errorCode)}
-                    {provider.billingTier === "subscription" && (
-                      <Badge variant="default" size="sm">
-                        <span className="flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[12px]">workspace_premium</span>
-                          Subscription
-                        </span>
-                      </Badge>
-                    )}
                     {isCompatible && (
                       <Badge variant="default" size="sm">
                         {provider.apiType === "responses"
@@ -902,13 +865,13 @@ function ApiKeyProviderCard({
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
+                  onToggle(!allDisabled ? false : true);
                 }}
               >
                 <Toggle
                   size="sm"
                   checked={!allDisabled}
-                  onChange={onToggle}
-                  ariaLabel={`${provider.name} routing`}
+                  onChange={() => {}}
                   title={allDisabled ? "Enable provider" : "Disable provider"}
                 />
               </div>
@@ -925,11 +888,9 @@ ApiKeyProviderCard.propTypes = {
   provider: PropTypes.shape({
     id: PropTypes.string.isRequired,
     name: PropTypes.string.isRequired,
-    icon: PropTypes.string,
     color: PropTypes.string,
     textIcon: PropTypes.string,
     apiType: PropTypes.string,
-    billingTier: PropTypes.string,
   }).isRequired,
   stats: PropTypes.shape({
     connected: PropTypes.number,

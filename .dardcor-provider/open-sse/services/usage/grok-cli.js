@@ -82,9 +82,31 @@ function subscriptionTier(user, config) {
 function resolvePlan(user, config) {
   const tier = subscriptionTier(user, config);
   if (tier) {
-    return tier;
+    return tier
+      .replace(/[_-]+/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
   }
-  return "";
+  if (user?.hasGrokCodeAccess === true) return "Grok Code";
+  if (config?.isUnifiedBillingUser === true) return "Grok Build";
+  return "Grok Build";
+}
+
+// Display only; upstream remains authoritative for access and quota enforcement.
+function planFromAccessToken(accessToken) {
+  try {
+    const payload = JSON.parse(Buffer.from(accessToken.split(".")[1], "base64url"));
+    return {
+      0: "Free",
+      1: "SuperGrok",
+      2: "X Basic",
+      3: "X Premium",
+      4: "X Premium Plus",
+      5: "SuperGrok Heavy",
+      6: "SuperGrok Lite",
+    }[payload.tier] || "";
+  } catch {
+    return "";
+  }
 }
 
 function makeQuota({ used, total, resetAt, unlimited = false }) {
@@ -367,6 +389,7 @@ export async function getGrokCliUsage(accessToken, providerSpecificData = null, 
     }
 
     const parsed = parseGrokCliBilling(billing, user);
+    parsed.plan = planFromAccessToken(accessToken) || parsed.plan;
 
     if (!parsed.quotas || Object.keys(parsed.quotas).length === 0) {
       // Paid SuperGrok often returns cap=0 over REST but exposes the shared

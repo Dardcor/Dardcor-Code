@@ -27,183 +27,40 @@ export default {
     baseUrl: "https://api.openai.com/v1/chat/completions",
     forceStream: true,
   },
-  models: [{
-  id: "gpt-5.4",
-  name: "GPT-5.4"
-}, {
-  id: "gpt-5.4-mini",
-  name: "GPT-5.4 Mini"
-}, {
-  id: "gpt-5.4-nano",
-  name: "GPT-5.4 Nano"
-}, {
-  id: "gpt-5.2",
-  name: "GPT-5.2"
-}, {
-  id: "gpt-5.1",
-  name: "GPT-5.1"
-}, {
-  id: "gpt-5",
-  name: "GPT-5"
-}, {
-  id: "gpt-5-mini",
-  name: "GPT-5 Mini"
-}, {
-  id: "gpt-5-nano",
-  name: "GPT-5 Nano"
-}, {
-  id: "gpt-4o",
-  name: "GPT-4o"
-}, {
-  id: "gpt-4o-mini",
-  name: "GPT-4o Mini"
-}, {
-  id: "gpt-4-turbo",
-  name: "GPT-4 Turbo"
-}, {
-  id: "gpt-4.1",
-  name: "GPT-4.1"
-}, {
-  id: "gpt-4.1-mini",
-  name: "GPT-4.1 Mini"
-}, {
-  id: "gpt-4.1-nano",
-  name: "GPT-4.1 Nano"
-}, {
-  id: "o3",
-  name: "O3"
-}, {
-  id: "o3-mini",
-  name: "O3 Mini"
-}, {
-  id: "o3-pro",
-  name: "O3 Pro"
-}, {
-  id: "o4-mini",
-  name: "O4 Mini"
-}, {
-  id: "o1",
-  name: "O1"
-}, {
-  id: "o1-mini",
-  name: "O1 Mini"
-}, {
-  id: "text-embedding-3-large",
-  name: "Text Embedding 3 Large",
-  kind: "embedding"
-}, {
-  id: "text-embedding-3-small",
-  name: "Text Embedding 3 Small",
-  kind: "embedding"
-}, {
-  id: "text-embedding-ada-002",
-  name: "Text Embedding Ada 002",
-  kind: "embedding"
-}, {
-  id: "tts-1",
-  name: "TTS-1",
-  kind: "tts"
-}, {
-  id: "tts-1-hd",
-  name: "TTS-1 HD",
-  kind: "tts"
-}, {
-  id: "gpt-4o-mini-tts",
-  name: "GPT-4o Mini TTS",
-  kind: "tts"
-}, {
-  id: "whisper-1",
-  name: "Whisper 1",
-  params: ["language", "response_format", "temperature", "prompt"],
-  kind: "stt"
-}, {
-  id: "gpt-4o-transcribe",
-  name: "GPT-4o Transcribe",
-  params: ["language", "response_format", "temperature", "prompt"],
-  kind: "stt"
-}, {
-  id: "gpt-4o-mini-transcribe",
-  name: "GPT-4o Mini Transcribe",
-  params: ["language", "response_format", "temperature", "prompt"],
-  kind: "stt"
-}, {
-  id: "gpt-image-1",
-  name: "GPT Image 1",
-  params: ["n", "size", "quality", "response_format"],
-  kind: "image"
-}, {
-  id: "dall-e-3",
-  name: "DALL-E 3",
-  params: ["size", "quality", "style", "response_format"],
-  kind: "image"
-}, {
-  id: "dall-e-2",
-  name: "DALL-E 2",
-  params: ["n", "size", "response_format"],
-  kind: "image"
-}, {
-  "id": "gpt-5.6",
-  "name": "GPT-5.6",
-  "targetFormat": "openai-responses",
-  "toolCalling": true,
-  "supportsReasoning": true,
-  "supportsVision": true,
-  "supportsXHighEffort": true,
-  "contextLength": 1050000,
-  "maxInputTokens": 922000,
-  "maxOutputTokens": 128000
-}, {
-  "id": "gpt-5.6-sol",
-  "name": "GPT-5.6 Sol",
-  "targetFormat": "openai-responses",
-  "toolCalling": true,
-  "supportsReasoning": true,
-  "supportsVision": true,
-  "supportsXHighEffort": true,
-  "contextLength": 1050000,
-  "maxInputTokens": 922000,
-  "maxOutputTokens": 128000
-}, {
-  "id": "gpt-5.6-terra",
-  "name": "GPT-5.6 Terra",
-  "targetFormat": "openai-responses",
-  "toolCalling": true,
-  "supportsReasoning": true,
-  "supportsVision": true,
-  "supportsXHighEffort": true,
-  "contextLength": 1050000,
-  "maxInputTokens": 922000,
-  "maxOutputTokens": 128000
-}, {
-  "id": "gpt-5.6-luna",
-  "name": "GPT-5.6 Luna",
-  "targetFormat": "openai-responses",
-  "toolCalling": true,
-  "supportsReasoning": true,
-  "supportsVision": true,
-  "supportsXHighEffort": true,
-  "contextLength": 1050000,
-  "maxInputTokens": 922000,
-  "maxOutputTokens": 128000
-}, {
-  "id": "gpt-5.5",
-  "name": "GPT-5.5",
-  "contextLength": 1050000
-}, {
-  "id": "gpt-5.5-pro",
-  "name": "GPT-5.5 Pro",
-  "contextLength": 1050000,
-  "targetFormat": "openai-responses"
-}, {
-  "id": "gpt-5.4-pro",
-  "name": "GPT-5.4 Pro",
-  "contextLength": 1050000,
-  "targetFormat": "openai-responses"
-}, {
-  "id": "gpt-4o-2024-11-20",
-  "name": "GPT-4o (Nov 2024)",
-  "contextLength": 128000
-}],
+  models: [
+    { id: "gpt-5.4", name: "GPT-5.4" },
+    { id: "gpt-5.4-mini", name: "GPT-5.4 Mini" },
+    { id: "gpt-5.4-nano", name: "GPT-5.4 Nano" },
+    { id: "gpt-5.2", name: "GPT-5.2" },
+    { id: "gpt-5.1", name: "GPT-5.1" },
+    { id: "gpt-5", name: "GPT-5" },
+    { id: "gpt-5-mini", name: "GPT-5 Mini" },
+    { id: "gpt-5-nano", name: "GPT-5 Nano" },
+    { id: "gpt-4o", name: "GPT-4o" },
+    { id: "gpt-4o-mini", name: "GPT-4o Mini" },
+    { id: "gpt-4-turbo", name: "GPT-4 Turbo" },
+    { id: "gpt-4.1", name: "GPT-4.1" },
+    { id: "gpt-4.1-mini", name: "GPT-4.1 Mini" },
+    { id: "gpt-4.1-nano", name: "GPT-4.1 Nano" },
+    { id: "o3", name: "O3" },
+    { id: "o3-mini", name: "O3 Mini" },
+    { id: "o3-pro", name: "O3 Pro" },
+    { id: "o4-mini", name: "O4 Mini" },
+    { id: "o1", name: "O1" },
+    { id: "o1-mini", name: "O1 Mini" },
+    { id: "text-embedding-3-large", name: "Text Embedding 3 Large", kind: "embedding" },
+    { id: "text-embedding-3-small", name: "Text Embedding 3 Small", kind: "embedding" },
+    { id: "text-embedding-ada-002", name: "Text Embedding Ada 002", kind: "embedding" },
+    { id: "tts-1", name: "TTS-1", kind: "tts" },
+    { id: "tts-1-hd", name: "TTS-1 HD", kind: "tts" },
+    { id: "gpt-4o-mini-tts", name: "GPT-4o Mini TTS", kind: "tts" },
+    { id: "whisper-1", name: "Whisper 1", params: ["language","response_format","temperature","prompt"], kind: "stt" },
+    { id: "gpt-4o-transcribe", name: "GPT-4o Transcribe", params: ["language","response_format","temperature","prompt"], kind: "stt" },
+    { id: "gpt-4o-mini-transcribe", name: "GPT-4o Mini Transcribe", params: ["language","response_format","temperature","prompt"], kind: "stt" },
+    { id: "gpt-image-1", name: "GPT Image 1", params: ["n","size","quality","response_format"], kind: "image" },
+    { id: "dall-e-3", name: "DALL-E 3", params: ["size","quality","style","response_format"], kind: "image" },
+    { id: "dall-e-2", name: "DALL-E 2", params: ["n","size","response_format"], kind: "image" },
+  ],
   serviceKinds: ["llm","embedding","tts","stt","image","imageToText","webSearch"],
   ttsConfig: {
     baseUrl: "https://api.openai.com/v1/audio/speech",

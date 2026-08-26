@@ -1,31 +1,17 @@
 // RTK port: compress tool_result content in LLM request bodies
 // Injected at the top of translateRequest (before any format translation)
-import { stripVTControlCharacters } from "node:util";
-import { RAW_CAP, DEFAULT_RTK_MODE, MODE_MIN_COMPRESS_SIZE, CHARS_PER_TOKEN } from "./constants.js";
+import { RAW_CAP, MIN_COMPRESS_SIZE } from "./constants.js";
 import { autoDetectFilter } from "./autodetect.js";
 import { safeApply } from "./applyFilter.js";
 
-/**
- * Compress tool_result content in-place. Returns stats or null if disabled/failed.
- * @param {object} body - request body (messages[], input[], or Kiro conversationState)
- * @param {boolean} enabled - master switch
- * @param {object} [opts]
- * @param {number} [opts.start=0] - message index to begin compressing from.
- *   Messages before `start` are left untouched AND uncounted, so the stats
- *   reflect only the live tail — never an L0-protected cached prefix. Kiro
- *   bodies have no prefix index and are always compressed in full.
- * @param {string} [opts.mode=standard] - exclusive lite/standard/aggressive
- *   mode; selects the per-blob compression threshold. Defaults keep the
- *   historical behavior (MIN_COMPRESS_SIZE = 500B).
- */
-export function compressMessages(body, enabled, { start = 0, mode } = {}) {
+// Compress tool_result content in-place. Returns stats or null if disabled/failed.
+export function compressMessages(body, enabled) {
   if (!enabled) return null;
   if (!body) return null;
-  const minCompressSize = MODE_MIN_COMPRESS_SIZE[mode] ?? MODE_MIN_COMPRESS_SIZE[DEFAULT_RTK_MODE];
 
   // Kiro format: conversationState.history + conversationState.currentMessage
   if (body.conversationState) {
-    return compressKiroFormat(body, minCompressSize);
+    return compressKiroFormat(body, enabled);
   }
 
   // Support both OpenAI/Claude "messages" and OpenAI Responses "input"
@@ -34,24 +20,21 @@ export function compressMessages(body, enabled, { start = 0, mode } = {}) {
     : null;
   if (!items) return null;
 
-  // Clamp: start must be a valid index into the array.
-  const from = Number.isInteger(start) && start > 0 ? Math.min(start, items.length) : 0;
-
   const stats = { bytesBefore: 0, bytesAfter: 0, hits: [] };
   try {
-    for (let i = from; i < items.length; i++) {
+    for (let i = 0; i < items.length; i++) {
       const msg = items[i];
       if (!msg) continue;
 
       // Shape 4: OpenAI Responses — top-level { type:"function_call_output", output: string | [{type:"input_text", text}] }
       if (msg.type === "function_call_output") {
         if (typeof msg.output === "string") {
-          msg.output = compressText(msg.output, stats, "openai-responses-string", minCompressSize);
+          msg.output = compressText(msg.output, stats, "openai-responses-string");
         } else if (Array.isArray(msg.output)) {
           for (let k = 0; k < msg.output.length; k++) {
             const part = msg.output[k];
             if (part && part.type === "input_text" && typeof part.text === "string") {
-              part.text = compressText(part.text, stats, "openai-responses-array", minCompressSize);
+              part.text = compressText(part.text, stats, "openai-responses-array");
             }
           }
         }
@@ -60,7 +43,7 @@ export function compressMessages(body, enabled, { start = 0, mode } = {}) {
 
       // Shape 1: OpenAI tool message — { role:"tool", content: "string" }
       if (msg.role === "tool" && typeof msg.content === "string") {
-        msg.content = compressText(msg.content, stats, "openai-tool", minCompressSize);
+        msg.content = compressText(msg.content, stats, "openai-tool");
         continue;
       }
 
@@ -71,7 +54,7 @@ export function compressMessages(body, enabled, { start = 0, mode } = {}) {
         for (let k = 0; k < msg.content.length; k++) {
           const part = msg.content[k];
           if (part && part.type === "text" && typeof part.text === "string") {
-            part.text = compressText(part.text, stats, "openai-tool-array", minCompressSize);
+            part.text = compressText(part.text, stats, "openai-tool-array");
           }
         }
         continue;
@@ -85,13 +68,13 @@ export function compressMessages(body, enabled, { start = 0, mode } = {}) {
 
         if (typeof block.content === "string") {
           // Shape 2: claude string form
-          block.content = compressText(block.content, stats, "claude-string", minCompressSize);
+          block.content = compressText(block.content, stats, "claude-string");
         } else if (Array.isArray(block.content)) {
           // Shape 3: claude array form — compress each text part
           for (let k = 0; k < block.content.length; k++) {
             const part = block.content[k];
             if (part && part.type === "text" && typeof part.text === "string") {
-              part.text = compressText(part.text, stats, "claude-array", minCompressSize);
+              part.text = compressText(part.text, stats, "claude-array");
             }
           }
         }
@@ -105,7 +88,7 @@ export function compressMessages(body, enabled, { start = 0, mode } = {}) {
 }
 
 // Compress Kiro format: conversationState.history[].userInputMessage.userInputMessageContext.toolResults[].content[].text
-function compressKiroFormat(body, minCompressSize) {
+function compressKiroFormat(body, enabled) {
   const stats = { bytesBefore: 0, bytesAfter: 0, hits: [] };
   try {
     const state = body.conversationState;
@@ -122,7 +105,7 @@ function compressKiroFormat(body, minCompressSize) {
 
         for (const part of tr.content) {
           if (part && typeof part.text === "string") {
-            part.text = compressText(part.text, stats, "kiro-tool-result", minCompressSize);
+            part.text = compressText(part.text, stats, "kiro-tool-result");
           }
         }
       }
@@ -134,18 +117,22 @@ function compressKiroFormat(body, minCompressSize) {
   return stats;
 }
 
-function compressText(text, stats, shape, minCompressSize) {
+function compressText(text, stats, shape) {
   const bytesIn = text.length;
   stats.bytesBefore += bytesIn;
 
-  if (bytesIn < minCompressSize || bytesIn > RAW_CAP) {
+  if (bytesIn < MIN_COMPRESS_SIZE || bytesIn > RAW_CAP) {
     stats.bytesAfter += bytesIn;
     return text;
   }
 
-  const cleanText = stripVTControlCharacters(text);
-  const fn = autoDetectFilter(cleanText);
-  const out = fn ? safeApply(fn, cleanText) : cleanText;
+  const fn = autoDetectFilter(text);
+  if (!fn) {
+    stats.bytesAfter += bytesIn;
+    return text;
+  }
+
+  const out = safeApply(fn, text);
 
   // Safety: never return empty, never grow the input
   if (!out || out.length === 0 || out.length >= bytesIn) {
@@ -154,50 +141,8 @@ function compressText(text, stats, shape, minCompressSize) {
   }
 
   stats.bytesAfter += out.length;
-  stats.hits.push({
-    shape,
-    filter: fn ? fn.filterName || fn.name : "terminal-noise",
-    saved: bytesIn - out.length,
-  });
+  stats.hits.push({ shape, filter: fn.filterName || fn.name, saved: bytesIn - out.length });
   return out;
-}
-
-// Deterministic request-size estimate: total characters across the message
-// payload (messages[] / input[]), or the whole body for other shapes (Kiro),
-// at CHARS_PER_TOKEN characters per token. Same body → same estimate; never
-// depends on an external service. Fail-open: returns 0 on any error, which
-// keeps RTK off unless the auto-trigger is 0 (always).
-export function estimateRequestTokens(body) {
-  try {
-    if (!body || typeof body !== "object") return 0;
-    let chars = 0;
-    const items = Array.isArray(body.messages) ? body.messages
-      : Array.isArray(body.input) ? body.input
-      : null;
-    if (items) {
-      for (const m of items) chars += countChars(m);
-    } else {
-      chars = countChars(body);
-    }
-    return Math.ceil(chars / CHARS_PER_TOKEN);
-  } catch {
-    return 0;
-  }
-}
-
-function countChars(value, depth = 0) {
-  if (value === null || value === undefined) return 0;
-  const t = typeof value;
-  if (t === "string") return value.length;
-  if (t === "number" || t === "boolean") return String(value).length;
-  if (t !== "object" || depth > 4) return 0;
-  let n = 0;
-  if (Array.isArray(value)) {
-    for (const item of value) n += countChars(item, depth + 1);
-  } else {
-    for (const key of Object.keys(value)) n += countChars(value[key], depth + 1);
-  }
-  return n;
 }
 
 // Convenience: format a log line from stats

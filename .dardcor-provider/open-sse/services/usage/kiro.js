@@ -43,7 +43,7 @@ function parseKiroQuotaData(data) {
   });
 
   return {
-    plan: data.subscriptionInfo?.subscriptionTitle || "",
+    plan: data.subscriptionInfo?.subscriptionTitle || "Kiro",
     quotas: quotaInfo,
   };
 }

@@ -24,38 +24,12 @@ export default {
     baseUrl: "https://api.llm7.io/v1/chat/completions",
     validateUrl: "https://api.llm7.io/v1/models",
   },
-  models: [{
-  id: "gpt-5.5",
-  name: "GPT-5.5 (LLM7)",
-  contextLength: 1050000
-}, {
-  id: "claude-opus-5",
-  name: "Claude Opus 5 (LLM7)",
-  contextLength: 1000000
-}, {
-  id: "deepseek-v4-flash",
-  name: "DeepSeek V4 Flash (LLM7)",
-  contextLength: 1000000
-}, {
-  id: "grok-4.5",
-  name: "Grok 4.5 (LLM7)",
-  contextLength: 500000
-}, {
-  id: "kimi-k3",
-  name: "Kimi K3 (LLM7)",
-  contextLength: 1000000
-}, {
-  "id": "gpt-4o-mini-2024-07-18",
-  "name": "GPT-4o mini (LLM7)"
-}, {
-  "id": "gpt-4.1-nano-2025-04-14",
-  "name": "GPT-4.1 nano (LLM7)"
-}, {
-  "id": "deepseek-r1-0528",
-  "name": "DeepSeek R1 (LLM7)"
-}, {
-  "id": "qwen2.5-coder-32b-instruct",
-  "name": "Qwen2.5 Coder 32B (LLM7)"
-}],
+  models: [
+    { id: "gpt-5.5", name: "GPT-5.5 (LLM7)", contextLength: 1050000 },
+    { id: "claude-opus-5", name: "Claude Opus 5 (LLM7)", contextLength: 1000000 },
+    { id: "deepseek-v4-flash", name: "DeepSeek V4 Flash (LLM7)", contextLength: 1000000 },
+    { id: "grok-4.5", name: "Grok 4.5 (LLM7)", contextLength: 500000 },
+    { id: "kimi-k3", name: "Kimi K3 (LLM7)", contextLength: 1000000 },
+  ],
   passthroughModels: true,
 };

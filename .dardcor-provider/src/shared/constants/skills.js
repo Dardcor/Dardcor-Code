@@ -1,14 +1,13 @@
 // Agent Skills metadata — single source of truth for /dashboard/skills page.
-// Each skill = 1 raw URL the user copies and pastes to any AI agent.
-// ponytail: repo is local-only (no remote), so skill URLs point at the product
-// domain; switch to a real repo base when one is published.
+// Each skill = 1 raw GitHub URL the user copies and pastes to any AI agent.
 
-const DOMAIN = "dardcor-code.web.id";
+const REPO = "decolua/dardcor-code";
+const BRANCH = "master";
 const SKILL_PATH = "skills";
 
-export const SKILLS_REPO_URL = `https://${DOMAIN}`;
-export const SKILLS_RAW_BASE = `https://${DOMAIN}/${SKILL_PATH}`;
-export const SKILLS_BLOB_BASE = `https://${DOMAIN}/${SKILL_PATH}`;
+export const SKILLS_REPO_URL = `https://github.com/${REPO}`;
+export const SKILLS_RAW_BASE = `https://raw.githubusercontent.com/${REPO}/refs/heads/${BRANCH}/${SKILL_PATH}`;
+export const SKILLS_BLOB_BASE = `https://github.com/${REPO}/blob/${BRANCH}/${SKILL_PATH}`;
 
 export const SKILLS = [
   {

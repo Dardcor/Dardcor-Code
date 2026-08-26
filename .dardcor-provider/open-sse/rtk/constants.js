@@ -58,29 +58,3 @@ export const FILTERS = {
   SEARCH_LIST: "search-list",
   BUILD_OUTPUT: "build-output"
 };
-
-// RTK exclusive modes — one knob over the SINGLE compression pass. A mode only
-// moves the per-blob compression threshold; it never spawns a second
-// compressor, so lite/standard/aggressive are mutually exclusive.
-export const RTK_MODES = Object.freeze({
-  LITE: "lite",
-  STANDARD: "standard",
-  AGGRESSIVE: "aggressive",
-});
-export const DEFAULT_RTK_MODE = RTK_MODES.STANDARD;
-
-// Per-mode minimum blob size (bytes) before compression is attempted. Lower
-// threshold = more blobs eligible = more aggressive. standard keeps the
-// historical MIN_COMPRESS_SIZE (500B) so the default path is byte-identical
-// to the pre-mode behavior.
-export const MODE_MIN_COMPRESS_SIZE = Object.freeze({
-  [RTK_MODES.LITE]: 2000,
-  [RTK_MODES.STANDARD]: MIN_COMPRESS_SIZE,
-  [RTK_MODES.AGGRESSIVE]: 100,
-});
-
-// Auto-trigger gate: skip RTK while the deterministic request-size estimate
-// stays below this token count; 0 means "always run" (bypass the estimate).
-export const DEFAULT_AUTO_TRIGGER_TOKENS = 4000;
-// ~4 characters per token (deterministic estimate, not a tokenizer).
-export const CHARS_PER_TOKEN = 4;

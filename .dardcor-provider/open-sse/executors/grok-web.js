@@ -282,12 +282,11 @@ export class GrokWebExecutor extends BaseExecutor {
       traceparent: `00-${traceId}-${spanId}-00`,
     };
 
-    // Accept a bare sso value, an "sso=…" pair, or a full Cookie blob. Always
-    // forwards sso plus sso-rw/cf_clearance/__cf_bm when present — Grok's
-    // anti-bot rejects sso without sso-rw (error code 7).
+    // Strip "sso=" prefix if user pasted it
     if (credentials.apiKey) {
-      const cookieHeader = buildGrokCookieHeader(credentials.apiKey);
-      if (cookieHeader) headers["Cookie"] = cookieHeader;
+      let token = credentials.apiKey;
+      if (token.startsWith("sso=")) token = token.slice(4);
+      headers["Cookie"] = `sso=${token}`;
     }
 
     log?.info?.("GROK-WEB", `Query to ${model} (grok=${grokModel}, mode=${modelMode}), len=${message.length}`);

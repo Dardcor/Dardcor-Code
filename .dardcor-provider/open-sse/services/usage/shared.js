@@ -42,69 +42,6 @@ export function parseResetTime(resetValue) {
   }
 }
 
-// Canonical subscription-tier labels. Aliases (case-insensitive) map onto them;
-// anything else is an explicit upstream plan name and is preserved verbatim.
-const PLAN_ALIASES = new Map([
-  ["free", "Free"],
-  ["free plan", "Free"],
-  ["free tier", "Free"],
-  ["plus", "Plus"],
-  ["pro", "Pro"],
-  ["professional", "Pro"],
-  ["max", "Max"],
-  ["team", "Team"],
-  ["teams", "Team"],
-  ["business", "Business"],
-  ["business plan", "Business"],
-  ["enterprise", "Enterprise"],
-  ["enterprise plan", "Enterprise"],
-  ["ultra", "Ultra"],
-  ["standard", "Standard"],
-  ["individual", "Individual"],
-  ["unknown", "Unknown"],
-  ["none", "Unknown"],
-  ["null", "Unknown"],
-  ["n/a", "Unknown"],
-  ["pro+", "Pro+"],
-  ["pro plus", "Pro+"],
-  ["copilot pro+", "Pro+"],
-  ["copilot pro plus", "Pro+"],
-  ["copilot free", "Free"],
-  ["copilot pro", "Pro"],
-  ["copilot business", "Business"],
-  ["copilot enterprise", "Enterprise"],
-  ["copilot student", "Student"],
-  ["chatgpt free", "Free"],
-  ["chatgpt plus", "Plus"],
-  ["chatgpt pro", "Pro"],
-  ["chatgpt team", "Team"],
-  ["chatgpt business", "Business"],
-  ["chatgpt enterprise", "Enterprise"],
-  ["claude free", "Free"],
-  ["claude pro", "Pro"],
-  ["claude team", "Team"],
-  ["claude enterprise", "Enterprise"],
-  ["default claude max 20x", "Max"],
-  ["premium", "Pro"],
-  ["google one", "Pro"],
-  ["one ai", "Pro"],
-  ["lite", "Lite"],
-  ["light", "Lite"],
-]);
-
-/**
- * Normalize an upstream plan/tier value to a canonical label.
- * Missing/empty/non-string → "Unknown". Known aliases/casing → canonical label.
- * Unfamiliar upstream names are preserved verbatim — never synthesized here.
- */
-export function normalizePlan(raw) {
-  if (typeof raw !== "string") return "Unknown";
-  const trimmed = raw.trim();
-  if (!trimmed) return "Unknown";
-  const key = trimmed.toLowerCase().replace(/[_\-\s]+/g, " ");
-  return PLAN_ALIASES.get(key) || trimmed;
-}
-
 export function toFiniteNumber(value, fallback = 0) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string" && value.trim()) {

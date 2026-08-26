@@ -9,10 +9,6 @@ import { parseSSEToOpenAIResponse } from "./sseToJsonHandler.js";
 import { buildRequestDetail, extractRequestConfig, extractUsageFromResponse, saveUsageStats, formatDoneLine } from "./requestDetail.js";
 import { appendRequestLog, saveRequestDetail } from "@/lib/usageDb.js";
 import { decloakToolNames } from "../../utils/claudeCloaking.js";
-import { emitCacheUsage } from "../../cache/l0.js";
-import { l1Store } from "../../cache/l1.js";
-import { l2Store } from "../../cache/l2.js";
-import { emitCacheEvent } from "../../cache/events.js";
 import { ROLE, RESPONSES_ITEM } from "../../translator/schema/index.js";
 
 function parseToolArguments(value) {
@@ -285,7 +281,7 @@ export function translateNonStreamingResponse(responseBody, targetFormat, source
 /**
  * Handle non-streaming response from provider.
  */
-export async function handleNonStreamingResponse({ providerResponse, provider, model, sourceFormat, targetFormat, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqLogger, toolNameMap, customToolNames, trackDone, appendLog, pxpipe, reqTag, log, cacheKey, onCacheEvent, cacheWrite, semanticEmbed, semanticCacheThreshold, semanticCacheTtl, semanticCacheMaxEntries }) {
+export async function handleNonStreamingResponse({ providerResponse, provider, model, sourceFormat, targetFormat, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqLogger, toolNameMap, customToolNames, trackDone, appendLog, pxpipe, reqTag, log }) {
   trackDone();
   const contentType = providerResponse.headers.get("content-type") || "";
   let responseBody;
@@ -323,7 +319,6 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
   const usage = extractUsageFromResponse(responseBody);
   appendLog({ tokens: usage, status: "200 OK" });
   saveUsageStats({ provider, model, tokens: usage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, silent: true });
-  emitCacheUsage(onCacheEvent, { cacheKey, provider, model, usage });
   if (log?.line) log.line(reqTag, "📊", formatDoneLine({ usage, latency: { total: Date.now() - requestStartTime } }));
 
   const translatedResponse = needsTranslation(targetFormat, sourceFormat)
@@ -394,37 +389,10 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
     console.error("[RequestDetail] Failed to save:", err.message);
   });
 
-  // L1/L2 response cache: store the final client-facing response from the
-  // in-memory object (the Response body is never consumed). L2 storage embeds
-  // asynchronously and must not block the response.
-  const respHeaders = { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" };
-  if (cacheWrite?.layers?.length) {
-    try {
-      const entry = { status: 200, body: JSON.stringify(translatedResponse), contentType: "application/json" };
-      respHeaders["X-Dardcor-Cache"] = "MISS";
-      respHeaders["X-Dardcor-Cache-Layer"] = cacheWrite.layers.includes("L2") ? "L2" : "L1";
-      if (cacheWrite.layers.includes("L2")) {
-        l2Store({
-          provider, model, scope: cacheWrite.scope, sourceFormat, targetFormat, body: cacheWrite.body, key: cacheWrite.key, value: entry,
-          semanticEmbed, threshold: semanticCacheThreshold, ttlMs: semanticCacheTtl,
-          maxEntries: semanticCacheMaxEntries, onCacheEvent,
-        }).catch(() => {});
-      }
-      if (cacheWrite.layers.includes("L1")) {
-        l1Store(cacheWrite.key, entry);
-      }
-      // Independent miss event per written layer.
-      if (cacheWrite.layers.includes("L1")) {
-        emitCacheEvent(onCacheEvent, { type: "cache_l1", action: "miss", ts: Date.now(), provider, model });
-      }
-      if (cacheWrite.layers.includes("L2")) {
-        emitCacheEvent(onCacheEvent, { type: "cache_l2", action: "miss", ts: Date.now(), provider, model });
-      }
-    } catch { /* fail-open: cache storage must never break the response */ }
-  }
-
   return {
     success: true,
-    response: new Response(JSON.stringify(translatedResponse), { headers: respHeaders })
+    response: new Response(JSON.stringify(translatedResponse), {
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+    })
   };
 }

@@ -15,7 +15,7 @@ export default {
   },
   category: "webCookie",
   authType: "cookie",
-  authHint: "Paste your full Cookie header from grok.com (or at least the sso= and sso-rw= cookie values). cf_clearance/__cf_bm are forwarded when present but only work with the exact same User-Agent as the browser, from the same IP, and through a proxy that preserves the TLS fingerprint.",
+  authHint: "Paste your sso= cookie value from grok.com",
   transport: {
     baseUrl: "https://grok.com/rest/app-chat/conversations/new",
     format: "grok-web",

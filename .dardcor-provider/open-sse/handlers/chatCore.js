@@ -2,16 +2,16 @@ import { detectFormat, getTargetFormat, resolveTransport } from "../services/pro
 import { translateRequest } from "../translator/index.js";
 import { applyThinking, extractThinking, stripThinkingSuffix } from "../translator/concerns/thinkingUnified.js";
 import { FORMATS } from "../translator/formats.js";
-import { normalizeClaudePassthrough } from "../translator/formats/claude.js";
+import { normalizeClaudePassthrough, anchorClaudeCache } from "../translator/formats/claude.js";
 import { createStreamController } from "../utils/streamHandler.js";
 import { refreshWithRetry } from "../services/tokenRefresh.js";
 import { createRequestLogger } from "../utils/requestLogger.js";
-import { getModelTargetFormat, getModelStrip, getModelUpstreamId, getModelType, PROVIDER_ID_TO_ALIAS } from "../config/providerModels.js";
+import { getModelTargetFormat, getModelSupportedFormats, getModelStrip, getModelUpstreamId, getModelType, PROVIDER_ID_TO_ALIAS } from "../config/providerModels.js";
 import { PROVIDERS } from "../config/providers.js";
 import { createErrorResult, parseUpstreamError, formatProviderError } from "../utils/error.js";
-import { HTTP_STATUS, TOKEN_SAVER_HEADER, LEGACY_TOKEN_SAVER_HEADER } from "../config/runtimeConfig.js";
+import { HTTP_STATUS, TOKEN_SAVER_HEADER } from "../config/runtimeConfig.js";
 import { handleBypassRequest } from "../utils/bypassHandler.js";
-import { trackPendingRequest, appendRequestLog, saveRequestDetail, saveMetrics, buildCacheMetricRows, buildSaverMetricRows } from "@/lib/usageDb.js";
+import { trackPendingRequest, appendRequestLog, saveRequestDetail } from "@/lib/usageDb.js";
 import { getExecutor } from "../executors/index.js";
 import { supportsGrokCliReasoningEffort } from "../config/grokCli.js";
 import { buildRequestDetail, extractRequestConfig } from "./chatCore/requestDetail.js";
@@ -22,20 +22,13 @@ import { detectClientTool, isNativePassthrough } from "../utils/clientDetector.j
 import { dedupeTools } from "../utils/toolDeduper.js";
 import { injectCaveman } from "../rtk/caveman.js";
 import { injectPonytail } from "../rtk/ponytail.js";
-import { compressMessages, formatRtkLog, estimateRequestTokens } from "../rtk/index.js";
-import { DEFAULT_AUTO_TRIGGER_TOKENS } from "../rtk/constants.js";
+import { compressMessages, formatRtkLog } from "../rtk/index.js";
 import { compressWithHeadroom, formatHeadroomLog, formatHeadroomSizeLog, isHeadroomPhantomSavings } from "../rtk/headroom.js";
 import { compressWithPxpipe } from "../rtk/pxpipe.js";
-import { begin as beginCacheOrchestration, finish as finishCacheOrchestration } from "../cache/l0.js";
-import { l1Key as l1CacheKey, isCacheable as isCacheableRequest, l1Lookup, l1Store, cacheScope } from "../cache/l1.js";
-import { l2Lookup, lastUserText, looksLikeCodeGeneration } from "../cache/l2.js";
-import { transform as l3Transform } from "../cache/l3.js";
-import { emitCacheEvent } from "../cache/events.js";
 import { getCapabilitiesForModel } from "../providers/capabilities.js";
 import { stripUnsupportedModalities } from "../translator/concerns/modality.js";
 import { prefetchRemoteImages } from "../translator/concerns/prefetch.js";
 import { resolveSessionId } from "../utils/sessionManager.js";
-import { normalizeToolSchemas } from "../utils/toolSchema.js";
 
 /**
  * Core chat handler - shared between SSE and Worker
@@ -64,7 +57,7 @@ export function stripContinuityFields(body) {
   return body;
 }
 
-export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, rtkMode, tokenSaverAutoTriggerTokens, headroomEnabled, headroomUrl, headroomCompressUserMessages, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, onCacheEvent, onTokenSaverEvent, sourceFormatOverride, providerThinking, cacheL1Enabled, cacheL2Enabled, cacheL3Enabled, semanticCacheModel, semanticCacheThreshold, semanticCacheTtl, semanticCacheMaxEntries, cacheL3MinChars, semanticEmbed, bodyLoggingEnabled }) {
+export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, headroomEnabled, headroomUrl, headroomCompressUserMessages, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, sourceFormatOverride, providerThinking }) {
   const { provider, model } = modelInfo;
   const requestStartTime = Date.now();
   // Stable per-session color so all lines of one CLI conversation share a tag
@@ -85,10 +78,20 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
 
   const alias = PROVIDER_ID_TO_ALIAS[provider] || provider;
   const modelTargetFormat = getModelTargetFormat(alias, model);
-  // Multi-endpoint providers: pick transport matching sourceFormat → zero translation
+  // Multi-endpoint providers: pick transport matching sourceFormat → zero translation.
+  // Per-model guard: only use the transport when the model declares support for that
+  // sourceFormat — opencode-go models differ in endpoint support (kimi/glm only do
+  // /chat/completions), so without this guard a claude-format request would wrongly
+  // route kimi to /messages.
+  const modelSupportedFormats = getModelSupportedFormats(alias, model);
   const runtimeTransport = resolveTransport(provider, sourceFormat);
-  const targetFormat = modelTargetFormat || runtimeTransport?.format || getTargetFormat(provider, credentials);
-  if (runtimeTransport && credentials) credentials.runtimeTransport = runtimeTransport;
+  // Per-model guard: when a model declares supportedFormats, only use the
+  // sourceFormat-matched transport if that format is declared (opencode-go models
+  // differ — kimi/glm only do /chat/completions). Undeclared models keep the
+  // upstream default (use the transport), preserving behavior for glm/deepseek/...
+  const useTransport = (!modelSupportedFormats || modelSupportedFormats.includes(sourceFormat)) ? runtimeTransport : null;
+  const targetFormat = modelTargetFormat || useTransport?.format || getTargetFormat(provider, credentials);
+  if (useTransport && credentials) credentials.runtimeTransport = useTransport;
   const stripList = getModelStrip(alias, model);
   const upstreamModel = getModelUpstreamId(alias, model);
 
@@ -132,9 +135,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     stream = false;
   }
 
-  // Privacy-gated request-body logging: bodyLoggingEnabled=false forces the
-  // no-op logger even when ENABLE_REQUEST_LOGS is set.
-  const reqLogger = await createRequestLogger(sourceFormat, targetFormat, model, { enabled: bodyLoggingEnabled });
+  const reqLogger = await createRequestLogger(sourceFormat, targetFormat, model);
   if (clientRawRequest) reqLogger.logClientRawRequest(clientRawRequest.endpoint, clientRawRequest.body, clientRawRequest.headers);
   reqLogger.logRawRequest(body);
   log?.debug?.("FORMAT", `${sourceFormat} → ${targetFormat} | stream=${stream}`);
@@ -194,8 +195,6 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     stripContinuityFields(translatedBody);
   }
 
-  normalizeToolSchemas(translatedBody);
-
   // Dedupe duplicate built-in tools when equivalent MCP tools are present (Claude clients only).
   if (clientTool === "claude" && Array.isArray(translatedBody.tools)) {
     const { tools: deduped, stripped } = dedupeTools(translatedBody.tools);
@@ -236,85 +235,13 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     delete translatedBody.tools;
   }
 
-  // Per-request opt-out: client can bypass all token savers via header.
-  // New x-dardcor-token-saver wins; legacy x-9router-token-saver still accepted.
-  const saverHeaderValue =
-    clientRawRequest?.headers?.[TOKEN_SAVER_HEADER] ??
-    clientRawRequest?.headers?.[LEGACY_TOKEN_SAVER_HEADER];
-  const tokenSaverEnabled = saverHeaderValue?.toLowerCase() !== "off";
+  // Per-request opt-out: client can bypass all token savers via header
+  const tokenSaverEnabled = clientRawRequest?.headers?.[TOKEN_SAVER_HEADER]?.toLowerCase() !== "off";
 
-  // Live token-saver telemetry. Fail-open: a throwing subscriber must never
-  // break the request, and absent callback is a no-op.
-  const saverStages = [];
-  const saverEmit = (event) => {
-    try {
-      if (event?.stage) saverStages.push(event);
-      // Persist saver savings ONLY once the request reaches provider dispatch
-      // (cache hits return before this point); savings never count otherwise.
-      if (event?.stage === "provider") {
-        const rows = buildSaverMetricRows(saverStages, { provider, model });
-        rows.push({ kind: "saver", name: "dispatch", outcome: "provider", provider, model });
-        saveMetrics(rows).catch(() => {});
-      }
-      onTokenSaverEvent?.({ ...event, provider, model, ts: Date.now() });
-    } catch { /* telemetry must never break requests */ }
-  };
-  const telemetryNumber = (value) => Number.isFinite(Number(value)) ? Number(value) : undefined;
-
-  // Token-saver flags accumulator for the single "⚙" log line below.
-  const xf = [];
-
-  // Caveman/Ponytail inject system prompts. They run BEFORE the L0 snapshot so
-  // their injected system text is captured as part of the protected cached
-  // prefix (and survives the compression interlock).
-  if (tokenSaverEnabled && cavemanEnabled && cavemanLevel) {
-    injectCaveman(translatedBody, finalFormat, cavemanLevel);
-    xf.push(`CAVEMAN:${cavemanLevel}`);
-    saverEmit({ stage: "caveman", applied: true, level: cavemanLevel });
-  }
-  if (tokenSaverEnabled && ponytailEnabled && ponytailLevel) {
-    injectPonytail(translatedBody, finalFormat, ponytailLevel);
-    xf.push(`PONYTAIL:${ponytailLevel}`);
-    saverEmit({ stage: "ponytail", applied: true, level: ponytailLevel });
-  }
-
-  // L0 prompt-cache orchestration: snapshot the whole pre-compression body
-  // (system, tools, message prefix) before any compressor can touch it. The
-  // interlock after the savers restores any section RTK / Headroom / PXPIPE
-  // mutated, and inserts missing breakpoints once the prefix has been stable
-  // for two session turns. Fail-open: any error here just disables
-  // orchestration for this request.
-  const cacheKey = `${provider}:${sessionSeed}`;
-  let cacheState = null;
-  try {
-    cacheState = beginCacheOrchestration(translatedBody);
-  } catch { /* fail-open: no cache orchestration this request */ }
-
-  // RTK: compress tool_result content — ONE pass, exclusive mode. The L0
-  // orchestration snapshot (cacheState) carries prefixLen (message count of the
-  // stable cached prefix) ONLY for messages[]-shaped bodies; Kiro and other
-  // shapes get no orchestration, so start stays 0 and they keep full-body
-  // compression. RTK mutates AND counts only the live tail from prefixLen
-  // onward, so stats never include the restored L0-protected prefix.
-  const rtkAutoTriggerRaw = Number(tokenSaverAutoTriggerTokens);
-  const rtkAutoTrigger = Number.isFinite(rtkAutoTriggerRaw) && rtkAutoTriggerRaw >= 0
-    ? rtkAutoTriggerRaw
-    : DEFAULT_AUTO_TRIGGER_TOKENS;
-  const rtkAutoOn = rtkAutoTrigger === 0 || estimateRequestTokens(translatedBody) >= rtkAutoTrigger;
-  const rtkStats = compressMessages(translatedBody, tokenSaverEnabled && rtkEnabled && rtkAutoOn, {
-    start: cacheState && cacheState.prefixLen > 0 ? cacheState.prefixLen : 0,
-    mode: rtkMode || undefined,
-  });
+  // RTK: compress tool_result content
+  const rtkStats = compressMessages(translatedBody, tokenSaverEnabled && rtkEnabled);
   const rtkLine = formatRtkLog(rtkStats);
   if (rtkLine) console.log(rtkLine);
-  if (rtkStats) {
-    saverEmit({
-      stage: "rtk",
-      bytesBefore: rtkStats.bytesBefore,
-      bytesAfter: rtkStats.bytesAfter,
-      hits: rtkStats.hits.length,
-    });
-  }
 
   // Headroom: optional external proxy compression; fail open if proxy is absent.
   const headroomDiagnostics = {};
@@ -328,20 +255,24 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     }
   } else if (tokenSaverEnabled && headroomEnabled) log?.warn?.("HEADROOM", `skipped: ${headroomDiagnostics.reason || "compression unavailable"}${headroomDiagnostics.endpoint ? ` (${headroomDiagnostics.endpoint})` : ""}`);
 
-  if (tokenSaverEnabled && headroomEnabled) {
-    const hr = { stage: "headroom", applied: !!headroomStats };
-    if (headroomDiagnostics?.before?.bodyBytes != null) hr.bodyBefore = headroomDiagnostics.before.bodyBytes;
-    if (headroomDiagnostics?.after?.bodyBytes != null) hr.bodyAfter = headroomDiagnostics.after.bodyBytes;
-    if (telemetryNumber(headroomStats?.tokens_before) !== undefined) hr.tokensBefore = telemetryNumber(headroomStats.tokens_before);
-    if (telemetryNumber(headroomStats?.tokens_after) !== undefined) hr.tokensAfter = telemetryNumber(headroomStats.tokens_after);
-    if (telemetryNumber(headroomStats?.tokens_saved) !== undefined) hr.tokensSaved = telemetryNumber(headroomStats.tokens_saved);
-    if (!headroomStats && headroomDiagnostics?.reason) hr.reason = String(headroomDiagnostics.reason).slice(0, 120);
-    saverEmit(hr);
+  // Token-saver flags accumulator for the single "⚙" log line below.
+  const xf = [];
+
+  // Caveman: inject terse-style system prompt
+  if (tokenSaverEnabled && cavemanEnabled && cavemanLevel) {
+    injectCaveman(translatedBody, finalFormat, cavemanLevel);
+    xf.push(`CAVEMAN:${cavemanLevel}`);
+  }
+
+  // Ponytail: inject lazy-senior-dev system prompt
+  if (tokenSaverEnabled && ponytailEnabled && ponytailLevel) {
+    injectPonytail(translatedBody, finalFormat, ponytailLevel);
+    xf.push(`PONYTAIL:${ponytailLevel}`);
   }
 
   // PXPIPE: image bulky context (Claude-format bodies only), last saver before dispatch
   let pxpipeSummary = null;
-  if (tokenSaverEnabled && pxpipeEnabled) {
+  if (pxpipeEnabled) {
     const pxpipeResult = await compressWithPxpipe(translatedBody, {
       enabled: true, format: finalFormat, model: upstreamModel,
       minChars: pxpipeMinChars, timeoutMs: pxpipeTimeoutMs, transform: pxpipeTransform,
@@ -350,136 +281,17 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     if (pxpipeResult.body) translatedBody = pxpipeResult.body;
     if (pxpipeSummary?.applied) xf.push(`PXPIPE:${pxpipeSummary.imageCount}img`);
     try { onPxpipeEvent?.({ provider, model, ...pxpipeSummary }); } catch { /* stats must not break requests */ }
-    saverEmit({
-      stage: "pxpipe",
-      applied: pxpipeSummary?.applied === true,
-      reason: pxpipeSummary?.reason ? String(pxpipeSummary.reason).slice(0, 120) : undefined,
-      tokensBeforeEst: telemetryNumber(pxpipeSummary?.tokensBeforeEst),
-      tokensAfterEst: telemetryNumber(pxpipeSummary?.tokensAfterEst),
-      tokensSavedEst: telemetryNumber(pxpipeSummary?.tokensSavedEst),
-      savedPct: telemetryNumber(pxpipeSummary?.savedPct),
-      imageCount: telemetryNumber(pxpipeSummary?.imageCount),
-    });
-  }
-
-  // Cache interlock: restore the cached prefix if RTK/Headroom/PXPIPE mutated
-  // it (or the whole body if a saver replaced the shape), then insert missing
-  // breakpoints once the prefix is stable. Fail-open: on any error the request
-  // proceeds without breakpoints.
-  if (cacheState) {
-    try {
-      const l0 = finishCacheOrchestration(translatedBody, cacheState, { cacheKey, provider, model, onCacheEvent });
-      if (l0.body !== translatedBody) translatedBody = l0.body;
-      if (l0.info) {
-        log?.debug?.("CACHE", `key=${cacheKey.slice(0, 24)}… turns=${l0.info.turns} stable=${l0.info.stable} bp=${l0.info.breakpoints}${l0.info.restored ? " prefix-restored" : ""}`);
-      }
-    } catch { /* fail-open: cache orchestration must never break the request */ }
   }
 
   if (xf.length && log?.line) log.line(reqTag, "⚙", xf.join(" · "));
 
+  // Pin cache breakpoints to the final body — every saver above can reshape
+  // system/tools/messages, and a stale anchor costs a full prefix rewrite.
+  if (passthrough && clientTool === "claude") anchorClaudeCache(translatedBody);
+
   const executor = getExecutor(provider);
   trackPendingRequest(model, provider, connectionId, true);
   appendRequestLog({ model, provider, connectionId, status: "PENDING" }).catch(() => { });
-
-  // --- L1/L2 response cache: lookup before provider dispatch ---
-  // Only deterministic (temperature=0 / seed-pinned) non-streaming, tool-free
-  // requests are cacheable. X-Dardcor-Bypass: cache-l1,cache-l2,cache-l3.
-  const cacheBypass = new Set(
-    (clientRawRequest?.headers?.["x-dardcor-bypass"] || "")
-      .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean)
-  );
-  const l1On = !!cacheL1Enabled && !cacheBypass.has("cache-l1") && !cacheBypass.has("cache");
-  const l2On = !!cacheL2Enabled && typeof semanticEmbed === "function" && !!semanticCacheModel
-    && !cacheBypass.has("cache-l2") && !cacheBypass.has("cache");
-  const l3On = !!cacheL3Enabled && !cacheBypass.has("cache-l3") && !cacheBypass.has("cache");
-
-  let cacheWriteCtx = null;
-  if (!stream && (l1On || l2On)) {
-    try {
-      // Scope isolates entries across router API keys + provider accounts; the
-      // raw scope only ever feeds the SHA-256 key.
-      const scope = cacheScope(connectionId, apiKey);
-      const key = l1CacheKey({ provider, model, sourceFormat, targetFormat, body: translatedBody, scope });
-      const cacheable = isCacheableRequest(translatedBody, { stream });
-      if (cacheable) {
-        let hit = null;
-        let l2Hit = null;
-        let l2Attempted = true;
-        if (l1On) {
-          hit = l1Lookup(key);
-          if (hit) emitCacheEvent(onCacheEvent, { type: "cache_l1", action: "hit", ts: Date.now(), provider, model });
-        }
-        if (!hit && l2On) {
-          // Mirror L2's own gate (empty user text / code-shaped prompts) so a
-          // skipped semantic attempt is recorded as a bypass, never a miss.
-          const userText = lastUserText(translatedBody);
-          l2Attempted = !!(userText && !looksLikeCodeGeneration(userText));
-          if (l2Attempted) {
-            l2Hit = await l2Lookup({
-              provider, model, scope, sourceFormat, targetFormat, body: translatedBody,
-              semanticEmbed, threshold: semanticCacheThreshold, ttlMs: semanticCacheTtl,
-              maxEntries: semanticCacheMaxEntries, onCacheEvent,
-            });
-          }
-        }
-        saveMetrics(buildCacheMetricRows({ stream, cacheable: true, l1On, l2On, l1Hit: !!hit, l2Hit: !!l2Hit, l2Attempted, provider, model })).catch(() => {});
-        if (hit || l2Hit) {
-          const entry = hit || l2Hit.value;
-          if (!hit && l2Hit && l1On) l1Store(key, entry);
-          const layer = hit ? "L1" : "L2";
-          trackPendingRequest(model, provider, connectionId, false);
-          appendRequestLog({ model, provider, connectionId, status: "200 OK (CACHE)" }).catch(() => { });
-          saveRequestDetail(buildRequestDetail({
-            provider, model, connectionId,
-            latency: { ttft: 0, total: Date.now() - requestStartTime },
-            tokens: {},
-            request: extractRequestConfig(body, stream),
-            providerRequest: translatedBody,
-            response: { content: "[cache hit]", thinking: null },
-            status: "success"
-          })).catch(() => { });
-          if (onRequestSuccess) Promise.resolve().then(onRequestSuccess).catch(() => { });
-          if (log?.line) {
-            const sim = l2Hit ? ` sim=${(l2Hit.similarity * 100).toFixed(1)}%` : "";
-            log.line(reqTag, "⚡", `CACHE ${layer} HIT · ${provider}/${model}${sim}`);
-          }
-          return {
-            success: true,
-            response: new Response(entry.body, {
-              status: entry.status || 200,
-              headers: {
-                "Content-Type": entry.contentType || "application/json",
-                "Access-Control-Allow-Origin": "*",
-                "X-Dardcor-Cache": "HIT",
-                "X-Dardcor-Cache-Layer": layer,
-              },
-            }),
-          };
-        }
-        // Miss → remember to store after the provider responds. `body` is the
-        // pre-L3 body (L3 runs after, non-mutating) so the stored entry keys
-        // and embeds exactly what was queried.
-        cacheWriteCtx = {
-          key,
-          layers: [l1On && "L1", l2On && "L2"].filter(Boolean),
-          scope,
-          body: translatedBody,
-        };
-      } else {
-        saveMetrics(buildCacheMetricRows({ stream, cacheable: false, l1On, l2On, provider, model })).catch(() => {});
-      }
-    } catch { /* fail-open: response cache must never break the request */ }
-  }
-
-  // L3: dedup repeated large content blocks in the mutable tail (never the
-  // L0-protected prefix). Runs AFTER the lookup so L1/L2 keys stay on the
-  // untransformed body.
-  if (l3On) {
-    try {
-      translatedBody = l3Transform(translatedBody, { minChars: cacheL3MinChars, provider, model, onCacheEvent });
-    } catch { /* fail-open */ }
-  }
 
   const msgCount = translatedBody.messages?.length || translatedBody.input?.length || translatedBody.contents?.length || translatedBody.request?.contents?.length || 0;
   log?.debug?.("REQUEST", `${provider.toUpperCase()} | ${model} | ${msgCount} msgs`);
@@ -527,7 +339,6 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   }
 
   // Execute request
-  saverEmit({ stage: "provider" });
   let providerResponse, providerUrl, providerHeaders, finalBody;
   // Most executors return their registry format. Cursor AgentService is an
   // exception: it is decoded by the executor into OpenAI-compatible output.
@@ -627,7 +438,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     return createErrorResult(statusCode, errMsg, resetsAtMs);
   }
 
-  const sharedCtx = { provider, model, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, pxpipe: pxpipeSummary, reqTag, log, cacheKey, onCacheEvent, cacheWrite: cacheWriteCtx, semanticEmbed, semanticCacheThreshold, semanticCacheTtl, semanticCacheMaxEntries };
+  const sharedCtx = { provider, model, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, pxpipe: pxpipeSummary, reqTag, log };
   const appendLog = (extra) => appendRequestLog({ model, provider, connectionId, ...extra }).catch(() => { });
   const trackDone = () => trackPendingRequest(model, provider, connectionId, false);
 

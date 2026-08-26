@@ -138,8 +138,42 @@ export function detectRequiredCapabilities(body) {
     if (Array.isArray(content)) for (const b of content) scanBlock(b);
   };
 
+  const scanMessage = (m) => {
+    if (!m || typeof m !== "object") return;
+
+    // Ollama / Hermes images array (strings or objects)
+    if (Array.isArray(m.images) && m.images.length > 0) {
+      required.add("vision");
+    }
+
+    // Vercel AI SDK / Hermes attachments / experimental_attachments
+    const attachments = m.experimental_attachments || m.attachments;
+    if (Array.isArray(attachments)) {
+      for (const att of attachments) {
+        if (!att) continue;
+        const mime = att.contentType || att.mediaType || (typeof att.url === "string" && att.url.match(/^data:([^;,]+)/)?.[1]);
+        if (mime) addByMime(mime);
+        else if (att.url || att.data) required.add("vision");
+      }
+    }
+
+    // Direct message-level modality properties
+    if (m.image_url || m.image) required.add("vision");
+    if (m.audio_url || m.audio) required.add("audioInput");
+
+    // Scan array content blocks
+    scanContent(m.content);
+
+    // Scan string content for embedded data URIs
+    if (typeof m.content === "string") {
+      if (m.content.includes("data:image/")) required.add("vision");
+      else if (m.content.includes("data:audio/")) required.add("audioInput");
+      else if (m.content.includes("data:application/pdf")) required.add("pdf");
+    }
+  };
+
   // Modalities: current user turn only (trailing user run across each known shape).
-  for (const m of trailingUserItems(body.messages)) scanContent(m.content);      // openai / claude
+  for (const m of trailingUserItems(body.messages)) scanMessage(m);              // openai / claude / hermes / ollama
   for (const it of trailingUserItems(body.input)) scanContent(it.content);       // responses
   const contents = body.contents || body.request?.contents;                      // gemini / antigravity
   for (const c of trailingUserItems(contents)) scanContent(c.parts);
@@ -239,17 +273,11 @@ export function getComboModelsFromData(modelStr, combosData) {
  * @param {Function} options.handleSingleModel - Function to handle single model: (body, modelStr) => Promise<Response>
  * @param {Object} options.log - Logger object
  * @param {string} [options.comboName] - Name of the combo (for round-robin tracking)
- * @param {string} [options.comboStrategy] - Strategy: "fallback", "round-robin", or "race"
+ * @param {string} [options.comboStrategy] - Strategy: "fallback" or "round-robin"
  * @param {number|string} [options.comboStickyLimit=1] - Requests per combo model before switching
- * @param {Object} [options.raceTuning] - Race overrides (e.g. raceTimeoutMs)
  * @returns {Promise<Response>}
  */
-export async function handleComboChat({ body, models, handleSingleModel, log, comboName, comboStrategy, comboStickyLimit = 1, autoSwitch = true, raceTuning }) {
-  // Race: fire every model concurrently and take the first genuine success.
-  if (comboStrategy === "race") {
-    return handleRaceChat({ body, models, handleSingleModel, log, comboName, tuning: raceTuning });
-  }
-
+export async function handleComboChat({ body, models, handleSingleModel, log, comboName, comboStrategy, comboStickyLimit = 1, autoSwitch = true }) {
   // Apply rotation strategy if enabled
   let rotatedModels = getRotatedModels(models, comboName, comboStrategy, comboStickyLimit);
 
@@ -536,7 +564,10 @@ export async function handleFusionChat({ body, models, handleSingleModel, log, c
   log.info("FUSION", `Combo "${comboName}" | panel=${panel.length} [${panel.join(", ")}] | judge=${judge} | quorum=${minPanel}`);
 
   // 1. Fan out to the panel in parallel: non-streaming, tools stripped (we want prose).
-  const { tools, tool_choice, ...rest } = body;
+  const { tools, tool_choice, stream_options, ...rest } = body;
+  // Fusion runs panel models non-streaming; drop stream_options too, or providers
+  // like DeepSeek reject it with "stream_options should be set along with stream = true".
+  // See issue #3024.
   const panelBody = { ...rest, stream: false };
 
   // Flatten tool turns to prose so panel models keep context without emitting tool_calls.
@@ -591,140 +622,4 @@ export async function handleFusionChat({ body, models, handleSingleModel, log, c
   const judgeBody = appendUserTurn(body, buildJudgePrompt(answers));
   log.info("FUSION", `Judging ${answers.length} answers with ${judge}`);
   return handleSingleModel(judgeBody, judge);
-}
-
-// Race tuning. Overridable per-combo via settings.comboStrategies[name] (raceTuning).
-const RACE_DEFAULTS = {
-  raceTimeoutMs: 30000, // bound each racer; slower racers lose and are ignored
-};
-
-// Is a settled racer a genuine success? Non-ok responses, timeouts, thrown
-// errors, and 2xx JSON bodies carrying a top-level error all count as failures.
-// A non-JSON body has nothing to validate, so it is treated as success.
-async function isRacerSuccess(res) {
-  if (!res || !res.ok) return false;
-  try {
-    const json = await res.clone().json();
-    if (json && typeof json === "object" && json.error) return false;
-  } catch {
-    // Non-JSON body — nothing to validate, treat as success.
-  }
-  return true;
-}
-
-// Resolve the first genuinely successful racer; failures keep the race open
-// until every racer has settled (a late success still wins). Returns undefined
-// when none succeeded. Losers keep running but are ignored.
-function raceFirst(calls, isSuccess) {
-  return new Promise((resolve) => {
-    let pending = calls.length;
-    if (pending === 0) return resolve(undefined);
-    calls.forEach((p) => {
-      Promise.resolve(p)
-        .then(async (v) => {
-          if (await isSuccess(v)) return resolve(v);
-          if (--pending === 0) resolve(undefined);
-        })
-        .catch(() => {
-          if (--pending === 0) resolve(undefined);
-        });
-    });
-  });
-}
-
-// Replay a non-streaming winner as a one-shot SSE stream for a streaming client.
-function replayWinnerAsSse(text, model) {
-  const chunk = {
-    id: `chatcmpl-race-${Date.now()}`,
-    object: "chat.completion.chunk",
-    created: Math.floor(Date.now() / 1000),
-    model: model || "combo-race",
-    choices: [{ index: 0, delta: { content: text }, finish_reason: "stop" }],
-  };
-  return new Response(
-    `data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`,
-    { status: 200, headers: { "Content-Type": "text/event-stream" } }
-  );
-}
-
-/**
- * Handle a race combo: fire every model concurrently and return the first
- * genuinely successful response (2xx, parseable, no top-level error).
- *
- * Racer bodies are forced non-streaming so a loser's bytes never reach the
- * client; tools are preserved since the winner is returned verbatim (unlike
- * fusion, which flattens tool turns for the judge). Each racer is bounded by
- * raceTimeoutMs (default 30000); if none succeeds a 503 is returned.
- *
- * A single racer has nothing to race — the original body is passed through
- * unchanged (streaming kept as-is). For multi-model races on a streaming chat
- * body, a text winner is replayed as a one-shot text/event-stream; a winner
- * whose body cannot be converted to text is returned raw.
- *
- * @param {Object} options
- * @param {Object} options.body - Request body (client format)
- * @param {string[]} options.models - Model strings to race
- * @param {Function} options.handleSingleModel - (body, modelStr) => Promise<Response>
- * @param {Object} options.log - Logger
- * @param {string} [options.comboName] - Combo name (logging)
- * @param {Object} [options.tuning] - Override RACE_DEFAULTS (raceTimeoutMs)
- * @returns {Promise<Response>}
- */
-export async function handleRaceChat({ body, models, handleSingleModel, log, comboName, tuning }) {
-  const racers = Array.isArray(models) ? models.filter(Boolean) : [];
-  if (racers.length === 0) {
-    return new Response(
-      JSON.stringify({ error: { message: "Race combo has no models" } }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
-    );
-  }
-
-  // Single racer: nothing to race, pass the original body straight through.
-  if (racers.length === 1) {
-    return handleSingleModel(body, racers[0]);
-  }
-
-  const cfg = { ...RACE_DEFAULTS, ...(tuning || {}) };
-  log.info("RACE", `Combo "${comboName}" | racing ${racers.length} models [${racers.join(", ")}] | timeout=${cfg.raceTimeoutMs}ms`);
-
-  // Fan out concurrently. Force non-streaming so no loser bytes reach the client.
-  const racerBody = { ...body, stream: false };
-  const t0 = Date.now();
-  const calls = racers.map((m) => withTimeout(
-    Promise.resolve().then(() => handleSingleModel(racerBody, m)),
-    cfg.raceTimeoutMs
-  ));
-  const winner = await raceFirst(calls, isRacerSuccess);
-
-  if (!winner) {
-    const reasons = [];
-    for (let i = 0; i < calls.length; i++) {
-      const settled = await Promise.resolve(calls[i]).catch((e) => ({ __error: e }));
-      const m = racers[i];
-      if (settled?.__timeout) reasons.push(`${m}: timed out after ${cfg.raceTimeoutMs}ms`);
-      else if (settled?.__error) reasons.push(`${m}: ${settled.__error?.message || String(settled.__error)}`);
-      else if (settled?.ok) reasons.push(`${m}: error body`);
-      else reasons.push(`${m}: status ${settled?.status ?? "unknown"}`);
-    }
-    log.warn("RACE", `All racers failed in ${Date.now() - t0}ms | ${reasons.join("; ")}`);
-    return new Response(
-      JSON.stringify({ error: { message: `All race models failed or timed out: ${reasons.join("; ")}` } }),
-      { status: 503, headers: { "Content-Type": "application/json" } }
-    );
-  }
-
-  log.info("RACE", `Racer won in ${Date.now() - t0}ms`);
-
-  // Streaming clients can't receive a plain JSON completion: replay the winner's
-  // text as a one-shot SSE stream. Non-streaming clients get the raw winner.
-  if (body?.stream) {
-    try {
-      const winnerJson = await winner.clone().json();
-      const text = extractPanelText(winnerJson);
-      if (text) return replayWinnerAsSse(text, winnerJson.model);
-    } catch {
-      // Body isn't JSON — fall through and return the raw winner.
-    }
-  }
-  return winner;
 }
