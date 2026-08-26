@@ -97,7 +97,37 @@ export abstract class BaseFetchFetcher implements IFetcher {
 	}
 
 	private async _fetch(url: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE', headers: { [name: string]: string }, body: string | undefined, signal: AbortSignal, internalId: string, hostname: string, options: FetchOptions): Promise<Response> {
-		const resp = await this._fetchImpl(url, { method, headers, body, signal }, !!options.cache);
+		const cleanHeaders: Record<string, string> = {};
+		for (const [k, v] of Object.entries(headers)) {
+			if (v !== undefined && v !== null && typeof v === 'string') {
+				cleanHeaders[k] = v;
+			}
+		}
+
+		const init: RequestInit = {
+			method,
+			headers: cleanHeaders,
+			signal,
+		};
+		if (body !== undefined && body !== null) {
+			init.body = body;
+		}
+
+		let resp: globalThis.Response;
+		try {
+			resp = await this._fetchImpl(url, init, !!options.cache);
+		} catch (err: any) {
+			if (typeof globalThis.fetch === 'function') {
+				try {
+					resp = await globalThis.fetch(url, init);
+				} catch {
+					throw err;
+				}
+			} else {
+				throw err;
+			}
+		}
+
 		return new Response(
 			resp.status,
 			resp.statusText,

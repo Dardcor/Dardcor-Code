@@ -404,8 +404,8 @@ export class OpenModelPickerAction extends Action2 {
 			},
 			precondition: ChatContextKeys.enabled,
 			menu: {
-				id: MenuId.ChatInputSecondary,
-				order: 3,
+				id: MenuId.ChatInput,
+				order: 0,
 				group: 'navigation',
 				when:
 					ContextKeyExpr.and(
