@@ -456,6 +456,23 @@ export default function ProviderDetailPage() {
     fetchAliases();
     fetchCustomModels();
     fetchDisabledModels();
+
+    const handleUpdate = () => {
+      fetchConnections();
+    };
+
+    window.addEventListener("providersChanged", handleUpdate);
+    window.addEventListener("focus", handleUpdate);
+    window.addEventListener("storage", handleUpdate);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") fetchConnections();
+    });
+
+    return () => {
+      window.removeEventListener("providersChanged", handleUpdate);
+      window.removeEventListener("focus", handleUpdate);
+      window.removeEventListener("storage", handleUpdate);
+    };
   }, [fetchConnections, fetchAliases, fetchCustomModels, fetchDisabledModels]);
 
   // Cursor's model availability is account-specific and changes frequently.

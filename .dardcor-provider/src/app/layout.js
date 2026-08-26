@@ -20,12 +20,14 @@ export const metadata = {
   title: "Dardcor Code - AI Infrastructure Management",
   description: "One endpoint for all your AI providers. Manage keys, monitor usage, and scale effortlessly.",
   icons: {
-    icon: "/favicon.svg",
+    icon: "/dardcor-code.png",
+    shortcut: "/favicon.ico",
+    apple: "/dardcor-code.png",
   },
 };
 
 export const viewport = {
-  themeColor: "#0a0a0a",
+  themeColor: "#070709",
 };
 
 export default function RootLayout({ children }) {

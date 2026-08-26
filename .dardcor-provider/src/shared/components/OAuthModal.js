@@ -73,6 +73,7 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
   const exchangeTokens = useCallback(async (code, state) => {
     if (!authData) return;
     try {
+      setStep("waiting");
       const res = await fetch(`/api/oauth/${provider}/exchange`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -86,9 +87,12 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error || "Token exchange failed");
 
       setStep("success");
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("providersChanged", { detail: { provider, connection: data.connection } }));
+      }
       onSuccess?.();
     } catch (err) {
       setError(err.message);
@@ -501,7 +505,13 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
     const handleCallback = async (data) => {
       if (callbackProcessedRef.current) return; // Already processed
 
-      const { code, token, state, error: callbackError, errorDescription } = data;
+      const { code, token, state, error: callbackError, errorDescription, fullUrl } = data || {};
+
+      if (fullUrl) {
+        setCallbackUrl(fullUrl);
+      } else if (code) {
+        setCallbackUrl(`http://127.0.0.1:25000/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state || "")}`);
+      }
 
       if (callbackError) {
         callbackProcessedRef.current = true;
@@ -512,7 +522,8 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
 
       if (token || code) {
         callbackProcessedRef.current = true;
-        await exchangeTokens(token || code, state);
+        setStep("waiting");
+        await exchangeTokens(token || code, state || authData?.state);
       }
     };
 
@@ -668,14 +679,32 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
         return;
       }
 
-      const url = new URL(input);
-      const code = url.searchParams.get("code");
-      const token = url.searchParams.get("token");
-      const state = url.searchParams.get("state");
-      const errorParam = url.searchParams.get("error");
+      let code = null;
+      let token = null;
+      let state = null;
+      let errorParam = null;
 
-      if (errorParam) {
-        throw new Error(url.searchParams.get("error_description") || errorParam);
+      try {
+        const urlStr = input.startsWith("http://") || input.startsWith("https://")
+          ? input
+          : `http://localhost:25000/${input.replace(/^\/?/, "")}`;
+        const url = new URL(urlStr);
+        code = url.searchParams.get("code");
+        token = url.searchParams.get("token");
+        state = url.searchParams.get("state");
+        errorParam = url.searchParams.get("error");
+        if (errorParam) {
+          throw new Error(url.searchParams.get("error_description") || errorParam);
+        }
+      } catch (parseErr) {
+        if (errorParam) throw parseErr;
+        // Fallback: regex extraction
+        const codeMatch = input.match(/[?&]?code=([^&\s]+)/);
+        const tokenMatch = input.match(/[?&]?token=([^&\s]+)/);
+        const stateMatch = input.match(/[?&]?state=([^&\s]+)/);
+        code = codeMatch ? decodeURIComponent(codeMatch[1]) : (input.includes("/") ? null : input);
+        token = tokenMatch ? decodeURIComponent(tokenMatch[1]) : null;
+        state = stateMatch ? decodeURIComponent(stateMatch[1]) : null;
       }
 
       if (!code && !token) {
@@ -688,7 +717,7 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
         );
       }
 
-      await exchangeTokens(token || code, state);
+      await exchangeTokens(token || code, state || authData?.state);
     } catch (err) {
       setError(err.message);
       setStep("error");

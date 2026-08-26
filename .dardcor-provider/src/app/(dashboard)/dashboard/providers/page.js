@@ -145,25 +145,43 @@ export default function ProvidersPage() {
       return (a.name || "").localeCompare(b.name || "");
     });
 
+  const fetchData = async () => {
+    try {
+      const [connectionsRes, nodesRes] = await Promise.all([
+        fetch("/api/providers", { cache: "no-store" }),
+        fetch("/api/provider-nodes", { cache: "no-store" }),
+      ]);
+      const connectionsData = await connectionsRes.json();
+      const nodesData = await nodesRes.json();
+      if (connectionsRes.ok)
+        setConnections(connectionsData.connections || []);
+      if (nodesRes.ok) setProviderNodes(nodesData.nodes || []);
+    } catch (error) {
+      console.log("Error fetching data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [connectionsRes, nodesRes] = await Promise.all([
-          fetch("/api/providers"),
-          fetch("/api/provider-nodes"),
-        ]);
-        const connectionsData = await connectionsRes.json();
-        const nodesData = await nodesRes.json();
-        if (connectionsRes.ok)
-          setConnections(connectionsData.connections || []);
-        if (nodesRes.ok) setProviderNodes(nodesData.nodes || []);
-      } catch (error) {
-        console.log("Error fetching data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
+
+    const handleUpdate = () => {
+      fetchData();
+    };
+
+    window.addEventListener("providersChanged", handleUpdate);
+    window.addEventListener("focus", handleUpdate);
+    window.addEventListener("storage", handleUpdate);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") fetchData();
+    });
+
+    return () => {
+      window.removeEventListener("providersChanged", handleUpdate);
+      window.removeEventListener("focus", handleUpdate);
+      window.removeEventListener("storage", handleUpdate);
+    };
   }, []);
 
   const getProviderStats = (providerId, authType) => {

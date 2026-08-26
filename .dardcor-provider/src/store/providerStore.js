@@ -17,13 +17,13 @@ const useProviderStore = create((set, get) => ({
   updateProvider: (id, updates) =>
     set((state) => ({
       providers: state.providers.map((p) =>
-        p._id === id ? { ...p, ...updates } : p
+        (p.id === id || p._id === id) ? { ...p, ...updates } : p
       ),
     })),
 
   removeProvider: (id) =>
     set((state) => ({
-      providers: state.providers.filter((p) => p._id !== id),
+      providers: state.providers.filter((p) => p.id !== id && p._id !== id),
     })),
 
   invalidate: () => set({ lastFetched: 0 }),
