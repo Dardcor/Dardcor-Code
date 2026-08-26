@@ -3,9 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { UPDATER_CONFIG } from "@/shared/constants/config";
 
-const STORAGE_KEY = "dardcor-code.cliToolEndpointPresets";
-// Legacy key read so presets saved under the old name keep showing.
-const LEGACY_STORAGE_KEY = "9router.cliToolEndpointPresets";
+const STORAGE_KEY = "9router.cliToolEndpointPresets";
 const CUSTOM_VALUE = "__custom__";
 const SAVE_VALUE = "__save__";
 
@@ -18,7 +16,7 @@ const ensureV1 = (url) => {
 const readSavedPresets = () => {
   if (typeof window === "undefined") return [];
   try {
-    const raw = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || window.localStorage.getItem(LEGACY_STORAGE_KEY) || "[]");
+    const raw = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "[]");
     if (!Array.isArray(raw)) return [];
     return raw.filter((p) => p?.name && p?.baseUrl);
   } catch {

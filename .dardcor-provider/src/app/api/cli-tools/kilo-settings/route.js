@@ -46,10 +46,10 @@ const readJson = async (filePath) => {
 
 const hasDardcor CodeConfig = (auth) => {
   if (!auth) return false;
-  const entry = auth["openai-compatible"] || auth["dardcor-code"];
+  const entry = auth["openai-compatible"] || auth["9router"];
   if (!entry) return false;
   const baseUrl = entry.baseUrl || entry.baseURL || "";
-  return baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1") || baseUrl.includes("dardcor-code");
+  return baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1") || baseUrl.includes("9router");
 };
 
 export async function GET() {
@@ -113,7 +113,7 @@ export async function DELETE() {
       return NextResponse.json({ success: true, message: "No settings file to reset" });
     }
     delete auth["openai-compatible"];
-    delete auth["dardcor-code"];
+    delete auth["9router"];
     await fs.writeFile(getAuthPath(), JSON.stringify(auth, null, 2));
 
     try {

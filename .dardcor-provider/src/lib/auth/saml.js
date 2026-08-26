@@ -84,7 +84,7 @@ export function getSamlBaseUrl(request, settings) {
     }
   }
 
-  return "http://localhost:25000";
+  return "http://localhost:20128";
 }
 
 export function createSamlInstance(settings, origin) {
@@ -92,7 +92,7 @@ export function createSamlInstance(settings, origin) {
   const callbackUrl = `${origin}/api/auth/saml/acs`;
   return new SAML({
     entryPoint: settings?.samlEntryPoint || "https://example.com/sso",
-    issuer: settings?.samlIssuer || "urn:dardcor-code:sp",
+    issuer: settings?.samlIssuer || "urn:9router:sp",
     idpCert: cert,
     cert: cert,
     callbackUrl: callbackUrl,

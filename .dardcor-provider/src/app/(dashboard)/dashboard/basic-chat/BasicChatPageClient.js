@@ -711,15 +711,7 @@ export default function BasicChatPageClient() {
       }));
       finalizeSessionTitle(sessionId, userText);
     } catch (error) {
-      if (error.name === "AbortError") {
-        // User pressed Stop — finalize the partial reply instead of leaving it
-        // stuck in "streaming" status.
-        updateSession(sessionId, (currentSession) => ({
-          ...currentSession,
-          messages: currentSession.messages.map((message) => (message.id === assistantMessageId ? { ...message, status: "done" } : message)),
-          updatedAt: new Date().toISOString(),
-        }));
-      } else {
+      if (error.name !== "AbortError") {
         const errorText = textValue(error?.message || error);
         updateSession(sessionId, (currentSession) => ({
           ...currentSession,

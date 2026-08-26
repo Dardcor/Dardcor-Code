@@ -17,7 +17,7 @@ const { DATA_DIR, MITM_DIR } = require("./paths");
 const { log, err } = require("./logger");
 const { LSOF_BIN } = require("./config");
 
-const DEFAULT_MITM_ROUTER_BASE = "http://localhost:21128";
+const DEFAULT_MITM_ROUTER_BASE = "http://localhost:20128";
 
 function shellQuoteSingle(str) {
   if (str == null || str === "") return "''";
@@ -63,7 +63,7 @@ function resolveBundledServerPath() {
 }
 
 // Copy bundled server.js into DATA_DIR so MITM doesn't lock node_modules
-// (prevents EBUSY on `npm i -g dardcor-code@latest` while MITM is running).
+// (prevents EBUSY on `npm i -g 9router@latest` while MITM is running).
 function ensureRuntimeServer(bundledPath) {
   try {
     if (!bundledPath || !fs.existsSync(bundledPath)) return bundledPath;
@@ -95,7 +95,7 @@ function ensureRuntimeServer(bundledPath) {
 
 const SERVER_PATH = ensureRuntimeServer(resolveBundledServerPath());
 const ENCRYPT_ALGO = "aes-256-gcm";
-const ENCRYPT_SALT = "dardcor-code-mitm-pwd";
+const ENCRYPT_SALT = "9router-mitm-pwd";
 
 function getProcessUsingPort443() {
   try {
@@ -487,9 +487,7 @@ async function startServer(apiKey, sudoPassword, forceKillPort443 = false) {
   }
 
   if (serverProcess && !serverProcess.killed) {
-    await saveMitmSettings(true, sudoPassword);
-    if (sudoPassword) setCachedPassword(sudoPassword);
-    return { running: true, pid: serverPid || serverProcess.pid, reused: true };
+    throw new Error("MITM server is already running");
   }
 
   // Atomically claim lock to prevent concurrent startServer across processes.
@@ -580,7 +578,7 @@ async function startServer(apiKey, sudoPassword, forceKillPort443 = false) {
     log(`[MITM] server.js missing at ${effectiveServerPath} → recopying`);
     effectiveServerPath = ensureRuntimeServer(resolveBundledServerPath());
     if (!effectiveServerPath || !fs.existsSync(effectiveServerPath)) {
-      throw new Error(`MITM server.js not found at ${effectiveServerPath}. Reinstall dardcor-code.`);
+      throw new Error(`MITM server.js not found at ${effectiveServerPath}. Reinstall 9router.`);
     }
   }
   const mitmRouterBase = await resolveMitmRouterBaseUrl();

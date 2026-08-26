@@ -22,7 +22,7 @@ export function buildClineHeaders(token, extraHeaders = {}) {
     "User-Agent": `Dardcor Code/${APP_VERSION}`,
     "X-PLATFORM": process.platform || "unknown",
     "X-PLATFORM-VERSION": process.version || "unknown",
-    "X-CLIENT-TYPE": "dardcor-code",
+    "X-CLIENT-TYPE": "9router",
     "X-CLIENT-VERSION": APP_VERSION,
     "X-CORE-VERSION": APP_VERSION,
     "X-IS-MULTIROOT": "false",

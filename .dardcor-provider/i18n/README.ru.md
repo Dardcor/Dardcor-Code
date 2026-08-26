@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="../images/dardcor-code.png?1" alt="Панель управления Dardcor Code" width="800"/>
+  <img src="../images/9router.png?1" alt="Панель управления Dardcor Code" width="800"/>
   
   # Dardcor Code - Free AI Router
   
@@ -11,8 +11,11 @@
     <img src="../public/providers/openclaw.png" alt="OpenClaw" width="80"/>
   </p>
   
+  [![npm](https://img.shields.io/npm/v/9router.svg)](https://www.npmjs.com/package/9router)
+  [![Downloads](https://img.shields.io/npm/dm/9router.svg)](https://www.npmjs.com/package/9router)
+  [![License](https://img.shields.io/npm/l/9router.svg)](https://github.com/decolua/9router/blob/main/LICENSE)
   
-  [🚀 Быстрый старт](#-quick-start) • [💡 Возможности](#-key-features) • [📖 Установка](#-setup-guide) • [🌐 Сайт](https://dardcor-code.web.id)
+  [🚀 Быстрый старт](#-quick-start) • [💡 Возможности](#-key-features) • [📖 Установка](#-setup-guide) • [🌐 Сайт](https://9router.com)
 </div>
 
 ---
@@ -42,7 +45,7 @@
 │  Your CLI   │  (Claude Code, Codex, Gemini CLI, OpenClaw, Cursor, Cline...)
 │   Tool      │
 └──────┬──────┘
-       │ http://localhost:21128/v1
+       │ http://localhost:20128/v1
        ↓
 ┌────────────────────────────────────────┐
 │           Dardcor Code (Smart Router)        │
@@ -67,11 +70,11 @@ Result: Never stop coding, minimal cost
 **1. Глобальная установка:**
 
 ```bash
-npm install -g dardcor-code
-dardcor-code
+npm install -g 9router
+9router
 ```
 
-🎉 Панель управления откроется на `http://localhost:21128`
+🎉 Панель управления откроется на `http://localhost:20128`
 
 **2. Подключите БЕСПЛАТНОГО провайдера (без подписки):**
 
@@ -81,7 +84,7 @@ dardcor-code
 
 ```
 Настройки Claude Code/Codex/Gemini CLI/OpenClaw/Cursor/Cline:
-  Endpoint: http://localhost:21128/v1
+  Endpoint: http://localhost:20128/v1
   API Key: [скопируйте из панели управления]
   Model: if/kimi-k2-thinking
 ```
@@ -95,19 +98,41 @@ dardcor-code
 ```bash
 cp .env.example .env
 npm install
-PORT=21128 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run dev
+PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
 ```
 
 Режим Production:
 
 ```bash
 npm run build
-PORT=21128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run start
+PORT=20128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run start
 ```
 
 URL по умолчанию:
-- Панель управления: `http://localhost:21128/dashboard`
-- OpenAI-совместимый API: `http://localhost:21128/v1`
+- Панель управления: `http://localhost:20128/dashboard`
+- OpenAI-совместимый API: `http://localhost:20128/v1`
+
+---
+
+## 🎥 Видео-руководство
+
+<div align="center">
+  
+### 📺 Полное руководство по настройке - Dardcor Code + Claude Code БЕСПЛАТНО
+  
+[![Настройка Dardcor Code + Claude Code](https://img.youtube.com/vi/raEyZPg5xE0/maxresdefault.jpg)](https://www.youtube.com/watch?v=raEyZPg5xE0)
+
+**🎬 Полное пошаговое руководство:**
+- ✅ Установка и настройка Dardcor Code
+- ✅ Настройка Claude Sonnet 4.5 БЕСПЛАТНО
+- ✅ Интеграция с Claude Code
+- ✅ Тестирование кода вживую
+
+**⏱️ Длительность:** 20 минут | **👥 Автор:** Сообщество разработчиков
+
+[▶️ Смотреть на YouTube](https://www.youtube.com/watch?v=o3qYCyjrFYg)
+
+</div>
 
 ---
 
@@ -420,8 +445,10 @@ Combo: "my-coding-stack"
 > «Затраты», показанные в Аналитике использования, предназначены **только для отслеживания и сравнения**. 
 > Сам Dardcor Code **никогда ничего не взимает** с вас. Вы платите напрямую провайдерам (если используете платные сервисы).
 > 
+> **Пример:** Если на панели показано «общие затраты $290» при использовании моделей iFlow, это представляет 
 > сумму, которую вы заплатили бы при прямом использовании платного API. Ваши фактические затраты = **$0** (iFlow бесплатен без ограничений).
 > 
+> Считайте это «трекером экономии», показывающим, сколько вы экономите, используя бесплатные модели или 
 > маршрутизацию через Dardcor Code!
 
 ### 🌐 Развёртывание где угодно
@@ -466,15 +493,19 @@ Combo: "my-coding-stack"
 
 **Как работает отображение затрат:**
 
+Панель показывает **оценочные затраты**, как если бы вы напрямую использовали платный API. Это **не оплата** — это инструмент сравнения, показывающий вашу экономию.
+
 **Пример сценария:**
 ```
 Показано на панели:
 • Всего запросов: 1,662
 • Всего токенов: 47M
+• Отображаемые затраты: $290
 
 Реальная проверка:
 • Провайдер: iFlow (БЕСПЛАТНО без ограничений)
 • Фактическая оплата: $0.00
+• Значение $290: Сумма, которую вы СЭКОНОМИЛИ, используя бесплатные модели!
 ```
 
 **Правила оплаты:**
@@ -556,9 +587,15 @@ Combo: "openclaw-free"
 <details>
 <summary><b>📊 Почему моя панель показывает высокие затраты?</b></summary>
 
+Панель отслеживает ваше использование токенов и показывает **оценочные затраты**, как если бы вы напрямую использовали платный API. Это **не реальная оплата** — это справка, показывающая, сколько вы экономите, используя бесплатные модели или существующие подписки через Dardcor Code.
+
 **Пример:**
+- **Панель показывает:** «Общие затраты $290»
 - **Реальность:** Вы используете iFlow (БЕСПЛАТНО без ограничений)
 - **Ваши фактические затраты:** **$0.00**
+- **Значение $290:** Сумма, которую вы **экономите**, используя бесплатные модели вместо платного API!
+
+Отображение затрат — это «трекер экономии», помогающий понять паттерны использования и возможности оптимизации.
 
 </details>
 
@@ -827,8 +864,8 @@ Dardcor Code только маршрутизирует ваши запросы �
 
 ```
 Settings → Models → Advanced:
-  OpenAI API Base URL: http://localhost:21128/v1
-  OpenAI API Key: [из панели управления dardcor-code]
+  OpenAI API Base URL: http://localhost:20128/v1
+  OpenAI API Key: [из панели управления 9router]
   Model: cc/claude-opus-4-6
 ```
 
@@ -840,16 +877,16 @@ Settings → Models → Advanced:
 
 ```json
 {
-  "anthropic_api_base": "http://localhost:21128/v1",
-  "anthropic_api_key": "your-dardcor-code-api-key"
+  "anthropic_api_base": "http://localhost:20128/v1",
+  "anthropic_api_key": "your-9router-api-key"
 }
 ```
 
 ### Codex CLI
 
 ```bash
-export OPENAI_BASE_URL="http://localhost:21128"
-export OPENAI_API_KEY="your-dardcor-code-api-key"
+export OPENAI_BASE_URL="http://localhost:20128"
+export OPENAI_API_KEY="your-9router-api-key"
 
 codex "ваш промпт"
 ```
@@ -869,15 +906,15 @@ codex "ваш промпт"
   "agents": {
     "defaults": {
       "model": {
-        "primary": "dardcor-code/if/glm-4.7"
+        "primary": "9router/if/glm-4.7"
       }
     }
   },
   "models": {
     "providers": {
-      "dardcor-code": {
-        "baseUrl": "http://127.0.0.1:21128/v1",
-        "apiKey": "sk_dardcor-code",
+      "9router": {
+        "baseUrl": "http://127.0.0.1:20128/v1",
+        "apiKey": "sk_9router",
         "api": "openai-completions",
         "models": [
           {
@@ -897,7 +934,7 @@ codex "ваш промпт"
 
 ```
 Provider: OpenAI Compatible
-Base URL: http://localhost:21128/v1
+Base URL: http://localhost:20128/v1
 API Key: [из панели управления]
 Model: cc/claude-opus-4-6
 ```
@@ -911,20 +948,20 @@ Model: cc/claude-opus-4-6
 
 ```bash
 # Clone and install
-git clone .git
-cd dardcor-code
+git clone https://github.com/decolua/9router.git
+cd 9router
 npm install
 npm run build
 
 # Configure
 export JWT="your-secure-secret-change-this"
 export INITIAL_PASSWORD="your-password"
-export DATA_DIR="/var/lib/dardcor-code"
-export PORT="21128"
+export DATA_DIR="/var/lib/9router"
+export PORT="20128"
 export HOSTNAME="0.0.0.0"
 export NODE_ENV="production"
-export NEXT_PUBLIC_BASE_URL="http://localhost:21128"
-export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.web.id"
+export NEXT_PUBLIC_BASE_URL="http://localhost:20128"
+export NEXT_PUBLIC_CLOUD_URL="https://9router.com"
 export API_KEY_SECRET="endpoint-proxy-api-key-secret"
 export MACHINE_ID_SALT="endpoint-proxy-salt"
 
@@ -933,7 +970,7 @@ npm run start
 
 # Or use PM2
 npm install -g pm2
-pm2 start --name dardcor-code -- start
+pm2 start --name 9router -- start
 pm2 save
 pm2 startup
 ```
@@ -942,56 +979,56 @@ pm2 startup
 
 ```bash
 # Build image (from repository root)
-docker build -t dardcor-code .
+docker build -t 9router .
 
 # Run container (command used in current setup)
 docker run -d \
-  --name dardcor-code \
-  -p 21128:21128 \
-  --env-file /root/dev/dardcor-code/.env \
-  -v dardcor-code-data:/app/data \
-  -v dardcor-code-usage:/root/.dardcor-code \
-  dardcor-code
+  --name 9router \
+  -p 20128:20128 \
+  --env-file /root/dev/9router/.env \
+  -v 9router-data:/app/data \
+  -v 9router-usage:/root/.9router \
+  9router
 ```
 
 Портативная команда (если вы уже в корне репозитория):
 
 ```bash
 docker run -d \
-  --name dardcor-code \
-  -p 21128:21128 \
+  --name 9router \
+  -p 20128:20128 \
   --env-file ./.env \
-  -v dardcor-code-data:/app/data \
-  -v dardcor-code-usage:/root/.dardcor-code \
-  dardcor-code
+  -v 9router-data:/app/data \
+  -v 9router-usage:/root/.9router \
+  9router
 ```
 
 Значения по умолчанию контейнера:
-- `PORT=21128`
+- `PORT=20128`
 - `HOSTNAME=0.0.0.0`
 
 Полезные команды:
 
 ```bash
-docker logs -f dardcor-code
-docker restart dardcor-code
-docker stop dardcor-code && docker rm dardcor-code
+docker logs -f 9router
+docker restart 9router
+docker stop 9router && docker rm 9router
 ```
 
 ### Переменные окружения
 
 | Переменная | По умолчанию | Описание |
 |----------|---------|-------------|
-| `JWT_SECRET` | Автогенерация (`~/.dardcor-code/jwt-secret`) | Секрет подписи JWT для cookie аутентификации панели (задайте для общего доступа между инстансами) |
-| `INITIAL_PASSWORD` | unset | Опциональная локальная bootstrap-настройка при отсутствии сохранённого хеша. Если не задана, создайте пароль через localhost |
-| `DATA_DIR` | `~/.dardcor-code` | Расположение основной БД приложения (`db.json`) |
-| `PORT` | framework default | Порт сервиса (`21128` в примерах) |
+| `JWT_SECRET` | Автогенерация (`~/.9router/jwt-secret`) | Секрет подписи JWT для cookie аутентификации панели (задайте для общего доступа между инстансами) |
+| `INITIAL_PASSWORD` | `123456` | Пароль первого входа при отсутствии сохранённого хеша |
+| `DATA_DIR` | `~/.9router` | Расположение основной БД приложения (`db.json`) |
+| `PORT` | framework default | Порт сервиса (`20128` в примерах) |
 | `HOSTNAME` | framework default | Bind host (Docker по умолчанию `0.0.0.0`) |
 | `NODE_ENV` | runtime default | Установите `production` для развёртывания |
-| `BASE_URL` | `http://localhost:21128` | Внутренний серверный базовый URL для задач облачной синхронизации |
-| `CLOUD_URL` | `https://dardcor-code.web.id` | Серверный базовый URL эндпоинта облачной синхронизации |
+| `BASE_URL` | `http://localhost:20128` | Внутренний серверный базовый URL для задач облачной синхронизации |
+| `CLOUD_URL` | `https://9router.com` | Серверный базовый URL эндпоинта облачной синхронизации |
 | `NEXT_PUBLIC_BASE_URL` | `http://localhost:3000` | Обратно совместимый/публичный базовый URL (приоритет `BASE_URL` для серверного рантайма) |
-| `NEXT_PUBLIC_CLOUD_URL` | `https://dardcor-code.web.id` | Обратно совместимый/публичный облачный URL (приоритет `CLOUD_URL` для серверного рантайма) |
+| `NEXT_PUBLIC_CLOUD_URL` | `https://9router.com` | Обратно совместимый/публичный облачный URL (приоритет `CLOUD_URL` для серверного рантайма) |
 | `API_KEY_SECRET` | `endpoint-proxy-api-key-secret` | HMAC-секрет для генерируемых API-ключей |
 | `MACHINE_ID_SALT` | `endpoint-proxy-salt` | Соль для стабильного хеширования ID машины |
 | `ENABLE_REQUEST_LOGS` | `false` | Включить лог запросов/ответов в `logs/` |
@@ -1008,9 +1045,9 @@ docker stop dardcor-code && docker rm dardcor-code
 ### Runtime-файлы и хранилище
 
 - Основное состояние приложения: `${DATA_DIR}/db.json` (провайдеры, комбо, alias, ключи, настройки), управляется `src/lib/localDb.js`.
-- История использования и логи: `~/.dardcor-code/usage.json` и `~/.dardcor-code/log.txt`, управляется `src/lib/usageDb.js`.
+- История использования и логи: `~/.9router/usage.json` и `~/.9router/log.txt`, управляется `src/lib/usageDb.js`.
 - Опциональные логи запросов/транслятора: `<repo>/logs/...` при `ENABLE_REQUEST_LOGS=true`.
-- Хранилище использования следует логике пути `~/.dardcor-code` и независимо от `DATA_DIR`.
+- Хранилище использования следует логике пути `~/.9router` и независимо от `DATA_DIR`.
 
 </details>
 
@@ -1081,15 +1118,15 @@ docker stop dardcor-code && docker rm dardcor-code
 - Используйте бесплатные уровни (Gemini CLI, iFlow) для некритичных задач
 
 **Панель открывается на неверном порту**
-- Установите `PORT=21128` и `NEXT_PUBLIC_BASE_URL=http://localhost:21128`
+- Установите `PORT=20128` и `NEXT_PUBLIC_BASE_URL=http://localhost:20128`
 
 **Ошибки облачной синхронизации**
-- Убедитесь, что `BASE_URL` указывает на ваш работающий инстанс (например, `http://localhost:21128`)
-- Убедитесь, что `CLOUD_URL` указывает на ожидаемый облачный эндпоинт (например, `https://dardcor-code.web.id`)
+- Убедитесь, что `BASE_URL` указывает на ваш работающий инстанс (например, `http://localhost:20128`)
+- Убедитесь, что `CLOUD_URL` указывает на ожидаемый облачный эндпоинт (например, `https://9router.com`)
 - По возможности держите значения `NEXT_PUBLIC_*` согласованными с серверными значениями.
 
 **Облачный эндпоинт `stream=false` возвращает 500 (`Unexpected token 'd'...`)**
-- Симптом обычно появляется на публичном облачном эндпоинте (`https://dardcor-code.web.id/v1`) для непотоковых (non-streaming) вызовов.
+- Симптом обычно появляется на публичном облачном эндпоинте (`https://9router.com/v1`) для непотоковых (non-streaming) вызовов.
 - Корневая причина: upstream возвращает SSE-payload (`data: ...`), тогда как клиент ожидает JSON.
 - Обходное решение: используйте `stream=true` для прямых вызовов в облако.
 - Локальный рантайм Dardcor Code включает резервирование SSE→JSON для непотоковых вызовов, когда upstream возвращает `text/event-stream`.
@@ -1100,7 +1137,7 @@ docker stop dardcor-code && docker rm dardcor-code
 
 **Первый вход не работает**
 - Проверьте `INITIAL_PASSWORD` в `.env`
-- Если не задан, откройте панель через localhost и создайте пароль в форме первого входа
+- Если не задан, резервный пароль — `123456`
 
 **Нет логов запросов в `logs/`**
 - Установите `ENABLE_REQUEST_LOGS=true`
@@ -1123,7 +1160,7 @@ docker stop dardcor-code && docker rm dardcor-code
 ### Chat Completions
 
 ```bash
-POST http://localhost:21128/v1/chat/completions
+POST http://localhost:20128/v1/chat/completions
 Authorization: Bearer your-api-key
 Content-Type: application/json
 
@@ -1139,7 +1176,7 @@ Content-Type: application/json
 ### Список моделей
 
 ```bash
-GET http://localhost:21128/v1/models
+GET http://localhost:20128/v1/models
 Authorization: Bearer your-api-key
 
 → Возвращает все модели + комбо в формате OpenAI
@@ -1163,7 +1200,7 @@ Authorization: Bearer your-api-key
 - `tester/security/test-docker-hardening.sh`
   - Собирает Docker-образ и проверяет hardening-проверки (`/api/cloud/auth` auth guard, `REQUIRE_API_KEY`, безопасное поведение cookie аутентификации).
 - `tester/security/test-cloud-openai-compatible.sh`
-  - Отправляет OpenAI-совместимый запрос напрямую на облачный эндпоинт (`https://dardcor-code.web.id/v1/chat/completions`) с указанной моделью/ключом.
+  - Отправляет OpenAI-совместимый запрос напрямую на облачный эндпоинт (`https://9router.com/v1/chat/completions`) с указанной моделью/ключом.
 - `tester/security/test-cloud-sync-and-call.sh`
   - End-to-end процесс: создание локального ключа → включение/синхронизация облака → вызов облачного эндпоинта с повтором.
   - Включает резервную проверку с `stream=true`, чтобы отличить ошибки аутентификации от проблем разбора потока.
@@ -1181,9 +1218,9 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 
 Ожидаемое поведение по результатам недавней проверки:
 
-- Локально (`http://127.0.0.1:21128/v1/chat/completions`): работает с `stream=false` и `stream=true`.
+- Локально (`http://127.0.0.1:20128/v1/chat/completions`): работает с `stream=false` и `stream=true`.
 - Docker-рантайм (тот же API-путь, экспонируемый контейнером): hardening-проверки проходят, cloud auth guard работает, строгий режим API-ключа работает при включении.
-- Публичный облачный эндпоинт (`https://dardcor-code.web.id/v1/chat/completions`):
+- Публичный облачный эндпоинт (`https://9router.com/v1/chat/completions`):
   - `stream=true`: ожидается успех (возвращает SSE-чанки).
   - `stream=false`: может падать с `500` + ошибкой разбора (`Unexpected token 'd'`), когда upstream возвращает SSE-контент для непотокового клиентского пути.
 
@@ -1221,8 +1258,9 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 
 ## 📧 Поддержка
 
-- **Сайт**: [dardcor-code.web.id](https://dardcor-code.web.id)
-- **GitHub**: 
+- **Сайт**: [9router.com](https://9router.com)
+- **GitHub**: [github.com/decolua/9router](https://github.com/decolua/9router)
+- **Issues**: [github.com/decolua/9router/issues](https://github.com/decolua/9router/issues)
 
 ---
 
@@ -1230,9 +1268,13 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 
 Спасибо всем, кто помогает делать Dardcor Code лучше!
 
+[![Contributors](https://contrib.rocks/image?repo=decolua/9router&max=100&columns=20&anon=1)](https://github.com/decolua/9router/graphs/contributors)
+
 ---
 
 ## 📊 Star Chart
+
+[![Star Chart](https://starchart.cc/decolua/9router.svg?variant=adaptive)](https://starchart.cc/decolua/9router)
 
 ### Как внести вклад
 
@@ -1242,11 +1284,13 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 4. Запушьте в ветку (`git push origin feature/amazing-feature`)
 5. Откройте Pull Request
 
-См. [Pull Requests](/pulls) для подробных инструкций.
+См. [Pull Requests](https://github.com/decolua/9router/pulls) для подробных инструкций.
 
 ---
 
 ## 🔀 Форки
+
+**[OmniRoute](https://github.com/diegosouzapw/OmniRoute)** — Полнофункциональный TypeScript-форк Dardcor Code. Добавляет 36+ провайдеров, авторезервирование на 4 уровнях, мультимодальный API (изображения, embedding, аудио, TTS), circuit breaker, семантическое кеширование, оценку LLM и доработанную панель. 368+ юнит-тестов. Доступен через npm.
 
 ---
 

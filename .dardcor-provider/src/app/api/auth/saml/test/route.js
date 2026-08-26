@@ -23,7 +23,7 @@ export async function POST(request) {
     const settings = await getSettings();
 
     const samlEntryPoint = String(body.samlEntryPoint || settings.samlEntryPoint || "").trim();
-    const samlIssuer = String(body.samlIssuer || settings.samlIssuer || "urn:dardcor-code:sp").trim();
+    const samlIssuer = String(body.samlIssuer || settings.samlIssuer || "urn:9router:sp").trim();
     const samlCert = String(
       Object.prototype.hasOwnProperty.call(body, "samlCert")
         ? body.samlCert

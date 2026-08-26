@@ -1,6 +1,6 @@
 const { log, err } = require("../logger");
 
-const DEFAULT_LOCAL_ROUTER = "http://localhost:21128";
+const DEFAULT_LOCAL_ROUTER = "http://localhost:20128";
 const ROUTER_BASE = String(process.env.MITM_ROUTER_BASE || DEFAULT_LOCAL_ROUTER)
   .trim()
   .replace(/\/+$/, "") || DEFAULT_LOCAL_ROUTER;
@@ -9,8 +9,7 @@ const API_KEY = process.env.ROUTER_API_KEY;
 // Headers that must not be forwarded to Dardcor Code
 const STRIP_HEADERS = new Set([
   "host", "content-length", "connection", "transfer-encoding",
-  "content-type", "content-encoding", "authorization", "te",
-  "connect-content-encoding", "connect-accept-encoding", "connect-protocol-version"
+  "content-type", "authorization"
 ]);
 
 /**
@@ -20,7 +19,7 @@ const STRIP_HEADERS = new Set([
 async function fetchRouter(openaiBody, path = "/v1/chat/completions", clientHeaders = {}) {
   const forwarded = {};
   for (const [k, v] of Object.entries(clientHeaders)) {
-    if (!k.startsWith(":") && !STRIP_HEADERS.has(k.toLowerCase())) forwarded[k] = v;
+    if (!STRIP_HEADERS.has(k.toLowerCase())) forwarded[k] = v;
   }
 
   const response = await fetch(`${ROUTER_BASE}${path}`, {

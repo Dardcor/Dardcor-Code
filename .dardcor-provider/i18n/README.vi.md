@@ -1,13 +1,17 @@
 <div align="center">
-  <img src="../images/dardcor-code.png?1" alt="Bảng điều khiển Dardcor Code" width="800"/>
+  <img src="../images/9router.png?1" alt="Bảng điều khiển Dardcor Code" width="800"/>
   
   # Dardcor Code - Free AI Router & Token Saver
   
+  **Không bao giờ ngừng code. Tiết kiệm 20-40% token với RTK + tự động dự phòng sang các mô hình AI MIỄN PHÍ & giá rẻ.**
   
   **Kết nối tất cả công cụ AI Code (Claude Code, Codex, Cursor, Cline, Copilot, Antigravity...) tới 40+ Nhà cung cấp AI & 100+ Mô hình.**
   
+  [![npm](https://img.shields.io/npm/v/9router.svg)](https://www.npmjs.com/package/9router)
+  [![Downloads](https://img.shields.io/npm/dm/9router.svg)](https://www.npmjs.com/package/9router)
+  [![License](https://github.com/decolua/9router/blob/main/LICENSE)](https://github.com/decolua/9router/blob/main/LICENSE)
   
-  [🚀 Bắt đầu nhanh](#-quick-start) • [💡 Tính năng](#-key-features) • [📖 Cài đặt](#-setup-guide) • [🌐 Website](https://dardcor-code.web.id)
+  [🚀 Bắt đầu nhanh](#-quick-start) • [💡 Tính năng](#-key-features) • [📖 Cài đặt](#-setup-guide) • [🌐 Website](https://9router.com)
 </div>
 
 ---
@@ -24,6 +28,7 @@
 
 **Dardcor Code giải quyết vấn đề này:**
 
+- ✅ **RTK Token Saver** - Tự động nén nội dung `tool_result`, tiết kiệm 20-40% token trên mỗi request
 - ✅ **Tối đa hóa gói đăng ký** - Theo dõi hạn mức, tận dụng triệt để trước khi reset
 - ✅ **Tự động dự phòng (Auto Fallback)** - Gói đăng ký → Giá rẻ → Miễn phí, không lo downtime
 - ✅ **Đa tài khoản (Multi-account)** - Xoay vòng (round-robin) các tài khoản cho mỗi nhà cung cấp
@@ -38,7 +43,7 @@
 │  Công cụ    │  (Claude Code, Codex, OpenClaw, Cursor, Cline, Antigravity...)
 │  CLI AI     │
 └──────┬──────┘
-       │ http://localhost:21128/v1
+       │ http://localhost:20128/v1
        ↓
 ┌─────────────────────────────────────────────┐
 │           Dardcor Code (Smart Router)            │
@@ -54,6 +59,7 @@
        │   ↓ chạm ngân sách
        └─→ [Tier 3: MIỄN PHÍ] Kiro AI, OpenCode Free, Vertex AI ($300 credits)
 
+Kết quả: Không bao giờ ngừng code, chi phí tối thiểu + tiết kiệm 20-40% token qua RTK
 ```
 
 ---
@@ -63,11 +69,11 @@
 **1. Cài đặt toàn cục:**
 
 ```bash
-npm install -g dardcor-code
-dardcor-code
+npm install -g 9router
+9router
 ```
 
-🎉 Bảng điều khiển (Dashboard) sẽ tự động mở tại `http://localhost:21128`
+🎉 Bảng điều khiển (Dashboard) sẽ tự động mở tại `http://localhost:20128`
 
 **2. Kết nối nhà cung cấp MIỄN PHÍ (không cần đăng ký):**
 
@@ -77,7 +83,7 @@ Bảng điều khiển → Providers → Kết nối **Kiro AI** (~50 credits/th
 
 ```
 Cài đặt Claude Code/Codex/OpenClaw/Cursor/Cline/Antigravity:
-  Endpoint: http://localhost:21128/v1
+  Endpoint: http://localhost:20128/v1
   API Key: [sao chép từ bảng điều khiển]
   Model: kr/claude-sonnet-4.5
 ```
@@ -91,21 +97,42 @@ Gói kho lưu trữ này là riêng tư (`dardcor-code-app`), vì vậy việc c
 ```bash
 cp .env.example .env
 npm install
-PORT=21128 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run dev
+PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
 ```
 
 Chế độ Production:
 
 ```bash
 npm run build
-PORT=21128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run start
+PORT=20128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run start
 ```
 
 URL mặc định:
-- Bảng điều khiển Dashboard: `http://localhost:21128/dashboard`
-- API tương thích OpenAI: `http://localhost:21128/v1`
+- Bảng điều khiển Dashboard: `http://localhost:20128/dashboard`
+- API tương thích OpenAI: `http://localhost:20128/v1`
 
 ---
+
+
+## 🎥 Hướng dẫn Video
+
+<div align="center">
+  
+### 📺 Hướng dẫn thiết lập hoàn chỉnh - Dardcor Code + Claude Code MIỄN PHÍ
+  
+[![Thiết lập Dardcor Code + Claude Code](https://img.youtube.com/vi/raEyZPg5xE0/maxresdefault.jpg)](https://www.youtube.com/watch?v=raEyZPg5xE0)
+
+**🎬 Xem hướng dẫn từng đầy đủ:**
+- ✅ Cài đặt & thiết lập Dardcor Code
+- ✅ Cấu hình Claude Sonnet 4.5 MIỄN PHÍ
+- ✅ Tích hợp Claude Code
+- ✅ Thử nghiệm code trực tiếp
+
+**⏱️ Thời lượng:** 20 phút | **👥 Bởi:** Cộng đồng Nhà phát triển
+
+[▶️ Xem trên YouTube](https://www.youtube.com/watch?v=o3qYCyjrFYg)
+
+</div>
 
 ---
 
@@ -418,8 +445,10 @@ Dịch chuyển liền mạch giữa các định dạng:
 > "Chi phí" hiển thị trong Phân tích sử dụng là **chỉ để theo dõi và so sánh**. 
 > Bản thân Dardcor Code **không bao giờ thu phí** bạn bất cứ thứ gì. Bạn chỉ trả tiền trực tiếp cho các nhà cung cấp (nếu sử dụng dịch vụ trả phí).
 > 
+> **Ví dụ:** Nếu bảng điều khiển của bạn hiển thị "tổng chi phí $290" trong khi sử dụng các mô hìnhFlow, điều này đại diện cho 
 > số tiền bạn sẽ phải trả nếu sử dụng API trả phí trực tiếp. Chi phí thực tế của bạn = **$0** (iFlow miễn phí không giới hạn).
 > 
+> Hãy coi nó như một "trình theo dõi tiết kiệm" cho thấy bạn đang tiết kiệm được bao nhiêu bằng cách sử dụng các mô hình miễn phí hoặc 
 > định tuyến qua Dardcor Code!
 
 ### 🌐 Triển khai ở bất cứ đâu
@@ -464,20 +493,25 @@ Dịch chuyển liền mạch giữa các định dạng:
 
 **Cách Hoạt động của Hiển thị Chi phí:**
 
+Bảng điều khiển hiển thị **chi phí ước tính** như thể bạn đang sử dụng API trả phí trực tiếp. Đây **không phải là thanh toán** - đó là công cụ so sánh để cho thấy mức tiết kiệm của bạn.
+
 **Kịch bản Ví dụ:**
 ```
 Hiển thị trên Bảng điều khiển:
 • Tổng số Request: 1,662
 • Tổng số Token: 47M
+• Chi phí Hiển thị: $290
 
 Kiểm tra Thực tế:
 • Nhà cung cấp: iFlow (MIỄN PHÍ không giới hạn)
 • Thanh toán Thực tế: $0.00
+• Ý nghĩa của $290: Số tiền bạn TIẾT KIỆM được bằng cách sử dụng mô hình miễn phí!
 ```
 
 **Quy tắc Thanh toán:**
 - **Nhà cung cấp gói đăng ký** (Claude Code, Codex): Trả tiền trực tiếp cho họ qua website của họ
 - **Nhà cung cấp giá rẻ** (GLM, MiniMax): Trả tiền trực tiếp cho họ, Dardcor Code chỉ định tuyến
+- **Nhà cung cấp MIỄN PHÍ** (iFlow, Kiro, Qwen): Thực sự miễn phí mãi mãi, không có phí ẩn
 - **9**: Không bao giờ thu phí bất cứ thứ gì, ever
 
 ---
@@ -552,9 +586,15 @@ Truy cập qua: WhatsApp, Telegram, Slack, Discord, iMessage, Signal...
 <details>
 <summary><b>📊 Tại sao bảng điều khiển của tôi hiển thị chi phí cao?</b></summary>
 
+Bảng điều khiển theo dõi mức sử dụng token của bạn và hiển thị **chi phí ước tính** như thể bạn đang sử dụng API trả phí trực tiếp. Đâykhông phải là thanh toán thực tế** - đó là tài liệu tham khảo để cho thấy bạn đang tiết kiệm được bao nhiêu bằng cách sử dụng các mô hình miễn phí hoặc gói đăng ký hiện có thông qua Dardcor Code.
+
 **Ví dụ:**
+- **Bảng điều khiển hiển thị:** "Tổng chi phí $290"
 - **Thực tế:** Bạn đang sử dụng iFlow (MIỄN PHÍ không giới hạn)
 - **Chi phí thực tế của bạn:** **$0.00**
+- **Ý nghĩa của $290:** Số bạn **tiết kiệm** được bằng cách sử dụng các mô hình miễn phí thay vì API trả phí!
+
+Màn hình chi phí là một "trình theo dõi tiết kiệm" để giúp bạn hiểu các mẫu sử dụng và cơ hội tối ưu hóa.
 
 </details>
 
@@ -823,8 +863,8 @@ Chi phí: $0 mãi mãi!
 
 ```
 Settings → Models → Advanced:
-  OpenAI API Base URL: http://localhost:21128/v1
-  OpenAI API Key: [từ bảng điều khiển dardcor-code]
+  OpenAI API Base URL: http://localhost:20128/v1
+  OpenAI API Key: [từ bảng điều khiển 9router]
   Model: cc/claude-opus-4-6
 ``Hoặc sử dụng combo: `premium-coding`
 
@@ -834,16 +874,16 @@ Chỉnh sửa `~/.claude/config.json`:
 
 ```json
 {
-  "anthropic_api_base": "http://localhost:21128/v1",
-  "anthropic_api_key": "your-dardcor-code-api-key"
+  "anthropic_api_base": "http://localhost:20128/v1",
+  "anthropic_api_key": "your-9router-api-key"
 }
 ```
 
 ### Codex CLI
 
 ```bash
-export OPENAI_BASE_URL="http://localhost:21128"
-export OPENAI_API_KEY="your-dardcor-code-api-key"
+export OPENAI_BASE_URL="http://localhost:20128"
+export OPENAI_API_KEY="your-9router-api-key"
 
 codex "prompt của bạn"
 ```
@@ -863,15 +903,15 @@ Bảng điều khiển → CLI Tools → OpenClaw → Chọn Mô hình → Áp d
   "agents": {
     "defaults": {
       "model": {
-        "primary": "dardcor-code/if/glm-4.7"
+        "primary": "9router/if/glm-4.7"
       }
     }
   },
   "models": {
     "providers": {
-      "dardcor-code": {
-        "baseUrl": "://127.0.0.1:21128/v1",
-        "apiKey": "sk_dardcor-code",
+      "9router": {
+        "baseUrl": "://127.0.0.1:20128/v1",
+        "apiKey": "sk_9router",
         "api": "openai-completions",
         "models": [
           {
@@ -891,7 +931,7 @@ Bảng điều khiển → CLI Tools → OpenClaw → Chọn Mô hình → Áp d
 
 ```
 Provider: OpenAI Compatible
-Base URL: http://localhost:21128/v1
+Base URL: http://localhost:20128/v1
 API Key: [từ bảng điều khiển]
 Model: cc/claude-opus-4-6
 ```
@@ -905,20 +945,20 @@ Model: cc/claude-opus-4-6
 
 ```bash
 # Clone và cài đặt
-git clone .git
-cd dardcor-code
+git clone https://github.com/decolua/9router.git
+cd 9router
 npm install
 npm run build
 
 # Cấu hình
 export JWT="your-secure-secret-change-this"
 export INITIAL_PASSWORD="your-password"
-export DATA_DIR="/var/lib/dardcor-code"
-export PORT="21128"
+export DATA_DIR="/var/lib/9router"
+export PORT="20128"
 export HOSTNAME="0.0.0.0"
 export NODE_ENV="production"
-export NEXT_PUBLIC_BASE_URL="http://localhost:21128"
-export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.web.id"
+export NEXT_PUBLIC_BASE_URL="http://localhost:20128"
+export NEXT_PUBLIC_CLOUD_URL="https://9router.com"
 export API_KEY_SECRET="endpoint-proxy-api-key-secret"
 export MACHINE_ID_SALT="endpoint-proxy-salt"
 
@@ -927,7 +967,7 @@ npm run start
 
 # Hoặc sử dụng PM2
 npm install -g pm2
-pm2 start --name dardcor-code -- start
+pm2 start --name 9router -- start
 pm2 save
 pm2 startup
 ```
@@ -936,56 +976,56 @@ pm2 startup
 
 ```bash
 # Build image (từ gốc kho lưu trữ)
-docker build -t dardcor-code .
+docker build -t 9router .
 
 # Chạy container (lệnh được sử dụng trong thiết lập hiện tại)
 docker run -d \
-  --name dardcor-code \
-  -p 21128:21128 \
-  --env-file /root/dev/dardcor-code/.env \
-  -v dardcor-code-data:/app/data \
-  -v dardcor-code-usage:/root/.dardcor-code \
-  dardcor-code
+  --name 9router \
+  -p 20128:20128 \
+  --env-file /root/dev/9router/.env \
+  -v 9router-data:/app/data \
+  -v 9router-usage:/root/.9router \
+  9router
 ```
 
 Lệnh di động (nếu bạn đã ở gốc kho lưu trữ):
 
 ```bash
 docker run -d \
-  --name dardcor-code \
-  -p 21128:21128 \
+  --name 9router \
+  -p 20128:20128 \
   --env-file ./.env \
-  -v dardcor-code-data:/app/data \
-  -v dardcor-code-usage:/root/.dardcor-code \
-  dardcor-code
+  -v 9router-data:/app/data \
+  -v 9router-usage:/root/.9router \
+  9router
 ```
 
 Mặc định container:
-- `PORT=21128`
+- `PORT=20128`
 - `HOSTNAME=0.0.0.0`
 
 Các lệnh hữu ích:
 
 ```bash
-docker logs -f dardcor-code
- restart dardcor-code
-docker stop dardcor-code && docker rm dardcor-code
+docker logs -f 9router
+ restart 9router
+docker stop 9router && docker rm 9router
 ```
 
 ### Biến môi trường
 
 | Biến | Mặc định | Mô tả |
 |----------|---------|-------------|
-| `JWT_SECRET` | Tự động sinh (`~/.dardcor-code/jwt-secret`) | Bí mật ký JWT cho cookie xác thực bảng điều khiển (đặt để chia sẻ giữa nhiều instance) |
-| `INITIAL_PASSWORD` | unset | Bootstrap tùy chọn chỉ dành cho local khi chưa có hash được lưu. Nếu không đặt, hãy tạo mật khẩu qua localhost |
-| `DATA_DIR` | `~/.dardcor-code` |ị trí cơ sở dữ liệu ứng dụng chính (`db.json`) |
-| `PORT` | framework default | Cổng dịch vụ (`21128` trong các ví dụ) |
+| `JWT_SECRET` | Tự động sinh (`~/.9router/jwt-secret`) | Bí mật ký JWT cho cookie xác thực bảng điều khiển (đặt để chia sẻ giữa nhiều instance) |
+| `INITIAL_PASSWORD` | `123456` | Mật khẩu đăng nhập đầu tiên khi không có hash đã lưu tồn tại |
+| `DATA_DIR` | `~/.9router` |ị trí cơ sở dữ liệu ứng dụng chính (`db.json`) |
+| `PORT` | framework default | Cổng dịch vụ (`20128` trong các ví dụ) |
 | `HOSTNAME` | framework default | Bind host (Docker mặc định là `0.0.0.0`) |
 | `NODE_ENV` | runtime default | Đặt `production` để triển khai |
-| `BASE_URL` | `http://localhost:21128` | URL cơ sở nội bộ phía máy chủ được sử dụng bởi các tác vụ đồng bộ đám mây |
-| `CLOUD_URL` | `https://dardcor-code.web.id` | URL cơ sở endpoint đồng bộ đám mây phía máy chủ |
+| `BASE_URL` | `http://localhost:20128` | URL cơ sở nội bộ phía máy chủ được sử dụng bởi các tác vụ đồng bộ đám mây |
+| `CLOUD_URL` | `https://9router.com` | URL cơ sở endpoint đồng bộ đám mây phía máy chủ |
 | `NEXT_PUBLIC_BASE_URL` | `http://localhost:3000` | URL cơ sở tương thích ngược/công khai (ưu tiên `BASE_URL` cho runtime máy chủ) |
-| `NEXT_PUBLIC_CLOUD_URL` | `https://dardcor-code.web.id` | URL đám mây tương thích ngược/công khai (ưu tiên `CLOUD_URL` cho runtime máy chủ) |
+| `NEXT_PUBLIC_CLOUD_URL` | `https://9router.com` | URL đám mây tương thích ngược/công khai (ưu tiên `CLOUD_URL` cho runtime máy chủ) |
 | `API_KEY_SECRET` | `endpoint-proxy-api-key-secret` | B mật HMAC cho các API key được tạo |
 | `MACHINE_ID_SALT` | `endpoint-proxy-salt` | Salt cho việc băm ID máy ổn định |
 | `ENABLE_REQUEST_LOGS` | `false` | Bật log request/response dưới `logs/` |
@@ -1002,9 +1042,9 @@ Ghi chú:
 ### Tệp Runtime và Lưu trữ
 
 - Trạng thái ứng dụng chính: `${DATA_DIR}/db.json` (nhà cung cấp, combo, alias, key, cài đặt), được quản lý bởi `src/lib/localDb.js`.
-- Lịch sử sử dụng và log: `~/.dardcor-code/usage.json` và `~/.dardcor-code/log.txt`, được quản lý bởi `src/lib/usageDb.js`.
+- Lịch sử sử dụng và log: `~/.9router/usage.json` và `~/.9router/log.txt`, được quản lý bởi `src/lib/usageDb.js`.
 - request/translator tùy chọn: `<repo>/logs/...` khi `ENABLE_REQUEST_LOGS=true`.
-- Lưu trữ sử dụng hiện tại tuân theo logic đường dẫn `~/.dardcor-code` và độc lập với `DATA_DIR`.
+- Lưu trữ sử dụng hiện tại tuân theo logic đường dẫn `~/.9router` và độc lập với `DATA_DIR`.
 
 </details>
 
@@ -1075,15 +1115,15 @@ Ghi chú:
 - Sử dụng tầng miễn phí (Gemini CLI, iFlow) cho các tác vụ không quan trọng
 
 **Bảng điều khiển mở sai cổng**
-- Đặt `PORT=21128` và `NEXT_PUBLIC_BASE_URL=http://localhost:21128`
+- Đặt `PORT=20128` và `NEXT_PUBLIC_BASE_URL=http://localhost:20128`
 
 **Lỗi đồng bộ đám mây**
-- Xác minh `BASE_URL` trỏ đến phiên bản đang chạy của bạn (ví dụ: `http://localhost:21128`)
-- Xác minh `CLOUD_URL` trỏ đến endpoint đám mây dự kiến của bạn (ví dụ: `https://dardcor-code.web.id`)
+- Xác minh `BASE_URL` trỏ đến phiên bản đang chạy của bạn (ví dụ: `http://localhost:20128`)
+- Xác minh `CLOUD_URL` trỏ đến endpoint đám mây dự kiến của bạn (ví dụ: `https://9router.com`)
 - Giữ các giá trị `NEXT_PUBLIC_*` phù hợp với giá trị phía máy chủ khi có thể.
 
 **Endpoint đám mây `stream=false` trả về 500 (`Unexpected token 'd'...`)**
-- Triệu chứng thường xuất hiện trên endpoint đám mây công khai (`https://dardcor-code.web.id/v1`) cho các lệnh gọi không phát trực tiếp (non-streaming).
+- Triệu chứng thường xuất hiện trên endpoint đám mây công khai (`https://9router.com/v1`) cho các lệnh gọi không phát trực tiếp (non-streaming).
 - Nguyên nhân gốc rễ: upstream trả về payload SSE (`data: ...`) trong khi client mong đợi JSON.
 -ải pháp thay thế: sử dụng `stream=true` cho các lệnh gọi trực tiếp đến đám mây.
 - Runtime Dardcor Code cục bộ bao gồm dự phòng SSE→JSON cho các lệnh gọi không phát trực tiếp khi upstream trả về `text/event-stream`.
@@ -1094,7 +1134,7 @@ Ghi chú:
 
 **Đăng nhập lần đầu không hoạt động**
 - Kiểm tra `INITIAL_PASSWORD` trong `.env`
-- Nếu chưa đặt, hãy mở dashboard qua localhost và tạo mật khẩu trong biểu mẫu lần đầu
+- Nếu chưa đặt, mật khẩu dự phòng là `123456`
 
 **Không có log request dưới `logs/`**
 - Đặt `ENABLE_REQUEST_LOGS=true`
@@ -1117,7 +1157,7 @@ Ghi chú:
 ### Chat Completions
 
 ```bash
-POST http://localhost:21128/v1/chat/completions
+POST http://localhost:20128/v1/chat/completions
 Authorization: Bearer your-api-key
 Content-Type: application/json
 
@@ -1133,7 +1173,7 @@ Content-Type: application/json
 ### Liệt kê Mô hình
 
 ```bash
-GET http://localhost:21128/v1/models
+GET http://localhost:20128/v1/models
 Authorization: Bearer your-api-key
 
 → Trả về tất cả các mô hình + combo ở định dạng OpenAI
@@ -1157,7 +1197,7 @@ Authorization: Bearer your-api-key
 - `tester/security/test-docker-hardening.sh`
   - Build image Docker và xác thực các kiểm tra hardening (`/api/cloud/auth` auth guard, `REQUIRE_API_KEY`, hành vi cookie xác thực bảo).
 - `tester/security/test-cloud-openai-compatible.sh`
-  - Gửi một yêu cầu tương thích OpenAI trực tiếp đến endpoint đám mây (`https://dardcor-code.web.id/v1/chat/completions`) với mô hình/key được cung cấp.
+  - Gửi một yêu cầu tương thích OpenAI trực tiếp đến endpoint đám mây (`https://9router.com/v1/chat/completions`) với mô hình/key được cung cấp.
 - `tester/security/test-cloud-sync-and-call.sh`
   - Quy trình end-to-end: tạo key cục bộ -> bật/đồng bộ đám mây -> gọi endpoint đám mây với thử lại.
   - Bao gồm kiểm tra dự phòng với `stream=true` để phân biệt lỗi xác thực với các vấn đề phân tích phát trực tiếp.
@@ -1175,9 +1215,9 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 
 Hành vi dự kiến từ việc xác thực gần đây:
 
-- cục bộ (`http://127.0.0.1:21128/v1/chat/completions`): hoạt động với `stream=false` và `stream=true`.
+- cục bộ (`http://127.0.0.1:20128/v1/chat/completions`): hoạt động với `stream=false` và `stream=true`.
 - Runtime Docker (cùng đường dẫn API được expose bởi container): các kiểm tra hardening đạt, cloud auth guard hoạt động, chế độ API key nghiêm ngặt hoạt động khi được bật.
-- Endpoint đám mây công khai (`https://dardcor-code.web.id/v1/chat/completions`):
+- Endpoint đám mây công khai (`https://9router.com/v1/chat/completions`):
   - `stream=true`: dự kiến thành công (trả về các khối SSE).
   - `stream=false`: có thể thất bại với `500` + lỗi phân tích (`Unexpected token 'd'`) khi upstream trả về nội dung SSE cho đường dẫn client không phát trực tiếp.
 
@@ -1215,7 +1255,9 @@ Tài liệu tham khảo kiến trúc đầy đủ: [`docs/ARCHITECTURE.md`](../d
 
 ## 📧 Hỗ trợ
 
-- **Website**: [dardcor-code.web.id](https://dardcor-code.web.id)
+- **Website**: [9router.com](https://9router.com)
+- **GitHub**: [github.com/decolua/9](https://github.com/decolua/9router)
+- **Issues**: [github.com/decolua/9router/issues](https://github.com/decolua/9router/issues)
 
 ---
 
@@ -1223,9 +1265,13 @@ Tài liệu tham khảo kiến trúc đầy đủ: [`docs/ARCHITECTURE.md`](../d
 
 Cảm ơn tất cả những người đã đóng góp giúp Dardcor Code tốt hơn!
 
+[![Contributors](https://contrib.rocks/image?repo=decolua/9router&max=100&columns=20&anon=1)](https://github.com/decolua/9router/graphs/contributors)
+
 ---
 
 ## 📊 Star Chart
+
+[![ Chart](https://starchart.cc/decolua/9router.svg?variant=adaptive)](https://starchart.cc/decolua/9router)
 
 ### Cách Đóng góp
 
@@ -1235,11 +1281,13 @@ Cảm ơn tất cả những người đã đóng góp giúp Dardcor Code tốt 
 4. Push lên nhánh (`git push origin feature/amazing-feature`)
 5. Mở một Pull Request
 
-Xem [Pull Requests](/pulls) để biết hướng dẫn chi tiết.
+Xem [Pull Requests](https://github.com/decolua/9router/pulls) để biết hướng dẫn chi tiết.
 
 ---
 
 ## 🔀 Forks
+
+**[OmniRoute](https://github.com/diegosouzapw/OmniRoute)** — Một fork TypeScript đầy đủ tính năng của Dardcor Code. Thêm 36+ nhà cung cấp, tự động dự phòng 4 tầng, API đa phương thức (hình ảnh, embedding, âm thanh, TTS), circuit breaker, bộ nhớ đệm ngữ nghĩa, đánh giá LLM và bảng điều khiển được tinh chỉnh. 368+ bài kiểm tra đơn vị. Có sẵn qua npm và.
 
 ---
 

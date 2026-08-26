@@ -2,29 +2,21 @@ import { NextResponse } from "next/server";
 import { getSettings, validateApiKey } from "@/lib/localDb";
 import { getConsistentMachineId } from "@/shared/utils/machineId";
 import { verifyDashboardAuthToken } from "@/lib/auth/dashboardSession";
+import { hasTrustedPeerHeaders } from "@/lib/auth/trustedPeer";
 
-// CLI token header/salt: new writes use dardcor names; legacy x-9r-* / 9r-* still
-// accepted so an already-installed 9router CLI keeps authenticating.
-const CLI_TOKEN_HEADER = "x-dardcor-cli-token";
-const LEGACY_CLI_TOKEN_HEADER = "x-9r-cli-token";
-const CLI_TOKEN_SALT = "dardcor-cli-auth";
-const LEGACY_CLI_TOKEN_SALT = "9r-cli-auth";
+const CLI_TOKEN_HEADER = "x-9r-cli-token";
+const CLI_TOKEN_SALT = "9r-cli-auth";
 
 let cachedCliToken = null;
-let cachedLegacyCliToken = null;
 async function getCliToken() {
   if (!cachedCliToken) cachedCliToken = await getConsistentMachineId(CLI_TOKEN_SALT);
   return cachedCliToken;
 }
-async function getLegacyCliToken() {
-  if (!cachedLegacyCliToken) cachedLegacyCliToken = await getConsistentMachineId(LEGACY_CLI_TOKEN_SALT);
-  return cachedLegacyCliToken;
-}
 
-export async function hasValidCliToken(request) {
-  const token = request.headers.get(CLI_TOKEN_HEADER) || request.headers.get(LEGACY_CLI_TOKEN_HEADER);
+async function hasValidCliToken(request) {
+  const token = request.headers.get(CLI_TOKEN_HEADER);
   if (!token) return false;
-  return token === await getCliToken() || token === await getLegacyCliToken();
+  return token === await getCliToken();
 }
 
 // Public API paths — no auth required (LLM API has its own key auth inside handler).
@@ -36,9 +28,9 @@ const PUBLIC_API_PATHS = [
   "/api/auth/logout",
   "/api/auth/status",
   "/api/auth/oidc",
+  "/api/auth/saml",
   "/api/version",
   "/api/settings/require-login",
-  "/api/oauth/freebuff",
 ];
 
 // Public top-level prefixes (LLM API endpoints with their own API key auth).
@@ -52,7 +44,6 @@ const ALWAYS_PROTECTED = [
   "/api/version/update",
   "/api/oauth/cursor/auto-import",
   "/api/oauth/kiro/auto-import",
-  "/api/auth/oidc/test",
 ];
 
 // Require auth, but allow through if requireLogin is disabled
@@ -74,14 +65,10 @@ const PROTECTED_API_PATHS = [
   "/api/mcp",
   "/api/translator",
   "/api/tunnel",
-  "/api/batch",
-  "/api/batches",
 ];
 
 // Routes that spawn child processes or read host secrets — restrict to localhost.
 const LOCAL_ONLY_PATHS = [
-  "/api/agents",
-  "/api/cloud-agents",
   "/api/cli-tools/cowork-settings",
   "/api/cli-tools/antigravity-mitm",
   "/api/mcp/",
@@ -97,49 +84,49 @@ const LOCAL_ONLY_PATHS = [
   "/api/headroom/start",
   "/api/headroom/stop",
   "/api/headroom/proxy",
-  "/api/webhooks",
 ];
 
-const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "vscode-app"]);
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 
+// Accepts a Host header, a URL hostname or a raw socket address. Splitting on the first
+// colon only works for IPv4 and would reduce every IPv6 form to "", so a dual-stack
+// listener handing back ::ffff:127.0.0.1 would not read as loopback.
 function isLoopbackHostname(h) {
   if (!h) return false;
-  const name = h.split(":")[0].replace(/^\[|\]$/g, "").toLowerCase();
+  let name = String(h).trim().toLowerCase();
+  if (name.startsWith("[")) {
+    const end = name.indexOf("]");
+    if (end === -1) return false;
+    name = name.slice(1, end);
+  } else if (name.indexOf(":") !== -1 && name.indexOf(":") === name.lastIndexOf(":")) {
+    name = name.slice(0, name.indexOf(":"));
+  }
+  if (name.startsWith("::ffff:")) name = name.slice(7);
   return LOOPBACK_HOSTS.has(name);
 }
 
-export function isAllowedLocalOrigin(origin) {
-  if (!origin || origin === "null") return true;
-  if (origin.startsWith("vscode-file://") || origin.startsWith("vscode-webview://") || origin.includes("vscode-cdn.net")) {
-    return true;
+function isLoopbackPeer(request) {
+  if (hasTrustedPeerHeaders(request)) {
+    return isLoopbackHostname(request.headers.get("x-9r-real-ip"));
   }
-  try {
-    const url = new URL(origin);
-    return isLoopbackHostname(url.hostname);
-  } catch {
-    return false;
+  // Bare `next dev` forks its server, so the wrapper never loads and no peer address
+  // reaches us. Host is spoofable, so this stays confined to development.
+  if (process.env.NODE_ENV === "development") {
+    return isLoopbackHostname(request.headers.get("host"));
   }
+  return false;
 }
 
 export function isLocalRequest(request) {
   // Stamped by custom-server.js when forwarding headers exist: request came through
   // a reverse proxy, so the loopback socket is the proxy hop, not the end-user.
-  if (request.headers.get("x-dardcor-via-proxy") || request.headers.get("x-9r-via-proxy")) return false;
-  // Trusted peer IP from TCP socket (custom-server.js); unspoofable. Primary anchor for "local".
-  const realIp = request.headers.get("x-dardcor-real-ip") || request.headers.get("x-9r-real-ip");
-  if (realIp) {
-    if (!isLoopbackHostname(realIp)) return false;
-  } else if (!isLoopbackHostname(request.headers.get("host"))) {
-    // Fallback for bare server.js (dev) without custom-server: legacy Host-based check.
-    return false;
-  }
+  if (request.headers.get("x-9r-via-proxy")) return false;
+  if (!isLoopbackPeer(request)) return false;
   const origin = request.headers.get("origin");
-  if (origin && !isAllowedLocalOrigin(origin)) {
-    return false;
-  }
-  const secFetchSite = request.headers.get("sec-fetch-site");
-  if (secFetchSite === "cross-site" && (!origin || !isAllowedLocalOrigin(origin))) {
-    return false;
+  if (origin) {
+    try {
+      if (!isLoopbackHostname(new URL(origin).hostname)) return false;
+    } catch { return false; }
   }
   return true;
 }
@@ -161,30 +148,16 @@ function extractApiKey(request) {
 async function hasValidApiKey(request) {
   const apiKey = extractApiKey(request);
   if (!apiKey) return false;
-  if (apiKey === 'sk-dardcor-local-key') return true;
   return await validateApiKey(apiKey);
 }
 
 async function canAccessPublicLlmApi(request) {
-  const origin = request.headers.get("origin");
-  if (origin && !isAllowedLocalOrigin(origin)) return false;
-
   if (isLocalRequest(request)) return true;
   if (await hasValidCliToken(request)) return true;
-  if (await hasValidApiKey(request)) return true;
-  if (await hasValidToken(request)) return true;
-
-  const secFetchSite = request.headers.get("sec-fetch-site");
-  if (secFetchSite === "cross-site" && (!origin || !isAllowedLocalOrigin(origin))) return false;
-
-  const settings = await loadSettings();
-  if (!settings || !settings.requireApiKey) {
-    return true;
-  }
-  return false;
+  return await hasValidApiKey(request);
 }
 
-export async function canAccessLocalOnlyRoute(request) {
+async function canAccessLocalOnlyRoute(request) {
   if (await hasValidCliToken(request)) return true;
   // Browser on host: loopback Host + Origin (blocks tunnel/CSRF) + auth (JWT or requireLogin=false)
   if (isLocalRequest(request) && await isAuthenticated(request)) return true;
@@ -205,7 +178,7 @@ async function loadSettings() {
   }
 }
 
-export async function isAuthenticated(request) {
+async function isAuthenticated(request) {
   if (await hasValidToken(request)) return true;
   const settings = await loadSettings();
   if (settings && settings.requireLogin === false) return true;
@@ -215,18 +188,6 @@ export async function isAuthenticated(request) {
 function isPublicApi(pathname) {
   if (isPublicLlmApi(pathname)) return true;
   return PUBLIC_API_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
-}
-
-function withCorsHeaders(response, request) {
-  const origin = request.headers.get("origin");
-  if (origin && isAllowedLocalOrigin(origin)) {
-    const allowOrigin = origin === "null" ? "null" : origin;
-    response.headers.set("Access-Control-Allow-Origin", allowOrigin);
-    response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
-    response.headers.set("Access-Control-Allow-Headers", "Authorization, Content-Type, Accept, Origin, User-Agent, X-Requested-With, X-CSRF-Token, X-Title, HTTP-Referer, anthropic-version, x-api-key, x-goog-api-key, x-dardcor-cli-token, x-9r-cli-token");
-    response.headers.set("Access-Control-Allow-Credentials", "true");
-  }
-  return response;
 }
 
 export const __test__ = {
@@ -239,74 +200,43 @@ export const __test__ = {
 
 export async function proxy(request) {
   const { pathname } = request.nextUrl;
-  const origin = request.headers.get("origin");
-
-  // Block external web origins immediately
-  if (origin && !isAllowedLocalOrigin(origin)) {
-    return new NextResponse(JSON.stringify({ error: "Access denied: origin not allowed. Dardcor Code is IDE-isolated." }), {
-      status: 403,
-      headers: { "Content-Type": "application/json" }
-    });
-  }
-
-  // Handle CORS preflight OPTIONS across all routes
-  if (request.method === "OPTIONS") {
-    const headers = {
-      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
-      "Access-Control-Allow-Headers": "Authorization, Content-Type, Accept, Origin, User-Agent, X-Requested-With, X-CSRF-Token, X-Title, HTTP-Referer, anthropic-version, x-api-key, x-goog-api-key, x-dardcor-cli-token, x-9r-cli-token",
-      "Access-Control-Allow-Credentials": "true",
-      "Access-Control-Max-Age": "86400",
-    };
-    if (origin && isAllowedLocalOrigin(origin)) {
-      headers["Access-Control-Allow-Origin"] = origin === "null" ? "null" : origin;
-    }
-    return new NextResponse(null, {
-      status: 204,
-      headers,
-    });
-  }
 
   // Local-only gate for spawn-capable / host-secret routes.
   if (LOCAL_ONLY_PATHS.some((p) => pathname.startsWith(p))) {
     if (!(await canAccessLocalOnlyRoute(request))) {
-      return withCorsHeaders(NextResponse.json({ error: "Local only: CLI token required" }, { status: 403 }), request);
+      return NextResponse.json({ error: "Local only: CLI token required" }, { status: 403 });
     }
   }
 
   // Always protected - require valid JWT or local CLI token (machineId-based)
   if (ALWAYS_PROTECTED.some((p) => pathname.startsWith(p))) {
     if (await hasValidCliToken(request) || await hasValidToken(request))
-      return withCorsHeaders(NextResponse.next(), request);
-    return withCorsHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }), request);
+      return NextResponse.next();
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   if (isPublicLlmApi(pathname)) {
-    if (await canAccessPublicLlmApi(request)) {
-      return withCorsHeaders(NextResponse.next(), request);
-    }
-    return withCorsHeaders(NextResponse.json({ error: "API key required for remote API access" }, { status: 401 }), request);
+    if (await canAccessPublicLlmApi(request)) return NextResponse.next();
+    return NextResponse.json({ error: "API key required for remote API access" }, { status: 401 });
   }
 
   // Deny-by-default for /api/* — public allow-list bypasses, everything else requires auth.
   if (pathname.startsWith("/api/")) {
-    if (isPublicApi(pathname)) {
-      return withCorsHeaders(NextResponse.next(), request);
-    }
-    if (await hasValidCliToken(request) || await isAuthenticated(request)) {
-      return withCorsHeaders(NextResponse.next(), request);
-    }
-    return withCorsHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }), request);
+    if (isPublicApi(pathname)) return NextResponse.next();
+    if (await hasValidCliToken(request) || await isAuthenticated(request))
+      return NextResponse.next();
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   // Protect all dashboard routes
   if (pathname.startsWith("/dashboard")) {
-    let requireLogin = false;
+    let requireLogin = true;
     let tunnelDashboardAccess = true;
 
     try {
       const settings = await loadSettings();
       if (settings) {
-        requireLogin = settings.requireLogin === true;
+        requireLogin = settings.requireLogin !== false;
         tunnelDashboardAccess = settings.tunnelDashboardAccess === true;
 
         // Block tunnel/tailscale access if disabled (redirect to login)

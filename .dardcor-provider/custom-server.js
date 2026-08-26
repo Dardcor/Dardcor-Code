@@ -1,18 +1,17 @@
 const http = require("http");
 const path = require("path");
+const fs = require("fs");
+const crypto = require("crypto");
 const { pathToFileURL } = require("url");
 
-// Fail closed before any listener opens: refuse a missing policy file or a
-// known-weak supplied secret. Runs on import, before require("./server.js")
-// can happen. Error names the env variable, never its value.
-try {
-  require("./secret-policy.cjs").assertNoWeakSecrets();
-} catch (e) {
-  console.error(`[secret-gate] ${e && e.message ? e.message : e}`);
-  process.exit(1);
-}
-
 const origCreate = http.createServer.bind(http);
+
+// Per-process secret proving x-9r-real-ip was stamped below rather than sent by the client.
+// A bare `next start` / `next dev` never loads this file, so it cannot produce a matching
+// header even though the env var is inherited by child processes. Named like x-9r-cli-token
+// so the request-detail header sanitizer redacts it too.
+const PEER_TOKEN = crypto.randomBytes(24).toString("hex");
+process.env.NINEROUTER_PEER_TOKEN = PEER_TOKEN;
 
 let backgroundRefreshStarted = false;
 
@@ -64,13 +63,13 @@ http.createServer = (...args) => {
     // Direct/public sockets remain keyed by the unspoofable peer address.
     const proxyIp = xRealIp || (xff ? String(xff).split(",")[0].trim() : "");
     const ip = isLoopbackProxy && proxyIp ? proxyIp : socketIp;
-    delete req.headers["x-dardcor-real-ip"];
     delete req.headers["x-9r-real-ip"];
     delete req.headers["x-forwarded-for"];
-    delete req.headers["x-dardcor-via-proxy"];
     delete req.headers["x-9r-via-proxy"];
-    req.headers["x-dardcor-real-ip"] = ip;
-    if (viaProxy) req.headers["x-dardcor-via-proxy"] = "1";
+    delete req.headers["x-9r-peer-token"];
+    req.headers["x-9r-real-ip"] = ip;
+    req.headers["x-9r-peer-token"] = PEER_TOKEN;
+    if (viaProxy) req.headers["x-9r-via-proxy"] = "1";
     return handler(req, res);
   };
   const server = origCreate(...rest, wrapped);
@@ -126,4 +125,15 @@ http.createServer = (...args) => {
   return server;
 };
 
-if (require.main === module) require("./server.js");
+if (require.main === module) {
+  const standalone = path.join(__dirname, "server.js");
+  if (fs.existsSync(standalone)) {
+    require(standalone);
+  } else {
+    // Repo checkout has no standalone build next to us. `next start` builds its HTTP
+    // server in-process, so the wrapper above still sanitizes every request.
+    const nextBin = require.resolve("next/dist/bin/next");
+    process.argv = [process.argv[0], nextBin, "start", ...process.argv.slice(2)];
+    require(nextBin);
+  }
+}

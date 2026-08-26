@@ -43,7 +43,8 @@ function initKiroState(modelId) {
     finishSent: false,             // Whether termination has been emitted
     usage: null,                   // Accumulated usage from usage-only chunks
     inThink: false,                // Whether inside a <thinking> block
-    thinkBuf: ""                   // Buffer for partial thinking content
+    thinkBuf: "",                  // Buffer for partial thinking content
+    initialSent: false,            // Whether initial-response frame was emitted
   };
 }
 
@@ -130,9 +131,9 @@ function encodeHeader(name, value) {
  * The SmithyMessageDecoderStream layer requires three system headers on every frame:
  *   :message-type  = "event"             (or "exception" / "error")
  *   :event-type    = e.g. "assistantResponseEvent"
- *   :content-type  = "application/json"
+ *   :content-type  = "application/json"  (initial-response uses x-amz-json-1.0)
  */
-function buildEventStreamFrame(eventType, payload) {
+function buildEventStreamFrame(eventType, payload, contentType = "application/json") {
   const payloadBuf = Buffer.from(
     typeof payload === "string" ? payload : JSON.stringify(payload),
     "utf8"
@@ -142,7 +143,7 @@ function buildEventStreamFrame(eventType, payload) {
   const headersBuf = Buffer.concat([
     encodeHeader(":message-type", "event"),
     encodeHeader(":event-type", eventType),
-    encodeHeader(":content-type", "application/json"),
+    encodeHeader(":content-type", contentType),
   ]);
   const headersLen = headersBuf.length;
 
@@ -159,12 +160,30 @@ function buildEventStreamFrame(eventType, payload) {
   return frame;
 }
 
+/** Real Kiro Runtime always starts the stream with this frame (capture of IDE 1.0.228). */
+function buildInitialResponseFrame(conversationId = "") {
+  return buildEventStreamFrame(
+    "initial-response",
+    { conversationId: conversationId || "" },
+    "application/x-amz-json-1.0"
+  );
+}
+
+/** Prepend initial-response once per stream so Smithy decoder is happy. */
+function withInitialFrame(state, frames) {
+  const list = frames == null ? [] : Array.isArray(frames) ? frames : [frames];
+  if (state.initialSent) return list.length === 0 ? null : list.length === 1 ? list[0] : list;
+  state.initialSent = true;
+  const out = [buildInitialResponseFrame(""), ...list];
+  return out.length === 1 ? out[0] : out;
+}
+
 // ─── CodeWhisperer → OpenAI conversion ───────────────────────────────────────
 
 /**
  * Safely stringify a tool-call input value.
  * OpenAI expects `function.arguments` to be a JSON string, never an object.
- * If Dardcor Code's Anthropic→OpenAI conversion passes the input as a pre-parsed object,
+ * If 9router's Anthropic→OpenAI conversion passes the input as a pre-parsed object,
  * this prevents the "" + object → "[object Object]" corruption.
  */
 function safeArgsString(value) {
@@ -321,12 +340,12 @@ function convertOpenAIToKiro(chunk, state) {
       state.inThink = false;
       const thinking = state.thinkBuf;
       state.thinkBuf = "";
-      return buildEventStreamFrame("reasoningContentEvent", {
+      return withInitialFrame(state, buildEventStreamFrame("reasoningContentEvent", {
         content: thinking,
         modelId: state.modelId || "kiro-unknown"
-      });
+      }));
     }
-    return buildEventStreamFrame("messageStopEvent", {});
+    return withInitialFrame(state, buildEventStreamFrame("messageStopEvent", {}));
   }
 
   const frames = [];
@@ -408,8 +427,12 @@ function convertOpenAIToKiro(chunk, state) {
     }
   }
 
-  if (frames.length === 0) return null;
-  return frames.length === 1 ? frames[0] : frames;
+  if (frames.length === 0) {
+    // اولین چانک ممکنه فقط role/empty باشه — initial رو همون‌جا بفرست
+    if (!state.initialSent) return withInitialFrame(state, null);
+    return null;
+  }
+  return withInitialFrame(state, frames.length === 1 ? frames[0] : frames);
 }
 
 /**
@@ -452,7 +475,7 @@ function emitFinish(state) {
  * Intercept Kiro IDE CodeWhisperer request and convert to EventStream response:
  *   1. Parse CodeWhisperer JSON body (reject binary EventStream formats)
  *   2. Convert CodeWhisperer format to OpenAI messages[] format
- *   3. Forward to Dardcor Code /v1/chat/completions (OpenAI SSE)
+ *   3. Forward to 9router /v1/chat/completions (OpenAI SSE)
  *   4. Convert OpenAI SSE response → AWS EventStream binary frames
  *   5. Stream EventStream frames back to Kiro IDE
  * 
@@ -488,7 +511,7 @@ async function intercept(req, res, bodyBuffer, mappedModel) {
       ...(tools.length > 0 && { tools, tool_choice: "auto" }),
     };
 
-    // 3: Forward to Dardcor Code
+    // 3: Forward to 9router
     const routerRes = await fetchRouter(openaiBody, "/v1/chat/completions", req.headers);
 
     // 4 + 5: Re-encode response as AWS EventStream binary using standard pipeline

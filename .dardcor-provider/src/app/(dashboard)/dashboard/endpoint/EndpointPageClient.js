@@ -26,7 +26,6 @@ export default function APIPageClient({ machineId }) {
   const [confirmState, setConfirmState] = useState(null);
 
   const [requireApiKey, setRequireApiKey] = useState(false);
-  const [requireApiKeyLocked, setRequireApiKeyLocked] = useState(null);
   const [requireLogin, setRequireLogin] = useState(true);
   const [hasPassword, setHasPassword] = useState(true);
  const [tunnelDashboardAccess, setTunnelDashboardAccess] = useState(false);
@@ -87,11 +86,11 @@ export default function APIPageClient({ machineId }) {
 
   const { copied, copy } = useCopyToClipboard();
 
-  // Security gate: block remote exposure while dashboard login is off or no password is set.
+  // Security gate: block remote exposure while dashboard uses default password or login is off.
   const isLoginUnsafe = !requireLogin || !hasPassword;
   const unsafeReason = !requireLogin
-    ? "Enable \"Require login\" and set a dashboard password before activating the tunnel."
-    : "Set a dashboard password before activating the tunnel.";
+    ? "Enable \"Require login\" and set a custom password before activating the tunnel."
+    : "Change the default dashboard password before activating the tunnel.";
 
   // Auto-scroll install log
   useEffect(() => {
@@ -202,7 +201,6 @@ export default function APIPageClient({ machineId }) {
       if (settingsRes.ok) {
         const data = await settingsRes.json();
         setRequireApiKey(data.requireApiKey || false);
-        setRequireApiKeyLocked(data.requireApiKeyLocked === true);
         setRequireLogin(data.requireLogin !== false);
         setHasPassword(data.hasPassword || false);
         setTunnelDashboardAccess(data.tunnelDashboardAccess || false);
@@ -939,7 +937,7 @@ export default function APIPageClient({ machineId }) {
                 message={
                   !requireLogin
                     ? "Require login is disabled — anyone can access your dashboard via tunnel."
-                    : "Dashboard has no password set. Set one in Profile settings."
+                    : "Dashboard uses the default password — change it in Profile settings."
                 }
                 action={{
                   label: !requireLogin ? "Enable" : "Change password",
@@ -979,21 +977,14 @@ export default function APIPageClient({ machineId }) {
 
         <div className="flex items-center justify-between pb-4 mb-4 border-b border-border">
           <div>
-            <p id="require-api-key-label" className="font-medium">Require API key</p>
-            <p id="require-api-key-desc" className="text-sm text-text-muted">
-              {requireApiKeyLocked === null
-                ? "Loading..."
-                : requireApiKeyLocked
-                  ? "Locked by the REQUIRE_API_KEY environment variable - unset it to manage this in the dashboard"
-                  : "Requests without a valid key will be rejected"}
+            <p className="font-medium">Require API key</p>
+            <p className="text-sm text-text-muted">
+              Requests without a valid key will be rejected
             </p>
           </div>
           <Toggle
             checked={requireApiKey}
             onChange={() => handleRequireApiKey(!requireApiKey)}
-            disabled={requireApiKeyLocked !== false}
-            ariaLabelledby="require-api-key-label"
-            ariaDescribedby="require-api-key-desc"
           />
         </div>
 

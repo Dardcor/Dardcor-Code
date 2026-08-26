@@ -357,7 +357,7 @@ amp --model "{{model}}"
       },
       {
         type: "info",
-        text: "Configure dardcor-code as an OpenAI-compatible provider to route all jcode requests through dardcor-code's optimization layer."
+        text: "Configure 9router as an OpenAI-compatible provider to route all jcode requests through 9router's optimization layer."
       },
       {
         type: "warning",
@@ -383,11 +383,11 @@ amp --model "{{model}}"
     notes: [
       {
         type: "info",
-        text: "Grok Build uses ~/.grok/config.toml. Dardcor Code writes a [model.dardcor-code] custom model and sets it as the default.",
+        text: "Grok Build uses ~/.grok/config.toml. Dardcor Code writes a [model.9router] custom model and sets it as the default.",
       },
       {
         type: "info",
-        text: "After Apply, run grok (or /model dardcor-code) to use the routed model. Switch back anytime with /model grok-build.",
+        text: "After Apply, run grok (or /model 9router) to use the routed model. Switch back anytime with /model grok-build.",
       },
       {
         type: "warning",

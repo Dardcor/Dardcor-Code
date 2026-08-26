@@ -114,7 +114,7 @@ export default function CoworkToolCard({
     if (!status?.installed) return null;
     const url = status?.cowork?.baseUrl;
     if (!url) return "not_configured";
-    return status.has9Router ? "configured" : "other";
+    return status.hasDardcor Code ? "configured" : "other";
   };
 
   const configStatus = getConfigStatus();
@@ -132,7 +132,7 @@ export default function CoworkToolCard({
     try {
       const keyToUse = selectedApiKey?.trim()
         || (apiKeys?.length > 0 ? apiKeys[0].key : null)
-        || (!cloudEnabled ? "sk_dardcor-code" : null);
+        || (!cloudEnabled ? "sk_9router" : null);
 
       const res = await fetch(ENDPOINT, {
         method: "POST",
@@ -228,7 +228,7 @@ export default function CoworkToolCard({
   const getManualConfigs = () => {
     const keyToUse = (selectedApiKey && selectedApiKey.trim())
       ? selectedApiKey
-      : (!cloudEnabled ? "sk_dardcor-code" : "<API_KEY_FROM_DASHBOARD>");
+      : (!cloudEnabled ? "sk_9router" : "<API_KEY_FROM_DASHBOARD>");
 
     const modelsToShow = selectedModels.length > 0 ? selectedModels : ["provider/model-id"];
     const cfg = {
@@ -269,7 +269,7 @@ export default function CoworkToolCard({
           {checking && (
             <div className="flex items-center gap-2 text-text-muted">
               <span className="material-symbols-outlined animate-spin">progress_activity</span>
-              <span>Checking Claude Desktop...</span>
+              <span>Checking Claude Cowork...</span>
             </div>
           )}
 
@@ -436,7 +436,7 @@ export default function CoworkToolCard({
                           <div className="flex-1 min-w-0">
                             <div className="text-xs font-medium">Browser Control (Browser MCP)</div>
                             <p className="text-[10px] text-text-muted leading-snug">
-                              Controls your running Chrome. Auto-strips Claude Desktop&apos;s built-in browser tools.{" "}
+                              Controls your running Chrome. Auto-strips Cowork&apos;s built-in browser tools.{" "}
                               <a href={browserDef.extensionUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">Install Chrome extension</a>
                             </p>
                           </div>
@@ -495,7 +495,7 @@ export default function CoworkToolCard({
                 <Button variant="primary" size="sm" onClick={handleApply} disabled={selectedModels.length === 0} loading={applying} className="w-full sm:w-auto">
                   <span className="material-symbols-outlined text-[14px] mr-1">save</span>Apply
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleReset} disabled={!status.has9Router} loading={restoring} className="w-full sm:w-auto">
+                <Button variant="outline" size="sm" onClick={handleReset} disabled={!status.hasDardcor Code} loading={restoring} className="w-full sm:w-auto">
                   <span className="material-symbols-outlined text-[14px] mr-1">restore</span>Reset
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => setShowManualConfigModal(true)} className="w-full sm:w-auto">
@@ -510,7 +510,7 @@ export default function CoworkToolCard({
       <ManualConfigModal
         isOpen={showManualConfigModal}
         onClose={() => setShowManualConfigModal(false)}
-        title="Claude Desktop - Manual Configuration"
+        title="Claude Cowork - Manual Configuration"
         configs={getManualConfigs()}
       />
 
@@ -522,7 +522,7 @@ export default function CoworkToolCard({
           onSave={handleCreateCombo}
           activeProviders={activeProviders}
           forcePrefix="claude-"
-          title="Create Claude Desktop Combo"
+          title="Create Cowork Combo"
         />
       )}
 
@@ -534,7 +534,7 @@ export default function CoworkToolCard({
           onDeselect={handleRemoveModel}
           activeProviders={activeProviders}
           modelAliases={modelAliases}
-          title="Select Claude Desktop Model"
+          title="Select Cowork Model"
           addedModelValues={selectedModels}
           closeOnSelect={false}
         />

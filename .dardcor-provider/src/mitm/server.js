@@ -6,8 +6,8 @@ const path = require("path");
 const dns = require("dns");
 const { promisify } = require("util");
 const { execSync } = require("child_process");
-const { log, err, dumpRequest, createResponseDumper, clearDumpDir, createCursorCapture } = require("./logger");
-const { IS_DEV, LSOF_BIN, TARGET_HOSTS, URL_PATTERNS, MODEL_SYNONYMS, MODEL_PATTERNS, MODEL_NO_MAP, getToolForHost, extractModel } = require("./config");
+const { log, err, dumpRequest, createResponseDumper, clearDumpDir } = require("./logger");
+const { IS_DEV, LSOF_BIN, TARGET_HOSTS, URL_PATTERNS, MODEL_SYNONYMS, MODEL_PATTERNS, MODEL_NO_MAP, getToolForHost, isChatRequest, extractModel } = require("./config");
 const { DATA_DIR, MITM_DIR } = require("./paths");
 const { generateCert, getCertForDomain } = require("./cert/generate");
 const { getMitmAlias } = require("./dbReader");
@@ -100,23 +100,18 @@ function getMappedModel(tool, model) {
   if (!model) return null;
   try {
     const aliases = getMitmAlias(tool);
+    if (!aliases) return null;
     // Normalize via synonym map (e.g., public AG names -> backend model ids)
     const normalizedModel = String(model).replace(/^models\//, "");
     const lookup = MODEL_SYNONYMS?.[tool]?.[normalizedModel] || normalizedModel;
-    if (aliases?.[lookup]) return aliases[lookup];
+    if (aliases[lookup]) return aliases[lookup];
     // Prefix match fallback
-    const prefixKey = Object.keys(aliases || {}).find(k => k && aliases[k] && (lookup.startsWith(k) || k.startsWith(lookup)));
+    const prefixKey = Object.keys(aliases).find(k => k && aliases[k] && (lookup.startsWith(k) || k.startsWith(lookup)));
     if (prefixKey) return aliases[prefixKey];
     // Pattern fallback: catches AG renamed variants (e.g. deprecated pro IDs → gemini-pro-agent)
     const patterns = MODEL_PATTERNS?.[tool] || [];
     for (const { match, alias } of patterns) {
-      if (match.test(lookup) && aliases?.[alias]) return aliases[alias];
-    }
-    // A fresh install may not have an aliases.json entry yet. Keep the new
-    // Antigravity Flash tiers routable using their canonical router IDs;
-    // configured mappings above always take precedence.
-    if (tool === "antigravity" && /^gemini-3\.7-flash-(high|medium|low)$/i.test(lookup)) {
-      return lookup;
+      if (match.test(lookup) && aliases[alias]) return aliases[alias];
     }
     return null;
   } catch { return null; }
@@ -129,14 +124,13 @@ function getMappedModel(tool, model) {
  * Also tees full stream into a dump file when ENABLE_FILE_LOG is on.
  */
 async function passthrough(req, res, bodyBuffer, onResponse) {
-  const clientHost = req.headers[":authority"] || req.headers.host;
-  const originalHost = (clientHost || TARGET_HOSTS[0]).split(":")[0];
+  const originalHost = (req.headers.host || TARGET_HOSTS[0]).split(":")[0];
   // Only rewrite host for chat endpoints — daily-cloudcode-pa rejects auth/login requests
   const isChatEndpoint = req.url.includes(":generateContent") || req.url.includes(":streamGenerateContent");
   const targetHost = isChatEndpoint ? (HOST_REWRITE[originalHost] || originalHost) : originalHost;
   const dumper = ENABLE_FILE_LOG ? createResponseDumper(req, "passthrough") : null;
 
-  const tool = getToolForHost(clientHost);
+  const tool = getToolForHost(req.headers.host);
   const versionOverride = tool === "antigravity"
     ? applyAntigravityIdeVersionOverride(bodyBuffer, req.headers)
     : { bodyBuffer, headers: req.headers };
@@ -252,124 +246,6 @@ async function passthroughHttp2(req, res, bodyBuffer, headers, targetHost, onRes
   });
 }
 
-// Byte-transparent full-duplex relay for Cursor AgentService. The body is piped
-// through without buffering or decoding: AgentService pushes server requests while
-// the client stream is still open, so collectBodyRaw/passthroughHttp2 would
-// deadlock. No model rewrite, no body/header logging.
-async function relayAgentService(req, res, host, initialData = null) {
-  const targetHost = String(host).split(":")[0];
-  const capture = createCursorCapture(req);
-  let targetIP;
-  try {
-    targetIP = await resolveTargetIP(targetHost);
-  } catch (e) {
-    err(`[mitm] AgentService resolve failed: ${e.message}`);
-    if (capture) { try { capture.error(e && e.message); capture.end(); } catch { /* ignore */ } }
-    if (!res.headersSent) res.writeHead(502);
-    res.end("Bad Gateway");
-    return;
-  }
-
-  // Preserve end-to-end headers (auth, checksum, ...) minus pseudo/hop-by-hop.
-  const headers = {};
-  for (const [k, v] of Object.entries(req.headers)) {
-    if (k.startsWith(":") || k === "host" || k === "connection" || k === "keep-alive" ||
-        k === "transfer-encoding" || k === "upgrade" || k === "proxy-connection" || k === "te") continue;
-    headers[k] = v;
-  }
-  headers[":method"] = req.method;
-  headers[":path"] = req.url;
-  headers[":scheme"] = "https";
-  headers[":authority"] = targetHost;
-
-  const client = http2.connect(`https://${targetHost}`, {
-    createConnection: () => tls.connect({
-      host: targetIP, port: 443, servername: targetHost,
-      ALPNProtocols: ["h2"], rejectUnauthorized: false,
-    }),
-  });
-
-  let stream = null;
-  let closed = false;
-  const fail = (e) => {
-    if (closed) return;
-    closed = true;
-    err(`[mitm] AgentService relay error: ${e && e.message}`);
-    if (capture) { try { capture.error(e && e.message); capture.end(); } catch { /* ignore */ } }
-    req.unpipe(stream);
-    try { stream?.close(http2.constants.NGHTTP2_CANCEL); } catch { /* ignore */ }
-    if (!res.headersSent) res.writeHead(502);
-    if (!res.writableEnded) { try { res.end(); } catch { /* ignore */ } }
-    try { client.destroy(); } catch { /* ignore */ }
-  };
-
-  client.once("error", fail);
-  res.on("error", fail);
-  req.on("error", fail);
-  req.on("aborted", () => fail(new Error("client aborted")));
-  req.stream?.once("aborted", () => fail(new Error("client stream aborted")));
-
-  // endStream:false keeps the outbound write side open so the client body (and any
-  // server-pushed requests) keep flowing until the client half-closes.
-  stream = client.request(headers, { endStream: false });
-  stream.once("error", fail);
-  // Passive capture tee: never pauses/resumes, so relay flow and backpressure are unchanged.
-  if (capture && initialData?.length) {
-    try { capture.writeRequestChunk(initialData); } catch { /* ignore */ }
-  }
-  if (capture) {
-    req.on("data", (chunk) => { try { capture.writeRequestChunk(chunk); } catch { /* ignore */ } });
-  }
-  if (initialData?.length) stream.write(initialData);
-  if (req.readableEnded) stream.end();
-  else req.pipe(stream);
-
-  let reqEnded = false;
-  let upstreamEnded = false;
-  const maybeClose = () => { if (reqEnded && upstreamEnded) { try { client.close(); } catch { /* ignore */ } } };
-  req.on("end", () => { reqEnded = true; maybeClose(); });
-  stream.on("end", () => {
-    if (capture) { try { capture.end(); } catch { /* ignore */ } }
-    upstreamEnded = true;
-    maybeClose();
-  });
-
-  stream.once("response", (responseHeaders) => {
-    if (closed) return;
-    const status = responseHeaders[":status"];
-    const outHeaders = {};
-    for (const [k, v] of Object.entries(responseHeaders)) {
-      if (k.startsWith(":") || k === "connection" || k === "keep-alive" || k === "transfer-encoding") continue;
-      outHeaders[k] = v;
-    }
-    res.writeHead(status, outHeaders);
-    if (capture) { try { capture.setResponse(status, Object.keys(outHeaders)); } catch { /* ignore */ } }
-    stream.on("data", (chunk) => {
-      if (capture) { try { capture.writeResponseChunk(chunk); } catch { /* ignore */ } }
-      if (closed || res.writableEnded) return;
-      if (!res.write(chunk)) {
-        stream.pause();
-        res.once("drain", () => stream.resume());
-      }
-    });
-  });
-
-  // gRPC sends its real status (grpc-status/grpc-message) as trailers.
-  stream.on("trailers", (trailers) => {
-    const outTrailers = {};
-    for (const [k, v] of Object.entries(trailers)) {
-      if (k.startsWith(":") || k === "connection" || k === "keep-alive" || k === "transfer-encoding") continue;
-      outTrailers[k] = v;
-    }
-    try { if (!res.writableEnded) res.addTrailers(outTrailers); } catch { /* ignore */ }
-    if (capture) { try { capture.setTrailers(Object.keys(outTrailers)); } catch { /* ignore */ } }
-  });
-
-  stream.on("end", () => {
-    if (!closed && !res.writableEnded) res.end();
-  });
-}
-
 // Fallback: raw https.request HTTP/1.1 with custom DNS (bypasses /etc/hosts MITM loop)
 async function passthroughHttps(req, res, bodyBuffer, headers, targetHost, onResponse, dumper) {
   const targetIP = await resolveTargetIP(targetHost);
@@ -416,25 +292,12 @@ async function passthroughHttps(req, res, bodyBuffer, headers, targetHost, onRes
 
 // ── Request handler ───────────────────────────────────────────
 
-const server = http2.createSecureServer({ ...sslOptions, allowHTTP1: true }, async (req, res) => {
+const server = https.createServer(sslOptions, async (req, res) => {
   try {
     if (req.url === "/_mitm_health") {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: true, pid: process.pid }));
       return;
-    }
-
-    // Client host: HTTP/2 puts it in :authority, HTTP/1.1 in host.
-    const host = req.headers[":authority"] || req.headers.host;
-
-    // Cursor AgentService stays full-duplex: route verified text-only runs locally,
-    // then replay every unsupported run into the byte-transparent relay.
-    if (getToolForHost(host) === "cursor" && req.url.includes("/agent.v1.AgentService/Run")) {
-      return await handlers.cursor.interceptAgent(
-        req,
-        res,
-        (initialData) => relayAgentService(req, res, host, initialData)
-      );
     }
 
     const bodyBuffer = await collectBodyRaw(req);
@@ -445,12 +308,11 @@ const server = http2.createSecureServer({ ...sslOptions, allowHTTP1: true }, asy
       return passthrough(req, res, bodyBuffer);
     }
 
-    const tool = getToolForHost(host);
+    const tool = getToolForHost(req.headers.host);
     if (!tool) return passthrough(req, res, bodyBuffer);
 
-    const patterns = URL_PATTERNS[tool] || [];
-    const isChat = patterns.some(p => req.url.includes(p));
-    if (!isChat) return passthrough(req, res, bodyBuffer);
+    // Kiro IDE posts chat to `/` with x-amz-target (not path /generateAssistantResponse)
+    if (!isChatRequest(tool, req)) return passthrough(req, res, bodyBuffer);
 
     // Cursor uses binary proto — model extraction not possible at this layer.
     // Delegate directly to handler which decodes proto internally.

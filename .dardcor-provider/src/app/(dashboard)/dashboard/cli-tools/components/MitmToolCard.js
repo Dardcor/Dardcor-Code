@@ -41,7 +41,7 @@ export default function MitmToolCard({
   const canRunWithoutPassword = isWin || hasCachedPassword || needsSudoPassword === false;
 
   useEffect(() => {
-    if (isExpanded && tool.routingAvailable !== false) loadSavedMappings();
+    if (isExpanded) loadSavedMappings();
   }, [isExpanded]);
 
   const loadSavedMappings = async () => {
@@ -183,8 +183,8 @@ export default function MitmToolCard({
             )}
             {/* Info */}
             <div className="flex flex-col gap-0.5 text-[11px] text-text-muted px-1">
-                <p>Toggle DNS to redirect {tool.name} traffic through Dardcor Code via MITM.</p>
-              {tool.routingAvailable !== false && !dnsActive && (
+              <p>Toggle DNS to redirect {tool.name} traffic through Dardcor Code via MITM.</p>
+              {!dnsActive && (
                 <p className="text-amber-600 text-[10px] mt-1">
                   ⚠️ Enable DNS to edit model mappings
                 </p>
@@ -192,69 +192,49 @@ export default function MitmToolCard({
             </div>
 
             {/* Model Mappings */}
-            {tool.routingNote && (
-              <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-xs text-amber-600">
-                <span className="material-symbols-outlined shrink-0 text-[14px] mt-px">info</span>
-                <span>{tool.routingNote}</span>
-              </div>
-            )}
-            {tool.routingAvailable === false ? (
+            {tool.defaultModels?.length > 0 && (
               <div className="flex flex-col gap-2">
-                {tool.defaultModels?.map((model) => (
+                {tool.defaultModels.map((model) => (
                   <div key={model.alias} className="grid grid-cols-1 gap-1.5 sm:grid-cols-[9rem_auto_1fr_auto] sm:items-center sm:gap-2">
                     <span className="text-xs font-semibold text-text-main sm:text-right">{model.name}</span>
                     <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
-                    <div className="w-full min-w-0 rounded border border-border bg-surface/50 px-2 py-2 font-mono text-xs text-text-muted sm:py-1.5">{model.alias}</div>
+                    <div className="relative w-full min-w-0">
+                      <input
+                        type="text"
+                        value={modelMappings[model.alias] || ""}
+                        onChange={(e) => handleModelMappingChange(model.alias, e.target.value)}
+                        onBlur={(e) => handleMappingBlur(model.alias, e.target.value)}
+                        placeholder="provider/model-id"
+                        disabled={!dnsActive}
+                        className={`w-full min-w-0 pl-2 pr-7 py-2 bg-surface rounded border border-border text-xs focus:outline-none focus:ring-1 focus:ring-primary/50 sm:py-1.5 ${!dnsActive ? "opacity-50 cursor-not-allowed" : ""}`}
+                      />
+                      {modelMappings[model.alias] && (
+                        <button
+                          onClick={() => {
+                            handleModelMappingChange(model.alias, "");
+                            saveMappings({ ...modelMappings, [model.alias]: "" });
+                          }}
+                          className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 text-text-muted hover:text-red-500 rounded transition-colors"
+                          title="Clear"
+                        >
+                          <span className="material-symbols-outlined text-[14px]">close</span>
+                        </button>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => openModelSelector(model.alias)}
+                      disabled={!hasActiveProviders || !dnsActive}
+                      className={`rounded border px-2 py-2 text-xs transition-colors sm:py-1.5 ${hasActiveProviders && dnsActive ? "bg-surface border-border hover:border-primary cursor-pointer" : "opacity-50 cursor-not-allowed border-border"}`}
+                    >
+                      Select
+                    </button>
                   </div>
                 ))}
               </div>
-            ) : (
-              <>
-                {tool.defaultModels?.length > 0 && (
-                  <div className="flex flex-col gap-2">
-                    {tool.defaultModels.map((model) => (
-                      <div key={model.alias} className="grid grid-cols-1 gap-1.5 sm:grid-cols-[9rem_auto_1fr_auto] sm:items-center sm:gap-2">
-                        <span className="text-xs font-semibold text-text-main sm:text-right">{model.name}</span>
-                        <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
-                        <div className="relative w-full min-w-0">
-                          <input
-                            type="text"
-                            value={modelMappings[model.alias] || ""}
-                            onChange={(e) => handleModelMappingChange(model.alias, e.target.value)}
-                            onBlur={(e) => handleMappingBlur(model.alias, e.target.value)}
-                            placeholder="provider/model-id"
-                            disabled={!dnsActive}
-                            className={`w-full min-w-0 pl-2 pr-7 py-2 bg-surface rounded border border-border text-xs focus:outline-none focus:ring-1 focus:ring-primary/50 sm:py-1.5 ${!dnsActive ? "opacity-50 cursor-not-allowed" : ""}`}
-                          />
-                          {modelMappings[model.alias] && (
-                            <button
-                              onClick={() => {
-                                handleModelMappingChange(model.alias, "");
-                                saveMappings({ ...modelMappings, [model.alias]: "" });
-                              }}
-                              className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 text-text-muted hover:text-red-500 rounded transition-colors"
-                              title="Clear"
-                            >
-                              <span className="material-symbols-outlined text-[14px]">close</span>
-                            </button>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => openModelSelector(model.alias)}
-                          disabled={!hasActiveProviders || !dnsActive}
-                          className={`rounded border px-2 py-2 text-xs transition-colors sm:py-1.5 ${hasActiveProviders && dnsActive ? "bg-surface border-border hover:border-primary cursor-pointer" : "opacity-50 cursor-not-allowed border-border"}`}
-                        >
-                          Select
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+            )}
 
-                {tool.defaultModels?.length === 0 && (
-                  <p className="text-xs text-text-muted px-1">Model mappings will be available soon.</p>
-                )}
-              </>
+            {tool.defaultModels?.length === 0 && (
+              <p className="text-xs text-text-muted px-1">Model mappings will be available soon.</p>
             )}
 
             {/* Start / Stop DNS button */}

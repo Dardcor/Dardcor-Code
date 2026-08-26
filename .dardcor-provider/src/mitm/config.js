@@ -21,32 +21,43 @@ const TARGET_HOSTS = [
   "codewhisperer.us-east-1.amazonaws.com",
   "runtime.us-east-1.kiro.dev",
   "api2.cursor.sh",
-  "agent.api5.cursor.sh",
-  "agentn.api5.cursor.sh",
-  "agent.us.api5.cursor.sh",
-  "agentn.us.api5.cursor.sh",
-  "agent.global.api5.cursor.sh",
-  "agentn.global.api5.cursor.sh",
 ];
 
 const URL_PATTERNS = {
   antigravity: [":generateContent", ":streamGenerateContent"],
   copilot: ["/chat/completions", "/v1/messages", "/responses"],
+  // Legacy path form. Kiro IDE 1.0.228+ posts to `/` with x-amz-target instead —
+  // see isChatRequest() for the header-based match.
   kiro: ["/generateAssistantResponse"],
   cursor: ["/BidiAppend", "/RunSSE", "/RunPoll", "/Run"],
 };
+
+/**
+ * Whether this request is a chat turn we should intercept (vs passthrough).
+ * Kiro Runtime moved GenerateAssistantResponse from path `/generateAssistantResponse`
+ * to `POST /` + `x-amz-target: KiroRuntimeService.GenerateAssistantResponse`
+ * (verified via live mitmproxy capture of Kiro IDE 1.0.228).
+ */
+function isChatRequest(tool, req) {
+  const patterns = URL_PATTERNS[tool] || [];
+  if (patterns.some((p) => (req.url || "").includes(p))) return true;
+  if (tool === "kiro") {
+    const target = String(req.headers?.["x-amz-target"] || "");
+    return target.includes("GenerateAssistantResponse");
+  }
+  return false;
+}
 
 // Synonym map: rawModel from request → canonical alias key in mitmAlias DB
 const MODEL_SYNONYMS = {
   antigravity: {
     "gemini-default": "gemini-3.5-flash-low",
-    "gemini-3.7-flash": "gemini-3.7-flash-high",
-    "gemini-3.7-flash-high": "gemini-3.7-flash-high",
-    "gemini-3.7-flash-medium": "gemini-3.7-flash-medium",
-    "gemini-3.7-flash-low": "gemini-3.7-flash-low",
     "gemini-3.5-flash-high": "gemini-3-flash-agent",
     "gemini-3.5-flash-medium": "gemini-3.5-flash-low",
     "gemini-3.5-flash-extra-low": "gemini-3.5-flash-extra-low",
+     "gemini-3.7-flash-high": "gemini-3.7-flash-high",
+    "gemini-3.7-flash-medium": "gemini-3.7-flash-medium",
+    "gemini-3.7-flash-low": "gemini-3.7-flash-low",
     "gemini-3.1-pro-high": "gemini-pro-agent",
     "gemini-3-pro-high": "gemini-pro-agent",
     "gemini-3-pro-low": "gemini-3.1-pro-low",
@@ -57,10 +68,6 @@ const MODEL_SYNONYMS = {
 // Order matters: more specific patterns first. Catches AG renamed variants (e.g. gemini-pro-agent)
 const MODEL_PATTERNS = {
   antigravity: [
-    { match: /^gemini-3\.7-flash-tiered\(medium\)$/i,               alias: "gemini-3.7-flash-medium" },
-    { match: /^gemini-3\.7-flash-tiered\(low\)$/i,                  alias: "gemini-3.7-flash-low" },
-    { match: /^gemini-3\.7-flash-tiered\(high\)$/i,                 alias: "gemini-3.7-flash-high" },
-    { match: /gemini-3\.7/i,                                        alias: "gemini-3.7-flash-high" },
     { match: /flash.*extra.*low|extra.*low.*flash|flash.*low|low.*flash/i, alias: "gemini-3.5-flash-extra-low" },
     { match: /flash.*medium|medium.*flash/i,                       alias: "gemini-3.5-flash-low" },
     { match: /flash.*agent|agent.*flash|flash/i,                   alias: "gemini-3-flash-agent" },
@@ -96,7 +103,7 @@ function getToolForHost(host) {
   if (h === "api.individual.githubcopilot.com") return "copilot";
   if (h === "daily-cloudcode-pa.googleapis.com" || h === "cloudcode-pa.googleapis.com") return "antigravity";
   if (h === "q.us-east-1.amazonaws.com" || h === "codewhisperer.us-east-1.amazonaws.com" || h === "runtime.us-east-1.kiro.dev") return "kiro";
-  if (h === "api2.cursor.sh" || /^agentn?(?:\.(?:us|global))?\.api5\.cursor\.sh$/.test(h)) return "cursor";
+  if (h === "api2.cursor.sh") return "cursor";
   return null;
 }
 
@@ -127,17 +134,15 @@ function extractModel(url, body) {
       return parsed.conversationState.currentMessage?.userInputMessage?.modelId || null;
     }
     const model = urlModel || parsed.model || null;
-    // Gemini 3.6/3.7 Flash share a single bare "tiered" wire id; the concrete tier
-    // is selected by the request's thinking level. Derive it so mapping routes to
-    // the correct high/medium/low slot instead of a generic catch-all.
-    const tieredMatch = String(model).replace(/^models\//, "").match(/^gemini-(3\.6|3\.7)-flash-tiered$/);
-    if (tieredMatch) {
+    const cleanModelName = String(model).replace(/^models\//, "");
+    if (cleanModelName === "gemini-3.6-flash-tiered" || cleanModelName === "gemini-3.7-flash-tiered") {
+      const ver = cleanModelName.includes("3.7") ? "3.7" : "3.6";
       const rawLevel = parsed.request?.generationConfig?.thinkingConfig?.thinkingLevel
         || parsed.generationConfig?.thinkingConfig?.thinkingLevel;
       const level = ["high", "medium", "low"].includes(String(rawLevel).toLowerCase())
         ? String(rawLevel).toLowerCase()
         : "medium";
-      return `gemini-${tieredMatch[1]}-flash-${level}`;
+      return `gemini-${ver}-flash-${level}`;
     }
     return model;
   } catch {
@@ -145,4 +150,4 @@ function extractModel(url, body) {
   }
 }
 
-module.exports = { IS_DEV, LSOF_BIN, TARGET_HOSTS, URL_PATTERNS, MODEL_SYNONYMS, MODEL_PATTERNS, MODEL_NO_MAP, LOG_BLACKLIST_URL_PARTS, getToolForHost, extractModel };
+module.exports = { IS_DEV, LSOF_BIN, TARGET_HOSTS, URL_PATTERNS, MODEL_SYNONYMS, MODEL_PATTERNS, MODEL_NO_MAP, LOG_BLACKLIST_URL_PARTS, getToolForHost, isChatRequest, extractModel };

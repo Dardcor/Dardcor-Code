@@ -9,16 +9,9 @@ import {
   CAVEMAN_LEVELS,
   PONYTAIL_LEVELS,
 } from "../endpoint/endpointConstants";
-import {
-  getTokenSaverGroups,
-  TOKEN_SAVER_TIERS,
-  TOKEN_SAVER_GENERAL_SETTINGS,
-} from "@/lib/catalog/tokenSaverCatalog";
 
 export default function TokenSaverClient() {
   const [rtkEnabled, setRtkEnabledState] = useState(true);
-  const [rtkMode, setRtkMode] = useState("standard");
-  const [autoTriggerTokens, setAutoTriggerTokens] = useState("4000");
   const [headroomEnabled, setHeadroomEnabled] = useState(false);
   const [headroomUrl, setHeadroomUrl] = useState("http://localhost:8787");
   const [headroomStatus, setHeadroomStatus] = useState({
@@ -114,17 +107,6 @@ export default function TokenSaverClient() {
   const handleCavemanEnabled = (value) => {
     setCavemanEnabled(value);
     patchSetting({ cavemanEnabled: value });
-  };
-
-  const handleRtkMode = (mode) => {
-    setRtkMode(mode);
-    patchSetting({ rtkMode: mode });
-  };
-
-  const handleAutoTriggerBlur = () => {
-    const next = Math.max(0, Math.floor(Number(autoTriggerTokens) || 0));
-    setAutoTriggerTokens(String(next));
-    patchSetting({ tokenSaverAutoTriggerTokens: next });
   };
 
   const handleHeadroomEnabled = (value) => {
@@ -431,14 +413,6 @@ export default function TokenSaverClient() {
         if (res.ok) {
           const data = await res.json();
           setRtkEnabledState(data.rtkEnabled !== false);
-          setRtkMode(data.rtkMode || "standard");
-          setAutoTriggerTokens(
-            String(
-              typeof data.tokenSaverAutoTriggerTokens === "number"
-                ? data.tokenSaverAutoTriggerTokens
-                : TOKEN_SAVER_GENERAL_SETTINGS.autoTrigger.default
-            )
-          );
           setHeadroomEnabled(!!data.headroomEnabled);
           setHeadroomUrl(data.headroomUrl || "http://localhost:8787");
           setCodeAware(data.headroomCodeAware === true);
@@ -474,156 +448,21 @@ export default function TokenSaverClient() {
     headroomLocalUrl && !!headroomStatus.managedPid;
 
   const pxpipeHealthy = pxpipeHealth?.healthy === true;
-  const pxpipeOff = !pxpipeEnabled || !pxpipeStatus.installed;
-  const pxpipeStatusLabel = pxpipeOff
-    ? "Off"
-    : pxpipeStatus.loading
-      ? "Checking…"
-      : pxpipeStatus.installing
-        ? "Installing…"
-        : !pxpipeStatus.installed
-          ? "Not installed"
-          : pxpipeHealthy
-            ? "Healthy"
-            : pxpipeStatus.running
-              ? "Running"
-              : "Stopped";
-  const pxpipeChipClass = pxpipeOff
-    ? "bg-surface-2 text-text-muted"
-    : pxpipeHealthy || pxpipeStatus.running
+  const pxpipeStatusLabel = pxpipeStatus.loading
+    ? "Checking…"
+    : pxpipeStatus.installing
+      ? "Installing…"
+      : !pxpipeStatus.installed
+        ? "Not installed"
+        : pxpipeHealthy
+          ? "Healthy"
+          : pxpipeStatus.running
+            ? "Running"
+            : "Stopped";
+  const pxpipeChipClass =
+    pxpipeHealthy || pxpipeStatus.running
       ? "bg-success/15 text-success"
       : "bg-warning/15 text-warning";
-
-  // ── Catalog status derivation ──────────────────────────────────────────
-  // Status text comes only from real state; unavailable entries carry no
-  // control at all (nothing to toggle, so nothing is rendered).
-  const chipCls = (tone) =>
-    tone === "success"
-      ? "text-xs px-2 py-0.5 rounded bg-success/15 text-success"
-      : tone === "warning"
-        ? "text-xs px-2 py-0.5 rounded bg-warning/15 text-warning"
-        : "text-xs px-2 py-0.5 rounded bg-surface-2 text-text-muted";
-
-  const catalogStatus = (entry) => {
-    switch (entry.id) {
-      case "rtk":
-        return {
-          chip: { text: rtkEnabled ? "On" : "Off", tone: rtkEnabled ? "success" : "muted" },
-          link: { text: "Master switch", href: "#rtk" },
-        };
-      case "lite":
-      case "standard":
-      case "aggressive":
-        return { mode: true };
-      case "codex-responses":
-        return {
-          chip: { text: rtkEnabled ? "Covered · RTK on" : "Covered · RTK off", tone: rtkEnabled ? "success" : "muted" },
-          link: { text: "Toggle via RTK master", href: "#rtk" },
-        };
-      case "headroom":
-        return {
-          chip: {
-            text: headroomEnabled && headroomRunning ? "On" : headroomEnabled ? "Enabled · proxy offline" : "Off",
-            tone: headroomEnabled && headroomRunning ? "success" : "muted",
-          },
-          link: { text: "Control", href: "#headroom-control" },
-        };
-      case "caveman":
-        return {
-          chip: { text: cavemanEnabled ? `On · ${cavemanLevel}` : "Off", tone: cavemanEnabled ? "success" : "muted" },
-          link: { text: "Control", href: "#caveman-control" },
-        };
-      case "terse-prose":
-        return {
-          chip: { text: cavemanEnabled ? `On · via Caveman (${cavemanLevel})` : "Off · via Caveman", tone: cavemanEnabled ? "success" : "muted" },
-          link: { text: "Caveman control", href: "#caveman-control" },
-          injected: true,
-        };
-      case "ponytail":
-        return {
-          chip: { text: ponytailEnabled ? `On · ${ponytailLevel}` : "Off", tone: ponytailEnabled ? "success" : "muted" },
-          link: { text: "Control", href: "#ponytail-control" },
-        };
-      case "less-code":
-        return {
-          chip: { text: ponytailEnabled ? `On · via Ponytail (${ponytailLevel})` : "Off · via Ponytail", tone: ponytailEnabled ? "success" : "muted" },
-          link: { text: "Ponytail control", href: "#ponytail-control" },
-          injected: true,
-        };
-      default:
-        return {};
-    }
-  };
-
-  const renderCatalogEntry = (entry) => {
-    const unavailable = entry.status === "unavailable";
-    const st = catalogStatus(entry);
-    return (
-      <div
-        key={entry.id}
-        className={`rounded border p-3 mb-2 last:mb-0 ${unavailable ? "border-border bg-surface-2/40" : "border-border"}`}
-        aria-disabled={unavailable}
-      >
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="font-medium">{entry.label}</p>
-              <code className="text-[10px] font-mono text-text-muted">{entry.id}</code>
-              {entry.safeDefault && <span className={chipCls("success")}>Safe default</span>}
-              {unavailable && <span className={chipCls("warning")}>Unavailable</span>}
-              {!unavailable && st.chip && <span className={chipCls(st.chip.tone)}>{st.chip.text}</span>}
-              {st.injected && <span className={chipCls("muted")}>instruction injection</span>}
-            </div>
-            <p className="text-sm text-text-muted mt-1">
-              {unavailable ? "Reason: " : ""}
-              {entry.detail}
-            </p>
-            <details className="mt-1">
-              <summary className="inline-block text-xs text-primary cursor-pointer hover:opacity-80 select-none">
-                Details
-              </summary>
-              <p className="text-xs text-text-muted mt-1">
-                {entry.coverage && <>Runtime: {entry.coverage}. </>}
-                {st.mode
-                  ? "Exclusive mode selector — one rtkMode value shared by lite / standard / aggressive."
-                  : unavailable
-                    ? "Not toggleable — no runtime stage exists in this build."
-                    : `Toggled via ${entry.control || "the linked control"}.`}
-              </p>
-            </details>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {st.mode ? (
-              <button
-                type="button"
-                disabled={rtkMode === entry.id || !rtkEnabled}
-                onClick={() => handleRtkMode(entry.id)}
-                className={`text-xs px-3 py-1.5 rounded border font-medium transition-colors ${
-                  rtkMode === entry.id
-                    ? "bg-primary text-white border-primary"
-                    : "bg-transparent border-border text-text-muted hover:bg-surface-2 disabled:opacity-40"
-                }`}
-                title={!rtkEnabled ? "RTK master switch is off — enable RTK first" : entry.detail}
-              >
-                {rtkMode === entry.id ? "Active" : "Select"}
-              </button>
-            ) : st.link ? (
-              <a href={st.link.href} className="text-xs text-primary underline hover:opacity-80">
-                {st.link.text}
-              </a>
-            ) : null}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const groups = getTokenSaverGroups();
-  const totalEngines = TOKEN_SAVER_TIERS.reduce((n, t) => n + t.engineIds.length, 0);
-  const unavailableCount = groups.reduce(
-    (n, g) => n + g.entries.filter((e) => e.status === "unavailable").length,
-    0
-  );
 
   return (
     <div className="space-y-6 p-6">
@@ -658,7 +497,7 @@ export default function TokenSaverClient() {
             onChange={() => handleRtkEnabled(!rtkEnabled)}
           />
         </div>
-        <div className="flex items-center justify-between py-4 gap-4 flex-wrap" id="headroom-control">
+        <div className="flex items-center justify-between py-4 gap-4 flex-wrap">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-3 flex-wrap">
               <p className="font-medium">
@@ -691,7 +530,6 @@ export default function TokenSaverClient() {
           </div>
           <Toggle
             checked={headroomEnabled}
-            disabled={!headroomRunning}
             onChange={() => handleHeadroomEnabled(!headroomEnabled)}
           />
         </div>
@@ -793,7 +631,7 @@ export default function TokenSaverClient() {
             </p>
           </div>
         )}
-        <div className="flex items-center justify-between pt-4 border-t border-border gap-4 flex-wrap" id="caveman-control">
+        <div className="flex items-center justify-between pt-4 border-t border-border gap-4 flex-wrap">
           <div className="min-w-0 flex-1">
             <p className="font-medium">
               Compress LLM output{" "}
@@ -807,7 +645,7 @@ export default function TokenSaverClient() {
               </a>
             </p>
             <p className="text-sm text-text-muted">
-              Terse-style system prompt for shorter technical responses
+              Terse-style system prompt → ~65% fewer output tokens (up to 87%)
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
@@ -843,7 +681,7 @@ export default function TokenSaverClient() {
             />
           </div>
         </div>
-        <div className="flex items-center justify-between pt-4 mt-4 border-t border-border gap-4 flex-wrap" id="ponytail-control">
+        <div className="flex items-center justify-between pt-4 mt-4 border-t border-border gap-4 flex-wrap">
           <div className="min-w-0 flex-1">
             <p className="font-medium">
               Lazy senior dev{" "}
@@ -894,6 +732,8 @@ export default function TokenSaverClient() {
             />
           </div>
         </div>
+        {/* PXPIPE hidden from UI — experimental, not exposed to users yet */}
+        {false && (
         <div className="flex items-center justify-between pt-4 mt-4 border-t border-border gap-4 flex-wrap">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-3 flex-wrap">
@@ -932,92 +772,12 @@ export default function TokenSaverClient() {
             </p>
           </div>
           <Toggle
-            checked={!pxpipeOff}
+            checked={pxpipeEnabled}
             disabled={!pxpipeStatus.installed}
             onChange={() => handlePxpipeEnabled(!pxpipeEnabled)}
           />
         </div>
-      </Card>
-
-      <Card id="token-saver-catalog">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">
-              category
-            </span>
-            Token Saver Catalog
-          </h2>
-        </div>
-        <p className="text-sm text-text-muted pb-4 border-b border-border">
-          Engines grouped by tier. Entries marked Unavailable have no runtime
-          in this build and are never toggleable; covered entries link to or
-          toggle their real settings.
-        </p>
-        {groups.map((group) => (
-          <div key={group.id} className="py-4 border-b border-border last:border-b-0">
-            <div className="flex items-center gap-2 mb-2">
-              <h3 className="font-semibold">{group.label}</h3>
-              {group.heuristic && (
-                <span className={chipCls("warning")}>heuristic availability</span>
-              )}
-            </div>
-            {group.entries.map(renderCatalogEntry)}
-          </div>
-        ))}
-        <p className="text-xs text-text-muted pt-4 border-t border-border">
-          {totalEngines - unavailableCount} covered · {unavailableCount} unavailable in this build
-        </p>
-      </Card>
-
-      <Card id="token-saver-general">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">
-              tune
-            </span>
-            General Settings
-          </h2>
-        </div>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between gap-4 flex-wrap border-b border-border pb-4">
-            <div className="min-w-0 flex-1">
-              <p className="font-medium">Auto-Trigger Threshold</p>
-              <p className="text-sm text-text-muted">
-                {TOKEN_SAVER_GENERAL_SETTINGS.autoTrigger.detail}
-              </p>
-            </div>
-            <div className="w-36 shrink-0">
-              <Input
-                type="number"
-                min="0"
-                step="100"
-                value={autoTriggerTokens}
-                onChange={(e) => setAutoTriggerTokens(e.target.value)}
-                onBlur={handleAutoTriggerBlur}
-                aria-label="Auto-trigger threshold in tokens"
-                className="font-mono text-sm"
-              />
-            </div>
-          </div>
-          <div className="flex items-center justify-between gap-4 flex-wrap border-b border-border pb-4">
-            <div className="min-w-0 flex-1">
-              <p className="font-medium">Preserve System Prompt</p>
-              <p className="text-sm text-text-muted">
-                {TOKEN_SAVER_GENERAL_SETTINGS.preserveSystem.detail}
-              </p>
-            </div>
-            <span className={chipCls("success")}>Always</span>
-          </div>
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="min-w-0 flex-1">
-              <p className="font-medium">Cache-aligned Live Zone</p>
-              <p className="text-sm text-text-muted">
-                {TOKEN_SAVER_GENERAL_SETTINGS.liveZone.detail}
-              </p>
-            </div>
-            <span className={chipCls("success")}>Enabled · fixed</span>
-          </div>
-        </div>
+        )}
       </Card>
 
       <Modal
@@ -1129,7 +889,7 @@ export default function TokenSaverClient() {
       </Modal>
 
       <Modal
-        isOpen={showPxpipeModal}
+        isOpen={false}
         title={pxpipeStatus.installed ? "PXPIPE" : "Setup PXPIPE"}
         onClose={() => setShowPxpipeModal(false)}
       >

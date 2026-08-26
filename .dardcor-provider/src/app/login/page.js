@@ -5,21 +5,19 @@ import { Card, Button, Input } from "@/shared/components";
 
 export default function LoginPage() {
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [resetHint, setResetHint] = useState("");
   const [retryAfter, setRetryAfter] = useState(0);
   const [loading, setLoading] = useState(false);
   const [hasPassword, setHasPassword] = useState(null);
-  const [setupRequired, setSetupRequired] = useState(false);
   const [authMode, setAuthMode] = useState("password");
+  const [ssoType, setSsoType] = useState("oidc");
   const [oidcConfigured, setOidcConfigured] = useState(false);
   const [oidcLoginLabel, setOidcLoginLabel] = useState("Sign in with OIDC");
-
-  // UX hint only - the backend remains the authority on where setup is allowed.
-  const isLoopback =
-    typeof window !== "undefined" &&
-    ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+  const [samlConfigured, setSamlConfigured] = useState(false);
+  const [samlLoginLabel, setSamlLoginLabel] = useState("Sign in with SAML SSO");
+  const [mustChange, setMustChange] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
 
   // Countdown for rate-limit
   useEffect(() => {
@@ -47,19 +45,19 @@ export default function LoginPage() {
             return;
           }
           setHasPassword(!!data.hasPassword);
-          setSetupRequired(data.setupRequired === true);
           setAuthMode(data.authMode || "password");
+          setSsoType(data.ssoType || "oidc");
           setOidcConfigured(data.oidcConfigured === true);
           setOidcLoginLabel(data.oidcLoginLabel || "Sign in with OIDC");
+          setSamlConfigured(data.samlConfigured === true);
+          setSamlLoginLabel(data.samlLoginLabel || "Sign in with SAML SSO");
         } else {
           // Safe fallback on non-OK response to avoid infinite loading state.
           setHasPassword(true);
-          setSetupRequired(false);
         }
       } catch (err) {
         clearTimeout(timeoutId);
         setHasPassword(true);
-        setSetupRequired(false);
       }
     }
     checkAuth();
@@ -79,9 +77,14 @@ export default function LoginPage() {
       });
 
       if (res.ok) {
+        const data = await res.json();
+        if (data.mustChangePassword) {
+          setMustChange(true);
+          return;
+        }
         window.location.assign("/dashboard");
       } else {
-        const data = await res.json().catch(() => ({}));
+        const data = await res.json();
         setError(data.error || "Invalid password");
         if (data.resetHint) setResetHint(data.resetHint);
         if (data.retryAfter) setRetryAfter(Number(data.retryAfter));
@@ -93,34 +96,22 @@ export default function LoginPage() {
     }
   };
 
-  // First-run local setup: create the dashboard password (isSetup contract).
-  const handleSetup = async (e) => {
+  // Force a new password before entering the dashboard (default + remote).
+  const handleSetNewPassword = async (e) => {
     e.preventDefault();
-    setError("");
-    setResetHint("");
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
     setLoading(true);
-
+    setError("");
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
+      const res = await fetch("/api/settings", {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password, isSetup: true }),
+        body: JSON.stringify({ currentPassword: password, newPassword }),
       });
-
       if (res.ok) {
         window.location.assign("/dashboard");
       } else {
-        const data = await res.json().catch(() => ({}));
+        const data = await res.json();
         setError(data.error || "Failed to set password");
-        if (data.retryAfter) setRetryAfter(Number(data.retryAfter));
       }
     } catch (err) {
       setError("An error occurred. Please try again.");
@@ -133,8 +124,18 @@ export default function LoginPage() {
     window.location.href = "/api/auth/oidc/start";
   };
 
-  const oidcAvailable = oidcConfigured && ["oidc", "both"].includes(authMode);
-  const passwordAvailable = authMode !== "oidc" || !oidcConfigured;
+  const handleSamlLogin = () => {
+    window.location.href = "/api/auth/saml/start";
+  };
+
+  const isSsoEnabled = ["sso", "oidc", "saml", "both"].includes(authMode);
+  const activeSsoType = ssoType || (authMode === "saml" ? "saml" : "oidc");
+
+  const samlAvailable = isSsoEnabled && activeSsoType === "saml" && samlConfigured;
+  const oidcAvailable = isSsoEnabled && activeSsoType === "oidc" && oidcConfigured;
+  const ssoAvailable = samlAvailable || oidcAvailable;
+
+  const passwordAvailable = authMode === "password" || authMode === "both" || !ssoAvailable;
 
   // Show loading state while checking password
   if (hasPassword === null) {
@@ -156,171 +157,113 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-primary mb-2">Dardcor Code</h1>
           <p className="text-text-muted">
-            {authMode === "oidc" && oidcConfigured
+            {samlAvailable
+              ? "Sign in with SAML 2.0 Single Sign-On"
+              : oidcAvailable
               ? "Sign in with your OIDC provider to access the dashboard"
-              : setupRequired
-                ? "Set a password to secure this dashboard"
-                : "Enter your password to access the dashboard"}
+              : "Enter your password to access the dashboard"}
           </p>
         </div>
 
         <Card>
+          {mustChange ? (
+            <form onSubmit={handleSetNewPassword} className="flex flex-col gap-4">
+              <p className="text-sm text-amber-600 dark:text-amber-400 text-center">
+                Set a new password before accessing the dashboard remotely.
+              </p>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">New password</label>
+                <Input
+                  type="password"
+                  placeholder="Enter new password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  autoFocus
+                />
+                {error && <p className="text-xs text-red-500">{error}</p>}
+              </div>
+              <Button type="submit" variant="primary" className="w-full" loading={loading} disabled={!newPassword}>
+                Set password
+              </Button>
+            </form>
+          ) : (
           <div className="flex flex-col gap-4">
+            {samlAvailable && (
+              <Button type="button" variant="primary" className="w-full" onClick={handleSamlLogin}>
+                {samlLoginLabel}
+              </Button>
+            )}
+
             {oidcAvailable && (
               <Button type="button" variant="primary" className="w-full" onClick={handleOidcLogin}>
                 {oidcLoginLabel}
               </Button>
             )}
 
-            {oidcAvailable && passwordAvailable && <div className="h-px bg-border/60" />}
+            {ssoAvailable && passwordAvailable && <div className="h-px bg-border/60" />}
 
             {passwordAvailable ? (
-              setupRequired ? (
-                isLoopback ? (
-                  <form onSubmit={handleSetup} className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-2">
-                      <label htmlFor="setup-password" className="text-sm font-medium">
-                        Create password
-                      </label>
-                      <Input
-                        id="setup-password"
-                        type="password"
-                        placeholder="At least 8 characters"
-                        autoComplete="new-password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        autoFocus={!oidcAvailable}
-                      />
-                      <label htmlFor="setup-confirm" className="text-sm font-medium">
-                        Confirm password
-                      </label>
-                      <Input
-                        id="setup-confirm"
-                        type="password"
-                        placeholder="Repeat password"
-                        autoComplete="new-password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        required
-                      />
-                      {error && (
-                        <p role="alert" className="text-xs text-red-500">
-                          {error}
-                        </p>
-                      )}
-                      {retryAfter > 0 && (
-                        <p role="status" className="text-xs text-amber-600 dark:text-amber-400">
-                          Locked. Retry in <span className="font-mono">{retryAfter}s</span>.
-                        </p>
-                      )}
-                    </div>
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      className="w-full"
-                      loading={loading}
-                      disabled={loading || !password || !confirmPassword}
-                    >
-                      Create password & sign in
-                    </Button>
-                    <p className="text-xs text-center text-text-muted">
-                      This password protects the dashboard and is stored on this machine.
+              <form onSubmit={handleLogin} className="flex flex-col gap-4">
+                {isSsoEnabled && !ssoAvailable && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 text-center">
+                    {activeSsoType === "saml" ? "SAML SSO" : "OIDC"} login is enabled, but configuration is incomplete. Password login is still available for recovery.
+                  </p>
+                )}
+
+                {authMode === "both" && ssoAvailable && (
+                  <p className="text-xs text-text-muted text-center">
+                    Password and {activeSsoType === "saml" ? "SAML SSO" : "OIDC"} login are both enabled.
+                  </p>
+                )}
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium">Password</label>
+                  <Input
+                    type="password"
+                    placeholder="Enter password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoFocus={!oidcAvailable}
+                  />
+                  {error && <p className="text-xs text-red-500">{error}</p>}
+                  {retryAfter > 0 && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      Locked. Retry in <span className="font-mono">{retryAfter}s</span>.
                     </p>
-                  </form>
-                ) : (
-                  <div className="flex flex-col gap-3">
-                    <p className="text-sm">This dashboard has no password set yet.</p>
+                  )}
+                  {resetHint && (
                     <p className="text-xs text-text-muted">
-                      Password setup is only allowed from the machine running Dardcor Code.
-                    </p>
-                    <div className="rounded-lg border border-border/60 p-3 bg-sidebar/40 font-mono text-xs">
-                      Open this dashboard through localhost in a browser on the host machine, create
-                      the password there, then sign in here with it.
-                    </div>
-                    {error && (
-                      <p role="alert" className="text-xs text-red-500">
-                        {error}
-                      </p>
-                    )}
-                  </div>
-                )
-              ) : (
-                <form onSubmit={handleLogin} className="flex flex-col gap-4">
-                  {((authMode === "oidc" && !oidcConfigured) || (authMode === "both" && !oidcConfigured)) && (
-                    <p className="text-xs text-amber-600 dark:text-amber-400 text-center">
-                      OIDC login is enabled, but the issuer/client fields are not configured yet. Password login is still available for recovery.
+                      Forgot password? Open <code className="bg-sidebar px-1 rounded">9router</code> CLI on the host → <b>Settings</b> → <b>Reset Password to Default</b>.
                     </p>
                   )}
+                </div>
 
-                  {authMode === "both" && oidcConfigured && (
-                    <p className="text-xs text-text-muted text-center">
-                      Password and OIDC login are both enabled.
-                    </p>
-                  )}
+                <Button
+                  type="submit"
+                  variant="primary"
+                  className="w-full"
+                  loading={loading}
+                  disabled={retryAfter > 0}
+                >
+                  {retryAfter > 0 ? `Wait ${retryAfter}s` : "Login"}
+                </Button>
 
-                  <div className="flex flex-col gap-2">
-                    <label htmlFor="login-password" className="text-sm font-medium">
-                      Password
-                    </label>
-                    <Input
-                      id="login-password"
-                      type="password"
-                      placeholder="Enter password"
-                      autoComplete="current-password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      autoFocus={!oidcAvailable}
-                    />
-                    {error && (
-                      <p role="alert" className="text-xs text-red-500">
-                        {error}
-                      </p>
-                    )}
-                    {retryAfter > 0 && (
-                      <p role="status" className="text-xs text-amber-600 dark:text-amber-400">
-                        Locked. Retry in <span className="font-mono">{retryAfter}s</span>.
-                      </p>
-                    )}
-                    {(resetHint || !hasPassword) && (
-                      <p className="text-xs text-text-muted">
-                        {resetHint || (
-                          <>
-                            Forgot password? Clear the stored password via Dardcor Code CLI on the host{" "}
-                            {">"} <b>Settings</b> {">"} <b>Clear Dashboard Password</b>, then set a
-                            new one from the local machine.
-                          </>
-                        )}
-                      </p>
-                    )}
-                    {hasPassword === false && (
-                      <p className="text-xs text-amber-600 dark:text-amber-400">
-                        First login: sign in from the host machine (localhost) with the initial
-                        password to save it. Remote login is not available until then.
-                      </p>
-                    )}
-                  </div>
-
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    className="w-full"
-                    loading={loading}
-                    disabled={retryAfter > 0}
-                  >
-                    {retryAfter > 0 ? `Wait ${retryAfter}s` : "Login"}
-                  </Button>
-                </form>
-              )
-            ) : (
-              error && (
-                <p role="alert" className="text-xs text-red-500">
-                  {error}
+                <p className="text-xs text-center text-text-muted mt-2">
+                  Default password is <code className="bg-sidebar px-1 rounded">123456</code>
                 </p>
-              )
+                {hasPassword === false && (
+                  <p className="text-xs text-center text-amber-600 dark:text-amber-400">
+                    Security risk: no password set. You will be asked to set one when logging in remotely.
+                  </p>
+                )}
+              </form>
+            ) : (
+              error && <p className="text-xs text-red-500">{error}</p>
             )}
           </div>
+          )}
         </Card>
       </div>
     </div>

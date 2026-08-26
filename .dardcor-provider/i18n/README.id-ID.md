@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="../images/dardcor-code.png?1" alt="Dardcor Code Dashboard" width="800"/>
+  <img src="../images/9router.png?1" alt="Dardcor Code Dashboard" width="800"/>
 
   # Dardcor Code - Router AI Gratis
 
@@ -7,7 +7,11 @@
 
   **Hubungkan semua tool AI coding (Claude Code, Cursor, Antigravity, Copilot, Codex, Gemini, OpenCode, Cline, OpenClaw...) ke 40+ provider AI dan 100+ model.**
 
-  [🚀 Mulai Cepat](#-mulai-cepat) • [💡 Fitur](#-fitur-utama) • [📖 Setup](#-panduan-setup) • [🌐 Website](https://dardcor-code.web.id)
+  [![npm](https://img.shields.io/npm/v/9router.svg)](https://www.npmjs.com/package/9router)
+  [![Downloads](https://img.shields.io/npm/dm/9router.svg)](https://www.npmjs.com/package/9router)
+  [![License](https://img.shields.io/npm/l/9router.svg)](https://github.com/decolua/9router/blob/main/LICENSE)
+
+  [🚀 Mulai Cepat](#-mulai-cepat) • [💡 Fitur](#-fitur-utama) • [📖 Setup](#-panduan-setup) • [🌐 Website](https://9router.com)
 
   [🇻🇳 Tiếng Việt](./README.vi.md) • [🇨🇳 中文](./README.zh-CN.md) • [🇯🇵 日本語](./README.ja-JP.md) • [🇮🇩 Bahasa Indonesia](./README.id-ID.md)
 </div>
@@ -39,7 +43,7 @@
 │   Tool CLI  │  (Claude Code, Codex, Gemini CLI, OpenClaw, Cursor, Cline...)
 │    kamu     │
 └──────┬──────┘
-       │ http://localhost:21128/v1
+       │ http://localhost:20128/v1
        ↓
 ┌─────────────────────────────────────────┐
 │         Dardcor Code (Smart Router)          │
@@ -64,11 +68,11 @@ Hasil: ngoding tanpa berhenti, biaya minimum
 **1. Install secara global:**
 
 ```bash
-npm install -g dardcor-code
-dardcor-code
+npm install -g 9router
+9router
 ```
 
-🎉 Dashboard terbuka di `http://localhost:21128`
+🎉 Dashboard terbuka di `http://localhost:20128`
 
 **2. Hubungkan provider gratis (tanpa perlu daftar):**
 
@@ -78,7 +82,7 @@ Dashboard → Providers → hubungkan **Claude Code** atau **Antigravity** → l
 
 ```
 Konfigurasi Claude Code/Codex/Gemini CLI/OpenClaw/Cursor/Cline:
-  Endpoint: http://localhost:21128/v1
+  Endpoint: http://localhost:20128/v1
   API Key: [salin dari dashboard]
   Model: if/kimi-k2-thinking
 ```
@@ -92,19 +96,41 @@ Paket repo ini bersifat privat (`dardcor-code-app`), jadi menjalankan dari sourc
 ```bash
 cp .env.example .env
 npm install
-PORT=21128 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run dev
+PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
 ```
 
 Mode produksi:
 
 ```bash
 npm run build
-PORT=21128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run start
+PORT=20128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run start
 ```
 
 URL default:
-- Dashboard: `http://localhost:21128/dashboard`
-- API kompatibel OpenAI: `http://localhost:21128/v1`
+- Dashboard: `http://localhost:20128/dashboard`
+- API kompatibel OpenAI: `http://localhost:20128/v1`
+
+---
+
+## 🎥 Video Tutorial
+
+<div align="center">
+
+### 📺 Panduan Setup Lengkap - Dardcor Code + Claude Code Gratis
+
+[![Dardcor Code + Claude Code Setup](https://img.youtube.com/vi/raEyZPg5xE0/maxresdefault.jpg)](https://www.youtube.com/watch?v=raEyZPg5xE0)
+
+**🎬 Tonton tutorial langkah demi langkah:**
+- ✅ Install dan setup Dardcor Code
+- ✅ Konfigurasi Claude Sonnet 4.5 gratis
+- ✅ Integrasi dengan Claude Code
+- ✅ Demo live coding
+
+**⏱️ Durasi:** 20 menit | **👥 Dibuat oleh:** Developer Community
+
+[▶️ Tonton di YouTube](https://www.youtube.com/watch?v=o3qYCyjrFYg)
+
+</div>
 
 ---
 
@@ -417,8 +443,10 @@ Konversi mulus antar format:
 > "Biaya" yang ditampilkan pada analitik penggunaan **hanya untuk pelacakan dan perbandingan**.
 > Dardcor Code sendiri **tidak menagih apa pun**. Kamu hanya membayar langsung ke provider jika memakai layanan berbayar.
 >
+> **Contoh:** jika dashboard menampilkan "Total biaya $290" untuk pemakaian model iFlow,
 > itu adalah jumlah yang seharusnya kamu bayar bila memakai API berbayar secara langsung. Biaya sebenarnya = **$0** (iFlow gratis tanpa batas).
 >
+> Anggap saja ini "pelacak penghematan" yang menunjukkan berapa banyak yang kamu hemat lewat model gratis dan routing Dardcor Code!
 
 ### 🌐 Deploy di Mana Saja
 
@@ -454,6 +482,7 @@ Konversi mulus antar format:
 
 **Fakta soal penagihan Dardcor Code:**
 
+✅ **Software Dardcor Code = gratis selamanya** (open source, tanpa tagihan)
 ✅ **"Biaya" di dashboard = tampilan/pelacakan saja** (bukan tagihan sungguhan)
 ✅ **Pembayaran langsung ke provider** (langganan atau biaya API)
 ✅ **Provider gratis tetap gratis** (iFlow, Kiro, Qwen = $0 unlimited)
@@ -468,15 +497,18 @@ Dashboard menampilkan **estimasi biaya** seandainya kamu memakai API berbayar se
 Tampilan dashboard:
 • Total request: 1.662
 • Total token: 47 juta
+• Biaya tertampil: $290
 
 Kenyataannya:
 • Provider: iFlow (gratis unlimited)
 • Yang benar-benar dibayar: $0.00
+• Arti $290: jumlah yang kamu hemat dengan memakai model gratis!
 ```
 
 **Aturan pembayaran:**
 - **Provider langganan** (Claude Code, Codex): bayar langsung di website masing-masing
 - **Provider murah** (GLM, MiniMax): bayar langsung, Dardcor Code hanya melakukan routing
+- **Provider gratis** (iFlow, Kiro, Qwen): benar-benar gratis selamanya, tanpa biaya tersembunyi
 - **Dardcor Code**: tidak menagih apa pun
 
 ---
@@ -555,8 +587,12 @@ Cara akses: WhatsApp, Telegram, Slack, Discord, iMessage, Signal...
 Dashboard melacak pemakaian token dan menampilkan **estimasi biaya** seandainya kamu memakai API berbayar secara langsung. Ini **bukan tagihan nyata**, melainkan acuan untuk melihat berapa banyak yang kamu hemat dengan memakai model gratis atau langganan yang sudah ada lewat Dardcor Code.
 
 **Contoh:**
+- **Tampilan dashboard:** "Total biaya $290"
 - **Kenyataan:** sedang memakai iFlow (gratis unlimited)
 - **Biaya sebenarnya:** **$0.00**
+- **Arti $290:** jumlah yang **dihemat** karena memakai model gratis alih-alih API berbayar!
+
+Tampilan biaya adalah "pelacak penghematan" untuk memahami pola pemakaian dan peluang optimasi.
 
 </details>
 
@@ -835,14 +871,15 @@ Biaya bulanan: $0
 
 ```bash
 docker run -d \
-  --name dardcor-code \
-  -p 21128:21128 \
-  -v dardcor-code-data:/app/data \
-  -e PORT=21128 \
-  -e BASE_URL=http://localhost:21128 \
+  --name 9router \
+  -p 20128:20128 \
+  -v 9router-data:/app/data \
+  -e PORT=20128 \
+  -e BASE_URL=http://localhost:20128 \
+  ghcr.io/decolua/9router:latest
 ```
 
-Dashboard: `http://localhost:21128/dashboard`
+Dashboard: `http://localhost:20128/dashboard`
 
 </details>
 
@@ -850,8 +887,8 @@ Dashboard: `http://localhost:21128/dashboard`
 <summary><b>VPS / Cloud</b></summary>
 
 ```bash
-npm install -g dardcor-code
-PORT=21128 HOSTNAME=0.0.0.0 BASE_URL=https://your-domain.com dardcor-code
+npm install -g 9router
+PORT=20128 HOSTNAME=0.0.0.0 BASE_URL=https://your-domain.com 9router
 ```
 
 Disarankan menaruhnya di belakang reverse proxy (Nginx/Caddy) dengan HTTPS, dan membatasi akses hanya untuk dirimu sendiri.
@@ -876,7 +913,7 @@ Atur `BASE_URL` dan `CLOUD_URL` sebagai environment variable di dashboard Cloudf
 
 | Masalah | Kemungkinan Penyebab | Solusi |
 |---------|----------------------|--------|
-| Tool CLI tidak bisa konek | Endpoint salah | Pastikan `http://localhost:21128/v1` |
+| Tool CLI tidak bisa konek | Endpoint salah | Pastikan `http://localhost:20128/v1` |
 | 401 / Unauthorized | API key salah | Salin ulang key dari dashboard |
 | Model tidak ditemukan | Prefix provider salah | Pakai format `provider/model`, mis. `if/kimi-k2-thinking` |
 | Selalu fallback ke gratis | Kuota langganan habis | Cek hitung mundur reset di dashboard |
@@ -901,10 +938,14 @@ Kontribusi sangat diterima!
 
 ## 📄 Lisensi
 
+MIT License — lihat [LICENSE](https://github.com/decolua/9router/blob/main/LICENSE) untuk detailnya.
+
 ---
 
 <div align="center">
 
-**Kalau Dardcor Code membantumu, kasih ⭐ di GitHub!**
+**Kalau Dardcor Code membantumu, kasih ⭐ di [GitHub](https://github.com/decolua/9router)!**
+
+[🌐 Website](https://9router.com) • [📦 npm](https://www.npmjs.com/package/9router) • [🐛 Laporkan Bug](https://github.com/decolua/9router/issues)
 
 </div>

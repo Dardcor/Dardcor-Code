@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="../images/dardcor-code.png?1" alt="Dardcor Code Dashboard" width="800"/>
+  <img src="../images/9router.png?1" alt="Dardcor Code Dashboard" width="800"/>
   
   # Dardcor Code - 免费 AI 路由器
   
@@ -11,8 +11,11 @@
     <img src="../public/providers/openclaw.png" alt="OpenClaw" width="80"/>
   </p>
   
+  [![npm](https://img.shields.io/npm/v/9router.svg)](https://www.npmjs.com/package/9router)
+  [![Downloads](https://img.shields.io/npm/dm/9router.svg)](https://www.npmjs.com/package/9router)
+  [![License](https://img.shields.io/npm/l/9router.svg)](https://github.com/decolua/9router/blob/main/LICENSE)
   
-  [🚀 快速开始](#-quick-start) • [💡 特性](#-key-features) • [📖 设置](#-setup) • [🌐 网站](https://dardcor-code.web.id)
+  [🚀 快速开始](#-quick-start) • [💡 特性](#-key-features) • [📖 设置](#-setup) • [🌐 网站](https://9router.com)
 </div>
 
 ---
@@ -42,10 +45,11 @@
 │  Your CLI   │  (Claude Code, Codex, OpenClaw, Cursor, Cline, Antigravity...)
 │   Tool      │
 └──────┬──────┘
-       │ http://localhost:21128/v1
+       │ http://localhost:20128/v1
        ↓
 ┌─────────────────────────────────────────────┐
 │           Dardcor Code (Smart Router)            │
+│  • RTK Token Saver (节省 20-40% Token)      │
 │  • 格式转换 (OpenAI ↔ Claude)               │
 │  • 配额追踪 (Quota tracking)                │
 │  • 自动刷新 OAuth Token                     │
@@ -57,6 +61,7 @@
        │   ↓ 触及预算上限
        └─→ [Tier 3: 免费] Kiro AI, OpenCode Free, Vertex AI ($300 credits)
 
+结果：永不停歇的编程体验，最低成本 + 通过 RTK 节省 20-40% Token
 ```
 
 ---
@@ -66,11 +71,11 @@
 **1. 全局安装：**
 
 ```bash
-npm install -g dardcor-code
-dardcor-code
+npm install -g 9router
+9router
 ```
 
-🎉 仪表板将在 `http://localhost:21128` 打开
+🎉 仪表板将在 `http://localhost:20128` 打开
 
 **2. 连接免费提供商（无需注册）：**
 
@@ -80,7 +85,7 @@ dardcor-code
 
 ```
 Claude Code/Codex/Gemini CLI/OpenClaw/Cursor/Cline 设置:
-  Endpoint: http://localhost:21128/v1
+  Endpoint: http://localhost:20128/v1
   API Key: [从仪表板复制]
   Model: if/kimi-k2-thinking
 ```
@@ -94,19 +99,41 @@ Claude Code/Codex/Gemini CLI/OpenClaw/Cursor/Cline 设置:
 ```bash
 cp .env.example .env
 npm install
-PORT=21128 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run dev
+PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
 ```
 
 生产模式：
 
 ```bash
 npm run build
-PORT=21128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run start
+PORT=20128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run start
 ```
 
 默认 URL：
-- 仪表板：`http://localhost:21128/dashboard`
-- OpenAI 兼容 API：`http://localhost:21128/v1`
+- 仪表板：`http://localhost:20128/dashboard`
+- OpenAI 兼容 API：`http://localhost:20128/v1`
+
+---
+
+## 🎥 视频教程
+
+<div align="center">
+  
+### 📺完整设置指南 - Dardcor Code + Claude Code 免费
+  
+[![Dardcor Code + Claude Code Setup](https://img.youtube.com/vi/raEyZPg5xE0/maxresdefault.jpg)](https://www.youtube.com/watch?v=raEyZPg5xE0)
+
+**🎬 观看完整的分步教程：**
+- ✅ Dardcor Code 安装与设置
+- ✅ 免费 Claude Sonnet 4.5 配置
+- ✅ Claude Code 集成
+- ✅ 实时编程演示
+
+**⏱️ 时长：** 20 分钟 | **👥 作者** 开发者社区
+
+[▶️ 在 YouTube 上观看](https://www.youtube.com/watch?v=o3qYCyjrFYg)
+
+</div>
 
 ---
 
@@ -419,8 +446,11 @@ Combo: "my-coding-stack"
 > 使用分析中显示的“成本”**仅用于追踪和比较目的**。
 > Dardcor Code 本身**从不向您收费**。您只需直接向提供商付款（如果使用付费服务）。
 > 
+> **示例：** 如果您的仪表板在使用 iFlow 模型时显示“$290 总成本”，这代表
 > 您直接使用付费 API 时需要支付的金额。您的实际成本 = **$0**（iFlow 是免费无限制的）。
 > 
+> 将其视为“节省追踪器”，显示您通过使用免费模型或
+> 通过 Dardcor Code 路由节省了多少！
 
 ### 🌐 随处部署
 
@@ -464,14 +494,18 @@ Combo: "my-coding-stack"
 
 **成本显示如何工作：**
 
+仪表板显示**估算成本**，就像您直接使用付费 API 一样。这**不是计费** - 它是一个比较工具，用于显示您的节省。
+
 **示例场景：```
 仪表板显示：
 • 总请求数：1,662
 • 总 Token 数：47M
+• 显示成本：$290
 
 现实检查：
 • 提供商：iFlow（免费无限制）
 • 实际付款：$0.00
+• $290 的含义：您通过使用免费模型节省的金额！
 ```
 
 **付款规则：**
@@ -553,9 +587,15 @@ Access via: WhatsApp, Telegram, Slack, Discord, iMessage, Signal...
 <details>
 <summary><b>📊 为什么我的仪表板显示高成本？</b></summary>
 
+仪表板追踪您的 Token 使用情况，并显示**估算成本**，就像您直接使用付费 API 一样。这**不是实际计费** - 它是一个参考，显示您通过 Dardcor Code 使用免费模型或现有订阅节省了多少。
+
 **示例：**
+- **仪表板显示：**“$290 总成本”
 - **现实：** 您正在使用 iFlow（免费无限制）
 - **您的实际成本：** **$0.00**
+- **$290 的含义：** 您通过使用免费模型而不是付费 API **节省**的金额！
+
+成本显示是一个“节省追踪器”，帮助您了解使用模式和优化机会。
 
 </details>
 
@@ -810,6 +850,7 @@ Models:
   2. if/kimi-k2-thinking (unlimited)
   3. qw/qwen3-coder-plus (unlimited)
 
+Cost: $0 forever!
 ```
 
 </details>
@@ -821,8 +862,8 @@ Models:
 
 ```
 Settings → Models → Advanced:
-  OpenAI API Base URL: http://localhost:21128/v1
-  OpenAI API Key: [from dardcor-code dashboard]
+  OpenAI API Base URL: http://localhost:20128/v1
+  OpenAI API Key: [from 9router dashboard]
   Model: cc/claude-opus-4-6
 ```
 
@@ -834,16 +875,16 @@ Settings → Models → Advanced:
 
 ```json
 {
-  "anthropic_api_base": "http://localhost:21128/v1",
-  "anthropic_api_key": "your-dardcor-code-api-key"
+  "anthropic_api_base": "http://localhost:20128/v1",
+  "anthropic_api_key": "your-9router-api-key"
 }
 ```
 
 ### Codex CLI
 
 ```bash
-export OPENAI_BASE_URL="http://localhost:21128"
-export OPENAI_API_KEY="your-dardcor-code-api-key"
+export OPENAI_BASE_URL="http://localhost:20128"
+export OPENAI_API_KEY="your-9router-api-key"
 
 codex "your prompt"
 ```
@@ -863,15 +904,15 @@ Dashboard → CLI Tools →Claw → Select Model → Apply
   "agents": {
     "defaults": {
       "model": {
-        "primary": "dardcor-code/if/glm-4.7"
+        "primary": "9router/if/glm-4.7"
       }
     }
   },
   "models": {
     "providers": {
-      "dardcor-code": {
-        "baseUrl": "http://127.0.0.1:21128/v1",
-        "apiKey": "sk_dardcor-code",
+      "9router": {
+        "baseUrl": "http://127.0.0.1:20128/v1",
+        "apiKey": "sk_9router",
         "api": "openai-completions",
         "models": [
           {
@@ -891,7 +932,7 @@ Dashboard → CLI Tools →Claw → Select Model → Apply
 
 ```
 Provider: OpenAI Compatible
-Base URL: http://localhost:21128/v1
+Base URL: http://localhost:20128/v1
 API Key: [from dashboard]
 Model: cc/claudeus-4-6
 ```
@@ -905,20 +946,20 @@ Model: cc/claudeus-4-6
 
 ```bash
 # Clone and install
-git clone .git
-cd dardcor-code
+git clone https://github.com/decolua/9router.git
+cd 9router
 npm install
 npm run build
 
 # Configure
 export JWT_SECRET="your-secure-secret-change-this"
 export INITIAL_PASSWORD="your-password"
-export DATA_DIR="/var/lib/dardcor-code"
-export PORT="21128"
+export DATA_DIR="/var/lib/9router"
+export PORT="20128"
 export HOSTNAME="0.0.0.0"
 export NODE_ENV="production"
-export NEXT_PUBLIC_BASE_URLhttp://localhost:21128"
-export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.web.id"
+export NEXT_PUBLIC_BASE_URLhttp://localhost:20128"
+export NEXT_PUBLIC_CLOUD_URL="https://9router.com"
 export API_KEY_SECRET="endpoint-proxy-api-key-secret"
 export MACHINE_ID_SALT="endpoint-proxy-salt"
 
@@ -927,7 +968,7 @@ npm run start
 
 # Or use PM2
 npm install -g pm2
-pm2 start npm --name dardcor-code -- start
+pm2 start npm --name 9router -- start
 pm2 save
 pm2 startup
 ```
@@ -936,55 +977,55 @@ pm2 startup
 
 ```bash
 # Build image (from repository root)
-docker build -t dardcor-code .
+docker build -t 9router .
 
 # Run container (command used in current setup)
 docker run -d \
-  --name dardcor-code  -p 21128:21128 \
-  --env-file /root/dev/dardcor-code/.env \
-  -v dardcor-code-data:/app/data \
-  -v dardcor-code-usage:/root/.dardcor-code \
-  dardcor-code
+  --name 9router  -p 20128:20128 \
+  --env-file /root/dev/9router/.env \
+  -v 9router-data:/app/data \
+  -v 9router-usage:/root/.9router \
+  9router
 ```
 
 便携式命令（如果您已在仓库根目录）：
 
 ```bash
 docker run -d \
-  --name dardcor-code \
-  -p 21128:21128 \
+  --name 9router \
+  -p 20128:20128 \
   --env-file ./.env \
-  -v dardcor-code-data:/app/data \
-  -v dardcor-code-usage:/root/.dardcor-code \
+  -v 9router-data:/app/data \
+  -v 9router-usage:/root/.9router \
   9
 ```
 
 容器默认值：
-- `PORT=21128`
+- `PORT=20128`
 - `HOSTNAME=0.0.0.0`
 
 有用命令：
 
 ```bash
-docker logs -f dardcor-code
-docker restart dardcor-code
-docker stop dardcor-code && docker rm dardcor-code
+docker logs -f 9router
+docker restart 9router
+docker stop 9router && docker rm 9router
 ```
 
 ### 环境变量
 
 | 变量 | 默认值 | 描述 |
 |----------|---------|-------------|
-| `JWT_SECRET` | 自动生成（`~/.dardcor-code/jwt-secret`） | 仪表板认证 cookie 的 JWT 签名密钥（设置可在多实例间共享） |
-| `INITIAL_PASSWORD` | unset | 无默认密码；仅限本地的可选引导（无已保存哈希时）。未设置时请通过 localhost 创建密码 |
-| `DATA_DIR` | `~/.dardcor-code` | 主应用数据库位置（`db.json`） |
-| `PORT` | 框架默认值 | 服务端口（示例中为 `21128`） |
+| `JWT_SECRET` | 自动生成（`~/.9router/jwt-secret`） | 仪表板认证 cookie 的 JWT 签名密钥（设置可在多实例间共享） |
+| `INITIAL_PASSWORD | `123456` | 当没有保存的哈希时的首次登录密码 |
+| `DATA_DIR` | `~/.9router` | 主应用数据库位置（`db.json`） |
+| `PORT` | 框架默认值 | 服务端口（示例中为 `20128`） |
 | `HOSTNAME` | 框架默认值 | 绑定主机（Docker 默认为 `0.0.0.0`） |
 | `NODE_ENV` | 运行时默认值 | 部署时设置 `production` |
-| `BASE_URL` |http://localhost:21128` | 云同步作业使用的服务器端内部基础 URL |
-| `CLOUD_URL` | `https://dardcor-code.web.id` | 服务器端云同步端点基础 URL |
+| `BASE_URL` |http://localhost:20128` | 云同步作业使用的服务器端内部基础 URL |
+| `CLOUD_URL` | `https://9router.com` | 服务器端云同步端点基础 URL |
 | `NEXT_PUBLIC_BASE_URL` | `http://localhost:3000` | 向后兼容/公共基础 URL（服务器运行时优先使用 `BASE_URL`） |
-| `NEXT_PUBLIC_CLOUD_URL` | `https://dardcor-code.web.id` | 向后兼容/公共云 URL（服务器运行时优先使用 `CLOUD_URL`） |
+| `NEXT_PUBLIC_CLOUD_URL` | `https://9router.com` | 向后兼容/公共云 URL（服务器运行时优先使用 `CLOUD_URL`） |
 | `API_KEY_SECRET` | `endpoint-proxy-api-secret` | 生成的 API Key 的 HMAC 密钥 |
 | `MACHINE_ID_SALT` | `endpoint-proxy-salt` | 稳定机器 ID 哈希的盐值 |
 | `ENABLE_REQUEST_LOGS` | `false` | 在 `logs/` 下启用请求/响应日志 |
@@ -1001,7 +1042,7 @@ docker stop dardcor-code && docker rm dardcor-code
 ### 运行时文件和存储
 
 - 主应用状态：`${DATA_DIR}/db.json`（提供商、组合、别名、密钥、设置），由 `src/lib/localDb.js` 管理。
-- 使用历史和日志：`~/.dardcor-code/usage.json` 和 `~/.dardcor-code/log.txt`，由 `src/lib/usageDb.js` 管理。
+- 使用历史和日志：`~/.9router/usage.json` 和 `~/.9router/log.txt`，由 `src/lib/usageDb.js` 管理。
 - 可选请求/转换器日志：当 `ENABLE_REQUEST_LOGS=true` 时为 `<repo>/logs/...`。
 - 使用存储当前遵循 `~/.9` 路径逻辑，独立于 `DATA_DIR`。
 
@@ -1056,6 +1097,7 @@ docker stop dardcor-code && docker rm dardcor-code
 ## 🐛 故障排除
 
 “Language model did not provide messages”**
+- 提供商配额耗尽 → 检查仪表板配额追踪器
 - 解决方案：使用组合回退或切换到更便宜的层
 
 **速率限制**
@@ -1072,15 +1114,15 @@ docker stop dardcor-code && docker rm dardcor-code
 - 对非关键任务使用免费层（Gemini CLI, iFlow）
 
 **仪表板在错误的端口打开**
-- 设置 `PORT=21128` 和 `NEXT_PUBLIC_BASE_URL=http://localhost:21128`
+- 设置 `PORT=20128` 和 `NEXT_PUBLIC_BASE_URL=http://localhost:20128`
 
 **云端同步错误**
-- 验证 `BASE_URL` 指向您正在运行的实例（例如：`http://localhost:21128`）
-- 验证 `CLOUD_URL` 指向您预期的云端端点（例如：`https://dardcor-code.web.id`）
+- 验证 `BASE_URL` 指向您正在运行的实例（例如：`http://localhost:20128`）
+- 验证 `CLOUD_URL` 指向您预期的云端端点（例如：`https://9router.com`）
 - 尽可能保持 `NEXT_PUBLIC_*` 值与服务器端值一致。
 
 **云端端点 `stream=false` 返回 500（`Unexpected token 'd'...`）**
-- 症状通常出现在公共云端端点（`https://dardcor-code.web.id/v1`）的非流式调用上。
+- 症状通常出现在公共云端端点（`https://9router.com/v1`）的非流式调用上。
 - 根本原因：上游返回 SSE 负载（`data: ...`）而客户端期望 JSON。
 - 变通方法：对云端直接调用使用 `stream=true`。
 - 当上游返回 `text/event-stream` 时，本地 Dardcor Code 运行时包含 SSE→JSON 回退用于非流式调用。
@@ -1091,7 +1133,7 @@ docker stop dardcor-code && docker rm dardcor-code
 
 **首次登录不工作**
 - 检查 `.env` 中的 `INITIAL_PASSWORD`
-- 如果未设置，请通过 localhost 打开仪表板并在首次表单中创建密码
+- 如果未设置，回退密码是 `123456`
 
 **`logs/` 下没有请求日志**
 - 设置 `ENABLE_REQUEST_LOGS=true`
@@ -1114,7 +1156,7 @@ docker stop dardcor-code && docker rm dardcor-code
 ### Chat Completions
 
 ```bash
-POST httplocalhost:21128/v1/chat/completions
+POST httplocalhost:20128/v1/chat/completions
 Authorization: Bearer your-api-key
 Content-Type: application/json
 
@@ -1130,7 +1172,7 @@ Content-Type: application/json
 ### 列出模型
 
 ```bash
-GET http://localhost:21128/v1/models
+GET http://localhost:20128/v1/models
 Authorization: Bearer your-api-key
 
 → Returns all models + combos in OpenAI format
@@ -1154,7 +1196,7 @@ Authorization: Bearer your-api-key
 - `tester/security/test-docker-hardening.sh`
   - 构建 Docker 镜像并验证加固检查（`/api/cloud/auth` 认证保护、`REQUIRE_API_KEY`、安全认证 cookie 行为）。
 - `tester/security/test-cloud-openai-compatible.sh`
-  - 使用提供的模型/密钥向云端端点（`https://dardcor-code.web.id/v1/chat/completions`）发送直接的 OpenAI 兼容请求。
+  - 使用提供的模型/密钥向云端端点（`https://9router.com/v1/chat/completions`）发送直接的 OpenAI 兼容请求。
 - `tester/security/test-cloud-sync-and-call.sh`
   - 端到端流程：创建本地密钥 -> 启用/同步云端 -> 带重试调用云端端点。
   - 包含使用 `stream` 的回退检查，以区分认证错误和非流式解析问题。
@@ -1172,9 +1214,9 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 
 最近验证的预期行为：
 
-- 本地运行时（`http://127.0.0.1:21128/v1/chat/completions`）：使用 `stream=false` 和 `stream=true` 都可以工作。
+- 本地运行时（`http://127.0.0.1:20128/v1/chat/completions`）：使用 `stream=false` 和 `stream=true` 都可以工作。
 - Docker 运行时（容器暴露的相同 API 路径）：加固检查通过，云端认证保护工作，启用时严格 API 密钥模式工作。
-- 公共云端端点（`https://dardcor-code.web.id/v1/chat/completions`）：
+- 公共云端端点（`https://9router.com/v1/chat/completions`）：
   - `stream=true`：预期成功（返回 SSE 块）。
   - `stream=false`：当上游向非流式客户端路径返回 SSE 内容时，可能失败并显示 `500` + 解析错误（`Unexpected token 'd'`）。
 
@@ -1212,8 +1254,9 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 
 ## 📧 支持
 
-- **网站**：[dardcor-code.web.id](https://dardcor-code.web.id)
-- **GitHub**：
+- **网站**：[9router.com](https://9router.com)
+- **GitHub**：[github.com/decolua/9router](https://github.com/decolua/9router)
+- **问题**：[github.com/decolua/9router/issues](https://github.com/decolua/9router/issues)
 
 ---
 
@@ -1221,9 +1264,13 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 
 感谢所有帮助让 Dardcor Code 变得更好的贡献者！
 
+[![Contributors](https://contrib.rocks/image?repo=decolua/9router&max=100&columns=20&anon=1)](https://github.com/decolua/9router/graphs/contributors)
+
 ---
 
 ## 📊 Star 图表
+
+[![Star Chart](https://starchart.cc/decolua/9router.svg?variant=adaptive)](https://starchart.cc/decolua/9router)
 
 ### 如何贡献
 
@@ -1233,11 +1280,13 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 4 推送到分支（`git push origin feature/amazing-feature`）
 5. 打开 Pull Request
 
-详细指南请参阅 [Pull Requests](/pulls)。
+详细指南请参阅 [Pull Requests](https://github.com/decolua/9router/pulls)。
 
 ---
 
 ## 🔀 分支
+
+**[OmniRoute](https://github.com/diegosouzapw/OmniRoute)** — Dardcor Code 的全功能 TypeScript 分支。添加了 36+ 提供商、4 层自动回退、多模态 API（图像、嵌入、音频、TTS）、熔断器、语义缓存、LLM 评估和精美的仪表板。8+ 单元测试。通过 npm 和 Docker 可用。
 
 ---
 

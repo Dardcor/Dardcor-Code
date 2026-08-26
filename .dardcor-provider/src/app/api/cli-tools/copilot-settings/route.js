@@ -81,7 +81,7 @@ export async function POST(request) {
     } catch { /* No existing config */ }
 
     const endpointUrl = `${baseUrl}/chat/completions#models.ai.azure.com`;
-    const keyToUse = apiKey || "sk_dardcor-code";
+    const keyToUse = apiKey || "sk_9router";
 
     const newEntry = {
       name: "Dardcor Code",

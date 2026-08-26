@@ -1,13 +1,21 @@
 <div align="center">
-  <img src="./images/dardcor-code.png?1" alt="داشبورد Dardcor Code" width="800"/>
+  <img src="./images/9router.png?1" alt="داشبورد Dardcor Code" width="800"/>
   
   # Dardcor Code - مسیریاب رایگان هوش مصنوعی و ذخیره‌ساز توکن
   
+  **هرگز کدنویسی را متوقف نکنید. با RTK بین ۲۰ تا ۴۰٪ در توکن‌ها صرفه‌جویی کنید + بازگشت خودکار به مدل‌های رایگان و ارزان هوش مصنوعی.**
   
   **همه ابزارهای کدنویسی مبتنی بر هوش مصنوعی (Claude Code، Cursor، Antigravity، Copilot، Codex، Gemini، OpenCode، Cline، OpenClaw...) را به بیش از ۴۰ ارائه‌دهنده و ۱۰۰+ مدل متصل کنید.**
   
+  [![npm](https://img.shields.io/npm/v/9router.svg)](https://www.npmjs.com/package/9router)
+  [![Downloads](https://img.shields.io/npm/dm/9router.svg)](https://www.npmjs.com/package/9router)
+  [![Docker Pulls](https://img.shields.io/docker/pulls/decolua/9router.svg?logo=docker&label=Docker%20pulls)](https://hub.docker.com/r/decolua/9router)
+  [![GHCR](https://img.shields.io/badge/GHCR-decolua%2F9router-blue?logo=github)](https://github.com/decolua/9router/pkgs/container/9router)
+  [![License](https://img.shields.io/npm/l/9router.svg)](https://github.com/decolua/9router/blob/main/LICENSE)
 
-[🚀 شروع سریع](#-شروع-سریع) • [💡 ویژگی‌ها](#-ویژگی‌های-کلیدی) • [📖 راه‌اندازی](#-راهنمای-راه‌اندازی) • [🌐 وب‌سایت](https://dardcor-code.web.id)
+<a href="https://trendshift.io/repositories/22628" target="_blank"><img src="https://trendshift.io/api/badge/repositories/22628" alt="decolua%2F9router | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+
+[🚀 شروع سریع](#-شروع-سریع) • [💡 ویژگی‌ها](#-ویژگی‌های-کلیدی) • [📖 راه‌اندازی](#-راهنمای-راه‌اندازی) • [🌐 وب‌سایت](https://9router.com)
 
 [🇻🇳 Tiếng Việt](./i18n/README.vi.md) • [🇨🇳 中文](./i18n/README.zh-CN.md) • [🇯🇵 日本語](./i18n/README.ja-JP.md) • [🇷🇺 Русский](./i18n/README.ru.md) • [🇮🇷 فارسی](./i18n/README.fa_IR.md)
 
@@ -27,6 +35,7 @@
 
 **Dardcor Code این مشکلات را حل می‌کند:**
 
+- ✅ **ذخیره‌ساز توکن RTK** - فشرده‌سازی خودکار محتوای tool_result، صرفه‌جویی ۲۰ تا ۴۰٪ توکن در هر درخواست
 - ✅ **حداکثر استفاده از اشتراک‌ها** - پیگیری سهمیه، استفاده از هر ذره قبل از بازنشانی
 - ✅ **بازگشت خودکار** - اشتراک → ارزان → رایگان، بدون توقف
 - ✅ **چند حساب کاربری** - چرخش گردشی بین حساب‌ها برای هر ارائه‌دهنده
@@ -41,7 +50,7 @@
 │  ابزار خط   │  (Claude Code, Codex, OpenClaw, Cursor, Cline...)
 │  فرمان شما  │
 └──────┬──────┘
-       │ http://localhost:21128/v1
+       │ http://localhost:20128/v1
        ↓
 ┌─────────────────────────────────────────────┐
 │           Dardcor Code (مسیریاب هوشمند)          │
@@ -57,6 +66,7 @@
        │   ↓ محدودیت بودجه
        └─→ [لایه ۳: رایگان] Kiro, OpenCode Free, Vertex (۳۰۰ دلار اعتبار)
 
+نتیجه: هرگز کدنویسی را متوقف نکنید، حداقل هزینه + صرفه‌جویی ۲۰-۴۰٪ توکن با RTK
 ```
 
 ---
@@ -66,11 +76,11 @@
 **۱. نصب سراسری:**
 
 ```bash
-npm install -g dardcor-code
-dardcor-code
+npm install -g 9router
+9router
 ```
 
-🎉 داشبورد در آدرس `http://localhost:21128` باز می‌شود
+🎉 داشبورد در آدرس `http://localhost:20128` باز می‌شود
 
 **۲. اتصال یک ارائه‌دهنده رایگان (بدون نیاز به ثبت‌نام):**
 
@@ -80,7 +90,7 @@ dardcor-code
 
 ```
 تنظیمات Claude Code/Codex/OpenClaw/Cursor/Cline:
-  آدرس端点: http://localhost:21128/v1
+  آدرس端点: http://localhost:20128/v1
   کلید API: [کپی از داشبورد]
   مدل: kr/claude-sonnet-4.5
 ```
@@ -94,20 +104,116 @@ dardcor-code
 ```bash
 cp .env.example .env
 npm install
-PORT=21128 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run dev
+PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
 ```
 
 حالت تولید:
 
 ```bash
 npm run build
-PORT=21128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run start
+PORT=20128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run start
 ```
 
 آدرس‌های پیش‌فرض:
 
-- داشبورد: `http://localhost:21128/dashboard`
-- API سازگار با OpenAI: `http://localhost:21128/v1`
+- داشبورد: `http://localhost:20128/dashboard`
+- API سازگار با OpenAI: `http://localhost:20128/v1`
+
+---
+
+## راهنماهای تصویری
+
+<div align="center">
+
+<table>
+  <tr>
+  <td align="center" width="320">
+  <a href="https://www.youtube.com/watch?v=X69n5Lm06Yw">
+    <img src="https://img.youtube.com/vi/X69n5Lm06Yw/maxresdefault.jpg" alt="صرفه‌جویی در هزینه LLM با Dardcor Code" width="300"/>
+  </a><br/>
+  <b>🇻🇳 ویتنامی</b><br/>
+  <sub>صرفه‌جویی در هزینه LLM برای OpenClaw با Dardcor Code<br/>توسط <a href="https://www.youtube.com/c/M%C3%ACAIblog">Mì AI</a></sub>
+</td>
+<td align="center" width="320">
+      <a href="https://youtu.be/VQAw612S27Y">
+        <img src="https://img.youtube.com/vi/VQAw612S27Y/maxresdefault.jpg" alt="راه‌اندازی نامحدود رایگان Dardcor Code + Claude Code" width="300"/>
+      </a><br/>
+      <b>🇵🇰 اردو / हिन्दी</b><br/>
+      <sub>راه‌اندازی نامحدود رایگان Dardcor Code + Claude Code<br/>توسط <a href="https://www.youtube.com/@BuildAIWithHamid">Build AI With Hamid</a></sub>
+    </td>
+    <td align="center" width="320">
+      <a href="https://www.youtube.com/watch?v=raEyZPg5xE0">
+        <img src="https://img.youtube.com/vi/raEyZPg5xE0/maxresdefault.jpg" alt="آموزش راه‌اندازی Dardcor Code" width="300"/>
+      </a><br/>
+      <b>🇺🇸 انگلیسی</b><br/>
+      <sub>راه‌اندازی رایگان Dardcor Code + Claude Code<br/>توسط <a href="https://www.youtube.com/@BuildAIWithHamid">Build AI With Hamid</a></sub>
+    </td>
+    
+  </tr>
+  <tr>
+  <td align="center" width="320">
+      <a href="https://youtu.be/3dF5GIYMrcQ?si=bAyfyiHbARJQAHj_">
+        <img src="https://img.youtube.com/vi/3dF5GIYMrcQ/hqdefault.jpg" alt="آموزش راه‌اندازی Dardcor Code" width="300"/>
+      </a><br/>
+      <b>🇺🇸 انگلیسی</b><br/>
+      <sub>راه‌اندازی رایگان Dardcor Code + Claude Code<br/>توسط <a href="https://www.youtube.com/@BuildAIWithHamid">Build AI With Hamid</a></sub>
+    </td>
+    <td align="center" width="320">
+      <a href="https://www.youtube.com/watch?v=o3qYCyjrFYg">
+        <img src="https://img.youtube.com/vi/o3qYCyjrFYg/maxresdefault.jpg" alt="Claude Code رایگان برای همیشه" width="300"/>
+      </a><br/>
+      <b>🇺🇸 انگلیسی</b><br/>
+      <sub>Claude Code رایگان برای همیشه — مدل‌های نامحدود<br/>توسط <a href="https://www.youtube.com/@BuildAIWithHamid">Build AI With Hamid</a></sub>
+    </td>
+    <td align="center" width="320">
+      <a href="https://www.youtube.com/watch?v=Ttpc26m39Dw">
+        <img src="https://img.youtube.com/vi/Ttpc26m39Dw/maxresdefault.jpg" alt="راه‌اندازی رایگان Claude CLI" width="300"/>
+      </a><br/>
+      <b>🇺🇸 انگلیسی</b><br/>
+      <sub>راه‌اندازی رایگان Claude CLI با Dardcor Code 🚀<br/>توسط <a href="https://www.youtube.com/@CodeVerseSoban">CodeVerse Soban</a></sub>
+    </td>
+    
+  </tr>
+  <tr>
+  <td align="center" width="320">
+      <a href="https://www.youtube.com/watch?v=G-5A_D5Pm6Y">
+        <img src="https://img.youtube.com/vi/G-5A_D5Pm6Y/maxresdefault.jpg" alt="نصب کامل OpenClaw رایگان" width="300"/>
+      </a><br/>
+      <b>🇻🇳 ویتنامی</b><br/>
+      <sub>نصب کامل OpenClaw رایگان از صفر تا صد + Dardcor Code<br/>توسط <a href="https://www.youtube.com/@maigia">Mai Gia</a></sub>
+    </td>
+    <td align="center" width="320">
+      <a href="https://www.youtube.com/watch?v=JXmg8_gccgE">
+        <img src="https://img.youtube.com/vi/JXmg8_gccgE/maxresdefault.jpg" alt="OpenClaw رایگان با Claude Opus" width="300"/>
+      </a><br/>
+      <b>🇺🇸 انگلیسی</b><br/>
+      <sub>OpenClaw رایگان + Claude Opus 4.6<br/>توسط <a href="https://www.youtube.com/@BuildAIWithHamid">Build AI With Hamid</a></sub>
+    </td>
+    <td align="center" width="320">
+      <a href="https://www.youtube.com/watch?v=CkVZZUSTXAI">
+        <img src="https://img.youtube.com/vi/CkVZZUSTXAI/mqdefault.jpg" alt="راه‌اندازی رایگان Claude CLI" width="300"/>
+      </a><br/>
+      <b>🇮🇩 اندونزیایی</b><br/>
+      <sub>کدنویسی ۲۴ ساعته بدون محدودیت نرخ! صرفه‌جویی ۶۵٪ توکن هوش مصنوعی | آموزش راه‌اندازی سریع Dardcor Code 🚀<br/>توسط <a href="https://www.youtube.com/@krisswuh">Krisswuh</a></sub>
+    </td>
+    
+  </tr>
+  
+  <tr>
+  <td align="center" width="320">
+      <a href="https://www.youtube.com/watch?v=TXGv4eofe1I">
+        <img src="https://img.youtube.com/vi/TXGv4eofe1I/mqdefault.jpg" alt="روش استقرار Dardcor Code در Hugging Face رایگان و همیشه روشن! | جایگزین VPS با ۱۶ گیگابایت رم" width="300"/>
+      </a><br/>
+      <b>🇮🇩 اندونزیایی</b><br/>
+      <sub>روش استقرار Dardcor Code در Hugging Face رایگان و همیشه روشن! | جایگزین VPS با ۱۶ گیگابایت رم<br/>توسط <a href="https://www.youtube.com/@krisswuh">Krisswuh</a></sub>
+    </td>
+  </tr>
+
+</table>
+
+</div>
+
+> 🎬 **درباره Dardcor Code ویدیو ساخته‌اید؟** یک [درخواست Pull](https://github.com/decolua/9router/pulls) برای افزودن ویدیوی خود به این بخش ارسال کنید — ما آن را ادغام خواهیم کرد!
 
 ---
 
@@ -327,7 +433,9 @@ Dardcor Code به‌طور یکپارچه با تمام ابزارهای اصل�
 
 | ویژگی                                                                           | عملکرد                                                                                | اهمیت آن                                         |
 | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| 🚀 **ذخیره‌ساز توکن RTK** ([RTK](https://github.com/rtk-ai/rtk) ⭐۴۰هزار)         | فشرده‌سازی خروجی ابزارها (`git diff`، `grep`، `ls`، `tree`...) قبل از ارسال به LLM        | صرفه‌جویی **۲۰ تا ۴۰٪ توکن ورودی** در هر درخواست |
 | 🧠 **ذخیره‌ساز توکن Headroom** ([Headroom](https://github.com/chopratejas/headroom)) | پروکسی خارجی اختیاری `/v1/compress` قبل از مسیریابی به ارائه‌دهنده                      | صرفه‌جویی توکن‌های زمینه بیشتر بدون تغییر کلاینت |
+| 🪨 **حالت غارنشین** ([Caveman](https://github.com/JuliusBrussee/caveman) ⭐۵۲هزار)   | تزریق پرامپت حالت غارنشین → پاسخ‌های مختصر LLM با حفظ محتوای فنی                        | صرفه‌جویی **تا ۶۵٪ توکن خروجی**                 |
 | 🐴 **دم‌اسب** ([Ponytail](https://github.com/DietrichGebert/ponytail))          | تزریق پرامپت "توسعه‌دهنده ارشد تنبل" → کدنویسی حداقلی و YAGNI-first (سبک/کامل/فوق‌سبک) | **توکن خروجی کمتر، بازنویسی کمتر**              |
 | 🎯 **بازگشت هوشمند ۳ لایه**                                                      | مسیریابی خودکار: اشتراک → ارزان → رایگان                                                  | هرگز کدنویسی متوقف نمی‌شود، بدون توقف            |
 | 📊 **پیگیری سهمیه به‌روز**                                                   | تعداد توکن زنده + شمارش معکوس بازنشانی                                                  | حداکثر استفاده از اشتراک                        |
@@ -345,13 +453,18 @@ Dardcor Code به‌طور یکپارچه با تمام ابزارهای اصل�
 
 ### 🚀 ذخیره‌ساز توکن RTK
 
-خروجی ابزارها (`git diff`، `grep`، `find`، `ls`، `tree`، دامپ لاگ‌ها...) RTK آنها را شناسایی کرده و فشرده‌سازی هوشمند و بدون افت کیفیت **قبل از رسیدن درخواست به LLM** اعمال می‌کند:
+خروجی ابزارها (`git diff`، `grep`، `find`، `ls`، `tree`، دامپ لاگ‌ها...) اغلب ۳۰ تا ۵۰٪ از بودجه پرامپت شما را مصرف می‌کنند. RTK آنها را شناسایی کرده و فشرده‌سازی هوشمند و بدون افت کیفیت **قبل از رسیدن درخواست به LLM** اعمال می‌کند:
 
 - **فیلترها:** `git-diff`، `git-status`، `grep`، `find`، `ls`، `tree`، `dedup-log`، `smart-truncate`، `read-numbered`، `search-list`
 - **تشخیص خودکار:** نیازی به تنظیمات نیست — RTK یک کیلوبایت اول هر `tool_result` را بررسی کرده و فیلتر مناسب را انتخاب می‌کند.
 - **ایمن در طراحی:** اگر فیلتری با شکست مواجه شود، خطا دهد یا خروجی را بزرگ‌تر کند، RTK بی‌صدا متن اصلی را نگه می‌دارد. خطاها هرگز درخواست شما را خراب نمی‌کنند.
 - **جهانی:** در همه فرمت‌ها (OpenAI، Claude، Gemini، Cursor، Kiro، OpenAI Responses) کار می‌کند زیرا **قبل از** هرگونه ترجمه قالب اجرا می‌شود.
 - **روشن پیش‌فرض:** در هر زمان در داشبورد → تنظیمات نقطه پایانی قابل تغییر است.
+
+```
+بدون RTK: ۴۷ هزار توکن ارسال شده به LLM
+با RTK:    ۲۸ هزار توکن ارسال شده به LLM   (۴۰٪ صرفه‌جویی · همان زمینه · همان پاسخ)
+```
 
 ### 🧠 ذخیره‌ساز توکن Headroom
 
@@ -478,7 +591,9 @@ http://host.docker.internal:8787
 > "هزینه" نمایش داده شده در تحلیل استفاده **فقط برای پیگیری و مقایسه** است.
 > خود Dardcor Code **هرگز از شما هزینه‌ای دریافت نمی‌کند**. شما فقط مستقیماً به ارائه‌دهندگان هزینه می‌پردازید (در صورت استفاده از خدمات پولی).
 >
+> **مثال:** اگر داشبورد شما "۲۹۰ دلار هزینه کل" را هنگام استفاده از مدل‌های iFlow نشان می‌دهد، این مبلغ چیزی است که در صورت استفاده مستقیم از APIهای پولی پرداخت می‌کردید. هزینه واقعی شما = **۰ دلار** (iFlow رایگان نامحدود است).
 >
+> به آن به عنوان "ردیاب پس‌انداز" فکر کنید که نشان می‌دهد با استفاده از مدل‌های رایگان یا مسیریابی از طریق Dardcor Code چقدر صرفه‌جویی می‌کنید!
 
 ### 🌐 استقرار در هر جا
 
@@ -495,6 +610,7 @@ http://host.docker.internal:8787
 
 | لایه                | ارائه‌دهنده              | هزینه         | بازنشانی سهمیه      | بهترین استفاده                                |
 | ------------------- | --------------------- | ------------ | ---------------- | --------------------------------------- |
+| **🚀 ذخیره‌ساز توکن**  | **RTK (ساخته شده)**    | **رایگان**     | همیشه روشن        | **صرفه‌جویی ۲۰-۴۰٪ توکن در هر درخواست** |
 | **💳 اشتراک** | Claude Code (Pro/Max) | ۲۰-۲۰۰ دلار/ماه   | ۵ ساعته + هفتگی      | قبلاً اشتراک دارید                      |
 |                     | Codex (Plus/Pro)      | ۲۰-۲۰۰ دلار/ماه   | ۵ ساعته + هفتگی      | کاربران OpenAI                            |
 |                     | GitHub Copilot        | ۱۰-۱۹ دلار/ماه    | ماهانه          | کاربران GitHub                            |
@@ -505,6 +621,8 @@ http://host.docker.internal:8787
 | **🆓 رایگان**         | Kiro AI               | ۰ دلار           | نامحدود        | Claude 4.5 + GLM-5 + MiniMax رایگان       |
 |                     | OpenCode Free         | ۰ دلار           | نامحدود        | بدون احراز هویت، دریافت خودکار مدل‌ها              |
 |                     | Vertex AI             | ۳۰۰ دلار اعتبار | حساب‌های جدید GCP | Gemini 3 Pro + DeepSeek + GLM-5         |
+
+**💡 نکته حرفه‌ای:** ترکیب RTK + Kiro AI + OpenCode Free = **۰ دلار هزینه + ۲۰-۴۰٪ صرفه‌جویی توکن**!
 
 ---
 
@@ -528,10 +646,12 @@ http://host.docker.internal:8787
 نمایش داشبورد:
 • تعداد درخواست‌ها: ۱,۶۶۲
 • کل توکن‌ها: ۴۷ میلیون
+• هزینه نمایشی: ۲۹۰ دلار
 
 بررسی واقعیت:
 • ارائه‌دهنده: iFlow (رایگان نامحدود)
 • پرداخت واقعی: ۰.۰۰ دلار
+• منظور از ۲۹۰ دلار: مبلغی که با استفاده از مدل‌های رایگان پس‌انداز کرده‌اید!
 ```
 
 **قوانین پرداخت:**
@@ -574,6 +694,7 @@ http://host.docker.internal:8787
   3. oc/<auto>                 (OpenCode Free، بدون احراز هویت)
 
 هزینه ماهانه: ۰ دلار
+کیفیت: مدل‌های آماده تولید + RTK صرفه‌جویی ۲۰-۴۰٪ توکن
 ```
 
 ### مورد ۳: "به کدنویسی ۲۴/۷ بدون وقفه نیاز دارم"
@@ -621,8 +742,12 @@ http://host.docker.internal:8787
 
 **مثال:**
 
+- **داشبورد نشان می‌دهد:** "۲۹۰ دلار هزینه کل"
 - **واقعیت:** شما از iFlow (رایگان نامحدود) استفاده می‌کنید
 - **هزینه واقعی شما:** **۰.۰۰ دلار**
+- **منظور از ۲۹۰ دلار:** مبلغی که با استفاده از مدل‌های رایگان به جای APIهای پولی **پس‌انداز** کرده‌اید!
+
+نمایش هزینه یک "ردیاب پس‌انداز" است تا به شما در درک الگوهای مصرف و فرصت‌های بهینه‌سازی کمک کند.
 
 </details>
 
@@ -904,6 +1029,7 @@ Vertex Partner (Anthropic / DeepSeek / GLM / Qwen از طریق Vertex):
   2. kr/glm-5 (GLM-5 رایگان از طریق Kiro)
   3. vertex/gemini-3.1-pro-preview (۳۰۰ دلار اعتبار رایگان)
 
+هزینه: ۰ دلار برای همیشه (+ صرفه‌جویی ۲۰-۴۰٪ توکن با RTK)!
 ```
 
 </details>
@@ -915,8 +1041,8 @@ Vertex Partner (Anthropic / DeepSeek / GLM / Qwen از طریق Vertex):
 
 ```
 تنظیمات → مدل‌ها → پیشرفته:
-  آدرس پایه API OpenAI: http://localhost:21128/v1
-  کلید API OpenAI: [از داشبورد dardcor-code]
+  آدرس پایه API OpenAI: http://localhost:20128/v1
+  کلید API OpenAI: [از داشبورد 9router]
   مدل: cc/claude-opus-4-7
 ```
 
@@ -928,16 +1054,16 @@ Vertex Partner (Anthropic / DeepSeek / GLM / Qwen از طریق Vertex):
 
 ```json
 {
-  "anthropic_api_base": "http://localhost:21128/v1",
-  "anthropic_api_key": "your-dardcor-code-api-key"
+  "anthropic_api_base": "http://localhost:20128/v1",
+  "anthropic_api_key": "your-9router-api-key"
 }
 ```
 
 ### Codex CLI
 
 ```bash
-export OPENAI_BASE_URL="http://localhost:21128"
-export OPENAI_API_KEY="your-dardcor-code-api-key"
+export OPENAI_BASE_URL="http://localhost:20128"
+export OPENAI_API_KEY="your-9router-api-key"
 
 codex "your prompt"
 ```
@@ -957,15 +1083,15 @@ codex "your prompt"
   "agents": {
     "defaults": {
       "model": {
-        "primary": "dardcor-code/kr/claude-sonnet-4.5"
+        "primary": "9router/kr/claude-sonnet-4.5"
       }
     }
   },
   "models": {
     "providers": {
-      "dardcor-code": {
-        "baseUrl": "http://127.0.0.1:21128/v1",
-        "apiKey": "sk_dardcor-code",
+      "9router": {
+        "baseUrl": "http://127.0.0.1:20128/v1",
+        "apiKey": "sk_9router",
         "api": "openai-completions",
         "models": [
           {
@@ -985,7 +1111,7 @@ codex "your prompt"
 
 ```
 ارائه‌دهنده: سازگار با OpenAI
-آدرس پایه: http://localhost:21128/v1
+آدرس پایه: http://localhost:20128/v1
 کلید API: [از داشبورد]
 مدل: cc/claude-opus-4-7
 ```
@@ -999,20 +1125,20 @@ codex "your prompt"
 
 ```bash
 # کلون و نصب
-git clone .git
-cd dardcor-code
+git clone https://github.com/decolua/9router.git
+cd 9router
 npm install
 npm run build
 
 # پیکربندی
 export JWT_SECRET="your-secure-secret-change-this"
 export INITIAL_PASSWORD="your-password"
-export DATA_DIR="/var/lib/dardcor-code"
-export PORT="21128"
+export DATA_DIR="/var/lib/9router"
+export PORT="20128"
 export HOSTNAME="0.0.0.0"
 export NODE_ENV="production"
-export NEXT_PUBLIC_BASE_URL="http://localhost:21128"
-export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.web.id"
+export NEXT_PUBLIC_BASE_URL="http://localhost:20128"
+export NEXT_PUBLIC_CLOUD_URL="https://9router.com"
 export API_KEY_SECRET="endpoint-proxy-api-key-secret"
 export MACHINE_ID_SALT="endpoint-proxy-salt"
 
@@ -1021,7 +1147,7 @@ npm run start
 
 # یا استفاده از PM2
 npm install -g pm2
-pm2 start npm --name dardcor-code -- start
+pm2 start npm --name 9router -- start
 pm2 save
 pm2 startup
 ```
@@ -1030,59 +1156,62 @@ pm2 startup
 
 تصاویر منتشر شده (چند پلتفرم `linux/amd64` + `linux/arm64`):
 
+- Docker Hub: [`decolua/9router`](https://hub.docker.com/r/decolua/9router)
+- GHCR: [`ghcr.io/decolua/9router`](https://github.com/decolua/9router/pkgs/container/9router)
+
 **شروع سریع (استفاده از تصویر منتشر شده):**
 
 ```bash
 docker run -d \
-  --name dardcor-code \
-  -p 21128:21128 \
-  -v "$HOME/.dardcor-code:/app/data" \
+  --name 9router \
+  -p 20128:20128 \
+  -v "$HOME/.9router:/app/data" \
   -e DATA_DIR=/app/data \
-  dardcor-code:latest
+  decolua/9router:latest
 ```
 
-→ باز کردن http://localhost:21128
+→ باز کردن http://localhost:20128
 
 **ساخت از سورس (توسعه):**
 
 ```bash
-git clone .git
-cd dardcor-code/app
-docker build -t dardcor-code .
-docker run -d --name dardcor-code -p 21128:21128 \
-  -v "$HOME/.dardcor-code:/app/data" -e DATA_DIR=/app/data dardcor-code
+git clone https://github.com/decolua/9router.git
+cd 9router/app
+docker build -t 9router .
+docker run -d --name 9router -p 20128:20128 \
+  -v "$HOME/.9router:/app/data" -e DATA_DIR=/app/data 9router
 ```
 
 **پیش‌فرض‌های کانتینر:**
 
-- `PORT=21128`
+- `PORT=20128`
 - `HOSTNAME=0.0.0.0`
 
 **دستورات مفید:**
 
 ```bash
-docker logs -f dardcor-code
-docker restart dardcor-code
-docker stop dardcor-code && docker rm dardcor-code
-docker pull dardcor-code:latest   # به‌روزرسانی به آخرین نسخه
+docker logs -f 9router
+docker restart 9router
+docker stop 9router && docker rm 9router
+docker pull decolua/9router:latest   # به‌روزرسانی به آخرین نسخه
 ```
 
-**ماندگاری داده:** `$HOME/.dardcor-code/db/data.sqlite` در میزبان ↔ `/app/data/db/data.sqlite` در کانتینر.
+**ماندگاری داده:** `$HOME/.9router/db/data.sqlite` در میزبان ↔ `/app/data/db/data.sqlite` در کانتینر.
 
 ### متغیرهای محیطی
 
 | متغیر                                             | پیش‌فرض                                  | توضیحات                                                                         |
 | ---------------------------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------- |
-| `JWT_SECRET`                                         | تولید خودکار (`~/.dardcor-code/jwt-secret`) | راز امضای JWT برای کوکی احراز هویت داشبورد (برای اشتراک بین نمونه‌ها بازنویسی کنید)   |
-| `INITIAL_PASSWORD`                                   | unset                                    | بدون مقدار پیش‌فرض؛ بوت‌استرپ اختیاری فقط برای local در صورت عدم وجود هش ذخیره شده. اگر تنظیم نشده باشد، رمز عبور را از طریق localhost ایجاد کنید              |
-| `DATA_DIR`                                           | `~/.dardcor-code`                             | مکان اصلی داده‌های برنامه (SQLite در `$DATA_DIR/db/data.sqlite`)                       |
-| `PORT`                                               | پیش‌فرض فریم‌ورک                        | پورت سرویس (`۲۱۱۲۸` در مثال‌ها)                                                  |
+| `JWT_SECRET`                                         | تولید خودکار (`~/.9router/jwt-secret`) | راز امضای JWT برای کوکی احراز هویت داشبورد (برای اشتراک بین نمونه‌ها بازنویسی کنید)   |
+| `INITIAL_PASSWORD`                                   | `123456`                                 | رمز عبور اولین ورود در صورت عدم وجود هش ذخیره شده                                      |
+| `DATA_DIR`                                           | `~/.9router`                             | مکان اصلی داده‌های برنامه (SQLite در `$DATA_DIR/db/data.sqlite`)                       |
+| `PORT`                                               | پیش‌فرض فریم‌ورک                        | پورت سرویس (`۲۰۱۲۸` در مثال‌ها)                                                  |
 | `HOSTNAME`                                           | پیش‌فرض فریم‌ورک                        | هاست بایند (داکر پیش‌فرض `۰.۰.۰.۰` است)                                            |
 | `NODE_ENV`                                           | پیش‌فرض زمان اجرا                          | برای استقرار `production` را تنظیم کنید                                                         |
-| `BASE_URL`                                           | `http://localhost:21128`                 | آدرس پایه داخلی سمت سرور که توسط کارهای همگام‌سازی ابری استفاده می‌شود                               |
-| `CLOUD_URL`                                          | `https://dardcor-code.web.id`                    | آدرس پایه نقطه پایانی همگام‌سازی ابری سمت سرور                                            |
+| `BASE_URL`                                           | `http://localhost:20128`                 | آدرس پایه داخلی سمت سرور که توسط کارهای همگام‌سازی ابری استفاده می‌شود                               |
+| `CLOUD_URL`                                          | `https://9router.com`                    | آدرس پایه نقطه پایانی همگام‌سازی ابری سمت سرور                                            |
 | `NEXT_PUBLIC_BASE_URL`                               | `http://localhost:3000`                  | آدرس پایه عمومی/سازگار با گذشته (برای زمان اجرای سرور `BASE_URL` را ترجیح دهید)          |
-| `NEXT_PUBLIC_CLOUD_URL`                              | `https://dardcor-code.web.id`                    | آدرس ابری عمومی/سازگار با گذشته (برای زمان اجرای سرور `CLOUD_URL` را ترجیح دهید)        |
+| `NEXT_PUBLIC_CLOUD_URL`                              | `https://9router.com`                    | آدرس ابری عمومی/سازگار با گذشته (برای زمان اجرای سرور `CLOUD_URL` را ترجیح دهید)        |
 | `API_KEY_SECRET`                                     | `endpoint-proxy-api-key-secret`          | راز HMAC برای کلیدهای API تولید شده                                                  |
 | `MACHINE_ID_SALT`                                    | `endpoint-proxy-salt`                    | نمک برای هش کردن شناسه ماشین پایدار                                                  |
 | `ENABLE_REQUEST_LOGS`                                | `false`                                  | لاگ‌های درخواست/پاسخ را در `logs/` فعال می‌کند                                         |
@@ -1103,7 +1232,7 @@ docker pull dardcor-code:latest   # به‌روزرسانی به آخرین نس
 - وضعیت اصلی برنامه: `${DATA_DIR}/db/data.sqlite` (SQLite — ارائه‌دهندگان، ترکیب‌ها، نام‌های مستعار، کلیدها، تنظیمات، تاریخچه استفاده)
 - پشتیبان‌گیری خودکار: `${DATA_DIR}/db/backups/`
 - لاگ‌های اختیاری درخواست/مترجم: `<repo>/logs/...` وقتی `ENABLE_REQUEST_LOGS=true`
-- هر دو `${DATA_DIR}` و `~/.dardcor-code` در یک کانتینر داکر به یک مکان اشاره می‌کنند — symlink `/root/.dardcor-code -> /app/data` در زمان ساخت ایجاد می‌شود.
+- هر دو `${DATA_DIR}` و `~/.9router` در یک کانتینر داکر به یک مکان اشاره می‌کنند — symlink `/root/.9router -> /app/data` در زمان ساخت ایجاد می‌شود.
 
 </details>
 
@@ -1205,18 +1334,19 @@ docker pull dardcor-code:latest   # به‌روزرسانی به آخرین نس
 
 **هزینه‌های بالا**
 
+- RTK را در داشبورد → تنظیمات نقطه پایانی فعال کنید (پیش‌فرض روشن است، ۲۰-۴۰٪ توکن صرفه‌جویی می‌کند)
 - آمار مصرف را در داشبورد بررسی کنید
 - مدل اصلی را به GLM/MiniMax تغییر دهید
 - برای کارهای غیر حیاتی از لایه رایگان (Kiro، OpenCode Free، Vertex) استفاده کنید
 
 **داشبورد در پورت اشتباه باز می‌شود**
 
-- `PORT=21128` و `NEXT_PUBLIC_BASE_URL=http://localhost:21128` را تنظیم کنید
+- `PORT=20128` و `NEXT_PUBLIC_BASE_URL=http://localhost:20128` را تنظیم کنید
 
 **اولین ورود کار نمی‌کند**
 
 - `INITIAL_PASSWORD` را در `.env` بررسی کنید
-- در صورت تنظیم نشدن، داشبورد را از طریق localhost باز کرده و در فرم اولین ورود رمز عبور ایجاد کنید
+- در صورت تنظیم نشدن، رمز عبور پیش‌فرض `123456` است
 
 **لاگ‌های درخواست در `logs/` وجود ندارد**
 
@@ -1240,7 +1370,7 @@ docker pull dardcor-code:latest   # به‌روزرسانی به آخرین نس
 ### تکمیل‌های چت
 
 ```bash
-POST http://localhost:21128/v1/chat/completions
+POST http://localhost:20128/v1/chat/completions
 Authorization: Bearer your-api-key
 Content-Type: application/json
 
@@ -1256,7 +1386,7 @@ Content-Type: application/json
 ### لیست مدل‌ها
 
 ```bash
-GET http://localhost:21128/v1/models
+GET http://localhost:20128/v1/models
 Authorization: Bearer your-api-key
 
 → همه مدل‌ها + ترکیب‌ها را در قالب OpenAI برمی‌گرداند
@@ -1264,8 +1394,9 @@ Authorization: Bearer your-api-key
 
 ## 📧 پشتیبانی
 
-- **وب‌سایت**: [dardcor-code.web.id](https://dardcor-code.web.id)
-- **GitHub**: 
+- **وب‌سایت**: [9router.com](https://9router.com)
+- **GitHub**: [github.com/decolua/9router](https://github.com/decolua/9router)
+- **مسائل**: [github.com/decolua/9router/issues](https://github.com/decolua/9router/issues)
 
 ---
 
@@ -1273,11 +1404,17 @@ Authorization: Bearer your-api-key
 
 با تشکر از همه مشارکت‌کنندگانی که به بهتر شدن Dardcor Code کمک کردند!
 
+[![Contributors](https://contrib.rocks/image?repo=decolua/9router&max=150&columns=15&anon=1&v=20260309)](https://github.com/decolua/9router/graphs/contributors)
+
 ---
 
 ## 📊 نمودار ستاره
 
+[![Star Chart](https://starchart.cc/decolua/9router.svg?variant=adaptive)](https://starchart.cc/decolua/9router)
+
 ## 🔀 فورک‌ها
+
+**[OmniRoute](https://github.com/diegosouzapw/OmniRoute)** — یک فورک کامل TypeScript از Dardcor Code. بیش از ۳۶ ارائه‌دهنده، بازگشت خودکار ۴ لایه، APIهای چندوجهی (تصاویر، جاسازی‌ها، صدا، TTS)، قطع‌کننده مدار، حافظه پنهان معنایی، ارزیابی‌های LLM و داشبوردی زیبا اضافه می‌کند. بیش از ۳۶۸ تست واحد. از طریق npm و داکر در دسترس است.
 
 ---
 
@@ -1286,6 +1423,9 @@ Authorization: Bearer your-api-key
 ساخته شده بر روی شانه‌های غول‌ها:
 
 - **[CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI)** — پیاده‌سازی اصلی Go که الهام‌بخش این پورت جاوااسکریپت بود.
+- **[RTK](https://github.com/rtk-ai/rtk)** ![Stars](https://img.shields.io/github/stars/rtk-ai/rtk?style=flat&color=yellow) — ذخیره‌ساز توکن Rust. Dardcor Code خط لوله فشرده‌سازی آن را به JS منتقل می‌کند → **۲۰-۴۰٪- توکن ورودی** در هر درخواست.
+- **[Caveman](https://github.com/JuliusBrussee/caveman)** ![Stars](https://img.shields.io/github/stars/JuliusBrussee/caveman?style=flat&color=yellow) توسط **[@JuliusBrussee](https://github.com/JuliusBrussee)** — پرامپت ویروسی _"چرا از توکن زیاد استفاده کنی وقتی توکن کم کار را انجام می‌دهد"_. Dardcor Code پرامپت آن را تطبیق می‌دهد → **۶۵٪- توکن خروجی**.
+- **[Ponytail](https://github.com/DietrichGebert/ponytail)** ![Stars](https://img.shields.io/github/stars/DietrichGebert/ponytail?style=flat&color=yellow) توسط **[@DietrichGebert](https://github.com/DietrichGebert)** — مهارت _"توسعه‌دهنده ارشد تنبل"_. Dardcor Code نردبان YAGNI-first آن را تزریق می‌کند → **توکن کمتر، کد کمتر، دیف‌های کوتاه‌تر**.
 
 تشکر فراوان از این نویسندگان — بدون کار آنها، ویژگی‌های ذخیره‌سازی توکن Dardcor Code وجود نداشت. ⭐ آنها را در GitHub بدهید!
 
