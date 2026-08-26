@@ -74,7 +74,7 @@ const readConfig = async () => {
 };
 
 // Check if config has Dardcor Code settings
-const hasDardcor CodeConfig = (config) => {
+const has9RouterConfig = (config) => {
   if (!config) return false;
   return config.includes("model_provider = \"9router\"") || config.includes("[model_providers.9router]");
 };
@@ -97,7 +97,7 @@ export async function GET() {
     return NextResponse.json({
       installed: true,
       config,
-      hasDardcor Code: hasDardcor CodeConfig(config),
+      has9Router: has9RouterConfig(config),
       configPath: getCodexConfigPath(),
     });
   } catch (error) {

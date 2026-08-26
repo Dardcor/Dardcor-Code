@@ -48,7 +48,7 @@ const readConfig = async () => {
   }
 };
 
-const hasDardcor CodeConfig = (config) => {
+const has9RouterConfig = (config) => {
   if (!config?.provider) return false;
   return !!config.provider["9router"];
 };
@@ -73,7 +73,7 @@ export async function GET() {
     return NextResponse.json({
       installed: true,
       config,
-      hasDardcor Code: hasDardcor CodeConfig(config),
+      has9Router: has9RouterConfig(config),
       configPath: getConfigPath(),
         opencode: {
           models: Object.keys(modelMap),

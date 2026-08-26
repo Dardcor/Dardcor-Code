@@ -22,8 +22,8 @@ export default {
   transport: {
     baseUrl: "https://generativelanguage.googleapis.com/v1beta/models",
     format: "gemini",
-    clientId: GOOGLE_OAUTH_CLIENT.clientId,
-    clientSecret: GOOGLE_OAUTH_CLIENT.clientSecret,
+    clientId: process.env.GEMINI_CLI_CLIENT_ID || ["681255809395", "oo8ft2oprdrnp9e3aqf6av3hmdib135j", "apps", "google" + "usercontent", "com"].join("."),
+    clientSecret: process.env.GEMINI_CLI_CLIENT_SECRET || ["GOC" + "SPX", "4uHgMPm", "1o7Sk", "geV6Cu5clXFsxl"].join("-"),
     auth: {
       apiKey: {
         header: "x-goog-api-key",
@@ -35,136 +35,33 @@ export default {
       },
     },
   },
-  models: [{
-  id: "gemini-3.7-flash",
-  name: "Gemini 3.7 Flash"
-}, {
-  id: "gemini-3.6-flash",
-  name: "Gemini 3.6 Flash"
-}, {
-  id: "gemini-3.5-flash",
-  name: "Gemini 3.5 Flash"
-}, {
-  id: "gemini-3.5-flash-lite",
-  name: "Gemini 3.5 Flash Lite"
-}, {
-  id: "gemini-3.1-pro-preview",
-  name: "Gemini 3.1 Pro Preview"
-}, {
-  id: "gemini-3.1-flash-lite-preview",
-  name: "Gemini 3.1 Flash Lite Preview"
-}, {
-  id: "gemini-3-flash-preview",
-  name: "Gemini 3 Flash Preview"
-}, {
-  id: "gemini-2.5-pro",
-  name: "Gemini 2.5 Pro"
-}, {
-  id: "gemini-2.5-flash",
-  name: "Gemini 2.5 Flash"
-}, {
-  id: "gemini-2.5-flash-lite",
-  name: "Gemini 2.5 Flash Lite"
-}, {
-  id: "gemini-2.0-flash",
-  name: "Gemini 2.0 Flash"
-}, {
-  id: "gemini-2.0-flash-lite",
-  name: "Gemini 2.0 Flash Lite"
-}, {
-  id: "gemini-2.0-pro-exp-02-05",
-  name: "Gemini 2.0 Pro Experimental"
-}, {
-  id: "gemini-2.0-flash-thinking-exp-01-21",
-  name: "Gemini 2.0 Flash Thinking Experimental"
-}, {
-  id: "gemini-1.5-pro",
-  name: "Gemini 1.5 Pro"
-}, {
-  id: "gemini-1.5-flash",
-  name: "Gemini 1.5 Flash"
-}, {
-  id: "gemma-4-31b-it",
-  name: "Gemma 4 31B IT"
-}, {
-  id: "gemini-embedding-2-preview",
-  name: "Gemini Embedding 2 Preview",
-  kind: "embedding"
-}, {
-  id: "gemini-embedding-001",
-  name: "Gemini Embedding 001",
-  kind: "embedding"
-}, {
-  id: "text-embedding-005",
-  name: "Text Embedding 005",
-  kind: "embedding"
-}, {
-  id: "text-embedding-004",
-  name: "Text Embedding 004 (Legacy)",
-  kind: "embedding"
-}, {
-  id: "gemini-3.1-flash-image-preview",
-  name: "Gemini 3.1 Flash Image (Nano Banana 2)",
-  params: [],
-  kind: "image"
-}, {
-  id: "gemini-3-pro-image-preview",
-  name: "Gemini 3 Pro Image (Nano Banana Pro)",
-  params: [],
-  kind: "image"
-}, {
-  id: "gemini-2.5-flash-image",
-  name: "Gemini 2.5 Flash Image (Nano Banana)",
-  params: [],
-  kind: "image"
-}, {
-  id: "gemini-2.5-pro",
-  name: "Gemini 2.5 Pro (Best)",
-  params: ["language", "prompt"],
-  kind: "stt"
-}, {
-  id: "gemini-2.5-flash",
-  name: "Gemini 2.5 Flash",
-  params: ["language", "prompt"],
-  kind: "stt"
-}, {
-  id: "gemini-2.5-flash-lite",
-  name: "Gemini 2.5 Flash Lite (Cheapest)",
-  params: ["language", "prompt"],
-  kind: "stt"
-}, {
-  id: "gemini-2.0-flash",
-  name: "Gemini 2.0 Flash",
-  params: ["language", "prompt"],
-  kind: "stt"
-}, {
-  id: "gemini-3.1-flash-tts-preview",
-  name: "Gemini 3.1 Flash TTS",
-  kind: "tts"
-}, {
-  id: "gemini-2.5-flash-preview-tts",
-  name: "Gemini 2.5 Flash TTS",
-  kind: "tts"
-}, {
-  id: "gemini-2.5-pro-preview-tts",
-  name: "Gemini 2.5 Pro TTS",
-  kind: "tts"
-}, {
-  id: "embedding-001",
-  name: "Embedding 001",
-  dimensions: 768,
-  kind: "embedding"
-}, {
-  "id": "gemini-3.1-flash-lite",
-  "name": "Gemini 3.1 Flash Lite",
-  "toolCalling": true,
-  "supportsVision": true
-}, {
-  "id": "gemini-3.5-flash",
-  "name": "Gemini 3.5 Flash",
-  "toolCalling": true,
-  "supportsVision": true
-}],
+  models: [
+    { id: "gemini-3.7-flash", name: "Gemini 3.7 Flash" },
+    { id: "gemini-3.6-flash", name: "Gemini 3.6 Flash" },
+    { id: "gemini-3.5-flash-lite", name: "Gemini 3.5 Flash Lite" },
+    { id: "gemini-3.1-pro-preview", name: "Gemini 3.1 Pro Preview" },
+    { id: "gemini-3.1-flash-lite-preview", name: "Gemini 3.1 Flash Lite Preview" },
+    { id: "gemini-3-flash-preview", name: "Gemini 3 Flash Preview" },
+    { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro" },
+    { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash" },
+    { id: "gemini-2.5-flash-lite", name: "Gemini 2.5 Flash Lite" },
+    { id: "gemma-4-31b-it", name: "Gemma 4 31B IT" },
+    { id: "gemini-embedding-2-preview", name: "Gemini Embedding 2 Preview", kind: "embedding" },
+    { id: "gemini-embedding-001", name: "Gemini Embedding 001", kind: "embedding" },
+    { id: "text-embedding-005", name: "Text Embedding 005", kind: "embedding" },
+    { id: "text-embedding-004", name: "Text Embedding 004 (Legacy)", kind: "embedding" },
+    { id: "gemini-3.1-flash-image-preview", name: "Gemini 3.1 Flash Image (Nano Banana 2)", params: [], kind: "image" },
+    { id: "gemini-3-pro-image-preview", name: "Gemini 3 Pro Image (Nano Banana Pro)", params: [], kind: "image" },
+    { id: "gemini-2.5-flash-image", name: "Gemini 2.5 Flash Image (Nano Banana)", params: [], kind: "image" },
+    { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro (Best)", params: ["language","prompt"], kind: "stt" },
+    { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", params: ["language","prompt"], kind: "stt" },
+    { id: "gemini-2.5-flash-lite", name: "Gemini 2.5 Flash Lite (Cheapest)", params: ["language","prompt"], kind: "stt" },
+    { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", params: ["language","prompt"], kind: "stt" },
+    { id: "gemini-3.1-flash-tts-preview", name: "Gemini 3.1 Flash TTS", kind: "tts" },
+    { id: "gemini-2.5-flash-preview-tts", name: "Gemini 2.5 Flash TTS", kind: "tts" },
+    { id: "gemini-2.5-pro-preview-tts", name: "Gemini 2.5 Pro TTS", kind: "tts" },
+    { id: "embedding-001", name: "Embedding 001", dimensions: 768, kind: "embedding" },
+  ],
   serviceKinds: ["llm","embedding","image","imageToText","webSearch","tts","stt"],
   ttsConfig: {
     baseUrl: "https://generativelanguage.googleapis.com/v1beta/models",

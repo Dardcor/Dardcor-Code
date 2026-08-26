@@ -57,7 +57,7 @@ const readSettings = async () => {
 };
 
 // Check if settings has Dardcor Code config
-const hasDardcor CodeConfig = (settings) => {
+const has9RouterConfig = (settings) => {
   if (!settings || !settings.models || !settings.models.providers) return false;
   return !!settings.models.providers["9router"];
 };
@@ -105,7 +105,7 @@ export async function GET() {
       installed: true,
       settings,
       agents: enrichedAgents,
-      hasDardcor Code: hasDardcor CodeConfig(settings),
+      has9Router: has9RouterConfig(settings),
       settingsPath: getOpenClawSettingsPath(),
     });
   } catch (error) {

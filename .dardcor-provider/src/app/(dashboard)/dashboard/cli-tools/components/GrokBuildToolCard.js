@@ -357,7 +357,7 @@ export default function GrokBuildToolCard({
 
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <Button variant="primary" size="sm" onClick={handleApply} disabled={!selectedModel} loading={applying} className="w-full sm:w-auto"><span className="material-symbols-outlined text-[14px] mr-1">save</span>Apply</Button>
-                <Button variant="outline" size="sm" onClick={handleReset} disabled={!grokStatus?.hasDardcor Code} loading={restoring} className="w-full sm:w-auto"><span className="material-symbols-outlined text-[14px] mr-1">restore</span>Reset</Button>
+                <Button variant="outline" size="sm" onClick={handleReset} disabled={!grokStatus?.has9Router} loading={restoring} className="w-full sm:w-auto"><span className="material-symbols-outlined text-[14px] mr-1">restore</span>Reset</Button>
                 <Button variant="ghost" size="sm" onClick={() => setShowManualConfigModal(true)} className="w-full sm:w-auto"><span className="material-symbols-outlined text-[14px] mr-1">content_copy</span>Manual Config</Button>
               </div>
             </>

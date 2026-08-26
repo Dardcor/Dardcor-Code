@@ -3,18 +3,13 @@
   "version": "1.0.0",
   "description": "Dardcor Code web dashboard",
   "private": true,
-  "type": "module",
-  "imports": {
-    "open-sse/*": "./open-sse/*",
-    "@/*": "./src/*"
-  },
   "scripts": {
     "dev": "next dev --port 25000",
     "dev:webpack": "next dev --webpack --port 25000",
     "build": "next build --webpack",
     "postbuild": "node scripts/copy-standalone-assets.mjs",
     "postbuild:bun": "node scripts/copy-standalone-assets.mjs",
-    "start": "next start --port 25000",
+    "start": "node custom-server.js --port 25000",
     "dev:bun": "bun --bun next dev --webpack --port 25000",
     "build:bun": "bun --bun next build --webpack",
     "start:bun": "bun ./.next/standalone/server.js",
@@ -32,8 +27,10 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@monaco-editor/react": "^4.7.0",
     "@next/third-parties": "^16.2.9",
+    "@node-saml/node-saml": "^5.1.0",
     "@xyflow/react": "^12.10.1",
     "bcryptjs": "^3.0.3",
+    "chalk": "^5.6.2",
     "confbox": "^0.2.4",
     "express": "^5.2.1",
     "gpt-tokenizer": "^3.4.0",
@@ -47,6 +44,7 @@
     "node-machine-id": "^1.1.12",
     "open": "^11.0.0",
     "ora": "^9.1.0",
+    "prop-types": "^15.8.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-is": "^16.13.1",
@@ -66,9 +64,11 @@
   "comment_better_sqlite3": "kept in optionalDependencies so npm install doesn't fail on systems without build tools — sql.js is used as fallback at runtime",
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
+    "@types/react": "19.2.18",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "postcss": "^8.5.6",
-    "tailwindcss": "^4"
+    "tailwindcss": "^4",
+    "typescript": "6.0.3"
   }
 }

@@ -863,7 +863,7 @@ Cost: $0 forever!
 ```
 Settings → Models → Advanced:
   OpenAI API Base URL: http://localhost:20128/v1
-  OpenAI API Key: [from 9router dashboard]
+  OpenAI API Key: [from Dardcor Code Dashboard]
   Model: cc/claude-opus-4-6
 ```
 
