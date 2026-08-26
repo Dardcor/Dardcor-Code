@@ -17,7 +17,7 @@ import { IExtensionContributionFactory, asContributionFactory } from '../../comm
 import { CompletionsUnificationContribution } from '../../completions/dardcor-node/completionsUnificationContribution';
 import { ConfigurationMigrationContribution } from '../../configuration/dardcor-node/configurationMigration';
 import { ContextKeysContribution } from '../../contextKeys/dardcor-node/contextKeys.contribution';
-import { ByokUtilityModelNotificationContribution } from '../../chatInputNotification/dardcor-node/byokUtilityModel.contribution';
+
 import { AiMappedEditsContrib } from '../../conversation/dardcor-node/aiMappedEditsContrib';
 import { ConversationFeature } from '../../conversation/dardcor-node/conversationFeature';
 import { FeedbackCommandContribution } from '../../conversation/dardcor-node/feedbackContribution';
@@ -75,7 +75,6 @@ export const vscodeNodeContributions: IExtensionContributionFactory[] = [
 	asContributionFactory(FetcherTelemetryContribution),
 	asContributionFactory(PowerStateLogger),
 	asContributionFactory(ContextKeysContribution),
-	asContributionFactory(ByokUtilityModelNotificationContribution),
 	asContributionFactory(CopilotDebugCommandContribution),
 	asContributionFactory(DebugCommandsContribution),
 	asContributionFactory(LanguageModelAccess),

@@ -185,7 +185,6 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
       lastRefreshAt: connection.lastRefreshAt,
       projectId: connection.projectId,
       connectionName: connection.displayName || connection.name || connection.email || connection.id,
-      copilotToken: connection.providerSpecificData?.copilotToken,
       providerSpecificData: {
         ...(connection.providerSpecificData || {}),
         connectionProxyEnabled: resolvedProxy.connectionProxyEnabled,

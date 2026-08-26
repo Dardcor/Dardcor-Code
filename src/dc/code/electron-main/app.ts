@@ -773,13 +773,14 @@ export class CodeApplication extends Disposable {
 		//#endregion
 	}
 
-	private ensureDardcorProviderRunning(): void {
+	private async ensureDardcorProviderRunning(): Promise<void> {
 		try {
-			const http = require('http');
-			const fs = require('fs');
-			const path = require('path');
-			const child_process = require('child_process');
-			const os = require('os');
+			const http = await import('http');
+			const fs = await import('fs');
+			const path = await import('path');
+			const child_process = await import('child_process');
+			const os = await import('os');
+
 
 			const port = process.env.DARDCOR_PORT ? parseInt(process.env.DARDCOR_PORT) : 25000;
 			const req = http.get(`http://127.0.0.1:${port}/v1/models`, { timeout: 1000 }, (res: any) => {
@@ -814,15 +815,18 @@ export class CodeApplication extends Disposable {
 				const logStream = fs.openSync(path.join(logDir, 'provider.log'), 'a');
 				let child;
 				const standaloneServer = path.join(providerDir, '.next/standalone/server.js');
+				const customServer = path.join(providerDir, 'custom-server.js');
 				if (fs.existsSync(standaloneServer)) {
-					child = child_process.spawn(process.execPath, [standaloneServer], {
-						cwd: path.join(providerDir, '.next/standalone'),
+					const useCustom = fs.existsSync(customServer);
+					child = child_process.spawn(process.execPath, [useCustom ? customServer : standaloneServer], {
+						cwd: useCustom ? providerDir : path.join(providerDir, '.next/standalone'),
 						env: { ...process.env, PORT: String(port) },
 						detached: true,
 						stdio: ['ignore', logStream, logStream]
 					});
 				} else {
-					child = child_process.spawn('npm', ['run', 'dev', '--', '--port', String(port)], {
+					const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+					child = child_process.spawn(npmCmd, ['run', 'dev', '--', '--port', String(port)], {
 						cwd: providerDir,
 						env: { ...process.env, PORT: String(port) },
 						detached: true,
@@ -841,7 +845,7 @@ export class CodeApplication extends Disposable {
 	}
 
 	async startup(): Promise<void> {
-		this.logService.debug('Starting VS Code');
+		this.logService.debug('Starting Dardcor Code');
 		this.logService.debug(`from: ${this.environmentMainService.appRoot}`);
 		this.logService.debug('args:', this.environmentMainService.args);
 

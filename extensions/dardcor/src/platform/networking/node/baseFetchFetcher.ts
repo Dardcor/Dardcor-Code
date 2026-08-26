@@ -119,8 +119,11 @@ export abstract class BaseFetchFetcher implements IFetcher {
 		} catch (err: any) {
 			if (typeof globalThis.fetch === 'function') {
 				try {
-					resp = await globalThis.fetch(url, init);
-				} catch {
+					const fallbackInit = { ...init };
+					delete fallbackInit.signal;
+					resp = await globalThis.fetch(url, fallbackInit);
+				} catch (e2: any) {
+					err.message = err.message + ' (Fallback failed: ' + (e2?.message || String(e2)) + ')';
 					throw err;
 				}
 			} else {

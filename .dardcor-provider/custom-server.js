@@ -126,9 +126,12 @@ http.createServer = (...args) => {
 };
 
 if (require.main === module) {
-  const standalone = path.join(__dirname, "server.js");
-  if (fs.existsSync(standalone)) {
-    require(standalone);
+  const standaloneNext = path.join(__dirname, ".next", "standalone", "server.js");
+  const standaloneRoot = path.join(__dirname, "server.js");
+  if (fs.existsSync(standaloneNext)) {
+    require(standaloneNext);
+  } else if (fs.existsSync(standaloneRoot)) {
+    require(standaloneRoot);
   } else {
     // Repo checkout has no standalone build next to us. `next start` builds its HTTP
     // server in-process, so the wrapper above still sanitizes every request.
@@ -137,3 +140,4 @@ if (require.main === module) {
     require(nextBin);
   }
 }
+

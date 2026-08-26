@@ -32,9 +32,6 @@ export async function refreshAndUpdateCredentials(connection, force = false, pro
     lastRefreshAt: connection.lastRefreshAt,
     connectionId: connection.id,
     providerSpecificData: connection.providerSpecificData,
-    // For GitHub
-    copilotToken: connection.providerSpecificData?.copilotToken,
-    copilotTokenExpiresAt: connection.providerSpecificData?.copilotTokenExpiresAt,
   };
 
   // Check if refresh is needed (skip when force=true)
@@ -90,8 +87,6 @@ export async function refreshAndUpdateCredentials(connection, force = false, pro
   // Handle provider-specific data (copilotToken for GitHub, etc.)
   const providerSpecificUpdates = {
     ...(refreshResult.providerSpecificData || {}),
-    ...(refreshResult.copilotToken ? { copilotToken: refreshResult.copilotToken } : {}),
-    ...(refreshResult.copilotTokenExpiresAt ? { copilotTokenExpiresAt: refreshResult.copilotTokenExpiresAt } : {}),
   };
   if (Object.keys(providerSpecificUpdates).length > 0) {
     updateData.providerSpecificData = {

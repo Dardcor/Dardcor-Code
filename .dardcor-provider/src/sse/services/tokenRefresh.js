@@ -13,8 +13,6 @@ import {
   refreshGoogleToken as _refreshGoogleToken,
   refreshCodexToken as _refreshCodexToken,
   refreshIflowToken as _refreshIflowToken,
-  refreshGitHubToken as _refreshGitHubToken,
-  refreshCopilotToken as _refreshCopilotToken,
   getAccessToken as _getAccessToken,
   refreshTokenByProvider as _refreshTokenByProvider,
   formatProviderCredentials as _formatProviderCredentials,
@@ -45,12 +43,6 @@ export const refreshCodexToken = (refreshToken) =>
 
 export const refreshIflowToken = (refreshToken) =>
   _refreshIflowToken(refreshToken, log);
-
-export const refreshGitHubToken = (refreshToken) =>
-  _refreshGitHubToken(refreshToken, log);
-
-export const refreshCopilotToken = (githubAccessToken) =>
-  _refreshCopilotToken(githubAccessToken, log);
 
 export const refreshKiroToken = (refreshToken, providerSpecificData) =>
   _refreshKiroToken(refreshToken, providerSpecificData, log);
@@ -263,63 +255,7 @@ export async function checkAndRefreshToken(provider, credentials, options = {}) 
     }
   }
 
-  // ── 2. GitHub Copilot token expiry ────────────────────────────────────────
-  if (provider === "github") {
-    const copilotToken = creds.providerSpecificData?.copilotToken;
-    const copilotExpiresAt = creds.providerSpecificData?.copilotTokenExpiresAt
-      ? creds.providerSpecificData.copilotTokenExpiresAt * 1000
-      : 0;
-    const now              = Date.now();
-    const remaining        = copilotExpiresAt - now;
-
-    if (!copilotToken || remaining < TOKEN_EXPIRY_BUFFER_MS) {
-      log.info("TOKEN_REFRESH", "Copilot token expiring soon or missing, refreshing proactively", {
-        provider,
-        expiresIn: copilotToken ? Math.round(remaining / 1000) : "missing",
-      });
-
-      const copilotTokenResult = await refreshCopilotToken(creds.accessToken);
-      if (copilotTokenResult) {
-        const updatedSpecific = {
-          ...creds.providerSpecificData,
-          copilotToken:          copilotTokenResult.token,
-          copilotTokenExpiresAt: copilotTokenResult.expiresAt,
-        };
-
-        await updateProviderCredentials(creds.connectionId, {
-          providerSpecificData: updatedSpecific,
-        });
-
-        creds.providerSpecificData = updatedSpecific;
-        creds.copilotToken = copilotTokenResult.token;
-      }
-    }
-  }
-
   return creds;
 }
 
-// ─── Local-specific: combined GitHub + Copilot refresh ───────────────────────
 
-/**
- * Refresh the GitHub OAuth token and immediately exchange it for a fresh
- * Copilot token.
- *
- * @param {object} credentials  – must contain `refreshToken`
- * @returns {Promise<object|null>} merged credentials or the raw GitHub credentials on Copilot failure
- */
-export async function refreshGitHubAndCopilotTokens(credentials) {
-  const newGitHubCreds = await refreshGitHubToken(credentials.refreshToken);
-  if (!newGitHubCreds?.accessToken) return newGitHubCreds;
-
-  const copilotToken = await refreshCopilotToken(newGitHubCreds.accessToken);
-  if (!copilotToken) return newGitHubCreds;
-
-  return {
-    ...newGitHubCreds,
-    providerSpecificData: {
-      copilotToken:          copilotToken.token,
-      copilotTokenExpiresAt: copilotToken.expiresAt,
-    },
-  };
-}

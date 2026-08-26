@@ -103,8 +103,8 @@ export async function getModelInfo(modelStr) {
       const modelLower = parsed.model.toLowerCase();
 
       // Auto / generic / default routing when standard provider is not active
-      if (["auto", "default", "copilot", "chat", "gpt-4o", "gpt-4o-mini", "gpt-4"].includes(modelLower)) {
-        if (!activeProviderIds.has("openai") && !activeProviderIds.has("copilot")) {
+      if (["auto", "default", "chat", "gpt-4o", "gpt-4o-mini", "gpt-4"].includes(modelLower)) {
+        if (!activeProviderIds.has("openai")) {
           if (activeProviderIds.has("antigravity")) {
             return { provider: "antigravity", model: "gemini-2.5-flash" };
           }
@@ -147,13 +147,6 @@ export async function getModelInfo(modelStr) {
 
       if (modelLower.startsWith("gpt-oss-") && activeProviderIds.has("antigravity")) {
         return { provider: "antigravity", model: "gpt-oss-120b-medium" };
-      }
-
-      if (modelLower.startsWith("claude-") && activeProviderIds.has("github") && !activeProviderIds.has("anthropic")) {
-        return { provider: "github", model: parsed.model };
-      }
-      if (modelLower.startsWith("gpt-") && activeProviderIds.has("github") && !activeProviderIds.has("openai")) {
-        return { provider: "github", model: parsed.model };
       }
 
       // If only 1 active provider in DB, fallback all unmatched models to it

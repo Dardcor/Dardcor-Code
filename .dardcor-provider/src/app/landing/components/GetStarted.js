@@ -83,8 +83,8 @@ export default function GetStarted() {
                 
                 <div className="text-gray-400 text-xs">
                   <span className="text-purple-400">Data Location:</span><br/>
-                  <span className="text-gray-500">  macOS/Linux:</span> ~/.dardcor-code/db/data.sqlite<br/>
-                  <span className="text-gray-500">  Windows:</span> %APPDATA%/dardcor-code/db/data.sqlite
+                  <span className="text-gray-500">  macOS/Linux:</span> ~/.dardcor-code/db/database.json<br/>
+                  <span className="text-gray-500">  Windows:</span> %APPDATA%/dardcor-code/db/database.json
                 </div>
               </div>
             </div>

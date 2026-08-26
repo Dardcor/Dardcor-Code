@@ -12,7 +12,7 @@ async function loadSql() {
 
 export async function createSqlJsAdapter(filePath) {
   const SQLLib = await loadSql();
-  const buf = fs.existsSync(filePath) ? fs.readFileSync(filePath) : null;
+  const buf = (filePath && fs.existsSync(filePath)) ? fs.readFileSync(filePath) : null;
   const db = new SQLLib.Database(buf);
   db.exec(PRAGMA_SQL);
   // Schema is created/synced by migrate.js after adapter init
@@ -22,6 +22,10 @@ export async function createSqlJsAdapter(filePath) {
   const SAVE_DEBOUNCE_MS = 100;
 
   function persist() {
+    if (!filePath) {
+      dirty = false;
+      return;
+    }
     const data = db.export();
     fs.writeFileSync(filePath, Buffer.from(data));
     dirty = false;

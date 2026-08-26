@@ -10,7 +10,6 @@ import { getDisabledModels } from "@/lib/disabledModelsDb";
 import { resolveKiroModels } from "open-sse/services/kiroModels.js";
 import { resolveKimchiModels } from "open-sse/services/kimchiModels.js";
 import { resolveQoderModels } from "open-sse/services/qoderModels.js";
-import { resolveCopilotModels } from "open-sse/services/copilotModels.js";
 import { resolveClinepassModels } from "open-sse/services/clinepassModels.js";
 import { resolveGrokCliModels } from "open-sse/services/grokCliModels.js";
 import { resolveCursorModels } from "open-sse/services/cursorModels.js";
@@ -50,23 +49,6 @@ const LIVE_MODEL_RESOLVERS = {
       apiKey: conn.apiKey,
       providerSpecificData: conn.providerSpecificData || {}
     }, { log: console });
-    return result?.models?.length ? { models: result.models } : null;
-  },
-  github: async (conn) => {
-    const result = await resolveCopilotModels({
-      accessToken: conn.accessToken,
-      refreshToken: conn.refreshToken,
-      providerSpecificData: conn.providerSpecificData || {}
-    }, {
-      log: console,
-      onCredentialsRefreshed: async (refreshed) => {
-        await updateProviderCredentials(conn.id, {
-          copilotToken: refreshed.copilotToken,
-          copilotTokenExpiresAt: refreshed.copilotTokenExpiresAt,
-          existingProviderSpecificData: conn.providerSpecificData || {},
-        });
-      },
-    });
     return result?.models?.length ? { models: result.models } : null;
   },
   clinepass: async (conn) => {

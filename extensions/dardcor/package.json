@@ -83,7 +83,6 @@
     "onChatParticipant:github.dardcor.default",
     "onChatParticipant:github.dardcor.editsAgent",
     "onChatParticipant:github.dardcor.editingSession",
-    "onLanguageModelChat:copilot",
     "onLanguageModelChat:dardcor",
     "onUri",
     "onFileSystem:ccreq",
@@ -157,16 +156,7 @@
     "chatSessionCustomizationProvider"
   ],
   "contributes": {
-    "languageModels": [
-      {
-        "vendor": "copilot",
-        "displayName": "Copilot"
-      },
-      {
-        "vendor": "dardcor",
-        "displayName": "Dardcor Provider"
-      }
-    ],
+
     "languageModelTools": [
       {
         "name": "dardcor_searchCodebase",

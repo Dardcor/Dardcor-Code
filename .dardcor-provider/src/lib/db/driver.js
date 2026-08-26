@@ -1,75 +1,148 @@
-import { ensureDirs, DATA_FILE } from "./paths.js";
+import fs from "node:fs";
+import path from "node:path";
+import { ensureDirs, DB_DIR } from "./paths.js";
+
+const DATA_FILE_JSON = path.join(DB_DIR, "database.json");
 
 // Use global to survive Next.js dev hot-reload (module state resets on reload)
 if (!global._dbAdapter) global._dbAdapter = { instance: null, initPromise: null, logged: false };
 const state = global._dbAdapter;
 
-async function tryBunSqlite() {
-  // Bun runtime only — built-in, no install needed
-  if (!process.versions.bun) return null;
+let saveTimeout = null;
+
+function scheduleJsonSave(adapter) {
+  if (saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(() => {
+    saveTimeout = null;
+    try {
+      const tables = adapter.all("SELECT name FROM sqlite_master WHERE type='table'");
+      const dump = {};
+      for (const t of tables) {
+        if (t.name === 'sqlite_sequence') continue;
+        dump[t.name] = adapter.all(`SELECT * FROM ${t.name}`);
+      }
+      fs.writeFileSync(DATA_FILE_JSON, JSON.stringify(dump, null, 2), "utf-8");
+    } catch (e) {
+      console.error("[DB] Failed to save database.json:", e.message);
+    }
+  }, 1000);
+}
+
+function importFromJson(adapter) {
+  if (!fs.existsSync(DATA_FILE_JSON)) return;
   try {
-    const { createBunSqliteAdapter } = await import("./adapters/bunSqliteAdapter.js");
-    return await createBunSqliteAdapter(DATA_FILE);
+    const dump = JSON.parse(fs.readFileSync(DATA_FILE_JSON, "utf-8"));
+    adapter.transaction(() => {
+      for (const [table, rows] of Object.entries(dump)) {
+        if (!rows || rows.length === 0) continue;
+        // Check if table exists
+        const exists = adapter.get("SELECT name FROM sqlite_master WHERE type='table' AND name=?", [table]);
+        if (!exists) continue;
+        
+        const cols = Object.keys(rows[0]).map(c => `"${c}"`).join(", ");
+        const placeholders = Object.keys(rows[0]).map(() => "?").join(", ");
+        const stmt = `INSERT OR REPLACE INTO ${table} (${cols}) VALUES (${placeholders})`;
+        for (const row of rows) {
+          adapter.run(stmt, Object.values(row));
+        }
+      }
+    });
+    console.log(`[DB] Loaded data from ${DATA_FILE_JSON}`);
   } catch (e) {
-    console.warn(`[DB] bun:sqlite unavailable: ${e.message}`);
-    return null;
+    console.error("[DB] Failed to load database.json:", e.message);
   }
 }
 
-async function tryBetterSqlite() {
-  // Skip on Bun — better-sqlite3 native bindings unsupported
-  if (process.versions.bun) return null;
+function createMemoryAdapter() {
   try {
-    const { createBetterSqliteAdapter } = await import("./adapters/betterSqliteAdapter.js");
-    return createBetterSqliteAdapter(DATA_FILE);
-  } catch (e) {
-    console.warn(`[DB] better-sqlite3 unavailable: ${e.message}`);
-    return null;
-  }
-}
+    const { DatabaseSync } = require("node:sqlite");
+    const db = new DatabaseSync(":memory:");
+    
+    function executeStmt(stmt, method, params) {
+      if (!params || (Array.isArray(params) && params.length === 0)) {
+        return stmt[method]();
+      }
+      if (Array.isArray(params)) {
+        return stmt[method](...params);
+      }
+      return stmt[method](params);
+    }
 
-async function tryNodeSqlite() {
-  // Built-in since Node 22.5.0 — no install needed. Skip under Bun (no node:sqlite).
-  if (process.versions.bun) return null;
-  const [maj, min] = process.versions.node.split(".").map(Number);
-  if (maj < 22 || (maj === 22 && min < 5)) return null;
-  try {
-    const { createNodeSqliteAdapter } = await import("./adapters/nodeSqliteAdapter.js");
-    return await createNodeSqliteAdapter(DATA_FILE);
+    return {
+      driver: "JSON Store",
+      run: (sql, params = []) => {
+        const stmt = db.prepare(sql);
+        const result = executeStmt(stmt, 'run', params);
+        return { changes: result.changes, lastInsertRowid: result.lastInsertRowid };
+      },
+      get: (sql, params = []) => {
+        const stmt = db.prepare(sql);
+        return executeStmt(stmt, 'get', params);
+      },
+      all: (sql, params = []) => {
+        const stmt = db.prepare(sql);
+        return executeStmt(stmt, 'all', params);
+      },
+      exec: (sql) => {
+        db.exec(sql);
+      },
+      transaction: (fn) => {
+        db.exec("BEGIN");
+        try {
+          const result = fn();
+          db.exec("COMMIT");
+          return result;
+        } catch (e) {
+          db.exec("ROLLBACK");
+          throw e;
+        }
+      },
+      close: () => {
+        db.close();
+      }
+    };
   } catch (e) {
-    console.warn(`[DB] node:sqlite unavailable: ${e.message}`);
-    return null;
-  }
-}
-
-async function trySqlJs() {
-  try {
-    const { createSqlJsAdapter } = await import("./adapters/sqljsAdapter.js");
-    return await createSqlJsAdapter(DATA_FILE);
-  } catch (e) {
-    console.warn(`[DB] sql.js unavailable: ${e.message}`);
+    console.warn(`[DB] JSON Store engine unavailable: ${e.message}`);
     return null;
   }
 }
 
 async function initAdapter() {
   ensureDirs();
-  // Order per runtime:
-  //   Bun:  bun:sqlite → sql.js
-  //   Node: better-sqlite3 → node:sqlite (≥22.5) → sql.js
-  let adapter = await tryBunSqlite();
-  if (!adapter) adapter = await tryBetterSqlite();
-  if (!adapter) adapter = await tryNodeSqlite();
-  if (!adapter) adapter = await trySqlJs();
-  if (!adapter) throw new Error("[DB] No SQLite driver available (bun/better/node/sql.js all failed)");
+  
+  // We use the native Node in-memory engine because we intercept and dump to JSON
+  let adapter = createMemoryAdapter();
+  if (!adapter) throw new Error("[DB] JSON Store initialization failed");
+
+  // Run migrations FIRST to create schema before importing JSON
+  const { runMigrationOnce } = await import("./migrate.js");
+  await runMigrationOnce(adapter);
+
+  // Import existing JSON data
+  importFromJson(adapter);
+
+  // Wrap adapter methods to intercept writes
+  const originalRun = adapter.run.bind(adapter);
+  adapter.run = (sql, params) => {
+    const res = originalRun(sql, params);
+    if (!sql.toUpperCase().startsWith("SELECT")) {
+      scheduleJsonSave(adapter);
+    }
+    return res;
+  };
+
+  const originalTransaction = adapter.transaction.bind(adapter);
+  adapter.transaction = (fn) => {
+    const res = originalTransaction(fn);
+    scheduleJsonSave(adapter);
+    return res;
+  };
 
   if (!state.logged) {
-    console.log(`[DB] Driver: ${adapter.driver} | file: ${DATA_FILE}`);
+    console.log(`[DB] Driver: JSON Store | syncing to JSON: ${DATA_FILE_JSON}`);
     state.logged = true;
   }
 
-  const { runMigrationOnce } = await import("./migrate.js");
-  await runMigrationOnce(adapter);
   return adapter;
 }
 

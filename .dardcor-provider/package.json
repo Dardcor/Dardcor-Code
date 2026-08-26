@@ -1,16 +1,16 @@
 {
-  "name": "dardcor-code-app",
+  "name": "dardcor-code",
   "version": "1.0.0",
   "description": "Dardcor Code web dashboard",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 20127",
-    "dev:webpack": "next dev --webpack --port 20127",
+    "dev": "next dev --port 25000",
+    "dev:webpack": "next dev --webpack --port 25000",
     "build": "next build --webpack",
     "postbuild": "node scripts/copy-standalone-assets.mjs",
     "postbuild:bun": "node scripts/copy-standalone-assets.mjs",
-    "start": "node custom-server.js --port 20127",
-    "dev:bun": "bun --bun next dev --webpack --port 20127",
+    "start": "node custom-server.js --port 25000",
+    "dev:bun": "bun --bun next dev --webpack --port 25000",
     "build:bun": "bun --bun next build --webpack",
     "start:bun": "bun ./.next/standalone/custom-server.js",
     "cli:pack": "npm --prefix cli run pack:cli",
@@ -51,10 +51,6 @@
     "uuid": "^13.0.0",
     "zustand": "^5.0.10"
   },
-  "optionalDependencies": {
-    "better-sqlite3": "^12.6.2"
-  },
-  "comment_better_sqlite3": "kept in optionalDependencies so npm install doesn't fail on systems without build tools — sql.js is used as fallback at runtime",
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
     "eslint": "^9",
