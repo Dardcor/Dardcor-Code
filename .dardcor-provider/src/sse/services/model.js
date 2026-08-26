@@ -1,5 +1,5 @@
 // Re-export from open-sse with localDb integration
-import { getModelAliases, getComboByName, getProviderNodes } from "@/lib/localDb";
+import { getModelAliases, getComboByName, getProviderNodes, getProviderConnections } from "@/lib/localDb";
 import { parseModel as parseModelCore, resolveModelAliasFromMap, getModelInfoCore } from "open-sse/services/model.js";
 import REGISTRY from "open-sse/providers/registry/index.js";
 
@@ -75,7 +75,53 @@ export async function getModelInfo(modelStr) {
     return { provider: null, model: parsed.model };
   }
 
-  return getModelInfoCore(modelStr, getModelAliases);
+  // Check explicit model aliases configured in localDb
+  const aliases = await getModelAliases();
+  const resolvedAlias = resolveModelAliasFromMap(parsed.model, aliases);
+  if (resolvedAlias) {
+    return resolvedAlias;
+  }
+
+  // Smart Routing: Check active provider connections in SQLite
+  try {
+    const conns = await getProviderConnections();
+    const activeProviderIds = new Set(
+      conns.filter((c) => c.isActive !== false).map((c) => c.provider)
+    );
+
+    if (activeProviderIds.size > 0) {
+      // 1. Check if any active provider explicitly advertises this model in registry
+      for (const entry of REGISTRY) {
+        if (activeProviderIds.has(entry.id)) {
+          if (entry.models?.some((m) => m.id === parsed.model || m.name === parsed.model)) {
+            return { provider: entry.id, model: parsed.model };
+          }
+        }
+      }
+
+      // 2. Check family matching for active providers when standard provider is not active
+      const modelLower = parsed.model.toLowerCase();
+      if (modelLower.startsWith("gemini-") && activeProviderIds.has("antigravity") && !activeProviderIds.has("gemini")) {
+        return { provider: "antigravity", model: parsed.model };
+      }
+      if (modelLower.startsWith("claude-") && activeProviderIds.has("antigravity") && !activeProviderIds.has("anthropic") && !activeProviderIds.has("claude-oauth")) {
+        return { provider: "antigravity", model: parsed.model };
+      }
+      if (modelLower.startsWith("gpt-oss-") && activeProviderIds.has("antigravity")) {
+        return { provider: "antigravity", model: parsed.model };
+      }
+      if (modelLower.startsWith("claude-") && activeProviderIds.has("github") && !activeProviderIds.has("anthropic")) {
+        return { provider: "github", model: parsed.model };
+      }
+      if (modelLower.startsWith("gpt-") && activeProviderIds.has("github") && !activeProviderIds.has("openai")) {
+        return { provider: "github", model: parsed.model };
+      }
+    }
+  } catch (err) {
+    // ignore DB error and fallback to default
+  }
+
+  return getModelInfoCore(modelStr, aliases);
 }
 
 /**
