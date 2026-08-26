@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "path";
 import os from "os";
 
-const APP_NAME = "dardcor";
+const APP_NAME = "dardcor-code";
 
 function defaultDir() {
   if (process.platform === "win32") {

@@ -4,7 +4,4 @@ export {
   saveRequestUsage, getUsageHistory, getUsageStats, getChartData,
   appendRequestLog, getRecentLogs,
   saveRequestDetail, getRequestDetails, getRequestDetailById,
-  saveMetric, saveMetrics, getCacheStats, getSaverStats,
-  buildCacheMetricRows, buildSaverMetricRows,
-  aggregateCacheMetrics, aggregateSaverMetrics, periodToSince,
 } from "@/lib/db/index.js";

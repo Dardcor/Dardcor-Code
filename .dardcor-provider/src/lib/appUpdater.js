@@ -37,7 +37,7 @@ function killMitmByPidFile() {
   } catch { /* best effort */ }
 }
 
-// Collect PIDs of all Dardcor Code-related processes (excluding current)
+// Collect PIDs of all dardcor-code-related processes (excluding current)
 function collectAppPids() {
   const pids = [];
   const platform = process.platform;
@@ -51,7 +51,6 @@ function collectAppPids() {
         const lower = line.toLowerCase();
         // Match anything running from dardcor-code install dir or wrapper cli.js
         const isAppProcess = lower.includes("dardcor-code") ||
-          lower.includes("9router") ||
           lower.includes("next-server") ||
           lower.includes("\\bin\\app\\") ||
           lower.includes("/bin/app/") ||
@@ -79,7 +78,6 @@ function collectAppPids() {
       const output = execSync("ps aux 2>/dev/null", { encoding: "utf8", timeout: KILL_TIMEOUT_MS });
       output.split("\n").forEach(line => {
         const isAppProcess = line.includes("dardcor-code") ||
-          line.includes("9router") ||
           line.includes("next-server") ||
           line.includes("cloudflared") ||
           line.includes("/bin/app/") ||
@@ -100,14 +98,9 @@ function collectAppPids() {
 // Copy updater.js into DATA_DIR so npm -g can overwrite node_modules safely
 function getDataDir() {
   if (process.env.DATA_DIR) return process.env.DATA_DIR;
-  // Legacy read fallback: ~/.9router keeps working until migration.
   if (process.platform === "win32") {
-    const legacyWin = path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "9router");
-    if (fs.existsSync(legacyWin)) return legacyWin;
     return path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "dardcor-code");
   }
-  const legacyNix = path.join(os.homedir(), ".9router");
-  if (fs.existsSync(legacyNix)) return legacyNix;
   return path.join(os.homedir(), ".dardcor-code");
 }
 

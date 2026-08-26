@@ -16,12 +16,10 @@ async function getObservabilityConfig() {
     const { getSettings } = await import("./settingsRepo.js");
     const settings = await getSettings();
     const envRequestLogs = process.env.ENABLE_REQUEST_LOGS;
-    const privacyMode = settings.privacyMode || "normal";
     if (envRequestLogs !== undefined) {
       const enabled = envRequestLogs.toLowerCase() === "true";
       cachedConfig = {
         enabled,
-        privacyMode,
         maxRecords: settings.observabilityMaxRecords || parseInt(process.env.OBSERVABILITY_MAX_RECORDS || String(DEFAULT_MAX_RECORDS), 10),
         batchSize: settings.observabilityBatchSize || parseInt(process.env.OBSERVABILITY_BATCH_SIZE || String(DEFAULT_BATCH_SIZE), 10),
         flushIntervalMs: settings.observabilityFlushIntervalMs || parseInt(process.env.OBSERVABILITY_FLUSH_INTERVAL_MS || String(DEFAULT_FLUSH_INTERVAL_MS), 10),
@@ -38,7 +36,6 @@ async function getObservabilityConfig() {
 
     cachedConfig = {
       enabled,
-      privacyMode,
       maxRecords: settings.observabilityMaxRecords || parseInt(process.env.OBSERVABILITY_MAX_RECORDS || String(DEFAULT_MAX_RECORDS), 10),
       batchSize: settings.observabilityBatchSize || parseInt(process.env.OBSERVABILITY_BATCH_SIZE || String(DEFAULT_BATCH_SIZE), 10),
       flushIntervalMs: settings.observabilityFlushIntervalMs || parseInt(process.env.OBSERVABILITY_FLUSH_INTERVAL_MS || String(DEFAULT_FLUSH_INTERVAL_MS), 10),
@@ -47,7 +44,6 @@ async function getObservabilityConfig() {
   } catch {
     cachedConfig = {
       enabled: false,
-      privacyMode: "normal",
       maxRecords: DEFAULT_MAX_RECORDS,
       batchSize: DEFAULT_BATCH_SIZE,
       flushIntervalMs: DEFAULT_FLUSH_INTERVAL_MS,
@@ -71,6 +67,8 @@ function sanitizeHeaders(headers) {
   }
   return sanitized;
 }
+
+export const __test__ = { sanitizeHeaders };
 
 function generateDetailId(model) {
   const timestamp = new Date().toISOString();
@@ -104,8 +102,6 @@ async function flushToDatabase() {
           if (!item.timestamp) item.timestamp = new Date().toISOString();
           if (item.request?.headers) item.request.headers = sanitizeHeaders(item.request.headers);
 
-          const suppressBodies = config.privacyMode && config.privacyMode !== "normal";
-
           const record = {
             id: item.id,
             provider: item.provider || null,
@@ -115,10 +111,10 @@ async function flushToDatabase() {
             status: item.status || null,
             latency: item.latency || {},
             tokens: item.tokens || {},
-            request: suppressBodies ? undefined : truncateField(item.request, config.maxJsonSize),
-            providerRequest: suppressBodies ? undefined : truncateField(item.providerRequest, config.maxJsonSize),
-            providerResponse: suppressBodies ? undefined : truncateField(item.providerResponse, config.maxJsonSize),
-            response: suppressBodies ? undefined : truncateField(item.response, config.maxJsonSize),
+            request: truncateField(item.request, config.maxJsonSize),
+            providerRequest: truncateField(item.providerRequest, config.maxJsonSize),
+            providerResponse: truncateField(item.providerResponse, config.maxJsonSize),
+            response: truncateField(item.response, config.maxJsonSize),
             pxpipe: item.pxpipe || undefined,
           };
 

@@ -3,7 +3,7 @@
 // pre-change safety backup in migrate.js: when the stored version is lower,
 // one lightweight DB backup is taken before applying schema changes. Forgetting
 // to bump only skips that backup — it does NOT break the additive auto-sync.
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 1;
 
 export const PRAGMA_SQL = `
 PRAGMA journal_mode = WAL;
@@ -150,105 +150,6 @@ export const TABLES = {
       "CREATE INDEX IF NOT EXISTS idx_rd_provider ON requestDetails(provider)",
       "CREATE INDEX IF NOT EXISTS idx_rd_model ON requestDetails(model)",
       "CREATE INDEX IF NOT EXISTS idx_rd_conn ON requestDetails(connectionId)",
-    ],
-  },
-  // Append-only runtime metrics: cache lookup decisions (hit/miss/bypass per
-  // L1/L2 layer) and token-saver savings (per stage, only for requests that
-  // were actually dispatched to a provider). Writes are fail-open; rows are
-  // never part of importDb/exportDb (runtime telemetry, not config).
-  metricEvents: {
-    columns: {
-      id: "INTEGER PRIMARY KEY AUTOINCREMENT",
-      ts: "TEXT NOT NULL",
-      kind: "TEXT NOT NULL",   // 'cache' | 'saver'
-      name: "TEXT NOT NULL",   // cache: 'l1'|'l2'; saver: 'dispatch'| stage ('rtk'|'headroom'|'pxpipe'|'caveman'|'ponytail')
-      outcome: "TEXT NOT NULL",// cache: 'hit'|'miss'|'bypass'; saver: 'provider'
-      provider: "TEXT",
-      model: "TEXT",
-      value: "INTEGER",        // saver savings; null for cache rows / applied-only stages
-      valueBasis: "TEXT",      // saver: 'bytes'|'reported'|'estimate'
-    },
-    indexes: [
-      "CREATE INDEX IF NOT EXISTS idx_me_ts ON metricEvents(ts)",
-      "CREATE INDEX IF NOT EXISTS idx_me_kind_name_outcome ON metricEvents(kind, name, outcome)",
-    ],
-  },
-  memories: {
-    columns: {
-      id: "TEXT PRIMARY KEY",
-      userId: "TEXT NOT NULL",
-      sessionId: "TEXT NOT NULL DEFAULT ''",
-      content: "TEXT NOT NULL",
-      metadata: "TEXT NOT NULL DEFAULT '{}'",
-      createdAt: "TEXT NOT NULL",
-      updatedAt: "TEXT NOT NULL",
-    },
-    indexes: [
-      "CREATE INDEX IF NOT EXISTS idx_memories_scope_updated ON memories(userId, sessionId, updatedAt DESC)",
-    ],
-  },
-  webhooks: {
-    columns: {
-      id: "TEXT PRIMARY KEY",
-      name: "TEXT NOT NULL",
-      url: "TEXT NOT NULL",
-      events: "TEXT NOT NULL",
-      secret: "TEXT NOT NULL",
-      isActive: "INTEGER NOT NULL DEFAULT 1",
-      createdAt: "TEXT NOT NULL",
-      updatedAt: "TEXT NOT NULL",
-    },
-    indexes: ["CREATE INDEX IF NOT EXISTS idx_webhooks_active ON webhooks(isActive)"],
-  },
-  webhookDeliveries: {
-    columns: {
-      id: "TEXT PRIMARY KEY",
-      webhookId: "TEXT NOT NULL REFERENCES webhooks(id) ON DELETE CASCADE",
-      event: "TEXT NOT NULL",
-      idempotencyKey: "TEXT NOT NULL",
-      status: "TEXT NOT NULL",
-      attempts: "INTEGER NOT NULL DEFAULT 0",
-      responseStatus: "INTEGER",
-      error: "TEXT",
-      createdAt: "TEXT NOT NULL",
-      updatedAt: "TEXT NOT NULL",
-    },
-    indexes: [
-      "CREATE UNIQUE INDEX IF NOT EXISTS idx_wd_idempotency ON webhookDeliveries(webhookId, idempotencyKey)",
-      "CREATE INDEX IF NOT EXISTS idx_wd_webhook_created ON webhookDeliveries(webhookId, createdAt DESC)",
-    ],
-  },
-  batchJobs: {
-    columns: {
-      id: "TEXT PRIMARY KEY",
-      name: "TEXT",
-      model: "TEXT NOT NULL",
-      endpoint: "TEXT NOT NULL DEFAULT '/v1/chat/completions'",
-      inputFileUrl: "TEXT",
-      inputFileContent: "TEXT",
-      outputFileUrl: "TEXT",
-      errorFileUrl: "TEXT",
-      status: "TEXT NOT NULL DEFAULT 'pending'",
-      totalRequests: "INTEGER DEFAULT 0",
-      completedRequests: "INTEGER DEFAULT 0",
-      failedRequests: "INTEGER DEFAULT 0",
-      metadata: "TEXT DEFAULT '{}'",
-      createdAt: "TEXT NOT NULL",
-      updatedAt: "TEXT NOT NULL",
-      startedAt: "TEXT",
-      completedAt: "TEXT",
-      provider: "TEXT",
-      inputPath: "TEXT",
-      resultPath: "TEXT",
-      errorPath: "TEXT",
-      inputBytes: "INTEGER NOT NULL DEFAULT 0",
-      recordCount: "INTEGER NOT NULL DEFAULT 0",
-      attempts: "INTEGER NOT NULL DEFAULT 0",
-      error: "TEXT",
-    },
-    indexes: [
-      "CREATE INDEX IF NOT EXISTS idx_bj_status ON batchJobs(status)",
-      "CREATE INDEX IF NOT EXISTS idx_bj_created ON batchJobs(createdAt DESC)",
     ],
   },
 };

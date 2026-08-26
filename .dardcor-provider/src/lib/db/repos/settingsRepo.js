@@ -1,8 +1,7 @@
 import { getAdapter } from "../driver.js";
 import { parseJson, stringifyJson } from "../helpers/jsonCol.js";
-import { DEFAULT_RTK_MODE, DEFAULT_AUTO_TRIGGER_TOKENS } from "open-sse/rtk/constants.js";
 
-const DEFAULT_MITM_ROUTER_BASE = "http://localhost:21128";
+const DEFAULT_MITM_ROUTER_BASE = "http://localhost:25000";
 const DEFAULT_HEADROOM_URL = process.env.HEADROOM_URL || "http://localhost:8787";
 
 const DEFAULT_SETTINGS = {
@@ -27,14 +26,19 @@ const DEFAULT_SETTINGS = {
   requireLogin: false,
   requireApiKey: false,
   tunnelDashboardAccess: true,
-  sessionVersion: 0,
   authMode: "password",
+  ssoType: "oidc",
   oidcIssuerUrl: "",
   oidcClientId: "",
   oidcClientSecret: "",
   oidcScopes: "openid profile email",
   oidcLoginLabel: "Sign in with OIDC",
-  privacyMode: "normal",
+  samlEntryPoint: "",
+  samlIssuer: "urn:dardcor-code:sp",
+  samlCert: "",
+  samlLoginLabel: "Sign in with SAML SSO",
+  samlAttributeEmail: "email",
+  samlAttributeName: "name",
   enableObservability: false,
   observabilityMaxRecords: 1000,
   observabilityBatchSize: 20,
@@ -46,8 +50,6 @@ const DEFAULT_SETTINGS = {
   mitmRouterBaseUrl: DEFAULT_MITM_ROUTER_BASE,
   dnsToolEnabled: {},
   rtkEnabled: true,
-  rtkMode: DEFAULT_RTK_MODE,
-  tokenSaverAutoTriggerTokens: DEFAULT_AUTO_TRIGGER_TOKENS,
   headroomEnabled: false,
   headroomUrl: DEFAULT_HEADROOM_URL,
   headroomCompressUserMessages: false,
@@ -59,25 +61,6 @@ const DEFAULT_SETTINGS = {
   pxpipeAutoInstall: true,
   pxpipeMinChars: 25000,
   pxpipeTimeoutMs: 15000,
-  // Response cache layers (L1 exact / L2 semantic / L3 content-address dedup).
-  // L2 and L3 are opt-in: L2 needs a configured embedding model; L3 rewrites
-  // the request body and is off until explicitly enabled.
-  cacheL1Enabled: true,
-  cacheL2Enabled: false,
-  cacheL3Enabled: false,
-  semanticCacheModel: "",
-  semanticCacheThreshold: 0.92,
-  semanticCacheTtl: 3600000,
-  semanticCacheMaxEntries: 100,
-  cacheL3MinChars: 1000,
-  // OpenCode Zen catalog behavior. zenFreeOnly hard-filters OpenCode routing
-  // and /v1/models to the classified free set; the override maps let users pin
-  // free classification / data-retention per model id.
-  zenFreeOnly: false,
-  zenFreeModelOverrides: {},
-  zenRetentionOverrides: {},
-  privacyMode: "normal",
-  privacyBlockedProviders: [],
 };
 
 async function readRaw() {
@@ -86,17 +69,8 @@ async function readRaw() {
   return row ? parseJson(row.data, {}) : {};
 }
 
-// Apply recognized env overrides to the merged settings object (mutates in place).
-// Only exact lowercase "true"/"false" are recognized; anything else is ignored.
-// ponytail: env-gated override for requireApiKey only; add more keys here when needed.
-function applyEnvOverrides(settings) {
-  const raw = process.env.REQUIRE_API_KEY;
-  if (raw === "true") settings.requireApiKey = true;
-  else if (raw === "false") settings.requireApiKey = false;
-}
-
 // Merge raw settings with defaults; backward-compat for missing keys
-function mergeWithDefaults(raw) {
+export function mergeWithDefaults(raw) {
   const merged = { ...DEFAULT_SETTINGS, ...(raw || {}) };
   for (const [key, defVal] of Object.entries(DEFAULT_SETTINGS)) {
     if (merged[key] === undefined) {
@@ -111,7 +85,6 @@ function mergeWithDefaults(raw) {
       }
     }
   }
-  applyEnvOverrides(merged);
   return merged;
 }
 
@@ -128,10 +101,6 @@ export async function updateSettings(updates) {
     const row = db.get(`SELECT data FROM settings WHERE id = 1`);
     const current = row ? parseJson(row.data, {}) : {};
     next = { ...current, ...updates };
-    // Any password write invalidates previously issued dashboard JWTs.
-    if (Object.prototype.hasOwnProperty.call(updates, "password")) {
-      next.sessionVersion = (Number(current.sessionVersion) || 0) + 1;
-    }
     db.run(
       `INSERT INTO settings(id, data) VALUES(1, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data`,
       [stringifyJson(next)],

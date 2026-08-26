@@ -18,7 +18,4 @@ export {
   getMitmAlias, setMitmAliasAll,
   getPricing, getPricingForModel, updatePricing, resetPricing, resetAllPricing,
   exportDb, importDb,
-  listWebhooks, getWebhook, listActiveWebhooksForEvent, createWebhook, updateWebhook, deleteWebhook,
-  createWebhookDelivery, updateWebhookDelivery, listWebhookDeliveries,
-  createBatch, getBatch, listBatches, updateBatch, deleteBatch, removeExpiredBatches,
 } from "@/lib/db/index.js";

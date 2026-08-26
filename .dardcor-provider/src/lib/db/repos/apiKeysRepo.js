@@ -68,7 +68,6 @@ export async function deleteApiKey(id) {
 }
 
 export async function validateApiKey(key) {
-  if (key === 'sk-dardcor-local-key') return true;
   const db = await getAdapter();
   const row = db.get(`SELECT isActive FROM apiKeys WHERE key = ?`, [key]);
   if (!row) return false;

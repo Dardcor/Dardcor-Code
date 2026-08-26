@@ -15,7 +15,6 @@ import qoder from "./qoder.js";
 import github from "./github.js";
 import kiro from "./kiro.js";
 import cursor from "./cursor.js";
-import freebuff from "./freebuff.js";
 import kimi from "./kimi.js";
 import kilocode from "./kilocode.js";
 import cline from "./cline.js";
@@ -41,7 +40,6 @@ const PROVIDERS = {
   github,
   kiro,
   cursor,
-  freebuff,
   kimi,
   kilocode,
   cline,

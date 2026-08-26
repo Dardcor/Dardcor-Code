@@ -1,6 +1,5 @@
 import { EventEmitter } from "events";
 import { CONSOLE_LOG_CONFIG } from "@/shared/constants/config.js";
-import { publishConsoleLines, publishConsoleClear } from "@/lib/eventBus.js";
 
 const consoleLevels = ["log", "info", "warn", "error", "debug"];
 
@@ -34,7 +33,6 @@ function flushPendingLines() {
 
   const lines = state.pendingLines.splice(0, state.pendingLines.length);
   state.emitter.emit("lines", lines);
-  publishConsoleLines(lines);
 }
 
 function scheduleFlush() {
@@ -103,7 +101,6 @@ export function getConsoleLogs() {
 export function clearConsoleLogs() {
   state.logs = [];
   state.emitter.emit("clear");
-  publishConsoleClear();
 }
 
 export function getConsoleEmitter() {

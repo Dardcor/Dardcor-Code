@@ -67,25 +67,6 @@ export {
   saveRequestDetail, getRequestDetails, getRequestDetailById, getDistinctProviders,
 } from "./repos/requestDetailsRepo.js";
 
-// Runtime metrics (cache hit/miss/bypass + token-saver savings)
-export {
-  saveMetric, saveMetrics, getCacheStats, getSaverStats,
-  buildCacheMetricRows, buildSaverMetricRows,
-  aggregateCacheMetrics, aggregateSaverMetrics, periodToSince,
-} from "./repos/metricsRepo.js";
-
-// FTS5 memory
-export {
-  createMemory, getMemory, listMemories, updateMemory, deleteMemory,
-  searchMemories, reindexMemories, getMemoryHealth,
-} from "./repos/memoryRepo.js";
-
-export {
-  listWebhooks, getWebhook, listActiveWebhooksForEvent, createWebhook, updateWebhook, deleteWebhook,
-  createWebhookDelivery, updateWebhookDelivery, listWebhookDeliveries,
-} from "./repos/webhooksRepo.js";
-export { createBatch, getBatch, listBatches, updateBatch, deleteBatch, removeExpiredBatches } from "./repos/batchesRepo.js";
-
 // Export/import full DB
 export async function exportDb() {
   const db = await getAdapter();
@@ -98,7 +79,6 @@ export async function exportDb() {
     proxyPools: db.all(`SELECT * FROM proxyPools`).map((r) => ({ ...parseJson(r.data, {}), id: r.id, isActive: r.isActive === 1, testStatus: r.testStatus, createdAt: r.createdAt, updatedAt: r.updatedAt })),
     apiKeys: db.all(`SELECT * FROM apiKeys`).map((r) => ({ id: r.id, key: r.key, name: r.name, machineId: r.machineId, isActive: r.isActive === 1, createdAt: r.createdAt })),
     combos: db.all(`SELECT * FROM combos`).map((r) => ({ id: r.id, name: r.name, kind: r.kind, models: parseJson(r.models, []), createdAt: r.createdAt, updatedAt: r.updatedAt })),
-    webhooks: db.all(`SELECT * FROM webhooks`).map((r) => ({ id: r.id, name: r.name, url: r.url, events: parseJson(r.events, []), secret: r.secret, isActive: r.isActive === 1, createdAt: r.createdAt, updatedAt: r.updatedAt })),
     modelAliases: {},
     customModels: [],
     mitmAlias: {},
@@ -118,12 +98,6 @@ export async function importDb(payload) {
     throw new Error("Invalid database payload");
   }
   const db = await getAdapter();
-  const { getSettings } = await import("./repos/settingsRepo.js");
-
-  // Every import invalidates previously issued dashboard JWTs.
-  const current = await getSettings();
-  const importedSettings = payload.settings && typeof payload.settings === "object" ? payload.settings : {};
-  const nextVersion = Math.max(Number(current?.sessionVersion) || 0, Number(importedSettings.sessionVersion) || 0) + 1;
 
   db.transaction(() => {
     // Wipe all tables (keep _meta)
@@ -133,12 +107,13 @@ export async function importDb(payload) {
     db.run(`DELETE FROM proxyPools`);
     db.run(`DELETE FROM apiKeys`);
     db.run(`DELETE FROM combos`);
-    db.run(`DELETE FROM webhookDeliveries`);
-    db.run(`DELETE FROM webhooks`);
     db.run(`DELETE FROM kv WHERE scope IN ('modelAliases', 'customModels', 'mitmAlias', 'pricing')`);
 
-    // Settings (always persisted with a bumped session version)
-    db.run(`INSERT INTO settings(id, data) VALUES(1, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data`, [stringifyJson({ ...importedSettings, sessionVersion: nextVersion })]);
+    // Settings
+    if (payload.settings) {
+      db.run(`INSERT INTO settings(id, data) VALUES(1, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data`, [stringifyJson(payload.settings)]);
+    }
+
     for (const c of payload.providerConnections || []) {
       const { id, provider, authType, name, email, priority, isActive, createdAt, updatedAt, ...rest } = c;
       db.run(
@@ -170,12 +145,6 @@ export async function importDb(payload) {
       db.run(
         `INSERT OR REPLACE INTO combos(id, name, kind, models, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?)`,
         [c.id, c.name, c.kind || null, stringifyJson(c.models || []), c.createdAt || new Date().toISOString(), c.updatedAt || new Date().toISOString()]
-      );
-    }
-    for (const w of payload.webhooks || []) {
-      db.run(
-        `INSERT OR REPLACE INTO webhooks(id, name, url, events, secret, isActive, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?, ?, ?)`,
-        [w.id, w.name, w.url, stringifyJson(w.events || []), w.secret, w.isActive === false ? 0 : 1, w.createdAt || new Date().toISOString(), w.updatedAt || new Date().toISOString()]
       );
     }
     for (const [a, m] of Object.entries(payload.modelAliases || {})) {

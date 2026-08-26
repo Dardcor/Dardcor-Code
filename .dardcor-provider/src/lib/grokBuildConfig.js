@@ -1,16 +1,10 @@
-// New writes use the dardcor-code slot; legacy "9router" slots/markers stay
-// readable so existing ~/.grok/config.toml files keep working (REBRAND §5).
 export const GROK_MAIN_MODEL_SLOT = "dardcor-code";
-export const LEGACY_GROK_MAIN_MODEL_SLOT = "9router";
 export const GROK_BUILTIN_DEFAULT = "grok-build";
 export const GROK_SUBAGENT_TYPES = ["general-purpose", "explore", "plan"];
 
 const UNSET_SENTINEL = "__dardcor-code_unset__";
 const MODELS_SECTION = "models";
 const SUBAGENT_MODELS_SECTION = "subagents.models";
-
-// Legacy markers are matched for reads; new writes only emit the dardcor-code forms.
-const LEGACY_UNSET_SENTINEL = "__9router_unset__";
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const tomlString = (value) => JSON.stringify(String(value));
@@ -22,12 +16,11 @@ const sectionRegExp = (section) =>
   );
 
 const modelSlot = (type) => `${GROK_MAIN_MODEL_SLOT}-${type}`;
-const legacyModelSlot = (type) => `${LEGACY_GROK_MAIN_MODEL_SLOT}-${type}`;
 
-const previousDefaultRegExp = /^# (?:dardcor-code|9router)-prev-default = "([^"]*)"[ \t]*\r?\n?/m;
+const previousDefaultRegExp = /^# dardcor-code-prev-default = "([^"]*)"[ \t]*\r?\n?/m;
 const previousSubagentRegExp = (type) =>
   new RegExp(
-    `^# (?:dardcor-code|9router)-prev-subagent-${escapeRegExp(type)} = "([^"]*)"[ \\t]*\\r?\\n?`,
+    `^# dardcor-code-prev-subagent-${escapeRegExp(type)} = "([^"]*)"[ \\t]*\\r?\\n?`,
     "m",
   );
 
@@ -82,22 +75,17 @@ function deleteSectionField(toml, section, key) {
   return toml.replace(match[0], `[${section}]\n${nextBody}`);
 }
 
-// Parse a model section by slot, falling back to the legacy 9router-* variant.
 function parseModelSection(toml, slot) {
-  const legacy = slot.replace(/^dardcor-code/, LEGACY_GROK_MAIN_MODEL_SLOT);
-  const resolved = sectionRegExp(`model.${slot}`).test(toml) ? slot
-    : sectionRegExp(`model.${legacy}`).test(toml) ? legacy
-    : null;
-  if (!resolved) return null;
-  const match = toml.match(sectionRegExp(`model.${resolved}`));
-  const body = match?.[1] || "";
-  const contextWindow = getSectionNumber(toml, `model.${resolved}`, "context_window");
+  const match = toml.match(sectionRegExp(`model.${slot}`));
+  if (!match) return null;
+  const body = match[1] || "";
+  const contextWindow = getSectionNumber(toml, `model.${slot}`, "context_window");
   return {
-    model: getSectionField(toml, `model.${resolved}`, "model"),
-    base_url: getSectionField(toml, `model.${resolved}`, "base_url"),
-    name: getSectionField(toml, `model.${resolved}`, "name"),
-    api_key: getSectionField(toml, `model.${resolved}`, "api_key"),
-    api_backend: getSectionField(toml, `model.${resolved}`, "api_backend"),
+    model: getSectionField(toml, `model.${slot}`, "model"),
+    base_url: getSectionField(toml, `model.${slot}`, "base_url"),
+    name: getSectionField(toml, `model.${slot}`, "name"),
+    api_key: getSectionField(toml, `model.${slot}`, "api_key"),
+    api_backend: getSectionField(toml, `model.${slot}`, "api_backend"),
     context_window: Number.isFinite(contextWindow) && contextWindow > 0 ? contextWindow : null,
     raw: body,
   };
@@ -143,15 +131,14 @@ function insertMarker(toml, marker) {
 function rememberPreviousDefault(toml) {
   if (previousDefaultRegExp.test(toml)) return toml;
   const current = getSectionField(toml, MODELS_SECTION, "default");
-  if (!current || current === GROK_MAIN_MODEL_SLOT || current === LEGACY_GROK_MAIN_MODEL_SLOT) return toml;
+  if (!current || current === GROK_MAIN_MODEL_SLOT) return toml;
   return insertMarker(toml, `# dardcor-code-prev-default = ${tomlString(current)}\n`);
 }
 
 function restorePreviousDefault(toml) {
   const previous = toml.match(previousDefaultRegExp)?.[1] || GROK_BUILTIN_DEFAULT;
   let next = toml.replace(previousDefaultRegExp, "");
-  const currentDefault = getSectionField(next, MODELS_SECTION, "default");
-  if (currentDefault === GROK_MAIN_MODEL_SLOT || currentDefault === LEGACY_GROK_MAIN_MODEL_SLOT) {
+  if (getSectionField(next, MODELS_SECTION, "default") === GROK_MAIN_MODEL_SLOT) {
     next = setSectionField(next, MODELS_SECTION, "default", previous);
   }
   return next;
@@ -172,12 +159,10 @@ function restorePreviousSubagent(toml, type) {
   const regexp = previousSubagentRegExp(type);
   const previous = toml.match(regexp)?.[1] || UNSET_SENTINEL;
   let next = toml.replace(regexp, "");
-  const mapping = getSectionField(next, SUBAGENT_MODELS_SECTION, type);
-  if (mapping !== modelSlot(type) && mapping !== legacyModelSlot(type)) {
+  if (getSectionField(next, SUBAGENT_MODELS_SECTION, type) !== modelSlot(type)) {
     return next;
   }
-  // Both sentinel spellings mean "was unset" (old configs used the 9router form).
-  if (previous === UNSET_SENTINEL || previous === LEGACY_UNSET_SENTINEL) {
+  if (previous === UNSET_SENTINEL) {
     return deleteSectionField(next, SUBAGENT_MODELS_SECTION, type);
   }
   return setSectionField(next, SUBAGENT_MODELS_SECTION, type, previous);
@@ -189,7 +174,7 @@ export function parseGrokBuildConfig(toml) {
   for (const type of GROK_SUBAGENT_TYPES) {
     const mapping = getSectionField(toml, SUBAGENT_MODELS_SECTION, type);
     subagentMappings[type] = mapping;
-    subagentModels[type] = (mapping === modelSlot(type) || mapping === legacyModelSlot(type))
+    subagentModels[type] = mapping === modelSlot(type)
       ? parseModelSection(toml, mapping)
       : null;
   }
@@ -251,10 +236,8 @@ export function resetGrokBuildConfig(toml) {
   for (const type of GROK_SUBAGENT_TYPES) {
     next = restorePreviousSubagent(next, type);
     next = removeModelSection(next, modelSlot(type));
-    next = removeModelSection(next, legacyModelSlot(type));
   }
   next = removeModelSection(next, GROK_MAIN_MODEL_SLOT);
-  next = removeModelSection(next, LEGACY_GROK_MAIN_MODEL_SLOT);
   next = restorePreviousDefault(next);
   return next.replace(/\n{3,}/g, "\n\n");
 }

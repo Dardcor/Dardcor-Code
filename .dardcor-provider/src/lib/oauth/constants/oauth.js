@@ -86,16 +86,6 @@ export const CURSOR_CONFIG = {
   },
 };
 
-// Freebuff OAuth Configuration (Import Token / Credentials scan)
-export const FREEBUFF_CONFIG = {
-  ...PROVIDER_OAUTH["freebuff"],
-  tokenStoragePaths: {
-    linux: "~/.config/manicode/credentials.json",
-    macos: "~/Library/Application Support/manicode/credentials.json",
-    windows: "%APPDATA%\\manicode\\credentials.json",
-  },
-};
-
 // Kimi Code OAuth (Device Code Flow) — merged into provider id `kimi` (dual auth)
 // clientId: registry first, env override for forks
 export const KIMI_CONFIG = {

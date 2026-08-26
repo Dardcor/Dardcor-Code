@@ -2,7 +2,6 @@ import { EventEmitter } from "events";
 import { getAdapter } from "../driver.js";
 import { parseJson, stringifyJson } from "../helpers/jsonCol.js";
 import { getMeta, setMeta } from "../helpers/metaStore.js";
-import { publishStatsEvent } from "@/lib/eventBus.js";
 
 function maskApiKey(key) {
   if (!key || typeof key !== "string") return null;
@@ -42,7 +41,6 @@ function scheduleStatsEvent(event, delayMs = 150) {
   statsEmitTimers[key] = setTimeout(() => {
     statsEmitTimers[key] = null;
     statsEmitter.emit(event);
-    publishStatsEvent(event);
   }, delayMs);
   statsEmitTimers[key]?.unref?.();
 }

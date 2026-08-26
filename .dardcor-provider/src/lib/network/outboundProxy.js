@@ -25,27 +25,16 @@ export function applyOutboundProxyEnv(
   const proxyUrl = normalizeString(outboundProxyUrl);
   const noProxy = normalizeString(outboundNoProxy);
 
-  // Internal marker env: new writes use DARDCOR_*; legacy NINE_ROUTER_* still read
-  // so an already-managed child process (or old spawner) keeps working.
-  const isManaged = () =>
-    process.env.DARDCOR_PROXY_MANAGED === "1" || process.env.NINE_ROUTER_PROXY_MANAGED === "1";
-  const clearManaged = () => {
-    delete process.env.DARDCOR_PROXY_MANAGED;
-    delete process.env.DARDCOR_PROXY_URL;
-    delete process.env.DARDCOR_NO_PROXY;
-    delete process.env.NINE_ROUTER_PROXY_MANAGED;
-    delete process.env.NINE_ROUTER_PROXY_URL;
-    delete process.env.NINE_ROUTER_NO_PROXY;
-  };
-
   // If disabled, only clear env vars we previously managed.
   if (!enabled) {
-    if (isManaged()) {
+    if (process.env.NINE_ROUTER_PROXY_MANAGED === "1") {
       delete process.env.HTTP_PROXY;
       delete process.env.HTTPS_PROXY;
       delete process.env.ALL_PROXY;
       delete process.env.NO_PROXY;
-      clearManaged();
+      delete process.env.NINE_ROUTER_PROXY_MANAGED;
+      delete process.env.NINE_ROUTER_PROXY_URL;
+      delete process.env.NINE_ROUTER_NO_PROXY;
     }
     return;
   }
@@ -54,7 +43,7 @@ export function applyOutboundProxyEnv(
   // - If values are provided, write them and mark as managed
   // - If values are empty, do not touch externally-provided env,
   //   but do clear values we previously managed.
-  const wasManaged = isManaged();
+  const wasManaged = process.env.NINE_ROUTER_PROXY_MANAGED === "1";
   let managed = false;
 
   if (wasManaged) {
@@ -62,12 +51,10 @@ export function applyOutboundProxyEnv(
       delete process.env.HTTP_PROXY;
       delete process.env.HTTPS_PROXY;
       delete process.env.ALL_PROXY;
-      delete process.env.DARDCOR_PROXY_URL;
       delete process.env.NINE_ROUTER_PROXY_URL;
     }
     if (!noProxy) {
       delete process.env.NO_PROXY;
-      delete process.env.DARDCOR_NO_PROXY;
       delete process.env.NINE_ROUTER_NO_PROXY;
     }
   }
@@ -78,21 +65,21 @@ export function applyOutboundProxyEnv(
       process.env.HTTP_PROXY = validated;
       process.env.HTTPS_PROXY = validated;
       process.env.ALL_PROXY = validated;
-      process.env.DARDCOR_PROXY_URL = validated;
+      process.env.NINE_ROUTER_PROXY_URL = validated;
       managed = true;
     }
   }
 
   if (noProxy) {
     process.env.NO_PROXY = noProxy;
-    process.env.DARDCOR_NO_PROXY = noProxy;
+    process.env.NINE_ROUTER_NO_PROXY = noProxy;
     managed = true;
   }
 
   if (managed) {
-    process.env.DARDCOR_PROXY_MANAGED = "1";
+    process.env.NINE_ROUTER_PROXY_MANAGED = "1";
   } else if (wasManaged) {
     // If we previously managed env but now cleared everything, drop the marker.
-    clearManaged();
+    delete process.env.NINE_ROUTER_PROXY_MANAGED;
   }
 }
