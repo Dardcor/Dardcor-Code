@@ -680,7 +680,6 @@ export class CodeApplication extends Disposable {
 				PORT: '25000',
 				HOSTNAME: '127.0.0.1',
 				DATA_DIR: dataDir,
-				NODE_ENV: 'production',
 				ELECTRON_RUN_AS_NODE: '1'
 			};
 
@@ -692,7 +691,7 @@ export class CodeApplication extends Disposable {
 						stdio: 'ignore'
 					});
 				} else if (existsSync(nextBin)) {
-					providerProcess = fork(nextBin, ['start', '--port', '25000'], {
+					providerProcess = fork(nextBin, ['dev', '--webpack', '--port', '25000'], {
 						cwd: providerDir,
 						env,
 						stdio: 'ignore'
@@ -724,17 +723,23 @@ export class CodeApplication extends Disposable {
 				if (providerWin.isMinimized()) {
 					providerWin.restore();
 				}
+				providerWin.show();
 				providerWin.focus();
 				return;
 			}
-			const iconPath = join(this.environmentMainService.appRoot, 'public', 'dardcor-code.png');
+			const iconIco = join(this.environmentMainService.appRoot, 'resources', 'win32', 'dardcor-code.ico');
+			const iconPng = join(this.environmentMainService.appRoot, 'public', 'dardcor-code.png');
+			const iconPath = existsSync(iconIco) ? iconIco : iconPng;
 			providerWin = new BrowserWindow({
-				width: 1200,
-				height: 800,
-				title: 'Dardcor Code - Router',
+				width: 1280,
+				height: 820,
+				minWidth: 900,
+				minHeight: 600,
+				title: 'Dardcor Code - Models & Providers',
 				icon: iconPath,
-				backgroundColor: '#000000',
+				backgroundColor: '#09090b',
 				autoHideMenuBar: true,
+				show: true,
 				webPreferences: {
 					nodeIntegration: false,
 					contextIsolation: true
@@ -742,7 +747,7 @@ export class CodeApplication extends Disposable {
 			});
 			const tryLoad = () => {
 				if (providerWin && !providerWin.isDestroyed()) {
-					providerWin.loadURL('http://localhost:25000/dashboard').catch(() => {
+					providerWin.loadURL('http://127.0.0.1:25000/dashboard/providers').catch(() => {
 						setTimeout(tryLoad, 1000);
 					});
 				}
