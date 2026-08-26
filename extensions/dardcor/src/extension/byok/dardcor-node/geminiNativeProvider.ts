@@ -42,7 +42,7 @@ export class GeminiNativeBYOKLMProvider extends AbstractLanguageModelChatProvide
 	}
 
 	protected async getAllModels(silent: boolean, apiKey: string | undefined): Promise<ExtendedLanguageModelChatInformation<LanguageModelChatConfiguration>[]> {
-		if (!apiKey && silent) {
+		if (!apiKey) {
 			return [];
 		}
 
