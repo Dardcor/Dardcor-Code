@@ -1,6 +1,5 @@
 "use client";
 
-import { useId } from "react";
 import { cn } from "@/shared/utils/cn";
 
 export default function Toggle({
@@ -11,24 +10,12 @@ export default function Toggle({
   disabled = false,
   size = "md",
   className,
-  title,
-  ariaLabel,
-  ariaLabelledby,
-  ariaDescribedby,
 }) {
   const sizes = {
     sm: { track: "w-8 h-4", thumb: "size-3", translate: "translate-x-4" },
     md: { track: "w-11 h-6", thumb: "size-5", translate: "translate-x-5" },
     lg: { track: "w-14 h-7", thumb: "size-6", translate: "translate-x-7" },
   };
-
-  const autoId = useId();
-  const generatedLabelId = `${autoId}-label`;
-  const generatedDescId = `${autoId}-desc`;
-  const labelledby = ariaLabelledby || (label ? generatedLabelId : undefined);
-  const describedby = ariaDescribedby || (description ? generatedDescId : undefined);
-  const labelSpanId = !ariaLabelledby && label ? generatedLabelId : undefined;
-  const descSpanId = !ariaDescribedby && description ? generatedDescId : undefined;
 
   const handleClick = () => {
     if (!disabled && onChange) onChange(!checked);
@@ -46,10 +33,6 @@ export default function Toggle({
         type="button"
         role="switch"
         aria-checked={checked}
-        aria-label={ariaLabel}
-        aria-labelledby={labelledby}
-        aria-describedby={describedby}
-        title={title}
         disabled={disabled}
         onClick={handleClick}
         className={cn(
@@ -74,10 +57,10 @@ export default function Toggle({
       {(label || description) && (
         <div className="flex flex-col">
           {label && (
-            <span id={labelSpanId} className="text-sm font-medium text-text-main">{label}</span>
+            <span className="text-sm font-medium text-text-main">{label}</span>
           )}
           {description && (
-            <span id={descSpanId} className="text-xs text-text-muted">{description}</span>
+            <span className="text-xs text-text-muted">{description}</span>
           )}
         </div>
       )}

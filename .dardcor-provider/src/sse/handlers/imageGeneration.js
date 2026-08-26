@@ -8,7 +8,6 @@ import {
 import { getSettings } from "@/lib/localDb";
 import { getModelInfo, getComboModels } from "../services/model.js";
 import { handleImageGenerationCore } from "open-sse/handlers/imageGenerationCore.js";
-import { checkPrivacy } from "@/lib/privacy/privacyMode.js";
 import { errorResponse, unavailableResponse } from "open-sse/utils/error.js";
 import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
@@ -57,31 +56,22 @@ export async function handleImageGeneration(request) {
     return handleComboChat({
       body,
       models: comboModels,
-      handleSingleModel: (b, m) => handleSingleModelImage(b, m, { wantsStream: comboStrategy === "race" ? false : wantsStream, binaryOutput, preferredConnectionId, settings }),
+      handleSingleModel: (b, m) => handleSingleModelImage(b, m, { wantsStream, binaryOutput, preferredConnectionId }),
       log,
       comboName: modelStr,
       comboStrategy,
       comboStickyLimit,
-      raceTuning: { raceTimeoutMs: 120000, ...(comboStrategies[modelStr]?.raceTuning || {}) },
     });
   }
 
-  return handleSingleModelImage(body, modelStr, { wantsStream, binaryOutput, preferredConnectionId, settings });
+  return handleSingleModelImage(body, modelStr, { wantsStream, binaryOutput, preferredConnectionId });
 }
 
-async function handleSingleModelImage(body, modelStr, { wantsStream, binaryOutput, preferredConnectionId, settings } = {}) {
+async function handleSingleModelImage(body, modelStr, { wantsStream, binaryOutput, preferredConnectionId } = {}) {
   const modelInfo = await getModelInfo(modelStr);
   if (!modelInfo.provider) return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid model format");
 
   const { provider, model } = modelInfo;
-
-  // Privacy: strict/local-only enforce the explicit blocked-providers list at
-  // request time (connections stay untouched — no disable/enable side effects).
-  const privacyBlock = checkPrivacy({ provider, settings });
-  if (privacyBlock?.block) {
-    log.warn("PRIVACY", `privacy (${settings?.privacyMode || "normal"}): provider "${provider}" is blocked`);
-    return errorResponse(privacyBlock.status, privacyBlock.message);
-  }
 
   // noAuth providers — no credential needed
   if (NO_AUTH_PROVIDERS.has(provider)) {
@@ -90,7 +80,6 @@ async function handleSingleModelImage(body, modelStr, { wantsStream, binaryOutpu
       modelInfo: { provider, model },
       credentials: null,
       binaryOutput,
-      privacyMode: settings?.privacyMode || "normal",
     });
     if (result.success) return result.response;
     return errorResponse(result.status || HTTP_STATUS.BAD_GATEWAY, result.error || "Image generation failed");
@@ -116,22 +105,6 @@ async function handleSingleModelImage(body, modelStr, { wantsStream, binaryOutpu
       return errorResponse(lastStatus || HTTP_STATUS.SERVICE_UNAVAILABLE, lastError || "All accounts unavailable");
     }
 
-    // Privacy local-only: only self-hosted (local) credentials may be used.
-    // Skip non-local accounts and fall back to the next one — nothing is
-    // marked unavailable and no connection state is written.
-    const privacySkip = checkPrivacy({ provider, credentials, settings });
-    if (privacySkip?.skip) {
-      if (privacySkip.bail) {
-        log.warn("PRIVACY", `local-only: provider "${provider}" has no local (self-hosted) connection`);
-        return errorResponse(privacySkip.status, privacySkip.message);
-      }
-      log.warn("PRIVACY", `local-only: skipping non-local account for ${provider} (${credentials.connectionName || credentials.connectionId})`);
-      excludeConnectionIds.add(credentials.connectionId);
-      lastError = lastError || privacySkip.message;
-      lastStatus = lastStatus || privacySkip.status;
-      continue;
-    }
-
     const refreshedCredentials = await checkAndRefreshToken(provider, credentials);
 
     const result = await handleImageGenerationCore({
@@ -140,7 +113,6 @@ async function handleSingleModelImage(body, modelStr, { wantsStream, binaryOutpu
       credentials: refreshedCredentials,
       streamToClient: wantsStream,
       binaryOutput,
-      privacyMode: settings?.privacyMode || "normal",
       onCredentialsRefreshed: async (newCreds) => {
         await updateProviderCredentials(credentials.connectionId, {
           accessToken: newCreds.accessToken,

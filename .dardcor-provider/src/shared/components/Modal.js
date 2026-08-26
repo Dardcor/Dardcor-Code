@@ -13,7 +13,7 @@ export default function Modal({
   footer,
   size = "md",
   closeOnOverlay = true,
-  showTrafficLights = false,
+  showTrafficLights = true,
   className,
 }) {
   const sizes = {
@@ -56,16 +56,16 @@ export default function Modal({
         className={cn(
           "relative w-full bg-surface",
           "border border-border-subtle",
-          "rounded-[var(--radius-brand-lg)] shadow-[var(--shadow-elev)]",
+          "rounded-[14px] shadow-[var(--shadow-elev)]",
           "fade-in",
           sizes[size],
           className
         )}
       >
         {/* Header */}
-        {(title || showTrafficLights || onClose) && (
+        {(title || showTrafficLights) && (
           <div className="flex items-center justify-between p-2 border-b border-border-subtle">
-            <div className="flex items-center min-w-0">
+            <div className="flex items-center">
               {/* Traffic lights — desktop only */}
               {showTrafficLights && (
                 <div className="hidden md:flex items-center gap-2 mr-4 ml-2">
@@ -84,18 +84,14 @@ export default function Modal({
                 </div>
               )}
               {title && (
-                <h2 className="text-base font-semibold text-text-main truncate">{title}</h2>
+                <h2 className="text-lg font-semibold text-text-main">{title}</h2>
               )}
             </div>
-            {/* Close button — all breakpoints when traffic lights are off, mobile only when on */}
+            {/* X button — mobile only */}
             <button
               onClick={onClose}
               aria-label="Close"
-              title="Close"
-              className={cn(
-                "shrink-0 p-1.5 rounded-[var(--radius-brand)] text-text-muted hover:bg-surface-2 hover:text-text-main transition-colors",
-                showTrafficLights && "md:hidden"
-              )}
+              className="md:hidden p-1.5 rounded-[10px] text-text-muted hover:bg-surface-2 hover:text-text-main transition-colors"
             >
               <span className="material-symbols-outlined text-[20px]">close</span>
             </button>

@@ -1,13 +1,9 @@
 import { registerSession, unregisterSession, findPlugin } from "@/lib/mcp/stdioSseBridge";
-import { canAccessLocalOnlyRoute } from "@/dashboardGuard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request, { params }) {
-  if (!(await canAccessLocalOnlyRoute(request))) {
-    return Response.json({ error: "Local only: CLI token required" }, { status: 403 });
-  }
   const { plugin } = await params;
   if (!findPlugin(plugin)) {
     return new Response(`Unknown plugin: ${plugin}`, { status: 404 });

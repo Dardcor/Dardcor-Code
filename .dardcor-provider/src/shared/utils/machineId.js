@@ -3,14 +3,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { DATA_DIR } from '@/lib/dataDir';
-import { loadOrCreateSecretFile, MACHINE_ID_SALT_WEAK } from '@/shared/utils/secretFile';
 
 const MACHINE_ID_FILE = path.join(DATA_DIR, 'machine-id');
 const AUTH_DIR = path.join(DATA_DIR, 'auth');
 const CLI_SECRET_FILE = path.join(AUTH_DIR, 'cli-secret');
-// New writes use dardcor salt; legacy 9r salt kept so old CLI tokens still verify.
-const CLI_AUTH_SALT = 'dardcor-cli-auth';
-const LEGACY_CLI_AUTH_SALT = '9r-cli-auth';
+const CLI_AUTH_SALT = '9r-cli-auth';
 let cachedRawId = null;
 let cachedCliSecret = null;
 
@@ -50,10 +47,9 @@ function loadCliSecret() {
 }
 
 export async function getConsistentMachineId(salt = null) {
-  const saltValue = salt
-    || loadOrCreateSecretFile("machine-id-salt", "MACHINE_ID_SALT", MACHINE_ID_SALT_WEAK);
+  const saltValue = salt || process.env.MACHINE_ID_SALT || 'endpoint-proxy-salt';
   const raw = loadRawMachineId();
-  const extra = (saltValue === CLI_AUTH_SALT || saltValue === LEGACY_CLI_AUTH_SALT) ? loadCliSecret() : '';
+  const extra = saltValue === CLI_AUTH_SALT ? loadCliSecret() : '';
   return crypto.createHash('sha256').update(raw + saltValue + extra).digest('hex').substring(0, 16);
 }
 

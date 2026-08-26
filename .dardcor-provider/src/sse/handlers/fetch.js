@@ -8,7 +8,6 @@ import {
 import { getSettings, getCombos } from "@/lib/localDb";
 import { AI_PROVIDERS, resolveProviderId } from "@/shared/constants/providers.js";
 import { handleFetchCore } from "open-sse/handlers/fetch/index.js";
-import { checkPrivacy } from "@/lib/privacy/privacyMode.js";
 import { errorResponse, unavailableResponse } from "open-sse/utils/error.js";
 import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
 import * as log from "../utils/logger.js";
@@ -134,14 +133,6 @@ async function handleSingleProviderFetch(body, providerInput, request, apiKey, s
     log.info("ROUTING", `Provider: ${providerId}`);
   }
 
-  // Privacy: strict/local-only enforce the explicit blocked-providers list at
-  // request time (connections stay untouched — no disable/enable side effects).
-  const privacyBlock = checkPrivacy({ provider: providerId, settings });
-  if (privacyBlock?.block) {
-    log.warn("PRIVACY", `privacy (${settings.privacyMode || "normal"}): provider "${providerId}" is blocked`);
-    return errorResponse(privacyBlock.status, privacyBlock.message);
-  }
-
   // No-auth fetch path (kept for parity though no current fetch provider sets noAuth)
   if (resolvedProvider.noAuth) {
     log.info("AUTH", `\x1b[32m${providerId} no-auth mode\x1b[0m`);
@@ -183,22 +174,6 @@ async function handleSingleProviderFetch(body, providerInput, request, apiKey, s
       }
       log.warn("FETCH", "No more accounts available", { provider: providerId });
       return errorResponse(lastStatus || HTTP_STATUS.SERVICE_UNAVAILABLE, lastError || "All accounts unavailable");
-    }
-
-    // Privacy local-only: only self-hosted (local) credentials may be used.
-    // Skip non-local accounts and fall back to the next one — nothing is
-    // marked unavailable and no connection state is written.
-    const privacySkip = checkPrivacy({ provider: providerId, credentials, settings });
-    if (privacySkip?.skip) {
-      if (privacySkip.bail) {
-        log.warn("PRIVACY", `local-only: provider "${providerId}" has no local (self-hosted) connection`);
-        return errorResponse(privacySkip.status, privacySkip.message);
-      }
-      log.warn("PRIVACY", `local-only: skipping non-local account for ${providerId} (${credentials.connectionName || credentials.connectionId})`);
-      excludeConnectionIds.add(credentials.connectionId);
-      lastError = lastError || privacySkip.message;
-      lastStatus = lastStatus || privacySkip.status;
-      continue;
     }
 
     log.info("AUTH", `\x1b[32mUsing ${providerId} account: ${credentials.connectionName}\x1b[0m`);

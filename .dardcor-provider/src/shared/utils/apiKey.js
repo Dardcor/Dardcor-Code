@@ -1,12 +1,6 @@
 import crypto from "crypto";
-import { loadOrCreateSecretFile } from "@/shared/utils/secretFile.js";
-import { WEAK_API_KEY_SECRETS } from "@/shared/utils/secretPolicy.js";
 
-const API_KEY_SECRET = loadOrCreateSecretFile(
-  "api-key-secret",
-  "API_KEY_SECRET",
-  WEAK_API_KEY_SECRETS,
-);
+const API_KEY_SECRET = process.env.API_KEY_SECRET || "endpoint-proxy-api-key-secret";
 
 /**
  * Generate 6-char random keyId

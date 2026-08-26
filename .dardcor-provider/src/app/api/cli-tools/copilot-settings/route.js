@@ -30,30 +30,26 @@ const readConfig = async () => {
   }
 };
 
-// New writes use "Dardcor Code"; legacy "9Router" entry name stays readable.
-const ENTRY_NAME = "Dardcor Code";
-const LEGACY_ENTRY_NAME = "9Router";
-
-const has9RouterConfig = (config) => {
+const hasDardcor CodeConfig = (config) => {
   if (!Array.isArray(config)) return false;
-  return config.some((entry) => entry.name === ENTRY_NAME || entry.name === LEGACY_ENTRY_NAME);
+  return config.some((entry) => entry.name === "Dardcor Code");
 };
 
-const get9RouterEntry = (config) => {
+const getDardcor CodeEntry = (config) => {
   if (!Array.isArray(config)) return null;
-  return config.find((entry) => entry.name === ENTRY_NAME || entry.name === LEGACY_ENTRY_NAME) || null;
+  return config.find((entry) => entry.name === "Dardcor Code") || null;
 };
 
 // GET - Read current copilot config
 export async function GET() {
   try {
     const config = await readConfig();
-    const entry = get9RouterEntry(config);
+    const entry = getDardcor CodeEntry(config);
 
     return NextResponse.json({
       installed: true,
       config,
-      has9Router: has9RouterConfig(config),
+      hasDardcor Code: hasDardcor CodeConfig(config),
       configPath: getConfigPath(),
       currentModel: entry?.models?.[0]?.id || null,
       currentUrl: entry?.models?.[0]?.url || null,
@@ -64,7 +60,7 @@ export async function GET() {
   }
 }
 
-// POST - Apply 9Router config to chatLanguageModels.json
+// POST - Apply Dardcor Code config to chatLanguageModels.json
 export async function POST(request) {
   try {
     const { baseUrl, apiKey, models } = await request.json();
@@ -88,7 +84,7 @@ export async function POST(request) {
     const keyToUse = apiKey || "sk_dardcor-code";
 
     const newEntry = {
-      name: ENTRY_NAME,
+      name: "Dardcor Code",
       vendor: "azure",
       apiKey: keyToUse,
       models: models.map((id) => ({
@@ -102,8 +98,8 @@ export async function POST(request) {
       })),
     };
 
-    // Replace existing Dardcor Code (or legacy 9Router) entry or append
-    const idx = config.findIndex((e) => e.name === ENTRY_NAME || e.name === LEGACY_ENTRY_NAME);
+    // Replace existing Dardcor Code entry or append
+    const idx = config.findIndex((e) => e.name === "Dardcor Code");
     if (idx >= 0) {
       config[idx] = newEntry;
     } else {
@@ -123,7 +119,7 @@ export async function POST(request) {
   }
 }
 
-// DELETE - Remove 9Router entry from chatLanguageModels.json
+// DELETE - Remove Dardcor Code entry from chatLanguageModels.json
 export async function DELETE() {
   try {
     const configPath = getConfigPath();
@@ -140,7 +136,7 @@ export async function DELETE() {
       throw error;
     }
 
-    config = config.filter((e) => e.name !== ENTRY_NAME && e.name !== LEGACY_ENTRY_NAME);
+    config = config.filter((e) => e.name !== "Dardcor Code");
     await fs.writeFile(configPath, JSON.stringify(config, null, 2));
 
     return NextResponse.json({

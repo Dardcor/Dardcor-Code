@@ -2,12 +2,13 @@ import { handleChat } from "@/sse/handlers/chat.js";
 import {
   clearAccountError,
   getProviderCredentials,
+  isValidApiKey,
   markAccountUnavailable,
 } from "@/sse/services/auth.js";
+import { getSettings } from "@/lib/localDb";
 import { PROVIDER_MODELS } from "@/shared/constants/models";
 import { GEMINI_NATIVE_TTS_FETCH_TIMEOUT_MS } from "open-sse/config/runtimeConfig.js";
 import { initTranslators } from "open-sse/translator/index.js";
-import { extractGeminiClientApiKey, validateGeminiClientKey } from "../_auth.js";
 
 let initialized = false;
 const GEMINI_NATIVE_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
@@ -53,11 +54,6 @@ export async function POST(request, { params }) {
   await ensureInitialized();
 
   try {
-    const authError = await validateGeminiClientKey(request);
-    if (authError) {
-      return Response.json({ error: { message: authError.message } }, { status: authError.status });
-    }
-
     const { path } = await params;
     // path = ["provider", "model:action"] or ["model:action"]
 
@@ -100,19 +96,10 @@ export async function POST(request, { params }) {
     // Convert Gemini request format to OpenAI/internal format
     const convertedBody = convertGeminiToInternal(body, model, stream);
 
-    // The generic chat layer only accepts Bearer/x-api-key credentials. When
-    // the client authenticated via x-goog-api-key or ?key=, surface the already
-    // validated key as a Bearer header so handleChat's auth layer passes.
-    const internalHeaders = new Headers(request.headers);
-    if (!internalHeaders.get("Authorization")) {
-      const clientKey = extractGeminiClientApiKey(request);
-      if (clientKey) internalHeaders.set("Authorization", `Bearer ${clientKey}`);
-    }
-
     // Create new request with converted body
     const newRequest = new Request(request.url, {
       method: "POST",
-      headers: internalHeaders,
+      headers: request.headers,
       body: JSON.stringify(convertedBody),
     });
 
@@ -134,6 +121,17 @@ export async function POST(request, { params }) {
       { status: 500 }
     );
   }
+}
+
+function extractGeminiClientApiKey(request) {
+  const authHeader = request.headers.get("Authorization");
+  if (authHeader?.startsWith("Bearer ")) return authHeader.slice(7);
+
+  const googleApiKey = request.headers.get("x-goog-api-key");
+  if (googleApiKey) return googleApiKey;
+
+  const url = new URL(request.url);
+  return url.searchParams.get("key");
 }
 
 function normalizeGeminiNativeModel(model) {
@@ -179,6 +177,23 @@ function buildGeminiNativeUrl(requestUrl, model, action) {
   return upstreamUrl.toString();
 }
 
+async function validateGeminiNativeClientKey(request) {
+  const settings = await getSettings();
+  if (!settings.requireApiKey) return null;
+
+  const apiKey = extractGeminiClientApiKey(request);
+  if (!apiKey) {
+    return Response.json({ error: { message: "Missing API key" } }, { status: 401 });
+  }
+
+  const valid = await isValidApiKey(apiKey);
+  if (!valid) {
+    return Response.json({ error: { message: "Invalid API key" } }, { status: 401 });
+  }
+
+  return null;
+}
+
 function buildGeminiNativeAuthHeaders(credentials) {
   if (credentials?.apiKey) return { "x-goog-api-key": credentials.apiKey };
   if (credentials?.accessToken) return { Authorization: `Bearer ${credentials.accessToken}` };
@@ -221,6 +236,9 @@ function getSafeGeminiNativeErrorText(error) {
 }
 
 async function forwardGeminiNativeRequest(request, body, model, action) {
+  const authError = await validateGeminiNativeClientKey(request);
+  if (authError) return authError;
+
   const modelId = normalizeGeminiNativeModel(model);
   if (!GEMINI_NATIVE_MODEL_PATTERN.test(modelId)) {
     return Response.json({ error: { message: "Invalid model" } }, { status: 400 });

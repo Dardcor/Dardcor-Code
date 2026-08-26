@@ -18,7 +18,6 @@ export default function ProviderIcon({
   alt,
   size = 32,
   className = "",
-  fallbackIcon,
   fallbackText = "?",
   fallbackColor,
 }) {
@@ -26,21 +25,6 @@ export default function ProviderIcon({
   const [errored, setErrored] = useState(false);
 
   if (!effectiveSrc || errored) {
-    if (fallbackIcon) {
-      return (
-        <span
-          className={`material-symbols-outlined inline-flex items-center justify-center rounded-lg ${className}`.trim()}
-          style={{
-            width: size,
-            height: size,
-            color: fallbackColor,
-            fontSize: Math.max(12, Math.floor(size * 0.56)),
-          }}
-        >
-          {fallbackIcon}
-        </span>
-      );
-    }
     return (
       <span
         className={`inline-flex items-center justify-center font-bold rounded-lg ${className}`.trim()}
@@ -81,8 +65,6 @@ ProviderIcon.propTypes = {
   alt: PropTypes.string,
   size: PropTypes.number,
   className: PropTypes.string,
-  /** Material Symbols icon name rendered when image is unavailable. */
-  fallbackIcon: PropTypes.string,
   fallbackText: PropTypes.string,
   fallbackColor: PropTypes.string,
 };

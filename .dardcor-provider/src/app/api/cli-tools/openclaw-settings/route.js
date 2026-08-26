@@ -9,12 +9,6 @@ import os from "os";
 
 const execAsync = promisify(exec);
 
-// New writes use "dardcor-code"; legacy "9router" provider/model slots stay readable.
-const PROVIDER_KEY = "dardcor-code";
-const LEGACY_PROVIDER_KEY = "9router";
-const modelKey = (m) => `${PROVIDER_KEY}/${m}`;
-const isOurs = (s) => typeof s === "string" && (s.startsWith(`${PROVIDER_KEY}/`) || s.startsWith(`${LEGACY_PROVIDER_KEY}/`));
-
 // OpenClaw 2026.5.x writes agents[].model as either a plain string
 // (legacy) or as an object `{ primary, fallbacks }`. Normalize to the
 // string id so downstream consumers can call `.startsWith()` safely.
@@ -63,9 +57,9 @@ const readSettings = async () => {
 };
 
 // Check if settings has Dardcor Code config
-const has9RouterConfig = (settings) => {
+const hasDardcor CodeConfig = (settings) => {
   if (!settings || !settings.models || !settings.models.providers) return false;
-  return !!settings.models.providers[PROVIDER_KEY] || !!settings.models.providers[LEGACY_PROVIDER_KEY];
+  return !!settings.models.providers["dardcor-code"];
 };
 
 // Read per-agent models.json and return current model id (without "dardcor-code/" prefix)
@@ -74,7 +68,7 @@ const readAgentModel = async (agentDir) => {
     const modelsPath = path.join(agentDir, "models.json");
     const content = await fs.readFile(modelsPath, "utf-8");
     const data = JSON.parse(content);
-    const models = data?.providers?.[PROVIDER_KEY]?.models || data?.providers?.[LEGACY_PROVIDER_KEY]?.models;
+    const models = data?.providers?.["dardcor-code"]?.models;
     return models?.[0]?.id || null;
   } catch {
     return null;
@@ -111,7 +105,7 @@ export async function GET() {
       installed: true,
       settings,
       agents: enrichedAgents,
-      has9Router: has9RouterConfig(settings),
+      hasDardcor Code: hasDardcor CodeConfig(settings),
       settingsPath: getOpenClawSettingsPath(),
     });
   } catch (error) {
@@ -131,7 +125,7 @@ const writeAgentModels = async (agentDir, model, baseUrl, apiKey) => {
   } catch { /* No existing */ }
 
   if (!existing.providers) existing.providers = {};
-  existing.providers[PROVIDER_KEY] = {
+  existing.providers["dardcor-code"] = {
     baseUrl,
     apiKey: apiKey || "your_api_key",
     api: "openai-completions",
@@ -140,7 +134,7 @@ const writeAgentModels = async (agentDir, model, baseUrl, apiKey) => {
   await fs.writeFile(modelsPath, JSON.stringify(existing, null, 2));
 };
 
-// POST - Update 9Router settings (merge with existing settings)
+// POST - Update Dardcor Code settings (merge with existing settings)
 export async function POST(request) {
   try {
     // agentModels: { [agentId]: modelId } for per-agent override
@@ -169,11 +163,11 @@ export async function POST(request) {
     if (!settings.models.providers) settings.models.providers = {};
 
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
-    const fullModelId = modelKey(model);
+    const fullModelId = `dardcor-code/${model}`;
 
-    // Remove all old dardcor-code/* (and legacy 9router/*) entries from agents.defaults.models
+    // Remove all old dardcor-code/* entries from agents.defaults.models
     Object.keys(settings.agents.defaults.models)
-      .filter((k) => isOurs(k))
+      .filter((k) => k.startsWith("dardcor-code/"))
       .forEach((k) => { delete settings.agents.defaults.models[k]; });
 
     // Update default model
@@ -185,14 +179,14 @@ export async function POST(request) {
 
     // Add fresh dardcor-code models to allowlist
     allModelIds.forEach((m) => {
-      settings.agents.defaults.models[modelKey(m)] = {};
+      settings.agents.defaults.models[`dardcor-code/${m}`] = {};
     });
 
     // Remove old dardcor-code model from each agent in agents.list. The
     // model field may be a plain string or `{ primary, fallbacks }`.
     if (settings.agents.list) {
       settings.agents.list = settings.agents.list.map((agent) => {
-        if (isOurs(resolveAgentModel(agent.model))) {
+        if (resolveAgentModel(agent.model).startsWith("dardcor-code/")) {
           const { model: _, ...rest } = agent;
           return rest;
         }
@@ -201,19 +195,18 @@ export async function POST(request) {
     }
 
     // Update models.providers.dardcor-code with all models
-    settings.models.providers[PROVIDER_KEY] = {
+    settings.models.providers["dardcor-code"] = {
       baseUrl: normalizedBaseUrl,
       apiKey: apiKey || "your_api_key",
       api: "openai-completions",
       models: [...allModelIds].map((m) => ({ id: m, name: m.split("/").pop() || m })),
     };
-    if (LEGACY_PROVIDER_KEY in settings.models.providers) delete settings.models.providers[LEGACY_PROVIDER_KEY];
 
     // Set per-agent model in agents.list and write models.json
     if (settings.agents.list) {
       settings.agents.list = settings.agents.list.map((agent) => {
         const agentModel = agentModels[agent.id];
-        if (agentModel) return { ...agent, model: modelKey(agentModel) };
+        if (agentModel) return { ...agent, model: `dardcor-code/${agentModel}` };
         return agent;
       });
 
@@ -241,7 +234,7 @@ export async function POST(request) {
   }
 }
 
-// DELETE - Remove 9Router settings only (keep other settings)
+// DELETE - Remove Dardcor Code settings only (keep other settings)
 export async function DELETE() {
   try {
     const settingsPath = getOpenClawSettingsPath();
@@ -261,10 +254,9 @@ export async function DELETE() {
       throw error;
     }
 
-    // Remove dardcor-code from models.providers (legacy 9router slot too)
+    // Remove Dardcor Code from models.providers
     if (settings.models && settings.models.providers) {
-      delete settings.models.providers[PROVIDER_KEY];
-      delete settings.models.providers[LEGACY_PROVIDER_KEY];
+      delete settings.models.providers["dardcor-code"];
       
       // Remove providers object if empty
       if (Object.keys(settings.models.providers).length === 0) {
@@ -274,7 +266,7 @@ export async function DELETE() {
 
     // Remove dardcor-code models from agents.defaults.models allowlist
     if (settings.agents?.defaults?.models) {
-      const keysToRemove = Object.keys(settings.agents.defaults.models).filter((k) => isOurs(k));
+      const keysToRemove = Object.keys(settings.agents.defaults.models).filter((k) => k.startsWith("dardcor-code/"));
       for (const key of keysToRemove) {
         delete settings.agents.defaults.models[key];
       }
@@ -284,7 +276,7 @@ export async function DELETE() {
     }
 
     // Reset agents.defaults.model.primary if it uses dardcor-code
-    if (isOurs(settings.agents?.defaults?.model?.primary)) {
+    if (settings.agents?.defaults?.model?.primary?.startsWith("dardcor-code/")) {
       delete settings.agents.defaults.model.primary;
     }
 

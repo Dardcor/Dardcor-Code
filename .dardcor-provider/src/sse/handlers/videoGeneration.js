@@ -8,7 +8,6 @@ import {
 import { getSettings } from "@/lib/localDb";
 import { getModelInfo } from "../services/model.js";
 import { handleVideoProxyCore, getVideoConfig, sanitizeSecrets } from "open-sse/handlers/videoCore.js";
-import { checkPrivacy } from "@/lib/privacy/privacyMode.js";
 import { errorResponse, unavailableResponse } from "open-sse/utils/error.js";
 import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
@@ -85,7 +84,7 @@ function withConnectionHeader(response, connectionId) {
   const headers = new Headers(response.headers);
   // Video jobs are account-bound upstream — clients echo this back as
   // `x-connection-id` on GET polls so the same account is used.
-  headers.set("x-dardcor-connection-id", String(connectionId));
+  headers.set("x-dardcor-code-connection-id", String(connectionId));
   return new Response(response.body, { status: response.status, headers });
 }
 
@@ -95,7 +94,6 @@ function withConnectionHeader(response, connectionId) {
 export async function handleVideoCreate(request, action) {
   const authError = await requireValidApiKey(request);
   if (authError) return authError;
-  const settings = await getSettings();
 
   const bodyInfo = await readForwardableBody(request);
   if (bodyInfo.error) return bodyInfo.error;
@@ -103,14 +101,6 @@ export async function handleVideoCreate(request, action) {
   const resolved = await resolveVideoProvider(bodyInfo.parsed);
   if (resolved.error) return resolved.error;
   const { provider, model } = resolved;
-
-  // Privacy: strict/local-only enforce the explicit blocked-providers list at
-  // request time (connections stay untouched — no disable/enable side effects).
-  const privacyBlock = checkPrivacy({ provider, settings });
-  if (privacyBlock?.block) {
-    log.warn("PRIVACY", `privacy (${settings.privacyMode || "normal"}): provider "${provider}" is blocked`);
-    return errorResponse(privacyBlock.status, privacyBlock.message);
-  }
 
   // Strip the provider prefix (e.g. "xai/grok-imagine-video") before forwarding;
   // otherwise forward the original bytes untouched.
@@ -139,22 +129,6 @@ export async function handleVideoCreate(request, action) {
         return errorResponse(HTTP_STATUS.BAD_REQUEST, `No credentials for provider: ${provider}`);
       }
       return errorResponse(lastStatus || HTTP_STATUS.SERVICE_UNAVAILABLE, lastError || "All accounts unavailable");
-    }
-
-    // Privacy local-only: only self-hosted (local) credentials may be used.
-    // Skip non-local accounts and fall back to the next one — nothing is
-    // marked unavailable and no connection state is written.
-    const privacySkip = checkPrivacy({ provider, credentials, settings });
-    if (privacySkip?.skip) {
-      if (privacySkip.bail) {
-        log.warn("PRIVACY", `local-only: provider "${provider}" has no local (self-hosted) connection`);
-        return errorResponse(privacySkip.status, privacySkip.message);
-      }
-      log.warn("PRIVACY", `local-only: skipping non-local account for ${provider} (${credentials.connectionName || credentials.connectionId})`);
-      excludeConnectionIds.add(credentials.connectionId);
-      lastError = lastError || privacySkip.message;
-      lastStatus = lastStatus || privacySkip.status;
-      continue;
     }
 
     const refreshedCredentials = await checkAndRefreshToken(provider, credentials);
@@ -208,32 +182,15 @@ export async function handleVideoCreate(request, action) {
 export async function handleVideoGet(request, requestId) {
   const authError = await requireValidApiKey(request);
   if (authError) return authError;
-  const settings = await getSettings();
 
   if (!requestId) return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing video request id");
 
   const provider = DEFAULT_VIDEO_PROVIDER;
   const preferredConnectionId = request.headers.get("x-connection-id") || null;
 
-  // Privacy: strict/local-only enforce the explicit blocked-providers list at
-  // request time (connections stay untouched — no disable/enable side effects).
-  const privacyBlock = checkPrivacy({ provider, settings });
-  if (privacyBlock?.block) {
-    log.warn("PRIVACY", `privacy (${settings.privacyMode || "normal"}): provider "${provider}" is blocked`);
-    return errorResponse(privacyBlock.status, privacyBlock.message);
-  }
-
   const credentials = await getProviderCredentials(provider, null, null, { preferredConnectionId });
   if (!credentials || credentials.allRateLimited) {
     return errorResponse(HTTP_STATUS.BAD_REQUEST, `No credentials for provider: ${provider}`);
-  }
-
-  // Privacy local-only: jobs are account-bound, so a remote account can never
-  // serve a poll under local-only — reject instead of polling upstream.
-  const privacySkip = checkPrivacy({ provider, credentials, settings });
-  if (privacySkip?.skip) {
-    log.warn("PRIVACY", `local-only: provider "${provider}" has no local (self-hosted) connection`);
-    return errorResponse(privacySkip.status, privacySkip.message);
   }
 
   const refreshedCredentials = await checkAndRefreshToken(provider, credentials);

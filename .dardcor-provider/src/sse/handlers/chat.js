@@ -8,15 +8,11 @@ import {
   isValidApiKey,
 } from "../services/auth.js";
 import { getSettings } from "@/lib/localDb";
-import { isOpenCodeFreeAllowed } from "@/lib/catalog/opencodeCatalog";
 import { getModelInfo, getComboModels } from "../services/model.js";
 import { handleChatCore } from "open-sse/handlers/chatCore.js";
-import { resolvePrivacyFlags, privacyProviderBlock, isLocalConnection, computeEffectivePrivacyFlags } from "@/lib/privacy/privacyMode.js";
 import { DEFAULT_HEADROOM_URL } from "@/lib/headroom/detect";
 import { getTransform as getPxpipeTransform } from "@/lib/pxpipe/loader.js";
 import { appendPxpipeEvent } from "@/lib/pxpipe/events.js";
-import { publishCacheEvent, publishTokenSaverEvent } from "@/lib/eventBus.js";
-import { createSemanticEmbed } from "@/lib/cache/semanticEmbed.js";
 import { errorResponse, unavailableResponse } from "open-sse/utils/error.js";
 import { handleComboChat, handleFusionChat, detectRequiredCapabilities } from "open-sse/services/combo.js";
 import { augmentModelsWithCapacityAdapter, withCapacityAdapterStripping, getActiveAdapterStrategy } from "open-sse/services/capacityAdapter.js";
@@ -26,7 +22,6 @@ import { detectFormatByEndpoint } from "open-sse/translator/formats.js";
 import * as log from "../utils/logger.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
 import { getProjectIdForConnection } from "open-sse/services/projectId.js";
-import { enforceLlmApiKeyGuardrail } from "@/lib/guardrails/runtime.js";
 
 /**
  * Handle chat completion request
@@ -68,14 +63,14 @@ export async function handleChat(request, clientRawRequest = null) {
   // Enforce API key if enabled in settings
   const settings = await getSettings();
   if (settings.requireApiKey) {
-    const valid = apiKey ? await isValidApiKey(apiKey) : false;
-    const guardrail = enforceLlmApiKeyGuardrail(
-      { required: true, present: Boolean(apiKey), valid },
-      (event) => log.warn("GUARDRAIL", `${event.ruleId}:${event.outcome}`),
-    );
-    if (guardrail.outcome === "block") {
-      const missing = guardrail.blockedBy === "llm-api-key-missing";
-      return errorResponse(HTTP_STATUS.UNAUTHORIZED, missing ? "Missing API key" : "Invalid API key");
+    if (!apiKey) {
+      log.warn("AUTH", "Missing API key (requireApiKey=true)");
+      return errorResponse(HTTP_STATUS.UNAUTHORIZED, "Missing API key");
+    }
+    const valid = await isValidApiKey(apiKey);
+    if (!valid) {
+      log.warn("AUTH", "Invalid API key (requireApiKey=true)");
+      return errorResponse(HTTP_STATUS.UNAUTHORIZED, "Invalid API key");
     }
   }
 
@@ -112,7 +107,7 @@ export async function handleChat(request, clientRawRequest = null) {
             const { tools, tool_choice, ...cleanBody } = clientRawRequest.body || {};
             cleanRawReq = { ...clientRawRequest, body: cleanBody };
           }
-          return handleSingleModelChat(b, m, cleanRawReq, request, apiKey, settings);
+          return handleSingleModelChat(b, m, cleanRawReq, request, apiKey);
         },
         log,
         comboName: modelStr,
@@ -127,14 +122,13 @@ export async function handleChat(request, clientRawRequest = null) {
       body,
       models: augmentedModels,
       handleSingleModel: withCapacityAdapterStripping(
-        (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey, settings),
+        (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey),
         adapterAdded
       ),
       log,
       comboName: modelStr,
       comboStrategy,
-      comboStickyLimit,
-      raceTuning: comboStrategies[modelStr]?.raceTuning
+      comboStickyLimit
     });
   }
 
@@ -148,7 +142,7 @@ export async function handleChat(request, clientRawRequest = null) {
       body,
       models: soloAugmented,
       handleSingleModel: withCapacityAdapterStripping(
-        (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey, settings),
+        (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey),
         adapterAdded
       ),
       log,
@@ -157,24 +151,20 @@ export async function handleChat(request, clientRawRequest = null) {
     });
   }
 
-  return handleSingleModelChat(body, modelStr, clientRawRequest, request, apiKey, settings);
+  return handleSingleModelChat(body, modelStr, clientRawRequest, request, apiKey);
 }
 
 /**
  * Handle single model chat request
  */
-async function handleSingleModelChat(body, modelStr, clientRawRequest = null, request = null, apiKey = null, settings = null) {
-  // Reuse the settings snapshot from handleChat (no extra DB read on the hot path).
-  const chatSettings = settings || (await getSettings());
-  const privacy = resolvePrivacyFlags(chatSettings);
-  const privacyMode = chatSettings.privacyMode || "normal";
-  const effective = computeEffectivePrivacyFlags(chatSettings);
+async function handleSingleModelChat(body, modelStr, clientRawRequest = null, request = null, apiKey = null) {
   const modelInfo = await getModelInfo(modelStr);
 
   // If provider is null, this might be a combo name - check and handle
   if (!modelInfo.provider) {
     const comboModels = await getComboModels(modelStr);
     if (comboModels) {
+      const chatSettings = await getSettings();
       // Check for combo-specific strategy first, fallback to global
       const comboStrategies = chatSettings.comboStrategies || {};
       const comboSpecificStrategy = comboStrategies[modelStr]?.fallbackStrategy;
@@ -194,7 +184,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
               const { tools, tool_choice, ...cleanBody } = clientRawRequest.body || {};
               cleanRawReq = { ...clientRawRequest, body: cleanBody };
             }
-            return handleSingleModelChat(b, m, cleanRawReq, request, apiKey, chatSettings);
+            return handleSingleModelChat(b, m, cleanRawReq, request, apiKey);
           },
           log,
           comboName: modelStr,
@@ -209,14 +199,13 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
         body,
         models: augmentedModels,
         handleSingleModel: withCapacityAdapterStripping(
-          (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey, chatSettings),
+          (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey),
           adapterAdded
         ),
         log,
         comboName: modelStr,
         comboStrategy,
-        comboStickyLimit,
-        raceTuning: comboStrategies[modelStr]?.raceTuning
+        comboStickyLimit
       });
     }
     log.warn("CHAT", "Invalid model format", { model: modelStr });
@@ -224,28 +213,6 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
   }
 
   const { provider, model } = modelInfo;
-
-  // Privacy: strict/local-only enforce the explicit blocked-providers list at
-  // request time (connections stay untouched — no disable/enable side effects).
-  if ((privacyMode === "strict" || privacyMode === "local-only") && privacyProviderBlock(provider, privacy)) {
-    log.warn("PRIVACY", `privacy (${privacyMode}): provider "${provider}" is blocked`);
-    return errorResponse(
-      HTTP_STATUS.FORBIDDEN,
-      `Provider "${provider}" is blocked by privacy settings (${privacyMode})`
-    );
-  }
-
-  // zenFreeOnly guard — single choke point covering direct, combo, fusion and
-  // capacity-adapter requests. OpenCode Go (opencode-go) is exempt: it is a
-  // paid subscription tier, not the rotating free catalog. Fails closed when
-  // the catalog is unavailable (only `-free` models / explicit overrides pass).
-  if (provider === "opencode" && !(await isOpenCodeFreeAllowed(model))) {
-    log.warn("CHAT", `zenFreeOnly: rejected non-free OpenCode model "${model}"`);
-    return errorResponse(
-      HTTP_STATUS.FORBIDDEN,
-      `zenFreeOnly is enabled: "${model}" is not a free OpenCode model`
-    );
-  }
 
   // Routing shown in the unified "▶" line (client model → provider/model)
 
@@ -276,32 +243,12 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       return errorResponse(lastStatus || HTTP_STATUS.SERVICE_UNAVAILABLE, lastError || "All accounts unavailable");
     }
 
-    // Privacy local-only: only self-hosted (local) credentials may be used.
-    // Skip non-local accounts and fall back to the next one — nothing is
-    // marked unavailable and no connection state is written.
-    if (privacyMode === "local-only" && !isLocalConnection(credentials)) {
-      // Virtual noAuth free-provider creds (kiro, opencode-free…) have no
-      // connectionId and can't be excluded — bail out instead of looping.
-      if (!credentials.connectionId) {
-        log.warn("PRIVACY", `local-only: provider "${provider}" has no local (self-hosted) connection`);
-        return errorResponse(HTTP_STATUS.SERVICE_UNAVAILABLE, `local-only: provider "${provider}" has no local connection`);
-      }
-      log.warn("PRIVACY", `local-only: skipping non-local account for ${provider} (${credentials.connectionName || credentials.connectionId})`);
-      excludeConnectionIds.add(credentials.connectionId);
-      lastError = lastError || `local-only: no local credentials for ${provider}`;
-      lastStatus = lastStatus || HTTP_STATUS.SERVICE_UNAVAILABLE;
-      continue;
-    }
-
     // Account selection shown in the unified "▶" line (acc:...)
     const refreshedCredentials = await checkAndRefreshToken(provider, credentials);
 
-    // Ensure real project ID is available for providers that need it (P0 fix: cold miss).
-    // Fast lookup on the hot path: cached value or one loadCodeAssist call, no
-    // onboardUser polling (up to 5 attempts / 2s sleeps) — the executor falls back
-    // to generated project IDs when null.
+    // Ensure real project ID is available for providers that need it (P0 fix: cold miss)
     if ((provider === "antigravity" || provider === "gemini-cli") && !refreshedCredentials.projectId) {
-      const pid = await getProjectIdForConnection(credentials.connectionId, refreshedCredentials.accessToken, provider, { allowOnboarding: false });
+      const pid = await getProjectIdForConnection(credentials.connectionId, refreshedCredentials.accessToken, provider);
       if (pid) {
         refreshedCredentials.projectId = pid;
         // Persist to DB in background so subsequent requests have it immediately
@@ -310,6 +257,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     }
 
     // Use shared chatCore
+    const chatSettings = await getSettings();
     const providerThinking = (chatSettings.providerThinking || {})[provider] || null;
     const result = await handleChatCore({
       body: { ...body, model: `${provider}/${model}` },
@@ -322,35 +270,19 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       apiKey,
       ccFilterNaming: !!chatSettings.ccFilterNaming,
       rtkEnabled: !!chatSettings.rtkEnabled,
-      rtkMode: chatSettings.rtkMode,
-      tokenSaverAutoTriggerTokens: chatSettings.tokenSaverAutoTriggerTokens,
-      headroomEnabled: effective.headroomEnabled,
+      headroomEnabled: !!chatSettings.headroomEnabled,
       headroomUrl: chatSettings.headroomUrl || DEFAULT_HEADROOM_URL,
       headroomCompressUserMessages: !!chatSettings.headroomCompressUserMessages,
       cavemanEnabled: !!chatSettings.cavemanEnabled,
       cavemanLevel: chatSettings.cavemanLevel || "full",
       ponytailEnabled: !!chatSettings.ponytailEnabled,
       ponytailLevel: chatSettings.ponytailLevel || "full",
-      pxpipeEnabled: effective.pxpipeEnabled,
+      pxpipeEnabled: !!chatSettings.pxpipeEnabled,
       pxpipeMinChars: chatSettings.pxpipeMinChars,
       pxpipeTimeoutMs: chatSettings.pxpipeTimeoutMs,
       // Lazily warms the in-process module on first use; null when not installed (fail-open)
-      pxpipeTransform: effective.pxpipeEnabled ? await getPxpipeTransform() : null,
+      pxpipeTransform: chatSettings.pxpipeEnabled ? await getPxpipeTransform() : null,
       onPxpipeEvent: appendPxpipeEvent,
-      onCacheEvent: publishCacheEvent,
-      onTokenSaverEvent: publishTokenSaverEvent,
-      // Response cache layers (L1 exact / L2 semantic / L3 content-address),
-      // gated by the privacy-mode posture.
-      cacheL1Enabled: effective.cacheL1Enabled,
-      cacheL2Enabled: effective.cacheL2Enabled,
-      cacheL3Enabled: effective.cacheL3Enabled,
-      semanticCacheModel: chatSettings.semanticCacheModel || "",
-      semanticCacheThreshold: Number(chatSettings.semanticCacheThreshold) > 0 ? Number(chatSettings.semanticCacheThreshold) : 0.92,
-      semanticCacheTtl: Number(chatSettings.semanticCacheTtl) > 0 ? Number(chatSettings.semanticCacheTtl) : 3600000,
-      semanticCacheMaxEntries: Number(chatSettings.semanticCacheMaxEntries) > 0 ? Number(chatSettings.semanticCacheMaxEntries) : 100,
-      cacheL3MinChars: Number(chatSettings.cacheL3MinChars) > 0 ? Number(chatSettings.cacheL3MinChars) : 1000,
-      semanticEmbed: chatSettings.semanticCacheModel ? createSemanticEmbed(chatSettings.semanticCacheModel) : null,
-      bodyLoggingEnabled: effective.bodyLoggingEnabled,
       providerThinking,
       // Detect source format by endpoint + body
       sourceFormatOverride: request?.url ? detectFormatByEndpoint(new URL(request.url).pathname, body) : null,

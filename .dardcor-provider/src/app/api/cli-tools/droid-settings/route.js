@@ -46,15 +46,10 @@ const readSettings = async () => {
   }
 };
 
-// New writes use "custom:Dardcor Code"; legacy "custom:9Router" ids stay readable.
-const MODEL_PREFIX = "custom:Dardcor Code";
-const LEGACY_MODEL_PREFIX = "custom:9Router";
-const isOurs = (id) => typeof id === "string" && (id.startsWith(MODEL_PREFIX) || id.startsWith(LEGACY_MODEL_PREFIX));
-
 // Check if settings has Dardcor Code customModels
-const has9RouterConfig = (settings) => {
+const hasDardcor CodeConfig = (settings) => {
   if (!settings || !settings.customModels) return false;
-  return settings.customModels.some(m => isOurs(m.id));
+  return settings.customModels.some(m => m.id?.startsWith("custom:Dardcor Code"));
 };
 
 // GET - Check droid CLI and read current settings
@@ -75,7 +70,7 @@ export async function GET() {
     return NextResponse.json({
       installed: true,
       settings,
-      has9Router: has9RouterConfig(settings),
+      hasDardcor Code: hasDardcor CodeConfig(settings),
       settingsPath: getDroidSettingsPath(),
     });
   } catch (error) {
@@ -84,7 +79,7 @@ export async function GET() {
   }
 }
 
-// POST - Update 9Router customModels (merge with existing settings)
+// POST - Update Dardcor Code customModels (merge with existing settings)
 // Accepts either `model` (string, legacy single-model) or `models` (array of strings, multi-model)
 // Also accepts `activeModel` to set which model is active/primary
 export async function POST(request) {
@@ -116,8 +111,8 @@ export async function POST(request) {
       settings.customModels = [];
     }
 
-    // Remove all existing Dardcor Code (legacy 9Router) configs
-    settings.customModels = settings.customModels.filter(m => !isOurs(m.id));
+    // Remove all existing Dardcor Code configs
+    settings.customModels = settings.customModels.filter(m => !m.id?.startsWith("custom:Dardcor Code"));
 
     // Normalize baseUrl to ensure /v1 suffix
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
@@ -142,7 +137,7 @@ export async function POST(request) {
       if (!m || typeof m !== "string") continue;
       settings.customModels.push({
         model: m,
-        id: `${MODEL_PREFIX}-${i}`,
+        id: `custom:Dardcor Code-${i}`,
         index: i,
         baseUrl: normalizedBaseUrl,
         apiKey: keyToUse,
@@ -176,7 +171,7 @@ export async function POST(request) {
   }
 }
 
-// DELETE - Remove 9Router customModels only (keep other settings)
+// DELETE - Remove Dardcor Code customModels only (keep other settings)
 export async function DELETE() {
   try {
     const settingsPath = getDroidSettingsPath();
@@ -196,9 +191,9 @@ export async function DELETE() {
       throw error;
     }
 
-    // Remove Dardcor Code customModels (legacy 9Router too)
+    // Remove Dardcor Code customModels
     if (settings.customModels) {
-      settings.customModels = settings.customModels.filter(m => !isOurs(m.id));
+      settings.customModels = settings.customModels.filter(m => !m.id?.startsWith("custom:Dardcor Code"));
       
       // Remove customModels array if empty
       if (settings.customModels.length === 0) {

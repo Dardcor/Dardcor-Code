@@ -4,9 +4,10 @@ import { getSettings } from "@/lib/localDb";
 import { fetchOidcDiscovery, getPublicOrigin, probeOidcClientSecret } from "@/lib/auth/oidc";
 import { verifyDashboardAuthToken } from "@/lib/auth/dashboardSession";
 
-// Sensitive probe (tests the configured client secret): always require a
-// valid dashboard session, regardless of requireLogin.
 async function canAccessTestRoute() {
+  const settings = await getSettings();
+  if (settings.requireLogin === false) return true;
+
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
   return await verifyDashboardAuthToken(token);
@@ -21,18 +22,13 @@ export async function POST(request) {
     const body = await request.json().catch(() => ({}));
     const settings = await getSettings();
 
-    // One source per draft: if the body supplies any identity field, the
-    // stored client secret must never be mixed into that draft.
-    const DRAFT_KEYS = ["issuerUrl", "clientId", "clientSecret", "scopes"];
-    const isBodyDraft = DRAFT_KEYS.some((key) => Object.prototype.hasOwnProperty.call(body, key));
-
-    const issuerUrl = String(isBodyDraft ? body.issuerUrl || "" : settings.oidcIssuerUrl || "").trim();
-    const clientId = String(isBodyDraft ? body.clientId || "" : settings.oidcClientId || "").trim();
-    const scopes = String(
-      (isBodyDraft ? body.scopes : settings.oidcScopes) || "openid profile email"
-    ).trim() || "openid profile email";
+    const issuerUrl = String(body.issuerUrl || settings.oidcIssuerUrl || "").trim();
+    const clientId = String(body.clientId || settings.oidcClientId || "").trim();
+    const scopes = String(body.scopes || settings.oidcScopes || "openid profile email").trim() || "openid profile email";
     const clientSecret = String(
-      isBodyDraft ? body.clientSecret || "" : settings.oidcClientSecret || ""
+      Object.prototype.hasOwnProperty.call(body, "clientSecret")
+        ? body.clientSecret
+        : settings.oidcClientSecret || ""
     ).trim();
 
     if (!issuerUrl) {

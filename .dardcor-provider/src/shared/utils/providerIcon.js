@@ -3,29 +3,8 @@
 
 const ICON_ALIASES = {
   "perplexity-agent": "perplexity",
-  "perplexity-web": "perplexity",
   "gitlab-duo": "gitlab",
   "vercel-ai-gateway": "vercel",
-  "v0-vercel-web": "vercel",
-  "github-models": "github",
-  "alims-intl": "alicode",
-  "chatgpt-web": "openai",
-  "claude-web": "claude",
-  "gemini-web": "gemini",
-  "deepseek-web": "deepseek",
-  "kimi-web": "kimi",
-  "qwen-web": "qwen",
-  "zai-web": "glm",
-  "venice-web": "venice",
-  "nous": "nous-research",
-  "friendli": "friendliai",
-  "xiaomi-mimo-tts": "xiaomi-mimo",
-  "openai-tts": "openai",
-  "openrouter-tts": "openrouter",
-  "gemini-tts": "gemini",
-  "selfhosted-embedding": "local-device",
-  "selfhosted-stt": "local-device",
-  "selfhosted-tts": "local-device",
 };
 
 // Runtime only — first 404 remembers id for the whole session

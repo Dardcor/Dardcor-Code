@@ -5,7 +5,6 @@ import {
 import { getSettings } from "@/lib/localDb";
 import { getModelInfo, getComboModels } from "../services/model.js";
 import { handleTtsCore } from "open-sse/handlers/ttsCore.js";
-import { checkPrivacy } from "@/lib/privacy/privacyMode.js";
 import { errorResponse, unavailableResponse } from "open-sse/utils/error.js";
 import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
 import { AI_PROVIDERS } from "@/shared/constants/providers";
@@ -55,7 +54,7 @@ export async function handleTts(request) {
     return handleComboChat({
       body,
       models: comboModels,
-      handleSingleModel: (b, m) => handleSingleModelTts(b, m, responseFormat, language, style, settings),
+      handleSingleModel: (b, m) => handleSingleModelTts(b, m, responseFormat, language, style),
       log,
       comboName: modelStr,
       comboStrategy,
@@ -63,23 +62,15 @@ export async function handleTts(request) {
     });
   }
 
-  return handleSingleModelTts(body, modelStr, responseFormat, language, style, settings);
+  return handleSingleModelTts(body, modelStr, responseFormat, language, style);
 }
 
-async function handleSingleModelTts(body, modelStr, responseFormat, language, style, settings) {
+async function handleSingleModelTts(body, modelStr, responseFormat, language, style) {
   const modelInfo = await getModelInfo(modelStr);
   if (!modelInfo.provider) return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid model format");
 
   const { provider, model } = modelInfo;
   log.info("ROUTING", `Provider: ${provider}, Voice: ${model}`);
-
-  // Privacy: strict/local-only enforce the explicit blocked-providers list at
-  // request time (connections stay untouched — no disable/enable side effects).
-  const privacyBlock = checkPrivacy({ provider, settings });
-  if (privacyBlock?.block) {
-    log.warn("PRIVACY", `privacy (${settings.privacyMode || "normal"}): provider "${provider}" is blocked`);
-    return errorResponse(privacyBlock.status, privacyBlock.message);
-  }
 
   // noAuth providers — no credential needed
   if (!CREDENTIALED_PROVIDERS.has(provider)) {
@@ -104,22 +95,6 @@ async function handleSingleModelTts(body, modelStr, responseFormat, language, st
       }
       if (excludeConnectionIds.size === 0) return errorResponse(HTTP_STATUS.BAD_REQUEST, `No credentials for provider: ${provider}`);
       return errorResponse(lastStatus || HTTP_STATUS.SERVICE_UNAVAILABLE, lastError || "All accounts unavailable");
-    }
-
-    // Privacy local-only: only self-hosted (local) credentials may be used.
-    // Skip non-local accounts and fall back to the next one — nothing is
-    // marked unavailable and no connection state is written.
-    const privacySkip = checkPrivacy({ provider, credentials, settings });
-    if (privacySkip?.skip) {
-      if (privacySkip.bail) {
-        log.warn("PRIVACY", `local-only: provider "${provider}" has no local (self-hosted) connection`);
-        return errorResponse(privacySkip.status, privacySkip.message);
-      }
-      log.warn("PRIVACY", `local-only: skipping non-local account for ${provider} (${credentials.connectionName || credentials.connectionId})`);
-      excludeConnectionIds.add(credentials.connectionId);
-      lastError = lastError || privacySkip.message;
-      lastStatus = lastStatus || privacySkip.status;
-      continue;
     }
 
     log.info("AUTH", `\x1b[32mUsing ${provider} account: ${credentials.connectionName}\x1b[0m`);

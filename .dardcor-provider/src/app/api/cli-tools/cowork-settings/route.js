@@ -10,8 +10,8 @@ import { UPDATER_CONFIG } from "@/shared/constants/config";
 import { getConsistentMachineId } from "@/shared/utils/machineId";
 
 const APP_PORT = UPDATER_CONFIG.appPort;
-const CLI_TOKEN_HEADER = "x-dardcor-cli-token";
-const CLI_TOKEN_SALT = "dardcor-cli-auth";
+const CLI_TOKEN_HEADER = "x-9r-cli-token";
+const CLI_TOKEN_SALT = "9r-cli-auth";
 const LOCAL_MCP_PREFIX = `http://localhost:${APP_PORT}/api/mcp/`;
 
 let cachedCliToken = null;
@@ -258,7 +258,7 @@ export async function GET() {
       ? config.inferenceModels.map((m) => (typeof m === "string" ? m : m?.name)).filter(Boolean)
       : [];
     const managedMcp = Array.isArray(config?.managedMcpServers) ? config.managedMcpServers : [];
-    const has9Router = !!(config?.inferenceProvider === PROVIDER && baseUrl);
+    const hasDardcor Code = !!(config?.inferenceProvider === PROVIDER && baseUrl);
 
     // Active local plugins = managedMcp entries whose URL points at our inline bridge.
     const stdioNames = new Set(LOCAL_STDIO_PLUGINS.map((p) => p.name));
@@ -274,7 +274,7 @@ export async function GET() {
     return NextResponse.json({
       installed: true,
       config,
-      has9Router,
+      hasDardcor Code,
       configPath,
       cowork: {
         appliedId,
@@ -356,8 +356,8 @@ export async function POST(request) {
       success: true,
       bootstrapped,
       message: bootstrapped
-        ? "Claude Desktop enabled (3p mode set). Quit & reopen Claude Desktop."
-        : "Claude Desktop settings applied. Quit & reopen Claude Desktop.",
+        ? "Cowork enabled (3p mode set). Quit & reopen Claude Desktop."
+        : "Cowork settings applied. Quit & reopen Claude Desktop.",
       configPath,
       skipApprovals: skipResult,
       localMcp: localMcpResult,
@@ -379,7 +379,7 @@ export async function DELETE() {
     catch (error) { if (error.code !== "ENOENT") throw error; }
     try { await writeSkipApprovals([]); } catch { /* ignore */ }
     try { await cleanup1pLegacy(); } catch { /* ignore */ }
-    return NextResponse.json({ success: true, message: "Claude Desktop config reset" });
+    return NextResponse.json({ success: true, message: "Cowork config reset" });
   } catch (error) {
     console.log("Error resetting cowork settings:", error);
     return NextResponse.json({ error: "Failed to reset cowork settings" }, { status: 500 });

@@ -44,12 +44,12 @@ const readJson = async (filePath) => {
   }
 };
 
-const has9RouterConfig = (auth) => {
+const hasDardcor CodeConfig = (auth) => {
   if (!auth) return false;
-  const entry = auth["openai-compatible"] || auth["dardcor-code"] || auth["9router"];
+  const entry = auth["openai-compatible"] || auth["dardcor-code"];
   if (!entry) return false;
   const baseUrl = entry.baseUrl || entry.baseURL || "";
-  return baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1") || baseUrl.includes("dardcor-code") || baseUrl.includes("9router");
+  return baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1") || baseUrl.includes("dardcor-code");
 };
 
 export async function GET() {
@@ -62,7 +62,7 @@ export async function GET() {
     return NextResponse.json({
       installed: true,
       settings: { auth: auth ? Object.keys(auth) : [] },
-      has9Router: has9RouterConfig(auth),
+      hasDardcor Code: hasDardcor CodeConfig(auth),
       authPath: getAuthPath(),
     });
   } catch (error) {
@@ -114,7 +114,6 @@ export async function DELETE() {
     }
     delete auth["openai-compatible"];
     delete auth["dardcor-code"];
-    delete auth["9router"];
     await fs.writeFile(getAuthPath(), JSON.stringify(auth, null, 2));
 
     try {

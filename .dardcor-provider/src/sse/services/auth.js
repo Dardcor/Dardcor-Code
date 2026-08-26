@@ -2,14 +2,11 @@ import { getProviderConnections, validateApiKey, updateProviderConnection, getSe
 import { resolveConnectionProxyConfig, pickProxyPoolId } from "@/lib/network/connectionProxy";
 import { formatRetryAfter, checkFallbackError, isModelLockActive, buildModelLockUpdate, getEarliestModelLockUntil } from "open-sse/services/accountFallback.js";
 import { MAX_RATE_LIMIT_COOLDOWN_MS } from "open-sse/config/errorConfig.js";
-import { isCircuitBlocked, admitProbe, recordFailure, recordSuccess, releaseProbe } from "open-sse/services/circuitBreaker.js";
 import { resolveProviderId, FREE_PROVIDERS } from "@/shared/constants/providers.js";
 import * as log from "../utils/logger.js";
 
-// Per-provider mutexes to prevent race conditions during account selection.
-// Selections for different providers run concurrently; selections for the
-// same normalized provider stay serialized (round-robin DB write correctness).
-const selectionMutexes = new Map();
+// Mutex to prevent race conditions during account selection
+let selectionMutex = Promise.resolve();
 
 const GITHUB_MONTHLY_USAGE_LIMIT = "you've reached your additional usage limit for your plan";
 
@@ -33,16 +30,16 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
     ? excludeConnectionIds
     : (excludeConnectionIds ? new Set([excludeConnectionIds]) : new Set());
   const preferredConnectionId = options?.preferredConnectionId || null;
-  // Resolve alias to provider ID up front (e.g., "kc" -> "kilocode") so
-  // aliases share the same per-provider mutex
-  const providerId = resolveProviderId(provider);
-  // Acquire the mutex for this provider to prevent race conditions
-  const currentMutex = selectionMutexes.get(providerId) || Promise.resolve();
+  // Acquire mutex to prevent race conditions
+  const currentMutex = selectionMutex;
   let resolveMutex;
-  selectionMutexes.set(providerId, new Promise(resolve => { resolveMutex = resolve; }));
+  selectionMutex = new Promise(resolve => { resolveMutex = resolve; });
 
   try {
     await currentMutex;
+
+    // Resolve alias to provider ID (e.g., "kc" -> "kilocode")
+    const providerId = resolveProviderId(provider);
 
     // Inject a virtual connection for no-auth free providers (with optional proxy pool from settings)
     if (FREE_PROVIDERS[providerId]?.noAuth) {
@@ -61,7 +58,6 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
         connectionName: "Public",
         isActive: true,
         accessToken: "public",
-        provider: providerId,
         providerSpecificData: {
           connectionProxyEnabled: resolvedProxy.connectionProxyEnabled,
           connectionProxyUrl: resolvedProxy.connectionProxyUrl,
@@ -80,11 +76,10 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
       return null;
     }
 
-    // Filter out model-locked, excluded, and circuit-breaker-open connections
+    // Filter out model-locked and excluded connections
     const availableConnections = connections.filter(c => {
       if (excludeSet.has(c.id)) return false;
       if (isModelLockActive(c, model)) return false;
-      if (isCircuitBlocked(providerId, c.id)) return false;
       return true;
     });
 
@@ -92,10 +87,9 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
     connections.forEach(c => {
       const excluded = excludeSet.has(c.id);
       const locked = isModelLockActive(c, model);
-      const blocked = isCircuitBlocked(providerId, c.id);
-      if (excluded || locked || blocked) {
+      if (excluded || locked) {
         const lockUntil = getEarliestModelLockUntil(c);
-        log.debug("AUTH", `  → ${c.id?.slice(0, 8)} | ${excluded ? "excluded" : ""} ${locked ? `modelLocked(${model}) until ${lockUntil}` : ""} ${blocked ? "circuitOpen" : ""}`);
+        log.debug("AUTH", `  → ${c.id?.slice(0, 8)} | ${excluded ? "excluded" : ""} ${locked ? `modelLocked(${model}) until ${lockUntil}` : ""}`);
       }
     });
 
@@ -178,13 +172,9 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
       connection = availableConnections[0];
     }
 
-    // Admit the single half-open probe (no-op unless this circuit is half-open)
-    admitProbe(providerId, connection.id);
-
     const resolvedProxy = await resolveConnectionProxyConfig(connection.providerSpecificData || {});
 
     return {
-      provider: providerId,
       authType: connection.authType,
       apiKey: connection.apiKey,
       accessToken: connection.accessToken,
@@ -248,12 +238,7 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
   } else {
     ({ shouldFallback, cooldownMs, newBackoffLevel } = checkFallbackError(status, errorText, backoffLevel));
   }
-  if (!shouldFallback) {
-    // Non-fallback-worthy error: release any half-open probe, circuit state unchanged.
-    releaseProbe(resolveProviderId(provider), connectionId);
-    return { shouldFallback: false, cooldownMs: 0 };
-  }
-  recordFailure(resolveProviderId(provider), connectionId);
+  if (!shouldFallback) return { shouldFallback: false, cooldownMs: 0 };
 
   const reason = typeof errorText === "string" ? errorText.slice(0, 100) : "Provider error";
   const lockUpdate = buildModelLockUpdate(githubResetAtMs ? null : model, cooldownMs);
@@ -290,10 +275,6 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
 export async function clearAccountError(connectionId, currentConnection, model = null) {
   if (!connectionId || connectionId === "noauth") return;
   const conn = currentConnection._connection || currentConnection;
-  // Successful request on this account: close/reset its circuit.
-  // Prefer provider from credentials (set by getProviderCredentials), then raw connection.
-  const resolvedProvider = resolveProviderId(currentConnection.provider || conn.provider);
-  recordSuccess(resolvedProvider, connectionId);
   const now = Date.now();
   const allLockKeys = Object.keys(conn).filter(k => k.startsWith("modelLock_"));
 

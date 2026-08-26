@@ -5,9 +5,7 @@ import {
   isAnthropicCompatibleProvider,
   isOpenAICompatibleProvider,
 } from "@/shared/constants/providers";
-import { getProviderConnections, getCombos, getCustomModels, getModelAliases, getSettings } from "@/lib/localDb";
-import { getOpenCodeModelList } from "@/lib/catalog/opencodeCatalog";
-import { extractApiKey, isValidApiKey } from "@/sse/services/auth.js";
+import { getProviderConnections, getCombos, getCustomModels, getModelAliases } from "@/lib/localDb";
 import { getDisabledModels } from "@/lib/disabledModelsDb";
 import { resolveKiroModels } from "open-sse/services/kiroModels.js";
 import { resolveKimchiModels } from "open-sse/services/kimchiModels.js";
@@ -20,7 +18,6 @@ import { resolveZedModels } from "open-sse/shared/zedAuth.js";
 import { updateProviderCredentials } from "@/sse/services/tokenRefresh";
 import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy";
 import { capabilitiesFromServiceKind, getCapabilitiesForModel } from "open-sse/providers/capabilities.js";
-import { resolveProviderConnectionModels } from "../../providers/[id]/models/route.js";
 
 // Per-provider live model resolvers. Each receives a connection record and
 // returns { models: [{ id, name? }, ...] } | null on failure.
@@ -125,48 +122,6 @@ const LIVE_MODEL_RESOLVERS = {
         })),
     };
   },
-  opencode: async () => {
-    const list = await getOpenCodeModelList();
-    if (!list.models?.length) return null;
-    // Hard free-only filter: when zenFreeOnly is on, only classified free
-    // models are routed/exposed; fall back to the full list if the free set
-    // is empty (e.g. the catalog fetch has never succeeded) rather than hiding
-    // everything. freeIds lets the caller filter aliases/custom models too.
-    const models = list.freeOnlyEnabled && list.freeModels.length ? list.freeModels : list.models;
-    return { models, freeIds: list.freeOnlyEnabled ? list.freeIds : null };
-  },
-  freebuff: async (conn) => {
-    const staticModels = (PROVIDER_MODELS["freebuff"] || []).map(m => ({ id: m.id, name: m.name }));
-    const token = conn?.accessToken || conn?.apiKey;
-    if (!token) return { models: staticModels };
-    try {
-      const res = await fetch("https://www.codebuff.com/api/v1/freebuff/session", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "User-Agent": "Freebuff-CLI/0.0.105",
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({})
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.rateLimitsByModel) {
-          const activeIds = Object.keys(data.rateLimitsByModel);
-          const liveModels = [];
-          for (const id of activeIds) {
-            const matched = staticModels.find(m => m.id === id);
-            liveModels.push(matched || { id, name: id });
-          }
-          for (const sm of staticModels) {
-            if (!liveModels.some(m => m.id === sm.id)) liveModels.push(sm);
-          }
-          return { models: liveModels };
-        }
-      }
-    } catch {}
-    return { models: staticModels };
-  },
 };
 
 const parseOpenAIStyleModels = (data) => {
@@ -175,9 +130,8 @@ const parseOpenAIStyleModels = (data) => {
 };
 
 // Header sent by fetchCompatibleModelIds to detect cross-instance /models fetches
-// and break recursive loops between Dardcor Code instances connected to each other.
-const INTERNAL_MODELS_FETCH_HEADER = "x-dardcor-internal-models-fetch";
-const LEGACY_INTERNAL_MODELS_FETCH_HEADER = "x-9r-internal-models-fetch";
+// and break recursive loops between dardcor-code instances connected to each other.
+const INTERNAL_MODELS_FETCH_HEADER = "x-9r-internal-models-fetch";
 
 // LLM kind sentinel — combos/models with no explicit kind default to LLM
 const LLM_KIND = "llm";
@@ -289,7 +243,7 @@ function comboMatchesKinds(combo, kindFilter) {
  */
 export async function buildModelsList(kindFilter, options = {}) {
   // When this header is present, the /v1/models request came from another
-  // Dardcor Code instance's fetchCompatibleModelIds — skip dynamic fetch to break
+  // dardcor-code instance's fetchCompatibleModelIds — skip dynamic fetch to break
   // cross-instance recursive loops.
   const skipDynamicFetch = options.skipDynamicFetch === true;
   let connections = [];
@@ -336,16 +290,6 @@ export async function buildModelsList(kindFilter, options = {}) {
     }
   }
 
-  // OpenCode Free is a zero-auth public free provider: always active and available
-  if (!activeConnectionByProvider.has("opencode")) {
-    activeConnectionByProvider.set("opencode", {
-      provider: "opencode",
-      providerSpecificData: {
-        prefix: "opencode"
-      }
-    });
-  }
-
   const models = [];
 
   // Combos first (filtered by kind). Web combos expose `kind` so AI knows search vs fetch.
@@ -362,8 +306,41 @@ export async function buildModelsList(kindFilter, options = {}) {
     models.push(entry);
   }
 
-  if (false) {
-    // legacy block kept for structure
+  if (connections.length === 0) {
+    // DB unavailable -> return static models, filtered by per-model kind
+    const aliasToProviderId = Object.fromEntries(
+      Object.entries(PROVIDER_ID_TO_ALIAS).map(([id, alias]) => [alias, id])
+    );
+    for (const [alias, providerModels] of Object.entries(PROVIDER_MODELS)) {
+      const providerId = aliasToProviderId[alias] || alias;
+      if (!providerMatchesKinds(providerId, kindFilter)) continue;
+      for (const model of providerModels) {
+        if (!kindFilter.includes(modelKind(model))) continue;
+        if (isDisabled(alias, model.id)) continue;
+        models.push({
+          id: `${alias}/${model.id}`,
+          object: "model",
+          owned_by: alias,
+        });
+      }
+    }
+
+    for (const customModel of customModels) {
+      if (!customModel?.id || (customModel.type && customModel.type !== "llm")) continue;
+      // Custom models without active connection are LLM-only by current schema
+      if (!kindFilter.includes(LLM_KIND)) continue;
+      const providerAlias = customModel.providerAlias;
+      if (!providerAlias) continue;
+
+      const modelId = String(customModel.id).trim();
+      if (!modelId) continue;
+
+      models.push({
+        id: `${providerAlias}/${modelId}`,
+        object: "model",
+        owned_by: providerAlias,
+      });
+    }
   } else {
     for (const [providerId, conn] of activeConnectionByProvider.entries()) {
       if (!providerMatchesKinds(providerId, kindFilter)) continue;
@@ -387,7 +364,6 @@ export async function buildModelsList(kindFilter, options = {}) {
       );
       let liveModelKindById = new Map();
       let liveCapabilitiesById = new Map();
-      let liveMetaById = new Map();
 
       let rawModelIds = hasExplicitEnabledModels
         ? Array.from(
@@ -407,45 +383,21 @@ export async function buildModelsList(kindFilter, options = {}) {
       // -thinking/-agentic variants per account). On failure, fall back to
       // whatever rawModelIds already holds.
       const liveResolver = LIVE_MODEL_RESOLVERS[providerId];
-      let liveFreeIds = null;
-      if (!hasExplicitEnabledModels && !skipDynamicFetch) {
+      if (liveResolver && !hasExplicitEnabledModels) {
         try {
-          const live = liveResolver
-            ? await liveResolver(conn)
-            : await resolveProviderConnectionModels(conn);
+          const live = await liveResolver(conn);
           if (live?.models?.length) {
-            // Antigravity's sandbox catalog can lag behind the static registry.
-            // Keep registered models available while allowing live metadata to win.
-            const catalogModels = providerId === "antigravity"
-              ? [...new Map([
-                ...providerModels.map((model) => [model.id, model]),
-                ...live.models.filter((model) => model?.id).map((model) => [model.id, model]),
-              ]).values()]
-              : live.models;
-            rawModelIds = catalogModels.map((m) => m.id);
+            rawModelIds = live.models.map((m) => m.id);
             liveModelKindById = new Map(
-              catalogModels
+              live.models
                 .filter((m) => m?.id)
                 .map((m) => [m.id, modelKind(m)])
             );
             liveCapabilitiesById = new Map(
-              catalogModels
+              live.models
                 .filter((m) => m?.id && m.capabilities)
                 .map((m) => [m.id, m.capabilities])
             );
-            liveMetaById = new Map(
-              catalogModels
-                .filter((m) => m?.id)
-                .map((m) => [
-                  m.id,
-                  {
-                    free: m.free,
-                    data_retention: m.data_retention,
-                    retention_warning: m.retention_warning,
-                  },
-                ])
-            );
-            liveFreeIds = live.freeIds && live.freeIds.size ? live.freeIds : null;
           }
         } catch (err) {
           console.log(`Live model fetch failed for ${providerId}: ${err?.message || err}`);
@@ -508,12 +460,7 @@ export async function buildModelsList(kindFilter, options = {}) {
         })
         .filter((modelId) => typeof modelId === "string" && modelId.trim() !== "");
 
-      let mergedModelIds = Array.from(new Set([...modelIds, ...customModelIds, ...aliasModelIds]));
-      // OpenCode zenFreeOnly: drop non-free ids (incl. aliases/custom models)
-      // so the free-only filter is hard, not advisory.
-      if (liveFreeIds) {
-        mergedModelIds = mergedModelIds.filter((id) => liveFreeIds.has(id));
-      }
+      const mergedModelIds = Array.from(new Set([...modelIds, ...customModelIds, ...aliasModelIds]));
 
       for (const modelId of mergedModelIds) {
         // Resolve kind: prefer custom/live metadata, then static, then ID heuristics.
@@ -538,19 +485,28 @@ export async function buildModelsList(kindFilter, options = {}) {
           || capabilitiesFromServiceKind(customKind || liveKind)
           || (kind === LLM_KIND ? getCapabilitiesForModel(providerId, modelId) : null);
         if (caps) model.capabilities = caps;
-        const meta = liveMetaById.get(modelId);
-        if (meta) {
-          if (meta.free !== undefined) model.free = meta.free;
-          if (meta.data_retention !== undefined) model.data_retention = meta.data_retention;
-          if (meta.retention_warning !== undefined) model.retention_warning = meta.retention_warning;
+        // Token limits under the snake_case names the OpenAI/OpenRouter
+        // convention uses. `capabilities.contextWindow` is camelCase and nested,
+        // so clients matching context_length find nothing, fall back to guessing
+        // the window from the model name, and guess high — a 372k model read as
+        // 1.05M never reaches its compaction threshold and hard-fails upstream.
+        // Emitted at top level because not every client recurses into nested
+        // objects; the camelCase `capabilities` block stays for compatibility.
+        if (kind === LLM_KIND || allowAsLlm) {
+          let contextWindow = caps?.contextWindow;
+          let maxOutput = caps?.maxOutput;
+          // Live-catalog and service-kind capabilities are usually partial
+          // (often just { tools: true }), so fill the gaps from the static
+          // table rather than emitting null and leaving clients to guess.
+          if (!Number.isFinite(contextWindow) || !Number.isFinite(maxOutput)) {
+            const fallback = getCapabilitiesForModel(providerId, modelId);
+            if (!Number.isFinite(contextWindow)) contextWindow = fallback.contextWindow;
+            if (!Number.isFinite(maxOutput)) maxOutput = fallback.maxOutput;
+          }
+          if (Number.isFinite(contextWindow)) model.context_length = contextWindow;
+          if (Number.isFinite(maxOutput)) model.max_completion_tokens = maxOutput;
         }
         models.push(model);
-        if (providerId === "opencode" && !models.some(m => m.id === modelId)) {
-          models.push({
-            ...model,
-            id: modelId,
-          });
-        }
       }
 
       // Web search/fetch — provider IS the model, expose as {alias}/search and/or {alias}/fetch with explicit kind
@@ -604,29 +560,8 @@ export async function OPTIONS() {
  */
 export async function GET(request) {
   try {
-    // Enforce API key if enabled in settings (for non-local requests)
-    const settings = await getSettings();
-    const isLocal = request?.headers?.get("host")?.includes("localhost") || request?.headers?.get("host")?.includes("127.0.0.1");
-    if (settings?.requireApiKey && !isLocal) {
-      const apiKey = extractApiKey(request);
-      if (!apiKey) {
-        return Response.json(
-          { error: { message: "Missing API key", type: "invalid_request_error" } },
-          { status: 401, headers: { "Access-Control-Allow-Origin": "*" } }
-        );
-      }
-      if (!(await isValidApiKey(apiKey))) {
-        return Response.json(
-          { error: { message: "Invalid API key", type: "invalid_request_error" } },
-          { status: 401, headers: { "Access-Control-Allow-Origin": "*" } }
-        );
-      }
-    }
-
-    // Detect cross-instance recursive /models fetch (another Dardcor Code fetching our /models)
-    const skipDynamicFetch =
-  request?.headers?.get(INTERNAL_MODELS_FETCH_HEADER) === "1" ||
-  request?.headers?.get(LEGACY_INTERNAL_MODELS_FETCH_HEADER) === "1";
+    // Detect cross-instance recursive /models fetch (another dardcor-code fetching our /models)
+    const skipDynamicFetch = request?.headers?.get(INTERNAL_MODELS_FETCH_HEADER) === "1";
     const data = await buildModelsList([LLM_KIND], { skipDynamicFetch });
     return Response.json({ object: "list", data }, {
       headers: { "Access-Control-Allow-Origin": "*" },

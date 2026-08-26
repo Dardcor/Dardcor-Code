@@ -1,5 +1,4 @@
 import { PROVIDER_MODELS } from "@/shared/constants/models";
-import { validateGeminiClientKey } from "./_auth.js";
 
 /**
  * Handle CORS preflight
@@ -18,16 +17,8 @@ export async function OPTIONS() {
  * GET /v1beta/models - Gemini compatible models list
  * Returns models in Gemini API format
  */
-export async function GET(request) {
+export async function GET() {
   try {
-    const authError = await validateGeminiClientKey(request);
-    if (authError) {
-      return Response.json(
-        { error: { message: authError.message } },
-        { status: authError.status, headers: { "Access-Control-Allow-Origin": "*" } }
-      );
-    }
-
     const models = [];
     const seen = new Set();
 

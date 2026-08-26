@@ -14,11 +14,6 @@ const getCodexDir = () => path.join(os.homedir(), ".codex");
 const getCodexConfigPath = () => path.join(getCodexDir(), "config.toml");
 const getCodexAuthPath = () => path.join(getCodexDir(), "auth.json");
 
-// New writes use "dardcor-code"; legacy "9router" config slots stay readable.
-const PROVIDER_KEY = "dardcor-code";
-const LEGACY_PROVIDER_KEY = "9router";
-const isOurs = (s) => s === PROVIDER_KEY || s === LEGACY_PROVIDER_KEY;
-
 // Flatten confbox-parsed TOML into a writable object, preserving nested tables
 const parsedToWritable = (obj) => obj ?? {};
 
@@ -79,12 +74,9 @@ const readConfig = async () => {
 };
 
 // Check if config has Dardcor Code settings
-const has9RouterConfig = (config) => {
+const hasDardcor CodeConfig = (config) => {
   if (!config) return false;
-  return config.includes(`model_provider = "${PROVIDER_KEY}"`)
-    || config.includes(`[model_providers.${PROVIDER_KEY}]`)
-    || config.includes(`model_provider = "${LEGACY_PROVIDER_KEY}"`)
-    || config.includes(`[model_providers.${LEGACY_PROVIDER_KEY}]`);
+  return config.includes("model_provider = \"dardcor-code\"") || config.includes("[model_providers.dardcor-code]");
 };
 
 // GET - Check codex CLI and read current settings
@@ -105,7 +97,7 @@ export async function GET() {
     return NextResponse.json({
       installed: true,
       config,
-      has9Router: has9RouterConfig(config),
+      hasDardcor Code: hasDardcor CodeConfig(config),
       configPath: getCodexConfigPath(),
     });
   } catch (error) {
@@ -114,7 +106,7 @@ export async function GET() {
   }
 }
 
-// POST - Update 9Router settings (merge with existing config)
+// POST - Update Dardcor Code settings (merge with existing config)
 export async function POST(request) {
   try {
     const { baseUrl, apiKey, model, subagentModel } = await request.json();
@@ -138,13 +130,12 @@ export async function POST(request) {
 
     // Update only Dardcor Code related fields (api_key goes to auth.json, not config.toml)
     parsed.model = model;
-    parsed.model_provider = PROVIDER_KEY;
+    parsed.model_provider = "dardcor-code";
 
     // Update or create dardcor-code provider section (no api_key - Codex reads from auth.json)
     // Ensure /v1 suffix is added only once
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
-    deleteNestedSection(parsed, `model_providers.${LEGACY_PROVIDER_KEY}`);
-    setNestedSection(parsed, `model_providers.${PROVIDER_KEY}`, {
+    setNestedSection(parsed, "model_providers.dardcor-code", {
       name: "Dardcor Code",
       base_url: normalizedBaseUrl,
       wire_api: "responses",
@@ -184,7 +175,7 @@ export async function POST(request) {
   }
 }
 
-// DELETE - Remove 9Router settings only (keep other settings)
+// DELETE - Remove Dardcor Code settings only (keep other settings)
 export async function DELETE() {
   try {
     const configPath = getCodexConfigPath();
@@ -204,15 +195,14 @@ export async function DELETE() {
       throw error;
     }
 
-    // Remove Dardcor Code related root fields only if they point to dardcor-code (legacy too)
-    if (isOurs(parsed.model_provider)) {
+    // Remove Dardcor Code related root fields only if they point to dardcor-code
+    if (parsed.model_provider === "dardcor-code") {
       delete parsed.model;
       delete parsed.model_provider;
     }
 
-    // Remove dardcor-code provider section (legacy slot too)
-    deleteNestedSection(parsed, `model_providers.${PROVIDER_KEY}`);
-    deleteNestedSection(parsed, `model_providers.${LEGACY_PROVIDER_KEY}`);
+    // Remove dardcor-code provider section
+    deleteNestedSection(parsed, "model_providers.dardcor-code");
 
     // Remove subagent configuration
     deleteNestedSection(parsed, "agents.subagent");

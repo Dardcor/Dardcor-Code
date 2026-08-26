@@ -9,7 +9,7 @@ import os from "os";
 
 const execAsync = promisify(exec);
 
-const PROVIDER_NAME = "Dardcor Code";
+const PROVIDER_NAME = "dardcor-code";
 
 const getDeepSeekDir = () => path.join(os.homedir(), ".deepseek");
 const getDeepSeekConfigPath = () => path.join(getDeepSeekDir(), "config.toml");
@@ -93,7 +93,7 @@ const readConfigToml = async () => {
 };
 
 // Detect Dardcor Code by checking if provider is "openai" and base_url points to localhost/127.0.0.1
-const has9RouterConfig = (config) => {
+const hasDardcor CodeConfig = (config) => {
     if (!config) return false;
     const provider = config.provider;
     if (provider !== "openai") return false;
@@ -113,7 +113,7 @@ export async function GET() {
         return NextResponse.json({
             installed: true,
             settings: config,
-            has9Router: has9RouterConfig(config),
+            hasDardcor Code: hasDardcor CodeConfig(config),
             configPath: getDeepSeekConfigPath(),
         });
     } catch (error) {

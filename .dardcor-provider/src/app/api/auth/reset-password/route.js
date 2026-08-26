@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
 import { updateSettings } from "@/lib/localDb";
 
-// Clear the stored dashboard password back into setup-required state.
-// Local-only (enforced by dashboardGuard).
+// Reset dashboard password to default by clearing the stored hash.
+// Local-only (enforced by dashboardGuard). Never returns the default literal.
 export async function POST() {
   try {
-    const settings = await updateSettings({ password: null });
-    const setupRequired = !settings.password && !process.env.INITIAL_PASSWORD;
-    return NextResponse.json({ success: true, setupRequired });
+    await updateSettings({ password: null });
+    return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
