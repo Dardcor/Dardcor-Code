@@ -28,28 +28,45 @@ function CallbackContent() {
 
     let relayed = false;
 
-    // Trusted origins that may receive this callback. The OAuth code/state
-    // must only be relayed to the dashboard window we expect to be the opener
-    // (same origin) or the Codex helper that listens on a fixed loopback port.
-    // Any other origin is treated as hostile (drive-by attacker that opened
-    // the popup against the well-known redirect_uri to phish the code).
+    // Send to backend relay API so dashboard modal can fetch it immediately
+    fetch("/api/oauth/callback-relay", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(callbackData),
+    }).then(() => {
+      relayed = true;
+    }).catch((e) => {
+      console.log("callback-relay post failed:", e);
+    });
+
+    const port = window.location.port ? `:${window.location.port}` : "";
     const expectedOrigins = [
-      window.location.origin, // Same origin (for most providers)
-      "http://localhost:1455", // Codex specific port
+      window.location.origin,
+      `http://localhost${port}`,
+      `http://127.0.0.1${port}`,
+      `http://[::1]${port}`,
+      "http://localhost:25000",
+      "http://127.0.0.1:25000",
+      "http://localhost:1455",
+      "http://127.0.0.1:1455",
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
     ];
 
-    // Method 1: postMessage to opener (popup mode)
-    // Send once per expected origin. The browser delivers the message only
-    // when the opener's origin matches the targetOrigin we pass — using "*"
-    // here would leak the code/state to any opener (e.g. an attacker page
-    // that opened this URL in a popup), so iterate over the allowlist.
+    // Method 1: postMessage to opener
     if (window.opener) {
+      try {
+        window.opener.postMessage({ type: "oauth_callback", data: callbackData }, "*");
+        relayed = true;
+      } catch (e) {
+        console.log("postMessage wildcard failed:", e);
+      }
       for (const origin of expectedOrigins) {
         try {
           window.opener.postMessage({ type: "oauth_callback", data: callbackData }, origin);
           relayed = true;
         } catch (e) {
-          console.log("postMessage failed:", e);
+          // ignore
         }
       }
     }

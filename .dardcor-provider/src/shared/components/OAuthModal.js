@@ -299,7 +299,8 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
       } else if (provider === "xai") {
         redirectUri = "http://127.0.0.1:56121/callback";
       } else {
-        redirectUri = `http://localhost:${appPort}/callback`;
+        // Use exact current window origin (whether 127.0.0.1:25000 or localhost:25000)
+        redirectUri = `${window.location.origin}/callback`;
       }
 
       // Build authorize URL first to get codeVerifier/state for codex server-side mode
@@ -517,12 +518,10 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
 
     // Method 1: postMessage from popup
     const handleMessage = (event) => {
-      // Allow messages from same origin or localhost (any port)
-      const isLocalhost = event.origin.includes("localhost") || event.origin.includes("127.0.0.1");
-      const isSameOrigin = event.origin === window.location.origin;
-      if (!isLocalhost && !isSameOrigin) return;
-      
-      if (event.data?.type === "oauth_callback") {
+      const isLoopback = !event.origin || event.origin.includes("localhost") || event.origin.includes("127.0.0.1") || event.origin === window.location.origin;
+      if (!isLoopback) return;
+
+      if (event.data?.type === "oauth_callback" && event.data?.data) {
         handleCallback(event.data.data);
       }
     };
@@ -532,7 +531,9 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
     let channel;
     try {
       channel = new BroadcastChannel("oauth_callback");
-      channel.onmessage = (event) => handleCallback(event.data);
+      channel.onmessage = (event) => {
+        if (event.data) handleCallback(event.data);
+      };
     } catch (e) {
       console.log("BroadcastChannel not supported");
     }
@@ -551,21 +552,63 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
     };
     window.addEventListener("storage", handleStorage);
 
-    // Also check localStorage on mount (in case callback already happened)
-    try {
-      const stored = localStorage.getItem("oauth_callback");
-      if (stored) {
-        const data = JSON.parse(stored);
-        if (data.timestamp && Date.now() - data.timestamp < 30000) {
-          handleCallback(data);
+    // Method 4: Active Backend Relay Polling + Popup URL Inspection
+    let active = true;
+    const pollInterval = setInterval(async () => {
+      if (!active || callbackProcessedRef.current) return;
+
+      // 4a: Check server relay endpoint
+      try {
+        const query = authData?.state ? `?state=${encodeURIComponent(authData.state)}` : "";
+        const res = await fetch(`/api/oauth/callback-relay${query}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data) {
+            handleCallback(json.data);
+            return;
+          }
         }
-        localStorage.removeItem("oauth_callback");
+      } catch {
+        // ignore
       }
-    } catch {
-      // localStorage may be unavailable or data may be malformed - ignore silently
-    }
+
+      // 4b: Check popup location href directly if accessible
+      if (popupRef.current && !popupRef.current.closed) {
+        try {
+          const href = popupRef.current.location.href;
+          if (href && href.includes("/callback")) {
+            const url = new URL(href);
+            const code = url.searchParams.get("code");
+            const token = url.searchParams.get("token");
+            const state = url.searchParams.get("state");
+            const error = url.searchParams.get("error");
+            if (code || token || error) {
+              handleCallback({ code, token, state, error, fullUrl: href });
+              try { popupRef.current.close(); } catch {}
+              return;
+            }
+          }
+        } catch {
+          // Cross-origin access blocked while on provider domain — normal
+        }
+      }
+
+      // 4c: Check localStorage
+      try {
+        const stored = localStorage.getItem("oauth_callback");
+        if (stored) {
+          const data = JSON.parse(stored);
+          if (data.timestamp && Date.now() - data.timestamp < 30000) {
+            handleCallback(data);
+          }
+          localStorage.removeItem("oauth_callback");
+        }
+      } catch {}
+    }, 1000);
 
     return () => {
+      active = false;
+      clearInterval(pollInterval);
       window.removeEventListener("message", handleMessage);
       window.removeEventListener("storage", handleStorage);
       if (channel) channel.close();
@@ -651,6 +694,18 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
       setStep("error");
     }
   };
+
+  // Auto-submit when callback URL is pasted or populated
+  useEffect(() => {
+    const trimmed = callbackUrl.trim();
+    if (!trimmed || callbackProcessedRef.current) return;
+    if (trimmed.includes("code=") || trimmed.includes("token=") || (trimmed.startsWith("eyJ") && trimmed.includes("."))) {
+      const timer = setTimeout(() => {
+        handleManualSubmit();
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [callbackUrl]);
 
   // Clear session on modal close + cleanup proxy
   const handleClose = useCallback(() => {
