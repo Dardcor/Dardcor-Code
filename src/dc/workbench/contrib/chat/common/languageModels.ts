@@ -1584,8 +1584,9 @@ export class LanguageModelsService implements ILanguageModelsService {
 			const oldModels = this._clearModelCache(vendorId);
 			let hasChanges = !wasResolved;
 			for (const model of allModels) {
-				if (this._modelCache.has(model.identifier)) {
-					this._logService.warn(`[LM] Model ${model.identifier} is already registered. Skipping.`);
+				const existing = this._modelCache.get(model.identifier);
+				if (existing && existing.vendor !== vendorId) {
+					this._logService.trace(`[LM] Model ${model.identifier} already registered by vendor ${existing.vendor}. Skipping.`);
 					continue;
 				}
 				this._modelCache.set(model.identifier, model.metadata);

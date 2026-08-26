@@ -13,7 +13,7 @@
    single signal-orange #A855F7 brand accent.
    ============================================================ */
 :root {
-  /* Brand scale (light) - centered on #A855F7 */
+  /* Brand scale - centered on #A855F7 */
   --color-brand-50: #FAF5FF;
   --color-brand-100: #F3E8FF;
   --color-brand-200: #E9D5FF;
@@ -25,84 +25,64 @@
   --color-brand-800: #6B21A8;
   --color-brand-900: #581C87;
 
-  /* Primary (legacy alias for backward compat with existing components) */
+  /* Primary */
   --color-primary: var(--color-brand-500);
   --color-primary-hover: var(--color-brand-600);
 
-  /* Surfaces & backgrounds (light - cool mist slate) */
-  --color-bg: #F2F4F7;
-  --color-bg-alt: #E9EDF2;
-  --color-bg-subtle: #EDF0F4;
-  --color-bg-hover: #E2E6EC;
-  --color-surface: #ffffff;
-  --color-surface-2: #EEF1F5;
-  --color-surface-3: #E2E6EC;
-  --color-sidebar: #F7F8FA; /* solid */
+  /* Surfaces & backgrounds (Pure Deep Black + Dark Slate surfaces) */
+  --color-bg: #09090B;
+  --color-bg-alt: #000000;
+  --color-bg-subtle: #121118;
+  --color-bg-hover: #1F1C2B;
+  --color-surface: #121118;
+  --color-surface-2: #181622;
+  --color-surface-3: #201D2E;
+  --color-sidebar: #09090B;
 
   /* Borders */
-  --color-border: #D8DDE4;
-  --color-border-subtle: #E9ECF0;
+  --color-border: #262335;
+  --color-border-subtle: #1C1A27;
 
   /* Text */
-  --color-text: #10141B;
-  --color-text-main: #10141B;
-  --color-text-muted: #5B6472;
-  --color-text-subtle: #8A93A0;
+  --color-text: #E6EAF0;
+  --color-text-main: #E6EAF0;
+  --color-text-muted: #9AA4B1;
+  --color-text-subtle: #6B7583;
 
   /* Status */
-  --color-danger: #DC2626;
-  --color-error: #DC2626;
-  --color-success: #0E9F6E;
-  --color-warning: #B45309;
-  --color-info: #2563EB;
+  --color-danger: #EF4444;
+  --color-error: #EF4444;
+  --color-success: #22C55E;
+  --color-warning: #FBBF24;
+  --color-info: #60A5FA;
 
   /* Radius - tighter instrument corners */
   --radius-brand: 8px;
   --radius-brand-lg: 12px;
 
   /* Shadows */
-  --shadow-soft: 0 1px 2px 0 rgba(16,20,27,0.05);
-  --shadow-warm: 0 2px 12px -2px rgba(168, 85, 247, 0.16);
-  --shadow-elevated: 0 12px 28px -4px rgba(16,20,27,0.10);
+  --shadow-soft: 0 1px 2px 0 rgba(0,0,0,0.4);
+  --shadow-warm: 0 2px 12px -2px rgba(168, 85, 247, 0.25);
+  --shadow-elevated: 0 12px 28px -4px rgba(0,0,0,0.55);
   --shadow-elev:
-    inset 0 1px 0 0 rgba(255,255,255,0.8),
-    0 1px 2px rgba(16,20,27,0.05),
-    0 12px 36px -8px rgba(16,20,27,0.12);
-  --shadow-focus: 0 0 0 3px rgba(168, 85, 247, 0.18);
+    inset 0 1px 0 0 rgba(255,255,255,0.05),
+    0 1px 2px rgba(0,0,0,0.4),
+    0 16px 48px -8px rgba(0,0,0,0.65);
+  --shadow-focus: 0 0 0 3px rgba(168, 85, 247, 0.25);
 
-  color-scheme: light;
-}
-
-/* ============================================================
-   Instrument tokens shared by cache telemetry and signal-state chrome.
-   --signal marks active routing, live state, and cache hits.
-   ============================================================ */
-:root {
-  --color-chassis: #E9EDF2; /* page ground, cool slate (matches bg-alt) */
-  --color-panel: #FFFFFF;   /* card / panel surfaces (matches surface) */
-  --color-ink: #10141B;     /* primary text (matches text-main) */
-  --color-muted: #5B6472;   /* secondary text, labels (matches text-muted) */
-  --color-rule: #D8DDE4;    /* borders, grid lines (matches border) */
-  --color-signal: #A855F7;
-  --color-warn: #B45309;    /* utility warning */
-  --color-fail: #DC2626;    /* utility error */
-}
-
-.dark {
-  /* Plan inverts chassis/panel/ink/rule and keeps --signal; muted/warn/fail
-     get brighter dark values for contrast on the dark panel. */
-  --color-chassis: #171B21;
-  --color-panel: #1B2027;
+  --color-chassis: #09090B;
+  --color-panel: #121118;
   --color-ink: #E6EAF0;
   --color-muted: #9AA4B1;
-  --color-rule: #2E3540;
+  --color-rule: #262335;
   --color-signal: #A855F7;
   --color-warn: #F59E0B;
   --color-fail: #EF4444;
+
+  color-scheme: dark;
 }
 
 .dark {
-  /* Brand scale (dark) - signal orange #A855F7, same as light for consistency */
   --color-brand-50: #FAF5FF;
   --color-brand-100: #F3E8FF;
   --color-brand-200: #E9D5FF;
@@ -117,15 +97,14 @@
   --color-primary: #A855F7;
   --color-primary-hover: #9333EA;
 
-  /* Surfaces (dark - blue slate) */
   --color-bg: #09090B;
-  --color-bg-alt: #0D0D12;
-  --color-bg-subtle: #14131C;
+  --color-bg-alt: #000000;
+  --color-bg-subtle: #121118;
   --color-bg-hover: #1F1C2B;
   --color-surface: #121118;
   --color-surface-2: #181622;
   --color-surface-3: #201D2E;
-  --color-sidebar: #0D0D12;
+  --color-sidebar: #09090B;
 
   --color-border: #262335;
   --color-border-subtle: #1C1A27;
@@ -141,14 +120,23 @@
   --color-warning: #FBBF24;
   --color-info: #60A5FA;
 
-  --shadow-soft: 0 1px 2px 0 rgba(0,0,0,0.3);
-  --shadow-warm: 0 2px 12px -2px rgba(168, 85, 247, 0.22);
-  --shadow-elevated: 0 12px 28px -4px rgba(0, 0, 0, 0.45);
+  --shadow-soft: 0 1px 2px 0 rgba(0,0,0,0.4);
+  --shadow-warm: 0 2px 12px -2px rgba(168, 85, 247, 0.25);
+  --shadow-elevated: 0 12px 28px -4px rgba(0, 0, 0, 0.55);
   --shadow-elev:
     inset 0 1px 0 0 rgba(255,255,255,0.05),
     0 1px 2px rgba(0,0,0,0.4),
-    0 16px 48px -8px rgba(0,0,0,0.55);
+    0 16px 48px -8px rgba(0,0,0,0.65);
   --shadow-focus: 0 0 0 3px rgba(168, 85, 247, 0.25);
+
+  --color-chassis: #09090B;
+  --color-panel: #121118;
+  --color-ink: #E6EAF0;
+  --color-muted: #9AA4B1;
+  --color-rule: #262335;
+  --color-signal: #A855F7;
+  --color-warn: #F59E0B;
+  --color-fail: #EF4444;
 
   color-scheme: dark;
 }
@@ -208,18 +196,18 @@ select {
   --color-warning: var(--color-warning);
   --color-info: var(--color-info);
 
-  /* Static fallbacks (explicit per-mode usage if needed) */
-  --color-bg-light: #F2F4F7;
+  /* Static fallbacks */
+  --color-bg-light: #09090B;
   --color-bg-dark: #09090B;
-  --color-surface-light: #ffffff;
+  --color-surface-light: #121118;
   --color-surface-dark: #121118;
-  --color-sidebar-light: #F7F8FA;
-  --color-sidebar-dark: #0D0D12;
-  --color-border-light: #D8DDE4;
+  --color-sidebar-light: #09090B;
+  --color-sidebar-dark: #09090B;
+  --color-border-light: #262335;
   --color-border-dark: #262335;
-  --color-text-main-light: #10141B;
+  --color-text-main-light: #E6EAF0;
   --color-text-main-dark: #E6EAF0;
-  --color-text-muted-light: #5B6472;
+  --color-text-muted-light: #9AA4B1;
   --color-text-muted-dark: #9AA4B1;
 
   /* Radius */
