@@ -49,13 +49,25 @@ const nextConfig = {
         path: false,
       };
     }
-    // Exclude non-source dirs from watcher to reduce inotify load
     config.watchOptions = {
       ...config.watchOptions,
       aggregateTimeout: 300,
       ignored: /[\\/](node_modules|\.git|logs|\.next|\.next-cli-build|gitbook|cli|open-sse\.old|tests|docs)[\\/]/,
     };
     return config;
+  },
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "*" },
+          { key: "Access-Control-Allow-Methods", value: "GET, POST, PUT, DELETE, OPTIONS, PATCH" },
+          { key: "Access-Control-Allow-Headers", value: "*" },
+          { key: "Access-Control-Expose-Headers", value: "*" },
+        ],
+      },
+    ];
   },
   async rewrites() {
     return [

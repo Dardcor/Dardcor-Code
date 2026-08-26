@@ -117,6 +117,9 @@ function isLoopbackPeer(request) {
   return false;
 }
 
+const VSCODE_PROTOCOLS = new Set(["vscode-file:", "vscode-webview:"]);
+const VSCODE_HOSTS = new Set(["vscode-app", "vscode-webview"]);
+
 export function isLocalRequest(request) {
   // Stamped by custom-server.js when forwarding headers exist: request came through
   // a reverse proxy, so the loopback socket is the proxy hop, not the end-user.
@@ -125,7 +128,11 @@ export function isLocalRequest(request) {
   const origin = request.headers.get("origin");
   if (origin) {
     try {
-      if (!isLoopbackHostname(new URL(origin).hostname)) return false;
+      const parsed = new URL(origin);
+      if (VSCODE_PROTOCOLS.has(parsed.protocol) || VSCODE_HOSTS.has(parsed.hostname)) {
+        return true;
+      }
+      if (!isLoopbackHostname(parsed.hostname)) return false;
     } catch { return false; }
   }
   return true;
@@ -152,6 +159,7 @@ async function hasValidApiKey(request) {
 }
 
 async function canAccessPublicLlmApi(request) {
+  if (request.method === "OPTIONS") return true;
   if (isLocalRequest(request)) return true;
   if (await hasValidCliToken(request)) return true;
   return await hasValidApiKey(request);
@@ -198,6 +206,19 @@ export const __test__ = {
 };
 
 export async function proxy(request) {
+  // Always allow CORS preflight OPTIONS requests through with 200 and headers
+  if (request.method === "OPTIONS") {
+    return new NextResponse(null, {
+      status: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+        "Access-Control-Allow-Headers": "*",
+        "Access-Control-Expose-Headers": "*",
+      },
+    });
+  }
+
   const { pathname } = request.nextUrl;
 
   // Local-only gate for spawn-capable / host-secret routes.
