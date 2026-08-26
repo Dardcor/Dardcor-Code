@@ -271,6 +271,7 @@ Tokens:
   MiniMax M2.1: $6.00 (22%)
   
 每 1M tokens 平均成本: $0.62
+相比 ChatGPT API 节省: 97%($4,000 → $120)
 ```
 
 ### 成本预测
@@ -520,6 +521,7 @@ budget-combo:
   40% 通过 Claude(订阅)
   10% 通过 GLM($6/月)
   
+节省: $6/月
 ```
 
 ### 4. 跟踪重置时间
@@ -540,6 +542,7 @@ budget-combo:
 仪表盘 → 分析 → 月度报告:
   总 tokens: 1.5B
   总成本: $120
+  节省: 相比 ChatGPT API 节省 97%
   
 洞察:
   - 60% 用量来自订阅($0)
@@ -558,7 +561,7 @@ budget-combo:
 ### 获取配额状态
 
 ```bash
-GET http://localhost:21128/api/quota
+GET http://localhost:20128/api/quota
 Authorization: Bearer your-api-key
 
 Response:
@@ -611,7 +614,7 @@ Response:
 ### 获取使用统计
 
 ```bash
-GET http://localhost:21128/api/usage?period=today
+GET http://localhost:20128/api/usage?period=today
 Authorization: Bearer your-api-key
 
 Response:

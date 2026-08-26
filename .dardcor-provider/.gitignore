@@ -60,6 +60,7 @@ PUBLIC.md
 Thanks.md
 PUBLIC.en.md
 PR/*
+package-lock.json
 
 
 #Ignore vscode AI rules
@@ -85,6 +86,3 @@ graphify-out/*
 .codegraph/
 .PR/
 .next-analyze/*
-.slim/deepwork/
-.omo
-.opencode

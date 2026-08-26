@@ -175,7 +175,7 @@ async function uninstallCertWindows() {
 
 function checkCertInstalledLinux() {
   const config = getLinuxCertConfig();
-  const certFile = `${config.dir}/9router-root-ca.crt`;
+  const certFile = `${config.dir}/dardcor-code-root-ca.crt`;
   return Promise.resolve(fs.existsSync(certFile));
 }
 
@@ -232,7 +232,7 @@ async function installCertLinux(sudoPassword, certPath) {
   }
   
   const config = getLinuxCertConfig();
-  const destFile = `${config.dir}/9router-root-ca.crt`;
+  const destFile = `${config.dir}/dardcor-code-root-ca.crt`;
   
   // Copy to the discovered directory and execute the specific update command
   const cmd = `cp "${certPath}" "${destFile}" && (${config.cmd} 2>/dev/null || true)`;
@@ -255,7 +255,7 @@ async function uninstallCertLinux(sudoPassword) {
   }
   
   const config = getLinuxCertConfig();
-  const destFile = `${config.dir}/9router-root-ca.crt`;
+  const destFile = `${config.dir}/dardcor-code-root-ca.crt`;
   const cmd = `rm -f "${destFile}" && (${config.cmd} 2>/dev/null || true)`;
   
   try {

@@ -8,135 +8,112 @@
 .fonts-loaded .material-symbols-outlined { visibility: visible; }
 
 /* ============================================================
-   Dardcor Code Signal Panel palette
-   Cool mist slate surfaces (light) / blue slate (dark),
-   single signal-orange #A855F7 brand accent.
+   Dardcor Code palette — adopted from 9remote_private/web
+   Brand orange (dark) / soft coral (light), neutral warm bases
    ============================================================ */
 :root {
-  /* Brand scale - centered on #A855F7 */
-  --color-brand-50: #FAF5FF;
-  --color-brand-100: #F3E8FF;
-  --color-brand-200: #E9D5FF;
-  --color-brand-300: #D8B4FE;
-  --color-brand-400: #C084FC;
-  --color-brand-500: #A855F7;
-  --color-brand-600: #9333EA;
-  --color-brand-700: #7E22CE;
-  --color-brand-800: #6B21A8;
-  --color-brand-900: #581C87;
+  /* Brand scale (light) - centered on #E56A4A */
+  --color-brand-50: #fdf1ed;
+  --color-brand-100: #fadccf;
+  --color-brand-200: #f4b59c;
+  --color-brand-300: #ee8d6a;
+  --color-brand-400: #ea7855;
+  --color-brand-500: #E56A4A;
+  --color-brand-600: #cc5236;
+  --color-brand-700: #a64027;
+  --color-brand-800: #7a2f1d;
+  --color-brand-900: #4d1e12;
 
-  /* Primary */
+  /* Primary (legacy alias for backward compat with existing components) */
   --color-primary: var(--color-brand-500);
   --color-primary-hover: var(--color-brand-600);
 
-  /* Surfaces & backgrounds (Pure Deep Black + Dark Slate surfaces) */
-  --color-bg: #09090B;
-  --color-bg-alt: #000000;
-  --color-bg-subtle: #121118;
-  --color-bg-hover: #1F1C2B;
-  --color-surface: #121118;
-  --color-surface-2: #181622;
-  --color-surface-3: #201D2E;
-  --color-sidebar: #09090B;
+  /* Surfaces & backgrounds (light) */
+  --color-bg: #FDFAF6;
+  --color-bg-alt: #F7F3EE;
+  --color-surface: #ffffff;
+  --color-surface-2: #f4f4f5;
+  --color-surface-3: #e7e7e9;
+  --color-sidebar: rgba(244, 241, 236, 0.85);
 
   /* Borders */
-  --color-border: #262335;
-  --color-border-subtle: #1C1A27;
+  --color-border: #e5e7eb;
+  --color-border-subtle: #f1f1f3;
 
   /* Text */
-  --color-text: #E6EAF0;
-  --color-text-main: #E6EAF0;
-  --color-text-muted: #9AA4B1;
-  --color-text-subtle: #6B7583;
+  --color-text: #0a0a0a;
+  --color-text-main: #0a0a0a;
+  --color-text-muted: #6B7280;
+  --color-text-subtle: #9CA3AF;
 
   /* Status */
-  --color-danger: #EF4444;
-  --color-error: #EF4444;
-  --color-success: #22C55E;
-  --color-warning: #FBBF24;
-  --color-info: #60A5FA;
+  --color-danger: #cf222e;
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-info: #3B82F6;
 
-  /* Radius - tighter instrument corners */
-  --radius-brand: 8px;
-  --radius-brand-lg: 12px;
+  /* Radius */
+  --radius-brand: 10px;
+  --radius-brand-lg: 14px;
 
   /* Shadows */
-  --shadow-soft: 0 1px 2px 0 rgba(0,0,0,0.4);
-  --shadow-warm: 0 2px 12px -2px rgba(168, 85, 247, 0.25);
-  --shadow-elevated: 0 12px 28px -4px rgba(0,0,0,0.55);
+  --shadow-soft: 0 1px 2px 0 rgba(0,0,0,0.04);
+  --shadow-warm: 0 2px 12px -2px rgba(229, 106, 74, 0.18);
+  --shadow-elevated: 0 12px 28px -4px rgba(60, 50, 45, 0.06);
   --shadow-elev:
-    inset 0 1px 0 0 rgba(255,255,255,0.05),
-    0 1px 2px rgba(0,0,0,0.4),
-    0 16px 48px -8px rgba(0,0,0,0.65);
-  --shadow-focus: 0 0 0 3px rgba(168, 85, 247, 0.25);
+    inset 0 1px 0 0 rgba(255,255,255,0.8),
+    0 1px 2px rgba(15,23,42,0.04),
+    0 12px 36px -8px rgba(15,23,42,0.10);
+  --shadow-focus: 0 0 0 3px rgba(229,106,74,0.18);
 
-  --color-chassis: #09090B;
-  --color-panel: #121118;
-  --color-ink: #E6EAF0;
-  --color-muted: #9AA4B1;
-  --color-rule: #262335;
-  --color-signal: #A855F7;
-  --color-warn: #F59E0B;
-  --color-fail: #EF4444;
-
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 .dark {
-  --color-brand-50: #FAF5FF;
-  --color-brand-100: #F3E8FF;
-  --color-brand-200: #E9D5FF;
-  --color-brand-300: #D8B4FE;
-  --color-brand-400: #C084FC;
-  --color-brand-500: #A855F7;
-  --color-brand-600: #9333EA;
-  --color-brand-700: #7E22CE;
-  --color-brand-800: #6B21A8;
-  --color-brand-900: #581C87;
+  /* Brand scale (dark) - centered on #E56A4A, same as light for consistency */
+  --color-brand-50: #fdf1ed;
+  --color-brand-100: #fadccf;
+  --color-brand-200: #f4b59c;
+  --color-brand-300: #ee8d6a;
+  --color-brand-400: #ea7855;
+  --color-brand-500: #E56A4A;
+  --color-brand-600: #cc5236;
+  --color-brand-700: #a64027;
+  --color-brand-800: #7a2f1d;
+  --color-brand-900: #4d1e12;
 
-  --color-primary: #A855F7;
-  --color-primary-hover: #9333EA;
+  --color-primary: #E56A4A;
+  --color-primary-hover: #cc5236;
 
-  --color-bg: #09090B;
-  --color-bg-alt: #000000;
-  --color-bg-subtle: #121118;
-  --color-bg-hover: #1F1C2B;
-  --color-surface: #121118;
-  --color-surface-2: #181622;
-  --color-surface-3: #201D2E;
-  --color-sidebar: #09090B;
+  /* Surfaces (dark - Claude-like neutral warm) */
+  --color-bg: #1a1a1a;
+  --color-bg-alt: #1F1F1E;
+  --color-surface: #262626;
+  --color-surface-2: #303030;
+  --color-surface-3: #3a3a3a;
+  --color-sidebar: rgba(30, 30, 30, 0.85);
 
-  --color-border: #262335;
-  --color-border-subtle: #1C1A27;
+  --color-border: #333333;
+  --color-border-subtle: #2a2a2a;
 
-  --color-text: #E6EAF0;
-  --color-text-main: #E6EAF0;
-  --color-text-muted: #9AA4B1;
-  --color-text-subtle: #6B7583;
+  --color-text: #ededed;
+  --color-text-main: #ededed;
+  --color-text-muted: #9ca3af;
+  --color-text-subtle: #6b7280;
 
-  --color-danger: #EF4444;
-  --color-error: #EF4444;
-  --color-success: #22C55E;
-  --color-warning: #FBBF24;
-  --color-info: #60A5FA;
+  --color-danger: #ef4444;
+  --color-success: #22c55e;
+  --color-warning: #fbbf24;
+  --color-info: #60a5fa;
 
-  --shadow-soft: 0 1px 2px 0 rgba(0,0,0,0.4);
-  --shadow-warm: 0 2px 12px -2px rgba(168, 85, 247, 0.25);
-  --shadow-elevated: 0 12px 28px -4px rgba(0, 0, 0, 0.55);
+  --shadow-soft: 0 1px 2px 0 rgba(0,0,0,0.3);
+  --shadow-warm: 0 2px 12px -2px rgba(229, 106, 74, 0.25);
+  --shadow-elevated: 0 12px 28px -4px rgba(0, 0, 0, 0.45);
   --shadow-elev:
-    inset 0 1px 0 0 rgba(255,255,255,0.05),
+    inset 0 1px 0 0 rgba(255,255,255,0.06),
     0 1px 2px rgba(0,0,0,0.4),
-    0 16px 48px -8px rgba(0,0,0,0.65);
-  --shadow-focus: 0 0 0 3px rgba(168, 85, 247, 0.25);
-
-  --color-chassis: #09090B;
-  --color-panel: #121118;
-  --color-ink: #E6EAF0;
-  --color-muted: #9AA4B1;
-  --color-rule: #262335;
-  --color-signal: #A855F7;
-  --color-warn: #F59E0B;
-  --color-fail: #EF4444;
+    0 16px 48px -8px rgba(0,0,0,0.55);
+  --shadow-focus: 0 0 0 3px rgba(229, 106, 74, 0.18);
 
   color-scheme: dark;
 }
@@ -177,8 +154,6 @@ select {
   /* Semantic */
   --color-bg: var(--color-bg);
   --color-bg-alt: var(--color-bg-alt);
-  --color-bg-subtle: var(--color-bg-subtle);
-  --color-bg-hover: var(--color-bg-hover);
   --color-surface: var(--color-surface);
   --color-surface-2: var(--color-surface-2);
   --color-surface-3: var(--color-surface-3);
@@ -191,24 +166,23 @@ select {
   --color-text-subtle: var(--color-text-subtle);
   --color-accent: var(--color-brand-500);
   --color-danger: var(--color-danger);
-  --color-error: var(--color-error);
   --color-success: var(--color-success);
   --color-warning: var(--color-warning);
   --color-info: var(--color-info);
 
-  /* Static fallbacks */
-  --color-bg-light: #09090B;
-  --color-bg-dark: #09090B;
-  --color-surface-light: #121118;
-  --color-surface-dark: #121118;
-  --color-sidebar-light: #09090B;
-  --color-sidebar-dark: #09090B;
-  --color-border-light: #262335;
-  --color-border-dark: #262335;
-  --color-text-main-light: #E6EAF0;
-  --color-text-main-dark: #E6EAF0;
-  --color-text-muted-light: #9AA4B1;
-  --color-text-muted-dark: #9AA4B1;
+  /* Static fallbacks (explicit per-mode usage if needed) */
+  --color-bg-light: #FCFBF9;
+  --color-bg-dark: #1a1a1a;
+  --color-surface-light: #ffffff;
+  --color-surface-dark: #262626;
+  --color-sidebar-light: #F4F1EC;
+  --color-sidebar-dark: #1F1F1E;
+  --color-border-light: #e5e7eb;
+  --color-border-dark: #333333;
+  --color-text-main-light: #0a0a0a;
+  --color-text-main-dark: #ededed;
+  --color-text-muted-light: #6B7280;
+  --color-text-muted-dark: #9ca3af;
 
   /* Radius */
   --radius-brand: var(--radius-brand);
@@ -223,16 +197,6 @@ select {
 
   /* Font - Inter primary, Apple system fallback */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui, sans-serif;
-
-  /* Phase 6 instrument tokens (scoped: cache wire + Zen catalog panel) */
-  --color-chassis: var(--color-chassis);
-  --color-panel: var(--color-panel);
-  --color-ink: var(--color-ink);
-  --color-muted: var(--color-muted);
-  --color-rule: var(--color-rule);
-  --color-signal: var(--color-signal);
-  --color-warn: var(--color-warn);
-  --color-fail: var(--color-fail);
 }
 
 /* Base */
@@ -244,14 +208,14 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Selection - signal-tinted */
+/* Selection - brand-tinted */
 ::selection {
-  background-color: rgba(168, 85, 247, 0.22);
+  background-color: rgba(229, 106, 74, 0.25);
   color: var(--color-primary);
 }
 .dark ::selection {
-  background-color: rgba(168, 85, 247, 0.30);
-  color: var(--color-brand-200);
+  background-color: rgba(229, 106, 74, 0.3);
+  color: var(--color-brand-300);
 }
 
 /* iOS keyboard accent */
@@ -274,22 +238,22 @@ input, textarea {
   background-color: var(--color-primary);
 }
 
-/* Thin horizontal scrollbar - signal colored */
+/* Thin horizontal scrollbar - brand colored */
 .scroll-thin-x {
   scrollbar-width: thin;
-  scrollbar-color: rgba(168, 85, 247, 0.55) transparent;
+  scrollbar-color: rgba(229, 106, 74, 0.55) transparent;
 }
 .dark .scroll-thin-x {
-  scrollbar-color: rgba(168, 85, 247, 0.55) transparent;
+  scrollbar-color: rgba(229, 106, 74, 0.55) transparent;
 }
 .scroll-thin-x::-webkit-scrollbar { height: 3px; }
 .scroll-thin-x::-webkit-scrollbar-track { background: transparent; }
 .scroll-thin-x::-webkit-scrollbar-thumb {
-  background: rgba(168, 85, 247, 0.55);
+  background: rgba(229, 106, 74, 0.55);
   border-radius: 3px;
 }
 .dark .scroll-thin-x::-webkit-scrollbar-thumb {
-  background: rgba(168, 85, 247, 0.55);
+  background: rgba(229, 106, 74, 0.55);
 }
 
 /* Global thin mac-like scrollbars (overrides clunky Windows/Linux default) */
@@ -423,12 +387,12 @@ button:disabled,
 
 @keyframes border-glow {
   0%, 100% {
-    box-shadow: 0 0 5px rgba(168, 85, 247, 0.3), 0 0 10px rgba(168, 85, 247, 0.2);
-    border-color: rgba(168, 85, 247, 0.5);
+    box-shadow: 0 0 5px rgba(229, 106, 74, 0.3), 0 0 10px rgba(229, 106, 74, 0.2);
+    border-color: rgba(229, 106, 74, 0.5);
   }
   50% {
-    box-shadow: 0 0 10px rgba(168, 85, 247, 0.5), 0 0 20px rgba(168, 85, 247, 0.3);
-    border-color: rgba(168, 85, 247, 0.8);
+    box-shadow: 0 0 10px rgba(229, 106, 74, 0.5), 0 0 20px rgba(229, 106, 74, 0.3);
+    border-color: rgba(229, 106, 74, 0.8);
   }
 }
 .animate-border-glow { animation: border-glow 2s ease-in-out infinite; }
@@ -461,8 +425,8 @@ button:disabled,
   100% { transform: translateX(220%) skewX(-20deg); }
 }
 @keyframes ctaGlowPulse {
-  0%, 100% { box-shadow: 0 8px 24px -8px rgba(168, 85, 247, 0.45), 0 0 0 0 rgba(168, 85, 247, 0.5); }
-  50% { box-shadow: 0 12px 32px -8px rgba(168, 85, 247, 0.6), 0 0 0 8px rgba(168, 85, 247, 0); }
+  0%, 100% { box-shadow: 0 8px 24px -8px rgba(229, 106, 74, 0.45), 0 0 0 0 rgba(229, 106, 74, 0.5); }
+  50% { box-shadow: 0 12px 32px -8px rgba(229, 106, 74, 0.6), 0 0 0 8px rgba(229, 106, 74, 0); }
 }
 .btn-cta {
   position: relative;
@@ -488,16 +452,16 @@ button:disabled,
 .dot-grid-bg {
   background-color: var(--color-bg);
   background-image:
-    radial-gradient(circle at 15% 20%, rgba(168, 85, 247, 0.10) 0%, transparent 40%),
-    radial-gradient(circle at 85% 80%, rgba(168, 85, 247, 0.06) 0%, transparent 40%);
+    radial-gradient(circle at 15% 20%, rgba(229, 106, 74, 0.10) 0%, transparent 40%),
+    radial-gradient(circle at 85% 80%, rgba(229, 106, 74, 0.06) 0%, transparent 40%);
 }
 .dark .dot-grid-bg {
   background-image:
-    radial-gradient(circle at 15% 20%, rgba(168, 85, 247, 0.18) 0%, transparent 40%),
-    radial-gradient(circle at 85% 80%, rgba(168, 85, 247, 0.10) 0%, transparent 40%);
+    radial-gradient(circle at 15% 20%, rgba(229, 106, 74, 0.18) 0%, transparent 40%),
+    radial-gradient(circle at 85% 80%, rgba(229, 106, 74, 0.10) 0%, transparent 40%);
 }
 
-/* Landing-style faint grid overlay (login page only; dashboard shell no longer uses it) */
+/* Landing-style faint grid overlay (use absolute pos inside relative parent) */
 .landing-grid {
   background-image:
     linear-gradient(to right, var(--color-accent) 1px, transparent 1px),
@@ -507,62 +471,6 @@ button:disabled,
 }
 .dark .landing-grid {
   opacity: 0.04;
-}
-
-/* ============================================================
-   Signal Panel shared utilities
-   ============================================================ */
-@layer components {
-  /* Uppercase instrument label */
-  .label {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    line-height: 1.4;
-    text-transform: uppercase;
-    color: var(--color-text-muted);
-  }
-
-  /* Mono metric numeral */
-  .metric {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
-    font-variant-numeric: tabular-nums;
-    font-size: 1.25rem;
-    font-weight: 600;
-    line-height: 1.2;
-    letter-spacing: -0.01em;
-    color: var(--color-text-main);
-  }
-
-  /* Thin horizontal signal rail */
-  .signal-rail {
-    height: 2px;
-    background-color: var(--color-signal);
-  }
-
-  /* Sidebar navigation item */
-  .nav-item {
-    display: flex;
-    align-items: center;
-    gap: 0.625rem;
-    padding: 0.375rem 0.75rem;
-    border-radius: var(--radius-brand);
-    color: var(--color-text-muted);
-    font-size: 13px;
-    font-weight: 500;
-    line-height: 1.4;
-    transition: background-color 150ms ease-out, color 150ms ease-out;
-  }
-  .nav-item:hover {
-    background-color: var(--color-bg-hover);
-    color: var(--color-text-main);
-  }
-  .nav-item-active,
-  .nav-item-active:hover {
-    background-color: var(--color-bg-hover);
-    color: var(--color-text-main);
-    box-shadow: inset 2px 0 0 0 var(--color-signal);
-  }
 }
 
 /* Topology: router card pulse (no flying rings) + electric edge beam */

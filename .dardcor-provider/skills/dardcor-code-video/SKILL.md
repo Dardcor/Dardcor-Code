@@ -5,7 +5,7 @@ description: Generate videos via Dardcor Code /v1/videos/generations using xAI G
 
 # Dardcor Code — Video Generation (xAI Grok Imagine)
 
-Requires `DARDCOR_URL` (and `DARDCOR_KEY` if auth enabled). See https://dardcor-code.web.id/skills/dardcor-code/SKILL.md for setup.
+Requires `NINEROUTER_URL` (and `NINEROUTER_KEY` if auth enabled). See https://raw.githubusercontent.com/decolua/dardcor-code/refs/heads/master/skills/dardcor-code/SKILL.md for setup.
 
 Requires a connected **xAI account** in the Dardcor Code dashboard — either **Grok Build OAuth** (SuperGrok / X Premium+ subscription sign-in) or a direct **xAI API key** from console.x.ai. The two are separate auth types with separate billing; the dashboard shows which one each connection uses.
 
@@ -37,18 +37,18 @@ Request fields (passed through to xAI unchanged — see https://docs.x.ai/develo
 Submit a job:
 
 ```bash
-curl -X POST "$DARDCOR_URL/v1/videos/generations" \
-  -H "Authorization: Bearer $DARDCOR_KEY" \
+curl -X POST "$NINEROUTER_URL/v1/videos/generations" \
+  -H "Authorization: Bearer $NINEROUTER_KEY" \
   -H "Content-Type: application/json" \
   -d '{"model":"xai/grok-imagine-video","prompt":"A cinematic tracking shot through a neon city at night","duration":8,"aspect_ratio":"16:9","resolution":"720p"}'
-# → {"request_id":"abc123"}   (response header x-dardcor-connection-id: <id>)
+# → {"request_id":"abc123"}   (response header x-dardcor-code-connection-id: <id>)
 ```
 
 Poll until done (echo the connection header back so the same account polls the job):
 
 ```bash
-curl "$DARDCOR_URL/v1/videos/abc123" \
-  -H "Authorization: Bearer $DARDCOR_KEY" \
+curl "$NINEROUTER_URL/v1/videos/abc123" \
+  -H "Authorization: Bearer $NINEROUTER_KEY" \
   -H "x-connection-id: <id from create response>"
 # → {"status":"pending","progress":42}
 # → {"status":"done","video":{"url":"https://…mp4","duration":8},"model":"grok-imagine-video"}
@@ -70,7 +70,7 @@ Submits, polls with progress, downloads to `video.mp4.part`, atomically renames 
 
 ## Notes & limits
 
-- Jobs are **account-bound** upstream: poll with the same connection that created the job (`x-connection-id` header, value from the create response's `x-dardcor-connection-id`).
+- Jobs are **account-bound** upstream: poll with the same connection that created the job (`x-connection-id` header, value from the create response's `x-dardcor-code-connection-id`).
 - Creation POSTs are **never auto-retried** (a retry could create and bill two videos). Only a 401→token-refresh→single-retry is performed, which upstream rejects before job creation.
 - Video models are tagged `kind: "video"` and are excluded from chat model lists and chat fallback combos.
 - Grok Build **subscription OAuth** tokens are sent to the same `api.x.ai/v1/videos` endpoints as API keys; whether a given subscription tier includes video-generation quota is controlled by xAI and is not verified by Dardcor Code — a `403`/`permission_denied` from upstream means the connected account has no video access.

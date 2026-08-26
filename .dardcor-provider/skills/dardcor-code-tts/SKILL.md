@@ -5,24 +5,24 @@ description: Text-to-speech via Dardcor Code /v1/audio/speech using OpenAI / Ele
 
 # Dardcor Code — Text-to-Speech
 
-Requires `DARDCOR_URL` (and `DARDCOR_KEY` if auth enabled). See https://dardcor-code.web.id/skills/dardcor-code/SKILL.md for setup.
+Requires `NINEROUTER_URL` (and `NINEROUTER_KEY` if auth enabled). See https://raw.githubusercontent.com/decolua/dardcor-code/refs/heads/master/skills/dardcor-code/SKILL.md for setup.
 
 ## Discover
 
 ```bash
 # 1) List models
-curl $DARDCOR_URL/v1/models/tts | jq '.data[].id'
+curl $NINEROUTER_URL/v1/models/tts | jq '.data[].id'
 # 2) Per-model metadata (params, voicesUrl if voice-by-id)
-curl "$DARDCOR_URL/v1/models/info?id=el/eleven_multilingual_v2"
+curl "$NINEROUTER_URL/v1/models/info?id=el/eleven_multilingual_v2"
 # 3) List voices (elevenlabs, edge-tts, deepgram, inworld, local-device). Optional ?lang=vi
-curl "$DARDCOR_URL/v1/audio/voices?provider=edge-tts&lang=vi" | jq '.data[].model'
+curl "$NINEROUTER_URL/v1/audio/voices?provider=edge-tts&lang=vi" | jq '.data[].model'
 ```
 
 `model` field in `/v1/audio/speech` = voice ID directly (e.g. `edge-tts/vi-VN-HoaiMyNeural`, `el/<voice_id>`, or `openai/tts-1` model+default voice).
 
 ## Endpoint
 
-`POST $DARDCOR_URL/v1/audio/speech`
+`POST $NINEROUTER_URL/v1/audio/speech`
 
 | Field | Required | Notes |
 |---|---|---|
@@ -36,8 +36,8 @@ Query `?response_format=mp3` (default, raw bytes) or `?response_format=json` (`{
 Save MP3:
 
 ```bash
-curl -X POST "$DARDCOR_URL/v1/audio/speech" \
-  -H "Authorization: Bearer $DARDCOR_KEY" \
+curl -X POST "$NINEROUTER_URL/v1/audio/speech" \
+  -H "Authorization: Bearer $NINEROUTER_KEY" \
   -H "Content-Type: application/json" \
   -d '{"model":"openai/tts-1","input":"Hello world"}' \
   --output speech.mp3
@@ -47,9 +47,9 @@ JS (save file):
 
 ```js
 import { writeFile } from "node:fs/promises";
-const r = await fetch(`${process.env.DARDCOR_URL}/v1/audio/speech`, {
+const r = await fetch(`${process.env.NINEROUTER_URL}/v1/audio/speech`, {
   method: "POST",
-  headers: { "Authorization": `Bearer ${process.env.DARDCOR_KEY}`, "Content-Type": "application/json" },
+  headers: { "Authorization": `Bearer ${process.env.NINEROUTER_KEY}`, "Content-Type": "application/json" },
   body: JSON.stringify({ model: "el/eleven_multilingual_v2", input: "Xin chào" }),
 });
 await writeFile("speech.mp3", Buffer.from(await r.arrayBuffer()));

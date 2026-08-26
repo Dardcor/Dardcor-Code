@@ -17,6 +17,7 @@ Nó định tuyến request thông minh qua nhiều provider AI bằng hệ th�
 - Không bao giờ lãng phí quota subscription
 - Fallback tự động khi hết quota
 - Theo dõi quota thời gian thực
+- Tiết kiệm 90% chi phí so với dùng API trực tiếp
 
 ---
 
@@ -37,6 +38,8 @@ Nó định tuyến request thông minh qua nhiều provider AI bằng hệ th�
 - **GLM-4.7**: $0.60/$2.20 per 1M tokens - Reset 10AM hàng ngày
 - **MiniMax M2.1**: $0.20/$1.00 per 1M tokens - 5 giờ rolling
 - **Kimi K2**: $9/tháng cố định (10M tokens)
+
+**Mục tiêu:** Rẻ hơn 90% so với ChatGPT API ($20/1M)!
 
 ### Tier 3: Free (Khẩn cấp)
 - **iFlow**: 8 model MIỄN PHÍ (Kimi K2, Qwen3, GLM, MiniMax...)
@@ -161,7 +164,7 @@ Xem [tài liệu quota tracking](features/quota-tracking.md) để biết chi ti
 
 ```
 Cursor Settings → Models → Advanced:
-  OpenAI API Base URL: https://dardcor-code.web.id/v1
+  OpenAI API Base URL: https://dardcor-code.com/v1
   OpenAI API Key: [from dashboard]
   Model: cc/claude-opus-4-5-20251101
 ```
@@ -169,7 +172,7 @@ Cursor Settings → Models → Advanced:
 **Thay thế:** Self-host trên VPS với domain công khai:
 ```bash
 # Deploy to VPS
-git clone .git
+git clone https://github.com/decolua/dardcor-code.git
 cd dardcor-code/app
 npm install && npm run build
 npm start
@@ -198,12 +201,12 @@ Xem [hướng dẫn tích hợp Cursor](integration/cursor.md) để biết chi 
 npm install -g dardcor-code
 dardcor-code
 → Dashboard: http://localhost:3000
-→ API: http://localhost:21128/v1
+→ API: http://localhost:20128/v1
 ```
 
 ### VPS/Cloud
 ```bash
-git clone .git
+git clone https://github.com/decolua/dardcor-code.git
 cd dardcor-code/app
 npm install && npm run build
 
@@ -233,7 +236,7 @@ npm run deploy:cloudflare
 **Biến môi trường:**
 - `JWT_SECRET` - **PHẢI đổi trong production!**
 - `DATA_DIR` - Đường dẫn lưu database (mặc định: `~/.dardcor-code`)
-- `INITIAL_PASSWORD` - Đăng nhập Dashboard (không có mặc định; bootstrap tùy chọn chỉ cho local — nếu không đặt, hãy tạo mật khẩu qua localhost)
+- `INITIAL_PASSWORD` - Đăng nhập Dashboard (mặc định: `123456`)
 - `NODE_ENV` - Đặt `production` để deploy
 
 Xem [hướng dẫn deployment](getting-started/installation.md#deployment) để biết chi tiết.
@@ -313,7 +316,7 @@ dardcor-code --version
 ```
 
 **Breaking changes:**
-- Xem [CHANGELOG.md](/blob/main/CHANGELOG.md)
+- Xem [CHANGELOG.md](https://github.com/decolua/dardcor-code/blob/main/CHANGELOG.md)
 - Backup `~/.dardcor-code` trước khi update lớn
 - Xem hướng dẫn migration cho major version
 
@@ -326,17 +329,17 @@ dardcor-code --version
 ### Các cách đóng góp:
 
 1. **Report bugs:**
-   - [GitHub Issues](/issues)
+   - [GitHub Issues](https://github.com/decolua/dardcor-code/issues)
    - Bao gồm error logs, các bước reproduce
 
 2. **Request features:**
-   - [GitHub Discussions](/discussions)
+   - [GitHub Discussions](https://github.com/decolua/dardcor-code/discussions)
    - Mô tả use case và lợi ích
 
 3. **Submit code:**
    ```bash
    # Fork repo
-   git clone .git
+   git clone https://github.com/YOUR_USERNAME/dardcor-code.git
    cd dardcor-code
    
    # Create branch
@@ -372,13 +375,13 @@ dardcor-code --version
 - Cập nhật tài liệu
 - Giữ commit nhỏ gọn và mô tả rõ ràng
 
-Xem [CONTRIBUTING.md](/blob/main/CONTRIBUTING.md) để biết chi tiết.
+Xem [CONTRIBUTING.md](https://github.com/decolua/dardcor-code/blob/main/CONTRIBUTING.md) để biết chi tiết.
 
 ---
 
 ## Cần trợ giúp thêm?
 
-- **Documentation:** [dardcor-code.web.id/docs](https://dardcor-code.web.id/docs)
-- **GitHub:** 
-- **Issues:** [/issues](/issues)
+- **Documentation:** [dardcor-code.com/docs](https://dardcor-code.com/docs)
+- **GitHub:** [github.com/decolua/dardcor-code](https://github.com/decolua/dardcor-code)
+- **Issues:** [github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)
 - **Troubleshooting:** [troubleshooting.md](troubleshooting.md)

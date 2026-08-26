@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="../images/9router.png?1" alt="Dardcor Code Dashboard" width="800"/>
+  <img src="../images/dardcor-code.png?1" alt="Dardcor Code Dashboard" width="800"/>
 
   # Dardcor Code - Router AI Gratis
 
@@ -7,11 +7,11 @@
 
   **Hubungkan semua tool AI coding (Claude Code, Cursor, Antigravity, Copilot, Codex, Gemini, OpenCode, Cline, OpenClaw...) ke 40+ provider AI dan 100+ model.**
 
-  [![npm](https://img.shields.io/npm/v/9router.svg)](https://www.npmjs.com/package/9router)
-  [![Downloads](https://img.shields.io/npm/dm/9router.svg)](https://www.npmjs.com/package/9router)
-  [![License](https://img.shields.io/npm/l/9router.svg)](https://github.com/decolua/9router/blob/main/LICENSE)
+  [![npm](https://img.shields.io/npm/v/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
+  [![Downloads](https://img.shields.io/npm/dm/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
+  [![License](https://img.shields.io/npm/l/dardcor-code.svg)](https://github.com/decolua/dardcor-code/blob/main/LICENSE)
 
-  [🚀 Mulai Cepat](#-mulai-cepat) • [💡 Fitur](#-fitur-utama) • [📖 Setup](#-panduan-setup) • [🌐 Website](https://9router.com)
+  [🚀 Mulai Cepat](#-mulai-cepat) • [💡 Fitur](#-fitur-utama) • [📖 Setup](#-panduan-setup) • [🌐 Website](https://dardcor-code.com)
 
   [🇻🇳 Tiếng Việt](./README.vi.md) • [🇨🇳 中文](./README.zh-CN.md) • [🇯🇵 日本語](./README.ja-JP.md) • [🇮🇩 Bahasa Indonesia](./README.id-ID.md)
 </div>
@@ -68,8 +68,8 @@ Hasil: ngoding tanpa berhenti, biaya minimum
 **1. Install secara global:**
 
 ```bash
-npm install -g 9router
-9router
+npm install -g dardcor-code
+dardcor-code
 ```
 
 🎉 Dashboard terbuka di `http://localhost:20128`
@@ -871,12 +871,12 @@ Biaya bulanan: $0
 
 ```bash
 docker run -d \
-  --name 9router \
+  --name dardcor-code \
   -p 20128:20128 \
-  -v 9router-data:/app/data \
+  -v dardcor-code-data:/app/data \
   -e PORT=20128 \
   -e BASE_URL=http://localhost:20128 \
-  ghcr.io/decolua/9router:latest
+  ghcr.io/decolua/dardcor-code:latest
 ```
 
 Dashboard: `http://localhost:20128/dashboard`
@@ -887,8 +887,8 @@ Dashboard: `http://localhost:20128/dashboard`
 <summary><b>VPS / Cloud</b></summary>
 
 ```bash
-npm install -g 9router
-PORT=20128 HOSTNAME=0.0.0.0 BASE_URL=https://your-domain.com 9router
+npm install -g dardcor-code
+PORT=20128 HOSTNAME=0.0.0.0 BASE_URL=https://your-domain.com dardcor-code
 ```
 
 Disarankan menaruhnya di belakang reverse proxy (Nginx/Caddy) dengan HTTPS, dan membatasi akses hanya untuk dirimu sendiri.
@@ -938,14 +938,14 @@ Kontribusi sangat diterima!
 
 ## 📄 Lisensi
 
-MIT License — lihat [LICENSE](https://github.com/decolua/9router/blob/main/LICENSE) untuk detailnya.
+MIT License — lihat [LICENSE](https://github.com/decolua/dardcor-code/blob/main/LICENSE) untuk detailnya.
 
 ---
 
 <div align="center">
 
-**Kalau Dardcor Code membantumu, kasih ⭐ di [GitHub](https://github.com/decolua/9router)!**
+**Kalau Dardcor Code membantumu, kasih ⭐ di [GitHub](https://github.com/decolua/dardcor-code)!**
 
-[🌐 Website](https://9router.com) • [📦 npm](https://www.npmjs.com/package/9router) • [🐛 Laporkan Bug](https://github.com/decolua/9router/issues)
+[🌐 Website](https://dardcor-code.com) • [📦 npm](https://www.npmjs.com/package/dardcor-code) • [🐛 Laporkan Bug](https://github.com/decolua/dardcor-code/issues)
 
 </div>

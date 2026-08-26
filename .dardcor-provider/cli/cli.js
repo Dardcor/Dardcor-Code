@@ -80,24 +80,9 @@ if (args[0] === "xai" && args[1] === "video") {
   return;
 }
 
-// `dardcor-code migrate --from-9router` reads a legacy 9router install through
-// its authenticated export API and imports into the running Dardcor Code gateway.
-// Pure HTTP + read-only legacy data-dir access — no server spawn, no source-tree writes.
-if (args[0] === "migrate") {
-  const { run } = require("./src/cli/commands/migrate");
-  run(args.slice(1))
-    .then((code) => process.exit(code))
-    .catch((err) => {
-      console.error(`❌ ${err?.message || err}`);
-      process.exit(1);
-    });
-  return;
-}
-
-// Self-heal SQLite runtime deps (sql.js + better-sqlite3) into the data dir
-// runtime folder (new: ~/.dardcor-code/runtime; legacy ~/.9router/runtime is
-// read back so existing installs keep working). Best-effort — sql.js is
-// required, better-sqlite3 is optional. Logs to stderr only on failure.
+// Self-heal SQLite runtime deps (sql.js + better-sqlite3) into ~/.dardcor-code/runtime
+// so the server can resolve them via NODE_PATH. Best-effort — sql.js is required,
+// better-sqlite3 is optional. Logs to stderr only on failure.
 try { ensureSqliteRuntime({ silent: true }); } catch {}
 
 // Self-heal tray runtime (systray for macOS/Linux only). Windows skipped.
@@ -107,7 +92,7 @@ try { ensureTrayRuntime({ silent: true }); } catch {}
 const APP_NAME = pkg.name; // Use from package.json
 const INSTALL_CMD_LATEST = `npm i -g ${APP_NAME}@latest --prefer-online`;
 
-const DEFAULT_PORT = 21128;
+const DEFAULT_PORT = 20128;
 const DEFAULT_HOST = "0.0.0.0";
 
 // First non-internal IPv4 — the address remote peers actually reach when bound to 0.0.0.0.
@@ -172,10 +157,6 @@ Commands:
   xai video --prompt "..." --output video.mp4
                       Generate a Grok Imagine video via the running gateway
                       (see: ${APP_NAME} xai video --help)
-  migrate --from-9router
-                      Migrate providers/keys/combos from a legacy 9router
-                      install via its authenticated export API
-                      (see: ${APP_NAME} migrate --help)
 `);
     process.exit(0);
   } else if (args[i] === "--version" || args[i] === "-v") {
@@ -292,12 +273,11 @@ function killAllAppProcesses(appPort) {
           });
           const lines = output.split("\n").slice(1).filter(l => l.trim());
           lines.forEach(line => {
-            // Whitelist: real node process running dardcor-code/cli.js (legacy 9router too),
-            // or next-server. Avoids killing editors/grep/strace/cursor that just have
-            // "dardcor-code" in cmdline.
+            // Whitelist: real node process running dardcor-code/cli.js, or next-server.
+            // Avoids killing editors/grep/strace/cursor that just have "dardcor-code" in cmdline.
             const cmd = line.toLowerCase();
             const isAppProcess =
-              (cmd.includes("node") && (cmd.includes("dardcor-code") || cmd.includes("9router")) && (cmd.includes("cli.js") || cmd.includes("\\dardcor-code") || cmd.includes("/dardcor-code") || cmd.includes("\\9router") || cmd.includes("/9router")))
+              (cmd.includes("node") && cmd.includes("dardcor-code") && (cmd.includes("cli.js") || cmd.includes("\\dardcor-code") || cmd.includes("/dardcor-code")))
               || cmd.includes("next-server");
             if (isAppProcess) {
               const match = line.match(/^"(\d+)"/);
@@ -319,11 +299,11 @@ function killAllAppProcesses(appPort) {
           const lines = output.split('\n');
 
           lines.forEach(line => {
-            // Whitelist: real node process running dardcor-code/cli.js (legacy 9router too),
-            // or next-server. Avoids killing grep/strace/editors/cursor that incidentally match.
+            // Whitelist: real node process running dardcor-code/cli.js, or next-server.
+            // Avoids killing grep/strace/editors/cursor that incidentally match "dardcor-code".
             const cmd = line.toLowerCase();
             const isAppProcess =
-              (cmd.includes("node") && (cmd.includes("dardcor-code") || cmd.includes("9router")) && (cmd.includes("cli.js") || cmd.includes("/dardcor-code") || cmd.includes("/9router")))
+              (cmd.includes("node") && cmd.includes("dardcor-code") && (cmd.includes("cli.js") || cmd.includes("/dardcor-code")))
               || cmd.includes("next-server");
             if (isAppProcess) {
               const parts = line.trim().split(/\s+/);
@@ -551,23 +531,6 @@ const customServerPath = path.join(standaloneDir, "custom-server.js");
 const serverPath = fs.existsSync(customServerPath)
   ? customServerPath
   : path.join(standaloneDir, "server.js");
-
-// Fail closed before spawning either server: the bundled standalone must carry
-// the boot policy and reject known-weak supplied secrets. Never log values.
-const policyPath = path.join(standaloneDir, "secret-policy.cjs");
-let bootPolicy;
-try {
-  bootPolicy = require(policyPath);
-} catch {
-  console.error(`Error: Missing boot policy at ${policyPath}. Reinstall the CLI and try again.`);
-  process.exit(1);
-}
-try {
-  bootPolicy.assertNoWeakSecrets();
-} catch (e) {
-  console.error(`[secret-gate] ${e && e.message ? e.message : e}`);
-  process.exit(1);
-}
 
 if (!fs.existsSync(serverPath)) {
   console.error("Error: Standalone build not found.");
@@ -875,8 +838,7 @@ function startServer(updatePromise) {
     if (restartCount >= MAX_RESTARTS) {
       console.error(`\n⚠️  Server crashed ${MAX_RESTARTS} times. Disabling MIT and restarting...`);
       try {
-        // Legacy read fallback: keep disabling MIT via the old db.json when it still exists.
-        const dbPath = path.join(os.homedir(), process.platform === "win32" ? path.join("AppData", "Roaming", "9router", "db.json") : path.join(".9router", "db.json"));
+        const dbPath = path.join(os.homedir(), process.platform === "win32" ? path.join("AppData", "Roaming", "dardcor-code", "db.json") : path.join(".dardcor-code", "db.json"));
         if (fs.existsSync(dbPath)) {
           const db = JSON.parse(fs.readFileSync(dbPath, "utf-8"));
           if (db.settings) db.settings.mitmEnabled = false;

@@ -74,7 +74,7 @@ describe("openai→claude: tools shape fidelity", () => {
   });
 
   it("non-function built-in tool types are passed through (cache_control tag is OK)", () => {
-    // Dardcor Code adds a `cache_control` tag to the last tool for prompt caching;
+    // dardcor-code adds a `cache_control` tag to the last tool for prompt caching;
     // the test asserts the original shape is preserved alongside it rather
     // than checking strict equality. This is the existing buildHeaders /
     // cache_control behavior unchanged by this fix.

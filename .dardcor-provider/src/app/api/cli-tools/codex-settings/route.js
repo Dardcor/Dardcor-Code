@@ -74,9 +74,9 @@ const readConfig = async () => {
 };
 
 // Check if config has Dardcor Code settings
-const has9RouterConfig = (config) => {
+const hasDardcor CodeConfig = (config) => {
   if (!config) return false;
-  return config.includes("model_provider = \"9router\"") || config.includes("[model_providers.9router]");
+  return config.includes("model_provider = \"dardcor-code\"") || config.includes("[model_providers.dardcor-code]");
 };
 
 // GET - Check codex CLI and read current settings
@@ -97,7 +97,7 @@ export async function GET() {
     return NextResponse.json({
       installed: true,
       config,
-      has9Router: has9RouterConfig(config),
+      hasDardcor Code: hasDardcor CodeConfig(config),
       configPath: getCodexConfigPath(),
     });
   } catch (error) {
@@ -130,12 +130,12 @@ export async function POST(request) {
 
     // Update only Dardcor Code related fields (api_key goes to auth.json, not config.toml)
     parsed.model = model;
-    parsed.model_provider = "9router";
+    parsed.model_provider = "dardcor-code";
 
-    // Update or create 9router provider section (no api_key - Codex reads from auth.json)
+    // Update or create dardcor-code provider section (no api_key - Codex reads from auth.json)
     // Ensure /v1 suffix is added only once
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
-    setNestedSection(parsed, "model_providers.9router", {
+    setNestedSection(parsed, "model_providers.dardcor-code", {
       name: "Dardcor Code",
       base_url: normalizedBaseUrl,
       wire_api: "responses",
@@ -195,14 +195,14 @@ export async function DELETE() {
       throw error;
     }
 
-    // Remove Dardcor Code related root fields only if they point to 9router
-    if (parsed.model_provider === "9router") {
+    // Remove Dardcor Code related root fields only if they point to dardcor-code
+    if (parsed.model_provider === "dardcor-code") {
       delete parsed.model;
       delete parsed.model_provider;
     }
 
-    // Remove 9router provider section
-    deleteNestedSection(parsed, "model_providers.9router");
+    // Remove dardcor-code provider section
+    deleteNestedSection(parsed, "model_providers.dardcor-code");
 
     // Remove subagent configuration
     deleteNestedSection(parsed, "agents.subagent");

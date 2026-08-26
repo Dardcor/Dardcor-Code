@@ -5,7 +5,7 @@ Integrate Dardcor Code with Roo AI Assistant to access multiple AI models throug
 ## Prerequisites
 
 - Roo AI Assistant installed
-- Dardcor Code API key from [dashboard](https://dardcor-code.web.id/dashboard)
+- Dardcor Code API key from [dashboard](https://dardcor-code.com/dashboard)
 - Dardcor Code running (local or cloud)
 
 ## Configuration Steps
@@ -22,13 +22,13 @@ Launch Roo AI Assistant and open the settings panel.
 
 **For Local Dardcor Code:**
 ```
-Base URL: http://localhost:21128/v1
+Base URL: http://localhost:20128/v1
 API Key: your-api-key-from-dashboard
 ```
 
 **For Cloud Dardcor Code:**
 ```
-Base URL: https://dardcor-code.web.id/v1
+Base URL: https://dardcor-code.com/v1
 API Key: your-api-key-from-dashboard
 ```
 
@@ -87,7 +87,7 @@ Model: cx/deepseek-reasoner
 ## Troubleshooting
 
 ### Connection Failed
-- Verify Dardcor Code is running: `curl http://localhost:21128/health`
+- Verify Dardcor Code is running: `curl http://localhost:20128/health`
 - Check API key is correct
 - Ensure Base URL includes `/v1` suffix
 

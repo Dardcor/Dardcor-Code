@@ -4,12 +4,17 @@
   
   # Dardcor Code - 免费 AI 路由器与 Token 节省器
   
+  **编程永不停歇。使用 RTK + 自动切换到免费/低价 AI 模型，节省 20-40% 的 tokens。**
   
   **将所有 AI 编程工具（Claude Code、Cursor、Antigravity、Copilot、Codex、Gemini、OpenCode、Cline、OpenClaw...）连接到 40+ AI 提供商和 100+ 模型。**
   
+  [![npm](https://img.shields.io/npm/v/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
+  [![Downloads](https://img.shields.io/npm/dm/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
+  [![License](https://img.shields.io/npm/l/dardcor-code.svg)](https://github.com/decolua/dardcor-code/blob/main/LICENSE)
 
+  <a href="https://trendshift.io/repositories/22628" target="_blank"><img src="https://trendshift.io/api/badge/repositories/22628" alt="decolua%2Fdardcor-code | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
   
-  [🚀 快速开始](#-快速开始) • [💡 功能特点](#-主要功能) • [📖 设置指南](#-设置指南) • [🌐 网站](https://dardcor-code.web.id)
+  [🚀 快速开始](#-快速开始) • [💡 功能特点](#-主要功能) • [📖 设置指南](#-设置指南) • [🌐 网站](https://dardcor-code.com)
 
   [🇻🇳 Tiếng Việt](./i18n/README.vi.md) • [🇨🇳 中文](./i18n/README.zh-CN.md) • [🇯🇵 日本語](./i18n/README.ja-JP.md)
 </div>
@@ -28,6 +33,7 @@
 
 **Dardcor Code 解决这一切：**
 
+- ✅ **RTK Token 节省器** - 自动压缩 tool_result 内容，每次请求节省 20-40% tokens
 - ✅ **充分利用订阅** - 追踪配额，在重置前用尽每一分额度
 - ✅ **自动切换** - 订阅 → 低价 → 免费，零停机时间
 - ✅ **多账户支持** - 按提供商在账户之间轮询
@@ -42,7 +48,7 @@
 │  你的 CLI   │  (Claude Code、Codex、OpenClaw、Cursor、Cline...)
 │   工具      │
 └──────┬──────┘
-       │ http://localhost:21128/v1
+       │ http://localhost:20128/v1
        ↓
 ┌─────────────────────────────────────────────┐
 │           Dardcor Code（智能路由器）              │
@@ -58,6 +64,7 @@
        │   ↓ 预算超限
        └─→ [第三层：免费] Kiro、OpenCode Free、Vertex ($300 额度)
 
+结果：编程永不停歇，最小成本 + 通过 RTK 节省 20-40% tokens
 ```
 
 ---
@@ -71,7 +78,7 @@ npm install -g dardcor-code
 dardcor-code
 ```
 
-🎉 控制面板在 `http://localhost:21128` 打开
+🎉 控制面板在 `http://localhost:20128` 打开
 
 **2. 连接免费提供商（无需注册）：**
 
@@ -81,7 +88,7 @@ dardcor-code
 
 ```
 Claude Code/Codex/OpenClaw/Cursor/Cline 设置：
-  Endpoint: http://localhost:21128/v1
+  Endpoint: http://localhost:20128/v1
   API Key: [从控制面板复制]
   Model: kr/claude-sonnet-4.5
 ```
@@ -95,19 +102,78 @@ Claude Code/Codex/OpenClaw/Cursor/Cline 设置：
 ```bash
 cp .env.example .env
 npm install
-PORT=21128 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run dev
+PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
 ```
 
 生产模式：
 
 ```bash
 npm run build
-PORT=21128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run start
+PORT=20128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run start
 ```
 
 默认 URL：
-- 控制面板：`http://localhost:21128/dashboard`
-- OpenAI 兼容 API：`http://localhost:21128/v1`
+- 控制面板：`http://localhost:20128/dashboard`
+- OpenAI 兼容 API：`http://localhost:20128/v1`
+
+---
+
+## 视频教程
+
+<div align="center">
+
+<table>
+  <tr>
+    <td align="center" width="320">
+      <a href="https://www.youtube.com/watch?v=raEyZPg5xE0">
+        <img src="https://img.youtube.com/vi/raEyZPg5xE0/maxresdefault.jpg" alt="Dardcor Code Setup Tutorial" width="300"/>
+      </a><br/>
+      <b>🇺🇸 English</b><br/>
+      <sub>Dardcor Code + Claude Code 免费设置<br/>by <a href="https://www.youtube.com/@BuildAIWithHamid">Build AI With Hamid</a></sub>
+    </td>
+    <td align="center" width="320">
+      <a href="https://www.youtube.com/watch?v=X69n5Lm06Yw">
+        <img src="https://img.youtube.com/vi/X69n5Lm06Yw/maxresdefault.jpg" alt="Tiết kiệm chi phí LLM với Dardcor Code" width="300"/>
+      </a><br/>
+      <b>🇻🇳 Tiếng Việt</b><br/>
+      <sub>使用 Dardcor Code 节省 OpenClaw 的 LLM 成本<br/>by <a href="https://www.youtube.com/c/M%C3%ACAIblog">Mì AI</a></sub>
+    </td>
+    <td align="center" width="320">
+      <a href="https://www.youtube.com/watch?v=o3qYCyjrFYg">
+        <img src="https://img.youtube.com/vi/o3qYCyjrFYg/maxresdefault.jpg" alt="Claude Code FREE Forever" width="300"/>
+      </a><br/>
+      <b>🇺🇸 English</b><br/>
+      <sub>Claude Code 免费永久使用 — 无限模型<br/>by <a href="https://www.youtube.com/@BuildAIWithHamid">Build AI With Hamid</a></sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="320">
+      <a href="https://www.youtube.com/watch?v=Ttpc26m39Dw">
+        <img src="https://img.youtube.com/vi/Ttpc26m39Dw/maxresdefault.jpg" alt="Claude CLI Free Setup" width="300"/>
+      </a><br/>
+      <b>🇺🇸 English</b><br/>
+      <sub>使用 Dardcor Code 免费设置 Claude CLI 🚀<br/>by <a href="https://www.youtube.com/@CodeVerseSoban">CodeVerse Soban</a></sub>
+    </td>
+    <td align="center" width="320">
+      <a href="https://www.youtube.com/watch?v=G-5A_D5Pm6Y">
+        <img src="https://img.youtube.com/vi/G-5A_D5Pm6Y/maxresdefault.jpg" alt="Cài đặt OpenClaw Free A-Z" width="300"/>
+      </a><br/>
+      <b>🇻🇳 Tiếng Việt</b><br/>
+      <sub>从零开始安装 OpenClaw 免费版 + Dardcor Code<br/>by <a href="https://www.youtube.com/@maigia">Mai Gia</a></sub>
+    </td>
+    <td align="center" width="320">
+      <a href="https://www.youtube.com/watch?v=JXmg8_gccgE">
+        <img src="https://img.youtube.com/vi/JXmg8_gccgE/maxresdefault.jpg" alt="FREE OpenClaw with Claude Opus" width="300"/>
+      </a><br/>
+      <b>🇺🇸 English</b><br/>
+      <sub>免费 OpenClaw + Claude Opus 4.6<br/>by <a href="https://www.youtube.com/@BuildAIWithHamid">Build AI With Hamid</a></sub>
+    </td>
+  </tr>
+</table>
+
+</div>
+
+> 🎬 **制作了关于 Dardcor Code 的视频？** 提交 [Pull Request](https://github.com/decolua/dardcor-code/pulls)，将你的视频添加到此部分 — 我们会合并它！
 
 ---
 
@@ -327,6 +393,8 @@ Dardcor Code 与所有主流 AI 编程工具无缝协作：
 
 | 功能 | 作用 | 为什么重要 |
 |---------|--------------|----------------|
+| 🚀 **RTK Token 节省器**（[RTK](https://github.com/rtk-ai/rtk) ⭐40K） | 压缩工具输出（`git diff`、`grep`、`ls`、`tree`...）后再发送给 LLM | 每次请求节省 **20-40% 输入 tokens** |
+| 🪨 **Caveman 模式**（[Caveman](https://github.com/JuliusBrussee/caveman) ⭐52K） | 注入 caveman 风格提示词 → LLM 回复简洁，保留技术实质 | 节省 **高达 65% 输出 tokens** |
 | 🎯 **智能三层切换** | 自动路由：订阅 → 低价 → 免费 | 编程永不停歇，零停机时间 |
 | 📊 **实时配额追踪** | 实时 token 计数 + 重置倒计时 | 充分利用订阅价值 |
 | 🔄 **格式转换** | OpenAI ↔ Claude ↔ Gemini ↔ Cursor ↔ Kiro ↔ Vertex | 兼容任何 CLI 工具 |
@@ -343,13 +411,18 @@ Dardcor Code 与所有主流 AI 编程工具无缝协作：
 
 ### 🚀 RTK Token 节省器
 
-工具输出（`git diff`、`grep`、`find`、`ls`、`tree`、日志转储...）RTK 在请求到达 LLM 之前检测并应用智能、无损压缩：
+工具输出（`git diff`、`grep`、`find`、`ls`、`tree`、日志转储...）通常占用 30-50% 的提示词预算。RTK 在请求到达 LLM 之前检测并应用智能、无损压缩：
 
 - **过滤器：** `git-diff`、`git-status`、`grep`、`find`、`ls`、`tree`、`dedup-log`、`smart-truncate`、`read-numbered`、`search-list`
 - **自动检测：** 无需配置 — RTK 检查每个 `tool_result` 的前 1KB，选择合适的过滤器。
 - **安全设计：** 如果过滤器失败、抛出异常或使输出变大，RTK 会静默保留原始文本。错误永远不会中断你的请求。
 - **通用兼容：** 适用于所有格式（OpenAI、Claude、Gemini、Cursor、Kiro、OpenAI Responses），因为它在任何格式转换**之前**运行。
 - **默认开启：** 可随时在控制面板 → 端点设置中切换。
+
+```
+不使用 RTK：47K tokens 发送给 LLM
+使用 RTK：    28K tokens 发送给 LLM   (节省 40% · 相同上下文 · 相同答案)
+```
 
 ### 🎯 智能三层切换
 
@@ -431,7 +504,9 @@ Dardcor Code 与所有主流 AI 编程工具无缝协作：
 > 使用分析中显示的"成本"**仅用于追踪和比较目的**。
 > Dardcor Code 本身**永远不会向你收费**。你只直接向提供商付款（如果使用付费服务）。
 > 
+> **示例：** 如果你的控制面板显示使用 Kiro 免费模型时"总成本 $290"，这代表你如果直接使用付费 API 需要支付的金额。你的实际成本 = **$0**（Kiro 免费等级：约 50 积分/月）。
 > 
+> 把它想象成一个"节省追踪器"，展示你通过使用免费模型或通过 Dardcor Code 路由节省了多少钱！
 
 ### 🌐 任意部署
 
@@ -448,6 +523,7 @@ Dardcor Code 与所有主流 AI 编程工具无缝协作：
 
 | 等级 | 提供商 | 成本 | 配额重置 | 适用场景 |
 |------|----------|------|-------------|----------|
+| **🚀 TOKEN 节省器** | **RTK（内置）** | **免费** | 始终开启 | **每次请求节省 20-40% tokens** |
 | **💳 订阅** | Claude Code (Pro/Max) | $20-200/月 | 5小时 + 每周 | 已有订阅的用户 |
 | | Codex (Plus/Pro) | $20-200/月 | 5小时 + 每周 | OpenAI 用户 |
 | | GitHub Copilot | $10-19/月 | 每月 | GitHub 用户 |
@@ -459,12 +535,15 @@ Dardcor Code 与所有主流 AI 编程工具无缝协作：
  | | OpenCode Free | $0 |  varies* | 无需认证，自动获取模型（列表会变化） |
  | | Vertex AI | $300 额度 | 新 GCP 账户 | Gemini 3 Pro + DeepSeek + GLM-5（使用 Vertex AI Studio 端点消耗免费额度） |
 
+**💡 专业提示：** RTK + Kiro AI + OpenCode Free 组合 = **$0 成本 + 节省 20-40% tokens**！
+
 ---
 
 ### 📊 理解 Dardcor Code 成本与计费
 
 **Dardcor Code 计费真相：**
 
+✅ **Dardcor Code 软件 = 永久免费**（开源，绝不收费）  
 ✅ **控制面板"成本" = 仅用于显示/追踪**（不是实际账单）  
 ✅ **你直接向提供商付款**（订阅或 API 费用）  
 ✅ **免费提供商保持免费**（Kiro 约 50 积分/月、OpenCode Free、Vertex $300 额度 = 在免费额度内 $0）— 注意 iFlow/Qwen/Gemini CLI 免费等级已于 2026 年停止
@@ -479,10 +558,12 @@ Dardcor Code 与所有主流 AI 编程工具无缝协作：
 控制面板显示：
 • 总请求数：1,662
 • 总 Tokens：47M
+• 显示成本：$290
 
 实际检查：
 • 提供商：Kiro（免费等级：约 50 积分/月）
 • 实际支付：$0.00
+• $290 意味着什么：通过使用免费模型节省的金额！
 ```
 
 **付款规则：**
@@ -522,6 +603,7 @@ Dardcor Code 与所有主流 AI 编程工具无缝协作：
   3. oc/<auto>                 （OpenCode Free，无需认证）
 
 月成本：$0
+质量：生产级模型 + RTK 节省 20-40% tokens
 ```
 
 ### 场景 3："我需要 24/7 编码，不中断"
@@ -563,9 +645,15 @@ Dardcor Code 与所有主流 AI 编程工具无缝协作：
 <details>
 <summary><b>📊 为什么我的控制面板显示高成本？</b></summary>
 
+控制面板追踪你的 token 使用情况，并显示**估算成本**，如同你直接使用付费 API。这**不是实际计费** — 它是一个参考，展示你通过使用免费模型或通过 Dardcor Code 路由现有订阅节省了多少钱。
+
 **示例：**
+- **控制面板显示：** "$290 总成本"
 - **实际情况：** 你在使用 Kiro 免费模型（约 50 积分/月）
 - **你的实际成本：** **$0.00**
+- **$290 的含义：** 你通过使用免费模型而不是付费 API **节省**的金额！
+
+成本显示是一个"节省追踪器"，帮助你了解使用模式和优化机会。
 
 </details>
 
@@ -838,6 +926,7 @@ Vertex 合作伙伴（通过 Vertex 提供 Anthropic / DeepSeek / GLM / Qwen）�
   2. kr/glm-5 (通过 Kiro 免费使用 GLM-5)
   3. vertex/gemini-3.1-pro-preview ($300 免费额度)
 
+成本：通过 RTK 永久 $0（+ 节省 20-40% tokens）！
 ```
 
 </details>
@@ -849,7 +938,7 @@ Vertex 合作伙伴（通过 Vertex 提供 Anthropic / DeepSeek / GLM / Qwen）�
 
 ```
 设置 → 模型 → 高级：
-  OpenAI API Base URL：http://localhost:21128/v1
+  OpenAI API Base URL：http://localhost:20128/v1
   OpenAI API Key：[来自 dardcor-code 控制面板]
   Model：cc/claude-opus-4-7
 ```
@@ -862,7 +951,7 @@ Vertex 合作伙伴（通过 Vertex 提供 Anthropic / DeepSeek / GLM / Qwen）�
 
 ```json
 {
-  "anthropic_api_base": "http://localhost:21128/v1",
+  "anthropic_api_base": "http://localhost:20128/v1",
   "anthropic_api_key": "your-dardcor-code-api-key"
 }
 ```
@@ -870,7 +959,7 @@ Vertex 合作伙伴（通过 Vertex 提供 Anthropic / DeepSeek / GLM / Qwen）�
 ### Codex CLI
 
 ```bash
-export OPENAI_BASE_URL="http://localhost:21128"
+export OPENAI_BASE_URL="http://localhost:20128"
 export OPENAI_API_KEY="your-dardcor-code-api-key"
 
 codex "your prompt"
@@ -898,7 +987,7 @@ codex "your prompt"
   "models": {
     "providers": {
       "dardcor-code": {
-        "baseUrl": "http://127.0.0.1:21128/v1",
+        "baseUrl": "http://127.0.0.1:20128/v1",
         "apiKey": "sk_dardcor-code",
         "api": "openai-completions",
         "models": [
@@ -919,7 +1008,7 @@ codex "your prompt"
 
 ```
 Provider：OpenAI 兼容
-Base URL：http://localhost:21128/v1
+Base URL：http://localhost:20128/v1
 API Key：[来自控制面板]
 Model：cc/claude-opus-4-7
 ```
@@ -933,7 +1022,7 @@ Model：cc/claude-opus-4-7
 
 ```bash
 # 克隆并安装
-git clone .git
+git clone https://github.com/decolua/dardcor-code.git
 cd dardcor-code
 npm install
 npm run build
@@ -942,11 +1031,11 @@ npm run build
 export JWT_SECRET="your-secure-secret-change-this"
 export INITIAL_PASSWORD="your-password"
 export DATA_DIR="/var/lib/dardcor-code"
-export PORT="21128"
+export PORT="20128"
 export HOSTNAME="0.0.0.0"
 export NODE_ENV="production"
-export NEXT_PUBLIC_BASE_URL="http://localhost:21128"
-export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.web.id"
+export NEXT_PUBLIC_BASE_URL="http://localhost:20128"
+export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.com"
 export API_KEY_SECRET="endpoint-proxy-api-key-secret"
 export MACHINE_ID_SALT="endpoint-proxy-salt"
 
@@ -969,7 +1058,7 @@ docker build -t dardcor-code .
 # 运行容器（当前设置使用的命令）
 docker run -d \
   --name dardcor-code \
-  -p 21128:21128 \
+  -p 20128:20128 \
   --env-file /root/dev/dardcor-code/.env \
   -v dardcor-code-data:/app/data \
   -v dardcor-code-usage:/root/.dardcor-code \
@@ -981,7 +1070,7 @@ docker run -d \
 ```bash
 docker run -d \
   --name dardcor-code \
-  -p 21128:21128 \
+  -p 20128:20128 \
   --env-file ./.env \
   -v dardcor-code-data:/app/data \
   -v dardcor-code-usage:/root/.dardcor-code \
@@ -989,7 +1078,7 @@ docker run -d \
 ```
 
 容器默认值：
-- `PORT=21128`
+- `PORT=20128`
 - `HOSTNAME=0.0.0.0`
 
 常用命令：
@@ -1007,13 +1096,13 @@ docker stop dardcor-code && docker rm dardcor-code
 | `JWT_SECRET` | 自动生成（`~/.dardcor-code/jwt-secret`） | 用于控制面板 auth cookie 的 JWT 签名密钥（设置可在多实例间共享） |
 | `INITIAL_PASSWORD` | `123456` | 当没有保存的哈希时首次登录的密码 |
 | `DATA_DIR` | `~/.dardcor-code` | 主应用数据库位置（`db.json`） |
-| `PORT` | 框架默认值 | 服务端口（示例中为 `21128`） |
+| `PORT` | 框架默认值 | 服务端口（示例中为 `20128`） |
 | `HOSTNAME` | 框架默认值 | 绑定主机（Docker 默认为 `0.0.0.0`） |
 | `NODE_ENV` | 运行时默认值 | 设置 `production` 用于部署 |
-| `BASE_URL` | `http://localhost:21128` | 云同步任务使用的服务端内部基础 URL |
-| `CLOUD_URL` | `https://dardcor-code.web.id` | 服务端云同步端点基础 URL |
+| `BASE_URL` | `http://localhost:20128` | 云同步任务使用的服务端内部基础 URL |
+| `CLOUD_URL` | `https://dardcor-code.com` | 服务端云同步端点基础 URL |
 | `NEXT_PUBLIC_BASE_URL` | `http://localhost:3000` | 向后兼容/公开基础 URL（服务端运行时优先使用 `BASE_URL`） |
-| `NEXT_PUBLIC_CLOUD_URL` | `https://dardcor-code.web.id` | 向后兼容/公开云 URL（服务端运行时优先使用 `CLOUD_URL`） |
+| `NEXT_PUBLIC_CLOUD_URL` | `https://dardcor-code.com` | 向后兼容/公开云 URL（服务端运行时优先使用 `CLOUD_URL`） |
 | `API_KEY_SECRET` | `endpoint-proxy-api-key-secret` | 生成 API key 的 HMAC 密钥 |
 | `MACHINE_ID_SALT` | `endpoint-proxy-salt` | 稳定机器 ID 哈希的盐值 |
 | `ENABLE_REQUEST_LOGS` | `false` | 在 `logs/` 下启用请求/响应日志 |
@@ -1108,6 +1197,7 @@ docker stop dardcor-code && docker rm dardcor-code
 ## 🐛 故障排除
 
 **"语言模型未提供消息"**
+- 提供商配额耗尽 → 检查控制面板配额追踪器
 - 解决方案：使用组合切换或切换到更便宜的等级
 
 **速率限制**
@@ -1119,12 +1209,13 @@ docker stop dardcor-code && docker rm dardcor-code
 - 如果问题持续：控制面板 → 提供商 → 重新连接
 
 **高成本**
+- 在控制面板 → 端点设置中启用 RTK（默认开启，节省 20-40% tokens）
 - 在控制面板中检查使用统计
 - 将主模型切换到 GLM/MiniMax
 - 对于非关键任务使用免费等级（Kiro、OpenCode Free、Vertex）
 
 **控制面板在错误端口打开**
-- 设置 `PORT=21128` 和 `NEXT_PUBLIC_BASE_URL=http://localhost:21128`
+- 设置 `PORT=20128` 和 `NEXT_PUBLIC_BASE_URL=http://localhost:20128`
 
 **首次登录不工作**
 - 检查 `.env` 中的 `INITIAL_PASSWORD`
@@ -1151,7 +1242,7 @@ docker stop dardcor-code && docker rm dardcor-code
 ### 聊天补全
 
 ```bash
-POST http://localhost:21128/v1/chat/completions
+POST http://localhost:20128/v1/chat/completions
 Authorization: Bearer your-api-key
 Content-Type: application/json
 
@@ -1167,7 +1258,7 @@ Content-Type: application/json
 ### 列出模型
 
 ```bash
-GET http://localhost:21128/v1/models
+GET http://localhost:20128/v1/models
 Authorization: Bearer your-api-key
 
 → 以 OpenAI 格式返回所有模型和组合
@@ -1175,8 +1266,9 @@ Authorization: Bearer your-api-key
 
 ## 📧 支持
 
-- **网站**：[dardcor-code.web.id](https://dardcor-code.web.id)
-- **GitHub**：
+- **网站**：[dardcor-code.com](https://dardcor-code.com)
+- **GitHub**：[github.com/decolua/dardcor-code](https://github.com/decolua/dardcor-code)
+- **问题**：[github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)
 
 ---
 
@@ -1184,11 +1276,19 @@ Authorization: Bearer your-api-key
 
 感谢所有帮助改进 Dardcor Code 的贡献者！
 
+[![Contributors](https://contrib.rocks/image?repo=decolua/dardcor-code&max=150&columns=15&anon=1&v=20260309)](https://github.com/decolua/dardcor-code/graphs/contributors)
+
 ---
 
 ## 📊 Star 图表
 
+[![Star Chart](https://starchart.cc/decolua/dardcor-code.svg?variant=adaptive)](https://starchart.cc/decolua/dardcor-code)
+
+
+
 ## 🔀 分支
+
+**[OmniRoute](https://github.com/diegosouzapw/OmniRoute)** — Dardcor Code 的全功能 TypeScript 分支。增加了 36+ 提供商、4 层自动切换、多模态 API（图像、嵌入、音频、TTS）、断路器、语义缓存、LLM 评估和精美的控制面板。368+ 单元测试。可通过 npm 和 Docker 使用。
 
 ---
 
@@ -1197,6 +1297,8 @@ Authorization: Bearer your-api-key
 站在巨人的肩膀上构建：
 
 - **CLIProxyAPI** — 启发了这个 JavaScript 移植的原始 Go 实现。
+- **[RTK](https://github.com/rtk-ai/rtk)** ![Stars](https://img.shields.io/github/stars/rtk-ai/rtk?style=flat&color=yellow) — Rust token 节省器。Dardcor Code 将其压缩管道移植到 JS → 每次请求 **减少 20-40% 输入 tokens**。
+- **[Caveman](https://github.com/JuliusBrussee/caveman)** ![Stars](https://img.shields.io/github/stars/JuliusBrussee/caveman?style=flat&color=yellow) by **[@JuliusBrussee](https://github.com/JuliusBrussee)** — 病毒式传播的 *"为什么用很多 token 当少的 token 就能搞定"*。Dardcor Code 适配其提示词 → **减少 65% 输出 tokens**。
 
 非常感谢这些作者 — 没有他们的工作，Dardcor Code 的 token 节省功能就不会存在。在 GitHub 上给他们加星！
 

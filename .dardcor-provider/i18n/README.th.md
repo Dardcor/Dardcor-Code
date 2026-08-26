@@ -1,7 +1,7 @@
 นี่คือเอกสารแปลภาษาไทยของไฟล์ Markdown ต้นฉบับ โดยรักษาโครงสร้างและซินแท็กซ์ทางเทคนิคทั้งหมดไว้เหมือนเดิม
 
 <div align="center">
-  <img src="../images/9router.png?1" alt="แดชบอร์ด Dardcor Code" width="800"/>
+  <img src="../images/dardcor-code.png?1" alt="แดชบอร์ด Dardcor Code" width="800"/>
   
   # Dardcor Code - Free AI Router
   
@@ -13,11 +13,11 @@
     <img src="../public/providers/openclaw.png" alt="OpenClaw" width="80"/>
   </p>
   
-  [![npm](https://img.shields.io/npm/v/9router.svg)](https://www.npmjs.com/package/9router)
-  [![Downloads](https://img.shields.io/npm/dm/9router.svg)](https://www.npmjs.com/package/9router)
-  [![License](https://img.shields.io/npm/l/9router.svg)](https://github.com/decolua/9router/blob/main/LICENSE)
+  [![npm](https://img.shields.io/npm/v/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
+  [![Downloads](https://img.shields.io/npm/dm/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
+  [![License](https://img.shields.io/npm/l/dardcor-code.svg)](https://github.com/decolua/dardcor-code/blob/main/LICENSE)
   
-  [🚀 เริ่มต้นใช้งาน](#-quick-start) • [💡 ฟีเจอร์](#-key-features) • [📖 การตั้งค่า](#-setup-guide) • [🌐 เว็บไซต์](https://9router.com)
+  [🚀 เริ่มต้นใช้งาน](#-quick-start) • [💡 ฟีเจอร์](#-key-features) • [📖 การตั้งค่า](#-setup-guide) • [🌐 เว็บไซต์](https://dardcor-code.com)
 </div>
 
 ---
@@ -74,8 +74,8 @@
 **1. ติดตั้งแบบ Global:**
 
 ```bash
-npm install -g 9router
-9router
+npm install -g dardcor-code
+dardcor-code
 ```
 
 🎉 เปิดแดชบอร์ดที่ `http://localhost:20128`
@@ -698,9 +698,9 @@ Authorization: Bearer your-api-key
 
 ## 📧 สนับสนุน
 
-- **เว็บไซต์**: [9router.com](https://9router.com)
-- **GitHub**: [github.com/decolua/9router](https://github.com/decolua/9router)
-- **Issues**: [github.com/decolua/9router/issues](https://github.com/decolua/9router/issues)
+- **เว็บไซต์**: [dardcor-code.com](https://dardcor-code.com)
+- **GitHub**: [github.com/decolua/dardcor-code](https://github.com/decolua/dardcor-code)
+- **Issues**: [github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)
 
 ---
 
@@ -708,7 +708,7 @@ Authorization: Bearer your-api-key
 
 ขอขอบคุณผู้มีส่วนร่วมทุกคนที่ช่วยทำให้ Dardcor Code ดียิ่งขึ้น!
 
-[![Contributors](https://contrib.rocks/image?repo=decolua/9router&max=150&columns=15&anon=1)](https://github.com/decolua/9router/graphs/contributors)
+[![Contributors](https://contrib.rocks/image?repo=decolua/dardcor-code&max=150&columns=15&anon=1)](https://github.com/decolua/dardcor-code/graphs/contributors)
 
 ---
 

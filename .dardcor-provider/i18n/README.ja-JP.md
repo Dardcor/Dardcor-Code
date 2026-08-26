@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="../images/9router.png?1" alt="Dardcor Code Dashboard" width="800"/>
+  <img src="../images/dardcor-code.png?1" alt="Dardcor Code Dashboard" width="800"/>
 
   # Dardcor Code - 無料 AI ルーター
 
@@ -7,11 +7,11 @@
 
   **すべてのAIコーディングツール（Claude Code、Cursor、Antigravity、Copilot、Codex、Gemini、OpenCode、Cline、OpenClaw...）を40以上のAIプロバイダーと100以上のモデルに接続。**
 
-  [![npm](https://img.shields.io/npm/v/9router.svg)](https://www.npmjs.com/package/9router)
-  [![Downloads](https://img.shields.io/npm/dm/9router.svg)](https://www.npmjs.com/package/9router)
-  [![License](https://img.shields.io/npm/l/9router.svg)](https://github.com/decolua/9router/blob/main/LICENSE)
+  [![npm](https://img.shields.io/npm/v/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
+  [![Downloads](https://img.shields.io/npm/dm/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
+  [![License](https://img.shields.io/npm/l/dardcor-code.svg)](https://github.com/decolua/dardcor-code/blob/main/LICENSE)
 
-  [🚀 クイックスタート](#-クイックスタート) • [💡 機能](#-主な機能) • [📖 セットアップ](#-セットアップガイド) • [🌐 ウェブサイト](https://9router.com)
+  [🚀 クイックスタート](#-クイックスタート) • [💡 機能](#-主な機能) • [📖 セットアップ](#-セットアップガイド) • [🌐 ウェブサイト](https://dardcor-code.com)
 
   [🇻🇳 Tiếng Việt](./README.vi.md) • [🇨🇳 中文](./README.zh-CN.md) • [🇯🇵 日本語](./README.ja-JP.md)
 </div>
@@ -68,8 +68,8 @@
 **1. グローバルインストール：**
 
 ```bash
-npm install -g 9router
-9router
+npm install -g dardcor-code
+dardcor-code
 ```
 
 🎉 ダッシュボードが `http://localhost:20128` で開きます
@@ -862,7 +862,7 @@ CLIでの使用: premium-coding
 ```
 設定 → Models → Advanced:
   OpenAI API Base URL: http://localhost:20128/v1
-  OpenAI API Key: [9routerダッシュボードから]
+  OpenAI API Key: [dardcor-codeダッシュボードから]
   Model: cc/claude-opus-4-6
 ```
 
@@ -875,7 +875,7 @@ CLIでの使用: premium-coding
 ```json
 {
   "anthropic_api_base": "http://localhost:20128/v1",
-  "anthropic_api_key": "your-9router-api-key"
+  "anthropic_api_key": "your-dardcor-code-api-key"
 }
 ```
 
@@ -883,7 +883,7 @@ CLIでの使用: premium-coding
 
 ```bash
 export OPENAI_BASE_URL="http://localhost:20128"
-export OPENAI_API_KEY="your-9router-api-key"
+export OPENAI_API_KEY="your-dardcor-code-api-key"
 
 codex "your prompt"
 ```
@@ -903,15 +903,15 @@ codex "your prompt"
   "agents": {
     "defaults": {
       "model": {
-        "primary": "9router/if/glm-4.7"
+        "primary": "dardcor-code/if/glm-4.7"
       }
     }
   },
   "models": {
     "providers": {
-      "9router": {
+      "dardcor-code": {
         "baseUrl": "http://127.0.0.1:20128/v1",
-        "apiKey": "sk_9router",
+        "apiKey": "sk_dardcor-code",
         "api": "openai-completions",
         "models": [
           {
@@ -945,20 +945,20 @@ Model: cc/claude-opus-4-6
 
 ```bash
 # クローンとインストール
-git clone https://github.com/decolua/9router.git
-cd 9router
+git clone https://github.com/decolua/dardcor-code.git
+cd dardcor-code
 npm install
 npm run build
 
 # 設定
 export JWT_SECRET="your-secure-secret-change-this"
 export INITIAL_PASSWORD="your-password"
-export DATA_DIR="/var/lib/9router"
+export DATA_DIR="/var/lib/dardcor-code"
 export PORT="20128"
 export HOSTNAME="0.0.0.0"
 export NODE_ENV="production"
 export NEXT_PUBLIC_BASE_URL="http://localhost:20128"
-export NEXT_PUBLIC_CLOUD_URL="https://9router.com"
+export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.com"
 export API_KEY_SECRET="endpoint-proxy-api-key-secret"
 export MACHINE_ID_SALT="endpoint-proxy-salt"
 
@@ -967,7 +967,7 @@ npm run start
 
 # またはPM2を使用
 npm install -g pm2
-pm2 start npm --name 9router -- start
+pm2 start npm --name dardcor-code -- start
 pm2 save
 pm2 startup
 ```
@@ -976,28 +976,28 @@ pm2 startup
 
 ```bash
 # イメージをビルド（リポジトリルートから）
-docker build -t 9router .
+docker build -t dardcor-code .
 
 # コンテナを実行（現在のセットアップで使用しているコマンド）
 docker run -d \
-  --name 9router \
+  --name dardcor-code \
   -p 20128:20128 \
-  --env-file /root/dev/9router/.env \
-  -v 9router-data:/app/data \
-  -v 9router-usage:/root/.9router \
-  9router
+  --env-file /root/dev/dardcor-code/.env \
+  -v dardcor-code-data:/app/data \
+  -v dardcor-code-usage:/root/.dardcor-code \
+  dardcor-code
 ```
 
 ポータブルコマンド（リポジトリルートにいる場合）：
 
 ```bash
 docker run -d \
-  --name 9router \
+  --name dardcor-code \
   -p 20128:20128 \
   --env-file ./.env \
-  -v 9router-data:/app/data \
-  -v 9router-usage:/root/.9router \
-  9router
+  -v dardcor-code-data:/app/data \
+  -v dardcor-code-usage:/root/.dardcor-code \
+  dardcor-code
 ```
 
 コンテナのデフォルト：
@@ -1007,25 +1007,25 @@ docker run -d \
 便利なコマンド：
 
 ```bash
-docker logs -f 9router
-docker restart 9router
-docker stop 9router && docker rm 9router
+docker logs -f dardcor-code
+docker restart dardcor-code
+docker stop dardcor-code && docker rm dardcor-code
 ```
 
 ### 環境変数
 
 | 変数 | デフォルト | 説明 |
 |------|-----------|------|
-| `JWT_SECRET` | 自動生成（`~/.9router/jwt-secret`） | ダッシュボード認証クッキーのJWT署名シークレット（複数インスタンス間で共有する場合に設定） |
+| `JWT_SECRET` | 自動生成（`~/.dardcor-code/jwt-secret`） | ダッシュボード認証クッキーのJWT署名シークレット（複数インスタンス間で共有する場合に設定） |
 | `INITIAL_PASSWORD` | `123456` | 保存されたハッシュがない場合の初回ログインパスワード |
-| `DATA_DIR` | `~/.9router` | メインアプリのデータベース格納場所（`db.json`） |
+| `DATA_DIR` | `~/.dardcor-code` | メインアプリのデータベース格納場所（`db.json`） |
 | `PORT` | フレームワークデフォルト | サービスポート（例では`20128`） |
 | `HOSTNAME` | フレームワークデフォルト | バインドホスト（Dockerデフォルトは`0.0.0.0`） |
 | `NODE_ENV` | ランタイムデフォルト | デプロイ時は`production`に設定 |
 | `BASE_URL` | `http://localhost:20128` | クラウド同期ジョブで使用されるサーバーサイド内部ベースURL |
-| `CLOUD_URL` | `https://9router.com` | サーバーサイドのクラウド同期エンドポイントベースURL |
+| `CLOUD_URL` | `https://dardcor-code.com` | サーバーサイドのクラウド同期エンドポイントベースURL |
 | `NEXT_PUBLIC_BASE_URL` | `http://localhost:3000` | 後方互換/公開ベースURL（サーバーランタイムには`BASE_URL`を推奨） |
-| `NEXT_PUBLIC_CLOUD_URL` | `https://9router.com` | 後方互換/公開クラウドURL（サーバーランタイムには`CLOUD_URL`を推奨） |
+| `NEXT_PUBLIC_CLOUD_URL` | `https://dardcor-code.com` | 後方互換/公開クラウドURL（サーバーランタイムには`CLOUD_URL`を推奨） |
 | `API_KEY_SECRET` | `endpoint-proxy-api-key-secret` | 生成されたAPIキーのHMACシークレット |
 | `MACHINE_ID_SALT` | `endpoint-proxy-salt` | 安定したマシンIDハッシュのソルト |
 | `ENABLE_REQUEST_LOGS` | `false` | `logs/` 配下のリクエスト/レスポンスログを有効化 |
@@ -1042,9 +1042,9 @@ docker stop 9router && docker rm 9router
 ### ランタイムファイルとストレージ
 
 - メインアプリ状態: `${DATA_DIR}/db.json`（プロバイダー、コンボ、エイリアス、キー、設定）、`src/lib/localDb.js` で管理。
-- 使用履歴とログ: `~/.9router/usage.json` と `~/.9router/log.txt`、`src/lib/usageDb.js` で管理。
+- 使用履歴とログ: `~/.dardcor-code/usage.json` と `~/.dardcor-code/log.txt`、`src/lib/usageDb.js` で管理。
 - オプションのリクエスト/トランスレーターログ: `ENABLE_REQUEST_LOGS=true` 時に `<repo>/logs/...`。
-- 使用状況ストレージは現在 `~/.9router` パスロジックに従い、`DATA_DIR` とは独立しています。
+- 使用状況ストレージは現在 `~/.dardcor-code` パスロジックに従い、`DATA_DIR` とは独立しています。
 
 </details>
 
@@ -1166,9 +1166,9 @@ Authorization: Bearer your-api-key
 
 ## 📧 サポート
 
-- **ウェブサイト**: [9router.com](https://9router.com)
-- **GitHub**: [github.com/decolua/9router](https://github.com/decolua/9router)
-- **Issues**: [github.com/decolua/9router/issues](https://github.com/decolua/9router/issues)
+- **ウェブサイト**: [dardcor-code.com](https://dardcor-code.com)
+- **GitHub**: [github.com/decolua/dardcor-code](https://github.com/decolua/dardcor-code)
+- **Issues**: [github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)
 
 ---
 
@@ -1176,13 +1176,13 @@ Authorization: Bearer your-api-key
 
 Dardcor Codeの改善に貢献してくださったすべてのコントリビューターに感謝します！
 
-[![Contributors](https://contrib.rocks/image?repo=decolua/9router&max=150&columns=15&anon=1&v=20260309)](https://github.com/decolua/9router/graphs/contributors)
+[![Contributors](https://contrib.rocks/image?repo=decolua/dardcor-code&max=150&columns=15&anon=1&v=20260309)](https://github.com/decolua/dardcor-code/graphs/contributors)
 
 ---
 
 ## 📊 スターチャート
 
-[![Star Chart](https://starchart.cc/decolua/9router.svg?variant=adaptive)](https://starchart.cc/decolua/9router)
+[![Star Chart](https://starchart.cc/decolua/dardcor-code.svg?variant=adaptive)](https://starchart.cc/decolua/dardcor-code)
 
 
 

@@ -47,8 +47,8 @@
       "loadProjectApiUrl": "https://cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
       "tokenUrl": "https://oauth2.googleapis.com/token"
     },
-    "clientId": "",
-    "clientSecret": "",
+    "clientId": "REDACTED_ANTIGRAVITY_CLIENT_ID",
+    "clientSecret": "REDACTED_ANTIGRAVITY_CLIENT_SECRET",
     "tokenUrl": "https://oauth2.googleapis.com/token"
   },
   "assemblyai": {
@@ -285,15 +285,15 @@
       "quotaUrl": "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuota",
       "loadCodeAssistUrl": "https://cloudcode-pa.googleapis.com/v1internal:loadCodeAssist"
     },
-    "clientId": "",
-    "clientSecret": "",
+    "clientId": "REDACTED_GEMINI_CLIENT_ID",
+    "clientSecret": "REDACTED_GEMINI_CLIENT_SECRET",
     "tokenUrl": "https://oauth2.googleapis.com/token"
   },
   "gemini": {
     "baseUrl": "https://generativelanguage.googleapis.com/v1beta/models",
     "format": "gemini",
-    "clientId": "",
-    "clientSecret": "",
+    "clientId": "REDACTED_GEMINI_CLIENT_ID",
+    "clientSecret": "REDACTED_GEMINI_CLIENT_SECRET",
     "auth": {
       "apiKey": {
         "header": "x-goog-api-key",
@@ -531,11 +531,6 @@
       }
     ]
   },
-  "kimi-web": {
-    "baseUrl": "https://www.kimi.com/apiv2/kimi.gateway.chat.v1.ChatService/Chat",
-    "format": "openai",
-    "authType": "cookie"
-  },
   "kiro": {
     "baseUrl": "https://runtime.us-east-1.kiro.dev/generateAssistantResponse",
     "baseUrls": [
@@ -713,7 +708,37 @@
   "opencode-go": {
     "baseUrl": "https://opencode.ai/zen/go/v1/chat/completions",
     "headers": {},
-    "format": "openai"
+    "format": "openai",
+    "transports": [
+      {
+        "format": "openai",
+        "baseUrl": "https://opencode.ai/zen/go/v1/chat/completions",
+        "auth": {
+          "combined": true,
+          "header": "Authorization",
+          "scheme": "bearer"
+        }
+      },
+      {
+        "format": "claude",
+        "baseUrl": "https://opencode.ai/zen/go/v1/messages",
+        "auth": {
+          "combined": true,
+          "header": "x-api-key",
+          "scheme": "raw",
+          "anthropicVersion": true
+        }
+      },
+      {
+        "format": "openai-responses",
+        "baseUrl": "https://opencode.ai/zen/go/v1/responses",
+        "auth": {
+          "combined": true,
+          "header": "Authorization",
+          "scheme": "bearer"
+        }
+      }
+    ]
   },
   "opencode": {
     "baseUrl": "https://opencode.ai",
@@ -976,94 +1001,12 @@
     "thinkingFormat": "tokenrouter",
     "format": "openai"
   },
-  "meta-model-api": {
-    "baseUrl": "https://api.meta.ai/v1/responses",
-    "validateUrl": "https://api.meta.ai/v1/models",
-    "format": "openai-responses",
-    "transports": [
-      {
-        "format": "openai",
-        "baseUrl": "https://api.meta.ai/v1/chat/completions",
-        "auth": {
-          "combined": true,
-          "header": "Authorization",
-          "scheme": "bearer"
-        }
-      },
-      {
-        "format": "openai-responses",
-        "baseUrl": "https://api.meta.ai/v1/responses",
-        "auth": {
-          "combined": true,
-          "header": "Authorization",
-          "scheme": "bearer"
-        }
-      },
-      {
-        "format": "claude",
-        "baseUrl": "https://api.meta.ai/v1/messages",
-        "headers": {
-          "Anthropic-Version": "2023-06-01"
-        },
-        "auth": {
-          "combined": true,
-          "header": "Authorization",
-          "scheme": "bearer"
-        }
-      }
-    ]
-  },
-  "opencode-zen": {
-    "baseUrl": "https://opencode.ai/zen/v1/chat/completions",
-    "validateUrl": "https://opencode.ai/zen/v1/models",
+  "alitp-intl": {
+    "baseUrl": "https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1/chat/completions",
+    "headers": {},
+    "quirks": {
+      "preserveCacheControl": true
+    },
     "format": "openai"
-  },
-  "chatgpt-web": {
-    "baseUrl": "https://chatgpt.com/backend-api/f/conversation",
-    "format": "openai",
-    "executor": "chatgpt-web",
-    "authType": "cookie"
-  },
-  "claude-web": {
-    "baseUrl": "https://claude.ai/api/organizations",
-    "format": "openai",
-    "executor": "claude-web",
-    "authType": "cookie"
-  },
-  "gemini-web": {
-    "baseUrl": "https://gemini.google.com/app",
-    "format": "openai",
-    "executor": "gemini-web"
-  },
-  "deepseek-web": {
-    "baseUrl": "https://chat.deepseek.com/api/v0/chat/completion",
-    "format": "openai",
-    "authType": "cookie"
-  },
-  "notion-web": {
-    "baseUrl": "https://app.notion.com/api/v3/runInferenceTranscript",
-    "format": "openai",
-    "authType": "cookie"
-  },
-  "qwen-web": {
-    "baseUrl": "https://chat.qwen.ai",
-    "format": "openai"
-  },
-  "zai-web": {
-    "baseUrl": "https://chat.z.ai/api/v2/chat/completions",
-    "format": "openai",
-    "authType": "cookie"
-  },
-  "venice-web": {
-    "baseUrl": "https://venice.ai/api/chat",
-    "format": "openai",
-    "executor": "venice-web",
-    "authType": "cookie"
-  },
-  "v0-vercel-web": {
-    "baseUrl": "https://v0.dev/api/chat",
-    "format": "openai",
-    "executor": "v0-vercel-web",
-    "authType": "cookie"
   }
 }

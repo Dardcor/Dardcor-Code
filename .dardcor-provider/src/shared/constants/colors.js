@@ -1,51 +1,52 @@
-// Dardcor Code color palette for Providers Router
-// Pure black surfaces with purple accents
+// Claude-inspired color palette for Endpoint Proxy
+// Light theme: Warm beige/cream tones
+// Dark theme: Deep charcoal/brown tones
 
 export const COLORS = {
-  // Primary - Vibrant Purple (Dardcor Code brand)
+  // Primary - Warm Coral/Terracotta (Claude-like)
   primary: {
-    DEFAULT: "#A855F7",
-    hover: "#9333EA",
-    light: "#C084FC",
-    dark: "#7E22CE",
+    DEFAULT: "#D97757",
+    hover: "#C56243",
+    light: "#E8A58C",
+    dark: "#B0664D",
   },
 
-  // Light theme backgrounds (mapped to dark palette for consistency)
+  // Light theme backgrounds
   light: {
-    bg: "#09090B",
-    bgAlt: "#000000",
-    surface: "#121118",
-    sidebar: "#09090B",
-    border: "#262335",
-    textMain: "#E6EAF0",
-    textMuted: "#9AA4B1",
+    bg: "#FBF9F6",
+    bgAlt: "#F5F1ED",
+    surface: "#FFFFFF",
+    sidebar: "rgba(246, 246, 246, 0.8)",
+    border: "rgba(0, 0, 0, 0.1)",
+    textMain: "#383733",
+    textMuted: "#75736E",
   },
 
   // Dark theme backgrounds
   dark: {
-    bg: "#09090B",
-    bgAlt: "#000000",
-    surface: "#121118",
-    sidebar: "#09090B",
-    border: "#262335",
-    textMain: "#E6EAF0",
-    textMuted: "#9AA4B1",
+    bg: "#191918",
+    bgAlt: "#1F1F1E",
+    surface: "#242423",
+    sidebar: "rgba(30, 30, 30, 0.8)",
+    border: "rgba(255, 255, 255, 0.1)",
+    textMain: "#ECEBE8",
+    textMuted: "#9E9D99",
   },
 
   // Status colors
   status: {
     success: "#22C55E",
-    successLight: "#166534",
-    successDark: "#14532D",
+    successLight: "#DCFCE7",
+    successDark: "#166534",
     warning: "#F59E0B",
-    warningLight: "#92400E",
-    warningDark: "#78350F",
+    warningLight: "#FEF3C7",
+    warningDark: "#92400E",
     error: "#EF4444",
-    errorLight: "#991B1B",
-    errorDark: "#7F1D1D",
-    info: "#60A5FA",
-    infoLight: "#1E40AF",
-    infoDark: "#1E3A8A",
+    errorLight: "#FEE2E2",
+    errorDark: "#991B1B",
+    info: "#3B82F6",
+    infoLight: "#DBEAFE",
+    infoDark: "#1E40AF",
   },
 };
 
@@ -54,13 +55,13 @@ export const CSS_VARIABLES = {
   light: {
     "--color-primary": COLORS.primary.DEFAULT,
     "--color-primary-hover": COLORS.primary.hover,
-    "--color-bg": COLORS.dark.bg,
-    "--color-bg-alt": COLORS.dark.bgAlt,
-    "--color-surface": COLORS.dark.surface,
-    "--color-sidebar": COLORS.dark.sidebar,
-    "--color-border": COLORS.dark.border,
-    "--color-text-main": COLORS.dark.textMain,
-    "--color-text-muted": COLORS.dark.textMuted,
+    "--color-bg": COLORS.light.bg,
+    "--color-bg-alt": COLORS.light.bgAlt,
+    "--color-surface": COLORS.light.surface,
+    "--color-sidebar": COLORS.light.sidebar,
+    "--color-border": COLORS.light.border,
+    "--color-text-main": COLORS.light.textMain,
+    "--color-text-muted": COLORS.light.textMuted,
   },
   dark: {
     "--color-primary": COLORS.primary.DEFAULT,

@@ -17,6 +17,7 @@
 - 不再浪费订阅配额
 - 配额耗尽时自动回退
 - 实时配额跟踪
+- 比直接使用 API 节省 90% 成本
 
 ---
 
@@ -37,6 +38,8 @@
 - **GLM-4.7**:每 1M tokens $0.60/$2.20 - 每日 10AM 重置
 - **MiniMax M2.1**:每 1M tokens $0.20/$1.00 - 5 小时滚动
 - **Kimi K2**:$9/月固定(10M tokens)
+
+**目标:** 比 ChatGPT API(每 1M $20)便宜 90%!
 
 ### 第 3 层:免费(应急)
 - **iFlow**:8 个免费模型(Kimi K2、Qwen3、GLM、MiniMax...)
@@ -161,7 +164,7 @@
 
 ```
 Cursor Settings → Models → Advanced:
-  OpenAI API Base URL: https://dardcor-code.web.id/v1
+  OpenAI API Base URL: https://dardcor-code.com/v1
   OpenAI API Key: [从仪表盘获取]
   Model: cc/claude-opus-4-5-20251101
 ```
@@ -169,7 +172,7 @@ Cursor Settings → Models → Advanced:
 **替代方案:** 在 VPS 上自托管,使用公开域名:
 ```bash
 # 部署到 VPS
-git clone .git
+git clone https://github.com/decolua/dardcor-code.git
 cd dardcor-code/app
 npm install && npm run build
 npm start
@@ -198,12 +201,12 @@ npm start
 npm install -g dardcor-code
 dardcor-code
 → 仪表盘: http://localhost:3000
-→ API: http://localhost:21128/v1
+→ API: http://localhost:20128/v1
 ```
 
 ### VPS/云
 ```bash
-git clone .git
+git clone https://github.com/decolua/dardcor-code.git
 cd dardcor-code/app
 npm install && npm run build
 
@@ -233,7 +236,7 @@ npm run deploy:cloudflare
 **环境变量:**
 - `JWT_SECRET` - **生产环境必须修改!**
 - `DATA_DIR` - 数据库存储路径(默认:`~/.dardcor-code`)
-- `INITIAL_PASSWORD` - 仪表盘登录(无默认值;仅本地的可选引导,未设置时通过 localhost 创建密码)
+- `INITIAL_PASSWORD` - 仪表盘登录(默认:`123456`)
 - `NODE_ENV` - 部署时设为 `production`
 
 详情见 [部署指南](getting-started/installation.md#deployment)。
@@ -313,7 +316,7 @@ dardcor-code --version
 ```
 
 **破坏性变更:**
-- 查看 [CHANGELOG.md](/blob/main/CHANGELOG.md)
+- 查看 [CHANGELOG.md](https://github.com/decolua/dardcor-code/blob/main/CHANGELOG.md)
 - 大版本更新前备份 `~/.dardcor-code`
 - 阅读大版本的迁移指南
 
@@ -326,17 +329,17 @@ dardcor-code --version
 ### 贡献方式:
 
 1. **报告 bug:**
-   - [GitHub Issues](/issues)
+   - [GitHub Issues](https://github.com/decolua/dardcor-code/issues)
    - 附上错误日志、复现步骤
 
 2. **功能请求:**
-   - [GitHub Discussions](/discussions)
+   - [GitHub Discussions](https://github.com/decolua/dardcor-code/discussions)
    - 描述使用场景和价值
 
 3. **提交代码:**
    ```bash
    # Fork 仓库
-   git clone .git
+   git clone https://github.com/YOUR_USERNAME/dardcor-code.git
    cd dardcor-code
    
    # 创建分支
@@ -372,13 +375,13 @@ dardcor-code --version
 - 更新文档
 - 提交保持原子化、描述清晰
 
-详情见 [CONTRIBUTING.md](/blob/main/CONTRIBUTING.md)。
+详情见 [CONTRIBUTING.md](https://github.com/decolua/dardcor-code/blob/main/CONTRIBUTING.md)。
 
 ---
 
 ## 需要更多帮助?
 
-- **文档:** [dardcor-code.web.id/docs](https://dardcor-code.web.id/docs)
-- **GitHub:** 
-- **Issues:** [/issues](/issues)
+- **文档:** [dardcor-code.com/docs](https://dardcor-code.com/docs)
+- **GitHub:** [github.com/decolua/dardcor-code](https://github.com/decolua/dardcor-code)
+- **Issues:** [github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)
 - **故障排除:** [troubleshooting.md](troubleshooting.md)

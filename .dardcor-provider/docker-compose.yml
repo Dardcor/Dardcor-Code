@@ -1,17 +1,17 @@
 services:
-  dardcor-code:
-    image: dardcor-code:latest
-    container_name: dardcor-code
+  9router:
+    image: decolua/9router:latest
+    container_name: 9router
     restart: always
     ports:
-      - "21128:21128"
+      - "20128:20128"
     volumes:
-      - dardcor-code-data:/app/data
+      - 9router-data:/app/data
     env_file:
       - .env
     environment:
       DATA_DIR: /app/data
-      PORT: "21128"
+      PORT: "20128"
       HOSTNAME: "0.0.0.0"
       NODE_ENV: production
       HEADROOM_URL: http://headroom:8787
@@ -26,5 +26,5 @@ services:
       - "8787:8787"
 
 volumes:
-  dardcor-code-data:
-    name: dardcor-code-data
+  9router-data:
+    name: 9router-data

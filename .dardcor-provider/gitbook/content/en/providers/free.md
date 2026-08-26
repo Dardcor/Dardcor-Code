@@ -199,7 +199,7 @@ Model: kr/claude-sonnet-4.5
 
 ```
 Settings → Models → Advanced:
-  OpenAI API Base URL: http://localhost:21128/v1
+  OpenAI API Base URL: http://localhost:20128/v1
   OpenAI API Key: [from dardcor-code dashboard]
   Model: if/kimi-k2-thinking
 ```
@@ -246,6 +246,8 @@ Use in CLI: complete-fallback
 - Tier 2: Paid subscription (Claude Code)
 - Tier 3: Cheap backup (GLM, MiniMax)
 - Tier 4: FREE fallback (iFlow, Kiro)
+
+**Never stop coding!**
 
 ---
 
@@ -361,6 +363,33 @@ Perfect for:
 - Professional development
 - Team projects
 - 24/7 coding
+```
+
+---
+
+## Cost Comparison
+
+### Scenario: 100M tokens/month
+
+**Option 1: ChatGPT API Only**
+```
+100M × $20/1M = $2,000/month
+```
+
+**Option 2: Dardcor Code Free Tier Only**
+```
+100M via free tier = $0/month
+Savings: $2,000/month (100%)
+```
+
+**Option 3: Dardcor Code Complete Strategy**
+```
+60M via Gemini CLI (FREE): $0
+30M via Claude Code (subscription): $0 extra
+8M via GLM (cheap): $4.80
+2M via iFlow (FREE): $0
+Total: $4.80/month + subscriptions you already have
+Savings: $1,995/month (99.76%)
 ```
 
 ---

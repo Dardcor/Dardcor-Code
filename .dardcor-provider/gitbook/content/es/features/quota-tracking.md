@@ -271,6 +271,7 @@ Desglose por proveedor:
   MiniMax M2.1: $6.00 (22%)
   
 Costo promedio por 1M tokens: $0.62
+Ahorros vs ChatGPT API: 97% ($4,000 → $120)
 ```
 
 ### Proyección de costos
@@ -520,6 +521,7 @@ Optimizado: gc/gemini-3-flash → cc/claude-opus → glm/glm-4.7
   40% vía Claude (suscripción)
   10% vía GLM ($6/mes)
   
+Ahorros: $6/mes
 ```
 
 ### 4. Rastrea los tiempos de reinicio
@@ -540,6 +542,7 @@ Dashboard → Quota → Reset Schedule:
 Dashboard → Analytics → Monthly Report:
   Total de tokens: 1.5B
   Costo total: $120
+  Ahorros: 97% vs ChatGPT API
   
 Insights:
   - 60% de uso vía suscripciones ($0)
@@ -558,7 +561,7 @@ Optimización:
 ### Obtener estado de cuota
 
 ```bash
-GET http://localhost:21128/api/quota
+GET http://localhost:20128/api/quota
 Authorization: Bearer your-api-key
 
 Response:
@@ -611,7 +614,7 @@ Response:
 ### Obtener estadísticas de uso
 
 ```bash
-GET http://localhost:21128/api/usage?period=today
+GET http://localhost:20128/api/usage?period=today
 Authorization: Bearer your-api-key
 
 Response:

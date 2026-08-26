@@ -1,5 +1,7 @@
 # Smart Routing & Auto Fallback
 
+Dardcor Code tự động định tuyến request qua provider tốt nhất hiện có bằng hệ thống fallback 3 tầng. Không bao giờ ngừng code vì giới hạn quota hay rate limiting.
+
 ---
 
 ## Cách hoạt động
@@ -31,6 +33,8 @@ Request → Dardcor Code → Check Tier 1 (Subscription)
 - GLM-4.7 ($0.60/1M input)
 - MiniMax M2.1 ($0.20/1M input)
 - Kimi K2 ($9/tháng cố định)
+
+**Mục tiêu**: Backup siêu rẻ khi hết quota subscription (~90% rẻ hơn ChatGPT API).
 
 **Tier 3: FREE (Khẩn cấp)**
 - iFlow (8 models)
@@ -242,7 +246,7 @@ Fallback: qw/qwen3-coder-plus → kr/claude-sonnet-4.5
 **Hoạt động:**
 ```
 All requests → Free tier only
-Cost: $0
+Cost: $0 forever
 ```
 
 **Use case**: Dự án cá nhân, học tập, thử nghiệm.
@@ -364,6 +368,8 @@ Dashboard → Analytics:
     - 15M via GLM-4.7 ($9)
     - 5M via iFlow (free)
   
+  Cost: $9 (vs $1000 on ChatGPT API)
+  Savings: 99%
 ```
 
 ---

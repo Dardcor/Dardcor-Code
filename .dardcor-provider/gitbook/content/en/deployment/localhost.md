@@ -30,7 +30,7 @@ The dashboard will automatically open in your browser at `http://localhost:3000`
 
 **Default Configuration:**
 - **Dashboard**: `http://localhost:3000`
-- **API Endpoint**: `http://localhost:21128/v1`
+- **API Endpoint**: `http://localhost:20128/v1`
 - **Data Directory**: `~/.dardcor-code`
 
 ---
@@ -47,7 +47,7 @@ DATA_DIR=/path/to/data dardcor-code
 
 ### Custom Port
 
-The API port (21128) and dashboard port (3000) are configured in the application. To change them, you'll need to modify the source code or use environment variables if supported.
+The API port (20128) and dashboard port (3000) are configured in the application. To change them, you'll need to modify the source code or use environment variables if supported.
 
 ---
 
@@ -96,11 +96,11 @@ npm list -g dardcor-code
 
 ### Port Already in Use
 
-If port 21128 or 3000 is already in use:
+If port 20128 or 3000 is already in use:
 
 ```bash
 # Find process using the port (macOS/Linux)
-lsof -i :21128
+lsof -i :20128
 lsof -i :3000
 
 # Kill the process

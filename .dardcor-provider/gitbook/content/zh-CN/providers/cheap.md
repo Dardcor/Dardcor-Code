@@ -1,5 +1,7 @@
 # 低价提供商 - 超低价备用
 
+订阅配额耗尽时,只花几分钱而不是几美元。比 ChatGPT API 便宜 ~90%!
+
 ---
 
 ## 概览
@@ -9,6 +11,8 @@
 - 💰 **GLM-4.7** - 每 1M tokens $0.6/$2.2(每日重置)
 - 💰 **MiniMax M2.1** - 每 1M tokens $0.2/$1.0(5h 重置)
 - 💰 **Kimi K2** - $9/月固定(10M tokens)
+
+**策略:** 在订阅配额用完后、免费层之前使用。相比 ChatGPT API(每 1M $20),省钱巨大。
 
 ---
 
@@ -24,6 +28,7 @@
 **成本示例(10M tokens):**
 - 输入: 10M × $0.60 = $6
 - 输出: 10M × $2.20 = $22
+- **合计: $6-22**,而 ChatGPT API 需 $200!
 
 ### 设置
 
@@ -136,6 +141,7 @@ Model: minimax/MiniMax-M2.1
 
 ### 专业建议
 
+- **最便宜的选择** - 输入每 1M $0.20(比 ChatGPT 便宜 90%)
 - **5 小时滚动** - 每 5 小时配额重置
 - **1M 上下文** - 超大上下文窗口
 - **处理整个代码库** - 适合大文件
@@ -238,6 +244,8 @@ Model: kimi/kimi-latest
 | **Kimi K2** | $0.90 | $0.90 | 每月 | **$9 固定** | 稳定使用 |
 | ChatGPT API | $20.00 | $20.00 | 无 | $200 | ❌ 昂贵 |
 
+**节省:** 比 ChatGPT API 便宜 90-95%!
+
 ---
 
 ## 使用示例
@@ -246,7 +254,7 @@ Model: kimi/kimi-latest
 
 ```
 Settings → Models → Advanced:
-  OpenAI API Base URL: http://localhost:21128/v1
+  OpenAI API Base URL: http://localhost:20128/v1
   OpenAI API Key: [从 dardcor-code 仪表盘获取]
   Model: glm/glm-4.7
 ```
@@ -299,6 +307,8 @@ CLI 中使用: cheap-backup
 - $6 GLM 每日配额(10M tokens)
 - $5 MiniMax 溢出(25M tokens)
 
+合计: $20 拿到 45M tokens
+而 ChatGPT API 同样的钱只能拿 1M tokens!
 ```
 
 ### 策略 3:订阅优先最大化
@@ -316,6 +326,7 @@ CLI 中使用: cheap-backup
 - 30M 通过 Claude Code: $0(订阅)
 - 8M 通过 GLM: $4.80
 - 2M 通过 MiniMax: $0.40
+合计: $5.20/月!
 ```
 
 ---
@@ -330,6 +341,10 @@ CLI 中使用: cheap-backup
 - 30M 通过 GLM-4.7: $18
 - 10M 通过 MiniMax M2.1: $2
 
+合计: $20/月
+而 ChatGPT API 需 $2000!
+
+节省: 便宜 99%!
 ```
 
 ### 案例 2:预算编码者($10/月)
@@ -338,6 +353,9 @@ CLI 中使用: cheap-backup
 策略:
 - $9 Kimi K2(10M tokens)
 - $1 MiniMax 溢出(5M tokens)
+
+合计: $10 拿到 15M tokens
+而 ChatGPT API 同样的钱只能拿 0.5M tokens!
 
 多 30 倍 tokens!
 ```
@@ -348,13 +366,16 @@ CLI 中使用: cheap-backup
 清淡月(20M tokens):
 - 15M 通过订阅: $0
 - 5M 通过 GLM: $3
+合计: $3
 
 繁忙月(150M tokens):
 - 60M 通过订阅: $0
 - 60M 通过 GLM: $36
 - 30M 通过 MiniMax: $6
+合计: $42
 
 平均: $22.50/月
+而 ChatGPT API 需 $3400!
 ```
 
 ---

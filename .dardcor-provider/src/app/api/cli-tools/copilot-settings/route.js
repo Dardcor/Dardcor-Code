@@ -30,12 +30,12 @@ const readConfig = async () => {
   }
 };
 
-const has9RouterConfig = (config) => {
+const hasDardcor CodeConfig = (config) => {
   if (!Array.isArray(config)) return false;
   return config.some((entry) => entry.name === "Dardcor Code");
 };
 
-const get9RouterEntry = (config) => {
+const getDardcor CodeEntry = (config) => {
   if (!Array.isArray(config)) return null;
   return config.find((entry) => entry.name === "Dardcor Code") || null;
 };
@@ -44,12 +44,12 @@ const get9RouterEntry = (config) => {
 export async function GET() {
   try {
     const config = await readConfig();
-    const entry = get9RouterEntry(config);
+    const entry = getDardcor CodeEntry(config);
 
     return NextResponse.json({
       installed: true,
       config,
-      has9Router: has9RouterConfig(config),
+      hasDardcor Code: hasDardcor CodeConfig(config),
       configPath: getConfigPath(),
       currentModel: entry?.models?.[0]?.id || null,
       currentUrl: entry?.models?.[0]?.url || null,
@@ -81,7 +81,7 @@ export async function POST(request) {
     } catch { /* No existing config */ }
 
     const endpointUrl = `${baseUrl}/chat/completions#models.ai.azure.com`;
-    const keyToUse = apiKey || "sk_9router";
+    const keyToUse = apiKey || "sk_dardcor-code";
 
     const newEntry = {
       name: "Dardcor Code",

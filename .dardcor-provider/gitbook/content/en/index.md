@@ -61,6 +61,7 @@ Works with any tool that supports custom OpenAI endpoints:
 30M via Claude Code: $0 (subscription you already have)
 8M via GLM: $4.80
 2M via MiniMax: $0.40
+Total: $5.20/month vs $2000 on ChatGPT API!
 ```
 
 ---
@@ -86,7 +87,9 @@ When subscription quota runs out, pay pennies:
 | **MiniMax M2.1** | $0.20 input / $1.00 output | 5-hour rolling |
 | **Kimi K2** | $9/month (10M tokens) | Monthly |
 
-### Free-Tier Fallback
+**~90% cheaper than ChatGPT API ($20/1M)!**
+
+### Free Forever Fallback
 
 Emergency backup when everything else is quota-limited:
 
@@ -113,7 +116,7 @@ dardcor-code
 **Use in your CLI tool:**
 
 ```
-Endpoint: http://localhost:21128/v1
+Endpoint: http://localhost:20128/v1
 API Key: [from dashboard]
 Model: cc/claude-opus-4-5-20251101
 ```
@@ -140,7 +143,7 @@ Model: cc/claude-opus-4-5-20251101
 
 ### For Mobile/Remote Coding
 
-- Use cloud deployment (https://dardcor-code.web.id)
+- Use cloud deployment (https://dardcor-code.com)
 - Access from iPad, phone, anywhere
 - No localhost limitations
 - Cloudflare edge network (300+ locations)

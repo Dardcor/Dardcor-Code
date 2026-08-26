@@ -2,14 +2,14 @@ import pkg from "../../../package.json" with { type: "json" };
 
 // App configuration
 export const APP_CONFIG = {
-  name: "Dardcor Code",
+  name: "Dardcor Code Proxy",
   description: "AI Infrastructure Management",
   version: pkg.version,
 };
 
 // GitHub configuration
 export const GITHUB_CONFIG = {
-  changelogUrl: "https://raw.githubusercontent.com/Dardcor/Dardcor-Code/refs/heads/main/CHANGELOG.md",
+  changelogUrl: "https://raw.githubusercontent.com/decolua/dardcor-code/refs/heads/master/CHANGELOG.md",
   donateUrl: "https://dardcor-code.com/api/donate",
 };
 
@@ -20,7 +20,7 @@ export const UPDATER_CONFIG = {
   installCmdLatest: "npm i -g dardcor-code@latest --prefer-online",
   shutdownCountdownSec: 3,
   exitDelayMs: 500,
-  statusPort: 25001,
+  statusPort: 20129,
   statusPollIntervalMs: 1000,
   statusLogTailLines: 8,
   installRetries: 3,
@@ -29,13 +29,13 @@ export const UPDATER_CONFIG = {
   waitForExitMinMs: 5000,
   waitForExitMaxMs: 20000,
   waitForExitCheckMs: 500,
-  appPort: 25000,
+  appPort: 20128,
 };
 
 // Theme configuration
 export const THEME_CONFIG = {
   storageKey: "theme",
-  defaultTheme: "dark", // "light" | "dark" | "system"
+  defaultTheme: "system", // "light" | "dark" | "system"
 };
 
 // Subscription

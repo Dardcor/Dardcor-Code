@@ -56,6 +56,7 @@ Dashboard → Home → Quota Overview
 ┌─────────────────────────────────────────────┐
 │ iFlow (if/)                                 │
 │ ████████████████████ Unlimited              │
+│ Cost: $0 (free forever)                     │
 └─────────────────────────────────────────────┘
 ```
 
@@ -216,6 +217,7 @@ Cost: $4.80
 
 ダッシュボード表示:
   Used today: 5M tokens
+  Cost: $0 (free forever)
   Status: ✅ Available
 ```
 
@@ -269,6 +271,7 @@ Breakdown by provider:
   MiniMax M2.1: $6.00 (22%)
   
 Average cost per 1M tokens: $0.62
+Savings vs ChatGPT API: 97% ($4,000 → $120)
 ```
 
 ### コスト予測
@@ -518,6 +521,7 @@ Dashboard → Analytics → Combos:
   40% Claude経由 (サブスクリプション)
   10% GLM経由 ($6/月)
   
+節約: $6/月
 ```
 
 ### 4. リセット時間を追跡
@@ -538,6 +542,7 @@ Dashboard → Quota → Reset Schedule:
 Dashboard → Analytics → Monthly Report:
   Total tokens: 1.5B
   Total cost: $120
+  Savings: 97% vs ChatGPT API
   
 インサイト:
   - 60% サブスクリプション経由の使用 ($0)
@@ -556,7 +561,7 @@ Dashboard → Analytics → Monthly Report:
 ### クォータステータスを取得
 
 ```bash
-GET http://localhost:21128/api/quota
+GET http://localhost:20128/api/quota
 Authorization: Bearer your-api-key
 
 Response:
@@ -609,7 +614,7 @@ Response:
 ### 使用統計を取得
 
 ```bash
-GET http://localhost:21128/api/usage?period=today
+GET http://localhost:20128/api/usage?period=today
 Authorization: Bearer your-api-key
 
 Response:

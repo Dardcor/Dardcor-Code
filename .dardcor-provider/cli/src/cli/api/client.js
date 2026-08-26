@@ -9,12 +9,12 @@ const { machineIdSync } = require("node-machine-id");
 // Default configuration
 const DEFAULT_CONFIG = {
   host: "localhost",
-  port: 21128,
+  port: 20128,
   protocol: "http:",
 };
 
-const CLI_TOKEN_HEADER = "x-dardcor-cli-token";
-const CLI_TOKEN_SALT = "dardcor-cli-auth";
+const CLI_TOKEN_HEADER = "x-9r-cli-token";
+const CLI_TOKEN_SALT = "9r-cli-auth";
 const APP_NAME = "dardcor-code";
 
 function getDataDir() {
@@ -226,7 +226,7 @@ async function getOAuthAuthUrl(provider) {
   // Codex requires fixed port 1455 and path /auth/callback
   const redirectUri = provider === "codex" 
     ? "http://localhost:1455/auth/callback"
-    : "http://localhost:21128/callback";
+    : "http://localhost:20128/callback";
   return makeRequest("GET", `/api/oauth/${provider}/authorize?redirect_uri=${encodeURIComponent(redirectUri)}`);
 }
 
@@ -364,7 +364,8 @@ async function deleteCombo(id) {
 /**
  * Get CLI tool settings
  * @param {string} tool - Tool name: claude | codex | droid | openclaw
- * @returns {Promise<Object>} { success, data: { installed, has9Router, ... } } */
+ * @returns {Promise<Object>} { success, data: { installed, hasDardcor Code, ... } }
+ */
 async function getCliToolSettings(tool) {
   return makeRequest("GET", `/api/cli-tools/${tool}-settings`);
 }
@@ -410,7 +411,7 @@ async function updateSettings(data) {
 }
 
 /**
- * Clear stored dashboard password hash (server deletes the saved hash).
+ * Reset dashboard password to default (clears stored hash server-side)
  * @returns {Promise<Object>} { success }
  */
 async function resetPassword() {

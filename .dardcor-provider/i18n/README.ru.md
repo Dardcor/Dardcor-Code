@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="../images/9router.png?1" alt="Панель управления Dardcor Code" width="800"/>
+  <img src="../images/dardcor-code.png?1" alt="Панель управления Dardcor Code" width="800"/>
   
   # Dardcor Code - Free AI Router
   
@@ -11,11 +11,11 @@
     <img src="../public/providers/openclaw.png" alt="OpenClaw" width="80"/>
   </p>
   
-  [![npm](https://img.shields.io/npm/v/9router.svg)](https://www.npmjs.com/package/9router)
-  [![Downloads](https://img.shields.io/npm/dm/9router.svg)](https://www.npmjs.com/package/9router)
-  [![License](https://img.shields.io/npm/l/9router.svg)](https://github.com/decolua/9router/blob/main/LICENSE)
+  [![npm](https://img.shields.io/npm/v/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
+  [![Downloads](https://img.shields.io/npm/dm/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
+  [![License](https://img.shields.io/npm/l/dardcor-code.svg)](https://github.com/decolua/dardcor-code/blob/main/LICENSE)
   
-  [🚀 Быстрый старт](#-quick-start) • [💡 Возможности](#-key-features) • [📖 Установка](#-setup-guide) • [🌐 Сайт](https://9router.com)
+  [🚀 Быстрый старт](#-quick-start) • [💡 Возможности](#-key-features) • [📖 Установка](#-setup-guide) • [🌐 Сайт](https://dardcor-code.com)
 </div>
 
 ---
@@ -70,8 +70,8 @@ Result: Never stop coding, minimal cost
 **1. Глобальная установка:**
 
 ```bash
-npm install -g 9router
-9router
+npm install -g dardcor-code
+dardcor-code
 ```
 
 🎉 Панель управления откроется на `http://localhost:20128`
@@ -865,7 +865,7 @@ Dardcor Code только маршрутизирует ваши запросы �
 ```
 Settings → Models → Advanced:
   OpenAI API Base URL: http://localhost:20128/v1
-  OpenAI API Key: [из панели управления 9router]
+  OpenAI API Key: [из панели управления dardcor-code]
   Model: cc/claude-opus-4-6
 ```
 
@@ -878,7 +878,7 @@ Settings → Models → Advanced:
 ```json
 {
   "anthropic_api_base": "http://localhost:20128/v1",
-  "anthropic_api_key": "your-9router-api-key"
+  "anthropic_api_key": "your-dardcor-code-api-key"
 }
 ```
 
@@ -886,7 +886,7 @@ Settings → Models → Advanced:
 
 ```bash
 export OPENAI_BASE_URL="http://localhost:20128"
-export OPENAI_API_KEY="your-9router-api-key"
+export OPENAI_API_KEY="your-dardcor-code-api-key"
 
 codex "ваш промпт"
 ```
@@ -906,15 +906,15 @@ codex "ваш промпт"
   "agents": {
     "defaults": {
       "model": {
-        "primary": "9router/if/glm-4.7"
+        "primary": "dardcor-code/if/glm-4.7"
       }
     }
   },
   "models": {
     "providers": {
-      "9router": {
+      "dardcor-code": {
         "baseUrl": "http://127.0.0.1:20128/v1",
-        "apiKey": "sk_9router",
+        "apiKey": "sk_dardcor-code",
         "api": "openai-completions",
         "models": [
           {
@@ -948,20 +948,20 @@ Model: cc/claude-opus-4-6
 
 ```bash
 # Clone and install
-git clone https://github.com/decolua/9router.git
-cd 9router
+git clone https://github.com/decolua/dardcor-code.git
+cd dardcor-code
 npm install
 npm run build
 
 # Configure
 export JWT="your-secure-secret-change-this"
 export INITIAL_PASSWORD="your-password"
-export DATA_DIR="/var/lib/9router"
+export DATA_DIR="/var/lib/dardcor-code"
 export PORT="20128"
 export HOSTNAME="0.0.0.0"
 export NODE_ENV="production"
 export NEXT_PUBLIC_BASE_URL="http://localhost:20128"
-export NEXT_PUBLIC_CLOUD_URL="https://9router.com"
+export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.com"
 export API_KEY_SECRET="endpoint-proxy-api-key-secret"
 export MACHINE_ID_SALT="endpoint-proxy-salt"
 
@@ -970,7 +970,7 @@ npm run start
 
 # Or use PM2
 npm install -g pm2
-pm2 start --name 9router -- start
+pm2 start --name dardcor-code -- start
 pm2 save
 pm2 startup
 ```
@@ -979,28 +979,28 @@ pm2 startup
 
 ```bash
 # Build image (from repository root)
-docker build -t 9router .
+docker build -t dardcor-code .
 
 # Run container (command used in current setup)
 docker run -d \
-  --name 9router \
+  --name dardcor-code \
   -p 20128:20128 \
-  --env-file /root/dev/9router/.env \
-  -v 9router-data:/app/data \
-  -v 9router-usage:/root/.9router \
-  9router
+  --env-file /root/dev/dardcor-code/.env \
+  -v dardcor-code-data:/app/data \
+  -v dardcor-code-usage:/root/.dardcor-code \
+  dardcor-code
 ```
 
 Портативная команда (если вы уже в корне репозитория):
 
 ```bash
 docker run -d \
-  --name 9router \
+  --name dardcor-code \
   -p 20128:20128 \
   --env-file ./.env \
-  -v 9router-data:/app/data \
-  -v 9router-usage:/root/.9router \
-  9router
+  -v dardcor-code-data:/app/data \
+  -v dardcor-code-usage:/root/.dardcor-code \
+  dardcor-code
 ```
 
 Значения по умолчанию контейнера:
@@ -1010,25 +1010,25 @@ docker run -d \
 Полезные команды:
 
 ```bash
-docker logs -f 9router
-docker restart 9router
-docker stop 9router && docker rm 9router
+docker logs -f dardcor-code
+docker restart dardcor-code
+docker stop dardcor-code && docker rm dardcor-code
 ```
 
 ### Переменные окружения
 
 | Переменная | По умолчанию | Описание |
 |----------|---------|-------------|
-| `JWT_SECRET` | Автогенерация (`~/.9router/jwt-secret`) | Секрет подписи JWT для cookie аутентификации панели (задайте для общего доступа между инстансами) |
+| `JWT_SECRET` | Автогенерация (`~/.dardcor-code/jwt-secret`) | Секрет подписи JWT для cookie аутентификации панели (задайте для общего доступа между инстансами) |
 | `INITIAL_PASSWORD` | `123456` | Пароль первого входа при отсутствии сохранённого хеша |
-| `DATA_DIR` | `~/.9router` | Расположение основной БД приложения (`db.json`) |
+| `DATA_DIR` | `~/.dardcor-code` | Расположение основной БД приложения (`db.json`) |
 | `PORT` | framework default | Порт сервиса (`20128` в примерах) |
 | `HOSTNAME` | framework default | Bind host (Docker по умолчанию `0.0.0.0`) |
 | `NODE_ENV` | runtime default | Установите `production` для развёртывания |
 | `BASE_URL` | `http://localhost:20128` | Внутренний серверный базовый URL для задач облачной синхронизации |
-| `CLOUD_URL` | `https://9router.com` | Серверный базовый URL эндпоинта облачной синхронизации |
+| `CLOUD_URL` | `https://dardcor-code.com` | Серверный базовый URL эндпоинта облачной синхронизации |
 | `NEXT_PUBLIC_BASE_URL` | `http://localhost:3000` | Обратно совместимый/публичный базовый URL (приоритет `BASE_URL` для серверного рантайма) |
-| `NEXT_PUBLIC_CLOUD_URL` | `https://9router.com` | Обратно совместимый/публичный облачный URL (приоритет `CLOUD_URL` для серверного рантайма) |
+| `NEXT_PUBLIC_CLOUD_URL` | `https://dardcor-code.com` | Обратно совместимый/публичный облачный URL (приоритет `CLOUD_URL` для серверного рантайма) |
 | `API_KEY_SECRET` | `endpoint-proxy-api-key-secret` | HMAC-секрет для генерируемых API-ключей |
 | `MACHINE_ID_SALT` | `endpoint-proxy-salt` | Соль для стабильного хеширования ID машины |
 | `ENABLE_REQUEST_LOGS` | `false` | Включить лог запросов/ответов в `logs/` |
@@ -1045,9 +1045,9 @@ docker stop 9router && docker rm 9router
 ### Runtime-файлы и хранилище
 
 - Основное состояние приложения: `${DATA_DIR}/db.json` (провайдеры, комбо, alias, ключи, настройки), управляется `src/lib/localDb.js`.
-- История использования и логи: `~/.9router/usage.json` и `~/.9router/log.txt`, управляется `src/lib/usageDb.js`.
+- История использования и логи: `~/.dardcor-code/usage.json` и `~/.dardcor-code/log.txt`, управляется `src/lib/usageDb.js`.
 - Опциональные логи запросов/транслятора: `<repo>/logs/...` при `ENABLE_REQUEST_LOGS=true`.
-- Хранилище использования следует логике пути `~/.9router` и независимо от `DATA_DIR`.
+- Хранилище использования следует логике пути `~/.dardcor-code` и независимо от `DATA_DIR`.
 
 </details>
 
@@ -1122,11 +1122,11 @@ docker stop 9router && docker rm 9router
 
 **Ошибки облачной синхронизации**
 - Убедитесь, что `BASE_URL` указывает на ваш работающий инстанс (например, `http://localhost:20128`)
-- Убедитесь, что `CLOUD_URL` указывает на ожидаемый облачный эндпоинт (например, `https://9router.com`)
+- Убедитесь, что `CLOUD_URL` указывает на ожидаемый облачный эндпоинт (например, `https://dardcor-code.com`)
 - По возможности держите значения `NEXT_PUBLIC_*` согласованными с серверными значениями.
 
 **Облачный эндпоинт `stream=false` возвращает 500 (`Unexpected token 'd'...`)**
-- Симптом обычно появляется на публичном облачном эндпоинте (`https://9router.com/v1`) для непотоковых (non-streaming) вызовов.
+- Симптом обычно появляется на публичном облачном эндпоинте (`https://dardcor-code.com/v1`) для непотоковых (non-streaming) вызовов.
 - Корневая причина: upstream возвращает SSE-payload (`data: ...`), тогда как клиент ожидает JSON.
 - Обходное решение: используйте `stream=true` для прямых вызовов в облако.
 - Локальный рантайм Dardcor Code включает резервирование SSE→JSON для непотоковых вызовов, когда upstream возвращает `text/event-stream`.
@@ -1200,7 +1200,7 @@ Authorization: Bearer your-api-key
 - `tester/security/test-docker-hardening.sh`
   - Собирает Docker-образ и проверяет hardening-проверки (`/api/cloud/auth` auth guard, `REQUIRE_API_KEY`, безопасное поведение cookie аутентификации).
 - `tester/security/test-cloud-openai-compatible.sh`
-  - Отправляет OpenAI-совместимый запрос напрямую на облачный эндпоинт (`https://9router.com/v1/chat/completions`) с указанной моделью/ключом.
+  - Отправляет OpenAI-совместимый запрос напрямую на облачный эндпоинт (`https://dardcor-code.com/v1/chat/completions`) с указанной моделью/ключом.
 - `tester/security/test-cloud-sync-and-call.sh`
   - End-to-end процесс: создание локального ключа → включение/синхронизация облака → вызов облачного эндпоинта с повтором.
   - Включает резервную проверку с `stream=true`, чтобы отличить ошибки аутентификации от проблем разбора потока.
@@ -1220,7 +1220,7 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 
 - Локально (`http://127.0.0.1:20128/v1/chat/completions`): работает с `stream=false` и `stream=true`.
 - Docker-рантайм (тот же API-путь, экспонируемый контейнером): hardening-проверки проходят, cloud auth guard работает, строгий режим API-ключа работает при включении.
-- Публичный облачный эндпоинт (`https://9router.com/v1/chat/completions`):
+- Публичный облачный эндпоинт (`https://dardcor-code.com/v1/chat/completions`):
   - `stream=true`: ожидается успех (возвращает SSE-чанки).
   - `stream=false`: может падать с `500` + ошибкой разбора (`Unexpected token 'd'`), когда upstream возвращает SSE-контент для непотокового клиентского пути.
 
@@ -1258,9 +1258,9 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 
 ## 📧 Поддержка
 
-- **Сайт**: [9router.com](https://9router.com)
-- **GitHub**: [github.com/decolua/9router](https://github.com/decolua/9router)
-- **Issues**: [github.com/decolua/9router/issues](https://github.com/decolua/9router/issues)
+- **Сайт**: [dardcor-code.com](https://dardcor-code.com)
+- **GitHub**: [github.com/decolua/dardcor-code](https://github.com/decolua/dardcor-code)
+- **Issues**: [github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)
 
 ---
 
@@ -1268,13 +1268,13 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 
 Спасибо всем, кто помогает делать Dardcor Code лучше!
 
-[![Contributors](https://contrib.rocks/image?repo=decolua/9router&max=100&columns=20&anon=1)](https://github.com/decolua/9router/graphs/contributors)
+[![Contributors](https://contrib.rocks/image?repo=decolua/dardcor-code&max=100&columns=20&anon=1)](https://github.com/decolua/dardcor-code/graphs/contributors)
 
 ---
 
 ## 📊 Star Chart
 
-[![Star Chart](https://starchart.cc/decolua/9router.svg?variant=adaptive)](https://starchart.cc/decolua/9router)
+[![Star Chart](https://starchart.cc/decolua/dardcor-code.svg?variant=adaptive)](https://starchart.cc/decolua/dardcor-code)
 
 ### Как внести вклад
 
@@ -1284,7 +1284,7 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 4. Запушьте в ветку (`git push origin feature/amazing-feature`)
 5. Откройте Pull Request
 
-См. [Pull Requests](https://github.com/decolua/9router/pulls) для подробных инструкций.
+См. [Pull Requests](https://github.com/decolua/dardcor-code/pulls) для подробных инструкций.
 
 ---
 

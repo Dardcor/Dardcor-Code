@@ -342,14 +342,12 @@ export async function POST(request, { params }) {
         });
       }
 
-      // Cline and ClinePass use authorization_code without PKCE. Kimchi returns a browser token.
-      const noPkceExchangeProviders = ["cline", "clinepass", "kimchi"];
-      if (!code || !redirectUri || (!codeVerifier && !noPkceExchangeProviders.includes(provider))) {
-        return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      if (!code || !redirectUri) {
+        return NextResponse.json({ error: "Missing required fields: code or redirectUri" }, { status: 400 });
       }
 
       // Exchange code for tokens (meta carries provider-specific params, e.g. gitlab clientId/baseUrl)
-      const tokenData = await exchangeTokens(provider, code, redirectUri, codeVerifier, state, meta);
+      const tokenData = await exchangeTokens(provider, code, redirectUri, codeVerifier || null, state, meta);
 
       // Save to database
       const connection = await createProviderConnection({

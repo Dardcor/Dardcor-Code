@@ -16,7 +16,7 @@
 ### ステップ1: リポジトリをクローン
 
 ```bash
-git clone .git
+git clone https://github.com/decolua/dardcor-code.git
 cd dardcor-code/app
 ```
 
@@ -48,7 +48,7 @@ export NODE_ENV="production"
 | 変数 | デフォルト | 説明 |
 |----------|---------|-------------|
 | `JWT_SECRET` | 自動生成 | **本番環境では必ず変更!** JWTトークンの署名に使用 |
-| `INITIAL_PASSWORD` | unset | デフォルトパスワードなし；未設定なら localhost 経由でパスワードを作成するローカル専用のオプション |
+| `INITIAL_PASSWORD` | `123456` | ダッシュボードログインパスワード |
 | `DATA_DIR` | `~/.dardcor-code` | データベースとデータの保存パス |
 | `NODE_ENV` | `development` | デプロイ時は `production` に設定 |
 | `ENABLE_REQUEST_LOGS` | `false` | デバッグリクエスト/レスポンスログを有効化 |
@@ -130,7 +130,7 @@ COPY . .
 RUN npm run build
 
 # Expose ports
-EXPOSE 3000 21128
+EXPOSE 3000 20128
 
 # Set environment variables
 ENV NODE_ENV=production
@@ -153,7 +153,7 @@ docker build -t dardcor-code .
 docker run -d \
   --name dardcor-code \
   -p 3000:3000 \
-  -p 21128:21128 \
+  -p 20128:20128 \
   -e JWT_SECRET="your-secure-secret-change-this" \
   -e INITIAL_PASSWORD="your-secure-password" \
   -v dardcor-code-data:/app/data \
@@ -173,7 +173,7 @@ services:
     container_name: dardcor-code
     ports:
       - "3000:3000"
-      - "21128:21128"
+      - "20128:20128"
     environment:
       - NODE_ENV=production
       - JWT_SECRET=your-secure-secret-change-this
@@ -266,7 +266,7 @@ server {
 
     # API endpoint
     location /v1 {
-        proxy_pass http://localhost:21128;
+        proxy_pass http://localhost:20128;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -335,7 +335,7 @@ sudo ufw allow 443/tcp
 
 # リバースプロキシを使用しない場合、Dardcor Codeポートを許可
 sudo ufw allow 3000/tcp
-sudo ufw allow 21128/tcp
+sudo ufw allow 20128/tcp
 
 # ファイアウォールを有効化
 sudo ufw enable
@@ -418,7 +418,7 @@ htop
 df -h
 
 # ネットワーク接続
-netstat -tulpn | grep -E '3000|21128'
+netstat -tulpn | grep -E '3000|20128'
 ```
 
 ---
@@ -433,7 +433,7 @@ pm2 logs dardcor-code
 
 # ポートが使用中か確認
 sudo lsof -i :3000
-sudo lsof -i :21128
+sudo lsof -i :20128
 
 # 環境変数を確認
 pm2 env dardcor-code

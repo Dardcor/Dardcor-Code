@@ -23,18 +23,6 @@ const proxyAwareFetch = vi.fn(async (url) => ({
             displayName: "Gemini 3.5 Flash (Medium)",
             quotaInfo: { remainingFraction: 0.9, resetTime: "2026-07-25T12:00:00Z" },
           },
-          "gemini-3.7-flash-tiered(high)": {
-            displayName: "Gemini 3.7 Flash (High)",
-            quotaInfo: { remainingFraction: 0.7, resetTime: "2026-07-25T12:00:00Z" },
-          },
-          "gemini-2.5-flash": {
-            displayName: "Gemini 2.5 Flash",
-            quotaInfo: { remainingFraction: 0.6, resetTime: "2026-07-25T12:00:00Z" },
-          },
-          "future-preview-model": {
-            displayName: "Future Preview Model",
-            quotaInfo: { remainingFraction: 0.4, resetTime: "2026-07-25T12:00:00Z" },
-          },
           "internal-model": {
             displayName: "Internal",
             isInternal: true,
@@ -75,22 +63,17 @@ describe("Antigravity quota tracker: Gemini 3.6 Flash usage bars", () => {
     });
   });
 
-  it("includes every non-internal model and normalizes upstream model keys", async () => {
+  it("still filters out internal and non-important models", async () => {
     const { getAntigravityUsage } = await import("../../open-sse/services/usage/google.js");
 
     const usage = await getAntigravityUsage("access-token", {});
 
     expect(usage.quotas).not.toHaveProperty("internal-model");
-    expect(usage.quotas).not.toHaveProperty("gemini-3.7-flash-tiered(high)");
     expect(Object.keys(usage.quotas)).toEqual([
       "gemini-3.6-flash-high",
       "gemini-3.6-flash-medium",
       "gemini-3.6-flash-low",
       "gemini-3.5-flash-low",
-      "gemini-3.7-flash-high",
-      "gemini-2.5-flash",
-      "future-preview-model",
     ]);
-    expect(usage.quotas["gemini-3.7-flash-high"].displayName).toBe("Gemini 3.7 Flash (High)");
   });
 });

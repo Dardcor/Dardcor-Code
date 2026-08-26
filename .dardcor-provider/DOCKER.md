@@ -1,22 +1,23 @@
 # Docker
 
-Run Dardcor Code in a container. The image is built and run **locally** under the name `dardcor-code`; there is no published remote image.
+Run Dardcor Code in a container. Published image: [`decolua/dardcor-code`](https://hub.docker.com/r/decolua/dardcor-code) — multi-platform `linux/amd64` + `linux/arm64`.
 
 ---
+
+# 👤 For Users
 
 ## Quick start
 
 ```bash
-docker build -t dardcor-code .
 docker run -d \
-  --name dardcor-code \
-  -p 21128:21128 \
+  -p 20128:20128 \
   -v "$HOME/.dardcor-code:/app/data" \
   -e DATA_DIR=/app/data \
-  dardcor-code
+  --name dardcor-code \
+  decolua/dardcor-code:latest
 ```
 
-App listens on port `21128`. Open: http://localhost:21128
+App listens on port `20128`. Open: http://localhost:20128
 
 ## Manage container
 
@@ -53,14 +54,14 @@ Container path: `/app/data/db/data.sqlite`
 
 ```bash
 docker run -d \
-  --name dardcor-code \
-  -p 21128:21128 \
+  -p 20128:20128 \
   -v "$HOME/.dardcor-code:/app/data" \
   -e DATA_DIR=/app/data \
-  -e PORT=21128 \
+  -e PORT=20128 \
   -e HOSTNAME=0.0.0.0 \
   -e DEBUG=true \
-  dardcor-code
+  --name dardcor-code \
+  decolua/dardcor-code:latest
 ```
 
 ## Optional Headroom sidecar
@@ -70,9 +71,9 @@ The Dardcor Code image does not bundle Python or Headroom. To use Headroom in Do
 ```yaml
 services:
   dardcor-code:
-    image: dardcor-code:latest
+    image: decolua/dardcor-code:latest
     ports:
-      - "21128:21128"
+      - "20128:20128"
     volumes:
       - "$HOME/.dardcor-code:/app/data"
     environment:
@@ -94,24 +95,38 @@ If Headroom runs on the Docker host instead of as a sidecar, use `http://host.do
 ## Update to latest
 
 ```bash
-docker build -t dardcor-code .
+docker pull decolua/dardcor-code:latest
 docker rm -f dardcor-code
 # re-run the quick start command
 ```
 
 ---
 
-# For Developers
+# 🛠 For Developers
 
 ## Build image locally (test)
 
 ```bash
-docker build -t dardcor-code .
+cd app && docker build -t dardcor-code .
 
-docker run --rm -p 21128:21128 \
+docker run --rm -p 20128:20128 \
   -v "$HOME/.dardcor-code:/app/data" \
   -e DATA_DIR=/app/data \
   dardcor-code
 ```
 
-There is no CI publish step: the image stays local. `docker-compose.yml` at the repo root defines the same `dardcor-code` service (port `21128`, volume `dardcor-code-data`) with an optional Headroom sidecar.
+## Publish (automatic via CI)
+
+Push a git tag `v*` → GitHub Actions builds multi-platform (amd64+arm64) and pushes to:
+- `ghcr.io/decolua/dardcor-code:v{version}` + `:latest`
+- `decolua/dardcor-code:v{version}` + `:latest`
+
+```bash
+# Use scripts/release.js (recommended)
+node scripts/release.js "Release title" "Notes"
+
+# Or manually
+git tag v0.4.x && git push origin v0.4.x
+```
+
+Workflow: `app/.github/workflows/docker-publish.yml`

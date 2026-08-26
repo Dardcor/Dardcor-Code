@@ -17,14 +17,14 @@ Mọi công cụ tương thích OpenAI có thể kết nối đến Dardcor Code
 
 **Dardcor Code cục bộ:**
 ```
-Base URL: http://localhost:21128/v1
+Base URL: http://localhost:20128/v1
 API Key: your-api-key-from-dashboard
 Model: any Dardcor Code model (cc/*, cx/*, glm/*, etc.)
 ```
 
 **Dardcor Code cloud:**
 ```
-Base URL: https://dardcor-code.web.id/v1
+Base URL: https://dardcor-code.com/v1
 API Key: your-api-key-from-dashboard
 Model: any Dardcor Code model (cc/*, cx/*, glm/*, etc.)
 ```
@@ -53,7 +53,7 @@ from openai import OpenAI
 
 client = OpenAI(
     api_key="your-api-key-from-dashboard",
-    base_url="http://localhost:21128/v1"
+    base_url="http://localhost:20128/v1"
 )
 
 response = client.chat.completions.create(
@@ -73,7 +73,7 @@ import OpenAI from "openai";
 
 const client = new OpenAI({
   apiKey: "your-api-key-from-dashboard",
-  baseURL: "http://localhost:21128/v1"
+  baseURL: "http://localhost:20128/v1"
 });
 
 const response = await client.chat.completions.create({
@@ -89,7 +89,7 @@ console.log(response.choices[0].message.content);
 ### Lệnh cURL
 
 ```bash
-curl http://localhost:21128/v1/chat/completions \
+curl http://localhost:20128/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer your-api-key-from-dashboard" \
   -d '{
@@ -104,7 +104,7 @@ curl http://localhost:21128/v1/chat/completions \
 
 **Request:**
 ```
-POST http://localhost:21128/v1/chat/completions
+POST http://localhost:20128/v1/chat/completions
 ```
 
 **Headers:**
@@ -134,7 +134,7 @@ from langchain.schema import HumanMessage
 llm = ChatOpenAI(
     model_name="cc/claude-sonnet-4-20250514",
     openai_api_key="your-api-key-from-dashboard",
-    openai_api_base="http://localhost:21128/v1",
+    openai_api_base="http://localhost:20128/v1",
     temperature=0.7
 )
 
@@ -151,7 +151,7 @@ from llama_index.llms import OpenAI
 llm = OpenAI(
     model="cc/claude-sonnet-4-20250514",
     api_key="your-api-key-from-dashboard",
-    api_base="http://localhost:21128/v1"
+    api_base="http://localhost:20128/v1"
 )
 
 response = llm.complete("What is machine learning?")
@@ -167,7 +167,7 @@ import openai
 import json
 
 openai.api_key = "your-api-key-from-dashboard"
-openai.api_base = "http://localhost:21128/v1"
+openai.api_base = "http://localhost:20128/v1"
 
 def process_batch(prompts, model="cx/deepseek-chat"):
     results = []
@@ -199,7 +199,7 @@ import OpenAI from "openai";
 
 const client = new OpenAI({
   apiKey: "your-api-key-from-dashboard",
-  baseURL: "http://localhost:21128/v1"
+  baseURL: "http://localhost:20128/v1"
 });
 
 async function streamResponse(prompt) {
@@ -225,7 +225,7 @@ from openai import OpenAI
 
 client = OpenAI(
     api_key="your-api-key-from-dashboard",
-    base_url="http://localhost:21128/v1"
+    base_url="http://localhost:20128/v1"
 )
 
 models = [
@@ -254,7 +254,7 @@ Lưu credentials an toàn:
 ```bash
 # .env file
 ROUTER_API_KEY=your-api-key-from-dashboard
-ROUTER_BASE_URL=http://localhost:21128/v1
+ROUTER_BASE_URL=http://localhost:20128/v1
 ROUTER_MODEL=cc/claude-sonnet-4-20250514
 ```
 
@@ -275,7 +275,7 @@ from openai import OpenAI, OpenAIError
 
 client = OpenAI(
     api_key="your-api-key",
-    base_url="http://localhost:21128/v1"
+    base_url="http://localhost:20128/v1"
 )
 
 try:
@@ -296,7 +296,7 @@ from openai import OpenAI, RateLimitError
 
 client = OpenAI(
     api_key="your-api-key",
-    base_url="http://localhost:21128/v1"
+    base_url="http://localhost:20128/v1"
 )
 
 def chat_with_retry(prompt, max_retries=3):
@@ -321,7 +321,7 @@ def chat_with_retry(prompt, max_retries=3):
 **Vấn đề:** Không kết nối được đến Dardcor Code
 ```bash
 # Check if Dardcor Code is running
-curl http://localhost:21128/health
+curl http://localhost:20128/health
 
 # Expected response:
 {"status": "ok"}
@@ -329,7 +329,7 @@ curl http://localhost:21128/health
 
 **Giải pháp:**
 - Xác minh Dardcor Code đang chạy
-- Kiểm tra port 21128 không bị chặn
+- Kiểm tra port 20128 không bị chặn
 - Đảm bảo base URL đúng (bao gồm `/v1`)
 
 ### Lỗi Xác thực
@@ -353,7 +353,7 @@ Error: Model 'cc/claude-opus' not found
 
 **Giải pháp:**
 - Dùng tên model chính xác (case-sensitive)
-- Kiểm tra model có sẵn: `curl http://localhost:21128/v1/models`
+- Kiểm tra model có sẵn: `curl http://localhost:20128/v1/models`
 - Xác minh model được bật trong plan của bạn
 
 ### Vấn đề Timeout

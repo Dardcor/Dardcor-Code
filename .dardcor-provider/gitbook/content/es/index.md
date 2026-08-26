@@ -61,6 +61,7 @@ Funciona con cualquier herramienta que soporte endpoints personalizados de OpenA
 30M vía Claude Code: $0 (suscripción que ya tienes)
 8M vía GLM: $4.80
 2M vía MiniMax: $0.40
+Total: $5.20/mes vs $2000 en ChatGPT API!
 ```
 
 ---
@@ -85,6 +86,8 @@ Cuando se agota la cuota de suscripción, paga centavos:
 | **GLM-4.7** | $0.60 entrada / $2.20 salida | Diario 10:00 AM |
 | **MiniMax M2.1** | $0.20 entrada / $1.00 salida | 5 horas rolling |
 | **Kimi K2** | $9/mes (10M tokens) | Mensual |
+
+**~90% más barato que ChatGPT API ($20/1M)!**
 
 ### Fallback gratis para siempre
 
@@ -113,7 +116,7 @@ dardcor-code
 **Úsalo en tu herramienta CLI:**
 
 ```
-Endpoint: http://localhost:21128/v1
+Endpoint: http://localhost:20128/v1
 API Key: [desde el dashboard]
 Model: cc/claude-opus-4-5-20251101
 ```
@@ -140,7 +143,7 @@ Model: cc/claude-opus-4-5-20251101
 
 ### Para codificación móvil/remota
 
-- Usa el despliegue en la nube (https://dardcor-code.web.id)
+- Usa el despliegue en la nube (https://dardcor-code.com)
 - Accede desde iPad, teléfono, donde sea
 - Sin limitaciones de localhost
 - Red edge de Cloudflare (300+ ubicaciones)

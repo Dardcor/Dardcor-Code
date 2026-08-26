@@ -1,5 +1,7 @@
 # Smart Routing & Auto Fallback
 
+Dardcor Code automatically routes your requests through the best available provider using a 3-tier fallback system. Never stop coding due to quota limits or rate limiting.
+
 ---
 
 ## How It Works
@@ -31,6 +33,8 @@ Request → Dardcor Code → Check Tier 1 (Subscription)
 - GLM-4.7 ($0.60/1M input)
 - MiniMax M2.1 ($0.20/1M input)
 - Kimi K2 ($9/month flat)
+
+**Goal**: Ultra-cheap backup when subscription quota runs out (~90% cheaper than ChatGPT API).
 
 **Tier 3: FREE (Emergency)**
 - iFlow (8 models)
@@ -242,7 +246,7 @@ Fallback: qw/qwen3-coder-plus → kr/claude-sonnet-4.5
 **Behavior:**
 ```
 All requests → Free tier only
-Cost: $0
+Cost: $0 forever
 ```
 
 **Use case**: Personal projects, learning, experimentation.
@@ -364,6 +368,8 @@ Dashboard → Analytics:
     - 15M via GLM-4.7 ($9)
     - 5M via iFlow (free)
   
+  Cost: $9 (vs $1000 on ChatGPT API)
+  Savings: 99%
 ```
 
 ---

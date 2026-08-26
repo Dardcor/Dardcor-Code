@@ -16,7 +16,7 @@ Tích hợp Dardcor Code với OpenAI Codex CLI để định tuyến request AP
 
 ```bash
 # Base URL for Dardcor Code
-export OPENAI_BASE_URL="http://localhost:21128/v1"
+export OPENAI_BASE_URL="http://localhost:20128/v1"
 
 # API Key from Dardcor Code dashboard
 export OPENAI_API_KEY="your-dardcor-code-api-key"
@@ -76,7 +76,7 @@ Bạn cũng có thể cấu hình Codex CLI qua file cấu hình. Tạo hoặc s
 
 ```json
 {
-  "baseUrl": "http://localhost:21128/v1",
+  "baseUrl": "http://localhost:20128/v1",
   "apiKey": "your-dardcor-code-api-key",
   "defaultModel": "cx/gpt-5.2-codex"
 }
@@ -96,9 +96,9 @@ Nếu gặp lỗi xác thực:
 
 Nếu gặp lỗi kết nối:
 
-1. Xác minh Dardcor Code đang chạy: `curl http://localhost:21128/health`
+1. Xác minh Dardcor Code đang chạy: `curl http://localhost:20128/health`
 2. Kiểm tra biến môi trường đã set đúng
-3. Đảm bảo không firewall nào chặn port 21128
+3. Đảm bảo không firewall nào chặn port 20128
 
 ### Model không khả dụng
 
@@ -113,7 +113,7 @@ Nếu gặp lỗi "model not available":
 Để dùng Dardcor Code cloud endpoint thay vì localhost:
 
 ```bash
-export OPENAI_BASE_URL="https://dardcor-code.web.id"
+export OPENAI_BASE_URL="https://dardcor-code.com"
 ```
 
 Đảm bảo bạn đã cấu hình API key trong Dardcor Code cloud dashboard.

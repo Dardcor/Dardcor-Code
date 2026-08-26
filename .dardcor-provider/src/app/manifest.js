@@ -10,16 +10,6 @@ export default function manifest() {
     orientation: 'portrait-primary',
     icons: [
       {
-        src: '/dardcor-code.png',
-        sizes: '512x512',
-        type: 'image/png',
-      },
-      {
-        src: '/favicon.ico',
-        sizes: '48x48',
-        type: 'image/x-icon',
-      },
-      {
         src: '/icons/icon-192.svg',
         sizes: '192x192',
         type: 'image/svg+xml',
@@ -28,6 +18,12 @@ export default function manifest() {
         src: '/icons/icon-512.svg',
         sizes: '512x512',
         type: 'image/svg+xml',
+      },
+      {
+        src: '/icons/icon-512.svg',
+        sizes: '512x512',
+        type: 'image/svg+xml',
+        purpose: 'maskable',
       },
     ],
   }

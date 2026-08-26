@@ -16,7 +16,7 @@ Despliega Dardcor Code en VPS o Docker para acceso remoto y uso en producción.
 ### Paso 1: Clonar el repositorio
 
 ```bash
-git clone .git
+git clone https://github.com/decolua/dardcor-code.git
 cd dardcor-code/app
 ```
 
@@ -48,7 +48,7 @@ export NODE_ENV="production"
 | Variable | Por defecto | Descripción |
 |----------|---------|-------------|
 | `JWT_SECRET` | Auto-generado | **¡DEBE cambiarse en producción!** Usado para firmar tokens JWT |
-| `INITIAL_PASSWORD` | unset | Sin contraseña por defecto; bootstrap opcional solo local — si no se define, crea la contraseña a través de localhost |
+| `INITIAL_PASSWORD` | `123456` | Contraseña de login del dashboard |
 | `DATA_DIR` | `~/.dardcor-code` | Ruta de almacenamiento de la base de datos |
 | `NODE_ENV` | `development` | Establece a `production` para despliegue |
 | `ENABLE_REQUEST_LOGS` | `false` | Habilita logs de debug de request/response |
@@ -130,7 +130,7 @@ COPY . .
 RUN npm run build
 
 # Expose ports
-EXPOSE 3000 21128
+EXPOSE 3000 20128
 
 # Set environment variables
 ENV NODE_ENV=production
@@ -153,7 +153,7 @@ docker build -t dardcor-code .
 docker run -d \
   --name dardcor-code \
   -p 3000:3000 \
-  -p 21128:21128 \
+  -p 20128:20128 \
   -e JWT_SECRET="your-secure-secret-change-this" \
   -e INITIAL_PASSWORD="your-secure-password" \
   -v dardcor-code-data:/app/data \
@@ -173,7 +173,7 @@ services:
     container_name: dardcor-code
     ports:
       - "3000:3000"
-      - "21128:21128"
+      - "20128:20128"
     environment:
       - NODE_ENV=production
       - JWT_SECRET=your-secure-secret-change-this
@@ -266,7 +266,7 @@ server {
 
     # API endpoint
     location /v1 {
-        proxy_pass http://localhost:21128;
+        proxy_pass http://localhost:20128;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -335,7 +335,7 @@ sudo ufw allow 443/tcp
 
 # Si NO usas proxy reverso, permite los puertos de Dardcor Code
 sudo ufw allow 3000/tcp
-sudo ufw allow 21128/tcp
+sudo ufw allow 20128/tcp
 
 # Habilitar firewall
 sudo ufw enable
@@ -418,7 +418,7 @@ htop
 df -h
 
 # Conexiones de red
-netstat -tulpn | grep -E '3000|21128'
+netstat -tulpn | grep -E '3000|20128'
 ```
 
 ---
@@ -433,7 +433,7 @@ pm2 logs dardcor-code
 
 # Verificar si los puertos están en uso
 sudo lsof -i :3000
-sudo lsof -i :21128
+sudo lsof -i :20128
 
 # Verificar variables de entorno
 pm2 env dardcor-code

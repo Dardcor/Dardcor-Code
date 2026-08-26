@@ -199,7 +199,7 @@ Model: kr/claude-sonnet-4.5
 
 ```
 Settings → Models → Advanced:
-  OpenAI API Base URL: http://localhost:21128/v1
+  OpenAI API Base URL: http://localhost:20128/v1
   OpenAI API Key: [dardcor-codeダッシュボードから取得]
   Model: if/kimi-k2-thinking
 ```
@@ -363,6 +363,33 @@ Models:
 - プロフェッショナル開発
 - チームプロジェクト
 - 24時間コーディング
+```
+
+---
+
+## コスト比較
+
+### シナリオ: 月1億トークン
+
+**オプション1: ChatGPT APIのみ**
+```
+1億 × $20/1M = 月$2,000
+```
+
+**オプション2: Dardcor Code無料階層のみ**
+```
+無料階層経由で1億 = 月$0
+節約: 月$2,000 (100%)
+```
+
+**オプション3: Dardcor Code完全戦略**
+```
+Gemini CLI経由で6000万 (無料): $0
+Claude Code経由で3000万 (サブスクリプション): $0追加
+GLM経由で800万 (低価格): $4.80
+iFlow経由で200万 (無料): $0
+合計: 月$4.80 + すでに持っているサブスクリプション
+節約: 月$1,995 (99.76%)
 ```
 
 ---

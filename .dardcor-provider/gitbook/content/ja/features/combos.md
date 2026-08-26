@@ -43,6 +43,7 @@ glm/glm-4.7 → minimax/MiniMax-M2.1 → if/kimi-k2-thinking
 → 最安の有料オプションから開始 (100万あたり$0.60)
 → さらに安いものへフォールバック (100万あたり$0.20)
 → 緊急時の無料階層
+→ 総コスト: 月$5〜10 vs ChatGPT APIの$2000
 ```
 
 ### 3. 24時間可用性を確保
@@ -70,7 +71,7 @@ cc/claude-opus-4-5 → cx/gpt-5.2-codex → gc/gemini-3-pro
 ### ステップ1: ダッシュボードを開く
 
 ```
-http://localhost:21128
+http://localhost:20128
 → パスワードでログイン
 ```
 
@@ -159,6 +160,8 @@ MiniMax経由で500万: $1
 合計: $10 + サブスクリプション
 ```
 
+**節約**: ChatGPT API ($2000) に対して約99%。
+
 ---
 
 ### 例2: バジェットコンボ (低価格 → 無料)
@@ -179,7 +182,7 @@ Models:
 ```
 Cline:
   Provider: OpenAI Compatible
-  Base URL: http://localhost:21128/v1
+  Base URL: http://localhost:20128/v1
   Model: budget-combo
 ```
 
@@ -196,7 +199,10 @@ Request → glm/glm-4.7
 GLM経由で7000万: $42
 MiniMax経由で2000万: $4
 iFlow経由で1000万: $0
+合計: $46 vs ChatGPT APIの$2000
 ```
+
+**節約**: 97%。
 
 ---
 
@@ -231,7 +237,7 @@ Request → if/kimi-k2-thinking
 **月コスト:**
 ```
 無料プロバイダー経由で1億トークン: $0
-合計: $0
+合計: 永久に$0
 ```
 
 **ユースケース**: 個人プロジェクト、学習、実験。
@@ -255,7 +261,7 @@ Models:
 **使用法:**
 ```
 Codex CLI:
-  export OPENAI_BASE_URL="http://localhost:21128"
+  export OPENAI_BASE_URL="http://localhost:20128"
   Model: quality-first
 ```
 
@@ -337,7 +343,7 @@ Models:
 
 ```
 Settings → Models → Advanced:
-  OpenAI API Base URL: http://localhost:21128/v1
+  OpenAI API Base URL: http://localhost:20128/v1
   OpenAI API Key: [ダッシュボードから取得]
   Model: premium-coding
 ```
@@ -347,7 +353,7 @@ Settings → Models → Advanced:
 `~/.claude/config.json`を編集:
 ```json
 {
-  "anthropic_api_base": "http://localhost:21128/v1",
+  "anthropic_api_base": "http://localhost:20128/v1",
   "anthropic_api_key": "your-dardcor-code-api-key",
   "model": "budget-combo"
 }
@@ -356,7 +362,7 @@ Settings → Models → Advanced:
 ### Codex CLI
 
 ```bash
-export OPENAI_BASE_URL="http://localhost:21128"
+export OPENAI_BASE_URL="http://localhost:20128"
 export OPENAI_API_KEY="your-dardcor-code-api-key"
 
 codex --model quality-first "your prompt"
@@ -366,7 +372,7 @@ codex --model quality-first "your prompt"
 
 ```
 Provider: OpenAI Compatible
-Base URL: http://localhost:21128/v1
+Base URL: http://localhost:20128/v1
 API Key: [ダッシュボードから取得]
 Model: free-combo
 ```
@@ -374,7 +380,7 @@ Model: free-combo
 ### APIリクエスト
 
 ```bash
-curl http://localhost:21128/v1/chat/completions \
+curl http://localhost:20128/v1/chat/completions \
   -H "Authorization: Bearer your-api-key" \
   -H "Content-Type: application/json" \
   -d '{

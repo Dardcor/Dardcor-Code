@@ -20,7 +20,7 @@ npm install -g dardcor-code
 dardcor-code
 ```
 
-🎉 **ダッシュボードが自動的に開きます** (`http://localhost:21128`)
+🎉 **ダッシュボードが自動的に開きます** (`http://localhost:20128`)
 
 - デフォルトパスワード: `123456` (ダッシュボードで変更)
 - APIキーは自動生成
@@ -89,7 +89,7 @@ Dashboard → Providers → Connect [Free Provider]
 
 ```
 Settings → Models → Advanced:
-  OpenAI API Base URL: http://localhost:21128/v1
+  OpenAI API Base URL: http://localhost:20128/v1
   OpenAI API Key: [dardcor-codeダッシュボードから取得]
   Model: cc/claude-opus-4-5-20251101
 ```
@@ -100,7 +100,7 @@ Settings → Models → Advanced:
 
 ```json
 {
-  "anthropic_api_base": "http://localhost:21128/v1",
+  "anthropic_api_base": "http://localhost:20128/v1",
   "anthropic_api_key": "your-dardcor-code-api-key"
 }
 ```
@@ -109,7 +109,7 @@ Settings → Models → Advanced:
 
 ```
 Provider: OpenAI Compatible
-Base URL: http://localhost:21128/v1
+Base URL: http://localhost:20128/v1
 API Key: [ダッシュボードから取得]
 Model: cc/claude-opus-4-5-20251101
 ```
@@ -117,7 +117,7 @@ Model: cc/claude-opus-4-5-20251101
 ### Codex CLI
 
 ```bash
-export OPENAI_BASE_URL="http://localhost:21128"
+export OPENAI_BASE_URL="http://localhost:20128"
 export OPENAI_API_KEY="your-dardcor-code-api-key"
 
 codex "your prompt"
@@ -242,6 +242,6 @@ CLIで使用: premium-coding
 
 ## ヘルプが必要?
 
-- **ウェブサイト**: [dardcor-code.web.id](https://dardcor-code.web.id)
-- **GitHub**: 
-- **Issues**: [/issues](/issues)
+- **ウェブサイト**: [dardcor-code.com](https://dardcor-code.com)
+- **GitHub**: [github.com/decolua/dardcor-code](https://github.com/decolua/dardcor-code)
+- **Issues**: [github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)

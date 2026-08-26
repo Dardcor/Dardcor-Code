@@ -291,7 +291,7 @@ Model: ag/gemini-3-pro-high
 
 ```
 Settings → Models → Advanced:
-  OpenAI API Base URL: http://localhost:21128/v1
+  OpenAI API Base URL: http://localhost:20128/v1
   OpenAI API Key: [from dardcor-code dashboard]
   Model: cc/claude-opus-4-5-20251101
 ```

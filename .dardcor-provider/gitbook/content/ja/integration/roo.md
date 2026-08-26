@@ -5,7 +5,7 @@ Dardcor CodeをRoo AIアシスタントと統合し、統一インターフェ�
 ## 前提条件
 
 - Roo AIアシスタントがインストール済み
-- [ダッシュボード](https://dardcor-code.web.id/dashboard)からのDardcor Code APIキー
+- [ダッシュボード](https://dardcor-code.com/dashboard)からのDardcor Code APIキー
 - Dardcor Codeが動作中 (ローカルまたはクラウド)
 
 ## 設定手順
@@ -22,13 +22,13 @@ Roo AIアシスタントを起動し、設定パネルを開きます。
 
 **ローカルDardcor Code用:**
 ```
-Base URL: http://localhost:21128/v1
+Base URL: http://localhost:20128/v1
 API Key: your-api-key-from-dashboard
 ```
 
 **クラウドDardcor Code用:**
 ```
-Base URL: https://dardcor-code.web.id/v1
+Base URL: https://dardcor-code.com/v1
 API Key: your-api-key-from-dashboard
 ```
 
@@ -87,7 +87,7 @@ Model: cx/deepseek-reasoner
 ## トラブルシューティング
 
 ### 接続失敗
-- Dardcor Codeが動作中か確認: `curl http://localhost:21128/health`
+- Dardcor Codeが動作中か確認: `curl http://localhost:20128/health`
 - APIキーが正しいか確認
 - Base URLに `/v1` サフィックスが含まれていることを確認
 

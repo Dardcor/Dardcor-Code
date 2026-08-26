@@ -11,7 +11,7 @@ Tích hợp Dardcor Code với Cursor IDE để định tuyến request AI qua h
 
 ## ⚠️ Lưu ý Quan trọng
 
-> **Yêu cầu Cloud Endpoint**: Cursor định tuyến request qua server của chính nó và không hỗ trợ endpoint localhost. Bạn phải dùng Dardcor Code cloud endpoint: `https://dardcor-code.web.id`
+> **Yêu cầu Cloud Endpoint**: Cursor định tuyến request qua server của chính nó và không hỗ trợ endpoint localhost. Bạn phải dùng Dardcor Code cloud endpoint: `https://dardcor-code.com`
 
 > **Yêu cầu Cursor Pro**: Tính năng này yêu cầu tài khoản Cursor Pro để dùng custom API endpoint.
 
@@ -33,12 +33,12 @@ Tích hợp Dardcor Code với Cursor IDE để định tuyến request AI qua h
 Đặt base URL tới Dardcor Code cloud endpoint:
 
 ```
-https://dardcor-code.web.id
+https://dardcor-code.com
 ```
 
 **Các bước:**
 1. Trong cài đặt Models, tìm field **Base URL**
-2. Nhập: `https://dardcor-code.web.id`
+2. Nhập: `https://dardcor-code.com`
 3. Click **Save**
 
 ### 4. Thêm API Key
@@ -66,7 +66,7 @@ Cursor settings của bạn nên trông như sau:
 
 ```
 OpenAI API: ✓ Enabled
-Base URL: https://dardcor-code.web.id
+Base URL: https://dardcor-code.com
 API Key: sk-dardcor-code-xxxxxxxxxxxxx
 Custom Models: gpt-4, claude-opus-4-5, gemini-2.0-flash
 ```
@@ -123,14 +123,14 @@ Bạn có thể dùng bất kỳ model nào đã cấu hình trong Dardcor Code 
 
 ### Lỗi Connection
 
-1. Xác minh bạn đang dùng cloud endpoint: `https://dardcor-code.web.id`
+1. Xác minh bạn đang dùng cloud endpoint: `https://dardcor-code.com`
 2. Kiểm tra kết nối internet
 3. Đảm bảo dịch vụ Dardcor Code cloud đang hoạt động
 4. Thử tắt VPN hoặc proxy nếu đang bật
 
 ### Localhost không hoạt động
 
-> **Nhớ**: Cursor không hỗ trợ endpoint localhost. Bạn phải dùng cloud endpoint `https://dardcor-code.web.id`. Nếu cần dùng Dardcor Code cục bộ, hãy cân nhắc dùng dịch vụ tunneling như ngrok để expose endpoint cục bộ.
+> **Nhớ**: Cursor không hỗ trợ endpoint localhost. Bạn phải dùng cloud endpoint `https://dardcor-code.com`. Nếu cần dùng Dardcor Code cục bộ, hãy cân nhắc dùng dịch vụ tunneling như ngrok để expose endpoint cục bộ.
 
 ## Setup Cloud Endpoint
 

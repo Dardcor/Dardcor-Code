@@ -1,5 +1,7 @@
 # Cheap Providers - Ultra-Cheap Backup
 
+When subscription quota runs out, pay pennies instead of dollars. ~90% cheaper than ChatGPT API!
+
 ---
 
 ## Overview
@@ -9,6 +11,8 @@ Cheap tier providers are your **backup** when subscription quota exhausted:
 - 💰 **GLM-4.7** - $0.6/$2.2 per 1M tokens (daily reset)
 - 💰 **MiniMax M2.1** - $0.2/$1.0 per 1M tokens (5h reset)
 - 💰 **Kimi K2** - $9/month flat (10M tokens)
+
+**Strategy:** Use after subscription quota out, before free tier. Massive cost savings vs ChatGPT API ($20/1M).
 
 ---
 
@@ -24,6 +28,7 @@ Cheap tier providers are your **backup** when subscription quota exhausted:
 **Cost Example (10M tokens):**
 - Input: 10M × $0.60 = $6
 - Output: 10M × $2.20 = $22
+- **Total: $6-22** vs $200 on ChatGPT API!
 
 ### Setup
 
@@ -136,6 +141,7 @@ Model: minimax/MiniMax-M2.1
 
 ### Pro Tips
 
+- **Cheapest option** - $0.20/1M input (90% cheaper than ChatGPT)
 - **5-hour rolling** - Quota resets every 5 hours
 - **1M context** - Massive context window
 - **Best for long files** - Handle entire codebases
@@ -238,6 +244,8 @@ Total: 10M tokens = $9 flat
 | **Kimi K2** | $0.90 | $0.90 | Monthly | **$9 flat** | Consistent usage |
 | ChatGPT API | $20.00 | $20.00 | None | $200 | ❌ Expensive |
 
+**Savings:** 90-95% cheaper than ChatGPT API!
+
 ---
 
 ## Usage Example
@@ -246,7 +254,7 @@ Total: 10M tokens = $9 flat
 
 ```
 Settings → Models → Advanced:
-  OpenAI API Base URL: http://localhost:21128/v1
+  OpenAI API Base URL: http://localhost:20128/v1
   OpenAI API Key: [from dardcor-code dashboard]
   Model: glm/glm-4.7
 ```
@@ -299,6 +307,8 @@ Allocation:
 - $6 GLM daily quota (10M tokens)
 - $5 MiniMax overflow (25M tokens)
 
+Total: 45M tokens for $20
+vs 1M tokens for $20 on ChatGPT API!
 ```
 
 ### Strategy 3: Maximize Subscriptions First
@@ -316,6 +326,7 @@ Monthly cost example (100M tokens):
 - 30M via Claude Code: $0 (subscription)
 - 8M via GLM: $4.80
 - 2M via MiniMax: $0.40
+Total: $5.20/month!
 ```
 
 ---
@@ -330,6 +341,10 @@ Breakdown:
 - 30M via GLM-4.7: $18
 - 10M via MiniMax M2.1: $2
 
+Total: $20/month
+vs $2000 on ChatGPT API!
+
+Savings: 99% cheaper!
 ```
 
 ### Example 2: Budget Coder ($10/month)
@@ -339,6 +354,10 @@ Strategy:
 - $9 Kimi K2 (10M tokens)
 - $1 MiniMax overflow (5M tokens)
 
+Total: 15M tokens for $10
+vs 0.5M tokens for $10 on ChatGPT API!
+
+30× more tokens!
 ```
 
 ### Example 3: Freelancer (Variable Usage)
@@ -347,12 +366,16 @@ Strategy:
 Light month (20M tokens):
 - 15M via subscription: $0
 - 5M via GLM: $3
+Total: $3
 
 Heavy month (150M tokens):
 - 60M via subscription: $0
 - 60M via GLM: $36
 - 30M via MiniMax: $6
+Total: $42
 
+Average: $22.50/month
+vs $3400 on ChatGPT API!
 ```
 
 ---

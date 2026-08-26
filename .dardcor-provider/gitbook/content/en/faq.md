@@ -17,6 +17,7 @@ It intelligently routes requests across multiple AI providers using a 3-tier fal
 - Never waste subscription quota
 - Automatic fallback when quota exhausted
 - Real-time quota tracking
+- 90% cost savings vs direct API usage
 
 ---
 
@@ -38,6 +39,8 @@ It intelligently routes requests across multiple AI providers using a 3-tier fal
 - **MiniMax M2.1**: $0.20/$1.00 per 1M tokens - 5-hour rolling
 - **Kimi K2**: $9/month flat (10M tokens)
 
+**Goal:** 90% cheaper than ChatGPT API ($20/1M)!
+
 ### Tier 3: Free (Emergency)
 - **iFlow**: 8 models FREE (Kimi K2, Qwen3, GLM, MiniMax...)
 - **Qwen**: 3 models FREE (Qwen3 Coder Plus/Flash, Vision)
@@ -56,6 +59,8 @@ It intelligently routes requests across multiple AI providers using a 3-tier fal
 - **iFlow** - 8 models unlimited (FREE OAuth)
 - **Qwen** - 3 models unlimited (FREE OAuth)
 - **Kiro** - Claude Sonnet/Haiku (FREE AWS Builder ID)
+
+**You can code for FREE forever using only free tier providers!**
 
 **Optional paid providers:**
 - Subscription services you may already have (Claude Code, Codex, Copilot)
@@ -159,7 +164,7 @@ See [quota tracking documentation](features/quota-tracking.md) for details.
 
 ```
 Cursor Settings → Models → Advanced:
-  OpenAI API Base URL: https://dardcor-code.web.id/v1
+  OpenAI API Base URL: https://dardcor-code.com/v1
   OpenAI API Key: [from dashboard]
   Model: cc/claude-opus-4-5-20251101
 ```
@@ -167,7 +172,7 @@ Cursor Settings → Models → Advanced:
 **Alternative:** Self-host on VPS with public domain:
 ```bash
 # Deploy to VPS
-git clone .git
+git clone https://github.com/decolua/dardcor-code.git
 cd dardcor-code/app
 npm install && npm run build
 npm start
@@ -196,12 +201,12 @@ See [Cursor integration guide](integration/cursor.md) for details.
 npm install -g dardcor-code
 dardcor-code
 → Dashboard: http://localhost:3000
-→ API: http://localhost:21128/v1
+→ API: http://localhost:20128/v1
 ```
 
 ### VPS/Cloud
 ```bash
-git clone .git
+git clone https://github.com/decolua/dardcor-code.git
 cd dardcor-code/app
 npm install && npm run build
 
@@ -231,7 +236,7 @@ npm run deploy:cloudflare
 **Environment variables:**
 - `JWT_SECRET` - **MUST change in production!**
 - `DATA_DIR` - Database storage path (default: `~/.dardcor-code`)
-- `INITIAL_PASSWORD` - Dashboard login (no default; optional local-only bootstrap — if unset, create the password through localhost)
+- `INITIAL_PASSWORD` - Dashboard login (default: `123456`)
 - `NODE_ENV` - Set to `production` for deploy
 
 See [deployment guide](getting-started/installation.md#deployment) for details.
@@ -311,7 +316,7 @@ dardcor-code --version
 ```
 
 **Breaking changes:**
-- Check [CHANGELOG.md](/blob/main/CHANGELOG.md)
+- Check [CHANGELOG.md](https://github.com/decolua/dardcor-code/blob/main/CHANGELOG.md)
 - Backup `~/.dardcor-code` before major updates
 - Review migration guides for major versions
 
@@ -324,17 +329,17 @@ dardcor-code --version
 ### Ways to contribute:
 
 1. **Report bugs:**
-   - [GitHub Issues](/issues)
+   - [GitHub Issues](https://github.com/decolua/dardcor-code/issues)
    - Include error logs, steps to reproduce
 
 2. **Request features:**
-   - [GitHub Discussions](/discussions)
+   - [GitHub Discussions](https://github.com/decolua/dardcor-code/discussions)
    - Describe use case and benefits
 
 3. **Submit code:**
    ```bash
    # Fork repo
-   git clone .git
+   git clone https://github.com/YOUR_USERNAME/dardcor-code.git
    cd dardcor-code
    
    # Create branch
@@ -370,13 +375,13 @@ dardcor-code --version
 - Update documentation
 - Keep commits atomic and descriptive
 
-See [CONTRIBUTING.md](/blob/main/CONTRIBUTING.md) for details.
+See [CONTRIBUTING.md](https://github.com/decolua/dardcor-code/blob/main/CONTRIBUTING.md) for details.
 
 ---
 
 ## Need More Help?
 
-- **Documentation:** [dardcor-code.web.id/docs](https://dardcor-code.web.id/docs)
-- **GitHub:** 
-- **Issues:** [/issues](/issues)
+- **Documentation:** [dardcor-code.com/docs](https://dardcor-code.com/docs)
+- **GitHub:** [github.com/decolua/dardcor-code](https://github.com/decolua/dardcor-code)
+- **Issues:** [github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)
 - **Troubleshooting:** [troubleshooting.md](troubleshooting.md)

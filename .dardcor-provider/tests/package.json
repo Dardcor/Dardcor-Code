@@ -1,8 +1,7 @@
 {
-  "name": "dardcor-code-tests",
+  "name": "dardcor-code-app",
   "version": "1.0.0",
   "private": true,
-  "type": "module",
   "description": "Unit tests for dardcor-code embeddings endpoint",
   "scripts": {
     "test": "vitest run --reporter=verbose",

@@ -74,7 +74,7 @@ npx dardcor-code
 GitHubからクローンしてビルド:
 
 ```bash
-git clone .git
+git clone https://github.com/decolua/dardcor-code.git
 cd dardcor-code/app
 npm install
 npm run build
@@ -97,7 +97,7 @@ dardcor-code
 ```
 
 **何が起こるか:**
-1. サーバーが `http://localhost:21128` で起動
+1. サーバーが `http://localhost:20128` で起動
 2. ダッシュボードが自動的にブラウザで開く
 3. `~/.dardcor-code` にデータディレクトリが作成される
 4. APIキーが自動生成される
@@ -122,7 +122,7 @@ Dashboard → Settings → API Keys
 
 **APIキー形式の例:**
 ```
-dardcor_1234567890abcdef1234567890abcdef
+9r_1234567890abcdef1234567890abcdef
 ```
 
 ---
@@ -132,7 +132,7 @@ dardcor_1234567890abcdef1234567890abcdef
 ### サーバーステータスを確認
 
 ```bash
-curl http://localhost:21128/health
+curl http://localhost:20128/health
 ```
 
 **期待されるレスポンス:**
@@ -146,7 +146,7 @@ curl http://localhost:21128/health
 ### 利用可能なモデルを一覧表示
 
 ```bash
-curl http://localhost:21128/v1/models \
+curl http://localhost:20128/v1/models \
   -H "Authorization: Bearer your-api-key"
 ```
 
@@ -168,7 +168,7 @@ curl http://localhost:21128/v1/models \
 ### チャットコンプリーションをテスト
 
 ```bash
-curl http://localhost:21128/v1/chat/completions \
+curl http://localhost:20128/v1/chat/completions \
   -H "Authorization: Bearer your-api-key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -196,7 +196,7 @@ export INITIAL_PASSWORD="your-password"
 export DATA_DIR="~/.dardcor-code"
 
 # サーバー
-export PORT="21128"
+export PORT="20128"
 export NODE_ENV="production"
 
 # ロギング
@@ -224,7 +224,7 @@ dardcor-code
 
 ### ポート設定
 
-**デフォルトポート:** `21128`
+**デフォルトポート:** `20128`
 
 **ポートを変更:**
 
@@ -247,14 +247,14 @@ dardcor-code --port 3000
 
 **エラー:**
 ```
-Error: listen EADDRINUSE: address already in use :::21128
+Error: listen EADDRINUSE: address already in use :::20128
 ```
 
 **解決策1: 既存のプロセスを終了**
 
 ```bash
-# ポート21128を使用しているプロセスを検索
-lsof -i :21128
+# ポート20128を使用しているプロセスを検索
+lsof -i :20128
 
 # プロセスを終了
 kill -9 <PID>
@@ -310,7 +310,7 @@ nvm use 20
 **解決策1: 手動で開く**
 
 ```
-http://localhost:21128
+http://localhost:20128
 ```
 
 **解決策2: ファイアウォールを確認**
@@ -404,7 +404,7 @@ pm2 startup
 docker pull dardcor-code/dardcor-code:latest
 
 docker run -d \
-  -p 21128:21128 \
+  -p 20128:20128 \
   -e JWT_SECRET="your-secure-secret" \
   -e INITIAL_PASSWORD="your-password" \
   -v dardcor-code-data:/root/.dardcor-code \
@@ -422,7 +422,7 @@ server {
     server_name your-domain.com;
 
     location / {
-        proxy_pass http://localhost:21128;
+        proxy_pass http://localhost:20128;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -473,6 +473,6 @@ nano ~/.bashrc  # または ~/.zshrc
 
 ## ヘルプが必要?
 
-- **ウェブサイト**: [dardcor-code.web.id](https://dardcor-code.web.id)
-- **GitHub**: 
-- **Issues**: [/issues](/issues)
+- **ウェブサイト**: [dardcor-code.com](https://dardcor-code.com)
+- **GitHub**: [github.com/decolua/dardcor-code](https://github.com/decolua/dardcor-code)
+- **Issues**: [github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)

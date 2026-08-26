@@ -132,11 +132,11 @@ Dardcor Code利用時の一般的な問題と解決策。
 
 ## Connection Refused
 
-**問題:** 「ECONNREFUSED」または「Cannot connect to localhost:21128」。
+**問題:** 「ECONNREFUSED」または「Cannot connect to localhost:20128」。
 
 **原因:**
 - Dardcor Codeが起動していない
-- ポート21128がブロックされている
+- ポート20128がブロックされている
 - ファイアウォールが接続をブロック
 
 **解決策:**
@@ -147,24 +147,24 @@ Dardcor Code利用時の一般的な問題と解決策。
    ```
    ダッシュボードがhttp://localhost:3000で開くはず
 
-2. **ポート21128を確認:**
+2. **ポート20128を確認:**
    ```bash
    # ポートがリッスンしているか確認
-   lsof -i :21128
+   lsof -i :20128
    
    # またはWindowsで
-   netstat -ano | findstr :21128
+   netstat -ano | findstr :20128
    ```
 
 3. **ファイアウォールを確認:**
    - macOS: システム設定 → ネットワーク → ファイアウォール
    - Windows: Windows Defenderファイアウォール → アプリを許可
-   - Linux: `sudo ufw allow 21128`
+   - Linux: `sudo ufw allow 20128`
 
 4. **クラウドエンドポイントを使用:**
    localhostが動作しない場合(例: Cursor IDE):
    ```
-   Endpoint: https://dardcor-code.web.id/v1
+   Endpoint: https://dardcor-code.com/v1
    ```
 
 ---
@@ -243,7 +243,7 @@ Dardcor Code利用時の一般的な問題と解決策。
 
 3. **利用可能なモデルを一覧表示:**
    ```bash
-   curl http://localhost:21128/v1/models \
+   curl http://localhost:20128/v1/models \
      -H "Authorization: Bearer your-api-key"
    ```
 
@@ -320,8 +320,8 @@ Dardcor Code利用時の一般的な問題と解決策。
 
 2. **キー形式を確認:**
    ```
-   正しい: dardcor_xxxxxxxxxxxxxxxxxxxxxxxx
-   誤り: dardcor_プレフィックスがない
+   正しい: 9r_xxxxxxxxxxxxxxxxxxxxxxxx
+   誤り: 9r_プレフィックスがない
    ```
 
 3. **CLI設定でキーを確認:**
@@ -333,19 +333,19 @@ Dardcor Code利用時の一般的な問題と解決策。
    Settings → API Key
    
    # 環境変数
-   export OPENAI_API_KEY="dardcor_your_key"
+   export OPENAI_API_KEY="9r_your_key"
    ```
 
 4. **APIキーをテスト:**
    ```bash
-   curl http://localhost:21128/v1/models \
-     -H "Authorization: Bearer dardcor_your_key"
+   curl http://localhost:20128/v1/models \
+     -H "Authorization: Bearer 9r_your_key"
    ```
 
 ---
 
 ## さらにヘルプが必要?
 
-- **GitHub Issues:** [/issues](/issues)
-- **ドキュメント:** [dardcor-code.web.id/docs](https://dardcor-code.web.id/docs)
+- **GitHub Issues:** [github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)
+- **ドキュメント:** [dardcor-code.com/docs](https://dardcor-code.com/docs)
 - **FAQ:** [faq.md](faq.md)

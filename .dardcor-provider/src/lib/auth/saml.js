@@ -92,7 +92,7 @@ export function createSamlInstance(settings, origin) {
   const callbackUrl = `${origin}/api/auth/saml/acs`;
   return new SAML({
     entryPoint: settings?.samlEntryPoint || "https://example.com/sso",
-    issuer: settings?.samlIssuer || "urn:9router:sp",
+    issuer: settings?.samlIssuer || "urn:dardcor-code:sp",
     idpCert: cert,
     cert: cert,
     callbackUrl: callbackUrl,

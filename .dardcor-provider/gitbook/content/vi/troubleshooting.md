@@ -132,11 +132,11 @@ Các vấn đề và giải pháp phổ biến khi dùng Dardcor Code.
 
 ## Connection Refused
 
-**Vấn đề:** Lỗi "ECONNREFUSED" hoặc "Cannot connect to localhost:21128".
+**Vấn đề:** Lỗi "ECONNREFUSED" hoặc "Cannot connect to localhost:20128".
 
 **Nguyên nhân:**
 - Dardcor Code không chạy
-- Port 21128 bị chặn
+- Port 20128 bị chặn
 - Firewall chặn kết nối
 
 **Giải pháp:**
@@ -147,24 +147,24 @@ Các vấn đề và giải pháp phổ biến khi dùng Dardcor Code.
    ```
    Dashboard sẽ mở tại http://localhost:3000
 
-2. **Xác minh port 21128:**
+2. **Xác minh port 20128:**
    ```bash
    # Check if port is listening
-   lsof -i :21128
+   lsof -i :20128
    
    # Or on Windows
-   netstat -ano | findstr :21128
+   netstat -ano | findstr :20128
    ```
 
 3. **Kiểm tra firewall:**
    - macOS: System Settings → Network → Firewall
    - Windows: Windows Defender Firewall → Allow app
-   - Linux: `sudo ufw allow 21128`
+   - Linux: `sudo ufw allow 20128`
 
 4. **Dùng cloud endpoint:**
    Nếu localhost không hoạt động (ví dụ: Cursor IDE):
    ```
-   Endpoint: https://dardcor-code.web.id/v1
+   Endpoint: https://dardcor-code.com/v1
    ```
 
 ---
@@ -243,7 +243,7 @@ Các vấn đề và giải pháp phổ biến khi dùng Dardcor Code.
 
 3. **Liệt kê model khả dụng:**
    ```bash
-   curl http://localhost:21128/v1/models \
+   curl http://localhost:20128/v1/models \
      -H "Authorization: Bearer your-api-key"
    ```
 
@@ -320,8 +320,8 @@ Các vấn đề và giải pháp phổ biến khi dùng Dardcor Code.
 
 2. **Xác minh format key:**
    ```
-   Correct: dardcor_xxxxxxxxxxxxxxxxxxxxxxxx
-   Wrong: Missing dardcor_ prefix
+   Correct: 9r_xxxxxxxxxxxxxxxxxxxxxxxx
+   Wrong: Missing 9r_ prefix
    ```
 
 3. **Kiểm tra key trong CLI config:**
@@ -333,19 +333,19 @@ Các vấn đề và giải pháp phổ biến khi dùng Dardcor Code.
    Settings → API Key
    
    # Environment variable
-   export OPENAI_API_KEY="dardcor_your_key"
+   export OPENAI_API_KEY="9r_your_key"
    ```
 
 4. **Test API key:**
    ```bash
-   curl http://localhost:21128/v1/models \
-     -H "Authorization: Bearer dardcor_your_key"
+   curl http://localhost:20128/v1/models \
+     -H "Authorization: Bearer 9r_your_key"
    ```
 
 ---
 
 ## Cần trợ giúp thêm?
 
-- **GitHub Issues:** [/issues](/issues)
-- **Documentation:** [dardcor-code.web.id/docs](https://dardcor-code.web.id/docs)
+- **GitHub Issues:** [github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)
+- **Documentation:** [dardcor-code.com/docs](https://dardcor-code.com/docs)
 - **FAQ:** [faq.md](faq.md)

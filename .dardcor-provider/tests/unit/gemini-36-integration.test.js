@@ -125,30 +125,6 @@ describe("Gemini 3.6 MITM model extraction", () => {
   });
 });
 
-describe("Gemini 3.7 MITM model extraction", () => {
-  it.each(["high", "medium", "low"])("extracts the %s thinking tier", (tier) => {
-    const body = Buffer.from(JSON.stringify({
-      request: { generationConfig: { thinkingConfig: { thinkingLevel: tier } } },
-    }));
-
-    expect(mitmConfig.extractModel(
-      "/v1internal/models/gemini-3.7-flash-tiered:streamGenerateContent",
-      body
-    )).toBe(`gemini-3.7-flash-${tier}`);
-  });
-
-  it("defaults invalid or missing thinking levels to medium", () => {
-    const body = Buffer.from(JSON.stringify({
-      request: { generationConfig: { thinkingConfig: { thinkingLevel: "unknown" } } },
-    }));
-
-    expect(mitmConfig.extractModel(
-      "/v1internal/models/gemini-3.7-flash-tiered:streamGenerateContent",
-      body
-    )).toBe("gemini-3.7-flash-medium");
-  });
-});
-
 describe("Gemini 3.6 catalogs and pricing", () => {
   it("exposes the direct Gemini API models and their pricing", () => {
     const ids = gemini.models.map((model) => model.id);

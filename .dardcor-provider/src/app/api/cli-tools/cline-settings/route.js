@@ -44,12 +44,12 @@ const readJson = async (filePath) => {
   }
 };
 
-const has9RouterConfig = (globalState) => {
+const hasDardcor CodeConfig = (globalState) => {
   if (!globalState) return false;
   const isOpenAi =
     globalState.actModeApiProvider === "openai" || globalState.planModeApiProvider === "openai";
   const baseUrl = globalState.openAiBaseUrl || "";
-  return isOpenAi && (baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1") || baseUrl.includes("9router"));
+  return isOpenAi && (baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1") || baseUrl.includes("dardcor-code"));
 };
 
 export async function GET() {
@@ -67,7 +67,7 @@ export async function GET() {
         openAiBaseUrl: globalState?.openAiBaseUrl,
         openAiModelId: globalState?.openAiModelId,
       },
-      has9Router: has9RouterConfig(globalState),
+      hasDardcor Code: hasDardcor CodeConfig(globalState),
       globalStatePath: getGlobalStatePath(),
     });
   } catch (error) {

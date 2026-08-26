@@ -1,5 +1,7 @@
 # Cheap Providers - Backup Siêu Rẻ
 
+Khi hết quota subscription, trả vài xu thay vì vài đô. Rẻ hơn ChatGPT API ~90%!
+
 ---
 
 ## Tổng quan
@@ -9,6 +11,8 @@ Provider tier rẻ là **backup** khi hết quota subscription:
 - 💰 **GLM-4.7** - $0.6/$2.2 per 1M tokens (reset hàng ngày)
 - 💰 **MiniMax M2.1** - $0.2/$1.0 per 1M tokens (reset 5h)
 - 💰 **Kimi K2** - $9/tháng cố định (10M tokens)
+
+**Chiến lược:** Dùng sau khi hết quota subscription, trước free tier. Tiết kiệm chi phí khổng lồ so với ChatGPT API ($20/1M).
 
 ---
 
@@ -24,6 +28,7 @@ Provider tier rẻ là **backup** khi hết quota subscription:
 **Ví dụ Chi phí (10M tokens):**
 - Input: 10M × $0.60 = $6
 - Output: 10M × $2.20 = $22
+- **Tổng: $6-22** so với $200 trên ChatGPT API!
 
 ### Setup
 
@@ -136,6 +141,7 @@ Model: minimax/MiniMax-M2.1
 
 ### Mẹo Pro
 
+- **Lựa chọn rẻ nhất** - $0.20/1M input (rẻ hơn ChatGPT 90%)
 - **5 giờ rolling** - Quota reset mỗi 5 giờ
 - **Context 1M** - Cửa sổ context khổng lồ
 - **Tốt nhất cho file dài** - Xử lý cả codebase
@@ -238,6 +244,8 @@ Total: 10M tokens = $9 flat
 | **Kimi K2** | $0.90 | $0.90 | Hàng tháng | **$9 cố định** | Sử dụng đều |
 | ChatGPT API | $20.00 | $20.00 | Không | $200 | ❌ Đắt |
 
+**Tiết kiệm:** Rẻ hơn ChatGPT API 90-95%!
+
 ---
 
 ## Ví dụ Sử dụng
@@ -246,7 +254,7 @@ Total: 10M tokens = $9 flat
 
 ```
 Settings → Models → Advanced:
-  OpenAI API Base URL: http://localhost:21128/v1
+  OpenAI API Base URL: http://localhost:20128/v1
   OpenAI API Key: [from dardcor-code dashboard]
   Model: glm/glm-4.7
 ```
@@ -299,6 +307,8 @@ Allocation:
 - $6 GLM daily quota (10M tokens)
 - $5 MiniMax overflow (25M tokens)
 
+Total: 45M tokens for $20
+vs 1M tokens for $20 on ChatGPT API!
 ```
 
 ### Chiến lược 3: Tối đa Subscription Trước
@@ -316,6 +326,7 @@ Monthly cost example (100M tokens):
 - 30M via Claude Code: $0 (subscription)
 - 8M via GLM: $4.80
 - 2M via MiniMax: $0.40
+Total: $5.20/month!
 ```
 
 ---
@@ -330,6 +341,10 @@ Breakdown:
 - 30M via GLM-4.7: $18
 - 10M via MiniMax M2.1: $2
 
+Total: $20/month
+vs $2000 on ChatGPT API!
+
+Savings: 99% cheaper!
 ```
 
 ### Ví dụ 2: Coder Ngân sách ($10/tháng)
@@ -339,6 +354,10 @@ Strategy:
 - $9 Kimi K2 (10M tokens)
 - $1 MiniMax overflow (5M tokens)
 
+Total: 15M tokens for $10
+vs 0.5M tokens for $10 on ChatGPT API!
+
+30× more tokens!
 ```
 
 ### Ví dụ 3: Freelancer (Usage Biến thiên)
@@ -347,12 +366,16 @@ Strategy:
 Light month (20M tokens):
 - 15M via subscription: $0
 - 5M via GLM: $3
+Total: $3
 
 Heavy month (150M tokens):
 - 60M via subscription: $0
 - 60M via GLM: $36
 - 30M via MiniMax: $6
+Total: $42
 
+Average: $22.50/month
+vs $3400 on ChatGPT API!
 ```
 
 ---

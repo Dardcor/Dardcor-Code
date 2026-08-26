@@ -61,6 +61,7 @@ Hoạt động với mọi công cụ hỗ trợ custom OpenAI endpoint:
 30M qua Claude Code: $0 (subscription đã có)
 8M qua GLM: $4.80
 2M qua MiniMax: $0.40
+Tổng: $5.20/tháng so với $2000 trên ChatGPT API!
 ```
 
 ---
@@ -85,6 +86,8 @@ Khi quota subscription hết, trả vài xu:
 | **GLM-4.7** | $0.60 input / $2.20 output | Hàng ngày 10:00 AM |
 | **MiniMax M2.1** | $0.20 input / $1.00 output | 5 giờ rolling |
 | **Kimi K2** | $9/tháng (10M tokens) | Hàng tháng |
+
+**~90% rẻ hơn ChatGPT API ($20/1M)!**
 
 ### Fallback Miễn phí Mãi mãi
 
@@ -113,7 +116,7 @@ dardcor-code
 **Dùng trong CLI tool:**
 
 ```
-Endpoint: http://localhost:21128/v1
+Endpoint: http://localhost:20128/v1
 API Key: [from dashboard]
 Model: cc/claude-opus-4-5-20251101
 ```
@@ -140,7 +143,7 @@ Model: cc/claude-opus-4-5-20251101
 
 ### Cho Mobile/Remote Coding
 
-- Dùng cloud deployment (https://dardcor-code.web.id)
+- Dùng cloud deployment (https://dardcor-code.com)
 - Truy cập từ iPad, điện thoại, mọi nơi
 - Không bị giới hạn localhost
 - Mạng Cloudflare edge (300+ vị trí)

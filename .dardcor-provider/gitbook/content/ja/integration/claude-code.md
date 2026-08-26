@@ -16,7 +16,7 @@ Dardcor CodeをClaude Code CLIと統合し、AnthropicのAPIリクエストをDa
 
 ```bash
 # Dardcor Code用Base URL
-export ANTHROPIC_BASE_URL="http://localhost:21128/v1"
+export ANTHROPIC_BASE_URL="http://localhost:20128/v1"
 
 # オプション: エイリアス用のデフォルトモデルを設定
 export ANTHROPIC_DEFAULT_OPUS_MODEL="cc/claude-opus-4-5-20251101"
@@ -75,7 +75,7 @@ Claude Codeは設定を `~/.claude/settings.json` に保存します。必要に
 
 ```json
 {
-  "baseUrl": "http://localhost:21128/v1",
+  "baseUrl": "http://localhost:20128/v1",
   "defaultModel": "sonnet"
 }
 ```
@@ -86,9 +86,9 @@ Claude Codeは設定を `~/.claude/settings.json` に保存します。必要に
 
 接続エラーが発生した場合:
 
-1. Dardcor Codeが動作中か確認: `curl http://localhost:21128/health`
+1. Dardcor Codeが動作中か確認: `curl http://localhost:20128/health`
 2. 環境変数が正しく設定されているか確認
-3. ファイアウォールがポート21128をブロックしていないか確認
+3. ファイアウォールがポート20128をブロックしていないか確認
 
 ### モデルが見つからない
 
@@ -103,7 +103,7 @@ Claude Codeは設定を `~/.claude/settings.json` に保存します。必要に
 localhostの代わりにDardcor Codeクラウドエンドポイントを使用するには:
 
 ```bash
-export ANTHROPIC_BASE_URL="https://dardcor-code.web.id"
+export ANTHROPIC_BASE_URL="https://dardcor-code.com"
 ```
 
 Dardcor CodeクラウドダッシュボードでAPIキーが設定されていることを確認してください。

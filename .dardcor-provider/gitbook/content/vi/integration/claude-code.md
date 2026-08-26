@@ -16,7 +16,7 @@ Tích hợp Dardcor Code với Claude Code CLI để định tuyến request API
 
 ```bash
 # Base URL for Dardcor Code
-export ANTHROPIC_BASE_URL="http://localhost:21128/v1"
+export ANTHROPIC_BASE_URL="http://localhost:20128/v1"
 
 # Optional: Set default models for aliases
 export ANTHROPIC_DEFAULT_OPUS_MODEL="cc/claude-opus-4-5-20251101"
@@ -75,7 +75,7 @@ Claude Code lưu cấu hình trong `~/.claude/settings.json`. Bạn có thể s�
 
 ```json
 {
-  "baseUrl": "http://localhost:21128/v1",
+  "baseUrl": "http://localhost:20128/v1",
   "defaultModel": "sonnet"
 }
 ```
@@ -86,9 +86,9 @@ Claude Code lưu cấu hình trong `~/.claude/settings.json`. Bạn có thể s�
 
 Nếu gặp lỗi kết nối:
 
-1. Xác minh Dardcor Code đang chạy: `curl http://localhost:21128/health`
+1. Xác minh Dardcor Code đang chạy: `curl http://localhost:20128/health`
 2. Kiểm tra biến môi trường đã set đúng
-3. Đảm bảo không firewall nào chặn port 21128
+3. Đảm bảo không firewall nào chặn port 20128
 
 ### Model Not Found
 
@@ -103,7 +103,7 @@ Nếu gặp lỗi "model not found":
 Để dùng Dardcor Code cloud endpoint thay vì localhost:
 
 ```bash
-export ANTHROPIC_BASE_URL="https://dardcor-code.web.id"
+export ANTHROPIC_BASE_URL="https://dardcor-code.com"
 ```
 
 Đảm bảo bạn đã cấu hình API key trong Dardcor Code cloud dashboard.

@@ -17,6 +17,7 @@ Enruta inteligentemente las solicitudes a través de múltiples proveedores de I
 - Nunca desperdicies la cuota de suscripción
 - Fallback automático cuando se agota la cuota
 - Seguimiento de cuota en tiempo real
+- 90% de ahorro en costos vs uso directo de API
 
 ---
 
@@ -37,6 +38,8 @@ Enruta inteligentemente las solicitudes a través de múltiples proveedores de I
 - **GLM-4.7**: $0.60/$2.20 por 1M tokens - Reinicio diario 10AM
 - **MiniMax M2.1**: $0.20/$1.00 por 1M tokens - 5 horas rolling
 - **Kimi K2**: $9/mes plano (10M tokens)
+
+**Objetivo:** ¡90% más barato que ChatGPT API ($20/1M)!
 
 ### Nivel 3: Gratis (Emergencia)
 - **iFlow**: 8 modelos GRATIS (Kimi K2, Qwen3, GLM, MiniMax...)
@@ -161,7 +164,7 @@ Consulta la [documentación de seguimiento de cuota](features/quota-tracking.md)
 
 ```
 Cursor Settings → Models → Advanced:
-  OpenAI API Base URL: https://dardcor-code.web.id/v1
+  OpenAI API Base URL: https://dardcor-code.com/v1
   OpenAI API Key: [desde el dashboard]
   Model: cc/claude-opus-4-5-20251101
 ```
@@ -169,7 +172,7 @@ Cursor Settings → Models → Advanced:
 **Alternativa:** Auto-hospéda en VPS con dominio público:
 ```bash
 # Despliega en VPS
-git clone .git
+git clone https://github.com/decolua/dardcor-code.git
 cd dardcor-code/app
 npm install && npm run build
 npm start
@@ -198,12 +201,12 @@ Consulta la [guía de integración de Cursor](integration/cursor.md) para detall
 npm install -g dardcor-code
 dardcor-code
 → Dashboard: http://localhost:3000
-→ API: http://localhost:21128/v1
+→ API: http://localhost:20128/v1
 ```
 
 ### VPS/Cloud
 ```bash
-git clone .git
+git clone https://github.com/decolua/dardcor-code.git
 cd dardcor-code/app
 npm install && npm run build
 
@@ -233,7 +236,7 @@ npm run deploy:cloudflare
 **Variables de entorno:**
 - `JWT_SECRET` - **¡DEBE cambiarse en producción!**
 - `DATA_DIR` - Ruta de almacenamiento de la base de datos (por defecto: `~/.dardcor-code`)
-- `INITIAL_PASSWORD` - Login del dashboard (sin valor por defecto; bootstrap opcional solo local — si no se define, crea la contraseña vía localhost)
+- `INITIAL_PASSWORD` - Login del dashboard (por defecto: `123456`)
 - `NODE_ENV` - Establece en `production` para desplegar
 
 Consulta la [guía de despliegue](getting-started/installation.md#deployment) para detalles.
@@ -313,7 +316,7 @@ dardcor-code --version
 ```
 
 **Cambios disruptivos:**
-- Revisa [CHANGELOG.md](/blob/main/CHANGELOG.md)
+- Revisa [CHANGELOG.md](https://github.com/decolua/dardcor-code/blob/main/CHANGELOG.md)
 - Respalda `~/.dardcor-code` antes de actualizaciones mayores
 - Revisa las guías de migración para versiones mayores
 
@@ -326,17 +329,17 @@ dardcor-code --version
 ### Formas de contribuir:
 
 1. **Reportar bugs:**
-   - [GitHub Issues](/issues)
+   - [GitHub Issues](https://github.com/decolua/dardcor-code/issues)
    - Incluye logs de error, pasos para reproducir
 
 2. **Solicitar características:**
-   - [GitHub Discussions](/discussions)
+   - [GitHub Discussions](https://github.com/decolua/dardcor-code/discussions)
    - Describe el caso de uso y los beneficios
 
 3. **Enviar código:**
    ```bash
    # Fork del repo
-   git clone .git
+   git clone https://github.com/YOUR_USERNAME/dardcor-code.git
    cd dardcor-code
    
    # Crea una rama
@@ -372,13 +375,13 @@ dardcor-code --version
 - Actualiza la documentación
 - Mantén los commits atómicos y descriptivos
 
-Consulta [CONTRIBUTING.md](/blob/main/CONTRIBUTING.md) para detalles.
+Consulta [CONTRIBUTING.md](https://github.com/decolua/dardcor-code/blob/main/CONTRIBUTING.md) para detalles.
 
 ---
 
 ## ¿Necesitas más ayuda?
 
-- **Documentación:** [dardcor-code.web.id/docs](https://dardcor-code.web.id/docs)
-- **GitHub:** 
-- **Issues:** [/issues](/issues)
+- **Documentación:** [dardcor-code.com/docs](https://dardcor-code.com/docs)
+- **GitHub:** [github.com/decolua/dardcor-code](https://github.com/decolua/dardcor-code)
+- **Issues:** [github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)
 - **Troubleshooting:** [troubleshooting.md](troubleshooting.md)

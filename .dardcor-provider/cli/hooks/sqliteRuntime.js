@@ -1,6 +1,7 @@
 // Ensure better-sqlite3 is installed in USER_DATA_DIR/runtime/node_modules
 // (user-writable, avoids Windows EBUSY locks during npm i -g updates).
-// sql.js is bundled in bin/app already; node:sqlite / bun:sqlite are built-in.const { execSync, spawnSync } = require("child_process");
+// sql.js is bundled in bin/app already; node:sqlite / bun:sqlite are built-in.
+const { execSync, spawnSync } = require("child_process");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -10,11 +11,6 @@ const SQL_JS_VERSION = "1.14.1";
 
 function getDataDir() {
   if (process.env.DATA_DIR) return process.env.DATA_DIR;
-  // Legacy read fallback: ~/.9router/runtime keeps working until migration.
-  const legacy = process.platform === "win32"
-    ? path.join(process.env.APPDATA || os.homedir(), "9router")
-    : path.join(os.homedir(), ".9router");
-  if (fs.existsSync(legacy)) return legacy;
   return process.platform === "win32"
     ? path.join(process.env.APPDATA || os.homedir(), "dardcor-code")
     : path.join(os.homedir(), ".dardcor-code");

@@ -43,6 +43,7 @@ glm/glm-4.7 → minimax/MiniMax-M2.1 → if/kimi-k2-thinking
 → 从最便宜的付费选项开始(每 1M $0.60)
 → 回退到更便宜的(每 1M $0.20)
 → 应急免费层
+→ 总成本: 约 $5-10/月,而 ChatGPT API 需要 $2000
 ```
 
 ### 3. 保障 24/7 可用
@@ -70,7 +71,7 @@ cc/claude-opus-4-5 → cx/gpt-5.2-codex → gc/gemini-3-pro
 ### 步骤 1:打开仪表盘
 
 ```
-http://localhost:21128
+http://localhost:20128
 → 用密码登录
 ```
 
@@ -159,6 +160,8 @@ Cursor IDE:
 合计: $10 + 你的订阅
 ```
 
+**节省**:相比 ChatGPT API($2000)约 99%。
+
 ---
 
 ### 示例 2:Budget Combo(低价 → 免费)
@@ -179,7 +182,7 @@ Cursor IDE:
 ```
 Cline:
   Provider: OpenAI Compatible
-  Base URL: http://localhost:21128/v1
+  Base URL: http://localhost:20128/v1
   Model: budget-combo
 ```
 
@@ -196,7 +199,10 @@ Cline:
 70M 通过 GLM: $42
 20M 通过 MiniMax: $4
 10M 通过 iFlow: $0
+合计: $46,而 ChatGPT API 需 $2000
 ```
+
+**节省**:97%。
 
 ---
 
@@ -255,7 +261,7 @@ Claude Desktop:
 **用法:**
 ```
 Codex CLI:
-  export OPENAI_BASE_URL="http://localhost:21128"
+  export OPENAI_BASE_URL="http://localhost:20128"
   Model: quality-first
 ```
 
@@ -337,7 +343,7 @@ Codex CLI:
 
 ```
 Settings → Models → Advanced:
-  OpenAI API Base URL: http://localhost:21128/v1
+  OpenAI API Base URL: http://localhost:20128/v1
   OpenAI API Key: [从仪表盘获取]
   Model: premium-coding
 ```
@@ -347,7 +353,7 @@ Settings → Models → Advanced:
 编辑 `~/.claude/config.json`:
 ```json
 {
-  "anthropic_api_base": "http://localhost:21128/v1",
+  "anthropic_api_base": "http://localhost:20128/v1",
   "anthropic_api_key": "your-dardcor-code-api-key",
   "model": "budget-combo"
 }
@@ -356,7 +362,7 @@ Settings → Models → Advanced:
 ### Codex CLI
 
 ```bash
-export OPENAI_BASE_URL="http://localhost:21128"
+export OPENAI_BASE_URL="http://localhost:20128"
 export OPENAI_API_KEY="your-dardcor-code-api-key"
 
 codex --model quality-first "your prompt"
@@ -366,7 +372,7 @@ codex --model quality-first "your prompt"
 
 ```
 Provider: OpenAI Compatible
-Base URL: http://localhost:21128/v1
+Base URL: http://localhost:20128/v1
 API Key: [从仪表盘获取]
 Model: free-combo
 ```
@@ -374,7 +380,7 @@ Model: free-combo
 ### API 请求
 
 ```bash
-curl http://localhost:21128/v1/chat/completions \
+curl http://localhost:20128/v1/chat/completions \
   -H "Authorization: Bearer your-api-key" \
   -H "Content-Type: application/json" \
   -d '{

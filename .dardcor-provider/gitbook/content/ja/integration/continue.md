@@ -6,7 +6,7 @@ Dardcor CodeをContinue拡張機能と統合し、Visual Studio Codeに直接AI�
 
 - Visual Studio Codeがインストール済み
 - VSCodeマーケットプレイスからContinue拡張機能がインストール済み
-- [ダッシュボード](https://dardcor-code.web.id/dashboard)からのDardcor Code APIキー
+- [ダッシュボード](https://dardcor-code.com/dashboard)からのDardcor Code APIキー
 - Dardcor Codeが動作中 (ローカルまたはクラウド)
 
 ## 設定手順
@@ -31,7 +31,7 @@ Dardcor CodeをContinue拡張機能と統合し、Visual Studio Codeに直接AI�
       "provider": "openai",
       "model": "cc/claude-opus-4-5-20251101",
       "apiKey": "your-api-key-from-dashboard",
-      "apiBase": "http://localhost:21128/v1"
+      "apiBase": "http://localhost:20128/v1"
     }
   ]
 }
@@ -46,28 +46,28 @@ Dardcor CodeをContinue拡張機能と統合し、Visual Studio Codeに直接AI�
       "provider": "openai",
       "model": "cc/claude-opus-4-5-20251101",
       "apiKey": "your-api-key-from-dashboard",
-      "apiBase": "http://localhost:21128/v1"
+      "apiBase": "http://localhost:20128/v1"
     },
     {
       "title": "Dardcor Code - Claude Sonnet (Balanced)",
       "provider": "openai",
       "model": "cc/claude-sonnet-4-20250514",
       "apiKey": "your-api-key-from-dashboard",
-      "apiBase": "http://localhost:21128/v1"
+      "apiBase": "http://localhost:20128/v1"
     },
     {
       "title": "Dardcor Code - DeepSeek Chat (Code)",
       "provider": "openai",
       "model": "cx/deepseek-chat",
       "apiKey": "your-api-key-from-dashboard",
-      "apiBase": "http://localhost:21128/v1"
+      "apiBase": "http://localhost:20128/v1"
     },
     {
       "title": "Dardcor Code - Claude Haiku (Fast)",
       "provider": "openai",
       "model": "cc/claude-haiku-4-20250514",
       "apiKey": "your-api-key-from-dashboard",
-      "apiBase": "http://localhost:21128/v1"
+      "apiBase": "http://localhost:20128/v1"
     }
   ]
 }
@@ -76,7 +76,7 @@ Dardcor CodeをContinue拡張機能と統合し、Visual Studio Codeに直接AI�
 **クラウドDardcor Code用:**
 `apiBase` を以下に置き換え:
 ```json
-"apiBase": "https://dardcor-code.web.id/v1"
+"apiBase": "https://dardcor-code.com/v1"
 ```
 
 ### 3. 保存してリロード
@@ -143,7 +143,7 @@ Dardcor CodeをContinue拡張機能と統合し、Visual Studio Codeに直接AI�
       "provider": "openai",
       "model": "cx/deepseek-chat",
       "apiKey": "your-api-key",
-      "apiBase": "http://localhost:21128/v1",
+      "apiBase": "http://localhost:20128/v1",
       "systemMessage": "You are an expert programmer. Always provide clean, well-documented code with best practices."
     }
   ]
@@ -162,7 +162,7 @@ Dardcor CodeをContinue拡張機能と統合し、Visual Studio Codeに直接AI�
       "provider": "openai",
       "model": "cc/claude-opus-4-5-20251101",
       "apiKey": "your-api-key",
-      "apiBase": "http://localhost:21128/v1",
+      "apiBase": "http://localhost:20128/v1",
       "temperature": 0.9,
       "topP": 0.95
     }
@@ -204,7 +204,7 @@ Continueがモデルに送信するコンテキストを設定:
 ## トラブルシューティング
 
 ### モデルが応答しない
-- Dardcor Codeが動作中か確認: `curl http://localhost:21128/health`
+- Dardcor Codeが動作中か確認: `curl http://localhost:20128/health`
 - config.jsonのAPIキーを確認
 - エラーについてVSCode開発者コンソールを確認: `Help` → `Toggle Developer Tools`
 

@@ -16,7 +16,7 @@ Establece las siguientes variables de entorno en tu archivo de configuración de
 
 ```bash
 # Base URL for Dardcor Code
-export OPENAI_BASE_URL="http://localhost:21128/v1"
+export OPENAI_BASE_URL="http://localhost:20128/v1"
 
 # API Key from Dardcor Code dashboard
 export OPENAI_API_KEY="your-dardcor-code-api-key"
@@ -76,7 +76,7 @@ También puedes configurar Codex CLI usando un archivo de configuración. Crea o
 
 ```json
 {
-  "baseUrl": "http://localhost:21128/v1",
+  "baseUrl": "http://localhost:20128/v1",
   "apiKey": "your-dardcor-code-api-key",
   "defaultModel": "cx/gpt-5.2-codex"
 }
@@ -96,9 +96,9 @@ Si encuentras errores de autenticación:
 
 Si encuentras errores de conexión:
 
-1. Verifica que Dardcor Code esté corriendo: `curl http://localhost:21128/health`
+1. Verifica que Dardcor Code esté corriendo: `curl http://localhost:20128/health`
 2. Verifica que las variables de entorno estén configuradas correctamente
-3. Asegúrate de que ningún firewall esté bloqueando el puerto 21128
+3. Asegúrate de que ningún firewall esté bloqueando el puerto 20128
 
 ### Modelo no disponible
 
@@ -113,7 +113,7 @@ Si obtienes errores de "modelo no disponible":
 Para usar el endpoint en la nube de Dardcor Code en lugar de localhost:
 
 ```bash
-export OPENAI_BASE_URL="https://dardcor-code.web.id"
+export OPENAI_BASE_URL="https://dardcor-code.com"
 ```
 
 Asegúrate de haber configurado tu API key en el dashboard en la nube de Dardcor Code.

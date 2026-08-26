@@ -61,6 +61,7 @@ Gemini CLI経由で6000万: $0(無料プラン)
 Claude Code経由で3000万: $0(既存サブスクリプション)
 GLM経由で800万: $4.80
 MiniMax経由で200万: $0.40
+合計: 月$5.20 vs ChatGPT APIの$2000!
 ```
 
 ---
@@ -85,6 +86,8 @@ MiniMax経由で200万: $0.40
 | **GLM-4.7** | 入力$0.60 / 出力$2.20 | 毎日午前10時 |
 | **MiniMax M2.1** | 入力$0.20 / 出力$1.00 | 5時間ローリング |
 | **Kimi K2** | 月$9(1000万トークン) | 月次 |
+
+**ChatGPT API(100万あたり$20)より約90%安い!**
 
 ### 永久無料フォールバック
 
@@ -113,7 +116,7 @@ dardcor-code
 **CLIツールで使う:**
 
 ```
-Endpoint: http://localhost:21128/v1
+Endpoint: http://localhost:20128/v1
 API Key: [ダッシュボードから取得]
 Model: cc/claude-opus-4-5-20251101
 ```
@@ -140,7 +143,7 @@ Model: cc/claude-opus-4-5-20251101
 
 ### モバイル/リモートコーディング向け
 
-- クラウドデプロイ(https://dardcor-code.web.id)を使用
+- クラウドデプロイ(https://dardcor-code.com)を使用
 - iPad、スマホ、どこからでもアクセス
 - localhost制限なし
 - Cloudflareエッジネットワーク(300以上のロケーション)

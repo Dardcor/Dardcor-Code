@@ -1,5 +1,7 @@
 # 欢迎使用 Dardcor Code
 
+**免费使用 Claude、Codex、Gemini • 超低价替代方案,每 1M token 仅需 $0.20**
+
 Dardcor Code 是一款 AI 模型路由工具,通过智能路由和自动回退机制,最大化你的订阅价值并最小化成本。
 
 ---
@@ -27,6 +29,7 @@ Dardcor Code 是一款智能代理,位于你的编码工具(Cursor、Cline、Cla
 ### 🔄 智能三层回退
 
 ```
+一次配置,永不停码:
 
 第 1 层(订阅): Claude Code → Codex → Gemini
   ↓ 配额耗尽
@@ -58,6 +61,7 @@ Dardcor Code 是一款智能代理,位于你的编码工具(Cursor、Cline、Cla
 30M 通过 Claude Code: $0(你已有的订阅)
 8M 通过 GLM: $4.80
 2M 通过 MiniMax: $0.40
+合计: $5.20/月,而 ChatGPT API 需要 $2000!
 ```
 
 ---
@@ -82,6 +86,8 @@ Dardcor Code 是一款智能代理,位于你的编码工具(Cursor、Cline、Cla
 | **GLM-4.7** | 输入 $0.60 / 输出 $2.20 | 每日 10:00 AM |
 | **MiniMax M2.1** | 输入 $0.20 / 输出 $1.00 | 5 小时滚动 |
 | **Kimi K2** | $9/月(10M tokens) | 每月 |
+
+**比 ChatGPT API(每 1M $20)便宜约 90%!**
 
 ### 永久免费回退
 
@@ -110,7 +116,7 @@ dardcor-code
 **在你的 CLI 工具中使用:**
 
 ```
-Endpoint: http://localhost:21128/v1
+Endpoint: http://localhost:20128/v1
 API Key: [从仪表盘获取]
 Model: cc/claude-opus-4-5-20251101
 ```
@@ -137,7 +143,7 @@ Model: cc/claude-opus-4-5-20251101
 
 ### 移动/远程编码
 
-- 使用云端部署(https://dardcor-code.web.id)
+- 使用云端部署(https://dardcor-code.com)
 - 从 iPad、手机、任何地方访问
 - 没有 localhost 限制
 - Cloudflare 边缘网络(300+ 节点)

@@ -17,14 +17,14 @@ Dardcor CodeはOpenAI互換APIエンドポイントを提供し、以下と動�
 
 **ローカルDardcor Code:**
 ```
-Base URL: http://localhost:21128/v1
+Base URL: http://localhost:20128/v1
 API Key: your-api-key-from-dashboard
 Model: 任意のDardcor Codeモデル (cc/*, cx/*, glm/*など)
 ```
 
 **クラウドDardcor Code:**
 ```
-Base URL: https://dardcor-code.web.id/v1
+Base URL: https://dardcor-code.com/v1
 API Key: your-api-key-from-dashboard
 Model: 任意のDardcor Codeモデル (cc/*, cx/*, glm/*など)
 ```
@@ -53,7 +53,7 @@ from openai import OpenAI
 
 client = OpenAI(
     api_key="your-api-key-from-dashboard",
-    base_url="http://localhost:21128/v1"
+    base_url="http://localhost:20128/v1"
 )
 
 response = client.chat.completions.create(
@@ -73,7 +73,7 @@ import OpenAI from "openai";
 
 const client = new OpenAI({
   apiKey: "your-api-key-from-dashboard",
-  baseURL: "http://localhost:21128/v1"
+  baseURL: "http://localhost:20128/v1"
 });
 
 const response = await client.chat.completions.create({
@@ -89,7 +89,7 @@ console.log(response.choices[0].message.content);
 ### cURLコマンド
 
 ```bash
-curl http://localhost:21128/v1/chat/completions \
+curl http://localhost:20128/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer your-api-key-from-dashboard" \
   -d '{
@@ -104,7 +104,7 @@ curl http://localhost:21128/v1/chat/completions \
 
 **Request:**
 ```
-POST http://localhost:21128/v1/chat/completions
+POST http://localhost:20128/v1/chat/completions
 ```
 
 **Headers:**
@@ -134,7 +134,7 @@ from langchain.schema import HumanMessage
 llm = ChatOpenAI(
     model_name="cc/claude-sonnet-4-20250514",
     openai_api_key="your-api-key-from-dashboard",
-    openai_api_base="http://localhost:21128/v1",
+    openai_api_base="http://localhost:20128/v1",
     temperature=0.7
 )
 
@@ -151,7 +151,7 @@ from llama_index.llms import OpenAI
 llm = OpenAI(
     model="cc/claude-sonnet-4-20250514",
     api_key="your-api-key-from-dashboard",
-    api_base="http://localhost:21128/v1"
+    api_base="http://localhost:20128/v1"
 )
 
 response = llm.complete("What is machine learning?")
@@ -167,7 +167,7 @@ import openai
 import json
 
 openai.api_key = "your-api-key-from-dashboard"
-openai.api_base = "http://localhost:21128/v1"
+openai.api_base = "http://localhost:20128/v1"
 
 def process_batch(prompts, model="cx/deepseek-chat"):
     results = []
@@ -199,7 +199,7 @@ import OpenAI from "openai";
 
 const client = new OpenAI({
   apiKey: "your-api-key-from-dashboard",
-  baseURL: "http://localhost:21128/v1"
+  baseURL: "http://localhost:20128/v1"
 });
 
 async function streamResponse(prompt) {
@@ -225,7 +225,7 @@ from openai import OpenAI
 
 client = OpenAI(
     api_key="your-api-key-from-dashboard",
-    base_url="http://localhost:21128/v1"
+    base_url="http://localhost:20128/v1"
 )
 
 models = [
@@ -254,7 +254,7 @@ for model in models:
 ```bash
 # .envファイル
 ROUTER_API_KEY=your-api-key-from-dashboard
-ROUTER_BASE_URL=http://localhost:21128/v1
+ROUTER_BASE_URL=http://localhost:20128/v1
 ROUTER_MODEL=cc/claude-sonnet-4-20250514
 ```
 
@@ -275,7 +275,7 @@ from openai import OpenAI, OpenAIError
 
 client = OpenAI(
     api_key="your-api-key",
-    base_url="http://localhost:21128/v1"
+    base_url="http://localhost:20128/v1"
 )
 
 try:
@@ -296,7 +296,7 @@ from openai import OpenAI, RateLimitError
 
 client = OpenAI(
     api_key="your-api-key",
-    base_url="http://localhost:21128/v1"
+    base_url="http://localhost:20128/v1"
 )
 
 def chat_with_retry(prompt, max_retries=3):
@@ -321,7 +321,7 @@ def chat_with_retry(prompt, max_retries=3):
 **問題:** Dardcor Codeに接続できない
 ```bash
 # Dardcor Codeが動作中か確認
-curl http://localhost:21128/health
+curl http://localhost:20128/health
 
 # 期待されるレスポンス:
 {"status": "ok"}
@@ -329,7 +329,7 @@ curl http://localhost:21128/health
 
 **解決策:**
 - Dardcor Codeが動作中か確認
-- ポート21128がブロックされていないか確認
+- ポート20128がブロックされていないか確認
 - 正しいbase URLを確認 (`/v1`を含む)
 
 ### 認証エラー
@@ -353,7 +353,7 @@ Error: Model 'cc/claude-opus' not found
 
 **解決策:**
 - 正確なモデル名を使用 (大文字小文字を区別)
-- 利用可能なモデルを確認: `curl http://localhost:21128/v1/models`
+- 利用可能なモデルを確認: `curl http://localhost:20128/v1/models`
 - プランでモデルが有効になっていることを確認
 
 ### タイムアウトの問題

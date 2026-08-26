@@ -34,6 +34,8 @@ Request → Dardcor Code → Tier 1を確認 (サブスクリプション)
 - MiniMax M2.1 (入力100万あたり$0.20)
 - Kimi K2 (月$9固定)
 
+**目標**: サブスクリプションクォータ切れ時の超低価格バックアップ (ChatGPT APIより約90%安い)。
+
 **Tier 3: 無料 (緊急時)**
 - iFlow (8モデル)
 - Qwen (3モデル)
@@ -366,6 +368,8 @@ Dashboard → Analytics:
     - 1500万 GLM-4.7経由 ($9)
     - 500万 iFlow経由 (無料)
   
+  コスト: $9 (vs ChatGPT APIの$1000)
+  節約: 99%
 ```
 
 ---

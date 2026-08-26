@@ -29,12 +29,12 @@ Base URLをDardcor Codeエンドポイントに設定:
 
 **ローカルDardcor Code用:**
 ```
-http://localhost:21128/v1
+http://localhost:20128/v1
 ```
 
 **クラウドDardcor Code用:**
 ```
-https://dardcor-code.web.id
+https://dardcor-code.com
 ```
 
 **手順:**
@@ -70,7 +70,7 @@ Cline設定は次のようになります:
 
 ```
 API Provider: Ollama
-Base URL: http://localhost:21128/v1
+Base URL: http://localhost:20128/v1
 API Key: sk-dardcor-code-xxxxxxxxxxxxx
 Model: gpt-4
 ```
@@ -118,9 +118,9 @@ Dardcor Codeダッシュボードで設定されたモデルを使用できま�
 
 ### 「Connection Failed」エラー
 
-1. Dardcor Codeが動作中か確認: `curl http://localhost:21128/health`
+1. Dardcor Codeが動作中か確認: `curl http://localhost:20128/health`
 2. Base URLが正しく、`/v1` を含むことを確認
-3. ファイアウォールがポート21128をブロックしていないか確認
+3. ファイアウォールがポート20128をブロックしていないか確認
 4. VSCodeを再起動してみる
 
 ### 「Invalid API Key」エラー
@@ -150,7 +150,7 @@ Dardcor Codeダッシュボードで設定されたモデルを使用できま�
 
 localhostの代わりにDardcor Codeクラウドエンドポイントを使用:
 
-1. Cline設定で、Base URLを設定: `https://dardcor-code.web.id`
+1. Cline設定で、Base URLを設定: `https://dardcor-code.com`
 2. Dardcor CodeクラウドダッシュボードでAPIキーが設定されていることを確認
 3. クラウドエンドポイントがアクティブでアクセス可能か確認
 

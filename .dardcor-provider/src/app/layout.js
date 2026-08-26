@@ -1,4 +1,5 @@
 import { Inter } from "next/font/google";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import "material-symbols/outlined.css";
 import "./globals.css";
 import { ThemeProvider } from "@/shared/components/ThemeProvider";
@@ -19,13 +20,7 @@ export const metadata = {
   title: "Dardcor Code - AI Infrastructure Management",
   description: "One endpoint for all your AI providers. Manage keys, monitor usage, and scale effortlessly.",
   icons: {
-    icon: [
-      { url: "/favicon.ico" },
-      { url: "/dardcor-code.png", type: "image/png" },
-      { url: "/favicon.svg", type: "image/svg+xml" }
-    ],
-    shortcut: "/favicon.ico",
-    apple: "/dardcor-code.png"
+    icon: "/favicon.svg",
   },
 };
 
@@ -35,11 +30,11 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className="dark" style={{ colorScheme: "dark" }} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `document.documentElement.classList.add('dark');if(document.fonts&&document.fonts.ready){document.fonts.ready.then(function(){document.documentElement.classList.add('fonts-loaded')})}else{document.documentElement.classList.add('fonts-loaded')}`,
+            __html: `if(document.fonts&&document.fonts.ready){document.fonts.ready.then(function(){document.documentElement.classList.add('fonts-loaded')})}else{document.documentElement.classList.add('fonts-loaded')}`,
           }}
         />
       </head>
@@ -49,6 +44,7 @@ export default function RootLayout({ children }) {
             {children}
           </RuntimeI18nProvider>
         </ThemeProvider>
+        <GoogleAnalytics gaId={"G-LC959F603F"} />
       </body>
     </html>
   );

@@ -5,7 +5,7 @@
 ## 前置要求
 
 - 已安装 Roo AI 助手
-- 来自 [仪表盘](https://dardcor-code.web.id/dashboard) 的 Dardcor Code API key
+- 来自 [仪表盘](https://dardcor-code.com/dashboard) 的 Dardcor Code API key
 - Dardcor Code 正在运行(本地或云端)
 
 ## 配置步骤
@@ -22,13 +22,13 @@
 
 **本地 Dardcor Code:**
 ```
-Base URL: http://localhost:21128/v1
+Base URL: http://localhost:20128/v1
 API Key: your-api-key-from-dashboard
 ```
 
 **云端 Dardcor Code:**
 ```
-Base URL: https://dardcor-code.web.id/v1
+Base URL: https://dardcor-code.com/v1
 API Key: your-api-key-from-dashboard
 ```
 
@@ -87,7 +87,7 @@ Hello! Can you confirm you're connected through Dardcor Code?
 ## 故障排除
 
 ### 连接失败
-- 确认 Dardcor Code 正在运行:`curl http://localhost:21128/health`
+- 确认 Dardcor Code 正在运行:`curl http://localhost:20128/health`
 - 检查 API key 是否正确
 - 确保 Base URL 末尾包含 `/v1`
 

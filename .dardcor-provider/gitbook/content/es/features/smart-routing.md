@@ -34,6 +34,8 @@ Solicitud → Dardcor Code → Verificar Nivel 1 (Suscripción)
 - MiniMax M2.1 ($0.20/1M entrada)
 - Kimi K2 ($9/mes plano)
 
+**Objetivo**: Respaldo ultra-barato cuando se agota la cuota de suscripción (~90% más barato que ChatGPT API).
+
 **Nivel 3: GRATIS (Emergencia)**
 - iFlow (8 modelos)
 - Qwen (3 modelos)
@@ -366,6 +368,8 @@ Dashboard → Analytics:
     - 15M vía GLM-4.7 ($9)
     - 5M vía iFlow (gratis)
   
+  Costo: $9 (vs $1000 en ChatGPT API)
+  Ahorros: 99%
 ```
 
 ---

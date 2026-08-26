@@ -16,7 +16,7 @@
 
 ```bash
 # Dardcor Code 的 Base URL
-export ANTHROPIC_BASE_URL="http://localhost:21128/v1"
+export ANTHROPIC_BASE_URL="http://localhost:20128/v1"
 
 # 可选: 为别名设置默认模型
 export ANTHROPIC_DEFAULT_OPUS_MODEL="cc/claude-opus-4-5-20251101"
@@ -75,7 +75,7 @@ Claude Code 将配置存储在 `~/.claude/settings.json`。如有需要可手动
 
 ```json
 {
-  "baseUrl": "http://localhost:21128/v1",
+  "baseUrl": "http://localhost:20128/v1",
   "defaultModel": "sonnet"
 }
 ```
@@ -86,9 +86,9 @@ Claude Code 将配置存储在 `~/.claude/settings.json`。如有需要可手动
 
 遇到连接错误时:
 
-1. 确认 Dardcor Code 正在运行:`curl http://localhost:21128/health`
+1. 确认 Dardcor Code 正在运行:`curl http://localhost:20128/health`
 2. 检查环境变量设置是否正确
-3. 确保防火墙没有阻止 21128 端口
+3. 确保防火墙没有阻止 20128 端口
 
 ### 模型未找到
 
@@ -103,7 +103,7 @@ Claude Code 将配置存储在 `~/.claude/settings.json`。如有需要可手动
 使用 Dardcor Code 云端 endpoint 而非 localhost:
 
 ```bash
-export ANTHROPIC_BASE_URL="https://dardcor-code.web.id"
+export ANTHROPIC_BASE_URL="https://dardcor-code.com"
 ```
 
 确保已在 Dardcor Code 云端仪表盘中配置 API key。

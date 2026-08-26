@@ -30,7 +30,7 @@ enabled = true
 `;
 
 const APPLY_INPUT = {
-  baseUrl: "http://127.0.0.1:21128/v1",
+  baseUrl: "http://127.0.0.1:20128/v1",
   apiKey: "sk-test",
   model: "cx/gpt-5.6-sol",
   contextWindow: 400000,
@@ -48,7 +48,7 @@ describe("grokBuildConfig", () => {
     expect(parsed.default).toBe("dardcor-code");
     expect(parsed.model).toMatchObject({
       model: "cx/gpt-5.6-sol",
-      base_url: "http://127.0.0.1:21128/v1",
+      base_url: "http://127.0.0.1:20128/v1",
       context_window: 400000,
     });
     expect(parsed.subagentMappings).toMatchObject({
@@ -65,27 +65,6 @@ describe("grokBuildConfig", () => {
       context_window: 1048576,
     });
     expect(parsed.subagentModels.plan).toBeNull();
-  });
-
-  it("reads legacy 9router slots and markers still present in an old config", () => {
-    const legacyConfig = `[models]\ndefault = "9router"\n\n[model.9router]\nmodel = "cx/gpt-5.6-sol"\nbase_url = "http://127.0.0.1:20128/v1"\n\n[subagents.models]\ngeneral-purpose = "9router-general-purpose"\n\n[model.9router-general-purpose]\nmodel = "cc/claude-sonnet-5"\n`;
-    const parsed = parseGrokBuildConfig(legacyConfig);
-    expect(parsed.default).toBe("9router");
-    expect(parsed.model).toMatchObject({
-      model: "cx/gpt-5.6-sol",
-      base_url: "http://127.0.0.1:20128/v1",
-    });
-    expect(parsed.subagentMappings["general-purpose"]).toBe("9router-general-purpose");
-    expect(parsed.subagentModels["general-purpose"]).toMatchObject({ model: "cc/claude-sonnet-5" });
-  });
-
-  it("re-writes a legacy config onto the dardcor-code slot without losing settings", () => {
-    const legacyConfig = `[models]\ndefault = "9router"\n\n[model.9router]\nmodel = "cx/gpt-5.6-sol"\nbase_url = "http://127.0.0.1:20128/v1"\n`;
-    const result = applyGrokBuildConfig(legacyConfig, APPLY_INPUT);
-    const parsed = parseGrokBuildConfig(result);
-    expect(parsed.default).toBe("dardcor-code");
-    expect(parsed.model.model).toBe("cx/gpt-5.6-sol");
-    expect(result).toContain("[model.dardcor-code]");
   });
 
   it("preserves unrelated config sections", () => {

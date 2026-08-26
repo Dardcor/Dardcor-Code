@@ -132,11 +132,11 @@ Common issues and solutions when using Dardcor Code.
 
 ## Connection Refused
 
-**Problem:** "ECONNREFUSED" or "Cannot connect to localhost:21128".
+**Problem:** "ECONNREFUSED" or "Cannot connect to localhost:20128".
 
 **Causes:**
 - Dardcor Code not running
-- Port 21128 blocked
+- Port 20128 blocked
 - Firewall blocking connection
 
 **Solutions:**
@@ -147,24 +147,24 @@ Common issues and solutions when using Dardcor Code.
    ```
    Dashboard should open at http://localhost:3000
 
-2. **Verify port 21128:**
+2. **Verify port 20128:**
    ```bash
    # Check if port is listening
-   lsof -i :21128
+   lsof -i :20128
    
    # Or on Windows
-   netstat -ano | findstr :21128
+   netstat -ano | findstr :20128
    ```
 
 3. **Check firewall:**
    - macOS: System Settings → Network → Firewall
    - Windows: Windows Defender Firewall → Allow app
-   - Linux: `sudo ufw allow 21128`
+   - Linux: `sudo ufw allow 20128`
 
 4. **Use cloud endpoint:**
    If localhost doesn't work (e.g., Cursor IDE):
    ```
-   Endpoint: https://dardcor-code.web.id/v1
+   Endpoint: https://dardcor-code.com/v1
    ```
 
 ---
@@ -243,7 +243,7 @@ Common issues and solutions when using Dardcor Code.
 
 3. **List available models:**
    ```bash
-   curl http://localhost:21128/v1/models \
+   curl http://localhost:20128/v1/models \
      -H "Authorization: Bearer your-api-key"
    ```
 
@@ -320,8 +320,8 @@ Common issues and solutions when using Dardcor Code.
 
 2. **Verify key format:**
    ```
-   Correct: dardcor_xxxxxxxxxxxxxxxxxxxxxxxx
-   Wrong: Missing dardcor_ prefix
+   Correct: 9r_xxxxxxxxxxxxxxxxxxxxxxxx
+   Wrong: Missing 9r_ prefix
    ```
 
 3. **Check key in CLI config:**
@@ -333,19 +333,19 @@ Common issues and solutions when using Dardcor Code.
    Settings → API Key
    
    # Environment variable
-   export OPENAI_API_KEY="dardcor_your_key"
+   export OPENAI_API_KEY="9r_your_key"
    ```
 
 4. **Test API key:**
    ```bash
-   curl http://localhost:21128/v1/models \
-     -H "Authorization: Bearer dardcor_your_key"
+   curl http://localhost:20128/v1/models \
+     -H "Authorization: Bearer 9r_your_key"
    ```
 
 ---
 
 ## Need More Help?
 
-- **GitHub Issues:** [/issues](/issues)
-- **Documentation:** [dardcor-code.web.id/docs](https://dardcor-code.web.id/docs)
+- **GitHub Issues:** [github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)
+- **Documentation:** [dardcor-code.com/docs](https://dardcor-code.com/docs)
 - **FAQ:** [faq.md](faq.md)

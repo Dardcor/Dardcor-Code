@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="../images/9router.png?1" alt="Panel de control de Dardcor Code" width="800"/>
+  <img src="../images/dardcor-code.png?1" alt="Panel de control de Dardcor Code" width="800"/>
   
   # Dardcor Code - Enrutador de IA GRATUITO y ahorrador de tokens
   
@@ -7,15 +7,15 @@
   
   **Conecta todas tus herramientas de código con IA (Claude Code, Cursor, Antigravity, Copilot, Codex, Gemini, OpenCode, Cline, OpenClaw...) a más de 40 proveedores de IA y más de 100 modelos.**
   
-  [![npm](https://img.shields.io/npm/v/9router.svg)](https://www.npmjs.com/package/9router)
-  [![Downloads](https://img.shields.io/npm/dm/9router.svg)](https://www.npmjs.com/package/9router)
-  [![Docker Pulls](https://img.shields.io/docker/pulls/decolua/9router.svg?logo=docker&label=Docker%20pulls)](https://hub.docker.com/r/decolua/9router)
-  [![GHCR](https://img.shields.io/badge/GHCR-decolua%2F9router-blue?logo=github)](https://github.com/decolua/9router/pkgs/container/9router)
-  [![License](https://img.shields.io/npm/l/9router.svg)](https://github.com/decolua/9router/blob/main/LICENSE)
+  [![npm](https://img.shields.io/npm/v/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
+  [![Downloads](https://img.shields.io/npm/dm/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
+  [![Docker Pulls](https://img.shields.io/docker/pulls/decolua/dardcor-code.svg?logo=docker&label=Docker%20pulls)](https://hub.docker.com/r/decolua/dardcor-code)
+  [![GHCR](https://img.shields.io/badge/GHCR-decolua%2Fdardcor-code-blue?logo=github)](https://github.com/decolua/dardcor-code/pkgs/container/dardcor-code)
+  [![License](https://img.shields.io/npm/l/dardcor-code.svg)](https://github.com/decolua/dardcor-code/blob/main/LICENSE)
 
-<a href="https://trendshift.io/repositories/22628" target="_blank"><img src="https://trendshift.io/api/badge/repositories/22628" alt="decolua%2F9router | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+<a href="https://trendshift.io/repositories/22628" target="_blank"><img src="https://trendshift.io/api/badge/repositories/22628" alt="decolua%2Fdardcor-code | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
-[🚀 Inicio rápido](#-inicio-rápido) • [💡 Características](#-características-principales) • [📖 Configuración](#-guía-de-instalación) • [🌐 Sitio web](https://9router.com)
+[🚀 Inicio rápido](#-inicio-rápido) • [💡 Características](#-características-principales) • [📖 Configuración](#-guía-de-instalación) • [🌐 Sitio web](https://dardcor-code.com)
 
 [🇻🇳 Tiếng Việt](./README.vi.md) • [🇨🇳 中文](./README.zh-CN.md) • [🇯🇵 日本語](./README.ja-JP.md) • [🇷🇺 Русский](./README.ru.md) • [🇹🇭 ไทย](./README.th.md) • [🇮🇷 فارسی](./README.fa_IR.md) • [🇮🇩 Indonesia](./README.id-ID.md) • [🇪🇸 Español](./README.es.md) • [🇫🇷 Français](./README.fr.md)
 
@@ -76,8 +76,8 @@ Result: Never stop coding, minimal cost + 20-40% token savings via RTK
 **1. Instálalo globalmente:**
 
 ```bash
-npm install -g 9router
-9router
+npm install -g dardcor-code
+dardcor-code
 ```
 
 🎉 El panel de control se abre en `http://localhost:20128`
@@ -213,7 +213,7 @@ URLs por defecto:
 
 </div>
 
-> 🎬 **¿Has hecho un video sobre Dardcor Code?** Envía una [Pull Request](https://github.com/decolua/9router/pulls) añadiendo tu video a esta sección — ¡lo fusionaremos!
+> 🎬 **¿Has hecho un video sobre Dardcor Code?** Envía una [Pull Request](https://github.com/decolua/dardcor-code/pulls) añadiendo tu video a esta sección — ¡lo fusionaremos!
 
 ---
 
@@ -1044,7 +1044,7 @@ Coste: $0 para siempre (+ 20-40% de ahorro de tokens vía RTK)!
 ```
 Settings → Models → Advanced:
   OpenAI API Base URL: http://localhost:20128/v1
-  OpenAI API Key: [desde el panel de 9router]
+  OpenAI API Key: [desde el panel de dardcor-code]
   Model: cc/claude-opus-4-7
 ```
 
@@ -1057,7 +1057,7 @@ Edita `~/.claude/config.json`:
 ```json
 {
   "anthropic_api_base": "http://localhost:20128/v1",
-  "anthropic_api_key": "tu-clave-api-de-9router"
+  "anthropic_api_key": "tu-clave-api-de-dardcor-code"
 }
 ```
 
@@ -1065,7 +1065,7 @@ Edita `~/.claude/config.json`:
 
 ```bash
 export OPENAI_BASE_URL="http://localhost:20128"
-export OPENAI_API_KEY="tu-clave-api-de-9router"
+export OPENAI_API_KEY="tu-clave-api-de-dardcor-code"
 
 codex "tu prompt"
 ```
@@ -1085,15 +1085,15 @@ Panel de control → CLI Tools → OpenClaw → Selecciona el modelo → Aplicar
   "agents": {
     "defaults": {
       "model": {
-        "primary": "9router/kr/claude-sonnet-4.5"
+        "primary": "dardcor-code/kr/claude-sonnet-4.5"
       }
     }
   },
   "models": {
     "providers": {
-      "9router": {
+      "dardcor-code": {
         "baseUrl": "http://127.0.0.1:20128/v1",
-        "apiKey": "sk_9router",
+        "apiKey": "sk_dardcor-code",
         "api": "openai-completions",
         "models": [
           {
@@ -1127,20 +1127,20 @@ Model: cc/claude-opus-4-7
 
 ```bash
 # Clona e instala
-git clone https://github.com/decolua/9router.git
-cd 9router
+git clone https://github.com/decolua/dardcor-code.git
+cd dardcor-code
 npm install
 npm run build
 
 # Configura
 export JWT_SECRET="tu-secreto-seguro-cámbialo"
 export INITIAL_PASSWORD="tu-contraseña"
-export DATA_DIR="/var/lib/9router"
+export DATA_DIR="/var/lib/dardcor-code"
 export PORT="20128"
 export HOSTNAME="0.0.0.0"
 export NODE_ENV="production"
 export NEXT_PUBLIC_BASE_URL="http://localhost:20128"
-export NEXT_PUBLIC_CLOUD_URL="https://9router.com"
+export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.com"
 export API_KEY_SECRET="endpoint-proxy-api-key-secret"
 export MACHINE_ID_SALT="endpoint-proxy-salt"
 
@@ -1149,7 +1149,7 @@ npm run start
 
 # O usa PM2
 npm install -g pm2
-pm2 start npm --name 9router -- start
+pm2 start npm --name dardcor-code -- start
 pm2 save
 pm2 startup
 ```
@@ -1158,18 +1158,18 @@ pm2 startup
 
 Imágenes publicadas (multi-plataforma `linux/amd64` + `linux/arm64`):
 
-- Docker Hub: [`decolua/9router`](https://hub.docker.com/r/decolua/9router)
-- GHCR: [`ghcr.io/decolua/9router`](https://github.com/decolua/9router/pkgs/container/9router)
+- Docker Hub: [`decolua/dardcor-code`](https://hub.docker.com/r/decolua/dardcor-code)
+- GHCR: [`ghcr.io/decolua/dardcor-code`](https://github.com/decolua/dardcor-code/pkgs/container/dardcor-code)
 
 **Inicio rápido (usa la imagen publicada):**
 
 ```bash
 docker run -d \
-  --name 9router \
+  --name dardcor-code \
   -p 20128:20128 \
-  -v "$HOME/.9router:/app/data" \
+  -v "$HOME/.dardcor-code:/app/data" \
   -e DATA_DIR=/app/data \
-  decolua/9router:latest
+  decolua/dardcor-code:latest
 ```
 
 → Abre http://localhost:20128
@@ -1177,11 +1177,11 @@ docker run -d \
 **Compilar desde el código fuente (dev):**
 
 ```bash
-git clone https://github.com/decolua/9router.git
-cd 9router/app
-docker build -t 9router .
-docker run -d --name 9router -p 20128:20128 \
-  -v "$HOME/.9router:/app/data" -e DATA_DIR=/app/data 9router
+git clone https://github.com/decolua/dardcor-code.git
+cd dardcor-code/app
+docker build -t dardcor-code .
+docker run -d --name dardcor-code -p 20128:20128 \
+  -v "$HOME/.dardcor-code:/app/data" -e DATA_DIR=/app/data dardcor-code
 ```
 
 **Valores por defecto del contenedor:**
@@ -1192,28 +1192,28 @@ docker run -d --name 9router -p 20128:20128 \
 **Comandos útiles:**
 
 ```bash
-docker logs -f 9router
-docker restart 9router
-docker stop 9router && docker rm 9router
-docker pull decolua/9router:latest   # actualiza a la última versión
+docker logs -f dardcor-code
+docker restart dardcor-code
+docker stop dardcor-code && docker rm dardcor-code
+docker pull decolua/dardcor-code:latest   # actualiza a la última versión
 ```
 
-**Persistencia de datos:** `$HOME/.9router/db/data.sqlite` en el host ↔ `/app/data/db/data.sqlite` en el contenedor.
+**Persistencia de datos:** `$HOME/.dardcor-code/db/data.sqlite` en el host ↔ `/app/data/db/data.sqlite` en el contenedor.
 
 ### Variables de entorno
 
 | Variable                                             | Por defecto                                | Descripción                                                                          |
 | ---------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------ |
-| `JWT_SECRET`                                         | Generado automáticamente (`~/.9router/jwt-secret`) | Secreto de firma JWT para la cookie de autenticación del panel (sobreescríbelo para compartir entre instancias) |
+| `JWT_SECRET`                                         | Generado automáticamente (`~/.dardcor-code/jwt-secret`) | Secreto de firma JWT para la cookie de autenticación del panel (sobreescríbelo para compartir entre instancias) |
 | `INITIAL_PASSWORD`                                   | `123456`                                   | Contraseña del primer inicio de sesión cuando no existe un hash guardado             |
-| `DATA_DIR`                                           | `~/.9router`                               | Ubicación principal de datos de la app (SQLite en `$DATA_DIR/db/data.sqlite`)        |
+| `DATA_DIR`                                           | `~/.dardcor-code`                               | Ubicación principal de datos de la app (SQLite en `$DATA_DIR/db/data.sqlite`)        |
 | `PORT`                                               | por defecto del framework                  | Puerto del servicio (`20128` en los ejemplos)                                        |
 | `HOSTNAME`                                           | por defecto del framework                  | Host de enlace (Docker usa `0.0.0.0` por defecto)                                    |
 | `NODE_ENV`                                           | por defecto del runtime                    | Establece `production` para el despliegue                                            |
 | `BASE_URL`                                           | `http://localhost:20128`                   | URL base interna del lado del servidor usada por los trabajos de sincronización en la nube |
-| `CLOUD_URL`                                          | `https://9router.com`                      | URL base del endpoint de sincronización en la nube del lado del servidor             |
+| `CLOUD_URL`                                          | `https://dardcor-code.com`                      | URL base del endpoint de sincronización en la nube del lado del servidor             |
 | `NEXT_PUBLIC_BASE_URL`                               | `http://localhost:3000`                    | URL base pública/compatible con versiones anteriores (prefiere `BASE_URL` para el runtime del servidor) |
-| `NEXT_PUBLIC_CLOUD_URL`                              | `https://9router.com`                      | URL de nube pública/compatible (prefiere `CLOUD_URL` para el runtime del servidor)   |
+| `NEXT_PUBLIC_CLOUD_URL`                              | `https://dardcor-code.com`                      | URL de nube pública/compatible (prefiere `CLOUD_URL` para el runtime del servidor)   |
 | `API_KEY_SECRET`                                     | `endpoint-proxy-api-key-secret`            | Secreto HMAC para las claves API generadas                                           |
 | `MACHINE_ID_SALT`                                    | `endpoint-proxy-salt`                      | Sal para el hash estable del ID de máquina                                           |
 | `ENABLE_REQUEST_LOGS`                                | `false`                                    | Habilita los registros de solicitudes/respuestas en `logs/`                          |
@@ -1234,7 +1234,7 @@ Notas:
 - Estado principal de la app: `${DATA_DIR}/db/data.sqlite` (SQLite — proveedores, combos, alias, claves, ajustes, historial de uso)
 - Copias de seguridad automáticas: `${DATA_DIR}/db/backups/`
 - Registros opcionales de solicitudes/translator: `<repo>/logs/...` cuando `ENABLE_REQUEST_LOGS=true`
-- Tanto `${DATA_DIR}` como `~/.9router` resuelven a la misma ubicación en un contenedor de Docker — el enlace simbólico `/root/.9router -> /app/data` se crea en tiempo de compilación.
+- Tanto `${DATA_DIR}` como `~/.dardcor-code` resuelven a la misma ubicación en un contenedor de Docker — el enlace simbólico `/root/.dardcor-code -> /app/data` se crea en tiempo de compilación.
 
 </details>
 
@@ -1396,9 +1396,9 @@ Authorization: Bearer tu-clave-api
 
 ## 📧 Soporte
 
-- **Sitio web**: [9router.com](https://9router.com)
-- **GitHub**: [github.com/decolua/9router](https://github.com/decolua/9router)
-- **Problemas**: [github.com/decolua/9router/issues](https://github.com/decolua/9router/issues)
+- **Sitio web**: [dardcor-code.com](https://dardcor-code.com)
+- **GitHub**: [github.com/decolua/dardcor-code](https://github.com/decolua/dardcor-code)
+- **Problemas**: [github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)
 
 ---
 
@@ -1406,13 +1406,13 @@ Authorization: Bearer tu-clave-api
 
 ¡Gracias a todos los colaboradores que ayudaron a mejorar Dardcor Code!
 
-[![Contributors](https://contrib.rocks/image?repo=decolua/9router&max=150&columns=15&anon=1&v=20260309)](https://github.com/decolua/9router/graphs/contributors)
+[![Contributors](https://contrib.rocks/image?repo=decolua/dardcor-code&max=150&columns=15&anon=1&v=20260309)](https://github.com/decolua/dardcor-code/graphs/contributors)
 
 ---
 
 ## 📊 Gráfico de estrellas
 
-[![Star Chart](https://starchart.cc/decolua/9router.svg?variant=adaptive)](https://starchart.cc/decolua/9router)
+[![Star Chart](https://starchart.cc/decolua/dardcor-code.svg?variant=adaptive)](https://starchart.cc/decolua/dardcor-code)
 
 ## 🔀 Forks
 

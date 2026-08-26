@@ -16,7 +16,7 @@ Establece las siguientes variables de entorno en tu archivo de configuración de
 
 ```bash
 # Base URL for Dardcor Code
-export ANTHROPIC_BASE_URL="http://localhost:21128/v1"
+export ANTHROPIC_BASE_URL="http://localhost:20128/v1"
 
 # Optional: Set default models for aliases
 export ANTHROPIC_DEFAULT_OPUS_MODEL="cc/claude-opus-4-5-20251101"
@@ -75,7 +75,7 @@ Claude Code almacena su configuración en `~/.claude/settings.json`. Puedes edit
 
 ```json
 {
-  "baseUrl": "http://localhost:21128/v1",
+  "baseUrl": "http://localhost:20128/v1",
   "defaultModel": "sonnet"
 }
 ```
@@ -86,9 +86,9 @@ Claude Code almacena su configuración en `~/.claude/settings.json`. Puedes edit
 
 Si encuentras errores de conexión:
 
-1. Verifica que Dardcor Code esté corriendo: `curl http://localhost:21128/health`
+1. Verifica que Dardcor Code esté corriendo: `curl http://localhost:20128/health`
 2. Verifica que las variables de entorno estén configuradas correctamente
-3. Asegúrate de que ningún firewall esté bloqueando el puerto 21128
+3. Asegúrate de que ningún firewall esté bloqueando el puerto 20128
 
 ### Modelo no encontrado
 
@@ -103,7 +103,7 @@ Si obtienes errores de "modelo no encontrado":
 Para usar el endpoint en la nube de Dardcor Code en lugar de localhost:
 
 ```bash
-export ANTHROPIC_BASE_URL="https://dardcor-code.web.id"
+export ANTHROPIC_BASE_URL="https://dardcor-code.com"
 ```
 
 Asegúrate de haber configurado tu API key en el dashboard en la nube de Dardcor Code.

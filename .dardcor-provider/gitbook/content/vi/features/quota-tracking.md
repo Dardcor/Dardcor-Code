@@ -56,6 +56,7 @@ Dashboard → Home → Quota Overview
 ┌─────────────────────────────────────────────┐
 │ iFlow (if/)                                 │
 │ ████████████████████ Unlimited              │
+│ Cost: $0 (free forever)                     │
 └─────────────────────────────────────────────┘
 ```
 
@@ -216,6 +217,7 @@ Reset: N/A
 
 Dashboard shows:
   Used today: 5M tokens
+  Cost: $0 (free forever)
   Status: ✅ Available
 ```
 
@@ -269,6 +271,7 @@ Breakdown by provider:
   MiniMax M2.1: $6.00 (22%)
   
 Average cost per 1M tokens: $0.62
+Savings vs ChatGPT API: 97% ($4,000 → $120)
 ```
 
 ### Dự kiến Chi phí
@@ -518,6 +521,7 @@ Optimized: gc/gemini-3-flash → cc/claude-opus → glm/glm-4.7
   40% via Claude (subscription)
   10% via GLM ($6/month)
   
+Savings: $6/month
 ```
 
 ### 4. Theo dõi Thời gian Reset
@@ -538,6 +542,7 @@ Dashboard → Quota → Reset Schedule:
 Dashboard → Analytics → Monthly Report:
   Total tokens: 1.5B
   Total cost: $120
+  Savings: 97% vs ChatGPT API
   
 Insights:
   - 60% usage via subscriptions ($0)
@@ -556,7 +561,7 @@ Optimization:
 ### Lấy trạng thái Quota
 
 ```bash
-GET http://localhost:21128/api/quota
+GET http://localhost:20128/api/quota
 Authorization: Bearer your-api-key
 
 Response:
@@ -609,7 +614,7 @@ Response:
 ### Lấy Usage Stats
 
 ```bash
-GET http://localhost:21128/api/usage?period=today
+GET http://localhost:20128/api/usage?period=today
 Authorization: Bearer your-api-key
 
 Response:

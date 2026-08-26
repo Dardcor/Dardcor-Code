@@ -29,12 +29,12 @@ Tích hợp Dardcor Code với extension Cline VSCode để định tuyến requ
 
 **Cho Dardcor Code cục bộ:**
 ```
-http://localhost:21128/v1
+http://localhost:20128/v1
 ```
 
 **Cho Dardcor Code cloud:**
 ```
-https://dardcor-code.web.id
+https://dardcor-code.com
 ```
 
 **Các bước:**
@@ -70,7 +70,7 @@ Cline settings của bạn nên trông như sau:
 
 ```
 API Provider: Ollama
-Base URL: http://localhost:21128/v1
+Base URL: http://localhost:20128/v1
 API Key: sk-dardcor-code-xxxxxxxxxxxxx
 Model: gpt-4
 ```
@@ -118,9 +118,9 @@ Bạn có thể dùng bất kỳ model nào đã cấu hình trong Dardcor Code 
 
 ### Lỗi "Connection Failed"
 
-1. Xác minh Dardcor Code đang chạy: `curl http://localhost:21128/health`
+1. Xác minh Dardcor Code đang chạy: `curl http://localhost:20128/health`
 2. Kiểm tra base URL đúng và bao gồm `/v1`
-3. Đảm bảo không firewall nào chặn port 21128
+3. Đảm bảo không firewall nào chặn port 20128
 4. Thử khởi động lại VSCode
 
 ### Lỗi "Invalid API Key"
@@ -150,7 +150,7 @@ Bạn có thể dùng bất kỳ model nào đã cấu hình trong Dardcor Code 
 
 Để dùng Dardcor Code cloud endpoint thay vì localhost:
 
-1. Trong Cline settings, đặt Base URL: `https://dardcor-code.web.id`
+1. Trong Cline settings, đặt Base URL: `https://dardcor-code.com`
 2. Đảm bảo bạn đã cấu hình API key trong Dardcor Code cloud dashboard
 3. Đảm bảo cloud endpoint đang hoạt động và truy cập được
 

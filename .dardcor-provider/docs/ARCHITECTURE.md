@@ -392,7 +392,7 @@ flowchart LR
     end
 
     subgraph ContainerOrProcess[Dardcor Code Runtime]
-        Next[Next.js Server\nPORT=21128]
+        Next[Next.js Server\nPORT=20128]
         Core[SSE Core + Executors]
         MainDB[(db.json)]
         UsageDB[(usage.json/log.txt)]
@@ -523,7 +523,7 @@ Runtime visibility sources:
 ## Security-Sensitive Boundaries
 
 - JWT secret (`JWT_SECRET`) secures dashboard session cookie verification/signing
-- Dashboard password has no built-in default. Optional `INITIAL_PASSWORD` is a local-only bootstrap that is bcrypt-persisted on first successful login; otherwise localhost presents first-run setup.
+- Initial password fallback (`INITIAL_PASSWORD`, default `123456`) must be overridden in real deployments
 - API key HMAC secret (`API_KEY_SECRET`) secures generated local API key format
 - Provider secrets (API keys/tokens) are persisted in local DB and should be protected at filesystem level
 - Cloud sync endpoints rely on API key auth + machine id semantics
@@ -554,4 +554,4 @@ Environment variables actively used by code:
 - Start service and verify:
 - `GET /api/settings`
 - `GET /api/v1/models`
-- CLI target base URL should be `http://<host>:21128/v1` when `PORT=21128`
+- CLI target base URL should be `http://<host>:20128/v1` when `PORT=20128`

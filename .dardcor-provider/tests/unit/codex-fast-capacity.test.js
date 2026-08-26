@@ -98,17 +98,4 @@ describe("Codex reasoning normalization", () => {
     expect(body.model).toBe("gpt-5.6-terra");
     expect(body.reasoning.effort).toBe("ultra");
   });
-
-  it.each([
-    ["gpt-5.6-sol-ultra", "gpt-5.6-sol", "ultra"],
-    ["gpt-5.6-luna-max", "gpt-5.6-luna", "max"],
-  ])("resolves catalog preset %s", (model, expectedModel, expectedEffort) => {
-    const body = new CodexExecutor().transformRequest(model, {
-      model,
-      input: "hi",
-    }, true, {});
-
-    expect(body.model).toBe(expectedModel);
-    expect(body.reasoning.effort).toBe(expectedEffort);
-  });
 });

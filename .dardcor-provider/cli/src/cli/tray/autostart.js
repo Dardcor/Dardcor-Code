@@ -5,9 +5,6 @@ const { execSync } = require("child_process");
 
 const APP_NAME = "dardcor-code";
 const APP_LABEL = "com.dardcor-code.autostart";
-// Legacy label read so a previously-registered 9router autostart still counts
-// as enabled and is cleaned up by disable paths.
-const LEGACY_APP_LABEL = "com.9router.autostart";
 
 /**
  * Resolve the absolute path to this package's cli.js.
@@ -90,11 +87,9 @@ function isAutoStartEnabled() {
   try {
     if (platform === "darwin") {
       const plistPath = path.join(os.homedir(), "Library", "LaunchAgents", `${APP_LABEL}.plist`);
-      const legacyPlistPath = path.join(os.homedir(), "Library", "LaunchAgents", `${LEGACY_APP_LABEL}.plist`);
-      const label = fs.existsSync(plistPath) ? APP_LABEL : fs.existsSync(legacyPlistPath) ? LEGACY_APP_LABEL : null;
-      if (!label) return false;
+      if (!fs.existsSync(plistPath)) return false;
       try {
-        execSync(`launchctl list ${label}`, {
+        execSync(`launchctl list ${APP_LABEL}`, {
           stdio: ["ignore", "ignore", "ignore"],
           timeout: 3000
         });
@@ -141,7 +136,9 @@ function isAgentSelfMacOS() {
   } catch (e) {
     return false;
   }
-}function enableMacOS(cliPath) {
+}
+
+function enableMacOS(cliPath) {
   const launchAgentsDir = path.join(os.homedir(), "Library", "LaunchAgents");
   const plistPath = path.join(launchAgentsDir, `${APP_LABEL}.plist`);
 
@@ -219,7 +216,6 @@ function isAgentSelfMacOS() {
 
 function disableMacOS() {
   const plistPath = path.join(os.homedir(), "Library", "LaunchAgents", `${APP_LABEL}.plist`);
-  const legacyPlistPath = path.join(os.homedir(), "Library", "LaunchAgents", `${LEGACY_APP_LABEL}.plist`);
 
   // Don't kill ourselves: when the current process is the running agent,
   // `launchctl unload` would send SIGTERM and the user clicking
@@ -227,17 +223,13 @@ function disableMacOS() {
   // instead of just flipping the menu label. Skip the unload — removing the
   // plist file is enough to prevent the agent from starting on next login.
   if (!isAgentSelfMacOS()) {
-    for (const p of [plistPath, legacyPlistPath]) {
-      try {
-        execSync(`launchctl unload "${p}"`, { stdio: "ignore" });
-      } catch (e) {}
-    }
+    try {
+      execSync(`launchctl unload "${plistPath}"`, { stdio: "ignore" });
+    } catch (e) {}
   }
 
-  for (const p of [plistPath, legacyPlistPath]) {
-    if (fs.existsSync(p)) {
-      fs.unlinkSync(p);
-    }
+  if (fs.existsSync(plistPath)) {
+    fs.unlinkSync(plistPath);
   }
   return true;
 }

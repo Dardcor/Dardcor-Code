@@ -40,13 +40,6 @@ function makeGeminiRequest(path, body, headers = {}, signal) {
   });
 }
 
-function makeListRequest(headers = {}) {
-  return new Request("https://router.test/v1beta/models", {
-    method: "GET",
-    headers: { Authorization: "Bearer router-client-key", ...headers },
-  });
-}
-
 function audioBody() {
   return {
     contents: [{ parts: [{ text: "Speak naturally: hello" }] }],
@@ -87,62 +80,13 @@ describe("Gemini native v1beta endpoint", () => {
   });
 
   it("lists Gemini TTS models using standard Google model names", async () => {
-    const response = await GET(makeListRequest());
+    const response = await GET();
     const body = await response.json();
     const names = body.models.map((model) => model.name);
 
     expect(names).toContain("models/gemini-3.1-flash-tts-preview");
     expect(names).toContain("models/gemini-2.5-flash-preview-tts");
     expect(names).toContain("models/gemini-2.5-pro-preview-tts");
-  });
-
-  it("rejects the models list without an API key when requireApiKey is enabled", async () => {
-    const response = await GET(new Request("https://router.test/v1beta/models"));
-    const body = await response.json();
-
-    expect(response.status).toBe(401);
-    expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
-    expect(body.error.message).toContain("API key");
-    expect(mocks.isValidApiKey).not.toHaveBeenCalled();
-  });
-
-  it("rejects the models list with an invalid API key when requireApiKey is enabled", async () => {
-    mocks.isValidApiKey.mockResolvedValue(false);
-    const response = await GET(makeListRequest());
-    const body = await response.json();
-
-    expect(response.status).toBe(401);
-    expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
-    expect(body.error.message).toContain("API key");
-  });
-
-  it("accepts a Bearer key on the models list when requireApiKey is enabled", async () => {
-    const response = await GET(makeListRequest());
-
-    expect(response.status).toBe(200);
-    expect(mocks.isValidApiKey).toHaveBeenCalledWith("router-client-key");
-  });
-
-  it("accepts an x-goog-api-key header on the models list when requireApiKey is enabled", async () => {
-    const response = await GET(makeListRequest({ Authorization: "", "x-goog-api-key": "client-router-key" }));
-
-    expect(response.status).toBe(200);
-    expect(mocks.isValidApiKey).toHaveBeenCalledWith("client-router-key");
-  });
-
-  it("accepts a query key on the models list when requireApiKey is enabled", async () => {
-    const response = await GET(new Request("https://router.test/v1beta/models?key=client-router-key"));
-
-    expect(response.status).toBe(200);
-    expect(mocks.isValidApiKey).toHaveBeenCalledWith("client-router-key");
-  });
-
-  it("serves the models list anonymously when requireApiKey is disabled", async () => {
-    mocks.getSettings.mockResolvedValue({ requireApiKey: false });
-    const response = await GET(new Request("https://router.test/v1beta/models"));
-
-    expect(response.status).toBe(200);
-    expect(mocks.isValidApiKey).not.toHaveBeenCalled();
   });
 
   it("passes Gemini AUDIO generateContent requests through to Google's native endpoint", async () => {
@@ -303,51 +247,6 @@ describe("Gemini native v1beta endpoint", () => {
 
     expect(mocks.handleChat).toHaveBeenCalledTimes(1);
     expect(global.fetch).not.toHaveBeenCalled();
-  });
-
-  it("passes an x-goog-api-key authenticated non-audio request through the chat layer", async () => {
-    const body = { contents: [{ parts: [{ text: "hello" }] }] };
-
-    await POST(
-      makeGeminiRequest("gemini-2.5-flash:generateContent", body, {
-        Authorization: "",
-        "x-goog-api-key": "client-router-key",
-      }),
-      { params: Promise.resolve({ path: ["gemini-2.5-flash:generateContent"] }) }
-    );
-
-    expect(mocks.isValidApiKey).toHaveBeenCalledWith("client-router-key");
-    expect(mocks.handleChat).toHaveBeenCalledTimes(1);
-    expect(mocks.handleChat.mock.calls[0][0].headers.get("Authorization")).toBe("Bearer client-router-key");
-  });
-
-  it("passes a query-key authenticated non-audio request through the chat layer", async () => {
-    const body = { contents: [{ parts: [{ text: "hello" }] }] };
-
-    await POST(
-      makeGeminiRequest("gemini-2.5-flash:generateContent?key=client-router-key", body, { Authorization: "" }),
-      { params: Promise.resolve({ path: ["gemini-2.5-flash:generateContent"] }) }
-    );
-
-    expect(mocks.isValidApiKey).toHaveBeenCalledWith("client-router-key");
-    expect(mocks.handleChat).toHaveBeenCalledTimes(1);
-    expect(mocks.handleChat.mock.calls[0][0].headers.get("Authorization")).toBe("Bearer client-router-key");
-  });
-
-  it("rejects a non-audio request without an API key when requireApiKey is enabled", async () => {
-    const response = await POST(
-      new Request("https://router.test/v1beta/models/gemini-2.5-flash:generateContent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: "hello" }] }] }),
-      }),
-      { params: Promise.resolve({ path: ["gemini-2.5-flash:generateContent"] }) }
-    );
-    const responseBody = await response.json();
-
-    expect(response.status).toBe(401);
-    expect(responseBody.error.message).toContain("API key");
-    expect(mocks.handleChat).not.toHaveBeenCalled();
   });
 
   it("does not hijack provider-prefixed non-Gemini audio requests", async () => {

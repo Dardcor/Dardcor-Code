@@ -7,7 +7,7 @@ const { execSync } = require("child_process");
 const cliDir = path.resolve(__dirname, "..");
 const appDir = path.resolve(cliDir, "..");
 const rootDir = path.resolve(appDir, "..");
-const cliAppDir = process.env.DARDCOR_CLI_APP_DIR || process.env.NINEROUTER_CLI_APP_DIR || path.join(cliDir, "app");
+const cliAppDir = process.env.NINEROUTER_CLI_APP_DIR || path.join(cliDir, "app");
 const buildHomeDir = path.join(cliDir, ".build-home");
 const buildDistDirName = ".next-cli-build";
 const buildDistDir = path.join(appDir, buildDistDirName);
@@ -216,7 +216,9 @@ function buildCliPackage() {
     fs.copyFileSync(customServerSrc, path.join(cliAppDir, "custom-server.js"));
     console.log("✅ Copied custom-server.js\n");
   } else {
-    console.warn("⚠️  custom-server.js not found — server will run without real-IP injection\n");
+    console.error("❌ custom-server.js not found — without it no request can be proven local,");
+    console.error("   so the packaged CLI would demand an API key for its own dashboard and /v1.");
+    process.exit(1);
   }
 
   // Step 3b: Ensure sql.js (pure JS fallback) bundled in app/cli/app/node_modules.

@@ -34,6 +34,8 @@ Dardcor Code 使用智能路由,最大化已有订阅价值、最小化成本,�
 - MiniMax M2.1(输入每 1M $0.20)
 - Kimi K2($9/月固定)
 
+**目标**:订阅配额用完后的超低价备用(比 ChatGPT API 便宜 ~90%)。
+
 **第 3 层:免费(应急)**
 - iFlow(8 个模型)
 - Qwen(3 个模型)
@@ -366,6 +368,8 @@ cc/claude-opus-4-5 → glm/glm-4.7 → minimax/MiniMax-M2.1 → if/kimi-k2-think
     - 15M 通过 GLM-4.7($9)
     - 5M 通过 iFlow(免费)
   
+  成本: $9(对比 ChatGPT API $1000)
+  节省: 99%
 ```
 
 ---

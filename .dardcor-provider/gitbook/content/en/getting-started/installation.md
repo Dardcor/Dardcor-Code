@@ -74,7 +74,7 @@ npx dardcor-code
 Clone and build from GitHub:
 
 ```bash
-git clone .git
+git clone https://github.com/decolua/dardcor-code.git
 cd dardcor-code/app
 npm install
 npm run build
@@ -97,7 +97,7 @@ dardcor-code
 ```
 
 **What happens:**
-1. Server starts on `http://localhost:21128`
+1. Server starts on `http://localhost:20128`
 2. Dashboard opens automatically in browser
 3. Data directory created at `~/.dardcor-code`
 4. API key generated automatically
@@ -122,7 +122,7 @@ Dashboard → Settings → API Keys
 
 **Example API key format:**
 ```
-dardcor_1234567890abcdef1234567890abcdef
+9r_1234567890abcdef1234567890abcdef
 ```
 
 ---
@@ -132,7 +132,7 @@ dardcor_1234567890abcdef1234567890abcdef
 ### Check Server Status
 
 ```bash
-curl http://localhost:21128/health
+curl http://localhost:20128/health
 ```
 
 **Expected response:**
@@ -146,7 +146,7 @@ curl http://localhost:21128/health
 ### List Available Models
 
 ```bash
-curl http://localhost:21128/v1/models \
+curl http://localhost:20128/v1/models \
   -H "Authorization: Bearer your-api-key"
 ```
 
@@ -168,7 +168,7 @@ curl http://localhost:21128/v1/models \
 ### Test Chat Completion
 
 ```bash
-curl http://localhost:21128/v1/chat/completions \
+curl http://localhost:20128/v1/chat/completions \
   -H "Authorization: Bearer your-api-key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -196,7 +196,7 @@ export INITIAL_PASSWORD="your-password"
 export DATA_DIR="~/.dardcor-code"
 
 # Server
-export PORT="21128"
+export PORT="20128"
 export NODE_ENV="production"
 
 # Logging
@@ -224,7 +224,7 @@ dardcor-code
 
 ### Port Configuration
 
-**Default port:** `21128`
+**Default port:** `20128`
 
 **Change port:**
 
@@ -247,14 +247,14 @@ dardcor-code --port 3000
 
 **Error:**
 ```
-Error: listen EADDRINUSE: address already in use :::21128
+Error: listen EADDRINUSE: address already in use :::20128
 ```
 
 **Solution 1: Kill existing process**
 
 ```bash
-# Find process using port 21128
-lsof -i :21128
+# Find process using port 20128
+lsof -i :20128
 
 # Kill process
 kill -9 <PID>
@@ -310,7 +310,7 @@ nvm use 20
 **Solution 1: Open manually**
 
 ```
-http://localhost:21128
+http://localhost:20128
 ```
 
 **Solution 2: Check firewall**
@@ -404,7 +404,7 @@ pm2 startup
 docker pull dardcor-code/dardcor-code:latest
 
 docker run -d \
-  -p 21128:21128 \
+  -p 20128:20128 \
   -e JWT_SECRET="your-secure-secret" \
   -e INITIAL_PASSWORD="your-password" \
   -v dardcor-code-data:/root/.dardcor-code \
@@ -422,7 +422,7 @@ server {
     server_name your-domain.com;
 
     location / {
-        proxy_pass http://localhost:21128;
+        proxy_pass http://localhost:20128;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -473,6 +473,6 @@ nano ~/.bashrc  # or ~/.zshrc
 
 ## Need Help?
 
-- **Website**: [dardcor-code.web.id](https://dardcor-code.web.id)
-- **GitHub**: 
-- **Issues**: [/issues](/issues)
+- **Website**: [dardcor-code.com](https://dardcor-code.com)
+- **GitHub**: [github.com/decolua/dardcor-code](https://github.com/decolua/dardcor-code)
+- **Issues**: [github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)

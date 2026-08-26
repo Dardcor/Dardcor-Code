@@ -16,7 +16,7 @@
 ### 步骤 1:克隆仓库
 
 ```bash
-git clone .git
+git clone https://github.com/decolua/dardcor-code.git
 cd dardcor-code/app
 ```
 
@@ -48,7 +48,7 @@ export NODE_ENV="production"
 | 变量 | 默认值 | 说明 |
 |----------|---------|-------------|
 | `JWT_SECRET` | 自动生成 | **生产环境必须修改!** 用于 JWT token 签名 |
-| `INITIAL_PASSWORD` | unset | 无默认密码；仅本地的可选引导，未设置时通过 localhost 创建密码 |
+| `INITIAL_PASSWORD` | `123456` | 仪表盘登录密码 |
 | `DATA_DIR` | `~/.dardcor-code` | 数据库与数据存储路径 |
 | `NODE_ENV` | `development` | 部署时设为 `production` |
 | `ENABLE_REQUEST_LOGS` | `false` | 启用 debug 请求/响应日志 |
@@ -130,7 +130,7 @@ COPY . .
 RUN npm run build
 
 # Expose ports
-EXPOSE 3000 21128
+EXPOSE 3000 20128
 
 # Set environment variables
 ENV NODE_ENV=production
@@ -153,7 +153,7 @@ docker build -t dardcor-code .
 docker run -d \
   --name dardcor-code \
   -p 3000:3000 \
-  -p 21128:21128 \
+  -p 20128:20128 \
   -e JWT_SECRET="your-secure-secret-change-this" \
   -e INITIAL_PASSWORD="your-secure-password" \
   -v dardcor-code-data:/app/data \
@@ -173,7 +173,7 @@ services:
     container_name: dardcor-code
     ports:
       - "3000:3000"
-      - "21128:21128"
+      - "20128:20128"
     environment:
       - NODE_ENV=production
       - JWT_SECRET=your-secure-secret-change-this
@@ -266,7 +266,7 @@ server {
 
     # API endpoint
     location /v1 {
-        proxy_pass http://localhost:21128;
+        proxy_pass http://localhost:20128;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -335,7 +335,7 @@ sudo ufw allow 443/tcp
 
 # 若不使用反向代理,放开 Dardcor Code 端口
 sudo ufw allow 3000/tcp
-sudo ufw allow 21128/tcp
+sudo ufw allow 20128/tcp
 
 # 启用防火墙
 sudo ufw enable
@@ -418,7 +418,7 @@ htop
 df -h
 
 # 网络连接
-netstat -tulpn | grep -E '3000|21128'
+netstat -tulpn | grep -E '3000|20128'
 ```
 
 ---
@@ -433,7 +433,7 @@ pm2 logs dardcor-code
 
 # 检查端口是否被占用
 sudo lsof -i :3000
-sudo lsof -i :21128
+sudo lsof -i :20128
 
 # 检查环境变量
 pm2 env dardcor-code

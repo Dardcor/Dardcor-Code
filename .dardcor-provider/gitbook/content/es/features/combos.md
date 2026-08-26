@@ -43,6 +43,7 @@ glm/glm-4.7 → minimax/MiniMax-M2.1 → if/kimi-k2-thinking
 → Comienza con la opción de pago más barata ($0.60/1M)
 → Fallback a una aún más barata ($0.20/1M)
 → Nivel de emergencia gratis
+→ Costo total: ~$5-10/mes vs $2000 en ChatGPT API
 ```
 
 ### 3. Garantiza disponibilidad 24/7
@@ -70,7 +71,7 @@ cc/claude-opus-4-5 → cx/gpt-5.2-codex → gc/gemini-3-pro
 ### Paso 1: Abrir el dashboard
 
 ```
-http://localhost:21128
+http://localhost:20128
 → Inicia sesión con tu contraseña
 ```
 
@@ -159,6 +160,8 @@ Noche (cuota de GLM agotada):
 Total: $10 + tu suscripción
 ```
 
+**Ahorros**: ~99% vs ChatGPT API ($2000).
+
 ---
 
 ### Ejemplo 2: Combo de presupuesto (Barato → Gratis)
@@ -179,7 +182,7 @@ Models:
 ```
 Cline:
   Provider: OpenAI Compatible
-  Base URL: http://localhost:21128/v1
+  Base URL: http://localhost:20128/v1
   Model: budget-combo
 ```
 
@@ -196,7 +199,10 @@ Solicitud → glm/glm-4.7
 70M vía GLM: $42
 20M vía MiniMax: $4
 10M vía iFlow: $0
+Total: $46 vs $2000 en ChatGPT API
 ```
+
+**Ahorros**: 97%.
 
 ---
 
@@ -255,7 +261,7 @@ Models:
 **Uso:**
 ```
 Codex CLI:
-  export OPENAI_BASE_URL="http://localhost:21128"
+  export OPENAI_BASE_URL="http://localhost:20128"
   Model: quality-first
 ```
 
@@ -337,7 +343,7 @@ Models:
 
 ```
 Settings → Models → Advanced:
-  OpenAI API Base URL: http://localhost:21128/v1
+  OpenAI API Base URL: http://localhost:20128/v1
   OpenAI API Key: [desde el dashboard]
   Model: premium-coding
 ```
@@ -347,7 +353,7 @@ Settings → Models → Advanced:
 Edita `~/.claude/config.json`:
 ```json
 {
-  "anthropic_api_base": "http://localhost:21128/v1",
+  "anthropic_api_base": "http://localhost:20128/v1",
   "anthropic_api_key": "your-dardcor-code-api-key",
   "model": "budget-combo"
 }
@@ -356,7 +362,7 @@ Edita `~/.claude/config.json`:
 ### Codex CLI
 
 ```bash
-export OPENAI_BASE_URL="http://localhost:21128"
+export OPENAI_BASE_URL="http://localhost:20128"
 export OPENAI_API_KEY="your-dardcor-code-api-key"
 
 codex --model quality-first "your prompt"
@@ -366,7 +372,7 @@ codex --model quality-first "your prompt"
 
 ```
 Provider: OpenAI Compatible
-Base URL: http://localhost:21128/v1
+Base URL: http://localhost:20128/v1
 API Key: [desde el dashboard]
 Model: free-combo
 ```
@@ -374,7 +380,7 @@ Model: free-combo
 ### Solicitud por API
 
 ```bash
-curl http://localhost:21128/v1/chat/completions \
+curl http://localhost:20128/v1/chat/completions \
   -H "Authorization: Bearer your-api-key" \
   -H "Content-Type: application/json" \
   -d '{

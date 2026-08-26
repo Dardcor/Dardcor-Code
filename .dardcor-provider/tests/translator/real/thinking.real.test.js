@@ -109,9 +109,7 @@ function targetProviders() {
     const path = require("path");
     const dbPath = process.env.DATA_DIR
       ? path.join(process.env.DATA_DIR, "db", "data.sqlite")
-      : fs.existsSync(path.join(os.homedir(), ".dardcor-code", "db", "data.sqlite"))
-        ? path.join(os.homedir(), ".dardcor-code", "db", "data.sqlite")
-        : path.join(os.homedir(), ".9router", "db", "data.sqlite"); // legacy fallback
+      : path.join(os.homedir(), ".dardcor-code", "db", "data.sqlite");
     const db = new Database(dbPath, { readonly: true });
     const rows = db.prepare("SELECT DISTINCT provider FROM providerConnections WHERE isActive = 1").all();
     db.close();

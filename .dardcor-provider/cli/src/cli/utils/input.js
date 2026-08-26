@@ -112,14 +112,11 @@ async function selectMenu(title, items, defaultIndex = 0, subtitle = "", headerC
       const isWin = process.platform === "win32";
       items.forEach((item, index) => {
         const isSelected = index === selectedIndex;
-        const selector = isSelected ? (isWin ? ">" : "★") : (isWin ? " " : "☆");
-        // Render a real item icon (e.g. 🌐 💻 🔔) when present, but skip the
-        // "☆"/"★" placeholder glyphs some callers pass as `icon`.
-        const itemIcon = item.icon && item.icon !== "★" && item.icon !== "☆" ? `${item.icon} ` : "";
+        const icon = isSelected ? (isWin ? ">" : "★") : (isWin ? " " : "☆");
         if (isSelected) {
-          console.log(` ${COLORS.reverse}${COLORS.bright}${selector} ${itemIcon}${item.label}${COLORS.reset}`);
+          console.log(` ${COLORS.reverse}${COLORS.bright}${icon} ${item.label}${COLORS.reset}`);
         } else {
-          console.log(`  ${selector} ${itemIcon}${item.label}`);
+          console.log(`  ${icon} ${item.label}`);
         }
       });
     };

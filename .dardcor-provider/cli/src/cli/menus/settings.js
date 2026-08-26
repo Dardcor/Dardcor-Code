@@ -13,6 +13,8 @@ const COLORS = {
   cyan: "\x1b[36m"
 };
 
+const DEFAULT_PASSWORD = "123456";
+
 /**
  * Show settings menu (tunnel + RTK + reset password)
  * @param {Array<string>} breadcrumb - Breadcrumb path
@@ -30,7 +32,7 @@ async function showSettingsMenu(breadcrumb = []) {
         lines.push(`  Endpoint: ${COLORS.green}${tunnel.publicUrl}/v1${COLORS.reset}`);
         lines.push(`  Tunnel:   ${COLORS.green}ON${COLORS.reset} ${COLORS.dim}(${tunnel.shortId})${COLORS.reset}`);
       } else {
-        lines.push(`  Endpoint: http://localhost:21128/v1`);
+        lines.push(`  Endpoint: http://localhost:20128/v1`);
         lines.push(`  Tunnel:   ${COLORS.red}OFF${COLORS.reset} ${COLORS.dim}(local only)${COLORS.reset}`);
       }
 
@@ -81,7 +83,7 @@ async function showSettingsMenu(breadcrumb = []) {
         action: async (d) => { await toggleHeadroom(d?.settings?.headroomEnabled === true); return true; }
       },
       {
-        label: "🔑 Clear Dashboard Password",
+        label: "🔑 Reset Password to Default",
         action: async () => { await resetPassword(); return true; }
       },
       {
@@ -179,12 +181,11 @@ async function toggleHeadroom(currentlyOn) {
 }
 
 /**
- * Clear stored dashboard password hash via server API.
- * After clearing, the dashboard reverts to INITIAL_PASSWORD (if set)
- * or prompts the operator to create a new password on next login.
+ * Reset dashboard password to default via server API (writes the live SQLite DB).
+ * After reset, user can log in with the default password "123456".
  */
 async function resetPassword() {
-  const ok = await confirm("Clear stored dashboard password?");
+  const ok = await confirm(`Reset dashboard password to default "${DEFAULT_PASSWORD}"?`);
   if (!ok) {
     showStatus("Cancelled", "info");
     await pause();
@@ -193,9 +194,9 @@ async function resetPassword() {
 
   const result = await api.resetPassword();
   if (result.success) {
-    showStatus("Password cleared. Open the dashboard through localhost to set or initialize your password.", "success");
+    showStatus(`Password reset. Default: ${DEFAULT_PASSWORD}`, "success");
   } else {
-    showStatus(`Failed to clear password: ${result.error}`, "error");
+    showStatus(`Failed to reset password: ${result.error}`, "error");
   }
   await pause();
 }

@@ -6,7 +6,7 @@ Tích hợp Dardcor Code với extension Continue để mang trợ lý AI trực
 
 - Visual Studio Code đã cài đặt
 - Extension Continue đã cài đặt từ VSCode marketplace
-- Dardcor Code API key từ [dashboard](https://dardcor-code.web.id/dashboard)
+- Dardcor Code API key từ [dashboard](https://dardcor-code.com/dashboard)
 - Dardcor Code đang chạy (cục bộ hoặc cloud)
 
 ## Các bước Cấu hình
@@ -31,7 +31,7 @@ Thêm cấu hình sau vào `config.json`:
       "provider": "openai",
       "model": "cc/claude-opus-4-5-20251101",
       "apiKey": "your-api-key-from-dashboard",
-      "apiBase": "http://localhost:21128/v1"
+      "apiBase": "http://localhost:20128/v1"
     }
   ]
 }
@@ -46,28 +46,28 @@ Thêm cấu hình sau vào `config.json`:
       "provider": "openai",
       "model": "cc/claude-opus-4-5-20251101",
       "apiKey": "your-api-key-from-dashboard",
-      "apiBase": "http://localhost:21128/v1"
+      "apiBase": "http://localhost:20128/v1"
     },
     {
       "title": "Dardcor Code - Claude Sonnet (Balanced)",
       "provider": "openai",
       "model": "cc/claude-sonnet-4-20250514",
       "apiKey": "your-api-key-from-dashboard",
-      "apiBase": "http://localhost:21128/v1"
+      "apiBase": "http://localhost:20128/v1"
     },
     {
       "title": "Dardcor Code - DeepSeek Chat (Code)",
       "provider": "openai",
       "model": "cx/deepseek-chat",
       "apiKey": "your-api-key-from-dashboard",
-      "apiBase": "http://localhost:21128/v1"
+      "apiBase": "http://localhost:20128/v1"
     },
     {
       "title": "Dardcor Code - Claude Haiku (Fast)",
       "provider": "openai",
       "model": "cc/claude-haiku-4-20250514",
       "apiKey": "your-api-key-from-dashboard",
-      "apiBase": "http://localhost:21128/v1"
+      "apiBase": "http://localhost:20128/v1"
     }
   ]
 }
@@ -76,7 +76,7 @@ Thêm cấu hình sau vào `config.json`:
 **Cho Cloud Dardcor Code:**
 Thay `apiBase` bằng:
 ```json
-"apiBase": "https://dardcor-code.web.id/v1"
+"apiBase": "https://dardcor-code.com/v1"
 ```
 
 ### 3. Lưu và Reload
@@ -143,7 +143,7 @@ Thêm system prompt tùy chỉnh cho hành vi cụ thể:
       "provider": "openai",
       "model": "cx/deepseek-chat",
       "apiKey": "your-api-key",
-      "apiBase": "http://localhost:21128/v1",
+      "apiBase": "http://localhost:20128/v1",
       "systemMessage": "You are an expert programmer. Always provide clean, well-documented code with best practices."
     }
   ]
@@ -162,7 +162,7 @@ Thêm system prompt tùy chỉnh cho hành vi cụ thể:
       "provider": "openai",
       "model": "cc/claude-opus-4-5-20251101",
       "apiKey": "your-api-key",
-      "apiBase": "http://localhost:21128/v1",
+      "apiBase": "http://localhost:20128/v1",
       "temperature": 0.9,
       "topP": 0.95
     }
@@ -204,7 +204,7 @@ Cấu hình context Continue gửi đến model:
 ## Troubleshooting
 
 ### Model không phản hồi
-- Kiểm tra Dardcor Code đang chạy: `curl http://localhost:21128/health`
+- Kiểm tra Dardcor Code đang chạy: `curl http://localhost:20128/health`
 - Xác minh API key trong config.json
 - Kiểm tra VSCode Developer Console để xem lỗi: `Help` → `Toggle Developer Tools`
 

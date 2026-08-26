@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./images/9router.png?1" alt="داشبورد Dardcor Code" width="800"/>
+  <img src="./images/dardcor-code.png?1" alt="داشبورد Dardcor Code" width="800"/>
   
   # Dardcor Code - مسیریاب رایگان هوش مصنوعی و ذخیره‌ساز توکن
   
@@ -7,15 +7,15 @@
   
   **همه ابزارهای کدنویسی مبتنی بر هوش مصنوعی (Claude Code، Cursor، Antigravity، Copilot، Codex، Gemini، OpenCode، Cline، OpenClaw...) را به بیش از ۴۰ ارائه‌دهنده و ۱۰۰+ مدل متصل کنید.**
   
-  [![npm](https://img.shields.io/npm/v/9router.svg)](https://www.npmjs.com/package/9router)
-  [![Downloads](https://img.shields.io/npm/dm/9router.svg)](https://www.npmjs.com/package/9router)
-  [![Docker Pulls](https://img.shields.io/docker/pulls/decolua/9router.svg?logo=docker&label=Docker%20pulls)](https://hub.docker.com/r/decolua/9router)
-  [![GHCR](https://img.shields.io/badge/GHCR-decolua%2F9router-blue?logo=github)](https://github.com/decolua/9router/pkgs/container/9router)
-  [![License](https://img.shields.io/npm/l/9router.svg)](https://github.com/decolua/9router/blob/main/LICENSE)
+  [![npm](https://img.shields.io/npm/v/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
+  [![Downloads](https://img.shields.io/npm/dm/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
+  [![Docker Pulls](https://img.shields.io/docker/pulls/decolua/dardcor-code.svg?logo=docker&label=Docker%20pulls)](https://hub.docker.com/r/decolua/dardcor-code)
+  [![GHCR](https://img.shields.io/badge/GHCR-decolua%2Fdardcor-code-blue?logo=github)](https://github.com/decolua/dardcor-code/pkgs/container/dardcor-code)
+  [![License](https://img.shields.io/npm/l/dardcor-code.svg)](https://github.com/decolua/dardcor-code/blob/main/LICENSE)
 
-<a href="https://trendshift.io/repositories/22628" target="_blank"><img src="https://trendshift.io/api/badge/repositories/22628" alt="decolua%2F9router | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+<a href="https://trendshift.io/repositories/22628" target="_blank"><img src="https://trendshift.io/api/badge/repositories/22628" alt="decolua%2Fdardcor-code | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
-[🚀 شروع سریع](#-شروع-سریع) • [💡 ویژگی‌ها](#-ویژگی‌های-کلیدی) • [📖 راه‌اندازی](#-راهنمای-راه‌اندازی) • [🌐 وب‌سایت](https://9router.com)
+[🚀 شروع سریع](#-شروع-سریع) • [💡 ویژگی‌ها](#-ویژگی‌های-کلیدی) • [📖 راه‌اندازی](#-راهنمای-راه‌اندازی) • [🌐 وب‌سایت](https://dardcor-code.com)
 
 [🇻🇳 Tiếng Việt](./i18n/README.vi.md) • [🇨🇳 中文](./i18n/README.zh-CN.md) • [🇯🇵 日本語](./i18n/README.ja-JP.md) • [🇷🇺 Русский](./i18n/README.ru.md) • [🇮🇷 فارسی](./i18n/README.fa_IR.md)
 
@@ -76,8 +76,8 @@
 **۱. نصب سراسری:**
 
 ```bash
-npm install -g 9router
-9router
+npm install -g dardcor-code
+dardcor-code
 ```
 
 🎉 داشبورد در آدرس `http://localhost:20128` باز می‌شود
@@ -213,7 +213,7 @@ PORT=20128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run 
 
 </div>
 
-> 🎬 **درباره Dardcor Code ویدیو ساخته‌اید؟** یک [درخواست Pull](https://github.com/decolua/9router/pulls) برای افزودن ویدیوی خود به این بخش ارسال کنید — ما آن را ادغام خواهیم کرد!
+> 🎬 **درباره Dardcor Code ویدیو ساخته‌اید؟** یک [درخواست Pull](https://github.com/decolua/dardcor-code/pulls) برای افزودن ویدیوی خود به این بخش ارسال کنید — ما آن را ادغام خواهیم کرد!
 
 ---
 
@@ -1042,7 +1042,7 @@ Vertex Partner (Anthropic / DeepSeek / GLM / Qwen از طریق Vertex):
 ```
 تنظیمات → مدل‌ها → پیشرفته:
   آدرس پایه API OpenAI: http://localhost:20128/v1
-  کلید API OpenAI: [از داشبورد 9router]
+  کلید API OpenAI: [از داشبورد dardcor-code]
   مدل: cc/claude-opus-4-7
 ```
 
@@ -1055,7 +1055,7 @@ Vertex Partner (Anthropic / DeepSeek / GLM / Qwen از طریق Vertex):
 ```json
 {
   "anthropic_api_base": "http://localhost:20128/v1",
-  "anthropic_api_key": "your-9router-api-key"
+  "anthropic_api_key": "your-dardcor-code-api-key"
 }
 ```
 
@@ -1063,7 +1063,7 @@ Vertex Partner (Anthropic / DeepSeek / GLM / Qwen از طریق Vertex):
 
 ```bash
 export OPENAI_BASE_URL="http://localhost:20128"
-export OPENAI_API_KEY="your-9router-api-key"
+export OPENAI_API_KEY="your-dardcor-code-api-key"
 
 codex "your prompt"
 ```
@@ -1083,15 +1083,15 @@ codex "your prompt"
   "agents": {
     "defaults": {
       "model": {
-        "primary": "9router/kr/claude-sonnet-4.5"
+        "primary": "dardcor-code/kr/claude-sonnet-4.5"
       }
     }
   },
   "models": {
     "providers": {
-      "9router": {
+      "dardcor-code": {
         "baseUrl": "http://127.0.0.1:20128/v1",
-        "apiKey": "sk_9router",
+        "apiKey": "sk_dardcor-code",
         "api": "openai-completions",
         "models": [
           {
@@ -1125,20 +1125,20 @@ codex "your prompt"
 
 ```bash
 # کلون و نصب
-git clone https://github.com/decolua/9router.git
-cd 9router
+git clone https://github.com/decolua/dardcor-code.git
+cd dardcor-code
 npm install
 npm run build
 
 # پیکربندی
 export JWT_SECRET="your-secure-secret-change-this"
 export INITIAL_PASSWORD="your-password"
-export DATA_DIR="/var/lib/9router"
+export DATA_DIR="/var/lib/dardcor-code"
 export PORT="20128"
 export HOSTNAME="0.0.0.0"
 export NODE_ENV="production"
 export NEXT_PUBLIC_BASE_URL="http://localhost:20128"
-export NEXT_PUBLIC_CLOUD_URL="https://9router.com"
+export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.com"
 export API_KEY_SECRET="endpoint-proxy-api-key-secret"
 export MACHINE_ID_SALT="endpoint-proxy-salt"
 
@@ -1147,7 +1147,7 @@ npm run start
 
 # یا استفاده از PM2
 npm install -g pm2
-pm2 start npm --name 9router -- start
+pm2 start npm --name dardcor-code -- start
 pm2 save
 pm2 startup
 ```
@@ -1156,18 +1156,18 @@ pm2 startup
 
 تصاویر منتشر شده (چند پلتفرم `linux/amd64` + `linux/arm64`):
 
-- Docker Hub: [`decolua/9router`](https://hub.docker.com/r/decolua/9router)
-- GHCR: [`ghcr.io/decolua/9router`](https://github.com/decolua/9router/pkgs/container/9router)
+- Docker Hub: [`decolua/dardcor-code`](https://hub.docker.com/r/decolua/dardcor-code)
+- GHCR: [`ghcr.io/decolua/dardcor-code`](https://github.com/decolua/dardcor-code/pkgs/container/dardcor-code)
 
 **شروع سریع (استفاده از تصویر منتشر شده):**
 
 ```bash
 docker run -d \
-  --name 9router \
+  --name dardcor-code \
   -p 20128:20128 \
-  -v "$HOME/.9router:/app/data" \
+  -v "$HOME/.dardcor-code:/app/data" \
   -e DATA_DIR=/app/data \
-  decolua/9router:latest
+  decolua/dardcor-code:latest
 ```
 
 → باز کردن http://localhost:20128
@@ -1175,11 +1175,11 @@ docker run -d \
 **ساخت از سورس (توسعه):**
 
 ```bash
-git clone https://github.com/decolua/9router.git
-cd 9router/app
-docker build -t 9router .
-docker run -d --name 9router -p 20128:20128 \
-  -v "$HOME/.9router:/app/data" -e DATA_DIR=/app/data 9router
+git clone https://github.com/decolua/dardcor-code.git
+cd dardcor-code/app
+docker build -t dardcor-code .
+docker run -d --name dardcor-code -p 20128:20128 \
+  -v "$HOME/.dardcor-code:/app/data" -e DATA_DIR=/app/data dardcor-code
 ```
 
 **پیش‌فرض‌های کانتینر:**
@@ -1190,28 +1190,28 @@ docker run -d --name 9router -p 20128:20128 \
 **دستورات مفید:**
 
 ```bash
-docker logs -f 9router
-docker restart 9router
-docker stop 9router && docker rm 9router
-docker pull decolua/9router:latest   # به‌روزرسانی به آخرین نسخه
+docker logs -f dardcor-code
+docker restart dardcor-code
+docker stop dardcor-code && docker rm dardcor-code
+docker pull decolua/dardcor-code:latest   # به‌روزرسانی به آخرین نسخه
 ```
 
-**ماندگاری داده:** `$HOME/.9router/db/data.sqlite` در میزبان ↔ `/app/data/db/data.sqlite` در کانتینر.
+**ماندگاری داده:** `$HOME/.dardcor-code/db/data.sqlite` در میزبان ↔ `/app/data/db/data.sqlite` در کانتینر.
 
 ### متغیرهای محیطی
 
 | متغیر                                             | پیش‌فرض                                  | توضیحات                                                                         |
 | ---------------------------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------- |
-| `JWT_SECRET`                                         | تولید خودکار (`~/.9router/jwt-secret`) | راز امضای JWT برای کوکی احراز هویت داشبورد (برای اشتراک بین نمونه‌ها بازنویسی کنید)   |
+| `JWT_SECRET`                                         | تولید خودکار (`~/.dardcor-code/jwt-secret`) | راز امضای JWT برای کوکی احراز هویت داشبورد (برای اشتراک بین نمونه‌ها بازنویسی کنید)   |
 | `INITIAL_PASSWORD`                                   | `123456`                                 | رمز عبور اولین ورود در صورت عدم وجود هش ذخیره شده                                      |
-| `DATA_DIR`                                           | `~/.9router`                             | مکان اصلی داده‌های برنامه (SQLite در `$DATA_DIR/db/data.sqlite`)                       |
+| `DATA_DIR`                                           | `~/.dardcor-code`                             | مکان اصلی داده‌های برنامه (SQLite در `$DATA_DIR/db/data.sqlite`)                       |
 | `PORT`                                               | پیش‌فرض فریم‌ورک                        | پورت سرویس (`۲۰۱۲۸` در مثال‌ها)                                                  |
 | `HOSTNAME`                                           | پیش‌فرض فریم‌ورک                        | هاست بایند (داکر پیش‌فرض `۰.۰.۰.۰` است)                                            |
 | `NODE_ENV`                                           | پیش‌فرض زمان اجرا                          | برای استقرار `production` را تنظیم کنید                                                         |
 | `BASE_URL`                                           | `http://localhost:20128`                 | آدرس پایه داخلی سمت سرور که توسط کارهای همگام‌سازی ابری استفاده می‌شود                               |
-| `CLOUD_URL`                                          | `https://9router.com`                    | آدرس پایه نقطه پایانی همگام‌سازی ابری سمت سرور                                            |
+| `CLOUD_URL`                                          | `https://dardcor-code.com`                    | آدرس پایه نقطه پایانی همگام‌سازی ابری سمت سرور                                            |
 | `NEXT_PUBLIC_BASE_URL`                               | `http://localhost:3000`                  | آدرس پایه عمومی/سازگار با گذشته (برای زمان اجرای سرور `BASE_URL` را ترجیح دهید)          |
-| `NEXT_PUBLIC_CLOUD_URL`                              | `https://9router.com`                    | آدرس ابری عمومی/سازگار با گذشته (برای زمان اجرای سرور `CLOUD_URL` را ترجیح دهید)        |
+| `NEXT_PUBLIC_CLOUD_URL`                              | `https://dardcor-code.com`                    | آدرس ابری عمومی/سازگار با گذشته (برای زمان اجرای سرور `CLOUD_URL` را ترجیح دهید)        |
 | `API_KEY_SECRET`                                     | `endpoint-proxy-api-key-secret`          | راز HMAC برای کلیدهای API تولید شده                                                  |
 | `MACHINE_ID_SALT`                                    | `endpoint-proxy-salt`                    | نمک برای هش کردن شناسه ماشین پایدار                                                  |
 | `ENABLE_REQUEST_LOGS`                                | `false`                                  | لاگ‌های درخواست/پاسخ را در `logs/` فعال می‌کند                                         |
@@ -1232,7 +1232,7 @@ docker pull decolua/9router:latest   # به‌روزرسانی به آخرین �
 - وضعیت اصلی برنامه: `${DATA_DIR}/db/data.sqlite` (SQLite — ارائه‌دهندگان، ترکیب‌ها، نام‌های مستعار، کلیدها، تنظیمات، تاریخچه استفاده)
 - پشتیبان‌گیری خودکار: `${DATA_DIR}/db/backups/`
 - لاگ‌های اختیاری درخواست/مترجم: `<repo>/logs/...` وقتی `ENABLE_REQUEST_LOGS=true`
-- هر دو `${DATA_DIR}` و `~/.9router` در یک کانتینر داکر به یک مکان اشاره می‌کنند — symlink `/root/.9router -> /app/data` در زمان ساخت ایجاد می‌شود.
+- هر دو `${DATA_DIR}` و `~/.dardcor-code` در یک کانتینر داکر به یک مکان اشاره می‌کنند — symlink `/root/.dardcor-code -> /app/data` در زمان ساخت ایجاد می‌شود.
 
 </details>
 
@@ -1394,9 +1394,9 @@ Authorization: Bearer your-api-key
 
 ## 📧 پشتیبانی
 
-- **وب‌سایت**: [9router.com](https://9router.com)
-- **GitHub**: [github.com/decolua/9router](https://github.com/decolua/9router)
-- **مسائل**: [github.com/decolua/9router/issues](https://github.com/decolua/9router/issues)
+- **وب‌سایت**: [dardcor-code.com](https://dardcor-code.com)
+- **GitHub**: [github.com/decolua/dardcor-code](https://github.com/decolua/dardcor-code)
+- **مسائل**: [github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)
 
 ---
 
@@ -1404,13 +1404,13 @@ Authorization: Bearer your-api-key
 
 با تشکر از همه مشارکت‌کنندگانی که به بهتر شدن Dardcor Code کمک کردند!
 
-[![Contributors](https://contrib.rocks/image?repo=decolua/9router&max=150&columns=15&anon=1&v=20260309)](https://github.com/decolua/9router/graphs/contributors)
+[![Contributors](https://contrib.rocks/image?repo=decolua/dardcor-code&max=150&columns=15&anon=1&v=20260309)](https://github.com/decolua/dardcor-code/graphs/contributors)
 
 ---
 
 ## 📊 نمودار ستاره
 
-[![Star Chart](https://starchart.cc/decolua/9router.svg?variant=adaptive)](https://starchart.cc/decolua/9router)
+[![Star Chart](https://starchart.cc/decolua/dardcor-code.svg?variant=adaptive)](https://starchart.cc/decolua/dardcor-code)
 
 ## 🔀 فورک‌ها
 

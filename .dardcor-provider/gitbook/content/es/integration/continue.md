@@ -6,7 +6,7 @@ Integra Dardcor Code con la extensión Continue para llevar la asistencia de IA 
 
 - Visual Studio Code instalado
 - Extensión Continue instalada desde el marketplace de VSCode
-- API key de Dardcor Code desde el [dashboard](https://dardcor-code.web.id/dashboard)
+- API key de Dardcor Code desde el [dashboard](https://dardcor-code.com/dashboard)
 - Dardcor Code ejecutándose (local o en la nube)
 
 ## Pasos de configuración
@@ -31,7 +31,7 @@ Agrega la siguiente configuración a tu `config.json`:
       "provider": "openai",
       "model": "cc/claude-opus-4-5-20251101",
       "apiKey": "your-api-key-from-dashboard",
-      "apiBase": "http://localhost:21128/v1"
+      "apiBase": "http://localhost:20128/v1"
     }
   ]
 }
@@ -46,28 +46,28 @@ Agrega la siguiente configuración a tu `config.json`:
       "provider": "openai",
       "model": "cc/claude-opus-4-5-20251101",
       "apiKey": "your-api-key-from-dashboard",
-      "apiBase": "http://localhost:21128/v1"
+      "apiBase": "http://localhost:20128/v1"
     },
     {
       "title": "Dardcor Code - Claude Sonnet (Balanced)",
       "provider": "openai",
       "model": "cc/claude-sonnet-4-20250514",
       "apiKey": "your-api-key-from-dashboard",
-      "apiBase": "http://localhost:21128/v1"
+      "apiBase": "http://localhost:20128/v1"
     },
     {
       "title": "Dardcor Code - DeepSeek Chat (Code)",
       "provider": "openai",
       "model": "cx/deepseek-chat",
       "apiKey": "your-api-key-from-dashboard",
-      "apiBase": "http://localhost:21128/v1"
+      "apiBase": "http://localhost:20128/v1"
     },
     {
       "title": "Dardcor Code - Claude Haiku (Fast)",
       "provider": "openai",
       "model": "cc/claude-haiku-4-20250514",
       "apiKey": "your-api-key-from-dashboard",
-      "apiBase": "http://localhost:21128/v1"
+      "apiBase": "http://localhost:20128/v1"
     }
   ]
 }
@@ -76,7 +76,7 @@ Agrega la siguiente configuración a tu `config.json`:
 **Para Dardcor Code en la nube:**
 Reemplaza `apiBase` con:
 ```json
-"apiBase": "https://dardcor-code.web.id/v1"
+"apiBase": "https://dardcor-code.com/v1"
 ```
 
 ### 3. Guardar y recargar
@@ -143,7 +143,7 @@ Agrega prompts de sistema personalizados para comportamientos específicos:
       "provider": "openai",
       "model": "cx/deepseek-chat",
       "apiKey": "your-api-key",
-      "apiBase": "http://localhost:21128/v1",
+      "apiBase": "http://localhost:20128/v1",
       "systemMessage": "You are an expert programmer. Always provide clean, well-documented code with best practices."
     }
   ]
@@ -162,7 +162,7 @@ Ajusta el comportamiento del modelo con parámetros:
       "provider": "openai",
       "model": "cc/claude-opus-4-5-20251101",
       "apiKey": "your-api-key",
-      "apiBase": "http://localhost:21128/v1",
+      "apiBase": "http://localhost:20128/v1",
       "temperature": 0.9,
       "topP": 0.95
     }
@@ -204,7 +204,7 @@ Configura qué contexto envía Continue al modelo:
 ## Solución de problemas
 
 ### El modelo no responde
-- Verifica que Dardcor Code esté corriendo: `curl http://localhost:21128/health`
+- Verifica que Dardcor Code esté corriendo: `curl http://localhost:20128/health`
 - Verifica la API key en config.json
 - Revisa la consola de desarrollador de VSCode por errores: `Help` → `Toggle Developer Tools`
 

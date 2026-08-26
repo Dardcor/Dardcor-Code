@@ -199,7 +199,7 @@ Model: kr/claude-sonnet-4.5
 
 ```
 Settings → Models → Advanced:
-  OpenAI API Base URL: http://localhost:21128/v1
+  OpenAI API Base URL: http://localhost:20128/v1
   OpenAI API Key: [从 dardcor-code 仪表盘获取]
   Model: if/kimi-k2-thinking
 ```
@@ -246,6 +246,8 @@ CLI 中使用: complete-fallback
 - 第 2 层: 付费订阅(Claude Code)
 - 第 3 层: 低价备用(GLM、MiniMax)
 - 第 4 层: 免费回退(iFlow、Kiro)
+
+**永不停码!**
 
 ---
 
@@ -361,6 +363,33 @@ CLI 中使用: complete-fallback
 - 专业开发
 - 团队项目
 - 24/7 编码
+```
+
+---
+
+## 成本对比
+
+### 场景:每月 100M tokens
+
+**方案 1:仅 ChatGPT API**
+```
+100M × $20/1M = $2,000/月
+```
+
+**方案 2:仅 Dardcor Code 免费层**
+```
+100M 通过免费层 = $0/月
+节省: $2,000/月 (100%)
+```
+
+**方案 3:Dardcor Code 完整策略**
+```
+60M 通过 Gemini CLI(免费): $0
+30M 通过 Claude Code(订阅): 无额外费用
+8M 通过 GLM(低价): $4.80
+2M 通过 iFlow(免费): $0
+合计: $4.80/月 + 你已有的订阅
+节省: $1,995/月 (99.76%)
 ```
 
 ---

@@ -6,7 +6,7 @@
 
 - 已安装 Visual Studio Code
 - 从 VSCode 市场安装了 Continue 扩展
-- 来自 [仪表盘](https://dardcor-code.web.id/dashboard) 的 Dardcor Code API key
+- 来自 [仪表盘](https://dardcor-code.com/dashboard) 的 Dardcor Code API key
 - Dardcor Code 正在运行(本地或云端)
 
 ## 配置步骤
@@ -31,7 +31,7 @@
       "provider": "openai",
       "model": "cc/claude-opus-4-5-20251101",
       "apiKey": "your-api-key-from-dashboard",
-      "apiBase": "http://localhost:21128/v1"
+      "apiBase": "http://localhost:20128/v1"
     }
   ]
 }
@@ -46,28 +46,28 @@
       "provider": "openai",
       "model": "cc/claude-opus-4-5-20251101",
       "apiKey": "your-api-key-from-dashboard",
-      "apiBase": "http://localhost:21128/v1"
+      "apiBase": "http://localhost:20128/v1"
     },
     {
       "title": "Dardcor Code - Claude Sonnet (Balanced)",
       "provider": "openai",
       "model": "cc/claude-sonnet-4-20250514",
       "apiKey": "your-api-key-from-dashboard",
-      "apiBase": "http://localhost:21128/v1"
+      "apiBase": "http://localhost:20128/v1"
     },
     {
       "title": "Dardcor Code - DeepSeek Chat (Code)",
       "provider": "openai",
       "model": "cx/deepseek-chat",
       "apiKey": "your-api-key-from-dashboard",
-      "apiBase": "http://localhost:21128/v1"
+      "apiBase": "http://localhost:20128/v1"
     },
     {
       "title": "Dardcor Code - Claude Haiku (Fast)",
       "provider": "openai",
       "model": "cc/claude-haiku-4-20250514",
       "apiKey": "your-api-key-from-dashboard",
-      "apiBase": "http://localhost:21128/v1"
+      "apiBase": "http://localhost:20128/v1"
     }
   ]
 }
@@ -76,7 +76,7 @@
 **云端 Dardcor Code:**
 将 `apiBase` 替换为:
 ```json
-"apiBase": "https://dardcor-code.web.id/v1"
+"apiBase": "https://dardcor-code.com/v1"
 ```
 
 ### 3. 保存并重新加载
@@ -143,7 +143,7 @@
       "provider": "openai",
       "model": "cx/deepseek-chat",
       "apiKey": "your-api-key",
-      "apiBase": "http://localhost:21128/v1",
+      "apiBase": "http://localhost:20128/v1",
       "systemMessage": "You are an expert programmer. Always provide clean, well-documented code with best practices."
     }
   ]
@@ -162,7 +162,7 @@
       "provider": "openai",
       "model": "cc/claude-opus-4-5-20251101",
       "apiKey": "your-api-key",
-      "apiBase": "http://localhost:21128/v1",
+      "apiBase": "http://localhost:20128/v1",
       "temperature": 0.9,
       "topP": 0.95
     }
@@ -204,7 +204,7 @@
 ## 故障排除
 
 ### 模型无响应
-- 确认 Dardcor Code 正在运行:`curl http://localhost:21128/health`
+- 确认 Dardcor Code 正在运行:`curl http://localhost:20128/health`
 - 检查 config.json 中的 API key
 - 查看 VSCode 开发者控制台错误:`Help` → `Toggle Developer Tools`
 

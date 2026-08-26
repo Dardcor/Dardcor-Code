@@ -43,6 +43,7 @@ glm/glm-4.7 → minimax/MiniMax-M2.1 → if/kimi-k2-thinking
 → Start with cheapest paid option ($0.60/1M)
 → Fallback to even cheaper ($0.20/1M)
 → Emergency free tier
+→ Total cost: ~$5-10/month vs $2000 on ChatGPT API
 ```
 
 ### 3. Đảm bảo Khả dụng 24/7
@@ -70,7 +71,7 @@ cc/claude-opus-4-5 → cx/gpt-5.2-codex → gc/gemini-3-pro
 ### Bước 1: Mở Dashboard
 
 ```
-http://localhost:21128
+http://localhost:20128
 → Login with your password
 ```
 
@@ -159,6 +160,8 @@ Evening (GLM quota out):
 Total: $10 + your subscription
 ```
 
+**Tiết kiệm**: ~99% so với ChatGPT API ($2000).
+
 ---
 
 ### Ví dụ 2: Budget Combo (Cheap → Free)
@@ -179,7 +182,7 @@ Models:
 ```
 Cline:
   Provider: OpenAI Compatible
-  Base URL: http://localhost:21128/v1
+  Base URL: http://localhost:20128/v1
   Model: budget-combo
 ```
 
@@ -196,7 +199,10 @@ Request → glm/glm-4.7
 70M via GLM: $42
 20M via MiniMax: $4
 10M via iFlow: $0
+Total: $46 vs $2000 on ChatGPT API
 ```
+
+**Tiết kiệm**: 97%.
 
 ---
 
@@ -231,7 +237,7 @@ Request → if/kimi-k2-thinking
 **Chi phí hàng tháng:**
 ```
 100M tokens via free providers: $0
-Total: $0
+Total: $0 forever
 ```
 
 **Use case**: Dự án cá nhân, học tập, thử nghiệm.
@@ -255,7 +261,7 @@ Models:
 **Sử dụng:**
 ```
 Codex CLI:
-  export OPENAI_BASE_URL="http://localhost:21128"
+  export OPENAI_BASE_URL="http://localhost:20128"
   Model: quality-first
 ```
 
@@ -337,7 +343,7 @@ Models:
 
 ```
 Settings → Models → Advanced:
-  OpenAI API Base URL: http://localhost:21128/v1
+  OpenAI API Base URL: http://localhost:20128/v1
   OpenAI API Key: [from dashboard]
   Model: premium-coding
 ```
@@ -347,7 +353,7 @@ Settings → Models → Advanced:
 Sửa `~/.claude/config.json`:
 ```json
 {
-  "anthropic_api_base": "http://localhost:21128/v1",
+  "anthropic_api_base": "http://localhost:20128/v1",
   "anthropic_api_key": "your-dardcor-code-api-key",
   "model": "budget-combo"
 }
@@ -356,7 +362,7 @@ Sửa `~/.claude/config.json`:
 ### Codex CLI
 
 ```bash
-export OPENAI_BASE_URL="http://localhost:21128"
+export OPENAI_BASE_URL="http://localhost:20128"
 export OPENAI_API_KEY="your-dardcor-code-api-key"
 
 codex --model quality-first "your prompt"
@@ -366,7 +372,7 @@ codex --model quality-first "your prompt"
 
 ```
 Provider: OpenAI Compatible
-Base URL: http://localhost:21128/v1
+Base URL: http://localhost:20128/v1
 API Key: [from dashboard]
 Model: free-combo
 ```
@@ -374,7 +380,7 @@ Model: free-combo
 ### API Request
 
 ```bash
-curl http://localhost:21128/v1/chat/completions \
+curl http://localhost:20128/v1/chat/completions \
   -H "Authorization: Bearer your-api-key" \
   -H "Content-Type: application/json" \
   -d '{

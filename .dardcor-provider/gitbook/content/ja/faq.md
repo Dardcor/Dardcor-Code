@@ -17,6 +17,7 @@ Dardcor Codeに関する一般的な質問。
 - サブスクリプションのクォータを無駄にしない
 - クォータ消費時の自動フォールバック
 - リアルタイムクォータトラッキング
+- 直接API利用に対して90%のコスト削減
 
 ---
 
@@ -37,6 +38,8 @@ Dardcor Codeに関する一般的な質問。
 - **GLM-4.7**: 100万トークンあたり$0.60/$2.20 - 毎日午前10時リセット
 - **MiniMax M2.1**: 100万トークンあたり$0.20/$1.00 - 5時間ローリング
 - **Kimi K2**: 月$9固定(1000万トークン)
+
+**目標:** ChatGPT API(100万あたり$20)より90%安い!
 
 ### Tier 3: 無料(緊急時)
 - **iFlow**: 8モデル無料(Kimi K2、Qwen3、GLM、MiniMax...)
@@ -161,7 +164,7 @@ Dashboard → Providers → Quota Tracking
 
 ```
 Cursor Settings → Models → Advanced:
-  OpenAI API Base URL: https://dardcor-code.web.id/v1
+  OpenAI API Base URL: https://dardcor-code.com/v1
   OpenAI API Key: [ダッシュボードから取得]
   Model: cc/claude-opus-4-5-20251101
 ```
@@ -169,7 +172,7 @@ Cursor Settings → Models → Advanced:
 **代替案:** パブリックドメインでVPSにセルフホスト:
 ```bash
 # VPSへデプロイ
-git clone .git
+git clone https://github.com/decolua/dardcor-code.git
 cd dardcor-code/app
 npm install && npm run build
 npm start
@@ -198,12 +201,12 @@ npm start
 npm install -g dardcor-code
 dardcor-code
 → Dashboard: http://localhost:3000
-→ API: http://localhost:21128/v1
+→ API: http://localhost:20128/v1
 ```
 
 ### VPS/クラウド
 ```bash
-git clone .git
+git clone https://github.com/decolua/dardcor-code.git
 cd dardcor-code/app
 npm install && npm run build
 
@@ -233,7 +236,7 @@ npm run deploy:cloudflare
 **環境変数:**
 - `JWT_SECRET` - **本番環境で必ず変更!**
 - `DATA_DIR` - データベース保存パス(デフォルト: `~/.dardcor-code`)
-- `INITIAL_PASSWORD` - ダッシュボードログイン(デフォルトなし；未設定なら localhost 経由でパスワードを作成するローカル専用のオプション)
+- `INITIAL_PASSWORD` - ダッシュボードログイン(デフォルト: `123456`)
 - `NODE_ENV` - デプロイ時は`production`に設定
 
 詳細は[デプロイメントガイド](getting-started/installation.md#deployment)を参照。
@@ -313,7 +316,7 @@ dardcor-code --version
 ```
 
 **破壊的変更:**
-- [CHANGELOG.md](/blob/main/CHANGELOG.md)を確認
+- [CHANGELOG.md](https://github.com/decolua/dardcor-code/blob/main/CHANGELOG.md)を確認
 - メジャー更新前に`~/.dardcor-code`をバックアップ
 - メジャーバージョンの移行ガイドを確認
 
@@ -326,17 +329,17 @@ dardcor-code --version
 ### 貢献方法:
 
 1. **バグを報告:**
-   - [GitHub Issues](/issues)
+   - [GitHub Issues](https://github.com/decolua/dardcor-code/issues)
    - エラーログ、再現手順を含める
 
 2. **機能をリクエスト:**
-   - [GitHub Discussions](/discussions)
+   - [GitHub Discussions](https://github.com/decolua/dardcor-code/discussions)
    - ユースケースと利点を説明
 
 3. **コードを提出:**
    ```bash
    # リポジトリをフォーク
-   git clone .git
+   git clone https://github.com/YOUR_USERNAME/dardcor-code.git
    cd dardcor-code
    
    # ブランチを作成
@@ -372,13 +375,13 @@ dardcor-code --version
 - ドキュメントを更新
 - コミットは小さく、わかりやすく
 
-詳細は[CONTRIBUTING.md](/blob/main/CONTRIBUTING.md)を参照。
+詳細は[CONTRIBUTING.md](https://github.com/decolua/dardcor-code/blob/main/CONTRIBUTING.md)を参照。
 
 ---
 
 ## さらにヘルプが必要?
 
-- **ドキュメント:** [dardcor-code.web.id/docs](https://dardcor-code.web.id/docs)
-- **GitHub:** 
-- **Issues:** [/issues](/issues)
+- **ドキュメント:** [dardcor-code.com/docs](https://dardcor-code.com/docs)
+- **GitHub:** [github.com/decolua/dardcor-code](https://github.com/decolua/dardcor-code)
+- **Issues:** [github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)
 - **トラブルシューティング:** [troubleshooting.md](troubleshooting.md)

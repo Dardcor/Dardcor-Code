@@ -57,7 +57,7 @@ describe("Cursor AgentService codec (cursorProtobuf.js)", () => {
       const msg = decodeMessage(def);
       expect(Buffer.from(msg.get(1)[0].value).toString("utf8")).toBe("get_weather");
       expect(Buffer.from(msg.get(2)[0].value).toString("utf8")).toBe("Get weather");
-      expect(Buffer.from(msg.get(4)[0].value).toString("utf8")).toBe("9router");
+      expect(Buffer.from(msg.get(4)[0].value).toString("utf8")).toBe("dardcor-code");
       expect(Buffer.from(msg.get(5)[0].value).toString("utf8")).toBe("get_weather");
       expect(decodeAgentValue(msg.get(3)[0].value)).toEqual(schema);
     });
