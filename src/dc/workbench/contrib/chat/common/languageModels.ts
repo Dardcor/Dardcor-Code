@@ -1030,163 +1030,19 @@ export class LanguageModelsService implements ILanguageModelsService {
 
 		const defaultDardcorModels: ILanguageModelChatMetadataAndIdentifier[] = [
 			{
-				identifier: 'opencode/ox-alpha-free',
+				identifier: 'opencode/no-model-selected',
 				metadata: {
 					extension: new ExtensionIdentifier('dardcor.dardcor'),
 					isDefaultForLocation: { [ChatAgentLocation.Chat]: true, [ChatAgentLocation.EditorInline]: true },
-					id: 'opencode/ox-alpha-free',
-					name: 'Ox Alpha Free (Unlimited)',
+					id: 'opencode/no-model-selected',
+					name: 'No Model Selected',
 					vendor: COPILOT_VENDOR_ID,
-					family: 'opencode/ox-alpha-free',
+					family: 'opencode/no-model-selected',
 					version: '1.0.0',
-					maxInputTokens: 200000,
-					maxOutputTokens: 64000,
+					maxInputTokens: 0,
+					maxOutputTokens: 0,
 					isUserSelectable: true,
-					capabilities: { toolCalling: true, agentMode: true, vision: false }
-				}
-			},
-			{
-				identifier: 'opencode/big-pickle',
-				metadata: {
-					extension: new ExtensionIdentifier('dardcor.dardcor'),
-					isDefaultForLocation: {},
-					id: 'opencode/big-pickle',
-					name: 'Big Pickle (Free)',
-					vendor: COPILOT_VENDOR_ID,
-					family: 'opencode/big-pickle',
-					version: '1.0.0',
-					maxInputTokens: 200000,
-					maxOutputTokens: 64000,
-					isUserSelectable: true,
-					capabilities: { toolCalling: true, agentMode: true, vision: false }
-				}
-			},
-			{
-				identifier: 'opencode/deepseek-v4-flash-free',
-				metadata: {
-					extension: new ExtensionIdentifier('dardcor.dardcor'),
-					isDefaultForLocation: {},
-					id: 'opencode/deepseek-v4-flash-free',
-					name: 'DeepSeek V4 Flash (Free)',
-					vendor: COPILOT_VENDOR_ID,
-					family: 'opencode/deepseek-v4-flash-free',
-					version: '1.0.0',
-					maxInputTokens: 1000000,
-					maxOutputTokens: 384000,
-					isUserSelectable: true,
-					capabilities: { toolCalling: true, agentMode: true, vision: false }
-				}
-			},
-			{
-				identifier: 'opencode/mimo-v2.5-free',
-				metadata: {
-					extension: new ExtensionIdentifier('dardcor.dardcor'),
-					isDefaultForLocation: {},
-					id: 'opencode/mimo-v2.5-free',
-					name: 'MiMo V2.5 (Free)',
-					vendor: COPILOT_VENDOR_ID,
-					family: 'opencode/mimo-v2.5-free',
-					version: '1.0.0',
-					maxInputTokens: 1048576,
-					maxOutputTokens: 131072,
-					isUserSelectable: true,
-					capabilities: { toolCalling: true, agentMode: true, vision: true }
-				}
-			},
-			{
-				identifier: 'opencode/hy3-free',
-				metadata: {
-					extension: new ExtensionIdentifier('dardcor.dardcor'),
-					isDefaultForLocation: {},
-					id: 'opencode/hy3-free',
-					name: 'HY3 (Free)',
-					vendor: COPILOT_VENDOR_ID,
-					family: 'opencode/hy3-free',
-					version: '1.0.0',
-					maxInputTokens: 262144,
-					maxOutputTokens: 262144,
-					isUserSelectable: true,
-					capabilities: { toolCalling: true, agentMode: true, vision: false }
-				}
-			},
-			{
-				identifier: 'opencode/nemotron-3-ultra-free',
-				metadata: {
-					extension: new ExtensionIdentifier('dardcor.dardcor'),
-					isDefaultForLocation: {},
-					id: 'opencode/nemotron-3-ultra-free',
-					name: 'Nemotron 3 Ultra (Free)',
-					vendor: COPILOT_VENDOR_ID,
-					family: 'opencode/nemotron-3-ultra-free',
-					version: '1.0.0',
-					maxInputTokens: 128000,
-					maxOutputTokens: 64000,
-					isUserSelectable: true,
-					capabilities: { toolCalling: true, agentMode: true, vision: false }
-				}
-			},
-			{
-				identifier: 'opencode/nemotron-3.5-lightning-free',
-				metadata: {
-					extension: new ExtensionIdentifier('dardcor.dardcor'),
-					isDefaultForLocation: {},
-					id: 'opencode/nemotron-3.5-lightning-free',
-					name: 'Nemotron 3.5 Lightning (Free)',
-					vendor: COPILOT_VENDOR_ID,
-					family: 'opencode/nemotron-3.5-lightning-free',
-					version: '1.0.0',
-					maxInputTokens: 128000,
-					maxOutputTokens: 64000,
-					isUserSelectable: true,
-					capabilities: { toolCalling: true, agentMode: true, vision: false }
-				}
-			},
-			{
-				identifier: 'opencode/laguna-s-2.1-free',
-				metadata: {
-					extension: new ExtensionIdentifier('dardcor.dardcor'),
-					isDefaultForLocation: {},
-					id: 'opencode/laguna-s-2.1-free',
-					name: 'Laguna S 2.1 (Free)',
-					vendor: COPILOT_VENDOR_ID,
-					family: 'opencode/laguna-s-2.1-free',
-					version: '1.0.0',
-					maxInputTokens: 200000,
-					maxOutputTokens: 32000,
-					isUserSelectable: true,
-					capabilities: { toolCalling: true, agentMode: true, vision: false }
-				}
-			},
-			{
-				identifier: 'opencode/x-preview-f-free',
-				metadata: {
-					extension: new ExtensionIdentifier('dardcor.dardcor'),
-					isDefaultForLocation: {},
-					id: 'opencode/x-preview-f-free',
-					name: 'X Preview F (Free)',
-					vendor: COPILOT_VENDOR_ID,
-					family: 'opencode/x-preview-f-free',
-					version: '1.0.0',
-					maxInputTokens: 200000,
-					maxOutputTokens: 64000,
-					isUserSelectable: true,
-					capabilities: { toolCalling: true, agentMode: true, vision: false }
-				}
-			},
-			{
-				identifier: 'opencode/muse-spark-1.2-contributor-free',
-				metadata: {
-					extension: new ExtensionIdentifier('dardcor.dardcor'),
-					isDefaultForLocation: {},
-					id: 'opencode/muse-spark-1.2-contributor-free',
-					name: 'Muse Spark 1.2 Contributor (Free)',
-					vendor: COPILOT_VENDOR_ID,
-					family: 'opencode/muse-spark-1.2-contributor-free',
-					version: '1.0.0',
-					maxInputTokens: 200000,
-					maxOutputTokens: 64000,
-					isUserSelectable: true,
-					capabilities: { toolCalling: true, agentMode: true, vision: false }
+					capabilities: { toolCalling: false, agentMode: false, vision: false }
 				}
 			}
 		];

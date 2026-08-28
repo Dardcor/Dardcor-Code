@@ -109,9 +109,10 @@ function isLoopbackPeer(request) {
   if (hasTrustedPeerHeaders(request)) {
     return isLoopbackHostname(request.headers.get("x-9r-real-ip"));
   }
-  // Bare `next dev` forks its server, so the wrapper never loads and no peer address
-  // reaches us. Host is spoofable, so this stays confined to development.
-  if (process.env.NODE_ENV === "development") {
+  // If x-9r-real-ip is missing, custom-server.js is bypassed (e.g. IDE launched server.js directly).
+  // The IDE sets HOSTNAME=127.0.0.1, making the socket inherently local.
+  // We fallback to checking the Host header.
+  if (!request.headers.get("x-9r-real-ip")) {
     return isLoopbackHostname(request.headers.get("host"));
   }
   return false;
