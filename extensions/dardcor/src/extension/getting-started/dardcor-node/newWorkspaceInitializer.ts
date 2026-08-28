@@ -36,7 +36,7 @@ export class NewWorkspaceInitializer extends Disposable {
 		const context = newWorkspaceContextsList[exactIndex];
 		const confirm = l10n.t('Continue Setup');
 		const message = l10n.t('Continue Workspace Setup?');
-		const detail = l10n.t('Copilot will resume setting up the workspace by creating the necessary files.');
+		const detail = l10n.t('Dardcor AI will resume setting up the workspace by creating the necessary files.');
 
 		if (!context.initialized) {
 			context.initialized = true;

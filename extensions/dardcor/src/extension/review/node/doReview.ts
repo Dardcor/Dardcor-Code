@@ -83,7 +83,7 @@ export async function handleReviewResult(
 				l10n.t('Reviewing your code did not provide any feedback.'),
 				{
 					modal: true,
-					detail: result.reason || l10n.t('Copilot only keeps its highest confidence comments to reduce noise and keep you focused.')
+					detail: result.reason || l10n.t('Dardcor AI only keeps its highest confidence comments to reduce noise and keep you focused.')
 				}
 			);
 		}

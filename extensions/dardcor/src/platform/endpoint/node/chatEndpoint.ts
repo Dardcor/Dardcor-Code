@@ -298,7 +298,7 @@ export class ChatEndpoint implements IChatEndpoint {
 		if (typeof this.modelMetadata.urlOrRequestMetadata === 'string') {
 			return this.modelMetadata.urlOrRequestMetadata;
 		}
-		return 'http://127.0.0.1:25000/v1/chat/completions';
+		return 'http://127.0.0.1:25128/v1/chat/completions';
 	}
 
 	protected get useResponsesApi(): boolean {

@@ -237,7 +237,7 @@ export class ChatSessionsUriHandler extends Disposable implements CustomUriHandl
 		if (!repoId || repoId.length === 0) {
 			return;
 		}
-		const pullRequests = await this._octoKitService.getOpenPullRequestsForUser(repoId[0].org, repoId[0].repo, { createIfNone: { detail: l10n.t('Sign in to GitHub to access Copilot cloud sessions.') } });
+		const pullRequests = await this._octoKitService.getOpenPullRequestsForUser(repoId[0].org, repoId[0].repo, { createIfNone: { detail: l10n.t('Sign in to access Dardcor AI cloud sessions.') } });
 		const pullRequest = pullRequests.find(pr => pr.id === prId);
 		if (!pullRequest) {
 			return;

@@ -163,12 +163,12 @@ export default function CodexToolCard({ tool, isExpanded, onToggle, baseUrl, api
 
     const effectiveSubagentModel = subagentModel || selectedModel;
 
-    const configContent = `# Dardcor Code Configuration for Codex CLI
+    const configContent = `# DRouter Configuration for Codex CLI
 model = "${selectedModel}"
 model_provider = "dardcor-code"
 
 [model_providers.dardcor-code]
-name = "Dardcor Code"
+name = "DRouter"
 base_url = "${getEffectiveBaseUrl()}"
 wire_api = "responses"
 

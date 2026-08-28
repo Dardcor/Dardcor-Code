@@ -92,7 +92,7 @@ export class TestsIntent implements IIntent {
 		}
 
 		if (await this.ignoreService.isCopilotIgnored(documentContext.document.uri)) {
-			throw new Error('Copilot is disabled for this file.');
+			throw new Error('Dardcor AI is disabled for this file.');
 		}
 
 		const location = invocationContext.location;

@@ -46,10 +46,10 @@ const readSettings = async () => {
   }
 };
 
-// Check if settings has Dardcor Code customModels
+// Check if settings has DRouter customModels
 const hasDardcorCodeConfig = (settings) => {
   if (!settings || !settings.customModels) return false;
-  return settings.customModels.some(m => m.id?.startsWith("custom:Dardcor Code"));
+  return settings.customModels.some(m => m.id?.startsWith("custom:DRouter"));
 };
 
 // GET - Check droid CLI and read current settings
@@ -79,7 +79,7 @@ export async function GET() {
   }
 }
 
-// POST - Update Dardcor Code customModels (merge with existing settings)
+// POST - Update DRouter customModels (merge with existing settings)
 // Accepts either `model` (string, legacy single-model) or `models` (array of strings, multi-model)
 // Also accepts `activeModel` to set which model is active/primary
 export async function POST(request) {
@@ -111,8 +111,8 @@ export async function POST(request) {
       settings.customModels = [];
     }
 
-    // Remove all existing Dardcor Code configs
-    settings.customModels = settings.customModels.filter(m => !m.id?.startsWith("custom:Dardcor Code"));
+    // Remove all existing DRouter configs
+    settings.customModels = settings.customModels.filter(m => !m.id?.startsWith("custom:DRouter"));
 
     // Normalize baseUrl to ensure /v1 suffix
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
@@ -137,7 +137,7 @@ export async function POST(request) {
       if (!m || typeof m !== "string") continue;
       settings.customModels.push({
         model: m,
-        id: `custom:Dardcor Code-${i}`,
+        id: `custom:DRouter-${i}`,
         index: i,
         baseUrl: normalizedBaseUrl,
         apiKey: keyToUse,
@@ -171,7 +171,7 @@ export async function POST(request) {
   }
 }
 
-// DELETE - Remove Dardcor Code customModels only (keep other settings)
+// DELETE - Remove DRouter customModels only (keep other settings)
 export async function DELETE() {
   try {
     const settingsPath = getDroidSettingsPath();
@@ -191,9 +191,9 @@ export async function DELETE() {
       throw error;
     }
 
-    // Remove Dardcor Code customModels
+    // Remove DRouter customModels
     if (settings.customModels) {
-      settings.customModels = settings.customModels.filter(m => !m.id?.startsWith("custom:Dardcor Code"));
+      settings.customModels = settings.customModels.filter(m => !m.id?.startsWith("custom:DRouter"));
       
       // Remove customModels array if empty
       if (settings.customModels.length === 0) {
@@ -206,7 +206,7 @@ export async function DELETE() {
 
     return NextResponse.json({
       success: true,
-      message: "Dardcor Code settings removed successfully",
+      message: "DRouter settings removed successfully",
     });
   } catch (error) {
     console.log("Error resetting droid settings:", error);

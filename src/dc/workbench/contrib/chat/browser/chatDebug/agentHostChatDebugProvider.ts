@@ -1529,7 +1529,7 @@ function lastIndexOfNewline(buffer: VSBuffer): number {
  * the session id.
  */
 function fallbackSessionTitle(sessionId: string): string {
-	return localize('agentHost.debug.untitledSession', "Copilot CLI Session {0}", sessionId.slice(0, 8));
+	return localize('agentHost.debug.untitledSession', "Dardcor AI CLI Session {0}", sessionId.slice(0, 8));
 }
 
 /** Derives a session title from the first user message in an events stream. */

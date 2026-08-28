@@ -94,7 +94,7 @@ ProviderNode.propTypes = {
   data: PropTypes.object.isRequired,
 };
 
-// Center Dardcor Code node — pulse/glow on card only (no expanding rings)
+// Center DRouter node — pulse/glow on card only (no expanding rings)
 function RouterNode({ data }) {
   const powering = (data.activeCount || 0) > 0;
   return (
@@ -112,13 +112,13 @@ function RouterNode({ data }) {
 
       <img
         src="/dardcor-code.png"
-        alt="Dardcor Code"
+        alt="DRouter"
         className={`w-6 h-6 mr-2 object-contain ${powering ? "topology-router-icon" : ""}`}
         loading="lazy"
         decoding="async"
       />
       <span className={`text-sm font-bold ${powering ? "topology-router-label text-yellow-300" : "text-primary"}`}>
-        Dardcor Code
+        DRouter
       </span>
       {data.activeCount > 0 && (
         <span className="ml-2 px-1.5 py-0.5 rounded-full bg-yellow-400 text-black text-xs font-bold topology-router-badge">

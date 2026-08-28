@@ -6,9 +6,9 @@
 import { app, BrowserWindow, desktopCapturer, Details, globalShortcut, GPUFeatureStatus, powerMonitor, protocol, screen as electronScreen, session, Session, systemPreferences, WebFrameMain } from 'electron';
 import { addUNCHostToAllowlist, disableUNCAccessRestrictions } from '../../base/node/unc.js';
 import { validatedIpcMain } from '../../base/parts/ipc/electron-main/ipcMain.js';
-import { fork, ChildProcess } from 'child_process';
+import { execFileSync, fork, ChildProcess } from 'child_process';
 import { existsSync } from 'fs';
-import { hostname, release } from 'os';
+import { homedir, hostname, release } from 'os';
 import { initWindowsVersionInfo } from '../../base/node/windowsVersion.js';
 import { VSBuffer } from '../../base/common/buffer.js';
 import { toErrorMessage } from '../../base/common/errorMessage.js';
@@ -564,7 +564,7 @@ export class CodeApplication extends Disposable {
 					return; // Allow navigation in integrated browser views
 				}
 
-				if (navigationUrl && (navigationUrl.startsWith('http://localhost:25000') || navigationUrl.startsWith('http://127.0.0.1:25000'))) {
+				if (navigationUrl && (navigationUrl.startsWith('http://localhost:25128') || navigationUrl.startsWith('http://127.0.0.1:25128'))) {
 					return;
 				}
 
@@ -666,99 +666,61 @@ export class CodeApplication extends Disposable {
 		validatedIpcMain.on('vscode:toggleDevTools', event => event.sender.toggleDevTools());
 		validatedIpcMain.on('vscode:openDevTools', event => event.sender.openDevTools());
 
-		let providerProcess: ChildProcess | null = null;
-		const startProviderProcess = () => {
-			if (providerProcess && !providerProcess.killed) {
+		let drouterProcess: ChildProcess | null = null;
+		const startDrouterProcess = () => {
+			if (drouterProcess && !drouterProcess.killed) {
 				return;
 			}
-			const providerDir = join(this.environmentMainService.appRoot, '.dardcor-provider');
-			const standaloneServer = join(providerDir, '.next', 'standalone', 'server.js');
-			const nextBin = join(providerDir, 'node_modules', 'next', 'dist', 'bin', 'next');
-			const dataDir = join(this.environmentMainService.userDataPath, 'dardcor-provider');
+			const drouterDir = join(this.environmentMainService.appRoot, '.dardcor-provider');
+			const standaloneServer = join(drouterDir, '.next', 'standalone', 'server.js');
+			const nextBin = join(drouterDir, 'node_modules', 'next', 'dist', 'bin', 'next');
+			// Reuse the embedded DRouter store so existing connected providers are
+			// visible to the IDE instead of creating a second empty store.
+			const dataDir = process.env['DARDCOR_DATA_DIR'] || join(homedir(), '.miawagent', 'router');
 			const env = {
 				...process.env,
-				PORT: '25000',
+				PORT: '25128',
 				HOSTNAME: '127.0.0.1',
 				DATA_DIR: dataDir,
 				ELECTRON_RUN_AS_NODE: '1'
 			};
 
 			try {
+				// 25128 is reserved for the IDE-owned DRouter. Remove a stale
+				// instance left by an earlier IDE run before binding it again.
+				if (isLinux) {
+					try { execFileSync('fuser', ['-k', '25128/tcp'], { stdio: 'ignore' }); } catch { /* no holder */ }
+				}
 				if (existsSync(standaloneServer)) {
-					providerProcess = fork(standaloneServer, [], {
-						cwd: join(providerDir, '.next', 'standalone'),
+					drouterProcess = fork(standaloneServer, [], {
+						cwd: join(drouterDir, '.next', 'standalone'),
 						env,
 						stdio: 'ignore'
 					});
 				} else if (existsSync(nextBin)) {
-					providerProcess = fork(nextBin, ['dev', '--webpack', '--port', '25000'], {
-						cwd: providerDir,
+					drouterProcess = fork(nextBin, ['dev', '--webpack', '--port', '25128'], {
+						cwd: drouterDir,
 						env,
 						stdio: 'ignore'
 					});
 				}
-				if (providerProcess) {
-					providerProcess.on('exit', () => {
-						providerProcess = null;
+				if (drouterProcess) {
+					drouterProcess.on('exit', () => {
+						drouterProcess = null;
 					});
 				}
 			} catch (e) {
-				this.logService.error('Failed to spawn provider process', e);
+				this.logService.error('Failed to start built-in DRouter', e);
 			}
 		};
 
-		startProviderProcess();
+		startDrouterProcess();
 
 		app.on('will-quit', () => {
-			if (providerProcess) {
-				providerProcess.kill();
-				providerProcess = null;
+			if (drouterProcess) {
+				drouterProcess.kill();
+				drouterProcess = null;
 			}
-		});
-
-		let providerWin: BrowserWindow | null = null;
-		validatedIpcMain.on('vscode:openProviderWindow', () => {
-			startProviderProcess();
-			if (providerWin && !providerWin.isDestroyed()) {
-				if (providerWin.isMinimized()) {
-					providerWin.restore();
-				}
-				providerWin.show();
-				providerWin.focus();
-				return;
-			}
-			const iconIco = join(this.environmentMainService.appRoot, 'resources', 'win32', 'dardcor-code.ico');
-			const iconPng = join(this.environmentMainService.appRoot, 'public', 'dardcor-code.png');
-			const iconPath = existsSync(iconIco) ? iconIco : iconPng;
-			providerWin = new BrowserWindow({
-				width: 1280,
-				height: 820,
-				minWidth: 900,
-				minHeight: 600,
-				title: 'Dardcor Code - Models & Providers',
-				icon: iconPath,
-				backgroundColor: '#09090b',
-				autoHideMenuBar: true,
-				show: true,
-				webPreferences: {
-					nodeIntegration: false,
-					contextIsolation: true
-				}
-			});
-			const tryLoad = () => {
-				if (providerWin && !providerWin.isDestroyed()) {
-					providerWin.loadURL('http://127.0.0.1:25000/dashboard/providers').catch(() => {
-						setTimeout(tryLoad, 1000);
-					});
-				}
-			};
-			tryLoad();
-			providerWin.webContents.on('did-fail-load', () => {
-				setTimeout(tryLoad, 1000);
-			});
-			providerWin.on('closed', () => {
-				providerWin = null;
-			});
 		});
 
 		validatedIpcMain.on('vscode:reloadWindow', event => event.sender.reload());
@@ -773,83 +735,10 @@ export class CodeApplication extends Disposable {
 		//#endregion
 	}
 
-	private async ensureDardcorProviderRunning(): Promise<void> {
-		try {
-			const http = await import('http');
-			const fs = await import('fs');
-			const path = await import('path');
-			const child_process = await import('child_process');
-			const os = await import('os');
-
-
-			const port = process.env.DARDCOR_PORT ? parseInt(process.env.DARDCOR_PORT) : 25000;
-			const req = http.get(`http://127.0.0.1:${port}/v1/models`, { timeout: 1000 }, (res: any) => {
-				res.resume();
-			});
-
-			req.on('error', () => {
-				const candidates = [
-					path.resolve(this.environmentMainService.appRoot, '.dardcor-provider'),
-					path.resolve(process.cwd(), '.dardcor-provider'),
-					'/mnt/Data/Dardcor-Code/.dardcor-provider'
-				];
-				const providerDir = candidates.find(c => fs.existsSync(c));
-				if (!providerDir) return;
-
-				const pidFile = path.join(os.homedir(), '.dardcor', 'provider.pid');
-				const logDir = path.join(os.homedir(), '.dardcor', 'logs');
-				try { fs.mkdirSync(logDir, { recursive: true }); } catch { }
-
-				if (fs.existsSync(pidFile)) {
-					try {
-						const oldPid = parseInt(fs.readFileSync(pidFile, 'utf8').trim());
-						if (oldPid && !isNaN(oldPid)) {
-							process.kill(oldPid, 0);
-							return;
-						}
-					} catch {
-						// Stale PID
-					}
-				}
-
-				const logStream = fs.openSync(path.join(logDir, 'provider.log'), 'a');
-				let child;
-				const standaloneServer = path.join(providerDir, '.next/standalone/server.js');
-				const customServer = path.join(providerDir, 'custom-server.js');
-				if (fs.existsSync(standaloneServer)) {
-					const useCustom = fs.existsSync(customServer);
-					child = child_process.spawn(process.execPath, [useCustom ? customServer : standaloneServer], {
-						cwd: useCustom ? providerDir : path.join(providerDir, '.next/standalone'),
-						env: { ...process.env, PORT: String(port) },
-						detached: true,
-						stdio: ['ignore', logStream, logStream]
-					});
-				} else {
-					const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-					child = child_process.spawn(npmCmd, ['run', 'dev', '--', '--port', String(port)], {
-						cwd: providerDir,
-						env: { ...process.env, PORT: String(port) },
-						detached: true,
-						stdio: ['ignore', logStream, logStream]
-					});
-				}
-				child.unref();
-				if (child.pid) {
-					try { fs.writeFileSync(pidFile, String(child.pid)); } catch { }
-				}
-				this.logService.info(`Dardcor Provider auto-started on port ${port} (PID: ${child.pid})`);
-			});
-		} catch (err) {
-			this.logService.warn('Failed to auto-start Dardcor Provider:', err);
-		}
-	}
-
 	async startup(): Promise<void> {
 		this.logService.debug('Starting Dardcor Code');
 		this.logService.debug(`from: ${this.environmentMainService.appRoot}`);
 		this.logService.debug('args:', this.environmentMainService.args);
-
-		this.ensureDardcorProviderRunning();
 
 		// Make sure we associate the program with the app user model id
 		// This will help Windows to associate the running program with

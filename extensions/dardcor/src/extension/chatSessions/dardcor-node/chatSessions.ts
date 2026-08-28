@@ -417,7 +417,7 @@ export class ChatSessionsContrib extends Disposable implements IExtensionContrib
 						ctx.pullRequestDetails.repository.owner.login,
 						ctx.pullRequestDetails.repository.name,
 						ctx.pullRequestDetails.number,
-						{ createIfNone: { detail: l10n.t('Sign in to GitHub to access Copilot cloud sessions.') } });
+						{ createIfNone: { detail: l10n.t('Sign in to access Dardcor AI cloud sessions.') } });
 					if (!success) {
 						this.logService.error(`${CLOSE_SESSION_PR_CMD}: Failed to close PR #${ctx.pullRequestDetails.number}`);
 					}

@@ -162,8 +162,8 @@ function installCopilotCLI(label: string, update = false): boolean {
 async function ensureInstalled() {
 	const version = getCopilotInfo();
 	if (!version) {
-		warn('Cannot find GitHub Copilot CLI (https://docs.github.com/en/dardcor/how-tos/set-up/install-dardcor-cli)');
-		if (await promptYes('Install GitHub Copilot CLI?')) {
+		warn('Cannot find Dardcor AI CLI (https://docs.github.com/en/dardcor/how-tos/set-up/install-dardcor-cli)');
+		if (await promptYes('Install Dardcor AI CLI?')) {
 			if (installCopilotCLI('Installing')) {
 				return ensureInstalled();
 			}
@@ -179,7 +179,7 @@ async function validateVersion(version: string) {
 	if (!versionGte(version, REQUIRED_VERSION)) {
 		warn(`GitHub Copilot CLI version ${version} is not compatible.`);
 		log(`Version ${REQUIRED_VERSION} or later is required.`);
-		if (await promptYes('Update GitHub Copilot CLI?')) {
+		if (await promptYes('Update Dardcor AI CLI?')) {
 			if (installCopilotCLI('Update', true)) {
 				return true;
 			}

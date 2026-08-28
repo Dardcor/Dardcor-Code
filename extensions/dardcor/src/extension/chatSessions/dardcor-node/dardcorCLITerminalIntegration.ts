@@ -134,7 +134,7 @@ ELECTRON_RUN_AS_NODE=1 "${process.execPath}" "${path.join(storageLocation, COPIL
 
 		const provideTerminalProfile = async () => {
 			const shellInfo = await this.getShellInfo([]);
-			const options = await getCommonTerminalOptions('GitHub Copilot CLI', this._authenticationService, this._otelService, 'panel');
+			const options = await getCommonTerminalOptions('Dardcor AI CLI', this._authenticationService, this._otelService, 'panel');
 			this.sendTerminalOpenTelemetry('new', shellInfo?.shell ?? 'unknown', 'newFromTerminalProfile', 'panel');
 			if (!shellInfo) {
 				// Create a profile with the user's default shell as a fallback.

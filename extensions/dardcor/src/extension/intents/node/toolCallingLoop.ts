@@ -934,7 +934,7 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 	}
 
 	public async run(outputStream: ChatResponseStream | undefined, token: CancellationToken): Promise<IToolCallLoopResult> {
-		const agentName = this.agentName ?? 'GitHub Copilot Chat';
+		const agentName = this.agentName ?? 'Dardcor AI Chat';
 
 		// Extract custom mode name for debug logging (kept separate from agentName to avoid metric cardinality)
 		const modeInstructions = (this.options.request as { modeInstructions2?: { name?: string; isBuiltin?: boolean } }).modeInstructions2;
@@ -1378,9 +1378,9 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 	private hitToolCallLimit(stream: ChatResponseStream | undefined, lastResult: IToolCallSingleResult) {
 		if (stream && this.options.onHitToolCallLimit === ToolCallLimitBehavior.Confirm) {
 			const messageString = new MarkdownString(l10n.t({
-				message: 'Copilot has been working on this problem for a while. It can continue to iterate, or you can send a new message to refine your prompt. [Configure max requests]({0}).',
+				message: 'Dardcor AI has been working on this problem for a while. It can continue to iterate, or you can send a new message to refine your prompt. [Configure max requests]({0}).',
 				args: [`command:workbench.action.openSettings?${encodeURIComponent('["chat.agent.maxRequests"]')}`],
-				comment: 'Link to workbench settings for chat.maxRequests, which controls the maximum number of requests Copilot will make before stopping. This is used in the tool calling loop to determine when to stop iterating on a problem.'
+				comment: 'Link to workbench settings for chat.maxRequests, which controls the maximum number of requests Dardcor AI will make before stopping. This is used in the tool calling loop to determine when to stop iterating on a problem.'
 			}));
 			messageString.isTrusted = { enabledCommands: ['workbench.action.openSettings'] };
 

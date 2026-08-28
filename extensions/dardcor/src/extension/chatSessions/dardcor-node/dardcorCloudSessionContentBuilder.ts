@@ -138,7 +138,7 @@ export function extractTaskErrorDetail(events: readonly AgentTaskSessionEvent[])
  */
 export function formatTaskStoppedMessage(state: AgentTaskState, detail: string | undefined): string {
 	const reason = detail ?? defaultStopReasonForState(state);
-	return vscode.l10n.t('Copilot stopped: {0}', reason);
+	return vscode.l10n.t('Dardcor AI stopped: {0}', reason);
 }
 
 function defaultStopReasonForState(state: AgentTaskState): string {

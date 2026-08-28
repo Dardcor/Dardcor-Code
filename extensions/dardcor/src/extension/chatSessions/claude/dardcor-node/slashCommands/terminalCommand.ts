@@ -39,7 +39,7 @@ const execFileAsync = promisify(execFile);
  */
 export class TerminalSlashCommand implements IClaudeSlashCommandHandler {
 	readonly commandName = 'terminal';
-	readonly description = vscode.l10n.t('Launch Claude Code CLI using your GitHub Copilot subscription');
+	readonly description = vscode.l10n.t('Launch Claude Code CLI using your Dardcor AI subscription');
 	readonly commandId = 'dardcor.claude.terminal';
 
 	private _langModelServer: ClaudeLanguageModelServer | undefined;
@@ -90,7 +90,7 @@ export class TerminalSlashCommand implements IClaudeSlashCommandHandler {
 			// Create terminal with environment variables configured
 			const terminal = this.terminalService.createTerminal({
 				name: 'Claude',
-				message: formatMessageForTerminal(vscode.l10n.t('This instance of Claude CLI is configured to use your GitHub Copilot subscription.'), { loudFormatting: true }),
+				message: formatMessageForTerminal(vscode.l10n.t('This instance of Claude CLI is configured to use your Dardcor AI subscription.'), { loudFormatting: true }),
 				env: {
 					ANTHROPIC_BASE_URL: `http://localhost:${config.port}`,
 					ANTHROPIC_AUTH_TOKEN: `${config.nonce}.${sessionId}`,

@@ -48,7 +48,7 @@ export function collectCompletionDiagnostics(accessor: ServicesAccessor, telemet
 	return {
 		sections: [
 			{
-				name: 'Copilot Extension',
+				name: 'Dardcor AI Extension',
 				items: {
 					Version: BuildInfo.getVersion(),
 					Editor: getEditorDisplayVersion(accessor),

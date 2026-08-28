@@ -85,7 +85,7 @@ export class AgentHostCommitOperationHandler implements IChangesetOperationHandl
 		if (!authToken) {
 			throw new ProtocolError(
 				AHP_AUTH_REQUIRED,
-				localize('agentHost.changeset.commit.authRequired', "Sign in to GitHub Copilot to generate a commit message."),
+				localize('agentHost.changeset.commit.authRequired', "Sign in to Dardcor AI to generate a commit message."),
 				[copilotResource],
 			);
 		}
@@ -106,7 +106,7 @@ export class AgentHostCommitOperationHandler implements IChangesetOperationHandl
 			if (this._isAuthFailure(err)) {
 				throw new ProtocolError(
 					AHP_AUTH_REQUIRED,
-					localize('agentHost.changeset.commit.authExpired', "Authentication is required to generate a commit message. Please sign in to GitHub Copilot and try again."),
+					localize('agentHost.changeset.commit.authExpired', "Authentication is required to generate a commit message. Please sign in to Dardcor AI and try again."),
 					[copilotResource],
 				);
 			}

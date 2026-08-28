@@ -1310,7 +1310,7 @@ class AgentSessionAdapter implements ICopilotChatSession {
 export class CopilotChatSessionsProvider extends Disposable implements ISessionsProvider {
 
 	readonly id = COPILOT_PROVIDER_ID;
-	readonly label = localize('copilotChatSessionsProvider', "Copilot Chat");
+	readonly label = localize('copilotChatSessionsProvider', "Dardcor AI Chat");
 	readonly icon = Codicon.copilot;
 	readonly order = 0;
 

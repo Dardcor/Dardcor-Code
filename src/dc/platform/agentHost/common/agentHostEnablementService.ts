@@ -32,14 +32,14 @@ configurationRegistry.registerConfiguration({
 	properties: {
 		'chat.editor.preferCopilotHarness': {
 			type: 'boolean',
-			description: nls.localize('chat.editor.preferCopilotHarness', "When enabled, prefers the Agent Host Copilot CLI for new editor chat sessions. If the local harness is selected, it is replaced with Copilot once."),
+			description: nls.localize('chat.editor.preferCopilotHarness', "When enabled, prefers the Agent Host Dardcor AI CLI for new editor chat sessions. If the local harness is selected, it is replaced with Dardcor AI once."),
 			default: false,
 			tags: ['experimental'],
 			experiment: { mode: 'startup' },
 		},
 		'chat.defaultToCopilotHarness': {
 			type: 'boolean',
-			description: nls.localize('chat.defaultToCopilotHarness', "When enabled, new editor and panel chat sessions default to the Agent Host Copilot CLI instead of the local harness."),
+			description: nls.localize('chat.defaultToCopilotHarness', "When enabled, new editor and panel chat sessions default to the Agent Host Dardcor AI CLI instead of the local harness."),
 			default: false,
 			tags: ['experimental'],
 			experiment: { mode: 'startup' },

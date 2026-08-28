@@ -909,7 +909,7 @@ export class CopilotAgent extends Disposable implements IAgent {
 		const failedTurnIds = new Set<string>();
 		const error: ErrorInfo = {
 			errorType: 'providerConnectionClosed',
-			message: localize('copilotAgent.connectionClosed', "The Copilot CLI stopped unexpectedly. Retry your request."),
+			message: localize('copilotAgent.connectionClosed', "The Dardcor AI CLI stopped unexpectedly. Retry your request."),
 		};
 		for (const entry of this._sessions.values()) {
 			for (const chat of entry.allChatSessions()) {
@@ -980,7 +980,7 @@ export class CopilotAgent extends Disposable implements IAgent {
 		return {
 			provider: 'copilotcli',
 			displayName: 'Dardcor Code',
-			description: localize('copilotAgent.description', "Copilot SDK agent running in the local agent host process"),
+			description: localize('copilotAgent.description', "Dardcor AI SDK agent running in the local agent host process"),
 			capabilities: {
 				multipleChats: { fork: true, sideChat: true },
 				...(this._isMultiRootEnabled() ? { multipleWorkingDirectories: { immutablePrimary: true } } : {}),

@@ -29,10 +29,13 @@ if (!process.env['VSCODE_SKIP_NODE_VERSION_CHECK']) {
 	const requiredMinor = parseInt(requiredVersionMatch[2]);
 	const requiredPatch = parseInt(requiredVersionMatch[3]);
 
-	if (majorNodeVersion !== requiredMajor ||
-		minorNodeVersion < requiredMinor ||
-		(minorNodeVersion === requiredMinor && patchNodeVersion < requiredPatch)) {
-		console.error(`\x1b[1;31m*** Please use Node.js v${requiredVersion} or newer with the same major version (${requiredMajor}) as specified in .nvmrc. Currently using v${process.versions.node}.\x1b[0;0m`);
+	const isRequiredNodeVersion = majorNodeVersion === requiredMajor &&
+		(minorNodeVersion > requiredMinor ||
+			(minorNodeVersion === requiredMinor && patchNodeVersion >= requiredPatch));
+	const isCompatibleNewerNodeVersion = majorNodeVersion === requiredMajor + 2;
+
+	if (!isRequiredNodeVersion && !isCompatibleNewerNodeVersion) {
+		console.error(`\x1b[1;31m*** Please use Node.js v${requiredVersion}+ or a compatible Node.js ${requiredMajor + 2}.x release. Currently using v${process.versions.node}.\x1b[0;0m`);
 		throw new Error();
 	}
 }
@@ -46,8 +49,8 @@ const npmUserAgent = process.env.npm_config_user_agent;
 const npmVersionMatch = npmUserAgent?.match(/npm\/(\d+)\.(\d+)\.(\d+)/);
 if (npmVersionMatch) {
 	const npmMajor = parseInt(npmVersionMatch[1]);
-	if (npmMajor >= 12) {
-		console.error(`\x1b[1;31m*** Please use npm version < 12.0.0. Currently using v${npmUserAgent}.\x1b[0;0m`);
+	if (npmMajor >= 13) {
+		console.error(`\x1b[1;31m*** Please use npm version < 13.0.0. Currently using v${npmUserAgent}.\x1b[0;0m`);
 		throw new Error();
 	}
 }

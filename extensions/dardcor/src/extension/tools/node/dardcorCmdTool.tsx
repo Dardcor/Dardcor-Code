@@ -182,7 +182,7 @@ class VSCodeCmdTool implements vscode.LanguageModelTool<IVSCodeCmdToolToolInput>
 		const commandStr = commandUri(quickOpenCommand, ['>' + commandId]);
 		const hasArguments = !!options.input.args?.length;
 		const markdownString = new MarkdownString();
-		markdownString.appendMarkdown(l10n.t(`Copilot will execute the [{0}]({1}) (\`{2}\`) command.`, options.input.name, commandStr, options.input.commandId));
+		markdownString.appendMarkdown(l10n.t(`Dardcor AI will execute the [{0}]({1}) (\`{2}\`) command.`, options.input.name, commandStr, options.input.commandId));
 		if (hasArguments) {
 			markdownString.appendMarkdown(`\n\n${l10n.t('Arguments')}:\n\n`);
 			markdownString.appendCodeblock(JSON.stringify(options.input.args, undefined, 2), 'json');

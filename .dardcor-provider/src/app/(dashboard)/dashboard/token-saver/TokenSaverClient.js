@@ -935,7 +935,7 @@ export default function TokenSaverClient() {
               </Button>
               <p className="text-xs text-text-muted">
                 Installs the npm package <code className="font-mono">pxpipe-proxy</code> into
-                the Dardcor Code data directory. May take a few minutes.
+                the DRouter data directory. May take a few minutes.
               </p>
             </div>
           ) : (

@@ -131,12 +131,12 @@ export function getSessionTypeUnavailableHover(availability: SessionTypeAvailabi
 	switch (availability) {
 		case SessionTypeAvailability.SignInRequired: {
 			const hover = new MarkdownString('', { isTrusted: { enabledCommands: ['workbench.action.chat.triggerSetup'] }, supportThemeIcons: true });
-			hover.appendMarkdown(localize('chat.sessionType.signInHover', "[Sign in to GitHub Copilot](command:workbench.action.chat.triggerSetup) to use this agent."));
+			hover.appendMarkdown(localize('chat.sessionType.signInHover', "[Sign in to Dardcor AI](command:workbench.action.chat.triggerSetup) to use this agent."));
 			return hover;
 		}
 		case SessionTypeAvailability.UpgradeRequired: {
 			const hover = new MarkdownString('', { isTrusted: { enabledCommands: ['workbench.action.chat.upgradePlan'] }, supportThemeIcons: true });
-			hover.appendMarkdown(localize('chat.sessionType.upgradeHover', "[Upgrade to GitHub Copilot Pro](command:workbench.action.chat.upgradePlan) to use this agent."));
+			hover.appendMarkdown(localize('chat.sessionType.upgradeHover', "[Upgrade to Dardcor AI Pro](command:workbench.action.chat.upgradePlan) to use this agent."));
 			return hover;
 		}
 		case SessionTypeAvailability.NoModels:
@@ -155,7 +155,7 @@ export function getSessionTypeUnavailableLabel(availability: SessionTypeAvailabi
 		case SessionTypeAvailability.SignInRequired:
 			return localize('chat.sessionType.signInMobile', "Requires sign in");
 		case SessionTypeAvailability.UpgradeRequired:
-			return localize('chat.sessionType.upgradeMobile', "Requires GitHub Copilot Pro");
+			return localize('chat.sessionType.upgradeMobile', "Requires Dardcor AI Pro");
 		case SessionTypeAvailability.NoModels:
 			return localize('chat.sessionType.noModels', "No models available");
 		default:

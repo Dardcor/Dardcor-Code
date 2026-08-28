@@ -19,7 +19,7 @@ export async function pickSession(logger: ILogger, httpServer: InProcHttpServer,
 
 	if (sessionIds.length === 0) {
 		logger.debug('No connected CLI sessions');
-		vscode.window.showWarningMessage(l10n.t('No Copilot CLI sessions are connected.'));
+		vscode.window.showWarningMessage(l10n.t('No Dardcor AI CLI sessions are connected.'));
 		return undefined;
 	}
 

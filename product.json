@@ -41,7 +41,7 @@
 	"electronArtifactFeed": "",
 	"urlProtocol": "dardcor-code",
 	"agentsTelemetryAppName": "agents",
-	"webviewContentExternalBaseUrlTemplate": "https://{{uuid}}.vscode-cdn.net/insider/ef65ac1ba57f57f2a3961bfe94aa20481caca4c6/out/dc/workbench/contrib/webview/browser/pre/",
+	"webviewContentExternalBaseUrlTemplate": "",
 	"builtInExtensions": [
 		{
 			"name": "ms-vscode.js-debug-companion",
@@ -63,9 +63,9 @@
 		}
 	],
 	"defaultChatAgent": {
-		"extensionId": "GitHub.copilot-chat",
-		"chatExtensionId": "GitHub.copilot-chat",
-		"chatExtensionOutputId": "GitHub.copilot-chat.Dardcor Code.log",
+		"extensionId": "dardcor.dardcor-ai",
+		"chatExtensionId": "dardcor.dardcor-ai",
+		"chatExtensionOutputId": "dardcor.dardcor-ai.Dardcor Code.log",
 		"chatExtensionOutputExtensionStateCommand": "dardcor.debug.extensionState",
 		"documentationUrl": "https://github.com/dardcor/dardcor-code",
 		"termsStatementUrl": "https://github.com/dardcor/dardcor-code",
@@ -94,8 +94,8 @@
 				"name": "Apple"
 			}
 		},
-		"entitlementUrl": "http://127.0.0.1:25000/v1/user",
-		"entitlementSignupLimitedUrl": "http://127.0.0.1:25000/v1/user",
+		"entitlementUrl": "http://127.0.0.1:25128/v1/user",
+		"entitlementSignupLimitedUrl": "http://127.0.0.1:25128/v1/user",
 		"chatQuotaExceededContext": "dardcor.chat.quotaExceeded",
 		"completionsQuotaExceededContext": "dardcor.completions.quotaExceeded",
 		"walkthroughCommand": "dardcor.open.walkthrough",
@@ -106,16 +106,16 @@
 		"completionsAdvancedSetting": "dardcor.advanced",
 		"completionsEnablementSetting": "dardcor.enable",
 		"nextEditSuggestionsSetting": "dardcor.nextEditSuggestions.enabled",
-		"tokenEntitlementUrl": "http://127.0.0.1:25000/v1/token",
-		"mcpRegistryDataUrl": "http://127.0.0.1:25000/v1/mcp_registry",
-		"managedSettingsUrl": "http://127.0.0.1:25000/v1/managed_settings"
+		"tokenEntitlementUrl": "http://127.0.0.1:25128/v1/token",
+		"mcpRegistryDataUrl": "http://127.0.0.1:25128/v1/mcp_registry",
+		"managedSettingsUrl": "http://127.0.0.1:25128/v1/managed_settings"
 	},
 	"trustedExtensionAuthAccess": {
 		"github": [
-			"GitHub.copilot-chat"
+			"dardcor.dardcor-ai"
 		],
 		"github-enterprise": [
-			"GitHub.copilot-chat"
+			"dardcor.dardcor-ai"
 		]
 	},
 	"onboardingKeymaps": [
@@ -194,10 +194,10 @@
 		}
 	],
 	"builtInExtensionsEnabledWithAutoUpdates": [
-		"GitHub.copilot-chat"
+		"dardcor.dardcor-ai"
 	],
 	"sessionsWindowAllowedExtensions": [],
-	"voiceWsUrl": "wss://falcon-caas.mai.microsoft.com/voice-code/api/v1/realtime/voice",
+	"voiceWsUrl": "",
 	"extensionRecommendations": {
 		"ms-python.python": {
 			"onFileOpen": [
@@ -212,9 +212,9 @@
 			]
 		}
 	},
-	"mcpRegistryDataUrl": "https://api.github.com/copilot/mcp_registry",
+	"mcpRegistryDataUrl": "http://127.0.0.1:25128/v1/mcp_registry",
 	"mcpGallery": {
-		"serviceUrl": "https://api.github.com/copilot/mcp_registry",
+		"serviceUrl": "http://127.0.0.1:25128/v1/mcp_registry",
 		"itemWebUrl": "",
 		"publisherUrl": "",
 		"supportUrl": "",

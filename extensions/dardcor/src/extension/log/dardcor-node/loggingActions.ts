@@ -769,7 +769,7 @@ class NetworkStatus extends Disposable {
 	constructor(private readonly _fetcherService: IFetcherService, private readonly _configurationService: IConfigurationService, private readonly _experimentationService: IExperimentationService) {
 		super();
 		this._statusBarItem = this._register(vscode.window.createStatusBarItem('dardcor.networkStatus', vscode.StatusBarAlignment.Right, -1000));
-		this._statusBarItem.name = 'Copilot Network Status';
+		this._statusBarItem.name = 'Dardcor AI Network Status';
 		this._register(_configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration(ConfigKey.TeamInternal.DebugShowNetworkStatus.fullyQualifiedId)) {
 				this._update();

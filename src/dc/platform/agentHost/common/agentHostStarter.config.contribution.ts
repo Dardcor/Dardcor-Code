@@ -97,7 +97,7 @@ configurationRegistry.registerConfiguration({
 	properties: {
 		[AgentHostSystemProxyEnabledSettingId]: {
 			type: 'boolean',
-			description: nls.localize('chat.agentHost.systemProxy.enabled', "When enabled, Copilot sessions automatically discover and use the operating system's proxy configuration when no proxy environment variable is set."),
+			description: nls.localize('chat.agentHost.systemProxy.enabled', "When enabled, Dardcor AI sessions automatically discover and use the operating system's proxy configuration when no proxy environment variable is set."),
 			default: true,
 			tags: ['experimental', 'advanced'],
 			experiment: { mode: 'startup' },
@@ -105,7 +105,7 @@ configurationRegistry.registerConfiguration({
 		},
 		[AgentHostCopilotMultiRootEnabledSettingId]: {
 			type: 'boolean',
-			description: nls.localize('chat.agentHost.copilotAgent.multiRootEnabled', "When enabled, Copilot agent-host sessions advertise support for multiple working directories, so a session created in a multi-root workspace can span every workspace folder. Experimental; newly created sessions pick up a change without restarting the agent host."),
+			description: nls.localize('chat.agentHost.copilotAgent.multiRootEnabled', "When enabled, Dardcor AI agent-host sessions advertise support for multiple working directories, so a session created in a multi-root workspace can span every workspace folder. Experimental; newly created sessions pick up a change without restarting the agent host."),
 			default: false,
 			// Hidden from the Settings UI while the feature is dogfooded internally.
 			// Still settable via `settings.json`; flip `default` (e.g. to
@@ -144,7 +144,7 @@ configurationRegistry.registerConfiguration({
 				localization: {
 					description: {
 						key: 'chat.agentHost.claudeAgent.enabled.policy',
-						value: nls.localize('chat.agentHost.claudeAgent.enabled.policy', "Enable Claude Agent sessions in VS Code. Start and resume agentic coding sessions powered by Anthropic Claude Agent SDK directly in the editor. Uses your existing Copilot subscription."),
+						value: nls.localize('chat.agentHost.claudeAgent.enabled.policy', "Enable Claude Agent sessions in VS Code. Start and resume agentic coding sessions powered by Anthropic Claude Agent SDK directly in the editor. Uses your existing Dardcor AI subscription."),
 					}
 				}
 			},
@@ -177,7 +177,7 @@ configurationRegistry.registerConfiguration({
 				localization: {
 					description: {
 						key: 'chat.agentHost.codexAgent.enabled.policy',
-						value: nls.localize('chat.agentHost.codexAgent.enabled.policy', "Enable Codex Agent sessions in VS Code. Start and resume agentic coding sessions powered by OpenAI Codex. Usage can be routed through GitHub Copilot or authenticated directly with an OpenAI account."),
+						value: nls.localize('chat.agentHost.codexAgent.enabled.policy', "Enable Codex Agent sessions in VS Code. Start and resume agentic coding sessions powered by OpenAI Codex. Usage can be routed through Dardcor AI or authenticated directly with an OpenAI account."),
 					}
 				}
 			},
@@ -206,7 +206,7 @@ configurationRegistry.registerConfiguration({
 		},
 		[AgentHostOTelEnabledSettingId]: {
 			type: 'boolean',
-			markdownDescription: nls.localize('chat.agentHost.otel.enabled', "When enabled, the agent host emits OpenTelemetry traces from the Copilot SDK. Configurable in user settings only. Either configure `#chat.agentHost.otel.otlpEndpoint#` to ship traces to an external collector or enable `#chat.agentHost.otel.dbSpanExporter.enabled#` to capture them locally."),
+			markdownDescription: nls.localize('chat.agentHost.otel.enabled', "When enabled, the agent host emits OpenTelemetry traces from the Dardcor AI SDK. Configurable in user settings only. Either configure `#chat.agentHost.otel.otlpEndpoint#` to ship traces to an external collector or enable `#chat.agentHost.otel.dbSpanExporter.enabled#` to capture them locally."),
 			default: false,
 			scope: ConfigurationScope.APPLICATION,
 			tags: ['experimental', 'advanced'],
@@ -223,7 +223,7 @@ configurationRegistry.registerConfiguration({
 				localization: {
 					description: {
 						key: 'chat.agentHost.otel.enabled.policy',
-						value: nls.localize('chat.agentHost.otel.enabled.policy', "Controls whether Copilot OpenTelemetry export is enabled. When managed, users cannot override the enterprise value."),
+						value: nls.localize('chat.agentHost.otel.enabled.policy', "Controls whether Dardcor AI OpenTelemetry export is enabled. When managed, users cannot override the enterprise value."),
 					}
 				},
 			},
@@ -231,7 +231,7 @@ configurationRegistry.registerConfiguration({
 		[AgentHostOTelExporterTypeSettingId]: {
 			type: 'string',
 			enum: ['otlp-http', 'otlp-grpc', 'console', 'file'],
-			markdownDescription: nls.localize('chat.agentHost.otel.exporterType', "Exporter backend used by the Copilot SDK when `#chat.agentHost.otel.enabled#` is on. Configurable in user settings only. `otlp-grpc` is downgraded to `otlp-http` transparently in the CLI runtime."),
+			markdownDescription: nls.localize('chat.agentHost.otel.exporterType', "Exporter backend used by the Dardcor AI SDK when `#chat.agentHost.otel.enabled#` is on. Configurable in user settings only. `otlp-grpc` is downgraded to `otlp-http` transparently in the CLI runtime."),
 			default: 'otlp-http',
 			scope: ConfigurationScope.APPLICATION,
 			tags: ['experimental', 'advanced'],
@@ -248,7 +248,7 @@ configurationRegistry.registerConfiguration({
 				localization: {
 					description: {
 						key: 'chat.agentHost.otel.protocol.policy',
-						value: nls.localize('chat.agentHost.otel.protocol.policy', "Controls the enterprise-managed OTLP protocol for Copilot OpenTelemetry export."),
+						value: nls.localize('chat.agentHost.otel.protocol.policy', "Controls the enterprise-managed OTLP protocol for Dardcor AI OpenTelemetry export."),
 					},
 					enumDescriptions: [
 						{ key: 'chat.agentHost.otel.protocol.policy.otlpHttp', value: nls.localize('chat.agentHost.otel.protocol.policy.otlpHttp', "Use OTLP over HTTP."), },
@@ -261,7 +261,7 @@ configurationRegistry.registerConfiguration({
 		},
 		[AgentHostOTelOtlpProtocolSettingId]: {
 			type: 'string',
-			markdownDescription: nls.localize('chat.agentHost.otel.otlpProtocol', "Enterprise-managed OTLP wire protocol (`http/json`, `http/protobuf`, or `grpc`) for Copilot OpenTelemetry export. Policy-only: there is no user-facing setting; it carries the managed `telemetry.protocol` so the agent host's `OTEL_EXPORTER_OTLP_PROTOCOL` distinguishes protobuf from json."),
+			markdownDescription: nls.localize('chat.agentHost.otel.otlpProtocol', "Enterprise-managed OTLP wire protocol (`http/json`, `http/protobuf`, or `grpc`) for Dardcor AI OpenTelemetry export. Policy-only: there is no user-facing setting; it carries the managed `telemetry.protocol` so the agent host's `OTEL_EXPORTER_OTLP_PROTOCOL` distinguishes protobuf from json."),
 			default: '',
 			scope: ConfigurationScope.APPLICATION,
 			// Policy-only delivery slot — no user-writable surface (mirrors `chat.plugins.extraMarketplaces`).
@@ -280,7 +280,7 @@ configurationRegistry.registerConfiguration({
 				localization: {
 					description: {
 						key: 'chat.agentHost.otel.otlpProtocol.policy',
-						value: nls.localize('chat.agentHost.otel.otlpProtocol.policy', "Controls the enterprise-managed OTLP wire protocol (protobuf vs JSON) for Copilot OpenTelemetry export."),
+						value: nls.localize('chat.agentHost.otel.otlpProtocol.policy', "Controls the enterprise-managed OTLP wire protocol (protobuf vs JSON) for Dardcor AI OpenTelemetry export."),
 					}
 				},
 			},
@@ -303,7 +303,7 @@ configurationRegistry.registerConfiguration({
 				localization: {
 					description: {
 						key: 'chat.agentHost.otel.otlpEndpoint.policy',
-						value: nls.localize('chat.agentHost.otel.otlpEndpoint.policy', "Controls the enterprise-managed OTLP collector endpoint for Copilot OpenTelemetry export."),
+						value: nls.localize('chat.agentHost.otel.otlpEndpoint.policy', "Controls the enterprise-managed OTLP collector endpoint for Dardcor AI OpenTelemetry export."),
 					}
 				},
 			},
@@ -328,7 +328,7 @@ configurationRegistry.registerConfiguration({
 				localization: {
 					description: {
 						key: 'chat.agentHost.otel.captureContent.policy',
-						value: nls.localize('chat.agentHost.otel.captureContent.policy', "Controls whether Copilot OpenTelemetry export captures prompt, response, and tool content."),
+						value: nls.localize('chat.agentHost.otel.captureContent.policy', "Controls whether Dardcor AI OpenTelemetry export captures prompt, response, and tool content."),
 					}
 				},
 			},
@@ -352,7 +352,7 @@ configurationRegistry.registerConfiguration({
 				localization: {
 					description: {
 						key: 'chat.agentHost.otel.outfile.policy',
-						value: nls.localize('chat.agentHost.otel.outfile.policy', "Prevents local file export when enterprise-managed Copilot OpenTelemetry export is configured."),
+						value: nls.localize('chat.agentHost.otel.outfile.policy', "Prevents local file export when enterprise-managed Dardcor AI OpenTelemetry export is configured."),
 					}
 				},
 			},
@@ -366,7 +366,7 @@ configurationRegistry.registerConfiguration({
 		},
 		[AgentHostOTelServiceNameSettingId]: {
 			type: 'string',
-			markdownDescription: nls.localize('chat.agentHost.otel.serviceName', "Enterprise-managed OTel `service.name` resource attribute for Copilot OpenTelemetry export. Policy-only: there is no user-facing setting; it carries the managed `telemetry.serviceName` so the agent host's `OTEL_SERVICE_NAME` identifies spans from this deployment."),
+			markdownDescription: nls.localize('chat.agentHost.otel.serviceName', "Enterprise-managed OTel `service.name` resource attribute for Dardcor AI OpenTelemetry export. Policy-only: there is no user-facing setting; it carries the managed `telemetry.serviceName` so the agent host's `OTEL_SERVICE_NAME` identifies spans from this deployment."),
 			default: '',
 			scope: ConfigurationScope.APPLICATION,
 			// Policy-only delivery slot — no user-writable surface (mirrors `chat.agentHost.otel.otlpProtocol`).
@@ -385,7 +385,7 @@ configurationRegistry.registerConfiguration({
 				localization: {
 					description: {
 						key: 'chat.agentHost.otel.serviceName.policy',
-						value: nls.localize('chat.agentHost.otel.serviceName.policy', "Controls the enterprise-managed OTel `service.name` resource attribute for Copilot OpenTelemetry export."),
+						value: nls.localize('chat.agentHost.otel.serviceName.policy', "Controls the enterprise-managed OTel `service.name` resource attribute for Dardcor AI OpenTelemetry export."),
 					}
 				},
 			},
@@ -399,7 +399,7 @@ configurationRegistry.registerConfiguration({
 			scope: ConfigurationScope.APPLICATION,
 			included: false,
 			tags: ['experimental', 'advanced'],
-			markdownDescription: nls.localize('chat.agentHost.otel.resourceAttributes', "Enterprise-managed OTel resource attributes for Copilot OpenTelemetry export. Policy-only: there is no user-facing setting; it carries the managed `telemetry.resourceAttributes` map so the agent host's `OTEL_RESOURCE_ATTRIBUTES` includes the deployment's attributes."),
+			markdownDescription: nls.localize('chat.agentHost.otel.resourceAttributes', "Enterprise-managed OTel resource attributes for Dardcor AI OpenTelemetry export. Policy-only: there is no user-facing setting; it carries the managed `telemetry.resourceAttributes` map so the agent host's `OTEL_RESOURCE_ATTRIBUTES` includes the deployment's attributes."),
 			policy: {
 				name: 'CopilotOtelResourceAttributes',
 				category: PolicyCategory.InteractiveSession,
@@ -411,7 +411,7 @@ configurationRegistry.registerConfiguration({
 				localization: {
 					description: {
 						key: 'chat.agentHost.otel.resourceAttributes.policy',
-						value: nls.localize('chat.agentHost.otel.resourceAttributes.policy', "Controls the enterprise-managed OTel resource attributes for Copilot OpenTelemetry export."),
+						value: nls.localize('chat.agentHost.otel.resourceAttributes.policy', "Controls the enterprise-managed OTel resource attributes for Dardcor AI OpenTelemetry export."),
 					}
 				},
 			},
@@ -427,7 +427,7 @@ configurationRegistry.registerConfiguration({
 			scope: ConfigurationScope.APPLICATION,
 			included: false,
 			tags: ['experimental', 'advanced'],
-			markdownDescription: nls.localize('chat.agentHost.otel.headers', "Enterprise-managed OTLP exporter headers (e.g. auth tokens) for Copilot OpenTelemetry export. Policy-only and extension-only: applied directly to the Copilot Chat extension's OTLP exporter, never delivered to the agent host process."),
+			markdownDescription: nls.localize('chat.agentHost.otel.headers', "Enterprise-managed OTLP exporter headers (e.g. auth tokens) for Dardcor AI OpenTelemetry export. Policy-only and extension-only: applied directly to the Dardcor AI Chat extension's OTLP exporter, never delivered to the agent host process."),
 			policy: {
 				name: 'CopilotOtelHeaders',
 				category: PolicyCategory.InteractiveSession,
@@ -439,7 +439,7 @@ configurationRegistry.registerConfiguration({
 				localization: {
 					description: {
 						key: 'chat.agentHost.otel.headers.policy',
-						value: nls.localize('chat.agentHost.otel.headers.policy', "Controls the enterprise-managed OTLP exporter headers for Copilot OpenTelemetry export."),
+						value: nls.localize('chat.agentHost.otel.headers.policy', "Controls the enterprise-managed OTLP exporter headers for Dardcor AI OpenTelemetry export."),
 					}
 				},
 			},

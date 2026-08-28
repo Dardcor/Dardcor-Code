@@ -181,15 +181,18 @@ export class FetcherService extends Disposable implements IFetcherService {
 				} as any;
 			}
 
-			// 2. Dynamically fetch models from internal Dardcor Provider (port 25000 only)
+			// 2. Dynamically fetch models from internal Dardcor Provider (port 25128 only)
 			if (url.endsWith('/models') || url.includes('/models?') || url.includes('/models/')) {
-				const DARDCOR_PORT = process.env.DARDCOR_PORT ? parseInt(process.env.DARDCOR_PORT) : 25000;
+				const DARDCOR_PORT = process.env.DARDCOR_PORT ? parseInt(process.env.DARDCOR_PORT) : 25128;
 				const DARDCOR_KEY = process.env.DARDCOR_API_KEY || 'sk-dardcor-local-key';
 
 				let rawList: any[] = [];
 				try {
 					const modelsRes = await globalThis.fetch(`http://127.0.0.1:${DARDCOR_PORT}/v1/models`, {
-						headers: { 'Authorization': `Bearer ${DARDCOR_KEY}` }
+						headers: {
+							'Authorization': `Bearer ${DARDCOR_KEY}`,
+							'x-drouter-connected-only': '1'
+						}
 					});
 					if (modelsRes.ok) {
 						const json: any = await modelsRes.json();
@@ -287,21 +290,20 @@ export class FetcherService extends Disposable implements IFetcherService {
 				}
 			}
 			
-			// 3. Re-route completions and API calls strictly to internal provider (port 25000 only)
-			const DARDCOR_PORT = process.env.DARDCOR_PORT ? parseInt(process.env.DARDCOR_PORT) : 25000;
+			// 3. Re-route completions and API calls strictly to internal provider (port 25128 only)
+			const DARDCOR_PORT = process.env.DARDCOR_PORT ? parseInt(process.env.DARDCOR_PORT) : 25128;
 			const DARDCOR_KEY = process.env.DARDCOR_API_KEY || 'sk-dardcor-local-key';
 
 			if (options?.body && typeof options.body === 'string' && url.includes('/chat/completions')) {
 				try {
 					const parsed = JSON.parse(options.body);
-					if (!parsed.model || parsed.model.toLowerCase() === 'auto' || parsed.model.toLowerCase() === 'default' || parsed.model === 'gpt-4o' || parsed.model === 'copilot') {
-						parsed.model = 'opencode/ox-alpha-free';
+					if (!parsed.model || parsed.model.toLowerCase() === 'default' || parsed.model === 'gpt-4o' || parsed.model === 'copilot') {
+						parsed.model = 'auto';
+					}
+					if (typeof parsed.model === 'string' && parsed.model.toLowerCase().endsWith('-free') && !parsed.model.includes('/')) {
+						parsed.model = `oc/${parsed.model}`;
 					}
 					parsed.stream = true;
-					if (parsed.model === 'opencode/ox-alpha-free' || parsed.model === 'ox-alpha-free') {
-						parsed.reasoning_effort = 'high';
-						parsed.thinking = { type: 'enabled', budget_tokens: 32768 };
-					}
 					// Prompt cache optimization: mark system message and deterministically sort tools
 					if (Array.isArray(parsed.messages) && parsed.messages.length > 0) {
 						if (parsed.messages[0].role === 'system' && !parsed.messages[0].cache_control) {

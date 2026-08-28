@@ -1240,7 +1240,7 @@
         "displayName": "Session Store SQL",
         "toolReferenceName": "sessionStoreSql",
         "when": "github.dardcor.sessionSearch.enabled",
-        "userDescription": "Query your Copilot session history using SQL",
+        "userDescription": "Query your Dardcor AI session history using SQL",
         "modelDescription": "Query the local session store containing history from past coding sessions. Uses SQLite syntax (NOT DuckDB or Postgres). SQL queries are read-only — only SELECT and WITH are allowed. Use `datetime('now', '-1 day')` for date math (NOT `now() - INTERVAL '1 day'`), FTS5 `MATCH` for text search.\n\nTables: `sessions`, `turns`, `session_files`, `session_refs`, `checkpoints`, `search_index`. For column details and query patterns, use the **chronicle** skill.\n\nActions: 'query' (execute SQL — supports JOINs, FTS5 MATCH, aggregations), 'reindex' (rebuild index from debug logs).",
         "tags": [],
         "canBeReferencedInPrompt": false,
@@ -1741,7 +1741,7 @@
       },
       {
         "vendor": "dardcorcli",
-        "displayName": "Copilot CLI",
+        "displayName": "Dardcor AI CLI",
         "when": "false"
       },
       {
@@ -2174,7 +2174,7 @@
                   },
                   "modelOptions": {
                     "type": "object",
-                    "markdownDescription": "Sampling parameters to send with requests to this model. These override Copilot's defaults but are overridden by explicit per-request values. Set a property to `null` to omit it and use the model server's default.",
+                    "markdownDescription": "Sampling parameters to send with requests to this model. These override Dardcor AI's defaults but are overridden by explicit per-request values. Set a property to `null` to omit it and use the model server's default.",
                     "properties": {
                       "temperature": {
                         "type": [
@@ -2355,7 +2355,7 @@
     ],
     "interactiveSession": [
       {
-        "label": "GitHub Copilot",
+        "label": "Dardcor AI",
         "id": "dardcor",
         "icon": "",
         "when": "!github.dardcor.interactiveSession.disabled"
@@ -2454,29 +2454,29 @@
         "command": "github.dardcor.cli.sessions.delete",
         "title": "%github.dardcor.command.deleteAgentSession%",
         "icon": "$(close)",
-        "category": "Copilot CLI"
+        "category": "Dardcor AI CLI"
       },
       {
         "command": "agents.github.dardcor.cli.deleteSessions",
         "title": "%github.dardcor.command.deleteAgentSession%",
-        "category": "Copilot CLI"
+        "category": "Dardcor AI CLI"
       },
       {
         "command": "github.dardcor.cli.sessions.resumeInTerminal",
         "title": "%github.dardcor.command.cli.sessions.resumeInTerminal%",
         "icon": "$(terminal)",
-        "category": "Copilot CLI"
+        "category": "Dardcor AI CLI"
       },
       {
         "command": "github.dardcor.cli.sessions.rename",
         "title": "%github.dardcor.command.cli.sessions.rename%",
         "icon": "$(edit)",
-        "category": "Copilot CLI"
+        "category": "Dardcor AI CLI"
       },
       {
         "command": "github.dardcor.cli.sessions.setTitle",
         "title": "%github.dardcor.command.cli.sessions.setTitle%",
-        "category": "Copilot CLI"
+        "category": "Dardcor AI CLI"
       },
       {
         "command": "github.dardcor.claude.sessions.rename",
@@ -2488,37 +2488,37 @@
         "command": "github.dardcor.cli.sessions.openRepository",
         "title": "%github.dardcor.command.cli.sessions.openRepository%",
         "icon": "$(folder-opened)",
-        "category": "Copilot CLI"
+        "category": "Dardcor AI CLI"
       },
       {
         "command": "github.dardcor.cli.sessions.openWorktreeInNewWindow",
         "title": "%github.dardcor.command.cli.sessions.openWorktreeInNewWindow%",
         "icon": "$(folder-opened)",
-        "category": "Copilot CLI"
+        "category": "Dardcor AI CLI"
       },
       {
         "command": "github.dardcor.cli.sessions.openWorktreeInTerminal",
         "title": "%github.dardcor.command.cli.sessions.openWorktreeInTerminal%",
         "icon": "$(terminal)",
-        "category": "Copilot CLI"
+        "category": "Dardcor AI CLI"
       },
       {
         "command": "github.dardcor.cli.sessions.copyWorktreeBranchName",
         "title": "%github.dardcor.command.cli.sessions.copyWorktreeBranchName%",
         "icon": "$(copy)",
-        "category": "Copilot CLI"
+        "category": "Dardcor AI CLI"
       },
       {
         "command": "github.dardcor.cli.sessions.commitToWorktree",
         "title": "%github.dardcor.command.cli.sessions.commitToWorktree%",
         "icon": "$(git-commit)",
-        "category": "Copilot CLI"
+        "category": "Dardcor AI CLI"
       },
       {
         "command": "github.dardcor.cli.sessions.commitToRepository",
         "title": "%github.dardcor.command.cli.sessions.commitToRepository%",
         "icon": "$(git-commit)",
-        "category": "Copilot CLI"
+        "category": "Dardcor AI CLI"
       },
       {
         "command": "github.dardcor.cli.newSession",
@@ -2536,7 +2536,7 @@
         "command": "github.dardcor.cli.openInCopilotCLI",
         "title": "%github.dardcor.command.cli.openInCopilotCLI%",
         "icon": "$(terminal)",
-        "category": "Copilot CLI"
+        "category": "Dardcor AI CLI"
       },
       {
         "command": "github.dardcor.chat.compact",
@@ -2852,7 +2852,7 @@
       },
       {
         "command": "github.dardcor.chat.startCopilotDebugCommand",
-        "title": "Start Copilot Debug"
+        "title": "Start Dardcor AI Debug"
       },
       {
         "command": "github.dardcor.chat.clearTemporalContext",
@@ -2960,22 +2960,22 @@
       {
         "command": "github.dardcor.nes.captureExpected.start",
         "title": "Record Expected Edit (NES)",
-        "category": "Copilot"
+        "category": "Dardcor AI"
       },
       {
         "command": "github.dardcor.nes.captureExpected.confirm",
         "title": "Confirm and Save Expected Edit Capture",
-        "category": "Copilot"
+        "category": "Dardcor AI"
       },
       {
         "command": "github.dardcor.nes.captureExpected.abort",
         "title": "Cancel Expected Edit Capture",
-        "category": "Copilot"
+        "category": "Dardcor AI"
       },
       {
         "command": "github.dardcor.nes.captureExpected.submit",
         "title": "Submit NES Captures",
-        "category": "Copilot"
+        "category": "Dardcor AI"
       },
       {
         "command": "github.dardcor.debug.collectWorkspaceIndexDiagnostics",
@@ -3032,132 +3032,132 @@
         "command": "github.dardcor.chat.openSuggestionsPanel",
         "title": "Open Completions Panel",
         "enablement": "github.dardcor.extensionUnification.activated && !isWeb",
-        "category": "GitHub Copilot"
+        "category": "Dardcor AI"
       },
       {
         "command": "github.dardcor.chat.toggleStatusMenu",
         "title": "Open Status Menu",
         "enablement": "github.dardcor.extensionUnification.activated",
-        "category": "GitHub Copilot"
+        "category": "Dardcor AI"
       },
       {
         "command": "github.dardcor.chat.completions.disable",
         "title": "Disable Inline Suggestions",
         "enablement": "github.dardcor.extensionUnification.activated && github.dardcor.activated && config.editor.inlineSuggest.enabled && github.dardcor.completions.enabled",
-        "category": "GitHub Copilot"
+        "category": "Dardcor AI"
       },
       {
         "command": "github.dardcor.chat.completions.enable",
         "title": "Enable Inline Suggestions",
         "enablement": "github.dardcor.extensionUnification.activated && github.dardcor.activated && !(config.editor.inlineSuggest.enabled && github.dardcor.completions.enabled)",
-        "category": "GitHub Copilot"
+        "category": "Dardcor AI"
       },
       {
         "command": "github.dardcor.chat.completions.toggle",
         "title": "Toggle (Enable/Disable) Inline Suggestions",
         "enablement": "github.dardcor.extensionUnification.activated && github.dardcor.activated",
-        "category": "GitHub Copilot"
+        "category": "Dardcor AI"
       },
       {
         "command": "github.dardcor.chat.openModelPicker",
         "title": "Change Completions Model",
-        "category": "GitHub Copilot",
+        "category": "Dardcor AI",
         "enablement": "github.dardcor.extensionUnification.activated && !isWeb && github.dardcor.completions.hasMultipleModels"
       },
       {
         "command": "github.dardcor.chat.applyCopilotCLIAgentSessionChanges",
         "title": "%github.dardcor.command.applyCopilotCLIAgentSessionChanges%",
         "enablement": "!chatSessionRequestInProgress",
-        "category": "GitHub Copilot"
+        "category": "Dardcor AI"
       },
       {
         "command": "github.dardcor.chat.applyCopilotCLIAgentSessionChanges.apply",
         "title": "%github.dardcor.chat.applyCopilotCLIAgentSessionChanges.apply%",
         "enablement": "!chatSessionRequestInProgress",
         "icon": "$(git-stash-pop)",
-        "category": "GitHub Copilot"
+        "category": "Dardcor AI"
       },
       {
         "command": "github.dardcor.chat.mergeCopilotCLIAgentSessionChanges.merge",
         "title": "%github.dardcor.chat.mergeCopilotCLIAgentSessionChanges.merge%",
         "enablement": "!chatSessionRequestInProgress",
         "icon": "$(git-merge)",
-        "category": "GitHub Copilot"
+        "category": "Dardcor AI"
       },
       {
         "command": "github.dardcor.chat.mergeCopilotCLIAgentSessionChanges.mergeAndSync",
         "title": "%github.dardcor.chat.mergeCopilotCLIAgentSessionChanges.mergeAndSync%",
         "enablement": "!chatSessionRequestInProgress",
         "icon": "$(sync)",
-        "category": "GitHub Copilot"
+        "category": "Dardcor AI"
       },
       {
         "command": "github.dardcor.sessions.commit",
         "title": "%github.dardcor.command.sessions.commit%",
         "enablement": "!chatSessionRequestInProgress && !sessions.hasGitOperationInProgress",
         "icon": "$(git-commit)",
-        "category": "GitHub Copilot"
+        "category": "Dardcor AI"
       },
       {
         "command": "github.dardcor.sessions.commitAndSync",
         "title": "%github.dardcor.command.sessions.commitAndSync%",
         "enablement": "!chatSessionRequestInProgress && !sessions.hasGitOperationInProgress",
         "icon": "$(sync)",
-        "category": "GitHub Copilot"
+        "category": "Dardcor AI"
       },
       {
         "command": "github.dardcor.sessions.sync",
         "title": "%github.dardcor.command.sessions.sync%",
         "enablement": "!chatSessionRequestInProgress && !sessions.hasGitOperationInProgress",
         "icon": "$(sync)",
-        "category": "GitHub Copilot"
+        "category": "Dardcor AI"
       },
       {
         "command": "github.dardcor.chat.createPullRequestCopilotCLIAgentSession.createPR",
         "title": "%github.dardcor.chat.createPullRequestCopilotCLIAgentSession.createPR%",
         "enablement": "!chatSessionRequestInProgress && !sessions.hasGitOperationInProgress",
         "icon": "$(git-pull-request-create)",
-        "category": "GitHub Copilot"
+        "category": "Dardcor AI"
       },
       {
         "command": "github.dardcor.chat.createDraftPullRequestCopilotCLIAgentSession.createDraftPR",
         "title": "%github.dardcor.chat.createDraftPullRequestCopilotCLIAgentSession.createDraftPR%",
         "enablement": "!chatSessionRequestInProgress && !sessions.hasGitOperationInProgress",
         "icon": "$(git-pull-request-draft)",
-        "category": "GitHub Copilot"
+        "category": "Dardcor AI"
       },
       {
         "command": "github.dardcor.sessions.discardChanges",
         "title": "%github.dardcor.command.sessions.discardChanges%",
         "enablement": "!chatSessionRequestInProgress",
         "icon": "$(discard)",
-        "category": "GitHub Copilot"
+        "category": "Dardcor AI"
       },
       {
         "command": "github.dardcor.chat.dardcorCLI.addFileReference",
         "title": "%github.dardcor.command.chat.dardcorCLI.addFileReference%",
         "enablement": "github.dardcor.chat.dardcorCLI.hasSession",
-        "category": "Copilot CLI"
+        "category": "Dardcor AI CLI"
       },
       {
         "command": "github.dardcor.chat.dardcorCLI.addSelection",
         "title": "%github.dardcor.command.chat.dardcorCLI.addSelection%",
         "enablement": "github.dardcor.chat.dardcorCLI.hasSession",
-        "category": "Copilot CLI"
+        "category": "Dardcor AI CLI"
       },
       {
         "command": "github.dardcor.chat.dardcorCLI.acceptDiff",
         "title": "%github.dardcor.command.chat.dardcorCLI.acceptDiff%",
         "enablement": "github.dardcor.chat.dardcorCLI.hasActiveDiff",
         "icon": "$(check)",
-        "category": "Copilot CLI"
+        "category": "Dardcor AI CLI"
       },
       {
         "command": "github.dardcor.chat.dardcorCLI.rejectDiff",
         "title": "%github.dardcor.command.chat.dardcorCLI.rejectDiff%",
         "enablement": "github.dardcor.chat.dardcorCLI.hasActiveDiff",
         "icon": "$(close)",
-        "category": "Copilot CLI"
+        "category": "Dardcor AI CLI"
       },
       {
         "command": "github.dardcor.chat.checkoutPullRequestReroute",
@@ -3181,58 +3181,58 @@
         "command": "github.dardcor.chat.cloudSessions.openRepository",
         "title": "%github.dardcor.command.cloudSessions.openRepository.title%",
         "icon": "$(repo)",
-        "category": "GitHub Copilot"
+        "category": "Dardcor AI"
       },
       {
         "command": "github.dardcor.chat.cloudSessions.clearCaches",
         "title": "%github.dardcor.command.cloudSessions.clearCaches.title%",
-        "category": "GitHub Copilot"
+        "category": "Dardcor AI"
       },
       {
         "command": "github.dardcor.sessions.refreshChanges",
         "title": "%github.dardcor.command.sessions.refreshChanges%",
         "icon": "$(refresh)",
-        "category": "GitHub Copilot"
+        "category": "Dardcor AI"
       },
       {
         "command": "github.dardcor.sessions.initializeRepository",
         "title": "%github.dardcor.command.sessions.initializeRepository%",
         "enablement": "!chatSessionRequestInProgress",
         "icon": "$(repo)",
-        "category": "GitHub Copilot"
+        "category": "Dardcor AI"
       },
       {
         "command": "github.dardcor.claude.sessions.commit",
         "title": "%github.dardcor.command.claude.sessions.commit%",
         "enablement": "!chatSessionRequestInProgress",
         "icon": "$(git-commit)",
-        "category": "GitHub Copilot"
+        "category": "Dardcor AI"
       },
       {
         "command": "github.dardcor.claude.sessions.commitAndSync",
         "title": "%github.dardcor.command.claude.sessions.commitAndSync%",
         "enablement": "!chatSessionRequestInProgress",
         "icon": "$(sync)",
-        "category": "GitHub Copilot"
+        "category": "Dardcor AI"
       },
       {
         "command": "github.dardcor.claude.sessions.sync",
         "title": "%github.dardcor.command.claude.sessions.sync%",
         "enablement": "!chatSessionRequestInProgress",
         "icon": "$(sync)",
-        "category": "GitHub Copilot"
+        "category": "Dardcor AI"
       },
       {
         "command": "github.dardcor.claude.sessions.initializeRepository",
         "title": "%github.dardcor.command.claude.sessions.initializeRepository%",
         "enablement": "!chatSessionRequestInProgress",
         "icon": "$(repo)",
-        "category": "GitHub Copilot"
+        "category": "Dardcor AI"
       }
     ],
     "configuration": [
       {
-        "title": "GitHub Copilot Chat",
+        "title": "Dardcor AI Chat",
         "id": "stable",
         "properties": {
           "github.dardcor.chat.backgroundAgent.enabled": {
@@ -3438,7 +3438,7 @@
             "additionalProperties": {
               "type": "boolean"
             },
-            "markdownDescription": "Enable or disable auto triggering of Copilot completions for specified [languages](https://code.visualstudio.com/docs/languages/identifiers). You can still trigger suggestions manually using `Alt + \\`",
+            "markdownDescription": "Enable or disable auto triggering of Dardcor AI completions for specified [languages](https://code.visualstudio.com/docs/languages/identifiers). You can still trigger suggestions manually using `Alt + \\`",
             "agentsWindow": {
               "default": {
                 "markdown": true,
@@ -3449,7 +3449,7 @@
           "github.dardcor.selectedCompletionModel": {
             "type": "string",
             "default": "",
-            "markdownDescription": "The currently selected completion model ID. To select from a list of available models, use the __\"Change Completions Model\"__ command or open the model picker (from the Copilot menu in the VS Code title bar, select __\"Configure Code Completions\"__ then __\"Change Completions Model\"__. The value must be a valid model ID. An empty value indicates that the default model will be used."
+            "markdownDescription": "The currently selected completion model ID. To select from a list of available models, use the __\"Change Completions Model\"__ command or open the model picker (from the Dardcor AI menu in the VS Code title bar, select __\"Configure Code Completions\"__ then __\"Change Completions Model\"__. The value must be a valid model ID. An empty value indicates that the default model will be used."
           },
           "github.dardcor.chat.claudeAgent.enabled": {
             "type": "boolean",
@@ -5361,7 +5361,7 @@
             "policyReference": {
               "name": "CopilotOtelEnabled"
             },
-            "markdownDescription": "Enable OpenTelemetry trace/metric/log emission for Copilot Chat operations. Precedence: enterprise policy > env var `COPILOT_OTEL_ENABLED` > user setting. Requires window reload.",
+            "markdownDescription": "Enable OpenTelemetry trace/metric/log emission for Dardcor AI Chat operations. Precedence: enterprise policy > env var `COPILOT_OTEL_ENABLED` > user setting. Requires window reload.",
             "tags": [
               "advanced"
             ]
@@ -5379,7 +5379,7 @@
             "policyReference": {
               "name": "CopilotOtelProtocol"
             },
-            "markdownDescription": "OTel exporter type for Copilot Chat telemetry. Configurable in user settings or managed by enterprise policy (policy takes precedence). Requires window reload.",
+            "markdownDescription": "OTel exporter type for Dardcor AI Chat telemetry. Configurable in user settings or managed by enterprise policy (policy takes precedence). Requires window reload.",
             "tags": [
               "advanced"
             ]
@@ -5397,7 +5397,7 @@
             "policyReference": {
               "name": "CopilotOtelOtlpProtocol"
             },
-            "markdownDescription": "OTLP wire protocol for Copilot Chat OTel data, mirroring `OTEL_EXPORTER_OTLP_PROTOCOL`. `http/protobuf` selects the protobuf-over-HTTP exporter; the default (empty) uses `http/json`. Precedence: enterprise policy > env var > user setting. Requires window reload.",
+            "markdownDescription": "OTLP wire protocol for Dardcor AI Chat OTel data, mirroring `OTEL_EXPORTER_OTLP_PROTOCOL`. `http/protobuf` selects the protobuf-over-HTTP exporter; the default (empty) uses `http/json`. Precedence: enterprise policy > env var > user setting. Requires window reload.",
             "tags": [
               "advanced"
             ]
@@ -5409,7 +5409,7 @@
             "policyReference": {
               "name": "CopilotOtelEndpoint"
             },
-            "markdownDescription": "OTLP collector endpoint URL for Copilot Chat OTel data. Precedence: enterprise policy > env var `OTEL_EXPORTER_OTLP_ENDPOINT` > user setting. Requires window reload.",
+            "markdownDescription": "OTLP collector endpoint URL for Dardcor AI Chat OTel data. Precedence: enterprise policy > env var `OTEL_EXPORTER_OTLP_ENDPOINT` > user setting. Requires window reload.",
             "tags": [
               "advanced"
             ]
@@ -5433,7 +5433,7 @@
             "policyReference": {
               "name": "CopilotOtelServiceName"
             },
-            "markdownDescription": "OTel `service.name` resource attribute for Copilot Chat OTel data. Configurable in user settings only. Env var `OTEL_SERVICE_NAME` takes precedence over the setting; enterprise policy takes precedence over both. Requires window reload.",
+            "markdownDescription": "OTel `service.name` resource attribute for Dardcor AI Chat OTel data. Configurable in user settings only. Env var `OTEL_SERVICE_NAME` takes precedence over the setting; enterprise policy takes precedence over both. Requires window reload.",
             "tags": [
               "advanced"
             ]
@@ -5448,7 +5448,7 @@
             "policyReference": {
               "name": "CopilotOtelResourceAttributes"
             },
-            "markdownDescription": "Additional OTel resource attributes for Copilot Chat OTel data, as a `{ \"key\": \"value\" }` map. Configurable in user settings only. Merged per-key with `OTEL_RESOURCE_ATTRIBUTES` env (env wins over the setting); enterprise policy wins over both. Requires window reload.",
+            "markdownDescription": "Additional OTel resource attributes for Dardcor AI Chat OTel data, as a `{ \"key\": \"value\" }` map. Configurable in user settings only. Merged per-key with `OTEL_RESOURCE_ATTRIBUTES` env (env wins over the setting); enterprise policy wins over both. Requires window reload.",
             "tags": [
               "advanced"
             ]
@@ -5463,7 +5463,7 @@
             "policyReference": {
               "name": "CopilotOtelHeaders"
             },
-            "markdownDescription": "Extra OTLP exporter headers (e.g. auth tokens) for Copilot Chat OTel data, as a `{ \"key\": \"value\" }` map. Applied directly to the OTLP exporter, not via environment variables. Configurable in user settings only. Merged per-key with `OTEL_EXPORTER_OTLP_HEADERS` env (env wins over the setting); enterprise policy wins over both. **Contains potentially sensitive credentials.** Requires window reload.",
+            "markdownDescription": "Extra OTLP exporter headers (e.g. auth tokens) for Dardcor AI Chat OTel data, as a `{ \"key\": \"value\" }` map. Applied directly to the OTLP exporter, not via environment variables. Configurable in user settings only. Merged per-key with `OTEL_EXPORTER_OTLP_HEADERS` env (env wins over the setting); enterprise policy wins over both. **Contains potentially sensitive credentials.** Requires window reload.",
             "tags": [
               "advanced"
             ]
@@ -6892,9 +6892,9 @@
       {
         "type": "dardcorcli",
         "name": "cli",
-        "displayName": "Copilot CLI",
+        "displayName": "Dardcor AI CLI",
         "icon": "$(dardcor)",
-        "welcomeTitle": "Copilot CLI",
+        "welcomeTitle": "Dardcor AI CLI",
         "welcomeMessage": "Run tasks in the background with the Copilot CLI",
         "inputPlaceholder": "Run tasks in the background with the Copilot CLI, type `#` for adding context",
         "order": 1,
@@ -7110,7 +7110,7 @@
         {
           "icon": "dardcor",
           "id": "dardcor-cli",
-          "title": "GitHub Copilot CLI",
+          "title": "Dardcor AI CLI",
           "titleTemplate": "${sequence}"
         }
       ]

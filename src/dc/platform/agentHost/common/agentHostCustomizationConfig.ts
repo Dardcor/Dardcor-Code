@@ -101,7 +101,7 @@ export const agentHostCustomizationConfigSchema = createSchema({
 		type: 'string',
 		enum: [...SESSION_CUSTOMIZATION_DISCOVERY_MODES],
 		title: localize('agentHost.config.sessionCustomizationDiscoveryMode.title', "Session Customization Discovery Mode"),
-		description: localize('agentHost.config.sessionCustomizationDiscoveryMode.description', "Controls whether session-scoped customizations are populated from local file scanning or from Copilot SDK discovery."),
+		description: localize('agentHost.config.sessionCustomizationDiscoveryMode.description', "Controls whether session-scoped customizations are populated from local file scanning or from Dardcor AI SDK discovery."),
 		default: DEFAULT_SESSION_CUSTOMIZATION_DISCOVERY_MODE,
 	}),
 	[AgentHostConfigKey.GithubEnterpriseUri]: schemaProperty<string>({

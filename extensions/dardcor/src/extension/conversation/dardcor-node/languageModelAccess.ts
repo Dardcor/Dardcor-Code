@@ -250,8 +250,13 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 			provideLanguageModelChatResponse: this._provideLanguageModelChatResponse.bind(this),
 			provideTokenCount: this._provideTokenCount.bind(this)
 		};
-		this._register(vscode.lm.registerLanguageModelChatProvider('copilot', provider));
-		this._register(vscode.lm.registerLanguageModelChatProvider('dardcor', provider));
+		try {
+			this._register(vscode.lm.registerLanguageModelChatProvider('dardcor', provider));
+		} catch (error) {
+			// The contribution can be activated more than once during extension
+			// reload. Keep the first DRouter provider instead of failing activation.
+			this._logService.warn(`[LanguageModelAccess] DRouter provider already registered: ${error}`);
+		}
 		this._register(this._authenticationService.onDidAuthenticationChange(() => {
 			this._onDidChange.fire();
 		}));

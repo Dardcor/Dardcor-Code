@@ -267,10 +267,10 @@ export class GhostTextComputer {
 		logContext.setPrompt(PromptResponse.toString(prompt));
 
 		if (prompt.type === 'dardcorContentExclusion') {
-			logger.debug('Copilot not available, due to content exclusion');
+			logger.debug('Dardcor AI not available, due to content exclusion');
 			return {
 				type: 'abortedBeforeIssued',
-				reason: 'Copilot not available due to content exclusion',
+				reason: 'Dardcor AI not available due to content exclusion',
 				telemetryData: mkBasicResultTelemetry(preIssuedTelemetryDataWithExp),
 			};
 		}

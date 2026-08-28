@@ -102,7 +102,7 @@ export const HOOK_COMMAND_FIELD_DESCRIPTIONS: Record<string, string> = {
 };
 
 /**
- * JSON Schema for GitHub Copilot hook configuration files.
+ * JSON Schema for Dardcor AI hook configuration files.
  * Hooks enable executing custom shell commands at strategic points in an agent's workflow.
  */
 const vscodeHookCommandSchema: IJSONSchema = {
@@ -237,7 +237,7 @@ const copilotCliHookProperties: Record<string, IJSONSchema> = buildHookPropertie
 export const hookFileSchema: IJSONSchema = {
 	$schema: 'http://json-schema.org/draft-07/schema#',
 	type: 'object',
-	description: nls.localize('hookFile.description', 'GitHub Copilot hook configuration file. Hooks enable executing custom shell commands at strategic points in an agent\'s workflow.'),
+	description: nls.localize('hookFile.description', 'Dardcor AI hook configuration file. Hooks enable executing custom shell commands at strategic points in an agent\'s workflow.'),
 	additionalProperties: true,
 	required: ['hooks'],
 	properties: {

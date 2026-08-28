@@ -222,7 +222,7 @@ export function buildAddModelsDropdownActions(
 	if (runCopilotSignInAction) {
 		actions.push(toAction({
 			id: 'signIn-github-copilot',
-			label: localize('models.signInGitHubCopilot', "GitHub Copilot"),
+			label: localize('models.signInGitHubCopilot', "Dardcor AI"),
 			run: async () => {
 				await runCopilotSignInAction();
 			},

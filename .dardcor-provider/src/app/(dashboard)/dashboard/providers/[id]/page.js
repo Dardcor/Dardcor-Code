@@ -79,6 +79,7 @@ export default function ProviderDetailPage() {
   const [oneByOneSummary, setOneByOneSummary] = useState(null);
   const stopOneByOneRef = useRef(false);
   const [importingQoderModels, setImportingQoderModels] = useState(false);
+  const [refreshingModels, setRefreshingModels] = useState(false);
   const { copied, copy } = useCopyToClipboard();
 
   const AG_RISK_STORAGE_KEY = "ag_risk_confirmed";
@@ -509,6 +510,40 @@ export default function ProviderDetailPage() {
     if (!fetcher) return;
     fetchSuggestedModels(fetcher).then(setSuggestedModels);
   }, [providerId]);
+
+  const handleRefreshModels = async () => {
+    if (refreshingModels) return;
+    setRefreshingModels(true);
+    try {
+      await Promise.all([
+        fetchConnections(),
+        fetchAliases(),
+        fetchCustomModels(),
+        fetchDisabledModels(),
+        (async () => {
+          const fetcher = (OAUTH_PROVIDERS[providerId] || APIKEY_PROVIDERS[providerId] || FREE_PROVIDERS[providerId] || FREE_TIER_PROVIDERS[providerId])?.modelsFetcher;
+          if (fetcher) setSuggestedModels(await fetchSuggestedModels(fetcher));
+        })(),
+        providerId === "cursor"
+          ? (async () => {
+              const connection = connections.find((item) => item.isActive !== false);
+              if (!connection?.id) return;
+              const res = await fetch(`/api/providers/${connection.id}/models`, { cache: "no-store" });
+              const data = await res.json();
+              if (res.ok && Array.isArray(data.models)) setLiveModels(data.models);
+            })()
+          : Promise.resolve(),
+      ]);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("providersChanged"));
+        window.dispatchEvent(new CustomEvent("modelsChanged"));
+      }
+    } catch (error) {
+      console.log("Error refreshing models:", error);
+    } finally {
+      setRefreshingModels(false);
+    }
+  };
 
   const handleSetAlias = async (modelId, alias, providerAliasOverride = providerAlias) => {
     const fullModel = `${providerAliasOverride}/${modelId}`;
@@ -1341,9 +1376,24 @@ export default function ProviderDetailPage() {
                 </a>
               )}
             </div>
-            <p className="text-text-muted">
-              {connections.length} connection{connections.length === 1 ? "" : "s"}
-            </p>
+            <div className="flex items-center gap-3 flex-wrap">
+              <p className="text-text-muted">
+                {connections.length} connection{connections.length === 1 ? "" : "s"}
+              </p>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={handleRefreshModels}
+                disabled={refreshingModels}
+                title="Refresh provider models"
+                aria-label="Refresh provider models"
+              >
+                <span className={`material-symbols-outlined text-[15px]${refreshingModels ? " animate-spin" : ""}`}>
+                  refresh
+                </span>
+                {refreshingModels ? "Refreshing..." : "Refresh Models"}
+              </Button>
+            </div>
           </div>
         </div>
       </div>

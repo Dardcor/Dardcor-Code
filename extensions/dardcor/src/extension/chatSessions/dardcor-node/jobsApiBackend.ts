@@ -22,7 +22,7 @@ import {
 } from '../dardcor/cloudAgentBackend';
 import { body_suffix, formatBodyPlaceholder, JOBS_API_VERSION, SessionIdForPr } from '../dardcor/dardcorCodingAgentUtils';
 
-const CLOUD_SESSIONS_AUTH_OPTIONS: AuthOptions = { createIfNone: { detail: l10n.t('Sign in to GitHub to access Copilot cloud sessions.') } };
+const CLOUD_SESSIONS_AUTH_OPTIONS: AuthOptions = { createIfNone: { detail: l10n.t('Sign in to access Dardcor AI cloud sessions.') } };
 
 /**
  * Error thrown for invalid Jobs API (v1) create responses. Carries the HTTP `status` (when known)
@@ -184,7 +184,7 @@ export class JobsApiBackend implements PrCloudAgentBackend {
 		const statusCode = (response as { status?: number } | undefined)?.status;
 		switch (statusCode) {
 			case 401:
-				return new JobsApiError(vscode.l10n.t('Cloud agent is not authorized to run on this repository. This may be because the Copilot coding agent is disabled for your organization, or your active GitHub account does not have push access to the target repository.'), statusCode);
+				return new JobsApiError(vscode.l10n.t('Cloud agent is not authorized to run on this repository. This may be because the Dardcor AI coding agent is disabled for your organization, or your active GitHub account does not have push access to the target repository.'), statusCode);
 			case 403:
 				return new JobsApiError(vscode.l10n.t('Cloud agent is not enabled for this repository. You may need to enable it in [GitHub settings]({0}) or contact your organization administrator.', `https://${params.host}/settings/dardcor/coding_agent`), statusCode);
 			case 404:

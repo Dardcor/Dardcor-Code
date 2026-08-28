@@ -38,7 +38,7 @@ function validateScheme(logger: ILogger, uri: vscode.Uri): boolean {
 		return true;
 	}
 	logger.debug(`Unsupported URI scheme: ${uri.scheme}`);
-	vscode.window.showWarningMessage(l10n.t('Cannot send virtual files to Copilot CLI.'));
+	vscode.window.showWarningMessage(l10n.t('Cannot send virtual files to Dardcor AI CLI.'));
 	return false;
 }
 

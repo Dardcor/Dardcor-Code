@@ -1,4 +1,5 @@
-import { PROVIDER_MODELS, PROVIDER_ID_TO_ALIAS, getModelKind } from "@/shared/constants/models";
+import { PROVIDER_ID_TO_ALIAS, getModelKind } from "@/shared/constants/models";
+import { PROVIDER_MODELS } from "open-sse/config/providerModels.js";
 import {
   AI_PROVIDERS,
   getProviderAlias,
@@ -22,6 +23,23 @@ import { capabilitiesFromServiceKind, getCapabilitiesForModel } from "open-sse/p
 // returns { models: [{ id, name? }, ...] } | null on failure.
 // Adding a provider here makes /v1/models prefer the live catalog for it.
 const LIVE_MODEL_RESOLVERS = {
+  opencode: async () => {
+    const response = await fetch("https://opencode.ai/zen/v1/models", {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "opencode/1.0",
+        "x-opencode-client": "desktop",
+      },
+    });
+    if (!response.ok) return null;
+    const payload = await response.json();
+    const models = parseOpenAIStyleModels(payload)
+      // OpenCode Zen is no-auth only for its explicitly free models. Paid
+      // models must come from a saved/active DRouter connection instead.
+      .filter((model) => model && typeof model.id === "string" && /-free$/i.test(model.id))
+      .map((model) => ({ id: model.id, name: model.name }));
+    return models.length ? { models } : null;
+  },
   kiro: async (conn) => {
     const result = await resolveKiroModels({
       accessToken: conn.accessToken,
@@ -228,12 +246,30 @@ export async function buildModelsList(kindFilter, options = {}) {
   // dardcor-code instance's fetchCompatibleModelIds — skip dynamic fetch to break
   // cross-instance recursive loops.
   const skipDynamicFetch = options.skipDynamicFetch === true;
+  const connectedOnly = options.connectedOnly === true;
   let connections = [];
   try {
     connections = await getProviderConnections();
     connections = connections.filter(c => c.isActive !== false);
   } catch (e) {
     console.log("Could not fetch providers, returning all models");
+  }
+
+  // OpenCode Zen is a DRouter no-auth provider. Keep it discoverable from its
+  // live catalog even though it does not need a saved credential row.
+  if (connectedOnly && !connections.some((conn) => conn.provider === "opencode")) {
+    connections.push({
+      id: "drouter-opencode-zen",
+      provider: "opencode",
+      isActive: true,
+      providerSpecificData: {},
+    });
+  }
+
+  // The IDE model picker must never fall back to the static catalog: it only
+  // offers models that belong to an active DRouter connection.
+  if (connectedOnly && connections.length === 0) {
+    return [];
   }
 
   let combos = [];
@@ -544,7 +580,8 @@ export async function GET(request) {
   try {
     // Detect cross-instance recursive /models fetch (another dardcor-code fetching our /models)
     const skipDynamicFetch = request?.headers?.get(INTERNAL_MODELS_FETCH_HEADER) === "1";
-    const data = await buildModelsList([LLM_KIND], { skipDynamicFetch });
+    const connectedOnly = request?.headers?.get("x-drouter-connected-only") === "1";
+    const data = await buildModelsList([LLM_KIND], { skipDynamicFetch, connectedOnly });
     return Response.json({ object: "list", data }, {
       headers: {
         "Access-Control-Allow-Origin": "*",

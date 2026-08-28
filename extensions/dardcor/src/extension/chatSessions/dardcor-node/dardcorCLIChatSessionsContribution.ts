@@ -545,7 +545,7 @@ export class CopilotCLIChatSessionItemProvider extends Disposable implements vsc
 	}
 	public async createCopilotCLITerminal(location: TerminalOpenLocation = 'editor', name?: string, cwd?: string): Promise<void> {
 		// TODO@rebornix should be set by CLI
-		const terminalName = name || process.env.COPILOTCLI_TERMINAL_TITLE || l10n.t('Copilot CLI');
+		const terminalName = name || process.env.COPILOTCLI_TERMINAL_TITLE || l10n.t('Dardcor AI CLI');
 		await this.terminalIntegration.openTerminal(terminalName, [], cwd, location);
 	}
 
@@ -2128,7 +2128,7 @@ export class CopilotCLIChatSessionParticipant extends Disposable {
 		]);
 
 		if (cancelled || token.isCancellationRequested) {
-			stream.markdown(l10n.t('Copilot CLI delegation cancelled.'));
+			stream.markdown(l10n.t('Dardcor AI CLI delegation cancelled.'));
 			return {};
 		}
 		const workingDirectory = getWorkingDirectory(workspaceInfo);
@@ -2163,7 +2163,7 @@ export class CopilotCLIChatSessionParticipant extends Disposable {
 			attachedContext: references.map(ref => convertReferenceToVariable(ref, attachments))
 		});
 
-		stream.markdown(l10n.t('A Copilot CLI session has begun working on your request. Follow its progress in the sessions list.'));
+		stream.markdown(l10n.t('A Dardcor AI CLI session has begun working on your request. Follow its progress in the sessions list.'));
 
 		return {};
 	}
@@ -2344,14 +2344,14 @@ export function registerCLIChatCommands(
 		}
 	}));
 	disposableStore.add(vscode.commands.registerCommand('github.dardcor.cli.newSession', async () => {
-		await dardcorcliSessionItemProvider.createCopilotCLITerminal('editor', l10n.t('Copilot CLI'));
+		await dardcorcliSessionItemProvider.createCopilotCLITerminal('editor', l10n.t('Dardcor AI CLI'));
 	}));
 	disposableStore.add(vscode.commands.registerCommand('github.dardcor.cli.newSessionToSide', async () => {
-		await dardcorcliSessionItemProvider.createCopilotCLITerminal('editorBeside', l10n.t('Copilot CLI'));
+		await dardcorcliSessionItemProvider.createCopilotCLITerminal('editorBeside', l10n.t('Dardcor AI CLI'));
 	}));
 	disposableStore.add(vscode.commands.registerCommand(OPEN_IN_COPILOT_CLI_COMMAND_ID, async (sourceControlContext?: unknown) => {
 		const rootUri = getSourceControlRootUri(sourceControlContext);
-		await dardcorcliSessionItemProvider.createCopilotCLITerminal('editor', l10n.t('Copilot CLI'), rootUri?.fsPath);
+		await dardcorcliSessionItemProvider.createCopilotCLITerminal('editor', l10n.t('Dardcor AI CLI'), rootUri?.fsPath);
 	}));
 	disposableStore.add(vscode.commands.registerCommand('github.dardcor.cli.sessions.openWorktreeInNewWindow', async (sessionItem?: vscode.ChatSessionItem) => {
 		if (!sessionItem?.resource) {

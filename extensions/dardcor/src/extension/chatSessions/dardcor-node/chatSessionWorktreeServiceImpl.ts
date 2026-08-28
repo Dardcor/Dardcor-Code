@@ -57,7 +57,7 @@ export class ChatSessionWorktreeService extends Disposable implements IChatSessi
 		}
 
 		return new Promise<ChatSessionWorktreeProperties | undefined>((resolve) => {
-			stream.progress(l10n.t('Creating isolated worktree for Copilot CLI session...'), async progress => {
+			stream.progress(l10n.t('Creating isolated worktree for Dardcor AI CLI session...'), async progress => {
 				const result = await this._createWorktree(repositoryPath, progress, baseBranch, branchName);
 				resolve(result);
 				if (result) {

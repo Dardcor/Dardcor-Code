@@ -282,7 +282,7 @@ function toGitHubInfo(meta: SessionMeta | undefined): IGitHubInfo | undefined {
 /** Copilot CLI session type */
 export const CopilotCLISessionType: ISessionType = {
 	id: 'copilotcli',
-	label: localize('copilotCLI', "Copilot"),
+	label: localize('copilotCLI', "Dardcor AI"),
 	icon: Codicon.copilot,
 	supportsWorktreeConfiguration: true,
 	authRequirement: SessionTypeAuthRequirement.GitHub,

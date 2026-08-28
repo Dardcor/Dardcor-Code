@@ -303,7 +303,7 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
       } else if (provider === "xai") {
         redirectUri = "http://127.0.0.1:56121/callback";
       } else {
-        // Use exact current window origin (whether 127.0.0.1:25000 or localhost:25000)
+        // Use exact current window origin (whether 127.0.0.1:25128 or localhost:25128)
         redirectUri = `${window.location.origin}/callback`;
       }
 
@@ -510,7 +510,7 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
       if (fullUrl) {
         setCallbackUrl(fullUrl);
       } else if (code) {
-        setCallbackUrl(`http://127.0.0.1:25000/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state || "")}`);
+        setCallbackUrl(`http://127.0.0.1:25128/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state || "")}`);
       }
 
       if (callbackError) {
@@ -687,7 +687,7 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
       try {
         const urlStr = input.startsWith("http://") || input.startsWith("https://")
           ? input
-          : `http://localhost:25000/${input.replace(/^\/?/, "")}`;
+          : `http://localhost:25128/${input.replace(/^\/?/, "")}`;
         const url = new URL(urlStr);
         code = url.searchParams.get("code");
         token = url.searchParams.get("token");

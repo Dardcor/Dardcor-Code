@@ -139,8 +139,8 @@ export class OTelContrib extends Disposable implements IExtensionContribution {
 			const endpointChanged = changedSettings.some(s => s.fullyQualifiedId === endpointSetting.fullyQualifiedId);
 			const reloadWindowLabel = vscode.l10n.t("Reload Window");
 			const message = endpointChanged
-				? vscode.l10n.t("Copilot OTel endpoint will change to {0} after reload.", String(currentConfig.get(endpointSetting.fullyQualifiedId)))
-				: vscode.l10n.t("Copilot OTel settings changed - a reload is required for the change to take effect.");
+				? vscode.l10n.t("Dardcor AI OTel endpoint will change to {0} after reload.", String(currentConfig.get(endpointSetting.fullyQualifiedId)))
+				: vscode.l10n.t("Dardcor AI OTel settings changed - a reload is required for the change to take effect.");
 			const selection = await vscode.window.showInformationMessage(
 				message,
 				reloadWindowLabel,

@@ -564,7 +564,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			return result;
 		}
 
-		// Direct local streaming fallback to Dardcor Router at port 25000
+		// Direct local streaming fallback to Dardcor Router at port 25128
 		try {
 			const messages: any[] = [];
 			for (const h of history) {
@@ -581,18 +581,33 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			const currentPrompt = typeof request.message === 'string' ? request.message : (request.message as any)?.text || String(request.message || '');
 			messages.push({ role: 'user', content: currentPrompt.trim() || 'hello' });
 
-			let modelName = 'ox-alpha-free';
+			let modelName = request.userSelectedModelId;
+			if (modelName === 'opencode/no-model-selected' || modelName === 'opencode/auto') modelName = undefined;
 			try {
-				const modelsRes = await fetch('http://127.0.0.1:25000/v1/models');
-				if (modelsRes.ok) {
-					const modelsData = await modelsRes.json() as any;
-					if (Array.isArray(modelsData?.data) && modelsData.data.length > 0) {
-						modelName = modelsData.data[0].id;
+				if (!modelName) {
+					const modelsRes = await fetch('http://127.0.0.1:25128/v1/models', { headers: { 'x-drouter-connected-only': '1' } });
+					if (modelsRes.ok) {
+						const modelsData = await modelsRes.json() as any;
+						if (Array.isArray(modelsData?.data) && modelsData.data.length > 0) {
+							modelName = modelsData.data[0].id;
+						}
 					}
 				}
 			} catch { }
+			if (typeof modelName === 'string') {
+				if (modelName.toLowerCase().startsWith('opencode/')) modelName = `oc/${modelName.slice('opencode/'.length)}`;
+				if (modelName.toLowerCase().endsWith('-free') && !modelName.includes('/')) modelName = `oc/${modelName}`;
+			}
 
-			const res = await fetch('http://127.0.0.1:25000/v1/chat/completions', {
+			if (!modelName) {
+				progress([{
+					kind: 'markdownContent',
+					content: new MarkdownString('⚠️ No active DRouter model is connected. Connect a provider in DRouter first.')
+				}]);
+				return {};
+			}
+
+			const res = await fetch('http://127.0.0.1:25128/v1/chat/completions', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',

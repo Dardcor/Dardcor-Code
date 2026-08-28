@@ -30,7 +30,7 @@ export function handleException(accessor: ServicesAccessor, err: unknown, origin
 		} else if (error.code === 'EMFILE' || error.code === 'ENFILE') {
 			statusReporter.setWarning('Too many open files');
 		} else if (error.code === 'CopilotPromptLoadFailure') {
-			statusReporter.setWarning('Corrupted Copilot installation');
+			statusReporter.setWarning('Corrupted Dardcor AI installation');
 		} else if (`${error.code}`.startsWith('CopilotPromptWorkerExit')) {
 			statusReporter.setWarning('Worker unexpectedly exited');
 		} else if (error.syscall === 'uv_cwd' && error.code === 'ENOENT') {

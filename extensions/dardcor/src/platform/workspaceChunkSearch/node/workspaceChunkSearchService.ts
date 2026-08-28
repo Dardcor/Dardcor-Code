@@ -458,7 +458,7 @@ class WorkspaceChunkSearchServiceImpl extends Disposable implements IWorkspaceCh
 		await this.setHasPromptedForExternalIngest();
 		const enable = l10n.t('Enable');
 		const result = await this._notificationService.showInformationMessage(
-			l10n.t('Enable external ingest for semantic codebase search in this workspace? External ingest availability is controlled by your Copilot policy and can be disabled in workspace settings.'),
+			l10n.t('Enable external ingest for semantic codebase search in this workspace? External ingest availability is controlled by your Dardcor AI policy and can be disabled in workspace settings.'),
 			enable
 		);
 

@@ -256,7 +256,7 @@ export class PatchEditFixReplyInterpreter implements ReplyInterpreter {
 			}
 		}
 		if (this._lastText.length === 0) {
-			outputStream.warning(l10n.t('Copilot did not provide a response. Please try again.'));
+			outputStream.warning(l10n.t('Dardcor AI did not provide a response. Please try again.'));
 			return;
 		}
 

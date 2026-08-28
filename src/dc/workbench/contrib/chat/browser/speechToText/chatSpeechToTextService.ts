@@ -709,8 +709,8 @@ export class ChatSpeechToTextService extends Disposable implements IChatSpeechTo
 
 		if (!this._isEntitledForBackend(backend)) {
 			this._notificationService.warn(backend === 'mai' && this._chatEntitlementService.entitlement === ChatEntitlement.Enterprise
-				? localize('chatStt.maiEnterpriseUnavailable', "Cloud speech-to-text is not available for GitHub Copilot Enterprise accounts.")
-				: localize('chatStt.requiresPaidPlan', "Dictation requires a paid GitHub Copilot plan."));
+				? localize('chatStt.maiEnterpriseUnavailable', "Cloud speech-to-text is not available for Dardcor AI Enterprise accounts.")
+				: localize('chatStt.requiresPaidPlan', "Dictation requires a paid Dardcor AI plan."));
 			return;
 		}
 

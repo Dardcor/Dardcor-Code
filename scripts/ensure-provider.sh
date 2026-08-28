@@ -2,7 +2,8 @@
 
 ROOT="$(cd "$(dirname "$(dirname "${BASH_SOURCE[0]}")")" && pwd)"
 PROVIDER_DIR="$ROOT/.dardcor-provider"
-PORT="${DARDCOR_PORT:-25000}"
+PORT="${DARDCOR_PORT:-25128}"
+DATA_DIR="$HOME/.miawagent/router"
 LOG_DIR="$HOME/.dardcor/logs"
 PID_FILE="$HOME/.dardcor/provider.pid"
 
@@ -29,7 +30,7 @@ if [ -d "$PROVIDER_DIR" ]; then
 	if [ -f "$PROVIDER_DIR/.next/standalone/server.js" ]; then
 		(
 			cd "$PROVIDER_DIR/.next/standalone"
-			nohup env PORT="$PORT" node server.js >> "$LOG_DIR/provider.log" 2>&1 &
+            nohup env PORT="$PORT" HOSTNAME=127.0.0.1 DATA_DIR="$DATA_DIR" node server.js >> "$LOG_DIR/provider.log" 2>&1 &
 			NEW_PID=$!
 			disown $NEW_PID 2>/dev/null || true
 			echo "$NEW_PID" > "$PID_FILE"
@@ -37,7 +38,7 @@ if [ -d "$PROVIDER_DIR" ]; then
 	elif [ -f "$PROVIDER_DIR/custom-server.js" ]; then
 		(
 			cd "$PROVIDER_DIR"
-			nohup env PORT="$PORT" node custom-server.js >> "$LOG_DIR/provider.log" 2>&1 &
+            nohup env PORT="$PORT" HOSTNAME=127.0.0.1 DATA_DIR="$DATA_DIR" node custom-server.js >> "$LOG_DIR/provider.log" 2>&1 &
 			NEW_PID=$!
 			disown $NEW_PID 2>/dev/null || true
 			echo "$NEW_PID" > "$PID_FILE"
@@ -45,7 +46,7 @@ if [ -d "$PROVIDER_DIR" ]; then
 	else
 		(
 			cd "$PROVIDER_DIR"
-			nohup npm run dev -- --port "$PORT" >> "$LOG_DIR/provider.log" 2>&1 &
+            nohup env PORT="$PORT" HOSTNAME=127.0.0.1 DATA_DIR="$DATA_DIR" npm run dev -- --port "$PORT" >> "$LOG_DIR/provider.log" 2>&1 &
 			NEW_PID=$!
 			disown $NEW_PID 2>/dev/null || true
 			echo "$NEW_PID" > "$PID_FILE"

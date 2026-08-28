@@ -71,13 +71,13 @@ export const copilotCliConfigSchema = createSchema({
 	[CopilotCliConfigKey.EnableCustomTerminalTool]: schemaProperty<boolean>({
 		type: 'boolean',
 		title: localize('agentHost.config.enableCustomTerminalTool.title', "Use Agent Host Terminal Tool"),
-		description: localize('agentHost.config.enableCustomTerminalTool.description', "When enabled, Copilot SDK sessions use Agent Host's terminal tool override instead of the SDK's default terminal behavior."),
+		description: localize('agentHost.config.enableCustomTerminalTool.description', "When enabled, Dardcor AI SDK sessions use Agent Host's terminal tool override instead of the SDK's default terminal behavior."),
 		default: false,
 	}),
 	[CopilotCliConfigKey.CopilotSdkLogLevel]: schemaProperty<CopilotSdkLogLevelSetting>({
 		type: 'string',
-		title: localize('agentHost.config.copilotSdkLogLevel.title', "Copilot SDK Log Level"),
-		description: localize('agentHost.config.copilotSdkLogLevel.description', "Controls logging from the Copilot SDK runtime. Agent host trace logging always enables trace output."),
+		title: localize('agentHost.config.copilotSdkLogLevel.title', "Dardcor AI SDK Log Level"),
+		description: localize('agentHost.config.copilotSdkLogLevel.description', "Controls logging from the Dardcor AI SDK runtime. Agent host trace logging always enables trace output."),
 		enum: [...copilotSdkLogLevelSettingValues],
 		enumLabels: [
 			localize('agentHost.config.copilotSdkLogLevel.info', "Info"),
@@ -94,13 +94,13 @@ export const copilotCliConfigSchema = createSchema({
 	[CopilotCliConfigKey.Opus48Prompt]: schemaProperty<boolean>({
 		type: 'boolean',
 		title: localize('agentHost.config.opus48Prompt.title', "Opus 4.8 Agent Prompt"),
-		description: localize('agentHost.config.opus48Prompt.description', "When enabled, Copilot SDK sessions running a Claude Opus 4.8 model apply Opus 4.8-tuned system-prompt section overrides on top of the default system message."),
+		description: localize('agentHost.config.opus48Prompt.description', "When enabled, Dardcor AI SDK sessions running a Claude Opus 4.8 model apply Opus 4.8-tuned system-prompt section overrides on top of the default system message."),
 		default: false,
 	}),
 	[CopilotCliConfigKey.ToolSearchEnabled]: schemaProperty<boolean>({
 		type: 'boolean',
 		title: localize('agentHost.config.toolSearchEnabled.title', "Agent Host Tool Search"),
-		description: localize('agentHost.config.toolSearchEnabled.description', "When enabled, Copilot SDK sessions defer MCP and non-core VS Code tools behind a tool-search tool so the model discovers them on demand instead of loading every tool definition up front."),
+		description: localize('agentHost.config.toolSearchEnabled.description', "When enabled, Dardcor AI SDK sessions defer MCP and non-core VS Code tools behind a tool-search tool so the model discovers them on demand instead of loading every tool definition up front."),
 		default: true,
 	}),
 	[CopilotCliConfigKey.ToolSearchDeferThreshold]: schemaProperty<number>({
@@ -112,13 +112,13 @@ export const copilotCliConfigSchema = createSchema({
 	[CopilotCliConfigKey.ReasoningEffortOverride]: schemaProperty<string>({
 		type: 'string',
 		title: localize('agentHost.config.reasoningEffortOverride.title', "Reasoning Effort Override"),
-		description: localize('agentHost.config.reasoningEffortOverride.description', "Overrides the reasoning effort for Copilot SDK sessions regardless of the per-model picker value. Set it to a level the selected model supports (e.g. `low`, `medium`, `high`, `xhigh`, `max`); a value that isn't a recognized effort level is ignored and the session falls back to the picker value. Only affects Copilot SDK sessions; intended for experimentation."),
+		description: localize('agentHost.config.reasoningEffortOverride.description', "Overrides the reasoning effort for Dardcor AI SDK sessions regardless of the per-model picker value. Set it to a level the selected model supports (e.g. `low`, `medium`, `high`, `xhigh`, `max`); a value that isn't a recognized effort level is ignored and the session falls back to the picker value. Only affects Dardcor AI SDK sessions; intended for experimentation."),
 		default: '',
 	}),
 	[CopilotCliConfigKey.ModelCapabilityOverrides]: schemaProperty<CopilotCliModelCapabilityOverrides>({
 		type: 'object',
 		title: localize('agentHost.config.modelCapabilityOverrides.title', "Model Capability Overrides"),
-		description: localize('agentHost.config.modelCapabilityOverrides.description', "Per-model capability overrides for Copilot SDK sessions, keyed by model id. Aliasing a model id to a known `family` routes it to that family's tuned system prompt without changing the model id sent to the runtime. Only affects Copilot SDK sessions; intended for experimentation."),
+		description: localize('agentHost.config.modelCapabilityOverrides.description', "Per-model capability overrides for Dardcor AI SDK sessions, keyed by model id. Aliasing a model id to a known `family` routes it to that family's tuned system prompt without changing the model id sent to the runtime. Only affects Dardcor AI SDK sessions; intended for experimentation."),
 		additionalProperties: {
 			type: 'object',
 			title: localize('agentHost.config.modelCapabilityOverrides.entry.title', "Capability Override"),

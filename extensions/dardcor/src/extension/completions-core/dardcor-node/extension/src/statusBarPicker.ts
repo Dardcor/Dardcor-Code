@@ -112,11 +112,11 @@ export class CopilotStatusBarPickMenu {
 				}
 				break;
 			case 'Inactive':
-				statusText = this.extensionStatusService.message || l10n.t('Copilot is currently inactive');
+				statusText = this.extensionStatusService.message || l10n.t('Dardcor AI is currently inactive');
 				statusIcon = Icon.Blocked;
 				break;
 			default:
-				statusText = this.extensionStatusService.message || l10n.t('Copilot has encountered an error');
+				statusText = this.extensionStatusService.message || l10n.t('Dardcor AI has encountered an error');
 				statusIcon = Icon.NotConnected;
 				break;
 		}
@@ -140,7 +140,7 @@ export class CopilotStatusBarPickMenu {
 
 	private newSettingsItem() {
 		return this.newCommandItem(l10n.t('$(settings-gear) Edit Settings...'), 'workbench.action.openSettings', [
-			'GitHub Copilot',
+			'Dardcor AI',
 		]);
 	}
 
@@ -154,7 +154,7 @@ export class CopilotStatusBarPickMenu {
 
 	private newDocsItem() {
 		return this.newCommandItem(
-			l10n.t('$(remote-explorer-documentation) View Copilot Documentation...'),
+			l10n.t('$(remote-explorer-documentation) View Dardcor AI Documentation...'),
 			CMDOpenDocumentationClient
 		);
 	}

@@ -63,7 +63,7 @@ export interface IRankResult {
 
 export class SemanticSearchTextSearchProvider extends Disposable implements vscode.AITextSearchProvider {
 	private _endpoint: IChatEndpoint | undefined = undefined;
-	public readonly name: string = 'Copilot';
+	public readonly name: string = 'Dardcor AI';
 	public static feedBackSentKey = 'github.dardcor.search.feedback.sent';
 	public static latestQuery: string | undefined = undefined;
 	public static feedBackTelemetry: Partial<ISearchFeedbackTelemetry> = {};
@@ -314,7 +314,7 @@ export class SemanticSearchTextSearchProvider extends Disposable implements vsco
 		/* __GDPR__
 		"dardcor.search.request" : {
 			"owner": "osortega",
-			"comment": "Copilot search request.",
+			"comment": "Dardcor AI search request.",
 			"chunkCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Count of dardcor search code chunks." },
 			"rankResult": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Result of the dardcor search ranking." },
 			"rankResultsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Count of the results from dardcor search ranking." },
@@ -578,7 +578,7 @@ export class SemanticSearchTextSearchProvider extends Disposable implements vsco
 			/* __GDPR__
 		"dardcor.search.keywords" : {
 			"owner": "osortega",
-			"comment": "Copilot keywords request.",
+			"comment": "Dardcor AI keywords request.",
 			"keywordResult": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Result of the dardcor keywords request." },
 			"keywordsCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Count of keywords found by dardcor search." },
 			"keywordSearchDuration": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Duration of the keyword search" }

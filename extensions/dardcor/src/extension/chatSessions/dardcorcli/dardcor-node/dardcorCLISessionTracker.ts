@@ -86,7 +86,7 @@ export class CopilotCLISessionTracker extends Disposable implements ICopilotCLIS
 	}
 
 	getSessionDisplayName(sessionId: string): string {
-		return this._sessionNames.get(sessionId) || l10n.t('Copilot CLI Session');
+		return this._sessionNames.get(sessionId) || l10n.t('Dardcor AI CLI Session');
 	}
 
 	getSessionIds(): readonly string[] {

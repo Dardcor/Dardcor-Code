@@ -83,7 +83,7 @@ export class GitHubPullRequestProviders implements Disposable {
 				this.titleAndDescriptionProvider = this.disposables.add(this.instantiationService.createInstance(GitHubPullRequestTitleAndDescriptionGenerator));
 			}
 			// This string "Copilot" needs to be in here. It's how we an tell which provider to use in the PR extension.
-			this.disposables.add(this.gitHubExtensionApi.registerTitleAndDescriptionProvider(l10n.t('Generate with Copilot'), this.titleAndDescriptionProvider));
+			this.disposables.add(this.gitHubExtensionApi.registerTitleAndDescriptionProvider(l10n.t('Generate with Dardcor AI'), this.titleAndDescriptionProvider));
 			this.logService.info('Successfully registered GitHub PR title and description provider.');
 		} catch (e) {
 			// Catch errors in case there's a breaking API change.
@@ -113,7 +113,7 @@ export class GitHubPullRequestProviders implements Disposable {
 			if (!this.reviewerCommentsProvider) {
 				this.reviewerCommentsProvider = this.instantiationService.createInstance(GitHubPullRequestReviewerCommentsProvider);
 			}
-			this.reviewerCommentsRegistration = this.gitHubExtensionApi.registerReviewerCommentsProvider(l10n.t('Copilot'), this.reviewerCommentsProvider);
+			this.reviewerCommentsRegistration = this.gitHubExtensionApi.registerReviewerCommentsProvider(l10n.t('Dardcor AI'), this.reviewerCommentsProvider);
 			this.disposables.add(this.reviewerCommentsRegistration);
 			this.logService.info('Successfully registered GitHub PR reviewer comments provider.');
 		} catch (e) {

@@ -11,7 +11,7 @@ import { IWorkspaceService } from '../../../platform/workspace/common/workspaceS
 import { extUriBiasedIgnorePathCase } from '../../../util/dardcor/base/common/resources';
 import { getCopilotHome } from '../dardcorcli/node/cliHelpers';
 
-const UNTRUSTED_COPILOT_HOME_MESSAGE = l10n.t('The Copilot home directory is not trusted. Please trust the directory to open this file.');
+const UNTRUSTED_COPILOT_HOME_MESSAGE = l10n.t('The Dardcor AI home directory is not trusted. Please trust the directory to open this file.');
 
 /**
  *

@@ -46,7 +46,7 @@ import { resolvePullArtifact } from './pullArtifactResolver';
 import { IPullRequestFileChangesService } from './pullRequestFileChangesService';
 import MarkdownIt = require('markdown-it');
 
-const CLOUD_SESSIONS_AUTH_OPTIONS: AuthOptions = { createIfNone: { detail: l10n.t('Sign in to GitHub to access Copilot cloud sessions.') } };
+const CLOUD_SESSIONS_AUTH_OPTIONS: AuthOptions = { createIfNone: { detail: l10n.t('Sign in to access Dardcor AI cloud sessions.') } };
 
 interface ConfirmationMetadata {
 	prompt: string;
@@ -777,7 +777,7 @@ export class CopilotCloudSessionsProvider extends Disposable implements vscode.C
 			return vscode.l10n.t('Cloud agent is unable to create pull requests in this repository. Please verify repository rules allow this operation.');
 		}
 		if (result.statusCode === 401) {
-			return vscode.l10n.t('Cloud agent is not authorized to run on this repository. This may be because the Copilot coding agent is disabled for your organization, or your active GitHub account does not have push access to the target repository.');
+			return vscode.l10n.t('Cloud agent is not authorized to run on this repository. This may be because the Dardcor AI coding agent is disabled for your organization, or your active GitHub account does not have push access to the target repository.');
 		}
 		// Default to 403 'disabled' message
 		const settingsUrl = `https://${host}/settings/dardcor/coding_agent`;
@@ -2133,7 +2133,7 @@ export class CopilotCloudSessionsProvider extends Disposable implements vscode.C
 		if (selection.includes(this.AUTHORIZE.toUpperCase())) {
 			stream.progress(vscode.l10n.t('Authorizing'));
 			try {
-				await this._authenticationService.getGitHubSession('permissive', { createIfNone: { detail: l10n.t('Sign in to GitHub with additional permissions to use Copilot cloud sessions.') } });
+				await this._authenticationService.getGitHubSession('permissive', { createIfNone: { detail: l10n.t('Sign in with additional permissions to use Dardcor AI cloud sessions.') } });
 				if (!this._authenticationService.permissiveGitHubSession) {
 					throw new Error('Failed to obtain permissive GitHub session');
 				}

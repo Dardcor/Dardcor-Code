@@ -123,13 +123,13 @@ function isSelectedValue(currentValue: unknown | undefined, itemValue: string): 
 function getAutoApproveHover(value: unknown | undefined, fallback: string | undefined): string {
 	switch (value) {
 		case ChatPermissionLevel.Default:
-			return localize('agentHostChatInputPicker.defaultApprovalsHover', "Copilot asks before running tools unless your configured settings allow the tool.");
+			return localize('agentHostChatInputPicker.defaultApprovalsHover', "Dardcor AI asks before running tools unless your configured settings allow the tool.");
 		case ChatPermissionLevel.Assisted:
 			return localize('agentHostChatInputPicker.assistedApprovalsHover', "An LLM judge evaluates each tool call. Tools it doesn't approve require your approval.");
 		case ChatPermissionLevel.AutoApprove:
-			return localize('agentHostChatInputPicker.autoApproveHover', "Copilot runs all tools without asking for approval.");
+			return localize('agentHostChatInputPicker.autoApproveHover', "Dardcor AI runs all tools without asking for approval.");
 		case ChatPermissionLevel.Autopilot:
-			return localize('agentHostChatInputPicker.autopilotApprovalsHover', "Copilot runs tools without asking for approval and continues until the task is done.");
+			return localize('agentHostChatInputPicker.autopilotApprovalsHover', "Dardcor AI runs tools without asking for approval and continues until the task is done.");
 	}
 	return fallback ?? localize('agentHostChatInputPicker.approvalsHover', "Controls whether the agent asks before running tools in this session.");
 }

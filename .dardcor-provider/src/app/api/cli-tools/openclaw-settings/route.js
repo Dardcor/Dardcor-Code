@@ -56,7 +56,7 @@ const readSettings = async () => {
   }
 };
 
-// Check if settings has Dardcor Code config
+// Check if settings has DRouter config
 const hasDardcorCodeConfig = (settings) => {
   if (!settings || !settings.models || !settings.models.providers) return false;
   return !!settings.models.providers["dardcor-code"];
@@ -134,7 +134,7 @@ const writeAgentModels = async (agentDir, model, baseUrl, apiKey) => {
   await fs.writeFile(modelsPath, JSON.stringify(existing, null, 2));
 };
 
-// POST - Update Dardcor Code settings (merge with existing settings)
+// POST - Update DRouter settings (merge with existing settings)
 export async function POST(request) {
   try {
     // agentModels: { [agentId]: modelId } for per-agent override
@@ -234,7 +234,7 @@ export async function POST(request) {
   }
 }
 
-// DELETE - Remove Dardcor Code settings only (keep other settings)
+// DELETE - Remove DRouter settings only (keep other settings)
 export async function DELETE() {
   try {
     const settingsPath = getOpenClawSettingsPath();
@@ -254,7 +254,7 @@ export async function DELETE() {
       throw error;
     }
 
-    // Remove Dardcor Code from models.providers
+    // Remove DRouter from models.providers
     if (settings.models && settings.models.providers) {
       delete settings.models.providers["dardcor-code"];
       
@@ -285,7 +285,7 @@ export async function DELETE() {
 
     return NextResponse.json({
       success: true,
-      message: "Dardcor Code settings removed successfully",
+      message: "DRouter settings removed successfully",
     });
   } catch (error) {
     console.log("Error resetting openclaw settings:", error);

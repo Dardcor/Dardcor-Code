@@ -139,7 +139,7 @@ export class CopilotCloudGitOperationsManager {
 			return new Promise<boolean>((resolve) => {
 				const startingCommit = repository.state.HEAD?.commit;
 				const terminal = vscode.window.createTerminal({
-					name: 'GitHub Copilot Cloud Agent',
+					name: 'Dardcor AI Cloud Agent',
 					cwd: repository.rootUri.fsPath,
 					message: `\x1b[1m${COMMIT_YOUR_CHANGES}\x1b[0m`
 				});

@@ -25,7 +25,7 @@ if (process.env.CI) {
 	config.reporterEnabled += ', mocha-junit-reporter';
 	config.mochaJunitReporterReporterOptions = {
 		testCaseSwitchClassnameAndName: true,
-		testsuitesTitle: `Copilot ${bundleName} Tests`,
+		testsuitesTitle: `Dardcor AI ${bundleName} Tests`,
 		mochaFile: path.resolve(__dirname, `test-results-${bundleName}.xml`),
 	};
 }

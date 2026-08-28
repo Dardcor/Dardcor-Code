@@ -1,7 +1,7 @@
 {
   "name": "dardcor-code",
   "version": "1.0.0",
-  "description": "Dardcor Code web dashboard",
+  "description": "DRouter - AI Infrastructure Management",
   "private": true,
   "scripts": {
     "dev": "next dev --port 25000",
@@ -9,7 +9,7 @@
     "build": "next build --webpack",
     "postbuild": "node scripts/copy-standalone-assets.mjs",
     "postbuild:bun": "node scripts/copy-standalone-assets.mjs",
-    "start": "node custom-server.js --port 25000",
+    "start": "node custom-server.js --port 25128",
     "dev:bun": "bun --bun next dev --webpack --port 25000",
     "build:bun": "bun --bun next build --webpack",
     "start:bun": "bun ./.next/standalone/custom-server.js",

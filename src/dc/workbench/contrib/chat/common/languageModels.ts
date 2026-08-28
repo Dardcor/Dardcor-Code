@@ -708,7 +708,7 @@ export interface ILanguageModelsService {
 export function getLanguageModelProviderDisplayName(languageModelsService: ILanguageModelsService, vendor: string): string {
 	if (vendor === 'copilotcli') {
 		// @vritant24: This is temporary until we have distinct vendors for Copilot CLI and Copilot Chat.
-		return localize('chat.languageModelProvider.copilot', "Copilot");
+		return localize('chat.languageModelProvider.copilot', "Dardcor AI");
 	}
 	const descriptor = languageModelsService.getVendors().find(candidate => candidate.vendor === vendor);
 	return descriptor?.displayName ?? vendor.charAt(0).toUpperCase() + vendor.slice(1);
@@ -797,7 +797,7 @@ const languageModelChatProviderType = {
 		},
 		managementCommand: {
 			type: 'string',
-			description: localize('vscode.extension.contributes.languageModels.managementCommand', "A command to manage the language model chat provider, e.g. 'Manage Copilot models'. This is used in the chat model picker. If not provided, a gear icon is not rendered during vendor selection."),
+			description: localize('vscode.extension.contributes.languageModels.managementCommand', "A command to manage the language model chat provider, e.g. 'Manage Dardcor AI models'. This is used in the chat model picker. If not provided, a gear icon is not rendered during vendor selection."),
 			deprecated: true,
 			deprecationMessage: localize('vscode.extension.contributes.languageModels.managementCommand.deprecated', "The managementCommand property is deprecated and will be removed in a future release. Use the new configuration property instead.")
 		},
@@ -1009,25 +1009,6 @@ export class LanguageModelsService implements ILanguageModelsService {
 		this._readVisibility();
 		this._initChatControlData();
 
-		this._vendors.set(COPILOT_VENDOR_ID, {
-			vendor: COPILOT_VENDOR_ID,
-			displayName: 'Copilot',
-			configuration: undefined,
-			managementCommand: undefined,
-			deprecation: undefined,
-			when: undefined,
-			isDefault: true,
-		});
-		this._vendors.set('dardcor', {
-			vendor: 'dardcor',
-			displayName: 'Dardcor Provider',
-			configuration: undefined,
-			managementCommand: undefined,
-			deprecation: undefined,
-			when: undefined,
-			isDefault: true,
-		});
-
 		const defaultDardcorModels: ILanguageModelChatMetadataAndIdentifier[] = [
 			{
 				identifier: 'opencode/no-model-selected',
@@ -1036,7 +1017,7 @@ export class LanguageModelsService implements ILanguageModelsService {
 					isDefaultForLocation: { [ChatAgentLocation.Chat]: true, [ChatAgentLocation.EditorInline]: true },
 					id: 'opencode/no-model-selected',
 					name: 'No Model Selected',
-					vendor: COPILOT_VENDOR_ID,
+					vendor: 'dardcor',
 					family: 'opencode/no-model-selected',
 					version: '1.0.0',
 					maxInputTokens: 0,
@@ -1051,21 +1032,25 @@ export class LanguageModelsService implements ILanguageModelsService {
 			this._modelCache.set(m.identifier, m.metadata);
 		}
 
+		const localDrouterModelIds = new Set<string>();
 		const fetchLocalModels = async () => {
 			try {
-				const res = await globalThis.fetch('http://127.0.0.1:25000/v1/models', {
-					headers: { 'Authorization': 'Bearer sk-dardcor-local-key' }
+				const res = await globalThis.fetch('http://127.0.0.1:25128/v1/models', {
+					headers: { 'Authorization': 'Bearer sk-dardcor-local-key', 'x-drouter-connected-only': '1' }
 				});
 				if (res.ok) {
 					const json: any = await res.json();
 					const list = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
 					const seen = new Set<string>();
+					const nextIds = new Set<string>();
 					for (const m of list) {
-						const id = typeof m === 'string' ? m : (m.id || m.name || '');
+						let id = typeof m === 'string' ? m : (m.id || m.name || '');
+						if (typeof id === 'string' && id.toLowerCase().endsWith('-free') && !id.includes('/')) id = `oc/${id}`;
 						if (!id || id.toLowerCase() === 'auto' || id.toLowerCase() === 'claude-none') continue;
 						const canonical = id.replace(/^(ag|oc|ds|opencode)\//i, '').toLowerCase();
 						if (seen.has(canonical)) continue;
 						seen.add(canonical);
+						nextIds.add(id);
 
 						const maxContext = (typeof m === 'object' && m.capabilities?.contextWindow) ? m.capabilities.contextWindow : 200000;
 						const maxOutput = (typeof m === 'object' && m.capabilities?.maxOutput) ? m.capabilities.maxOutput : 64000;
@@ -1084,7 +1069,7 @@ export class LanguageModelsService implements ILanguageModelsService {
 							isDefaultForLocation: {},
 							id,
 							name,
-							vendor: COPILOT_VENDOR_ID,
+							vendor: 'dardcor',
 							family: id,
 							version: '1.0.0',
 							maxInputTokens: maxContext,
@@ -1097,17 +1082,27 @@ export class LanguageModelsService implements ILanguageModelsService {
 							}
 						});
 					}
-					this._onLanguageModelChange.fire(COPILOT_VENDOR_ID);
+					for (const id of localDrouterModelIds) {
+						if (!nextIds.has(id)) this._modelCache.delete(id);
+					}
+					localDrouterModelIds.clear();
+					for (const id of nextIds) localDrouterModelIds.add(id);
+					this._onLanguageModelChange.fire('dardcor');
 				}
 			} catch {
 				// ignore
 			}
 		};
 
-		void fetchLocalModels();
+		// DRouter starts alongside the workbench. Retry while it is becoming
+		// ready so the picker does not remain stuck on the placeholder model.
+		for (let retry = 0; retry < 15; retry++) {
+			setTimeout(() => void fetchLocalModels(), retry * 1000);
+		}
+		const refreshTimer = setInterval(() => void fetchLocalModels(), 30_000);
+		this._store.add(toDisposable(() => clearInterval(refreshTimer)));
 
 		setTimeout(() => {
-			void fetchLocalModels();
 			for (const vendor of this._vendors.keys()) {
 				void this._resolveAllLanguageModels(vendor, true);
 			}
@@ -1121,7 +1116,7 @@ export class LanguageModelsService implements ILanguageModelsService {
 					continue;
 				}
 				hasUserSelectable = true;
-				if (model.vendor !== COPILOT_VENDOR_ID) {
+				if (model.vendor !== 'dardcor') {
 					hasNonCopilotUserSelectable = true;
 					break;
 				}
@@ -1376,18 +1371,23 @@ export class LanguageModelsService implements ILanguageModelsService {
 				}
 			}
 
-			if (allModels.length === 0) {
+			// Always merge the live DRouter catalog. The extension provider may
+			// already have an older/static list (for example Gemini 3.6), but that
+			// must not hide newer connected models such as Gemini 3.7.
+			{
 				try {
-					const res = await globalThis.fetch('http://127.0.0.1:25000/v1/models', {
-						headers: { 'Authorization': 'Bearer sk-dardcor-local-key' }
+					const res = await globalThis.fetch('http://127.0.0.1:25128/v1/models', {
+						headers: { 'Authorization': 'Bearer sk-dardcor-local-key', 'x-drouter-connected-only': '1' }
 					});
 					if (res.ok) {
 						const json: any = await res.json();
 						const list = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
 						const seen = new Set<string>();
 						for (const m of list) {
-							const id = typeof m === 'string' ? m : (m.id || m.name || '');
+							let id = typeof m === 'string' ? m : (m.id || m.name || '');
+							if (typeof id === 'string' && id.toLowerCase().endsWith('-free') && !id.includes('/')) id = `oc/${id}`;
 							if (!id || id.toLowerCase() === 'auto' || id.toLowerCase() === 'claude-none') continue;
+							if (allModels.some(model => model.identifier === id)) continue;
 							const canonical = id.replace(/^(ag|oc|ds|opencode)\//i, '').toLowerCase();
 							if (seen.has(canonical)) continue;
 							seen.add(canonical);

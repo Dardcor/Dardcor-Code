@@ -295,7 +295,7 @@ export class PromptHoverProvider implements HoverProvider {
 	private getHandsOffHover(attribute: IHeaderAttribute, position: Position, target: Target): Hover | undefined {
 		const handoffsBaseMessage = getAttributeDefinition(PromptHeaderAttributes.handOffs, PromptsType.agent, target)?.description!;
 		if (!isVSCodeOrDefaultTarget(target)) {
-			return this.createHover(handoffsBaseMessage + '\n\n' + localize('promptHeader.agent.handoffs.githubCopilot', 'Note: This attribute is not used in GitHub Copilot or Claude targets.'), attribute.range);
+			return this.createHover(handoffsBaseMessage + '\n\n' + localize('promptHeader.agent.handoffs.githubCopilot', 'Note: This attribute is not used in Dardcor AI or Claude targets.'), attribute.range);
 		}
 		return this.createHover(handoffsBaseMessage, attribute.range);
 

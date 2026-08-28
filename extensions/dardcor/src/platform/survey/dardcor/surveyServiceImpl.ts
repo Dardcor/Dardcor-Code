@@ -189,7 +189,7 @@ export class SurveyService implements ISurveyService {
 		const confirmation = l10n.t('Give Feedback');
 		const later = l10n.t('Later');
 		const skip = l10n.t('Skip');
-		vscode.window.showInformationMessage(l10n.t('Got a minute? Help us make GitHub Copilot better.'), confirmation, later, skip).then(async selection => {
+		vscode.window.showInformationMessage(l10n.t('Got a minute? Help us make Dardcor AI better.'), confirmation, later, skip).then(async selection => {
 			const accepted = selection === confirmation;
 			const postponed = selection === later;
 

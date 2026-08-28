@@ -73,7 +73,7 @@ const readConfig = async () => {
   }
 };
 
-// Check if config has Dardcor Code settings
+// Check if config has DRouter settings
 const hasDardcorCodeConfig = (config) => {
   if (!config) return false;
   return config.includes("model_provider = \"dardcor-code\"") || config.includes("[model_providers.dardcor-code]");
@@ -106,7 +106,7 @@ export async function GET() {
   }
 }
 
-// POST - Update Dardcor Code settings (merge with existing config)
+// POST - Update DRouter settings (merge with existing config)
 export async function POST(request) {
   try {
     const { baseUrl, apiKey, model, subagentModel } = await request.json();
@@ -128,7 +128,7 @@ export async function POST(request) {
       parsed = parsedToWritable(parseTOML(existingConfig));
     } catch { /* No existing config */ }
 
-    // Update only Dardcor Code related fields (api_key goes to auth.json, not config.toml)
+    // Update only DRouter related fields (api_key goes to auth.json, not config.toml)
     parsed.model = model;
     parsed.model_provider = "dardcor-code";
 
@@ -136,7 +136,7 @@ export async function POST(request) {
     // Ensure /v1 suffix is added only once
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
     setNestedSection(parsed, "model_providers.dardcor-code", {
-      name: "Dardcor Code",
+      name: "DRouter",
       base_url: normalizedBaseUrl,
       wire_api: "responses",
     });
@@ -175,7 +175,7 @@ export async function POST(request) {
   }
 }
 
-// DELETE - Remove Dardcor Code settings only (keep other settings)
+// DELETE - Remove DRouter settings only (keep other settings)
 export async function DELETE() {
   try {
     const configPath = getCodexConfigPath();
@@ -195,7 +195,7 @@ export async function DELETE() {
       throw error;
     }
 
-    // Remove Dardcor Code related root fields only if they point to dardcor-code
+    // Remove DRouter related root fields only if they point to dardcor-code
     if (parsed.model_provider === "dardcor-code") {
       delete parsed.model;
       delete parsed.model_provider;
@@ -229,7 +229,7 @@ export async function DELETE() {
 
     return NextResponse.json({
       success: true,
-      message: "Dardcor Code settings removed successfully",
+      message: "DRouter settings removed successfully",
     });
   } catch (error) {
     console.log("Error resetting codex settings:", error);

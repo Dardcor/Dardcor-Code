@@ -231,7 +231,7 @@ const extensionPoint = ExtensionsRegistry.registerExtensionPoint<IChatSessionsEx
 					default: false
 				},
 				requiresCopilotSignIn: {
-					description: localize('chatSessionsExtPoint.requiresCopilotSignIn', 'Whether the chat session relies on a GitHub Copilot account and so cannot be used until the user signs in. Defaults to false.'),
+					description: localize('chatSessionsExtPoint.requiresCopilotSignIn', 'Whether the chat session relies on a Dardcor AI account and so cannot be used until the user signs in. Defaults to false.'),
 					type: 'boolean',
 					default: false
 				},

@@ -53,7 +53,7 @@ export class CopilotChatEndpoint extends ChatEndpoint {
 	}
 
 	public override get urlOrRequestMetadata(): string {
-		return 'http://127.0.0.1:25000/v1/chat/completions';
+		return 'http://127.0.0.1:25128/v1/chat/completions';
 	}
 
 	public override readonly ownsAuthorization = true;

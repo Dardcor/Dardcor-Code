@@ -116,7 +116,7 @@ export class PRContentProvider extends Disposable implements vscode.TextDocument
 				params.repo,
 				params.commitSha,
 				params.fileName,
-				{ createIfNone: { detail: l10n.t('Sign in to GitHub to access Copilot cloud sessions.') } }
+				{ createIfNone: { detail: l10n.t('Sign in to access Dardcor AI cloud sessions.') } }
 			);
 
 			return content;

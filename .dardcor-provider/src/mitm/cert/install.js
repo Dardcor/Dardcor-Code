@@ -27,7 +27,7 @@ function getLinuxCertConfig() {
   // Fallback to Debian default if none exist
   return LINUX_CERT_PATHS[0];
 }
-const ROOT_CA_CN = "Dardcor Code MITM Root CA";
+const ROOT_CA_CN = "DRouter MITM Root CA";
 
 // Get SHA1 fingerprint from cert file using Node.js crypto
 function getCertFingerprint(certPath) {
@@ -105,7 +105,7 @@ async function installCert(sudoPassword, certPath) {
 
 async function installCertMac(sudoPassword, certPath) {
   // Remove all old certs with same name first to avoid duplicate/stale cert conflict
-  const deleteOld = `security delete-certificate -c "Dardcor Code MITM Root CA" /Library/Keychains/System.keychain 2>/dev/null || true`;
+  const deleteOld = `security delete-certificate -c "DRouter MITM Root CA" /Library/Keychains/System.keychain 2>/dev/null || true`;
   const install = `security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "${certPath}"`;
   try {
     await execWithPassword(`${deleteOld} && ${install}`, sudoPassword);
@@ -180,7 +180,7 @@ function checkCertInstalledLinux() {
 }
 
 async function updateNssDatabases(certPath, action = 'add') {
-  const certName = "Dardcor Code MITM Root CA";
+  const certName = "DRouter MITM Root CA";
   
   const script = `
     if ! command -v certutil &> /dev/null; then

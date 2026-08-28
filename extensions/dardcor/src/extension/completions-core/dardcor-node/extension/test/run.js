@@ -31,7 +31,7 @@ function run() {
 		mochaOptions.reporterOptions.reporterEnabled += ', mocha-junit-reporter';
 		mochaOptions.reporterOptions.mochaJunitReporterReporterOptions = {
 			testCaseSwitchClassnameAndName: true,
-			testsuitesTitle: 'Copilot VS Code Extension Tests',
+			testsuitesTitle: 'Dardcor AI VS Code Extension Tests',
 			mochaFile: path.resolve(projectRoot, 'test-results-Extension.xml'),
 		};
 	}

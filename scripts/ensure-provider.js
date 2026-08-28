@@ -5,7 +5,8 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const PROVIDER_DIR = path.join(ROOT, '.dardcor-provider');
-const PORT = 25000;
+const PORT = 25128;
+const DATA_DIR = path.join(require('os').homedir(), '.miawagent', 'router');
 
 function checkPort(port) {
 	return new Promise((resolve) => {
@@ -37,10 +38,11 @@ async function main() {
 	if (fs.existsSync(nextBin)) {
 		child = spawn('node', ['--max-old-space-size=4096', nextBin, 'dev', '--webpack', '--port', PORT.toString()], {
 			cwd: PROVIDER_DIR,
-			env: {
-				...process.env,
-				PORT: PORT.toString(),
-				HOSTNAME: '127.0.0.1'
+				env: {
+					...process.env,
+					PORT: PORT.toString(),
+					HOSTNAME: '127.0.0.1',
+					DATA_DIR
 			},
 			stdio: 'ignore',
 			detached: true,
@@ -50,10 +52,11 @@ async function main() {
 		const npmCmd = isWin ? 'npm.cmd' : 'npm';
 		child = spawn(npmCmd, ['run', 'dev:webpack'], {
 			cwd: PROVIDER_DIR,
-			env: {
-				...process.env,
-				PORT: PORT.toString(),
-				HOSTNAME: '127.0.0.1'
+				env: {
+					...process.env,
+					PORT: PORT.toString(),
+					HOSTNAME: '127.0.0.1',
+					DATA_DIR
 			},
 			stdio: 'ignore',
 			detached: true,

@@ -256,13 +256,16 @@ export class ModelMetadataFetcher extends Disposable implements IModelMetadataFe
 			return;
 		}
 		const requestStartTime = Date.now();
-		const DARDCOR_PORT = process.env.DARDCOR_PORT ? parseInt(process.env.DARDCOR_PORT) : 25000;
+		const DARDCOR_PORT = process.env.DARDCOR_PORT ? parseInt(process.env.DARDCOR_PORT) : 25128;
 		const DARDCOR_KEY = process.env.DARDCOR_API_KEY || 'sk-dardcor-local-key';
 		const requestId = generateUuid();
 
 		try {
 			const res = await globalThis.fetch(`http://127.0.0.1:${DARDCOR_PORT}/v1/models`, {
-				headers: { 'Authorization': `Bearer ${DARDCOR_KEY}` }
+				headers: {
+					'Authorization': `Bearer ${DARDCOR_KEY}`,
+					'x-drouter-connected-only': '1'
+				}
 			});
 
 			if (!res.ok) {
@@ -317,8 +320,8 @@ export class ModelMetadataFetcher extends Disposable implements IModelMetadataFe
 				return {
 					id,
 					name,
-					vendor: 'copilot',
-					urlOrRequestMetadata: 'http://127.0.0.1:25000/v1/chat/completions',
+					vendor: 'dardcor',
+					urlOrRequestMetadata: 'http://127.0.0.1:25128/v1/chat/completions',
 					model_picker_enabled: true,
 					showInModelPicker: true,
 					is_chat_default: idx === 0,

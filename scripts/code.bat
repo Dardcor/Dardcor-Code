@@ -26,7 +26,7 @@ if "%~1"=="--builtin" goto builtin
 set NODE_ENV=development
 set VSCODE_DEV=1
 set VSCODE_CLI=1
-set DARDCOR_PORT=25000
+set DARDCOR_PORT=25128
 set ELECTRON_ENABLE_LOGGING=1
 set ELECTRON_ENABLE_STACK_DUMPING=1
 

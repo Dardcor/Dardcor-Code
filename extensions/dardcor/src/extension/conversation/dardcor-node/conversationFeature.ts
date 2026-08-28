@@ -87,7 +87,7 @@ export class ConversationFeature implements IExtensionContribution {
 		const activationBlockerDeferred = new DeferredPromise<void>();
 		this.activationBlocker = activationBlockerDeferred.p;
 
-		// Activation and chat enablement is always active for local router port 25000
+		// Activation and chat enablement is always active for local router port 25128
 		let hasByokModels = true;
 		const reevaluate = () => {
 			const shouldActivate = true;
@@ -266,7 +266,7 @@ export class ConversationFeature implements IExtensionContribution {
 		const disposables = new DisposableStore();
 
 		[
-			vscode.commands.registerCommand('github.dardcor.interactiveSession.feedback', () => vscode.commands.executeCommand('github.dardcor.report', 'Copilot chat feedback')),
+			vscode.commands.registerCommand('github.dardcor.interactiveSession.feedback', () => vscode.commands.executeCommand('github.dardcor.report', 'Dardcor AI chat feedback')),
 			vscode.commands.registerCommand('github.dardcor.chat.compact', () => vscode.commands.executeCommand('workbench.action.chat.open', { query: '/compact', preserveInput: true })),
 			vscode.commands.registerCommand('github.dardcor.terminal.explainTerminalLastCommand', async () => this.triggerTerminalChat({ query: `/${TerminalExplainIntent.intentName} #terminalLastCommand` })),
 			vscode.commands.registerCommand('github.dardcor.terminal.fixTerminalLastCommand', async () => generateTerminalFixes(this.instantiationService)),
@@ -393,11 +393,11 @@ export class ConversationFeature implements IExtensionContribution {
 					return [
 						{
 							command: 'github.dardcor.terminal.fixTerminalLastCommand',
-							title: vscode.l10n.t('Fix using Copilot')
+							title: vscode.l10n.t('Fix using Dardcor AI')
 						},
 						{
 							command: 'github.dardcor.terminal.explainTerminalLastCommand',
-							title: vscode.l10n.t('Explain using Copilot')
+							title: vscode.l10n.t('Explain using Dardcor AI')
 						}
 					];
 				}

@@ -228,15 +228,15 @@ export class PromptFileContextContribution extends Disposable {
 		if (dardcorExtension === undefined) {
 			return undefined;
 		}
-		this.logService.info('Copilot extension found');
+		this.logService.info('Dardcor AI extension found');
 		try {
 			const api = await dardcorExtension.activate();
 			return api.getContextProviderAPI('v1');
 		} catch (error) {
 			if (error instanceof Error) {
-				this.logService.error('Error activating Copilot extension:', error.message);
+				this.logService.error('Error activating Dardcor AI extension:', error.message);
 			} else {
-				this.logService.error('Error activating Copilot extension: Unknown error.');
+				this.logService.error('Error activating Dardcor AI extension: Unknown error.');
 			}
 			return undefined;
 		}

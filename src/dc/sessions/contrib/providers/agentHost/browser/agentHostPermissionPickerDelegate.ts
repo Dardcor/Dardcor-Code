@@ -158,13 +158,13 @@ export class AgentHostPermissionPickerDelegate extends Disposable implements IPe
 	getPermissionLevelHover(level: ChatPermissionLevel, _meta: IPermissionLevelMeta): string {
 		switch (level) {
 			case ChatPermissionLevel.Default:
-				return localize('agentHostPermissionPicker.defaultApprovalsHover', "Copilot asks before running tools unless your configured settings allow the tool.");
+				return localize('agentHostPermissionPicker.defaultApprovalsHover', "Dardcor AI asks before running tools unless your configured settings allow the tool.");
 			case ChatPermissionLevel.AutoApprove:
-				return localize('agentHostPermissionPicker.autoApproveHover', "Copilot runs all tools without asking for approval.");
+				return localize('agentHostPermissionPicker.autoApproveHover', "Dardcor AI runs all tools without asking for approval.");
 			case ChatPermissionLevel.Assisted:
 				return localize('agentHostPermissionPicker.assistedHover', "An LLM judge evaluates each tool call. Tools it doesn't approve require your approval.");
 			case ChatPermissionLevel.Autopilot:
-				return localize('agentHostPermissionPicker.autopilotApprovalsHover', "Copilot runs tools without asking for approval and continues until the task is done.");
+				return localize('agentHostPermissionPicker.autopilotApprovalsHover', "Dardcor AI runs tools without asking for approval and continues until the task is done.");
 		}
 	}
 

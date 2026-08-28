@@ -62,10 +62,16 @@ async function npmInstallAsync(dir: string, opts?: child_process.SpawnOptions): 
 		env,
 		...(opts ?? {}),
 		cwd: path.join(root, dir),
-		shell: true,
+		// Invoke npm directly so Node 24 and Node 26 do not depend on a
+		// platform shell being available or configured as /bin/sh.
+		shell: false,
 	};
 
 	const command = process.env['npm_command'] || 'install';
+	// npm 12 can expose a shim that is not resolvable from a child process.
+	// Re-enter the exact npm CLI used by the parent process when available.
+	const npmCommand = process.env['npm_execpath'] ? process.execPath : npm;
+	const npmArgs = process.env['npm_execpath'] ? [process.env['npm_execpath'], ...command.split(' ')] : command.split(' ');
 
 	if (process.env['VSCODE_REMOTE_DEPENDENCIES_CONTAINER_NAME'] && /^(.build\/distro\/npm\/)?remote$/.test(dir)) {
 		const syncOpts: child_process.SpawnSyncOptions = {
@@ -93,7 +99,7 @@ async function npmInstallAsync(dir: string, opts?: child_process.SpawnOptions): 
 		run('sudo', ['chown', '-R', `${userinfo.uid}:${userinfo.gid}`, `${path.resolve(root, dir)}`], syncOpts);
 	} else {
 		log(dir, 'Installing dependencies...');
-		const output = await spawnAsync(npm, command.split(' '), finalOpts);
+		const output = await spawnAsync(npmCommand, npmArgs, finalOpts);
 		if (output.trim()) {
 			for (const line of output.trim().split('\n')) {
 				log(dir, line);

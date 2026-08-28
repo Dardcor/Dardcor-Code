@@ -288,7 +288,7 @@ function getRateLimitMessage(fetchResult: ChatFetchError, dardcorPlan: string | 
 	}
 	if (fetchResult.capiError?.code?.startsWith('integration_rate_limited')) {
 		return l10n.t({
-			message: 'Sorry, GitHub Copilot Chat is currently experiencing high demand. Please try again in {0}. [Learn More]({1})',
+			message: 'Sorry, Dardcor AI Chat is currently experiencing high demand. Please try again in {0}. [Learn More]({1})',
 			args: [retryAfterString, 'https://aka.ms/github-dardcor-rate-limit-error'],
 			comment: [`{Locked=']({'}`]
 		});
@@ -332,12 +332,12 @@ export function getQuotaMessageForPlan(dardcorPlan: string | undefined, isUsageB
 		switch (dardcorPlan) {
 			case 'free':
 				return resetDateString
-					? l10n.t(`You've reached your monthly credit limit. Upgrade to Copilot Pro or wait until your credits reset on {0}.`, resetDateString)
-					: l10n.t(`You've reached your monthly credit limit. Upgrade to Copilot Pro or wait for your credits to reset.`);
+					? l10n.t(`You've reached your monthly credit limit. Upgrade to Dardcor AI Pro or wait until your credits reset on {0}.`, resetDateString)
+					: l10n.t(`You've reached your monthly credit limit. Upgrade to Dardcor AI Pro or wait for your credits to reset.`);
 			case 'individual':
 				return resetDateString
-					? l10n.t(`You've reached your monthly credit limit. Please enable additional paid credits, upgrade to Copilot Pro+, or wait until your credits reset on {0}.`, resetDateString)
-					: l10n.t(`You've reached your monthly credit limit. Please enable additional paid credits, upgrade to Copilot Pro+, or wait for your credits to reset.`);
+					? l10n.t(`You've reached your monthly credit limit. Please enable additional paid credits, upgrade to Dardcor AI Pro+, or wait until your credits reset on {0}.`, resetDateString)
+					: l10n.t(`You've reached your monthly credit limit. Please enable additional paid credits, upgrade to Dardcor AI Pro+, or wait for your credits to reset.`);
 			case 'individual_pro':
 			case 'individual_max':
 				return resetDateString
@@ -346,28 +346,28 @@ export function getQuotaMessageForPlan(dardcorPlan: string | undefined, isUsageB
 			case 'business':
 			case 'enterprise':
 				return resetDateString
-					? l10n.t(`You've reached your credit limit. To continue working, please contact your organization's Copilot admin or wait until your credits reset on {0}.`, resetDateString)
-					: l10n.t(`You've reached your credit limit. To continue working, please contact your organization's Copilot admin or wait for your credits to reset.`);
+					? l10n.t(`You've reached your credit limit. To continue working, please contact your organization's Dardcor AI admin or wait until your credits reset on {0}.`, resetDateString)
+					: l10n.t(`You've reached your credit limit. To continue working, please contact your organization's Dardcor AI admin or wait for your credits to reset.`);
 			default:
 				return resetDateString
-					? l10n.t(`You've reached your credit limit. For additional paid credits, please reach out to your organization's Copilot admin or wait until your credits reset on {0}.`, resetDateString)
-					: l10n.t(`You've reached your credit limit. For additional paid credits, please reach out to your organization's Copilot admin or wait for your credits to reset.`);
+					? l10n.t(`You've reached your credit limit. For additional paid credits, please reach out to your organization's Dardcor AI admin or wait until your credits reset on {0}.`, resetDateString)
+					: l10n.t(`You've reached your credit limit. For additional paid credits, please reach out to your organization's Dardcor AI admin or wait for your credits to reset.`);
 		}
 	}
 
 	switch (dardcorPlan) {
 		case 'free':
-			return l10n.t(`You've reached your monthly chat messages quota. Upgrade to Copilot Pro or wait for your allowance to renew.`);
+			return l10n.t(`You've reached your monthly chat messages quota. Upgrade to Dardcor AI Pro or wait for your allowance to renew.`);
 		case 'individual':
-			return l10n.t(`You've exhausted your premium model quota. Please enable additional paid premium requests, upgrade to Copilot Pro+, or wait for your allowance to renew.`);
+			return l10n.t(`You've exhausted your premium model quota. Please enable additional paid premium requests, upgrade to Dardcor AI Pro+, or wait for your allowance to renew.`);
 		case 'individual_pro':
 		case 'individual_max':
 			return l10n.t(`You've exhausted your premium model quota. Please enable additional paid premium requests or wait for your allowance to renew.`);
 		case 'business':
 		case 'enterprise':
-			return l10n.t(`You've exhausted your credits. To continue working, please contact your organization's Copilot admin or wait for your allowance to renew.`);
+			return l10n.t(`You've exhausted your credits. To continue working, please contact your organization's Dardcor AI admin or wait for your allowance to renew.`);
 		default:
-			return l10n.t(`You've exhausted your premium model quota. For additional paid premium requests, please reach out to your organization's Copilot admin or wait for your allowance to renew.`);
+			return l10n.t(`You've exhausted your premium model quota. For additional paid premium requests, please reach out to your organization's Dardcor AI admin or wait for your allowance to renew.`);
 	}
 }
 

@@ -143,7 +143,7 @@ export class AgentHostDiscoveredConfigNotificationContribution extends Disposabl
 			id: DISCOVERED_CONFIG_NOTIFICATION_ID,
 			severity: ChatInputNotificationSeverity.Info,
 			message: localize('agentHost.discoveredConfig.message', "We've discovered your existing {0} configuration.", claude.label),
-			description: localize('agentHost.discoveredConfig.description', "If you intended to use a Copilot subscription, sign in to GitHub."),
+			description: localize('agentHost.discoveredConfig.description', "If you intended to use a Dardcor AI subscription, sign in to GitHub."),
 			actions: [{
 				kind: ChatInputNotificationActionKind.Command,
 				label: localize('agentHost.discoveredConfig.signIn', "Sign in to GitHub"),

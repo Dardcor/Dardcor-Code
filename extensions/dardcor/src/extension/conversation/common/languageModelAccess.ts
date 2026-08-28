@@ -114,7 +114,7 @@ export function getModelCapabilitiesDescription(endpoint: IChatEndpoint | Langua
 			return l10n.t('Lightweight GPT model for quick responses and simple tasks with low latency.');
 		}
 		if (name.includes('dardcor')) {
-			return l10n.t('GPT model fine-tuned for Copilot code completions.');
+			return l10n.t('GPT model fine-tuned for Dardcor AI code completions.');
 		}
 		if (name.includes('4o')) {
 			return l10n.t('Optimized GPT-4 model with faster responses and multimodal capabilities.');

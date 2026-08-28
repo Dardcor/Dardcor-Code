@@ -94,7 +94,7 @@ export async function POST(request) {
     // Best-effort: update VS Code extension settings
     try {
       const vscode = (await readJson(getVscodeSettingsPath())) || {};
-      vscode["kilocode.customProvider"] = { name: "Dardcor Code", baseURL: normalizedBaseUrl, apiKey };
+      vscode["kilocode.customProvider"] = { name: "DRouter", baseURL: normalizedBaseUrl, apiKey };
       vscode["kilocode.defaultModel"] = model;
       await fs.writeFile(getVscodeSettingsPath(), JSON.stringify(vscode, null, 2));
     } catch { /* VS Code settings not writable */ }
@@ -125,7 +125,7 @@ export async function DELETE() {
       }
     } catch { /* ignore */ }
 
-    return NextResponse.json({ success: true, message: "Dardcor Code settings removed from Kilo Code" });
+    return NextResponse.json({ success: true, message: "DRouter settings removed from Kilo Code" });
   } catch (error) {
     console.log("Error resetting kilo settings:", error);
     return NextResponse.json({ error: "Failed to reset kilo settings" }, { status: 500 });

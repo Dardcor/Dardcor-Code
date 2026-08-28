@@ -16,14 +16,14 @@ export default function GetStarted() {
           <div className="flex-1">
             <h2 className="text-3xl md:text-4xl font-bold mb-6">Get Started in 30 Seconds</h2>
             <p className="text-gray-400 text-lg mb-8">
-              Install Dardcor Code, configure your providers via web dashboard, and start routing AI requests.
+              Install DRouter, configure your providers via web dashboard, and start routing AI requests.
             </p>
             
             <div className="flex flex-col gap-6">
               <div className="flex gap-4">
                 <div className="flex-none w-8 h-8 rounded-full bg-[#f97815]/20 text-[#f97815] flex items-center justify-center font-bold">1</div>
                 <div>
-                  <h4 className="font-bold text-lg">Install Dardcor Code</h4>
+                  <h4 className="font-bold text-lg">Install DRouter</h4>
                   <p className="text-sm text-gray-500 mt-1">Run npx command to start the server instantly</p>
                 </div>
               </div>
@@ -71,7 +71,7 @@ export default function GetStarted() {
                 </div>
                 
                 <div className="text-gray-400 mb-6">
-                  <span className="text-[#f97815]">&gt;</span> Starting Dardcor Code...<br/>
+                  <span className="text-[#f97815]">&gt;</span> Starting DRouter...<br/>
                   <span className="text-[#f97815]">&gt;</span> Server running on <span className="text-blue-400">http://localhost:20128</span><br/>
                   <span className="text-[#f97815]">&gt;</span> Dashboard: <span className="text-blue-400">http://localhost:20128/dashboard</span><br/>
                   <span className="text-green-400">&gt;</span> Ready to route! ✓

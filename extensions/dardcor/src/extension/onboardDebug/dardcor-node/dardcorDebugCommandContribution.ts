@@ -175,7 +175,7 @@ export class CopilotDebugCommandContribution extends Disposable implements vscod
 					return;
 				}
 				if (!authService.dardcorToken) {
-					await authService.getGitHubSession('any', { createIfNone: { detail: l10n.t('Sign in to GitHub to use Copilot debug.') } });
+					await authService.getGitHubSession('any', { createIfNone: { detail: l10n.t('Sign in to use Dardcor AI debug.') } });
 				}
 				const result = await factory.start(opts, cts.token);
 

@@ -9,8 +9,8 @@ import { PanelConfig } from '../panelShared/basePanelTypes';
 
 // Configuration for the GitHub Copilot Suggestions Panel
 export const dardcorPanelConfig: PanelConfig = {
-	panelTitle: 'GitHub Copilot Suggestions',
-	webviewId: 'GitHub Copilot Suggestions',
+	panelTitle: 'Dardcor AI Suggestions',
+	webviewId: 'Dardcor AI Suggestions',
 	webviewScriptName: 'suggestionsPanelWebview.js',
 	contextVariable: CopilotPanelVisible,
 	commands: {

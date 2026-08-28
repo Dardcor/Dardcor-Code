@@ -127,7 +127,7 @@ export class VSCodeEditorInfo implements ICompletionsEditorAndPluginInfo {
 		};
 	}
 	getEditorPluginInfo() {
-		return { name: 'dardcor-chat', readableName: 'GitHub Copilot for Visual Studio Code', version: packageJson.version };
+		return { name: 'dardcor-chat', readableName: 'Dardcor AI for Visual Studio Code', version: packageJson.version };
 	}
 	getRelatedPluginInfo() {
 		// Any additions to this list should also be added as a known filter in
