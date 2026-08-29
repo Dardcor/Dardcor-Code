@@ -21,6 +21,12 @@ function checkPort(port) {
 	});
 }
 
+function getProviderLaunch(isWin, hasNextBin) {
+	return hasNextBin
+		? { command: 'node', args: ['--max-old-space-size=4096', path.join(PROVIDER_DIR, 'node_modules', 'next', 'dist', 'bin', 'next'), 'dev', '--webpack', '--port', PORT.toString()] }
+		: { command: isWin ? 'npm.cmd' : 'npm', args: ['run', 'dev:webpack', '--', '--port', PORT.toString()] };
+}
+
 async function main() {
 	if (!fs.existsSync(PROVIDER_DIR)) {
 		return;
@@ -30,14 +36,20 @@ async function main() {
 		return;
 	}
 
-	const nextBin = path.join(PROVIDER_DIR, 'node_modules', 'next', 'dist', 'bin', 'next');
 	const isWin = process.platform === 'win32';
+	const nextBin = path.join(PROVIDER_DIR, 'node_modules', 'next', 'dist', 'bin', 'next');
 	const env = { ...process.env, PORT: PORT.toString(), HOSTNAME: '127.0.0.1', DATA_DIR };
-	const child = fs.existsSync(nextBin)
-		? spawn('node', ['--max-old-space-size=4096', nextBin, 'dev', '--webpack', '--port', PORT.toString()], { cwd: PROVIDER_DIR, env, stdio: 'ignore', detached: true, windowsHide: true })
-		: spawn(isWin ? 'npm.cmd' : 'npm', ['run', 'dev:webpack'], { cwd: PROVIDER_DIR, env, stdio: 'ignore', detached: true, windowsHide: true });
+	const launch = getProviderLaunch(isWin, fs.existsSync(nextBin));
+	const child = spawn(launch.command, launch.args, { cwd: PROVIDER_DIR, env, stdio: 'ignore', detached: true, windowsHide: true });
 
 	child.unref();
+	for (let attempt = 0; attempt < 15 && !(await checkPort(PORT)); attempt++) {
+		await new Promise(resolve => setTimeout(resolve, 300));
+	}
 }
 
-main().catch(() => {});
+module.exports = { getProviderLaunch };
+
+if (require.main === module) {
+	main().catch(() => {});
+}
