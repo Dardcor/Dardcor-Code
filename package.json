@@ -10,7 +10,7 @@
 	"type": "module",
 	"private": true,
 	"scripts": {
-		"start": ".\\scripts\\code.bat",
+		"start": "node scripts/start.mjs",
 		"build": "npm run compile-client",
 		"package": "npm run compile-client",
 		"test": "echo Please run any of the test scripts from the scripts folder.",

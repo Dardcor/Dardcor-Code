@@ -26,47 +26,18 @@ async function main() {
 		return;
 	}
 
-	const isRunning = await checkPort(PORT);
-	if (isRunning) {
+	if (await checkPort(PORT)) {
 		return;
 	}
 
 	const nextBin = path.join(PROVIDER_DIR, 'node_modules', 'next', 'dist', 'bin', 'next');
 	const isWin = process.platform === 'win32';
-	let child;
+	const env = { ...process.env, PORT: PORT.toString(), HOSTNAME: '127.0.0.1', DATA_DIR };
+	const child = fs.existsSync(nextBin)
+		? spawn('node', ['--max-old-space-size=4096', nextBin, 'dev', '--webpack', '--port', PORT.toString()], { cwd: PROVIDER_DIR, env, stdio: 'ignore', detached: true, windowsHide: true })
+		: spawn(isWin ? 'npm.cmd' : 'npm', ['run', 'dev:webpack'], { cwd: PROVIDER_DIR, env, stdio: 'ignore', detached: true, windowsHide: true });
 
-	if (fs.existsSync(nextBin)) {
-		child = spawn('node', ['--max-old-space-size=4096', nextBin, 'dev', '--webpack', '--port', PORT.toString()], {
-			cwd: PROVIDER_DIR,
-				env: {
-					...process.env,
-					PORT: PORT.toString(),
-					HOSTNAME: '127.0.0.1',
-					DATA_DIR
-			},
-			stdio: 'ignore',
-			detached: true,
-			windowsHide: true
-		});
-	} else {
-		const npmCmd = isWin ? 'npm.cmd' : 'npm';
-		child = spawn(npmCmd, ['run', 'dev:webpack'], {
-			cwd: PROVIDER_DIR,
-				env: {
-					...process.env,
-					PORT: PORT.toString(),
-					HOSTNAME: '127.0.0.1',
-					DATA_DIR
-			},
-			stdio: 'ignore',
-			detached: true,
-			windowsHide: true
-		});
-	}
-
-	if (child) {
-		child.unref();
-	}
+	child.unref();
 }
 
 main().catch(() => {});

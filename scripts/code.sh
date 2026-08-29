@@ -37,9 +37,7 @@ function code() {
 	fi
 
 	# Auto-start Dardcor Provider with anti-collision
-	if [[ -f "./scripts/ensure-provider.sh" ]]; then
-		./scripts/ensure-provider.sh || true
-	fi
+	node ./scripts/ensure-provider.js || true
 
 	# Configuration
 	export NODE_ENV=development

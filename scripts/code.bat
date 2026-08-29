@@ -22,6 +22,9 @@ set CODE=".build\electron\%NAMESHORT%"
 :: Manage built-in extensions
 if "%~1"=="--builtin" goto builtin
 
+:: Auto-start Dardcor Provider with anti-collision
+node scripts\ensure-provider.js
+
 :: Configuration
 set NODE_ENV=development
 set VSCODE_DEV=1
