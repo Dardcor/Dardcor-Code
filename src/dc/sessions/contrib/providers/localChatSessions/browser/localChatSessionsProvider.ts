@@ -33,6 +33,7 @@ import { ILanguageModelToolsService } from '../../../../../workbench/contrib/cha
 import { createChangesets } from '../../copilotChatSessions/browser/copilotChatSessionsChangesets.js';
 import { IMarkdownString } from '../../../../../base/common/htmlContent.js';
 import { CancellationToken } from '../../../../../base/common/cancellation.js';
+import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
 
 /** Local session type — in-process VS Code chat, no background agent or worktree. */
 // @ts-ignore
@@ -47,7 +48,6 @@ export const LOCAL_SESSION_ENABLED_SETTING = 'sessions.chat.localAgent.enabled';
 
 export const LOCAL_PROVIDER_ID = 'local-chat';
 const STORAGE_KEY_SESSIONS = 'sessions.localChat.sessions';
-const STORAGE_KEY_MIGRATED = 'sessions.localChat.migrated';
 
 interface IStoredLocalSession {
 	readonly uri: UriComponents;
@@ -444,6 +444,7 @@ export class LocalChatSessionsProvider extends Disposable implements ISessionsPr
 		@ILogService private readonly logService: ILogService,
 		@IStorageService private readonly storageService: IStorageService,
 		@IDialogService private readonly dialogService: IDialogService,
+		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
 	) {
 		super();
 
@@ -472,10 +473,6 @@ export class LocalChatSessionsProvider extends Disposable implements ISessionsPr
 	 * that are already in our storage are skipped.
 	 */
 	private async _migrateFromHistory(): Promise<void> {
-		if (this.storageService.getBoolean(STORAGE_KEY_MIGRATED, StorageScope.PROFILE, false)) {
-			return;
-		}
-
 		try {
 			const history = await this.chatService.getLocalSessionHistory();
 			const sessions = this._readStoredSessions();
@@ -483,7 +480,8 @@ export class LocalChatSessionsProvider extends Disposable implements ISessionsPr
 			let changed = false;
 
 			for (const detail of history) {
-				if (!detail.workingDirectory) {
+				const workingDirectory = detail.workingDirectory ?? this.workspaceContextService.getWorkspace().folders[0]?.uri;
+				if (!workingDirectory) {
 					continue;
 				}
 				const key = detail.sessionResource.toString();
@@ -497,7 +495,7 @@ export class LocalChatSessionsProvider extends Disposable implements ISessionsPr
 					title: detail.title,
 					createdAt: timing.created,
 					lastMessageDate: lastUpdate,
-					workingDirectory: detail.workingDirectory.toJSON(),
+					workingDirectory: workingDirectory.toJSON(),
 				});
 				changed = true;
 			}
@@ -505,10 +503,8 @@ export class LocalChatSessionsProvider extends Disposable implements ISessionsPr
 			if (changed) {
 				this._writeStoredSessions(sessions);
 			}
-			this.storageService.store(STORAGE_KEY_MIGRATED, true, StorageScope.PROFILE, StorageTarget.MACHINE);
 		} catch (e) {
-			this.logService.error('[LocalChatSessionsProvider] Failed to migrate local chat history', e);
-			// Do not mark migration complete on failure so it can be retried next time.
+			this.logService.error('[LocalChatSessionsProvider] Failed to sync local chat history', e);
 		}
 	}
 
@@ -759,7 +755,7 @@ export class LocalChatSessionsProvider extends Disposable implements ISessionsPr
 		// no extension registers models specifically targeting the 'local'
 		// session type.
 		const allModels = getRegisteredLanguageModels(this.languageModelsService);
-		const models = allModels.filter(model => !model.metadata.targetChatSessionType && model.metadata.isUserSelectable);
+		const models = allModels.filter(model => !model.metadata.targetChatSessionType && model.metadata.isUserSelectable !== false);
 		return {
 			models,
 			desiredModelResolution: resolveModelIdentifierFromLanguageModels(models, desiredModelId, this.languageModelsService, allModels),
@@ -775,6 +771,7 @@ export class LocalChatSessionsProvider extends Disposable implements ISessionsPr
 			showFeatured: true,
 			showUnavailableFeatured: false,
 			showManageModelsAction: false,
+			showAutoModel: false,
 		};
 	}
 

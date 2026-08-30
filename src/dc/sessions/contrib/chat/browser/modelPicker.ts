@@ -140,14 +140,7 @@ export class ModelPicker extends Disposable {
 	 * historical behavior for providers that offer no models.
 	 */
 	private _shouldShowPicker(): boolean {
-		const state = this._selectionModel.state.get();
-		if (state.models.length > 0) {
-			return true;
-		}
-		if (this._modelPicker.isRestrictedMode() || this._modelPicker.isSetupRequired()) {
-			return true;
-		}
-		return !state.options.showAutoModel;
+		return true;
 	}
 
 	private _updatePickerState(): void {

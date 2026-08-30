@@ -11,7 +11,7 @@ export default function content(accessor: ServicesAccessor) {
 	const isServerless = platform.isWeb && !accessor.get(IWorkbenchEnvironmentService).remoteAuthority;
 	return `
 ## Interactive Editor Playground
-The core editor in VS Code is packed with features.  This page highlights a number of them and lets you interactively try them out through the use of a number of embedded editors.  For full details on the editor features for VS Code and more head over to our [documentation](https://code.visualstudio.com/docs).
+The core editor in Dardcor Code is packed with features.  This page highlights a number of them and lets you interactively try them out through the use of a number of embedded editors.  For full details on the editor features for Dardcor Code and more head over to our [documentation](https://code.visualstudio.com/docs).
 
 * [Multi-cursor Editing](#multi-cursor-editing) - block selection, select all occurrences, add additional cursors and more.
 * [IntelliSense](#intellisense) - get code assistance and parameter suggestions for your code and external modules.
@@ -24,19 +24,27 @@ The core editor in VS Code is packed with features.  This page highlights a numb
 * [Emmet](#emmet) - integrated Emmet support takes HTML and CSS editing to the next level.
 * [JavaScript Type Checking](#javascript-type-checking) - perform type checking on your JavaScript file using TypeScript with zero configuration.
 
+### Multi-cursor Editing
+Multi-cursor editing allows you to position multiple cursors in your editor. Once placed, each cursor can then type or edit independently.
 
+|||js
+// Block Selection: Alt+Click (Windows/Linux) or Option+Click (macOS)
+// Multi-cursor from Selection: Ctrl+D (Windows/Linux) or Cmd+D (macOS)
+// Add cursor above/below: Ctrl+Alt+Up/Down (Windows/Linux) or Cmd+Option+Up/Down (macOS)
 
-### Multi-Cursor Editing
-Using multiple cursors allows you to edit multiple parts of the document at once, greatly improving your productivity.  Try the following actions in the code block below:
-1. Box Selection - press <span class="mac-only windows-only">any combination of kb(cursorColumnSelectDown), kb(cursorColumnSelectRight), kb(cursorColumnSelectUp), kb(cursorColumnSelectLeft) to select a block of text. You can also press</span> <span class="shortcut mac-only">|⇧⌥|</span><span class="shortcut windows-only linux-only">|Shift+Alt|</span> while selecting text with the mouse or drag-select using the middle mouse button.
-2. Add a cursor - press kb(editor.action.insertCursorAbove) to add a new cursor above, or kb(editor.action.insertCursorBelow) to add a new cursor below. You can also use your mouse with <span class="shortcut"><span class="multi-cursor-modifier"></span>+Click</span> to add a cursor anywhere.
-3. Create cursors on all occurrences of a string - select one instance of a string e.g. |background-color| and press kb(editor.action.selectHighlights).  Now you can replace all instances by simply typing.
+function totalVolume(boxes) {
+	let total = 0;
+	for (let i = 0; i < boxes.length; i++) {
+		const box = boxes[i];
+		const volume = box.width * box.length * box.height;
+		total += volume;
+	}
+	return total;
+}
+|||
 
-That is the tip of the iceberg for multi-cursor editing. Have a look at the selection menu and our handy [keyboard reference guide](command:workbench.action.keybindingsReference) for additional actions.
-
-|||css
-#p1 {background-color: #ff0000;}                /* red in HEX format */
-#p2 {background-color: hsl(120, 100%, 50%);}    /* green in HSL format */
+#p1 {background-color: rgb(255, 0, 0);} /* red */
+#p2 {background-color: rgb(0, 255, 0);} /* green */
 #p3 {background-color: rgba(0, 4, 255, 0.733);} /* blue with alpha channel in RGBA format */
 |||
 
@@ -44,7 +52,7 @@ That is the tip of the iceberg for multi-cursor editing. Have a look at the sele
 
 ### IntelliSense
 
-Visual Studio Code comes with the powerful IntelliSense for JavaScript and TypeScript pre-installed. In the below example, position the text cursor right after the dot and press kb(editor.action.triggerSuggest) to invoke IntelliSense.  Notice how the suggestions come from the Canvas API.
+Dardcor Code comes with the powerful IntelliSense for JavaScript and TypeScript pre-installed. In the below example, position the text cursor right after the dot and press kb(editor.action.triggerSuggest) to invoke IntelliSense.  Notice how the suggestions come from the Canvas API.
 
 |||js
 const canvas = document.querySelector('canvas');
@@ -95,7 +103,7 @@ function Book(title, author) {
 }
 |||
 
-> **JSDoc Tip:** VS Code's IntelliSense uses JSDoc comments to provide richer suggestions. The types and documentation from JSDoc comments show up when you hover over a reference to |Book| or in IntelliSense when you create a new instance of |Book|.
+> **JSDoc Tip:** Dardcor Code's IntelliSense uses JSDoc comments to provide richer suggestions. The types and documentation from JSDoc comments show up when you hover over a reference to |Book| or in IntelliSense when you create a new instance of |Book|.
 
 ` : ''}
 ### Formatting
@@ -163,7 +171,7 @@ Emmet takes the snippets idea to a whole new level: you can type CSS-like expres
 ul>li.item$*5
 |||
 
->**Tip:** The [Emmet cheat sheet](https://docs.emmet.io/cheat-sheet/) is a great source of Emmet syntax suggestions. To expand Emmet abbreviations and snippets using the |tab| key use the |emmet.triggerExpansionOnTab| [setting](command:workbench.action.openGlobalSettings). Check out the docs on [Emmet in VS Code](https://code.visualstudio.com/docs/editor/emmet) to learn more.
+>**Tip:** The [Emmet cheat sheet](https://docs.emmet.io/cheat-sheet/) is a great source of Emmet syntax suggestions. To expand Emmet abbreviations and snippets using the |tab| key use the |emmet.triggerExpansionOnTab| [setting](command:workbench.action.openGlobalSettings). Check out the docs on [Emmet in Dardcor Code](https://code.visualstudio.com/docs/editor/emmet) to learn more.
 
 
 
@@ -177,11 +185,11 @@ let easy = true;
 easy = 42;
 |||
 
->**Tip:** You can also enable the checks workspace or application wide by adding |"js/ts.implicitProjectConfig.checkJs": true| to your workspace or user settings and explicitly ignoring files or lines using |// @ts-nocheck| and |// @ts-expect-error|. Check out the docs on [JavaScript in VS Code](https://code.visualstudio.com/docs/languages/javascript) to learn more.
+>**Tip:** You can also enable the checks workspace or application wide by adding |"js/ts.implicitProjectConfig.checkJs": true| to your workspace or user settings and explicitly ignoring files or lines using |// @ts-nocheck| and |// @ts-expect-error|. Check out the docs on [JavaScript in Dardcor Code](https://code.visualstudio.com/docs/languages/javascript) to learn more.
 
 
 ## Thanks!
-Well if you have got this far then you will have touched on some of the editing features in Visual Studio Code.  But don't stop now :)  We have lots of additional [documentation](https://code.visualstudio.com/docs), [introductory videos](https://code.visualstudio.com/docs/getstarted/introvideos) and [tips and tricks](https://go.microsoft.com/fwlink/?linkid=852118) for the product that will help you learn how to use it.  And while you are here, here are a few additional things you can try:
+Well if you have got this far then you will have touched on some of the editing features in Dardcor Code.  But don't stop now :)  We have lots of additional [documentation](https://code.visualstudio.com/docs), [introductory videos](https://code.visualstudio.com/docs/getstarted/introvideos) and [tips and tricks](https://go.microsoft.com/fwlink/?linkid=852118) for the product that will help you learn how to use it.  And while you are here, here are a few additional things you can try:
 - Open the Integrated Terminal by pressing kb(workbench.action.terminal.toggleTerminal), then see what's possible by [reviewing the terminal documentation](https://code.visualstudio.com/docs/editor/integrated-terminal)
 - Work with version control by pressing kb(workbench.view.scm). Understand how to stage, commit, change branches, and view diffs and more by reviewing the [version control documentation](https://code.visualstudio.com/docs/editor/versioncontrol)
 - Browse thousands of extensions in our integrated gallery by pressing kb(workbench.view.extensions). The [documentation](https://code.visualstudio.com/docs/editor/extension-gallery) will show you how to see the most popular extensions, disable installed ones and more.

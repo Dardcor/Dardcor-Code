@@ -189,14 +189,7 @@ async function main() {
 		const webExtHostContext = await esbuild.context(webExtHostBuildOptions);
 		contexts.push(webExtHostContext);
 
-		const nodeSimulationContext = await esbuild.context(nodeSimulationBuildOptions);
-		contexts.push(nodeSimulationContext);
 
-		const nodeSimulationWorkbenchUIContext = await esbuild.context(nodeSimulationWorkbenchUIBuildOptions);
-		contexts.push(nodeSimulationWorkbenchUIContext);
-
-		const nodeExtHostSimulationContext = await esbuild.context(nodeExtHostSimulationTestOptions);
-		contexts.push(nodeExtHostSimulationContext);
 
 		const typeScriptServerPluginContext = await esbuild.context(typeScriptServerPluginBuildOptions);
 		contexts.push(typeScriptServerPluginContext);

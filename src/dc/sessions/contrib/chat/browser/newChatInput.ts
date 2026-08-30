@@ -79,7 +79,7 @@ import { isEqual } from '../../../../base/common/resources.js';
 import { ChatInputNotificationWidget } from '../../../../workbench/contrib/chat/browser/widget/input/chatInputNotificationWidget.js';
 import { IChatSubmitRequestHandlerService } from '../../../../workbench/contrib/chat/browser/chatSubmitRequestHandlerService.js';
 import { INewChatModelPickerService, NewChatModelPickerService } from './newChatModelPicker.js';
-import { ModelPicker, ModelPickerActionViewItem } from './modelPicker.js';
+import { ModelPicker } from './modelPicker.js';
 import { ISessionModelSelectionModel, SessionModelSelectionModel } from './sessionModelSelectionModel.js';
 import { ISessionContext, SessionContext } from '../../../services/sessions/browser/sessionContext.js';
 import { AGENT_SESSIONS_SCOPED_INPUT_HISTORY_SETTING } from './sessionsChatHistory.js';
@@ -818,19 +818,10 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 
 		this._createAttachButton(toolbar);
 
-		// Session config pickers (such as model) — rendered via MenuWorkbenchToolBar
-		// Visibility controlled by context keys (isActiveSessionBackgroundProvider, isNewChatSession)
+		// Session config pickers (such as model)
 		const configContainer = dom.append(toolbar, dom.$('.sessions-chat-config-toolbar'));
-		this._register(this._scopedInstantiationService.createInstance(MenuWorkbenchToolBar, configContainer, Menus.NewSessionConfig, {
-			hiddenItemStrategy: HiddenItemStrategy.NoHide,
-			actionViewItemProvider: (action) => {
-				if (action.id === 'sessions.modelPicker') {
-					const picker = this._scopedInstantiationService.createInstance(ModelPicker, this._compactModelPicker);
-					return new ModelPickerActionViewItem(picker);
-				}
-				return undefined;
-			},
-		}));
+		const picker = this._register(this._scopedInstantiationService.createInstance(ModelPicker, this._compactModelPicker));
+		picker.render(configContainer);
 
 		dom.append(toolbar, dom.$('.sessions-chat-toolbar-spacer'));
 

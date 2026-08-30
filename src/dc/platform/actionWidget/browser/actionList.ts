@@ -17,7 +17,7 @@ import { Codicon } from '../../../base/common/codicons.js';
 import { Emitter } from '../../../base/common/event.js';
 import { IMarkdownString, isMarkdownString, MarkdownString } from '../../../base/common/htmlContent.js';
 import { ResolvedKeybinding } from '../../../base/common/keybindings.js';
-import { AnchorPosition } from '../../../base/common/layout.js';
+import { AnchorPosition, AnchorAlignment } from '../../../base/common/layout.js';
 import { Disposable, DisposableStore, IDisposable, MutableDisposable, toDisposable } from '../../../base/common/lifecycle.js';
 import { OS } from '../../../base/common/platform.js';
 import { ThemeIcon } from '../../../base/common/themables.js';
@@ -640,9 +640,14 @@ export interface IActionListOptions {
 	readonly closeAnimation?: IActionListCloseAnimation;
 
 	/**
-	 * Optional fixed side of the anchor where the action list should render.
+	 * Optional preferred anchor position.
 	 */
 	readonly anchorPosition?: AnchorPosition;
+
+	/**
+	 * Optional preferred anchor alignment.
+	 */
+	readonly anchorAlignment?: AnchorAlignment;
 }
 
 /**
@@ -2055,6 +2060,7 @@ export class ActionList<T> extends Disposable {
 	private _hasLaidOut = false;
 	private _showAbove: boolean | undefined;
 	private readonly _preferredAnchorPosition: AnchorPosition | undefined;
+	private readonly _preferredAnchorAlignment: AnchorAlignment | undefined;
 	private readonly _widgetClassName: string | undefined;
 
 	get domNode(): HTMLElement {
@@ -2099,6 +2105,10 @@ export class ActionList<T> extends Disposable {
 		return this._showAbove ? AnchorPosition.ABOVE : AnchorPosition.BELOW;
 	}
 
+	get anchorAlignment(): AnchorAlignment | undefined {
+		return this._preferredAnchorAlignment;
+	}
+
 	constructor(
 		user: string,
 		preview: boolean,
@@ -2114,6 +2124,7 @@ export class ActionList<T> extends Disposable {
 		super();
 		this._anchor = anchor;
 		this._preferredAnchorPosition = options?.anchorPosition;
+		this._preferredAnchorAlignment = options?.anchorAlignment;
 		this._widgetClassName = options?.widgetClassName;
 
 		this._widget = this._register(instantiationService.createInstance(

@@ -42,10 +42,9 @@
 		]
 	},
 	"github.dardcor.viewsWelcome.invalidToken": {
-		"message": "Your GitHub token is invalid. Please sign in again to refresh your authentication.\n\n[Sign In](command:workbench.action.chat.triggerSetupForceSignIn)\n\nSee also [Dardcor log](command:github.dardcor.debug.showOutputChannel.internal) and [run diagnostics](command:github.dardcor.debug.collectDiagnostics.internal).",
+		"message": "Your GitHub token is invalid. Please sign in again to refresh your authentication.\n\nSee also [Dardcor log](command:github.dardcor.debug.showOutputChannel.internal) and [run diagnostics](command:github.dardcor.debug.collectDiagnostics.internal).",
 		"comment": [
 			"{Locked='['}",
-			"{Locked='](command:workbench.action.chat.triggerSetupForceSignIn)'}",
 			"{Locked='](command:github.dardcor.debug.showOutputChannel.internal)'}",
 			"{Locked='](command:github.dardcor.debug.collectDiagnostics.internal)'}"
 		]
@@ -60,10 +59,9 @@
 		]
 	},
 	"github.dardcor.viewsWelcome.gitHubLoginFailed": {
-		"message": "GitHub login failed. Please sign in to your GitHub account to use Dardcor.\n\n[Sign In](command:workbench.action.chat.triggerSetupForceSignIn)\n\nSee also [Dardcor log](command:github.dardcor.debug.showOutputChannel.internal) and [run diagnostics](command:github.dardcor.debug.collectDiagnostics.internal).",
+		"message": "GitHub login failed. Please sign in to your GitHub account to use Dardcor.\n\nSee also [Dardcor log](command:github.dardcor.debug.showOutputChannel.internal) and [run diagnostics](command:github.dardcor.debug.collectDiagnostics.internal).",
 		"comment": [
 			"{Locked='['}",
-			"{Locked='](command:workbench.action.chat.triggerSetupForceSignIn)'}",
 			"{Locked='](command:github.dardcor.debug.showOutputChannel.internal)'}",
 			"{Locked='](command:github.dardcor.debug.collectDiagnostics.internal)'}"
 		]

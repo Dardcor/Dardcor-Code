@@ -24,21 +24,23 @@ import { capabilitiesFromServiceKind, getCapabilitiesForModel } from "open-sse/p
 // Adding a provider here makes /v1/models prefer the live catalog for it.
 const LIVE_MODEL_RESOLVERS = {
   opencode: async () => {
-    const response = await fetch("https://opencode.ai/zen/v1/models", {
-      headers: {
-        Accept: "application/json",
-        "User-Agent": "opencode/1.0",
-        "x-opencode-client": "desktop",
-      },
-    });
-    if (!response.ok) return null;
-    const payload = await response.json();
-    const models = parseOpenAIStyleModels(payload)
-      // OpenCode Zen is no-auth only for its explicitly free models. Paid
-      // models must come from a saved/active DRouter connection instead.
-      .filter((model) => model && typeof model.id === "string" && /-free$/i.test(model.id))
-      .map((model) => ({ id: model.id, name: model.name }));
-    return models.length ? { models } : null;
+    try {
+      const response = await fetch("https://opencode.ai/zen/v1/models", {
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "opencode/1.0",
+          "x-opencode-client": "desktop",
+        },
+      });
+      if (!response.ok) return null;
+      const payload = await response.json();
+      const models = parseOpenAIStyleModels(payload)
+        .filter((model) => model && typeof model.id === "string")
+        .map((model) => ({ id: model.id, name: model.name || model.id, capabilities: model.capabilities }));
+      return models.length ? { models } : null;
+    } catch {
+      return null;
+    }
   },
   kiro: async (conn) => {
     const result = await resolveKiroModels({

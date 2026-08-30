@@ -559,9 +559,15 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 		const impl = data?.impl ?? Array.from(this._agents.values()).find(a => !!a.impl)?.impl;
 		if (impl) {
 			this._onWillInvokeAgent.fire({ agentId: id, request });
-			const result = await impl.invoke(request, progress, history, token);
-			markChat(request.sessionResource, ChatPerfMark.AgentDidInvoke);
-			return result;
+			try {
+				const result = await impl.invoke(request, progress, history, token);
+				markChat(request.sessionResource, ChatPerfMark.AgentDidInvoke);
+				return result;
+			} catch (err: any) {
+				if (!err || typeof err.message !== 'string' || !err.message.includes('Language model unavailable')) {
+					throw err;
+				}
+			}
 		}
 
 		// Direct local streaming fallback to Dardcor Router at port 25128
@@ -585,7 +591,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			if (modelName === 'opencode/no-model-selected' || modelName === 'opencode/auto') modelName = undefined;
 			try {
 				if (!modelName) {
-					const modelsRes = await fetch('http://127.0.0.1:25128/v1/models', { headers: { 'x-drouter-connected-only': '1' } });
+					const modelsRes = await fetch('http://127.0.0.1:25128/v1/models', { headers: { 'Authorization': 'Bearer sk-dardcor-local-key', 'x-drouter-connected-only': '1' } });
 					if (modelsRes.ok) {
 						const modelsData = await modelsRes.json() as any;
 						if (Array.isArray(modelsData?.data) && modelsData.data.length > 0) {

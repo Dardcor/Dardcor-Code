@@ -14,7 +14,7 @@ import { IStringDictionary } from '../../../../../../../base/common/collections.
 import { Codicon } from '../../../../../../../base/common/codicons.js';
 import { Emitter, Event } from '../../../../../../../base/common/event.js';
 import { KeyCode } from '../../../../../../../base/common/keyCodes.js';
-import { AnchorPosition } from '../../../../../../../base/common/layout.js';
+import { AnchorPosition, AnchorAlignment } from '../../../../../../../base/common/layout.js';
 import { Disposable, DisposableStore, MutableDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { disposableTimeout } from '../../../../../../../base/common/async.js';
 import { autorun, IObservable } from '../../../../../../../base/common/observable.js';
@@ -563,6 +563,7 @@ export class ModelPickerWidget extends Disposable {
 			},
 			minWidth: 200,
 			anchorPosition: this._delegate.anchorPosition ?? AnchorPosition.ABOVE,
+			anchorAlignment: AnchorAlignment.RIGHT,
 		});
 		const previouslyFocusedElement = dom.getActiveElement();
 

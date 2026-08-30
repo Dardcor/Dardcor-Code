@@ -257,6 +257,58 @@ const PROVIDER_MODELS_CONFIG = {
   nvidia: createOpenAIModelsConfig("https://integrate.api.nvidia.com/v1/models"),
   assemblyai: createOpenAIModelsConfig("https://api.assemblyai.com/v1/models"),
   "vercel-ai-gateway": createOpenAIModelsConfig("https://ai-gateway.vercel.sh/v1/models"),
+  opencode: {
+    customResolver: async () => {
+      try {
+        const response = await fetch("https://opencode.ai/zen/v1/models", {
+          headers: {
+            Accept: "application/json",
+            "User-Agent": "opencode/1.0",
+            "x-opencode-client": "desktop",
+          },
+        });
+        if (!response.ok) {
+          return { models: [], warning: `OpenCode models endpoint returned HTTP ${response.status}` };
+        }
+        const payload = await response.json();
+        const list = parseOpenAIStyleModels(payload);
+        const models = list.map((m) => ({
+          id: m.id,
+          name: m.name || m.id,
+          capabilities: m.capabilities,
+        }));
+        return { models: models.length ? models : [] };
+      } catch (err) {
+        return { models: [], warning: `Failed to fetch OpenCode models: ${err.message}` };
+      }
+    }
+  },
+  "opencode-go": {
+    customResolver: async (connection) => {
+      const apiKey = connection.apiKey || connection.accessToken;
+      if (!apiKey) {
+        return { models: getStaticProviderModels("opencode-go") };
+      }
+      try {
+        const response = await fetch("https://opencode.ai/zen/v1/models", {
+          headers: {
+            Accept: "application/json",
+            "Authorization": `Bearer ${apiKey}`,
+            "User-Agent": "opencode/1.0",
+            "x-opencode-client": "desktop",
+          },
+        });
+        if (response.ok) {
+          const payload = await response.json();
+          const list = parseOpenAIStyleModels(payload);
+          if (list.length > 0) {
+            return { models: list.map(m => ({ id: m.id, name: m.name || m.id })) };
+          }
+        }
+      } catch {}
+      return { models: getStaticProviderModels("opencode-go") };
+    }
+  },
   kimchi: {
     customResolver: async (connection) => {
       const result = await resolveKimchiModels({

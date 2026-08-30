@@ -176,7 +176,14 @@ export class ExtHostLanguageModels implements ExtHostLanguageModelsShape {
 
 	private getVendorFromModelIdentifier(modelIdentifier: string): string | undefined {
 		const firstSlash = modelIdentifier.indexOf('/');
-		return firstSlash === -1 ? undefined : modelIdentifier.substring(0, firstSlash);
+		if (firstSlash === -1) {
+			return 'dardcor';
+		}
+		const prefix = modelIdentifier.substring(0, firstSlash);
+		if (['oc', 'ag', 'ds', 'opencode'].includes(prefix.toLowerCase())) {
+			return 'dardcor';
+		}
+		return prefix;
 	}
 
 	async $provideLanguageModelChatInfo(vendor: string, options: ILanguageModelChatInfoOptions, token: CancellationToken): Promise<ILanguageModelChatMetadataAndIdentifier[]> {
@@ -395,16 +402,50 @@ export class ExtHostLanguageModels implements ExtHostLanguageModelsShape {
 		}
 
 		for (const [modelIdentifier, modelData] of this._localModels) {
-			if (modelData.metadata.isDefaultForLocation[ChatAgentLocation.Chat] && modelData.metadata.vendor === COPILOT_VENDOR_ID) {
+			if (modelData.metadata.isDefaultForLocation[ChatAgentLocation.Chat] && (modelData.metadata.vendor === COPILOT_VENDOR_ID || modelData.metadata.vendor === 'dardcor')) {
 				defaultModelId = modelIdentifier;
 				break;
 			}
 		}
+		if (!defaultModelId) {
+			for (const [modelIdentifier, modelData] of this._localModels) {
+				if (modelData.metadata.vendor === 'dardcor' || modelData.metadata.vendor === COPILOT_VENDOR_ID) {
+					defaultModelId = modelIdentifier;
+					break;
+				}
+			}
+		}
 		if (!defaultModelId && !forceResolveModels) {
-			// Maybe the default wasn't cached so we will try again with resolving the models too
 			return this.getDefaultLanguageModel(extension, true);
 		}
+		if (!defaultModelId && this._localModels.size > 0) {
+			defaultModelId = this._localModels.keys().next().value;
+		}
 		return this.getLanguageModelByIdentifier(extension, defaultModelId);
+	}
+
+	private _findMatchingLocalModelKey(modelId: string): string | undefined {
+		if (this._localModels.has(modelId)) {
+			return modelId;
+		}
+		const cleanId = modelId.replace(/^(ag|oc|ds|opencode|dardcor|copilot)\//i, '').toLowerCase();
+		for (const [key, val] of this._localModels.entries()) {
+			if (key === modelId || key.endsWith('/' + modelId)) {
+				return key;
+			}
+			if (val.info?.id === modelId || val.metadata?.id === modelId || val.metadata?.family === modelId) {
+				return key;
+			}
+			const keyClean = key.replace(/^(ag|oc|ds|opencode|dardcor|copilot)\//i, '').toLowerCase();
+			if (keyClean === cleanId || keyClean.endsWith('/' + cleanId)) {
+				return key;
+			}
+			const infoClean = (val.info?.id || '').replace(/^(ag|oc|ds|opencode|dardcor|copilot)\//i, '').toLowerCase();
+			if (infoClean === cleanId) {
+				return key;
+			}
+		}
+		return undefined;
 	}
 
 	async getLanguageModelByIdentifier(extension: IExtensionDescription, modelId: string | undefined): Promise<vscode.LanguageModelChat | undefined> {
@@ -412,23 +453,27 @@ export class ExtHostLanguageModels implements ExtHostLanguageModelsShape {
 			return undefined;
 		}
 
-		if (!this._localModels.has(modelId)) {
-			// model gone? is this an error on us? Try to resolve model again
-			const vendor = this.getVendorFromModelIdentifier(modelId);
-			if (!vendor) {
-				this._logService.warn(`[LanguageModelProxy](${extension.identifier.value}) Could not extract vendor from model identifier '${modelId}'.`);
-				return undefined;
-			}
+		let resolvedKey = this._findMatchingLocalModelKey(modelId);
+		if (!resolvedKey) {
+			const vendor = this.getVendorFromModelIdentifier(modelId) || 'dardcor';
 			this._logService.trace(`[LanguageModelProxy](${extension.identifier.value}) Could not find model '${modelId}' in local cache. Trying to resolve model again.`);
-			// Call proxy directly: routing through `selectLanguageModels` would recurse here for every identifier and blow up when the cache stays empty (provider in another ext host).
 			await this._proxy.$selectChatModels({ vendor, extension: extension.identifier });
-			if (!this._localModels.has(modelId)) {
+			resolvedKey = this._findMatchingLocalModelKey(modelId);
+			if (!resolvedKey && vendor !== 'dardcor') {
+				await this._proxy.$selectChatModels({ vendor: 'dardcor', extension: extension.identifier });
+				resolvedKey = this._findMatchingLocalModelKey(modelId);
+			}
+			if (!resolvedKey && vendor !== COPILOT_VENDOR_ID) {
+				await this._proxy.$selectChatModels({ vendor: COPILOT_VENDOR_ID, extension: extension.identifier });
+				resolvedKey = this._findMatchingLocalModelKey(modelId);
+			}
+			if (!resolvedKey) {
 				this._logService.warn(`[LanguageModelProxy](${extension.identifier.value}) Could not find model '${modelId}' in local cache after re-resolving models.`);
 				return undefined;
 			}
 		}
 
-		return this._createLanguageModelChatApi(extension, modelId);
+		return this._createLanguageModelChatApi(extension, resolvedKey);
 	}
 
 	private async _createLanguageModelChatApi(extension: IExtensionDescription, modelId: string): Promise<vscode.LanguageModelChat | undefined> {

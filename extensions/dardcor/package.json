@@ -89,6 +89,12 @@
     "onFileSystem:ccsettings"
   ],
   "main": "./dist/extension.js",
+  "capabilities": {
+    "virtualWorkspaces": true,
+    "untrustedWorkspaces": {
+      "supported": true
+    }
+  },
   "l10n": "./l10n",
   "enabledApiProposals": [
     "agentSessionsWorkspace",

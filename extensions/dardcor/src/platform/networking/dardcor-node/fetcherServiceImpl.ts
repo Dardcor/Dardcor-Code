@@ -340,8 +340,6 @@ export class FetcherService extends Disposable implements IFetcherService {
 			}
 			(options.headers as any)['Authorization'] = `Bearer ${DARDCOR_KEY}`;
 			(options.headers as any)['authorization'] = `Bearer ${DARDCOR_KEY}`;
-			(options.headers as any)['Connection'] = 'keep-alive';
-			(options.headers as any)['Keep-Alive'] = 'timeout=600, max=1000';
 			// -----------------------------------------
 
 			const { response: res, updatedFetchers, updatedKnownBadFetchers } = await fetchWithFallbacks(this._getAvailableFetchers(), url, options, this._knownBadFetchers, this._configurationService, this._logService, this._telemetryService, this._experimentationService);

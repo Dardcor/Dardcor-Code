@@ -168,13 +168,13 @@ export class NewChatWidget extends Disposable {
 
 		const canSendRequest = derived(reader => {
 			const session = this._session.read(reader);
-			if (!session) {
-				return false;
+			if (session) {
+				if (session.loading.read(reader)) {
+					return false;
+				}
+				return true;
 			}
-			if (session.loading.read(reader)) {
-				return false;
-			}
-			return true;
+			return this._workspacePicker.selectedFolderUri !== undefined;
 		});
 
 		const loading = derived(reader => {
@@ -284,6 +284,13 @@ export class NewChatWidget extends Disposable {
 			const folderUri = session?.workspace.read(reader)?.folders[0]?.root;
 			if (folderUri && !this.uriIdentityService.extUri.isEqual(folderUri, this._workspacePicker.selectedFolderUri)) {
 				this._workspacePicker.setSelectedWorkspace(folderUri, { fireEvent: false });
+			}
+		}));
+
+		this._seedWorkspaceDraft();
+		this._register(this._workspacePicker.onDidChangeSelection(() => {
+			if (!this._session.get()) {
+				this._seedWorkspaceDraft();
 			}
 		}));
 	}
@@ -811,10 +818,17 @@ export class NewChatWidget extends Disposable {
 	// --- Send ---
 
 	private async _send(query: string, attachedContext?: IChatRequestVariableEntry[], background?: boolean): Promise<boolean> {
-		const session = this._session.get();
+		let session = this._session.get();
 		if (!session) {
-			this._workspacePicker.showPicker();
-			return false;
+			const folderUri = this._workspacePicker.selectedFolderUri;
+			if (folderUri) {
+				await this._createNewSession(folderUri);
+				session = this._session.get();
+			}
+			if (!session) {
+				this._workspacePicker.showPicker();
+				return false;
+			}
 		}
 		const feedbackItems = [...this._feedbackItems.get()];
 		const workspaceRoots = session.workspace.get()?.folders.map(folder => folder.root)

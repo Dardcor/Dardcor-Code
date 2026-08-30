@@ -1232,7 +1232,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 			get actionWidgetContainer() {
 				return typeof inputPickerContainer === 'function' ? inputPickerContainer() : inputPickerContainer;
 			},
-			getActionWidgetAnchor: this.options.inputPickerAnchor,
+			getActionWidgetAnchor: this.options.inputPickerAnchor ?? ((anchor: HTMLElement) => this.inputContainerElement ?? anchor),
 			openOnMouseUp: this.options.inputPickerOpenOnMouseUp,
 		};
 	}

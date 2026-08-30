@@ -97,10 +97,13 @@ export abstract class BaseFetchFetcher implements IFetcher {
 	}
 
 	private async _fetch(url: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE', headers: { [name: string]: string }, body: string | undefined, signal: AbortSignal, internalId: string, hostname: string, options: FetchOptions): Promise<Response> {
+		const forbiddenHeaders = new Set(['connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'te', 'trailer', 'transfer-encoding', 'upgrade', 'host', 'proxy-connection']);
 		const cleanHeaders: Record<string, string> = {};
 		for (const [k, v] of Object.entries(headers)) {
 			if (v !== undefined && v !== null && typeof v === 'string') {
-				cleanHeaders[k] = v;
+				if (!forbiddenHeaders.has(k.toLowerCase())) {
+					cleanHeaders[k] = v;
+				}
 			}
 		}
 

@@ -9,7 +9,7 @@ import { IConfigurationService } from '../../../../platform/configuration/common
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { IStorageService, StorageScope } from '../../../../platform/storage/common/storage.js';
-import { getSelectedModelStorageKey, getStoredSelectedModel, storeSelectedModel } from '../../../../workbench/contrib/chat/common/chatSelectedModel.js';
+import { getStoredSelectedModel, storeSelectedModel } from '../../../../workbench/contrib/chat/common/chatSelectedModel.js';
 import { ChatAgentLocation, ChatConfiguration } from '../../../../workbench/contrib/chat/common/constants.js';
 import { ILanguageModelChatMetadataAndIdentifier } from '../../../../workbench/contrib/chat/common/languageModels.js';
 import { IModelSelectionMemory, IModelSelectionSessionContext, IPendingModelSelection, ModelSelectionReason, transitionModelSelection } from '../../../../workbench/contrib/chat/common/modelSelection.js';
@@ -28,7 +28,7 @@ const DEFAULT_MODEL_PICKER_OPTIONS: INormalizedSessionModelPickerOptions = {
 	showFeatured: true,
 	showUnavailableFeatured: false,
 	showManageModelsAction: false,
-	showAutoModel: true,
+	showAutoModel: false,
 };
 
 type ModelSelectionRefreshTrigger = 'sessionState' | 'configuration' | 'providers' | 'models' | 'storage';
@@ -42,7 +42,7 @@ export function normalizeModelPickerOptions(options: ISessionModelPickerOptions 
 	return {
 		...DEFAULT_MODEL_PICKER_OPTIONS,
 		...options,
-		showAutoModel: options?.showAutoModel ?? true,
+		showAutoModel: options?.showAutoModel ?? false,
 	};
 }
 
@@ -150,16 +150,17 @@ export class SessionModelSelectionModel extends Disposable implements ISessionMo
 
 	selectModel(modelIdentifier: string): boolean {
 		const session = this._session.get();
-		const provider = session ? this._sessionsProvidersService.getProvider(session.providerId) : undefined;
-		if (!session || !provider) {
+		const provider = session ? this._sessionsProvidersService.getProvider(session.providerId) : this._sessionsProvidersService.getProviders()[0];
+		if (!provider) {
 			this._sharedDiagnostics.report('selection-rejected', {
 				requestedModel: modelIdentifier,
-				reason: !session ? 'noSession' : 'noProvider',
+				reason: 'noProvider',
 			}, 'info');
 			return false;
 		}
 
-		const snapshot = provider.getModelsSnapshot(session.sessionId);
+		const sessionId = session?.sessionId ?? '';
+		const snapshot = provider.getModelsSnapshot(sessionId);
 		this._modelTarget = snapshot.modelTarget;
 		const models = snapshot.models;
 		const model = models.find(model => model.identifier === modelIdentifier);
@@ -172,11 +173,9 @@ export class SessionModelSelectionModel extends Disposable implements ISessionMo
 			return false;
 		}
 
-		const options = normalizeModelPickerOptions(provider.getModelPickerOptions(session.sessionId));
+		const options = normalizeModelPickerOptions(provider.getModelPickerOptions(sessionId));
 		const previousState = this._state.get();
 		const previousMemory = this._memory;
-		const providerModelBefore = session.modelId.get();
-		const storageKey = getSelectedModelStorageKey(ChatAgentLocation.Chat, snapshot.modelTarget);
 		this._state.set({
 			models,
 			options,
@@ -185,25 +184,22 @@ export class SessionModelSelectionModel extends Disposable implements ISessionMo
 			pendingSelection: undefined,
 		}, undefined);
 		this._memory = {
-			sessionKey: this._sessionKey(session),
-			lastPushedChatKey: session.activeChat.get().resource.toString(),
+			sessionKey: session ? this._sessionKey(session) : undefined,
+			lastPushedChatKey: session?.activeChat.get().resource.toString(),
 			currentModel: model,
 			currentReason: ModelSelectionReason.UserSelection,
 		};
 		this._sharedDiagnostics.report('explicit-selection', { model: model.identifier }, 'info');
 		try {
-			persistSessionModelSelection(session, provider, this._storageService, model, snapshot.modelTarget);
+			if (session) {
+				persistSessionModelSelection(session, provider, this._storageService, model, snapshot.modelTarget);
+			} else {
+				storeSelectedModel(this._storageService, ChatAgentLocation.Chat, snapshot.modelTarget, model.identifier);
+			}
 			this._sharedDiagnostics.report('explicit-selection-applied', { model: model.identifier }, 'info');
 		} catch (error) {
 			this._memory = previousMemory;
 			this._sharedDiagnostics.report('explicit-selection-failed', { model: model.identifier, error: String(error) }, 'error');
-			this._sharedDiagnostics.report('provider-selection-failed', {
-				requestedModel: modelIdentifier,
-				providerModelBefore,
-				providerModelAfter: session.modelId.get(),
-				storedModelAfter: this._storageService.get(storageKey, StorageScope.PROFILE),
-				error: String(error),
-			}, 'error');
 			this._state.set({
 				models,
 				options,
@@ -213,39 +209,35 @@ export class SessionModelSelectionModel extends Disposable implements ISessionMo
 			}, undefined);
 			throw error;
 		}
-		this._sharedDiagnostics.report('provider-selection-applied', {
-			requestedModel: modelIdentifier,
-			providerModelBefore,
-			providerModelAfter: session.modelId.get(),
-			storedModelAfter: this._storageService.get(storageKey, StorageScope.PROFILE),
-		}, 'info');
 		return true;
 	}
 
 	private _refresh(trigger: ModelSelectionRefreshTrigger, session = this._session.get()): void {
-		const provider = session ? this._sessionsProvidersService.getProvider(session.providerId) : undefined;
+		const provider = session ? this._sessionsProvidersService.getProvider(session.providerId) : this._sessionsProvidersService.getProviders()[0];
 		this._setProvider(provider);
 		const sessionKey = session ? this._sessionKey(session) : undefined;
 		const sessionModelId = session?.modelId.get();
 		const previousState = this._state.get();
 		const previousMemory = this._memory;
-		const sessionContext: IModelSelectionSessionContext = session ? {
-			kind: session.status.get() === SessionStatus.Untitled ? 'untitled' : 'existing',
-			key: sessionKey!,
-			chatKey: session.activeChat.get().resource.toString(),
+		const sessionContext: IModelSelectionSessionContext = {
+			kind: !session || session.status.get() === SessionStatus.Untitled ? 'untitled' : 'existing',
+			key: sessionKey ?? 'untitled',
+			chatKey: session?.activeChat.get().resource.toString(),
 			modelId: sessionModelId,
-		} : { kind: 'none' };
+		};
 		const currentReason = sessionKey === this._memory.sessionKey ? this._memory.currentReason : undefined;
-		const initialSnapshot = session && provider
-			? provider.getModelsSnapshot(session.sessionId, sessionModelId)
+		const sessionId = session?.sessionId ?? '';
+		const initialSnapshot = provider
+			? provider.getModelsSnapshot(sessionId, sessionModelId)
 			: { models: [], desiredModelResolution: { kind: 'notRequested' } as const, modelTarget: undefined };
 		const rememberedSelection = session ? this._getRememberedModel(session, initialSnapshot.modelTarget) : undefined;
-		const rememberedModelId = rememberedSelection?.identifier;
+		const rememberedModelId = rememberedSelection?.identifier
+			?? getStoredSelectedModel(this._storageService, ChatAgentLocation.Chat, initialSnapshot.modelTarget);
 		const desiredModelIdentifier = sessionContext.kind === 'untitled'
 			? (currentReason === ModelSelectionReason.FirstAvailable ? rememberedModelId : (sessionModelId ?? rememberedModelId))
 			: sessionModelId;
-		const snapshot = desiredModelIdentifier !== sessionModelId && session && provider
-			? provider.getModelsSnapshot(session.sessionId, desiredModelIdentifier)
+		const snapshot = desiredModelIdentifier !== sessionModelId && provider
+			? provider.getModelsSnapshot(sessionId, desiredModelIdentifier)
 			: initialSnapshot;
 		const fallbackModel = snapshot.models.find(model => model.metadata.isDefaultForLocation[ChatAgentLocation.Chat]) ?? snapshot.models[0];
 		const result = transitionModelSelection({
@@ -259,21 +251,22 @@ export class SessionModelSelectionModel extends Disposable implements ISessionMo
 			},
 			previous: { ...this._memory, currentReason },
 		});
+		const currentModel = result.currentModel ?? fallbackModel;
 		this._memory = {
 			sessionKey: result.sessionKey,
 			lastPushedChatKey: result.lastPushedChatKey,
-			currentModel: result.currentModel,
-			currentReason: result.currentReason,
+			currentModel,
+			currentReason: result.currentReason ?? ModelSelectionReason.FirstAvailable,
 		};
 		this._modelTarget = snapshot.modelTarget;
 		const models = snapshot.models;
-		const options = normalizeModelPickerOptions(session && provider ? provider.getModelPickerOptions(session.sessionId) : undefined);
+		const options = normalizeModelPickerOptions(provider ? provider.getModelPickerOptions(sessionId) : undefined);
 
 		this._state.set({
 			models,
 			options,
-			hasSelectableModel: !!session && !!provider && hasSelectableModel(models, options),
-			currentModel: result.currentModel,
+			hasSelectableModel: !!provider && hasSelectableModel(models, options),
+			currentModel,
 			pendingSelection: result.pendingSelection,
 		}, undefined);
 		this._sharedDiagnostics.report('transition', {

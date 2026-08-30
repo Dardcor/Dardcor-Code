@@ -118,6 +118,17 @@
 			"dardcor.dardcor-ai"
 		]
 	},
+	"extensionUntrustedWorkspaceSupport": {
+		"github.dardcor-chat": {
+			"default": true
+		},
+		"github.copilot-chat": {
+			"default": true
+		},
+		"dardcor.dardcor-ai": {
+			"default": true
+		}
+	},
 	"onboardingKeymaps": [
 		{
 			"id": "vscode",
@@ -196,7 +207,12 @@
 	"builtInExtensionsEnabledWithAutoUpdates": [
 		"dardcor.dardcor-ai"
 	],
-	"sessionsWindowAllowedExtensions": [],
+	"sessionsWindowAllowedExtensions": [
+		"github.dardcor-chat",
+		"dardcor.dardcor-ai",
+		"github.copilot-chat",
+		"google.google-antigravity"
+	],
 	"voiceWsUrl": "",
 	"extensionRecommendations": {
 		"ms-python.python": {

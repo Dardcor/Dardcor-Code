@@ -16,6 +16,7 @@ import { IWorkspaceFolderCreationData } from '../../../../platform/workspaces/co
 import { Queue } from '../../../../base/common/async.js';
 import { ISession } from '../../../services/sessions/common/session.js';
 import { IWorkspaceFolderLabelService } from '../../../../workbench/services/workspaces/common/workspaceFolderLabelService.js';
+import { ISessionsRecentWorkspacesService } from '../../../services/sessions/browser/sessionsRecentWorkspacesService.js';
 
 export class WorkspaceFolderManagementContribution extends Disposable implements IWorkbenchContribution {
 
@@ -29,6 +30,7 @@ export class WorkspaceFolderManagementContribution extends Disposable implements
 		@IWorkspaceEditingService private readonly workspaceEditingService: IWorkspaceEditingService,
 		@IWorkspaceTrustManagementService private readonly workspaceTrustManagementService: IWorkspaceTrustManagementService,
 		@IWorkspaceFolderLabelService private readonly workspaceFolderLabelService: IWorkspaceFolderLabelService,
+		@ISessionsRecentWorkspacesService private readonly recentWorkspacesService: ISessionsRecentWorkspacesService,
 	) {
 		super();
 		this._register(autorun(reader => {
@@ -36,6 +38,11 @@ export class WorkspaceFolderManagementContribution extends Disposable implements
 			activeSession?.workspace.read(reader);
 			this.queue.queue(() => this.updateWorkspaceFoldersForSession(activeSession));
 		}));
+		this._register(this.recentWorkspacesService.onDidChangeRecentWorkspaces(() => {
+			const activeSession = this.sessionsService.activeSession.get();
+			this.queue.queue(() => this.updateWorkspaceFoldersForSession(activeSession));
+		}));
+		this.queue.queue(() => this.updateWorkspaceFoldersForSession(this.sessionsService.activeSession.get()));
 	}
 
 	private async updateWorkspaceFoldersForSession(session: ISession | undefined): Promise<void> {
@@ -63,24 +70,36 @@ export class WorkspaceFolderManagementContribution extends Disposable implements
 	}
 
 	private getActiveSessionFolderData(session: ISession | undefined): IWorkspaceFolderCreationData | undefined {
-		if (!session) {
-			return undefined;
+		if (session) {
+			const workspace = session.workspace.get();
+			const folder = workspace?.folders[0];
+
+			if (folder) {
+				return {
+					uri: folder.workingDirectory,
+					name: this.workspaceFolderLabelService.getWorkspaceFolderLabel(
+						new WorkspaceFolder({ uri: folder.workingDirectory, name: workspace.label, index: 0 }),
+						true
+					) ?? workspace.label
+				};
+			}
 		}
 
-		const workspace = session.workspace.get();
-		const folder = workspace?.folders[0];
-
-		if (!folder) {
-			return undefined;
+		// Fallback for New Session page: use the selected / recent workspace folder
+		const recent = this.recentWorkspacesService.getRecentWorkspaces();
+		const checked = recent.find(w => w.checked) ?? recent[0];
+		if (checked && checked.workspace.folders[0]) {
+			const folder = checked.workspace.folders[0];
+			return {
+				uri: folder.workingDirectory,
+				name: this.workspaceFolderLabelService.getWorkspaceFolderLabel(
+					new WorkspaceFolder({ uri: folder.workingDirectory, name: checked.workspace.label, index: 0 }),
+					true
+				) ?? checked.workspace.label
+			};
 		}
 
-		return {
-			uri: folder.workingDirectory,
-			name: this.workspaceFolderLabelService.getWorkspaceFolderLabel(
-				new WorkspaceFolder({ uri: folder.workingDirectory, name: workspace.label, index: 0 }),
-				true
-			) ?? workspace.label
-		};
+		return undefined;
 	}
 
 	private async manageTrustWorkspaceForSession(session: ISession | undefined): Promise<void> {

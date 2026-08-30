@@ -36,8 +36,7 @@ function code() {
 		return
 	fi
 
-	# Auto-start Dardcor Provider with anti-collision
-	node ./scripts/ensure-provider.js || true
+	# Auto-start Dardcor Provider is now handled entirely inside app.ts
 
 	# Configuration
 	export NODE_ENV=development

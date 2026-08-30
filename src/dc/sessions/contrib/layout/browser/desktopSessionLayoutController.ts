@@ -542,8 +542,11 @@ export class LayoutController extends BaseLayoutController {
 	// This allows D2 to capture user actions that happen after the sync restore but before
 	// working-set apply, while still skipping single-pane detail-panel reveals during working-set apply.
 	private _syncAuxiliaryBarVisibility(sessionResource: URI | undefined, hasWorkspace: boolean, isCreated: boolean): void {
-		// [D3a] No resource / no workspace → do nothing.
+		// [D3a] No resource / no workspace → open default container if workspace folder is available
 		if (!sessionResource || !hasWorkspace) {
+			if (this._workspaceContextService.getWorkspace().folders.length > 0) {
+				void this._openDefaultAuxiliaryBarContainer(SESSIONS_FILES_CONTAINER_ID);
+			}
 			return;
 		}
 

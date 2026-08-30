@@ -1045,7 +1045,7 @@ export class LanguageModelsService implements ILanguageModelsService {
 					const nextIds = new Set<string>();
 					for (const m of list) {
 						let id = typeof m === 'string' ? m : (m.id || m.name || '');
-						if (typeof id === 'string' && id.toLowerCase().endsWith('-free') && !id.includes('/')) id = `oc/${id}`;
+						if (typeof id === 'string' && !id.includes('/') && (id.toLowerCase().endsWith('-free') || id.toLowerCase() === 'big-pickle')) id = `oc/${id}`;
 						if (!id || id.toLowerCase() === 'auto' || id.toLowerCase() === 'claude-none') continue;
 						const canonical = id.replace(/^(ag|oc|ds|opencode)\//i, '').toLowerCase();
 						if (seen.has(canonical)) continue;
@@ -1064,7 +1064,7 @@ export class LanguageModelsService implements ILanguageModelsService {
 							return part.charAt(0).toUpperCase() + part.slice(1);
 						}).join(' ');
 
-						this._modelCache.set(id, {
+						const metadata: ILanguageModelChatMetadata = {
 							extension: new ExtensionIdentifier('dardcor.dardcor'),
 							isDefaultForLocation: {},
 							id,
@@ -1080,7 +1080,12 @@ export class LanguageModelsService implements ILanguageModelsService {
 								agentMode: true,
 								vision: hasVision
 							}
-						});
+						};
+						this._modelCache.set(id, metadata);
+						if (clean !== id) {
+							this._modelCache.set(clean, metadata);
+							nextIds.add(clean);
+						}
 					}
 					for (const id of localDrouterModelIds) {
 						if (!nextIds.has(id)) this._modelCache.delete(id);
@@ -1561,8 +1566,25 @@ export class LanguageModelsService implements ILanguageModelsService {
 	}
 
 	async sendChatRequest(modelId: string, from: ExtensionIdentifier | undefined, messages: IChatMessage[], options: ILanguageModelChatRequestOptions, token: CancellationToken): Promise<ILanguageModelChatResponse> {
-		const metadata = this._modelCache.get(modelId);
-		const provider = this._providers.get(metadata?.vendor || '');
+		let metadata = this._modelCache.get(modelId);
+		if (!metadata) {
+			for (const [key, meta] of this._modelCache.entries()) {
+				if (key.endsWith('/' + modelId) || meta.id === modelId || meta.family === modelId) {
+					metadata = meta;
+					break;
+				}
+			}
+		}
+		let provider = this._providers.get(metadata?.vendor || '');
+		if (!provider && this._providers.has('dardcor')) {
+			provider = this._providers.get('dardcor');
+		}
+		if (!provider && this._providers.has(COPILOT_VENDOR_ID)) {
+			provider = this._providers.get(COPILOT_VENDOR_ID);
+		}
+		if (!provider && this._providers.size > 0) {
+			provider = this._providers.values().next().value;
+		}
 		if (!provider) {
 			throw new Error(`Chat provider for model ${modelId} is not registered.`);
 		}

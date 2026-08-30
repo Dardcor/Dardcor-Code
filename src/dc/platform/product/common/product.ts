@@ -100,7 +100,24 @@ else {
 					}
 				},
 				providerScopes: []
-			}
+			},
+			extensionUntrustedWorkspaceSupport: {
+				'github.dardcor-chat': {
+					default: true
+				},
+				'github.copilot-chat': {
+					default: true
+				},
+				'dardcor.dardcor-ai': {
+					default: true
+				}
+			},
+			sessionsWindowAllowedExtensions: [
+				'github.dardcor-chat',
+				'dardcor.dardcor-ai',
+				'github.copilot-chat',
+				'google.google-antigravity'
+			]
 		});
 	}
 }

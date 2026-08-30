@@ -239,7 +239,19 @@ export class AICustomizationItemsModel extends Disposable implements IAICustomiz
 
 		const getItemSource = () => {
 			if (!descriptor) {
-				this.logService.warn(`No harness descriptor found for session type ${sessionType}`);
+				if (sessionResource.scheme === 'file' || sessionResource.scheme === 'vscode-userdata' || sessionType === 'file') {
+					const itemProvider = this.instantiationService.createInstance(PromptsServiceCustomizationItemProvider);
+					return new ItemProviderItemSource(
+						sessionResource,
+						itemProvider,
+						this.promptsService,
+						this.workspaceService,
+						this.fileService,
+						this.pathService,
+						this.itemNormalizer,
+					);
+				}
+				this.logService.trace(`No harness descriptor found for session type ${sessionType}`);
 				return new EmptyItemProviderItemSource(sessionResource);
 			}
 			if (isAgentHostTarget(sessionType)) {

@@ -354,7 +354,7 @@ async function startAgentHost(): Promise<void> {
 					return;
 				}
 				const clientId = connection.ctx;
-				if (typeof clientId !== 'string' || !clientId) {
+				if (typeof clientId !== 'string' || !clientId || clientId === 'agentHost') {
 					return;
 				}
 				const connectionStore = new DisposableStore();
