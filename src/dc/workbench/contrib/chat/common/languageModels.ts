@@ -1009,6 +1009,71 @@ export class LanguageModelsService implements ILanguageModelsService {
 		this._readVisibility();
 		this._initChatControlData();
 
+		const DARDCOR_MODELS_CACHE_STORAGE_KEY = 'chat.cachedDrouterModels';
+		const localDrouterModelIds = new Set<string>();
+
+		const populateModelsFromList = (list: any[]): boolean => {
+			if (!Array.isArray(list) || list.length === 0) {
+				return false;
+			}
+			const seen = new Set<string>();
+			const nextIds = new Set<string>();
+			for (const m of list) {
+				let id = typeof m === 'string' ? m : (m.id || m.name || '');
+				if (typeof id === 'string' && !id.includes('/') && (id.toLowerCase().endsWith('-free') || id.toLowerCase() === 'big-pickle')) id = `oc/${id}`;
+				if (!id || id.toLowerCase() === 'auto' || id.toLowerCase() === 'claude-none' || id.toLowerCase() === 'opencode/no-model-selected') continue;
+				const canonical = id.replace(/^(ag|oc|ds|opencode)\//i, '').toLowerCase();
+				if (seen.has(canonical)) continue;
+				seen.add(canonical);
+				nextIds.add(id);
+
+				const maxContext = (typeof m === 'object' && m.capabilities?.contextWindow) ? m.capabilities.contextWindow : 200000;
+				const maxOutput = (typeof m === 'object' && m.capabilities?.maxOutput) ? m.capabilities.maxOutput : 64000;
+				const hasVision = typeof m === 'object' && m.capabilities?.vision === true;
+
+				let clean = id.replace(/^(ag|oc|ds|opencode)\//i, '');
+				const name = (typeof m === 'object' && m.name && m.name !== id) ? m.name : clean.split(/[-_]/).map((part: string) => {
+					if (['free', 'unlimited', 'pro', 'plus'].includes(part.toLowerCase())) {
+						return `(${part.charAt(0).toUpperCase() + part.slice(1)})`;
+					}
+					return part.charAt(0).toUpperCase() + part.slice(1);
+				}).join(' ');
+
+				const metadata: ILanguageModelChatMetadata = {
+					extension: new ExtensionIdentifier('dardcor.dardcor'),
+					isDefaultForLocation: {},
+					id,
+					name,
+					vendor: 'dardcor',
+					family: id,
+					version: '1.0.0',
+					maxInputTokens: maxContext,
+					maxOutputTokens: maxOutput,
+					isUserSelectable: true,
+					capabilities: {
+						toolCalling: true,
+						agentMode: true,
+						vision: hasVision
+					}
+				};
+				this._modelCache.set(id, metadata);
+				if (clean !== id) {
+					this._modelCache.set(clean, metadata);
+					nextIds.add(clean);
+				}
+			}
+			if (nextIds.size > 0) {
+				this._modelCache.delete('opencode/no-model-selected');
+				for (const id of localDrouterModelIds) {
+					if (!nextIds.has(id)) this._modelCache.delete(id);
+				}
+				localDrouterModelIds.clear();
+				for (const id of nextIds) localDrouterModelIds.add(id);
+				return true;
+			}
+			return false;
+		};
+
 		const defaultDardcorModels: ILanguageModelChatMetadataAndIdentifier[] = [
 			{
 				identifier: 'opencode/no-model-selected',
@@ -1028,83 +1093,74 @@ export class LanguageModelsService implements ILanguageModelsService {
 			}
 		];
 
-		for (const m of defaultDardcorModels) {
-			this._modelCache.set(m.identifier, m.metadata);
+		// Load cached models immediately so the picker is populated with 0ms delay on startup
+		let initialLoaded = false;
+		try {
+			const cachedRaw = this._storageService.get(DARDCOR_MODELS_CACHE_STORAGE_KEY, StorageScope.APPLICATION);
+			if (cachedRaw) {
+				const parsed = JSON.parse(cachedRaw);
+				initialLoaded = populateModelsFromList(parsed);
+			}
+		} catch {
+			// ignore parse error
 		}
 
-		const localDrouterModelIds = new Set<string>();
-		const fetchLocalModels = async () => {
+		if (!initialLoaded) {
+			for (const m of defaultDardcorModels) {
+				this._modelCache.set(m.identifier, m.metadata);
+			}
+		}
+
+		let hasReceivedLiveModels = false;
+		const fetchLocalModels = async (): Promise<boolean> => {
 			try {
+				const controller = new AbortController();
+				const timeoutId = setTimeout(() => controller.abort(), 3500);
 				const res = await globalThis.fetch('http://127.0.0.1:25128/v1/models', {
-					headers: { 'Authorization': 'Bearer sk-dardcor-local-key', 'x-drouter-connected-only': '1' }
+					headers: { 'Authorization': 'Bearer sk-dardcor-local-key', 'x-drouter-connected-only': '1' },
+					signal: controller.signal
 				});
+				clearTimeout(timeoutId);
 				if (res.ok) {
 					const json: any = await res.json();
 					const list = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
-					const seen = new Set<string>();
-					const nextIds = new Set<string>();
-					for (const m of list) {
-						let id = typeof m === 'string' ? m : (m.id || m.name || '');
-						if (typeof id === 'string' && !id.includes('/') && (id.toLowerCase().endsWith('-free') || id.toLowerCase() === 'big-pickle')) id = `oc/${id}`;
-						if (!id || id.toLowerCase() === 'auto' || id.toLowerCase() === 'claude-none') continue;
-						const canonical = id.replace(/^(ag|oc|ds|opencode)\//i, '').toLowerCase();
-						if (seen.has(canonical)) continue;
-						seen.add(canonical);
-						nextIds.add(id);
-
-						const maxContext = (typeof m === 'object' && m.capabilities?.contextWindow) ? m.capabilities.contextWindow : 200000;
-						const maxOutput = (typeof m === 'object' && m.capabilities?.maxOutput) ? m.capabilities.maxOutput : 64000;
-						const hasVision = typeof m === 'object' && m.capabilities?.vision === true;
-
-						let clean = id.replace(/^(ag|oc|ds|opencode)\//i, '');
-						const name = (typeof m === 'object' && m.name && m.name !== id) ? m.name : clean.split(/[-_]/).map((part: string) => {
-							if (['free', 'unlimited', 'pro', 'plus'].includes(part.toLowerCase())) {
-								return `(${part.charAt(0).toUpperCase() + part.slice(1)})`;
+					if (list.length > 0) {
+						const updated = populateModelsFromList(list);
+						if (updated) {
+							hasReceivedLiveModels = true;
+							try {
+								this._storageService.store(DARDCOR_MODELS_CACHE_STORAGE_KEY, JSON.stringify(list), StorageScope.APPLICATION, StorageTarget.MACHINE);
+							} catch {
+								// ignore storage error
 							}
-							return part.charAt(0).toUpperCase() + part.slice(1);
-						}).join(' ');
-
-						const metadata: ILanguageModelChatMetadata = {
-							extension: new ExtensionIdentifier('dardcor.dardcor'),
-							isDefaultForLocation: {},
-							id,
-							name,
-							vendor: 'dardcor',
-							family: id,
-							version: '1.0.0',
-							maxInputTokens: maxContext,
-							maxOutputTokens: maxOutput,
-							isUserSelectable: true,
-							capabilities: {
-								toolCalling: true,
-								agentMode: true,
-								vision: hasVision
-							}
-						};
-						this._modelCache.set(id, metadata);
-						if (clean !== id) {
-							this._modelCache.set(clean, metadata);
-							nextIds.add(clean);
+							this._onLanguageModelChange.fire('dardcor');
+							return true;
 						}
 					}
-					for (const id of localDrouterModelIds) {
-						if (!nextIds.has(id)) this._modelCache.delete(id);
-					}
-					localDrouterModelIds.clear();
-					for (const id of nextIds) localDrouterModelIds.add(id);
-					this._onLanguageModelChange.fire('dardcor');
 				}
 			} catch {
-				// ignore
+				// ignore network/timeout error
 			}
+			return false;
 		};
 
-		// DRouter starts alongside the workbench. Retry while it is becoming
-		// ready so the picker does not remain stuck on the placeholder model.
-		for (let retry = 0; retry < 15; retry++) {
-			setTimeout(() => void fetchLocalModels(), retry * 1000);
-		}
-		const refreshTimer = setInterval(() => void fetchLocalModels(), 30_000);
+		// Immediate check
+		void fetchLocalModels();
+
+		// Fast startup polling: retry rapidly while DRouter is booting up
+		let startupPollCount = 0;
+		const startupPollTimer = setInterval(async () => {
+			startupPollCount++;
+			if (hasReceivedLiveModels || startupPollCount >= 40) {
+				clearInterval(startupPollTimer);
+				return;
+			}
+			await fetchLocalModels();
+		}, 800);
+		this._store.add(toDisposable(() => clearInterval(startupPollTimer)));
+
+		// Regular background refresh
+		const refreshTimer = setInterval(() => void fetchLocalModels(), 15_000);
 		this._store.add(toDisposable(() => clearInterval(refreshTimer)));
 
 		setTimeout(() => {

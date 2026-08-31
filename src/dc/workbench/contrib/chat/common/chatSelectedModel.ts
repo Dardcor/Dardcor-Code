@@ -52,7 +52,7 @@ export function getStoredSelectedModel(
 	if (identifier) {
 		const wasAutomaticDefault = storageService.getBoolean(isDefaultKey, SELECTED_MODEL_STORAGE_SCOPE);
 		storageService.remove(isDefaultKey, SELECTED_MODEL_STORAGE_SCOPE);
-		if (wasAutomaticDefault) {
+		if (wasAutomaticDefault || identifier === 'opencode/no-model-selected') {
 			storageService.remove(key, SELECTED_MODEL_STORAGE_SCOPE);
 			return undefined;
 		}
@@ -67,7 +67,7 @@ export function getStoredSelectedModel(
 	const wasAutomaticDefault = storageService.getBoolean(isDefaultKey, StorageScope.APPLICATION, true);
 	storageService.remove(key, StorageScope.APPLICATION);
 	storageService.remove(isDefaultKey, StorageScope.APPLICATION);
-	if (wasAutomaticDefault) {
+	if (wasAutomaticDefault || legacyIdentifier === 'opencode/no-model-selected') {
 		return undefined;
 	}
 

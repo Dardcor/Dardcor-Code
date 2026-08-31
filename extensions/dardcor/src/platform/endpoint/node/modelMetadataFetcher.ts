@@ -261,12 +261,16 @@ export class ModelMetadataFetcher extends Disposable implements IModelMetadataFe
 		const requestId = generateUuid();
 
 		try {
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), 3500);
 			const res = await globalThis.fetch(`http://127.0.0.1:${DARDCOR_PORT}/v1/models`, {
 				headers: {
 					'Authorization': `Bearer ${DARDCOR_KEY}`,
 					'x-drouter-connected-only': '1'
-				}
+				},
+				signal: controller.signal
 			});
+			clearTimeout(timeoutId);
 
 			if (!res.ok) {
 				throw new Error(`Failed to fetch models from local router: HTTP ${res.status}`);

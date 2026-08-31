@@ -188,12 +188,16 @@ export class FetcherService extends Disposable implements IFetcherService {
 
 				let rawList: any[] = [];
 				try {
+					const controller = new AbortController();
+					const timeoutId = setTimeout(() => controller.abort(), 3500);
 					const modelsRes = await globalThis.fetch(`http://127.0.0.1:${DARDCOR_PORT}/v1/models`, {
 						headers: {
 							'Authorization': `Bearer ${DARDCOR_KEY}`,
 							'x-drouter-connected-only': '1'
-						}
+						},
+						signal: controller.signal
 					});
+					clearTimeout(timeoutId);
 					if (modelsRes.ok) {
 						const json: any = await modelsRes.json();
 						rawList = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
