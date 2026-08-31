@@ -53,8 +53,8 @@ export default function FlowAnimation() {
         <span className="material-symbols-outlined text-4xl text-[#f97815]">
           hub
         </span>
-        <span className="text-xs font-bold text-white tracking-widest uppercase">
-          DRouter
+        <span className="text-[10px] font-bold text-white tracking-wider uppercase text-center leading-tight">
+          Dardcor<br/>Router
         </span>
         <div className="absolute inset-0 rounded-full border border-[#f97815]/30 animate-ping opacity-20"></div>
       </div>
