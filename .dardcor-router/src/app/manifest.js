@@ -1,7 +1,7 @@
 export default function manifest() {
   return {
-    name: 'DRouter - AI Infrastructure Management',
-    short_name: 'DRouter',
+    name: 'Dardcor Router - AI Infrastructure Management',
+    short_name: 'Dardcor Router',
     description: 'One endpoint for all your AI providers. Manage keys, monitor usage, and scale effortlessly.',
     start_url: '/',
     display: 'standalone',
