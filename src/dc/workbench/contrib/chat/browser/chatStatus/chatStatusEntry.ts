@@ -26,7 +26,7 @@ function drouterHtml(): string {
 		html, body, iframe { width: 100%; height: 100%; margin: 0; border: 0; overflow: hidden; background: #09090b; }
 	</style>
 </head>
-<body><iframe title="DRouter" src="http://127.0.0.1:25128/dashboard/providers"></iframe></body>
+<body><iframe title="Model" src="http://127.0.0.1:25128/dashboard/providers"></iframe></body>
 </html>`;
 }
 
@@ -34,7 +34,7 @@ registerAction2(class extends Action2 {
 	constructor() {
 		super({
 			id: 'dardcor.model.open',
-			title: { value: localize('openDardcorModel', "Open DRouter"), original: 'Open DRouter' }
+			title: { value: localize('openDardcorModel', "Open Model"), original: 'Open Model' }
 		});
 	}
 	async run(accessor: ServicesAccessor) {
@@ -45,11 +45,11 @@ registerAction2(class extends Action2 {
 		}
 
 		drouterWebview = webviewWorkbenchService.openWebview({
-			title: 'DRouter',
+			title: 'Model',
 			options: { enableFindWidget: true, disableServiceWorker: true },
 			contentOptions: { allowScripts: true },
 			extension: undefined
-		}, 'dardcor.drouter', 'DRouter', undefined, { group: ACTIVE_GROUP, preserveFocus: false });
+		}, 'dardcor.model', 'Model', undefined, { group: ACTIVE_GROUP, preserveFocus: false });
 		drouterWebview.webview.setHtml(drouterHtml());
 		drouterDisposeListener?.dispose();
 		drouterDisposeListener = drouterWebview.webview.onDidDispose(() => {
@@ -85,9 +85,9 @@ export class ChatStatusBarEntry extends Disposable implements IWorkbenchContribu
 	private getEntryProps(): IStatusbarEntry {
 		return {
 			name: localize('modelStatus', "Model"),
-		text: '$(hubot) DRouter',
-		ariaLabel: localize('modelStatusAria', "DRouter - Models and Providers"),
-		tooltip: localize('modelStatusTooltip', "Open DRouter"),
+			text: '$(hubot) Model',
+			ariaLabel: localize('modelStatusAria', "Model - Models and Providers"),
+			tooltip: localize('modelStatusTooltip', "Open Model Management"),
 			command: 'dardcor.model.open',
 			showInAllWindows: true
 		} satisfies IStatusbarEntry;

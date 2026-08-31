@@ -671,7 +671,9 @@ export class CodeApplication extends Disposable {
 			if (drouterProcess && !drouterProcess.killed) {
 				return;
 			}
-			const drouterDir = join(this.environmentMainService.appRoot, '.dardcor-provider');
+			const drouterDir = existsSync(join(this.environmentMainService.appRoot, '.dardcor-router'))
+				? join(this.environmentMainService.appRoot, '.dardcor-router')
+				: join(this.environmentMainService.appRoot, '.dardcor-provider');
 			const standaloneServer = join(drouterDir, '.next', 'standalone', 'server.js');
 			const nextBin = join(drouterDir, 'node_modules', 'next', 'dist', 'bin', 'next');
 			// Reuse the embedded DRouter store so existing connected providers are

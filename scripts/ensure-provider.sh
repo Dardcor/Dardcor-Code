@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 
 ROOT="$(cd "$(dirname "$(dirname "${BASH_SOURCE[0]}")")" && pwd)"
-PROVIDER_DIR="$ROOT/.dardcor-provider"
+if [ -d "$ROOT/.dardcor-router" ]; then
+	PROVIDER_DIR="$ROOT/.dardcor-router"
+else
+	PROVIDER_DIR="$ROOT/.dardcor-provider"
+fi
 PORT="${DARDCOR_PORT:-25128}"
 DATA_DIR="$HOME/.miawagent/router"
 LOG_DIR="$HOME/.dardcor/logs"
