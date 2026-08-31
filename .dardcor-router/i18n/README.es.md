@@ -9,13 +9,13 @@
   
   [![npm](https://img.shields.io/npm/v/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
   [![Downloads](https://img.shields.io/npm/dm/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
-  [![Docker Pulls](https://img.shields.io/docker/pulls/decolua/dardcor-code.svg?logo=docker&label=Docker%20pulls)](https://hub.docker.com/r/decolua/dardcor-code)
-  [![GHCR](https://img.shields.io/badge/GHCR-decolua%2Fdardcor-code-blue?logo=github)](https://github.com/decolua/dardcor-code/pkgs/container/dardcor-code)
-  [![License](https://img.shields.io/npm/l/dardcor-code.svg)](https://github.com/decolua/dardcor-code/blob/main/LICENSE)
+  [![Docker Pulls](https://img.shields.io/docker/pulls/dardcor/dardcor-code.svg?logo=docker&label=Docker%20pulls)](https://hub.docker.com/r/dardcor/dardcor-code)
+  [![GHCR](https://img.shields.io/badge/GHCR-dardcor%2Fdardcor-code-blue?logo=github)](https://github.com/dardcor/dardcor-code/pkgs/container/dardcor-code)
+  [![License](https://img.shields.io/npm/l/dardcor-code.svg)](https://github.com/dardcor/dardcor-code/blob/main/LICENSE)
 
-<a href="https://trendshift.io/repositories/22628" target="_blank"><img src="https://trendshift.io/api/badge/repositories/22628" alt="decolua%2Fdardcor-code | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+<a href="https://trendshift.io/repositories/22628" target="_blank"><img src="https://trendshift.io/api/badge/repositories/22628" alt="dardcor%2Fdardcor-code | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
-[🚀 Inicio rápido](#-inicio-rápido) • [💡 Características](#-características-principales) • [📖 Configuración](#-guía-de-instalación) • [🌐 Sitio web](https://dardcor-code.com)
+[🚀 Inicio rápido](#-inicio-rápido) • [💡 Características](#-características-principales) • [📖 Configuración](#-guía-de-instalación) • [🌐 Sitio web](https://dardcor-code.web.id)
 
 [🇻🇳 Tiếng Việt](./README.vi.md) • [🇨🇳 中文](./README.zh-CN.md) • [🇯🇵 日本語](./README.ja-JP.md) • [🇷🇺 Русский](./README.ru.md) • [🇹🇭 ไทย](./README.th.md) • [🇮🇷 فارسی](./README.fa_IR.md) • [🇮🇩 Indonesia](./README.id-ID.md) • [🇪🇸 Español](./README.es.md) • [🇫🇷 Français](./README.fr.md)
 
@@ -213,7 +213,7 @@ URLs por defecto:
 
 </div>
 
-> 🎬 **¿Has hecho un video sobre Dardcor Code?** Envía una [Pull Request](https://github.com/decolua/dardcor-code/pulls) añadiendo tu video a esta sección — ¡lo fusionaremos!
+> 🎬 **¿Has hecho un video sobre Dardcor Code?** Envía una [Pull Request](https://github.com/dardcor/dardcor-code/pulls) añadiendo tu video a esta sección — ¡lo fusionaremos!
 
 ---
 
@@ -1127,7 +1127,7 @@ Model: cc/claude-opus-4-7
 
 ```bash
 # Clona e instala
-git clone https://github.com/decolua/dardcor-code.git
+git clone https://github.com/dardcor/dardcor-code.git
 cd dardcor-code
 npm install
 npm run build
@@ -1140,7 +1140,7 @@ export PORT="20128"
 export HOSTNAME="0.0.0.0"
 export NODE_ENV="production"
 export NEXT_PUBLIC_BASE_URL="http://localhost:20128"
-export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.com"
+export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.web.id"
 export API_KEY_SECRET="endpoint-proxy-api-key-secret"
 export MACHINE_ID_SALT="endpoint-proxy-salt"
 
@@ -1158,8 +1158,8 @@ pm2 startup
 
 Imágenes publicadas (multi-plataforma `linux/amd64` + `linux/arm64`):
 
-- Docker Hub: [`decolua/dardcor-code`](https://hub.docker.com/r/decolua/dardcor-code)
-- GHCR: [`ghcr.io/decolua/dardcor-code`](https://github.com/decolua/dardcor-code/pkgs/container/dardcor-code)
+- Docker Hub: [`dardcor/dardcor-code`](https://hub.docker.com/r/dardcor/dardcor-code)
+- GHCR: [`ghcr.io/dardcor/dardcor-code`](https://github.com/dardcor/dardcor-code/pkgs/container/dardcor-code)
 
 **Inicio rápido (usa la imagen publicada):**
 
@@ -1169,7 +1169,7 @@ docker run -d \
   -p 20128:20128 \
   -v "$HOME/.dardcor-code:/app/data" \
   -e DATA_DIR=/app/data \
-  decolua/dardcor-code:latest
+  dardcor/dardcor-code:latest
 ```
 
 → Abre http://localhost:20128
@@ -1177,7 +1177,7 @@ docker run -d \
 **Compilar desde el código fuente (dev):**
 
 ```bash
-git clone https://github.com/decolua/dardcor-code.git
+git clone https://github.com/dardcor/dardcor-code.git
 cd dardcor-code/app
 docker build -t dardcor-code .
 docker run -d --name dardcor-code -p 20128:20128 \
@@ -1195,7 +1195,7 @@ docker run -d --name dardcor-code -p 20128:20128 \
 docker logs -f dardcor-code
 docker restart dardcor-code
 docker stop dardcor-code && docker rm dardcor-code
-docker pull decolua/dardcor-code:latest   # actualiza a la última versión
+docker pull dardcor/dardcor-code:latest   # actualiza a la última versión
 ```
 
 **Persistencia de datos:** `$HOME/.dardcor-code/db/data.sqlite` en el host ↔ `/app/data/db/data.sqlite` en el contenedor.
@@ -1211,9 +1211,9 @@ docker pull decolua/dardcor-code:latest   # actualiza a la última versión
 | `HOSTNAME`                                           | por defecto del framework                  | Host de enlace (Docker usa `0.0.0.0` por defecto)                                    |
 | `NODE_ENV`                                           | por defecto del runtime                    | Establece `production` para el despliegue                                            |
 | `BASE_URL`                                           | `http://localhost:20128`                   | URL base interna del lado del servidor usada por los trabajos de sincronización en la nube |
-| `CLOUD_URL`                                          | `https://dardcor-code.com`                      | URL base del endpoint de sincronización en la nube del lado del servidor             |
+| `CLOUD_URL`                                          | `https://dardcor-code.web.id`                      | URL base del endpoint de sincronización en la nube del lado del servidor             |
 | `NEXT_PUBLIC_BASE_URL`                               | `http://localhost:3000`                    | URL base pública/compatible con versiones anteriores (prefiere `BASE_URL` para el runtime del servidor) |
-| `NEXT_PUBLIC_CLOUD_URL`                              | `https://dardcor-code.com`                      | URL de nube pública/compatible (prefiere `CLOUD_URL` para el runtime del servidor)   |
+| `NEXT_PUBLIC_CLOUD_URL`                              | `https://dardcor-code.web.id`                      | URL de nube pública/compatible (prefiere `CLOUD_URL` para el runtime del servidor)   |
 | `API_KEY_SECRET`                                     | `endpoint-proxy-api-key-secret`            | Secreto HMAC para las claves API generadas                                           |
 | `MACHINE_ID_SALT`                                    | `endpoint-proxy-salt`                      | Sal para el hash estable del ID de máquina                                           |
 | `ENABLE_REQUEST_LOGS`                                | `false`                                    | Habilita los registros de solicitudes/respuestas en `logs/`                          |
@@ -1396,9 +1396,9 @@ Authorization: Bearer tu-clave-api
 
 ## 📧 Soporte
 
-- **Sitio web**: [dardcor-code.com](https://dardcor-code.com)
-- **GitHub**: [github.com/decolua/dardcor-code](https://github.com/decolua/dardcor-code)
-- **Problemas**: [github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)
+- **Sitio web**: [dardcor-code.web.id](https://dardcor-code.web.id)
+- **GitHub**: [github.com/dardcor/dardcor-code](https://github.com/dardcor/dardcor-code)
+- **Problemas**: [github.com/dardcor/dardcor-code/issues](https://github.com/dardcor/dardcor-code/issues)
 
 ---
 
@@ -1406,13 +1406,13 @@ Authorization: Bearer tu-clave-api
 
 ¡Gracias a todos los colaboradores que ayudaron a mejorar Dardcor Code!
 
-[![Contributors](https://contrib.rocks/image?repo=decolua/dardcor-code&max=150&columns=15&anon=1&v=20260309)](https://github.com/decolua/dardcor-code/graphs/contributors)
+[![Contributors](https://contrib.rocks/image?repo=dardcor/dardcor-code&max=150&columns=15&anon=1&v=20260309)](https://github.com/dardcor/dardcor-code/graphs/contributors)
 
 ---
 
 ## 📊 Gráfico de estrellas
 
-[![Star Chart](https://starchart.cc/decolua/dardcor-code.svg?variant=adaptive)](https://starchart.cc/decolua/dardcor-code)
+[![Star Chart](https://starchart.cc/dardcor/dardcor-code.svg?variant=adaptive)](https://starchart.cc/dardcor/dardcor-code)
 
 ## 🔀 Forks
 

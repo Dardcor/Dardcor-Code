@@ -74,7 +74,7 @@ npx dardcor-code
 Clona y compila desde GitHub:
 
 ```bash
-git clone https://github.com/decolua/dardcor-code.git
+git clone https://github.com/dardcor/dardcor-code.git
 cd dardcor-code/app
 npm install
 npm run build
@@ -473,6 +473,6 @@ nano ~/.bashrc  # o ~/.zshrc
 
 ## ¿Necesitas ayuda?
 
-- **Sitio web**: [dardcor-code.com](https://dardcor-code.com)
-- **GitHub**: [github.com/decolua/dardcor-code](https://github.com/decolua/dardcor-code)
-- **Issues**: [github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)
+- **Sitio web**: [dardcor-code.web.id](https://dardcor-code.web.id)
+- **GitHub**: [github.com/dardcor/dardcor-code](https://github.com/dardcor/dardcor-code)
+- **Issues**: [github.com/dardcor/dardcor-code/issues](https://github.com/dardcor/dardcor-code/issues)

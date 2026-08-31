@@ -34,7 +34,7 @@ http://localhost:20128/v1
 
 **Cho Dardcor Code cloud:**
 ```
-https://dardcor-code.com
+https://dardcor-code.web.id
 ```
 
 **Các bước:**
@@ -150,7 +150,7 @@ Bạn có thể dùng bất kỳ model nào đã cấu hình trong Dardcor Code 
 
 Để dùng Dardcor Code cloud endpoint thay vì localhost:
 
-1. Trong Cline settings, đặt Base URL: `https://dardcor-code.com`
+1. Trong Cline settings, đặt Base URL: `https://dardcor-code.web.id`
 2. Đảm bảo bạn đã cấu hình API key trong Dardcor Code cloud dashboard
 3. Đảm bảo cloud endpoint đang hoạt động và truy cập được
 

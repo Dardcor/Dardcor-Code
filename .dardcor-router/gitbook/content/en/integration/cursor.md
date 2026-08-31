@@ -11,7 +11,7 @@ Integrate Dardcor Code with Cursor IDE to route your AI requests through Dardcor
 
 ## ⚠️ Important Notes
 
-> **Cloud Endpoint Required**: Cursor routes requests through its own server and does not support localhost endpoints. You must use the Dardcor Code cloud endpoint: `https://dardcor-code.com`
+> **Cloud Endpoint Required**: Cursor routes requests through its own server and does not support localhost endpoints. You must use the Dardcor Code cloud endpoint: `https://dardcor-code.web.id`
 
 > **Cursor Pro Required**: This feature requires a Cursor Pro account to use custom API endpoints.
 
@@ -33,12 +33,12 @@ Integrate Dardcor Code with Cursor IDE to route your AI requests through Dardcor
 Set the base URL to Dardcor Code cloud endpoint:
 
 ```
-https://dardcor-code.com
+https://dardcor-code.web.id
 ```
 
 **Steps:**
 1. In the Models settings, locate the **Base URL** field
-2. Enter: `https://dardcor-code.com`
+2. Enter: `https://dardcor-code.web.id`
 3. Click **Save**
 
 ### 4. Add API Key
@@ -66,7 +66,7 @@ Your Cursor settings should look like this:
 
 ```
 OpenAI API: ✓ Enabled
-Base URL: https://dardcor-code.com
+Base URL: https://dardcor-code.web.id
 API Key: sk-dardcor-code-xxxxxxxxxxxxx
 Custom Models: gpt-4, claude-opus-4-5, gemini-2.0-flash
 ```
@@ -123,14 +123,14 @@ You can use any model configured in your Dardcor Code dashboard. Common examples
 
 ### Connection Issues
 
-1. Verify you are using the cloud endpoint: `https://dardcor-code.com`
+1. Verify you are using the cloud endpoint: `https://dardcor-code.web.id`
 2. Check your internet connection
 3. Ensure Dardcor Code cloud service is operational
 4. Try disabling VPN or proxy if enabled
 
 ### Localhost Not Working
 
-> **Remember**: Cursor does not support localhost endpoints. You must use the cloud endpoint `https://dardcor-code.com`. If you need to use a local Dardcor Code instance, consider using a tunneling service like ngrok to expose your local endpoint.
+> **Remember**: Cursor does not support localhost endpoints. You must use the cloud endpoint `https://dardcor-code.web.id`. If you need to use a local Dardcor Code instance, consider using a tunneling service like ngrok to expose your local endpoint.
 
 ## Cloud Endpoint Setup
 

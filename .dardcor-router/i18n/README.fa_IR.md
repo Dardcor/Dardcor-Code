@@ -9,13 +9,13 @@
   
   [![npm](https://img.shields.io/npm/v/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
   [![Downloads](https://img.shields.io/npm/dm/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
-  [![Docker Pulls](https://img.shields.io/docker/pulls/decolua/dardcor-code.svg?logo=docker&label=Docker%20pulls)](https://hub.docker.com/r/decolua/dardcor-code)
-  [![GHCR](https://img.shields.io/badge/GHCR-decolua%2Fdardcor-code-blue?logo=github)](https://github.com/decolua/dardcor-code/pkgs/container/dardcor-code)
-  [![License](https://img.shields.io/npm/l/dardcor-code.svg)](https://github.com/decolua/dardcor-code/blob/main/LICENSE)
+  [![Docker Pulls](https://img.shields.io/docker/pulls/dardcor/dardcor-code.svg?logo=docker&label=Docker%20pulls)](https://hub.docker.com/r/dardcor/dardcor-code)
+  [![GHCR](https://img.shields.io/badge/GHCR-dardcor%2Fdardcor-code-blue?logo=github)](https://github.com/dardcor/dardcor-code/pkgs/container/dardcor-code)
+  [![License](https://img.shields.io/npm/l/dardcor-code.svg)](https://github.com/dardcor/dardcor-code/blob/main/LICENSE)
 
-<a href="https://trendshift.io/repositories/22628" target="_blank"><img src="https://trendshift.io/api/badge/repositories/22628" alt="decolua%2Fdardcor-code | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+<a href="https://trendshift.io/repositories/22628" target="_blank"><img src="https://trendshift.io/api/badge/repositories/22628" alt="dardcor%2Fdardcor-code | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
-[🚀 شروع سریع](#-شروع-سریع) • [💡 ویژگی‌ها](#-ویژگی‌های-کلیدی) • [📖 راه‌اندازی](#-راهنمای-راه‌اندازی) • [🌐 وب‌سایت](https://dardcor-code.com)
+[🚀 شروع سریع](#-شروع-سریع) • [💡 ویژگی‌ها](#-ویژگی‌های-کلیدی) • [📖 راه‌اندازی](#-راهنمای-راه‌اندازی) • [🌐 وب‌سایت](https://dardcor-code.web.id)
 
 [🇻🇳 Tiếng Việt](./i18n/README.vi.md) • [🇨🇳 中文](./i18n/README.zh-CN.md) • [🇯🇵 日本語](./i18n/README.ja-JP.md) • [🇷🇺 Русский](./i18n/README.ru.md) • [🇮🇷 فارسی](./i18n/README.fa_IR.md)
 
@@ -213,7 +213,7 @@ PORT=20128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run 
 
 </div>
 
-> 🎬 **درباره Dardcor Code ویدیو ساخته‌اید؟** یک [درخواست Pull](https://github.com/decolua/dardcor-code/pulls) برای افزودن ویدیوی خود به این بخش ارسال کنید — ما آن را ادغام خواهیم کرد!
+> 🎬 **درباره Dardcor Code ویدیو ساخته‌اید؟** یک [درخواست Pull](https://github.com/dardcor/dardcor-code/pulls) برای افزودن ویدیوی خود به این بخش ارسال کنید — ما آن را ادغام خواهیم کرد!
 
 ---
 
@@ -1125,7 +1125,7 @@ codex "your prompt"
 
 ```bash
 # کلون و نصب
-git clone https://github.com/decolua/dardcor-code.git
+git clone https://github.com/dardcor/dardcor-code.git
 cd dardcor-code
 npm install
 npm run build
@@ -1138,7 +1138,7 @@ export PORT="20128"
 export HOSTNAME="0.0.0.0"
 export NODE_ENV="production"
 export NEXT_PUBLIC_BASE_URL="http://localhost:20128"
-export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.com"
+export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.web.id"
 export API_KEY_SECRET="endpoint-proxy-api-key-secret"
 export MACHINE_ID_SALT="endpoint-proxy-salt"
 
@@ -1156,8 +1156,8 @@ pm2 startup
 
 تصاویر منتشر شده (چند پلتفرم `linux/amd64` + `linux/arm64`):
 
-- Docker Hub: [`decolua/dardcor-code`](https://hub.docker.com/r/decolua/dardcor-code)
-- GHCR: [`ghcr.io/decolua/dardcor-code`](https://github.com/decolua/dardcor-code/pkgs/container/dardcor-code)
+- Docker Hub: [`dardcor/dardcor-code`](https://hub.docker.com/r/dardcor/dardcor-code)
+- GHCR: [`ghcr.io/dardcor/dardcor-code`](https://github.com/dardcor/dardcor-code/pkgs/container/dardcor-code)
 
 **شروع سریع (استفاده از تصویر منتشر شده):**
 
@@ -1167,7 +1167,7 @@ docker run -d \
   -p 20128:20128 \
   -v "$HOME/.dardcor-code:/app/data" \
   -e DATA_DIR=/app/data \
-  decolua/dardcor-code:latest
+  dardcor/dardcor-code:latest
 ```
 
 → باز کردن http://localhost:20128
@@ -1175,7 +1175,7 @@ docker run -d \
 **ساخت از سورس (توسعه):**
 
 ```bash
-git clone https://github.com/decolua/dardcor-code.git
+git clone https://github.com/dardcor/dardcor-code.git
 cd dardcor-code/app
 docker build -t dardcor-code .
 docker run -d --name dardcor-code -p 20128:20128 \
@@ -1193,7 +1193,7 @@ docker run -d --name dardcor-code -p 20128:20128 \
 docker logs -f dardcor-code
 docker restart dardcor-code
 docker stop dardcor-code && docker rm dardcor-code
-docker pull decolua/dardcor-code:latest   # به‌روزرسانی به آخرین نسخه
+docker pull dardcor/dardcor-code:latest   # به‌روزرسانی به آخرین نسخه
 ```
 
 **ماندگاری داده:** `$HOME/.dardcor-code/db/data.sqlite` در میزبان ↔ `/app/data/db/data.sqlite` در کانتینر.
@@ -1209,9 +1209,9 @@ docker pull decolua/dardcor-code:latest   # به‌روزرسانی به آخر�
 | `HOSTNAME`                                           | پیش‌فرض فریم‌ورک                        | هاست بایند (داکر پیش‌فرض `۰.۰.۰.۰` است)                                            |
 | `NODE_ENV`                                           | پیش‌فرض زمان اجرا                          | برای استقرار `production` را تنظیم کنید                                                         |
 | `BASE_URL`                                           | `http://localhost:20128`                 | آدرس پایه داخلی سمت سرور که توسط کارهای همگام‌سازی ابری استفاده می‌شود                               |
-| `CLOUD_URL`                                          | `https://dardcor-code.com`                    | آدرس پایه نقطه پایانی همگام‌سازی ابری سمت سرور                                            |
+| `CLOUD_URL`                                          | `https://dardcor-code.web.id`                    | آدرس پایه نقطه پایانی همگام‌سازی ابری سمت سرور                                            |
 | `NEXT_PUBLIC_BASE_URL`                               | `http://localhost:3000`                  | آدرس پایه عمومی/سازگار با گذشته (برای زمان اجرای سرور `BASE_URL` را ترجیح دهید)          |
-| `NEXT_PUBLIC_CLOUD_URL`                              | `https://dardcor-code.com`                    | آدرس ابری عمومی/سازگار با گذشته (برای زمان اجرای سرور `CLOUD_URL` را ترجیح دهید)        |
+| `NEXT_PUBLIC_CLOUD_URL`                              | `https://dardcor-code.web.id`                    | آدرس ابری عمومی/سازگار با گذشته (برای زمان اجرای سرور `CLOUD_URL` را ترجیح دهید)        |
 | `API_KEY_SECRET`                                     | `endpoint-proxy-api-key-secret`          | راز HMAC برای کلیدهای API تولید شده                                                  |
 | `MACHINE_ID_SALT`                                    | `endpoint-proxy-salt`                    | نمک برای هش کردن شناسه ماشین پایدار                                                  |
 | `ENABLE_REQUEST_LOGS`                                | `false`                                  | لاگ‌های درخواست/پاسخ را در `logs/` فعال می‌کند                                         |
@@ -1394,9 +1394,9 @@ Authorization: Bearer your-api-key
 
 ## 📧 پشتیبانی
 
-- **وب‌سایت**: [dardcor-code.com](https://dardcor-code.com)
-- **GitHub**: [github.com/decolua/dardcor-code](https://github.com/decolua/dardcor-code)
-- **مسائل**: [github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)
+- **وب‌سایت**: [dardcor-code.web.id](https://dardcor-code.web.id)
+- **GitHub**: [github.com/dardcor/dardcor-code](https://github.com/dardcor/dardcor-code)
+- **مسائل**: [github.com/dardcor/dardcor-code/issues](https://github.com/dardcor/dardcor-code/issues)
 
 ---
 
@@ -1404,13 +1404,13 @@ Authorization: Bearer your-api-key
 
 با تشکر از همه مشارکت‌کنندگانی که به بهتر شدن Dardcor Code کمک کردند!
 
-[![Contributors](https://contrib.rocks/image?repo=decolua/dardcor-code&max=150&columns=15&anon=1&v=20260309)](https://github.com/decolua/dardcor-code/graphs/contributors)
+[![Contributors](https://contrib.rocks/image?repo=dardcor/dardcor-code&max=150&columns=15&anon=1&v=20260309)](https://github.com/dardcor/dardcor-code/graphs/contributors)
 
 ---
 
 ## 📊 نمودار ستاره
 
-[![Star Chart](https://starchart.cc/decolua/dardcor-code.svg?variant=adaptive)](https://starchart.cc/decolua/dardcor-code)
+[![Star Chart](https://starchart.cc/dardcor/dardcor-code.svg?variant=adaptive)](https://starchart.cc/dardcor/dardcor-code)
 
 ## 🔀 فورک‌ها
 

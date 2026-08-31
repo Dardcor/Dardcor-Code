@@ -13,9 +13,9 @@
   
   [![npm](https://img.shields.io/npm/v/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
   [![Downloads](https://img.shields.io/npm/dm/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
-  [![License](https://img.shields.io/npm/l/dardcor-code.svg)](https://github.com/decolua/dardcor-code/blob/main/LICENSE)
+  [![License](https://img.shields.io/npm/l/dardcor-code.svg)](https://github.com/dardcor/dardcor-code/blob/main/LICENSE)
   
-  [🚀 快速开始](#-quick-start) • [💡 特性](#-key-features) • [📖 设置](#-setup) • [🌐 网站](https://dardcor-code.com)
+  [🚀 快速开始](#-quick-start) • [💡 特性](#-key-features) • [📖 设置](#-setup) • [🌐 网站](https://dardcor-code.web.id)
 </div>
 
 ---
@@ -946,7 +946,7 @@ Model: cc/claudeus-4-6
 
 ```bash
 # Clone and install
-git clone https://github.com/decolua/dardcor-code.git
+git clone https://github.com/dardcor/dardcor-code.git
 cd dardcor-code
 npm install
 npm run build
@@ -959,7 +959,7 @@ export PORT="20128"
 export HOSTNAME="0.0.0.0"
 export NODE_ENV="production"
 export NEXT_PUBLIC_BASE_URLhttp://localhost:20128"
-export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.com"
+export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.web.id"
 export API_KEY_SECRET="endpoint-proxy-api-key-secret"
 export MACHINE_ID_SALT="endpoint-proxy-salt"
 
@@ -1023,9 +1023,9 @@ docker stop dardcor-code && docker rm dardcor-code
 | `HOSTNAME` | 框架默认值 | 绑定主机（Docker 默认为 `0.0.0.0`） |
 | `NODE_ENV` | 运行时默认值 | 部署时设置 `production` |
 | `BASE_URL` |http://localhost:20128` | 云同步作业使用的服务器端内部基础 URL |
-| `CLOUD_URL` | `https://dardcor-code.com` | 服务器端云同步端点基础 URL |
+| `CLOUD_URL` | `https://dardcor-code.web.id` | 服务器端云同步端点基础 URL |
 | `NEXT_PUBLIC_BASE_URL` | `http://localhost:3000` | 向后兼容/公共基础 URL（服务器运行时优先使用 `BASE_URL`） |
-| `NEXT_PUBLIC_CLOUD_URL` | `https://dardcor-code.com` | 向后兼容/公共云 URL（服务器运行时优先使用 `CLOUD_URL`） |
+| `NEXT_PUBLIC_CLOUD_URL` | `https://dardcor-code.web.id` | 向后兼容/公共云 URL（服务器运行时优先使用 `CLOUD_URL`） |
 | `API_KEY_SECRET` | `endpoint-proxy-api-secret` | 生成的 API Key 的 HMAC 密钥 |
 | `MACHINE_ID_SALT` | `endpoint-proxy-salt` | 稳定机器 ID 哈希的盐值 |
 | `ENABLE_REQUEST_LOGS` | `false` | 在 `logs/` 下启用请求/响应日志 |
@@ -1118,11 +1118,11 @@ docker stop dardcor-code && docker rm dardcor-code
 
 **云端同步错误**
 - 验证 `BASE_URL` 指向您正在运行的实例（例如：`http://localhost:20128`）
-- 验证 `CLOUD_URL` 指向您预期的云端端点（例如：`https://dardcor-code.com`）
+- 验证 `CLOUD_URL` 指向您预期的云端端点（例如：`https://dardcor-code.web.id`）
 - 尽可能保持 `NEXT_PUBLIC_*` 值与服务器端值一致。
 
 **云端端点 `stream=false` 返回 500（`Unexpected token 'd'...`）**
-- 症状通常出现在公共云端端点（`https://dardcor-code.com/v1`）的非流式调用上。
+- 症状通常出现在公共云端端点（`https://dardcor-code.web.id/v1`）的非流式调用上。
 - 根本原因：上游返回 SSE 负载（`data: ...`）而客户端期望 JSON。
 - 变通方法：对云端直接调用使用 `stream=true`。
 - 当上游返回 `text/event-stream` 时，本地 Dardcor Code 运行时包含 SSE→JSON 回退用于非流式调用。
@@ -1196,7 +1196,7 @@ Authorization: Bearer your-api-key
 - `tester/security/test-docker-hardening.sh`
   - 构建 Docker 镜像并验证加固检查（`/api/cloud/auth` 认证保护、`REQUIRE_API_KEY`、安全认证 cookie 行为）。
 - `tester/security/test-cloud-openai-compatible.sh`
-  - 使用提供的模型/密钥向云端端点（`https://dardcor-code.com/v1/chat/completions`）发送直接的 OpenAI 兼容请求。
+  - 使用提供的模型/密钥向云端端点（`https://dardcor-code.web.id/v1/chat/completions`）发送直接的 OpenAI 兼容请求。
 - `tester/security/test-cloud-sync-and-call.sh`
   - 端到端流程：创建本地密钥 -> 启用/同步云端 -> 带重试调用云端端点。
   - 包含使用 `stream` 的回退检查，以区分认证错误和非流式解析问题。
@@ -1216,7 +1216,7 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 
 - 本地运行时（`http://127.0.0.1:20128/v1/chat/completions`）：使用 `stream=false` 和 `stream=true` 都可以工作。
 - Docker 运行时（容器暴露的相同 API 路径）：加固检查通过，云端认证保护工作，启用时严格 API 密钥模式工作。
-- 公共云端端点（`https://dardcor-code.com/v1/chat/completions`）：
+- 公共云端端点（`https://dardcor-code.web.id/v1/chat/completions`）：
   - `stream=true`：预期成功（返回 SSE 块）。
   - `stream=false`：当上游向非流式客户端路径返回 SSE 内容时，可能失败并显示 `500` + 解析错误（`Unexpected token 'd'`）。
 
@@ -1254,9 +1254,9 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 
 ## 📧 支持
 
-- **网站**：[dardcor-code.com](https://dardcor-code.com)
-- **GitHub**：[github.com/decolua/dardcor-code](https://github.com/decolua/dardcor-code)
-- **问题**：[github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)
+- **网站**：[dardcor-code.web.id](https://dardcor-code.web.id)
+- **GitHub**：[github.com/dardcor/dardcor-code](https://github.com/dardcor/dardcor-code)
+- **问题**：[github.com/dardcor/dardcor-code/issues](https://github.com/dardcor/dardcor-code/issues)
 
 ---
 
@@ -1264,13 +1264,13 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 
 感谢所有帮助让 Dardcor Code 变得更好的贡献者！
 
-[![Contributors](https://contrib.rocks/image?repo=decolua/dardcor-code&max=100&columns=20&anon=1)](https://github.com/decolua/dardcor-code/graphs/contributors)
+[![Contributors](https://contrib.rocks/image?repo=dardcor/dardcor-code&max=100&columns=20&anon=1)](https://github.com/dardcor/dardcor-code/graphs/contributors)
 
 ---
 
 ## 📊 Star 图表
 
-[![Star Chart](https://starchart.cc/decolua/dardcor-code.svg?variant=adaptive)](https://starchart.cc/decolua/dardcor-code)
+[![Star Chart](https://starchart.cc/dardcor/dardcor-code.svg?variant=adaptive)](https://starchart.cc/dardcor/dardcor-code)
 
 ### 如何贡献
 
@@ -1280,7 +1280,7 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 4 推送到分支（`git push origin feature/amazing-feature`）
 5. 打开 Pull Request
 
-详细指南请参阅 [Pull Requests](https://github.com/decolua/dardcor-code/pulls)。
+详细指南请参阅 [Pull Requests](https://github.com/dardcor/dardcor-code/pulls)。
 
 ---
 

@@ -11,7 +11,7 @@
 
 ## ⚠️ 重要说明
 
-> **必须使用云端 Endpoint**:Cursor 会通过自己的服务器转发请求,不支持 localhost endpoint。你必须使用 Dardcor Code 云端 endpoint:`https://dardcor-code.com`
+> **必须使用云端 Endpoint**:Cursor 会通过自己的服务器转发请求,不支持 localhost endpoint。你必须使用 Dardcor Code 云端 endpoint:`https://dardcor-code.web.id`
 
 > **必须有 Cursor Pro**:此功能需要 Cursor Pro 账户才能使用自定义 API endpoint。
 
@@ -33,12 +33,12 @@
 将 base URL 设为 Dardcor Code 云端 endpoint:
 
 ```
-https://dardcor-code.com
+https://dardcor-code.web.id
 ```
 
 **步骤:**
 1. 在 Models 设置中找到 **Base URL** 字段
-2. 输入:`https://dardcor-code.com`
+2. 输入:`https://dardcor-code.web.id`
 3. 点击 **Save**
 
 ### 4. 添加 API Key
@@ -66,7 +66,7 @@ https://dardcor-code.com
 
 ```
 OpenAI API: ✓ 已启用
-Base URL: https://dardcor-code.com
+Base URL: https://dardcor-code.web.id
 API Key: sk-dardcor-code-xxxxxxxxxxxxx
 Custom Models: gpt-4, claude-opus-4-5, gemini-2.0-flash
 ```
@@ -123,14 +123,14 @@ Custom Models: gpt-4, claude-opus-4-5, gemini-2.0-flash
 
 ### 连接问题
 
-1. 确认使用的是云端 endpoint:`https://dardcor-code.com`
+1. 确认使用的是云端 endpoint:`https://dardcor-code.web.id`
 2. 检查网络连接
 3. 确认 Dardcor Code 云端服务运行正常
 4. 若启用了 VPN 或代理,尝试关闭
 
 ### Localhost 无法使用
 
-> **请记住**:Cursor 不支持 localhost endpoint。你必须使用云端 endpoint `https://dardcor-code.com`。如果需要使用本地 Dardcor Code 实例,可以考虑使用 ngrok 之类的隧道服务把本地 endpoint 暴露到公网。
+> **请记住**:Cursor 不支持 localhost endpoint。你必须使用云端 endpoint `https://dardcor-code.web.id`。如果需要使用本地 Dardcor Code 实例,可以考虑使用 ngrok 之类的隧道服务把本地 endpoint 暴露到公网。
 
 ## 云端 Endpoint 设置
 

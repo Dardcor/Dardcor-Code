@@ -103,7 +103,7 @@ Claude Code 将配置存储在 `~/.claude/settings.json`。如有需要可手动
 使用 Dardcor Code 云端 endpoint 而非 localhost:
 
 ```bash
-export ANTHROPIC_BASE_URL="https://dardcor-code.com"
+export ANTHROPIC_BASE_URL="https://dardcor-code.web.id"
 ```
 
 确保已在 Dardcor Code 云端仪表盘中配置 API key。

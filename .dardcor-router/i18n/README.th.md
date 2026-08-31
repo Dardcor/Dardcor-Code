@@ -15,9 +15,9 @@
   
   [![npm](https://img.shields.io/npm/v/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
   [![Downloads](https://img.shields.io/npm/dm/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
-  [![License](https://img.shields.io/npm/l/dardcor-code.svg)](https://github.com/decolua/dardcor-code/blob/main/LICENSE)
+  [![License](https://img.shields.io/npm/l/dardcor-code.svg)](https://github.com/dardcor/dardcor-code/blob/main/LICENSE)
   
-  [🚀 เริ่มต้นใช้งาน](#-quick-start) • [💡 ฟีเจอร์](#-key-features) • [📖 การตั้งค่า](#-setup-guide) • [🌐 เว็บไซต์](https://dardcor-code.com)
+  [🚀 เริ่มต้นใช้งาน](#-quick-start) • [💡 ฟีเจอร์](#-key-features) • [📖 การตั้งค่า](#-setup-guide) • [🌐 เว็บไซต์](https://dardcor-code.web.id)
 </div>
 
 ---
@@ -698,9 +698,9 @@ Authorization: Bearer your-api-key
 
 ## 📧 สนับสนุน
 
-- **เว็บไซต์**: [dardcor-code.com](https://dardcor-code.com)
-- **GitHub**: [github.com/decolua/dardcor-code](https://github.com/decolua/dardcor-code)
-- **Issues**: [github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)
+- **เว็บไซต์**: [dardcor-code.web.id](https://dardcor-code.web.id)
+- **GitHub**: [github.com/dardcor/dardcor-code](https://github.com/dardcor/dardcor-code)
+- **Issues**: [github.com/dardcor/dardcor-code/issues](https://github.com/dardcor/dardcor-code/issues)
 
 ---
 
@@ -708,7 +708,7 @@ Authorization: Bearer your-api-key
 
 ขอขอบคุณผู้มีส่วนร่วมทุกคนที่ช่วยทำให้ Dardcor Code ดียิ่งขึ้น!
 
-[![Contributors](https://contrib.rocks/image?repo=decolua/dardcor-code&max=150&columns=15&anon=1)](https://github.com/decolua/dardcor-code/graphs/contributors)
+[![Contributors](https://contrib.rocks/image?repo=dardcor/dardcor-code&max=150&columns=15&anon=1)](https://github.com/dardcor/dardcor-code/graphs/contributors)
 
 ---
 

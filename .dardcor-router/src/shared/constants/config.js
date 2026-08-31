@@ -9,7 +9,7 @@ export const APP_CONFIG = {
 
 // GitHub configuration
 export const GITHUB_CONFIG = {
-  changelogUrl: "https://raw.githubusercontent.com/decolua/dardcor-code/refs/heads/master/CHANGELOG.md",
+  changelogUrl: "https://raw.githubusercontent.com/dardcor/dardcor-code/refs/heads/master/CHANGELOG.md",
   donateUrl: "https://dardcor-code.web.id/api/donate",
 };
 

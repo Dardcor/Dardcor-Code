@@ -11,7 +11,7 @@ Dardcor CodeをCursor IDEと統合し、AIリクエストをDardcor Codeのイ�
 
 ## ⚠️ 重要な注意点
 
-> **クラウドエンドポイントが必要**: Cursorは独自のサーバー経由でリクエストをルーティングし、localhostエンドポイントをサポートしません。Dardcor Codeクラウドエンドポイント `https://dardcor-code.com` を使用する必要があります。
+> **クラウドエンドポイントが必要**: Cursorは独自のサーバー経由でリクエストをルーティングし、localhostエンドポイントをサポートしません。Dardcor Codeクラウドエンドポイント `https://dardcor-code.web.id` を使用する必要があります。
 
 > **Cursor Proが必要**: この機能はカスタムAPIエンドポイントを使用するためにCursor Proアカウントが必要です。
 
@@ -33,12 +33,12 @@ Dardcor CodeをCursor IDEと統合し、AIリクエストをDardcor Codeのイ�
 Base URLをDardcor Codeクラウドエンドポイントに設定:
 
 ```
-https://dardcor-code.com
+https://dardcor-code.web.id
 ```
 
 **手順:**
 1. Models設定で **Base URL** フィールドを見つける
-2. 入力: `https://dardcor-code.com`
+2. 入力: `https://dardcor-code.web.id`
 3. **Save** をクリック
 
 ### 4. APIキーを追加
@@ -66,7 +66,7 @@ Cursor設定は次のようになります:
 
 ```
 OpenAI API: ✓ Enabled
-Base URL: https://dardcor-code.com
+Base URL: https://dardcor-code.web.id
 API Key: sk-dardcor-code-xxxxxxxxxxxxx
 Custom Models: gpt-4, claude-opus-4-5, gemini-2.0-flash
 ```
@@ -123,14 +123,14 @@ Dardcor Codeダッシュボードで設定されたモデルを使用できま�
 
 ### 接続の問題
 
-1. クラウドエンドポイントを使用しているか確認: `https://dardcor-code.com`
+1. クラウドエンドポイントを使用しているか確認: `https://dardcor-code.web.id`
 2. インターネット接続を確認
 3. Dardcor Codeクラウドサービスが運用中か確認
 4. VPNまたはプロキシが有効な場合は無効化してみる
 
 ### Localhostが動作しない
 
-> **覚えておいてください**: Cursorはlocalhostエンドポイントをサポートしません。クラウドエンドポイント `https://dardcor-code.com` を使用する必要があります。ローカルDardcor Codeインスタンスを使用したい場合は、ngrokなどのトンネリングサービスを検討してローカルエンドポイントを公開してください。
+> **覚えておいてください**: Cursorはlocalhostエンドポイントをサポートしません。クラウドエンドポイント `https://dardcor-code.web.id` を使用する必要があります。ローカルDardcor Codeインスタンスを使用したい場合は、ngrokなどのトンネリングサービスを検討してローカルエンドポイントを公開してください。
 
 ## クラウドエンドポイントのセットアップ
 

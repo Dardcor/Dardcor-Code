@@ -6,7 +6,7 @@ Integrate Dardcor Code with Continue extension to bring AI assistance directly i
 
 - Visual Studio Code installed
 - Continue extension installed from VSCode marketplace
-- Dardcor Code API key from [dashboard](https://dardcor-code.com/dashboard)
+- Dardcor Code API key from [dashboard](https://dardcor-code.web.id/dashboard)
 - Dardcor Code running (local or cloud)
 
 ## Configuration Steps
@@ -76,7 +76,7 @@ Add the following configuration to your `config.json`:
 **For Cloud Dardcor Code:**
 Replace `apiBase` with:
 ```json
-"apiBase": "https://dardcor-code.com/v1"
+"apiBase": "https://dardcor-code.web.id/v1"
 ```
 
 ### 3. Save and Reload

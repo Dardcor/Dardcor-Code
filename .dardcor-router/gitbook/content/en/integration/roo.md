@@ -5,7 +5,7 @@ Integrate Dardcor Code with Roo AI Assistant to access multiple AI models throug
 ## Prerequisites
 
 - Roo AI Assistant installed
-- Dardcor Code API key from [dashboard](https://dardcor-code.com/dashboard)
+- Dardcor Code API key from [dashboard](https://dardcor-code.web.id/dashboard)
 - Dardcor Code running (local or cloud)
 
 ## Configuration Steps
@@ -28,7 +28,7 @@ API Key: your-api-key-from-dashboard
 
 **For Cloud Dardcor Code:**
 ```
-Base URL: https://dardcor-code.com/v1
+Base URL: https://dardcor-code.web.id/v1
 API Key: your-api-key-from-dashboard
 ```
 

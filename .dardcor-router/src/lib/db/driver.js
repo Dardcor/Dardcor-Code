@@ -28,7 +28,50 @@ function scheduleJsonSave(adapter) {
   }, 1000);
 }
 
+function flushJsonSaveSync(adapter) {
+  try {
+    const tables = adapter.all("SELECT name FROM sqlite_master WHERE type='table'");
+    const dump = {};
+    for (const t of tables) {
+      if (t.name === 'sqlite_sequence') continue;
+      dump[t.name] = adapter.all(`SELECT * FROM ${t.name}`);
+    }
+    fs.writeFileSync(DATA_FILE_JSON, JSON.stringify(dump, null, 2), "utf-8");
+  } catch (e) {
+    console.error("[DB] Failed to save database.json:", e.message);
+  }
+}
+
 function importFromJson(adapter) {
+  // If database.json doesn't exist yet, check for legacy data.sqlite and migrate data from it
+  const legacySqlite = path.join(DB_DIR, "data.sqlite");
+  if (!fs.existsSync(DATA_FILE_JSON) && fs.existsSync(legacySqlite)) {
+    try {
+      const { DatabaseSync } = require("node:sqlite");
+      const oldDb = new DatabaseSync(legacySqlite);
+      const tables = oldDb.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
+      adapter.transaction(() => {
+        for (const t of tables) {
+          if (t.name === 'sqlite_sequence') continue;
+          const rows = oldDb.prepare(`SELECT * FROM ${t.name}`).all();
+          if (!rows || rows.length === 0) continue;
+          const cols = Object.keys(rows[0]).map(c => `"${c}"`).join(", ");
+          const placeholders = Object.keys(rows[0]).map(() => "?").join(", ");
+          const stmt = `INSERT OR REPLACE INTO ${t.name} (${cols}) VALUES (${placeholders})`;
+          for (const row of rows) {
+            adapter.run(stmt, Object.values(row));
+          }
+        }
+      });
+      oldDb.close();
+      flushJsonSaveSync(adapter);
+      console.log(`[DB] Migrated data from legacy ${legacySqlite} to ${DATA_FILE_JSON}`);
+      return;
+    } catch (e) {
+      console.warn(`[DB] Migration from legacy data.sqlite failed: ${e.message}`);
+    }
+  }
+
   if (!fs.existsSync(DATA_FILE_JSON)) return;
   try {
     const dump = JSON.parse(fs.readFileSync(DATA_FILE_JSON, "utf-8"));
@@ -53,10 +96,10 @@ function importFromJson(adapter) {
   }
 }
 
-function createMemoryAdapter(databasePath = ":memory:") {
+function createMemoryAdapter() {
   try {
     const { DatabaseSync } = require("node:sqlite");
-    const db = new DatabaseSync(databasePath);
+    const db = new DatabaseSync(":memory:");
     
     function executeStmt(stmt, method, params) {
       if (!params || (Array.isArray(params) && params.length === 0)) {
@@ -110,27 +153,21 @@ function createMemoryAdapter(databasePath = ":memory:") {
 async function initAdapter() {
   ensureDirs();
   
-  // Prefer the persistent SQLite database. JSON remains the fallback for fresh
-  // installs where no database file exists yet.
-  const usesPersistentSqlite = fs.existsSync(DATA_FILE);
-  let adapter = createMemoryAdapter(usesPersistentSqlite ? DATA_FILE : ":memory:");
+  const adapter = createMemoryAdapter();
   if (!adapter) throw new Error("[DB] JSON Store initialization failed");
 
   // Run migrations FIRST to create schema before importing JSON
   const { runMigrationOnce } = await import("./migrate.js");
   await runMigrationOnce(adapter);
 
-  // Import existing JSON data only for fresh/fallback stores. Never overlay it
-  // on SQLite: that would hide connections already stored in data.sqlite.
-  if (!usesPersistentSqlite) {
-    importFromJson(adapter);
-  }
+  // Import existing JSON data
+  importFromJson(adapter);
 
-  // Wrap adapter methods to intercept writes
+  // Wrap adapter methods to intercept writes and sync to database.json
   const originalRun = adapter.run.bind(adapter);
   adapter.run = (sql, params) => {
     const res = originalRun(sql, params);
-    if (!usesPersistentSqlite && !sql.toUpperCase().startsWith("SELECT")) {
+    if (!sql.toUpperCase().startsWith("SELECT")) {
       scheduleJsonSave(adapter);
     }
     return res;
@@ -139,14 +176,12 @@ async function initAdapter() {
   const originalTransaction = adapter.transaction.bind(adapter);
   adapter.transaction = (fn) => {
     const res = originalTransaction(fn);
-    if (!usesPersistentSqlite) scheduleJsonSave(adapter);
+    scheduleJsonSave(adapter);
     return res;
   };
 
   if (!state.logged) {
-    console.log(usesPersistentSqlite
-      ? `[DB] Driver: SQLite | file: ${DATA_FILE}`
-      : `[DB] Driver: JSON Store | syncing to JSON: ${DATA_FILE_JSON}`);
+    console.log(`[DB] Driver: JSON Store | file: ${DATA_FILE_JSON}`);
     state.logged = true;
   }
 

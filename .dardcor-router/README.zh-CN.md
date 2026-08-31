@@ -10,11 +10,11 @@
   
   [![npm](https://img.shields.io/npm/v/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
   [![Downloads](https://img.shields.io/npm/dm/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
-  [![License](https://img.shields.io/npm/l/dardcor-code.svg)](https://github.com/decolua/dardcor-code/blob/main/LICENSE)
+  [![License](https://img.shields.io/npm/l/dardcor-code.svg)](https://github.com/dardcor/dardcor-code/blob/main/LICENSE)
 
-  <a href="https://trendshift.io/repositories/22628" target="_blank"><img src="https://trendshift.io/api/badge/repositories/22628" alt="decolua%2Fdardcor-code | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+  <a href="https://trendshift.io/repositories/22628" target="_blank"><img src="https://trendshift.io/api/badge/repositories/22628" alt="dardcor%2Fdardcor-code | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
   
-  [🚀 快速开始](#-快速开始) • [💡 功能特点](#-主要功能) • [📖 设置指南](#-设置指南) • [🌐 网站](https://dardcor-code.com)
+  [🚀 快速开始](#-快速开始) • [💡 功能特点](#-主要功能) • [📖 设置指南](#-设置指南) • [🌐 网站](https://dardcor-code.web.id)
 
   [🇻🇳 Tiếng Việt](./i18n/README.vi.md) • [🇨🇳 中文](./i18n/README.zh-CN.md) • [🇯🇵 日本語](./i18n/README.ja-JP.md)
 </div>
@@ -173,7 +173,7 @@ PORT=20128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run 
 
 </div>
 
-> 🎬 **制作了关于 Dardcor Code 的视频？** 提交 [Pull Request](https://github.com/decolua/dardcor-code/pulls)，将你的视频添加到此部分 — 我们会合并它！
+> 🎬 **制作了关于 Dardcor Code 的视频？** 提交 [Pull Request](https://github.com/dardcor/dardcor-code/pulls)，将你的视频添加到此部分 — 我们会合并它！
 
 ---
 
@@ -1022,7 +1022,7 @@ Model：cc/claude-opus-4-7
 
 ```bash
 # 克隆并安装
-git clone https://github.com/decolua/dardcor-code.git
+git clone https://github.com/dardcor/dardcor-code.git
 cd dardcor-code
 npm install
 npm run build
@@ -1035,7 +1035,7 @@ export PORT="20128"
 export HOSTNAME="0.0.0.0"
 export NODE_ENV="production"
 export NEXT_PUBLIC_BASE_URL="http://localhost:20128"
-export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.com"
+export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.web.id"
 export API_KEY_SECRET="endpoint-proxy-api-key-secret"
 export MACHINE_ID_SALT="endpoint-proxy-salt"
 
@@ -1100,9 +1100,9 @@ docker stop dardcor-code && docker rm dardcor-code
 | `HOSTNAME` | 框架默认值 | 绑定主机（Docker 默认为 `0.0.0.0`） |
 | `NODE_ENV` | 运行时默认值 | 设置 `production` 用于部署 |
 | `BASE_URL` | `http://localhost:20128` | 云同步任务使用的服务端内部基础 URL |
-| `CLOUD_URL` | `https://dardcor-code.com` | 服务端云同步端点基础 URL |
+| `CLOUD_URL` | `https://dardcor-code.web.id` | 服务端云同步端点基础 URL |
 | `NEXT_PUBLIC_BASE_URL` | `http://localhost:3000` | 向后兼容/公开基础 URL（服务端运行时优先使用 `BASE_URL`） |
-| `NEXT_PUBLIC_CLOUD_URL` | `https://dardcor-code.com` | 向后兼容/公开云 URL（服务端运行时优先使用 `CLOUD_URL`） |
+| `NEXT_PUBLIC_CLOUD_URL` | `https://dardcor-code.web.id` | 向后兼容/公开云 URL（服务端运行时优先使用 `CLOUD_URL`） |
 | `API_KEY_SECRET` | `endpoint-proxy-api-key-secret` | 生成 API key 的 HMAC 密钥 |
 | `MACHINE_ID_SALT` | `endpoint-proxy-salt` | 稳定机器 ID 哈希的盐值 |
 | `ENABLE_REQUEST_LOGS` | `false` | 在 `logs/` 下启用请求/响应日志 |
@@ -1266,9 +1266,9 @@ Authorization: Bearer your-api-key
 
 ## 📧 支持
 
-- **网站**：[dardcor-code.com](https://dardcor-code.com)
-- **GitHub**：[github.com/decolua/dardcor-code](https://github.com/decolua/dardcor-code)
-- **问题**：[github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)
+- **网站**：[dardcor-code.web.id](https://dardcor-code.web.id)
+- **GitHub**：[github.com/dardcor/dardcor-code](https://github.com/dardcor/dardcor-code)
+- **问题**：[github.com/dardcor/dardcor-code/issues](https://github.com/dardcor/dardcor-code/issues)
 
 ---
 
@@ -1276,13 +1276,13 @@ Authorization: Bearer your-api-key
 
 感谢所有帮助改进 Dardcor Code 的贡献者！
 
-[![Contributors](https://contrib.rocks/image?repo=decolua/dardcor-code&max=150&columns=15&anon=1&v=20260309)](https://github.com/decolua/dardcor-code/graphs/contributors)
+[![Contributors](https://contrib.rocks/image?repo=dardcor/dardcor-code&max=150&columns=15&anon=1&v=20260309)](https://github.com/dardcor/dardcor-code/graphs/contributors)
 
 ---
 
 ## 📊 Star 图表
 
-[![Star Chart](https://starchart.cc/decolua/dardcor-code.svg?variant=adaptive)](https://starchart.cc/decolua/dardcor-code)
+[![Star Chart](https://starchart.cc/dardcor/dardcor-code.svg?variant=adaptive)](https://starchart.cc/dardcor/dardcor-code)
 
 
 

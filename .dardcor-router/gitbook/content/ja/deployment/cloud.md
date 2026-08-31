@@ -16,7 +16,7 @@
 ### ステップ1: リポジトリをクローン
 
 ```bash
-git clone https://github.com/decolua/dardcor-code.git
+git clone https://github.com/dardcor/dardcor-code.git
 cd dardcor-code/app
 ```
 

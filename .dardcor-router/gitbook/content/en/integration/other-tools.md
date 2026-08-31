@@ -24,7 +24,7 @@ Model: any Dardcor Code model (cc/*, cx/*, glm/*, etc.)
 
 **Cloud Dardcor Code:**
 ```
-Base URL: https://dardcor-code.com/v1
+Base URL: https://dardcor-code.web.id/v1
 API Key: your-api-key-from-dashboard
 Model: any Dardcor Code model (cc/*, cx/*, glm/*, etc.)
 ```

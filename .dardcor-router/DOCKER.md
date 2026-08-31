@@ -1,6 +1,6 @@
 # Docker
 
-Run Dardcor Code in a container. Published image: [`decolua/dardcor-code`](https://hub.docker.com/r/decolua/dardcor-code) — multi-platform `linux/amd64` + `linux/arm64`.
+Run Dardcor Code in a container. Published image: [`dardcor/dardcor-code`](https://hub.docker.com/r/dardcor/dardcor-code) — multi-platform `linux/amd64` + `linux/arm64`.
 
 ---
 
@@ -14,7 +14,7 @@ docker run -d \
   -v "$HOME/.dardcor-code:/app/data" \
   -e DATA_DIR=/app/data \
   --name dardcor-code \
-  decolua/dardcor-code:latest
+  dardcor/dardcor-code:latest
 ```
 
 App listens on port `20128`. Open: http://localhost:20128
@@ -61,7 +61,7 @@ docker run -d \
   -e HOSTNAME=0.0.0.0 \
   -e DEBUG=true \
   --name dardcor-code \
-  decolua/dardcor-code:latest
+  dardcor/dardcor-code:latest
 ```
 
 ## Optional Headroom sidecar
@@ -71,7 +71,7 @@ The Dardcor Code image does not bundle Python or Headroom. To use Headroom in Do
 ```yaml
 services:
   dardcor-code:
-    image: decolua/dardcor-code:latest
+    image: dardcor/dardcor-code:latest
     ports:
       - "20128:20128"
     volumes:
@@ -95,7 +95,7 @@ If Headroom runs on the Docker host instead of as a sidecar, use `http://host.do
 ## Update to latest
 
 ```bash
-docker pull decolua/dardcor-code:latest
+docker pull dardcor/dardcor-code:latest
 docker rm -f dardcor-code
 # re-run the quick start command
 ```
@@ -118,8 +118,8 @@ docker run --rm -p 20128:20128 \
 ## Publish (automatic via CI)
 
 Push a git tag `v*` → GitHub Actions builds multi-platform (amd64+arm64) and pushes to:
-- `ghcr.io/decolua/dardcor-code:v{version}` + `:latest`
-- `decolua/dardcor-code:v{version}` + `:latest`
+- `ghcr.io/dardcor/dardcor-code:v{version}` + `:latest`
+- `dardcor/dardcor-code:v{version}` + `:latest`
 
 ```bash
 # Use scripts/release.js (recommended)

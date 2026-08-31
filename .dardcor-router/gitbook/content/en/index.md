@@ -143,7 +143,7 @@ Model: cc/claude-opus-4-5-20251101
 
 ### For Mobile/Remote Coding
 
-- Use cloud deployment (https://dardcor-code.com)
+- Use cloud deployment (https://dardcor-code.web.id)
 - Access from iPad, phone, anywhere
 - No localhost limitations
 - Cloudflare edge network (300+ locations)

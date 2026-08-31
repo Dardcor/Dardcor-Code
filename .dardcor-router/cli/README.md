@@ -6,13 +6,13 @@
 
 [![npm](https://img.shields.io/npm/v/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
 [![Downloads](https://img.shields.io/npm/dm/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
-[![Docker Pulls](https://img.shields.io/docker/pulls/decolua/dardcor-code.svg?logo=docker&label=Docker%20pulls)](https://hub.docker.com/r/decolua/dardcor-code)
-[![GHCR](https://img.shields.io/badge/GHCR-decolua%2Fdardcor-code-blue?logo=github)](https://github.com/decolua/dardcor-code/pkgs/container/dardcor-code)
-[![License](https://img.shields.io/npm/l/dardcor-code.svg)](https://github.com/decolua/dardcor-code/blob/main/LICENSE)
+[![Docker Pulls](https://img.shields.io/docker/pulls/dardcor/dardcor-code.svg?logo=docker&label=Docker%20pulls)](https://hub.docker.com/r/dardcor/dardcor-code)
+[![GHCR](https://img.shields.io/badge/GHCR-dardcor%2Fdardcor-code-blue?logo=github)](https://github.com/dardcor/dardcor-code/pkgs/container/dardcor-code)
+[![License](https://img.shields.io/npm/l/dardcor-code.svg)](https://github.com/dardcor/dardcor-code/blob/main/LICENSE)
 
-<a href="https://trendshift.io/repositories/22628" target="_blank"><img src="https://trendshift.io/api/badge/repositories/22628" alt="decolua%2Fdardcor-code | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+<a href="https://trendshift.io/repositories/22628" target="_blank"><img src="https://trendshift.io/api/badge/repositories/22628" alt="dardcor%2Fdardcor-code | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
-[🌐 Website](https://dardcor-code.com) • [📖 Full Docs](https://github.com/decolua/dardcor-code)
+[🌐 Website](https://dardcor-code.web.id) • [📖 Full Docs](https://github.com/dardcor/dardcor-code)
 
 ---
 
@@ -52,10 +52,10 @@ npx dardcor-code
 ```bash
 docker run -d --name dardcor-code -p 20128:20128 \
   -v "$HOME/.dardcor-code:/app/data" -e DATA_DIR=/app/data \
-  decolua/dardcor-code:latest
+  dardcor/dardcor-code:latest
 ```
 
-Published images: [Docker Hub](https://hub.docker.com/r/decolua/dardcor-code) • [GHCR](https://github.com/decolua/dardcor-code/pkgs/container/dardcor-code) (multi-platform amd64/arm64).
+Published images: [Docker Hub](https://hub.docker.com/r/dardcor/dardcor-code) • [GHCR](https://github.com/dardcor/dardcor-code/pkgs/container/dardcor-code) (multi-platform amd64/arm64).
 
 🎉 Dashboard opens at `http://localhost:20128`
 
@@ -110,9 +110,9 @@ Any tool supporting OpenAI/Claude-compatible API works.
 
 Full docs, advanced setup, video tutorials & development guide:
 
-- **GitHub**: https://github.com/decolua/dardcor-code
-- **Full README**: https://github.com/decolua/dardcor-code/blob/main/app/README.md
-- **Website**: https://dardcor-code.com
+- **GitHub**: https://github.com/dardcor/dardcor-code
+- **Full README**: https://github.com/dardcor/dardcor-code/blob/main/app/README.md
+- **Website**: https://dardcor-code.web.id
 
 ---
 

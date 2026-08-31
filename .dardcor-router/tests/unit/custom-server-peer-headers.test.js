@@ -32,7 +32,7 @@ async function get(headers = {}) {
 
 describe("custom-server peer header sanitizing", () => {
   it("generates a peer trust token at boot", () => {
-    expect(process.env.NINEROUTER_PEER_TOKEN).toMatch(/^[0-9a-f]{48}$/);
+    expect(process.env.DARDCORROUTER_PEER_TOKEN).toMatch(/^[0-9a-f]{48}$/);
   });
 
   it("replaces a client-supplied x-9r-real-ip with the socket address", async () => {
@@ -44,13 +44,13 @@ describe("custom-server peer header sanitizing", () => {
   it("stamps the trust token so downstream can tell the wrapper ran", async () => {
     const headers = await get();
 
-    expect(headers["x-9r-peer-token"]).toBe(process.env.NINEROUTER_PEER_TOKEN);
+    expect(headers["x-9r-peer-token"]).toBe(process.env.DARDCORROUTER_PEER_TOKEN);
   });
 
   it("drops a client-supplied peer trust token", async () => {
     const headers = await get({ "x-9r-peer-token": "forged-token" });
 
-    expect(headers["x-9r-peer-token"]).toBe(process.env.NINEROUTER_PEER_TOKEN);
+    expect(headers["x-9r-peer-token"]).toBe(process.env.DARDCORROUTER_PEER_TOKEN);
     expect(headers["x-9r-peer-token"]).not.toBe("forged-token");
   });
 

@@ -113,7 +113,7 @@ If you get "model not available" errors:
 To use Dardcor Code cloud endpoint instead of localhost:
 
 ```bash
-export OPENAI_BASE_URL="https://dardcor-code.com"
+export OPENAI_BASE_URL="https://dardcor-code.web.id"
 ```
 
 Make sure you have configured your API key in the Dardcor Code cloud dashboard.

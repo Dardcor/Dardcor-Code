@@ -103,7 +103,7 @@ If you get "model not found" errors:
 To use Dardcor Code cloud endpoint instead of localhost:
 
 ```bash
-export ANTHROPIC_BASE_URL="https://dardcor-code.com"
+export ANTHROPIC_BASE_URL="https://dardcor-code.web.id"
 ```
 
 Make sure you have configured your API key in the Dardcor Code cloud dashboard.

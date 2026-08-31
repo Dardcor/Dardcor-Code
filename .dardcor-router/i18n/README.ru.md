@@ -13,9 +13,9 @@
   
   [![npm](https://img.shields.io/npm/v/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
   [![Downloads](https://img.shields.io/npm/dm/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
-  [![License](https://img.shields.io/npm/l/dardcor-code.svg)](https://github.com/decolua/dardcor-code/blob/main/LICENSE)
+  [![License](https://img.shields.io/npm/l/dardcor-code.svg)](https://github.com/dardcor/dardcor-code/blob/main/LICENSE)
   
-  [🚀 Быстрый старт](#-quick-start) • [💡 Возможности](#-key-features) • [📖 Установка](#-setup-guide) • [🌐 Сайт](https://dardcor-code.com)
+  [🚀 Быстрый старт](#-quick-start) • [💡 Возможности](#-key-features) • [📖 Установка](#-setup-guide) • [🌐 Сайт](https://dardcor-code.web.id)
 </div>
 
 ---
@@ -948,7 +948,7 @@ Model: cc/claude-opus-4-6
 
 ```bash
 # Clone and install
-git clone https://github.com/decolua/dardcor-code.git
+git clone https://github.com/dardcor/dardcor-code.git
 cd dardcor-code
 npm install
 npm run build
@@ -961,7 +961,7 @@ export PORT="20128"
 export HOSTNAME="0.0.0.0"
 export NODE_ENV="production"
 export NEXT_PUBLIC_BASE_URL="http://localhost:20128"
-export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.com"
+export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.web.id"
 export API_KEY_SECRET="endpoint-proxy-api-key-secret"
 export MACHINE_ID_SALT="endpoint-proxy-salt"
 
@@ -1026,9 +1026,9 @@ docker stop dardcor-code && docker rm dardcor-code
 | `HOSTNAME` | framework default | Bind host (Docker по умолчанию `0.0.0.0`) |
 | `NODE_ENV` | runtime default | Установите `production` для развёртывания |
 | `BASE_URL` | `http://localhost:20128` | Внутренний серверный базовый URL для задач облачной синхронизации |
-| `CLOUD_URL` | `https://dardcor-code.com` | Серверный базовый URL эндпоинта облачной синхронизации |
+| `CLOUD_URL` | `https://dardcor-code.web.id` | Серверный базовый URL эндпоинта облачной синхронизации |
 | `NEXT_PUBLIC_BASE_URL` | `http://localhost:3000` | Обратно совместимый/публичный базовый URL (приоритет `BASE_URL` для серверного рантайма) |
-| `NEXT_PUBLIC_CLOUD_URL` | `https://dardcor-code.com` | Обратно совместимый/публичный облачный URL (приоритет `CLOUD_URL` для серверного рантайма) |
+| `NEXT_PUBLIC_CLOUD_URL` | `https://dardcor-code.web.id` | Обратно совместимый/публичный облачный URL (приоритет `CLOUD_URL` для серверного рантайма) |
 | `API_KEY_SECRET` | `endpoint-proxy-api-key-secret` | HMAC-секрет для генерируемых API-ключей |
 | `MACHINE_ID_SALT` | `endpoint-proxy-salt` | Соль для стабильного хеширования ID машины |
 | `ENABLE_REQUEST_LOGS` | `false` | Включить лог запросов/ответов в `logs/` |
@@ -1122,11 +1122,11 @@ docker stop dardcor-code && docker rm dardcor-code
 
 **Ошибки облачной синхронизации**
 - Убедитесь, что `BASE_URL` указывает на ваш работающий инстанс (например, `http://localhost:20128`)
-- Убедитесь, что `CLOUD_URL` указывает на ожидаемый облачный эндпоинт (например, `https://dardcor-code.com`)
+- Убедитесь, что `CLOUD_URL` указывает на ожидаемый облачный эндпоинт (например, `https://dardcor-code.web.id`)
 - По возможности держите значения `NEXT_PUBLIC_*` согласованными с серверными значениями.
 
 **Облачный эндпоинт `stream=false` возвращает 500 (`Unexpected token 'd'...`)**
-- Симптом обычно появляется на публичном облачном эндпоинте (`https://dardcor-code.com/v1`) для непотоковых (non-streaming) вызовов.
+- Симптом обычно появляется на публичном облачном эндпоинте (`https://dardcor-code.web.id/v1`) для непотоковых (non-streaming) вызовов.
 - Корневая причина: upstream возвращает SSE-payload (`data: ...`), тогда как клиент ожидает JSON.
 - Обходное решение: используйте `stream=true` для прямых вызовов в облако.
 - Локальный рантайм Dardcor Code включает резервирование SSE→JSON для непотоковых вызовов, когда upstream возвращает `text/event-stream`.
@@ -1200,7 +1200,7 @@ Authorization: Bearer your-api-key
 - `tester/security/test-docker-hardening.sh`
   - Собирает Docker-образ и проверяет hardening-проверки (`/api/cloud/auth` auth guard, `REQUIRE_API_KEY`, безопасное поведение cookie аутентификации).
 - `tester/security/test-cloud-openai-compatible.sh`
-  - Отправляет OpenAI-совместимый запрос напрямую на облачный эндпоинт (`https://dardcor-code.com/v1/chat/completions`) с указанной моделью/ключом.
+  - Отправляет OpenAI-совместимый запрос напрямую на облачный эндпоинт (`https://dardcor-code.web.id/v1/chat/completions`) с указанной моделью/ключом.
 - `tester/security/test-cloud-sync-and-call.sh`
   - End-to-end процесс: создание локального ключа → включение/синхронизация облака → вызов облачного эндпоинта с повтором.
   - Включает резервную проверку с `stream=true`, чтобы отличить ошибки аутентификации от проблем разбора потока.
@@ -1220,7 +1220,7 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 
 - Локально (`http://127.0.0.1:20128/v1/chat/completions`): работает с `stream=false` и `stream=true`.
 - Docker-рантайм (тот же API-путь, экспонируемый контейнером): hardening-проверки проходят, cloud auth guard работает, строгий режим API-ключа работает при включении.
-- Публичный облачный эндпоинт (`https://dardcor-code.com/v1/chat/completions`):
+- Публичный облачный эндпоинт (`https://dardcor-code.web.id/v1/chat/completions`):
   - `stream=true`: ожидается успех (возвращает SSE-чанки).
   - `stream=false`: может падать с `500` + ошибкой разбора (`Unexpected token 'd'`), когда upstream возвращает SSE-контент для непотокового клиентского пути.
 
@@ -1258,9 +1258,9 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 
 ## 📧 Поддержка
 
-- **Сайт**: [dardcor-code.com](https://dardcor-code.com)
-- **GitHub**: [github.com/decolua/dardcor-code](https://github.com/decolua/dardcor-code)
-- **Issues**: [github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)
+- **Сайт**: [dardcor-code.web.id](https://dardcor-code.web.id)
+- **GitHub**: [github.com/dardcor/dardcor-code](https://github.com/dardcor/dardcor-code)
+- **Issues**: [github.com/dardcor/dardcor-code/issues](https://github.com/dardcor/dardcor-code/issues)
 
 ---
 
@@ -1268,13 +1268,13 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 
 Спасибо всем, кто помогает делать Dardcor Code лучше!
 
-[![Contributors](https://contrib.rocks/image?repo=decolua/dardcor-code&max=100&columns=20&anon=1)](https://github.com/decolua/dardcor-code/graphs/contributors)
+[![Contributors](https://contrib.rocks/image?repo=dardcor/dardcor-code&max=100&columns=20&anon=1)](https://github.com/dardcor/dardcor-code/graphs/contributors)
 
 ---
 
 ## 📊 Star Chart
 
-[![Star Chart](https://starchart.cc/decolua/dardcor-code.svg?variant=adaptive)](https://starchart.cc/decolua/dardcor-code)
+[![Star Chart](https://starchart.cc/dardcor/dardcor-code.svg?variant=adaptive)](https://starchart.cc/dardcor/dardcor-code)
 
 ### Как внести вклад
 
@@ -1284,7 +1284,7 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 4. Запушьте в ветку (`git push origin feature/amazing-feature`)
 5. Откройте Pull Request
 
-См. [Pull Requests](https://github.com/decolua/dardcor-code/pulls) для подробных инструкций.
+См. [Pull Requests](https://github.com/dardcor/dardcor-code/pulls) для подробных инструкций.
 
 ---
 

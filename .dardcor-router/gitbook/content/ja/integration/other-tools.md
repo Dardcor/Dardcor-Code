@@ -24,7 +24,7 @@ Model: 任意のDardcor Codeモデル (cc/*, cx/*, glm/*など)
 
 **クラウドDardcor Code:**
 ```
-Base URL: https://dardcor-code.com/v1
+Base URL: https://dardcor-code.web.id/v1
 API Key: your-api-key-from-dashboard
 Model: 任意のDardcor Codeモデル (cc/*, cx/*, glm/*など)
 ```

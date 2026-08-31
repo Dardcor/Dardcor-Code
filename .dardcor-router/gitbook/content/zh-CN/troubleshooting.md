@@ -164,7 +164,7 @@
 4. **使用云端 endpoint:**
    如果 localhost 不行(例如 Cursor IDE):
    ```
-   Endpoint: https://dardcor-code.com/v1
+   Endpoint: https://dardcor-code.web.id/v1
    ```
 
 ---
@@ -346,6 +346,6 @@
 
 ## 需要更多帮助?
 
-- **GitHub Issues:** [github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)
-- **文档:** [dardcor-code.com/docs](https://dardcor-code.com/docs)
+- **GitHub Issues:** [github.com/dardcor/dardcor-code/issues](https://github.com/dardcor/dardcor-code/issues)
+- **文档:** [dardcor-code.web.id/docs](https://dardcor-code.web.id/docs)
 - **常见问题:** [faq.md](faq.md)

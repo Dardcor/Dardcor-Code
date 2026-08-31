@@ -16,7 +16,7 @@ Despliega Dardcor Code en VPS o Docker para acceso remoto y uso en producción.
 ### Paso 1: Clonar el repositorio
 
 ```bash
-git clone https://github.com/decolua/dardcor-code.git
+git clone https://github.com/dardcor/dardcor-code.git
 cd dardcor-code/app
 ```
 

@@ -113,7 +113,7 @@ codex --model cx/gpt-5.1-codex-max "Explain what this code does: $(cat myfile.js
 使用 Dardcor Code 云端 endpoint 而非 localhost:
 
 ```bash
-export OPENAI_BASE_URL="https://dardcor-code.com"
+export OPENAI_BASE_URL="https://dardcor-code.web.id"
 ```
 
 确保已在 Dardcor Code 云端仪表盘中配置 API key。

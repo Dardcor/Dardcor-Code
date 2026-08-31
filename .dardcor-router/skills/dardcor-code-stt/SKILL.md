@@ -5,21 +5,21 @@ description: Speech-to-text via Dardcor Code /v1/audio/transcriptions using Open
 
 # Dardcor Code — Speech-to-Text
 
-Requires `NINEROUTER_URL` (and `NINEROUTER_KEY` if auth enabled). See https://raw.githubusercontent.com/decolua/dardcor-code/refs/heads/master/skills/dardcor-code/SKILL.md for setup.
+Requires `DARDCORROUTER_URL` (and `DARDCORROUTER_KEY` if auth enabled). See https://raw.githubusercontent.com/dardcor/dardcor-code/refs/heads/master/skills/dardcor-code/SKILL.md for setup.
 
 ## Discover
 
 ```bash
-curl $NINEROUTER_URL/v1/models/stt | jq '.data[].id'
+curl $DARDCORROUTER_URL/v1/models/stt | jq '.data[].id'
 # Per-model params (language, response_format, prompt, temperature support)
-curl "$NINEROUTER_URL/v1/models/info?id=openai/whisper-1"
+curl "$DARDCORROUTER_URL/v1/models/info?id=openai/whisper-1"
 ```
 
 `model` = STT model ID (e.g. `openai/whisper-1`, `groq/whisper-large-v3`, `deepgram/nova-3`, `gemini/gemini-2.5-flash`).
 
 ## Endpoint
 
-`POST $NINEROUTER_URL/v1/audio/transcriptions` (OpenAI Whisper compatible, `multipart/form-data`)
+`POST $DARDCORROUTER_URL/v1/audio/transcriptions` (OpenAI Whisper compatible, `multipart/form-data`)
 
 | Field | Required | Notes |
 |---|---|---|
@@ -33,8 +33,8 @@ curl "$NINEROUTER_URL/v1/models/info?id=openai/whisper-1"
 ## Examples
 
 ```bash
-curl -X POST "$NINEROUTER_URL/v1/audio/transcriptions" \
-  -H "Authorization: Bearer $NINEROUTER_KEY" \
+curl -X POST "$DARDCORROUTER_URL/v1/audio/transcriptions" \
+  -H "Authorization: Bearer $DARDCORROUTER_KEY" \
   -F "model=openai/whisper-1" \
   -F "file=@audio.mp3" \
   -F "language=vi"
@@ -47,9 +47,9 @@ import { createReadStream } from "node:fs";
 const form = new FormData();
 form.append("model", "groq/whisper-large-v3-turbo");
 form.append("file", new Blob([await (await import("node:fs/promises")).readFile("audio.mp3")]), "audio.mp3");
-const r = await fetch(`${process.env.NINEROUTER_URL}/v1/audio/transcriptions`, {
+const r = await fetch(`${process.env.DARDCORROUTER_URL}/v1/audio/transcriptions`, {
   method: "POST",
-  headers: { "Authorization": `Bearer ${process.env.NINEROUTER_KEY}` },
+  headers: { "Authorization": `Bearer ${process.env.DARDCORROUTER_KEY}` },
   body: form,
 });
 const { text } = await r.json();

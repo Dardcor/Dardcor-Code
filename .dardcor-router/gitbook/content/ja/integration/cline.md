@@ -34,7 +34,7 @@ http://localhost:20128/v1
 
 **クラウドDardcor Code用:**
 ```
-https://dardcor-code.com
+https://dardcor-code.web.id
 ```
 
 **手順:**
@@ -150,7 +150,7 @@ Dardcor Codeダッシュボードで設定されたモデルを使用できま�
 
 localhostの代わりにDardcor Codeクラウドエンドポイントを使用:
 
-1. Cline設定で、Base URLを設定: `https://dardcor-code.com`
+1. Cline設定で、Base URLを設定: `https://dardcor-code.web.id`
 2. Dardcor CodeクラウドダッシュボードでAPIキーが設定されていることを確認
 3. クラウドエンドポイントがアクティブでアクセス可能か確認
 

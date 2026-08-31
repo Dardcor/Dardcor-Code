@@ -5,7 +5,7 @@
 ## 前置要求
 
 - 已安装 Roo AI 助手
-- 来自 [仪表盘](https://dardcor-code.com/dashboard) 的 Dardcor Code API key
+- 来自 [仪表盘](https://dardcor-code.web.id/dashboard) 的 Dardcor Code API key
 - Dardcor Code 正在运行(本地或云端)
 
 ## 配置步骤
@@ -28,7 +28,7 @@ API Key: your-api-key-from-dashboard
 
 **云端 Dardcor Code:**
 ```
-Base URL: https://dardcor-code.com/v1
+Base URL: https://dardcor-code.web.id/v1
 API Key: your-api-key-from-dashboard
 ```
 

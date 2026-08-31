@@ -60,21 +60,21 @@ describe("scanBranding", () => {
   it("flags each scan term from REBRAND.md §1", () => {
     const root = makeTree({
       "src/terms.js": [
-        "9router", "9r_", "X-9Router", "NINEROUTER", "20127", "20128",
-        "20129", "decolua", ".9router", "9router.com",
+        "9router", "9r_", "X-9Router", "DARDCORROUTER", "20127", "20128",
+        "20129", "dardcor", ".9router", "9router.com",
       ].join("\n"),
     });
     const result = scanBranding({ root });
     const terms = new Set(result.forbidden.map((h) => h.term));
-    for (const expected of ["9router", "9r_", "X-9Router", "NINEROUTER", "20127", "20128", "20129", "decolua", ".9router", "9router.com"]) {
+    for (const expected of ["9router", "9r_", "X-9Router", "DARDCORROUTER", "20127", "20128", "20129", "dardcor", ".9router", "9router.com"]) {
       expect(terms.has(expected), `missing forbidden hit for ${expected}`).toBe(true);
     }
   });
 
   it("provenance files (REBRAND.md §3) are allowlisted, never forbidden", () => {
     const root = makeTree({
-      "LICENSE": "Copyright (c) decolua and contributors\n",
-      "docs/UPSTREAM.md": "upstream: github.com/decolua/9router\n",
+      "LICENSE": "Copyright (c) dardcor and contributors\n",
+      "docs/UPSTREAM.md": "upstream: github.com/dardcor/9router\n",
       "docs/superpowers/specs/old.md": "9Router history\n",
       "src/app.js": "9Router\n",
     });
@@ -158,7 +158,7 @@ describe("scanBranding", () => {
 
   it("is deterministic: identical trees yield identical results", () => {
     const files = {
-      "src/a.js": "9Router 20128 decolua\n",
+      "src/a.js": "9Router 20128 dardcor\n",
       "docs/UPSTREAM.md": "9router\n",
       "cli/cli.js": "~/.9router\n",
     };

@@ -24,7 +24,7 @@ Model: 任意 Dardcor Code 模型(cc/*, cx/*, glm/*, 等)
 
 **云端 Dardcor Code:**
 ```
-Base URL: https://dardcor-code.com/v1
+Base URL: https://dardcor-code.web.id/v1
 API Key: your-api-key-from-dashboard
 Model: 任意 Dardcor Code 模型(cc/*, cx/*, glm/*, 等)
 ```

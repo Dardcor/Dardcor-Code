@@ -9,9 +9,9 @@
 
   [![npm](https://img.shields.io/npm/v/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
   [![Downloads](https://img.shields.io/npm/dm/dardcor-code.svg)](https://www.npmjs.com/package/dardcor-code)
-  [![License](https://img.shields.io/npm/l/dardcor-code.svg)](https://github.com/decolua/dardcor-code/blob/main/LICENSE)
+  [![License](https://img.shields.io/npm/l/dardcor-code.svg)](https://github.com/dardcor/dardcor-code/blob/main/LICENSE)
 
-  [🚀 Mulai Cepat](#-mulai-cepat) • [💡 Fitur](#-fitur-utama) • [📖 Setup](#-panduan-setup) • [🌐 Website](https://dardcor-code.com)
+  [🚀 Mulai Cepat](#-mulai-cepat) • [💡 Fitur](#-fitur-utama) • [📖 Setup](#-panduan-setup) • [🌐 Website](https://dardcor-code.web.id)
 
   [🇻🇳 Tiếng Việt](./README.vi.md) • [🇨🇳 中文](./README.zh-CN.md) • [🇯🇵 日本語](./README.ja-JP.md) • [🇮🇩 Bahasa Indonesia](./README.id-ID.md)
 </div>
@@ -876,7 +876,7 @@ docker run -d \
   -v dardcor-code-data:/app/data \
   -e PORT=20128 \
   -e BASE_URL=http://localhost:20128 \
-  ghcr.io/decolua/dardcor-code:latest
+  ghcr.io/dardcor/dardcor-code:latest
 ```
 
 Dashboard: `http://localhost:20128/dashboard`
@@ -938,14 +938,14 @@ Kontribusi sangat diterima!
 
 ## 📄 Lisensi
 
-MIT License — lihat [LICENSE](https://github.com/decolua/dardcor-code/blob/main/LICENSE) untuk detailnya.
+MIT License — lihat [LICENSE](https://github.com/dardcor/dardcor-code/blob/main/LICENSE) untuk detailnya.
 
 ---
 
 <div align="center">
 
-**Kalau Dardcor Code membantumu, kasih ⭐ di [GitHub](https://github.com/decolua/dardcor-code)!**
+**Kalau Dardcor Code membantumu, kasih ⭐ di [GitHub](https://github.com/dardcor/dardcor-code)!**
 
-[🌐 Website](https://dardcor-code.com) • [📦 npm](https://www.npmjs.com/package/dardcor-code) • [🐛 Laporkan Bug](https://github.com/decolua/dardcor-code/issues)
+[🌐 Website](https://dardcor-code.web.id) • [📦 npm](https://www.npmjs.com/package/dardcor-code) • [🐛 Laporkan Bug](https://github.com/dardcor/dardcor-code/issues)
 
 </div>

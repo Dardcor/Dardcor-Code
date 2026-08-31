@@ -113,7 +113,7 @@ codex --model cx/gpt-5.1-codex-max "Explain what this code does: $(cat myfile.js
 localhostの代わりにDardcor Codeクラウドエンドポイントを使用するには:
 
 ```bash
-export OPENAI_BASE_URL="https://dardcor-code.com"
+export OPENAI_BASE_URL="https://dardcor-code.web.id"
 ```
 
 Dardcor CodeクラウドダッシュボードでAPIキーが設定されていることを確認してください。

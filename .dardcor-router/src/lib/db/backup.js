@@ -36,28 +36,21 @@ export function backupFile(srcPath, destDir, destName = null) {
 // Lightweight DB backup via ATTACH: create an empty sqlite file, copy every
 // table EXCEPT the excluded ones into it. Avoids duplicating the huge
 // observability log, so the backup stays small regardless of DB size.
-export function backupDbLite(adapter, destDir, destName = "data.sqlite") {
+export function backupDbLite(adapter, destDir, destName = "database.json") {
   const dest = path.join(destDir, destName);
-  try { fs.rmSync(dest, { force: true }); } catch {}
-  const escaped = dest.replace(/'/g, "''");
-
-  adapter.exec(`ATTACH DATABASE '${escaped}' AS bak`);
   try {
     const excluded = new Set(BACKUP_EXCLUDE_TABLES);
     const tables = adapter
-      .all(`SELECT name, sql FROM main.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`)
+      .all(`SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`)
       .filter((t) => !excluded.has(t.name));
 
-    adapter.transaction(() => {
-      for (const t of tables) {
-        // Recreate table structure in backup DB, then copy rows.
-        const createSql = t.sql.replace(/CREATE TABLE\s+/i, "CREATE TABLE bak.");
-        adapter.exec(createSql);
-        adapter.exec(`INSERT INTO bak.${t.name} SELECT * FROM main.${t.name}`);
-      }
-    });
-  } finally {
-    try { adapter.exec("DETACH DATABASE bak"); } catch {}
+    const dump = {};
+    for (const t of tables) {
+      dump[t.name] = adapter.all(`SELECT * FROM ${t.name}`);
+    }
+    fs.writeFileSync(dest, JSON.stringify(dump, null, 2), "utf-8");
+  } catch (e) {
+    console.warn(`[DB] JSON Backup failed: ${e.message}`);
   }
   return dest;
 }

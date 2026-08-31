@@ -6,7 +6,7 @@ Dardcor CodeをContinue拡張機能と統合し、Visual Studio Codeに直接AI�
 
 - Visual Studio Codeがインストール済み
 - VSCodeマーケットプレイスからContinue拡張機能がインストール済み
-- [ダッシュボード](https://dardcor-code.com/dashboard)からのDardcor Code APIキー
+- [ダッシュボード](https://dardcor-code.web.id/dashboard)からのDardcor Code APIキー
 - Dardcor Codeが動作中 (ローカルまたはクラウド)
 
 ## 設定手順
@@ -76,7 +76,7 @@ Dardcor CodeをContinue拡張機能と統合し、Visual Studio Codeに直接AI�
 **クラウドDardcor Code用:**
 `apiBase` を以下に置き換え:
 ```json
-"apiBase": "https://dardcor-code.com/v1"
+"apiBase": "https://dardcor-code.web.id/v1"
 ```
 
 ### 3. 保存してリロード

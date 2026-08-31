@@ -5,7 +5,7 @@ Dardcor CodeをRoo AIアシスタントと統合し、統一インターフェ�
 ## 前提条件
 
 - Roo AIアシスタントがインストール済み
-- [ダッシュボード](https://dardcor-code.com/dashboard)からのDardcor Code APIキー
+- [ダッシュボード](https://dardcor-code.web.id/dashboard)からのDardcor Code APIキー
 - Dardcor Codeが動作中 (ローカルまたはクラウド)
 
 ## 設定手順
@@ -28,7 +28,7 @@ API Key: your-api-key-from-dashboard
 
 **クラウドDardcor Code用:**
 ```
-Base URL: https://dardcor-code.com/v1
+Base URL: https://dardcor-code.web.id/v1
 API Key: your-api-key-from-dashboard
 ```
 

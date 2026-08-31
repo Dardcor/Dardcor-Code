@@ -164,7 +164,7 @@ Common issues and solutions when using Dardcor Code.
 4. **Use cloud endpoint:**
    If localhost doesn't work (e.g., Cursor IDE):
    ```
-   Endpoint: https://dardcor-code.com/v1
+   Endpoint: https://dardcor-code.web.id/v1
    ```
 
 ---
@@ -346,6 +346,6 @@ Common issues and solutions when using Dardcor Code.
 
 ## Need More Help?
 
-- **GitHub Issues:** [github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)
-- **Documentation:** [dardcor-code.com/docs](https://dardcor-code.com/docs)
+- **GitHub Issues:** [github.com/dardcor/dardcor-code/issues](https://github.com/dardcor/dardcor-code/issues)
+- **Documentation:** [dardcor-code.web.id/docs](https://dardcor-code.web.id/docs)
 - **FAQ:** [faq.md](faq.md)

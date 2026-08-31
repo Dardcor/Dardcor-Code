@@ -16,7 +16,7 @@
 ### 步骤 1:克隆仓库
 
 ```bash
-git clone https://github.com/decolua/dardcor-code.git
+git clone https://github.com/dardcor/dardcor-code.git
 cd dardcor-code/app
 ```
 

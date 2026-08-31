@@ -5,7 +5,7 @@ Tích hợp Dardcor Code với Roo AI Assistant để truy cập nhiều model A
 ## Yêu cầu
 
 - Roo AI Assistant đã cài đặt
-- Dardcor Code API key từ [dashboard](https://dardcor-code.com/dashboard)
+- Dardcor Code API key từ [dashboard](https://dardcor-code.web.id/dashboard)
 - Dardcor Code đang chạy (cục bộ hoặc cloud)
 
 ## Các bước Cấu hình
@@ -28,7 +28,7 @@ API Key: your-api-key-from-dashboard
 
 **Cho Dardcor Code cloud:**
 ```
-Base URL: https://dardcor-code.com/v1
+Base URL: https://dardcor-code.web.id/v1
 API Key: your-api-key-from-dashboard
 ```
 

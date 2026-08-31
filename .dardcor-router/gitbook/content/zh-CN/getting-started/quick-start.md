@@ -242,6 +242,6 @@ CLI 中使用: premium-coding
 
 ## 需要帮助?
 
-- **网站**: [dardcor-code.com](https://dardcor-code.com)
-- **GitHub**: [github.com/decolua/dardcor-code](https://github.com/decolua/dardcor-code)
-- **Issues**: [github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)
+- **网站**: [dardcor-code.web.id](https://dardcor-code.web.id)
+- **GitHub**: [github.com/dardcor/dardcor-code](https://github.com/dardcor/dardcor-code)
+- **Issues**: [github.com/dardcor/dardcor-code/issues](https://github.com/dardcor/dardcor-code/issues)

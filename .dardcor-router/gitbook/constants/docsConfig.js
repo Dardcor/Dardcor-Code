@@ -236,7 +236,7 @@ export const DOCS_CONFIG = {
   title: "Dardcor Code Documentation",
   description: "Smart AI model router - Maximize subscriptions, minimize costs",
   logo: "Dardcor Code",
-  appUrl: "https://dardcor-code.com",
-  githubUrl: "https://github.com/decolua/dardcor-code",
+  appUrl: "https://dardcor-code.web.id",
+  githubUrl: "https://github.com/dardcor/dardcor-code",
   navigation: getNavigation(DEFAULT_LANG)
 };

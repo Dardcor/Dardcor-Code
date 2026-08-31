@@ -164,7 +164,7 @@ Consulta la [documentación de seguimiento de cuota](features/quota-tracking.md)
 
 ```
 Cursor Settings → Models → Advanced:
-  OpenAI API Base URL: https://dardcor-code.com/v1
+  OpenAI API Base URL: https://dardcor-code.web.id/v1
   OpenAI API Key: [desde el dashboard]
   Model: cc/claude-opus-4-5-20251101
 ```
@@ -172,7 +172,7 @@ Cursor Settings → Models → Advanced:
 **Alternativa:** Auto-hospéda en VPS con dominio público:
 ```bash
 # Despliega en VPS
-git clone https://github.com/decolua/dardcor-code.git
+git clone https://github.com/dardcor/dardcor-code.git
 cd dardcor-code/app
 npm install && npm run build
 npm start
@@ -206,7 +206,7 @@ dardcor-code
 
 ### VPS/Cloud
 ```bash
-git clone https://github.com/decolua/dardcor-code.git
+git clone https://github.com/dardcor/dardcor-code.git
 cd dardcor-code/app
 npm install && npm run build
 
@@ -316,7 +316,7 @@ dardcor-code --version
 ```
 
 **Cambios disruptivos:**
-- Revisa [CHANGELOG.md](https://github.com/decolua/dardcor-code/blob/main/CHANGELOG.md)
+- Revisa [CHANGELOG.md](https://github.com/dardcor/dardcor-code/blob/main/CHANGELOG.md)
 - Respalda `~/.dardcor-code` antes de actualizaciones mayores
 - Revisa las guías de migración para versiones mayores
 
@@ -329,11 +329,11 @@ dardcor-code --version
 ### Formas de contribuir:
 
 1. **Reportar bugs:**
-   - [GitHub Issues](https://github.com/decolua/dardcor-code/issues)
+   - [GitHub Issues](https://github.com/dardcor/dardcor-code/issues)
    - Incluye logs de error, pasos para reproducir
 
 2. **Solicitar características:**
-   - [GitHub Discussions](https://github.com/decolua/dardcor-code/discussions)
+   - [GitHub Discussions](https://github.com/dardcor/dardcor-code/discussions)
    - Describe el caso de uso y los beneficios
 
 3. **Enviar código:**
@@ -375,13 +375,13 @@ dardcor-code --version
 - Actualiza la documentación
 - Mantén los commits atómicos y descriptivos
 
-Consulta [CONTRIBUTING.md](https://github.com/decolua/dardcor-code/blob/main/CONTRIBUTING.md) para detalles.
+Consulta [CONTRIBUTING.md](https://github.com/dardcor/dardcor-code/blob/main/CONTRIBUTING.md) para detalles.
 
 ---
 
 ## ¿Necesitas más ayuda?
 
-- **Documentación:** [dardcor-code.com/docs](https://dardcor-code.com/docs)
-- **GitHub:** [github.com/decolua/dardcor-code](https://github.com/decolua/dardcor-code)
-- **Issues:** [github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)
+- **Documentación:** [dardcor-code.web.id/docs](https://dardcor-code.web.id/docs)
+- **GitHub:** [github.com/dardcor/dardcor-code](https://github.com/dardcor/dardcor-code)
+- **Issues:** [github.com/dardcor/dardcor-code/issues](https://github.com/dardcor/dardcor-code/issues)
 - **Troubleshooting:** [troubleshooting.md](troubleshooting.md)

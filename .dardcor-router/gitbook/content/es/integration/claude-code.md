@@ -103,7 +103,7 @@ Si obtienes errores de "modelo no encontrado":
 Para usar el endpoint en la nube de Dardcor Code en lugar de localhost:
 
 ```bash
-export ANTHROPIC_BASE_URL="https://dardcor-code.com"
+export ANTHROPIC_BASE_URL="https://dardcor-code.web.id"
 ```
 
 Asegúrate de haber configurado tu API key en el dashboard en la nube de Dardcor Code.

@@ -31,11 +31,11 @@ export const TERMS = [
   { name: "9router", re: /9router/gi },
   { name: "9r_", re: /9r_/gi },
   { name: "X-9Router", re: /x-9router/gi },
-  { name: "NINEROUTER", re: /ninerouter/gi },
+  { name: "DARDCORROUTER", re: /ninerouter/gi },
   { name: "20127", re: /20127/g },
   { name: "20128", re: /20128/g },
   { name: "20129", re: /20129/g },
-  { name: "decolua", re: /decolua/gi },
+  { name: "dardcor", re: /dardcor/gi },
   { name: ".9router", re: /\.9router/gi },
   { name: "9router.com", re: /9router\.com/gi },
 ];
@@ -89,8 +89,8 @@ export const COMPAT_ALIASES = {
   // legacy process-name matches (kill stale 9router installs), legacy Win AppData path.
   "cli/cli.js": ["9router", ".9router"],
   // §5: legacy DARDCOR_CLI_APP_DIR read fallback + build log strings.
-  "cli/scripts/build-cli.js": ["NINEROUTER", "9router"],
-  "cli/scripts/buildMitm.js": ["NINEROUTER"],
+  "cli/scripts/build-cli.js": ["DARDCORROUTER", "9router"],
+  "cli/scripts/buildMitm.js": ["DARDCORROUTER"],
   // §5: macOS launchd label / Windows registry key com.9router.autostart (line 7).
   "cli/src/cli/tray/autostart.js": ["9router", ".9router"],
   // §5: legacy runtime-dep install location ~/.9router/runtime (read to locate).
@@ -98,7 +98,7 @@ export const COMPAT_ALIASES = {
   // §5: legacy runtime-dep install location ~/.9router/runtime (read to locate).
   "cli/hooks/sqliteRuntime.js": ["9router", ".9router"],
   // §5: CLI xai video — legacy x-9router-connection-id response header + NINE_ROUTER_API_KEY env read.
-  "cli/src/cli/commands/xaiVideo.js": ["9router", "X-9Router", "NINEROUTER", "20128"],
+  "cli/src/cli/commands/xaiVideo.js": ["9router", "X-9Router", "DARDCORROUTER", "20128"],
   // §5: CLI TUI reads legacy "9router" OpenClaw provider slot / model prefix.
   "cli/src/cli/menus/cliTools.js": ["9router"],
   // §5: server accepts legacy CLI-token header/salt + x-9r-* real-ip/via-proxy headers.
@@ -108,8 +108,8 @@ export const COMPAT_ALIASES = {
   "src/app/api/settings/database/route.js": ["9r_"],
   "src/app/api/v1/models/route.js": ["9router", "9r_"],
   "custom-server.js": ["9r_"],
-  // §5: legacy NINEROUTER_PROXY_CLIENT_MAX_BODY_SIZE read fallback (primary is DARDCOR_).
-  "next.config.mjs": ["NINEROUTER"],
+  // §5: legacy DARDCORROUTER_PROXY_CLIENT_MAX_BODY_SIZE read fallback (primary is DARDCOR_).
+  "next.config.mjs": ["DARDCORROUTER"],
   // §5: JSDoc references the API's has9Router response field (kept as-is).
   "cli/src/cli/api/client.js": ["9router"],
   // §5: appUpdater/updater keep matching legacy 9router process names + ~/.9router read fallback.
@@ -153,7 +153,7 @@ export const COMPAT_ALIASES = {
   "src/app/(dashboard)/dashboard/cli-tools/components/OpenClawToolCard.js": ["9router"],
   "src/app/(dashboard)/dashboard/cli-tools/components/JcodeToolCard.js": ["9router"],
   // §5: upstream-diff reverse-map legitimately names every old identifier it displays.
-  "scripts/upstream-diff.mjs": ["9router", "9r_", "NINEROUTER", "X-9Router", "20127", "20128", "20129", "9router.com"],
+  "scripts/upstream-diff.mjs": ["9router", "9r_", "DARDCORROUTER", "X-9Router", "20127", "20128", "20129", "9router.com"],
   // §5 migration implementation: `dardcor-code migrate --from-9router` reads the
   // legacy install's token scheme, data dir, ports, headers and slot identifiers.
   "cli/src/cli/commands/migrate.js": ["9router", "X-9Router", "20128", ".9router", "9router.com"],

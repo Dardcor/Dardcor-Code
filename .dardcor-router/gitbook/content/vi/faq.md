@@ -164,7 +164,7 @@ Xem [tài liệu quota tracking](features/quota-tracking.md) để biết chi ti
 
 ```
 Cursor Settings → Models → Advanced:
-  OpenAI API Base URL: https://dardcor-code.com/v1
+  OpenAI API Base URL: https://dardcor-code.web.id/v1
   OpenAI API Key: [from dashboard]
   Model: cc/claude-opus-4-5-20251101
 ```
@@ -172,7 +172,7 @@ Cursor Settings → Models → Advanced:
 **Thay thế:** Self-host trên VPS với domain công khai:
 ```bash
 # Deploy to VPS
-git clone https://github.com/decolua/dardcor-code.git
+git clone https://github.com/dardcor/dardcor-code.git
 cd dardcor-code/app
 npm install && npm run build
 npm start
@@ -206,7 +206,7 @@ dardcor-code
 
 ### VPS/Cloud
 ```bash
-git clone https://github.com/decolua/dardcor-code.git
+git clone https://github.com/dardcor/dardcor-code.git
 cd dardcor-code/app
 npm install && npm run build
 
@@ -316,7 +316,7 @@ dardcor-code --version
 ```
 
 **Breaking changes:**
-- Xem [CHANGELOG.md](https://github.com/decolua/dardcor-code/blob/main/CHANGELOG.md)
+- Xem [CHANGELOG.md](https://github.com/dardcor/dardcor-code/blob/main/CHANGELOG.md)
 - Backup `~/.dardcor-code` trước khi update lớn
 - Xem hướng dẫn migration cho major version
 
@@ -329,11 +329,11 @@ dardcor-code --version
 ### Các cách đóng góp:
 
 1. **Report bugs:**
-   - [GitHub Issues](https://github.com/decolua/dardcor-code/issues)
+   - [GitHub Issues](https://github.com/dardcor/dardcor-code/issues)
    - Bao gồm error logs, các bước reproduce
 
 2. **Request features:**
-   - [GitHub Discussions](https://github.com/decolua/dardcor-code/discussions)
+   - [GitHub Discussions](https://github.com/dardcor/dardcor-code/discussions)
    - Mô tả use case và lợi ích
 
 3. **Submit code:**
@@ -375,13 +375,13 @@ dardcor-code --version
 - Cập nhật tài liệu
 - Giữ commit nhỏ gọn và mô tả rõ ràng
 
-Xem [CONTRIBUTING.md](https://github.com/decolua/dardcor-code/blob/main/CONTRIBUTING.md) để biết chi tiết.
+Xem [CONTRIBUTING.md](https://github.com/dardcor/dardcor-code/blob/main/CONTRIBUTING.md) để biết chi tiết.
 
 ---
 
 ## Cần trợ giúp thêm?
 
-- **Documentation:** [dardcor-code.com/docs](https://dardcor-code.com/docs)
-- **GitHub:** [github.com/decolua/dardcor-code](https://github.com/decolua/dardcor-code)
-- **Issues:** [github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)
+- **Documentation:** [dardcor-code.web.id/docs](https://dardcor-code.web.id/docs)
+- **GitHub:** [github.com/dardcor/dardcor-code](https://github.com/dardcor/dardcor-code)
+- **Issues:** [github.com/dardcor/dardcor-code/issues](https://github.com/dardcor/dardcor-code/issues)
 - **Troubleshooting:** [troubleshooting.md](troubleshooting.md)

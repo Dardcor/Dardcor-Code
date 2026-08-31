@@ -6,7 +6,7 @@
 
 - 已安装 Visual Studio Code
 - 从 VSCode 市场安装了 Continue 扩展
-- 来自 [仪表盘](https://dardcor-code.com/dashboard) 的 Dardcor Code API key
+- 来自 [仪表盘](https://dardcor-code.web.id/dashboard) 的 Dardcor Code API key
 - Dardcor Code 正在运行(本地或云端)
 
 ## 配置步骤
@@ -76,7 +76,7 @@
 **云端 Dardcor Code:**
 将 `apiBase` 替换为:
 ```json
-"apiBase": "https://dardcor-code.com/v1"
+"apiBase": "https://dardcor-code.web.id/v1"
 ```
 
 ### 3. 保存并重新加载

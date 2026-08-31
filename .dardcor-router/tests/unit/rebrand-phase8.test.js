@@ -15,7 +15,7 @@ const LITERALS_DIR = path.join(ROOT, "public/i18n/literals");
 const SKILLS_DIR = path.join(ROOT, "skills");
 const CLI_TOOLS_DIR = path.join(ROOT, "src/app/(dashboard)/dashboard/cli-tools");
 
-const LEGACY_RE = /9router|9Router|NINEROUTER|20127|20128|20129|\.9router|9router\.com|9r_/g;
+const LEGACY_RE = /9router|9Router|DARDCORROUTER|20127|20128|20129|\.9router|9router\.com|9r_/g;
 
 function read(rel) {
   return fs.readFileSync(path.join(ROOT, rel), "utf-8");
@@ -99,7 +99,7 @@ describe("skills (skills/ + src/shared/constants/skills.js)", () => {
       expect(md).toContain("DARDCOR_KEY");
       expect(md).toContain(`name: ${id}`);
       expect(md).not.toContain("localhost:20128");
-      expect(md).not.toContain("NINEROUTER_");
+      expect(md).not.toContain("DARDCORROUTER_");
     }
   });
 
@@ -110,7 +110,7 @@ describe("skills (skills/ + src/shared/constants/skills.js)", () => {
     expect(src).toContain('id: "dardcor-code-chat"');
     expect(src).toContain("dardcor-code.web.id");
     expect(src).toContain('name: "Dardcor Code (Entry)"');
-    expect(src).not.toContain("decolua");
+    expect(src).not.toContain("dardcor");
   });
 
   it("dashboard skills page references the dardcor-code entry skill", () => {

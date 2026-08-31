@@ -164,7 +164,7 @@ Dashboard → Providers → Quota Tracking
 
 ```
 Cursor Settings → Models → Advanced:
-  OpenAI API Base URL: https://dardcor-code.com/v1
+  OpenAI API Base URL: https://dardcor-code.web.id/v1
   OpenAI API Key: [ダッシュボードから取得]
   Model: cc/claude-opus-4-5-20251101
 ```
@@ -172,7 +172,7 @@ Cursor Settings → Models → Advanced:
 **代替案:** パブリックドメインでVPSにセルフホスト:
 ```bash
 # VPSへデプロイ
-git clone https://github.com/decolua/dardcor-code.git
+git clone https://github.com/dardcor/dardcor-code.git
 cd dardcor-code/app
 npm install && npm run build
 npm start
@@ -206,7 +206,7 @@ dardcor-code
 
 ### VPS/クラウド
 ```bash
-git clone https://github.com/decolua/dardcor-code.git
+git clone https://github.com/dardcor/dardcor-code.git
 cd dardcor-code/app
 npm install && npm run build
 
@@ -316,7 +316,7 @@ dardcor-code --version
 ```
 
 **破壊的変更:**
-- [CHANGELOG.md](https://github.com/decolua/dardcor-code/blob/main/CHANGELOG.md)を確認
+- [CHANGELOG.md](https://github.com/dardcor/dardcor-code/blob/main/CHANGELOG.md)を確認
 - メジャー更新前に`~/.dardcor-code`をバックアップ
 - メジャーバージョンの移行ガイドを確認
 
@@ -329,11 +329,11 @@ dardcor-code --version
 ### 貢献方法:
 
 1. **バグを報告:**
-   - [GitHub Issues](https://github.com/decolua/dardcor-code/issues)
+   - [GitHub Issues](https://github.com/dardcor/dardcor-code/issues)
    - エラーログ、再現手順を含める
 
 2. **機能をリクエスト:**
-   - [GitHub Discussions](https://github.com/decolua/dardcor-code/discussions)
+   - [GitHub Discussions](https://github.com/dardcor/dardcor-code/discussions)
    - ユースケースと利点を説明
 
 3. **コードを提出:**
@@ -375,13 +375,13 @@ dardcor-code --version
 - ドキュメントを更新
 - コミットは小さく、わかりやすく
 
-詳細は[CONTRIBUTING.md](https://github.com/decolua/dardcor-code/blob/main/CONTRIBUTING.md)を参照。
+詳細は[CONTRIBUTING.md](https://github.com/dardcor/dardcor-code/blob/main/CONTRIBUTING.md)を参照。
 
 ---
 
 ## さらにヘルプが必要?
 
-- **ドキュメント:** [dardcor-code.com/docs](https://dardcor-code.com/docs)
-- **GitHub:** [github.com/decolua/dardcor-code](https://github.com/decolua/dardcor-code)
-- **Issues:** [github.com/decolua/dardcor-code/issues](https://github.com/decolua/dardcor-code/issues)
+- **ドキュメント:** [dardcor-code.web.id/docs](https://dardcor-code.web.id/docs)
+- **GitHub:** [github.com/dardcor/dardcor-code](https://github.com/dardcor/dardcor-code)
+- **Issues:** [github.com/dardcor/dardcor-code/issues](https://github.com/dardcor/dardcor-code/issues)
 - **トラブルシューティング:** [troubleshooting.md](troubleshooting.md)

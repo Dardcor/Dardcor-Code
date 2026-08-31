@@ -6,7 +6,7 @@ Tích hợp Dardcor Code với extension Continue để mang trợ lý AI trực
 
 - Visual Studio Code đã cài đặt
 - Extension Continue đã cài đặt từ VSCode marketplace
-- Dardcor Code API key từ [dashboard](https://dardcor-code.com/dashboard)
+- Dardcor Code API key từ [dashboard](https://dardcor-code.web.id/dashboard)
 - Dardcor Code đang chạy (cục bộ hoặc cloud)
 
 ## Các bước Cấu hình
@@ -76,7 +76,7 @@ Thêm cấu hình sau vào `config.json`:
 **Cho Cloud Dardcor Code:**
 Thay `apiBase` bằng:
 ```json
-"apiBase": "https://dardcor-code.com/v1"
+"apiBase": "https://dardcor-code.web.id/v1"
 ```
 
 ### 3. Lưu và Reload

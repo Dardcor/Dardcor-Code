@@ -103,7 +103,7 @@ Claude Codeは設定を `~/.claude/settings.json` に保存します。必要に
 localhostの代わりにDardcor Codeクラウドエンドポイントを使用するには:
 
 ```bash
-export ANTHROPIC_BASE_URL="https://dardcor-code.com"
+export ANTHROPIC_BASE_URL="https://dardcor-code.web.id"
 ```
 
 Dardcor CodeクラウドダッシュボードでAPIキーが設定されていることを確認してください。

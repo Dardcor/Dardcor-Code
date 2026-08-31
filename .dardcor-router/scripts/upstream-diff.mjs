@@ -37,7 +37,7 @@ const REVERSE_MAP = [
   [/dardcor-code\.web\.id/gi, "9router.com"],
   [/dardcor-code/gi, "9router"],
   [/dardcor_/gi, "9r_"],
-  [/DARDCOR_/gi, "NINEROUTER_"],
+  [/DARDCOR_/gi, "DARDCORROUTER_"],
   [/x-dardcor/gi, "x-9router"],
   [/X-Dardcor/gi, "X-9Router"],
   [/21127/g, "20127"],

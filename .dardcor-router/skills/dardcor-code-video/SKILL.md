@@ -5,7 +5,7 @@ description: Generate videos via Dardcor Code /v1/videos/generations using xAI G
 
 # Dardcor Code — Video Generation (xAI Grok Imagine)
 
-Requires `NINEROUTER_URL` (and `NINEROUTER_KEY` if auth enabled). See https://raw.githubusercontent.com/decolua/dardcor-code/refs/heads/master/skills/dardcor-code/SKILL.md for setup.
+Requires `DARDCORROUTER_URL` (and `DARDCORROUTER_KEY` if auth enabled). See https://raw.githubusercontent.com/dardcor/dardcor-code/refs/heads/master/skills/dardcor-code/SKILL.md for setup.
 
 Requires a connected **xAI account** in the Dardcor Code dashboard — either **Grok Build OAuth** (SuperGrok / X Premium+ subscription sign-in) or a direct **xAI API key** from console.x.ai. The two are separate auth types with separate billing; the dashboard shows which one each connection uses.
 
@@ -37,8 +37,8 @@ Request fields (passed through to xAI unchanged — see https://docs.x.ai/develo
 Submit a job:
 
 ```bash
-curl -X POST "$NINEROUTER_URL/v1/videos/generations" \
-  -H "Authorization: Bearer $NINEROUTER_KEY" \
+curl -X POST "$DARDCORROUTER_URL/v1/videos/generations" \
+  -H "Authorization: Bearer $DARDCORROUTER_KEY" \
   -H "Content-Type: application/json" \
   -d '{"model":"xai/grok-imagine-video","prompt":"A cinematic tracking shot through a neon city at night","duration":8,"aspect_ratio":"16:9","resolution":"720p"}'
 # → {"request_id":"abc123"}   (response header x-dardcor-code-connection-id: <id>)
@@ -47,8 +47,8 @@ curl -X POST "$NINEROUTER_URL/v1/videos/generations" \
 Poll until done (echo the connection header back so the same account polls the job):
 
 ```bash
-curl "$NINEROUTER_URL/v1/videos/abc123" \
-  -H "Authorization: Bearer $NINEROUTER_KEY" \
+curl "$DARDCORROUTER_URL/v1/videos/abc123" \
+  -H "Authorization: Bearer $DARDCORROUTER_KEY" \
   -H "x-connection-id: <id from create response>"
 # → {"status":"pending","progress":42}
 # → {"status":"done","video":{"url":"https://…mp4","duration":8},"model":"grok-imagine-video"}

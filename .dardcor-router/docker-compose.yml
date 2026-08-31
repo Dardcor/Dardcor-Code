@@ -1,6 +1,6 @@
 services:
   9router:
-    image: decolua/9router:latest
+    image: dardcor/9router:latest
     container_name: 9router
     restart: always
     ports:
