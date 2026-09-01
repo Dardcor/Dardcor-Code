@@ -298,6 +298,7 @@ export interface ILanguageModelChatMetadata {
 	 */
 	readonly modelGroup?: {
 		readonly id: string;
+		readonly name?: string;
 		/**
 		 * Identifies a trusted source presentation owned by this model's vendor.
 		 * Source ids are resolved together with {@link ILanguageModelChatMetadata.vendor},
@@ -705,13 +706,212 @@ export interface ILanguageModelsService {
 	readonly restrictedChatParticipants: IObservable<{ [name: string]: string[] }>;
 }
 
-export function getLanguageModelProviderDisplayName(languageModelsService: ILanguageModelsService, vendor: string): string {
-	if (vendor === 'copilotcli') {
-		// @vritant24: This is temporary until we have distinct vendors for Copilot CLI and Copilot Chat.
-		return localize('chat.languageModelProvider.copilot', "Dardcor AI");
+export const DARDCOR_PROVIDER_DISPLAY_NAMES: { [key: string]: string } = {
+	'opencode': 'OpenCode',
+	'oc': 'OpenCode',
+	'opencode-go': 'OpenCode Go',
+	'ocg': 'OpenCode Go',
+	'anthropic': 'Anthropic',
+	'claude': 'Anthropic',
+	'openai': 'OpenAI',
+	'oai': 'OpenAI',
+	'google': 'Google',
+	'gemini': 'Google',
+	'gemini-cli': 'Google',
+	'vertex': 'Google Vertex',
+	'vx': 'Google Vertex',
+	'vertex-partner': 'Vertex Partner',
+	'vxp': 'Vertex Partner',
+	'azure': 'Azure',
+	'deepseek': 'DeepSeek',
+	'ds': 'DeepSeek',
+	'groq': 'Groq',
+	'xai': 'xAI',
+	'grok-cli': 'xAI',
+	'gcli': 'xAI',
+	'grok-web': 'xAI',
+	'gw': 'xAI',
+	'kimi': 'Kimi',
+	'glm': 'GLM',
+	'glm-cn': 'GLM',
+	'zhipu': 'GLM',
+	'qwen': 'Qwen',
+	'alicode': 'Qwen',
+	'alicode-intl': 'Qwen',
+	'alims-intl': 'Alibaba',
+	'alitp-intl': 'Alibaba',
+	'kiro': 'Kiro',
+	'kr': 'Kiro',
+	'qoder': 'Qoder',
+	'qd': 'Qoder',
+	'kimchi': 'Kimchi',
+	'clinepass': 'Cline',
+	'cline': 'Cline',
+	'cursor': 'Cursor',
+	'zed': 'Zed',
+	'zd': 'Zed',
+	'ollama': 'Ollama',
+	'ollama-local': 'Ollama',
+	'openrouter': 'OpenRouter',
+	'together': 'Together AI',
+	'fireworks': 'Fireworks AI',
+	'perplexity': 'Perplexity',
+	'pplx': 'Perplexity',
+	'perplexity-web': 'Perplexity',
+	'pw': 'Perplexity',
+	'perplexity-agent': 'Perplexity',
+	'pa': 'Perplexity',
+	'mistral': 'Mistral',
+	'cohere': 'Cohere',
+	'cerebras': 'Cerebras',
+	'sambanova': 'SambaNova',
+	'samba': 'SambaNova',
+	'siliconflow': 'SiliconFlow',
+	'hyperbolic': 'Hyperbolic',
+	'hyp': 'Hyperbolic',
+	'nebius': 'Nebius',
+	'nvidia': 'NVIDIA',
+	'byteplus': 'BytePlus',
+	'minimax': 'Minimax',
+	'minimax-cn': 'Minimax',
+	'xiaomi-mimo': 'Xiaomi MiMo',
+	'xiaomi-tokenplan': 'Xiaomi MiMo',
+	'mimo': 'Xiaomi MiMo',
+	'xmtp': 'Xiaomi MiMo',
+	'mimo-free': 'Xiaomi MiMo',
+	'mmf': 'Xiaomi MiMo',
+	'baidu': 'Baidu',
+	'tencent': 'Tencent',
+	'hunyuan': 'Tencent',
+	'iflow': 'iFlow',
+	'if': 'iFlow',
+	'nanobanana': 'NanoBanana',
+	'nb': 'NanoBanana',
+	'voyage-ai': 'Voyage AI',
+	'voyage': 'Voyage AI',
+	'kilocode': 'Kilo Code',
+	'kc': 'Kilo Code',
+	'kilo-gateway': 'Kilo Gateway',
+	'kgw': 'Kilo Gateway',
+	'blackbox': 'Blackbox',
+	'cloudflare-ai': 'Cloudflare',
+	'codebuddy-cn': 'CodeBuddy',
+	'codebuddy-intl': 'CodeBuddy',
+	'morph': 'Morph',
+	'poolside': 'Poolside',
+	'ps': 'Poolside',
+	'tokenrouter': 'TokenRouter',
+	'elevenlabs': 'ElevenLabs',
+	'inworld': 'Inworld',
+	'playht': 'PlayHT',
+	'cartesia': 'Cartesia',
+	'deepgram': 'Deepgram',
+	'assemblyai': 'AssemblyAI',
+	'fal-ai': 'fal.ai',
+	'replicate': 'Replicate',
+	'stability-ai': 'Stability AI',
+	'stability': 'Stability AI',
+	'black-forest-labs': 'Black Forest Labs',
+	'recraft': 'Recraft',
+	'runwayml': 'Runway',
+	'runway': 'Runway',
+	'topaz': 'Topaz',
+	'tavily': 'Tavily',
+	'brave-search': 'Brave',
+	'serper': 'Serper',
+	'searchapi': 'SearchAPI',
+	'searxng': 'SearXNG',
+	'jina-ai': 'Jina AI',
+	'jina-reader': 'Jina Reader',
+	'jina': 'Jina AI',
+	'firecrawl': 'Firecrawl',
+	'linkup': 'Linkup',
+	'youcom': 'You.com',
+	'google-pse': 'Google PSE',
+	'exa': 'Exa',
+	'combo': 'Combo',
+};
+
+export function getLanguageModelProviderDisplayName(languageModelsService?: ILanguageModelsService, vendor?: string, modelId?: string): string {
+	const raw = (vendor || '').toLowerCase().trim();
+	if (DARDCOR_PROVIDER_DISPLAY_NAMES[raw]) {
+		return DARDCOR_PROVIDER_DISPLAY_NAMES[raw];
 	}
-	const descriptor = languageModelsService.getVendors().find(candidate => candidate.vendor === vendor);
-	return descriptor?.displayName ?? vendor.charAt(0).toUpperCase() + vendor.slice(1);
+	const target = (modelId || vendor || '').toLowerCase();
+	if (target.includes('/')) {
+		const prefix = target.split('/')[0].trim();
+		if (DARDCOR_PROVIDER_DISPLAY_NAMES[prefix]) {
+			return DARDCOR_PROVIDER_DISPLAY_NAMES[prefix];
+		}
+		if (prefix.startsWith('openai-compatible-')) {
+			return 'OpenAI Compatible';
+		}
+		if (prefix.startsWith('anthropic-compatible-')) {
+			return 'Anthropic Compatible';
+		}
+	}
+	const lower = target.toLowerCase();
+	if (lower.includes('claude') || lower.includes('fable') || lower.includes('haiku') || lower.includes('sonnet') || lower.includes('opus')) {
+		return 'Anthropic';
+	}
+	if (lower.includes('gpt') || lower.includes('o1') || lower.includes('o3') || lower.includes('o4') || lower.includes('chatgpt') || lower.includes('dall-e')) {
+		return 'OpenAI';
+	}
+	if (lower.includes('gemini') || lower.includes('gemma') || lower.includes('imagen')) {
+		return 'Google';
+	}
+	if (lower.includes('deepseek')) {
+		return 'DeepSeek';
+	}
+	if (lower.includes('grok')) {
+		return 'xAI';
+	}
+	if (lower.includes('kimi') || lower.includes('moonshot')) {
+		return 'Kimi';
+	}
+	if (lower.includes('glm') || lower.includes('zhipu') || lower.includes('codegeex') || lower.includes('cogview')) {
+		return 'GLM';
+	}
+	if (lower.includes('qwen') || lower.includes('tongyi') || lower.includes('qwq') || lower.includes('alicode')) {
+		return 'Qwen';
+	}
+	if (lower.includes('big-pickle') || lower.endsWith('-free') || lower.includes('ling-') || lower.includes('nemotron')) {
+		return 'OpenCode';
+	}
+	if (lower.includes('llama') || lower.includes('groq')) {
+		return 'Groq';
+	}
+	if (lower.includes('mistral') || lower.includes('codestral') || lower.includes('mixtral') || lower.includes('pixtral')) {
+		return 'Mistral';
+	}
+	if (lower.includes('minimax') || lower.includes('abab')) {
+		return 'Minimax';
+	}
+	if (lower.includes('hunyuan')) {
+		return 'Tencent';
+	}
+	if (lower.includes('doubao')) {
+		return 'BytePlus';
+	}
+	if (lower.includes('sonar') || lower.includes('perplexity')) {
+		return 'Perplexity';
+	}
+	if (lower.includes('cohere') || lower.includes('command-r')) {
+		return 'Cohere';
+	}
+
+	if (languageModelsService && vendor) {
+		const descriptor = languageModelsService.getVendors().find(candidate => candidate.vendor === vendor);
+		if (descriptor?.displayName && descriptor.displayName !== 'Dardcor Code') {
+			return descriptor.displayName;
+		}
+	}
+
+	if (raw === 'dardcor' || raw === 'copilot' || raw === 'copilotcli' || raw === 'dardcor-code') {
+		return 'OpenCode';
+	}
+
+	return raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : 'OpenCode';
 }
 
 export function getLanguageModelDisplayNameWithProvider(model: ILanguageModelChatMetadataAndIdentifier, languageModelsService: ILanguageModelsService): string {
@@ -1031,7 +1231,12 @@ export class LanguageModelsService implements ILanguageModelsService {
 				const maxOutput = (typeof m === 'object' && m.capabilities?.maxOutput) ? m.capabilities.maxOutput : 64000;
 				const hasVision = typeof m === 'object' && m.capabilities?.vision === true;
 
-				let clean = id.replace(/^(ag|oc|ds|opencode)\//i, '');
+				const ownedBy = (typeof m === 'object' && m.owned_by) ? String(m.owned_by) : undefined;
+				const prefix = id.includes('/') ? id.split('/')[0] : (ownedBy || undefined);
+				const providerDisplayName = getLanguageModelProviderDisplayName(this, prefix || ownedBy || '', id);
+				const providerId = (prefix || ownedBy || providerDisplayName).toLowerCase();
+
+				let clean = id.includes('/') ? id.slice(id.indexOf('/') + 1) : id;
 				const name = (typeof m === 'object' && m.name && m.name !== id) ? m.name : clean.split(/[-_]/).map((part: string) => {
 					if (['free', 'unlimited', 'pro', 'plus'].includes(part.toLowerCase())) {
 						return `(${part.charAt(0).toUpperCase() + part.slice(1)})`;
@@ -1039,12 +1244,17 @@ export class LanguageModelsService implements ILanguageModelsService {
 					return part.charAt(0).toUpperCase() + part.slice(1);
 				}).join(' ');
 
+				const isFirst = nextIds.size === 1;
 				const metadata: ILanguageModelChatMetadata = {
 					extension: new ExtensionIdentifier('dardcor.dardcor'),
-					isDefaultForLocation: {},
+					isDefaultForLocation: isFirst ? { [ChatAgentLocation.Chat]: true, [ChatAgentLocation.EditorInline]: true } : {},
 					id,
 					name,
-					vendor: 'dardcor',
+					vendor: providerId,
+					modelGroup: {
+						id: providerId,
+						name: providerDisplayName
+					},
 					family: id,
 					version: '1.0.0',
 					maxInputTokens: maxContext,
@@ -1079,7 +1289,7 @@ export class LanguageModelsService implements ILanguageModelsService {
 				identifier: 'opencode/no-model-selected',
 				metadata: {
 					extension: new ExtensionIdentifier('dardcor.dardcor'),
-					isDefaultForLocation: { [ChatAgentLocation.Chat]: true, [ChatAgentLocation.EditorInline]: true },
+					isDefaultForLocation: {},
 					id: 'opencode/no-model-selected',
 					name: 'No Model Selected',
 					vendor: 'dardcor',
@@ -1592,7 +1802,7 @@ export class LanguageModelsService implements ILanguageModelsService {
 		if (!this._vendors.has(vendor)) {
 			this._vendors.set(vendor, {
 				vendor,
-				displayName: vendor === 'copilot' || vendor === 'dardcor' ? 'Dardcor Provider' : vendor,
+				displayName: vendor === 'copilot' || vendor === 'dardcor' ? 'No Model Selected' : vendor,
 				configuration: undefined,
 				managementCommand: undefined,
 				deprecation: undefined,

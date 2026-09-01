@@ -1087,7 +1087,8 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		this._modelConfigStore.clear();
 
 		const selectedModelStorageKey = this.getSelectedModelStorageKey();
-		const storedSelection = getStoredSelectedModel(this.storageService, this.location, this.getSelectedModelTarget());
+		const storedSelection = getStoredSelectedModel(this.storageService, this.location, this.getSelectedModelTarget())
+			?? getStoredSelectedModel(this.storageService, 'panel', undefined);
 		logChangesToStateModel(this._inputModel, `[INIT-SELECTED-MODEL] storageKey=${selectedModelStorageKey}, persistedSelection=${storedSelection}, currentSessionType=${this._currentSessionType}, getCurrentSessionType=${this.getCurrentSessionType()}, widgetSession=${this._currentSessionKey}, boundInputModelSession=${this._inputModelSessionResource?.toString()}, currentLanguageModel=${this._currentLanguageModel.get()?.identifier}`, this._inputModel?.state.get(), undefined, this.logService);
 		this._modelSelectionController.initialize(
 			storedSelection,

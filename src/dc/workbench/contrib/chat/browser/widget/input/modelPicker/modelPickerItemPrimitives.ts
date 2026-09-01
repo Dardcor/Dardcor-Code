@@ -70,19 +70,31 @@ export function getProviderGroupForModel(
 	modelToGroup: Map<string, IProviderGroupInfo>,
 	languageModelsService: ILanguageModelsService,
 ): IProviderGroupInfo {
-	if (model.metadata.modelGroup) {
-		const byokGroup = model.metadata.byokModelIdentifier ? modelToGroup.get(model.metadata.byokModelIdentifier) : undefined;
+	if (model.metadata.modelGroup?.name && model.metadata.modelGroup.name !== 'Dardcor Code') {
+		return {
+			vendor: model.metadata.modelGroup.id || model.metadata.vendor,
+			groupName: model.metadata.modelGroup.name,
+		};
+	}
+	if (model.metadata.modelGroup?.id && model.metadata.modelGroup.id !== 'dardcor') {
 		const sourcePresentation = model.metadata.modelGroup.sourceId
 			? languageModelSourcePresentationRegistry.get(model.metadata.vendor, model.metadata.modelGroup.sourceId)
 			: undefined;
-		return byokGroup ?? {
-			vendor: model.metadata.vendor,
-			groupName: sourcePresentation?.label ?? getLanguageModelProviderDisplayName(languageModelsService, model.metadata.modelGroup.id),
+		const groupName = sourcePresentation?.label ?? getLanguageModelProviderDisplayName(languageModelsService, model.metadata.modelGroup.id, model.identifier || model.metadata.id);
+		return {
+			vendor: model.metadata.modelGroup.id,
+			groupName,
 		};
 	}
-	return modelToGroup.get(model.identifier) ?? {
-		vendor: model.metadata.vendor,
-		groupName: getLanguageModelProviderDisplayName(languageModelsService, model.metadata.vendor),
+	const group = modelToGroup.get(model.identifier);
+	if (group && group.vendor !== 'copilot' && group.vendor !== 'dardcor' && group.groupName !== 'Dardcor Code') {
+		return group;
+	}
+	const vendor = model.metadata.vendor;
+	const groupName = getLanguageModelProviderDisplayName(languageModelsService, vendor, model.identifier || model.metadata.id || model.metadata.family);
+	return {
+		vendor: vendor || groupName.toLowerCase(),
+		groupName,
 	};
 }
 

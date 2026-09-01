@@ -319,12 +319,14 @@ export class ModelMetadataFetcher extends Disposable implements IModelMetadataFe
 				const maxContext = (typeof m === 'object' && m.capabilities?.contextWindow) ? m.capabilities.contextWindow : 200000;
 				const maxOutput = (typeof m === 'object' && m.capabilities?.maxOutput) ? m.capabilities.maxOutput : 64000;
 				const hasVision = typeof m === 'object' && m.capabilities?.vision === true;
-				const hasThinking = typeof m === 'object' && (m.capabilities?.reasoning === true || !!m.capabilities?.thinkingFormat);
+				const ownedBy = (typeof m === 'object' && m.owned_by) ? String(m.owned_by) : undefined;
+				const prefix = id.includes('/') ? id.split('/')[0] : (ownedBy || undefined);
+				const vendor = (prefix || ownedBy || 'opencode').toLowerCase();
 
 				return {
 					id,
 					name,
-					vendor: 'dardcor',
+					vendor,
 					urlOrRequestMetadata: 'http://127.0.0.1:25128/v1/chat/completions',
 					model_picker_enabled: true,
 					showInModelPicker: true,

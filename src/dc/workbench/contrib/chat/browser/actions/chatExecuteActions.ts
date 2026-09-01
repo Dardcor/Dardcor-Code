@@ -181,7 +181,10 @@ abstract class SubmitAction extends Action2 {
 	}
 }
 
-const whenNoActiveRequest = ChatContextKeys.hasActiveRequest.negate();
+const whenNoActiveRequest = ContextKeyExpr.and(
+	ChatContextKeys.hasActiveRequest.negate(),
+	ChatContextKeys.requestInProgress.negate(),
+);
 const whenNotInProgress = ChatContextKeys.requestInProgress.negate();
 
 export class ChatSubmitAction extends SubmitAction {
@@ -762,7 +765,10 @@ export class ChatEditingSessionSubmitAction extends SubmitAction {
 				{
 					id: MenuId.ChatExecute,
 					order: 4,
-					when: menuCondition,
+					when: ContextKeyExpr.and(
+						whenNoActiveRequest,
+						menuCondition,
+					),
 					group: 'navigation',
 					alt: {
 						id: 'workbench.action.chat.sendToNewChat',
@@ -920,7 +926,7 @@ export class CancelAction extends Action2 {
 			menu: [{
 				id: MenuId.ChatExecute,
 				when: ContextKeyExpr.and(
-					ChatContextKeys.hasActiveRequest,
+					ContextKeyExpr.or(ChatContextKeys.hasActiveRequest, ChatContextKeys.requestInProgress),
 					ChatContextKeys.remoteJobCreating.negate(),
 					ChatContextKeys.currentlyEditing.negate(),
 				),

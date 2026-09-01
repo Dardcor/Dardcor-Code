@@ -8,7 +8,7 @@ import { IObservable, observableValue } from '../../../../../../base/common/obse
 import { ChatAgentLocation, ChatModeKind } from '../../../common/constants.js';
 import { ILanguageModelChatMetadataAndIdentifier } from '../../../common/languageModels.js';
 import { InitialModelSelectionResult, isInConversationModelChoice, ModelSelectionApplyReason, ModelSelectionReason, resolveConfiguredModel, resolveInitialModelSelection, resolveModelIdentifier } from '../../../common/modelSelection.js';
-import { findBestMatchingModel, findDefaultModel, hasModelsTargetingSession, isModelValidForSession, resolveModelFromSyncState, shouldDropAgnosticDraftModel, shouldResetModelToDefault, shouldResetOnModelListChange } from './chatInputModelUtils.js';
+import { findBestMatchingModel, findDefaultModel, isModelValidForSession, resolveModelFromSyncState, shouldDropAgnosticDraftModel, shouldResetModelToDefault, shouldResetOnModelListChange } from './chatInputModelUtils.js';
 import { IChatModelSelectionDiagnostics, NullChatModelSelectionDiagnostics } from './chatModelSelectionDiagnostics.js';
 
 /** Supplies Workbench chat's filtered model catalog and conversation effects. */
@@ -256,10 +256,6 @@ export class ChatInputModelSelectionController extends Disposable {
 	}
 
 	selectDefault(sessionType = this._runtime.getCurrentSessionType()): void {
-		const allModels = this._runtime.getAllModels();
-		if (sessionType && this._runtime.requiresCustomModels(sessionType) && !hasModelsTargetingSession(allModels, sessionType)) {
-			return;
-		}
 		const models = this._runtime.getModels(sessionType);
 		const configuredModel = resolveConfiguredModel(this._runtime.getConfiguredModelValue(), models);
 		const defaultModel = configuredModel ?? findDefaultModel(models, this._runtime.location);

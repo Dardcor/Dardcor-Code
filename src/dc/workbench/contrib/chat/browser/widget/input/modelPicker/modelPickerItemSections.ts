@@ -105,12 +105,14 @@ export function buildUnavailableStateItems(options: IBuildModelPickerItemsOption
 
 export function buildFlatModelItems(options: IBuildModelPickerItemsOptions): IActionListItem<IActionWidgetDropdownAction>[] {
 	const items: IActionListItem<IActionWidgetDropdownAction>[] = [];
+	const modelToGroup = buildModelToProviderGroupMap(options.languageModelsService);
 	const sortedModels = options.models
 		.filter(model => !isAutoModel(model) && model.metadata.id.toLowerCase() !== 'auto')
 		.sort((left, right) => left.metadata.vendor.localeCompare(right.metadata.vendor) || left.metadata.name.localeCompare(right.metadata.name));
 	for (const model of sortedModels) {
+		const groupLabel = getProviderGroupForModel(model, modelToGroup, options.languageModelsService).groupName;
 		const { action, ariaDescription } = createModelAction(model, options.selectedModelId, options.actions.onSelect);
-		items.push(createModelItem(action, model, options.openerService, undefined, options.presentation.isUBB, ariaDescription, undefined, options.actions.onConfigure));
+		items.push(createModelItem(action, model, options.openerService, groupLabel, options.presentation.isUBB, ariaDescription, undefined, options.actions.onConfigure));
 	}
 	return items;
 }
@@ -182,8 +184,8 @@ function appendPinnedModels(context: IGroupedContext): Set<string> {
 	if (pinnedModels.length > 0) {
 		items.push({ kind: ActionListItemKind.Separator, label: localize('chat.modelPicker.pinned', "Pinned") });
 		for (const model of pinnedModels) {
-			const groupLabel = context.showGroupLabel ? getProviderGroupForModel(model, context.modelToGroup, options.languageModelsService).groupName : undefined;
-			const { action, ariaDescription } = createModelAction(model, options.selectedModelId, options.actions.onSelect, undefined, context.showGroupLabel);
+			const groupLabel = getProviderGroupForModel(model, context.modelToGroup, options.languageModelsService).groupName;
+			const { action, ariaDescription } = createModelAction(model, options.selectedModelId, options.actions.onSelect, undefined, true);
 			items.push(createModelItem(action, model, options.openerService, groupLabel, options.presentation.isUBB, ariaDescription, context.makePinAction(model), options.actions.onConfigure));
 		}
 	}
@@ -267,8 +269,8 @@ function appendPromotedModels(context: IGroupedContext, autoModel: ILanguageMode
 	});
 	for (const item of promoted) {
 		if (item.kind === 'available') {
-			const groupLabel = context.showGroupLabel ? getProviderGroupForModel(item.model, context.modelToGroup, options.languageModelsService).groupName : undefined;
-			const { action, ariaDescription } = createModelAction(item.model, options.selectedModelId, options.actions.onSelect, undefined, context.showGroupLabel);
+			const groupLabel = getProviderGroupForModel(item.model, context.modelToGroup, options.languageModelsService).groupName;
+			const { action, ariaDescription } = createModelAction(item.model, options.selectedModelId, options.actions.onSelect, undefined, true);
 			items.push(createModelItem(action, item.model, options.openerService, groupLabel, options.presentation.isUBB, ariaDescription, context.makePinAction(item.model), options.actions.onConfigure));
 		} else {
 			items.push(createUnavailableModelItem(item.id, item.entry, item.reason, options.manageSettingsUrl, options.updateStateType, options.chatEntitlementService));
@@ -326,12 +328,13 @@ function appendOtherModels(context: IGroupedContext): boolean {
 			return leftUnavailable - rightUnavailable || left.metadata.name.localeCompare(right.metadata.name);
 		});
 		for (const model of group.models) {
+			const groupLabel = getProviderGroupForModel(model, context.modelToGroup, options.languageModelsService).groupName;
 			const entry = options.controlModels[model.metadata.id] ?? options.controlModels[model.identifier];
 			if (entry?.minVSCodeVersion && !isVersionAtLeast(options.currentVSCodeVersion, entry.minVSCodeVersion)) {
 				items.push(createUnavailableModelItem(model.metadata.id, entry, 'update', options.manageSettingsUrl, options.updateStateType, options.chatEntitlementService, ModelPickerSection.Other));
 			} else {
 				const { action, ariaDescription } = createModelAction(model, options.selectedModelId, options.actions.onSelect, ModelPickerSection.Other, showHeaders);
-				items.push(createModelItem(action, model, options.openerService, undefined, options.presentation.isUBB, ariaDescription, context.makePinAction(model), options.actions.onConfigure));
+				items.push(createModelItem(action, model, options.openerService, groupLabel, options.presentation.isUBB, ariaDescription, context.makePinAction(model), options.actions.onConfigure));
 			}
 		}
 	}

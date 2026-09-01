@@ -695,7 +695,7 @@ export class ModelPickerWidget extends Disposable {
 				? localize('chat.modelPicker.activating', "Activating...")
 				: genericNoModels
 					? localize('chat.modelPicker.noModels', "No models available")
-					: (name ?? localize('chat.modelPicker.auto', "Dardcor Provider"));
+					: (name ?? localize('chat.modelPicker.auto', "No Model Selected"));
 		if (!compact || !modelIcon || noModelsAvailable) {
 			nameChildren.push(dom.$('span.chat-input-picker-label', undefined, modelLabel));
 		}

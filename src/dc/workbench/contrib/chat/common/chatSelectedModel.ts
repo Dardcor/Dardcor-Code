@@ -126,6 +126,16 @@ export function getPersistedSelectedModelIdentifier(
 		}
 	}
 
+	if (location !== 'panel') {
+		const panelCandidateKeys = [sessionType, undefined, 'local', 'remote'];
+		for (const panelTarget of panelCandidateKeys) {
+			const fallbackPersisted = getStoredSelectedModel(storageService, 'panel', panelTarget);
+			if (fallbackPersisted) {
+				return fallbackPersisted;
+			}
+		}
+	}
+
 	return undefined;
 }
 

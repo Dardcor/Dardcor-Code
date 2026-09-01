@@ -2812,6 +2812,7 @@ export class ChatWidget extends Disposable implements IChatWidget {
 
 		const isUserQuery = !query;
 		const inputValue = isUserQuery ? this.getInput() : query.query;
+
 		if (this.viewModel.model.hasActiveRequest.get() && await this._tryExecuteImmediateSlashCommand(inputValue, isUserQuery ? this.parsedInput : undefined)) {
 			this.setInput('');
 			return;
