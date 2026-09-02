@@ -12,7 +12,7 @@ import { IAnchor } from '../../../../../../../base/browser/ui/contextview/contex
 import { IAction } from '../../../../../../../base/common/actions.js';
 import { IStringDictionary } from '../../../../../../../base/common/collections.js';
 import { Event } from '../../../../../../../base/common/event.js';
-import { AnchorPosition } from '../../../../../../../base/common/layout.js';
+import { AnchorPosition, AnchorAlignment } from '../../../../../../../base/common/layout.js';
 import { MutableDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { autorun, IObservable } from '../../../../../../../base/common/observable.js';
 import { localize } from '../../../../../../../nls.js';
@@ -77,6 +77,7 @@ export interface IModelPickerDelegate {
 	readonly modelConfiguration?: IModelConfigurationAccess;
 	onDidChangeVisibility?(visible: boolean): void | Promise<void>;
 	readonly anchorPosition?: AnchorPosition;
+	readonly anchorAlignment?: AnchorAlignment;
 	readonly actionWidgetContainer?: HTMLElement;
 	getActionWidgetAnchor?(anchor: HTMLElement): HTMLElement | IAnchor;
 	readonly openOnMouseUp?: boolean;

@@ -5,16 +5,16 @@
 
 import assert from 'assert';
 import { Emitter, Event } from '../../../../../base/common/event.js';
-import { observableValue } from '../../../../../base/common/observable.js';
+import { IObservable, observableValue } from '../../../../../base/common/observable.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 import { IConfigurationChangeEvent, IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { ExtensionIdentifier } from '../../../../../platform/extensions/common/extensions.js';
-import { NullLogService } from '../../../../../platform/log/common/log.js';
-import { InMemoryStorageService, StorageScope, StorageTarget } from '../../../../../platform/storage/common/storage.js';
+import { ILogService, NullLogService } from '../../../../../platform/log/common/log.js';
+import { InMemoryStorageService, IStorageService, StorageScope, StorageTarget } from '../../../../../platform/storage/common/storage.js';
 import { getSelectedModelStorageKey, storeSelectedModel } from '../../../../../workbench/contrib/chat/common/chatSelectedModel.js';
 import { ChatAgentLocation, ChatConfiguration } from '../../../../../workbench/contrib/chat/common/constants.js';
-import { ILanguageModelChatMetadataAndIdentifier } from '../../../../../workbench/contrib/chat/common/languageModels.js';
+import { ILanguageModelChatMetadataAndIdentifier, ILanguageModelsService } from '../../../../../workbench/contrib/chat/common/languageModels.js';
 import { resolveModelIdentifier } from '../../../../../workbench/contrib/chat/common/modelSelection.js';
 import { ISessionsProvidersService } from '../../../../services/sessions/browser/sessionsProvidersService.js';
 import { ISessionsProvider, ISessionModelPickerOptions } from '../../../../services/sessions/common/sessionsProvider.js';
@@ -156,6 +156,37 @@ class TestLogService extends NullLogService {
 	}
 }
 
+const dummyLanguageModelsService = {
+	_serviceBrand: undefined,
+	onDidChangeLanguageModelVendors: Event.None,
+	onDidChangeLanguageModels: Event.None,
+	onDidChangeModelVisibility: Event.None,
+	getLanguageModelIds: () => [],
+	lookupLanguageModel: () => undefined,
+	isModelHidden: () => false,
+	getVendors: () => [],
+	selectLanguageModels: () => [],
+	getExtensionLanguageModels: () => [],
+} as unknown as ILanguageModelsService;
+
+function createSessionModelSelectionModel(
+	session: IObservable<IActiveSession | undefined>,
+	providersService: ISessionsProvidersService,
+	storageService: IStorageService,
+	configurationService: IConfigurationService,
+	logService: ILogService,
+	languageModelsService: ILanguageModelsService = dummyLanguageModelsService,
+): SessionModelSelectionModel {
+	return new SessionModelSelectionModel(
+		session,
+		providersService,
+		storageService,
+		configurationService,
+		logService,
+		languageModelsService,
+	);
+}
+
 suite('SessionModelSelectionModel', () => {
 
 	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
@@ -177,7 +208,7 @@ suite('SessionModelSelectionModel', () => {
 		const provider = disposables.add(createProvider('provider', identifier => draft.modelId.set(identifier, undefined)));
 		provider.models = [copilotModel, chatGPTModel];
 		provider.modelTarget = codexModelTarget;
-		const draftSelection = disposables.add(new SessionModelSelectionModel(
+		const draftSelection = disposables.add(createSessionModelSelectionModel(
 			observableValue<IActiveSession | undefined>('draftSession', draft.session),
 			createProvidersService([provider]),
 			storage,
@@ -195,7 +226,7 @@ suite('SessionModelSelectionModel', () => {
 		const nextProvider = disposables.add(createProvider('provider', identifier => nextDraft.modelId.set(identifier, undefined)));
 		nextProvider.models = [chatGPTModel, copilotModel];
 		nextProvider.modelTarget = codexModelTarget;
-		const nextSelection = disposables.add(new SessionModelSelectionModel(
+		const nextSelection = disposables.add(createSessionModelSelectionModel(
 			observableValue<IActiveSession | undefined>('nextDraftSession', nextDraft.session),
 			createProvidersService([nextProvider]),
 			storage,
@@ -214,7 +245,7 @@ suite('SessionModelSelectionModel', () => {
 		const provider = disposables.add(createProvider('provider', identifier => testSession.modelId.set(identifier, undefined)));
 		const storage = disposables.add(new InMemoryStorageService());
 		storage.store(legacyModelPickerStorageKey('provider', 'type'), second.identifier, StorageScope.PROFILE, StorageTarget.MACHINE);
-		const selection = disposables.add(new SessionModelSelectionModel(
+		const selection = disposables.add(createSessionModelSelectionModel(
 			observableValue<IActiveSession | undefined>('session', testSession.session),
 			createProvidersService([provider]),
 			storage,
@@ -244,7 +275,7 @@ suite('SessionModelSelectionModel', () => {
 	test('restores an existing session without writing to its provider', () => {
 		const testSession = createSession('provider', SessionStatus.Completed, second.identifier);
 		const provider = disposables.add(createProvider('provider'));
-		const selection = disposables.add(new SessionModelSelectionModel(
+		const selection = disposables.add(createSessionModelSelectionModel(
 			observableValue<IActiveSession | undefined>('session', testSession.session),
 			createProvidersService([provider]),
 			disposables.add(new InMemoryStorageService()),
@@ -263,7 +294,7 @@ suite('SessionModelSelectionModel', () => {
 		const provider = disposables.add(createProvider('provider'));
 		const storage = disposables.add(new InMemoryStorageService());
 		storeSelectedModel(storage, ChatAgentLocation.Chat, modelTarget, second.identifier);
-		const selection = disposables.add(new SessionModelSelectionModel(
+		const selection = disposables.add(createSessionModelSelectionModel(
 			observableValue<IActiveSession | undefined>('session', testSession.session),
 			createProvidersService([provider]),
 			storage,
@@ -288,7 +319,7 @@ suite('SessionModelSelectionModel', () => {
 		const firstProvider = disposables.add(createProvider('firstProvider'));
 		const secondProvider = disposables.add(createProvider('secondProvider'));
 		const session = observableValue<IActiveSession | undefined>('session', firstSession.session);
-		const selection = disposables.add(new SessionModelSelectionModel(
+		const selection = disposables.add(createSessionModelSelectionModel(
 			session,
 			createProvidersService([firstProvider, secondProvider]),
 			disposables.add(new InMemoryStorageService()),
@@ -319,7 +350,7 @@ suite('SessionModelSelectionModel', () => {
 		const testSession = createSession('provider', SessionStatus.Completed, first.identifier);
 		const provider = disposables.add(createProvider('provider'));
 		const storage = disposables.add(new InMemoryStorageService());
-		const selection = disposables.add(new SessionModelSelectionModel(
+		const selection = disposables.add(createSessionModelSelectionModel(
 			observableValue<IActiveSession | undefined>('session', testSession.session),
 			createProvidersService([provider]),
 			storage,
@@ -353,7 +384,7 @@ suite('SessionModelSelectionModel', () => {
 		const storage = disposables.add(new InMemoryStorageService());
 		const provider = disposables.add(createProvider('provider', () => { throw new Error('rejected'); }));
 		const logService = disposables.add(new TestLogService());
-		const selection = disposables.add(new SessionModelSelectionModel(
+		const selection = disposables.add(createSessionModelSelectionModel(
 			observableValue<IActiveSession | undefined>('session', testSession.session),
 			createProvidersService([provider]),
 			storage,
@@ -383,7 +414,7 @@ suite('SessionModelSelectionModel', () => {
 		const storage = disposables.add(new InMemoryStorageService());
 		const provider = disposables.add(createProvider('provider', () => { throw new Error('rejected'); }));
 		provider.models = [];
-		const selection = disposables.add(new SessionModelSelectionModel(
+		const selection = disposables.add(createSessionModelSelectionModel(
 			observableValue<IActiveSession | undefined>('session', testSession.session),
 			createProvidersService([provider]),
 			storage,
@@ -405,7 +436,7 @@ suite('SessionModelSelectionModel', () => {
 	test('adopts an external draft selection without duplicating the provider write', () => {
 		const testSession = createSession('provider', SessionStatus.Untitled);
 		const provider = disposables.add(createProvider('provider', identifier => testSession.modelId.set(identifier, undefined)));
-		const selection = disposables.add(new SessionModelSelectionModel(
+		const selection = disposables.add(createSessionModelSelectionModel(
 			observableValue<IActiveSession | undefined>('session', testSession.session),
 			createProvidersService([provider]),
 			disposables.add(new InMemoryStorageService()),
@@ -423,7 +454,7 @@ suite('SessionModelSelectionModel', () => {
 
 	test('requires a registered provider before enabling send', () => {
 		const testSession = createSession('missing', SessionStatus.Untitled);
-		const selection = disposables.add(new SessionModelSelectionModel(
+		const selection = disposables.add(createSessionModelSelectionModel(
 			observableValue<IActiveSession | undefined>('session', testSession.session),
 			createProvidersService([]),
 			disposables.add(new InMemoryStorageService()),
@@ -449,7 +480,7 @@ suite('SessionModelSelectionModel', () => {
 		provider.modelsResolved = false;
 		const storage = disposables.add(new InMemoryStorageService());
 		storeSelectedModel(storage, ChatAgentLocation.Chat, modelTarget, second.identifier);
-		const selection = disposables.add(new SessionModelSelectionModel(
+		const selection = disposables.add(createSessionModelSelectionModel(
 			observableValue<IActiveSession | undefined>('session', testSession.session),
 			createProvidersService([provider]),
 			storage,
@@ -476,7 +507,7 @@ suite('SessionModelSelectionModel', () => {
 		provider.modelsResolved = false;
 		const storage = disposables.add(new InMemoryStorageService());
 		storeSelectedModel(storage, ChatAgentLocation.Chat, modelTarget, second.identifier);
-		const selection = disposables.add(new SessionModelSelectionModel(
+		const selection = disposables.add(createSessionModelSelectionModel(
 			observableValue<IActiveSession | undefined>('session', testSession.session),
 			createProvidersService([provider]),
 			storage,
@@ -527,7 +558,7 @@ suite('SessionModelSelectionModel', () => {
 		provider.models = [first];
 		provider.modelsResolved = false;
 		const storage = disposables.add(new InMemoryStorageService());
-		const selection = disposables.add(new SessionModelSelectionModel(
+		const selection = disposables.add(createSessionModelSelectionModel(
 			observableValue<IActiveSession | undefined>('session', testSession.session),
 			createProvidersService([provider]),
 			storage,
@@ -553,7 +584,7 @@ suite('SessionModelSelectionModel', () => {
 	test('falls back instead of waiting for an inapplicable configured model', () => {
 		const testSession = createSession('provider', SessionStatus.Untitled);
 		const provider = disposables.add(createProvider('provider', identifier => testSession.modelId.set(identifier, undefined)));
-		const selection = disposables.add(new SessionModelSelectionModel(
+		const selection = disposables.add(createSessionModelSelectionModel(
 			observableValue<IActiveSession | undefined>('session', testSession.session),
 			createProvidersService([provider]),
 			disposables.add(new InMemoryStorageService()),
@@ -591,7 +622,7 @@ suite('SessionModelSelectionModel', () => {
 		provider.modelsResolved = false;
 		const storage = disposables.add(new InMemoryStorageService());
 		storeSelectedModel(storage, ChatAgentLocation.Chat, modelTarget, second.identifier);
-		const selection = disposables.add(new SessionModelSelectionModel(
+		const selection = disposables.add(createSessionModelSelectionModel(
 			observableValue<IActiveSession | undefined>('session', testSession.session),
 			createProvidersService([provider]),
 			storage,
@@ -623,7 +654,7 @@ suite('SessionModelSelectionModel', () => {
 		const testSession = createSession('provider', SessionStatus.Untitled);
 		const provider = disposables.add(createProvider('provider', identifier => testSession.modelId.set(identifier, undefined)));
 		const storage = disposables.add(new InMemoryStorageService());
-		const selection = disposables.add(new SessionModelSelectionModel(
+		const selection = disposables.add(createSessionModelSelectionModel(
 			observableValue<IActiveSession | undefined>('session', testSession.session),
 			createProvidersService([provider]),
 			storage,
@@ -651,7 +682,7 @@ suite('SessionModelSelectionModel', () => {
 	test('reapplies the configured default when an untitled chat is reused', () => {
 		const testSession = createSession('provider', SessionStatus.Untitled, first.identifier);
 		const provider = disposables.add(createProvider('provider', identifier => testSession.modelId.set(identifier, undefined)));
-		const selection = disposables.add(new SessionModelSelectionModel(
+		const selection = disposables.add(createSessionModelSelectionModel(
 			observableValue<IActiveSession | undefined>('session', testSession.session),
 			createProvidersService([provider]),
 			disposables.add(new InMemoryStorageService()),
@@ -672,7 +703,7 @@ suite('SessionModelSelectionModel', () => {
 		const secondSession = createSession('provider', SessionStatus.Untitled, first.identifier, 'provider:second');
 		const provider = disposables.add(createProvider('provider'));
 		const session = observableValue<IActiveSession | undefined>('session', firstSession.session);
-		const selection = disposables.add(new SessionModelSelectionModel(
+		const selection = disposables.add(createSessionModelSelectionModel(
 			session,
 			createProvidersService([provider]),
 			disposables.add(new InMemoryStorageService()),
@@ -693,7 +724,7 @@ suite('SessionModelSelectionModel', () => {
 		const provider = disposables.add(createProvider('provider', identifier => testSession.modelId.set(identifier, undefined)));
 		const storage = disposables.add(new InMemoryStorageService());
 		const logService = disposables.add(new TestLogService());
-		const selection = disposables.add(new SessionModelSelectionModel(
+		const selection = disposables.add(createSessionModelSelectionModel(
 			observableValue<IActiveSession | undefined>('session', testSession.session),
 			createProvidersService([provider]),
 			storage,
@@ -731,7 +762,7 @@ suite('SessionModelSelectionModel', () => {
 		const testSession = createSession('provider', SessionStatus.Completed, first.identifier);
 		const provider = disposables.add(createProvider('provider'));
 		const logService = disposables.add(new TestLogService());
-		const selection = disposables.add(new SessionModelSelectionModel(
+		const selection = disposables.add(createSessionModelSelectionModel(
 			observableValue<IActiveSession | undefined>('session', testSession.session),
 			createProvidersService([provider]),
 			disposables.add(new InMemoryStorageService()),
@@ -753,5 +784,41 @@ suite('SessionModelSelectionModel', () => {
 			loggedProviderModelBefore: true,
 			loggedProviderModelAfter: true,
 		});
+	});
+
+	test('falls back to registered language models and syncs from editor stored selection in real-time', () => {
+		const testSession = createSession('empty-provider', SessionStatus.Untitled);
+		const provider = disposables.add(createProvider('empty-provider'));
+		provider.models = [];
+		(provider as any).modelTarget = undefined;
+
+		const onDidChangeLanguageModelsEmitter = disposables.add(new Emitter<void>());
+		const languageModelsService = {
+			onDidChangeLanguageModels: onDidChangeLanguageModelsEmitter.event,
+			onDidChangeModelVisibility: Event.None,
+			getLanguageModelIds: () => [first.identifier, second.identifier],
+			lookupLanguageModel: (id: string) => id === first.identifier ? first.metadata : (id === second.identifier ? second.metadata : undefined),
+			isModelHidden: () => false,
+		} as unknown as ILanguageModelsService;
+
+		const storage = disposables.add(new InMemoryStorageService());
+		storeSelectedModel(storage, ChatAgentLocation.Chat, undefined, second.identifier);
+
+		const selection = disposables.add(createSessionModelSelectionModel(
+			observableValue<IActiveSession | undefined>('session', testSession.session),
+			createProvidersService([provider]),
+			storage,
+			createConfigurationService(),
+			disposables.add(new NullLogService()),
+			languageModelsService,
+		));
+
+		assert.strictEqual(selection.state.get().hasSelectableModel, true);
+		assert.strictEqual(selection.state.get().currentModel?.identifier, second.identifier);
+		assert.deepStrictEqual(selection.state.get().models.map(m => m.identifier), [first.identifier, second.identifier]);
+
+		// Simulate editor changing selected model in real-time
+		storeSelectedModel(storage, ChatAgentLocation.Chat, undefined, first.identifier);
+		assert.strictEqual(selection.state.get().currentModel?.identifier, first.identifier);
 	});
 });

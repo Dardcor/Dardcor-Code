@@ -9,10 +9,10 @@ import { IConfigurationService } from '../../../../platform/configuration/common
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { IStorageService, StorageScope } from '../../../../platform/storage/common/storage.js';
-import { getStoredSelectedModel, storeSelectedModel } from '../../../../workbench/contrib/chat/common/chatSelectedModel.js';
+import { getStoredSelectedModel, SELECTED_MODEL_STORAGE_KEY_PREFIX, storeSelectedModel } from '../../../../workbench/contrib/chat/common/chatSelectedModel.js';
 import { ChatAgentLocation, ChatConfiguration } from '../../../../workbench/contrib/chat/common/constants.js';
-import { ILanguageModelChatMetadataAndIdentifier } from '../../../../workbench/contrib/chat/common/languageModels.js';
-import { IModelSelectionMemory, IModelSelectionSessionContext, IPendingModelSelection, ModelSelectionReason, transitionModelSelection } from '../../../../workbench/contrib/chat/common/modelSelection.js';
+import { ILanguageModelChatMetadataAndIdentifier, ILanguageModelsService } from '../../../../workbench/contrib/chat/common/languageModels.js';
+import { getRegisteredLanguageModels, IModelSelectionMemory, IModelSelectionSessionContext, IPendingModelSelection, ModelSelectionReason, resolveModelIdentifierFromLanguageModels, transitionModelSelection } from '../../../../workbench/contrib/chat/common/modelSelection.js';
 import { ChatModelSelectionDiagnostics } from '../../../../workbench/contrib/chat/browser/widget/input/chatModelSelectionDiagnostics.js';
 import { ISessionsProvidersService } from '../../../services/sessions/browser/sessionsProvidersService.js';
 import { ISessionModelPickerOptions, ISessionsProvider } from '../../../services/sessions/common/sessionsProvider.js';
@@ -59,6 +59,9 @@ function persistSessionModelSelection(
 ): void {
 	provider.setModel(session.sessionId, model.identifier);
 	storeSelectedModel(storageService, ChatAgentLocation.Chat, modelTarget, model.identifier);
+	if (modelTarget !== undefined) {
+		storeSelectedModel(storageService, ChatAgentLocation.Chat, undefined, model.identifier);
+	}
 }
 
 export function hasSelectableModel(
@@ -113,6 +116,7 @@ export class SessionModelSelectionModel extends Disposable implements ISessionMo
 		@IStorageService private readonly _storageService: IStorageService,
 		@IConfigurationService private readonly _configurationService: IConfigurationService,
 		@ILogService logService: ILogService,
+		@ILanguageModelsService private readonly _languageModelsService: ILanguageModelsService,
 	) {
 		super();
 		this._sharedDiagnostics = new ChatModelSelectionDiagnostics(logService, this._storageService, () => {
@@ -143,37 +147,50 @@ export class SessionModelSelectionModel extends Disposable implements ISessionMo
 			}
 		}));
 		this._register(this._sessionsProvidersService.onDidChangeProviders(() => this._refresh('providers')));
+		if (this._languageModelsService) {
+			this._register(this._languageModelsService.onDidChangeLanguageModels(() => this._refresh('models')));
+			this._register(this._languageModelsService.onDidChangeModelVisibility(() => this._refresh('models')));
+		}
 		this._register(this._storageService.onDidChangeValue(StorageScope.PROFILE, undefined, this._store)(event => {
 			this._sharedDiagnostics.logStorageChange(event, this._state.get().currentModel?.identifier);
+			if (event.key.startsWith(SELECTED_MODEL_STORAGE_KEY_PREFIX)) {
+				this._refresh('storage');
+			}
 		}));
 	}
 
 	selectModel(modelIdentifier: string): boolean {
 		const session = this._session.get();
 		const provider = session ? this._sessionsProvidersService.getProvider(session.providerId) : this._sessionsProvidersService.getProviders()[0];
-		if (!provider) {
-			this._sharedDiagnostics.report('selection-rejected', {
-				requestedModel: modelIdentifier,
-				reason: 'noProvider',
-			}, 'info');
-			return false;
-		}
-
 		const sessionId = session?.sessionId ?? '';
-		const snapshot = provider.getModelsSnapshot(sessionId);
+		let snapshot = provider
+			? provider.getModelsSnapshot(sessionId)
+			: { models: [], desiredModelResolution: { kind: 'notRequested' } as const, modelTarget: undefined };
+
+		let models = snapshot.models;
+		if (models.length === 0 && this._languageModelsService) {
+			const allModels = getRegisteredLanguageModels(this._languageModelsService)
+				.filter((m: ILanguageModelChatMetadataAndIdentifier) => !this._languageModelsService.isModelHidden(m.identifier) && m.metadata.isUserSelectable !== false);
+			allModels.sort((a: ILanguageModelChatMetadataAndIdentifier, b: ILanguageModelChatMetadataAndIdentifier) => a.metadata.name.localeCompare(b.metadata.name));
+			models = allModels;
+			snapshot = {
+				models,
+				desiredModelResolution: resolveModelIdentifierFromLanguageModels(models, modelIdentifier, this._languageModelsService, allModels),
+				modelTarget: snapshot.modelTarget,
+			};
+		}
 		this._modelTarget = snapshot.modelTarget;
-		const models = snapshot.models;
-		const model = models.find(model => model.identifier === modelIdentifier);
+		const model = models.find(m => m.identifier === modelIdentifier);
 		if (!model) {
 			this._sharedDiagnostics.report('selection-rejected', {
 				requestedModel: modelIdentifier,
 				reason: 'modelUnavailable',
-				availableModels: models.map(model => model.identifier).join(','),
+				availableModels: models.map(m => m.identifier).join(','),
 			}, 'info');
 			return false;
 		}
 
-		const options = normalizeModelPickerOptions(provider.getModelPickerOptions(sessionId));
+		const options = normalizeModelPickerOptions(provider ? provider.getModelPickerOptions(sessionId) : undefined);
 		const previousState = this._state.get();
 		const previousMemory = this._memory;
 		this._state.set({
@@ -191,10 +208,13 @@ export class SessionModelSelectionModel extends Disposable implements ISessionMo
 		};
 		this._sharedDiagnostics.report('explicit-selection', { model: model.identifier }, 'info');
 		try {
-			if (session) {
+			if (session && provider) {
 				persistSessionModelSelection(session, provider, this._storageService, model, snapshot.modelTarget);
 			} else {
 				storeSelectedModel(this._storageService, ChatAgentLocation.Chat, snapshot.modelTarget, model.identifier);
+				if (snapshot.modelTarget !== undefined) {
+					storeSelectedModel(this._storageService, ChatAgentLocation.Chat, undefined, model.identifier);
+				}
 			}
 			this._sharedDiagnostics.report('explicit-selection-applied', { model: model.identifier }, 'info');
 		} catch (error) {
@@ -227,18 +247,43 @@ export class SessionModelSelectionModel extends Disposable implements ISessionMo
 		};
 		const currentReason = sessionKey === this._memory.sessionKey ? this._memory.currentReason : undefined;
 		const sessionId = session?.sessionId ?? '';
-		const initialSnapshot = provider
+		let initialSnapshot = provider
 			? provider.getModelsSnapshot(sessionId, sessionModelId)
 			: { models: [], desiredModelResolution: { kind: 'notRequested' } as const, modelTarget: undefined };
+
+		if (initialSnapshot.models.length === 0 && this._languageModelsService) {
+			const allModels = getRegisteredLanguageModels(this._languageModelsService)
+				.filter((m: ILanguageModelChatMetadataAndIdentifier) => !this._languageModelsService.isModelHidden(m.identifier) && m.metadata.isUserSelectable !== false);
+			allModels.sort((a: ILanguageModelChatMetadataAndIdentifier, b: ILanguageModelChatMetadataAndIdentifier) => a.metadata.name.localeCompare(b.metadata.name));
+			initialSnapshot = {
+				models: allModels,
+				desiredModelResolution: resolveModelIdentifierFromLanguageModels(allModels, sessionModelId, this._languageModelsService, allModels),
+				modelTarget: initialSnapshot.modelTarget,
+			};
+		}
+
 		const rememberedSelection = session ? this._getRememberedModel(session, initialSnapshot.modelTarget) : undefined;
 		const rememberedModelId = rememberedSelection?.identifier
-			?? getStoredSelectedModel(this._storageService, ChatAgentLocation.Chat, initialSnapshot.modelTarget);
+			?? getStoredSelectedModel(this._storageService, ChatAgentLocation.Chat, initialSnapshot.modelTarget)
+			?? (initialSnapshot.modelTarget !== undefined ? getStoredSelectedModel(this._storageService, ChatAgentLocation.Chat, undefined) : undefined);
 		const desiredModelIdentifier = sessionContext.kind === 'untitled'
 			? (currentReason === ModelSelectionReason.FirstAvailable ? rememberedModelId : (sessionModelId ?? rememberedModelId))
 			: sessionModelId;
-		const snapshot = desiredModelIdentifier !== sessionModelId && provider
+		let snapshot = desiredModelIdentifier !== sessionModelId && provider
 			? provider.getModelsSnapshot(sessionId, desiredModelIdentifier)
 			: initialSnapshot;
+
+		if (snapshot.models.length === 0 && this._languageModelsService) {
+			const allModels = getRegisteredLanguageModels(this._languageModelsService)
+				.filter((m: ILanguageModelChatMetadataAndIdentifier) => !this._languageModelsService.isModelHidden(m.identifier) && m.metadata.isUserSelectable !== false);
+			allModels.sort((a: ILanguageModelChatMetadataAndIdentifier, b: ILanguageModelChatMetadataAndIdentifier) => a.metadata.name.localeCompare(b.metadata.name));
+			snapshot = {
+				models: allModels,
+				desiredModelResolution: resolveModelIdentifierFromLanguageModels(allModels, desiredModelIdentifier, this._languageModelsService, allModels),
+				modelTarget: snapshot.modelTarget,
+			};
+		}
+
 		const fallbackModel = snapshot.models.find(model => model.metadata.isDefaultForLocation[ChatAgentLocation.Chat]) ?? snapshot.models[0];
 		const result = transitionModelSelection({
 			session: sessionContext,
@@ -265,9 +310,9 @@ export class SessionModelSelectionModel extends Disposable implements ISessionMo
 		this._state.set({
 			models,
 			options,
-			hasSelectableModel: !!provider && hasSelectableModel(models, options),
+			hasSelectableModel: hasSelectableModel(models, options),
 			currentModel,
-			pendingSelection: result.pendingSelection,
+			pendingSelection: currentModel ? undefined : result.pendingSelection,
 		}, undefined);
 		this._sharedDiagnostics.report('transition', {
 			trigger,
@@ -317,7 +362,8 @@ export class SessionModelSelectionModel extends Disposable implements ISessionMo
 	}
 
 	private _getRememberedModel(session: IActiveSession, modelTarget: string | undefined): IRememberedModelSelection | undefined {
-		const storedSelection = getStoredSelectedModel(this._storageService, ChatAgentLocation.Chat, modelTarget);
+		const storedSelection = getStoredSelectedModel(this._storageService, ChatAgentLocation.Chat, modelTarget)
+			?? (modelTarget !== undefined ? getStoredSelectedModel(this._storageService, ChatAgentLocation.Chat, undefined) : undefined);
 		if (storedSelection) {
 			return { identifier: storedSelection, source: 'stored' };
 		}
@@ -326,6 +372,9 @@ export class SessionModelSelectionModel extends Disposable implements ISessionMo
 		const legacyIdentifier = this._storageService.get(legacyStorageKey, StorageScope.PROFILE);
 		if (legacyIdentifier) {
 			storeSelectedModel(this._storageService, ChatAgentLocation.Chat, modelTarget, legacyIdentifier);
+			if (modelTarget !== undefined) {
+				storeSelectedModel(this._storageService, ChatAgentLocation.Chat, undefined, legacyIdentifier);
+			}
 			this._sharedDiagnostics.report('legacy-selection-migrated', {
 				legacyStorageKey,
 				model: legacyIdentifier,

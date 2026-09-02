@@ -23,6 +23,7 @@ import { IDefaultAccountService } from '../../../../platform/defaultAccount/comm
 import { localize } from '../../../../nls.js';
 import { IActiveSession, ISessionsManagementService } from '../../../services/sessions/common/sessionsManagement.js';
 import { ISession, SessionTypeAuthRequirement } from '../../../services/sessions/common/session.js';
+import { ISessionsProvidersService } from '../../../services/sessions/browser/sessionsProvidersService.js';
 import { IOpenNewSessionResult, ISessionsService } from '../../../services/sessions/browser/sessionsService.js';
 import { isAllowSignedOutWhenUsableEnabled } from '../../../browser/sessionsAuthGate.js';
 import { IAquariumService, IMountedToggleHandle } from '../../aquarium/browser/aquariumOverlay.js';
@@ -129,6 +130,7 @@ export class NewChatWidget extends Disposable {
 		@IDefaultAccountService private readonly defaultAccountService: IDefaultAccountService,
 		@IStorageService private readonly storageService: IStorageService,
 		@INewSessionComposerService newSessionComposerService: INewSessionComposerService,
+		@ISessionsProvidersService private readonly sessionsProvidersService: ISessionsProvidersService,
 	) {
 		super();
 		this._workspacePickerVisibleKey = SessionWorkspacePickerVisibleContext.bindTo(contextKeyService);
@@ -160,6 +162,7 @@ export class NewChatWidget extends Disposable {
 		});
 
 		const feedbackChanged = observableSignalFromEvent(this, this.agentFeedbackService.onDidChangeFeedback);
+		const workspaceChanged = observableSignalFromEvent(this, Event.any(this._workspacePicker.onDidSelectWorkspace, this._workspacePicker.onDidChangeSelection));
 		this._feedbackItems = derived(this, reader => {
 			feedbackChanged.read(reader);
 			return this.agentFeedbackService.getFeedback(AGENT_FEEDBACK_NEW_SESSION_RESOURCE)
@@ -167,6 +170,7 @@ export class NewChatWidget extends Disposable {
 		});
 
 		const canSendRequest = derived(reader => {
+			workspaceChanged.read(reader);
 			const session = this._session.read(reader);
 			if (session) {
 				if (session.loading.read(reader)) {
@@ -623,7 +627,7 @@ export class NewChatWidget extends Disposable {
 		const effectivePick = this._preferUsableSessionTypeWhenSignedOut(folderUri, preferredPick);
 		const fallbackProviderId = this._workspacePicker.selectedResolved?.providerId;
 		try {
-			return await this.sessionsService.openNewSession({
+			const result = await this.sessionsService.openNewSession({
 				folderUri,
 				...(effectivePick
 					? { providerId: effectivePick.providerId, sessionTypeId: effectivePick.sessionTypeId }
@@ -631,8 +635,16 @@ export class NewChatWidget extends Disposable {
 						? { providerId: fallbackProviderId }
 						: undefined),
 			}, token);
+			if (result.session) {
+				return result;
+			}
 		} catch (e) {
 			this.logService.error('Failed to create new session:', e);
+		}
+		try {
+			return await this.sessionsService.openNewSession({ folderUri }, token);
+		} catch (e) {
+			this.logService.error('Failed to create new session with fallback:', e);
 			return { session: undefined, trustDeclined: false };
 		}
 	}
@@ -818,17 +830,23 @@ export class NewChatWidget extends Disposable {
 	// --- Send ---
 
 	private async _send(query: string, attachedContext?: IChatRequestVariableEntry[], background?: boolean): Promise<boolean> {
-		let session = this._session.get();
+		let session = this._session.get() ?? this.sessionsService.activeSession.get() ?? this.sessionsManagementService.newSession.get();
 		if (!session) {
 			const folderUri = this._workspacePicker.selectedFolderUri;
 			if (folderUri) {
-				await this._createNewSession(folderUri);
-				session = this._session.get();
+				const result = await this._createNewSession(folderUri);
+				session = result.session ?? this._session.get() ?? this.sessionsService.activeSession.get() ?? this.sessionsManagementService.newSession.get();
 			}
 			if (!session) {
-				this._workspacePicker.showPicker();
+				if (!this._workspacePicker.selectedFolderUri) {
+					this._workspacePicker.showPicker();
+				}
 				return false;
 			}
+		}
+		const currentModel = this._newChatInput.selectedModelState.get().currentModel;
+		if (currentModel && session.modelId.get() !== currentModel.identifier) {
+			this.sessionsProvidersService.getProvider(session.providerId)?.setModel(session.sessionId, currentModel.identifier);
 		}
 		const feedbackItems = [...this._feedbackItems.get()];
 		const workspaceRoots = session.workspace.get()?.folders.map(folder => folder.root)
@@ -979,10 +997,6 @@ export class NewChatWidget extends Disposable {
 	}
 
 	submitInput(): Promise<boolean> {
-		if (!this._session.get()) {
-			this._workspacePicker.showPicker();
-			return Promise.resolve(false);
-		}
 		return this._newChatInput.submit();
 	}
 

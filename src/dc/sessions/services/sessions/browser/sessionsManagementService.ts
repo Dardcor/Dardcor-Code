@@ -326,6 +326,19 @@ export class SessionsManagementService extends Disposable implements ISessionsMa
 		if (preferredProviderId) {
 			const preferred = this.sessionsProvidersService.getProvider(preferredProviderId);
 			const workspace = preferred?.resolveWorkspace(folderUri);
+			if (workspace && (preferred?.getSessionTypes(folderUri).length ?? 0) > 0) {
+				return { providerId: preferredProviderId, workspace };
+			}
+		}
+		for (const provider of this.sessionsProvidersService.getProviders()) {
+			const workspace = provider.resolveWorkspace(folderUri);
+			if (workspace && (provider.getSessionTypes(folderUri).length ?? 0) > 0) {
+				return { providerId: provider.id, workspace };
+			}
+		}
+		if (preferredProviderId) {
+			const preferred = this.sessionsProvidersService.getProvider(preferredProviderId);
+			const workspace = preferred?.resolveWorkspace(folderUri);
 			if (workspace) {
 				return { providerId: preferredProviderId, workspace };
 			}
@@ -395,49 +408,62 @@ export class SessionsManagementService extends Disposable implements ISessionsMa
 	 */
 	private _resolveProviderForNewSession(folderUri: URI, options?: ICreateNewSessionOptions): { provider: ISessionsProvider; sessionTypeId: string; workspace: ISessionWorkspace } {
 		const providers = this.sessionsProvidersService.getProviders();
-		let provider: ISessionsProvider | undefined;
-		let workspace: ISessionWorkspace | undefined;
+
+		const canProviderServe = (candidate: ISessionsProvider, targetSessionTypeId?: string): { workspace: ISessionWorkspace; sessionTypeId: string } | undefined => {
+			const ws = candidate.resolveWorkspace(folderUri);
+			if (!ws) {
+				return undefined;
+			}
+			const types = candidate.getSessionTypes(folderUri);
+			if (!types || types.length === 0) {
+				return undefined;
+			}
+			if (targetSessionTypeId) {
+				const matched = types.find(t => t.id === targetSessionTypeId);
+				if (matched) {
+					return { workspace: ws, sessionTypeId: matched.id };
+				}
+				return undefined;
+			}
+			return { workspace: ws, sessionTypeId: types[0].id };
+		};
 
 		if (options?.providerId) {
-			provider = providers.find(p => p.id === options.providerId);
-			if (!provider) {
-				throw new Error(`Sessions provider '${options.providerId}' not found`);
+			const candidate = providers.find(p => p.id === options.providerId);
+			if (candidate) {
+				const servable = canProviderServe(candidate, options.sessionTypeId);
+				if (servable) {
+					return { provider: candidate, sessionTypeId: servable.sessionTypeId, workspace: servable.workspace };
+				}
 			}
-			workspace = provider.resolveWorkspace(folderUri);
-			if (!workspace) {
-				throw new Error(`Sessions provider '${options.providerId}' cannot resolve folder '${folderUri.toString()}'`);
-			}
-			if (options.sessionTypeId && !provider.getSessionTypes(folderUri).some(type => type.id === options.sessionTypeId)) {
-				throw new Error(`Sessions provider '${options.providerId}' does not advertise session type '${options.sessionTypeId}'`);
-			}
-		} else {
-			// Iterate providers and pick the first one that can resolve the folder.
-			// When a specific session type was requested, also require the provider to
-			// advertise that type for the folder.
+		}
+
+		if (options?.sessionTypeId) {
 			for (const candidate of providers) {
-				const candidateWorkspace = candidate.resolveWorkspace(folderUri);
-				if (!candidateWorkspace) {
-					continue;
+				const servable = canProviderServe(candidate, options.sessionTypeId);
+				if (servable) {
+					return { provider: candidate, sessionTypeId: servable.sessionTypeId, workspace: servable.workspace };
 				}
-				if (options?.sessionTypeId && !candidate.getSessionTypes(folderUri).some(t => t.id === options.sessionTypeId)) {
-					continue;
-				}
-				provider = candidate;
-				workspace = candidateWorkspace;
-				break;
-			}
-			if (!provider || !workspace) {
-				throw new Error(`No sessions provider can resolve folder '${folderUri.toString()}'`);
 			}
 		}
-		let sessionTypeId = options?.sessionTypeId;
-		if (!sessionTypeId) {
-			sessionTypeId = provider.getSessionTypes(folderUri)[0]?.id;
-			if (!sessionTypeId) {
-				throw new Error(`No session types available for provider '${provider.id}'`);
+
+		for (const candidate of providers) {
+			const servable = canProviderServe(candidate);
+			if (servable) {
+				return { provider: candidate, sessionTypeId: servable.sessionTypeId, workspace: servable.workspace };
 			}
 		}
-		return { provider, sessionTypeId, workspace };
+
+		// Fallback for edge cases
+		for (const candidate of providers) {
+			const ws = candidate.resolveWorkspace(folderUri);
+			if (ws) {
+				const sessionTypeId = candidate.getSessionTypes(folderUri)[0]?.id ?? 'default';
+				return { provider: candidate, sessionTypeId, workspace: ws };
+			}
+		}
+
+		throw new Error(`No sessions provider can resolve folder '${folderUri.toString()}'`);
 	}
 
 	createNewSession(folderUri: URI, options?: ICreateNewSessionOptions): ISession {

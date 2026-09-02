@@ -3,6 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { AnchorPosition, AnchorAlignment } from '../../../../base/common/layout.js';
 import { Disposable, DisposableStore } from '../../../../base/common/lifecycle.js';
 import { autorun, derived, IObservable } from '../../../../base/common/observable.js';
 import { localize2 } from '../../../../nls.js';
@@ -80,6 +81,8 @@ export class ModelPicker extends Disposable {
 				// picker which warms as soon as the first request is added.
 				return session ? session.status.get() !== SessionStatus.Untitled : false;
 			},
+			anchorPosition: AnchorPosition.ABOVE,
+			anchorAlignment: AnchorAlignment.LEFT,
 		};
 
 		const pickerOptions: IChatInputPickerOptions = {

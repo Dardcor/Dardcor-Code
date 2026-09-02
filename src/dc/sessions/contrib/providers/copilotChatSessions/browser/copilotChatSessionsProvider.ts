@@ -1584,11 +1584,11 @@ export class CopilotChatSessionsProvider extends Disposable implements ISessions
 
 		// CLI sessions use language models registered against `targetChatSessionType`.
 		const sessionType = session?.sessionType;
-		if (!sessionType) {
-			return { models: [], desiredModelResolution: resolveModelIdentifier([], desiredModelId, false), modelTarget: undefined };
-		}
 		const allModels = getRegisteredLanguageModels(this.languageModelsService);
-		const models = allModels.filter(model => model.metadata.targetChatSessionType === sessionType);
+		let models = sessionType ? allModels.filter(model => model.metadata.targetChatSessionType === sessionType) : [];
+		if (models.length === 0 && allModels.length > 0) {
+			models = allModels.filter(model => !this.languageModelsService.isModelHidden(model.identifier) && model.metadata.isUserSelectable !== false);
+		}
 		return {
 			models,
 			desiredModelResolution: resolveModelIdentifierFromLanguageModels(models, desiredModelId, this.languageModelsService, allModels),

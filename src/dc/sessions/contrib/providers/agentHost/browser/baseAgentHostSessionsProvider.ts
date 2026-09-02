@@ -43,7 +43,7 @@ import { IChatSessionFileChange, IChatSessionFileChange2, IChatSessionsService }
 import { ChatAgentLocation, ChatConfiguration, ChatModeKind, ChatPermissionLevel, getChatPermissionLevelFromDefaultConfiguration, isChatPermissionLevel, type IChatDefaultConfiguration } from '../../../../../workbench/contrib/chat/common/constants.js';
 import { isAutoApprovePolicyRestricted, normalizeSessionConfigValue } from '../../../../../workbench/contrib/chat/common/agentHostConfigPolicy.js';
 import { ILanguageModelChatMetadata, ILanguageModelsService } from '../../../../../workbench/contrib/chat/common/languageModels.js';
-import { getRegisteredLanguageModels, resolveConfiguredModel, resolveModelIdentifier, resolveModelIdentifierFromLanguageModels } from '../../../../../workbench/contrib/chat/common/modelSelection.js';
+import { getRegisteredLanguageModels, resolveConfiguredModel, resolveModelIdentifierFromLanguageModels } from '../../../../../workbench/contrib/chat/common/modelSelection.js';
 import { buildMutableConfigSchema, IAgentHostMcpServer, IAgentHostSessionsProvider, resolvedConfigsEqual } from '../../../../common/agentHostSessionsProvider.js';
 import { agentHostSessionWorkspaceKey } from '../../../../common/agentHostSessionWorkspace.js';
 import { isSessionConfigComplete } from '../../../../common/sessionConfig.js';
@@ -3277,15 +3277,8 @@ export abstract class BaseAgentHostSessionsProvider extends Disposable implement
 		// scheme (the per-host/per-agent `targetChatSessionType`). Resolve the
 		// scheme from the session and return the matching language models.
 		const resourceScheme = this._resolveSessionResourceScheme(sessionId);
-		if (!resourceScheme) {
-			return {
-				models: [],
-				desiredModelResolution: resolveModelIdentifier([], desiredModelId, false),
-				modelTarget: undefined,
-			};
-		}
 		const allModels = getRegisteredLanguageModels(this._languageModelsService);
-		const models = allModels.filter(model => {
+		let models = resourceScheme ? allModels.filter(model => {
 			if (model.metadata.targetChatSessionType !== resourceScheme) {
 				return false;
 			}
@@ -3294,9 +3287,14 @@ export abstract class BaseAgentHostSessionsProvider extends Disposable implement
 			}
 			const manageModelsIdentifier = ILanguageModelChatMetadata.getAgentHostByokManageModelsIdentifier(model.metadata);
 			return manageModelsIdentifier === undefined || !this._languageModelsService.isModelHidden(manageModelsIdentifier);
-		});
+		}) : [];
+
+		if (models.length === 0 && allModels.length > 0) {
+			models = allModels.filter(model => !this._languageModelsService.isModelHidden(model.identifier) && model.metadata.isUserSelectable !== false);
+		}
+
 		const desiredModel = desiredModelId ? this._languageModelsService.lookupLanguageModel(desiredModelId) : undefined;
-		const resolvedDesiredModelId = desiredModel?.targetChatSessionType && this.resourceSchemeForProvider(desiredModel.targetChatSessionType) === resourceScheme
+		const resolvedDesiredModelId = desiredModel?.targetChatSessionType && resourceScheme && this.resourceSchemeForProvider(desiredModel.targetChatSessionType) === resourceScheme
 			? `${resourceScheme}:${desiredModel.id}`
 			: desiredModelId;
 		return {

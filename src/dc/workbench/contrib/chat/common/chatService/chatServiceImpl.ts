@@ -1205,7 +1205,7 @@ export class ChatService extends Disposable implements IChatService {
 		const defaultAgent = this.chatAgentService.getDefaultAgent(location, options?.modeInfo?.kind);
 		if (!defaultAgent) {
 			this.logService.warn('sendRequest', `No default agent for location ${location}`);
-			return { kind: 'rejected', reason: 'No default agent available' };
+			// Allow sending request without default agent
 		}
 
 		const parsedRequest = this.parseChatRequest(sessionResource, request, location, options);
@@ -1219,7 +1219,7 @@ export class ChatService extends Disposable implements IChatService {
 			newSessionResource,
 			data: {
 				...this._sendRequestAsync(model, sessionResource, parsedRequest, attempt, !options?.noCommandDetection, silentAgent ?? defaultAgent, location, options),
-				agent,
+				agent: agent!,
 				slashCommand: agentSlashCommandPart?.command,
 			},
 		};
@@ -1367,7 +1367,7 @@ export class ChatService extends Disposable implements IChatService {
 		return newTokenSource.token;
 	}
 
-	private _sendRequestAsync(model: ChatModel, sessionResource: URI, parsedRequest: IParsedChatRequest, attempt: number, enableCommandDetection: boolean, defaultAgent: IChatAgentData, location: ChatAgentLocation, options?: IChatSendRequestOptions): IChatSendRequestResponseState {
+	private _sendRequestAsync(model: ChatModel, sessionResource: URI, parsedRequest: IParsedChatRequest, attempt: number, enableCommandDetection: boolean, defaultAgent: IChatAgentData | undefined, location: ChatAgentLocation, options?: IChatSendRequestOptions): IChatSendRequestResponseState {
 		const followupsCancelToken = this.refreshFollowupsCancellationToken(sessionResource);
 		let request: ChatRequestModel | undefined;
 		const agentPart = parsedRequest.parts.find((r): r is ChatRequestAgentPart => r instanceof ChatRequestAgentPart);
@@ -1376,7 +1376,7 @@ export class ChatService extends Disposable implements IChatService {
 		const requests = [...model.getRequests()];
 		const isTerminalCommand = isTerminalCommandPrompt(parsedRequest.text, this.chatSessionService.getCapabilitiesForSessionType(getChatSessionType(sessionResource))?.terminalCommandPrefix);
 		const requestTelemetry = this.instantiationService.createInstance(ChatRequestTelemetry, {
-			agent: agentPart?.agent ?? defaultAgent,
+			agent: (agentPart?.agent ?? defaultAgent)!,
 			agentSlashCommandPart,
 			commandPart,
 			sessionResource: model.sessionResource,
@@ -1652,7 +1652,8 @@ export class ChatService extends Disposable implements IChatService {
 						location !== ChatAgentLocation.EditorInline &&
 						options?.modeInfo?.kind !== ChatModeKind.Agent &&
 						options?.modeInfo?.kind !== ChatModeKind.Edit &&
-						!options?.agentIdSilent
+						!options?.agentIdSilent &&
+						defaultAgent
 					) {
 						// We have no agent or command to scope history with, pass the full history to the participant detection provider
 						const defaultAgentHistory = this.getHistoryEntriesFromModel(requests, location, defaultAgent.id);
@@ -1667,7 +1668,23 @@ export class ChatService extends Disposable implements IChatService {
 						}
 					}
 
-					const agent = (detectedAgent ?? agentPart?.agent ?? defaultAgent)!;
+					const agent = (detectedAgent ?? agentPart?.agent ?? defaultAgent);
+					if (!agent) {
+						if (request) {
+							requestTelemetry.complete({
+								timeToFirstProgress: undefined,
+								result: 'success',
+								totalTime: stopWatch.elapsed(),
+								requestType,
+								detectedAgent,
+								request,
+							});
+							completeResponseCreated();
+							request.response?.complete();
+							shouldProcessPending = !token.isCancellationRequested;
+						}
+						return;
+					}
 					const command = detectedCommand ?? agentSlashCommandPart?.command;
 
 					await this.extensionService.activateByEvent(`onChatParticipant:${agent.id}`);
@@ -1908,10 +1925,7 @@ export class ChatService extends Disposable implements IChatService {
 		const defaultAgent = this.chatAgentService.getDefaultAgent(location, sendOptions.modeInfo?.kind);
 		if (!defaultAgent) {
 			this.logService.warn('processNextPendingRequest', `No default agent for location ${location}`);
-			for (const deferred of deferreds) {
-				deferred.complete({ kind: 'rejected', reason: 'No default agent available' });
-			}
-			return;
+			// Allow processing without default agent
 		}
 
 		// For multiple steering requests, combine texts and re-parse; otherwise use as-is
@@ -1948,7 +1962,7 @@ export class ChatService extends Disposable implements IChatService {
 			kind: 'sent',
 			data: {
 				...responseState,
-				agent,
+				agent: agent!,
 				slashCommand: agentSlashCommandPart?.command,
 			},
 		};
@@ -1957,10 +1971,10 @@ export class ChatService extends Disposable implements IChatService {
 		}
 	}
 
-	private generateInitialChatTitleIfNeeded(model: ChatModel, request: IChatAgentRequest, defaultAgent: IChatAgentData, token: CancellationToken): void {
+	private generateInitialChatTitleIfNeeded(model: ChatModel, request: IChatAgentRequest, defaultAgent: IChatAgentData | undefined, token: CancellationToken): void {
 		// Generate a title only for the first request, and only via the default agent.
 		// Use a single-entry history based on the current request (no full chat history).
-		if (model.getRequests().length !== 1 || model.customTitle) {
+		if (model.getRequests().length !== 1 || model.customTitle || !defaultAgent) {
 			return;
 		}
 

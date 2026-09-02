@@ -563,7 +563,7 @@ export class ModelPickerWidget extends Disposable {
 			},
 			minWidth: 200,
 			anchorPosition: this._delegate.anchorPosition ?? AnchorPosition.ABOVE,
-			anchorAlignment: AnchorAlignment.RIGHT,
+			anchorAlignment: this._delegate.anchorAlignment ?? AnchorAlignment.RIGHT,
 		});
 		const previouslyFocusedElement = dom.getActiveElement();
 

@@ -755,7 +755,10 @@ export class LocalChatSessionsProvider extends Disposable implements ISessionsPr
 		// no extension registers models specifically targeting the 'local'
 		// session type.
 		const allModels = getRegisteredLanguageModels(this.languageModelsService);
-		const models = allModels.filter(model => !model.metadata.targetChatSessionType && model.metadata.isUserSelectable !== false);
+		let models = allModels.filter(model => !model.metadata.targetChatSessionType && model.metadata.isUserSelectable !== false);
+		if (models.length === 0 && allModels.length > 0) {
+			models = allModels.filter(model => !this.languageModelsService.isModelHidden(model.identifier) && model.metadata.isUserSelectable !== false);
+		}
 		return {
 			models,
 			desiredModelResolution: resolveModelIdentifierFromLanguageModels(models, desiredModelId, this.languageModelsService, allModels),
@@ -861,14 +864,15 @@ export class LocalChatSessionsProvider extends Disposable implements ISessionsPr
 			return false;
 		}
 
-		const group = this._getGroupChats(primary);
-		const target = group.find(chat => isEqual(chat.resource, chatUri));
+		const target = this._findSessionByResource(chatUri);
 
 		// Unknown chat (e.g. a stale or incorrect URI): do nothing rather than
 		// risk wiping the whole session.
-		if (!target) {
+		if (!target || !isEqual(target.resource, primary.resource) && (!target.parentResource || !isEqual(target.parentResource, primary.resource))) {
 			return false;
 		}
+
+		const group = this._getGroupChats(primary);
 
 		// Deleting the only chat or the primary chat removes the whole session
 		// (and any children).
@@ -909,9 +913,9 @@ export class LocalChatSessionsProvider extends Disposable implements ISessionsPr
 	}
 
 	async renameChat(_sessionId: string, chatUri: URI, title: string): Promise<void> {
-		this.chatService.setSessionTitle(chatUri, title);
 		const session = this._findSessionByResource(chatUri);
 		if (session) {
+			this.chatService.setSessionTitle(session.resource, title);
 			session.setTitle(title);
 			this._updateStoredSession(session);
 			this._onDidChangeSessions.fire({ added: [], removed: [], changed: [this._toISession(session)] });
@@ -1108,9 +1112,9 @@ export class LocalChatSessionsProvider extends Disposable implements ISessionsPr
 		};
 
 		// Set model/mode/permission state on the chat model before sending
-		const modelRef = await this._updateChatSessionState(chatResource, session);
+		const modelRef = await this._updateChatSessionState(session.resource, session);
 		try {
-			return await this.chatService.sendRequest(chatResource, query, sendOptions);
+			return await this.chatService.sendRequest(session.resource, query, sendOptions);
 		} finally {
 			modelRef?.dispose();
 		}
