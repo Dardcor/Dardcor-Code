@@ -250,15 +250,19 @@ async function main() {
 		// Run postinstall to copy static build assets (wasm, tiktoken, cli) to dist/.
 		// This is needed because in CI, node_modules may be restored from cache,
 		// skipping npm ci and thus the postinstall script.
-		const child_process = await import('child_process');
-		child_process.execFileSync(
-			process.execPath,
-			[
-				path.join(REPO_ROOT, 'node_modules', 'tsx', 'dist', 'cli.mjs'),
-				path.join(REPO_ROOT, 'script', 'postinstall.ts'),
-			],
-			{ cwd: REPO_ROOT, stdio: 'inherit' },
-		);
+		try {
+			const child_process = await import('child_process');
+			child_process.execFileSync(
+				process.execPath,
+				[
+					path.join(REPO_ROOT, 'node_modules', 'tsx', 'dist', 'cli.mjs'),
+					path.join(REPO_ROOT, 'script', 'postinstall.ts'),
+				],
+				{ cwd: REPO_ROOT, stdio: 'inherit' },
+			);
+		} catch (e) {
+			console.warn('[esbuild] postinstall script notice:', (e as Error)?.message || e);
+		}
 
 		// Move source maps to separate directory so they're not packaged with the extension
 		await moveSourceMapsToSeparateDir();

@@ -286,7 +286,7 @@ export class ModelMetadataFetcher extends Disposable implements IModelMetadataFe
 				if (!id || id.toLowerCase() === 'auto' || id.toLowerCase() === 'claude-none') {
 					continue;
 				}
-				const canonicalKey = id.replace(/^(ag|oc|ds|opencode)\//i, '').toLowerCase();
+				const canonicalKey = id.toLowerCase();
 				if (seenIds.has(canonicalKey)) {
 					continue;
 				}
@@ -298,7 +298,7 @@ export class ModelMetadataFetcher extends Disposable implements IModelMetadataFe
 				if (originalName && originalName !== id) {
 					return originalName;
 				}
-				let clean = id.replace(/^(ag|oc|ds|opencode)\//i, '');
+				let clean = id.includes('/') ? id.slice(id.indexOf('/') + 1) : id;
 				return clean
 					.split(/[-_]/)
 					.map(part => {
@@ -319,6 +319,7 @@ export class ModelMetadataFetcher extends Disposable implements IModelMetadataFe
 				const maxContext = (typeof m === 'object' && m.capabilities?.contextWindow) ? m.capabilities.contextWindow : 200000;
 				const maxOutput = (typeof m === 'object' && m.capabilities?.maxOutput) ? m.capabilities.maxOutput : 64000;
 				const hasVision = typeof m === 'object' && m.capabilities?.vision === true;
+				const hasThinking = typeof m === 'object' && (m.capabilities?.thinking === true || m.capabilities?.reasoning === true || id.toLowerCase().includes('thinking') || id.toLowerCase().includes('reasoning') || id.toLowerCase().includes('r1'));
 				const ownedBy = (typeof m === 'object' && m.owned_by) ? String(m.owned_by) : undefined;
 				const prefix = id.includes('/') ? id.split('/')[0] : (ownedBy || undefined);
 				const vendor = (prefix || ownedBy || 'opencode').toLowerCase();
