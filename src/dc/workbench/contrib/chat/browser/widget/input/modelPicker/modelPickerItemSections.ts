@@ -311,8 +311,12 @@ function appendOtherModels(context: IGroupedContext): boolean {
 		groups.set(key, bucket);
 	}
 	const sortedGroups = [...groups.values()].sort((left, right) => {
-		if (left.vendor === 'copilot' && right.vendor !== 'copilot') { return -1; }
-		if (right.vendor === 'copilot' && left.vendor !== 'copilot') { return 1; }
+		const order = ['Antigravity', 'OpenCode', 'Anthropic', 'OpenAI', 'Google', 'DeepSeek', 'Groq', 'xAI', 'Kimi', 'GLM', 'Qwen'];
+		const leftIdx = order.indexOf(left.groupName);
+		const rightIdx = order.indexOf(right.groupName);
+		if (leftIdx !== -1 && rightIdx !== -1) { return leftIdx - rightIdx; }
+		if (leftIdx !== -1) { return -1; }
+		if (rightIdx !== -1) { return 1; }
 		return left.groupName.localeCompare(right.groupName);
 	});
 	const showHeaders = sortedGroups.length > 1;

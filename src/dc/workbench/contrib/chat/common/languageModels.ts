@@ -707,6 +707,8 @@ export interface ILanguageModelsService {
 }
 
 export const DARDCOR_PROVIDER_DISPLAY_NAMES: { [key: string]: string } = {
+	'antigravity': 'Antigravity',
+	'ag': 'Antigravity',
 	'opencode': 'OpenCode',
 	'oc': 'OpenCode',
 	'opencode-go': 'OpenCode Go',
@@ -1222,9 +1224,9 @@ export class LanguageModelsService implements ILanguageModelsService {
 				let id = typeof m === 'string' ? m : (m.id || m.name || '');
 				if (typeof id === 'string' && !id.includes('/') && (id.toLowerCase().endsWith('-free') || id.toLowerCase() === 'big-pickle')) id = `oc/${id}`;
 				if (!id || id.toLowerCase() === 'auto' || id.toLowerCase() === 'claude-none' || id.toLowerCase() === 'opencode/no-model-selected') continue;
-				const canonical = id.replace(/^(ag|oc|ds|opencode)\//i, '').toLowerCase();
-				if (seen.has(canonical)) continue;
-				seen.add(canonical);
+				const lowerId = id.toLowerCase();
+				if (seen.has(lowerId)) continue;
+				seen.add(lowerId);
 				nextIds.add(id);
 
 				const maxContext = (typeof m === 'object' && m.capabilities?.contextWindow) ? m.capabilities.contextWindow : 200000;
@@ -1250,7 +1252,7 @@ export class LanguageModelsService implements ILanguageModelsService {
 					isDefaultForLocation: isFirst ? { [ChatAgentLocation.Chat]: true, [ChatAgentLocation.EditorInline]: true } : {},
 					id,
 					name,
-					vendor: providerId,
+					vendor: 'dardcor',
 					modelGroup: {
 						id: providerId,
 						name: providerDisplayName
@@ -1267,9 +1269,8 @@ export class LanguageModelsService implements ILanguageModelsService {
 					}
 				};
 				this._modelCache.set(id, metadata);
-				if (clean !== id) {
-					this._modelCache.set(clean, metadata);
-					nextIds.add(clean);
+				if (clean !== id && !this._modelCache.has(clean)) {
+					this._modelCache.set(clean, { ...metadata, isUserSelectable: false });
 				}
 			}
 			if (nextIds.size > 0) {

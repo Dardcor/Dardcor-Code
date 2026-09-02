@@ -326,7 +326,7 @@ export class ModelMetadataFetcher extends Disposable implements IModelMetadataFe
 				return {
 					id,
 					name,
-					vendor,
+					vendor: 'dardcor',
 					urlOrRequestMetadata: 'http://127.0.0.1:25128/v1/chat/completions',
 					model_picker_enabled: true,
 					showInModelPicker: true,
