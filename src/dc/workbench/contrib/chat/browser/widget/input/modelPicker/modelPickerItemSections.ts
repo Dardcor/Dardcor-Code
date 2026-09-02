@@ -311,7 +311,7 @@ function appendOtherModels(context: IGroupedContext): boolean {
 		groups.set(key, bucket);
 	}
 	const sortedGroups = [...groups.values()].sort((left, right) => {
-		const order = ['Antigravity', 'OpenCode', 'Anthropic', 'OpenAI', 'Google', 'DeepSeek', 'Groq', 'xAI', 'Kimi', 'GLM', 'Qwen'];
+		const order = ['Antigravity', 'OpenCode', 'OpenCode Go', 'Gemini AI Studio', 'Anthropic', 'Claude Code', 'OpenAI', 'Google Vertex', 'DeepSeek', 'Groq', 'xAI', 'Kimi', 'GLM', 'Qwen', 'Kiro', 'Qoder'];
 		const leftIdx = order.indexOf(left.groupName);
 		const rightIdx = order.indexOf(right.groupName);
 		if (leftIdx !== -1 && rightIdx !== -1) { return leftIdx - rightIdx; }

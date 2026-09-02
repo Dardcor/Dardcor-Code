@@ -76,6 +76,17 @@ export function getProviderGroupForModel(
 			groupName: model.metadata.modelGroup.name,
 		};
 	}
+	const id = (model.identifier || model.metadata.id || '').toLowerCase().trim();
+	if (id.includes('/')) {
+		const prefix = id.split('/')[0].trim();
+		const resolvedName = getLanguageModelProviderDisplayName(languageModelsService, prefix, id);
+		if (resolvedName && resolvedName !== 'Dardcor Code') {
+			return {
+				vendor: prefix,
+				groupName: resolvedName
+			};
+		}
+	}
 	if (model.metadata.modelGroup?.id && model.metadata.modelGroup.id !== 'dardcor') {
 		const sourcePresentation = model.metadata.modelGroup.sourceId
 			? languageModelSourcePresentationRegistry.get(model.metadata.vendor, model.metadata.modelGroup.sourceId)
