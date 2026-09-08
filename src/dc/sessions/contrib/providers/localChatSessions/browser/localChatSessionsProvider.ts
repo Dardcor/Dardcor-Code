@@ -182,6 +182,7 @@ class LocalSession extends Disposable {
 		@IGitService private readonly gitService: IGitService,
 		@IChatService private readonly chatService: IChatService,
 		@IFileService private readonly fileService: IFileService,
+		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
 	) {
 		super();
 
@@ -209,8 +210,11 @@ class LocalSession extends Disposable {
 				ChatAgentLocation.Chat,
 				{ debugOwner: 'LocalChatSessionsProvider#createNewSession' },
 			));
-			if (workspace && workspace.folders.length > 0) {
-				modelRef.object.setWorkingDirectory(workspace.folders[0]?.root);
+			const effectiveRoot = (workspace && workspace.folders.length > 0)
+				? workspace.folders[0]?.root
+				: this.workspaceContextService.getWorkspace().folders[0]?.uri;
+			if (effectiveRoot) {
+				modelRef.object.setWorkingDirectory(effectiveRoot);
 			}
 			this.resource = modelRef.object.sessionResource;
 			this.createdAt = new Date();
@@ -413,9 +417,10 @@ export class LocalChatSessionsProvider extends Disposable implements ISessionsPr
 	readonly id = LOCAL_PROVIDER_ID;
 	readonly label = localize('localChatSessionsProvider', "Dardcor AI Chat");
 	readonly icon = Codicon.vm;
-	readonly order = 0;
+	readonly order = -100;
 	readonly browseActions: readonly [] = [];
 	readonly supportsLocalWorkspaces = true;
+	readonly supportsQuickChats = true;
 
 	readonly sessionTypes: readonly ISessionType[] = [LocalSessionType];
 	readonly onDidChangeSessionTypes: Event<void> = Event.None;
@@ -710,21 +715,22 @@ export class LocalChatSessionsProvider extends Disposable implements ISessionsPr
 			group: SESSION_WORKSPACE_GROUP_LOCAL,
 			icon: Codicon.folder,
 			folders: [folder],
-			requiresWorkspaceTrust: true,
+			requiresWorkspaceTrust: false,
 			isVirtualWorkspace: false,
 		};
 	}
 
 	// -- Session Lifecycle --
 
-	createNewSession(workspaceUri: URI, sessionTypeId: string): ISession {
-		if (sessionTypeId !== LocalSessionType.id) {
-			throw new Error(`Unsupported session type '${sessionTypeId}' for local provider`);
+	createNewSession(workspaceUri?: URI, _sessionTypeId?: string): ISession {
+		const targetUri = workspaceUri ?? this.workspaceContextService.getWorkspace().folders[0]?.uri;
+		if (!targetUri) {
+			throw new Error('Cannot create new session: no workspace folder available');
 		}
 
-		const workspace = this.resolveWorkspace(workspaceUri);
+		const workspace = this.resolveWorkspace(targetUri);
 		if (!workspace) {
-			throw new Error(`Cannot resolve workspace for URI: ${workspaceUri.toString()}`);
+			throw new Error(`Cannot resolve workspace for URI: ${targetUri.toString()}`);
 		}
 
 		const session = this.instantiationService.createInstance(LocalSession, undefined, workspace, this.id);
@@ -734,9 +740,10 @@ export class LocalChatSessionsProvider extends Disposable implements ISessionsPr
 	}
 
 	createQuickChat(_sessionTypeId: string): ISession {
-		// This provider is workspace-bound and does not advertise
-		// `supportsQuickChats`; callers must gate on that capability.
-		throw new Error('LocalChatSessionsProvider does not support quick chats');
+		const session = this.instantiationService.createInstance(LocalSession, undefined, undefined, this.id);
+		session.setPermissionLevel(this._defaultPermissionLevel());
+		this._newSessions.set(session.sessionId, session);
+		return this._toISession(session);
 	}
 
 	deleteNewSession(sessionId: string): void {
@@ -779,9 +786,9 @@ export class LocalChatSessionsProvider extends Disposable implements ISessionsPr
 	}
 
 	setModel(sessionId: string, modelId: string): void {
-		const newSession = this._newSessions.get(sessionId);
-		if (newSession) {
-			newSession.setModelId(modelId);
+		const target = this._newSessions.get(sessionId) ?? this._findSession(sessionId);
+		if (target) {
+			target.setModelId(modelId);
 		}
 	}
 
@@ -930,7 +937,10 @@ export class LocalChatSessionsProvider extends Disposable implements ISessionsPr
 	}
 
 	async createNewChat(sessionId: string, _prompt?: string): Promise<IChat> {
-		const currentNewSession = this._newSessions.get(sessionId);
+		let currentNewSession = this._newSessions.get(sessionId);
+		if (!currentNewSession && this._newSessions.size > 0) {
+			currentNewSession = Array.from(this._newSessions.values())[0];
+		}
 		if (currentNewSession) {
 			const session = currentNewSession;
 			const chat = buildChat(session);
@@ -941,6 +951,27 @@ export class LocalChatSessionsProvider extends Disposable implements ISessionsPr
 		const primary = this._findSession(sessionId);
 		if (primary && !primary.parentResource) {
 			return this._createNewSubsequentChat(primary);
+		}
+
+		// Fallback: If no session exists, auto-create a draft LocalSession
+		let workspaceUri = this.workspaceContextService.getWorkspace().folders[0]?.uri;
+		if (!workspaceUri) {
+			for (const cached of this._sessionCache.values()) {
+				const root = cached.workspace.get()?.folders[0]?.root;
+				if (root) {
+					workspaceUri = root;
+					break;
+				}
+			}
+		}
+		const workspace = workspaceUri ? this.resolveWorkspace(workspaceUri) : undefined;
+		if (workspace) {
+			const created = this.instantiationService.createInstance(LocalSession, undefined, workspace, this.id);
+			created.setPermissionLevel(this._defaultPermissionLevel());
+			this._newSessions.set(created.sessionId, created);
+			const chat = buildChat(created);
+			created.mainChat.set(chat, undefined);
+			return chat;
 		}
 
 		throw new Error(`Session '${sessionId}' not found or is not the current new session`);
@@ -975,12 +1006,23 @@ export class LocalChatSessionsProvider extends Disposable implements ISessionsPr
 
 	async sendRequest(sessionId: string, chatResource: URI, options: ISendRequestOptions): Promise<ISession> {
 		// First chat of a brand-new session.
-		const newSession = this._newSessions.get(sessionId);
-		if (newSession) {
-			if (chatResource.toString() !== newSession.resource.toString()) {
-				throw new Error(`Chat resource ${chatResource.toString()} does not match session resource ${newSession.resource.toString()}`);
+		let newSession = this._newSessions.get(sessionId);
+		if (!newSession && this._newSessions.size > 0) {
+			for (const s of this._newSessions.values()) {
+				if (s.resource.toString() === chatResource.toString()) {
+					newSession = s;
+					break;
+				}
 			}
-			return this._sendFirstChat(newSession, chatResource, options);
+			if (!newSession) {
+				newSession = Array.from(this._newSessions.values())[0];
+			}
+		}
+		if (newSession) {
+			const resource = (chatResource.toString() === newSession.resource.toString())
+				? chatResource
+				: newSession.resource;
+			return this._sendFirstChat(newSession, resource, options);
 		}
 
 		// Subsequent chat in an existing multi-chat session. The management
@@ -990,6 +1032,9 @@ export class LocalChatSessionsProvider extends Disposable implements ISessionsPr
 		const child = this._sessionCache.get(chatResource.toString());
 		if (primary && !primary.parentResource && child && child.parentResource && isEqual(child.parentResource, primary.resource)) {
 			return this._sendChildChat(primary, child, chatResource, options);
+		}
+		if (primary) {
+			return this._sendFirstChat(primary, chatResource, options);
 		}
 
 		throw new Error(`Session '${sessionId}' not found`);

@@ -102,7 +102,7 @@ export default function PxpipeClient() {
           : "Stopped";
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="flex min-w-0 flex-col gap-6 px-1 sm:px-0">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <span className="material-symbols-outlined text-primary">image</span>

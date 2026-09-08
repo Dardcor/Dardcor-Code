@@ -520,7 +520,7 @@ export class TerminalTabbedView extends Disposable {
 			}
 		}
 		if (promises.length) {
-			const processes = (await Promise.all(promises)).filter((process): process is IProcessDetails => !!process);
+			const processes = (await Promise.all(promises)).filter((process): process is IProcessDetails => !!process && !process.hideFromUser && !process.isFeatureTerminal);
 			let lastInstance: ITerminalInstance | undefined;
 			for (const attachPersistentProcess of processes) {
 				lastInstance = await this._terminalService.createTerminal({ config: { attachPersistentProcess } });

@@ -41,6 +41,7 @@ import { ExtensionsRegistry } from '../../../services/extensions/common/extensio
 import { ChatContextKeys } from './actions/chatContextKeys.js';
 import { ChatAgentLocation } from './constants.js';
 import { ILanguageModelsProviderGroup, ILanguageModelsConfigurationService } from './languageModelsConfiguration.js';
+import { formatDardcorRouterError } from './participants/dardcorRouterError.js';
 
 /**
  * Vendor id used for the built-in GitHub Copilot language model provider. Treated as the default
@@ -1359,7 +1360,7 @@ export class LanguageModelsService implements ILanguageModelsService {
 		// Immediate check
 		void fetchLocalModels();
 
-		// Fast startup polling: retry rapidly while DRouter is booting up
+		// Fast startup polling: retry rapidly while Dardcor Router is booting up
 		let startupPollCount = 0;
 		const startupPollTimer = setInterval(async () => {
 			startupPollCount++;
@@ -1374,6 +1375,112 @@ export class LanguageModelsService implements ILanguageModelsService {
 		// Regular background refresh
 		const refreshTimer = setInterval(() => void fetchLocalModels(), 15_000);
 		this._store.add(toDisposable(() => clearInterval(refreshTimer)));
+
+		const onDidChangeDardcorProvider = this._store.add(new Emitter<void>());
+		this._store.add(this.registerLanguageModelProvider('dardcor', {
+			onDidChange: onDidChangeDardcorProvider.event,
+			provideLanguageModelChatInfo: async () => {
+				const res: ILanguageModelChatMetadataAndIdentifier[] = [];
+				for (const [id, meta] of this._modelCache.entries()) {
+					if (meta.vendor === 'dardcor' && meta.isUserSelectable !== false) {
+						res.push({ identifier: id, metadata: meta });
+					}
+				}
+				return res;
+			},
+			provideTokenCount: async (_modelId, message) => {
+				const str = typeof message === 'string' ? message : JSON.stringify(message);
+				return Math.ceil(str.length / 4);
+			},
+			sendChatRequest: async (modelId: string, messages: IChatMessage[], _from: ExtensionIdentifier | undefined, _options: ILanguageModelChatRequestOptions, token: CancellationToken): Promise<ILanguageModelChatResponse> => {
+				let resolvedModel = modelId;
+				if (resolvedModel.toLowerCase().startsWith('opencode/')) resolvedModel = `oc/${resolvedModel.slice('opencode/'.length)}`;
+				if (resolvedModel.toLowerCase().endsWith('-free') && !resolvedModel.includes('/')) resolvedModel = `oc/${resolvedModel}`;
+				if (resolvedModel === 'opencode/no-model-selected' || resolvedModel === 'auto') resolvedModel = 'oc/big-pickle';
+
+				const formattedMessages: any[] = [];
+				for (const msg of messages) {
+					let role = 'user';
+					if (msg.role === ChatMessageRole.System) role = 'system';
+					else if (msg.role === ChatMessageRole.Assistant) role = 'assistant';
+					let text = '';
+					for (const part of msg.content) {
+						if (part.type === 'text') text += part.value;
+					}
+					formattedMessages.push({ role, content: text });
+				}
+
+				const dardcorIdentityPrompt = `You are Dardcor Code, an advanced AI programming assistant developed by Dardcor for the Dardcor Code Editor.
+Always identify yourself as Dardcor Code when asked who you are, what model or AI you are, or your identity. You were created by Dardcor.
+Never state that you are Grok, ChatGPT, Claude, Gemini, or any other third-party model.
+Assist developers with coding, debugging, architecture, refactoring, and software development with precision and depth.
+Automatically detect the user's language and respond fluently in the exact same language (e.g. Bahasa Indonesia, English, Japanese, etc.) for all outputs, explanations, reasoning, and summaries.`;
+
+				const systemIndex = formattedMessages.findIndex(m => m.role === 'system');
+				if (systemIndex >= 0) {
+					formattedMessages[systemIndex].content = `${dardcorIdentityPrompt}\n\n${formattedMessages[systemIndex].content}`;
+				} else {
+					formattedMessages.unshift({ role: 'system', content: dardcorIdentityPrompt });
+				}
+
+				const res = await globalThis.fetch('http://127.0.0.1:25128/v1/chat/completions', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'Authorization': 'Bearer sk-dardcor-local-key'
+					},
+					body: JSON.stringify({
+						model: resolvedModel,
+						messages: formattedMessages,
+						stream: true
+					})
+				});
+
+				if (!res.ok) {
+					const errText = await res.text();
+					throw new Error(formatDardcorRouterError(res.status, errText, resolvedModel));
+				}
+
+				async function* makeStream(): AsyncGenerator<IChatResponsePart[]> {
+					const reader = res.body?.getReader();
+					if (!reader) return;
+					const decoder = new TextDecoder();
+					let buffer = '';
+					while (true) {
+						if (token.isCancellationRequested) {
+							reader.cancel();
+							break;
+						}
+						const { done, value } = await reader.read();
+						if (done) break;
+						buffer += decoder.decode(value, { stream: true });
+						const lines = buffer.split('\n');
+						buffer = lines.pop() ?? '';
+						for (const line of lines) {
+							const trimmed = line.trim();
+							if (!trimmed || !trimmed.startsWith('data:')) continue;
+							const jsonStr = trimmed.slice(5).trim();
+							if (jsonStr === '[DONE]') continue;
+							try {
+								const parsed = JSON.parse(jsonStr);
+								const delta = parsed.choices?.[0]?.delta?.content
+									?? parsed.choices?.[0]?.delta?.text
+									?? parsed.choices?.[0]?.message?.content
+									?? '';
+								if (delta) {
+									yield [{ type: 'text', value: delta } as IChatResponseTextPart];
+								}
+							} catch { }
+						}
+					}
+				}
+
+				return {
+					stream: makeStream(),
+					result: Promise.resolve({})
+				};
+			}
+		}));
 
 		setTimeout(() => {
 			for (const vendor of this._vendors.keys()) {
@@ -1644,7 +1751,7 @@ export class LanguageModelsService implements ILanguageModelsService {
 				}
 			}
 
-			// Always merge the live DRouter catalog. The extension provider may
+			// Always merge the live Dardcor Router catalog. The extension provider may
 			// already have an older/static list (for example Gemini 3.6), but that
 			// must not hide newer connected models such as Gemini 3.7.
 			{

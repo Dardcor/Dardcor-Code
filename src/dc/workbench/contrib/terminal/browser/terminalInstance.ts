@@ -890,7 +890,7 @@ export class TerminalInstance extends Disposable implements ITerminalInstance {
 			// Respond to DA1 with basic conformance. Note that including this is required to avoid
 			// a long delay in conpty 1.22+ where it waits for the response.
 			// Reference: https://github.com/microsoft/terminal/blob/3760caed97fa9140a40777a8fbc1c95785e6d2ab/src/terminal/adapter/adaptDispatch.cpp#L1471-L1495
-			if (processTraits?.windowsPty?.backend === 'conpty') {
+			if (processTraits?.windowsPty?.backend === 'conpty' && !!this._terminalConfigurationService.config.windowsUseConptyDll) {
 				this._register(xterm.raw.parser.registerCsiHandler({ final: 'c' }, params => {
 					if (params.length === 0 || params.length === 1 && params[0] === 0) {
 						this._handleOnData('\x1b[?61;4c');

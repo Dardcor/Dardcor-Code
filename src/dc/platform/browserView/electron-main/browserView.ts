@@ -691,7 +691,13 @@ export class BrowserView extends Disposable {
 		// Wait for the tunnel proxy (if any) to be applied so the navigation
 		// and the requests it triggers flow through the proxy.
 		await this.session.remote.whenReady;
-		await this._view.webContents.loadURL(url);
+		try {
+			await this._view.webContents.loadURL(url);
+		} catch (err) {
+			// Navigation errors like ERR_CONNECTION_REFUSED or ERR_NAME_NOT_RESOLVED are handled by Electron's did-fail-load event.
+			// Catching here prevents unhandled promise rejections in the main process.
+			this.logService.warn(`[BrowserView] Navigation failed for ${url}:`, err);
+		}
 	}
 
 	/**

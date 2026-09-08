@@ -9,7 +9,7 @@ import fs from 'fs';
 const root = path.dirname(path.dirname(import.meta.dirname));
 const npmrcPath = path.join(root, 'remote', '.npmrc');
 const npmrc = fs.readFileSync(npmrcPath, 'utf8');
-const version = /^target="(.*)"$/m.exec(npmrc)?.[1];
+const version = /^(?:npm_config_)?target="(.*)"$/m.exec(npmrc)?.[1];
 
 if (!version) {
 	throw new Error('Failed to extract Node version from .npmrc');

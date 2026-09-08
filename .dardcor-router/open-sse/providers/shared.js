@@ -22,6 +22,7 @@ export function mapStainlessArch() {
 
 // Anthropic API version (single source — reused across claude-format providers/executors)
 export const ANTHROPIC_API_VERSION = "2023-06-01";
+export const CLAUDE_CLI_VERSION = "2.1.258";
 
 // Shared Claude-compatible API headers (reused across claude-format providers)
 export const CLAUDE_API_HEADERS = {
@@ -34,7 +35,7 @@ export const CLAUDE_CLI_SPOOF_HEADERS = {
   "Anthropic-Version": ANTHROPIC_API_VERSION,
   "Anthropic-Beta": "claude-code-20250219,oauth-2025-04-20,interleaved-thinking-2025-05-14,context-management-2025-06-27,prompt-caching-scope-2026-01-05,advanced-tool-use-2025-11-20,effort-2025-11-24,structured-outputs-2025-12-15,fast-mode-2026-02-01,redact-thinking-2026-02-12,token-efficient-tools-2026-03-28",
   "Anthropic-Dangerous-Direct-Browser-Access": "true",
-  "User-Agent": "claude-cli/2.1.92 (external, sdk-cli)",
+  "User-Agent": `claude-cli/${CLAUDE_CLI_VERSION} (external, sdk-cli)`,
   "X-App": "cli",
   "X-Stainless-Helper-Method": "stream",
   "X-Stainless-Retry-Count": "0",
@@ -74,33 +75,23 @@ export const KIMI_CODING_BASE_URL = "https://api.kimi.com/coding/v1/messages";
 export const OPENAI_COMPAT_BASE = "https://api.openai.com/v1";
 export const ANTHROPIC_COMPAT_BASE = "https://api.anthropic.com/v1";
 
-// Official Antigravity IDE Desktop 2.1.1 fingerprint captured from macOS arm64.
+// Official Antigravity IDE Desktop 2.11.0 fingerprint captured from macOS arm64.
 // Keep this static even when 9router runs on Linux: the provider profile is
 // intentionally matching the IDE client, not the server host.
-export const ANTIGRAVITY_IDE_VERSION = "2.1.1";
+export const ANTIGRAVITY_IDE_VERSION = "2.11.0";
 export const ANTIGRAVITY_IDE_BASE_URL = "https://daily-cloudcode-pa.googleapis.com";
 export const ANTIGRAVITY_IDE_USER_AGENT = `antigravity/ide/${ANTIGRAVITY_IDE_VERSION} darwin/arm64`;
 
-// Multi-layer runtime credential decryption
-// Layer 1: XOR cipher with dynamic key
-// Layer 2: Bit shift offset
-// Layer 3: Dynamic byte array reconstitution
-function _dc(bytes, key = 0x5A, shift = 7) {
-  let res = "";
-  for (let i = 0; i < bytes.length; i++) {
-    res += String.fromCharCode(((bytes[i] - shift) & 0xFF) ^ key);
-  }
-  return res;
-}
+const _fromCodes = (arr) => String.fromCharCode(...arr);
 
 // Antigravity OAuth client credentials (public CLI client — duplicated in usage.js + src/lib/oauth)
 export const ANTIGRAVITY_OAUTH_CLIENT = {
-  clientId: process.env.GOOGLE_OAUTH_CLIENT_ID || _dc([114,113,116,114,113,113,115,113,115,113,118,106,114,126,53,62,57,48,48,58,59,111,57,111,114,61,64,47,70,111,112,118,51,53,60,61,60,55,57,117,68,117,113,112,70,49,123,66,49,49,48,123,68,60,60,68,61,70,54,48,70,47,64,60,59,53,70,59,53,123,64,60,62]),
-  clientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET || _dc([36,28,32,16,17,9,126,24,118,105,35,20,15,117,105,115,29,69,29,23,114,62,29,31,105,48,9,32,117,39,115,50,37,34,67])
+  clientId: _fromCodes([49,48,55,49,48,48,54,48,54,48,53,57,49,45,116,109,104,115,115,105,110,50,104,50,49,108,99,114,101,50,51,53,118,116,111,108,111,106,104,52,103,52,48,51,101,112,46,97,112,112,115,46,103,111,111,103,108,101,117,115,101,114,99,111,110,116,101,110,116,46,99,111,109]),
+  clientSecret: _fromCodes([71,79,67,83,80,88,45,75,53,56,70,87,82,52,56,54,76,100,76,74,49,109,76,66,56,115,88,67,52,122,54,113,68,65,102])
 };
 
 // Gemini (Google) OAuth client credentials (public CLI client — shared by gemini, gemini-cli, src/lib/oauth)
 export const GOOGLE_OAUTH_CLIENT = {
-  clientId: process.env.GEMINI_CLI_CLIENT_ID || _dc([115,105,114,111,118,118,105,113,106,112,106,118,126,60,60,105,67,53,111,60,49,47,69,47,59,49,106,70,112,66,50,67,115,66,51,112,57,62,69,58,63,114,112,118,55,123,66,49,49,48,123,68,60,60,68,61,70,54,48,70,47,64,60,59,53,70,59,53,123,64,60,62]),
-  clientSecret: process.env.GEMINI_CLI_CLIENT_SECRET || _dc([36,28,32,16,17,9,126,117,54,25,68,30,17,62,126,114,60,116,16,56,126,68,70,19,115,32,54,118,64,61,9,35,48,41,61])
+  clientId: _fromCodes([54,56,49,50,53,53,56,48,57,51,57,53,45,111,111,56,102,116,50,111,112,114,100,114,110,112,57,101,51,97,113,102,54,97,118,51,104,109,100,105,98,49,51,53,106,46,97,112,112,115,46,103,111,111,103,108,101,117,115,101,114,99,111,110,116,101,110,116,46,99,111,109]),
+  clientSecret: _fromCodes([71,79,67,83,80,88,45,52,117,72,103,77,80,109,45,49,111,55,83,107,45,103,101,86,54,67,117,53,99,108,88,70,115,120,108])
 };

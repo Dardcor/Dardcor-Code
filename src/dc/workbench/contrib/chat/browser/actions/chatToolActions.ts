@@ -20,11 +20,16 @@ import { ITelemetryService } from '../../../../../platform/telemetry/common/tele
 import { ChatContextKeys } from '../../common/actions/chatContextKeys.js';
 import { ConfirmedReason, IChatToolInvocation, ToolConfirmKind } from '../../common/chatService/chatService.js';
 import { isResponseVM } from '../../common/model/chatViewModel.js';
-import { ChatModeKind } from '../../common/constants.js';
+import { ChatAgentLocation, ChatConfiguration, ChatModeKind } from '../../common/constants.js';
 import { IChatWidget, IChatWidgetService } from '../chat.js';
 import { ToolsScope } from '../widget/input/chatSelectedTools.js';
 import { CHAT_CATEGORY } from './chatActions.js';
 import { showToolsPicker } from './chatToolPicker.js';
+import { ICommandService } from '../../../../../platform/commands/common/commands.js';
+import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
+import { IQuickInputService, IQuickPickItem, IQuickPickSeparator } from '../../../../../platform/quickinput/common/quickInput.js';
+import { IChatMode } from '../../common/chatModes.js';
+import { IToggleChatModeArgs, ToggleAgentModeActionId } from './chatExecuteActions.js';
 
 
 type SelectedToolData = {
@@ -125,16 +130,18 @@ export class ConfigureToolsAction extends Action2 {
 			icon: Codicon.settingsCompact,
 			f1: false,
 			category: CHAT_CATEGORY,
-			precondition: ChatContextKeys.chatModeKind.isEqualTo(ChatModeKind.Agent),
+			precondition: ChatContextKeys.enabled,
 			menu: [{
 				when: ContextKeyExpr.and(
-					ChatContextKeys.chatModeKind.isEqualTo(ChatModeKind.Agent),
+					ChatContextKeys.enabled,
+					ChatContextKeys.location.isEqualTo(ChatAgentLocation.Chat),
+					ChatContextKeys.inQuickChat.negate(),
 					ChatContextKeys.lockedToCodingAgent.negate(),
 					ChatContextKeys.inChatInputWindow.negate(),
 				),
-				id: MenuId.ChatInputSecondary,
+				id: MenuId.ChatInput,
 				group: 'navigation',
-				order: 4,
+				order: -0.5,
 			}]
 		});
 	}
@@ -144,6 +151,9 @@ export class ConfigureToolsAction extends Action2 {
 		const instaService = accessor.get(IInstantiationService);
 		const chatWidgetService = accessor.get(IChatWidgetService);
 		const telemetryService = accessor.get(ITelemetryService);
+		const quickInputService = accessor.get(IQuickInputService);
+		const commandService = accessor.get(ICommandService);
+		const configurationService = accessor.get(IConfigurationService);
 
 		let widget = chatWidgetService.lastFocusedWidget;
 		if (!widget) {
@@ -156,6 +166,120 @@ export class ConfigureToolsAction extends Action2 {
 
 		const source = this.extractSource(args) ?? 'chatInput';
 
+		const options = args[0] as { openToolsDirectly?: boolean } | undefined;
+		if (options?.openToolsDirectly) {
+			await this.openToolsPicker(instaService, widget, source, telemetryService);
+			return;
+		}
+
+		const currentMode = widget.input.currentModeObs.get();
+		const currentModes = widget.input.currentChatModesObs.get();
+		const agentModeDisabledViaPolicy = configurationService.inspect<boolean>(ChatConfiguration.AgentEnabled).policyValue === false;
+
+		interface IConfigureOptionItem extends IQuickPickItem {
+			actionType: 'mode' | 'customAgent' | 'configureCustomAgents' | 'configureTools';
+			mode?: IChatMode;
+		}
+
+		const items: (IConfigureOptionItem | IQuickPickSeparator)[] = [];
+
+		items.push({
+			type: 'separator',
+			label: localize('chat.configure.agentHeader', "Agent (Active: {0})", currentMode.label.get()),
+		});
+
+		for (const mode of currentModes.builtin) {
+			const isCurrent = mode.id === currentMode.id;
+			let icon = mode.icon.get();
+			if (!icon) {
+				if (mode.kind === ChatModeKind.Ask) {
+					icon = Codicon.question;
+				} else if (mode.kind === ChatModeKind.Edit) {
+					icon = Codicon.edit;
+				} else {
+					icon = Codicon.agent;
+				}
+			}
+			const isDisabled = mode.kind === ChatModeKind.Agent && agentModeDisabledViaPolicy;
+			items.push({
+				label: isCurrent ? `$(${icon.id}) ${mode.label.get()} $(check)` : `$(${icon.id}) ${mode.label.get()}`,
+				description: isCurrent ? localize('currentActiveAgent', "Active") : undefined,
+				detail: mode.description.get(),
+				actionType: 'mode',
+				mode,
+				disabled: isDisabled,
+			});
+		}
+
+		if (currentModes.custom.length > 0) {
+			for (const mode of currentModes.custom) {
+				const isCurrent = mode.id === currentMode.id;
+				const icon = mode.icon.get() ?? Codicon.agent;
+				items.push({
+					label: isCurrent ? `$(${icon.id}) ${mode.label.get()} $(check)` : `$(${icon.id}) ${mode.label.get()}`,
+					description: isCurrent ? localize('currentActiveAgent', "Active") : undefined,
+					detail: mode.description.get(),
+					actionType: 'customAgent',
+					mode,
+				});
+			}
+		}
+
+		items.push({
+			label: `$(${Codicon.gear.id}) ${localize('chat.configureCustomAgents', "Configure Custom Agents...")}`,
+			description: localize('chat.configureCustomAgents.desc', "Manage custom agent definitions"),
+			actionType: 'configureCustomAgents',
+		});
+
+		items.push({
+			type: 'separator',
+			label: localize('chat.configure.toolsHeader', "Tools"),
+		});
+
+		items.push({
+			label: `$(${Codicon.tools.id}) ${localize('chat.configureTools', "Configure Tools...")}`,
+			description: localize('chat.configureTools.desc', "Select tools and MCP servers available to chat"),
+			detail: localize('chat.configureTools.detail', "Enable or disable tools for this agent/session"),
+			actionType: 'configureTools',
+		});
+
+		const quickPick = quickInputService.createQuickPick<IConfigureOptionItem>({ useSeparators: true });
+		quickPick.title = localize('chat.configureToolsAndAgent.title', "Configure Tools & Agent");
+		quickPick.placeholder = localize('chat.configureToolsAndAgent.placeholder', "Select an agent or configure tools...");
+		quickPick.items = items;
+		quickPick.matchOnDescription = true;
+		quickPick.matchOnDetail = true;
+
+		quickPick.onDidAccept(async () => {
+			const selected = quickPick.selectedItems[0];
+			quickPick.hide();
+			if (!selected) {
+				return;
+			}
+
+			if (selected.actionType === 'mode' || selected.actionType === 'customAgent') {
+				if (selected.mode) {
+					const sessionResource = widget.viewModel?.sessionResource;
+					if (sessionResource) {
+						await commandService.executeCommand(
+							ToggleAgentModeActionId,
+							{ modeId: selected.mode.id, sessionResource } satisfies IToggleChatModeArgs
+						);
+					} else {
+						widget.input.setChatMode(selected.mode.id, true, true);
+					}
+				}
+			} else if (selected.actionType === 'configureCustomAgents') {
+				await commandService.executeCommand('workbench.action.chat.configure.customagents');
+			} else if (selected.actionType === 'configureTools') {
+				await this.openToolsPicker(instaService, widget, source, telemetryService);
+			}
+		});
+
+		quickPick.show();
+	}
+
+	private async openToolsPicker(instaService: IInstantiationService, widget: IChatWidget, source: string, telemetryService: ITelemetryService): Promise<void> {
 		let placeholder;
 		let description;
 		const { entriesScope, entriesMap } = widget.input.selectedToolsModel;

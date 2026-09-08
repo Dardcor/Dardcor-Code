@@ -14,7 +14,7 @@ const product = JSON.parse(fs.readFileSync(path.join(root, 'product.json'), 'utf
 
 function getElectronVersion(): string {
 	const npmrc = fs.readFileSync(path.join(root, '.npmrc'), 'utf8');
-	const target = /^target="(.*)"$/m.exec(npmrc)![1];
+	const target = /^(?:npm_config_)?target="(.*)"$/m.exec(npmrc)![1];
 	return target;
 }
 

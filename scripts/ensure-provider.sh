@@ -7,7 +7,7 @@ else
 	PROVIDER_DIR="$ROOT/.dardcor-provider"
 fi
 PORT="${DARDCOR_PORT:-25128}"
-DATA_DIR="$HOME/.miawagent/router"
+DATA_DIR="$HOME/.dardcor/provider"
 LOG_DIR="$HOME/.dardcor/logs"
 PID_FILE="$HOME/.dardcor/provider.pid"
 

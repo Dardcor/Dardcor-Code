@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { disposableTimeout, raceCancellationError } from '../../../../../base/common/async.js';
+import { disposableTimeout, raceCancellationError, raceTimeout } from '../../../../../base/common/async.js';
 import { CancellationToken, CancellationTokenSource } from '../../../../../base/common/cancellation.js';
 import { Codicon } from '../../../../../base/common/codicons.js';
 import { arrayEquals, structuralEquals } from '../../../../../base/common/equals.js';
@@ -17,7 +17,7 @@ import { ThemeIcon } from '../../../../../base/common/themables.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { generateUuid } from '../../../../../base/common/uuid.js';
 import { localize } from '../../../../../nls.js';
-import { AgentSession, AuthenticateParams, AuthenticateResult, IAgentConnection, IAgentSessionMetadata, protectedResourcesRequireGitHubCopilotSignIn } from '../../../../../platform/agentHost/common/agentService.js';
+import { AgentSession, AuthenticateParams, AuthenticateResult, IAgentConnection, IAgentSessionMetadata } from '../../../../../platform/agentHost/common/agentService.js';
 import { buildAnnotationsUri } from '../../../../../platform/agentHost/common/annotationsUri.js';
 import { parseGitHubIssueUrl } from '../../../../../platform/agentHost/common/githubIssueReferences.js';
 import { getEffectiveAgents } from '../../../../../platform/agentHost/common/customAgents.js';
@@ -285,40 +285,15 @@ export const CopilotCLISessionType: ISessionType = {
 	label: localize('copilotCLI', "Dardcor AI"),
 	icon: Codicon.copilot,
 	supportsWorktreeConfiguration: true,
-	authRequirement: SessionTypeAuthRequirement.GitHub,
+	authRequirement: SessionTypeAuthRequirement.None,
 };
 
 /**
- * Resolve what an agent needs before it can serve a request, from what it
- * advertises — rather than from a static per-type flag, which cannot track
- * credentials that come and go. The advertised protected-resource set already
- * crosses the agent-host IPC boundary and already updates reactively, so it is
- * the signal rather than a parallel field providers would have to keep in sync.
- *
- * An agent that still requires the GitHub Copilot protected resource needs
- * sign-in; one that has dropped the requirement is running on its own
- * credentials. Note both Claude and Codex encode "not required" by *keeping* the
- * Copilot resource and marking it `required: false` rather than omitting it —
- * that lets the host silently forward a token to an already-signed-in user
- * without forcing sign-in on anyone else. This treats the two identically.
- *
- * The model count is the second, load-bearing half. `required: false` alone
- * would read as "usable without GitHub" even for an agent that cannot serve
- * anything, because an agent may advertise a *static* model catalog that answers
- * regardless of credentials (the Claude SDK's `supportedModels()` does exactly
- * this). Providers are therefore expected to publish an empty catalog when they
- * genuinely cannot run, and an empty catalog is what distinguishes
- * {@link SessionTypeAuthRequirement.Unusable} from
- * {@link SessionTypeAuthRequirement.None} here.
- *
- * Absent resources mean the host has not resolved the agent yet, so assume
- * GitHub until it does.
+ * Resolve what an agent needs before it can serve a request.
+ * For Dardcor Code with Dardcor Router, no GitHub auth is required.
  */
 export function resolveAgentAuthRequirement(agent: AgentInfo): SessionTypeAuthRequirement {
-	if (!agent.protectedResources || protectedResourcesRequireGitHubCopilotSignIn(agent.protectedResources)) {
-		return SessionTypeAuthRequirement.GitHub;
-	}
-	return agent.models.length > 0 ? SessionTypeAuthRequirement.None : SessionTypeAuthRequirement.Unusable;
+	return SessionTypeAuthRequirement.None;
 }
 
 /**
@@ -2194,7 +2169,21 @@ export abstract class BaseAgentHostSessionsProvider extends Disposable implement
 
 	/** The in-flight new session with the given id, if any. */
 	protected _getNewSession(sessionId: string): NewSession | undefined {
-		return this._newSessions.get(sessionId);
+		if (this._newSessions.has(sessionId)) {
+			return this._newSessions.get(sessionId);
+		}
+		const rawId = this._rawIdFromChatId(sessionId);
+		for (const session of this._newSessions.values()) {
+			if (session.sessionId === sessionId ||
+				session.session.resource.toString() === sessionId ||
+				session.session.resource.path.replace(/^\//, '') === sessionId ||
+				(rawId && (session.session.resource.path.replace(/^\//, '') === rawId || session.sessionId.includes(rawId))) ||
+				session.sessionId.endsWith(sessionId) ||
+				sessionId.endsWith(session.session.resource.toString())) {
+				return session;
+			}
+		}
+		return undefined;
 	}
 
 	/**
@@ -2207,8 +2196,10 @@ export abstract class BaseAgentHostSessionsProvider extends Disposable implement
 	}
 
 	deleteNewSession(sessionId: string): void {
-		if (this._newSessions.has(sessionId)) {
-			this._newSessions.deleteAndDispose(sessionId);
+		const session = this._getNewSession(sessionId);
+		if (session) {
+			this._newSessions.deleteAndDispose(session.sessionId);
+			this._onDidChangeSessionConfig.fire(session.sessionId);
 		}
 	}
 
@@ -2645,7 +2636,8 @@ export abstract class BaseAgentHostSessionsProvider extends Disposable implement
 			throw new Error('Workspace has no repository URI');
 		}
 
-		const sessionType = this.sessionTypes.find(t => t.id === sessionTypeId);
+		const sessionType = this.sessionTypes.find(t => t.id === sessionTypeId)
+			?? (sessionTypeId === CopilotCLISessionType.id && this.sessionTypes.length === 0 ? CopilotCLISessionType : undefined);
 		if (!sessionType) {
 			throw new Error(this._noAgentsErrorMessage());
 		}
@@ -2661,7 +2653,8 @@ export abstract class BaseAgentHostSessionsProvider extends Disposable implement
 	}
 
 	createQuickChat(sessionTypeId: string): ISession {
-		const sessionType = this.sessionTypes.find(t => t.id === sessionTypeId);
+		const sessionType = this.sessionTypes.find(t => t.id === sessionTypeId)
+			?? (sessionTypeId === CopilotCLISessionType.id && this.sessionTypes.length === 0 ? CopilotCLISessionType : undefined);
 		if (!sessionType) {
 			throw new Error(this._noAgentsErrorMessage());
 		}
@@ -3947,7 +3940,11 @@ export abstract class BaseAgentHostSessionsProvider extends Disposable implement
 		if (!this.connection) {
 			throw new Error(this._notConnectedSendErrorMessage());
 		}
-		await newSession.waitForConfigResolution();
+		try {
+			await newSession.waitForConfigResolution();
+		} catch (e) {
+			this._logService.warn(`[${this.id}] waitForConfigResolution error:`, e);
+		}
 		if (this._getNewSession(newSession.sessionId) !== newSession) {
 			throw new Error('Session was disposed before its configuration could be applied.');
 		}
@@ -3987,14 +3984,14 @@ export abstract class BaseAgentHostSessionsProvider extends Disposable implement
 				applyCodeBlockSuggestionId: undefined,
 				permissionLevel: undefined,
 			},
-			agentIdSilent: contribution?.type,
+			agentIdSilent: contribution?.type ?? (sessionType.startsWith('agent-host-') ? sessionType : `agent-host-${sessionType}`),
 			attachedContext,
 			agentHostSessionConfig: this.getCreateSessionConfig(chatId),
 		};
 
 		// Chat session model was already created by createNewChat and
 		// the widget was opened by the management service. Load session
-		// model and apply selected model.
+		// model and apply selected model. Keep modelRef alive until sendRequest finishes.
 		const modelRef = await this._chatService.acquireOrLoadSession(chatResource, ChatAgentLocation.Chat, CancellationToken.None);
 		if (modelRef) {
 			if (selectedModelId) {
@@ -4010,7 +4007,6 @@ export abstract class BaseAgentHostSessionsProvider extends Disposable implement
 				// back after the first turn.
 				modelRef.object.inputModel.setState({ mode: { id: selectedAgent.uri, kind: ChatModeKind.Agent } });
 			}
-			modelRef.dispose();
 		}
 
 		// Capture existing session keys before sending so we can detect the new
@@ -4027,81 +4023,78 @@ export abstract class BaseAgentHostSessionsProvider extends Disposable implement
 		// latch onto it via their novelty fallback (which would swap sessions).
 		this._inFlightNewSessionOwnIds.add(newSessionRawId);
 
-		const result = await this._chatService.sendRequest(chatResource, query, sendOptions);
-		if (result.kind === 'rejected') {
-			throw new Error(`[${this.id}] sendRequest rejected: ${result.reason}`);
-		}
-
-		newSession.setStatus(SessionStatus.InProgress);
-		newSession.clearSelectedModelId();
-
-		// Seed the title from the first line of the query so the new-session
-		// tab shows something meaningful immediately. This skeleton is replaced
-		// by the committed AgentHostSession once it arrives.
-		newSession.setTitle(query.split('\n')[0].substring(0, 100) || newSession.untitledTitle);
-		const skeleton = newSession.session;
-		this._pendingSession = skeleton;
-		this._onDidChangeSessions.fire({ added: [skeleton], removed: [], changed: [] });
-
-		// Raw id claimed by _waitForNewSession for this send (released in finally).
-		let committedRawId: string | undefined;
 		try {
-			const committedSession = await this._waitForNewSession(existingKeys, chatResource.scheme, newSessionRawId, newSession.cancellationToken);
-			if (committedSession) {
-				committedRawId = committedSession.resource.path.substring(1);
-				this._preserveNewSessionConfig(newSession, committedSession.sessionId);
-				// Carry the picked custom agent onto the committed session before
-				// the replace event so the agent picker doesn't reset to the
-				// default once the active session is swapped (the picker mirrors
-				// `session.mode`, which is otherwise `undefined` on the freshly
-				// committed adapter). The host already received the agent with the
-				// first turn (see `sendOptions.modeInfo`), so update only the local
-				// mode observable here rather than re-notifying it via `setAgent`.
-				if (selectedAgent) {
-					const committedRawIdForAgent = this._rawIdFromChatId(committedSession.sessionId);
-					const committedAdapter = committedRawIdForAgent ? this._sessionCache.get(committedRawIdForAgent) : undefined;
-					committedAdapter?.setChatAgent(committedAdapter.resource, selectedAgent);
-				}
-				// Session graduated: release the eager subscription without
-				// firing `disposeSession`. The session handler has already
-				// acquired its own subscription (chat widget was opened
-				// earlier), so the wire-level refcount stays positive.
-				newSession.graduate();
-				if (this._newSessions.get(newSession.sessionId) === newSession) {
-					this._newSessions.deleteAndDispose(newSession.sessionId);
-				}
-				// Clear the pending session before firing the replace event so
-				// that any synchronous listener calling getSessions() sees only
-				// the committed session and not both.
-				this._pendingSession = undefined;
-				this._onDidReplaceSession.fire({ from: skeleton, to: committedSession });
-				return committedSession;
+			const result = await this._chatService.sendRequest(chatResource, query, sendOptions);
+			if (result.kind === 'rejected') {
+				throw new Error(`[${this.id}] sendRequest rejected: ${result.reason}`);
 			}
-		} catch {
-			// Connection lost or timeout — fall through to the failure cleanup.
-		} finally {
-			// Release the claim so unrelated future sends can match this
-			// session if needed; concurrent in-flight sends already captured
-			// their `existingKeys` and won't retroactively match it.
-			if (committedRawId !== undefined) {
-				this._committingSessionRawIds.delete(committedRawId);
-			}
-			this._inFlightNewSessionOwnIds.delete(newSessionRawId);
-			// Defensive clear: covers the failure path where the try block
-			// never reached the explicit clear above.
-			this._pendingSession = undefined;
-		}
 
-		// On failure: drop the eager subscription without firing
-		// `disposeSession`. The server-side empty-session GC will clean up
-		// the provisional session if it remains; we lean on the GC rather
-		// than risking a double-dispose race on transient failures.
-		newSession.graduate();
-		if (this._newSessions.get(newSession.sessionId) === newSession) {
-			this._newSessions.deleteAndDispose(newSession.sessionId);
+			newSession.setStatus(SessionStatus.InProgress);
+			newSession.clearSelectedModelId();
+
+			// Seed the title from the first line of the query so the new-session
+			// tab shows something meaningful immediately. This skeleton is replaced
+			// by the committed AgentHostSession once it arrives.
+			newSession.setTitle(query.split('\n')[0].substring(0, 100) || newSession.untitledTitle);
+			const skeleton = newSession.session;
+			this._pendingSession = skeleton;
+			this._onDidChangeSessions.fire({ added: [skeleton], removed: [], changed: [] });
+
+			// Raw id claimed by _waitForNewSession for this send (released in finally).
+			let committedRawId: string | undefined;
+			try {
+				const committedSession = await this._waitForNewSession(existingKeys, chatResource.scheme, newSessionRawId, newSession.cancellationToken);
+				if (committedSession) {
+					committedRawId = committedSession.resource.path.substring(1);
+					this._preserveNewSessionConfig(newSession, committedSession.sessionId);
+					// Carry the picked custom agent onto the committed session before
+					// the replace event so the agent picker doesn't reset to the
+					// default once the active session is swapped (the picker mirrors
+					// `session.mode`, which is otherwise `undefined` on the freshly
+					// committed adapter). The host already received the agent with the
+					// first turn (see `sendOptions.modeInfo`), so update only the local
+					// mode observable here rather than re-notifying it via `setAgent`.
+					if (selectedAgent) {
+						const committedRawIdForAgent = this._rawIdFromChatId(committedSession.sessionId);
+						const committedAdapter = committedRawIdForAgent ? this._sessionCache.get(committedRawIdForAgent) : undefined;
+						committedAdapter?.setChatAgent(committedAdapter.resource, selectedAgent);
+					}
+					// Session graduated: release the eager subscription without
+					// firing `disposeSession`. The session handler has already
+					// acquired its own subscription (chat widget was opened
+					// earlier), so the wire-level refcount stays positive.
+					newSession.graduate();
+					if (this._newSessions.get(newSession.sessionId) === newSession) {
+						this._newSessions.deleteAndDispose(newSession.sessionId);
+					}
+					// Clear the pending session before firing the replace event so
+					// that any synchronous listener calling getSessions() sees only
+					// the committed session and not both.
+					this._pendingSession = undefined;
+					this._onDidReplaceSession.fire({ from: skeleton, to: committedSession });
+					return committedSession;
+				}
+			} catch (err) {
+				this._logService.warn(`[${this.id}] _waitForNewSession failed or timed out:`, err);
+			} finally {
+				// Release the claim so unrelated future sends can match this
+				// session if needed; concurrent in-flight sends already captured
+				// their `existingKeys` and won't retroactively match it.
+				if (committedRawId !== undefined) {
+					this._committingSessionRawIds.delete(committedRawId);
+				}
+				this._inFlightNewSessionOwnIds.delete(newSessionRawId);
+				// Defensive clear: covers the failure path where the try block
+				// never reached the explicit clear above.
+				this._pendingSession = undefined;
+			}
+
+			// If no backend session was committed in time, keep skeleton alive so user's message is not lost.
+			newSession.graduate();
+			return skeleton;
+		} finally {
+			modelRef?.dispose();
 		}
-		this._onDidChangeSessions.fire({ added: [], removed: [skeleton], changed: [] });
-		throw new Error(localize('sessionNotCommitted', "Agent host session was not committed."));
 	}
 
 	/** Localized error message when sendRequest is invoked without a connection. Subclasses can override. */
@@ -4811,7 +4804,7 @@ export abstract class BaseAgentHostSessionsProvider extends Disposable implement
 				}));
 				waitDisposables.add(this.onConnectionLost(() => resolve(undefined)));
 			});
-			return await raceCancellationError(sessionPromise, token);
+			return await raceTimeout(raceCancellationError(sessionPromise, token), 3000);
 		} finally {
 			waitDisposables.dispose();
 		}

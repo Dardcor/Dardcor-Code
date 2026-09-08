@@ -3021,11 +3021,13 @@ export class ChatWidget extends Disposable implements IChatWidget {
 			return;
 		}
 
-		if (!options.preserveInput) {
+		if (!options.preserveInput && sent.data.agent) {
 			// Not a user submission; listeners would consume draft state. Also skips editor pinning.
 			this._onDidSubmitAgent.fire({ agent: sent.data.agent, slashCommand: sent.data.slashCommand });
 		}
-		this.handleDelegationExitIfNeeded(this._lockedAgent, sent.data.agent);
+		if (sent.data.agent) {
+			this.handleDelegationExitIfNeeded(this._lockedAgent, sent.data.agent);
+		}
 
 		// If the session was replaced (untitled -> real contributed session), swap the widget's model
 		if (sent.newSessionResource) {

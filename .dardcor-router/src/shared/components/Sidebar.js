@@ -107,18 +107,30 @@ export default function Sidebar({ onClose }) {
 
   return (
     <>
-      <aside className="flex w-72 flex-col border-r border-border-subtle bg-vibrancy backdrop-blur-xl transition-colors duration-300 min-h-full">
+      <aside className="flex w-72 max-w-full flex-col border-r border-border-subtle bg-vibrancy backdrop-blur-xl transition-colors duration-300 min-h-full h-full">
         {/* Logo */}
         <div className="px-6 pt-3.5 pb-3 flex flex-col gap-2">
-          <Link href="/dashboard" className="flex items-center gap-3">
-            <img src="/dardcor-code.png" alt="Dardcor Router" className="size-9 object-contain rounded-[10px] shadow-[var(--shadow-warm)]" />
-            <div className="flex flex-col">
-              <h1 className="text-lg font-semibold tracking-tight text-text-main">
-                Dardcor Router
-              </h1>
-              <span className="text-xs text-text-muted">v{APP_CONFIG.version}</span>
-            </div>
-          </Link>
+          <div className="flex items-center justify-between">
+            <Link href="/dashboard" onClick={onClose} className="flex items-center gap-3 min-w-0">
+              <img src="/dardcor-code.png" alt="Dardcor Router" className="size-9 shrink-0 object-contain rounded-[10px] shadow-[var(--shadow-warm)]" />
+              <div className="flex flex-col min-w-0">
+                <h1 className="text-lg font-semibold tracking-tight text-text-main truncate">
+                  Dardcor Router
+                </h1>
+                <span className="text-xs text-text-muted">v{APP_CONFIG.version}</span>
+              </div>
+            </Link>
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="lg:hidden p-1.5 rounded-lg text-text-muted hover:text-text-main hover:bg-surface-2 transition-colors cursor-pointer"
+                aria-label="Close sidebar"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            )}
+          </div>
           {updateInfo && (
             <div className="flex flex-col gap-1.5 rounded p-1 -m-1">
               <span className="text-xs font-semibold text-green-600 dark:text-amber-500">

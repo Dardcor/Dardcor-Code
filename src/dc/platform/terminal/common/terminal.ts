@@ -330,7 +330,7 @@ export interface IPtyService {
 		workspaceId: string,
 		workspaceName: string
 	): Promise<number>;
-	attachToProcess(id: number): Promise<void>;
+	attachToProcess(id: number, workspaceId?: string): Promise<void>;
 	detachFromProcess(id: number, forcePersist?: boolean): Promise<void>;
 	shutdownAll(): Promise<void>;
 

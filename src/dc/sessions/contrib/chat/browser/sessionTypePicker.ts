@@ -347,7 +347,12 @@ export class SessionTypePicker extends Disposable {
 	 * explicit pick.
 	 */
 	getPreferredSessionType(folderUri: URI): IPreferredSessionType | undefined {
-		const first = this.sessionsManagementService.getSessionTypesForFolder(folderUri)[0];
+		const types = this.sessionsManagementService.getSessionTypesForFolder(folderUri);
+		const local = types.find(t => t.providerId === 'local-chat');
+		if (local) {
+			return { providerId: local.providerId, sessionTypeId: local.sessionType.id };
+		}
+		const first = types[0];
 		return first ? { providerId: first.providerId, sessionTypeId: first.sessionType.id } : undefined;
 	}
 

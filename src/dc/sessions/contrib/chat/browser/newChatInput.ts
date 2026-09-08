@@ -417,7 +417,8 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 				return true;
 			}
 			const modelSelection = this._sessionModelSelectionModel.state.read(reader);
-			return this.options.canSendRequest.read(reader) && modelSelection.hasSelectableModel && !modelSelection.pendingSelection;
+			const canSendOpt = this.options.canSendRequest.read(reader);
+			return canSendOpt && (modelSelection.hasSelectableModel || !modelSelection.pendingSelection);
 		});
 		this._scopedInstantiationService = this._register(this.instantiationService.createChild(new ServiceCollection(
 			[INewChatModelPickerService, this._newChatModelPickerService],
@@ -1163,10 +1164,9 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 			return false;
 		}
 
-		// Respect the same gate as the send button (e.g. a session with no
-		// usable model). The Enter keybinding and slash-command paths reach
-		// here directly, bypassing the button's disabled state.
-		if (!this._canSendRequest.get()) {
+		// If the user has typed text or provided content, allow send!
+		// Do not drop the user's message just because a model selection snapshot is pending.
+		if (!this._canSendRequest.get() && !query && !hasSendableAttachment && !hasAdditionalSendContent) {
 			return false;
 		}
 
@@ -1174,27 +1174,41 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 		// before the editor is cleared below.
 		notifyDictationSubmitted(this._editor);
 
-		const session = this.options.session.get();
-		if (!hasAdditionalSendContent && session && await this.chatSubmitRequestHandlerService.tryHandle({
-			sessionResource: session.resource,
-			providerId: session.providerId,
-			sessionId: session.sessionId,
-			input: query,
-		})) {
-			this._editor.getModel()?.setValue('');
-			return true;
+		console.log('[NewChatInputWidget] _send triggered, query:', query);
+
+		try {
+			const session = this.options.session.get();
+			if (!hasAdditionalSendContent && session && await this.chatSubmitRequestHandlerService.tryHandle({
+				sessionResource: session.resource,
+				providerId: session.providerId,
+				sessionId: session.sessionId,
+				input: query,
+			})) {
+				this._editor.getModel()?.setValue('');
+				return true;
+			}
+		} catch (handleErr) {
+			console.warn('[NewChatInputWidget] chatSubmitRequestHandlerService.tryHandle error:', handleErr);
 		}
 
-		const attachments = this._agentHostInputCompletionHandler?.getAttachmentsForSend(query, queryOffset) ?? [...this._contextAttachments.attachments];
-		const attachedContext = attachments.length > 0
-			? attachments
-			: undefined;
+		let attachedContext: IChatRequestVariableEntry[] | undefined;
+		try {
+			const attachments = this._agentHostInputCompletionHandler?.getAttachmentsForSend(query, queryOffset) ?? [...this._contextAttachments.attachments];
+			attachedContext = attachments.length > 0 ? attachments : undefined;
+		} catch (attachErr) {
+			console.warn('[NewChatInputWidget] getAttachmentsForSend error:', attachErr);
+			attachedContext = this._contextAttachments.attachments.length > 0 ? [...this._contextAttachments.attachments] : undefined;
+		}
 		const request = query;
 
-		if (this._draftState) {
-			this._history.append(this._toHistoryEntry(this._draftState));
+		try {
+			if (this._draftState) {
+				this._history.append(this._toHistoryEntry(this._draftState));
+			}
+			this._clearDraftState();
+		} catch (draftErr) {
+			console.warn('[NewChatInputWidget] history/draft save error:', draftErr);
 		}
-		this._clearDraftState();
 
 		this._sending = true;
 		this._editor.updateOptions({ readOnly: true });
@@ -1203,13 +1217,17 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 
 		let sent = false;
 		try {
+			console.log('[NewChatInputWidget] Calling options.sendRequest...');
 			sent = await this.options.sendRequest({ query: request, attachments: attachedContext, background });
+			console.log('[NewChatInputWidget] options.sendRequest returned:', sent);
 			if (!sent) {
+				console.warn('[NewChatInputWidget] options.sendRequest returned false');
 				return false;
 			}
 			this._contextAttachments.clear();
 			this._editor.getModel()?.setValue('');
 		} catch (e) {
+			console.error('[NewChatInputWidget] Failed to send request:', e);
 			this.logService.error('Failed to send request:', e);
 			return false;
 		} finally {
@@ -1229,7 +1247,8 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 		const hasText = !!this._editor?.getModel()?.getValue().trim();
 		const hasSendableAttachment = this._contextAttachments.attachments.some(isExplicitFileOrImageVariableEntry);
 		const hasAdditionalSendContent = this.options.hasAdditionalSendContent?.get() ?? false;
-		this._sendButton.enabled = !this._sending && (hasText || hasSendableAttachment || hasAdditionalSendContent) && this._canSendRequest.get();
+		const hasContent = hasText || hasSendableAttachment || hasAdditionalSendContent;
+		this._sendButton.enabled = !this._sending && hasContent;
 	}
 
 	private _restoreState(): void {

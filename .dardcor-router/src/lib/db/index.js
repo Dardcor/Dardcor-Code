@@ -99,6 +99,19 @@ export async function importDb(payload) {
   }
   const db = await getAdapter();
 
+  const currentRow = db.get(`SELECT data FROM settings WHERE id = 1`);
+  const currentSettings = currentRow ? parseJson(currentRow.data, {}) : {};
+  const currentSv = typeof currentSettings.sessionVersion === "number" ? currentSettings.sessionVersion : 0;
+  const importedSettings = payload.settings && typeof payload.settings === "object" ? payload.settings : {};
+  const importedSv = typeof importedSettings.sessionVersion === "number" ? importedSettings.sessionVersion : 0;
+  const newSessionVersion = Math.max(currentSv, importedSv) + 1;
+  const finalSettings = { ...importedSettings, sessionVersion: newSessionVersion };
+
+  const importedProviders = new Set();
+  for (const c of payload.providerConnections || []) {
+    if (c.provider) importedProviders.add(c.provider);
+  }
+
   db.transaction(() => {
     // Wipe all tables (keep _meta)
     db.run(`DELETE FROM settings`);
@@ -109,10 +122,11 @@ export async function importDb(payload) {
     db.run(`DELETE FROM combos`);
     db.run(`DELETE FROM kv WHERE scope IN ('modelAliases', 'customModels', 'mitmAlias', 'pricing')`);
 
-    // Settings
-    if (payload.settings) {
-      db.run(`INSERT INTO settings(id, data) VALUES(1, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data`, [stringifyJson(payload.settings)]);
-    }
+    // Settings (always persists with bumped sessionVersion)
+    db.run(
+      `INSERT INTO settings(id, data) VALUES(1, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data`,
+      [stringifyJson(finalSettings)]
+    );
 
     for (const c of payload.providerConnections || []) {
       const { id, provider, authType, name, email, priority, isActive, createdAt, updatedAt, ...rest } = c;
@@ -161,6 +175,12 @@ export async function importDb(payload) {
       db.run(`INSERT OR REPLACE INTO kv(scope, key, value) VALUES('pricing', ?, ?)`, [provider, stringifyJson(models || {})]);
     }
   });
+
+  const { saveProviderSync } = await import("./modularStore.js");
+  for (const prov of importedProviders) {
+    saveProviderSync(db, prov);
+  }
+  db.flushSync?.();
 
   return await exportDb();
 }

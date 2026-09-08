@@ -23,7 +23,7 @@ const DEFAULT_SETTINGS = {
     audioInput: { enabled: true, roundRobin: false, models: [] },
     videoInput: { enabled: false, roundRobin: false, models: [] },
   },
-  requireLogin: false,
+  requireLogin: true,
   requireApiKey: false,
   tunnelDashboardAccess: true,
   authMode: "password",
@@ -61,6 +61,7 @@ const DEFAULT_SETTINGS = {
   pxpipeAutoInstall: true,
   pxpipeMinChars: 25000,
   pxpipeTimeoutMs: 15000,
+  sessionVersion: 0,
 };
 
 async function readRaw() {
@@ -101,6 +102,9 @@ export async function updateSettings(updates) {
     const row = db.get(`SELECT data FROM settings WHERE id = 1`);
     const current = row ? parseJson(row.data, {}) : {};
     next = { ...current, ...updates };
+    if ("password" in updates) {
+      next.sessionVersion = (current.sessionVersion ?? 0) + 1;
+    }
     db.run(
       `INSERT INTO settings(id, data) VALUES(1, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data`,
       [stringifyJson(next)],

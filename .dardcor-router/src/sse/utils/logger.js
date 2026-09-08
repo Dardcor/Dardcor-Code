@@ -7,7 +7,7 @@ const LOG_LEVELS = {
   ERROR: 3
 };
 
-const LEVEL = LOG_LEVELS[process.env.LOG_LEVEL?.toUpperCase?.()] ?? LOG_LEVELS.INFO;
+const LEVEL = LOG_LEVELS[process.env.LOG_LEVEL?.toUpperCase?.()] ?? LOG_LEVELS.WARN;
 
 function formatTime() {
   return new Date().toLocaleTimeString("en-US", { hour12: false });
@@ -32,10 +32,11 @@ export function tagForSession(seed) {
   return REQ_TAGS[Math.abs(h) % REQ_TAGS.length];
 }
 
-// Print one correlated line: [time] tag symbol message
+// Print one correlated line: [time] tag symbol message (muted to avoid log spam and save memory)
 export function line(tag, symbol, message) {
-  if (LEVEL > LOG_LEVELS.INFO) return;
-  console.log(`[${formatTime()}] ${tag} ${symbol} ${message}`);
+  if (process.env.ENABLE_VERBOSE_ROUTER_LOGS === 'true') {
+    console.log(`[${formatTime()}] ${tag} ${symbol} ${message}`);
+  }
 }
 
 // Like line() but always printed regardless of LOG_LEVEL (errors must never be hidden)

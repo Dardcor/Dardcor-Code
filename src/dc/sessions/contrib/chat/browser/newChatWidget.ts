@@ -50,6 +50,10 @@ import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { IStorageService, StorageScope } from '../../../../platform/storage/common/storage.js';
 import { TOTAL_SESSIONS_KEY } from '../../sessions/browser/sessionsLifecycleTracker.js';
 import { INewSessionComposerService } from './newSessionComposerService.js';
+import { IChatService } from '../../../../workbench/contrib/chat/common/chatService/chatService.js';
+import { ChatAgentLocation } from '../../../../workbench/contrib/chat/common/constants.js';
+import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
+import { LocalChatSessionsProvider } from '../../providers/localChatSessions/browser/localChatSessionsProvider.js';
 
 // #region --- New Chat Widget ---
 
@@ -131,6 +135,8 @@ export class NewChatWidget extends Disposable {
 		@IStorageService private readonly storageService: IStorageService,
 		@INewSessionComposerService newSessionComposerService: INewSessionComposerService,
 		@ISessionsProvidersService private readonly sessionsProvidersService: ISessionsProvidersService,
+		@IChatService private readonly chatService: IChatService,
+		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
 	) {
 		super();
 		this._workspacePickerVisibleKey = SessionWorkspacePickerVisibleContext.bindTo(contextKeyService);
@@ -171,19 +177,15 @@ export class NewChatWidget extends Disposable {
 
 		const canSendRequest = derived(reader => {
 			workspaceChanged.read(reader);
-			const session = this._session.read(reader);
-			if (session) {
-				if (session.loading.read(reader)) {
-					return false;
-				}
-				return true;
-			}
-			return this._workspacePicker.selectedFolderUri !== undefined;
+			return true;
 		});
 
 		const loading = derived(reader => {
 			const session = this._session.read(reader);
-			return session?.loading.read(reader) ?? false;
+			if (!session || !session.isCreated.read(reader)) {
+				return false;
+			}
+			return session.loading.read(reader);
 		});
 		const hasFeedback = derived(this, reader => this._feedbackItems.read(reader).length > 0);
 		const canSubmitWithoutSession = derived(this, reader => !this._session.read(reader) && hasFeedback.read(reader));
@@ -506,8 +508,11 @@ export class NewChatWidget extends Disposable {
 	 * unless an active session already exists (then just sync the picker to it).
 	 */
 	private _seedWorkspaceDraft(): void {
-		const restoredFolderUri = this._workspacePicker.selectedFolderUri;
+		const restoredFolderUri = this._workspacePicker.selectedFolderUri ?? this.workspaceContextService.getWorkspace().folders[0]?.uri;
 		if (!this._syncWorkspacePickerFromActiveSession() && restoredFolderUri) {
+			if (!this._workspacePicker.selectedFolderUri) {
+				this._workspacePicker.setSelectedWorkspace(restoredFolderUri, { fireEvent: false });
+			}
 			void this._createNewSession(restoredFolderUri);
 		}
 	}
@@ -613,11 +618,14 @@ export class NewChatWidget extends Disposable {
 	}
 
 	private async _createSessionNow(folderUri: URI, userPick: IPreferredSessionType | undefined, token: CancellationToken): Promise<IOpenNewSessionResult> {
-		// Prefer the user's explicit pick when its provider can serve the
-		// folder; otherwise fall back to the preferred (first) session type.
-		const preferredPick = userPick && this._isPreferredServable(folderUri, userPick)
-			? userPick
-			: this._newChatInput.sessionTypePicker.getPreferredSessionType(folderUri);
+		// In Dardcor-Code, local filesystem folders are powered by local-chat (Dardcor Router)
+		const isLocalFolder = !folderUri || folderUri.scheme === 'file';
+		const defaultLocalPick: IPreferredSessionType = { providerId: 'local-chat', sessionTypeId: 'local' };
+		const preferredPick = isLocalFolder
+			? defaultLocalPick
+			: (userPick && this._isPreferredServable(folderUri, userPick)
+				? userPick
+				: (this._isPreferredServable(folderUri, defaultLocalPick) ? defaultLocalPick : (this._newChatInput.sessionTypePicker.getPreferredSessionType(folderUri) ?? defaultLocalPick)));
 		// A signed-out user (under the conditional-auth opt-in) can't run a type
 		// that requires GitHub, so default to the first offered type usable
 		// without it. No-op when signed in or the opt-in is off — today's behavior.
@@ -625,7 +633,7 @@ export class NewChatWidget extends Disposable {
 		// instead keep it and surface an inline "sign in for this type" affordance
 		// for GitHub-only types.
 		const effectivePick = this._preferUsableSessionTypeWhenSignedOut(folderUri, preferredPick);
-		const fallbackProviderId = this._workspacePicker.selectedResolved?.providerId;
+		const fallbackProviderId = isLocalFolder ? 'local-chat' : this._workspacePicker.selectedResolved?.providerId;
 		try {
 			const result = await this.sessionsService.openNewSession({
 				folderUri,
@@ -633,7 +641,7 @@ export class NewChatWidget extends Disposable {
 					? { providerId: effectivePick.providerId, sessionTypeId: effectivePick.sessionTypeId }
 					: fallbackProviderId
 						? { providerId: fallbackProviderId }
-						: undefined),
+						: { providerId: 'local-chat', sessionTypeId: 'local' }),
 			}, token);
 			if (result.session) {
 				return result;
@@ -642,9 +650,25 @@ export class NewChatWidget extends Disposable {
 			this.logService.error('Failed to create new session:', e);
 		}
 		try {
-			return await this.sessionsService.openNewSession({ folderUri }, token);
+			const result = await this.sessionsService.openNewSession({ folderUri, providerId: 'local-chat', sessionTypeId: 'local' }, token);
+			if (result.session) {
+				return result;
+			}
+		} catch (e) {
+			this.logService.error('Failed to create new session with local-chat:', e);
+		}
+		try {
+			const result = await this.sessionsService.openNewSession({ folderUri }, token);
+			if (result.session) {
+				return result;
+			}
 		} catch (e) {
 			this.logService.error('Failed to create new session with fallback:', e);
+		}
+		try {
+			return await this.sessionsService.openNewSession({ folderUri, providerId: 'local-chat', sessionTypeId: 'local' }, token);
+		} catch (e) {
+			this.logService.error('Failed to create new session with local-chat fallback:', e);
 			return { session: undefined, trustDeclined: false };
 		}
 	}
@@ -707,7 +731,7 @@ export class NewChatWidget extends Disposable {
 	 * Returns the workspace URI for the context picker based on the current workspace selection.
 	 */
 	private _getContextFolderUri(): URI | undefined {
-		return this._workspacePicker.selectedFolderUri;
+		return this._workspacePicker.selectedFolderUri ?? this.workspaceContextService.getWorkspace().folders[0]?.uri;
 	}
 
 	private _renderWorkspacePicker(container: HTMLElement): IDisposable {
@@ -830,20 +854,74 @@ export class NewChatWidget extends Disposable {
 	// --- Send ---
 
 	private async _send(query: string, attachedContext?: IChatRequestVariableEntry[], background?: boolean): Promise<boolean> {
+		console.log('[NewChatWidget] _send entered with query:', query.substring(0, 50));
+		const folderUri = this._workspacePicker.selectedFolderUri ?? this.workspaceContextService.getWorkspace().folders[0]?.uri;
 		let session = this._session.get() ?? this.sessionsService.activeSession.get() ?? this.sessionsManagementService.newSession.get();
-		if (!session) {
-			const folderUri = this._workspacePicker.selectedFolderUri;
+
+		const isLocalFolder = !folderUri || folderUri.scheme === 'file';
+		// In Dardcor-Code, local folders must ALWAYS use local-chat (powered by Dardcor Router)
+		// We NEVER call sessionsService.openNewSession here because it activates the session and disposes this widget mid-send!
+		if (!session || (isLocalFolder && session.providerId !== 'local-chat')) {
 			if (folderUri) {
-				const result = await this._createNewSession(folderUri);
-				session = result.session ?? this._session.get() ?? this.sessionsService.activeSession.get() ?? this.sessionsManagementService.newSession.get();
+				try {
+					console.log('[NewChatWidget] Creating local-chat session via sessionsManagementService.createNewSession...');
+					session = this.sessionsManagementService.createNewSession(folderUri, { providerId: 'local-chat', sessionTypeId: 'local' });
+				} catch (e) {
+					console.warn('[NewChatWidget] sessionsManagementService.createNewSession failed:', e);
+					this.logService.error('Failed to create local-chat session in _send:', e);
+				}
+				if (!session || session.providerId !== 'local-chat') {
+					let localProvider = this.sessionsProvidersService.getProvider('local-chat');
+					if (!localProvider) {
+						try {
+							console.log('[NewChatWidget] local-chat provider not found in service, creating and registering instance directly...');
+							localProvider = this.instantiationService.createInstance(LocalChatSessionsProvider);
+							this.sessionsProvidersService.registerProvider(localProvider);
+						} catch (instErr) {
+							console.error('[NewChatWidget] Failed to instantiate LocalChatSessionsProvider:', instErr);
+						}
+					}
+					if (localProvider) {
+						try {
+							console.log('[NewChatWidget] Direct localProvider.createNewSession...');
+							session = localProvider.createNewSession(folderUri, 'local');
+						} catch (e) {
+							console.error('[NewChatWidget] Direct local-chat createNewSession failed:', e);
+							this.logService.error('Direct local-chat createNewSession failed:', e);
+						}
+					}
+				}
+			}
+			if (!session) {
+				const effectiveUri = folderUri ?? this.workspaceContextService.getWorkspace().folders[0]?.uri;
+				let localProvider = this.sessionsProvidersService.getProvider('local-chat');
+				if (!localProvider) {
+					try {
+						localProvider = this.instantiationService.createInstance(LocalChatSessionsProvider);
+						this.sessionsProvidersService.registerProvider(localProvider);
+					} catch (instErr) {
+						console.error('[NewChatWidget] Failed to instantiate LocalChatSessionsProvider in emergency fallback:', instErr);
+					}
+				}
+				if (localProvider && effectiveUri) {
+					try {
+						console.log('[NewChatWidget] Emergency localProvider.createNewSession with effectiveUri:', effectiveUri.toString());
+						session = localProvider.createNewSession(effectiveUri, 'local');
+					} catch (err) {
+						console.error('[NewChatWidget] Direct createNewSession emergency fallback failed:', err);
+					}
+				}
 			}
 			if (!session) {
 				if (!this._workspacePicker.selectedFolderUri) {
 					this._workspacePicker.showPicker();
 				}
+				console.warn('[NewChatWidget] No session resolved in _send, returning false');
 				return false;
 			}
 		}
+		console.log('[NewChatWidget] _send: using providerId:', session.providerId, 'sessionId:', session.sessionId);
+		this.logService.info(`[NewChatWidget] _send: query="${query.substring(0, 50)}", providerId="${session.providerId}", folderUri="${folderUri?.toString()}"`);
 		const currentModel = this._newChatInput.selectedModelState.get().currentModel;
 		if (currentModel && session.modelId.get() !== currentModel.identifier) {
 			this.sessionsProvidersService.getProvider(session.providerId)?.setModel(session.sessionId, currentModel.identifier);
@@ -879,16 +957,103 @@ export class NewChatWidget extends Disposable {
 			}));
 		}
 
+		let sentSessionResource: URI | undefined = session.resource;
 		try {
-			await this.sessionsManagementService.sendNewChatRequest(session, sendOptions);
+			if (session.providerId === 'local-chat') {
+				console.log('[NewChatWidget] Dispatching sendNewChatRequest to sessionsManagementService...');
+				await this.sessionsManagementService.sendNewChatRequest(session, sendOptions);
+			} else {
+				// Bound wait for non-local provider so it doesn't hang indefinitely if daemon is unresponsive
+				await Promise.race([
+					this.sessionsManagementService.sendNewChatRequest(session, sendOptions),
+					new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`Provider '${session.providerId}' timed out`)), 10000))
+				]);
+			}
+			console.log('[NewChatWidget] sendNewChatRequest completed successfully');
 		} catch (e) {
+			console.error('[NewChatWidget] Failed to send request with provider ' + session?.providerId + ':', e);
+			this.logService.error('Failed to send request with provider ' + session?.providerId + ':', e);
+			// Fall back to local-chat provider or direct chat dispatch
+			try {
+				console.log('[NewChatWidget] Falling back to local-chat provider after send failure');
+				this.logService.info('Falling back to local-chat provider after send failure');
+				let fallbackSession: ISession | undefined;
+				if (folderUri) {
+					try {
+						fallbackSession = this.sessionsManagementService.createNewSession(folderUri, { providerId: 'local-chat', sessionTypeId: 'local' });
+					} catch (createrr) {
+						console.warn('[NewChatWidget] Fallback sessionsManagementService.createNewSession failed:', createrr);
+					}
+				}
+				if (!fallbackSession && folderUri) {
+					let localProvider = this.sessionsProvidersService.getProvider('local-chat');
+					if (!localProvider) {
+						try {
+							localProvider = this.instantiationService.createInstance(LocalChatSessionsProvider);
+							this.sessionsProvidersService.registerProvider(localProvider);
+						} catch { }
+					}
+					if (localProvider) {
+						fallbackSession = localProvider.createNewSession(folderUri, 'local');
+					}
+				}
+				if (fallbackSession) {
+					sentSessionResource = fallbackSession.resource;
+					await this.sessionsManagementService.sendNewChatRequest(fallbackSession, sendOptions);
+					if (!background) {
+						clearFeedback();
+						try {
+							await this.sessionsService.openSession(fallbackSession.resource);
+						} catch (openErr) {
+							console.warn('[NewChatWidget] Fallback openSession error:', openErr);
+						}
+					}
+					return true;
+				}
+			} catch (fallbackError) {
+				console.error('[NewChatWidget] Fallback sendNewChatRequest failed:', fallbackError);
+				this.logService.error('Fallback sendNewChatRequest failed:', fallbackError);
+			}
+
+			// Final safety net: dispatch directly to chatService so the user's message is NEVER stuck!
+			try {
+				console.log('[NewChatWidget] Dispatching directly to chatService as ultimate fallback');
+				this.logService.info('Dispatching directly to chatService as ultimate fallback');
+				const localSessionModel = this.chatService.startNewLocalSession(ChatAgentLocation.Chat);
+				sentSessionResource = localSessionModel.object.sessionResource;
+				await this.chatService.sendRequest(localSessionModel.object.sessionResource, request, {
+					location: ChatAgentLocation.Chat,
+					attachedContext
+				});
+				if (!background) {
+					clearFeedback();
+					try {
+						await this.sessionsService.openSession(localSessionModel.object.sessionResource);
+					} catch (openErr) {
+						console.warn('[NewChatWidget] Direct chat fallback openSession error (expected):', openErr);
+					}
+				}
+				return true;
+			} catch (chatError) {
+				console.error('[NewChatWidget] Direct chatService fallback failed:', chatError);
+				this.logService.error('Direct chatService fallback failed:', chatError);
+			}
+
 			this._pendingBackgroundSends.deleteAndDispose(sendOptions);
-			this.logService.error('Failed to send request:', e);
 			return false;
 		}
 
 		if (!background) {
 			clearFeedback();
+			// IMPORTANT: Immediately transition to the chat session view
+			const targetResource = sentSessionResource ?? session.resource;
+			try {
+				console.log('[NewChatWidget] Opening session after send:', targetResource.toString());
+				await this.sessionsService.openSession(targetResource);
+			} catch (e) {
+				console.warn('[NewChatWidget] Could not open session immediately after send:', e);
+				this.logService.warn('Could not open session immediately after send:', e);
+			}
 		}
 
 		// A background send graduated the composer's in-flight session and

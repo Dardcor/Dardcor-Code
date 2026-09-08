@@ -499,28 +499,7 @@ export class OpenModePickerAction extends Action2 {
 					ChatContextKeys.location.isEqualTo(ChatAgentLocation.Chat)),
 				primary: KeyMod.CtrlCmd | KeyCode.Period,
 				weight: KeybindingWeight.EditorContrib
-			},
-			menu: [
-				{
-					id: MenuId.ChatInputSecondary,
-					order: 2,
-					when: ContextKeyExpr.and(
-						ChatContextKeys.enabled,
-						ChatContextKeys.location.isEqualTo(ChatAgentLocation.Chat),
-						ChatContextKeys.inQuickChat.negate(),
-						// Hide the agent picker while a delegation (continue in) target is pending
-						ChatContextKeys.hasPendingDelegationTarget.negate(),
-						ContextKeyExpr.or(
-							ChatContextKeys.lockedToCodingAgent.negate(),
-							ChatContextKeys.chatSessionHasCustomAgentTarget),
-						// Show in welcome view for local sessions or sessions with custom agent target
-						ContextKeyExpr.or(
-							ChatContextKeys.inAgentSessionsWelcome.negate(),
-							ChatContextKeys.chatSessionHasCustomAgentTarget,
-							ChatContextKeys.agentSessionType.isEqualTo(AgentSessionProviders.Local))),
-					group: 'navigation',
-				},
-			]
+			}
 		});
 	}
 

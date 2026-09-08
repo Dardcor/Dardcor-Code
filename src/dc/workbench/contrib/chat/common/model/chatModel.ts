@@ -2804,12 +2804,15 @@ export class ChatModel extends Disposable implements IChatModel {
 			return [];
 		}
 
-		try {
-			return requests.map(r => this._deserializeRequest(r));
-		} catch (error) {
-			this.logService.error('Failed to parse chat data', error);
-			return [];
+		const result: ChatRequestModel[] = [];
+		for (const r of requests) {
+			try {
+				result.push(this._deserializeRequest(r));
+			} catch (error) {
+				this.logService.error('Failed to parse chat request', error);
+			}
 		}
+		return result;
 	}
 
 	private _deserializeRequest(raw: ISerializableChatRequestData): ChatRequestModel {

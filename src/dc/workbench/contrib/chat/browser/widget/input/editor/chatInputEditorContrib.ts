@@ -104,7 +104,9 @@ class InputEditorDecorations extends Disposable {
 			this.triggerInputEditorDecorationsUpdate();
 		}));
 		this._register(this.widget.onDidSubmitAgent((e) => {
-			this.previouslyUsedAgents.add(agentAndCommandToKey(e.agent, e.slashCommand?.name));
+			if (e.agent) {
+				this.previouslyUsedAgents.add(agentAndCommandToKey(e.agent, e.slashCommand?.name));
+			}
 		}));
 		this._register(this.widget.inputEditor.onMouseDown(e => {
 			this.mouseDownPromptSlashCommand = undefined;
@@ -447,12 +449,14 @@ class InputEditorSlashCommandMode extends Disposable {
 	) {
 		super();
 		this._register(this.widget.onDidChangeAgent(e => {
-			if (e.slashCommand && e.slashCommand.isSticky || !e.slashCommand && e.agent.metadata.isSticky) {
+			if (e.agent && (e.slashCommand && e.slashCommand.isSticky || !e.slashCommand && e.agent.metadata.isSticky)) {
 				this.repopulateAgentCommand(e.agent, e.slashCommand);
 			}
 		}));
 		this._register(this.widget.onDidSubmitAgent(e => {
-			this.repopulateAgentCommand(e.agent, e.slashCommand);
+			if (e.agent) {
+				this.repopulateAgentCommand(e.agent, e.slashCommand);
+			}
 		}));
 	}
 

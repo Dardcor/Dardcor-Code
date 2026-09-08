@@ -1,7 +1,7 @@
 {
   "name": "dardcor-code",
   "version": "1.0.0",
-  "description": "DRouter - AI Infrastructure Management",
+  "description": "Dardcor Router - AI Infrastructure Management",
   "private": true,
   "scripts": {
     "dev": "next dev --port 25000",
@@ -46,7 +46,6 @@
     "recharts": "^3.7.0",
     "selfsigned": "^5.5.0",
     "socks-proxy-agent": "^8.0.5",
-    "sql.js": "^1.14.1",
     "undici": "^7.19.2",
     "uuid": "^13.0.0",
     "zustand": "^5.0.10"

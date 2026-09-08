@@ -291,6 +291,11 @@ export class SessionsManagementService extends Disposable implements ISessionsMa
 				result.push({ providerId: provider.id, sessionType });
 			}
 		}
+		result.sort((a, b) => {
+			if (a.providerId === 'local-chat' && b.providerId !== 'local-chat') { return -1; }
+			if (b.providerId === 'local-chat' && a.providerId !== 'local-chat') { return 1; }
+			return 0;
+		});
 		return result;
 	}
 
@@ -447,6 +452,15 @@ export class SessionsManagementService extends Disposable implements ISessionsMa
 			}
 		}
 
+		// Prioritize local-chat if available and options.providerId was not specified
+		const localCandidate = providers.find(p => p.id === 'local-chat');
+		if (localCandidate) {
+			const servable = canProviderServe(localCandidate);
+			if (servable) {
+				return { provider: localCandidate, sessionTypeId: servable.sessionTypeId, workspace: servable.workspace };
+			}
+		}
+
 		for (const candidate of providers) {
 			const servable = canProviderServe(candidate);
 			if (servable) {
@@ -455,6 +469,16 @@ export class SessionsManagementService extends Disposable implements ISessionsMa
 		}
 
 		// Fallback for edge cases
+		for (const candidate of providers) {
+			const ws = candidate.resolveWorkspace(folderUri);
+			if (ws) {
+				const types = candidate.getSessionTypes(folderUri);
+				if (types && types.length > 0) {
+					return { provider: candidate, sessionTypeId: types[0].id, workspace: ws };
+				}
+			}
+		}
+
 		for (const candidate of providers) {
 			const ws = candidate.resolveWorkspace(folderUri);
 			if (ws) {

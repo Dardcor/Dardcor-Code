@@ -52,6 +52,7 @@ import { chatSessionResourceToId, getChatSessionType, isUntitledChatSession, Loc
 import { ChatRequestVariableSet, IChatRequestVariableEntry, isExplicitFileOrImageVariableEntry, isPromptTextVariableEntry } from '../attachments/chatVariableEntries.js';
 import { IDynamicVariable } from '../attachments/chatVariables.js';
 import { ChatAgentLocation, ChatConfiguration, ChatModeKind } from '../constants.js';
+import { ExtensionIdentifier } from '../../../../../platform/extensions/common/extensions.js';
 import { ChatMessageRole, IChatMessage, ILanguageModelsService } from '../languageModels.js';
 import { ILanguageModelToolsService, ToolAndToolSetEnablementMap } from '../tools/languageModelToolsService.js';
 import { ChatSessionOperationLog } from '../model/chatSessionOperationLog.js';
@@ -1202,10 +1203,12 @@ export class ChatService extends Disposable implements IChatService {
 
 		const location = options?.location ?? model.initialLocation;
 		const attempt = options?.attempt ?? 0;
-		const defaultAgent = this.chatAgentService.getDefaultAgent(location, options?.modeInfo?.kind);
+		let defaultAgent = this.chatAgentService.getDefaultAgent(location, options?.modeInfo?.kind);
 		if (!defaultAgent) {
 			this.logService.warn('sendRequest', `No default agent for location ${location}`);
-			// Allow sending request without default agent
+			defaultAgent = this.chatAgentService.getActivatedAgents()[0]
+				?? this.chatAgentService.getAgents()[0]
+				?? ChatService._dardcorFallbackAgent;
 		}
 
 		const parsedRequest = this.parseChatRequest(sessionResource, request, location, options);
@@ -1213,13 +1216,18 @@ export class ChatService extends Disposable implements IChatService {
 		const agent = silentAgent ?? parsedRequest.parts.find((r): r is ChatRequestAgentPart => r instanceof ChatRequestAgentPart)?.agent ?? defaultAgent;
 		const agentSlashCommandPart = parsedRequest.parts.find((r): r is ChatRequestAgentSubcommandPart => r instanceof ChatRequestAgentSubcommandPart);
 
+		const effectiveAgent = agent ?? defaultAgent ?? this.chatAgentService.getActivatedAgents()[0] ?? ChatService._dardcorFallbackAgent;
+
+		// Guarantee agent is never undefined for UI events — use Dardcor fallback as last resort
+		const resolvedAgent: IChatAgentData = agent ?? effectiveAgent ?? ChatService._dardcorFallbackAgent;
+
 		// This method is only returning whether the request was accepted - don't block on the actual request
 		return {
 			kind: 'sent',
 			newSessionResource,
 			data: {
-				...this._sendRequestAsync(model, sessionResource, parsedRequest, attempt, !options?.noCommandDetection, silentAgent ?? defaultAgent, location, options),
-				agent: agent!,
+				...this._sendRequestAsync(model, sessionResource, parsedRequest, attempt, !options?.noCommandDetection, resolvedAgent, location, options),
+				agent: resolvedAgent,
 				slashCommand: agentSlashCommandPart?.command,
 			},
 		};
@@ -1367,6 +1375,25 @@ export class ChatService extends Disposable implements IChatService {
 		return newTokenSource.token;
 	}
 
+	private static readonly _dardcorFallbackAgent: IChatAgentData = {
+		id: 'dardcor.default',
+		name: 'Dardcor',
+		fullName: 'Dardcor Router Agent',
+		description: 'Default Dardcor Router fallback agent',
+		extensionId: new ExtensionIdentifier('dardcor.dardcor-ai'),
+		extensionVersion: '1.0.0',
+		extensionPublisherId: 'dardcor',
+		publisherDisplayName: 'Dardcor',
+		extensionDisplayName: 'Dardcor AI',
+		isDefault: true,
+		isCore: true,
+		metadata: { isSticky: false },
+		slashCommands: [],
+		locations: [ChatAgentLocation.Chat, ChatAgentLocation.Terminal, ChatAgentLocation.Notebook, ChatAgentLocation.EditorInline],
+		modes: [ChatModeKind.Ask, ChatModeKind.Agent, ChatModeKind.Edit],
+		disambiguation: [],
+	};
+
 	private _sendRequestAsync(model: ChatModel, sessionResource: URI, parsedRequest: IParsedChatRequest, attempt: number, enableCommandDetection: boolean, defaultAgent: IChatAgentData | undefined, location: ChatAgentLocation, options?: IChatSendRequestOptions): IChatSendRequestResponseState {
 		const followupsCancelToken = this.refreshFollowupsCancellationToken(sessionResource);
 		let request: ChatRequestModel | undefined;
@@ -1376,7 +1403,7 @@ export class ChatService extends Disposable implements IChatService {
 		const requests = [...model.getRequests()];
 		const isTerminalCommand = isTerminalCommandPrompt(parsedRequest.text, this.chatSessionService.getCapabilitiesForSessionType(getChatSessionType(sessionResource))?.terminalCommandPrefix);
 		const requestTelemetry = this.instantiationService.createInstance(ChatRequestTelemetry, {
-			agent: (agentPart?.agent ?? defaultAgent)!,
+			agent: agentPart?.agent ?? defaultAgent ?? ChatService._dardcorFallbackAgent,
 			agentSlashCommandPart,
 			commandPart,
 			sessionResource: model.sessionResource,
@@ -1547,10 +1574,10 @@ export class ChatService extends Disposable implements IChatService {
 			try {
 				let rawResult: IChatAgentResult | null | undefined;
 				let agentOrCommandFollowups: Promise<IChatFollowup[] | undefined> | undefined = undefined;
-				if (agentPart || (defaultAgent && !commandPart)) {
+				if (agentPart || !commandPart || defaultAgent) {
 					// --- Step 1: Create the request model immediately (before any awaits) ---
 					// This fires RequestUiUpdated synchronously so the user sees their message right away.
-					const initialAgent = agentPart?.agent ?? defaultAgent;
+					const initialAgent = agentPart?.agent ?? defaultAgent ?? this.chatAgentService.getActivatedAgents()[0] ?? ChatService._dardcorFallbackAgent;
 					const initialCommand = agentSlashCommandPart?.command;
 					const initVariableData: IChatRequestVariableData = { variables: [] };
 					request = model.addRequest(parsedRequest, initVariableData, attempt, options?.modeInfo, initialAgent, initialCommand, options?.confirmation, options?.locationData, options?.attachedContext, undefined, options?.userSelectedModelId, options?.userSelectedTools?.get(), undefined, options?.isSystemInitiated, options?.systemInitiatedLabel, options?.terminalExecutionId, isTerminalCommand);
@@ -1668,26 +1695,23 @@ export class ChatService extends Disposable implements IChatService {
 						}
 					}
 
-					const agent = (detectedAgent ?? agentPart?.agent ?? defaultAgent);
+					let agent = (detectedAgent ?? agentPart?.agent ?? defaultAgent);
 					if (!agent) {
-						if (request) {
-							requestTelemetry.complete({
-								timeToFirstProgress: undefined,
-								result: 'success',
-								totalTime: stopWatch.elapsed(),
-								requestType,
-								detectedAgent,
-								request,
-							});
-							completeResponseCreated();
-							request.response?.complete();
-							shouldProcessPending = !token.isCancellationRequested;
-						}
-						return;
+						agent = this.chatAgentService.getActivatedAgents()[0]
+							?? (this.chatAgentService.getAgents()[0] as any)
+							?? ChatService._dardcorFallbackAgent;
 					}
 					const command = detectedCommand ?? agentSlashCommandPart?.command;
 
-					await this.extensionService.activateByEvent(`onChatParticipant:${agent.id}`);
+					if (agent.id && !agent.id.startsWith('dardcor.') && !agent.isCore && !agent.isDynamic) {
+						await this.extensionService.activateByEvent(`onChatParticipant:${agent.id}`);
+					} else {
+						// Always activate the Dardcor Code extension participant so the full workspace editing agent is live
+						await Promise.allSettled([
+							this.extensionService.activateByEvent('onChatParticipant:github.dardcor.editsAgent'),
+							this.extensionService.activateByEvent('onChatParticipant:github.dardcor.default'),
+						]);
+					}
 
 					// Recompute history in case the agent or command changed
 					const history = this.getHistoryEntriesFromModel(requests, location, agent.id);
@@ -1751,7 +1775,29 @@ export class ChatService extends Disposable implements IChatService {
 					rawResult = {};
 
 				} else {
-					throw new Error(`Cannot handle request`);
+					const fallbackAgent = defaultAgent ?? this.chatAgentService.getActivatedAgents()[0] ?? this.chatAgentService.getAgents()[0] ?? ChatService._dardcorFallbackAgent;
+					if (fallbackAgent) {
+						if (!request) {
+							request = model.addRequest(parsedRequest, { variables: [] }, attempt, options?.modeInfo, fallbackAgent, undefined, options?.confirmation, options?.locationData, options?.attachedContext, undefined, options?.userSelectedModelId);
+							completeResponseCreated();
+						}
+						const thisReq = request;
+						const agentRequest: IChatAgentRequest = {
+							sessionResource: model.sessionResource,
+							requestId: thisReq.id,
+							agentId: fallbackAgent.id,
+							message: parsedRequest.text,
+							variables: { variables: [] },
+							enableCommandDetection,
+							attempt,
+							location,
+							locationData: thisReq.locationData,
+							userSelectedModelId: options?.userSelectedModelId,
+						};
+						rawResult = await this.chatAgentService.invokeAgent(fallbackAgent.id, agentRequest, progressCallback, [], token);
+					} else {
+						rawResult = {};
+					}
 				}
 
 				if ((token.isCancellationRequested && !rawResult)) {
@@ -1814,7 +1860,7 @@ export class ChatService extends Disposable implements IChatService {
 						detectedAgent,
 						request,
 					});
-					const rawResult: IChatAgentResult = { errorDetails: { message: err.message } };
+					const rawResult: IChatAgentResult = { errorDetails: { message: (err as any)?.message || String(err) } };
 					model.setResponse(request, rawResult);
 					completeResponseCreated();
 					request.response?.complete();
@@ -1955,6 +2001,8 @@ export class ChatService extends Disposable implements IChatService {
 		const silentAgent = sendOptions.agentIdSilent ? this.chatAgentService.getAgent(sendOptions.agentIdSilent) : undefined;
 		const agent = silentAgent ?? parsedRequest.parts.find((r): r is ChatRequestAgentPart => r instanceof ChatRequestAgentPart)?.agent ?? defaultAgent;
 		const agentSlashCommandPart = parsedRequest.parts.find((r): r is ChatRequestAgentSubcommandPart => r instanceof ChatRequestAgentSubcommandPart);
+		
+		const resolvedAgent: IChatAgentData = agent ?? defaultAgent ?? ChatService._dardcorFallbackAgent;
 
 		const responseState = this._sendRequestAsync(model, model.sessionResource, parsedRequest, firstRequest.request.attempt, !sendOptions.noCommandDetection, silentAgent ?? defaultAgent, location, sendOptions);
 
@@ -1962,7 +2010,7 @@ export class ChatService extends Disposable implements IChatService {
 			kind: 'sent',
 			data: {
 				...responseState,
-				agent: agent!,
+				agent: resolvedAgent,
 				slashCommand: agentSlashCommandPart?.command,
 			},
 		};

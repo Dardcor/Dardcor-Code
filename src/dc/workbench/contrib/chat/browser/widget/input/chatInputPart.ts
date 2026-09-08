@@ -62,6 +62,7 @@ import { MenuWorkbenchButtonBar } from '../../../../../../platform/actions/brows
 import { MenuEntryActionViewItem } from '../../../../../../platform/actions/browser/menuEntryActionViewItem.js';
 import { HiddenItemStrategy, MenuWorkbenchToolBar } from '../../../../../../platform/actions/browser/toolbar.js';
 import { MenuId, MenuItemAction } from '../../../../../../platform/actions/common/actions.js';
+import { ICommandService } from '../../../../../../platform/commands/common/commands.js';
 import { IConfigurationService } from '../../../../../../platform/configuration/common/configuration.js';
 import { ContextKeyExpr, IContextKey, IContextKeyService, RawContextKey } from '../../../../../../platform/contextkey/common/contextkey.js';
 import { IDialogService } from '../../../../../../platform/dialogs/common/dialogs.js';
@@ -1202,7 +1203,11 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 			this._showCombinedPhonePickerSheet();
 			return;
 		}
-		this.modeWidget?.show();
+		if (this.modeWidget) {
+			this.modeWidget.show();
+		} else {
+			this.instantiationService.invokeFunction(accessor => accessor.get(ICommandService).executeCommand(ConfigureToolsAction.ID));
+		}
 	}
 
 	private _showCombinedPhonePickerSheet(): void {

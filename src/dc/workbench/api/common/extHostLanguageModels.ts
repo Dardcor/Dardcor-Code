@@ -180,10 +180,10 @@ export class ExtHostLanguageModels implements ExtHostLanguageModelsShape {
 			return 'dardcor';
 		}
 		const prefix = modelIdentifier.substring(0, firstSlash);
-		if (['oc', 'ag', 'ds', 'opencode'].includes(prefix.toLowerCase())) {
-			return 'dardcor';
+		if (this._languageModelProviders.has(prefix)) {
+			return prefix;
 		}
-		return prefix;
+		return 'dardcor';
 	}
 
 	async $provideLanguageModelChatInfo(vendor: string, options: ILanguageModelChatInfoOptions, token: CancellationToken): Promise<ILanguageModelChatMetadataAndIdentifier[]> {

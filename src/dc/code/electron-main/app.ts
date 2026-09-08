@@ -4,10 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { app, BrowserWindow, desktopCapturer, Details, globalShortcut, GPUFeatureStatus, powerMonitor, protocol, screen as electronScreen, session, Session, systemPreferences, WebFrameMain } from 'electron';
-import { addUNCHostToAllowlist, disableUNCAccessRestrictions } from '../../base/node/unc.js';
 import { validatedIpcMain } from '../../base/parts/ipc/electron-main/ipcMain.js';
-import { execFileSync, fork, ChildProcess } from 'child_process';
-import { existsSync } from 'fs';
+import { execFileSync, fork, spawn, ChildProcess } from 'child_process';
+import { createConnection } from 'net';
+import { existsSync, cpSync, statSync } from 'fs';
 import { homedir, hostname, release } from 'os';
 import { initWindowsVersionInfo } from '../../base/node/windowsVersion.js';
 import { VSBuffer } from '../../base/common/buffer.js';
@@ -29,6 +29,7 @@ import { Client as MessagePortClient } from '../../base/parts/ipc/electron-main/
 import { Server as NodeIPCServer } from '../../base/parts/ipc/node/ipc.net.js';
 import { IProxyAuthService, ProxyAuthService } from '../../platform/native/electron-main/auth.js';
 import { localize } from '../../nls.js';
+import { addUNCHostToAllowlist, disableUNCAccessRestrictions } from '../../base/node/unc.js';
 import { IBackupMainService } from '../../platform/backup/electron-main/backup.js';
 import { BackupMainService } from '../../platform/backup/electron-main/backupMainService.js';
 import { IConfigurationService } from '../../platform/configuration/common/configuration.js';
@@ -667,18 +668,51 @@ export class CodeApplication extends Disposable {
 		validatedIpcMain.on('vscode:openDevTools', event => event.sender.openDevTools());
 
 		let drouterProcess: ChildProcess | null = null;
-		const startDrouterProcess = () => {
+		const startDrouterProcess = async () => {
 			if (drouterProcess && !drouterProcess.killed) {
 				return;
 			}
+			// Check if port 25128 is already listening (e.g. started by scripts/start.mjs or an external process)
+			const isPortListening = await new Promise<boolean>(resolve => {
+				const socket = createConnection({ port: 25128, host: '127.0.0.1' }, () => {
+					socket.end();
+					resolve(true);
+				});
+				socket.on('error', () => resolve(false));
+				socket.setTimeout(400, () => {
+					socket.destroy();
+					resolve(false);
+				});
+			});
+
+			if (isPortListening) {
+				this.logService.info('[Dardcor Router] Server is already listening on port 25128.');
+				return;
+			}
+
 			const drouterDir = existsSync(join(this.environmentMainService.appRoot, '.dardcor-router'))
 				? join(this.environmentMainService.appRoot, '.dardcor-router')
 				: join(this.environmentMainService.appRoot, '.dardcor-provider');
 			const standaloneServer = join(drouterDir, '.next', 'standalone', 'server.js');
 			const nextBin = join(drouterDir, 'node_modules', 'next', 'dist', 'bin', 'next');
-			// Reuse the embedded DRouter store so existing connected providers are
-			// visible to the IDE instead of creating a second empty store.
-			const dataDir = process.env['DARDCOR_DATA_DIR'] || join(homedir(), '.miawagent', 'router');
+			// Ensure ~/.dardcor/provider is used and automatically migrate legacy ~/.miawagent/router store if present
+			const dataDir = process.env['DARDCOR_DATA_DIR'] || join(homedir(), '.dardcor', 'provider');
+			const legacyDataDir = join(homedir(), '.miawagent', 'router');
+			try {
+				const legacyDb = join(legacyDataDir, 'db', 'database.json');
+				const targetDb = join(dataDir, 'db', 'database.json');
+				if (existsSync(legacyDb)) {
+					const legacySize = existsSync(legacyDb) ? statSync(legacyDb).size : 0;
+					const targetSize = existsSync(targetDb) ? statSync(targetDb).size : 0;
+					if (!existsSync(targetDb) || targetSize < legacySize) {
+						cpSync(legacyDataDir, dataDir, { recursive: true, force: true });
+						this.logService.info('[Dardcor Router] Migrated database from legacy .miawagent/router to .dardcor/provider');
+					}
+				}
+			} catch (err) {
+				this.logService.warn('[Dardcor Router] Legacy database auto-migration skipped:', err);
+			}
+
 			const env = {
 				...process.env,
 				PORT: '25128',
@@ -688,35 +722,67 @@ export class CodeApplication extends Disposable {
 			};
 
 			try {
-				// 25128 is reserved for the IDE-owned DRouter. Remove a stale
+				// 25128 is reserved for the IDE-owned Dardcor Router. Remove a stale
 				// instance left by an earlier IDE run before binding it again.
 				if (isLinux) {
 					try { execFileSync('fuser', ['-k', '25128/tcp'], { stdio: 'ignore' }); } catch { /* no holder */ }
 				}
 				if (existsSync(standaloneServer)) {
-					drouterProcess = fork(standaloneServer, [], {
-						cwd: join(drouterDir, '.next', 'standalone'),
-						env,
-						stdio: 'ignore'
-					});
+					try {
+						drouterProcess = spawn('node', [standaloneServer], {
+							cwd: join(drouterDir, '.next', 'standalone'),
+							env,
+							stdio: ['ignore', 'pipe', 'pipe']
+						});
+					} catch {
+						drouterProcess = fork(standaloneServer, [], {
+							cwd: join(drouterDir, '.next', 'standalone'),
+							env,
+							stdio: ['ignore', 'pipe', 'pipe']
+						});
+					}
 				} else if (existsSync(nextBin)) {
-					drouterProcess = fork(nextBin, ['dev', '--webpack', '--port', '25128'], {
-						cwd: drouterDir,
-						env,
-						stdio: 'ignore'
-					});
+					try {
+						drouterProcess = spawn('node', [nextBin, 'dev', '--webpack', '--port', '25128'], {
+							cwd: drouterDir,
+							env,
+							stdio: ['ignore', 'pipe', 'pipe']
+						});
+					} catch {
+						drouterProcess = fork(nextBin, ['dev', '--webpack', '--port', '25128'], {
+							cwd: drouterDir,
+							env,
+							stdio: ['ignore', 'pipe', 'pipe']
+						});
+					}
 				}
 				if (drouterProcess) {
-					drouterProcess.on('exit', () => {
+					drouterProcess.stdout?.on('data', (data) => {
+						const msg = data.toString().trim();
+						if (msg) {
+							this.logService.info('[Dardcor Router]', msg);
+						}
+					});
+					drouterProcess.stderr?.on('data', (data) => {
+						const msg = data.toString().trim();
+						if (msg) {
+							this.logService.warn('[Dardcor Router]', msg);
+						}
+					});
+					drouterProcess.on('exit', (code, sig) => {
+						this.logService.info('[Dardcor Router] Process exited', code, sig);
 						drouterProcess = null;
+					});
+					drouterProcess.on('error', (err) => {
+						this.logService.error('[Dardcor Router] Process error', err);
 					});
 				}
 			} catch (e) {
-				this.logService.error('Failed to start built-in DRouter', e);
+				this.logService.error('Failed to start built-in Dardcor Router', e);
 			}
 		};
 
-		startDrouterProcess();
+		void startDrouterProcess();
 
 		app.on('will-quit', () => {
 			if (drouterProcess) {

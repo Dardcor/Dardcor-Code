@@ -493,13 +493,13 @@ function CapacityAdapterCap({ cap, entry, onChange, activeProviders, getCaps }) 
                   >
                     <span>{model}</span>
                     <CapacityBadges caps={getCaps?.(model)} />
-                    <button onClick={() => handleMove(index, -1)} disabled={index === 0} className={`leading-none opacity-0 group-hover/chip:opacity-100 ${index === 0 ? "text-text-muted/20" : "text-text-muted hover:text-primary"}`}>
+                    <button onClick={() => handleMove(index, -1)} disabled={index === 0} className={`leading-none opacity-100 sm:opacity-0 sm:group-hover/chip:opacity-100 ${index === 0 ? "text-text-muted/20" : "text-text-muted hover:text-primary"}`}>
                       <span className="material-symbols-outlined text-[12px]">arrow_upward</span>
                     </button>
-                    <button onClick={() => handleMove(index, 1)} disabled={index === models.length - 1} className={`leading-none opacity-0 group-hover/chip:opacity-100 ${index === models.length - 1 ? "text-text-muted/20" : "text-text-muted hover:text-primary"}`}>
+                    <button onClick={() => handleMove(index, 1)} disabled={index === models.length - 1} className={`leading-none opacity-100 sm:opacity-0 sm:group-hover/chip:opacity-100 ${index === models.length - 1 ? "text-text-muted/20" : "text-text-muted hover:text-primary"}`}>
                       <span className="material-symbols-outlined text-[12px]">arrow_downward</span>
                     </button>
-                    <button onClick={() => handleRemove(index)} className="leading-none opacity-0 group-hover/chip:opacity-100 text-text-muted hover:text-red-500">
+                    <button onClick={() => handleRemove(index)} className="leading-none opacity-100 sm:opacity-0 sm:group-hover/chip:opacity-100 text-text-muted hover:text-red-500">
                       <span className="material-symbols-outlined text-[12px]">close</span>
                     </button>
                   </code>

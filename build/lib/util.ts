@@ -375,8 +375,8 @@ export function streamToPromise(stream: NodeJS.ReadWriteStream): Promise<void> {
 
 export function getElectronVersion(): Record<string, string> {
 	const npmrc = fs.readFileSync(path.join(root, '.npmrc'), 'utf8');
-	const electronVersion = /^target="(.*)"$/m.exec(npmrc)![1];
-	const msBuildId = /^ms_build_id="(.*)"$/m.exec(npmrc)![1];
+	const electronVersion = /^(?:npm_config_)?target="(.*)"$/m.exec(npmrc)![1];
+	const msBuildId = /^(?:npm_config_)?ms_build_id="(.*)"$/m.exec(npmrc)![1];
 	return { electronVersion, msBuildId };
 }
 

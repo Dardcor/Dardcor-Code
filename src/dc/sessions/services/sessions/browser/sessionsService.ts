@@ -407,6 +407,9 @@ export class SessionsService extends Disposable implements ISessionsService {
 		// active in the visible slot so the user sees the chat being sent.
 		this._register(this.sessionsManagementService.onWillSendRequest(session => this._startSendFollow(session)));
 		this._register(this.sessionsManagementService.onDidSendRequest(() => this._sendFollow.clear()));
+		this._register(this.sessionsManagementService.onDidStartSession(session => {
+			this.openSession(session.resource);
+		}));
 
 		// Drive the part: reconcile the grid and move focus into the active
 		// session whenever the visible sessions or the active session change.
@@ -538,6 +541,9 @@ export class SessionsService extends Disposable implements ISessionsService {
 	private _startSendFollow(session: ISession): void {
 		const store = new DisposableStore();
 		let followId = session.sessionId;
+		if (!this._visibility.activeSession.get()) {
+			this._activate(session);
+		}
 		// A foreground send can replace the session id (draft graduating into a
 		// committed session); keep following the new id.
 		store.add(this.sessionsManagementService.onDidReplaceSession(({ from, to }) => {

@@ -87,8 +87,8 @@ else {
 			licenseUrl: 'https://github.com/microsoft/vscode/blob/main/LICENSE.txt',
 			serverLicenseUrl: 'https://github.com/microsoft/vscode/blob/main/LICENSE.txt',
 			defaultChatAgent: {
-				extensionId: 'dardcor.dardcor-ai',
-				chatExtensionId: 'dardcor.dardcor-ai',
+				extensionId: 'github.dardcor-chat',
+				chatExtensionId: 'github.dardcor-chat',
 				provider: {
 					default: {
 						id: 'github',

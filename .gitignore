@@ -51,6 +51,11 @@ dist
 .github/prompts/*.local.prompt.md
 .agents/skills/.local/
 .github/skills/.local/
+.agents/ORIGINAL_REQUEST.md
+.agents/implementer_r1/
+.agents/reviewer_r1/
+.agents/sentinel/
+.agents/swe_1/
 skills-lock.json
 List-OS.md
 .superpowers

@@ -364,9 +364,13 @@ export class PtyService extends Disposable implements IPtyService {
 	}
 
 	@traceRpc
-	async attachToProcess(id: number): Promise<void> {
+	async attachToProcess(id: number, workspaceId?: string): Promise<void> {
 		try {
-			await this._throwIfNoPty(id).attach();
+			const pty = this._throwIfNoPty(id);
+			if (workspaceId && pty.workspaceId && pty.workspaceId !== workspaceId) {
+				throw new ErrorNoTelemetry(`Cannot attach to pty ${id} belonging to workspace ${pty.workspaceId} from workspace ${workspaceId}`);
+			}
+			await pty.attach();
 			this._logService.info(`Persistent process reconnection "${id}"`);
 		} catch (e) {
 			this._logService.warn(`Persistent process reconnection "${id}" failed`, e.message);
@@ -376,17 +380,17 @@ export class PtyService extends Disposable implements IPtyService {
 
 	@traceRpc
 	async updateTitle(id: number, title: string, titleSource: TitleEventSource): Promise<void> {
-		this._throwIfNoPty(id).setTitle(title, titleSource);
+		this._ptys.get(id)?.setTitle(title, titleSource);
 	}
 
 	@traceRpc
 	async updateIcon(id: number, userInitiated: boolean, icon: URI | { light: URI; dark: URI } | { id: string; color?: { id: string } }, color?: string): Promise<void> {
-		this._throwIfNoPty(id).setIcon(userInitiated, icon, color);
+		this._ptys.get(id)?.setIcon(userInitiated, icon, color);
 	}
 
 	@traceRpc
 	async clearBuffer(id: number): Promise<void> {
-		this._throwIfNoPty(id).clearBuffer();
+		this._ptys.get(id)?.clearBuffer();
 	}
 
 	@traceRpc

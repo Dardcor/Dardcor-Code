@@ -31,6 +31,7 @@ import { IViewsService } from '../../../../../workbench/services/views/common/vi
 import { IActiveSession, ISessionsChangeEvent, ISessionsManagementService } from '../../../../services/sessions/common/sessionsManagement.js';
 import { ISessionsService } from '../../../../services/sessions/browser/sessionsService.js';
 import { ISessionsProvider } from '../../../../services/sessions/common/sessionsProvider.js';
+import { IWorkbenchEnvironmentService } from '../../../../../workbench/services/environment/common/environmentService.js';
 
 const HOME_DIR = URI.file('/home/user');
 
@@ -394,6 +395,8 @@ suite('SessionsTerminalContribution', () => {
 			override isViewVisible(): boolean { return false; }
 			override onDidChangeViewVisibility = store.add(new Emitter<{ id: string; visible: boolean }>()).event;
 		});
+
+		instantiationService.stub(IWorkbenchEnvironmentService, { isSessionsWindow: true } as IWorkbenchEnvironmentService);
 
 		contribution = store.add(instantiationService.createInstance(SessionsTerminalContribution));
 	});

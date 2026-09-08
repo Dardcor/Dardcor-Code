@@ -64,46 +64,46 @@ export default function Modal({
       >
         {/* Header */}
         {(title || showTrafficLights) && (
-          <div className="flex items-center justify-between p-2 border-b border-border-subtle">
-            <div className="flex items-center">
-              {/* Traffic lights — desktop only */}
+          <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 border-b border-border-subtle">
+            <div className="flex items-center min-w-0 flex-1">
+              {/* Traffic lights — desktop aesthetic */}
               {showTrafficLights && (
-                <div className="hidden md:flex items-center gap-2 mr-4 ml-2">
+                <div className="hidden md:flex items-center gap-2 mr-3.5 ml-1 shrink-0">
                   <Tooltip text="Close" position="top" color="#FF5F56">
                     <button
                       onClick={onClose}
                       aria-label="Close"
                       title="Close"
-                      className="w-4 h-4 rounded-full bg-[#FF5F56] hover:brightness-90 transition-all cursor-pointer flex items-center justify-center group/dot"
+                      className="w-3.5 h-3.5 rounded-full bg-[#FF5F56] hover:brightness-90 transition-all cursor-pointer flex items-center justify-center group/dot"
                     >
-                      <span className="text-[9px] font-bold text-white opacity-0 group-hover/dot:opacity-100 transition-opacity leading-none">✕</span>
+                      <span className="text-[8px] font-bold text-white opacity-0 group-hover/dot:opacity-100 transition-opacity leading-none">✕</span>
                     </button>
                   </Tooltip>
-                  <div className="w-4 h-4 rounded-full bg-[#3a3a3a]/20 dark:bg-white/15 cursor-not-allowed" />
-                  <div className="w-4 h-4 rounded-full bg-[#3a3a3a]/20 dark:bg-white/15 cursor-not-allowed" />
+                  <div className="w-3.5 h-3.5 rounded-full bg-[#3a3a3a]/20 dark:bg-white/15 cursor-not-allowed" />
+                  <div className="w-3.5 h-3.5 rounded-full bg-[#3a3a3a]/20 dark:bg-white/15 cursor-not-allowed" />
                 </div>
               )}
               {title && (
-                <h2 className="text-lg font-semibold text-text-main">{title}</h2>
+                <h2 className="text-base sm:text-lg font-semibold text-text-main truncate">{title}</h2>
               )}
             </div>
-            {/* X button — mobile only */}
+            {/* Close button — visible on all platforms */}
             <button
               onClick={onClose}
-              aria-label="Close"
-              className="md:hidden p-1.5 rounded-[10px] text-text-muted hover:bg-surface-2 hover:text-text-main transition-colors"
+              aria-label="Close dialog"
+              className="p-1 sm:p-1.5 rounded-[8px] text-text-muted hover:bg-surface-2 hover:text-text-main transition-colors cursor-pointer shrink-0 ml-2"
             >
-              <span className="material-symbols-outlined text-[20px]">close</span>
+              <span className="material-symbols-outlined text-[18px] sm:text-[20px]">close</span>
             </button>
           </div>
         )}
 
         {/* Body */}
-        <div className="p-6 max-h-[calc(85vh-100px)] overflow-y-auto custom-scrollbar">{children}</div>
+        <div className="p-4 sm:p-6 max-h-[calc(88dvh-80px)] overflow-y-auto custom-scrollbar">{children}</div>
 
         {/* Footer */}
         {footer && (
-          <div className="flex items-center justify-end gap-3 p-6 border-t border-border-subtle">
+          <div className="flex items-center justify-end gap-2 sm:gap-3 p-3.5 sm:p-6 border-t border-border-subtle">
             {footer}
           </div>
         )}

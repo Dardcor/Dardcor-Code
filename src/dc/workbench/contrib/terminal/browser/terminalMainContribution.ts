@@ -15,6 +15,7 @@ import { IEditorResolverService, RegisteredEditorPriority } from '../../../servi
 import { IWorkbenchEnvironmentService } from '../../../services/environment/common/environmentService.js';
 import { ILifecycleService, LifecyclePhase } from '../../../services/lifecycle/common/lifecycle.js';
 import { IEmbedderTerminalService } from '../../../services/terminal/common/embedderTerminalService.js';
+import { getWorkspaceIdentifier } from '../../../../platform/workspaces/common/workspaceIdentifier.js';
 
 /**
  * The main contribution for the terminal contrib. This contains calls to other components necessary
@@ -94,9 +95,18 @@ export class TerminalMainContribution extends Disposable implements IWorkbenchCo
 						const sourceGroup = terminalGroupService.getGroupForInstance(instance);
 						sourceGroup?.removeInstance(instance);
 					} else { // Terminal from a different window
+						if (workbenchEnvironmentService.isSessionsWindow) {
+							throw new Error('Terminal editor is not supported in the sessions window');
+						}
+
 						const terminalIdentifier = parseTerminalUri(resource);
 						if (!terminalIdentifier.instanceId) {
 							throw new Error('Terminal identifier without instanceId');
+						}
+
+						const sessionsWorkspaceId = getWorkspaceIdentifier(workbenchEnvironmentService.agentSessionsWorkspace).id;
+						if (terminalIdentifier.workspaceId === sessionsWorkspaceId) {
+							throw new Error('Cannot open terminal from sessions window in editor');
 						}
 
 						const primaryBackend = terminalService.getPrimaryBackend();
@@ -107,6 +117,9 @@ export class TerminalMainContribution extends Disposable implements IWorkbenchCo
 						const attachPersistentProcess = await primaryBackend.requestDetachInstance(terminalIdentifier.workspaceId, terminalIdentifier.instanceId);
 						if (!attachPersistentProcess) {
 							throw new Error('No terminal persistent process to attach');
+						}
+						if (attachPersistentProcess.hideFromUser || attachPersistentProcess.isFeatureTerminal) {
+							throw new Error('Cannot open background or feature terminal in editor');
 						}
 						instance = terminalInstanceService.createInstance({ attachPersistentProcess }, TerminalLocation.Editor);
 					}

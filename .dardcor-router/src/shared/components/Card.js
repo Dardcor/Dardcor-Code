@@ -16,16 +16,16 @@ export default function Card({
 }) {
   const paddings = {
     none: "",
-    xs: "p-3",
-    sm: "p-4",
-    md: "p-6",
-    lg: "p-8",
+    xs: "p-2.5 sm:p-3",
+    sm: "p-3.5 sm:p-4",
+    md: "p-4 sm:p-6",
+    lg: "p-5 sm:p-8",
   };
 
   return (
     <div
       className={cn(
-        "bg-surface border border-border-subtle",
+        "bg-surface border border-border-subtle min-w-0 max-w-full",
         elev ? "rounded-[14px] shadow-[var(--shadow-elev)]" : "rounded-[14px] shadow-[var(--shadow-soft)]",
         hover && "hover:shadow-[var(--shadow-warm)] hover:border-brand-500/30 transition-all cursor-pointer",
         paddings[padding],
@@ -107,7 +107,7 @@ Card.ListItem = function CardListItem({
     >
       <div className="flex-1 min-w-0">{children}</div>
       {actions && (
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
           {actions}
         </div>
       )}

@@ -1,4 +1,4 @@
-// Shim → re-export from new SQLite-based DB layer (src/lib/db/)
+// Shim → re-export from modular Full JSON DB layer (src/lib/db/)
 export {
   statsEmitter, trackPendingRequest, getActiveRequests,
   saveRequestUsage, getUsageHistory, getUsageStats, getChartData,

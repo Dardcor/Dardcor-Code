@@ -211,15 +211,15 @@ export default function TranslatorPage() {
   };
 
   return (
-    <div className="p-8 space-y-3">
+    <div className="space-y-4 min-w-0">
       {/* Header */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
         <div>
-          <h1 className="text-2xl font-bold text-text-main">Translator Debug</h1>
-          <p className="text-sm text-text-muted mt-1">Replay request flow — matches log files</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-text-main">Translator Debug</h1>
+          <p className="text-xs sm:text-sm text-text-muted mt-0.5">Replay request flow — matches log files</p>
         </div>
         {meta && (
-          <div className="flex items-center gap-2 flex-wrap justify-end">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
             <MetaBadge label="src" value={meta.sourceFormat} color="blue" />
             <span className="material-symbols-outlined text-text-muted text-[14px]">arrow_forward</span>
             <MetaBadge label="dst" value={meta.targetFormat} color="orange" />
@@ -236,17 +236,17 @@ export default function TranslatorPage() {
 
         return (
           <Card key={step.id}>
-            <div className="p-4 space-y-3">
+            <div className="p-3.5 sm:p-4 space-y-3">
               {/* Step header */}
-              <div className="flex items-center justify-between">
-                <button onClick={() => toggle(step.id)} className="flex items-center gap-2 flex-1 text-left group">
-                  <span className="material-symbols-outlined text-[20px] text-text-muted group-hover:text-primary transition-colors">
+              <div className="flex items-center justify-between gap-2">
+                <button onClick={() => toggle(step.id)} className="flex items-center gap-2 flex-1 text-left group min-w-0 flex-wrap sm:flex-nowrap">
+                  <span className="material-symbols-outlined text-[20px] text-text-muted group-hover:text-primary transition-colors shrink-0">
                     {isExpanded ? "expand_more" : "chevron_right"}
                   </span>
-                  <span className="text-xs font-mono text-text-muted/60 w-4">{step.id}</span>
-                  <h3 className="text-sm font-semibold text-text-main">{step.label}</h3>
-                  <span className="text-xs text-text-muted/60 font-mono">{step.file}</span>
-                  {content && <span className="text-xs text-green-500">({content.length} chars)</span>}
+                  <span className="text-xs font-mono text-text-muted/60 w-4 shrink-0">{step.id}</span>
+                  <h3 className="text-sm font-semibold text-text-main shrink-0">{step.label}</h3>
+                  <span className="text-xs text-text-muted/60 font-mono truncate">{step.file}</span>
+                  {content && <span className="text-xs text-green-500 shrink-0">({content.length} chars)</span>}
                 </button>
                 {!isExpanded && (
                   <div className="flex gap-1 shrink-0">

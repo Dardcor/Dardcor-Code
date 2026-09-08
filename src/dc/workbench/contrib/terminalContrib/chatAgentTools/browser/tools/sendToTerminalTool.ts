@@ -73,7 +73,7 @@ const FocusTerminalByIdCommandId = 'workbench.action.terminal.chat.focusTerminal
 CommandsRegistry.registerCommand(FocusTerminalByIdCommandId, async (accessor, instanceId: number) => {
 	const terminalService = accessor.get(ITerminalService);
 	const instance = terminalService.getInstanceFromId(instanceId);
-	if (instance) {
+	if (instance && !instance.shellLaunchConfig.hideFromUser) {
 		terminalService.setActiveInstance(instance);
 		await terminalService.revealActiveTerminal();
 		instance.focus();
@@ -83,7 +83,7 @@ CommandsRegistry.registerCommand(FocusTerminalByIdCommandId, async (accessor, in
 const FocusTerminalByExecutionIdCommandId = 'workbench.action.terminal.chat.focusTerminalByExecutionId';
 CommandsRegistry.registerCommand(FocusTerminalByExecutionIdCommandId, async (accessor, executionId: string) => {
 	const execution = RunInTerminalTool.getExecution(executionId);
-	if (execution) {
+	if (execution && !execution.instance.shellLaunchConfig.hideFromUser) {
 		const terminalService = accessor.get(ITerminalService);
 		terminalService.setActiveInstance(execution.instance);
 		await terminalService.revealActiveTerminal();

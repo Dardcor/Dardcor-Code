@@ -724,7 +724,7 @@ class TerminalTabsDragAndDrop extends Disposable implements IListDragAndDrop<ITe
 
 		if (promises.length) {
 			let processes = await Promise.all(promises);
-			processes = processes.filter(p => p !== undefined);
+			processes = processes.filter(p => p !== undefined && !p.hideFromUser && !p.isFeatureTerminal);
 			let lastInstance: ITerminalInstance | undefined;
 			for (const attachPersistentProcess of processes) {
 				lastInstance = await this._terminalService.createTerminal({ config: { attachPersistentProcess } });

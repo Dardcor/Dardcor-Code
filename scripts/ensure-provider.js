@@ -8,7 +8,7 @@ const PROVIDER_DIR = fs.existsSync(path.join(ROOT, '.dardcor-router'))
 	? path.join(ROOT, '.dardcor-router')
 	: path.join(ROOT, '.dardcor-provider');
 const PORT = 25128;
-const DATA_DIR = path.join(require('os').homedir(), '.miawagent', 'router');
+const DATA_DIR = path.join(require('os').homedir(), '.dardcor', 'provider');
 
 function checkPort(port) {
 	return new Promise((resolve) => {

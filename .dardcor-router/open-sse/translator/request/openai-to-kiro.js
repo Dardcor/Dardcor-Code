@@ -291,7 +291,7 @@ function convertMessages(messages, model) {
 /**
  * Build Kiro payload from OpenAI format
  *
- * Two dardcor-code-specific behaviours implemented here:
+ * Two 9router-specific behaviours implemented here:
  *
  * 1. `-agentic` model suffix. Synthetic variant — same upstream model, but we
  *    inject a chunked-write system prompt to keep large file writes under
@@ -420,7 +420,6 @@ export function openaiToKiroRequest(model, body, stream, credentials) {
   if (profileArn) {
     payload.profileArn = profileArn;
   }
-  if (systemPrompt) payload.systemPrompt = systemPrompt;
   if (additionalModelRequestFields) {
     payload.additionalModelRequestFields = additionalModelRequestFields;
   }

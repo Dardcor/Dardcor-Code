@@ -223,7 +223,7 @@ class LocalTerminalBackend extends BaseTerminalBackend implements ITerminalBacke
 	async attachToProcess(id: number): Promise<ITerminalChildProcess | undefined> {
 		await this._connectToDirectProxy();
 		try {
-			await this._proxy.attachToProcess(id);
+			await this._proxy.attachToProcess(id, this._getWorkspaceId());
 			const pty = new LocalPty(id, true, this._proxy);
 			this._ptys.set(id, pty);
 			return pty;
@@ -236,7 +236,10 @@ class LocalTerminalBackend extends BaseTerminalBackend implements ITerminalBacke
 	async attachToRevivedProcess(id: number): Promise<ITerminalChildProcess | undefined> {
 		await this._connectToDirectProxy();
 		try {
-			const newId = await this._proxy.getRevivedPtyNewId(this._getWorkspaceId(), id) ?? id;
+			const newId = await this._proxy.getRevivedPtyNewId(this._getWorkspaceId(), id);
+			if (newId === undefined) {
+				return undefined;
+			}
 			return await this.attachToProcess(newId);
 		} catch (e) {
 			this._logService.warn(`Couldn't attach to process ${e.message}`);

@@ -242,7 +242,8 @@ export async function saveRequestUsage(entry) {
   try {
     const db = await getAdapter();
 
-    if (!entry.timestamp) entry.timestamp = new Date().toISOString();
+    const hasExplicitTimestamp = Boolean(entry.timestamp);
+    if (!hasExplicitTimestamp) entry.timestamp = new Date().toISOString();
     entry.cost = await calculateCost(entry.provider, entry.model, entry.tokens);
 
     const tokens = entry.tokens || {};
@@ -254,22 +255,24 @@ export async function saveRequestUsage(entry) {
     // All 3 writes (history insert, daily upsert, lifetime counter) in ONE transaction.
     // better-sqlite3 is sync → no JS yield mid-transaction → no race in same process.
     db.transaction(() => {
-      const existing = db.get(
-        `SELECT id, endpoint FROM usageHistory
-         WHERE timestamp = ?
-           AND COALESCE(provider, '') = COALESCE(?, '')
-           AND COALESCE(model, '') = COALESCE(?, '')
-           AND COALESCE(connectionId, '') = COALESCE(?, '')
-           AND COALESCE(apiKey, '') = COALESCE(?, '')
-           AND promptTokens = ?
-           AND completionTokens = ?
-         ORDER BY id DESC LIMIT 1`,
-        [
-          entry.timestamp, entry.provider || null, entry.model || null,
-          entry.connectionId || null, entry.apiKey || null,
-          promptTokens, completionTokens,
-        ]
-      );
+      const existing = hasExplicitTimestamp
+        ? db.get(
+            `SELECT id, endpoint FROM usageHistory
+             WHERE timestamp = ?
+               AND COALESCE(provider, '') = COALESCE(?, '')
+               AND COALESCE(model, '') = COALESCE(?, '')
+               AND COALESCE(connectionId, '') = COALESCE(?, '')
+               AND COALESCE(apiKey, '') = COALESCE(?, '')
+               AND promptTokens = ?
+               AND completionTokens = ?
+             ORDER BY id DESC LIMIT 1`,
+            [
+              entry.timestamp, entry.provider || null, entry.model || null,
+              entry.connectionId || null, entry.apiKey || null,
+              promptTokens, completionTokens,
+            ]
+          )
+        : null;
 
       if (existing) {
         if (!existing.endpoint && entry.endpoint) {

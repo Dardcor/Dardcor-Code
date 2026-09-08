@@ -254,8 +254,8 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 			this._register(vscode.lm.registerLanguageModelChatProvider('dardcor', provider));
 		} catch (error) {
 			// The contribution can be activated more than once during extension
-			// reload. Keep the first DRouter provider instead of failing activation.
-			this._logService.warn(`[LanguageModelAccess] DRouter provider already registered: ${error}`);
+			// reload. Keep the first Dardcor Router provider instead of failing activation.
+			this._logService.warn(`[LanguageModelAccess] Dardcor Router provider already registered: ${error}`);
 		}
 		this._register(this._authenticationService.onDidAuthenticationChange(() => {
 			this._onDidChange.fire();

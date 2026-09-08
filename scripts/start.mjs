@@ -1,6 +1,9 @@
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
+import { existsSync, cpSync, statSync } from 'node:fs';
+import { homedir } from 'node:os';
+import net from 'node:net';
 
 export function getStartCommand(platform = process.platform) {
 	return platform === 'win32'
@@ -8,9 +11,83 @@ export function getStartCommand(platform = process.platform) {
 		: { command: './scripts/code.sh', shell: false };
 }
 
+function checkPort(port) {
+	return new Promise(resolve => {
+		const client = net.createConnection({ port, host: '127.0.0.1' }, () => {
+			client.end();
+			resolve(true);
+		});
+		client.on('error', () => resolve(false));
+		client.setTimeout(400, () => {
+			client.destroy();
+			resolve(false);
+		});
+	});
+}
+
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-	const { command, shell } = getStartCommand();
-	const child = spawn(command, process.argv.slice(2), { cwd: root, shell, stdio: 'inherit' });
-	child.on('exit', (code, signal) => process.exit(code ?? (signal ? 1 : 0)));
+	(async () => {
+		let drouterChild = null;
+		const isPortOpen = await checkPort(25128);
+		if (!isPortOpen) {
+			const drouterDir = existsSync(join(root, '.dardcor-router'))
+				? join(root, '.dardcor-router')
+				: join(root, '.dardcor-provider');
+			const standaloneServer = join(drouterDir, '.next', 'standalone', 'server.js');
+			if (existsSync(standaloneServer)) {
+				console.log('[Dardcor Router] Starting router on port 25128...');
+				const dataDir = process.env['DARDCOR_DATA_DIR'] || join(homedir(), '.dardcor', 'provider');
+				const legacyDataDir = join(homedir(), '.miawagent', 'router');
+				try {
+					const legacyDb = join(legacyDataDir, 'db', 'database.json');
+					const targetDb = join(dataDir, 'db', 'database.json');
+					if (existsSync(legacyDb)) {
+						const legacySize = existsSync(legacyDb) ? statSync(legacyDb).size : 0;
+						const targetSize = existsSync(targetDb) ? statSync(targetDb).size : 0;
+						if (!existsSync(targetDb) || targetSize < legacySize) {
+							cpSync(legacyDataDir, dataDir, { recursive: true, force: true });
+							console.log('[Dardcor Router] Migrated database from legacy .miawagent/router to .dardcor/provider');
+						}
+					}
+				} catch (err) {
+					console.warn('[Dardcor Router] Legacy migration skipped:', err);
+				}
+				const env = {
+					...process.env,
+					PORT: '25128',
+					HOSTNAME: '127.0.0.1',
+					DATA_DIR: dataDir,
+					LOG_LEVEL: 'warn'
+				};
+				drouterChild = spawn('node', [standaloneServer], {
+					cwd: join(drouterDir, '.next', 'standalone'),
+					env,
+					stdio: 'inherit'
+				});
+				drouterChild.on('error', err => console.error('[Dardcor Router] error:', err));
+			}
+		} else {
+			console.log('[Dardcor Router] Router is already listening on port 25128.');
+		}
+
+		const cleanup = () => {
+			if (drouterChild) {
+				try { drouterChild.kill(); } catch {}
+				drouterChild = null;
+			}
+		};
+
+		process.on('exit', cleanup);
+		process.on('SIGINT', () => { cleanup(); process.exit(0); });
+		process.on('SIGTERM', () => { cleanup(); process.exit(0); });
+
+		const { command, shell } = getStartCommand();
+		const child = spawn(command, process.argv.slice(2), { cwd: root, shell, stdio: 'inherit' });
+		child.on('exit', (code, signal) => {
+			cleanup();
+			process.exit(code ?? (signal ? 1 : 0));
+		});
+	})();
 }
+

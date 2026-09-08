@@ -758,7 +758,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-0">
+    <div className="max-w-2xl mx-auto w-full min-w-0">
       <div className="flex flex-col gap-6">
         {/* Local Mode Info */}
         <Card>
@@ -1490,10 +1490,10 @@ export default function ProfilePage() {
 
             {/* Combo Sticky Round Robin Limit */}
             {settings.comboStrategy === "round-robin" && (
-              <div className="flex items-center justify-between pt-2 border-t border-border/50">
-                <div>
-                  <p className="font-medium">Combo Sticky Limit</p>
-                  <p className="text-sm text-text-muted">
+              <div className="flex items-start sm:items-center justify-between gap-4 pt-2 border-t border-border/50">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm sm:text-base">Combo Sticky Limit</p>
+                  <p className="text-xs sm:text-sm text-text-muted">
                     Calls per combo model before switching
                   </p>
                 </div>
@@ -1504,7 +1504,7 @@ export default function ProfilePage() {
                   value={settings.comboStickyRoundRobinLimit || 1}
                   onChange={(e) => updateComboStickyLimit(e.target.value)}
                   disabled={loading}
-                  className="w-20 text-center"
+                  className="w-16 sm:w-20 text-center shrink-0"
                 />
               </div>
             )}

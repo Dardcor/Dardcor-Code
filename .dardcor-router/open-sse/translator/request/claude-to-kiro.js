@@ -11,7 +11,7 @@
  * repairs partial parallel calls, and flattens compacted structured references
  * that can no longer be represented safely.
  *
- * It also handles the dardcor-code-synthetic `-agentic` / `-thinking` suffixes and
+ * It also handles the 9router-synthetic `-agentic` / `-thinking` suffixes and
  * the `<thinking_mode>enabled</thinking_mode>` reasoning trigger, matching
  * buildKiroPayload.
  */
@@ -327,7 +327,6 @@ export function claudeToKiroRequest(model, body, stream, credentials) {
   };
 
   if (profileArn) payload.profileArn = profileArn;
-  if (systemPrompt) payload.systemPrompt = systemPrompt;
   if (additionalModelRequestFields) {
     payload.additionalModelRequestFields = additionalModelRequestFields;
   }

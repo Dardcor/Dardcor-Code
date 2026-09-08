@@ -17,6 +17,8 @@ import { IWorkbenchContribution, getWorkbenchContribution, registerWorkbenchCont
 import { IAgentHostTerminalService } from '../../../../workbench/contrib/terminal/browser/agentHostTerminalService.js';
 import { ITerminalInstance, ITerminalService } from '../../../../workbench/contrib/terminal/browser/terminal.js';
 import { TerminalCapability } from '../../../../platform/terminal/common/capabilities/capabilities.js';
+import { TerminalLocation } from '../../../../platform/terminal/common/terminal.js';
+import { IWorkbenchEnvironmentService } from '../../../../workbench/services/environment/common/environmentService.js';
 import { IPathService } from '../../../../workbench/services/path/common/pathService.js';
 import { Menus } from '../../../browser/menus.js';
 import { isAgentHostProvider, LOCAL_AGENT_HOST_PROVIDER_ID } from '../../../common/agentHostSessionsProvider.js';
@@ -113,8 +115,15 @@ export class SessionsTerminalContribution extends Disposable implements IWorkben
 		@ITerminalProfileService private readonly _terminalProfileService: ITerminalProfileService,
 		@IViewsService viewsService: IViewsService,
 		@IContextKeyService contextKeyService: IContextKeyService,
+		@IWorkbenchEnvironmentService private readonly _environmentService: IWorkbenchEnvironmentService,
 	) {
 		super();
+
+		// SessionsTerminalContribution manages terminals exclusively for the Workspace Agent (sessions window).
+		// Do not run in standard editor windows to avoid cross-window terminal collision.
+		if (!this._environmentService.isSessionsWindow) {
+			return;
+		}
 
 		// Seed with sessions that are already archived (e.g. restored archived
 		// from a previous window) so they are not treated as newly archived on
@@ -365,7 +374,7 @@ export class SessionsTerminalContribution extends Disposable implements IWorkben
 				return instance;
 			}
 		}
-		return this._terminalService.createTerminal({ config: { cwd } });
+		return this._terminalService.createTerminal({ config: { cwd }, location: TerminalLocation.Panel });
 	}
 
 	/**
