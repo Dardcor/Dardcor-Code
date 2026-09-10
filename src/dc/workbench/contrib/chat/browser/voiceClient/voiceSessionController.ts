@@ -68,6 +68,21 @@ export function isVoiceEntitled(chatEntitlementService: IChatEntitlementService)
 		&& (chatEntitlementService.entitlement !== ChatEntitlement.Enterprise || chatEntitlementService.isInternal);
 }
 
+export function isVoiceSessionActiveForInput(
+	isVoiceInputActive: boolean,
+	targetSessionResource: URI | undefined,
+	hasDraftTarget: boolean,
+	sessionResource: URI | undefined
+): boolean {
+	if (targetSessionResource) {
+		return isEqual(targetSessionResource, sessionResource);
+	}
+	if (hasDraftTarget) {
+		return false;
+	}
+	return isVoiceInputActive;
+}
+
 /** One buffered audio chunk of a deferred response. */
 interface IDeferredChunk {
 	readonly audio: string;
@@ -209,6 +224,7 @@ export interface IVoiceSessionController {
 	readonly isConnected: IObservable<boolean>;
 	readonly isConnecting: IObservable<boolean>;
 	readonly isReconnecting: IObservable<boolean>;
+	readonly isMuted: IObservable<boolean>;
 	readonly pendingToolConfirmations: IObservable<readonly IPendingToolConfirmation[]>;
 	/** The session resource that transcriptions will be sent to. undefined = active session. */
 	readonly targetSession: IObservable<URI | undefined>;
@@ -339,6 +355,8 @@ export interface IVoiceSessionController {
 
 	/** DEV ONLY: Simulate a connected session with fake transcript for UI testing. */
 	simulateConnection(): void;
+
+	setMuted(muted: boolean): void;
 }
 
 export const IVoiceSessionController = createDecorator<IVoiceSessionController>('voiceSessionController');
@@ -369,6 +387,9 @@ export class VoiceSessionController extends Disposable implements IVoiceSessionC
 
 	private readonly _isReconnecting = observableValue<boolean>(this, false);
 	readonly isReconnecting: IObservable<boolean> = this._isReconnecting;
+
+	private readonly _isMuted = observableValue<boolean>(this, false);
+	readonly isMuted: IObservable<boolean> = this._isMuted;
 
 	/** Set when the connection closed terminally (e.g. another window took over
 	 *  the session). Suppresses the reconnect display path so the controller
@@ -1075,6 +1096,11 @@ export class VoiceSessionController extends Disposable implements IVoiceSessionC
 		this._register({ dispose: () => this.disconnect() });
 	}
 
+	setMuted(muted: boolean): void {
+		this._isMuted.set(muted, undefined);
+		this.micCaptureService.isMuted = muted;
+	}
+
 	async connect(window: Window & typeof globalThis): Promise<void> {
 		if (this._isConnecting.get() || this._isConnected.get()) { return; }
 		if (!isVoiceEntitled(this.chatEntitlementService)) {
@@ -1159,7 +1185,7 @@ export class VoiceSessionController extends Disposable implements IVoiceSessionC
 
 		// Streaming PTT: send start/chunks/end as they arrive
 		this._voiceEventDisposables.add(this.micCaptureService.onPttStart((passive) => {
-			this.voiceClientService.sendPttStart(this._pttCurrentTurnId, passive);
+			this.voiceClientService.sendPttStart(this._pttCurrentTurnId, { hasActiveSession: !!this._targetSession.get(), passive });
 		}));
 		this._voiceEventDisposables.add(this.micCaptureService.onPttAudioChunk(b64 => {
 			this.voiceClientService.sendPttAudioChunk(b64);

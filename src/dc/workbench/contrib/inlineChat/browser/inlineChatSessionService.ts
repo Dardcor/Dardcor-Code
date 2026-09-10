@@ -2,6 +2,7 @@
  *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { Event } from '../../../../base/common/event.js';
 import { IMarkdownString } from '../../../../base/common/htmlContent.js';
 import { IObservable } from '../../../../base/common/observable.js';
@@ -11,11 +12,11 @@ import { Position } from '../../../../editor/common/core/position.js';
 import { Selection } from '../../../../editor/common/core/selection.js';
 import { createDecorator, ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
 import { IChatWidgetService } from '../../chat/browser/chat.js';
-import { IChatEditingSession } from '../../chat/common/editing/chatEditingService.js';
+import { IChatEditReviewSession } from '../../chat/common/editing/chatEditingService.js';
 import { IChatModel, IChatModelInputState, IChatRequestModel } from '../../chat/common/model/chatModel.js';
 import { IChatService } from '../../chat/common/chatService/chatService.js';
 import { ChatAgentLocation, ChatModeKind } from '../../chat/common/constants.js';
-
+import { ResolvedChatSessionsExtensionPoint } from '../../chat/common/chatSessionsService.js';
 
 export const IInlineChatSessionService = createDecorator<IInlineChatSessionService>('IInlineChatSessionService');
 
@@ -26,7 +27,8 @@ export interface IInlineChatSession {
 	readonly initialSelection: Selection;
 	readonly uri: URI;
 	readonly chatModel: IChatModel;
-	readonly editingSession: IChatEditingSession;
+	readonly editingSession: IChatEditReviewSession;
+	readonly lockToAgent: ResolvedChatSessionsExtensionPoint | undefined;
 	readonly terminationState: IObservable<InlineChatSessionTerminationState | undefined>;
 	setTerminationState(state: InlineChatSessionTerminationState | undefined): void;
 	dispose(): void;
@@ -38,7 +40,7 @@ export interface IInlineChatSessionService {
 	readonly onWillStartSession: Event<IActiveCodeEditor>;
 	readonly onDidChangeSessions: Event<this>;
 
-	createSession(editor: ICodeEditor): IInlineChatSession;
+	createSession(editor: ICodeEditor, isNotebook?: boolean, token?: CancellationToken): Promise<IInlineChatSession>;
 	getSessionByTextModel(uri: URI): IInlineChatSession | undefined;
 	getSessionBySessionUri(uri: URI): IInlineChatSession | undefined;
 }

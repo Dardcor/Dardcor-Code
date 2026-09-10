@@ -371,6 +371,7 @@ export async function showToolsPicker(
 					ordinal: BucketOrdinal.Mcp,
 					id: key,
 					label: source.serverLabel || source.label,
+					description: source.serverLabel && source.serverLabel !== source.label ? source.label : undefined,
 					checked: undefined,
 					collapsed,
 					children,
@@ -624,10 +625,6 @@ export async function showToolsPicker(
 		}
 	}));
 
-	const setAgentButton = {
-		iconClass: ThemeIcon.asClassName(Codicon.agent),
-		tooltip: localize('setAgentButton', "Set Agent...")
-	};
 	const addMcpServerButton = {
 		iconClass: ThemeIcon.asClassName(Codicon.mcp),
 		tooltip: localize('addMcpServer', 'Add MCP Server...')
@@ -641,11 +638,9 @@ export async function showToolsPicker(
 		tooltip: localize('configToolSets', 'Configure Tool Sets...')
 	};
 	treePicker.title = localize('configureTools', "Configure Tools");
-	treePicker.buttons = [setAgentButton, addMcpServerButton, installExtension, configureToolSets];
+	treePicker.buttons = [addMcpServerButton, installExtension, configureToolSets];
 	store.add(treePicker.onDidTriggerButton(button => {
-		if (button === setAgentButton) {
-			commandService.executeCommand('workbench.action.chat.configureTools');
-		} else if (button === addMcpServerButton) {
+		if (button === addMcpServerButton) {
 			commandService.executeCommand(McpCommandIds.AddConfiguration);
 		} else if (button === installExtension) {
 			extensionsWorkbenchService.openSearch('@tag:language-model-tools');

@@ -1,6 +1,6 @@
 # Agent Plugins Architecture
 
-Agent plugins are a modular extension system that allows external packages of prompts, hooks, skills, agents, and MCP server definitions to be discovered, installed, and contributed into the chat experience. This document describes the architecture of the `src/vs/workbench/contrib/chat/common/plugins/` layer and its browser-side implementations.
+Agent plugins are a modular extension system that allows external packages of prompts, hooks, skills, agents, and MCP server definitions to be discovered, installed, and contributed into the chat experience. This document describes the architecture of the `src/dc/workbench/contrib/chat/common/plugins/` layer and its browser-side implementations.
 
 ## Directory Structure
 

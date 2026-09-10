@@ -29,6 +29,7 @@ export class FileManagedSettingsChannel implements IServerChannel {
 		switch (command) {
 			case 'getRawManagedSettings': return Promise.resolve(this.service.rawManagedSettings as T);
 			case 'getManagedSettings': return Promise.resolve(this.service.managedSettings as T);
+			case 'initialize': return this.service.initialize() as Promise<T>;
 		}
 
 		throw new Error(`Call not found: ${command}`);
@@ -57,7 +58,7 @@ export class FileManagedSettingsChannelClient extends Disposable implements IFil
 	private readonly _onDidChangeManagedSettings = this._register(new Emitter<ManagedSettingsData>());
 	readonly onDidChangeManagedSettings = this._onDidChangeManagedSettings.event;
 
-	constructor(channel: IChannel) {
+	constructor(private readonly channel: IChannel) {
 		super();
 		this._register(channel.listen<RawManagedSettingsData>('onDidChangeRawManagedSettings')(managedSettings => this.updateRawManagedSettings(managedSettings, true)));
 		this._register(channel.listen<ManagedSettingsData>('onDidChangeManagedSettings')(managedSettings => this.updateManagedSettings(managedSettings, true)));
@@ -71,6 +72,15 @@ export class FileManagedSettingsChannelClient extends Disposable implements IFil
 				this.updateManagedSettings(managedSettings, true);
 			}
 		});
+	}
+
+	async initialize(): Promise<ManagedSettingsData> {
+		if (this.hasReceivedManagedSettings) {
+			return this._managedSettings;
+		}
+		const managedSettings = await this.channel.call<ManagedSettingsData>('initialize');
+		this.updateManagedSettings(managedSettings, false);
+		return this._managedSettings;
 	}
 
 	private updateRawManagedSettings(managedSettings: RawManagedSettingsData, fireEvent: boolean): void {

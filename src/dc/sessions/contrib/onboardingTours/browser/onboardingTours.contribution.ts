@@ -6,7 +6,7 @@
 // Registers the Agents window onboarding tours. Each imported module registers
 // a tour contribution (which owns the scenario and its trigger) as a side
 // effect. The onboarding engine and the spotlight presentation live in
-// `vs/workbench/contrib/onboarding` and are booted from the workbench
+// `dc/workbench/contrib/onboarding` and are booted from the workbench
 // contribution imported in the entry point.
 import './agentHostReadinessContext.js';
 import './newSessionTourContribution.js';

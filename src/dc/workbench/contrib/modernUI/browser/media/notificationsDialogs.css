@@ -1,0 +1,116 @@
+
+
+.modern-ui-notifications-dialogs.monaco-workbench .notifications-list-container .notification-list-item {
+	padding: var(--vscode-spacing-size60) var(--vscode-spacing-size20);
+}
+
+.modern-ui-notifications-dialogs.monaco-workbench .notifications-list-container .notification-list-item .notification-list-item-icon {
+	font-size: var(--vscode-codiconFontSize);
+	margin: 0 var(--vscode-spacing-size80) 0 var(--vscode-spacing-size60);
+}
+
+.modern-ui-notifications-dialogs.monaco-workbench .notifications-list-container .notification-list-item .notification-list-item-buttons-container > .monaco-button-dropdown,
+.modern-ui-notifications-dialogs.monaco-workbench .notifications-list-container .notification-list-item .notification-list-item-buttons-container > .monaco-button {
+	margin: 0 var(--vscode-spacing-size40) 0 0;
+}
+
+.modern-ui-notifications-dialogs.monaco-workbench .notifications-list-container .notification-list-item .notification-list-item-source {
+	color: var(--vscode-descriptionForeground);
+	margin-left: var(--vscode-spacing-size240);
+}
+
+.modern-ui-notifications-dialogs.monaco-workbench > .notifications-center {
+	right: var(--modern-ui-notifications-inline-inset, var(--vscode-spacing-size80));
+	bottom: var(--modern-ui-notifications-block-end-inset, var(--vscode-spacing-size320));
+	border-radius: var(--vscode-cornerRadius-large);
+}
+
+.modern-ui-notifications-dialogs.monaco-workbench.nostatusbar > .notifications-center:not(.top-right) {
+	bottom: var(--modern-ui-notifications-block-end-inset, var(--vscode-spacing-size320));
+}
+
+.modern-ui-notifications-dialogs.monaco-workbench > .notifications-center.bottom-left {
+	right: auto;
+	left: var(--modern-ui-notifications-inline-inset, var(--vscode-spacing-size80));
+	bottom: var(--modern-ui-notifications-block-end-inset, var(--vscode-spacing-size320));
+}
+
+.modern-ui-notifications-dialogs.monaco-workbench > .notifications-center.top-right {
+	bottom: auto;
+	top: var(--modern-ui-notifications-block-start-inset, var(--vscode-spacing-size360)) !important;
+}
+
+.modern-ui-notifications-dialogs.monaco-workbench > .notifications-toasts {
+	right: calc(var(--modern-ui-notifications-inline-inset, var(--vscode-spacing-size80)) - var(--vscode-spacing-size40));
+	bottom: calc(var(--modern-ui-notifications-block-end-inset, var(--vscode-spacing-size320)) - var(--vscode-spacing-size40));
+}
+
+.modern-ui-notifications-dialogs.monaco-workbench.nostatusbar > .notifications-toasts:not(.top-right) {
+	bottom: calc(var(--modern-ui-notifications-block-end-inset, var(--vscode-spacing-size320)) - var(--vscode-spacing-size40));
+}
+
+.modern-ui-notifications-dialogs.monaco-workbench > .notifications-toasts.bottom-left {
+	right: auto;
+	left: calc(var(--modern-ui-notifications-inline-inset, var(--vscode-spacing-size80)) - var(--vscode-spacing-size40));
+	bottom: calc(var(--modern-ui-notifications-block-end-inset, var(--vscode-spacing-size320)) - var(--vscode-spacing-size40));
+}
+
+.modern-ui-notifications-dialogs.monaco-workbench > .notifications-toasts.top-right {
+	bottom: auto;
+	top: calc(var(--modern-ui-notifications-block-start-inset, var(--vscode-spacing-size360)) - var(--vscode-spacing-size40)) !important;
+}
+
+.modern-ui-notifications-dialogs.monaco-workbench > .notifications-center > .notifications-center-header {
+	padding-right: var(--vscode-spacing-size20);
+}
+
+.modern-ui-notifications-dialogs.monaco-workbench > .notifications-center .notifications-list-container .monaco-list-row:last-child {
+	border-radius: 0 0 var(--vscode-cornerRadius-large) var(--vscode-cornerRadius-large);
+}
+
+.modern-ui-notifications-dialogs.monaco-workbench > .notifications-toasts,
+.modern-ui-notifications-dialogs.monaco-workbench > .notifications-toasts .notifications-list-container,
+.modern-ui-notifications-dialogs.monaco-workbench > .notifications-toasts .notification-toast-container > .notification-toast,
+.modern-ui-notifications-dialogs.monaco-workbench > .notifications-toasts .notification-toast-container > .notification-toast .monaco-scrollable-element,
+.modern-ui-notifications-dialogs.monaco-workbench > .notifications-toasts .notification-toast-container > .notification-toast .monaco-list:not(.element-focused):focus::before,
+.modern-ui-notifications-dialogs.monaco-workbench > .notifications-toasts .notification-toast-container > .notification-toast .monaco-list-row {
+	border-radius: var(--vscode-cornerRadius-large);
+}
+
+.modern-ui-notifications-dialogs .monaco-dialog-box {
+	padding: var(--vscode-spacing-size40);
+	min-width: 440px;
+}
+
+.modern-ui-notifications-dialogs .monaco-dialog-box:not(.align-vertical) .dialog-message-row .dialog-message-container {
+	padding-left: var(--vscode-spacing-size80);
+	padding-right: var(--vscode-spacing-size200);
+}
+
+.modern-ui-notifications-dialogs .monaco-dialog-box .dialog-message-row .dialog-message-container .dialog-message {
+	margin: var(--vscode-spacing-size20) 0 var(--vscode-spacing-size120) 0;
+	font-size: var(--vscode-fontSize-heading3);
+	font-weight: var(--vscode-fontWeight-semiBold);
+}
+
+.modern-ui-notifications-dialogs .monaco-dialog-box .dialog-message-row .dialog-message-container .dialog-message-detail {
+	color: var(--vscode-descriptionForeground);
+}
+
+.modern-ui-notifications-dialogs .monaco-dialog-box .dialog-toolbar-row {
+	position: absolute;
+	top: var(--vscode-spacing-size80);
+	right: var(--vscode-spacing-size80);
+}
+
+.modern-ui-notifications-dialogs .monaco-dialog-box .dialog-footer-row {
+	padding: 0 var(--vscode-spacing-size80);
+}
+
+.modern-ui-notifications-dialogs .monaco-dialog-box .dialog-message-row {
+	padding: var(--vscode-spacing-size160) var(--vscode-spacing-size80) 0;
+}
+
+.modern-ui-notifications-dialogs .monaco-dialog-box > .dialog-buttons-row {
+	padding: var(--vscode-spacing-size160) 0 0;
+}

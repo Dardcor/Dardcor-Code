@@ -66,6 +66,12 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
 					stdio: 'inherit'
 				});
 				drouterChild.on('error', err => console.error('[Dardcor Router] error:', err));
+				for (let i = 0; i < 40; i++) {
+					await new Promise(r => setTimeout(r, 100));
+					if (await checkPort(25128)) {
+						break;
+					}
+				}
 			}
 		} else {
 			console.log('[Dardcor Router] Router is already listening on port 25128.');

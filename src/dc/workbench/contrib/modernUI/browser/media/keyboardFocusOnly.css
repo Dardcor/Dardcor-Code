@@ -1,0 +1,10 @@
+
+
+.modern-ui :is(.part.sidebar, .part.panel, .part.auxiliarybar) .monaco-list:focus:not(:focus-visible) .monaco-list-row.focused {
+	outline: 0 !important;
+}
+
+.modern-ui :is(.part.sidebar, .part.panel, .part.auxiliarybar, .part.statusbar):focus:not(:focus-visible),
+.modern-ui :is(.part.sidebar, .part.panel, .part.auxiliarybar, .part.statusbar) :focus:not(:focus-visible) {
+	outline-color: transparent !important;
+}

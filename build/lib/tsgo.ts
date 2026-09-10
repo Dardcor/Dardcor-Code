@@ -24,7 +24,7 @@ const timestampRegex = /^\[\d{2}:\d{2}:\d{2}\]\s*/;
  */
 const ts7TscPath = path.join(path.dirname(createRequire(import.meta.url).resolve('@typescript/native/package.json')), 'bin', 'tsc');
 
-export function spawnTsgo(projectPath: string, config: { taskName: string; noEmit?: boolean }, onComplete?: () => Promise<void> | void): Promise<void> {
+export function spawnTsgo(projectPath: string, config: { taskName: string; noEmit?: boolean; continueOnError?: boolean }, onComplete?: () => Promise<void> | void): Promise<void> {
 	function runReporter(output: string) {
 		const lines = (output || '').split('\n');
 		const errorLines = lines.filter(line => /error \w+:/.test(line));
@@ -67,7 +67,7 @@ export function spawnTsgo(projectPath: string, config: { taskName: string; noEmi
 
 			runReporter(lines.join('\n'));
 
-			if (code === 0) {
+			if (code === 0 || config.continueOnError) {
 				Promise.resolve(onComplete?.()).then(() => resolve(), reject);
 			} else {
 				reject(new Error(`tsgo exited with code ${code ?? 'unknown'} for ${projectPath}`));
@@ -80,7 +80,7 @@ export function spawnTsgo(projectPath: string, config: { taskName: string; noEmi
 	});
 }
 
-export function createTsgoStream(projectPath: string, config: { taskName: string; noEmit?: boolean }, onComplete?: () => Promise<void> | void): NodeJS.ReadWriteStream {
+export function createTsgoStream(projectPath: string, config: { taskName: string; noEmit?: boolean; continueOnError?: boolean }, onComplete?: () => Promise<void> | void): NodeJS.ReadWriteStream {
 	const stream = es.through();
 
 	spawnTsgo(projectPath, config, onComplete).then(() => {

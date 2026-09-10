@@ -42,14 +42,27 @@ export function getModelPickerControlModels(
 		for (const [id, entry] of Object.entries(tier)) {
 			if (entry.featured && availableModelIds.has(id)) {
 				controlModels[id] = { ...entry, exists: true };
+			} else if (entry.demoted && !controlModels[id]) {
+				// A demotion holds whoever is signed in, so it is not filtered away with
+				// the curated list the way a recommendation is.
+				controlModels[id] = { ...entry, exists: false };
 			}
 		}
 	}
 	return controlModels;
 }
 
-export function shouldShowManageModelsAction(_chatEntitlementService: IChatEntitlementService): boolean {
-	return false;
+export function shouldShowManageModelsAction(chatEntitlementService: IChatEntitlementService): boolean {
+	return chatEntitlementService.clientByokEnabled ||
+		chatEntitlementService.hasByokModels ||
+		chatEntitlementService.entitlement === ChatEntitlement.Free ||
+		chatEntitlementService.entitlement === ChatEntitlement.EDU ||
+		chatEntitlementService.entitlement === ChatEntitlement.Pro ||
+		chatEntitlementService.entitlement === ChatEntitlement.ProPlus ||
+		chatEntitlementService.entitlement === ChatEntitlement.Max ||
+		chatEntitlementService.entitlement === ChatEntitlement.Business ||
+		chatEntitlementService.entitlement === ChatEntitlement.Enterprise ||
+		chatEntitlementService.isInternal;
 }
 
 export function createManageModelsAction(commandService: ICommandService): IActionWidgetDropdownAction {
@@ -75,17 +88,18 @@ export function buildModelPickerItems(options: IBuildModelPickerItemsOptions): I
 		: buildFlatModelItems(options);
 }
 
-export function getModelPickerAccessibilityProvider() {
+export function getModelPickerAccessibilityProvider(isSearch = false) {
 	return {
 		getAriaLabel(element: IActionListItem<IActionWidgetDropdownAction>) {
 			if (element.kind !== ActionListItemKind.Action) {
 				return null;
 			}
 			const description = element.ariaDescription ?? (typeof element.description === 'string' ? element.description : element.description?.value);
-			return [element.label, element.badge, description].filter((part): part is string => !!part).join(', ');
+			const currentModel = isSearch && element.item?.checked ? localize('chat.modelPicker.currentModel', "Current model") : undefined;
+			return [element.label, element.badge, description, currentModel].filter((part): part is string => !!part).join(', ');
 		},
 		isChecked(element: IActionListItem<IActionWidgetDropdownAction>) {
-			if (element.isSectionToggle) {
+			if (isSearch || element.isSectionToggle) {
 				return undefined;
 			}
 			if (element.kind === ActionListItemKind.Action && !(element.item?.id && PICKER_COMMAND_ACTION_IDS.has(element.item.id))) {
@@ -94,6 +108,9 @@ export function getModelPickerAccessibilityProvider() {
 			return undefined;
 		},
 		getRole: (element: IActionListItem<IActionWidgetDropdownAction>) => {
+			if (isSearch) {
+				return element.kind === ActionListItemKind.Action ? 'option' : 'separator';
+			}
 			if (element.isSectionToggle) {
 				return 'menuitem';
 			}
@@ -105,6 +122,6 @@ export function getModelPickerAccessibilityProvider() {
 					return 'separator';
 			}
 		},
-		getWidgetRole: () => 'menu',
+		getWidgetRole: () => isSearch ? 'listbox' : 'menu',
 	} as const;
 }

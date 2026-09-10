@@ -1,10 +1,7 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Dardcor Corporation. All rights reserved.
- *  Licensed under the MIT License. See License.txt in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
 import path from 'path';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
+import { fileURLToPath } from 'url';
 
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const rootDir = path.resolve(import.meta.dirname, '..', '..');
@@ -33,13 +30,6 @@ async function ensureNodeModules() {
 }
 
 async function getElectron() {
-	// `npm run electron` deletes and re-downloads `.build/electron` on every
-	// invocation. When preLaunch runs repeatedly (e.g. once per integration test
-	// section) this is both wasteful and a source of flaky failures on Windows,
-	// where the just-exited Electron process can still hold file locks while the
-	// directory is being removed and re-extracted. Skip the refresh when the
-	// already-present Electron matches the expected version; any detection
-	// failure falls back to a (re)download to preserve the previous behavior.
 	if (await isExpectedElectronInstalled()) {
 		return;
 	}
@@ -58,8 +48,8 @@ async function isExpectedElectronInstalled(): Promise<boolean> {
 }
 
 async function ensureCompiled() {
-	if (!(await exists('out'))) {
-		await runProcess(npm, ['run', 'compile']);
+	if (!(await exists('out')) || !(await exists(path.join('out', 'main.js')))) {
+		await runProcess(npm, ['run', 'transpile-client']);
 	}
 }
 
@@ -68,12 +58,11 @@ async function main() {
 	await getElectron();
 	await ensureCompiled();
 
-	// Can't require this until after dependencies are installed
 	const { getBuiltInExtensions } = await import('./builtInExtensions.ts');
 	await getBuiltInExtensions();
 }
 
-if (import.meta.main) {
+if (import.meta.main || (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url))) {
 	main().catch(err => {
 		console.error(err);
 		process.exit(1);

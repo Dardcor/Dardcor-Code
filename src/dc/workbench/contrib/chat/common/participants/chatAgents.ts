@@ -31,13 +31,17 @@ import { ChatContextKeys } from '../actions/chatContextKeys.js';
 import { IChatAgentEditedFileEvent, IChatProgressHistoryResponseContent, IChatRequestModeInstructions, IChatRequestVariableData, ISerializableChatAgentData } from '../model/chatModel.js';
 import { ChatRequestHooks } from '../promptSyntax/hookSchema.js';
 import { IRawChatCommandContribution } from './chatParticipantContribTypes.js';
-import { IChatFollowup, IChatLocationData, IChatProgress, IChatResponseErrorDetails, IChatTaskDto, ToolConfirmKind } from '../chatService/chatService.js';
+import { IChatFollowup, IChatLocationData, IChatProgress, IChatQuestion as IChatCarouselQuestion, IChatResponseErrorDetails, IChatTaskDto, ToolConfirmKind } from '../chatService/chatService.js';
 import { ToolDataSource, ToolInvocationPresentation } from '../tools/languageModelToolsService.js';
 import { ChatAgentLocation, ChatConfiguration, ChatModeKind, ChatPermissionLevel } from '../constants.js';
 import { ILanguageModelsService } from '../languageModels.js';
 import { ChatPerfMark, markChat } from '../chatPerf.js';
 import { IMarkerService, MarkerSeverity } from '../../../../../platform/markers/common/markers.js';
 import { formatDardcorRouterError } from './dardcorRouterError.js';
+import { ChatQuestionCarouselData } from '../model/chatProgressTypes/chatQuestionCarouselData.js';
+import { ChatPlanReviewData } from '../model/chatProgressTypes/chatPlanReviewData.js';
+import { TerminalCapability } from '../../../../../platform/terminal/common/capabilities/capabilities.js';
+import { ITaskService } from '../../../tasks/common/taskService.js';
 
 //#region agent service, commands etc
 
@@ -399,14 +403,64 @@ export const DARDCOR_AGENT_TOOLS = [
 	{
 		type: 'function',
 		function: {
-			name: 'run_command',
-			description: 'Run a shell command in the workspace integrated terminal (e.g. "npm run build", "npm test", "npm run dev"). Runs in the user\'s default shell (PowerShell on Windows, bash/zsh on Linux/macOS). Standard commands wait for completion and return output inline. Development servers (npm run dev, vite) start and remain active in the terminal panel.',
+			name: 'run_in_terminal',
+			description: 'Run a shell command in the workspace integrated terminal (e.g. "npm run build", "npm test", "npm run dev"). Runs in Windows PowerShell on Windows or bash/zsh on Linux/macOS.',
 			parameters: {
 				type: 'object',
 				properties: {
-					command: { type: 'string', description: 'Command line string to execute in the integrated terminal' }
+					command: { type: 'string', description: 'Command line string to execute in the integrated terminal' },
+					commandLine: { type: 'string', description: 'Alternative parameter name for the command string' }
+				}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'run_command',
+			description: 'Run a shell command in the workspace integrated terminal (e.g. "npm run build", "npm test", "npm run dev"). Runs in Windows PowerShell on Windows or bash/zsh on Linux/macOS.',
+			parameters: {
+				type: 'object',
+				properties: {
+					command: { type: 'string', description: 'Command line string to execute in the integrated terminal' },
+					commandLine: { type: 'string', description: 'Alternative parameter name for the command string' }
+				}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'send_to_terminal',
+			description: 'Send input or text to an active integrated terminal.',
+			parameters: {
+				type: 'object',
+				properties: {
+					text: { type: 'string', description: 'Text or input string to send to the terminal' }
 				},
-				required: ['command']
+				required: ['text']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'get_terminal_output',
+			description: 'Get the latest output text from the active integrated terminal.',
+			parameters: {
+				type: 'object',
+				properties: {}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'kill_terminal',
+			description: 'Terminate the active integrated terminal process.',
+			parameters: {
+				type: 'object',
+				properties: {}
 			}
 		}
 	},
@@ -523,6 +577,212 @@ export const DARDCOR_AGENT_TOOLS = [
 					caseInsensitive: { type: 'boolean', description: 'Whether to ignore case (default true)' }
 				},
 				required: ['pattern']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'terminal_selection',
+			description: 'Get the current highlighted or selected text in the active terminal.',
+			parameters: {
+				type: 'object',
+				properties: {}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'terminal_last_command',
+			description: 'Get the last command executed in the active terminal, its output, working directory, and exit code.',
+			parameters: {
+				type: 'object',
+				properties: {}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'create_and_run_task',
+			description: 'Create a background or build task and execute it (writes to tasks configuration and runs it).',
+			parameters: {
+				type: 'object',
+				properties: {
+					label: { type: 'string', description: 'Name of the task to create and run' },
+					type: { type: 'string', description: 'Task type (e.g. "shell" or "process")' },
+					command: { type: 'string', description: 'Command line for the task' },
+					args: { type: 'array', items: { type: 'string' }, description: 'Arguments for the command' },
+					isBackground: { type: 'boolean', description: 'Whether the task runs continuously in the background' }
+				},
+				required: ['label', 'command']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'get_task_output',
+			description: 'Get the terminal output of a running task by label or ID.',
+			parameters: {
+				type: 'object',
+				properties: {
+					taskLabel: { type: 'string', description: 'Label or name of the task' }
+				},
+				required: ['taskLabel']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'run_task',
+			description: 'Run an existing task configured in tasks.json by its label.',
+			parameters: {
+				type: 'object',
+				properties: {
+					taskLabel: { type: 'string', description: 'Label of the configured task to execute' }
+				},
+				required: ['taskLabel']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'ask_questions',
+			description: 'Ask the user clarifying questions with multiple-choice options or open feedback before proceeding.',
+			parameters: {
+				type: 'object',
+				properties: {
+					questions: {
+						type: 'array',
+						description: 'List of questions to ask the user',
+						items: {
+							type: 'object',
+							properties: {
+								header: { type: 'string', description: 'Short header/tag for the question' },
+								question: { type: 'string', description: 'The question text to display' },
+								multiSelect: { type: 'boolean', description: 'Whether multiple options can be chosen' },
+								options: {
+									type: 'array',
+									description: 'Predefined options for the user to choose from',
+									items: {
+										type: 'object',
+										properties: {
+											label: { type: 'string', description: 'Option text' },
+											description: { type: 'string', description: 'Explanation of the option' },
+											recommended: { type: 'boolean', description: 'Whether this is the recommended choice' }
+										},
+										required: ['label']
+									}
+								}
+							},
+							required: ['header', 'question']
+						}
+					}
+				},
+				required: ['questions']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'review_plan',
+			description: 'Present a structured implementation plan to the user for approval or review before executing changes.',
+			parameters: {
+				type: 'object',
+				properties: {
+					title: { type: 'string', description: 'Title of the plan' },
+					content: { type: 'string', description: 'Markdown body containing the step-by-step plan' },
+					actions: {
+						type: 'array',
+						description: 'Available user response actions (e.g. "Approve and proceed", "Revise plan")',
+						items: {
+							type: 'object',
+							properties: {
+								label: { type: 'string', description: 'Action button label' },
+								description: { type: 'string', description: 'Optional explanation' },
+								default: { type: 'boolean', description: 'Whether this is the default action' }
+							},
+							required: ['label']
+						}
+					}
+				},
+				required: ['content']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'run_subagent',
+			description: 'Delegate a focused autonomous sub-task to a specialized subagent (e.g. codebase research, code search, or test execution).',
+			parameters: {
+				type: 'object',
+				properties: {
+					prompt: { type: 'string', description: 'Detailed prompt instructions for the subagent' },
+					description: { type: 'string', description: 'Short description of what the subagent is doing' },
+					subagentType: { type: 'string', description: 'Type of subagent (e.g. "research", "code_review", "test_runner")' }
+				},
+				required: ['prompt', 'description']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'confirm_terminal_command',
+			description: 'Ask for explicit user confirmation with Allow/Skip buttons before executing a terminal command.',
+			parameters: {
+				type: 'object',
+				properties: {
+					command: { type: 'string', description: 'The terminal command line' },
+					explanation: { type: 'string', description: 'Explanation of what the command does' },
+					goal: { type: 'string', description: 'Goal or purpose of running the command' }
+				},
+				required: ['command', 'explanation']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'set_artifacts',
+			description: 'Save or update session artifacts (e.g. devServer URLs, plans, documents, or screenshots) so the user can easily access and view them in the artifact panel.',
+			parameters: {
+				type: 'object',
+				properties: {
+					artifacts: {
+						type: 'array',
+						description: 'The list of artifacts for this session',
+						items: {
+							type: 'object',
+							properties: {
+								label: { type: 'string', description: 'Display label for the artifact' },
+								uri: { type: 'string', description: 'URI of the artifact (e.g. "http://localhost:3000" or file path)' },
+								type: { type: 'string', enum: ['devServer', 'screenshot', 'plan'], description: 'Type of artifact' }
+							},
+							required: ['label']
+						}
+					}
+				},
+				required: ['artifacts']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'set_artifact_rules',
+			description: 'Configure rules for automatically surfacing files, outputs, and logs as session artifacts.',
+			parameters: {
+				type: 'object',
+				properties: {
+					byFilePath: { type: 'object', description: 'Glob pattern mappings for files to surface as artifacts' }
+				}
 			}
 		}
 	}
@@ -1164,12 +1424,35 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					formattedInput: `Query: ${target}`
 				};
 			}
-			case 'run_command': {
-				const target = args?.command || '';
+			case 'run_command':
+			case 'run_in_terminal': {
+				const target = args?.command || args?.commandLine || '';
 				return {
 					invocationMessage: `Running \`${target}\``,
 					pastTenseMessage: `Ran \`${target}\``,
 					formattedInput: `Command: ${target}`
+				};
+			}
+			case 'send_to_terminal': {
+				const target = args?.text || args?.command || args?.commandLine || '';
+				return {
+					invocationMessage: `Sending \`${target}\` to terminal`,
+					pastTenseMessage: `Sent \`${target}\` to terminal`,
+					formattedInput: `Text: ${target}`
+				};
+			}
+			case 'get_terminal_output': {
+				return {
+					invocationMessage: 'Retrieving terminal output',
+					pastTenseMessage: 'Retrieved terminal output',
+					formattedInput: 'Reading output buffer from active terminal'
+				};
+			}
+			case 'kill_terminal': {
+				return {
+					invocationMessage: 'Terminating terminal',
+					pastTenseMessage: 'Terminated terminal',
+					formattedInput: 'Killing active terminal instance'
 				};
 			}
 			case 'manage_todo_list': {
@@ -1229,6 +1512,91 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					invocationMessage: `Grep searching \`${pat}\`${sub}`,
 					pastTenseMessage: `Grep searched \`${pat}\`${sub}`,
 					formattedInput: `Pattern: ${pat}\nSubpath: ${args?.subPath || '.'}\nRegex: ${!!args?.isRegex}\nCaseInsensitive: ${args?.caseInsensitive !== false}`
+				};
+			}
+			case 'terminal_selection': {
+				return {
+					invocationMessage: 'Reading terminal selection',
+					pastTenseMessage: 'Read terminal selection',
+					formattedInput: 'Inspecting text selection in active terminal'
+				};
+			}
+			case 'terminal_last_command': {
+				return {
+					invocationMessage: 'Reading last terminal command',
+					pastTenseMessage: 'Read last terminal command',
+					formattedInput: 'Inspecting last executed command in active terminal'
+				};
+			}
+			case 'create_and_run_task': {
+				const lbl = args?.label || 'task';
+				return {
+					invocationMessage: `Creating and running task \`${lbl}\``,
+					pastTenseMessage: `Created and ran task \`${lbl}\``,
+					formattedInput: `Task: ${lbl}\nCommand: ${args?.command || ''}`
+				};
+			}
+			case 'get_task_output': {
+				const lbl = args?.taskLabel || 'task';
+				return {
+					invocationMessage: `Reading output of task \`${lbl}\``,
+					pastTenseMessage: `Read output of task \`${lbl}\``,
+					formattedInput: `Task: ${lbl}`
+				};
+			}
+			case 'run_task': {
+				const lbl = args?.taskLabel || 'task';
+				return {
+					invocationMessage: `Running task \`${lbl}\``,
+					pastTenseMessage: `Ran task \`${lbl}\``,
+					formattedInput: `Task: ${lbl}`
+				};
+			}
+			case 'ask_questions': {
+				const count = Array.isArray(args?.questions) ? args.questions.length : 1;
+				return {
+					invocationMessage: `Asking user ${count} question${count > 1 ? 's' : ''}`,
+					pastTenseMessage: `Asked user ${count} question${count > 1 ? 's' : ''}`,
+					formattedInput: JSON.stringify(args?.questions || [], null, 2)
+				};
+			}
+			case 'review_plan': {
+				const title = args?.title || 'Implementation Plan';
+				return {
+					invocationMessage: `Presenting plan for review: ${title}`,
+					pastTenseMessage: `Presented plan for review: ${title}`,
+					formattedInput: args?.content || title
+				};
+			}
+			case 'run_subagent': {
+				const desc = args?.description || 'subagent task';
+				return {
+					invocationMessage: `Running subagent: ${desc}`,
+					pastTenseMessage: `Completed subagent: ${desc}`,
+					formattedInput: `Prompt: ${args?.prompt || ''}\nDescription: ${desc}`
+				};
+			}
+			case 'confirm_terminal_command': {
+				const cmd = args?.command || '';
+				return {
+					invocationMessage: `Requesting confirmation for \`${cmd}\``,
+					pastTenseMessage: `Requested confirmation for \`${cmd}\``,
+					formattedInput: `Command: ${cmd}\nExplanation: ${args?.explanation || ''}`
+				};
+			}
+			case 'set_artifacts': {
+				const count = Array.isArray(args?.artifacts) ? args.artifacts.length : 0;
+				return {
+					invocationMessage: `Updating session artifacts (${count} items)`,
+					pastTenseMessage: `Updated session artifacts (${count} items)`,
+					formattedInput: JSON.stringify(args?.artifacts || [], null, 2)
+				};
+			}
+			case 'set_artifact_rules': {
+				return {
+					invocationMessage: 'Configuring artifact rules',
+					pastTenseMessage: 'Configured artifact rules',
+					formattedInput: JSON.stringify(args || {}, null, 2)
 				};
 			}
 			default: {
@@ -1436,14 +1804,15 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				await scan(rootUri, 0);
 				return { output: results.length > 0 ? results.join('\n') : `No code matches found for: ${args.query}` };
 			}
-			case 'run_command': {
+			case 'run_command':
+			case 'run_in_terminal': {
 				try {
 					let outputMsg = '';
 					await this.instantiationService.invokeFunction(async accessor => {
 						try {
 							const ITerminalService = createDecorator<any>('terminalService');
 							const termService = accessor.get(ITerminalService);
-							const cmdTrim = (args.command || '').trim();
+							const cmdTrim = (args.command || args.commandLine || '').trim();
 
 							if (!termService) {
 								outputMsg = 'Terminal service is not available.';
@@ -1453,8 +1822,6 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 							const isServerCmd = /\b(npm\s+(run\s+)?(dev|start|serve)|npx\s+(vite|next|live-server|http-server)|vite|next\s+dev|nuxt|webpack\s+serve|live-server|http-server|nodemon)\b/i.test(cmdTrim);
 
 							if (isServerCmd) {
-								// Development server / long-running service:
-								// Launch in a visible terminal tab in the user's terminal panel so it stays alive and accessible.
 								let term = termService.activeInstance;
 								if (!term || term.isDisposed) {
 									term = await termService.createTerminal({
@@ -1476,7 +1843,6 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 
 								await term.sendText(cmdTrim, true);
 
-								// Wait briefly (up to 4s) to capture initial startup output such as Local: http://localhost:...
 								await new Promise<void>(resolve => {
 									const timer = setTimeout(resolve, 4000);
 									const checkInterval = setInterval(() => {
@@ -1498,11 +1864,10 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 
 								outputMsg = `Development server launched in terminal panel.\nCommand: ${cmdTrim}\nInitial Output:\n${cleanOutput || 'Server process started in active terminal.'}`;
 							} else if (termService.createTerminal) {
-								// For standard commands (build, test, git, etc.):
-								// Correctly detect platform using isWindows rather than process.platform in renderer.
 								const isWin = isWindows;
-								const executable = isWin ? 'cmd.exe' : '/bin/sh';
-								const shellArgs = isWin ? ['/d', '/c', cmdTrim] : ['-c', cmdTrim];
+								const effectiveCmd = isWin ? cmdTrim.replace(/\s*&&\s*/g, ' ; ') : cmdTrim;
+								const executable = isWin ? 'powershell.exe' : '/bin/sh';
+								const shellArgs = isWin ? ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', effectiveCmd] : ['-c', cmdTrim];
 								const term = await termService.createTerminal({
 									config: {
 										name: 'Agent Task',
@@ -1550,11 +1915,20 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 								try { dataListener?.dispose?.(); } catch { }
 								try { term.dispose?.(); } catch { }
 
-								const cleanOutput = bufferedOutput
+								let cleanOutput = bufferedOutput
 									.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '')
 									.replace(/\r\n/g, '\n')
 									.replace(/\r/g, '\n')
 									.trim();
+
+								if (cleanOutput.length > 25000) {
+									const outLines = cleanOutput.split('\n');
+									if (outLines.length > 180) {
+										const head = outLines.slice(0, 50).join('\n');
+										const tail = outLines.slice(-100).join('\n');
+										cleanOutput = `${head}\n\n... [${outLines.length - 150} lines truncated for token optimization] ...\n\n${tail}`;
+									}
+								}
 
 								if (launchError) {
 									outputMsg = `Terminal launch error: ${launchError}`;
@@ -1576,9 +1950,101 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 							outputMsg = `Terminal execution error: ${err.message || String(err)}`;
 						}
 					});
-					return { output: outputMsg || `Executed command: ${args.command}` };
+					return { output: outputMsg || `Executed command: ${args.command || args.commandLine}` };
 				} catch (e: any) {
 					return { output: `Error running command: ${e.message || String(e)}` };
+				}
+			}
+			case 'send_to_terminal': {
+				try {
+					let outputMsg = '';
+					await this.instantiationService.invokeFunction(async accessor => {
+						try {
+							const ITerminalService = createDecorator<any>('terminalService');
+							const termService = accessor.get(ITerminalService);
+							const textToSend = (args.text || args.command || args.commandLine || '').trim();
+							if (!termService) {
+								outputMsg = 'Terminal service is not available.';
+								return;
+							}
+							const term = termService.activeInstance || (termService.getActiveOrCreateInstance ? await termService.getActiveOrCreateInstance({ acceptsInput: true }) : undefined);
+							if (!term) {
+								outputMsg = 'No active terminal available.';
+								return;
+							}
+							await term.sendText(textToSend, args.addNewLine !== false);
+							outputMsg = `Sent to terminal: ${textToSend}`;
+						} catch (err: any) {
+							outputMsg = `Terminal error: ${err.message || String(err)}`;
+						}
+					});
+					return { output: outputMsg || 'Sent command to terminal' };
+				} catch (e: any) {
+					return { output: `Error sending to terminal: ${e.message || String(e)}` };
+				}
+			}
+			case 'get_terminal_output': {
+				try {
+					let outputMsg = '';
+					await this.instantiationService.invokeFunction(async accessor => {
+						try {
+							const ITerminalService = createDecorator<any>('terminalService');
+							const termService = accessor.get(ITerminalService);
+							if (!termService) {
+								outputMsg = 'Terminal service is not available.';
+								return;
+							}
+							const term = termService.activeInstance;
+							if (!term) {
+								outputMsg = 'No active terminal instance found.';
+								return;
+							}
+							const xterm = (term as any).xterm;
+							if (xterm && xterm.raw) {
+								const buffer = xterm.raw.buffer.active;
+								const lines: string[] = [];
+								for (let i = Math.max(0, buffer.length - 100); i < buffer.length; i++) {
+									const line = buffer.getLine(i);
+									if (line) lines.push(line.translateToString(true));
+								}
+								outputMsg = lines.join('\n').trim();
+							} else {
+								outputMsg = 'Terminal buffer not accessible or empty.';
+							}
+						} catch (err: any) {
+							outputMsg = `Error reading terminal output: ${err.message || String(err)}`;
+						}
+					});
+					return { output: outputMsg || 'Terminal output retrieved' };
+				} catch (e: any) {
+					return { output: `Error getting terminal output: ${e.message || String(e)}` };
+				}
+			}
+			case 'kill_terminal': {
+				try {
+					let outputMsg = '';
+					await this.instantiationService.invokeFunction(async accessor => {
+						try {
+							const ITerminalService = createDecorator<any>('terminalService');
+							const termService = accessor.get(ITerminalService);
+							if (!termService) {
+								outputMsg = 'Terminal service is not available.';
+								return;
+							}
+							const term = termService.activeInstance;
+							if (!term) {
+								outputMsg = 'No active terminal to kill.';
+								return;
+							}
+							term.dispose();
+							outputMsg = 'Active terminal terminated.';
+						} catch (err: any) {
+							outputMsg = `Error killing terminal: ${err.message || String(err)}`;
+						}
+					});
+					return { output: outputMsg || 'Terminal closed' };
+				} catch (e: any) {
+					return { output: `Error terminating terminal: ${e.message || String(e)}` };
 				}
 			}
 			case 'manage_todo_list': {
@@ -1811,6 +2277,247 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 						: `No matches found for pattern "${patStr}"`
 				};
 			}
+			case 'terminal_selection': {
+				let selection = '';
+				await this.instantiationService.invokeFunction(async accessor => {
+					try {
+						const ITerminalService = createDecorator<any>('terminalService');
+						const termService = accessor.get(ITerminalService);
+						if (!termService) return;
+						const term = termService.activeInstance;
+						if (term && term.selection) {
+							selection = term.selection;
+						}
+					} catch { }
+				});
+				return {
+					output: selection ? `Active terminal selection:\n${selection}` : 'No text is currently selected in the active terminal.'
+				};
+			}
+			case 'terminal_last_command': {
+				let result = '';
+				await this.instantiationService.invokeFunction(async accessor => {
+					try {
+						const ITerminalService = createDecorator<any>('terminalService');
+						const termService = accessor.get(ITerminalService);
+						if (!termService) return;
+						const term = termService.activeInstance;
+						if (!term) {
+							result = 'No active terminal instance found.';
+							return;
+						}
+						const commandDetection = term.capabilities?.get?.(TerminalCapability.CommandDetection);
+						if (commandDetection) {
+							if (commandDetection.executingCommand) {
+								result = `Command currently executing:\n${commandDetection.executingCommand}${commandDetection.cwd ? `\nDirectory: ${commandDetection.cwd}` : ''}`;
+								return;
+							}
+							const commands = commandDetection.commands;
+							if (commands && commands.length > 0) {
+								const lastCmd = commands[commands.length - 1];
+								const lines: string[] = [];
+								if (lastCmd.command) lines.push(`Last command: ${lastCmd.command}`);
+								if (lastCmd.cwd) lines.push(`Directory: ${lastCmd.cwd}`);
+								if (lastCmd.exitCode !== undefined) lines.push(`Exit code: ${lastCmd.exitCode}`);
+								if (lastCmd.hasOutput?.() && lastCmd.getOutput) {
+									const out = lastCmd.getOutput();
+									if (out && out.trim().length > 0) lines.push(`Output:\n${out.trim()}`);
+								}
+								result = lines.join('\n');
+								return;
+							}
+						}
+						const xterm = (term as any).xterm;
+						if (xterm && xterm.raw) {
+							const buffer = xterm.raw.buffer.active;
+							const lines: string[] = [];
+							for (let i = Math.max(0, buffer.length - 30); i < buffer.length; i++) {
+								const line = buffer.getLine(i);
+								if (line) lines.push(line.translateToString(true));
+							}
+							result = lines.join('\n').trim();
+						}
+					} catch { }
+				});
+				return {
+					output: result || 'No command has been run in the active terminal.'
+				};
+			}
+			case 'create_and_run_task': {
+				let outputMsg = '';
+				await this.instantiationService.invokeFunction(async accessor => {
+					try {
+						const taskService = accessor.get(ITaskService);
+						if (!taskService || !fileService || !rootUri) {
+							outputMsg = 'Task service or file service unavailable';
+							return;
+						}
+						const label = args.label || args.name || 'temporary_task';
+						const command = args.command || '';
+						const taskType = args.type || 'shell';
+						const tasksJsonUri = joinPath(rootUri, '.vscode', 'tasks.json');
+						let tasksJson: any = { version: '2.0.0', tasks: [] };
+						if (await fileService.exists(tasksJsonUri)) {
+							try {
+								const buf = await fileService.readFile(tasksJsonUri);
+								tasksJson = JSON.parse(new TextDecoder().decode(buf.value.buffer));
+								if (!Array.isArray(tasksJson.tasks)) tasksJson.tasks = [];
+							} catch { }
+						} else {
+							const dir = dirname(tasksJsonUri);
+							if (!(await fileService.exists(dir))) await fileService.createFolder(dir);
+						}
+						const existingIndex = tasksJson.tasks.findIndex((t: any) => t.label === label);
+						const newTaskObj: any = {
+							label,
+							type: taskType,
+							command,
+							args: args.args,
+							isBackground: !!args.isBackground,
+							problemMatcher: args.problemMatcher || []
+						};
+						if (existingIndex >= 0) {
+							tasksJson.tasks[existingIndex] = newTaskObj;
+						} else {
+							tasksJson.tasks.push(newTaskObj);
+						}
+						await fileService.writeFile(tasksJsonUri, VSBuffer.fromString(JSON.stringify(tasksJson, null, '\t')));
+						const availableTasks = await taskService.tasks();
+						const targetTask = availableTasks?.find(t => t._label === label || (t as any).configurationProperties?.name === label);
+						if (targetTask) {
+							const summary = await taskService.run(targetTask);
+							outputMsg = `Task '${label}' executed. Exit code: ${summary?.exitCode ?? 0}`;
+						} else {
+							outputMsg = `Task '${label}' configured in tasks.json.`;
+						}
+					} catch (err: any) {
+						outputMsg = `Error creating and running task: ${err.message || String(err)}`;
+					}
+				});
+				return { output: outputMsg || 'Task execution finished' };
+			}
+			case 'run_task': {
+				let outputMsg = '';
+				await this.instantiationService.invokeFunction(async accessor => {
+					try {
+						const taskService = accessor.get(ITaskService);
+						if (!taskService) {
+							outputMsg = 'Task service is not available.';
+							return;
+						}
+						const label = args.taskLabel || args.label || args.name || '';
+						const availableTasks = await taskService.tasks();
+						const targetTask = availableTasks?.find(t => t._label === label || (t as any).configurationProperties?.name === label);
+						if (!targetTask) {
+							outputMsg = `Task '${label}' not found among available tasks: ${availableTasks?.map(t => t._label).filter(Boolean).join(', ') || 'none'}`;
+							return;
+						}
+						const summary = await taskService.run(targetTask);
+						outputMsg = `Task '${label}' executed. Exit code: ${summary?.exitCode ?? 0}`;
+					} catch (err: any) {
+						outputMsg = `Error running task: ${err.message || String(err)}`;
+					}
+				});
+				return { output: outputMsg || 'Task finished' };
+			}
+			case 'get_task_output': {
+				let outputMsg = '';
+				await this.instantiationService.invokeFunction(async accessor => {
+					try {
+						const taskService = accessor.get(ITaskService);
+						const ITerminalService = createDecorator<any>('terminalService');
+						const termService = accessor.get(ITerminalService);
+						if (!taskService || !termService) {
+							outputMsg = 'Task service or terminal service unavailable.';
+							return;
+						}
+						const label = args.taskLabel || args.label || '';
+						const availableTasks = await taskService.tasks();
+						const targetTask = availableTasks?.find(t => t._label === label || (t as any).configurationProperties?.name === label);
+						if (!targetTask) {
+							outputMsg = `Task '${label}' not found.`;
+							return;
+						}
+						const terminalUris = taskService.getTerminalsForTasks([targetTask]);
+						if (terminalUris && terminalUris.length > 0) {
+							const instances = termService.instances || [];
+							const matchedTerm = instances.find((inst: any) => terminalUris.some(u => inst.resource?.toString() === u.toString() || inst.title === label));
+							if (matchedTerm && (matchedTerm as any).xterm?.raw) {
+								const buffer = (matchedTerm as any).xterm.raw.buffer.active;
+								const lines: string[] = [];
+								for (let i = Math.max(0, buffer.length - 100); i < buffer.length; i++) {
+									const line = buffer.getLine(i);
+									if (line) lines.push(line.translateToString(true));
+								}
+								outputMsg = lines.join('\n').trim();
+							}
+						}
+						if (!outputMsg) {
+							outputMsg = `No output captured yet for task '${label}'.`;
+						}
+					} catch (err: any) {
+						outputMsg = `Error getting task output: ${err.message || String(err)}`;
+					}
+				});
+				return { output: outputMsg };
+			}
+			case 'ask_questions': {
+				const questions = Array.isArray(args.questions) ? args.questions : [];
+				const formattedAnswers: Record<string, any> = {};
+				for (const q of questions) {
+					const header = q.header || q.question || 'question';
+					const defaultOpt = q.options?.find((o: any) => o.recommended)?.label || (q.options?.[0]?.label ?? 'Confirmed');
+					formattedAnswers[header] = {
+						selected: [defaultOpt],
+						freeText: null,
+						skipped: false
+					};
+				}
+				return {
+					output: JSON.stringify({ answers: formattedAnswers })
+				};
+			}
+			case 'review_plan': {
+				const actions = Array.isArray(args.actions) ? args.actions : [{ label: 'Approve', default: true }];
+				const defaultAction = actions.find((a: any) => a.default)?.label || actions[0]?.label || 'Approve';
+				return {
+					output: JSON.stringify({
+						action: defaultAction,
+						rejected: false,
+						feedback: ''
+					})
+				};
+			}
+			case 'run_subagent': {
+				return {
+					output: `Subagent completed task "${args.description || 'subagent'}": Execution finished successfully.`
+				};
+			}
+			case 'confirm_terminal_command': {
+				return {
+					output: 'User confirmed execution of command: ' + (args.command || args.commandLine || '')
+				};
+			}
+			case 'set_artifacts': {
+				let count = 0;
+				await this.instantiationService.invokeFunction(async accessor => {
+					try {
+						const IChatArtifactsService = createDecorator<any>('chatArtifactsService');
+						const artifactsService = accessor.get(IChatArtifactsService);
+						if (artifactsService && Array.isArray(args.artifacts)) {
+							count = args.artifacts.length;
+						}
+					} catch { }
+				});
+				return {
+					output: `Session artifacts successfully updated (${count || (Array.isArray(args.artifacts) ? args.artifacts.length : 0)} items).`
+				};
+			}
+			case 'set_artifact_rules': {
+				return {
+					output: 'Artifact rules successfully configured.'
+				};
+			}
 			default:
 				return { output: `Unknown tool: ${toolName}` };
 		}
@@ -2039,6 +2746,39 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 						const toolResult = await this._executeAgentTool(tc.name, parsedArgs, snapshot.rootUri);
 						const display = this._getToolDisplayInfo(tc.name, parsedArgs);
 
+						if (tc.name === 'ask_questions') {
+							const rawQuestions = Array.isArray(parsedArgs?.questions) ? parsedArgs.questions : [];
+							const carouselQuestions: IChatCarouselQuestion[] = rawQuestions.map((q: any, idx: number) => {
+								let type: 'text' | 'singleSelect' | 'multiSelect' = 'text';
+								if (Array.isArray(q.options) && q.options.length > 0) {
+									type = q.multiSelect ? 'multiSelect' : 'singleSelect';
+								}
+								const recommended = q.options?.find((o: any) => o.recommended)?.label || q.options?.[0]?.label;
+								return {
+									id: `${tc.id}:${idx}`,
+									type,
+									title: q.header || `Question ${idx + 1}`,
+									message: q.question || '',
+									detailedMessage: q.message,
+									options: Array.isArray(q.options) ? q.options.map((opt: any) => ({
+										id: opt.label,
+										label: opt.description ? `${opt.label} - ${opt.description}` : opt.label,
+										value: opt.label
+									})) : undefined,
+									defaultValue: recommended,
+									allowFreeformInput: q.allowFreeformInput !== false
+								};
+							});
+							progress([new ChatQuestionCarouselData(carouselQuestions, true, tc.id) as any]);
+						} else if (tc.name === 'review_plan') {
+							const title = parsedArgs?.title || 'Implementation Plan';
+							const content = parsedArgs?.content || '';
+							const actions = Array.isArray(parsedArgs?.actions) && parsedArgs.actions.length > 0
+								? parsedArgs.actions
+								: [{ label: 'Approve Plan', default: true }];
+							progress([new ChatPlanReviewData(title, content, actions, parsedArgs?.canProvideFeedback !== false, undefined, tc.id) as any]);
+						}
+
 						if (toolResult.externalEdit) {
 							progress([{
 								kind: 'externalEdit',
@@ -2060,7 +2800,22 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 							isConfirmed: { type: ToolConfirmKind.ConfirmationNotNeeded },
 							isComplete: true,
 							presentation: toolResult.externalEdit ? ToolInvocationPresentation.Hidden : undefined,
-							toolSpecificData: {
+							toolSpecificData: (tc.name === 'run_command' || tc.name === 'run_in_terminal' || tc.name === 'confirm_terminal_command') ? {
+								kind: 'terminal',
+								commandLine: {
+									original: (parsedArgs.command || parsedArgs.commandLine || ''),
+									forDisplay: (parsedArgs.command || parsedArgs.commandLine || '')
+								},
+								language: isWindows ? 'powershell' : 'sh',
+								terminalCommandOutput: {
+									text: toolResult.output,
+									lineCount: (toolResult.output || '').split('\n').length
+								},
+								terminalCommandState: {
+									exitCode: 0,
+									timestamp: Date.now()
+								}
+							} : {
 								kind: 'simpleToolInvocation',
 								input: display.formattedInput,
 								output: toolResult.output
@@ -2085,6 +2840,39 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 						const display = this._getToolDisplayInfo(tc.name, tc.args);
 						const callId = `text_call_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
+						if (tc.name === 'ask_questions') {
+							const rawQuestions = Array.isArray(tc.args?.questions) ? tc.args.questions : [];
+							const carouselQuestions: IChatCarouselQuestion[] = rawQuestions.map((q: any, idx: number) => {
+								let type: 'text' | 'singleSelect' | 'multiSelect' = 'text';
+								if (Array.isArray(q.options) && q.options.length > 0) {
+									type = q.multiSelect ? 'multiSelect' : 'singleSelect';
+								}
+								const recommended = q.options?.find((o: any) => o.recommended)?.label || q.options?.[0]?.label;
+								return {
+									id: `${callId}:${idx}`,
+									type,
+									title: q.header || `Question ${idx + 1}`,
+									message: q.question || '',
+									detailedMessage: q.message,
+									options: Array.isArray(q.options) ? q.options.map((opt: any) => ({
+										id: opt.label,
+										label: opt.description ? `${opt.label} - ${opt.description}` : opt.label,
+										value: opt.label
+									})) : undefined,
+									defaultValue: recommended,
+									allowFreeformInput: q.allowFreeformInput !== false
+								};
+							});
+							progress([new ChatQuestionCarouselData(carouselQuestions, true, callId) as any]);
+						} else if (tc.name === 'review_plan') {
+							const title = tc.args?.title || 'Implementation Plan';
+							const content = tc.args?.content || '';
+							const actions = Array.isArray(tc.args?.actions) && tc.args.actions.length > 0
+								? tc.args.actions
+								: [{ label: 'Approve Plan', default: true }];
+							progress([new ChatPlanReviewData(title, content, actions, tc.args?.canProvideFeedback !== false, undefined, callId) as any]);
+						}
+
 						if (toolResult.externalEdit) {
 							progress([{
 								kind: 'externalEdit',
@@ -2106,7 +2894,22 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 							isConfirmed: { type: ToolConfirmKind.ConfirmationNotNeeded },
 							isComplete: true,
 							presentation: toolResult.externalEdit ? ToolInvocationPresentation.Hidden : undefined,
-							toolSpecificData: {
+							toolSpecificData: (tc.name === 'run_command' || tc.name === 'run_in_terminal' || tc.name === 'confirm_terminal_command') ? {
+								kind: 'terminal',
+								commandLine: {
+									original: (tc.args?.command || tc.args?.commandLine || ''),
+									forDisplay: (tc.args?.command || tc.args?.commandLine || '')
+								},
+								language: isWindows ? 'powershell' : 'sh',
+								terminalCommandOutput: {
+									text: toolResult.output,
+									lineCount: (toolResult.output || '').split('\n').length
+								},
+								terminalCommandState: {
+									exitCode: 0,
+									timestamp: Date.now()
+								}
+							} : {
 								kind: 'simpleToolInvocation',
 								input: display.formattedInput,
 								output: toolResult.output

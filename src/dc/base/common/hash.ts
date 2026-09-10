@@ -56,6 +56,11 @@ export function stringHash(s: string, hashVal: number) {
 	return hashVal;
 }
 
+export function isStringInSample(str: string, percent: number): boolean {
+	const h = Math.abs(stringHash(str, 0));
+	return (h % 100) < percent;
+}
+
 function arrayHash(arr: unknown[], initialHashVal: number): number {
 	initialHashVal = numberHash(104579, initialHashVal);
 	return arr.reduce<number>((hashVal, item) => doHash(item, hashVal), initialHashVal);

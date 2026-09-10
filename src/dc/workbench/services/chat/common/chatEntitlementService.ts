@@ -803,6 +803,41 @@ export interface IQuotaSnapshot {
 	readonly creditsUsed?: number;
 }
 
+export const enum QuotaUsageKind {
+	CreditsUsed = 'creditsUsed',
+	Percentage = 'percentage',
+}
+
+export type IQuotaUsage =
+	| { kind: QuotaUsageKind.CreditsUsed; creditsUsed: number }
+	| { kind: QuotaUsageKind.Percentage; usedPercentage: number; used: number | undefined; total: number | undefined };
+
+export function getQuotaUsage(quota: IQuotaSnapshot | undefined): IQuotaUsage | undefined {
+	if (!quota) {
+		return undefined;
+	}
+	if (quota.unlimited) {
+		if (quota.hasQuota === false) {
+			return undefined;
+		}
+		if (quota.creditsUsed !== undefined) {
+			return { kind: QuotaUsageKind.CreditsUsed, creditsUsed: quota.creditsUsed };
+		}
+		return undefined;
+	}
+
+	const usedPercentage = Math.round((100 - quota.percentRemaining) * 10) / 10;
+	if (quota.entitlement !== undefined && quota.entitlement > 0) {
+		const total = quota.entitlement;
+		const used = quota.quotaRemaining !== undefined
+			? Math.round((total - quota.quotaRemaining) * 10) / 10
+			: Math.round((total * (usedPercentage / 100)) * 10) / 10;
+		return { kind: QuotaUsageKind.Percentage, usedPercentage, used, total };
+	}
+
+	return { kind: QuotaUsageKind.Percentage, usedPercentage, used: undefined, total: undefined };
+}
+
 export interface IRateLimitSnapshot {
 	readonly percentRemaining: number;
 	readonly unlimited: boolean;
@@ -909,6 +944,27 @@ export function parseQuotas(entitlementsData: IEntitlementsData): IQuotas {
 		quotas.additionalUsageEntitlement = overageSource?.overage_entitlement ?? 0;
 	}
 	return quotas;
+}
+
+export interface IQuotaReset {
+	readonly date: Date;
+	readonly hasTime: boolean;
+}
+
+export function getQuotaReset(
+	snapshot?: { resetAt?: number } | undefined,
+	account?: { resetDate?: string; resetDateHasTime?: boolean } | undefined
+): IQuotaReset | undefined {
+	if (typeof snapshot?.resetAt === 'number' && !isNaN(snapshot.resetAt)) {
+		return { date: new Date(snapshot.resetAt * 1000), hasTime: true };
+	}
+	if (account?.resetDate) {
+		const parsed = Date.parse(account.resetDate);
+		if (!isNaN(parsed)) {
+			return { date: new Date(parsed), hasTime: account.resetDateHasTime ?? false };
+		}
+	}
+	return undefined;
 }
 
 export class ChatEntitlementRequests extends Disposable {

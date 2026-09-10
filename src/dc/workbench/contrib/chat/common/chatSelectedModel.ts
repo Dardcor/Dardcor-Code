@@ -52,7 +52,7 @@ export function getStoredSelectedModel(
 	if (identifier) {
 		const wasAutomaticDefault = storageService.getBoolean(isDefaultKey, SELECTED_MODEL_STORAGE_SCOPE);
 		storageService.remove(isDefaultKey, SELECTED_MODEL_STORAGE_SCOPE);
-		if (wasAutomaticDefault || identifier === 'opencode/no-model-selected') {
+		if (wasAutomaticDefault) {
 			storageService.remove(key, SELECTED_MODEL_STORAGE_SCOPE);
 			return undefined;
 		}
@@ -67,7 +67,7 @@ export function getStoredSelectedModel(
 	const wasAutomaticDefault = storageService.getBoolean(isDefaultKey, StorageScope.APPLICATION, true);
 	storageService.remove(key, StorageScope.APPLICATION);
 	storageService.remove(isDefaultKey, StorageScope.APPLICATION);
-	if (wasAutomaticDefault || legacyIdentifier === 'opencode/no-model-selected') {
+	if (wasAutomaticDefault) {
 		return undefined;
 	}
 
@@ -123,16 +123,6 @@ export function getPersistedSelectedModelIdentifier(
 		const persisted = getStoredSelectedModel(storageService, location, modelTarget);
 		if (persisted) {
 			return persisted;
-		}
-	}
-
-	if (location !== 'panel') {
-		const panelCandidateKeys = [sessionType, undefined, 'local', 'remote'];
-		for (const panelTarget of panelCandidateKeys) {
-			const fallbackPersisted = getStoredSelectedModel(storageService, 'panel', panelTarget);
-			if (fallbackPersisted) {
-				return fallbackPersisted;
-			}
 		}
 	}
 
@@ -212,15 +202,11 @@ export function getSelectedModelVendor(
 }
 
 /**
- * Returns whether the given model is a "bring your own key" (BYOK) model.
- *
- * BYOK models are served using user-supplied credentials and are flagged as
- * such by their provider via {@link ILanguageModelChatMetadata.isBYOK}. All
- * other models (built-in Copilot, Copilot/Claude CLI, and agent-host models)
- * are served through the Copilot (CAPI) service and are therefore not BYOK.
+ * Returns whether the given model is "bring your own key", i.e. served with the user's own
+ * credentials. Agent-host copies carry `byokModelIdentifier` instead of setting `isBYOK`.
  */
 export function isByokModel(metadata: ILanguageModelChatMetadata): boolean {
-	return metadata.isBYOK === true;
+	return metadata.isBYOK === true || metadata.byokModelIdentifier !== undefined;
 }
 
 /**

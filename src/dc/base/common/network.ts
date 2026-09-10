@@ -90,8 +90,14 @@ export namespace Schemas {
 	/** Scheme used for the chat input part */
 	export const vscodeChatInput = 'chatSessionInput';
 
+	/** Scheme used for the Agents window new-session composer input */
+	export const sessionsChatInput = 'sessions-chat';
+
 	/** Scheme used for local chat session content */
 	export const vscodeLocalChatSession = 'vscode-chat-session';
+
+	/** Scheme used for read-only resources owned by a chat response or attachment */
+	export const vscodeChatResponseResource = 'vscode-chat-response-resource';
 
 	/**
 	 * Scheme used internally for webviews that aren't linked to a resource (i.e. not custom editors)
@@ -273,6 +279,7 @@ export const nodeModulesPath: AppResourcePath = 'dc/../../node_modules';
 export const nodeModulesAsarPath: AppResourcePath = 'dc/../../node_modules.asar';
 export const nodeModulesAsarUnpackedPath: AppResourcePath = 'dc/../../node_modules.asar.unpacked';
 
+export const AGENTS_AUTHORITY = 'agents';
 export const VSCODE_AUTHORITY = 'vscode-app';
 
 class FileAccessImpl {
@@ -364,11 +371,11 @@ class FileAccessImpl {
 		}
 
 		if (typeof uriOrModule === 'string' && uriOrModule.startsWith('vs/')) {
-			uriOrModule = 'dc/' + uriOrModule.substring(3);
+			uriOrModule = 'dc/' + uriOrModule.slice(3);
 		}
 
-		if ((globalThis as any)._VSCODE_FILE_ROOT) {
-			const rootUriOrPath = (globalThis as any)._VSCODE_FILE_ROOT;
+		if (globalThis._VSCODE_FILE_ROOT) {
+			const rootUriOrPath = globalThis._VSCODE_FILE_ROOT;
 
 			// File URL (with scheme)
 			if (/^\w[\w\d+.-]*:\/\//.test(rootUriOrPath)) {

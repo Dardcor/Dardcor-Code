@@ -5,6 +5,7 @@
 import { Event } from '../../../../base/common/event.js';
 import { IDisposable } from '../../../../base/common/lifecycle.js';
 import { IAuthenticationChallenge, IAuthorizationProtectedResourceMetadata, IAuthorizationServerMetadata } from '../../../../base/common/oauth.js';
+import { ThemeIcon } from '../../../../base/common/themables.js';
 import { URI } from '../../../../base/common/uri.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 
@@ -13,9 +14,12 @@ import { createDecorator } from '../../../../platform/instantiation/common/insta
  */
 export const INTERNAL_AUTH_PROVIDER_PREFIX = '__';
 
+export const ACCOUNTS_AVATAR_SETTING = 'accounts.avatar';
+
 export interface AuthenticationSessionAccount {
 	label: string;
 	id: string;
+	icon?: URI | { light: URI; dark: URI } | ThemeIcon;
 }
 
 export interface AuthenticationSession {

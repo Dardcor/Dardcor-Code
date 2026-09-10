@@ -14,6 +14,13 @@ interface IMessageChannelResult {
 	source: unknown;
 }
 
+export class MessagePortAcquisitionError extends Error {
+	constructor(message: string, readonly fatal: boolean = false) {
+		super(message);
+		this.name = 'MessagePortAcquisitionError';
+	}
+}
+
 export async function acquirePort(requestChannel: string | undefined, responseChannel: string, nonce = generateUuid()): Promise<MessagePort> {
 
 	// Get ready to acquire the message port from the

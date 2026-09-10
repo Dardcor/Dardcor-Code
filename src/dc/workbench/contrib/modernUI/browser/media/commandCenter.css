@@ -1,0 +1,15 @@
+
+
+.modern-ui.monaco-workbench .part.titlebar .command-center > .monaco-toolbar > .monaco-action-bar > .actions-container > .action-item > .action-label:is(.codicon-arrow-left, .codicon-arrow-right) {
+	color: var(--vscode-commandCenter-foreground);
+}
+
+.modern-ui .agent-status-pill:not(.session-mode),
+.modern-ui .agent-status-pill .agent-status-input-area {
+	background-color: transparent !important;
+}
+
+.modern-ui .agent-status-badge-section:not(.filtered),
+.modern-ui .agent-status-command-center-toolbar {
+	background-color: transparent !important;
+}

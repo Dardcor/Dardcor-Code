@@ -871,7 +871,7 @@ export class CodeApplication extends Disposable {
 		// request. The renderer only requests a connection when the runtime is
 		// available and AI features are enabled there, which the main process
 		// cannot fully observe.
-		const agentHostStarter = new ElectronAgentHostStarter({ machineId, sqmId, devDeviceId }, this.configurationService, this.environmentMainService, this.lifecycleMainService, this.logService);
+		const agentHostStarter = this._register(appInstantiationService.createInstance(ElectronAgentHostStarter, { machineId, sqmId, devDeviceId }));
 		this._register(appInstantiationService.createInstance(AgentHostProcessManager, agentHostStarter, process.platform));
 
 		// Metered connection telemetry

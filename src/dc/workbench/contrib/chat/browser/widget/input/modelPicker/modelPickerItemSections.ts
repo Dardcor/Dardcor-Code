@@ -23,6 +23,17 @@ export const ModelPickerSection = {
 export const RESTRICTED_MODE_TRUST_ACTION_ID = 'restrictedModeTrust';
 export const SETUP_REQUIRED_SIGN_IN_ACTION_ID = 'setupRequiredSignIn';
 
+function createSyntheticAutoItem(): IActionListItem<IActionWidgetDropdownAction> {
+	return createModelItem({
+		id: 'auto',
+		enabled: true,
+		checked: true,
+		class: undefined,
+		tooltip: localize('chat.modelPicker.auto', "Auto"),
+		label: localize('chat.modelPicker.auto', "Auto"),
+		run: () => { },
+	});
+}
 
 export function buildUnavailableStateItems(options: IBuildModelPickerItemsOptions): IActionListItem<IActionWidgetDropdownAction>[] | undefined {
 	const { restrictedMode, setupRequired, showAutoModel } = options.presentation;
@@ -50,25 +61,39 @@ export function buildUnavailableStateItems(options: IBuildModelPickerItemsOption
 	}
 	if (setupRequired) {
 		const enabled = !!options.actions.onRequestSetup;
-		return [
-			{ kind: ActionListItemKind.Header, label: localize('chat.modelPicker.setupRequired', "Sign in to use Dardcor AI") },
+		const items: IActionListItem<IActionWidgetDropdownAction>[] = [
+			{ kind: ActionListItemKind.Header, label: localize('chat.modelPicker.setupRequired', "Sign in to use Copilot") },
 			{
 				item: {
 					id: SETUP_REQUIRED_SIGN_IN_ACTION_ID,
 					enabled,
 					checked: false,
 					class: undefined,
-					tooltip: localize('chat.modelPicker.setupRequired.signInTooltip', "Sign in to Dardcor AI to choose a model."),
-					label: localize('chat.modelPicker.setupRequired.signIn', "Sign in to use Dardcor AI..."),
+					tooltip: localize('chat.modelPicker.setupRequired.signInTooltip', "Sign in to GitHub Copilot to choose a model."),
+					label: localize('chat.modelPicker.setupRequired.signIn', "Sign in to use Copilot..."),
 					run: () => options.actions.onRequestSetup?.(),
 				},
 				kind: ActionListItemKind.Action,
-				label: localize('chat.modelPicker.setupRequired.signIn', "Sign in to use Dardcor AI..."),
+				label: localize('chat.modelPicker.setupRequired.signIn', "Sign in to use Copilot..."),
 				group: { title: '', icon: ThemeIcon.fromId(Codicon.signIn.id) },
 				disabled: !enabled,
 				hideIcon: false,
 			},
 		];
+		if (options.presentation.showManageModelsInSetupRequired && options.manageModelsAction) {
+			items.push(
+				{ kind: ActionListItemKind.Separator },
+				{
+					item: options.manageModelsAction,
+					kind: ActionListItemKind.Action,
+					label: options.manageModelsAction.label,
+					group: { title: '', icon: Codicon.blank },
+					hideIcon: false,
+					showAlways: true,
+				}
+			);
+		}
+		return items;
 	}
 	if (options.models.length > 0) {
 		return undefined;
@@ -82,7 +107,7 @@ export function buildUnavailableStateItems(options: IBuildModelPickerItemsOption
 		? new MarkdownString(localize('chat.modelPicker.upgradeLink', "[Upgrade](command:workbench.action.chat.upgradePlan \" \")"), { isTrusted: true })
 		: undefined;
 	const hover = canUpgrade ? new MarkdownString('', { isTrusted: true, supportThemeIcons: true }) : undefined;
-	hover?.appendMarkdown(localize('chat.modelPicker.upgradeHover', "[Upgrade to Dardcor AI Pro](command:workbench.action.chat.upgradePlan \" \") to use the best models."));
+	hover?.appendMarkdown(localize('chat.modelPicker.upgradeHover', "[Upgrade to GitHub Copilot Pro](command:workbench.action.chat.upgradePlan \" \") to use the best models."));
 	return [{
 		item: {
 			id: 'noModels',
@@ -105,14 +130,20 @@ export function buildUnavailableStateItems(options: IBuildModelPickerItemsOption
 
 export function buildFlatModelItems(options: IBuildModelPickerItemsOptions): IActionListItem<IActionWidgetDropdownAction>[] {
 	const items: IActionListItem<IActionWidgetDropdownAction>[] = [];
-	const modelToGroup = buildModelToProviderGroupMap(options.languageModelsService);
+	if (options.models.length === 0 && options.presentation.showAutoModel) {
+		items.push(createSyntheticAutoItem());
+	}
+	const autoModel = options.models.find(isAutoModel);
+	if (autoModel) {
+		const { action, ariaDescription } = createModelAction(autoModel, options.selectedModelId, options.actions.onSelect);
+		items.push(createModelItem(action, autoModel, options.openerService, undefined, options.presentation.isUBB, ariaDescription));
+	}
 	const sortedModels = options.models
-		.filter(model => !isAutoModel(model) && model.metadata.id.toLowerCase() !== 'auto')
+		.filter(model => model !== autoModel)
 		.sort((left, right) => left.metadata.vendor.localeCompare(right.metadata.vendor) || left.metadata.name.localeCompare(right.metadata.name));
 	for (const model of sortedModels) {
-		const groupLabel = getProviderGroupForModel(model, modelToGroup, options.languageModelsService).groupName;
 		const { action, ariaDescription } = createModelAction(model, options.selectedModelId, options.actions.onSelect);
-		items.push(createModelItem(action, model, options.openerService, groupLabel, options.presentation.isUBB, ariaDescription, undefined, options.actions.onConfigure));
+		items.push(createModelItem(action, model, options.openerService, undefined, options.presentation.isUBB, ariaDescription, undefined, options.actions.onConfigure));
 	}
 	return items;
 }
@@ -152,17 +183,23 @@ function createGroupedContext(options: IBuildModelPickerItemsOptions): IGroupedC
 
 function appendLeadingModels(context: IGroupedContext): ILanguageModelChatMetadataAndIdentifier | undefined {
 	const { options, items } = context;
+	const autoModel = options.models.find(isAutoModel);
+	if (!autoModel && options.models.length === 0 && options.presentation.showAutoModel) {
+		items.push(createSyntheticAutoItem());
+	}
+	if (autoModel) {
+		context.markPlaced(autoModel.identifier);
+		const { action, ariaDescription } = createModelAction(autoModel, options.selectedModelId, options.actions.onSelect);
+		items.push(createModelItem(action, autoModel, options.openerService, undefined, options.presentation.isUBB, ariaDescription));
+	}
 	for (const model of options.models) {
-		if (isAutoModel(model) || model.metadata.id.toLowerCase() === 'auto') {
-			continue;
-		}
 		if (!context.placed.has(model.identifier) && ILanguageModelChatMetadata.hasPromoDiscount(model.metadata)) {
 			context.markPlaced(model.identifier);
 			const { action, ariaDescription } = createModelAction(model, options.selectedModelId, options.actions.onSelect);
 			items.push(createModelItem(action, model, options.openerService, undefined, options.presentation.isUBB, ariaDescription));
 		}
 	}
-	return undefined;
+	return autoModel;
 }
 
 function appendPinnedModels(context: IGroupedContext): Set<string> {
@@ -184,8 +221,8 @@ function appendPinnedModels(context: IGroupedContext): Set<string> {
 	if (pinnedModels.length > 0) {
 		items.push({ kind: ActionListItemKind.Separator, label: localize('chat.modelPicker.pinned', "Pinned") });
 		for (const model of pinnedModels) {
-			const groupLabel = getProviderGroupForModel(model, context.modelToGroup, options.languageModelsService).groupName;
-			const { action, ariaDescription } = createModelAction(model, options.selectedModelId, options.actions.onSelect, undefined, true);
+			const groupLabel = context.showGroupLabel ? getProviderGroupForModel(model, context.modelToGroup, options.languageModelsService).groupName : undefined;
+			const { action, ariaDescription } = createModelAction(model, options.selectedModelId, options.actions.onSelect, undefined, context.showGroupLabel);
 			items.push(createModelItem(action, model, options.openerService, groupLabel, options.presentation.isUBB, ariaDescription, context.makePinAction(model), options.actions.onConfigure));
 		}
 	}
@@ -269,8 +306,8 @@ function appendPromotedModels(context: IGroupedContext, autoModel: ILanguageMode
 	});
 	for (const item of promoted) {
 		if (item.kind === 'available') {
-			const groupLabel = getProviderGroupForModel(item.model, context.modelToGroup, options.languageModelsService).groupName;
-			const { action, ariaDescription } = createModelAction(item.model, options.selectedModelId, options.actions.onSelect, undefined, true);
+			const groupLabel = context.showGroupLabel ? getProviderGroupForModel(item.model, context.modelToGroup, options.languageModelsService).groupName : undefined;
+			const { action, ariaDescription } = createModelAction(item.model, options.selectedModelId, options.actions.onSelect, undefined, context.showGroupLabel);
 			items.push(createModelItem(action, item.model, options.openerService, groupLabel, options.presentation.isUBB, ariaDescription, context.makePinAction(item.model), options.actions.onConfigure));
 		} else {
 			items.push(createUnavailableModelItem(item.id, item.entry, item.reason, options.manageSettingsUrl, options.updateStateType, options.chatEntitlementService));
@@ -311,12 +348,8 @@ function appendOtherModels(context: IGroupedContext): boolean {
 		groups.set(key, bucket);
 	}
 	const sortedGroups = [...groups.values()].sort((left, right) => {
-		const order = ['Antigravity', 'OpenCode', 'OpenCode Go', 'Gemini AI Studio', 'Anthropic', 'Claude Code', 'OpenAI', 'Google Vertex', 'DeepSeek', 'Groq', 'xAI', 'Kimi', 'GLM', 'Qwen', 'Kiro', 'Qoder'];
-		const leftIdx = order.indexOf(left.groupName);
-		const rightIdx = order.indexOf(right.groupName);
-		if (leftIdx !== -1 && rightIdx !== -1) { return leftIdx - rightIdx; }
-		if (leftIdx !== -1) { return -1; }
-		if (rightIdx !== -1) { return 1; }
+		if (left.vendor === 'copilot' && right.vendor !== 'copilot') { return -1; }
+		if (right.vendor === 'copilot' && left.vendor !== 'copilot') { return 1; }
 		return left.groupName.localeCompare(right.groupName);
 	});
 	const showHeaders = sortedGroups.length > 1;
@@ -332,13 +365,12 @@ function appendOtherModels(context: IGroupedContext): boolean {
 			return leftUnavailable - rightUnavailable || left.metadata.name.localeCompare(right.metadata.name);
 		});
 		for (const model of group.models) {
-			const groupLabel = getProviderGroupForModel(model, context.modelToGroup, options.languageModelsService).groupName;
 			const entry = options.controlModels[model.metadata.id] ?? options.controlModels[model.identifier];
 			if (entry?.minVSCodeVersion && !isVersionAtLeast(options.currentVSCodeVersion, entry.minVSCodeVersion)) {
 				items.push(createUnavailableModelItem(model.metadata.id, entry, 'update', options.manageSettingsUrl, options.updateStateType, options.chatEntitlementService, ModelPickerSection.Other));
 			} else {
 				const { action, ariaDescription } = createModelAction(model, options.selectedModelId, options.actions.onSelect, ModelPickerSection.Other, showHeaders);
-				items.push(createModelItem(action, model, options.openerService, groupLabel, options.presentation.isUBB, ariaDescription, context.makePinAction(model), options.actions.onConfigure));
+				items.push(createModelItem(action, model, options.openerService, undefined, options.presentation.isUBB, ariaDescription, context.makePinAction(model), options.actions.onConfigure));
 			}
 		}
 	}

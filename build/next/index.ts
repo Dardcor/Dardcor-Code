@@ -489,6 +489,17 @@ async function copyFile(srcPath: string, destPath: string): Promise<void> {
 	await fs.promises.copyFile(srcPath, destPath);
 }
 
+async function mapConcurrent<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
+	let index = 0;
+	const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+		while (index < items.length) {
+			const i = index++;
+			await fn(items[i]);
+		}
+	});
+	await Promise.all(workers);
+}
+
 /**
  * Standalone TypeScript files that need to be compiled separately (not bundled).
  * These run in special contexts (e.g., Electron preload) where bundling isn't appropriate.
@@ -566,11 +577,11 @@ async function copyAllNonTsFiles(outDir: string, excludeTests: boolean): Promise
 
 	const allFiles = [...new Set([...files, ...dtsFiles])];
 
-	await Promise.all(allFiles.map(file => {
+	await mapConcurrent(allFiles, 64, file => {
 		const srcPath = path.join(REPO_ROOT, SRC_DIR, file);
 		const destPath = path.join(REPO_ROOT, outDir, file);
 		return copyFile(srcPath, destPath);
-	}));
+	});
 
 	console.log(`[resources] Copied ${allFiles.length} files`);
 }
@@ -762,12 +773,12 @@ async function transpile(outDir: string, excludeTests: boolean): Promise<void> {
 
 	console.log(`[transpile] Found ${files.length} files`);
 
-	// Transpile all files in parallel using esbuild.transform (fastest approach)
-	await Promise.all(files.map(file => {
+	// Transpile all files with concurrency limit to avoid EMFILE on Windows
+	await mapConcurrent(files, 64, file => {
 		const srcPath = path.join(REPO_ROOT, SRC_DIR, file);
 		const destPath = path.join(REPO_ROOT, outDir, file.replace(/\.ts$/, '.js'));
 		return transpileFile(srcPath, destPath);
-	}));
+	});
 }
 
 // ============================================================================

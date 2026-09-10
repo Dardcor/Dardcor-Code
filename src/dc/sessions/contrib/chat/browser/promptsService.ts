@@ -16,7 +16,7 @@ export const BUILTIN_SKILLS_URI = FileAccess.asFileUri('dc/sessions/skills');
 
 /**
  * Sessions-specific PromptsService that additionally discovers built-in skills
- * bundled at `vs/sessions/skills/{folder}/SKILL.md`.
+ * bundled at `dc/sessions/skills/{folder}/SKILL.md`.
  *
  * Built-in skills are contributed via the single {@link getBuiltinPromptFiles}
  * override, so the base service merges them into `findAgentSkills()`,

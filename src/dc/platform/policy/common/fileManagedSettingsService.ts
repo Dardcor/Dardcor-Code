@@ -57,6 +57,11 @@ export class FileManagedSettingsService extends Disposable implements IFileManag
 		this.throttledDelayer.trigger(() => this.refresh(), 0);
 	}
 
+	async initialize(): Promise<ManagedSettingsData> {
+		await this.throttledDelayer.trigger(() => this.refresh(), 0);
+		return this._managedSettings;
+	}
+
 	private async refresh(): Promise<void> {
 		const previousRaw = this._rawManagedSettings;
 		const previous = this._managedSettings;

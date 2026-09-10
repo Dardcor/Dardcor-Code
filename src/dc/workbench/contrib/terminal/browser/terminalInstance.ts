@@ -1773,7 +1773,8 @@ export class TerminalInstance extends Disposable implements ITerminalInstance {
 		} else {
 			if (exitMessage) {
 				const failedDuringLaunch = this._processManager.processState === ProcessState.KilledDuringLaunch;
-				if (failedDuringLaunch || (this._terminalConfigurationService.config.showExitAlert && this.xterm?.lastInputEvent !== /*Ctrl+D*/'\x04')) {
+				const isInternalOrHidden = this.shellLaunchConfig.hideFromUser || this.shellLaunchConfig.isFeatureTerminal;
+				if (!isInternalOrHidden && (failedDuringLaunch || (this._terminalConfigurationService.config.showExitAlert && this.xterm?.lastInputEvent !== /*Ctrl+D*/'\x04'))) {
 					this._notificationService.notify({
 						message: exitMessage,
 						severity: Severity.Error,

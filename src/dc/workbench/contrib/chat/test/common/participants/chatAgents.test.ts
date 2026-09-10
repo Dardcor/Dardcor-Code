@@ -10,7 +10,6 @@ import { ExtensionIdentifier } from '../../../../../../platform/extensions/commo
 import { MockContextKeyService } from '../../../../../../platform/keybinding/test/common/mockKeybindingService.js';
 import { ChatAgentService, IChatAgentData, IChatAgentImplementation } from '../../../common/participants/chatAgents.js';
 import { TestConfigurationService } from '../../../../../../platform/configuration/test/common/testConfigurationService.js';
-import { TestInstantiationService } from '../../../../../../platform/instantiation/test/common/instantiationServiceMock.js';
 
 const testAgentId = 'testAgent';
 const testAgentData: IChatAgentData = {
@@ -45,7 +44,7 @@ suite('ChatAgents', function () {
 	let contextKeyService: TestingContextKeyService;
 	setup(() => {
 		contextKeyService = new TestingContextKeyService();
-		chatAgentService = store.add(new ChatAgentService(contextKeyService, new TestConfigurationService(), new TestInstantiationService()));
+		chatAgentService = store.add(new ChatAgentService(contextKeyService, new TestConfigurationService()));
 	});
 
 	test('registerAgent', async () => {

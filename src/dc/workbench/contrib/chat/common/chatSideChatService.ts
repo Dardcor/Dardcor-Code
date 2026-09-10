@@ -36,7 +36,7 @@ export interface IChatSideChatOrigin {
  * Supplies the ability to branch a conversation into a side chat — a question
  * answered alongside the conversation without being added to it.
  *
- * Implemented today by the Agents window (`vs/sessions`), which owns side chat
+ * Implemented today by the Agents window (`dc/sessions`), which owns side chat
  * creation. The workbench declares the capability so chat UI can offer it
  * without depending on that layer; when the workbench gains native side chats it
  * registers a provider of its own.

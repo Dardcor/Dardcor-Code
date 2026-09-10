@@ -49,6 +49,8 @@ export const codiconsDerived = {
 	debugBreakpointPending: register('debug-breakpoint-pending', 0xebd9),
 	chatImport: register('chat-import', 0xec86),
 	chatExport: register('chat-export', 0xec87),
+	closeSmall: register('close-small', 'close'),
+	micOffCompact: register('mic-off-compact', 'mute'),
 
 } as const;
 

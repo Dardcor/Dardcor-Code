@@ -5,10 +5,17 @@ title VSCode Dev
 
 pushd %~dp0\..
 
-:: Get electron, compile, built-in extensions
 if "%VSCODE_SKIP_PRELAUNCH%"=="" (
 	node build/lib/preLaunch.ts || (
 		echo Failed to prepare VS Code for launch ^(build/lib/preLaunch.ts^). 1>&2
+		exit /b 1
+	)
+)
+
+if not exist "out\main.js" (
+	echo [Dardcor Code] out\main.js not found. Transpiling client...
+	call npm run transpile-client || (
+		echo Failed to transpile client. 1>&2
 		exit /b 1
 	)
 )
@@ -19,12 +26,8 @@ set NAMESHORT=%NAMESHORT: "=%
 set NAMESHORT=%NAMESHORT:"=%.exe
 set CODE=".build\electron\%NAMESHORT%"
 
-:: Manage built-in extensions
 if "%~1"=="--builtin" goto builtin
 
-:: Auto-start Dardcor Provider is now handled entirely inside app.ts
-
-:: Configuration
 set NODE_ENV=development
 set VSCODE_DEV=1
 set VSCODE_CLI=1
@@ -39,7 +42,6 @@ for %%A in (%*) do (
 	)
 )
 
-:: Launch Code
 %CODE% . %DISABLE_TEST_EXTENSION% %*
 goto end
 

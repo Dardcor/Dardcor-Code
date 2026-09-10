@@ -49,6 +49,12 @@ import { formatDardcorRouterError } from './participants/dardcorRouterError.js';
  */
 export const COPILOT_VENDOR_ID = 'copilot';
 
+export const AUTO_RAW_MODEL_ID = 'auto';
+
+export function canHideModel(identifier: string, metadata: ILanguageModelChatMetadata): boolean {
+	return !metadata.isBYOK && metadata.isUserSelectable !== false;
+}
+
 /** Whether a missing model is conclusively absent from a vendor's live model list. Empty Copilot results remain transient while token-backed discovery completes. */
 export function isLanguageModelVendorAbsenceConclusive(vendor: string, hasLiveModels: boolean, hasResolved: boolean): boolean {
 	return hasLiveModels || (hasResolved && vendor !== COPILOT_VENDOR_ID);
@@ -338,6 +344,7 @@ export interface ILanguageModelChatMetadata {
 		readonly discountPercent: number;
 		readonly endsAt?: string;
 		readonly message: string;
+		readonly showBanner?: boolean;
 	};
 }
 
@@ -364,6 +371,10 @@ export namespace ILanguageModelChatMetadata {
 	/** Whether the model has a promo message to surface, including message-only (0%) promos. */
 	export function hasPromoMessage(metadata: ILanguageModelChatMetadata): metadata is ILanguageModelChatMetadata & { readonly promo: NonNullable<ILanguageModelChatMetadata['promo']> } {
 		return !!metadata.promo && metadata.promo.discountPercent >= 0 && !!metadata.promo.message;
+	}
+
+	export function hasPromoBanner(metadata: ILanguageModelChatMetadata): metadata is ILanguageModelChatMetadata & { readonly promo: NonNullable<ILanguageModelChatMetadata['promo']> } {
+		return hasPromoMessage(metadata) && metadata.promo.showBanner !== false;
 	}
 
 	/** The localized "Ends {date}." sentence, or `undefined` for a missing or unparsable end date. */
@@ -526,6 +537,13 @@ export interface ILanguageModelsGroup {
 		readonly message: string;
 		readonly severity: Severity;
 	};
+}
+
+export interface IModelConfigurationAccess {
+	getModelConfiguration(modelId: string): IStringDictionary<unknown> | undefined;
+	setModelConfiguration(modelId: string, values: IStringDictionary<unknown>): Promise<void>;
+	getModelConfigurationActions(modelId: string): IAction[];
+	readonly onDidChange?: Event<string>;
 }
 
 export interface ILanguageModelsService {
@@ -710,14 +728,18 @@ export interface ILanguageModelsService {
 export const DARDCOR_PROVIDER_DISPLAY_NAMES: { [key: string]: string } = {
 	'antigravity': 'Antigravity',
 	'ag': 'Antigravity',
-	'opencode': 'OpenCode',
-	'oc': 'OpenCode',
+	'opencode': 'OpenCode Free',
+	'oc': 'OpenCode Free',
+	'opencode-free': 'OpenCode Free',
 	'opencode-go': 'OpenCode Go',
 	'ocg': 'OpenCode Go',
 	'anthropic': 'Anthropic',
 	'claude': 'Anthropic',
 	'openai': 'OpenAI',
 	'oai': 'OpenAI',
+	'codex': 'OpenAI Codex',
+	'cx': 'OpenAI Codex',
+	'openai-codex': 'OpenAI Codex',
 	'google': 'Gemini AI Studio',
 	'gemini': 'Gemini AI Studio',
 	'gemini-cli': 'Gemini CLI',
@@ -730,11 +752,13 @@ export const DARDCOR_PROVIDER_DISPLAY_NAMES: { [key: string]: string } = {
 	'deepseek': 'DeepSeek',
 	'ds': 'DeepSeek',
 	'groq': 'Groq',
-	'xai': 'xAI',
-	'grok-cli': 'xAI',
-	'gcli': 'xAI',
-	'grok-web': 'xAI',
-	'gw': 'xAI',
+	'xai': 'Grok (xAI)',
+	'grok-cli': 'Grok CLI (Grok Build)',
+	'gcli': 'Grok CLI (Grok Build)',
+	'grok-build': 'Grok CLI (Grok Build)',
+	'gb': 'Grok CLI (Grok Build)',
+	'grok-web': 'Grok Web',
+	'gw': 'Grok Web',
 	'kimi': 'Kimi',
 	'glm': 'GLM',
 	'glm-cn': 'GLM',
@@ -855,6 +879,24 @@ export function getLanguageModelProviderDisplayName(languageModelsService?: ILan
 		}
 	}
 	const lower = target.toLowerCase();
+	if (lower.startsWith('ag/') || lower.includes('antigravity')) {
+		return 'Antigravity';
+	}
+	if (lower.startsWith('cx/') || lower.includes('codex') || lower.includes('sol') || lower.includes('terra') || lower.includes('luna')) {
+		return 'OpenAI Codex';
+	}
+	if (lower.startsWith('gc/') || lower.includes('gemini-cli')) {
+		return 'Gemini CLI';
+	}
+	if (lower.startsWith('gcli/') || lower.startsWith('gb/') || lower.includes('grok-cli') || lower.includes('grok-build')) {
+		return 'Grok CLI (Grok Build)';
+	}
+	if (lower.startsWith('ocg/') || lower.includes('opencode-go')) {
+		return 'OpenCode Go';
+	}
+	if (lower.startsWith('oc/') || lower.includes('opencode') || lower.includes('big-pickle') || lower.endsWith('-free') || lower.includes('ling-') || lower.includes('nemotron')) {
+		return 'OpenCode Free';
+	}
 	if (lower.includes('claude') || lower.includes('fable') || lower.includes('haiku') || lower.includes('sonnet') || lower.includes('opus')) {
 		return 'Anthropic';
 	}
@@ -868,7 +910,7 @@ export function getLanguageModelProviderDisplayName(languageModelsService?: ILan
 		return 'DeepSeek';
 	}
 	if (lower.includes('grok')) {
-		return 'xAI';
+		return 'Grok (xAI)';
 	}
 	if (lower.includes('kimi') || lower.includes('moonshot')) {
 		return 'Kimi';
@@ -880,7 +922,7 @@ export function getLanguageModelProviderDisplayName(languageModelsService?: ILan
 		return 'Qwen';
 	}
 	if (lower.includes('big-pickle') || lower.endsWith('-free') || lower.includes('ling-') || lower.includes('nemotron')) {
-		return 'OpenCode';
+		return 'OpenCode Free';
 	}
 	if (lower.includes('llama') || lower.includes('groq')) {
 		return 'Groq';
@@ -912,10 +954,10 @@ export function getLanguageModelProviderDisplayName(languageModelsService?: ILan
 	}
 
 	if (raw === 'dardcor' || raw === 'copilot' || raw === 'copilotcli' || raw === 'dardcor-code') {
-		return 'OpenCode';
+		return 'OpenCode Free';
 	}
 
-	return raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : 'OpenCode';
+	return raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : 'OpenCode Free';
 }
 
 export function getLanguageModelDisplayNameWithProvider(model: ILanguageModelChatMetadataAndIdentifier, languageModelsService: ILanguageModelsService): string {
@@ -943,6 +985,7 @@ export function getLanguageModelDisplayNameWithProvider(model: ILanguageModelCha
 export interface IModelControlEntry {
 	readonly label: string;
 	readonly featured?: boolean;
+	readonly demoted?: boolean;
 	readonly minVSCodeVersion?: string;
 	readonly exists: boolean;
 }
@@ -1141,6 +1184,212 @@ export function createModelConfigurationActions(
 	return actions;
 }
 
+export const DARDCOR_ROUTER_MODEL_NAMES: { [key: string]: string } = {
+	// Antigravity (21 models)
+	'gemini-3.8-flash-high': 'Gemini 3.8 Flash (High)',
+	'gemini-3.8-flash-medium': 'Gemini 3.8 Flash (Medium)',
+	'gemini-3.8-flash-low': 'Gemini 3.8 Flash (Low)',
+	'gemini-3.8-flash': 'Gemini 3.8 Flash',
+	'gemini-3.7-flash-high': 'Gemini 3.7 Flash (High)',
+	'gemini-3.7-flash-medium': 'Gemini 3.7 Flash (Medium)',
+	'gemini-3.7-flash-low': 'Gemini 3.7 Flash (Low)',
+	'gemini-3.6-flash-high': 'Gemini 3.6 Flash (High)',
+	'gemini-3.6-flash-medium': 'Gemini 3.6 Flash (Medium)',
+	'gemini-3.6-flash-low': 'Gemini 3.6 Flash (Low)',
+	'gemini-3.5-flash-high': 'Gemini 3.5 Flash (High)',
+	'gemini-3-flash-agent': 'Gemini 3.5 Flash (High)',
+	'gemini-3.5-flash-low': 'Gemini 3.5 Flash (Medium)',
+	'gemini-3.5-flash-extra-low': 'Gemini 3.5 Flash (Low)',
+	'gemini-pro-agent': 'Gemini 3.1 Pro (High)',
+	'gemini-3.1-pro-low': 'Gemini 3.1 Pro (Low)',
+	'claude-sonnet-4-6': 'Claude Sonnet 4.6 (Thinking)',
+	'claude-opus-4-6-thinking': 'Claude Opus 4.6 (Thinking)',
+	'gpt-oss-120b-medium': 'GPT-OSS 120B (Medium)',
+	'gemini-3-flash': 'Gemini 3 Flash',
+	'gemini-3.1-flash-image': 'Gemini 3.1 Flash (Image)',
+
+	// OpenCode Free
+	'big-pickle': 'Big Pickle',
+	'claude-fable-5': 'Claude Fable 5',
+	'claude-fable-5.1': 'Claude Fable 5.1',
+	'deepseek-v4-flash-free': 'DeepSeek V4 Flash (Free)',
+	'kimi-k2.5-free': 'Kimi K2.5 (Free)',
+	'glm-4.7-free': 'GLM 4.7 (Free)',
+	'qwen3-coder-free': 'Qwen 3 Coder (Free)',
+	'deepseek-r1-free': 'DeepSeek R1 (Free)',
+	'gemini-2.5-flash-free': 'Gemini 2.5 Flash (Free)',
+	'hy3-free': 'HY3 (Free)',
+	'mimo-v2.5-free': 'MiMo V2.5 (Free)',
+	'ling-3.0-flash-fin-free': 'Ling 3.0 Flash Fin (Free)',
+	'nemotron-3-ultra-free': 'Nemotron 3 Ultra (Free)',
+	'nemotron-3.5-lightning-free': 'Nemotron 3.5 Lightning (Free)',
+	'laguna-s-2.1-free': 'Laguna S 2.1 (Free)',
+	'muse-spark-1.2-contributor-free': 'Muse Spark 1.2 Contributor Free',
+	'muse-spark-1.3-contributor-free': 'Muse Spark 1.3 Contributor Free',
+
+	// OpenCode Go (18 models)
+	'glm-5.3-flash': 'GLM 5.3 Flash (Vision)',
+	'glm-5.2': 'GLM 5.2',
+	'glm-5.1': 'GLM 5.1',
+	'kimi-k2.7-code': 'Kimi K2.7 Code',
+	'kimi-k2.6': 'Kimi K2.6',
+	'deepseek-v4-pro': 'DeepSeek V4 Pro',
+	'deepseek-v4-flash': 'DeepSeek V4 Flash',
+	'deepseek-v4-flash-vision-exp': 'DeepSeek V4 Flash Vision (Exp)',
+	'mimo-v2.5': 'MiMo V2.5',
+	'mimo-v2.5-pro': 'MiMo V2.5 Pro',
+	'minimax-m3': 'MiniMax M3',
+	'minimax-m2.7': 'MiniMax M2.7',
+	'minimax-m2.5': 'MiniMax M2.5',
+	'qwen3.7-max': 'Qwen 3.7 Max',
+	'qwen3.7-plus': 'Qwen 3.7 Plus',
+	'qwen3.6-plus': 'Qwen 3.6 Plus',
+	'muse-spark-1.2-contributor': 'Muse Spark 1.2 Contributor',
+	'muse-spark-1.3-contributor': 'Muse Spark 1.3 Contributor',
+
+	// OpenAI Codex (21 models)
+	'gpt-6-astra': 'GPT 6.0 Astra',
+	'gpt-5.6-sol': 'GPT 5.6 Sol',
+	'gpt-5.6-sol-review': 'GPT 5.6 Sol Review',
+	'gpt-5.6-terra': 'GPT 5.6 Terra',
+	'gpt-5.6-terra-review': 'GPT 5.6 Terra Review',
+	'gpt-5.6-luna': 'GPT 5.6 Luna',
+	'gpt-5.6-luna-review': 'GPT 5.6 Luna Review',
+	'gpt-5.5': 'GPT 5.5',
+	'gpt-5.5-review': 'GPT 5.5 Review',
+	'gpt-5.4': 'GPT 5.4',
+	'gpt-5.4-review': 'GPT 5.4 Review',
+	'gpt-5.4-mini': 'GPT 5.4 Mini',
+	'gpt-5.4-mini-review': 'GPT 5.4 Mini Review',
+	'gpt-5.3-codex-spark': 'GPT 5.3 Codex Spark',
+	'gpt-5.3-codex-spark-review': 'GPT 5.3 Codex Spark Review',
+	'gpt-5.6-sol-image': 'GPT 5.6 Sol Image',
+	'gpt-5.6-terra-image': 'GPT 5.6 Terra Image',
+	'gpt-5.6-luna-image': 'GPT 5.6 Luna Image',
+	'gpt-5.5-image': 'GPT 5.5 Image',
+	'gpt-5.4-image': 'GPT 5.4 Image',
+	'gpt-5.3-image': 'GPT 5.3 Image',
+
+	// Gemini CLI (7 models)
+	'gemini-3.1-pro-preview': 'Gemini 3.1 Pro Preview',
+	'gemini-3-pro-preview': 'Gemini 3 Pro Preview',
+	'gemini-3-flash-preview': 'Gemini 3 Flash Preview',
+	'gemini-3.1-flash-lite-preview': 'Gemini 3.1 Flash Lite Preview',
+	'gemini-2.5-pro': 'Gemini 2.5 Pro',
+	'gemini-2.5-flash': 'Gemini 2.5 Flash',
+	'gemini-2.5-flash-lite': 'Gemini 2.5 Flash Lite',
+
+	// Grok CLI (5 models)
+	'grok-build': 'Grok Build',
+	'grok-4.5': 'Grok 4.5',
+	'grok-4.5-high': 'Grok 4.5 (High)',
+	'grok-4.5-medium': 'Grok 4.5 (Medium)',
+	'grok-4.5-low': 'Grok 4.5 (Low)',
+};
+
+export const DARDCOR_ROUTER_OFFLINE_CATALOG: { id: string; name: string; owned_by: string; capabilities?: { contextWindow?: number; maxOutput?: number; vision?: boolean } }[] = [
+	// Antigravity (21 models)
+	{ id: 'ag/gemini-3.8-flash-high', name: 'Gemini 3.8 Flash (High)', owned_by: 'ag', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
+	{ id: 'ag/gemini-3.8-flash-medium', name: 'Gemini 3.8 Flash (Medium)', owned_by: 'ag', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
+	{ id: 'ag/gemini-3.8-flash-low', name: 'Gemini 3.8 Flash (Low)', owned_by: 'ag', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
+	{ id: 'ag/gemini-3.8-flash', name: 'Gemini 3.8 Flash', owned_by: 'ag', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
+	{ id: 'ag/gemini-3.7-flash-high', name: 'Gemini 3.7 Flash (High)', owned_by: 'ag', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
+	{ id: 'ag/gemini-3.7-flash-medium', name: 'Gemini 3.7 Flash (Medium)', owned_by: 'ag', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
+	{ id: 'ag/gemini-3.7-flash-low', name: 'Gemini 3.7 Flash (Low)', owned_by: 'ag', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
+	{ id: 'ag/gemini-3.6-flash-high', name: 'Gemini 3.6 Flash (High)', owned_by: 'ag', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
+	{ id: 'ag/gemini-3.6-flash-medium', name: 'Gemini 3.6 Flash (Medium)', owned_by: 'ag', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
+	{ id: 'ag/gemini-3.6-flash-low', name: 'Gemini 3.6 Flash (Low)', owned_by: 'ag', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
+	{ id: 'ag/gemini-3.5-flash-high', name: 'Gemini 3.5 Flash (High)', owned_by: 'ag', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
+	{ id: 'ag/gemini-3-flash-agent', name: 'Gemini 3.5 Flash (High)', owned_by: 'ag', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
+	{ id: 'ag/gemini-3.5-flash-low', name: 'Gemini 3.5 Flash (Medium)', owned_by: 'ag', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
+	{ id: 'ag/gemini-3.5-flash-extra-low', name: 'Gemini 3.5 Flash (Low)', owned_by: 'ag', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
+	{ id: 'ag/gemini-pro-agent', name: 'Gemini 3.1 Pro (High)', owned_by: 'ag', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
+	{ id: 'ag/gemini-3.1-pro-low', name: 'Gemini 3.1 Pro (Low)', owned_by: 'ag', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
+	{ id: 'ag/claude-sonnet-4-6', name: 'Claude Sonnet 4.6 (Thinking)', owned_by: 'ag', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
+	{ id: 'ag/claude-opus-4-6-thinking', name: 'Claude Opus 4.6 (Thinking)', owned_by: 'ag', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
+	{ id: 'ag/gpt-oss-120b-medium', name: 'GPT-OSS 120B (Medium)', owned_by: 'ag', capabilities: { contextWindow: 131072, maxOutput: 32768, vision: true } },
+	{ id: 'ag/gemini-3-flash', name: 'Gemini 3 Flash', owned_by: 'ag', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
+	{ id: 'ag/gemini-3.1-flash-image', name: 'Gemini 3.1 Flash (Image)', owned_by: 'ag', capabilities: { contextWindow: 32768, maxOutput: 4096, vision: true } },
+
+	// OpenCode Free
+	{ id: 'oc/big-pickle', name: 'Big Pickle', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'oc/claude-fable-5', name: 'Claude Fable 5', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
+	{ id: 'oc/claude-fable-5.1', name: 'Claude Fable 5.1', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
+	{ id: 'oc/deepseek-v4-flash-free', name: 'DeepSeek V4 Flash (Free)', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'oc/kimi-k2.5-free', name: 'Kimi K2.5 (Free)', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
+	{ id: 'oc/glm-4.7-free', name: 'GLM 4.7 (Free)', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
+	{ id: 'oc/qwen3-coder-free', name: 'Qwen 3 Coder (Free)', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'oc/deepseek-r1-free', name: 'DeepSeek R1 (Free)', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'oc/gemini-2.5-flash-free', name: 'Gemini 2.5 Flash (Free)', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
+	{ id: 'oc/hy3-free', name: 'HY3 (Free)', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'oc/mimo-v2.5-free', name: 'MiMo V2.5 (Free)', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'oc/ling-3.0-flash-fin-free', name: 'Ling 3.0 Flash Fin (Free)', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'oc/nemotron-3-ultra-free', name: 'Nemotron 3 Ultra (Free)', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'oc/nemotron-3.5-lightning-free', name: 'Nemotron 3.5 Lightning (Free)', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'oc/laguna-s-2.1-free', name: 'Laguna S 2.1 (Free)', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'oc/muse-spark-1.2-contributor-free', name: 'Muse Spark 1.2 Contributor Free', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'oc/muse-spark-1.3-contributor-free', name: 'Muse Spark 1.3 Contributor Free', owned_by: 'oc', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+
+	// OpenCode Go (18 models)
+	{ id: 'ocg/glm-5.3-flash', name: 'GLM 5.3 Flash (Vision)', owned_by: 'ocg', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
+	{ id: 'ocg/glm-5.2', name: 'GLM 5.2', owned_by: 'ocg', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'ocg/glm-5.1', name: 'GLM 5.1', owned_by: 'ocg', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'ocg/kimi-k2.7-code', name: 'Kimi K2.7 Code', owned_by: 'ocg', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'ocg/kimi-k2.6', name: 'Kimi K2.6', owned_by: 'ocg', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'ocg/deepseek-v4-pro', name: 'DeepSeek V4 Pro', owned_by: 'ocg', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'ocg/deepseek-v4-flash', name: 'DeepSeek V4 Flash', owned_by: 'ocg', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'ocg/deepseek-v4-flash-vision-exp', name: 'DeepSeek V4 Flash Vision (Exp)', owned_by: 'ocg', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
+	{ id: 'ocg/mimo-v2.5', name: 'MiMo V2.5', owned_by: 'ocg', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'ocg/mimo-v2.5-pro', name: 'MiMo V2.5 Pro', owned_by: 'ocg', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'ocg/minimax-m3', name: 'MiniMax M3', owned_by: 'ocg', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'ocg/minimax-m2.7', name: 'MiniMax M2.7', owned_by: 'ocg', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'ocg/minimax-m2.5', name: 'MiniMax M2.5', owned_by: 'ocg', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'ocg/qwen3.7-max', name: 'Qwen 3.7 Max', owned_by: 'ocg', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'ocg/qwen3.7-plus', name: 'Qwen 3.7 Plus', owned_by: 'ocg', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'ocg/qwen3.6-plus', name: 'Qwen 3.6 Plus', owned_by: 'ocg', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'ocg/muse-spark-1.2-contributor', name: 'Muse Spark 1.2 Contributor', owned_by: 'ocg', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+	{ id: 'ocg/muse-spark-1.3-contributor', name: 'Muse Spark 1.3 Contributor', owned_by: 'ocg', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false } },
+
+	// OpenAI Codex (21 models)
+	{ id: 'cx/gpt-6-astra', name: 'GPT 6.0 Astra', owned_by: 'cx', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
+	{ id: 'cx/gpt-5.6-sol', name: 'GPT 5.6 Sol', owned_by: 'cx', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
+	{ id: 'cx/gpt-5.6-sol-review', name: 'GPT 5.6 Sol Review', owned_by: 'cx', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
+	{ id: 'cx/gpt-5.6-terra', name: 'GPT 5.6 Terra', owned_by: 'cx', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
+	{ id: 'cx/gpt-5.6-terra-review', name: 'GPT 5.6 Terra Review', owned_by: 'cx', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
+	{ id: 'cx/gpt-5.6-luna', name: 'GPT 5.6 Luna', owned_by: 'cx', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
+	{ id: 'cx/gpt-5.6-luna-review', name: 'GPT 5.6 Luna Review', owned_by: 'cx', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
+	{ id: 'cx/gpt-5.5', name: 'GPT 5.5', owned_by: 'cx', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
+	{ id: 'cx/gpt-5.5-review', name: 'GPT 5.5 Review', owned_by: 'cx', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
+	{ id: 'cx/gpt-5.4', name: 'GPT 5.4', owned_by: 'cx', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
+	{ id: 'cx/gpt-5.4-review', name: 'GPT 5.4 Review', owned_by: 'cx', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
+	{ id: 'cx/gpt-5.4-mini', name: 'GPT 5.4 Mini', owned_by: 'cx', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
+	{ id: 'cx/gpt-5.4-mini-review', name: 'GPT 5.4 Mini Review', owned_by: 'cx', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
+	{ id: 'cx/gpt-5.3-codex-spark', name: 'GPT 5.3 Codex Spark', owned_by: 'cx', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
+	{ id: 'cx/gpt-5.3-codex-spark-review', name: 'GPT 5.3 Codex Spark Review', owned_by: 'cx', capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true } },
+	{ id: 'cx/gpt-5.6-sol-image', name: 'GPT 5.6 Sol Image', owned_by: 'cx', capabilities: { contextWindow: 32768, maxOutput: 4096, vision: true } },
+	{ id: 'cx/gpt-5.6-terra-image', name: 'GPT 5.6 Terra Image', owned_by: 'cx', capabilities: { contextWindow: 32768, maxOutput: 4096, vision: true } },
+	{ id: 'cx/gpt-5.6-luna-image', name: 'GPT 5.6 Luna Image', owned_by: 'cx', capabilities: { contextWindow: 32768, maxOutput: 4096, vision: true } },
+	{ id: 'cx/gpt-5.5-image', name: 'GPT 5.5 Image', owned_by: 'cx', capabilities: { contextWindow: 32768, maxOutput: 4096, vision: true } },
+	{ id: 'cx/gpt-5.4-image', name: 'GPT 5.4 Image', owned_by: 'cx', capabilities: { contextWindow: 32768, maxOutput: 4096, vision: true } },
+	{ id: 'cx/gpt-5.3-image', name: 'GPT 5.3 Image', owned_by: 'cx', capabilities: { contextWindow: 32768, maxOutput: 4096, vision: true } },
+
+	// Gemini CLI (7 models)
+	{ id: 'gc/gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro Preview', owned_by: 'gc', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
+	{ id: 'gc/gemini-3-pro-preview', name: 'Gemini 3 Pro Preview', owned_by: 'gc', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
+	{ id: 'gc/gemini-3-flash-preview', name: 'Gemini 3 Flash Preview', owned_by: 'gc', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
+	{ id: 'gc/gemini-3.1-flash-lite-preview', name: 'Gemini 3.1 Flash Lite Preview', owned_by: 'gc', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
+	{ id: 'gc/gemini-2.5-pro', name: 'Gemini 2.5 Pro', owned_by: 'gc', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
+	{ id: 'gc/gemini-2.5-flash', name: 'Gemini 2.5 Flash', owned_by: 'gc', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
+	{ id: 'gc/gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite', owned_by: 'gc', capabilities: { contextWindow: 1048576, maxOutput: 65536, vision: true } },
+
+	// Grok CLI (5 models)
+	{ id: 'gcli/grok-build', name: 'Grok Build', owned_by: 'gcli', capabilities: { contextWindow: 131072, maxOutput: 32768, vision: true } },
+	{ id: 'gcli/grok-4.5', name: 'Grok 4.5', owned_by: 'gcli', capabilities: { contextWindow: 131072, maxOutput: 32768, vision: true } },
+	{ id: 'gcli/grok-4.5-high', name: 'Grok 4.5 (High)', owned_by: 'gcli', capabilities: { contextWindow: 131072, maxOutput: 32768, vision: true } },
+	{ id: 'gcli/grok-4.5-medium', name: 'Grok 4.5 (Medium)', owned_by: 'gcli', capabilities: { contextWindow: 131072, maxOutput: 32768, vision: true } },
+	{ id: 'gcli/grok-4.5-low', name: 'Grok 4.5 (Low)', owned_by: 'gcli', capabilities: { contextWindow: 131072, maxOutput: 32768, vision: true } },
+];
+
 export class LanguageModelsService implements ILanguageModelsService {
 
 	private static SECRET_KEY_PREFIX = 'chat.lm.secret.';
@@ -1216,16 +1465,16 @@ export class LanguageModelsService implements ILanguageModelsService {
 		const DARDCOR_MODELS_CACHE_STORAGE_KEY = 'chat.cachedDrouterModels';
 		const localDrouterModelIds = new Set<string>();
 
-		const populateModelsFromList = (list: any[]): boolean => {
-			if (!Array.isArray(list) || list.length === 0) {
-				return false;
-			}
-			const seen = new Set<string>();
+		const populateModelsFromList = (list: any[], allowPruning: boolean = false): boolean => {
+			if (!Array.isArray(list) || list.length === 0) return false;
 			const nextIds = new Set<string>();
+			const seen = new Set<string>();
 			for (const m of list) {
 				let id = typeof m === 'string' ? m : (m.id || m.name || '');
-				if (typeof id === 'string' && !id.includes('/') && (id.toLowerCase().endsWith('-free') || id.toLowerCase() === 'big-pickle')) id = `oc/${id}`;
-				if (!id || id.toLowerCase() === 'auto' || id.toLowerCase() === 'claude-none' || id.toLowerCase() === 'opencode/no-model-selected') continue;
+				if (typeof id === 'string' && id.toLowerCase().endsWith('-free') && !id.includes('/')) id = `oc/${id}`;
+				if (typeof id === 'string' && id.toLowerCase() === 'big-pickle') id = 'oc/big-pickle';
+				if (!id || id.toLowerCase() === 'auto' || id.toLowerCase() === 'claude-none') continue;
+
 				const lowerId = id.toLowerCase();
 				if (seen.has(lowerId)) continue;
 				seen.add(lowerId);
@@ -1241,7 +1490,9 @@ export class LanguageModelsService implements ILanguageModelsService {
 				const providerId = (prefix || ownedBy || providerDisplayName).toLowerCase();
 
 				let clean = id.includes('/') ? id.slice(id.indexOf('/') + 1) : id;
-				const name = (typeof m === 'object' && m.name && m.name !== id) ? m.name : clean.split(/[-_]/).map((part: string) => {
+				const rawName = (typeof m === 'object' && m.name && typeof m.name === 'string') ? m.name.trim() : '';
+				const routerName = DARDCOR_ROUTER_MODEL_NAMES[id] || DARDCOR_ROUTER_MODEL_NAMES[clean] || ((rawName && rawName !== id && rawName !== clean) ? rawName : undefined);
+				const name = routerName || clean.split(/[-_]/).map((part: string) => {
 					if (['free', 'unlimited', 'pro', 'plus'].includes(part.toLowerCase())) {
 						return `(${part.charAt(0).toUpperCase() + part.slice(1)})`;
 					}
@@ -1277,51 +1528,30 @@ export class LanguageModelsService implements ILanguageModelsService {
 			}
 			if (nextIds.size > 0) {
 				this._modelCache.delete('opencode/no-model-selected');
-				for (const id of localDrouterModelIds) {
-					if (!nextIds.has(id)) this._modelCache.delete(id);
+				if (allowPruning) {
+					for (const id of localDrouterModelIds) {
+						if (!nextIds.has(id)) this._modelCache.delete(id);
+					}
+					localDrouterModelIds.clear();
 				}
-				localDrouterModelIds.clear();
 				for (const id of nextIds) localDrouterModelIds.add(id);
 				return true;
 			}
 			return false;
 		};
 
-		const defaultDardcorModels: ILanguageModelChatMetadataAndIdentifier[] = [
-			{
-				identifier: 'opencode/no-model-selected',
-				metadata: {
-					extension: new ExtensionIdentifier('dardcor.dardcor'),
-					isDefaultForLocation: {},
-					id: 'opencode/no-model-selected',
-					name: 'No Model Selected',
-					vendor: 'dardcor',
-					family: 'opencode/no-model-selected',
-					version: '1.0.0',
-					maxInputTokens: 0,
-					maxOutputTokens: 0,
-					isUserSelectable: true,
-					capabilities: { toolCalling: false, agentMode: false, vision: false }
-				}
-			}
-		];
+		// Always initialize the model cache with the full offline catalog
+		populateModelsFromList(DARDCOR_ROUTER_OFFLINE_CATALOG);
 
-		// Load cached models immediately so the picker is populated with 0ms delay on startup
-		let initialLoaded = false;
+		// Load cached models if previously saved to overlay
 		try {
 			const cachedRaw = this._storageService.get(DARDCOR_MODELS_CACHE_STORAGE_KEY, StorageScope.APPLICATION);
 			if (cachedRaw) {
 				const parsed = JSON.parse(cachedRaw);
-				initialLoaded = populateModelsFromList(parsed);
+				populateModelsFromList(parsed);
 			}
 		} catch {
 			// ignore parse error
-		}
-
-		if (!initialLoaded) {
-			for (const m of defaultDardcorModels) {
-				this._modelCache.set(m.identifier, m.metadata);
-			}
 		}
 
 		let hasReceivedLiveModels = false;
@@ -1767,22 +1997,41 @@ Automatically detect the user's language and respond fluently in the exact same 
 							let id = typeof m === 'string' ? m : (m.id || m.name || '');
 							if (typeof id === 'string' && id.toLowerCase().endsWith('-free') && !id.includes('/')) id = `oc/${id}`;
 							if (!id || id.toLowerCase() === 'auto' || id.toLowerCase() === 'claude-none') continue;
-							if (allModels.some(model => model.identifier === id)) continue;
-							const canonical = id.replace(/^(ag|oc|ds|opencode)\//i, '').toLowerCase();
+
+							const canonical = id.toLowerCase();
 							if (seen.has(canonical)) continue;
 							seen.add(canonical);
 
-							const maxContext = (typeof m === 'object' && m.capabilities?.contextWindow) ? m.capabilities.contextWindow : 200000;
-							const maxOutput = (typeof m === 'object' && m.capabilities?.maxOutput) ? m.capabilities.maxOutput : 64000;
-							const hasVision = typeof m === 'object' && m.capabilities?.vision === true;
-
-							let clean = id.replace(/^(ag|oc|ds|opencode)\//i, '');
-							const name = (typeof m === 'object' && m.name && m.name !== id) ? m.name : clean.split(/[-_]/).map((part: string) => {
+							let clean = id.replace(/^(ag|oc|ds|opencode|cx|codex|gc|gemini|gcli|xai)\//i, '');
+							const rawRouterName = (typeof m === 'object' && m.name && typeof m.name === 'string' && m.name.trim().length > 0) ? m.name.trim() : '';
+							const routerName = DARDCOR_ROUTER_MODEL_NAMES[id] || DARDCOR_ROUTER_MODEL_NAMES[clean] || ((rawRouterName && rawRouterName !== id && rawRouterName !== clean) ? rawRouterName : undefined);
+							const name = routerName || clean.split(/[-_]/).map((part: string) => {
 								if (['free', 'unlimited', 'pro', 'plus'].includes(part.toLowerCase())) {
 									return `(${part.charAt(0).toUpperCase() + part.slice(1)})`;
 								}
 								return part.charAt(0).toUpperCase() + part.slice(1);
 							}).join(' ');
+
+							const providerPrefix = id.includes('/') ? id.split('/')[0].trim().toLowerCase() : ((typeof m === 'object' && m.owned_by) ? String(m.owned_by).trim().toLowerCase() : '');
+							const providerDisplayName = providerPrefix ? getLanguageModelProviderDisplayName(this, providerPrefix, id) : 'Dardcor';
+
+							const existing = allModels.find(model => model.identifier === id);
+							if (existing) {
+								if (name && existing.metadata) {
+									(existing.metadata as any).name = name;
+									if (!(existing.metadata as any).modelGroup) {
+										(existing.metadata as any).modelGroup = {
+											id: providerPrefix || vendorId,
+											name: providerDisplayName
+										};
+									}
+								}
+								continue;
+							}
+
+							const maxContext = (typeof m === 'object' && m.capabilities?.contextWindow) ? m.capabilities.contextWindow : 200000;
+							const maxOutput = (typeof m === 'object' && m.capabilities?.maxOutput) ? m.capabilities.maxOutput : 64000;
+							const hasVision = typeof m === 'object' && m.capabilities?.vision === true;
 
 							allModels.push({
 								identifier: id,
@@ -1797,6 +2046,10 @@ Automatically detect the user's language and respond fluently in the exact same 
 									maxInputTokens: maxContext,
 									maxOutputTokens: maxOutput,
 									isUserSelectable: true,
+									modelGroup: {
+										id: providerPrefix || vendorId,
+										name: providerDisplayName
+									},
 									capabilities: {
 										toolCalling: true,
 										agentMode: true,

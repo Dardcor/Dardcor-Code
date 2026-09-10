@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { ElicitationRequest, ElicitationResult } from '@anthropic-ai/claude-agent-sdk';
-import { generateUuid } from '../../../../base/common/uuid.js';
 import { ChatInputResponseKind } from '../../common/state/sessionState.js';
 import { ClaudeAgentSession } from './claudeAgentSession.js';
+import { generateUuid } from '../../../../base/common/uuid.js';
 import { buildElicitationRequest, cancelledElicitationResult, elicitationResultFromAnswers } from './claudeElicitation.js';
 
 /**
@@ -38,14 +38,14 @@ export async function handleElicitation(
 	deps: IClaudeElicitationDeps,
 	sessionId: string,
 	request: ElicitationRequest,
-	options: { readonly signal: AbortSignal },
+	options: { readonly signal: AbortSignal; readonly requestId?: string },
 ): Promise<ElicitationResult> {
 	const session = deps.getSession(sessionId);
 	if (!session) {
 		return cancelledElicitationResult();
 	}
 
-	const requestId = generateUuid();
+	const requestId = options.requestId ?? generateUuid();
 
 	if (options.signal.aborted) {
 		return cancelledElicitationResult();

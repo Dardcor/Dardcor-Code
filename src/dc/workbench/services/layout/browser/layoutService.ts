@@ -51,17 +51,20 @@ export const enum LayoutSettings {
 	COMMAND_CENTER = 'window.commandCenter',
 	LAYOUT_ACTIONS = 'workbench.layoutControl.enabled',
 	SHADOWS = 'workbench.shadows',
-	MODERN_UI = 'workbench.experimental.modernUI'
+	MODERN_UI = 'workbench.experimental.modernUI',
+	MODERN_UI_DENSITY = 'window.density.layout',
+	MODERN_UI_UPPERCASE_VIEW_HEADERS = 'workbench.experimental.modernUIUppercaseViewHeaders'
 }
 
-/**
- * The margin (in pixels) reserved on each side of a part when the Modern UI Update
- * experiment (`LayoutSettings.MODERN_UI`) is enabled. Parts grow or shrink their
- * content by this amount to leave room for the margin/border applied in CSS
- * (`src/vs/workbench/browser/media/floatingPanels.css`, `.floating-panels`).
- * Keep in sync with the `--vscode-spacing-size40` (4px) token used there.
- */
+export const enum ModernUIDensity {
+	Default = 'default',
+	Compact = 'compact'
+}
+
 export const FLOATING_PANEL_MARGIN = 4;
+export const COMPACT_FLOATING_PANEL_MARGIN = 0;
+export const COMPACT_FLOATING_PANEL_OUTER_MARGIN = 4;
+
 
 /**
  * The trailing card margin (in pixels) when the Modern UI Update experiment is
@@ -461,6 +464,7 @@ export interface IWorkbenchLayoutService extends ILayoutService {
 	 * content insets.
 	 */
 	isFloatingPanelsEnabled(): boolean;
+	isModernUICompact?(): boolean;
 
 	/**
 	 * Focuses the part in the target window. If the part is not visible this is a noop.

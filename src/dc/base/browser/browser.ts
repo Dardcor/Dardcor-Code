@@ -5,6 +5,7 @@
 
 import { CodeWindow, mainWindow } from './window.js';
 import { Emitter } from '../common/event.js';
+import { isIOS } from '../common/platform.js';
 
 class WindowManager {
 
@@ -125,6 +126,9 @@ if (typeof mainWindow.matchMedia === 'function') {
 }
 export function isStandalone(): boolean {
 	return standalone;
+}
+export function isMobileStandalone(): boolean {
+	return (isAndroid || isIOS) && standalone;
 }
 
 // Visible means that the feature is enabled, not necessarily being rendered

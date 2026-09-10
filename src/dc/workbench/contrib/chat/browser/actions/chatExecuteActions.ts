@@ -22,6 +22,7 @@ import { IInstantiationService } from '../../../../../platform/instantiation/com
 import { KeybindingWeight } from '../../../../../platform/keybinding/common/keybindingsRegistry.js';
 import { ILogService } from '../../../../../platform/log/common/log.js';
 import { ITelemetryService } from '../../../../../platform/telemetry/common/telemetry.js';
+import { AgentHostAllowSignedOutWhenUsableSettingId } from '../../../../../platform/agentHost/common/agentService.js';
 import { IsSessionsWindowContext } from '../../../../common/contextkeys.js';
 import { ChatContextKeys } from '../../common/actions/chatContextKeys.js';
 import { buildCustomAgentHandoffsInfo, getHandoffId, IChatMode, IChatModeService, IChatModes } from '../../common/chatModes.js';
@@ -55,7 +56,7 @@ abstract class SubmitAction extends Action2 {
 		const context = args[0] as IChatExecuteActionContext | undefined;
 		const telemetryService = accessor.get(ITelemetryService);
 		const widgetService = accessor.get(IChatWidgetService);
-		const widget = context?.widget ?? widgetService.lastFocusedWidget ?? widgetService.getWidgetsByLocations(ChatAgentLocation.Chat)[0];
+		const widget = context?.widget ?? widgetService.lastFocusedWidget;
 
 		// Check if there's a pending delegation target
 		const pendingDelegationTarget = widget?.input.pendingDelegationTarget;
@@ -181,10 +182,7 @@ abstract class SubmitAction extends Action2 {
 	}
 }
 
-const whenNoActiveRequest = ContextKeyExpr.and(
-	ChatContextKeys.hasActiveRequest.negate(),
-	ChatContextKeys.requestInProgress.negate(),
-);
+const whenNoActiveRequest = ChatContextKeys.hasActiveRequest.negate();
 const whenNotInProgress = ChatContextKeys.requestInProgress.negate();
 
 export class ChatSubmitAction extends SubmitAction {
@@ -192,6 +190,11 @@ export class ChatSubmitAction extends SubmitAction {
 
 	constructor() {
 		const menuCondition = ChatContextKeys.chatModeKind.isEqualTo(ChatModeKind.Ask);
+		const precondition = ContextKeyExpr.and(
+			ChatContextKeys.inputHasSendableContent,
+			ContextKeyExpr.or(whenNotInProgress, ChatContextKeys.editingRequestType.isEqualTo(ChatContextKeys.EditingRequestType.Sent)),
+			ChatContextKeys.chatSessionOptionsValid,
+		);
 
 		super({
 			id: ChatSubmitAction.ID,
@@ -199,7 +202,7 @@ export class ChatSubmitAction extends SubmitAction {
 			f1: false,
 			category: CHAT_CATEGORY,
 			icon: Codicon.arrowUpCompact,
-			precondition: undefined,
+			precondition,
 			toggled: {
 				condition: ChatContextKeys.lockedToCodingAgent,
 				icon: Codicon.arrowUpCompact,
@@ -221,7 +224,6 @@ export class ChatSubmitAction extends SubmitAction {
 						whenNoActiveRequest,
 						menuCondition,
 						ChatContextKeys.withinEditSessionDiff.negate(),
-						ChatContextKeys.inputSubmitPending.negate(),
 					),
 					group: 'navigation',
 					alt: {
@@ -241,34 +243,6 @@ export class ChatSubmitAction extends SubmitAction {
 				}]
 		});
 	}
-}
-
-class ChatSubmitPendingAction extends Action2 {
-	static readonly ID = 'workbench.action.chat.submitPending';
-
-	constructor() {
-		super({
-			id: ChatSubmitPendingAction.ID,
-			title: localize2('interactive.submitPending.label', "Routing Request…"),
-			f1: false,
-			category: CHAT_CATEGORY,
-			icon: Codicon.loading,
-			precondition: ChatContextKeys.inputRouting,
-			menu: {
-				id: MenuId.ChatExecute,
-				order: 4,
-				when: ContextKeyExpr.and(
-					whenNoActiveRequest,
-					ChatContextKeys.chatModeKind.isEqualTo(ChatModeKind.Ask),
-					ChatContextKeys.withinEditSessionDiff.negate(),
-					ChatContextKeys.inputRouting,
-				),
-				group: 'navigation',
-			},
-		});
-	}
-
-	run(): void { }
 }
 
 
@@ -408,7 +382,7 @@ export class OpenModelPickerAction extends Action2 {
 			precondition: ChatContextKeys.enabled,
 			menu: {
 				id: MenuId.ChatInput,
-				order: 0,
+				order: 3,
 				group: 'navigation',
 				when:
 					ContextKeyExpr.and(
@@ -416,8 +390,7 @@ export class OpenModelPickerAction extends Action2 {
 						ChatContextKeys.hasPendingDelegationTarget.negate(),
 						ContextKeyExpr.or(
 							ChatContextKeys.lockedToCodingAgent.negate(),
-							ChatContextKeys.chatSessionHasTargetedModels,
-							ChatContextKeys.agentSessionType.isEqualTo(AgentSessionProviders.Local)),
+							ChatContextKeys.chatSessionHasTargetedModels),
 						ContextKeyExpr.or(
 							ContextKeyExpr.equals(ChatContextKeys.location.key, ChatAgentLocation.Chat),
 							ContextKeyExpr.equals(ChatContextKeys.location.key, ChatAgentLocation.EditorInline),
@@ -427,7 +400,11 @@ export class OpenModelPickerAction extends Action2 {
 						ContextKeyExpr.or(
 							ChatContextKeys.inAgentSessionsWelcome.negate(),
 							ChatContextKeys.chatSessionHasTargetedModels,
-							ChatContextKeys.agentSessionType.isEqualTo(AgentSessionProviders.Local))
+							ChatContextKeys.agentSessionType.isEqualTo(AgentSessionProviders.Local),
+							ContextKeyExpr.and(
+								IsSessionsWindowContext,
+								ChatContextKeys.agentSessionType.isEqualTo(AgentSessionProviders.AgentHostCopilot),
+								ContextKeyExpr.equals(`config.${AgentHostAllowSignedOutWhenUsableSettingId}`, true)))
 					)
 			}
 		});
@@ -464,6 +441,7 @@ export class OpenPermissionPickerAction extends Action2 {
 						ChatContextKeys.location.isEqualTo(ChatAgentLocation.Chat),
 						ChatContextKeys.chatModeKind.notEqualsTo(ChatModeKind.Ask),
 						ChatContextKeys.inQuickChat.negate(),
+						ChatContextKeys.inAutomationsDialog.negate(),
 						ContextKeyExpr.or(
 							ChatContextKeys.lockedToCodingAgent.negate(),
 							ChatContextKeys.lockedCodingAgentId.isEqualTo(AgentSessionProviders.Background),
@@ -499,7 +477,28 @@ export class OpenModePickerAction extends Action2 {
 					ChatContextKeys.location.isEqualTo(ChatAgentLocation.Chat)),
 				primary: KeyMod.CtrlCmd | KeyCode.Period,
 				weight: KeybindingWeight.EditorContrib
-			}
+			},
+			menu: [
+				{
+					id: MenuId.ChatInput,
+					order: 1,
+					when: ContextKeyExpr.and(
+						ChatContextKeys.enabled,
+						ChatContextKeys.location.isEqualTo(ChatAgentLocation.Chat),
+						ChatContextKeys.inQuickChat.negate(),
+						// Hide the agent picker while a delegation (continue in) target is pending
+						ChatContextKeys.hasPendingDelegationTarget.negate(),
+						ContextKeyExpr.or(
+							ChatContextKeys.lockedToCodingAgent.negate(),
+							ChatContextKeys.chatSessionHasCustomAgentTarget),
+						// Show in welcome view for local sessions or sessions with custom agent target
+						ContextKeyExpr.or(
+							ChatContextKeys.inAgentSessionsWelcome.negate(),
+							ChatContextKeys.chatSessionHasCustomAgentTarget,
+							ChatContextKeys.agentSessionType.isEqualTo(AgentSessionProviders.Local))),
+					group: 'navigation',
+				},
+			]
 		});
 	}
 
@@ -723,7 +722,18 @@ export class ChatEditingSessionSubmitAction extends SubmitAction {
 	static readonly ID = 'workbench.action.edits.submit';
 
 	constructor() {
+		const notInProgressOrEditing = ContextKeyExpr.and(
+			ContextKeyExpr.or(whenNoActiveRequest, ChatContextKeys.editingRequestType.isEqualTo(ChatContextKeys.EditingRequestType.Sent)),
+			ChatContextKeys.editingRequestType.notEqualsTo(ChatContextKeys.EditingRequestType.Queue),
+			ChatContextKeys.editingRequestType.notEqualsTo(ChatContextKeys.EditingRequestType.Steer)
+		);
+
 		const menuCondition = ChatContextKeys.chatModeKind.notEqualsTo(ChatModeKind.Ask);
+		const precondition = ContextKeyExpr.and(
+			ChatContextKeys.inputHasSendableContent,
+			notInProgressOrEditing,
+			ChatContextKeys.chatSessionOptionsValid
+		);
 
 		super({
 			id: ChatEditingSessionSubmitAction.ID,
@@ -731,23 +741,14 @@ export class ChatEditingSessionSubmitAction extends SubmitAction {
 			f1: false,
 			category: CHAT_CATEGORY,
 			icon: Codicon.arrowUpCompact,
-			precondition: undefined,
-			keybinding: {
-				when: ContextKeyExpr.and(
-					ChatContextKeys.inChatInput,
-					ChatContextKeys.withinEditSessionDiff.negate(),
-				),
-				primary: KeyCode.Enter,
-				weight: KeybindingWeight.EditorContrib
-			},
+			precondition,
 			menu: [
 				{
 					id: MenuId.ChatExecute,
 					order: 4,
 					when: ContextKeyExpr.and(
-						whenNoActiveRequest,
-						menuCondition,
-					),
+						notInProgressOrEditing,
+						menuCondition),
 					group: 'navigation',
 					alt: {
 						id: 'workbench.action.chat.sendToNewChat',
@@ -905,7 +906,7 @@ export class CancelAction extends Action2 {
 			menu: [{
 				id: MenuId.ChatExecute,
 				when: ContextKeyExpr.and(
-					ContextKeyExpr.or(ChatContextKeys.hasActiveRequest, ChatContextKeys.requestInProgress),
+					ChatContextKeys.hasActiveRequest,
 					ChatContextKeys.remoteJobCreating.negate(),
 					ChatContextKeys.currentlyEditing.negate(),
 				),
@@ -1003,7 +1004,7 @@ export class CancelEdit extends Action2 {
 		if (!widget) {
 			return;
 		}
-		widget.finishedEditing();
+		return widget.cancelEditing();
 	}
 }
 
@@ -1168,7 +1169,6 @@ class ExecuteHandoffAction extends Action2 {
 export function registerChatExecuteActions(): DisposableStore {
 	const store = new DisposableStore();
 	store.add(registerAction2(ChatSubmitAction));
-	store.add(registerAction2(ChatSubmitPendingAction));
 	store.add(registerAction2(ChatEditingSessionSubmitAction));
 	store.add(registerAction2(SubmitWithoutDispatchingAction));
 	store.add(registerAction2(CancelAction));

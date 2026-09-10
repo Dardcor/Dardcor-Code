@@ -1,0 +1,121 @@
+
+
+.modern-ui.monaco-workbench {
+	font-size: var(--vscode-fontSize-body1);
+}
+
+.modern-ui.monaco-workbench .part.editor > .content .gettingStartedContainer h1 {
+	font-size: var(--vscode-fontSize-heading1);
+	font-weight: var(--vscode-fontWeight-semiBold);
+}
+
+.modern-ui.monaco-workbench .part.editor > .content .gettingStartedContainer .subtitle,
+.modern-ui.monaco-workbench .part.editor > .content .gettingStartedContainer h2 {
+	font-size: var(--vscode-fontSize-heading2);
+	font-weight: var(--vscode-fontWeight-semiBold);
+}
+
+.modern-ui .monaco-pane-view .pane > .pane-header .title {
+	font-size: var(--vscode-fontSize-label1);
+	font-weight: var(--vscode-fontWeight-semiBold);
+}
+
+.modern-ui.monaco-workbench .part > .title > .title-label h2 {
+	font-size: var(--vscode-fontSize-label1);
+	font-weight: var(--vscode-fontWeight-semiBold);
+}
+
+.modern-ui.monaco-workbench .part.auxiliarybar > .title > .composite-bar-container > .composite-bar > .monaco-action-bar .action-item .action-label {
+	font-weight: var(--vscode-fontWeight-regular);
+}
+
+.modern-ui.monaco-workbench .part.auxiliarybar > .title > .composite-bar-container > .composite-bar > .monaco-action-bar .action-item .action-label.codicon {
+	font-weight: var(--vscode-fontWeight-regular);
+}
+
+.modern-ui.monaco-workbench .part.editor > .content .editor-group-container > .title .tabs-container > .tab .tab-label {
+	font-size: var(--vscode-fontSize-body1);
+}
+
+.modern-ui .monaco-count-badge,
+.modern-ui .monaco-action-bar .badge .badge-content {
+	font-size: var(--vscode-fontSize-label3);
+}
+
+.modern-ui.monaco-workbench .activitybar > .content :not(.monaco-menu) > .monaco-action-bar .badge .badge-content {
+	font-weight: var(--vscode-fontWeight-regular);
+}
+
+.modern-ui .monaco-pane-view .pane > .pane-header > .title,
+
+.modern-ui.monaco-workbench .part:not(.editor) > .title > .title-label h2,
+
+.modern-ui.monaco-workbench .pane-composite-part > .title > .composite-bar-container > .composite-bar > .monaco-action-bar .action-item .action-label,
+.modern-ui.monaco-workbench .pane-composite-part > .header-or-footer > .composite-bar-container > .composite-bar > .monaco-action-bar .action-item .action-label,
+
+.modern-ui.monaco-workbench > .notifications-center > .notifications-center-header > .notifications-center-header-title,
+
+.modern-ui .debug-pane .debug-call-stack .session > .state.label,
+
+.modern-ui .monaco-editor .settings-header-widget .title-container .title,
+
+.modern-ui .chat-viewpane.has-sessions-control .agent-sessions-container .agent-sessions-title-container {
+	text-transform: capitalize;
+	font-size: var(--vscode-fontSize-label1);
+}
+
+.modern-ui.monaco-workbench > .notifications-center > .notifications-center-header > .notifications-center-header-title {
+	font-weight: var(--vscode-fontWeight-semiBold);
+}
+
+.modern-ui.monaco-workbench .part.preserve-merged-workspace-name-case > .title > .title-label h2,
+.modern-ui .pane.preserve-workspace-name-case > .pane-header > .icon.codicon-explorer-view-icon + .title {
+	text-transform: none;
+}
+
+.modern-ui.modern-ui-uppercase-view-headers .monaco-pane-view .pane > .pane-header > .title,
+.modern-ui.modern-ui-uppercase-view-headers.monaco-workbench .part:not(.editor) > .title > .title-label h2,
+.modern-ui.modern-ui-uppercase-view-headers.monaco-workbench .pane-composite-part > .title > .composite-bar-container > .composite-bar > .monaco-action-bar .action-item .action-label,
+.modern-ui.modern-ui-uppercase-view-headers.monaco-workbench .pane-composite-part > .header-or-footer > .composite-bar-container > .composite-bar > .monaco-action-bar .action-item .action-label,
+.modern-ui.modern-ui-uppercase-view-headers .monaco-pane-view .pane > .pane-header > .icon.codicon-explorer-view-icon + .title {
+	text-transform: uppercase;
+}
+
+.modern-ui .chat-viewpane .chat-view-title-container .chat-view-title-label {
+	text-transform: none;
+	font-size: var(--vscode-fontSize-label1);
+}
+
+.modern-ui.monaco-workbench .part.auxiliarybar > .title > .composite-bar-container > .composite-bar > .monaco-action-bar .action-item.checked:not(:focus) .active-item-indicator:before,
+.modern-ui.monaco-workbench .part.auxiliarybar > .title > .composite-bar-container > .composite-bar > .monaco-action-bar .action-item.checked.clicked:focus .active-item-indicator:before,
+.modern-ui.monaco-workbench .part.auxiliarybar > .header-or-footer > .composite-bar-container > .composite-bar > .monaco-action-bar .action-item.checked:not(:focus) .active-item-indicator:before,
+.modern-ui.monaco-workbench .part.auxiliarybar > .header-or-footer > .composite-bar-container > .composite-bar > .monaco-action-bar .action-item.checked.clicked:focus .active-item-indicator:before {
+	border-top-color: transparent !important;
+	border-bottom-color: transparent !important;
+}
+
+.modern-ui .debug-pane .debug-call-stack .session > .state.label {
+	font-size: var(--vscode-fontSize-label2);
+}
+
+.modern-ui.monaco-workbench .agent-sessions-viewer {
+	.agent-session-section {
+		text-transform: none;
+	}
+
+	.agent-session-item .agent-session-details-row {
+		font-size: var(--vscode-fontSize-label2);
+	}
+}
+
+.modern-ui.monaco-workbench .chat-viewpane.has-sessions-control {
+	.agent-session-section {
+		padding-left: var(--vscode-spacing-size120);
+	}
+}
+
+.modern-ui.monaco-workbench .monaco-icon-label::after,
+.modern-ui.monaco-workbench .explorer-folders-view .explorer-item::after {
+	margin-right: var(--vscode-spacing-size80);
+	font-size: var(--vscode-fontSize-label2);
+}

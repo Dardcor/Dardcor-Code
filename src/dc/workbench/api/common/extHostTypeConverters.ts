@@ -2856,7 +2856,6 @@ export namespace ChatResponseHookPart {
 }
 
 export namespace ChatResponseVoiceProgressPart {
-	// @ts-ignore
 	export function from(part: vscode.ChatResponseVoiceProgressPart): Dto<IChatVoiceProgressPart> {
 		return {
 			kind: 'voiceProgress',
@@ -2867,22 +2866,14 @@ export namespace ChatResponseVoiceProgressPart {
 }
 
 export namespace ChatResponseAutoModeResolutionPart {
-	const validLabels = new Set<IChatAutoModeResolutionPart['predictedLabel']>(['needs_reasoning', 'no_reasoning', 'fallback']);
-
 	export function from(part: vscode.ChatResponseAutoModeResolutionPart): Dto<IChatAutoModeResolutionPart> {
-		const label = validLabels.has(part.predictedLabel as IChatAutoModeResolutionPart['predictedLabel'])
-			? part.predictedLabel as IChatAutoModeResolutionPart['predictedLabel']
-			: 'fallback';
 		return {
 			kind: 'autoModeResolution',
-			resolvedModel: part.resolvedModel,
-			resolvedModelName: part.resolvedModelName,
-			predictedLabel: label,
-			confidence: Math.max(0, Math.min(1, part.confidence)),
+			resolved: part.resolvedModel,
 		};
 	}
 	export function to(part: Dto<IChatAutoModeResolutionPart>): vscode.ChatResponseAutoModeResolutionPart {
-		return new types.ChatResponseAutoModeResolutionPart(part.resolvedModel, part.resolvedModelName, part.predictedLabel, part.confidence);
+		return new types.ChatResponseAutoModeResolutionPart(part.resolved);
 	}
 }
 
@@ -3492,7 +3483,6 @@ export namespace ChatAgentRequest {
 			attempt: request.attempt ?? 0,
 			enableCommandDetection: request.enableCommandDetection ?? true,
 			isParticipantDetected: request.isParticipantDetected ?? false,
-			// @ts-ignore
 			isVoiceModeInput: request.isVoiceModeInput,
 			sessionId,
 			sessionResource: request.sessionResource,

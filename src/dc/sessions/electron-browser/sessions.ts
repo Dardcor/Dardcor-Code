@@ -40,7 +40,7 @@
 
 		// minimal color configuration (works with or without persisted data)
 		let baseTheme = 'vs-dark';
-		let shellBackground = '#000000';
+		let shellBackground = '#1E1E1E';
 		let shellForeground = '#CCCCCC';
 		if (data) {
 			baseTheme = data.baseTheme;
@@ -61,7 +61,7 @@
 		} else if (configuration.autoDetectColorScheme) {
 			if (configuration.colorScheme.dark) {
 				baseTheme = 'vs-dark';
-				shellBackground = '#000000';
+				shellBackground = '#1E1E1E';
 				shellForeground = '#CCCCCC';
 			} else {
 				baseTheme = 'vs';
@@ -122,7 +122,7 @@
 		try {
 			let workbenchUrl: string;
 			if (!!safeProcess.env['VSCODE_DEV'] && globalThis._VSCODE_USE_RELATIVE_IMPORTS) {
-				workbenchUrl = '../sessions.desktop.main.js'; // for dev purposes only
+				workbenchUrl = './sessions.desktop.main.js'; // for dev purposes only
 			} else {
 				workbenchUrl = new URL(`dc/sessions/sessions.desktop.main.js`, baseUrl).href;
 			}

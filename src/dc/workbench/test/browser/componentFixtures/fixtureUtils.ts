@@ -627,6 +627,7 @@ export function createEditorServices(disposables: DisposableStore, options?: Cre
 	defineInstance(IAgentFeedbackService, {
 		_serviceBrand: undefined,
 		onDidChangeFeedback: Event.None,
+		onDidChangeFeedbackVisibility: Event.None,
 		onDidChangeNavigation: Event.None,
 		onDidChangeFeedbackScope: Event.None,
 		activeFeedbackSessionResource: constObservable(AGENT_FEEDBACK_NEW_SESSION_RESOURCE),
@@ -638,9 +639,13 @@ export function createEditorServices(disposables: DisposableStore, options?: Cre
 		addFeedback: () => undefined!,
 		removeFeedback: () => { },
 		updateFeedback: () => { },
+		updateFeedbackSourcePullRequest: () => { },
 		acceptFeedback: () => { },
 		addReply: () => { },
 		getFeedback: () => [],
+		showFeedbackInEditor: () => { },
+		hideFeedbackInEditor: () => { },
+		getVisibleResolvedFeedbackIds: () => new Set(),
 		hasLoadedFeedback: () => true,
 		getSessionForFile: () => undefined,
 		getFeedbackSessionResource: () => undefined,
@@ -867,6 +872,8 @@ export interface ComponentFixtureOptions {
 	labels?: ThemedFixtureGroupLabels;
 	virtualTime?: { enabled?: boolean; durationMs?: number; teardownDrainMs?: number };
 	additionalThemes?: readonly ComponentFixtureAdditionalTheme[];
+	fileIconTheme?: unknown;
+	expectedVisualDescriptions?: readonly string[];
 }
 
 type ThemedFixtures = ReturnType<typeof defineFixtureVariants>;

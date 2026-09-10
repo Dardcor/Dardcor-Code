@@ -227,6 +227,8 @@ class FilesAndFoldersPickerPick implements IChatContextPickerItem {
 	}
 
 }
+export const MAX_CHAT_FILE_COMPLETION_RESULTS = 50;
+
 export async function searchFilesAndFolders(
 	workspace: URI,
 	pattern: string,
@@ -234,7 +236,8 @@ export async function searchFilesAndFolders(
 	token: CancellationToken | undefined,
 	cacheKey: string | undefined,
 	configurationService: IConfigurationService,
-	searchService: ISearchService
+	searchService: ISearchService,
+	maxResults?: number
 ): Promise<{ folders: URI[]; files: URI[] }> {
 	const segmentMatchPattern = fuzzyMatch ? fuzzyMatchingGlobPattern(pattern) : continousMatchingGlobPattern(pattern);
 

@@ -6,6 +6,7 @@
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 
 export const CHAT_USER_SELECTED_SESSION_TYPE_STORAGE_KEY = 'chat.userSelectedSessionType';
+
 const CHAT_PREFERRED_COPILOT_HARNESS_STORAGE_KEY = 'chat.preferredCopilotHarness';
 
 export function getRememberedSessionType(storageService: IStorageService): string | undefined {

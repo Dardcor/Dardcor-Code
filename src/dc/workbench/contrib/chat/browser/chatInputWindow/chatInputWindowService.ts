@@ -425,10 +425,10 @@ export class ChatInputWindowService extends Disposable implements IChatInputWind
 				// route it to the best-matching existing session (or a new one),
 				// forwarding any explicit attachments on the input.
 				submitHandler: (query, mode, attachedContext, isVoiceModeInput) => this._routingController?.handleSubmit(query, mode, attachedContext, isVoiceModeInput) ?? Promise.resolve(false),
-				onDidChangeModelPickerVisibility: visible => this._setModelPickerVisible(auxiliaryWindow, visible),
+				onDidChangeModelPickerVisibility: (visible: boolean) => this._setModelPickerVisible(auxiliaryWindow, visible),
 				inputPickerPosition: AnchorPosition.BELOW,
 				inputPickerContainer: () => this._actionWidgetWindow.value?.container,
-				inputPickerAnchor: anchor => this._getModelPickerAnchor(anchor),
+				inputPickerAnchor: (anchor: HTMLElement) => this._getModelPickerAnchor(anchor),
 				inputPickerOpenOnMouseUp: true,
 			},
 			{

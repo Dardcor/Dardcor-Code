@@ -1,8 +1,3 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Dardcor Corporation. All rights reserved.
- *  Licensed under the MIT License. See License.txt in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
-
 import { spawn } from 'child_process';
 import { relative } from '../../../base/common/path.js';
 import { FileAccess } from '../../../base/common/network.js';
@@ -63,7 +58,7 @@ export class CSSDevelopmentService implements ICSSDevelopmentService {
 			});
 			process.on('close', () => {
 				const data = Buffer.concat(chunks).toString('utf8');
-				const result = data.split('\n').filter(Boolean).map(path => relative(basePath, path).replace(/\\/g, '/')).filter(Boolean).sort();
+				const result = data.split(/\r?\n/).map(line => line.trim()).filter(Boolean).map(path => relative(basePath, path).replace(/\\/g, '/').trim()).filter(Boolean).sort();
 				if (result.some(path => path.indexOf('dc/') !== 0)) {
 					this.logService.error(`[CSS_DEV] Detected invalid paths in css modules, raw output: ${data}`);
 				}

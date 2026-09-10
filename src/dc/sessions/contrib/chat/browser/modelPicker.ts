@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { AnchorPosition, AnchorAlignment } from '../../../../base/common/layout.js';
 import { Disposable, DisposableStore } from '../../../../base/common/lifecycle.js';
 import { autorun, derived, IObservable } from '../../../../base/common/observable.js';
 import { localize2 } from '../../../../nls.js';
@@ -15,12 +14,14 @@ import { ITelemetryService } from '../../../../platform/telemetry/common/telemet
 import { IWorkspaceTrustManagementService } from '../../../../platform/workspace/common/workspaceTrust.js';
 import { IChatInputPickerOptions } from '../../../../workbench/contrib/chat/browser/widget/input/chatInputPickerActionItem.js';
 import { IModelPickerDelegate, ModelPickerActionItem } from '../../../../workbench/contrib/chat/browser/widget/input/modelPicker/modelPickerActionItem.js';
+import { ChatPetAchievementIds, didExplicitlySwitchChatPetModel } from '../../../../workbench/contrib/chat/browser/chatPetAchievements.js';
+import { IChatPetService } from '../../../../workbench/contrib/chat/browser/chatPetService.js';
 import { IChatEntitlementService } from '../../../../workbench/services/chat/common/chatEntitlementService.js';
 import { Menus } from '../../../browser/menus.js';
 import { IsPhoneLayoutContext, SessionUsesCombinedConfigPickerContext } from '../../../common/contextkeys.js';
 import { ISessionContext } from '../../../services/sessions/browser/sessionContext.js';
 import { SessionStatus } from '../../../services/sessions/common/session.js';
-import { ISessionModelSelectionModel } from './sessionModelSelectionModel.js';
+import { ISessionModelSelection } from './sessionModelSelection.js';
 import { INewChatModelPickerService } from './newChatModelPicker.js';
 import { reportNewChatPickerClosed } from './newChatPickerTelemetry.js';
 import { markOnboardingTarget } from '../../../../workbench/contrib/onboarding/browser/spotlight/onboardingTarget.js';
@@ -49,16 +50,21 @@ export class ModelPicker extends Disposable {
 		@IWorkspaceTrustManagementService private readonly _workspaceTrustManagementService: IWorkspaceTrustManagementService,
 		@IChatEntitlementService private readonly _chatEntitlementService: IChatEntitlementService,
 		@ISessionContext private readonly _sessionContext: ISessionContext,
-		@ISessionModelSelectionModel private readonly _selectionModel: ISessionModelSelectionModel,
+		@ISessionModelSelection private readonly _selectionModel: ISessionModelSelection,
+		@IChatPetService private readonly _chatPetService: IChatPetService,
 	) {
 		super();
 		const currentModel = derived(this, reader => this._selectionModel.state.read(reader).currentModel);
 
 		this._delegate = {
 			currentModel,
+			modelConfiguration: this._selectionModel.modelConfiguration,
 			setModel: model => {
 				const previousModel = this._selectionModel.state.get().currentModel;
 				if (this._selectionModel.selectModel(model.identifier)) {
+					if (didExplicitlySwitchChatPetModel(previousModel?.identifier, model.identifier)) {
+						this._chatPetService.unlockAchievement(ChatPetAchievementIds.ModelSwitch);
+					}
 					reportNewChatPickerClosed(this._telemetryService, {
 						id: 'NewChatModelPicker',
 						optionIdBefore: previousModel?.identifier,
@@ -81,8 +87,6 @@ export class ModelPicker extends Disposable {
 				// picker which warms as soon as the first request is added.
 				return session ? session.status.get() !== SessionStatus.Untitled : false;
 			},
-			anchorPosition: AnchorPosition.ABOVE,
-			anchorAlignment: AnchorAlignment.LEFT,
 		};
 
 		const pickerOptions: IChatInputPickerOptions = {
@@ -143,7 +147,14 @@ export class ModelPicker extends Disposable {
 	 * historical behavior for providers that offer no models.
 	 */
 	private _shouldShowPicker(): boolean {
-		return true;
+		const state = this._selectionModel.state.get();
+		if (state.models.length > 0) {
+			return true;
+		}
+		if (this._modelPicker.isRestrictedMode() || this._modelPicker.isSetupRequired()) {
+			return true;
+		}
+		return !state.options.showAutoModel;
 	}
 
 	private _updatePickerState(): void {

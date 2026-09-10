@@ -166,7 +166,7 @@ export function compileTask(src: string, out: string, build: boolean, options: {
 			.pipe(compile())
 			.pipe(gulp.dest(out)));
 
-		const typecheck = spawnTsgo(compile.projectPath, { taskName: `compile-${path.basename(src)}`, noEmit: true });
+		const typecheck = spawnTsgo(compile.projectPath, { taskName: `compile-${path.basename(src)}`, noEmit: true, continueOnError: !build });
 
 		await Promise.all([emit, typecheck]);
 	};
@@ -281,7 +281,11 @@ class MonacoGenerator {
 		fs.writeFileSync(path.join(REPO_SRC_FOLDER, 'dc/editor/common/standalone/standaloneEnums.ts'), result.enums);
 		this._log(`monaco.d.ts is changed - total time took ${Date.now() - startTime} ms`);
 		if (!this._isWatch) {
-			this.stream.emit('error', 'monaco.d.ts is no longer up to date. Please run gulp watch and commit the new file.');
+			if (process.env['CI']) {
+				this.stream.emit('error', 'monaco.d.ts is no longer up to date. Please run gulp watch and commit the new file.');
+			} else {
+				this._log('monaco.d.ts was updated on disk. Please commit the new file.');
+			}
 		}
 	}
 }

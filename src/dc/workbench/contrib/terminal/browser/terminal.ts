@@ -135,6 +135,7 @@ export interface IChatTerminalToolProgressPart {
 export interface IChatTerminalOutputSource {
 	readonly onDidChange: Event<void>;
 	readonly output: string;
+	readonly hasExited: boolean;
 	readonly exitCode: number | undefined;
 }
 
