@@ -12,6 +12,7 @@ import { extUriBiasedIgnorePathCase, getComparisonKey, isEqual } from '../../../
 import { URI } from '../../../../../base/common/uri.js';
 import { localize } from '../../../../../nls.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
+import { InstantiationType, registerSingleton } from '../../../../../platform/instantiation/common/extensions.js';
 import { IFileService } from '../../../../../platform/files/common/files.js';
 import { ILogService } from '../../../../../platform/log/common/log.js';
 import { isAgentHostSessionResource } from '../../common/chatSessionsService.js';
@@ -362,3 +363,5 @@ export class CustomizationMigrationService extends Disposable implements ICustom
 		}
 	}
 }
+
+registerSingleton(ICustomizationMigrationService, CustomizationMigrationService, InstantiationType.Delayed);

@@ -169,7 +169,7 @@ export class SinglePaneMainEditorPart extends MainEditorPart {
 	}
 
 	override createEditorDropTarget(container: unknown, delegate: IEditorDropTargetDelegate): IDisposable {
-		return super.createEditorDropTarget(container, { ...delegate, supportsSplitting: false });
+		return super.createEditorDropTarget(container, { ...delegate, supportsSplitting: false } as any);
 	}
 
 	override async applyState(state: IEditorPartUIState | 'empty', options?: IEditorGroupViewOptions): Promise<void> {

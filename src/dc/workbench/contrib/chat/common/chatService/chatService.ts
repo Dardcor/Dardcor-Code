@@ -1834,6 +1834,8 @@ export type ChatSendResult =
 export interface ChatSendResultRejected {
 	readonly kind: 'rejected';
 	readonly reason: string;
+	/** Machine-readable rejection code (e.g. 'cancelled', 'providerRemoved'). */
+	readonly reasonCode?: 'cancelled' | 'providerRemoved';
 	/** Set when the session was replaced before the request was rejected (e.g. untitled -> read-only contributed session). */
 	readonly newSessionResource?: URI;
 }
@@ -1847,6 +1849,10 @@ export interface ChatSendResultSent {
 
 export interface ChatSendResultQueued {
 	readonly kind: 'queued';
+	/**
+	 * The request model ID for the queued request.
+	 */
+	readonly requestId: string;
 	/**
 	 * Promise that resolves when the queued message is actually processed.
 	 * Will resolve to a 'sent' or 'rejected' result.

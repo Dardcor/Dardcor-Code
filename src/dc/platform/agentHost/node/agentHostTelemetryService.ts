@@ -246,7 +246,7 @@ export async function createAgentHostTelemetryService(options: IAgentHostTelemet
 	}
 
 	const initialTelemetryLevel = Math.min(
-		parseLaunchTelemetryLevel(environmentService.args?.['telemetry-level']),
+		parseLaunchTelemetryLevel((environmentService.args as any)?.['telemetry-level']),
 		parseLaunchTelemetryLevel((options.readTelemetryLevelEnvironment ?? (() => process.env[AgentHostTelemetryLevelEnvKey]))()),
 	);
 	const internalTelemetry = verifyMicrosoftInternalDomain(productService.msftInternalDomains ?? []);
@@ -273,13 +273,21 @@ export async function createAgentHostTelemetryService(options: IAgentHostTelemet
 
 	const commonProperties = resolveCommonProperties(release(), hostname(), process.arch, productService.commit, productService.version, machineId, sqmId, devDeviceId, internalTelemetry, productService.date);
 
-	const telemetryService = TelemetryService.createWithLevel({
+	const telemetryService = (TelemetryService as any).createWithLevel?.({
 		appenders,
 		sendErrorTelemetry: true,
 		commonProperties,
 		piiPaths: getPiiPathsFromEnvironment(environmentService),
 		telemetryLevel: initialTelemetryLevel,
-	}, productService);
+	}, productService) ?? new TelemetryService({
+		appenders,
+		sendErrorTelemetry: true,
+		commonProperties,
+		piiPaths: getPiiPathsFromEnvironment(environmentService),
+	}, {
+		getValue: () => undefined,
+		onDidChangeConfiguration: () => ({ dispose: () => { } })
+	} as any, productService);
 
 	const extensionVersion = loggingOnly ? undefined : await resolveCopilotExtensionVersion(environmentService, fileService, logService);
 	const internalSender = loggingOnly ? undefined : disposables.add(new AgentHostInternalTelemetrySender({ requestService: options.requestService, commonProperties, extensionVersion }));

@@ -173,6 +173,8 @@ import './aiCustomization/aiCustomizationWorkspaceService.js';
 import './aiCustomization/customizationHarnessService.js';
 import './aiCustomization/aiCustomizationManagement.contribution.js';
 import './aiCustomization/aiCustomizationItemsModel.js';
+import './aiCustomization/customizationMigrationServiceImpl.js';
+import './aiCustomization/customizationMigrationAvailabilityService.js';
 
 import { ChatOutputRendererService, IChatOutputRendererService } from './chatOutputItemRenderer.js';
 import { ChatCompatibilityNotifier, ChatExtensionPointHandler } from './chatParticipant.contribution.js';
@@ -1491,7 +1493,7 @@ configurationRegistry.registerConfiguration({
 		[ChatConfiguration.DefaultNewSessionMode]: {
 			type: 'string',
 			description: nls.localize('chat.newSession.defaultMode', "The default mode for new chat sessions. When empty, the chat view's default mode is used."),
-			default: '',
+			default: 'agent',
 		},
 		[AgentHostAhpJsonlLoggingSettingId]: {
 			type: 'boolean',

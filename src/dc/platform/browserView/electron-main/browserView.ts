@@ -235,7 +235,7 @@ export class BrowserView extends Disposable {
 			this.dispose();
 		});
 
-		this.debugger = new BrowserViewDebugger(this);
+		this.debugger = this._register(new BrowserViewDebugger(this, this.logService));
 		this.emulator = this._register(new BrowserViewEmulator(this, this.logService));
 		this.inspector = this._register(new BrowserViewInspector(this));
 

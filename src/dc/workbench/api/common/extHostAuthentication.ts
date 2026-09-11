@@ -9,9 +9,10 @@ import { Emitter, Event } from '../../../base/common/event.js';
 import { MainContext, MainThreadAuthenticationShape, ExtHostAuthenticationShape } from './extHost.protocol.js';
 import { Disposable, ProgressLocation } from './extHostTypes.js';
 import { IExtensionDescription, ExtensionIdentifier } from '../../../platform/extensions/common/extensions.js';
-import { IAuthenticationGetSessionsOptions, IAuthenticationProviderSessionOptions, INTERNAL_AUTH_PROVIDER_PREFIX, isAuthenticationWwwAuthenticateRequest } from '../../services/authentication/common/authentication.js';
+import { AuthenticationSessionAccount, IAuthenticationGetSessionsOptions, IAuthenticationProviderSessionOptions, INTERNAL_AUTH_PROVIDER_PREFIX, isAuthenticationWwwAuthenticateRequest } from '../../services/authentication/common/authentication.js';
 import { createDecorator } from '../../../platform/instantiation/common/instantiation.js';
 import { IExtHostRpcService } from './extHostRpcService.js';
+import { Proxied } from '../../services/extensions/common/proxyIdentifier.js';
 import { URI, UriComponents } from '../../../base/common/uri.js';
 import { AuthorizationErrorType, fetchDynamicRegistration, getClaimsFromJWT, IAuthorizationJWTClaims, IAuthorizationProtectedResourceMetadata, IAuthorizationServerMetadata, IAuthorizationTokenResponse, isAuthorizationErrorResponse, isAuthorizationTokenResponse } from '../../../base/common/oauth.js';
 import { IExtHostWindow } from './extHostWindow.js';
@@ -46,7 +47,7 @@ export class ExtHostAuthentication implements ExtHostAuthenticationShape {
 	protected readonly _dynamicAuthProviderCtor = DynamicAuthProvider;
 	protected readonly _xaaAuthProviderCtor = XaaifyAuthProvider(DynamicAuthProvider);
 
-	private _proxy: MainThreadAuthenticationShape;
+	private _proxy: Proxied<MainThreadAuthenticationShape>;
 	private _authenticationProviders: Map<string, ProviderWithMetadata> = new Map<string, ProviderWithMetadata>();
 	private _providerOperations = new SequencerByKey<string>();
 
@@ -124,13 +125,13 @@ export class ExtHostAuthentication implements ExtHostAuthenticationShape {
 		return await this._getSessionTaskSingler.getOrCreate(singlerKey, async () => {
 			await this._proxy.$ensureProvider(providerId);
 			const extensionName = requestingExtension.displayName || requestingExtension.name;
-			return this._proxy.$getSession(providerId, scopesOrRequest, extensionId, extensionName, options);
+			return (await this._proxy.$getSession(providerId, scopesOrRequest, extensionId, extensionName, options)) as vscode.AuthenticationSession | undefined;
 		});
 	}
 
-	async getAccounts(providerId: string) {
+	async getAccounts(providerId: string): Promise<ReadonlyArray<AuthenticationSessionAccount>> {
 		await this._proxy.$ensureProvider(providerId);
-		return await this._proxy.$getAccounts(providerId);
+		return (await this._proxy.$getAccounts(providerId)) as any;
 	}
 
 	registerAuthenticationProvider(id: string, label: string, provider: vscode.AuthenticationProvider, options?: vscode.AuthenticationProviderOptions): vscode.Disposable {
@@ -458,7 +459,7 @@ export class DynamicAuthProvider implements vscode.AuthenticationProvider {
 		@IExtHostInitDataService protected readonly _initData: IExtHostInitDataService,
 		@IExtHostProgress private readonly _extHostProgress: IExtHostProgress,
 		@ILoggerService loggerService: ILoggerService,
-		protected readonly _proxy: MainThreadAuthenticationShape,
+		protected readonly _proxy: Proxied<MainThreadAuthenticationShape>,
 		readonly authorizationServer: URI,
 		protected readonly _serverMetadata: IAuthorizationServerMetadata,
 		protected readonly _resourceMetadata: IAuthorizationProtectedResourceMetadata | undefined,

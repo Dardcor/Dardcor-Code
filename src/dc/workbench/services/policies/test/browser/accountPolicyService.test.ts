@@ -609,6 +609,7 @@ suite('AccountPolicyService', () => {
 		readonly onDidChangeManagedSettings = this._onDidChangeManagedSettings.event;
 
 		constructor(public managedSettings: ManagedSettingsData = {}) { }
+		async initialize(): Promise<ManagedSettingsData> { return this.managedSettings; }
 	}
 
 	async function setupGate(opts: {

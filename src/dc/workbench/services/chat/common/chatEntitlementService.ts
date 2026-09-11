@@ -952,7 +952,7 @@ export interface IQuotaReset {
 }
 
 export function getQuotaReset(
-	snapshot?: { resetAt?: number } | undefined,
+	snapshot?: IQuotaSnapshot | undefined,
 	account?: { resetDate?: string; resetDateHasTime?: boolean } | undefined
 ): IQuotaReset | undefined {
 	if (typeof snapshot?.resetAt === 'number' && !isNaN(snapshot.resetAt)) {
@@ -1320,25 +1320,11 @@ export class ChatEntitlementRequests extends Disposable {
 
 export interface IChatEntitlementContextState extends IChatSentiment {
 
-	/**
-	 * Users last known or resolved entitlement.
-	 */
 	entitlement: ChatEntitlement;
-
-	/**
-	 * User's last known or resolved raw SKU type.
-	 */
 	sku: string | undefined;
-
-	/**
-	 * User's last known or resolved organisations.
-	 */
 	organisations: string[] | undefined;
-
-	/**
-	 * User's Copilot tracking ID from the entitlement API.
-	 */
 	copilotTrackingId: string | undefined;
+	isStaff?: boolean;
 }
 
 export class ChatEntitlementContext extends Disposable {
@@ -1465,8 +1451,8 @@ export class ChatEntitlementContext extends Disposable {
 	update(context: { completed: true }): Promise<void>;
 	update(context: { hidden: false }): Promise<void>; // legacy UI state from before we had a setting to hide, keep around to still support users who used this
 	update(context: { later: boolean }): Promise<void>;
-	update(context: { entitlement: ChatEntitlement; organisations: string[] | undefined; sku: string | undefined; copilotTrackingId: string | undefined }): Promise<void>;
-	async update(context: { completed?: boolean; installed?: boolean; disabled?: boolean; untrusted?: boolean; disabledInWorkspace?: boolean; hidden?: false; later?: boolean; entitlement?: ChatEntitlement; organisations?: string[]; sku?: string; copilotTrackingId?: string }): Promise<void> {
+	update(context: { entitlement: ChatEntitlement; organisations: string[] | undefined; sku: string | undefined; copilotTrackingId: string | undefined; isStaff?: boolean }): Promise<void>;
+	async update(context: { completed?: boolean; installed?: boolean; disabled?: boolean; untrusted?: boolean; disabledInWorkspace?: boolean; hidden?: false; later?: boolean; entitlement?: ChatEntitlement; organisations?: string[]; sku?: string; copilotTrackingId?: string; isStaff?: boolean }): Promise<void> {
 		this.logService.trace(`[chat entitlement context] update(): ${JSON.stringify(context)}`);
 
 		const oldState = JSON.stringify(this._state);

@@ -73,7 +73,8 @@ export const enum AccessibilityVerbositySettingId {
 	ChatQuestionCarousel = 'accessibility.verbosity.chatQuestionCarousel',
 	Survey = 'accessibility.verbosity.survey',
 	Automations = 'accessibility.verbosity.automations',
-	BrowserElementCommenting = 'accessibility.verbosity.browserElementCommenting'
+	BrowserElementCommenting = 'accessibility.verbosity.browserElementCommenting',
+	ChatPetAchievements = 'accessibility.verbosity.chatPetAchievements'
 }
 
 const baseVerbosityProperty: IConfigurationPropertySchema = {

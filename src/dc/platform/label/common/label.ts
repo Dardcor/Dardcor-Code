@@ -29,7 +29,7 @@ export interface ILabelService {
 	getHostTooltip(scheme: string, authority?: string): string | undefined;
 	getSeparator(scheme: string, authority?: string): '/' | '\\';
 
-	registerFormatter(formatter: ResourceLabelFormatter): IDisposable;
+	registerFormatter(formatter: ResourceLabelFormatter | ResourceLabelTemplateFormatter): IDisposable;
 	readonly onDidChangeFormatters: Event<IFormatterChangeEvent>;
 
 	/**
@@ -37,7 +37,7 @@ export interface ILabelService {
 	 * of the current window. Disposing the formatter _will not_ remove it from
 	 * the cache.
 	 */
-	registerCachedFormatter(formatter: ResourceLabelFormatter): IDisposable;
+	registerCachedFormatter(formatter: ResourceLabelFormatter | ResourceLabelTemplateFormatter): IDisposable;
 }
 
 export const enum Verbosity {
@@ -54,7 +54,20 @@ export interface ResourceLabelFormatter {
 	scheme: string;
 	authority?: string;
 	priority?: boolean;
+	home?: string;
 	formatting: ResourceLabelFormatting;
+}
+
+export interface ResourceLabelTemplateFormatterContext {
+	readonly resource: URI;
+	readonly home: URI;
+	readonly parameters: Map<string, string>;
+}
+
+export interface ResourceLabelTemplateFormatter {
+	readonly home: URI;
+	readonly onDidChangeFormatting: Event<void>;
+	readonly formatting: (context: ResourceLabelTemplateFormatterContext) => ResourceLabelFormatting | undefined;
 }
 
 export interface ResourceLabelFormatting {

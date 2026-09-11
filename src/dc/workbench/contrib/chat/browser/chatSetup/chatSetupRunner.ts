@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import './media/chatSetup.css';
-import { $, getWindow } from '../../../../../base/browser/dom.js';
+import { $ } from '../../../../../base/browser/dom.js';
 import { isSafari, isMobileStandalone } from '../../../../../base/browser/browser.js';
 import { IButton } from '../../../../../base/browser/ui/button/button.js';
 import { Dialog, DialogContentsAlignment } from '../../../../../base/browser/ui/dialog/dialog.js';
@@ -30,7 +30,7 @@ import product from '../../../../../platform/product/common/product.js';
 import { ITelemetryService, TelemetryLevel } from '../../../../../platform/telemetry/common/telemetry.js';
 import { IWorkspaceTrustManagementService, IWorkspaceTrustRequestService } from '../../../../../platform/workspace/common/workspaceTrust.js';
 import { IWorkbenchLayoutService } from '../../../../services/layout/browser/layoutService.js';
-import { ChatEntitlement, ChatEntitlementContext, ChatEntitlementService, IChatEntitlementService, isProUser } from '../../../../services/chat/common/chatEntitlementService.js';
+import { ChatEntitlement, ChatEntitlementContext, ChatEntitlementService, IChatEntitlementService } from '../../../../services/chat/common/chatEntitlementService.js';
 import { IChatWidgetService } from '../chat.js';
 import { ChatSetupController } from './chatSetupController.js';
 import { IChatSetupResult, ChatSetupAnonymous, ChatSetupDialogVisibleContext, ChatSetupError, InstallChatEvent, InstallChatClassification, ChatSetupStrategy, ChatSetupResultValue, IChatSetupRunOptions } from './chatSetup.js';
@@ -45,7 +45,7 @@ const fallbackProviders = {
 	enterprise: { id: '', name: '' },
 	apple: { id: '', name: '' },
 	google: { id: '', name: '' },
-	microsoft: { id: '', name: '' },
+	microsoft: { id: '', name: '' }
 };
 
 const configuredProviders = product.defaultChatAgent?.provider;
@@ -57,7 +57,7 @@ const defaultChat = {
 		enterprise: configuredProviders?.enterprise ?? fallbackProviders.enterprise,
 		apple: configuredProviders?.apple ?? fallbackProviders.apple,
 		google: configuredProviders?.google ?? fallbackProviders.google,
-		microsoft: configuredProviders?.microsoft ?? fallbackProviders.microsoft,
+		microsoft: configuredProviders?.microsoft ?? fallbackProviders.microsoft
 	},
 	chatRefreshTokenCommand: product.defaultChatAgent?.chatRefreshTokenCommand ?? '',
 	termsStatementUrl: product.defaultChatAgent?.termsStatementUrl ?? '',
@@ -168,10 +168,6 @@ export class ChatSetupDialog extends Disposable {
 								control.element.classList.add(...classes);
 							}
 							if (opensBrowser) {
-								this._register(control.onDidClick(() => reserveWindowForExternalOpen(
-									getWindow(control.element),
-									localize('signingInPlaceholder', "Signing in…")
-								)));
 							}
 						}
 					};
@@ -412,9 +408,6 @@ export class ChatSetup {
 		} finally {
 			setupCancellation.dispose();
 			// no browser window was opened, so the reservation is still blank
-			releaseReservedWindowForExternalOpen(
-				localize('signInDidNotComplete', "Sign-in did not complete. You can close this window.")
-			);
 		}
 
 		if (success) {

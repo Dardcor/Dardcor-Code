@@ -15,8 +15,9 @@ AppUpdatesURL=https://dardcor-code.web.id/
 DefaultGroupName={#NameLong}
 AllowNoIcons=yes
 OutputDir={#OutputDir}
-OutputBaseFilename=VSCodeSetup
-Compression=lzma
+#define OutputName Defined(OutputBaseFilename) ? OutputBaseFilename : 'DardcorCodeSetup'
+OutputBaseFilename={#OutputName}
+Compression=lzma2/max
 SolidCompression=yes
 AppMutex={code:GetAppMutex}
 SetupMutex={code:GetSetupMutex}

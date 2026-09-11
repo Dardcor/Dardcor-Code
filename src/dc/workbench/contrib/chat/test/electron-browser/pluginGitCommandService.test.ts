@@ -66,15 +66,15 @@ suite('NativePluginGitCommandService', () => {
 	test('checkoutCommit delegates to ILocalGitService', async () => {
 		const calls: string[] = [];
 		const service = new NativePluginGitCommandService(createLocalGitStub({
-			checkoutCommit: async (_operationId, path, commit) => {
-				calls.push(`checkoutCommit:${path}:${commit}`);
+			checkout: async (_operationId, path, treeish, detached) => {
+				calls.push(`checkout:${path}:${treeish}:${detached}`);
 			},
 		}));
 
 		const repoDir = URI.file('/tmp/repo');
 		await service.checkoutCommit(repoDir, 'aabbccddeeff00112233445566778899aabbccdd');
 
-		assert.deepStrictEqual(calls, [`checkoutCommit:${repoDir.fsPath}:aabbccddeeff00112233445566778899aabbccdd`]);
+		assert.deepStrictEqual(calls, [`checkout:${repoDir.fsPath}:aabbccddeeff00112233445566778899aabbccdd:true`]);
 	});
 
 	test('revParse delegates to ILocalGitService', async () => {

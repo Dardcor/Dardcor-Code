@@ -58,7 +58,8 @@ export function getAgentSessionProviderName(provider: AgentSessionTarget): strin
 		case AgentSessionProviders.Local:
 			return localize('chat.session.providerLabel.local', "Local");
 		case AgentSessionProviders.Background:
-			return localize('chat.session.providerLabel.background', "Dardcor AI CLI");
+		case AgentSessionProviders.AgentHostCopilot:
+			return localize('chat.session.providerLabel.dardcorCode', "Dardcor Code");
 		case AgentSessionProviders.Cloud:
 			return localize('chat.session.providerLabel.cloud', "Cloud");
 		case AgentSessionProviders.AgentHostClaude:
@@ -68,8 +69,6 @@ export function getAgentSessionProviderName(provider: AgentSessionTarget): strin
 			return 'Codex';
 		case AgentSessionProviders.Growth:
 			return 'Growth';
-		case AgentSessionProviders.AgentHostCopilot:
-			return localize('chat.session.providerLabel.agentHostCopilot', "Dardcor AI");
 		default:
 			return provider;
 	}
@@ -80,7 +79,8 @@ export function getAgentSessionProviderIcon(provider: AgentSessionTarget): Theme
 		case AgentSessionProviders.Local:
 			return Codicon.vm;
 		case AgentSessionProviders.Background:
-			return Codicon.copilot;
+		case AgentSessionProviders.AgentHostCopilot:
+			return Codicon.sparkle;
 		case AgentSessionProviders.Cloud:
 			return Codicon.cloud;
 		case AgentSessionProviders.Codex:
@@ -90,8 +90,6 @@ export function getAgentSessionProviderIcon(provider: AgentSessionTarget): Theme
 			return Codicon.claude;
 		case AgentSessionProviders.Growth:
 			return Codicon.lightbulb;
-		case AgentSessionProviders.AgentHostCopilot:
-			return Codicon.vm;
 		default:
 			return Codicon.extensions;
 	}

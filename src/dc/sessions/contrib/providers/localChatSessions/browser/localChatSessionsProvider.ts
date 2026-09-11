@@ -13,7 +13,7 @@ import { URI, UriComponents } from '../../../../../base/common/uri.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
 import { IChatService, IChatSendRequestOptions, IChatDetail, convertLegacyChatSessionTiming } from '../../../../../workbench/contrib/chat/common/chatService/chatService.js';
 import { IChatSessionFileChange2, IChatSessionProviderOptionItem, SessionType } from '../../../../../workbench/contrib/chat/common/chatSessionsService.js';
-import { ISession, IChat, ISessionGitRepository, ISessionFolder, ISessionWorkspace, ISideChatSelection, SessionStatus, ISessionType, ISessionFileChange, toSessionId, SESSION_WORKSPACE_GROUP_LOCAL, IChatCheckpoints, ChatInteractivity } from '../../../../services/sessions/common/session.js';
+import { ISession, IChat, ISessionGitRepository, ISessionFolder, ISessionWorkspace, ISideChatSelection, SessionStatus, ISessionType, ISessionFileChange, toSessionId, SESSION_WORKSPACE_GROUP_LOCAL, IChatCheckpoints, ChatInteractivity, ChatModelSource } from '../../../../services/sessions/common/session.js';
 import { ChatAgentLocation, ChatConfiguration, ChatModeKind, ChatPermissionLevel, isChatPermissionLevel } from '../../../../../workbench/contrib/chat/common/constants.js';
 import { basename, dirname, isEqual } from '../../../../../base/common/resources.js';
 import { IDeleteChatOptions, ISendRequestOptions, ISessionChangeEvent, ISessionModelPickerOptions, ISessionModelsSnapshot, ISessionsProvider } from '../../../../services/sessions/common/sessionsProvider.js';
@@ -83,6 +83,7 @@ function buildChat(session: LocalSession): IChat {
 		isRead: session.isRead,
 		interactivity: constObservable(ChatInteractivity.Full),
 		description: session.description,
+		modelSource: constObservable(undefined),
 		lastTurnEnd: session.lastTurnEnd,
 	};
 }
@@ -785,7 +786,10 @@ export class LocalChatSessionsProvider extends Disposable implements ISessionsPr
 		};
 	}
 
-	setModel(sessionId: string, modelId: string): void {
+	setModel(sessionId: string, modelId: string): void;
+	setModel(sessionId: string, chatResource: URI, modelId: string, source: ChatModelSource): void;
+	setModel(sessionId: string, modelIdOrChatResource: any, maybeModelId?: any, _source?: any): void {
+		const modelId = typeof maybeModelId === 'string' ? maybeModelId : modelIdOrChatResource;
 		const target = this._newSessions.get(sessionId) ?? this._findSession(sessionId);
 		if (target) {
 			target.setModelId(modelId);

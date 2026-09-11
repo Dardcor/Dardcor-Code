@@ -122,7 +122,7 @@ export class RenderOptions {
 			modifiedEditorOptions.get(EditorOption.renderControlCharacters),
 			modifiedEditorOptions.get(EditorOption.fontLigatures),
 			modifiedEditorOptions.get(EditorOption.scrollbar).verticalScrollbarSize,
-			modifiedEditorOptions.get(EditorOption.effectiveFullwidthCharacterWidth) === 'twoCells',
+			false,
 		);
 	}
 
@@ -311,8 +311,7 @@ function renderOriginalLine(
 		null, // Send no selections, original line cannot be selected
 		null,
 		options.verticalScrollbarSize,
-		false,
-		options.useTwoCellFullwidthCharacters
+		false
 	), sb);
 
 	sb.appendString('</div>');

@@ -78,7 +78,7 @@ import '../workbench/services/auxiliaryWindow/browser/auxiliaryWindowService.js'
 import '../workbench/services/power/browser/powerService.js';
 import '../workbench/services/localTranscription/browser/localTranscriptionService.js';
 import '../platform/sandbox/browser/sandboxHelperService.js';
-import '../platform/remoteTunnel/browser/remoteTunnelService.js';
+
 
 import { InstantiationType, registerSingleton } from '../platform/instantiation/common/extensions.js';
 import { IAccessibilityService } from '../platform/accessibility/common/accessibility.js';

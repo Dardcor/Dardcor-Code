@@ -508,7 +508,7 @@ function toSdkCapiSessionOptions(autoTier: AutoModeTier | undefined): Pick<Sessi
 	if (autoTier === undefined) {
 		return {};
 	}
-	return { capi: { autoTier } };
+	return { capi: { autoTier } as any };
 }
 
 /**

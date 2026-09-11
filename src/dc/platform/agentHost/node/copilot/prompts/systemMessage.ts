@@ -82,6 +82,19 @@ export function sectionOverrides(sections: Partial<Record<SystemMessageSection, 
 	return { mode: 'customize', sections };
 }
 
+export function withDefaultSections(config: SystemMessageConfig): SystemMessageConfig {
+	if (config.mode !== 'customize') {
+		return config;
+	}
+	return {
+		...config,
+		sections: {
+			...COPILOT_AGENT_HOST_SYSTEM_MESSAGE.sections,
+			...config.sections,
+		},
+	};
+}
+
 /** Appends universal content without changing a full-prompt replacement. */
 export function appendSystemMessageContent(config: SystemMessageConfig, content: string): SystemMessageConfig {
 	if (config.mode === 'replace') {

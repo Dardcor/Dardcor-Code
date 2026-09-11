@@ -9,7 +9,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IAutomationSessionTemplate } from '../../../../workbench/contrib/chat/common/automations/automation.js';
-import { IChat, ISession, ISessionType, ISessionWorkspace, ISideChatSelection } from './session.js';
+import { IChat, ISession, ISessionFile, ISessionType, ISessionWorkspace, ISideChatSelection } from './session.js';
 import { IAutomationSessionConfiguration, IDeleteChatOptions, ISendRequestOptions as ISessionsProviderSendRequestOptions, type SessionResourceResolveReason } from './sessionsProvider.js';
 
 /** Raised when unattended session creation targets a workspace that requires trust. */
@@ -179,6 +179,8 @@ export interface IActiveSession extends ISession {
 	readonly activeChat: IObservable<IChat>;
 
 	readonly isCreated: IObservable<boolean>;
+
+	readonly externalChanges?: IObservable<readonly ISessionFile[]>;
 
 	/** Whether this session is sticky in the sessions part's grid. */
 	readonly sticky: IObservable<boolean>;

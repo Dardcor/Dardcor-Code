@@ -86,6 +86,10 @@ export interface IActionWidgetDropdownActionProvider {
 	getActions(): IActionWidgetDropdownAction[];
 }
 
+export interface IActionWidgetDropdownListOptionsProvider {
+	getListOptions(): IActionListOptions;
+}
+
 export interface IActionWidgetDropdownOptions extends IBaseDropdownOptions {
 	// These are the actions that are shown in the action widget split up by category
 	readonly actions?: IActionWidgetDropdownAction[];
@@ -110,6 +114,7 @@ export interface IActionWidgetDropdownOptions extends IBaseDropdownOptions {
 	 * Options for the underlying ActionList (filter, collapsible sections).
 	 */
 	readonly listOptions?: IActionListOptions;
+	readonly listOptionsProvider?: IActionWidgetDropdownListOptionsProvider;
 }
 
 /**
@@ -304,7 +309,7 @@ export class ActionWidgetDropdown extends BaseDropdown {
 			undefined,
 			[],
 			accessibilityProvider,
-			withActionWidgetDropdownMotion(this._options.listOptions)
+			withActionWidgetDropdownMotion(this._options.listOptions ?? this._options.listOptionsProvider?.getListOptions())
 		);
 	}
 

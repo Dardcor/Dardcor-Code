@@ -308,7 +308,7 @@ class AutomationItemRenderer implements IListRenderer<IAutomationItemEntry, IAut
 			disposables.add(this.hoverService.setupManagedHover(getDefaultHoverDelegate('element'), openButton, localize('openRunSession', "Open session")));
 			const openSession = (e: Event) => {
 				e.stopPropagation();
-				const sessionResource = URI.parse(run.sessionResource!);
+				const sessionResource = URI.revive(run.sessionResource)!;
 				this.logService.debug(`[AutomationsListWidget] Opening session: ${sessionResource.toString()}`);
 				const activeEditor = this.editorService.activeEditor;
 				const activeGroupId = this.editorGroupsService.activeGroup.id;
@@ -781,6 +781,8 @@ function formatSchedule(a: IAutomation): string {
 			const day = dayName(a.schedule.scheduleDay);
 			return localize('scheduleWeekly', "Weekly on {0} at {1}", day, formatHourMinute(a.schedule.scheduleHour, a.schedule.scheduleMinute));
 		}
+		default:
+			return '';
 	}
 }
 

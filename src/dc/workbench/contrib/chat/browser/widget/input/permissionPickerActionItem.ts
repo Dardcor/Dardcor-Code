@@ -275,7 +275,7 @@ export class PermissionPickerActionItem extends ChatInputPickerActionViewItem {
 						category: { label: 'sandbox', order: Number.MAX_SAFE_INTEGER },
 						tooltip: '',
 						run: async () => { },
-					} satisfies IActionWidgetDropdownAction);
+					} as unknown as IActionWidgetDropdownAction);
 				}
 				return actions;
 			}

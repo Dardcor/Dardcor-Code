@@ -230,8 +230,8 @@ export interface IBrowserViewCaptureScreenshotOptions {
 
 /** Identifies who controls a browser view. */
 export type IBrowserViewOwner =
-	| { readonly type: 'user' }
-	| { readonly type: 'agent'; readonly sessionId: string };
+	| { readonly type: 'user'; readonly mainWindowId?: number }
+	| { readonly type: 'agent'; readonly sessionId: string; readonly mainWindowId?: number };
 
 /**
  * Grants matching agents access to a browser view. Omitted identifiers match all values.
@@ -451,6 +451,8 @@ export type IBrowserViewSessionOptions =
 		/** Views with the same affinity share one in-memory browser session. */
 		readonly affinity?: string;
 	};
+
+export type IBrowserSessionOptions = IBrowserViewSessionOptions;
 
 export function isInMemoryStorageScope(scope: BrowserViewStorageScope): boolean {
 	return scope === BrowserViewStorageScope.Ephemeral || scope === BrowserViewStorageScope.Agent;

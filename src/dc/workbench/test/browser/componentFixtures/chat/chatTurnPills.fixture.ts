@@ -86,6 +86,7 @@ function renderTurnPills(ctx: ComponentFixtureContext, options: IRenderTurnPills
 		kind: 'turnPills',
 		requestId: 'request-1',
 		sessionResource: URI.parse('vscode-chat-session://agent-host/session-1'),
+		isLastTurn: true,
 	};
 	const partContext = upcastPartial<IChatContentPartRenderContext>({ container });
 
@@ -200,7 +201,6 @@ export default defineThemedFixtureGroup({ path: 'chat/' }, {
 	inChat: defineThemedFixtureGroup({
 		Changes: defineComponentFixture({
 			render: (ctx) => renderChatWidget(ctx, {
-				turnStatusPills: true,
 				messages: [
 					{
 						user: 'Refactor the fibonacci helper to be iterative',
@@ -218,7 +218,6 @@ export default defineThemedFixtureGroup({ path: 'chat/' }, {
 
 		ChangesAndExternalPreview: defineComponentFixture({
 			render: (ctx) => renderChatWidget(ctx, {
-				turnStatusPills: true,
 				messages: [
 					{
 						user: 'Create a Markdown handoff note in my home folder',

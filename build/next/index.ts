@@ -1119,6 +1119,14 @@ async function watch(): Promise<void> {
 	try {
 		await transpile(outDir, false);
 		await copyAllNonTsFiles(outDir, false);
+		await fs.promises.writeFile(
+			path.join(REPO_ROOT, outDir, '.build-done'),
+			JSON.stringify({
+				timestamp: new Date().toISOString(),
+				status: 'complete'
+			}, null, 2),
+			'utf8'
+		);
 		console.log(`Finished transpilation with 0 errors after ${Date.now() - t1} ms`);
 	} catch (err) {
 		console.error('[watch] Initial build failed:', err);
@@ -1256,6 +1264,14 @@ async function main(): Promise<void> {
 					const t1 = Date.now();
 					await transpile(outDir, options.excludeTests);
 					await copyAllNonTsFiles(outDir, options.excludeTests);
+					await fs.promises.writeFile(
+						path.join(outDirPath, '.build-done'),
+						JSON.stringify({
+							timestamp: new Date().toISOString(),
+							status: 'complete'
+						}, null, 2),
+						'utf8'
+					);
 					console.log(`[transpile] Done in ${Date.now() - t1}ms`);
 				}
 				break;

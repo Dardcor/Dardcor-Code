@@ -334,6 +334,11 @@ export interface ILanguageModelChatMetadata {
 	 */
 	readonly warningText?: IStringDictionary<string>;
 	/**
+	 * Optional informational text to display in the model picker hover as an info banner.
+	 * The keys are info categories and the values are markdown strings.
+	 */
+	readonly infoText?: IStringDictionary<string>;
+	/**
 	 * Optional promotional information for this model. A positive `discountPercent`
 	 * surfaces the full promotional UI; `0` is a message-only promo that features the
 	 * model without a price change; a negative value is malformed and is ignored.

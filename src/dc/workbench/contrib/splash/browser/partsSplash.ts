@@ -101,7 +101,7 @@ export class PartsSplash {
 				agentsPanelBackground: theme.getColor('agentsPanel.background')?.toString(),
 				agentsPanelBorder: theme.getColor('agentsPanel.border')?.toString(),
 				statusBarBackground: theme.getColor(themes.STATUS_BAR_BACKGROUND)?.toString(),
-				statusBarInactiveBackground: theme.getColor(themes.STATUS_BAR_INACTIVE_BACKGROUND)?.toString(),
+				statusBarInactiveBackground: theme.getColor(themes.STATUS_BAR_BACKGROUND)?.toString(),
 				statusBarBorder: theme.getColor(themes.STATUS_BAR_BORDER)?.toString(),
 				statusBarNoFolderBackground: theme.getColor(themes.STATUS_BAR_NO_FOLDER_BACKGROUND)?.toString(),
 				windowBorder: theme.getColor(themes.WINDOW_ACTIVE_BORDER)?.toString() ?? theme.getColor(themes.WINDOW_INACTIVE_BORDER)?.toString()
@@ -117,7 +117,7 @@ export class PartsSplash {
 				windowBorder: this._layoutService.hasMainWindowBorder(),
 				windowBorderRadius: this._layoutService.getMainWindowBorderRadius(),
 				modernUI: this._layoutService.isFloatingPanelsEnabled(),
-				modernUICompact: this._layoutService.isModernUICompact(),
+				modernUICompact: this._layoutService.isModernUICompact?.() ?? false,
 				partBounds: this._layoutService.isFloatingPanelsEnabled() ? {
 					activityBar: this._getPartBounds(Parts.ACTIVITYBAR_PART),
 					sideBar: this._getPartBounds(Parts.SIDEBAR_PART),

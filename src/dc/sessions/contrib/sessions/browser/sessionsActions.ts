@@ -102,6 +102,7 @@ registerAction2(class ShowSessionsPickerAction extends Action2 {
 
 		interface ISessionPickItem extends IQuickPickItem {
 			session?: ISession;
+			iconColor?: ThemeIcon['color'];
 		}
 
 		const toPickItem = (session: ISession, reader: IReader): ISessionPickItem => {

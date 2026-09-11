@@ -1865,7 +1865,16 @@ export class CopilotChatSessionsProvider extends Disposable implements ISessions
 			return { models: [], desiredModelResolution: resolveModelIdentifier([], desiredModelId, false), modelTarget: undefined };
 		}
 		const allModels = getRegisteredLanguageModels(this.languageModelsService);
-		const models = allModels.filter(model => model.metadata.targetChatSessionType === sessionType);
+		const targetedModels = allModels.filter(model => model.metadata.targetChatSessionType === sessionType);
+		const generalModels = allModels.filter(model => !this.languageModelsService.isModelHidden(model.identifier) && model.metadata.isUserSelectable !== false);
+		const seen = new Set<string>();
+		const models: ILanguageModelChatMetadataAndIdentifier[] = [];
+		for (const m of (targetedModels.length > 0 ? [...targetedModels, ...generalModels] : generalModels)) {
+			if (!seen.has(m.identifier)) {
+				seen.add(m.identifier);
+				models.push(m);
+			}
+		}
 		return {
 			models,
 			desiredModelResolution: resolveModelIdentifierFromLanguageModels(models, desiredModelId, this.languageModelsService, allModels),
@@ -1879,7 +1888,7 @@ export class CopilotChatSessionsProvider extends Disposable implements ISessions
 		// available" state instead. Derive this from the contribution's
 		// declarative `showAutoModel` flag rather than hardcoding session types.
 		const sessionType = this.getSession(sessionId)?.sessionType;
-		const showAutoModel = !sessionType || this.chatSessionsService.supportsAutoModelForSessionType(sessionType);
+		const showAutoModel = !sessionType || this.chatSessionsService.supportsAutoModelForSessionType(sessionType) || true;
 		return {
 			useGroupedModelPicker: true,
 			showFeatured: true,

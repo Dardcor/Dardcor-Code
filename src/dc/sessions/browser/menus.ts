@@ -80,5 +80,6 @@ export const Menus = {
 	ChangesAgentMergeMergePullRequest: new MenuId('SessionsChangesAgentMergeMergePullRequest'),
 
 	SessionHeaderContext: MenuId.SessionHeaderContext,
+	SessionHeaderMeta: new MenuId('SessionsSessionHeaderMeta'),
 	SessionItemContextMenu: MenuId.SessionItemContextMenu,
 } as const;

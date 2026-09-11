@@ -395,6 +395,8 @@ function getSessionFileOperationLabel(operation: SessionFileOperation): string {
 			return localize('sessionFiles.modified', "Modified");
 		case SessionFileOperation.Deleted:
 			return localize('sessionFiles.deleted', "Deleted");
+		default:
+			return '';
 	}
 }
 

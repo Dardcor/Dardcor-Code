@@ -19,6 +19,8 @@ export interface IToastOptions {
 	readonly actions?: readonly string[];
 
 	readonly silent?: boolean;
+
+	readonly dedupeKey?: string;
 }
 
 export interface IToastResult {

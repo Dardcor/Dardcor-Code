@@ -50,6 +50,7 @@ import { getModelConfigSummary } from './modelPickerModelConfig.js';
 import { logModelConfigurationChange } from './modelPickerTelemetry.js';
 import { IModelPickerProviderPlaceholder } from './modelPickerTabs.js';
 import { getModelPickerUnavailableReason, isAutoModel, ModelPickerUnavailableReason, modelPickerRequiresSetup, shouldShowCacheBreakHint as computeShouldShowCacheBreakHint } from './modelPickerPresentation.js';
+import { IBrowserWorkbenchEnvironmentService } from '../../../../../../services/environment/browser/environmentService.js';
 
 const CACHE_BREAK_HINT_DISMISSED_STORAGE_KEY = 'chat.cacheBreakHintDismissed';
 
@@ -299,6 +300,10 @@ export class ModelPickerWidget extends Disposable {
 	}
 
 	private _requiresSetup(): boolean {
+		const isSessionsWindow = this._instantiationService.invokeFunction(accessor => accessor.get(IBrowserWorkbenchEnvironmentService).isSessionsWindow);
+		if (isSessionsWindow) {
+			return false;
+		}
 		return modelPickerRequiresSetup({
 			entitlement: this._entitlementService.entitlement,
 			anonymous: this._entitlementService.anonymous,

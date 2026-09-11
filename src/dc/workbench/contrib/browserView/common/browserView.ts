@@ -60,6 +60,7 @@ import {
 	isBrowserViewStorageScopeShareableWithAgent,
 	IBrowserViewHost,
 } from '../../../../platform/browserView/common/browserView.js';
+export type { IBrowserViewEditorOpenOptions } from '../../../../platform/browserView/common/browserView.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { isLocalhostAuthority } from '../../../../platform/url/common/trustedDomains.js';
 import { IAgentNetworkFilterService } from '../../../../platform/networkFilter/common/networkFilterService.js';
@@ -582,7 +583,7 @@ export class BrowserViewModel extends Disposable implements IBrowserViewModel {
 		}
 		// Set up state synchronization
 
-		this._register(this.zoomService.onDidChangeZoom(({ host, isInMemoryChange }) => {
+		this._register(this.zoomService.onDidChangeZoom(({ host, isInMemoryChange }: any) => {
 			if (isInMemoryChange && !this._isInMemory) {
 				return;
 			}

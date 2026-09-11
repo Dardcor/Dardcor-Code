@@ -24,6 +24,8 @@ export interface IToastOptions {
 	readonly actions?: readonly string[];
 
 	readonly silent?: boolean;
+
+	readonly dedupeKey?: string;
 }
 
 export interface IToastResult {
@@ -34,11 +36,23 @@ export interface IToastResult {
 }
 
 /**
- * A ZIP entry whose contents are inline or streamed from a local file.
+ * A ZIP entry whose contents are inline or streamed from a local file,
+ * or a source archive (zip) to be merged into the output zip.
  */
 export type INativeZipFile =
 	| { readonly path: string; readonly contents: string }
-	| { readonly path: string; readonly source: URI; readonly size: number };
+	| { readonly path: string; readonly source: URI; readonly size: number }
+	| { readonly sourceArchive: URI };
+
+/** Application-level badge shown on the app icon in the dock / taskbar. */
+export interface IApplicationBadge {
+	/** Badge count shown as a number on the icon. */
+	readonly count: number;
+	/** Accessible description of the badge. */
+	readonly description: string;
+	/** Optional icon data URL (Windows taskbar overlay). */
+	readonly iconDataURL?: string;
+}
 
 export interface IOpenAgentsWindowOptions {
 	readonly folderUri?: UriComponents;
@@ -386,7 +400,7 @@ export interface ICommonNativeHostService {
 	 * file `source` URI together with the number of leading bytes (`size`) to
 	 * stream from it.
 	 */
-	createZipFile(zipPath: URI, files: INativeZipFile[]): Promise<void>;
+	createZipFile(zipPath: URI, files: INativeZipFile[], options?: { maxEntries?: number }): Promise<void>;
 
 	// Power
 	getSystemIdleState(idleThreshold: number): Promise<SystemIdleState>;
@@ -396,6 +410,9 @@ export interface ICommonNativeHostService {
 	startPowerSaveBlocker(type: PowerSaveBlockerType): Promise<number>;
 	stopPowerSaveBlocker(id: number): Promise<boolean>;
 	isPowerSaveBlockerStarted(id: number): Promise<boolean>;
+
+	// Application Badge (dock / taskbar)
+	setApplicationBadge(badge: IApplicationBadge | undefined): Promise<void>;
 }
 
 /**

@@ -45,6 +45,7 @@ import { ACTIVITY_BAR_BADGE_BACKGROUND, ACTIVITY_BAR_BADGE_FOREGROUND } from '..
 import { IBaseActionViewItemOptions } from '../../../base/browser/ui/actionbar/actionViewItems.js';
 import { ICommandService } from '../../../platform/commands/common/commands.js';
 import { WORKBENCH_MENU_MOTION_CLASS, workbenchMenuCloseAnimation } from '../actions/menuMotion.js';
+import { IBrowserWorkbenchEnvironmentService } from '../../services/environment/browser/environmentService.js';
 
 
 export class GlobalCompositeBar extends Disposable {
@@ -66,6 +67,7 @@ export class GlobalCompositeBar extends Disposable {
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 		@IStorageService private readonly storageService: IStorageService,
 		@IExtensionService private readonly extensionService: IExtensionService,
+		@IBrowserWorkbenchEnvironmentService private readonly environmentService: IBrowserWorkbenchEnvironmentService,
 	) {
 		super();
 
@@ -149,7 +151,10 @@ export class GlobalCompositeBar extends Disposable {
 	}
 
 	private get accountsVisibilityPreference(): boolean {
-		return false;
+		if (this.environmentService.isSessionsWindow) {
+			return false;
+		}
+		return this.storageService.getBoolean(AccountsActivityActionViewItem.ACCOUNTS_VISIBILITY_PREFERENCE_KEY, StorageScope.PROFILE, true) !== false;
 	}
 
 	private set accountsVisibilityPreference(value: boolean) {

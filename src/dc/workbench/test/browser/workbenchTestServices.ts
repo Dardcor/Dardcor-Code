@@ -2149,6 +2149,7 @@ export class TestChatWidgetService implements IChatWidgetService {
 	lastFocusedWidget: IChatWidget | undefined;
 
 	onDidAddWidget = Event.None;
+	onDidRemoveWidget = Event.None;
 	onDidChangeWidgetVisibility = Event.None;
 	onDidBackgroundSession = Event.None;
 	onDidChangeFocusedWidget = Event.None;
@@ -2163,5 +2164,5 @@ export class TestChatWidgetService implements IChatWidgetService {
 	async openSession(sessionResource: unknown, target?: unknown, options?: unknown): Promise<IChatWidget | undefined> { return undefined; }
 	getWidgetBySessionResource(sessionResource: URI): IChatWidget | undefined { return undefined; }
 	getWidgetsByLocations(location: ChatAgentLocation): ReadonlyArray<IChatWidget> { return []; }
-	register(newWidget: IChatWidget): IDisposable { return Disposable.None; }
+	register(newWidget: IChatWidget): any { return { dispose: () => {} }; }
 }

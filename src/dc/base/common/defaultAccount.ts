@@ -59,6 +59,7 @@ export interface IPolicyData {
 	readonly cloud_session_storage_enabled?: boolean;
 	readonly mcpRegistryUrl?: string;
 	readonly mcpAccess?: 'allow_all' | 'registry_only';
+	readonly managedSettingsActive?: boolean;
 
 	/**
 	 * Normalized enterprise-managed settings, keyed by dot-separated managed-settings

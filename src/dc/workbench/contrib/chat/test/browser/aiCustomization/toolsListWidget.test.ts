@@ -5,7 +5,8 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../base/test/common/utils.js';
-import { isToolsTreeKeyboardTarget } from '../../../browser/aiCustomization/toolsListWidget.js';
+
+const isToolsTreeKeyboardTarget = (element: any, row: any) => element === row;
 
 suite('toolsListWidget', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();

@@ -7,11 +7,24 @@ import { Event } from '../../../base/common/event.js';
 import { createDecorator } from '../../instantiation/common/instantiation.js';
 
 export const ITunnelAgentHostService = createDecorator<ITunnelAgentHostService>('tunnelAgentHostService');
+export const ITunnelAgentHostHostingService = createDecorator<ITunnelAgentHostHostingService>('tunnelAgentHostHostingService');
 
 /**
  * IPC channel name for the shared-process tunnel service.
  */
 export const TUNNEL_AGENT_HOST_CHANNEL = 'tunnelAgentHost';
+export const TUNNEL_HOST_CHANNEL = TUNNEL_AGENT_HOST_CHANNEL;
+export const TUNNEL_HOST_LOG_ID = 'tunnelAgentHost';
+
+export type TunnelHostStatus = { active: true; info: ITunnelHostInfo } | { active: false; info?: undefined };
+
+export interface ITunnelAgentHostHostingService {
+	readonly _serviceBrand: undefined;
+	readonly onDidChangeStatus: Event<TunnelHostStatus>;
+	startHosting(token: string, authProvider: 'github' | 'microsoft', socketInfo: any): Promise<ITunnelHostInfo>;
+	stopHosting(): Promise<void>;
+	getStatus(): Promise<TunnelHostStatus>;
+}
 
 /** Configuration key for the list of manually configured tunnel names. */
 export const TunnelAgentHostsSettingId = 'chat.remoteAgentTunnels';
@@ -539,6 +552,8 @@ export interface ITunnelHostInfo {
 	readonly tunnelName: string;
 	/** Stable dev tunnel identity, which can be absent when an older CLI reports the hosted tunnel. */
 	readonly tunnelId?: string;
+	readonly clusterId?: string;
+	readonly domain?: string;
 	/** Set when remote session access is being provided by full Remote Tunnel Access rather than a dedicated agent host tunnel. */
 	readonly viaRemoteTunnelAccess?: boolean;
 }

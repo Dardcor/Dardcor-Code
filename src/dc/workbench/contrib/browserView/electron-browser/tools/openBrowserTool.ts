@@ -148,7 +148,7 @@ export class OpenBrowserTool implements IToolImpl {
 			}
 
 			// If there are unshared (but shareable) pages on the same host, prompt user to share one
-			const unshared = findExistingPagesByHost(this.browserViewService, params.url, { includeBlank: false, sharingState: BrowserViewSharingState.NotShared, activeSessionId });
+			const unshared = findExistingPagesByHost(this.browserViewService, params.url, { includeBlank: false, sharingState: BrowserViewSharingState.Available, activeSessionId });
 			if (unshared.length > 0) {
 				const shareResult = await this._promptForUnsharedPages(invocation, unshared, params, token);
 				if (shareResult) {

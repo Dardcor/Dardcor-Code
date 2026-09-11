@@ -101,6 +101,7 @@ export class MenuId {
 	static readonly EditorTitleRun = new MenuId('EditorTitleRun');
 	static readonly EditorTitleContext = new MenuId('EditorTitleContext');
 	static readonly EditorTitleContextShare = new MenuId('EditorTitleContextShare');
+	static readonly DiffEditorViewSubmenu = new MenuId('DiffEditorViewSubmenu');
 	static readonly EmptyEditorGroup = new MenuId('EmptyEditorGroup');
 	static readonly EmptyEditorGroupContext = new MenuId('EmptyEditorGroupContext');
 	static readonly EditorGroupWatermarkToolbar = new MenuId('EditorGroupWatermarkToolbar');

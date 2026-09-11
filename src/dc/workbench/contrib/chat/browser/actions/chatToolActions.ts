@@ -20,8 +20,8 @@ import { ITelemetryService } from '../../../../../platform/telemetry/common/tele
 import { ChatContextKeys } from '../../common/actions/chatContextKeys.js';
 import { ConfirmedReason, IChatToolInvocation, ToolConfirmKind } from '../../common/chatService/chatService.js';
 import { isResponseVM } from '../../common/model/chatViewModel.js';
-import { ChatModeKind } from '../../common/constants.js';
-import { IChatWidget, IChatWidgetService } from '../chat.js';
+import { ChatAgentLocation } from '../../common/constants.js';
+import { ChatViewId, IChatWidget, IChatWidgetService } from '../chat.js';
 import { ToolsScope } from '../widget/input/chatSelectedTools.js';
 import { CHAT_CATEGORY } from './chatActions.js';
 import { showToolsPicker } from './chatToolPicker.js';
@@ -121,20 +121,31 @@ export class ConfigureToolsAction extends Action2 {
 	constructor() {
 		super({
 			id: ConfigureToolsAction.ID,
-			title: localize('label', "Configure Tools..."),
+			title: localize2('configureTools.label', "Configure Tools..."),
 			icon: Codicon.settingsCompact,
-			f1: false,
+			f1: true,
 			category: CHAT_CATEGORY,
-			precondition: ChatContextKeys.chatModeKind.isEqualTo(ChatModeKind.Agent),
-			menu: [{
-				when: ContextKeyExpr.and(
-					ChatContextKeys.chatModeKind.isEqualTo(ChatModeKind.Agent),
-					ChatContextKeys.lockedToCodingAgent.negate(),
-				),
-				id: MenuId.ChatInput,
-				group: 'navigation',
-				order: 100,
-			}]
+			precondition: ChatContextKeys.enabled,
+			menu: [
+				{
+					when: ContextKeyExpr.and(
+						ChatContextKeys.enabled,
+						ChatContextKeys.lockedToCodingAgent.negate(),
+					),
+					id: MenuId.ChatInput,
+					group: 'navigation',
+					order: 2,
+				},
+				{
+					when: ContextKeyExpr.and(
+						ChatContextKeys.enabled,
+						ContextKeyExpr.equals('view', ChatViewId),
+					),
+					id: MenuId.ViewTitle,
+					group: 'navigation',
+					order: 2,
+				}
+			]
 		});
 	}
 
@@ -147,6 +158,9 @@ export class ConfigureToolsAction extends Action2 {
 		let widget = chatWidgetService.lastFocusedWidget;
 		if (!widget) {
 			widget = this.extractWidget(args);
+		}
+		if (!widget) {
+			widget = chatWidgetService.getWidgetsByLocations(ChatAgentLocation.Chat)[0] ?? chatWidgetService.getAllWidgets()[0];
 		}
 
 		if (!widget) {

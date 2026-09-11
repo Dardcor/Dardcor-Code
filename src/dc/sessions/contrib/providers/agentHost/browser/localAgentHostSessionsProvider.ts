@@ -614,6 +614,9 @@ export class LocalAgentHostSessionsProvider extends BaseAgentHostSessionsProvide
 	}
 
 	protected _formatSessionTypeLabel(agentLabel: string): string {
+		if (agentLabel.toLowerCase() === 'copilot' || agentLabel.toLowerCase() === 'copilotcli' || agentLabel.toLowerCase() === 'copilot cli') {
+			return 'Dardcor Code';
+		}
 		return agentLabel;
 	}
 

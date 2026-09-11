@@ -4,13 +4,13 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
-import { IBrowserViewWorkbenchService, IBrowserViewCDPService, IBrowserViewModel, IBrowserEditorViewState, IBrowserViewContextualFilter, IBrowserViewOpenHandler } from '../common/browserView.js';
+import { IBrowserViewWorkbenchService, IBrowserViewCDPService, IBrowserViewModel, IBrowserViewContextualFilter, IBrowserViewOpenHandler, IBrowserViewWorkbenchCreateOptions, IBrowserViewEditorOpenOptions } from '../common/browserView.js';
 import type { PreferredGroup } from '../../../services/editor/common/editorService.js';
 import { Event } from '../../../../base/common/event.js';
 import { Disposable, IDisposable } from '../../../../base/common/lifecycle.js';
 import { CDPEvent, CDPRequest, CDPResponse } from '../../../../platform/browserView/common/cdp/types.js';
 import { ITunnelProxyInfo } from '../../../../platform/tunnel/common/tunnelProxy.js';
-import { BrowserEditorInput } from '../common/browserEditorInput.js';
+import { BrowserEditorInput, type IBrowserEditorInputData } from '../common/browserEditorInput.js';
 
 class WebBrowserViewWorkbenchService implements IBrowserViewWorkbenchService {
 	declare readonly _serviceBrand: undefined;
@@ -47,7 +47,11 @@ class WebBrowserViewWorkbenchService implements IBrowserViewWorkbenchService {
 		return Disposable.None;
 	}
 
-	getOrCreateLazy(_id: string, _state: IBrowserEditorViewState): BrowserEditorInput {
+	createBrowserView(_options: IBrowserViewWorkbenchCreateOptions, _editorOpenOptions?: IBrowserViewEditorOpenOptions): Promise<BrowserEditorInput> {
+		throw new Error('Integrated Browser is not available in web.');
+	}
+
+	getOrCreateLazy(_data: IBrowserEditorInputData): BrowserEditorInput {
 		throw new Error('Integrated Browser is not available in web.');
 	}
 

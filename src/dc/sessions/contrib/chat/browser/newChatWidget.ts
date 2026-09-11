@@ -289,6 +289,9 @@ export class NewChatWidget extends Disposable {
 			await this._onWorkspaceSelected(folderUri);
 			this._newChatInput.focus();
 		}));
+		if (this._workspacePicker.selectedFolderUri && !this._session.get()) {
+			void this._onWorkspaceSelected(this._workspacePicker.selectedFolderUri);
+		}
 		this._register(this._workspacePicker.onDidSelectContext(context => {
 			const contextUri = context.uri.toString();
 			this._newChatInput.attachTextContext(
@@ -791,7 +794,6 @@ export class NewChatWidget extends Disposable {
 		const row = this._workspacePicker.renderCategoryTriggers(container, [
 			workspaceTrigger,
 		]);
-		this._renderSessionTypePicker(row, false);
 		const customizeTrigger = this._renderCustomizeTrigger(row);
 		this._workspacePickerRow = row;
 		return toDisposable(() => {
@@ -847,17 +849,8 @@ export class NewChatWidget extends Disposable {
 		return store;
 	}
 
-	private _renderSessionTypePicker(container: HTMLElement, prependBeforeSiblings: boolean): void {
-		this._newChatInput.sessionTypePicker.render(container, {
-			className: 'sessions-chat-session-type-picker sessions-workspace-category-picker-slot',
-		});
-		const sessionTypePicker = container.lastElementChild;
-		if (prependBeforeSiblings && sessionTypePicker) {
-			container.prepend(sessionTypePicker);
-		} else if (sessionTypePicker) {
-			const workspaceTrigger = container.firstElementChild;
-			workspaceTrigger?.after(sessionTypePicker);
-		}
+	private _renderSessionTypePicker(_container: HTMLElement, _prependBeforeSiblings: boolean): void {
+		// Session type picker button next to workspace folder removed per user request
 	}
 
 	private _renderEmptyState(container: HTMLElement): IDisposable {
@@ -951,10 +944,19 @@ export class NewChatWidget extends Disposable {
 	// --- Send ---
 
 	private async _send(query: string, attachedContext?: IChatRequestVariableEntry[], background?: boolean): Promise<boolean> {
-		const session = this._session.get();
+		let session = this._session.get();
 		if (!session) {
-			this._workspacePicker.showPicker();
-			return false;
+			const folderUri = this._getContextFolderUri();
+			if (folderUri) {
+				await this._createNewSession(folderUri);
+				session = this._session.get();
+			} else if (this.sessionsManagementService.isQuickChatTargetAvailable()) {
+				session = this._openQuickChat();
+			}
+			if (!session) {
+				this._workspacePicker.showPicker();
+				return false;
+			}
 		}
 		const feedbackItems = [...this._feedbackItems.get()];
 		const workspaceRoots = this._getWorkspaceRoots(session);
@@ -1141,10 +1143,20 @@ export class NewChatWidget extends Disposable {
 		this._newChatInput.sendQuery(text);
 	}
 
-	submitInput(): Promise<boolean> {
-		if (!this._session.get()) {
-			this._workspacePicker.showPicker();
-			return Promise.resolve(false);
+	async submitInput(): Promise<boolean> {
+		let session = this._session.get();
+		if (!session) {
+			const folderUri = this._getContextFolderUri();
+			if (folderUri) {
+				await this._createNewSession(folderUri);
+				session = this._session.get();
+			} else if (this.sessionsManagementService.isQuickChatTargetAvailable()) {
+				session = this._openQuickChat();
+			}
+			if (!session) {
+				this._workspacePicker.showPicker();
+				return false;
+			}
 		}
 		return this._newChatInput.submit();
 	}

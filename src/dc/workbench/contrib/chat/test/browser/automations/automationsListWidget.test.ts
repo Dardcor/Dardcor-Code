@@ -35,7 +35,7 @@ import { IAutomationRunClaim, IAutomationService, ICreateAutomationOptions, IGua
 import { IAutomationDialogResult, IAutomationDialogService, IShowAutomationDialogOptions } from '../../../common/automations/automationDialogService.js';
 
 const FOLDER = URI.parse('file:///workspace');
-const SESSION_RESOURCE = 'vscode-chat-session://copilot/sess-1';
+const SESSION_RESOURCE = URI.parse('vscode-chat-session://copilot/sess-1');
 
 function hourly(): IAutomationSchedule {
 	return { interval: 'hourly', scheduleHour: 0, scheduleMinute: 0, scheduleDay: 0 };

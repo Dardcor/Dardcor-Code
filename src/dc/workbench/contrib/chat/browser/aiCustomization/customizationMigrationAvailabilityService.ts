@@ -21,6 +21,7 @@ import { ICustomizationHarnessService } from '../../common/customizationHarnessS
 import { CustomizationMigration, CustomizationMigrationType, ICustomizationMigrationService } from '../../common/promptSyntax/service/customizationMigrationService.js';
 import { IPromptsService } from '../../common/promptSyntax/service/promptsService.js';
 import { CUSTOMIZATION_MIGRATION_CATEGORIES } from './customizationMigrationCategories.js';
+import './customizationMigrationServiceImpl.js';
 
 export const ICustomizationMigrationAvailabilityService = createDecorator<ICustomizationMigrationAvailabilityService>('customizationMigrationAvailabilityService');
 

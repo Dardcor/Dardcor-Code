@@ -1020,7 +1020,7 @@ registerAction2(class extends Action2 {
 				id: Menus.TitleBarRightLayout,
 				group: 'navigation',
 				order: 100,
-				when: IsAuxiliaryWindowContext.toNegated(),
+				when: ContextKeyExpr.false(),
 			}
 		});
 	}

@@ -11,6 +11,7 @@ import { localize } from '../../../../nls.js';
 import { IAgentConnection } from '../../../../platform/agentHost/common/agentService.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IQuickInputService, IQuickPickItem } from '../../../../platform/quickinput/common/quickInput.js';
+import { ITerminalLogService } from '../../../../platform/terminal/common/terminal.js';
 import { AgentHostPty } from './agentHostPty.js';
 import { AgentHostOutputChannel } from './agentHostOutputChannel.js';
 import { AhpTerminalCommandSource } from './ahpTerminalCommandSource.js';
@@ -126,6 +127,7 @@ export class AgentHostTerminalService extends Disposable implements IAgentHostTe
 		@ITerminalChatService private readonly _terminalChatService: ITerminalChatService,
 		@ITerminalProfileService private readonly _terminalProfileService: ITerminalProfileService,
 		@IQuickInputService private readonly _quickInputService: IQuickInputService,
+		@ITerminalLogService private readonly _logService: ITerminalLogService,
 	) {
 		super();
 	}
@@ -302,7 +304,7 @@ export class AgentHostTerminalService extends Disposable implements IAgentHostTe
 					const pty = new AgentHostPty(id, connection, terminalUri, {
 						name,
 						cwd: options?.cwd,
-					});
+					}, this._logService);
 					if (cols > 0 && rows > 0) {
 						pty.resize(cols, rows);
 					}
@@ -357,8 +359,9 @@ export class AgentHostTerminalService extends Disposable implements IAgentHostTe
 			config: {
 				customPtyImplementation: (id, cols, rows) => {
 					const pty = new AgentHostPty(id, connection, terminalUri, {
+						name: '<terminal>',
 						attachOnly: true,
-					});
+					}, this._logService);
 					if (cols > 0 && rows > 0) {
 						pty.resize(cols, rows);
 					}

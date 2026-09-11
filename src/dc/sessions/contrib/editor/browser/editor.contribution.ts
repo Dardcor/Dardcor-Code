@@ -521,8 +521,8 @@ export class EditorTitleMenuBridgeContribution extends Disposable implements IWo
 			// `source` (set by the `commands` extension point), and submenu items whose
 			// submenu is an extension `api:` menu. Core items have neither.
 			const isExtensionItem = isIMenuItem(item)
-				? !!item.command.source
-				: item.submenu.id.startsWith(EditorTitleMenuBridgeContribution._extensionSubmenuPrefix);
+				? !!item.command?.source
+				: !!item.submenu?.id?.startsWith(EditorTitleMenuBridgeContribution._extensionSubmenuPrefix);
 			if (isExtensionItem) {
 				this._mirrored.add(MenuRegistry.appendMenuItem(Menus.SessionsEditorTitle, item));
 			}

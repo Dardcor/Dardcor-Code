@@ -379,7 +379,7 @@ class QuickChat extends Disposable {
 
 		const value = this.widget.getViewState();
 		if (value) {
-			widget.viewModel.model.inputModel.setState(value);
+			widget.viewModel.model.inputModel.setState(value as any);
 		}
 		widget.focusInput();
 	}

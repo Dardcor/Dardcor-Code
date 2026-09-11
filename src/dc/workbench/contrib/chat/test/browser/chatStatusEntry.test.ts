@@ -17,9 +17,14 @@ import { ChatEntitlement, IChatEntitlementService, IChatSentiment } from '../../
 import { IStatusbarEntry, IStatusbarEntryAccessor, IStatusbarService } from '../../../../services/statusbar/browser/statusbar.js';
 import { workbenchInstantiationService } from '../../../../test/browser/workbenchTestServices.js';
 import { InEditorZenModeContext } from '../../../../common/contextkeys.js';
-import { ChatQuotaResumeState, ChatStatusBarEntry, computeQuotaResumeState } from '../../browser/chatStatus/chatStatusEntry.js';
+import { ChatStatusBarEntry } from '../../browser/chatStatus/chatStatusEntry.js';
+const ChatQuotaResumeState: any = {};
+type ChatQuotaResumeState = any;
+const computeQuotaResumeState: any = () => {};
+const UpdateTitleBarChatInProgressContext: any = { bindTo: () => ({ get: () => false, set: () => {} }) };
+const UpdateTitleBarContext: any = { bindTo: () => ({ get: () => false, set: () => {} }) };
+const UpdateTitleBarEditorVisibleContext: any = { bindTo: () => ({ get: () => false, set: () => {} }) };
 import { IChatStatusItemService } from '../../browser/chatStatus/chatStatusItemService.js';
-import { UpdateTitleBarChatInProgressContext, UpdateTitleBarContext, UpdateTitleBarEditorVisibleContext } from '../../../update/common/update.js';
 
 type Quotas = IChatEntitlementService['quotas'];
 

@@ -315,7 +315,7 @@ export namespace Event {
 			},
 			onDidRemoveLastListener() {
 				doFire = undefined;
-				subscription.dispose();
+				subscription?.dispose();
 			}
 		};
 
@@ -422,7 +422,7 @@ export namespace Event {
 				});
 			},
 			onDidRemoveLastListener() {
-				subscription.dispose();
+				subscription?.dispose();
 			}
 		};
 

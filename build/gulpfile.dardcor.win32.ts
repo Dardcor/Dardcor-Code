@@ -98,6 +98,7 @@ function buildWin32Setup(arch: string, target: string): task.CallbackTask {
 			Commit: commit,
 			NameVersion: product.win32NameVersion + (target === 'user' ? ' (User)' : ''),
 			ExeBasename: product.nameShort,
+			OutputBaseFilename: target === 'user' ? `DardcorCodeUserSetup-${arch}-${pkg.version}` : `DardcorCodeSetup-${arch}-${pkg.version}`,
 			RegValueName: product.win32RegValueName,
 			ShellNameShort: product.win32ShellNameShort,
 			AppMutex: product.win32MutexName,

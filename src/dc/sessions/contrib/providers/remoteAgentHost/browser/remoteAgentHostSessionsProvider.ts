@@ -703,13 +703,16 @@ export class RemoteAgentHostSessionsProvider extends BaseAgentHostSessionsProvid
 	// -- Session-type sync ---------------------------------------------------
 
 	protected _formatSessionTypeLabel(agentLabel: string): string {
+		const cleanLabel = (agentLabel.toLowerCase() === 'copilot' || agentLabel.toLowerCase() === 'copilotcli' || agentLabel.toLowerCase() === 'copilot cli')
+			? 'Dardcor Code'
+			: agentLabel;
 		// In web (vscode.dev/agents) the workbench is already scoped to a
 		// single host via the host picker, so there's no need to disambiguate
 		// the session-type label with the host name.
 		if (this.isWebPlatform) {
-			return agentLabel;
+			return cleanLabel;
 		}
-		return `${agentLabel} [${this.label}]`;
+		return `${cleanLabel} [${this.label}]`;
 	}
 
 	// -- Workspaces ----------------------------------------------------------

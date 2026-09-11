@@ -83,6 +83,8 @@ export class TestNativeHostService implements INativeHostService {
 	readonly onDidLockScreen: Event<void> = Event.None;
 	readonly onDidUnlockScreen: Event<void> = Event.None;
 	onDidChangeColorScheme = Event.None;
+
+	setApplicationBadge(badge: any): Promise<void> { return Promise.resolve(); }
 	onDidChangePassword = Event.None;
 	readonly onDidTriggerWindowSystemContextMenu: Event<{ windowId: number; x: number; y: number }> = Event.None;
 	onDidChangeWindowFullScreen = Event.None;

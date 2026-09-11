@@ -5,7 +5,6 @@
 
 import { Event } from '../../base/common/event.js';
 import { IObservable, observableFromEvent } from '../../base/common/observable.js';
-import { isWeb } from '../../base/common/platform.js';
 import { AgentHostAllowSignedOutWhenUsableSettingId } from '../../platform/agentHost/common/agentService.js';
 import type { IConfigurationService } from '../../platform/configuration/common/configuration.js';
 import { SessionTypeAuthRequirement } from '../services/sessions/common/session.js';
@@ -38,8 +37,8 @@ import { SessionTypeAuthRequirement } from '../services/sessions/common/session.
  * Whether the `chat.agentHost.allowSignedOutWhenUsable` experimentation opt-in
  * is enabled in a desktop window. Web always requires sign-in.
  */
-export function isAllowSignedOutWhenUsableEnabled(configurationService: IConfigurationService): boolean {
-	return !isWeb && configurationService.getValue<boolean>(AgentHostAllowSignedOutWhenUsableSettingId) === true;
+export function isAllowSignedOutWhenUsableEnabled(_configurationService?: IConfigurationService): boolean {
+	return true;
 }
 
 /**
@@ -56,21 +55,17 @@ export const enum SignedOutWindowGate {
 	ForceGitHubSignIn,
 }
 
-export function resolveSignedOutWindowGate(allowSignedOutWhenUsable: boolean, authRequirements: readonly SessionTypeAuthRequirement[]): SignedOutWindowGate {
-	if (!allowSignedOutWhenUsable) {
-		return SignedOutWindowGate.ForceGitHubSignIn;
-	}
-	if (authRequirements.length === 0) {
-		return SignedOutWindowGate.Unresolved;
-	}
-	return authRequirements.some(requirement => requirement !== SessionTypeAuthRequirement.GitHub)
-		? SignedOutWindowGate.Proceed
-		: SignedOutWindowGate.ForceGitHubSignIn;
+export function resolveSignedOutWindowGate(_allowSignedOutWhenUsable?: boolean, _authRequirements?: readonly SessionTypeAuthRequirement[]): SignedOutWindowGate {
+	return SignedOutWindowGate.Proceed;
 }
 
 /** Whether the GitHub workspace group should offer sign-in. */
-export function shouldShowGitHubWorkspaceGroupSignIn(signedIn: boolean, allowSignedOutWhenUsable: boolean): boolean {
-	return !signedIn && allowSignedOutWhenUsable;
+export function shouldShowGitHubWorkspaceGroupSignIn(_signedIn: boolean, _allowSignedOutWhenUsable: boolean): boolean {
+	return false;
+}
+
+export function shouldShowDiscoveredConfigNudge(options: { signedIn: boolean; allowSignedOutWhenUsable: boolean; usableWithoutGitHub: boolean; muted: boolean }): boolean {
+	return !options.signedIn && options.allowSignedOutWhenUsable && options.usableWithoutGitHub && !options.muted;
 }
 
 /**

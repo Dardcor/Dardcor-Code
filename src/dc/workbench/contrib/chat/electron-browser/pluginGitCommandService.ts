@@ -45,7 +45,7 @@ export class NativePluginGitCommandService implements IPluginGitService {
 	}
 
 	async checkoutCommit(repoDir: URI, commit: string, token?: CancellationToken): Promise<void> {
-		await this._withCancel(token, id => this._localGitService.checkoutCommit(id, repoDir.fsPath, commit));
+		await this._withCancel(token, id => this._localGitService.checkout(id, repoDir.fsPath, commit, true));
 	}
 
 	async revParse(repoDir: URI, ref: string): Promise<string> {

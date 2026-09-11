@@ -28,17 +28,21 @@ export const enum AccountPolicyGateState {
 	Restricted = 'restricted',
 }
 
+import { IManagedSettingsFreshness } from '../../../../platform/policy/common/managedSettingsFreshness.js';
+
 export const enum AccountPolicyGateUnsatisfiedReason {
 	NoAccount = 'noAccount',
 	WrongProvider = 'wrongProvider',
 	OrgNotApproved = 'orgNotApproved',
 	PolicyNotResolved = 'policyNotResolved',
+	ManagedSettingsRefresh = 'managedSettingsRefresh',
 }
 
 export interface IAccountPolicyGateInfo {
 	readonly state: AccountPolicyGateState;
 	readonly reason?: AccountPolicyGateUnsatisfiedReason;
 	readonly approvedOrganizations?: readonly string[];
+	readonly managedSettingsFreshness?: IManagedSettingsFreshness;
 }
 
 export const ChatAccountPolicyGateActiveContext = new RawContextKey<boolean>(

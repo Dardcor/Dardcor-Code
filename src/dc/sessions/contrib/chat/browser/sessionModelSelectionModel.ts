@@ -16,7 +16,8 @@ import { getRegisteredLanguageModels, IModelSelectionMemory, IModelSelectionSess
 import { ChatModelSelectionDiagnostics } from '../../../../workbench/contrib/chat/browser/widget/input/chatModelSelectionDiagnostics.js';
 import { ISessionsProvidersService } from '../../../services/sessions/browser/sessionsProvidersService.js';
 import { ISessionModelPickerOptions, ISessionsProvider } from '../../../services/sessions/common/sessionsProvider.js';
-import { SessionStatus } from '../../../services/sessions/common/session.js';
+import { URI } from '../../../../base/common/uri.js';
+import { ChatModelSource, SessionStatus } from '../../../services/sessions/common/session.js';
 import { IActiveSession } from '../../../services/sessions/common/sessionsManagement.js';
 
 export interface INormalizedSessionModelPickerOptions extends ISessionModelPickerOptions {
@@ -57,7 +58,7 @@ function persistSessionModelSelection(
 	model: ILanguageModelChatMetadataAndIdentifier,
 	modelTarget: string | undefined,
 ): void {
-	provider.setModel(session.sessionId, model.identifier);
+	provider.setModel(session.sessionId, (session as any).activeChat?.get()?.resource ?? (session as any).resource ?? URI.file(''), model.identifier, ChatModelSource.Chosen);
 	storeSelectedModel(storageService, ChatAgentLocation.Chat, modelTarget, model.identifier);
 	if (modelTarget !== undefined) {
 		storeSelectedModel(storageService, ChatAgentLocation.Chat, undefined, model.identifier);
@@ -339,7 +340,7 @@ export class SessionModelSelectionModel extends Disposable implements ISessionMo
 			const effect = result.effect;
 			const providerModelBefore = session.modelId.get();
 			try {
-				provider.setModel(session.sessionId, effect.model.identifier);
+				provider.setModel(session.sessionId, session.activeChat?.get()?.resource ?? (session as any).resource ?? URI.file(''), effect.model.identifier, ChatModelSource.Chosen);
 			} catch (error) {
 				this._memory = previousMemory;
 				this._state.set(previousState, undefined);

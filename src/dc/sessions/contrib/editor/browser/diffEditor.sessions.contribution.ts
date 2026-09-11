@@ -96,7 +96,7 @@ export class SessionsDiffEditorCommandsService extends DiffEditorCommandsService
 			if (!resource || modifiedResource && isEqual(resource, modifiedResource)) {
 				this.diffEditorOptionsService.setViewMode(mode);
 				if (mode === 'automatic') {
-					control.resetWidthBasedLayout();
+					(control as any).resetWidthBasedLayout?.();
 				}
 				return;
 			}

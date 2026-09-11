@@ -245,8 +245,11 @@ suite('ChatQuotaNotificationContribution', () => {
 		const contribution = store.add(new ChatQuotaNotificationContribution(
 			entitlementMock.service,
 			notificationMock.service,
+			{} as any,
+			{} as any,
 			storageService,
 			assignmentMock.service,
+			{ publicLog2: () => {} } as any,
 			new NullLogService(),
 		));
 

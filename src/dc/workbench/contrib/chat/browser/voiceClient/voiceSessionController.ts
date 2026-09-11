@@ -214,6 +214,8 @@ interface ITranscriptionTurnState {
 	phase: TranscriptionTurnPhase;
 }
 
+export type VoiceNewSessionPreparationResult = 'prepared' | 'sent' | 'failed';
+
 export interface IVoiceSessionController {
 	readonly _serviceBrand: undefined;
 

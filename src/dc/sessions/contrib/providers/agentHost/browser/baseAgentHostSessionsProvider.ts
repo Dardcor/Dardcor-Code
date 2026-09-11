@@ -55,7 +55,7 @@ import { assertAutomationSessionTemplate, IAutomationSessionTemplate } from '../
 import { AutomationModelConfiguration } from '../../../automations/browser/automationModelConfiguration.js';
 import { ChatAgentLocation, ChatConfiguration, ChatModeKind, ChatPermissionLevel, getChatPermissionLevelFromDefaultConfiguration, isChatPermissionLevel, type IChatDefaultConfiguration } from '../../../../../workbench/contrib/chat/common/constants.js';
 import { isAutoApprovePolicyRestricted, normalizeSessionConfigValue } from '../../../../../workbench/contrib/chat/common/agentHostConfigPolicy.js';
-import { ILanguageModelChatMetadata, ILanguageModelsService } from '../../../../../workbench/contrib/chat/common/languageModels.js';
+import { ILanguageModelChatMetadata, ILanguageModelChatMetadataAndIdentifier, ILanguageModelsService } from '../../../../../workbench/contrib/chat/common/languageModels.js';
 import { getRegisteredLanguageModels, resolveConfiguredModel, resolveModelIdentifier, resolveModelIdentifierFromLanguageModels } from '../../../../../workbench/contrib/chat/common/modelSelection.js';
 import { buildMutableConfigSchema, IAgentHostMcpServer, IAgentHostSessionsProvider, IAgentMergeClientState, resolvedConfigsEqual } from '../../../../common/agentHostSessionsProvider.js';
 import { agentHostSessionWorkspaceKey } from '../../../../common/agentHostSessionWorkspace.js';
@@ -430,10 +430,10 @@ function toGitHubInfo(meta: SessionMeta | undefined): IGitHubInfo | undefined {
 /** Copilot CLI session type */
 export const CopilotCLISessionType: ISessionType = {
 	id: 'copilotcli',
-	label: localize('copilotCLI', "Copilot"),
-	icon: Codicon.copilot,
+	label: localize('copilotCLI', "Dardcor Code"),
+	icon: Codicon.sparkle,
 	supportsWorktreeConfiguration: true,
-	authRequirement: SessionTypeAuthRequirement.GitHub,
+	authRequirement: SessionTypeAuthRequirement.None,
 };
 
 /**
@@ -463,6 +463,9 @@ export const CopilotCLISessionType: ISessionType = {
  * GitHub until it does.
  */
 export function resolveAgentAuthRequirement(agent: AgentInfo): SessionTypeAuthRequirement {
+	if (agent.provider === CopilotCLISessionType.id || agent.provider === 'copilotcli' || agent.provider === 'copilot') {
+		return SessionTypeAuthRequirement.None;
+	}
 	if (!agent.protectedResources || protectedResourcesRequireGitHubCopilotSignIn(agent.protectedResources)) {
 		return SessionTypeAuthRequirement.GitHub;
 	}
@@ -3221,8 +3224,8 @@ export abstract class BaseAgentHostSessionsProvider extends Disposable implement
 	 * `undefined` when the provider is not recognised.
 	 */
 	private iconForAgentProvider(provider: string): ThemeIcon | undefined {
-		if (provider === CopilotCLISessionType.id) {
-			return CopilotCLISessionType.icon;
+		if (provider === CopilotCLISessionType.id || provider === 'copilot' || provider === 'copilotcli') {
+			return Codicon.sparkle;
 		}
 
 		if (provider.includes('claude')) {
@@ -4385,7 +4388,7 @@ export abstract class BaseAgentHostSessionsProvider extends Disposable implement
 			};
 		}
 		const allModels = getRegisteredLanguageModels(this._languageModelsService);
-		const models = allModels.filter(model => {
+		const targetedModels = allModels.filter(model => {
 			if (model.metadata.targetChatSessionType !== resourceScheme) {
 				return false;
 			}
@@ -4395,6 +4398,23 @@ export abstract class BaseAgentHostSessionsProvider extends Disposable implement
 			const manageModelsIdentifier = ILanguageModelChatMetadata.getAgentHostByokManageModelsIdentifier(model.metadata);
 			return manageModelsIdentifier === undefined || !this._languageModelsService.isModelHidden(manageModelsIdentifier);
 		});
+		const generalModels = allModels.filter(model => {
+			if (this._languageModelsService.isModelHidden(model.identifier)) {
+				return false;
+			}
+			if (model.metadata.isUserSelectable === false) {
+				return false;
+			}
+			return true;
+		});
+		const seen = new Set<string>();
+		const models: ILanguageModelChatMetadataAndIdentifier[] = [];
+		for (const m of (targetedModels.length > 0 ? [...targetedModels, ...generalModels] : generalModels)) {
+			if (!seen.has(m.identifier)) {
+				seen.add(m.identifier);
+				models.push(m);
+			}
+		}
 		const desiredModel = desiredModelId ? this._languageModelsService.lookupLanguageModel(desiredModelId) : undefined;
 		const resolvedDesiredModelId = desiredModel?.targetChatSessionType && this.resourceSchemeForProvider(desiredModel.targetChatSessionType) === resourceScheme
 			? `${resourceScheme}:${desiredModel.id}`
@@ -4416,7 +4436,7 @@ export abstract class BaseAgentHostSessionsProvider extends Disposable implement
 		// session's resource scheme, which is the registered
 		// `agent-host-<provider>` chat session type) rather than hardcoding names.
 		const resourceScheme = this._resolveSessionResourceScheme(sessionId);
-		const showAutoModel = !resourceScheme || this._chatSessionsService.supportsAutoModelForSessionType(resourceScheme);
+		const showAutoModel = !resourceScheme || this._chatSessionsService.supportsAutoModelForSessionType(resourceScheme) || true;
 		return {
 			useGroupedModelPicker: true,
 			showFeatured: true,

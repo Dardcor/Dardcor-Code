@@ -31,13 +31,17 @@ export type IButtonConfigProvider = (action: IAction, index: number) => {
 	customLabel?: string | IMarkdownString;
 	customLabelObs?: IObservable<string | IMarkdownString | undefined>;
 	customClass?: string;
+	showSpinner?: boolean;
 } | undefined;
+
+export type IButtonConfig = NonNullable<ReturnType<IButtonConfigProvider>>;
 
 export interface IWorkbenchButtonBarOptions {
 	telemetrySource?: string;
 	buttonConfigProvider?: IButtonConfigProvider;
 	small?: boolean;
 	disableWhileRunning?: boolean;
+	renderSecondaryActions?: boolean;
 }
 
 export class WorkbenchButtonBar extends ButtonBar {

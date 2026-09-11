@@ -508,7 +508,7 @@ export class ChatQuotaNotificationContribution extends Disposable implements IWo
 			}
 			if (this._switchToAutoTreatment === true && canSwitchToAuto) {
 				description = localize('quota.approaching.switchToAuto', "Switch to Auto to reduce credit usage.");
-				actions = [{ kind: ChatInputNotificationActionKind.SwitchToModel, label: localize('switchToAuto', "Switch to Auto"), modelIdentifier: autoModelIdentifier }];
+				actions = [{ kind: ChatInputNotificationActionKind.SwitchToModel, label: localize('switchToAuto', "Switch to Auto"), matchesModel: m => m.identifier === autoModelIdentifier }];
 			} else {
 				description = localize('quota.approaching.default', "Set additional budget to cover extra usage.");
 				actions = [{ kind: ChatInputNotificationActionKind.Command, label: localize('manageBudget3', "Manage Budget"), commandId: 'workbench.action.chat.manageAdditionalSpend' }];

@@ -166,20 +166,27 @@ export class BrowserViewWorkbenchService extends Disposable implements IBrowserV
 			}
 		}));
 
-		// Track sharing availability from context keys
-		this._isSharingAvailable = this.contextKeyService.contextMatchesRules(BrowserViewWorkbenchService._sharingAvailableContext);
+		this._isSharingAvailable = this._computeSharingAvailable();
 		const sharingKeys = new Set(BrowserViewWorkbenchService._sharingAvailableContext.keys());
 		this._register(this.contextKeyService.onDidChangeContext(e => {
 			if (e.affectsSome(sharingKeys)) {
 				const was = this._isSharingAvailable;
-				this._isSharingAvailable = this.contextKeyService.contextMatchesRules(BrowserViewWorkbenchService._sharingAvailableContext);
+				this._isSharingAvailable = this._computeSharingAvailable();
+				if (was !== this._isSharingAvailable) {
+					this._onDidChangeSharingAvailable.fire(this._isSharingAvailable);
+				}
+			}
+		}));
+		this._register(this.configurationService.onDidChangeConfiguration(e => {
+			if (e.affectsConfiguration('workbench.browser.enableChatTools') || e.affectsConfiguration(ChatConfiguration.AgentEnabled)) {
+				const was = this._isSharingAvailable;
+				this._isSharingAvailable = this._computeSharingAvailable();
 				if (was !== this._isSharingAvailable) {
 					this._onDidChangeSharingAvailable.fire(this._isSharingAvailable);
 				}
 			}
 		}));
 
-		// Start asynchronously creating models for all views we already own.
 		void this._initializeExistingViews().catch(e => {
 			this.logService.error('[BrowserViewWorkbenchService] Failed to initialize existing browser views.', e);
 		});
@@ -200,6 +207,15 @@ export class BrowserViewWorkbenchService extends Disposable implements IBrowserV
 				});
 			}
 		}));
+	}
+
+	private _computeSharingAvailable(): boolean {
+		const configEnabled = this.configurationService.getValue<boolean>('workbench.browser.enableChatTools') !== false;
+		const agentEnabled = this.configurationService.getValue<boolean>(ChatConfiguration.AgentEnabled) !== false;
+		if (!configEnabled || !agentEnabled) {
+			return false;
+		}
+		return this.contextKeyService.contextMatchesRules(BrowserViewWorkbenchService._sharingAvailableContext);
 	}
 
 	willUseRemoteProxy(): boolean {

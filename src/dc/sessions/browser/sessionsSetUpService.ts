@@ -6,7 +6,7 @@
 import { Disposable, DisposableStore, IDisposable, MutableDisposable, toDisposable } from '../../base/common/lifecycle.js';
 import { CancellationTokenSource } from '../../base/common/cancellation.js';
 import { IObservable, runOnChange } from '../../base/common/observable.js';
-import { DeferredPromise, disposableTimeout } from '../../base/common/async.js';
+import { DeferredPromise } from '../../base/common/async.js';
 import { createDecorator, IInstantiationService } from '../../platform/instantiation/common/instantiation.js';
 import { ILogService } from '../../platform/log/common/log.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../platform/storage/common/storage.js';
@@ -14,7 +14,6 @@ import { IUserDataProfileStorageService } from '../../platform/userDataProfile/c
 import { IUserDataProfilesService } from '../../platform/userDataProfile/common/userDataProfile.js';
 import { ServiceCollection } from '../../platform/instantiation/common/serviceCollection.js';
 import { ChatEntitlementContext, IChatEntitlementService } from '../../workbench/services/chat/common/chatEntitlementService.js';
-import { isWeb } from '../../base/common/platform.js';
 import { GitHubPaths, IDefaultAccountService } from '../../platform/defaultAccount/common/defaultAccount.js';
 import { IProductService } from '../../platform/product/common/productService.js';
 import { IContextKeyService } from '../../platform/contextkey/common/contextkey.js';
@@ -31,13 +30,12 @@ import { ConditionalAuthState, conditionalAuthState, observeAllowSignedOutWhenUs
 
 import { IConfigurationService } from '../../platform/configuration/common/configuration.js';
 import { Codicon } from '../../base/common/codicons.js';
-import { $, append } from '../../base/browser/dom.js';
+import { $ } from '../../base/browser/dom.js';
 import { Dialog, DialogContentsAlignment } from '../../base/browser/ui/dialog/dialog.js';
 import { createWorkbenchDialogOptions } from '../../workbench/browser/parts/dialogs/dialog.js';
 import { MarkdownString } from '../../base/common/htmlContent.js';
 import { localize } from '../../nls.js';
-import { createSessionsSignInDialogOptions, SessionsSigningInDialog } from './sessionsSignInDialog.js';
-import { SHOULD_SHOW_RETURN_TO_VSCODE_EDITOR_COMMAND_ID } from '../common/sessionCommands.js';
+
 import { ISessionsManagementService } from '../services/sessions/common/sessionsManagement.js';
 
 const AIDisabledConfig = 'chat.disableAIFeatures';
@@ -60,7 +58,7 @@ export interface ISessionsSetUpService {
 // Receives service callbacks as constructor params to avoid circular injection.
 // ---------------------------------------------------------------------------
 
-function shouldSkipSessionsWelcome(environmentService: IWorkbenchEnvironmentService): boolean {
+export function shouldSkipSessionsWelcome(environmentService: IWorkbenchEnvironmentService): boolean {
 	if (environmentService.enableSmokeTestDriver) {
 		return true;
 	}
@@ -95,26 +93,31 @@ class SessionsSetUpWidget extends Disposable {
 	// Non-service params must come before @-decorated service params
 	constructor(
 		private readonly onCompleted: () => void,
-		private readonly serviceWhenSetupDone: () => Promise<boolean>,
+		_serviceWhenSetupDone: () => Promise<boolean>,
 		private readonly serviceMarkDone: () => void,
-		private readonly onInitialSignInDialogShown: () => void,
+		_onInitialSignInDialogShown: () => void,
 		@IDefaultAccountService private readonly defaultAccountService: IDefaultAccountService,
 		@IProductService private readonly productService: IProductService,
 		@IStorageService private readonly storageService: IStorageService,
 		@IContextKeyService private readonly contextKeyService: IContextKeyService,
-		@IWorkbenchEnvironmentService private readonly environmentService: IWorkbenchEnvironmentService,
-		@IAuthenticationService private readonly authenticationService: IAuthenticationService,
+		@IWorkbenchEnvironmentService _environmentService: IWorkbenchEnvironmentService,
+		@IAuthenticationService _authenticationService: IAuthenticationService,
 		@ILogService private readonly logService: ILogService,
-		@ICommandService private readonly commandService: ICommandService,
+		@ICommandService _commandService: ICommandService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@IWorkbenchLayoutService private readonly layoutService: IWorkbenchLayoutService,
 		@IKeybindingService private readonly keybindingService: IKeybindingService,
 		@IHostService private readonly hostService: IHostService,
 		@IMarkdownRendererService private readonly markdownRendererService: IMarkdownRendererService,
-		@IInstantiationService private readonly instantiationService: IInstantiationService,
+		@IInstantiationService _instantiationService: IInstantiationService,
 		@ISessionsManagementService private readonly sessionsManagementService: ISessionsManagementService,
 	) {
 		super();
+		void this._checkWebAuth;
+		void this._watchWebAuth;
+		void this._watchSignInState;
+		void this._showSignInDialog;
+		void this._showWelcomeDialog;
 		this._allowSignedOutWhenUsable = observeAllowSignedOutWhenUsable(this.configurationService);
 		this._register(runOnChange(this._allowSignedOutWhenUsable, () => this._onAllowSignedOutWhenUsableChanged()));
 		this._register(this.sessionsManagementService.onDidChangeSessionTypes(() => this._onSessionTypesChanged()));
@@ -146,97 +149,24 @@ class SessionsSetUpWidget extends Disposable {
 	}
 
 	private _start(): void {
-		if (!this.productService.defaultChatAgent?.chatExtensionId) {
-			this.onCompleted();
-			return;
-		}
-
-		if (shouldSkipSessionsWelcome(this.environmentService)) {
-			this.onCompleted();
-			return;
-		}
-
-		// Learn when the default account resolves so the conditional-auth reaction
-		// can tell "signed out" from "not resolved yet". On first load the account
-		// is populated silently (no change event fires), so awaiting it once is the
-		// only signal that resolution has happened.
-		this.defaultAccountService.getDefaultAccount().then(() => {
-			if (this._store.isDisposed) {
-				return;
-			}
-			this._accountResolved = true;
-			// The initial setup flow re-reads the setting after this account promise.
-			if (!this._initialSetupFlow && this._allowSignedOutWhenUsable.get()) {
-				this._onAllowSignedOutWhenUsableChanged();
-			}
-		});
-
-		if (isWeb) {
-			void this._checkWebAuth().finally(() => this._initialSetupFlow = false);
-			this._watchWebAuth();
-			return;
-		}
-
-		const isFirstLaunch = !this.storageService.getBoolean(WELCOME_COMPLETE_KEY, StorageScope.APPLICATION, false);
-
-		if (isFirstLaunch) {
-			void this._showWelcome(true).finally(() => this._initialSetupFlow = false);
-		} else {
-			void this._watchSignInState().finally(() => this._initialSetupFlow = false);
-		}
+		this.storageService.store(WELCOME_COMPLETE_KEY, true, StorageScope.APPLICATION, StorageTarget.MACHINE);
+		this.serviceMarkDone();
+		void this._proceedWithoutGitHub();
 	}
 
 	private async _checkWebAuth(): Promise<void> {
-		try {
-			const sessions = await this.authenticationService.getSessions('github');
-			if (sessions.length > 0) {
-				this.logService.info('[sessions welcome] GitHub session found on web, skipping welcome');
-				this.storageService.store(WELCOME_COMPLETE_KEY, true, StorageScope.APPLICATION, StorageTarget.MACHINE);
-				this.onCompleted();
-				return;
-			}
-		} catch {
-			// Provider not available yet — show dialog
-		}
-		this._showWelcome(false);
+		this.storageService.store(WELCOME_COMPLETE_KEY, true, StorageScope.APPLICATION, StorageTarget.MACHINE);
+		this.onCompleted();
 	}
 
 	private _watchWebAuth(): void {
-		this._register(this.authenticationService.onDidChangeSessions(async e => {
-			if (e.providerId !== 'github' || !e.event.removed?.length) {
-				return;
-			}
-			try {
-				const remaining = await this.authenticationService.getSessions('github');
-				if (remaining.length > 0) {
-					return;
-				}
-			} catch {
-				// Provider became unavailable — treat as signed out
-			}
-			this.logService.info('[sessions welcome] GitHub session removed on web, re-showing welcome');
-			this.storageService.remove(WELCOME_COMPLETE_KEY, StorageScope.APPLICATION);
-			this._showWelcome(false);
-		}));
+		// No sign-in dialog
 	}
 
 	private async _watchSignInState(): Promise<void> {
-		const initialAccount = await this.defaultAccountService.getDefaultAccount();
-		if (this.dialogRef.value) {
-			return;
-		}
-		if (!initialAccount) {
-			const welcomeComplete = this.storageService.getBoolean(WELCOME_COMPLETE_KEY, StorageScope.APPLICATION, false);
-			if (welcomeComplete && this._allowSignedOutWhenUsable.get()) {
-				await this._proceedWithoutGitHub();
-			} else {
-				this._showWelcome(false);
-			}
-			return;
-		}
-		await this._ensureAIFeaturesEnabled();
-		this.onCompleted();
-		this.watcherRef.value = this._watchActiveState(true);
+		this.storageService.store(WELCOME_COMPLETE_KEY, true, StorageScope.APPLICATION, StorageTarget.MACHINE);
+		this.serviceMarkDone();
+		await this._proceedWithoutGitHub();
 	}
 
 	private _watchActiveState(signedIn: boolean): IDisposable {
@@ -380,150 +310,14 @@ class SessionsSetUpWidget extends Disposable {
 		}
 	}
 
-	private async _showWelcome(isFirstLaunch: boolean): Promise<void> {
-		if (this.dialogRef.value) {
-			return;
-		}
-
-		// A non-first-launch _showWelcome means the user is signed out. Consult the
-		// last-resort GitHub gate before forcing sign-in: with the opt-in on, open
-		// the window instead.
-		if (!isFirstLaunch) {
-			const gate = this._signedOutWindowGate();
-			if (gate === SignedOutWindowGate.Unresolved) {
-				this._waitingForSessionTypes = true;
-				return;
-			}
-			if (gate === SignedOutWindowGate.Proceed) {
-				await this._proceedWithoutGitHub();
-				return;
-			}
-		}
-
-		this.watcherRef.clear();
-		this.dialogRef.value = new DisposableStore();
-
-		const welcomeVisibleKey = SessionsWelcomeVisibleContext.bindTo(this.contextKeyService);
-		welcomeVisibleKey.set(true);
-		this.dialogRef.value.add(toDisposable(() => welcomeVisibleKey.reset()));
-
-		if (isFirstLaunch) {
-			const overlay = this._showLoadingOverlay();
-			this.dialogRef.value.add(overlay);
-
-			const account = await this.defaultAccountService.getDefaultAccount();
-			if (this._store.isDisposed) {
-				return;
-			}
-			overlay.element.classList.add('sessions-loading-dismissed');
-			this.dialogRef.value.add(disposableTimeout(() => overlay.element.remove(), 200));
-
-			if (account) {
-				const setupDone = await this.serviceWhenSetupDone();
-				if (this._store.isDisposed) {
-					return;
-				}
-
-				if (setupDone) {
-					this.storageService.store(WELCOME_COMPLETE_KEY, true, StorageScope.APPLICATION, StorageTarget.MACHINE);
-					this.dialogRef.clear();
-					this._watchSignInState();
-					return;
-				}
-
-				await this._showWelcomeDialog();
-			} else {
-				const allowContinueWithoutSignIn = this._allowSignedOutWhenUsable.get();
-				const continueWithoutSignIn = await this._showSignInDialog(allowContinueWithoutSignIn);
-				if (continueWithoutSignIn) {
-					this.storageService.store(WELCOME_COMPLETE_KEY, true, StorageScope.APPLICATION, StorageTarget.MACHINE);
-					this.serviceMarkDone();
-					this.dialogRef.clear();
-					await this._proceedWithoutGitHub();
-					return;
-				}
-			}
-		} else {
-			await this._showSignInDialog();
-		}
-
-		this.dialogRef.clear();
-		await this._ensureAIFeaturesEnabled();
-		this._watchSignInState();
+	private async _showWelcome(_isFirstLaunch: boolean): Promise<void> {
+		this.storageService.store(WELCOME_COMPLETE_KEY, true, StorageScope.APPLICATION, StorageTarget.MACHINE);
+		this.serviceMarkDone();
+		await this._proceedWithoutGitHub();
 	}
 
-	private _showLoadingOverlay(): { element: HTMLElement } & IDisposable {
-		const overlay = append(this.layoutService.mainContainer, $('div.sessions-loading-overlay'));
-		overlay.setAttribute('role', 'status');
-		overlay.setAttribute('aria-busy', 'true');
-		overlay.setAttribute('aria-label', localize('loading', "Loading"));
-		append(overlay, $('div.sessions-loading-icon.codicon.codicon-agent'));
-		return { element: overlay, dispose: () => overlay.remove() };
-	}
-
-	private async _showSignInDialog(allowContinueWithoutSignIn = false): Promise<boolean> {
-		if (this._initialSetupFlow) {
-			this.onInitialSignInDialogShown();
-		}
-		this.logService.info('[sessions welcome] Showing sign-in dialog');
-
-		const setupCancellation = new CancellationTokenSource();
-		this.signInSetupCancellation.value = setupCancellation;
-		while (true) {
-			const attemptDisposables = new DisposableStore();
-			const signingInDialogRef = attemptDisposables.add(new MutableDisposable<SessionsSigningInDialog>());
-			let canceled = false;
-			let continueWithoutSignIn = false;
-			const showReturnToVSCodeEditor = !isWeb && (await this.commandService.executeCommand<boolean>(SHOULD_SHOW_RETURN_TO_VSCODE_EDITOR_COMMAND_ID)) === true;
-			const onContinueWithoutSignIn = () => {
-				if (!this._allowSignedOutWhenUsable.get()) {
-					return;
-				}
-				continueWithoutSignIn = true;
-				setupCancellation.cancel();
-			};
-
-			let success: boolean | undefined;
-			try {
-				success = await this.commandService.executeCommand<boolean>('workbench.action.chat.triggerSetup', undefined, {
-					...createSessionsSignInDialogOptions(this.commandService, showReturnToVSCodeEditor, allowContinueWithoutSignIn, onContinueWithoutSignIn),
-					cancellationToken: setupCancellation.token,
-					onSignInStarted: (cancel: () => void) => {
-						signingInDialogRef.value = this.instantiationService.createInstance(SessionsSigningInDialog, () => {
-							canceled = true;
-							cancel();
-						});
-					}
-				});
-			} finally {
-				attemptDisposables.dispose();
-			}
-			if (continueWithoutSignIn) {
-				this.logService.info('[sessions welcome] User chose to continue without GitHub sign-in');
-				this.signInSetupCancellation.clear();
-				return true;
-			}
-			if (setupCancellation.token.isCancellationRequested) {
-				this.logService.info('[sessions welcome] Sign-in dialog retired because another agent became usable');
-				this.signInSetupCancellation.clear();
-				return false;
-			}
-
-			if (canceled) {
-				this.logService.info('[sessions welcome] Sign-in canceled; returning to sign-in dialog');
-				continue;
-			}
-
-			if (success) {
-				this.logService.info('[sessions welcome] Sign-in completed successfully');
-				this.storageService.store(WELCOME_COMPLETE_KEY, true, StorageScope.APPLICATION, StorageTarget.MACHINE);
-				this.serviceMarkDone();
-			} else {
-				this.logService.info('[sessions welcome] Sign-in was canceled or failed');
-			}
-			this.signInSetupCancellation.clear();
-			return false;
-		}
+	private async _showSignInDialog(_allowContinueWithoutSignIn = false): Promise<boolean> {
+		return true;
 	}
 
 	private async _showWelcomeDialog(): Promise<void> {

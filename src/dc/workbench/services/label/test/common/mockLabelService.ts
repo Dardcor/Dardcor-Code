@@ -87,7 +87,7 @@ export class MockLabelService implements ILabelService {
 				}
 				const homePath = formatter.home.path.length > 1 ? formatter.home.path.replace(/\/+$/, '') : formatter.home.path;
 				const parameterNames = new Set<string>();
-				const matcherPattern = homePath.split('/').map(segment => {
+				const matcherPattern = homePath.split('/').map((segment: string) => {
 					const parameterMatch = homeTemplateParameterRegex.exec(segment);
 					if (parameterMatch?.groups?.name) {
 						const parameterName = parameterMatch.groups.name;

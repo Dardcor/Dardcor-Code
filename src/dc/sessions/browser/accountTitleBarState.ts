@@ -50,13 +50,23 @@ export async function resolveAccountInfo(
 				accountName: sessions[0].account.label,
 				accountProviderId: 'github',
 				accountProviderLabel: 'GitHub',
-				accountIcon: sessions[0].account.icon,
+				accountIcon: toAccountIconUri(sessions[0].account.icon),
 			};
 		}
 	} catch {
 		// Provider not available yet
 	}
 
+	return undefined;
+}
+
+function toAccountIconUri(icon: unknown): URI | undefined {
+	if (URI.isUri(icon)) {
+		return icon;
+	}
+	if (icon && typeof icon === 'object' && 'light' in icon && URI.isUri((icon as any).light)) {
+		return (icon as any).light;
+	}
 	return undefined;
 }
 
@@ -67,7 +77,7 @@ export async function resolveAccountInfo(
 async function getSessionAccountIcon(authenticationService: IAuthenticationService, providerId: string, sessionId: string): Promise<URI | undefined> {
 	try {
 		const sessions = await authenticationService.getSessions(providerId);
-		return sessions.find(session => session.id === sessionId)?.account.icon;
+		return toAccountIconUri(sessions.find(session => session.id === sessionId)?.account.icon);
 	} catch {
 		// Provider not available yet
 		return undefined;

@@ -73,8 +73,10 @@ class TestTerminalChatService extends mock<ITerminalChatService>() {
 	override continueInBackground(terminalToolSessionId: string): void {
 		this.continueInBackgroundEmitter.fire(terminalToolSessionId);
 		for (const part of this.progressParts) {
-			if (part.terminalToolSessionId === terminalToolSessionId) {
-				part.markContinuedInBackground();
+			if ((part as any).terminalToolSessionId === terminalToolSessionId) {
+				if (typeof (part as any).markContinuedInBackground === 'function') {
+					(part as any).markContinuedInBackground();
+				}
 			}
 		}
 	}

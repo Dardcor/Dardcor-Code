@@ -1124,6 +1124,22 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 				checkProposedApiEnabled(extension, 'browser');
 				return extHostBrowsers.openBrowserTab(url, options);
 			},
+			get linkPresentationRules(): any {
+				checkProposedApiEnabled(extension, 'linkPresentation');
+				return [];
+			},
+			get onDidChangeLinkPresentationRules(): any {
+				checkProposedApiEnabled(extension, 'linkPresentation');
+				return Event.None;
+			},
+			createLinkPresentationWatcher(_id: string, _resource: vscode.Uri): any {
+				checkProposedApiEnabled(extension, 'linkPresentation');
+				throw new Error('Not implemented');
+			},
+			registerLinkPresentationProvider(_id: string, _provider: any): vscode.Disposable {
+				checkProposedApiEnabled(extension, 'linkPresentation');
+				return new extHostTypes.Disposable(() => {});
+			},
 		};
 
 		// namespace: workspace

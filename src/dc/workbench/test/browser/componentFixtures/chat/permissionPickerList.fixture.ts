@@ -12,11 +12,14 @@ import { ComponentFixtureContext, createEditorServices, defineComponentFixture, 
 
 import '../../../../contrib/chat/browser/widget/media/chat.css';
 
-interface PermissionPickerListFixtureOptions {
+export interface PermissionPickerListFixtureOptions {
 	/** Whether the inline "Sandboxing for terminal" toggle is shown on the Default option. */
 	readonly showSandboxToggle?: boolean;
 	/** Whether the inline toggle renders in the on (checked) state. */
 	readonly sandboxingEnabled?: boolean;
+	/** Whether the standalone toggle is shown. */
+	readonly showStandaloneSandboxToggle?: boolean;
+	readonly width?: number;
 }
 
 function buildItems(options: PermissionPickerListFixtureOptions): IActionListItem<IActionWidgetDropdownAction>[] {
@@ -89,7 +92,7 @@ function buildItems(options: PermissionPickerListFixtureOptions): IActionListIte
 	return items;
 }
 
-function renderPermissionPickerList(context: ComponentFixtureContext, options: PermissionPickerListFixtureOptions = {}): void {
+export function renderPermissionPickerList(context: ComponentFixtureContext, options: PermissionPickerListFixtureOptions = {}): void {
 	const { container, disposableStore } = context;
 	const instantiationService = createEditorServices(disposableStore, { colorTheme: context.theme });
 

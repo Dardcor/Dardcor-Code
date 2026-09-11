@@ -119,7 +119,7 @@ export class PlaywrightService extends Disposable implements IPlaywrightService 
 	private async _initSession(sessionId: string): Promise<PlaywrightSession> {
 		this.logService.debug(`[PlaywrightService] Initializing session ${sessionId}`);
 
-		const group = await this.browserViewGroupRemoteService.createGroup({ mainWindowId: this.windowId, sessionId });
+		const group = await this.browserViewGroupRemoteService.createGroup({ type: 'agent', mainWindowId: this.windowId, sessionId });
 
 		const actionScope: IPlaywrightActionScope = { activeCalls: 0 };
 

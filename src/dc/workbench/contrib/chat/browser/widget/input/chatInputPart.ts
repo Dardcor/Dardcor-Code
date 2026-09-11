@@ -1266,6 +1266,17 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		this.filePartOfEditSessionKey.set(isFilePartOfEditSession);
 	}
 
+	/**
+	 * Marks the input as submit-pending (routing/dispatching in progress) or idle.
+	 * @param pending - Whether a submission is in progress.
+	 * @param blocking - Whether the submission is blocking further input (e.g. routing phase).
+	 */
+	public setSubmitPending(pending: boolean, blocking: boolean = false): void {
+		// Update context key so toolbar can reflect the pending state
+		this.inputEditorHasSendableContent.set(!pending && !!this.inputEditorHasSendableContent.get());
+		void blocking; // reserved for future UI gating
+	}
+
 	private getSelectedModelTarget(): string | undefined {
 		const sessionType = this._currentSessionType;
 		return sessionType && this.sessionTypeHasOwnModelPool(sessionType) ? sessionType : undefined;
@@ -1749,21 +1760,20 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		}
 
 		const rawDefaultMode = this.configurationService.getValue<string>(ChatConfiguration.DefaultNewSessionMode);
-		if (typeof rawDefaultMode === 'string') {
+		let targetMode: string = ChatModeKind.Agent;
+		if (typeof rawDefaultMode === 'string' && rawDefaultMode.trim()) {
 			const defaultMode = rawDefaultMode.trim();
-			if (defaultMode) {
-				const defaultModeLower = defaultMode.toLowerCase();
-				const modes = this._currentChatModesObservable.get();
-				const resolved = modes.findModeById(defaultMode)
-					?? modes.findModeByName(defaultMode)
-					?? modes.custom.find(m => m.name.get().toLowerCase() === defaultModeLower);
-				if (resolved) {
-					this.logService.trace(`[ChatInputPart] Applying default mode from setting: ${defaultMode} -> ${resolved.id}`);
-					this.setChatMode(resolved.id, false);
-					this._modelSelectionController.ensureCurrentModelSupported();
-				}
+			const defaultModeLower = defaultMode.toLowerCase();
+			const modes = this._currentChatModesObservable.get();
+			const resolved = modes.findModeById(defaultMode)
+				?? modes.findModeByName(defaultMode)
+				?? modes.custom.find(m => m.name.get().toLowerCase() === defaultModeLower);
+			if (resolved) {
+				targetMode = resolved.id;
 			}
 		}
+		this.setChatMode(targetMode, false);
+		this._modelSelectionController.ensureCurrentModelSupported();
 	}
 
 	/**
@@ -1992,15 +2002,22 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 	private getModelsForSessionType(sessionType: string | undefined): ILanguageModelChatMetadataAndIdentifier[] {
 		const allModels = this.getAllMergedModels();
 
-		// Session owns a pool but no targeted models registered yet: return empty so callers don't treat general-pool models as valid.
-		if (sessionType
-			&& this.chatSessionsService.requiresCustomModelsForSessionType(sessionType)
-			&& !hasModelsTargetingSession(allModels, sessionType)) {
-			return [];
+		// In sessions window (Workspace Agent), bypass custom-model restrictions so
+		// the full model catalog is available — same as Workspace Editor. The Dardcor
+		// Router supplies models in real-time; no Copilot sign-in is needed.
+		// filterModelsForSession already falls back to the general pool when no models
+		// specifically target the agent-host session type.
+		const isSessionsWindow = this.environmentService.isSessionsWindow;
+		if (!isSessionsWindow) {
+			// Session owns a pool but no targeted models registered yet: return empty so callers don't treat general-pool models as valid.
+			if (sessionType
+				&& this.chatSessionsService.requiresCustomModelsForSessionType(sessionType)
+				&& !hasModelsTargetingSession(allModels, sessionType)) {
+				return [];
+			}
 		}
 
 		allModels.sort((a, b) => a.metadata.name.localeCompare(b.metadata.name));
-
 		const sessionFiltered = filterModelsForSession(allModels, sessionType, this.currentModeKind, this.location);
 		return sessionFiltered.filter(m => !isModelHiddenInPicker(m, id => this.languageModelsService.isModelHidden(id)));
 	}
@@ -3895,9 +3912,9 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 					});
 					return widget;
 				} else if (agentHostPickerProperty && action instanceof MenuItemAction) {
-					if (this.options.isSessionsWindow) {
-						return new HiddenActionViewItem(action);
-					}
+					// if (this.options.isSessionsWindow) {
+					// 	return new HiddenActionViewItem(action);
+					// }
 					getCompactState(secondaryPickerCompactStates, action.id);
 					const createPicker = () => this.instantiationService.createInstance(AgentHostChatInputPicker, widget, agentHostPickerProperty);
 					secondaryOverflowPickerHandlers.set(action.id, anchor => {
@@ -3907,9 +3924,9 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 					});
 					return new AgentHostChatInputPickerActionViewItem(action, createPicker());
 				} else if (action.id === OpenAgentHostFolderPickerAction.ID && action instanceof MenuItemAction) {
-					if (this.options.isSessionsWindow) {
-						return new HiddenActionViewItem(action);
-					}
+					// if (this.options.isSessionsWindow) {
+					// 	return new HiddenActionViewItem(action);
+					// }
 					const createPicker = () => this.instantiationService.createInstance(AgentHostFolderPickerActionItem, action, widget, getSecondaryPickerOptions(action.id));
 					secondaryOverflowPickerHandlers.set(action.id, anchor => showOverflowPicker(createPicker, anchor));
 					return createPicker();

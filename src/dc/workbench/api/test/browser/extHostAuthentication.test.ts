@@ -91,7 +91,7 @@ suite('DynamicAuthProvider', () => {
 			new class extends mock<IExtHostInitDataService>() { }(),
 			new class extends mock<IExtHostProgress>() { }(),
 			loggerService,
-			proxy,
+			proxy as any,
 			URI.parse('https://mcp.example.com'),
 			{
 				issuer: 'https://mcp.example.com',

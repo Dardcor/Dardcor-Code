@@ -168,7 +168,7 @@ export class BrowserViewGroup extends Disposable implements ICDPBrowserTarget, I
 		const view = target.view.getWebContentsView();
 		const viewBounds = view.getBounds();
 		return {
-			windowId: this.owner.mainWindowId,
+			windowId: this.owner.mainWindowId ?? 0,
 			bounds: {
 				left: viewBounds.x,
 				top: viewBounds.y,

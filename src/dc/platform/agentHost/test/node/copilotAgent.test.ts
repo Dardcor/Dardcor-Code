@@ -502,11 +502,11 @@ interface ITestCopilotModelInfo {
 		readonly supports?: { readonly vision?: boolean };
 		readonly limits?: { readonly max_context_window_tokens?: number; readonly max_output_tokens?: number; readonly max_prompt_tokens?: number };
 	};
-	readonly policy?: { readonly state?: 'enabled' | 'disabled' | 'pending' | 'restricted' };
-	readonly billing?: { readonly status?: string };
+	readonly policy?: { readonly state?: any };
+	readonly billing?: any;
 	readonly modelPickerCategory?: string;
 	readonly modelPickerPriceCategory?: string;
-	readonly warningText?: string;
+	readonly warningText?: any;
 	readonly infoMessages?: readonly any[];
 	readonly warningMessages?: readonly any[];
 	readonly supportedReasoningEfforts?: readonly string[];
@@ -556,7 +556,7 @@ function toSdkModelInfo(model: ITestCopilotModelInfo): CopilotModelInfo {
 		...(model.infoMessages ? { infoMessages: model.infoMessages } : {}),
 		...(model.warningMessages ? { warningMessages: model.warningMessages } : {}),
 		...(model.supportedReasoningEfforts ? { supportedReasoningEfforts: model.supportedReasoningEfforts } : {}),
-	};
+	} as unknown as CopilotModelInfo;
 }
 
 class TestCopilotClient implements ITestCopilotClient {

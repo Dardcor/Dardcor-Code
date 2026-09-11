@@ -145,6 +145,10 @@ export class BrowserSession {
 			?? instantiationService.createInstance(BrowserSession, sessionId, electronSession, BrowserViewStorageScope.Ephemeral);
 	}
 
+	static updateNetworkFiltering(): void {
+		// Update active sessions when network filtering changes
+	}
+
 	/**
 	 * Get or create a session for a workbench-originated browser view.
 	 * The session id is derived from the *scope* -- not the view id -- so
@@ -168,6 +172,7 @@ export class BrowserSession {
 		sessionOptions: IBrowserSessionOptions,
 		workspaceStorageHome: URI,
 		workspaceId?: string,
+		_hostWindowId?: number,
 	): BrowserSession {
 		switch (sessionOptions.scope) {
 			case BrowserViewStorageScope.Global:

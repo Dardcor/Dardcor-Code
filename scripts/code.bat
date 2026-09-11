@@ -12,13 +12,19 @@ if "%VSCODE_SKIP_PRELAUNCH%"=="" (
 	)
 )
 
-if not exist "out\main.js" (
-	echo [Dardcor Code] out\main.js not found. Transpiling client...
-	call npm run transpile-client || (
-		echo Failed to transpile client. 1>&2
-		exit /b 1
-	)
+if not exist "out\main.js" goto transpile
+if not exist "out\.build-done" goto transpile
+if not exist "out\dc\platform\environment\node\userDataPath.js" goto transpile
+goto skip_transpile
+
+:transpile
+echo [Dardcor Code] out build is missing or incomplete. Transpiling client...
+call npm run transpile-client || (
+	echo Failed to transpile client. 1>&2
+	exit /b 1
 )
+
+:skip_transpile
 
 set "NAMESHORT="
 for /f "tokens=2 delims=:," %%a in ('findstr /R /C:"\"nameShort\":.*" product.json') do if not defined NAMESHORT set "NAMESHORT=%%~a"

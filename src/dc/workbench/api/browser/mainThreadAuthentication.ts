@@ -10,6 +10,7 @@ import { AuthenticationSession, AuthenticationSessionsChangeEvent, getDynamicAut
 import { ExtHostAuthenticationShape, ExtHostContext, IRegisterAuthenticationProviderDetails, IRegisterDynamicAuthenticationProviderDetails, MainContext, MainThreadAuthenticationShape } from '../common/extHost.protocol.js';
 import { IDialogService, IPromptButton } from '../../../platform/dialogs/common/dialogs.js';
 import Severity from '../../../base/common/severity.js';
+import { Proxied } from '../../services/extensions/common/proxyIdentifier.js';
 import { INotificationService } from '../../../platform/notification/common/notification.js';
 import { ActivationKind, IExtensionService } from '../../services/extensions/common/extensions.js';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry.js';
@@ -112,7 +113,7 @@ class MainThreadAuthenticationProviderWithChallenges extends MainThreadAuthentic
 
 @extHostNamedCustomer(MainContext.MainThreadAuthentication)
 export class MainThreadAuthentication extends Disposable implements MainThreadAuthenticationShape {
-	private readonly _proxy: ExtHostAuthenticationShape;
+	private readonly _proxy: Proxied<ExtHostAuthenticationShape>;
 
 	private readonly _registrations = this._register(new DisposableMap<string>());
 	private _sentProviderUsageEvents = new Set<string>();
@@ -235,7 +236,7 @@ export class MainThreadAuthentication extends Disposable implements MainThreadAu
 		const provider =
 			supportsChallenges
 				? new MainThreadAuthenticationProviderWithChallenges(
-					this._proxy,
+					this._proxy as unknown as ExtHostAuthenticationShape,
 					id,
 					label,
 					supportsMultipleAccounts,
@@ -244,7 +245,7 @@ export class MainThreadAuthentication extends Disposable implements MainThreadAu
 					emitter
 				)
 				: new MainThreadAuthenticationProvider(
-					this._proxy,
+					this._proxy as unknown as ExtHostAuthenticationShape,
 					id,
 					label,
 					supportsMultipleAccounts,

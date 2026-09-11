@@ -1693,7 +1693,7 @@ export class TaskSequentializer {
 	private _running?: IRunningTask;
 	private _queued?: IQueuedTask;
 
-	isRunning(taskId?: number): this is ITaskSequentializerWithRunningTask {
+	isRunning(taskId?: number): boolean {
 		if (typeof taskId === 'number') {
 			return this._running?.taskId === taskId;
 		}
@@ -1767,7 +1767,7 @@ export class TaskSequentializer {
 		return this._queued.promise;
 	}
 
-	hasQueued(): this is ITaskSequentializerWithQueuedTask {
+	hasQueued(): boolean {
 		return !!this._queued;
 	}
 
@@ -2441,7 +2441,7 @@ class ProducerConsumer<T> {
 		if (value.ok) {
 			deferred.complete(value.value);
 		} else {
-			deferred.error(value.error);
+			deferred.error((value as { ok: false; error: Error }).error);
 		}
 	}
 
@@ -2451,7 +2451,7 @@ class ProducerConsumer<T> {
 			if (value.ok) {
 				return Promise.resolve(value.value);
 			} else {
-				return Promise.reject(value.error);
+				return Promise.reject((value as { ok: false; error: Error }).error);
 			}
 		} else {
 			const deferred = new DeferredPromise<T>();

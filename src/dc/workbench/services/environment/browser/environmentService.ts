@@ -37,11 +37,21 @@ export interface IBrowserWorkbenchEnvironmentService extends IWorkbenchEnvironme
 	 * Gets whether a resolver extension is expected for the environment.
 	 */
 	readonly expectsResolverExtension: boolean;
+
+	readonly sessionTitle?: string;
+
+	/**
+	 * Gets whether the workbench is running as an agent host.
+	 */
+	readonly isAgentHost: boolean;
 }
 
 export class BrowserWorkbenchEnvironmentService implements IBrowserWorkbenchEnvironmentService {
 
 	declare readonly _serviceBrand: undefined;
+
+	@memoize
+	get sessionTitle(): string | undefined { return (this.options as any)?.sessionTitle; }
 
 	@memoize
 	get remoteAuthority(): string | undefined { return this.options.remoteAuthority; }
@@ -53,6 +63,9 @@ export class BrowserWorkbenchEnvironmentService implements IBrowserWorkbenchEnvi
 
 	@memoize
 	get isBuilt(): boolean { return !!this.productService.commit; }
+
+	@memoize
+	get isAgentHost(): boolean { return !!(this.options as any)?.isAgentHost; }
 
 	@memoize
 	get logLevel(): string | undefined {

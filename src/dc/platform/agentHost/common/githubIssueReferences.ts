@@ -3,27 +3,48 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/** A GitHub issue, identified by the repository that owns it and its number. */
 export interface IGitHubIssueReference {
 	readonly owner: string;
 	readonly repo: string;
 	readonly number: number;
 }
 
-/**
- * Matches `https://github.com/{owner}/{repo}/issues/{number}` from the start of
- * the string, optionally with a `www.` host. The trailing boundary lets a URL
- * keep a trailing slash, query string or fragment (e.g. the `#issuecomment-123`
- * anchor GitHub appends when copying a comment link).
- */
-const ISSUE_URL_PATTERN = /^https?:\/\/(?:www\.)?github\.com\/([\w.-]+)\/([\w.-]+)\/issues\/(\d+)\b/i;
+const ISSUE_URL_PATTERN = /\bhttps?:\/\/(?:www\.)?github\.com\/([\w.-]+)\/([\w.-]+)\/issues\/(\d+)\b/gi;
+const ISSUE_SHORTHAND_PATTERN = /(?<![\w./-])([\w.-]+)\/([\w.-]+)#(\d+)\b/g;
 
-/** Parses a GitHub issue URL into its parts, or `undefined` when it is not one. */
-export function parseGitHubIssueUrl(url: string): IGitHubIssueReference | undefined {
-	const match = ISSUE_URL_PATTERN.exec(url);
-	if (!match) {
-		return undefined;
+export const MAX_SESSION_ISSUE_REFERENCES = 10;
+
+export function parseGitHubIssueReferences(text: string): IGitHubIssueReference[] {
+	const references: IGitHubIssueReference[] = [];
+	const seen = new Set<string>();
+
+	const add = (owner: string, repo: string, rawNumber: string): void => {
+		const number = Number(rawNumber);
+		if (!Number.isSafeInteger(number) || number <= 0) {
+			return;
+		}
+		const url = toGitHubIssueUrl({ owner, repo, number });
+		if (seen.has(url)) {
+			return;
+		}
+		seen.add(url);
+		references.push({ owner, repo, number });
+	};
+
+	for (const match of text.matchAll(ISSUE_URL_PATTERN)) {
+		add(match[1], match[2], match[3]);
 	}
-	const number = Number(match[3]);
-	return Number.isSafeInteger(number) && number > 0 ? { owner: match[1], repo: match[2], number } : undefined;
+	for (const match of text.matchAll(ISSUE_SHORTHAND_PATTERN)) {
+		add(match[1], match[2], match[3]);
+	}
+
+	return references;
+}
+
+export function toGitHubIssueUrl(reference: IGitHubIssueReference): string {
+	return `https://github.com/${reference.owner}/${reference.repo}/issues/${reference.number}`;
+}
+
+export function parseGitHubIssueUrl(url: string): IGitHubIssueReference | undefined {
+	return parseGitHubIssueReferences(url)[0];
 }

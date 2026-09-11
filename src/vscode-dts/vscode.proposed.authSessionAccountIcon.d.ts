@@ -8,6 +8,6 @@ declare module 'vscode' {
 		/**
 		 * An optional icon for the account. This is typically a URI to a profile image/avatar.
 		 */
-		readonly icon?: Uri;
+		readonly icon?: any;
 	}
 }

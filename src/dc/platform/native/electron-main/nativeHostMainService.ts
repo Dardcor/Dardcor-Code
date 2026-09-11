@@ -1422,10 +1422,18 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 
 	//#region Zip
 
-	async createZipFile(windowId: number | undefined, zipPath: URI, files: INativeZipFile[]): Promise<void> {
+	async createZipFile(windowId: number | undefined, zipPath: URI, files: INativeZipFile[], options?: { maxEntries?: number }): Promise<void> {
 		await zip(zipPath.fsPath, files.map(file => {
 			if (hasKey(file, { contents: true })) {
 				return file;
+			}
+			if (hasKey(file, { sourceArchive: true })) {
+				// Source archive merging: resolve the local path for merging
+				const archiveUri = URI.revive(file.sourceArchive);
+				if (archiveUri.scheme !== Schemas.file) {
+					throw new Error(`Cannot merge non-local archive '${archiveUri.toString()}' into a zip file`);
+				}
+				return { sourceArchive: archiveUri.fsPath } as any;
 			}
 			const source = URI.revive(file.source);
 			if (source.scheme !== Schemas.file) {
@@ -1466,6 +1474,14 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 
 	async isPowerSaveBlockerStarted(windowId: number | undefined, id: number): Promise<boolean> {
 		return powerSaveBlocker.isStarted(id);
+	}
+
+	//#endregion
+
+	//#region Application Badge
+
+	async setApplicationBadge(windowId: number | undefined, badge: import('../common/native.js').IApplicationBadge | undefined): Promise<void> {
+		// No-op stub — platform-specific implementations override this in subclasses.
 	}
 
 	//#endregion

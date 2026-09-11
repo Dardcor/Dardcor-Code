@@ -90,6 +90,8 @@ export function assertAutomationSessionTemplate(template: IAutomationSessionTemp
  * A single scheduled automation. Identity is the immutable `id`; everything
  * else may be edited by the user.
  */
+export type IAutomation = IAutomationDescriptor;
+
 export interface IAutomationDescriptor {
 	readonly id: string;
 	readonly name: string;

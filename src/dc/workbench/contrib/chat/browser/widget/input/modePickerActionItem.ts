@@ -304,18 +304,17 @@ export class ModePickerActionItem extends ChatInputPickerActionViewItem {
 		}
 
 		const labelElements = [];
-		const collapsed = this.pickerOptions.compact.get();
-		element.classList.toggle('icon-only', collapsed && !!icon);
+		element.classList.toggle('icon-only', !!icon);
 		if (icon) {
 			labelElements.push(...renderLabelWithIcons(`$(${getCompactCodicon(icon).id})`));
-		}
-		if (!collapsed || !icon) {
+		} else {
 			labelElements.push(dom.$('span.chat-input-picker-label', undefined, state));
 		}
 
 		dom.reset(element, ...labelElements);
 		this.setAriaLabelAttributes(element);
 		element.ariaLabel = state;
+		element.title = state;
 		return null;
 	}
 }

@@ -88,6 +88,7 @@ class MockAgentHostStarter implements IAgentHostStarter {
 		return {
 			client,
 			store,
+			shutdown: async () => { },
 			onDidProcessExit: this._onDidProcessExit.event,
 		};
 	}

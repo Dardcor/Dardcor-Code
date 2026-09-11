@@ -34,10 +34,10 @@ export function hasGitHubRemotes(repositoryState: GitRepositoryState): boolean {
 	return false;
 }
 
-export function getGitHubRemoteInfo(repositoryState: GitRepositoryState): IGitHubRemoteInfo | undefined {
+export function getGitHubRemoteInfo(repositoryState: GitRepositoryState, supportedHosts?: readonly string[]): IGitHubRemoteInfo | undefined {
 	for (const remote of getOrderedRemotes(repositoryState)) {
 		if (remote.fetchUrl) {
-			const repository = getGitHubRepositoryFromRemoteUrl(remote.fetchUrl);
+			const repository = getGitHubRepositoryFromRemoteUrl(remote.fetchUrl, supportedHosts);
 			if (repository) {
 				return repository;
 			}
@@ -47,13 +47,15 @@ export function getGitHubRemoteInfo(repositoryState: GitRepositoryState): IGitHu
 	return undefined;
 }
 
-export function getGitHubRepositoryFromRemoteUrl(remoteUrl: string): IGitHubRemoteInfo | undefined {
+export function getGitHubRepositoryFromRemoteUrl(remoteUrl: string, supportedHosts?: readonly string[]): IGitHubRemoteInfo | undefined {
 	const remote = parseRemoteUrl(remoteUrl);
 	if (!remote) {
 		return undefined;
 	}
 	const host = equalsIgnoreCase(remote.scheme, 'ssh') ? remote.host : remote.rawHost;
-	if (!equalsIgnoreCase(host, 'github.com') && !equalsIgnoreCase(host, 'www.github.com')) {
+	const isSupported = (supportedHosts && host && supportedHosts.some(h => equalsIgnoreCase(h, host)))
+		|| equalsIgnoreCase(host, 'github.com') || equalsIgnoreCase(host, 'www.github.com');
+	if (!isSupported) {
 		return undefined;
 	}
 	const segments = remote.path.replace(/^\/+/, '').replace(/\/+$/, '').replace(/\.git$/i, '').split('/');

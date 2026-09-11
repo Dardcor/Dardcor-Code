@@ -53,3 +53,6 @@ export abstract class SinglePaneLayoutStrategy extends Disposable {
 		super();
 	}
 }
+
+export { SinglePaneDockedTabsCoordinator } from './singlePaneDockedTabsCoordinator.js';
+

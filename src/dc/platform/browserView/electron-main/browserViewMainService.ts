@@ -35,7 +35,7 @@ export interface IBrowserViewMainService extends IBrowserViewService {
 	tryGetBrowserView(id: string): BrowserView | undefined;
 
 	/** Create a new target and return it. */
-	createTarget(url: string, context: IBrowserViewCreationContext): Promise<BrowserView>;
+	createTarget(url: string, contextOrOwner: IBrowserViewCreationContext | IBrowserViewOwner, browserContextId?: string): Promise<BrowserView>;
 
 	/** Validate that a view can be exposed to an agent audience. */
 	validateAgentAccess(view: BrowserView): void;
@@ -98,7 +98,14 @@ export class BrowserViewMainService extends Disposable implements IBrowserViewMa
 		return this.browserViews.get(id);
 	}
 
-	async createTarget(url: string, context: IBrowserViewCreationContext): Promise<BrowserView> {
+	async createTarget(url: string, contextOrOwner: IBrowserViewCreationContext | IBrowserViewOwner, browserContextId?: string): Promise<BrowserView> {
+		const context: IBrowserViewCreationContext = (contextOrOwner && 'host' in contextOrOwner)
+			? contextOrOwner as IBrowserViewCreationContext
+			: {
+				host: { windowId: (contextOrOwner as IBrowserViewOwner).mainWindowId ?? 0 },
+				owner: contextOrOwner as IBrowserViewOwner,
+				session: browserContextId ?? 'default',
+			};
 		return this.openNew(url, context, { preserveFocus: true }, 'cdpCreated');
 	}
 

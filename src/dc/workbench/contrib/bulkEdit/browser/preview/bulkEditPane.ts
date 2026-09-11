@@ -14,7 +14,7 @@ import { Mutable } from '../../../../../base/common/types.js';
 import { URI } from '../../../../../base/common/uri.js';
 import './bulkEdit.css';
 import { ResourceEdit } from '../../../../../editor/browser/services/bulkEditService.js';
-import { IMultiDiffEditorOptions, IMultiDiffResourceId } from '../../../../../editor/browser/widget/multiDiffEditor/multiDiffEditorWidgetImpl.js';
+import { IMultiDiffEditorOptions, IMultiDiffResourceId } from '../../../../../editor/common/multiDiffEditor.js';
 import { IRange } from '../../../../../editor/common/core/range.js';
 import { ITextModelService } from '../../../../../editor/common/services/resolverService.js';
 import { localize } from '../../../../../nls.js';

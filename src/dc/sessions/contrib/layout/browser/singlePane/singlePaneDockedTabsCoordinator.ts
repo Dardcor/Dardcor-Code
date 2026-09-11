@@ -100,9 +100,20 @@ interface IPendingReconcile {
  */
 export class SinglePaneDockedTabsCoordinator extends Disposable {
 
-	/** Non-docked editors closed (as reopenable inputs + tab index) while the editor area is hidden. */
 	private _collapsedEditors: { readonly editor: IUntypedEditorInput; readonly index: number }[] | undefined;
 	private readonly _sequencer = new Sequencer();
+
+	get sequencer(): Sequencer {
+		return this._sequencer;
+	}
+
+	get collapsedEditors(): { readonly editor: IUntypedEditorInput; readonly index: number }[] | undefined {
+		return this._collapsedEditors;
+	}
+
+	set collapsedEditors(value: { readonly editor: IUntypedEditorInput; readonly index: number }[] | undefined) {
+		this._collapsedEditors = value;
+	}
 
 	private _generation = 0;
 	private _lastSyncedSessionKey: string | undefined;

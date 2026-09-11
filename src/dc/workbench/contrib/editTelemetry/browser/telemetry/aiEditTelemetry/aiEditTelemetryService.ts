@@ -65,6 +65,8 @@ export interface IEditTelemetryBaseData {
 
 	/** Source controlled id. For agent edits (sideBarChat/highlightedEdit) this is the chat request id. */
 	sourceRequestId: string | undefined;
+
+	isAgentHostSession?: boolean;
 }
 
 export interface IEditTelemetryCodeSuggestedData extends IEditTelemetryBaseData {

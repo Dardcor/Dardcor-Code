@@ -74,6 +74,9 @@ export class NativeWorkbenchEnvironmentService extends AbstractNativeEnvironment
 	get isPortable() { return this.configuration.isPortable; }
 
 	@memoize
+	get isAgentHost() { return !!(this.configuration as any)?.isAgentHost; }
+
+	@memoize
 	get remoteAuthority() { return this.configuration.remoteAuthority; }
 
 	@memoize

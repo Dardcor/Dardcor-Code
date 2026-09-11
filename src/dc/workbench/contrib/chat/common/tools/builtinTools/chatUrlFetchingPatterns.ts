@@ -7,6 +7,10 @@ import { URI } from '../../../../../../base/common/uri.js';
 import { normalizeURL } from '../../../../../../platform/url/common/trustedDomains.js';
 import { testUrlMatchesGlob } from '../../../../../../platform/url/common/urlGlob.js';
 
+function isURLSafeForTrust(url: URI): boolean {
+	return url.scheme === 'http' || url.scheme === 'https';
+}
+
 /**
  * Approval settings for a URL pattern
  */

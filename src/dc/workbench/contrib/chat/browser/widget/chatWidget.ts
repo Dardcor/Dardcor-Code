@@ -611,12 +611,7 @@ export class ChatWidget extends Disposable implements IChatWidget {
 		super();
 		this._persistentContentHeight = viewOptions.persistentContentHeight ?? 0;
 
-		this.readOnlyBanner = viewOptions.isSessionsWindow
-			? undefined
-			: this._register(instantiationService.createInstance(
-				ChatReadOnlyBanner,
-				viewOptions.readOnlyBannerAtTop ? localize('chatReadOnlyBanner.message', "This chat is read-only") : undefined,
-			));
+		this.readOnlyBanner = undefined;
 		this._lockedToCodingAgentContextKey = ChatContextKeys.lockedToCodingAgent.bindTo(this.contextKeyService);
 		this._lockedCodingAgentIdContextKey = ChatContextKeys.lockedCodingAgentId.bindTo(this.contextKeyService);
 		this._readOnlyContextKey = ChatContextKeys.readOnly.bindTo(this.contextKeyService);
@@ -2742,9 +2737,7 @@ export class ChatWidget extends Disposable implements IChatWidget {
 			this.onDidChangeItems();
 			this._hasPendingRequestsContextKey.set(false);
 			this._chatSessionSupportsRenameContextKey.set(false);
-			if (!this.viewOptions.isSessionsWindow) {
-				this.setReadOnly(false);
-			}
+			this.setReadOnly(false);
 			return;
 		}
 
@@ -2772,9 +2765,7 @@ export class ChatWidget extends Disposable implements IChatWidget {
 		this.inputPart.setInputModel(model.inputModel, model.getRequests().length === 0, model.sessionResource);
 
 		this.viewModel = this.instantiationService.createInstance(ChatViewModel, model, undefined);
-		if (!this.viewOptions.isSessionsWindow) {
-			this.viewModelDisposables.add(autorun(reader => this.setReadOnly(model.isReadOnly.read(reader))));
-		}
+		this.viewModelDisposables.add(autorun(reader => this.setReadOnly(model.isReadOnly.read(reader))));
 
 		this.listWidget.setViewModel(this.viewModel);
 		// Armed only once the list is bound, so a render triggered while the
@@ -2784,12 +2775,15 @@ export class ChatWidget extends Disposable implements IChatWidget {
 		if (this._lockedAgent) {
 			let placeholder = this.chatSessionsService.getChatSessionContribution(this._lockedAgent.id)?.inputPlaceholder;
 			if (!placeholder) {
-				placeholder = localize('chat.input.placeholder.lockedToAgent', "Chat with {0}", this._lockedAgent.displayName || this._lockedAgent.name);
+				const agentName = (this._lockedAgent.displayName || this._lockedAgent.name).replace(/\bCopilot\b/gi, 'Dardcor Code');
+				placeholder = localize('chat.input.placeholder.lockedToAgent', "Chat with {0}", agentName);
 			}
+			placeholder = placeholder.replace(/\bCopilot\b/gi, 'Dardcor Code');
 			this.viewModel.setInputPlaceholder(placeholder);
 			this.inputEditor.updateOptions({ placeholder });
 		} else if (this.viewModel.inputPlaceholder) {
-			this.inputEditor.updateOptions({ placeholder: this.viewModel.inputPlaceholder });
+			const placeholder = this.viewModel.inputPlaceholder.replace(/\bCopilot\b/gi, 'Dardcor Code');
+			this.inputEditor.updateOptions({ placeholder });
 		}
 
 		this.viewModelDisposables.add(Event.runAndSubscribe(Event.accumulate(this.viewModel.onDidChange), (events => {
@@ -2805,7 +2799,8 @@ export class ChatWidget extends Disposable implements IChatWidget {
 
 			// Update the editor's placeholder text when it changes in the view model
 			if (events?.some(e => e?.kind === 'changePlaceholder')) {
-				this.inputEditor.updateOptions({ placeholder: this.viewModel.inputPlaceholder });
+				const placeholder = this.viewModel.inputPlaceholder ? this.viewModel.inputPlaceholder.replace(/\bCopilot\b/gi, 'Dardcor Code') : undefined;
+				this.inputEditor.updateOptions({ placeholder });
 			}
 
 			this.onDidChangeItems();

@@ -172,7 +172,7 @@ task.task(bundleVSCodeTask);
 const sourceMappingURLBase = `https://main.vscode-cdn.net/sourcemaps/${commit}`;
 const isCI = !!process.env['CI'] || !!process.env['BUILD_ARTIFACTSTAGINGDIRECTORY'] || !!process.env['GITHUB_WORKSPACE'];
 const useCdnSourceMapsForPackagingTasks = isCI;
-const stripSourceMapsInPackagingTasks = isCI;
+const stripSourceMapsInPackagingTasks = process.env['VSCODE_KEEP_SOURCEMAPS'] === 'true' ? false : true;
 const minifyVSCodeTask = task.define('minify-vscode', task.series(
 	bundleVSCodeTask,
 	util.rimraf('out-dardcor-code-min'),
@@ -498,6 +498,7 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 				'**',
 				'!LICENSE',
 				'!version',
+				'!**/default_app.asar',
 				...(platform === 'darwin' ? ['!**/Contents/Applications', '!**/Contents/Applications/**'] : []),
 				...(platform === 'win32' ? ['!**/electron_proxy.exe'] : []),
 			], { dot: true }));

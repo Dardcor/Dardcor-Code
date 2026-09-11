@@ -37,6 +37,7 @@ import './features/browserEditorFindFeature.js';
 import './features/browserSearchFeatures.js';
 import './features/browserTabManagementFeatures.js';
 import './features/browserRemoteFeatures.js';
+import './tools/browserTools.contribution.js';
 
 Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane(
 	EditorPaneDescriptor.create(
@@ -79,7 +80,10 @@ class BrowserEditorResolverContribution implements IWorkbenchContribution {
 						throw new Error(`Invalid browser view resource: ${resource.toString()}`);
 					}
 
-					const browserInput = browserViewWorkbenchService.getOrCreateLazy(parsed.id, options?.viewState);
+					const browserInput = browserViewWorkbenchService.getOrCreateLazy({
+						id: parsed.id,
+						...(options?.viewState as any)
+					});
 
 					// Start resolving the input right away. This will create the browser view.
 					// This allows browser views to be loaded in the background.

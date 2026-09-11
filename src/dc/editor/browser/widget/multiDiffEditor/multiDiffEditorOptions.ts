@@ -15,6 +15,8 @@ export interface IMultiDiffEditorWidgetOptions {
 	readonly diffEditorOptions?: IDiffEditorOptions;
 }
 
+export type IMultiDiffEditorOptions = IMultiDiffEditorWidgetOptions;
+
 export interface IMultiDiffEditorVariantConfiguration {
 	readonly className: string;
 	readonly horizontalInsets: Readonly<{ left: number; right: number }>;

@@ -48,7 +48,25 @@ async function isExpectedElectronInstalled(): Promise<boolean> {
 }
 
 async function ensureCompiled() {
-	if (!(await exists('out')) || !(await exists(path.join('out', 'main.js')))) {
+	const requiredFiles = [
+		path.join('out', 'main.js'),
+		path.join('out', '.build-done'),
+		path.join('out', 'dc', 'platform', 'environment', 'node', 'userDataPath.js'),
+		path.join('out', 'dc', 'workbench', 'workbench.desktop.main.js'),
+	];
+
+	let isComplete = await exists('out');
+	if (isComplete) {
+		for (const file of requiredFiles) {
+			if (!(await exists(file))) {
+				isComplete = false;
+				break;
+			}
+		}
+	}
+
+	if (!isComplete) {
+		console.log('[preLaunch] Client build is missing or incomplete. Transpiling client...');
 		await runProcess(npm, ['run', 'transpile-client']);
 	}
 }

@@ -3976,7 +3976,7 @@ export class CodexAgent extends Disposable implements IAgent {
 	getDescriptor(): IAgentDescriptor {
 		return {
 			provider: this.id,
-			displayName: localize('codexAgent.displayName', "Dardcor Code"),
+			displayName: localize('codexAgent.displayName', "Codex"),
 			description: localize('codexAgent.description', "Codex agent using session-selected model providers"),
 			capabilities: {
 				multipleChats: { fork: true, sideChat: true },

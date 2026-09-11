@@ -342,7 +342,7 @@ export abstract class AbstractAgentPluginDiscovery extends Disposable implements
 				existing.store.dispose();
 				this._pluginEntries.delete(key);
 			} else {
-				existing.plugin.remove = removeCallback;
+				existing.plugin.remove = removeCallback ? async () => { removeCallback(); return true; } : undefined;
 				return existing.plugin;
 			}
 		}
@@ -428,7 +428,7 @@ export abstract class AbstractAgentPluginDiscovery extends Disposable implements
 		const mcpServerDefinitions = observeComponent(
 			'mcpServers',
 			paths => readPluginMcpServers(uri, paths, format, this._fileService),
-			async section => parseMcpServerDefinitionMap(manifestUri, { mcpServers: section }, uri.fsPath, format),
+			async section => parseMcpServerDefinitionMap(manifestUri, { mcpServers: section }, uri, format),
 			'.mcp.json',
 		);
 
@@ -477,7 +477,7 @@ export abstract class AbstractAgentPluginDiscovery extends Disposable implements
 			label: fromMarketplace?.name ?? manifestName ?? basename(uri),
 			enablement,
 			policyBlocked,
-			remove: removeCallback,
+			remove: removeCallback ? async () => { try { await removeCallback!(); return true; } catch { return false; } } : undefined,
 			hooks,
 			commands,
 			skills,

@@ -13,7 +13,6 @@ import { Codicon } from '../../../../base/common/codicons.js';
 import { DisposableStore, IReference, toDisposable } from '../../../../base/common/lifecycle.js';
 import { Emitter } from '../../../../base/common/event.js';
 import { ScrollbarVisibility } from '../../../../base/common/scrollable.js';
-import { basename } from '../../../../base/common/resources.js';
 import { URI } from '../../../../base/common/uri.js';
 import { localize } from '../../../../nls.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
@@ -42,7 +41,7 @@ import { IAgentSession } from '../../chat/browser/agentSessions/agentSessionsMod
 import { AgentSessionsWelcomeEditorOptions, AgentSessionsWelcomeInput, AgentSessionsWelcomeWorkspaceKind } from './agentSessionsWelcomeInput.js';
 import { IChatService } from '../../chat/common/chatService/chatService.js';
 import { IChatModel } from '../../chat/common/model/chatModel.js';
-import { ChatViewId, IChatWidgetService, ISessionTypePickerDelegate, IWorkspacePickerDelegate, IWorkspacePickerItem } from '../../chat/browser/chat.js';
+import { ChatViewId, IChatWidgetService, ISessionTypePickerDelegate } from '../../chat/browser/chat.js';
 import { ChatSessionPosition, getResourceForNewChatSession } from '../../chat/browser/chatSessions/chatSessions.contribution.js';
 import { IChatEntitlementService } from '../../../services/chat/common/chatEntitlementService.js';
 import { AgentSessionsControl, IAgentSessionsControlOptions } from '../../chat/browser/agentSessions/agentSessionsControl.js';
@@ -53,10 +52,6 @@ import { IResolvedWalkthrough, IWalkthroughsService } from '../../welcomeGetting
 import { GettingStartedEditorOptions, GettingStartedInput } from '../../welcomeGettingStarted/browser/gettingStartedInput.js';
 import { IMarkdownRendererService } from '../../../../platform/markdown/browser/markdownRenderer.js';
 import { MarkdownString } from '../../../../base/common/htmlContent.js';
-import { IWorkspaceContextService, WorkbenchState } from '../../../../platform/workspace/common/workspace.js';
-import { IWorkspacesService, IRecentFolder, IRecentWorkspace, isRecentFolder, isRecentWorkspace } from '../../../../platform/workspaces/common/workspaces.js';
-import { IHostService } from '../../../services/host/browser/host.js';
-import { IWorkspaceTrustManagementService } from '../../../../platform/workspace/common/workspaceTrust.js';
 import { IViewDescriptorService, ViewContainerLocation } from '../../../common/views.js';
 import { toErrorMessage } from '../../../../base/common/errorMessage.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
@@ -64,7 +59,6 @@ import { canShowAgentsBanner, createAgentsBanner } from '../../chat/browser/agen
 
 const configurationKey = 'workbench.startupEditor';
 const MAX_SESSIONS = 6;
-const MAX_REPO_PICKS = 10;
 const MAX_WALKTHROUGHS = 10;
 const WELCOME_CHAT_INPUT_LAYOUT_HEIGHT = 150;
 const WELCOME_CHAT_INPUT_RESERVED_LIST_HEIGHT = 50;
@@ -140,9 +134,6 @@ export class AgentSessionsWelcomePage extends EditorPane {
 	private contextService: IContextKeyService;
 	private walkthroughs: IResolvedWalkthrough[] = [];
 	private _selectedSessionProvider: AgentSessionTarget = AgentSessionProviders.Local;
-	private _selectedWorkspace: IWorkspacePickerItem | undefined;
-	private _recentTrustedWorkspaces: Array<IRecentWorkspace | IRecentFolder> = [];
-	private _isEmptyWorkspace: boolean = false;
 	private _workspaceKind: AgentSessionsWelcomeWorkspaceKind = 'empty';
 
 	// Telemetry tracking
@@ -167,10 +158,6 @@ export class AgentSessionsWelcomePage extends EditorPane {
 		@IChatService private readonly chatService: IChatService,
 		@IChatEntitlementService private readonly chatEntitlementService: IChatEntitlementService,
 		@IMarkdownRendererService private readonly markdownRendererService: IMarkdownRendererService,
-		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
-		@IWorkspacesService private readonly workspacesService: IWorkspacesService,
-		@IHostService private readonly hostService: IHostService,
-		@IWorkspaceTrustManagementService private readonly workspaceTrustManagementService: IWorkspaceTrustManagementService,
 		@IViewDescriptorService private readonly viewDescriptorService: IViewDescriptorService,
 		@IChatWidgetService private readonly chatWidgetService: IChatWidgetService,
 		@ILogService private readonly logService: ILogService,
@@ -238,12 +225,6 @@ export class AgentSessionsWelcomePage extends EditorPane {
 		this.sessionsControl = undefined;
 		clearNode(this.contentContainer);
 
-		// Detect empty workspace and fetch recent workspaces
-		this._isEmptyWorkspace = this.workspaceContextService.getWorkbenchState() === WorkbenchState.EMPTY;
-		if (this._isEmptyWorkspace) {
-			const recentlyOpened = await this.getRecentlyOpenedWorkspaces(true);
-			this._recentTrustedWorkspaces = recentlyOpened.slice(0, MAX_REPO_PICKS);
-		}
 
 		// Get walkthroughs
 		this.walkthroughs = this.walkthroughsService.getWalkthroughs();
@@ -284,10 +265,7 @@ export class AgentSessionsWelcomePage extends EditorPane {
 	}
 
 	private async buildStartEntries(container: HTMLElement): Promise<void> {
-		const workspaces = await this.getRecentlyOpenedWorkspaces(false);
-		const openEntry = workspaces.length > 0
-			? { icon: Codicon.folderOpened, label: localize('openRecent', "Open Recent..."), command: 'workbench.action.openRecent' }
-			: { icon: Codicon.folderOpened, label: localize('openFolder', "Open Folder..."), command: 'workbench.action.files.openFolder' };
+		const openEntry = { icon: Codicon.folderOpened, label: localize('openFolder', "Open Folder..."), command: 'workbench.action.files.openFolder' };
 		const entries = [
 			openEntry,
 			{ icon: Codicon.newFile, label: localize('newFile', "New file..."), command: 'welcome.showNewFileEntries' },
@@ -350,25 +328,6 @@ export class AgentSessionsWelcomePage extends EditorPane {
 			onDidChangeActiveSessionProvider: onDidChangeActiveSessionProvider.event
 		};
 
-		// Create workspace picker delegate for empty workspace scenarios
-		const onDidChangeSelectedWorkspace = this.contentDisposables.add(new Emitter<IWorkspacePickerItem | undefined>());
-		const onDidChangeWorkspaces = this.contentDisposables.add(new Emitter<void>());
-		const workspacePickerDelegate: IWorkspacePickerDelegate | undefined = this._isEmptyWorkspace ? {
-			getWorkspaces: () => this._recentTrustedWorkspaces.map(w => ({
-				uri: this.getWorkspaceUri(w),
-				label: this.getWorkspaceLabel(w),
-				isFolder: isRecentFolder(w),
-			})),
-			getSelectedWorkspace: () => this._selectedWorkspace,
-			setSelectedWorkspace: (workspace: IWorkspacePickerItem | undefined) => {
-				this._selectedWorkspace = workspace;
-				onDidChangeSelectedWorkspace.fire(workspace);
-			},
-			onDidChangeSelectedWorkspace: onDidChangeSelectedWorkspace.event,
-			onDidChangeWorkspaces: onDidChangeWorkspaces.event,
-			openFolderCommand: 'workbench.action.files.openFolder',
-		} : undefined;
-
 		this.chatWidget = this.contentDisposables.add(scopedInstantiationService.createInstance(
 			ChatWidget,
 			ChatAgentLocation.Chat,
@@ -389,8 +348,6 @@ export class AgentSessionsWelcomePage extends EditorPane {
 				enableWorkingSet: 'explicit',
 				supportsChangingModes: true,
 				sessionTypePickerDelegate,
-				workspacePickerDelegate,
-				submitHandler: this._isEmptyWorkspace ? (query, mode) => this.handleWorkspaceSubmission(query, mode) : undefined,
 			},
 			{
 				listForeground: SIDE_BAR_FOREGROUND,
@@ -434,7 +391,7 @@ export class AgentSessionsWelcomePage extends EditorPane {
 						mode,
 						provider: this._selectedSessionProvider,
 						workspaceKind: this._workspaceKind,
-						selectedRecentWorkspace: this._selectedWorkspace !== undefined
+						selectedRecentWorkspace: false
 					}
 				);
 
@@ -447,66 +404,7 @@ export class AgentSessionsWelcomePage extends EditorPane {
 		this.applyPrefillData();
 	}
 
-	private getWorkspaceLabel(workspace: IRecentWorkspace | IRecentFolder): string {
-		if (isRecentFolder(workspace)) {
-			return workspace.label || basename(workspace.folderUri);
-		} else if (isRecentWorkspace(workspace)) {
-			return workspace.label || basename(workspace.workspace.configPath);
-		}
-		return '';
-	}
 
-	private getWorkspaceUri(workspace: IRecentWorkspace | IRecentFolder): URI {
-		if (isRecentFolder(workspace)) {
-			return workspace.folderUri;
-		} else if (isRecentWorkspace(workspace)) {
-			return workspace.workspace.configPath;
-		}
-		throw new Error('Invalid workspace type');
-	}
-
-	private async handleWorkspaceSubmission(query: string, mode: ChatModeKind): Promise<boolean> {
-		// Only handle if a workspace is selected
-		if (!this._selectedWorkspace) {
-			return false;
-		}
-
-		if (!query.trim()) {
-			return false;
-		}
-
-		// Store the prefill data for the target workspace to read on startup
-		const prefillData = {
-			query,
-			mode,
-			timestamp: Date.now(),
-		};
-		this.storageService.store(
-			'chat.welcomeViewPrefill',
-			JSON.stringify(prefillData),
-			StorageScope.APPLICATION,
-			StorageTarget.MACHINE
-		);
-
-		// Find the workspace to determine if it's a folder or workspace file
-		const workspace = this._recentTrustedWorkspaces.find(w =>
-			this.getWorkspaceUri(w).toString() === this._selectedWorkspace?.uri.toString());
-
-		if (workspace) {
-			try {
-				if (isRecentFolder(workspace)) {
-					await this.hostService.openWindow([{ folderUri: workspace.folderUri }]);
-				} else if (isRecentWorkspace(workspace)) {
-					await this.hostService.openWindow([{ workspaceUri: workspace.workspace.configPath }]);
-				}
-				return true;
-			} catch (e) {
-				// Ignore errors
-			}
-		}
-		this.storageService.remove('chat.welcomeViewPrefill', StorageScope.APPLICATION);
-		return false;
-	}
 
 	/**
 	 * Reads and applies prefill data from storage (used when transferring chat input from another workspace).
@@ -568,6 +466,7 @@ export class AgentSessionsWelcomePage extends EditorPane {
 			source: 'welcomeView',
 			itemHeight: AgentSessionsListDelegate.ITEM_HEIGHT,
 			sectionHeight: AgentSessionsListDelegate.SECTION_HEIGHT,
+			createNewChat: () => {},
 			notifySessionOpened: () => {
 				const isProjectionEnabled = this.configurationService.getValue<boolean>(ChatConfiguration.AgentSessionProjectionEnabled);
 				if (!isProjectionEnabled) {
@@ -895,20 +794,6 @@ export class AgentSessionsWelcomePage extends EditorPane {
 		if (chatViewLocation === ViewContainerLocation.AuxiliaryBar) {
 			this.layoutService.setAuxiliaryBarMaximized(true);
 		}
-	}
-
-	private async getRecentlyOpenedWorkspaces(onlyTrusted: boolean = false): Promise<Array<IRecentWorkspace | IRecentFolder>> {
-		const workspaces = await this.workspacesService.getRecentlyOpened();
-		const trustInfoPromises = workspaces.workspaces.map(async ws => {
-			const uri = isRecentWorkspace(ws) ? ws.workspace.configPath : ws.folderUri;
-			const trustInfo = await this.workspaceTrustManagementService.getUriTrustInfo(uri);
-			return { workspace: ws, trusted: trustInfo.trusted };
-		});
-		const trustInfoResults = await Promise.all(trustInfoPromises);
-		const filteredWorkspaces = trustInfoResults
-			.filter(result => onlyTrusted ? result.trusted : true)
-			.map(result => result.workspace);
-		return filteredWorkspaces;
 	}
 }
 

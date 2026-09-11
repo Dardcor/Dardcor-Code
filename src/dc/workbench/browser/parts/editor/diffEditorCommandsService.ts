@@ -6,6 +6,7 @@
 import { isEqual } from '../../../../base/common/resources.js';
 import { URI } from '../../../../base/common/uri.js';
 import { isDiffEditor } from '../../../../editor/browser/editorBrowser.js';
+import { DiffEditorViewMode } from '../../../../editor/common/config/editorOptions.js';
 import { ITextResourceConfigurationService } from '../../../../editor/common/services/textResourceConfiguration.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
@@ -49,6 +50,9 @@ export interface IDiffEditorCommandsService {
 
 	/** Swaps the original and modified sides of the active diff editor. */
 	swapDiffSides(args: unknown[]): Promise<void>;
+
+	/** Sets the view mode for the active diff editor. */
+	setViewMode(args: unknown[], mode: DiffEditorViewMode): Promise<void>;
 }
 
 export class DiffEditorCommandsService implements IDiffEditorCommandsService {
@@ -211,5 +215,18 @@ export class DiffEditorCommandsService implements IDiffEditorCommandsService {
 		}
 
 		return undefined;
+	}
+
+	async setViewMode(args: unknown[], mode: DiffEditorViewMode): Promise<void> {
+		const modifiedResource = this.getActiveDiffModifiedResource(args);
+		if (!modifiedResource) {
+			return;
+		}
+
+		if (mode === 'inline') {
+			await this.textResourceConfigurationService.updateValue(modifiedResource, 'diffEditor.renderSideBySide', false);
+		} else if (mode === 'sideBySide') {
+			await this.textResourceConfigurationService.updateValue(modifiedResource, 'diffEditor.renderSideBySide', true);
+		}
 	}
 }

@@ -1111,3 +1111,16 @@ export function sessionGitRepositoryEqual(a: ISessionGitRepository | undefined, 
 		&& a.hasGitOperationInProgress === b.hasGitOperationInProgress
 		&& gitHubInfoEqual(a.gitHubInfo.get(), b.gitHubInfo.get());
 }
+
+export const enum SessionFileOperation {
+	Created = 1,
+	Modified = 2,
+	Deleted = 3,
+}
+
+export interface ISessionFile {
+	readonly uri: URI;
+	readonly operation: SessionFileOperation;
+	readonly originalUri?: URI;
+}
+

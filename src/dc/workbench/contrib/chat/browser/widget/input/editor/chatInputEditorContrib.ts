@@ -231,7 +231,7 @@ class InputEditorDecorations extends Disposable {
 
 			const mode = this.widget.input.currentModeObs.get();
 			const placeholder = mode.argumentHint?.get() ?? mode.description.get() ?? '';
-			const displayPlaceholder = viewModel.inputPlaceholder || placeholder;
+			const displayPlaceholder = (viewModel.inputPlaceholder || placeholder).replace(/\bCopilot\b/gi, 'Dardcor Code');
 
 			const decoration: IDecorationOptions[] = [
 				{

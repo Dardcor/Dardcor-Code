@@ -16,6 +16,8 @@ export const GitHubPaths = {
 	copilotUpgrade: 'github-copilot/upgrade?utm_source=vscode',
 } as const;
 
+export const MANAGED_SETTINGS_FRESHNESS_NOT_REQUIRED = 'not_required';
+
 /**
  * Outcome of the last `/copilot_internal/managed_settings` fetch.
  * - A numeric HTTP status code indicates the server responded with that code.
@@ -73,7 +75,7 @@ export interface IDefaultAccountService {
 	getDefaultAccount(): Promise<IDefaultAccount | null>;
 	getDefaultAccountAuthenticationProvider(): IDefaultAccountAuthenticationProvider;
 	setDefaultAccountProvider(provider: IDefaultAccountProvider): void;
-	refresh(options?: { forceRefresh?: boolean }): Promise<IDefaultAccount | null>;
+	refresh(options?: { forceRefresh?: boolean; retryManagedSettings?: boolean }): Promise<IDefaultAccount | null>;
 	signIn(options?: { additionalScopes?: readonly string[];[key: string]: unknown }): Promise<IDefaultAccount | null>;
 	signOut(): Promise<void>;
 

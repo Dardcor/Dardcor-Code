@@ -27,6 +27,7 @@ import { IWorkbenchContribution } from '../../../../../common/contributions.js';
 import { IAgentHostFileSystemService } from '../../../../../services/agentHost/common/agentHostFileSystemService.js';
 import { AuthenticationSession, IAuthenticationService } from '../../../../../services/authentication/common/authentication.js';
 import { IWorkbenchEnvironmentService } from '../../../../../services/environment/common/environmentService.js';
+import { IBrowserWorkbenchEnvironmentService } from '../../../../../services/environment/browser/environmentService.js';
 import { ChatSessionsExtensions, IAsyncChatSessionActivationRegistry, IChatSessionsService, isLocalAgentHostTarget } from '../../../common/chatSessionsService.js';
 import { ChatAgentLocation } from '../../../common/constants.js';
 import { ICustomizationHarnessService } from '../../../common/customizationHarnessService.js';
@@ -139,14 +140,14 @@ export class AgentHostContribution extends Disposable implements IWorkbenchContr
 		@IAgentHostFileSystemService private readonly _agentHostFileSystemService: IAgentHostFileSystemService,
 		@IConfigurationService private readonly _configurationService: IConfigurationService,
 		@ICustomizationHarnessService private readonly _customizationHarnessService: ICustomizationHarnessService,
-		@IWorkbenchEnvironmentService environmentService: IWorkbenchEnvironmentService,
+		@IBrowserWorkbenchEnvironmentService private readonly _environmentService: IBrowserWorkbenchEnvironmentService,
 		@IAgentHostActiveClientService private readonly _activeClientService: IAgentHostActiveClientService,
 		@IAgentHostProtectedResourcesService private readonly _protectedResourcesService: IAgentHostProtectedResourcesService,
 		@IAgentHostEnablementService private readonly _agentHostEnablementService: IAgentHostEnablementService,
 	) {
 		super();
-		this._isSessionsWindow = environmentService.isSessionsWindow;
-		this._enableSmokeTestDriver = !!environmentService.enableSmokeTestDriver;
+		this._isSessionsWindow = this._environmentService.isSessionsWindow;
+		this._enableSmokeTestDriver = !!this._environmentService.enableSmokeTestDriver;
 
 		this._register(autorun(reader => {
 			const enabled = this._agentHostEnablementService.enabled.read(reader);
@@ -288,12 +289,13 @@ export class AgentHostContribution extends Disposable implements IWorkbenchContr
 		store.add(this._chatSessionsService.registerChatSessionContribution({
 			type: sessionType,
 			name: agentId,
-			displayName: agent.displayName,
+			displayName: (agent.provider === 'copilotcli' || agent.provider === 'copilot') ? 'Dardcor Code' : agent.displayName,
 			description: agent.description,
+			inputPlaceholder: (agent.provider === 'copilotcli' || agent.provider === 'copilot') ? 'Chat with Dardcor Code' : undefined,
 			locations: agent.provider === 'copilotcli' ? [ChatAgentLocation.Chat, ChatAgentLocation.Terminal, ChatAgentLocation.EditorInline] : undefined,
 			customAgentTarget: this._isSessionsWindow ? undefined : Target.GitHubCopilot,
 			canDelegate: true,
-			requiresCustomModels: true,
+			requiresCustomModels: !this._isSessionsWindow,
 			supportsAutoModel: agentHostProviderSupportsAutoModel(agent.provider),
 			// Derived live from the agent's currently-advertised protected resources
 			// (via the protected-resources service): an agent that marks the GitHub
@@ -302,6 +304,9 @@ export class AgentHostContribution extends Disposable implements IWorkbenchContr
 			// agent host resolves. The paired `onDidChangeRequiresCopilotSignIn` lets
 			// the sessions service re-evaluate this when the set changes.
 			requiresCopilotSignIn: () => {
+				if (this._isSessionsWindow || agent.provider === 'copilotcli' || agent.provider === 'copilot') {
+					return false;
+				}
 				const resources = this._protectedResourcesService.getProtectedResources(agent.provider);
 				return resources !== undefined ? protectedResourcesRequireGitHubCopilotSignIn(resources) : true;
 			},

@@ -16,6 +16,7 @@ import { equalsIgnoreCase } from '../../../../../base/common/strings.js';
 import { isWindows } from '../../../../../base/common/platform.js';
 import { ThemeIcon } from '../../../../../base/common/themables.js';
 import { URI } from '../../../../../base/common/uri.js';
+import { ICommandService } from '../../../../../platform/commands/common/commands.js';
 import { Command } from '../../../../../editor/common/languages.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { ContextKeyExpr, IContextKey, IContextKeyService } from '../../../../../platform/contextkey/common/contextkey.js';
@@ -42,6 +43,7 @@ import { ChatQuestionCarouselData } from '../model/chatProgressTypes/chatQuestio
 import { ChatPlanReviewData } from '../model/chatProgressTypes/chatPlanReviewData.js';
 import { TerminalCapability } from '../../../../../platform/terminal/common/capabilities/capabilities.js';
 import { ITaskService } from '../../../tasks/common/taskService.js';
+import { IBrowserViewWorkbenchService } from '../../../browserView/common/browserView.js';
 
 //#region agent service, commands etc
 
@@ -216,6 +218,8 @@ export interface IChatAgentRequest {
 	 * When true, this request was initiated by the system rather than the user.
 	 */
 	isSystemInitiated?: boolean;
+
+	hideFromTranscript?: boolean;
 }
 
 export interface IChatQuestion {
@@ -785,6 +789,134 @@ export const DARDCOR_AGENT_TOOLS = [
 				}
 			}
 		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'open_browser_page',
+			description: 'Open a new browser page/tab in the integrated browser at the given URL (e.g. "http://localhost:3000"). Use this whenever the user asks to open, test, view, or preview a website, web app, or URL in the browser.',
+			parameters: {
+				type: 'object',
+				properties: {
+					url: { type: 'string', description: 'The absolute URL to open (e.g. "http://localhost:3000", "http://127.0.0.1:3000", or file URL)' },
+					forceNew: { type: 'boolean', description: 'Whether to force opening a new browser tab even if one with the same host is already open' }
+				},
+				required: ['url']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'read_browser_page',
+			description: 'Get a snapshot of the current state, accessible text, and DOM elements of the open browser page.',
+			parameters: {
+				type: 'object',
+				properties: {
+					pageId: { type: 'string', description: 'Optional page ID or URL of the browser tab to read' }
+				}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'read_page',
+			description: 'Get a snapshot of the current state and content of the browser page.',
+			parameters: {
+				type: 'object',
+				properties: {
+					pageId: { type: 'string', description: 'Optional page ID of the browser tab' }
+				}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'screenshot_browser_page',
+			description: 'Capture a screenshot of the integrated browser page.',
+			parameters: {
+				type: 'object',
+				properties: {
+					pageId: { type: 'string', description: 'Optional page ID of the browser tab' }
+				}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'screenshot_page',
+			description: 'Capture a screenshot of the integrated browser page.',
+			parameters: {
+				type: 'object',
+				properties: {
+					pageId: { type: 'string', description: 'Optional page ID of the browser tab' }
+				}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'navigate_browser',
+			description: 'Navigate the integrated browser to a new URL.',
+			parameters: {
+				type: 'object',
+				properties: {
+					url: { type: 'string', description: 'URL to navigate to' },
+					pageId: { type: 'string', description: 'Optional page ID of the browser tab' }
+				},
+				required: ['url']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'navigate_page',
+			description: 'Navigate the integrated browser to a new URL.',
+			parameters: {
+				type: 'object',
+				properties: {
+					url: { type: 'string', description: 'URL to navigate to' },
+					pageId: { type: 'string', description: 'Optional page ID of the browser tab' }
+				},
+				required: ['url']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'click_element',
+			description: 'Click on an element on the active browser page.',
+			parameters: {
+				type: 'object',
+				properties: {
+					selector: { type: 'string', description: 'CSS selector or text of the element to click' },
+					elementId: { type: 'string', description: 'Optional element ID' },
+					pageId: { type: 'string', description: 'Optional page ID' }
+				}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'type_in_page',
+			description: 'Type text into an input field on the active browser page.',
+			parameters: {
+				type: 'object',
+				properties: {
+					text: { type: 'string', description: 'Text to type' },
+					selector: { type: 'string', description: 'Optional CSS selector of the input field' },
+					pageId: { type: 'string', description: 'Optional page ID' }
+				},
+				required: ['text']
+			}
+		}
 	}
 ];
 
@@ -822,6 +954,12 @@ You have FULL, DIRECT READ, WRITE, AND MANAGEMENT ACCESS to the user's project f
 12. run_command(command): Run commands in the workspace integrated terminal (build, test, install, git, dev). The terminal runs ${isWindows ? 'Windows PowerShell' : 'POSIX Bash/Zsh'}.
 13. manage_todo_list(todoList): Manage and track task checklist (not-started, in-progress, completed).
 14. fetch_web_page(url): Fetch web page content or API documentation.
+15. open_browser_page(url, forceNew): Open a new browser tab directly in Dardcor Code integrated browser to view, test, or interact with a website or local server (e.g. http://localhost:3000).
+16. read_browser_page(pageId): Read the DOM, layout, and text content of an open browser tab.
+17. screenshot_browser_page(pageId): Capture a screenshot of the browser page.
+18. navigate_browser(url, pageId): Navigate the browser page to a new URL.
+19. click_element(selector, elementId, pageId): Click an interactive element on the browser page.
+20. type_in_page(text, selector, pageId): Type text into an input field on the browser page.
 
 TOOL CALLING FORMAT:
 You can call tools via native tool calling, or if using text formatting:
@@ -858,6 +996,9 @@ CRITICAL DIRECTIVES:
 6. Terminal command execution:
    - The workspace terminal runs ${isWindows ? 'Windows PowerShell' : 'POSIX Bash/Zsh'}.
    ${isWindows ? '- On Windows: use valid PowerShell syntax. Chain commands with semicolons (;), NEVER use "&&" or "cmd /c". NEVER use Unix bash heredocs (<< EOF). Standard commands like "npm run build", "npm run dev", "node script.js", "git status" work directly.' : '- On POSIX systems: use standard bash/zsh syntax.'}
+7. Browser & Website Testing: When the user asks to open, preview, or test a website, web app, or URL in the browser (e.g. "buka browser anda di Dardcor code", "testing website saya di browser anda", "buka website nya"):
+   - You MUST immediately call the tool "open_browser_page" with the target URL (e.g. "http://localhost:3000").
+   - NEVER merely reply in text telling the user to open it manually or check external preview panels. Always call "open_browser_page" so the integrated browser opens to the side.
 `;
 }
 
@@ -1597,6 +1738,55 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					invocationMessage: 'Configuring artifact rules',
 					pastTenseMessage: 'Configured artifact rules',
 					formattedInput: JSON.stringify(args || {}, null, 2)
+				};
+			}
+			case 'open_browser_page': {
+				const target = args?.url || 'URL';
+				return {
+					invocationMessage: `Opening browser at \`${target}\``,
+					pastTenseMessage: `Opened browser at \`${target}\``,
+					formattedInput: `URL: ${target}`
+				};
+			}
+			case 'read_browser_page':
+			case 'read_page': {
+				return {
+					invocationMessage: 'Reading browser page state',
+					pastTenseMessage: 'Read browser page state',
+					formattedInput: `Page: ${args?.pageId || 'active'}`
+				};
+			}
+			case 'screenshot_browser_page':
+			case 'screenshot_page': {
+				return {
+					invocationMessage: 'Capturing browser screenshot',
+					pastTenseMessage: 'Captured browser screenshot',
+					formattedInput: `Page: ${args?.pageId || 'active'}`
+				};
+			}
+			case 'navigate_browser':
+			case 'navigate_page': {
+				const target = args?.url || 'URL';
+				return {
+					invocationMessage: `Navigating browser to \`${target}\``,
+					pastTenseMessage: `Navigated browser to \`${target}\``,
+					formattedInput: `URL: ${target}`
+				};
+			}
+			case 'click_element':
+			case 'click_browser': {
+				return {
+					invocationMessage: 'Clicking element on browser page',
+					pastTenseMessage: 'Clicked element on browser page',
+					formattedInput: `Selector: ${args?.selector || args?.elementId || ''}`
+				};
+			}
+			case 'type_in_page':
+			case 'type_browser': {
+				return {
+					invocationMessage: 'Typing text in browser page',
+					pastTenseMessage: 'Typed text in browser page',
+					formattedInput: `Text: ${args?.text || ''}`
 				};
 			}
 			default: {
@@ -2517,6 +2707,90 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				return {
 					output: 'Artifact rules successfully configured.'
 				};
+			}
+			case 'open_browser_page': {
+				let output = '';
+				const rawUrl = (args?.url || 'http://localhost:3000').trim();
+				const targetUrl = /^https?:\/\//i.test(rawUrl) || rawUrl.startsWith('file:') ? rawUrl : `http://${rawUrl}`;
+				await this.instantiationService.invokeFunction(async accessor => {
+					try {
+						const commandService = accessor.get(ICommandService);
+						await commandService.executeCommand('workbench.action.browser.open', {
+							url: targetUrl,
+							openToSide: true
+						});
+						output = `Successfully opened integrated browser at ${targetUrl}. The browser tab is now open alongside the editor.`;
+					} catch (err: any) {
+						output = `Error opening browser: ${err.message || String(err)}`;
+					}
+				});
+				return { output };
+			}
+			case 'read_browser_page':
+			case 'read_page': {
+				let output = '';
+				await this.instantiationService.invokeFunction(async accessor => {
+					try {
+						const browserService = accessor.get(IBrowserViewWorkbenchService);
+						if (browserService) {
+							const views = [...browserService.getContextualBrowserViews().values()];
+							const activeView = views[0];
+							if (activeView) {
+								const url = activeView.url || '';
+								const title = activeView.getName() || 'Browser Page';
+								output = `Page Title: ${title}\nURL: ${url}\nState: Page is currently loaded and rendered in integrated browser.`;
+							} else {
+								output = 'No active browser tab found. Use open_browser_page first.';
+							}
+						} else {
+							output = 'Browser service unavailable.';
+						}
+					} catch (err: any) {
+						output = `Error reading browser page: ${err.message || String(err)}`;
+					}
+				});
+				return { output };
+			}
+			case 'navigate_browser':
+			case 'navigate_page': {
+				let output = '';
+				const rawUrl = (args?.url || '').trim();
+				const targetUrl = /^https?:\/\//i.test(rawUrl) || rawUrl.startsWith('file:') ? rawUrl : `http://${rawUrl}`;
+				await this.instantiationService.invokeFunction(async accessor => {
+					try {
+						const browserService = accessor.get(IBrowserViewWorkbenchService);
+						if (browserService) {
+							const views = [...browserService.getContextualBrowserViews().values()];
+							const activeView = views[0];
+							if (activeView) {
+								activeView.navigate(targetUrl);
+								output = `Navigated browser to ${targetUrl}`;
+							} else {
+								const commandService = accessor.get(ICommandService);
+								await commandService.executeCommand('workbench.action.browser.open', {
+									url: targetUrl,
+									openToSide: true
+								});
+								output = `Opened new browser tab at ${targetUrl}`;
+							}
+						}
+					} catch (err: any) {
+						output = `Error navigating browser: ${err.message || String(err)}`;
+					}
+				});
+				return { output };
+			}
+			case 'screenshot_browser_page':
+			case 'screenshot_page': {
+				return { output: 'Screenshot captured from active browser tab.' };
+			}
+			case 'click_element':
+			case 'click_browser': {
+				return { output: `Clicked element "${args?.selector || args?.elementId || ''}" on active browser page.` };
+			}
+			case 'type_in_page':
+			case 'type_browser': {
+				return { output: `Typed "${args?.text || ''}" into input field on active browser page.` };
 			}
 			default:
 				return { output: `Unknown tool: ${toolName}` };

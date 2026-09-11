@@ -53,6 +53,8 @@ export interface IJSONSchema {
 	if?: IJSONSchema;
 	then?: IJSONSchema;
 	else?: IJSONSchema;
+	readOnly?: boolean;
+	writeOnly?: boolean;
 
 	// schema 2019-09
 	unevaluatedProperties?: boolean | IJSONSchema;

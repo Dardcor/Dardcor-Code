@@ -34,6 +34,9 @@ import './style.css';
 import { ManagedVirtualizedItem, VirtualizedItemManager } from './virtualizedItemManager.js';
 import { IWorkbenchUIElementFactory } from './workbenchUIElementFactory.js';
 
+export type { IMultiDiffResourceId } from '../../../common/multiDiffEditor.js';
+export type { IMultiDiffEditorOptions, IMultiDiffEditorWidgetOptions } from './multiDiffEditorOptions.js';
+
 export class MultiDiffEditorWidgetImpl extends Disposable {
 	private readonly _scrollView;
 

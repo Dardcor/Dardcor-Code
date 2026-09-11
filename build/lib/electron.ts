@@ -145,7 +145,9 @@ export const config = {
 	companyName: 'Dardcor Corporation',
 	copyright: 'Copyright (C) 2026 Microsoft. All rights reserved',
 	darwinExecutable: product.nameShort,
-	darwinIcon: path.join(root, 'resources/darwin/code.icns'),
+	darwinIcon: fs.existsSync(path.join(root, 'resources/darwin/dardcor-code.icns'))
+		? path.join(root, 'resources/darwin/dardcor-code.icns')
+		: path.join(root, 'resources/darwin/code.icns'),
 	darwinBundleIdentifier: product.darwinBundleIdentifier,
 	darwinApplicationCategoryType: 'public.app-category.developer-tools',
 	darwinHelpBookFolder: 'VS Code HelpBook',

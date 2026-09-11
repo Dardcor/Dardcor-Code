@@ -1906,6 +1906,7 @@ export class WorkspacePicker extends Disposable {
 		if (this._isSelectedFolder(restored.resolved.workspace.folders[0]?.root)) {
 			this._selectedResolved = restored.resolved;
 			this._preselectionSource = restored.source;
+			this._onDidSelectWorkspace.fire(this._selectedFolderUri);
 			return false;
 		}
 		this._applySelection(restored.resolved, restored.source);
@@ -1946,6 +1947,7 @@ export class WorkspacePicker extends Disposable {
 			if (this._isSelectedFolder(folderUri)) {
 				this._selectedResolved = restored;
 				this._preselectionSource = NewSessionWorkspacePreselectionSource.ExistingSessions;
+				this._onDidSelectWorkspace.fire(this._selectedFolderUri);
 				return;
 			}
 			this._applySelection(restored, NewSessionWorkspacePreselectionSource.ExistingSessions);

@@ -1032,6 +1032,17 @@ export class ChatSessionsService extends Disposable implements IChatSessionsServ
 		return provider.provideChatInputCompletions(sessionResource, params, token);
 	}
 
+	updateChatSessionMetadata(sessionResource: URI, metadata: Record<string, unknown>): boolean {
+		const sessionType = getChatSessionType(sessionResource);
+		const resolvedType = this._resolveToPrimaryType(sessionType) || sessionType;
+		const provider = this._contentProviders.get(resolvedType);
+		if (!provider?.updateChatSessionMetadata) {
+			return false;
+		}
+		provider.updateChatSessionMetadata(sessionResource, metadata);
+		return true;
+	}
+
 	resolveChatResponseUri(sessionResource: URI, href: string, kind: 'link' | 'image'): string {
 		const sessionType = getChatSessionType(sessionResource);
 		const resolvedType = this._resolveToPrimaryType(sessionType) || sessionType;
@@ -1819,7 +1830,7 @@ async function resolvePromptSlashCommand(prompt: string, sessionResource: URI, c
 	if (slashMatch) {
 		// need to resolve the slash command to get the prompt file
 		const slashCommand = await customizationHarnessService.resolvePromptSlashCommand(slashMatch[1], sessionResource, CancellationToken.None);
-		if (slashCommand) {
+		if (slashCommand && slashCommand.parsedPromptFile) {
 			const parseResult = slashCommand.parsedPromptFile;
 			// add the prompt file to the context
 			const refs = parseResult.body?.variableReferences.map(({ name, offset, fullLength }) => ({ name, range: new OffsetRange(offset, offset + fullLength) })) ?? [];
