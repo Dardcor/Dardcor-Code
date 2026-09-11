@@ -17,7 +17,7 @@ import { parse } from '../../base/common/jsonc.js';
 import { getPathLabel } from '../../base/common/labels.js';
 import { Disposable, DisposableStore, MutableDisposable, toDisposable } from '../../base/common/lifecycle.js';
 import { Schemas, VSCODE_AUTHORITY } from '../../base/common/network.js';
-import { join, posix } from '../../base/common/path.js';
+import { dirname, join, posix } from '../../base/common/path.js';
 import { IProcessEnvironment, isLinux, isLinuxSnap, isMacintosh, isWindows, OS } from '../../base/common/platform.js';
 import { assertType } from '../../base/common/types.js';
 import { URI } from '../../base/common/uri.js';
@@ -690,12 +690,21 @@ export class CodeApplication extends Disposable {
 				return;
 			}
 
-			const drouterDir = existsSync(join(this.environmentMainService.appRoot, '.dardcor-router'))
-				? join(this.environmentMainService.appRoot, '.dardcor-router')
-				: join(this.environmentMainService.appRoot, '.dardcor-provider');
-			const standaloneServer = join(drouterDir, '.next', 'standalone', 'server.js');
+			const candidateDirs = [
+				join(this.environmentMainService.appRoot, '.dardcor-router'),
+				join(this.environmentMainService.appRoot, '.dardcor-provider'),
+				join(dirname(this.environmentMainService.appRoot), '.dardcor-router'),
+				join(dirname(this.environmentMainService.appRoot), '.dardcor-provider')
+			];
+			const drouterDir = candidateDirs.find(d => existsSync(d)) || candidateDirs[0];
+			const standaloneCandidates = [
+				join(drouterDir, '.next', 'standalone', 'custom-server.js'),
+				join(drouterDir, '.next', 'standalone', 'server.js'),
+				join(drouterDir, 'custom-server.js'),
+				join(drouterDir, 'server.js')
+			];
+			const standaloneServer = standaloneCandidates.find(p => existsSync(p));
 			const nextBin = join(drouterDir, 'node_modules', 'next', 'dist', 'bin', 'next');
-			// Ensure ~/.dardcor/provider is used and automatically migrate legacy ~/.miawagent/router store if present
 			const dataDir = process.env['DARDCOR_DATA_DIR'] || join(homedir(), '.dardcor', 'provider');
 			const legacyDataDir = join(homedir(), '.miawagent', 'router');
 			try {
@@ -722,24 +731,62 @@ export class CodeApplication extends Disposable {
 			};
 
 			try {
-				// 25128 is reserved for the IDE-owned Dardcor Router. Remove a stale
-				// instance left by an earlier IDE run before binding it again.
 				if (isLinux) {
-					try { execFileSync('fuser', ['-k', '25128/tcp'], { stdio: 'ignore' }); } catch { /* no holder */ }
+					try { execFileSync('fuser', ['-k', '25128/tcp'], { stdio: 'ignore' }); } catch { }
 				}
-				if (existsSync(standaloneServer)) {
+				const attachProcessListeners = (proc: typeof drouterProcess) => {
+					if (!proc) {
+						return;
+					}
+					proc.stdout?.on('data', (data) => {
+						const msg = data.toString().trim();
+						if (msg) {
+							this.logService.info('[Dardcor Router]', msg);
+						}
+					});
+					proc.stderr?.on('data', (data) => {
+						const msg = data.toString().trim();
+						if (msg) {
+							this.logService.warn('[Dardcor Router]', msg);
+						}
+					});
+					proc.on('exit', (code, sig) => {
+						this.logService.info('[Dardcor Router] Process exited', code, sig);
+						if (drouterProcess === proc) {
+							drouterProcess = null;
+						}
+					});
+					proc.on('error', (err: NodeJS.ErrnoException) => {
+						this.logService.error('[Dardcor Router] Process error', err);
+						if (err && err.code === 'ENOENT' && proc === drouterProcess && proc.spawnfile !== process.execPath) {
+							try {
+								drouterProcess = standaloneServer ? spawnServer(process.execPath) : null;
+								attachProcessListeners(drouterProcess);
+							} catch { }
+						}
+					});
+				};
+
+				let spawnServer: (cmd: string) => typeof drouterProcess = () => null;
+				if (standaloneServer) {
+					const standaloneCwd = dirname(standaloneServer);
+					spawnServer = (cmd: string) => spawn(cmd, [standaloneServer], {
+						cwd: standaloneCwd,
+						env,
+						stdio: ['ignore', 'pipe', 'pipe']
+					});
 					try {
-						drouterProcess = spawn('node', [standaloneServer], {
-							cwd: join(drouterDir, '.next', 'standalone'),
-							env,
-							stdio: ['ignore', 'pipe', 'pipe']
-						});
+						drouterProcess = spawnServer('node');
 					} catch {
-						drouterProcess = fork(standaloneServer, [], {
-							cwd: join(drouterDir, '.next', 'standalone'),
-							env,
-							stdio: ['ignore', 'pipe', 'pipe']
-						});
+						try {
+							drouterProcess = spawnServer(process.execPath);
+						} catch {
+							drouterProcess = fork(standaloneServer, [], {
+								cwd: standaloneCwd,
+								env,
+								stdio: ['ignore', 'pipe', 'pipe']
+							});
+						}
 					}
 				} else if (existsSync(nextBin)) {
 					try {
@@ -756,27 +803,7 @@ export class CodeApplication extends Disposable {
 						});
 					}
 				}
-				if (drouterProcess) {
-					drouterProcess.stdout?.on('data', (data) => {
-						const msg = data.toString().trim();
-						if (msg) {
-							this.logService.info('[Dardcor Router]', msg);
-						}
-					});
-					drouterProcess.stderr?.on('data', (data) => {
-						const msg = data.toString().trim();
-						if (msg) {
-							this.logService.warn('[Dardcor Router]', msg);
-						}
-					});
-					drouterProcess.on('exit', (code, sig) => {
-						this.logService.info('[Dardcor Router] Process exited', code, sig);
-						drouterProcess = null;
-					});
-					drouterProcess.on('error', (err) => {
-						this.logService.error('[Dardcor Router] Process error', err);
-					});
-				}
+				attachProcessListeners(drouterProcess);
 			} catch (e) {
 				this.logService.error('Failed to start built-in Dardcor Router', e);
 			}

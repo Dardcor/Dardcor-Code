@@ -687,6 +687,39 @@ function prepareCopilotRipgrepShimTask(platform: string, arch: string, destinati
 	};
 }
 
+function bundleDardcorRouterTask(platform: string, destinationFolderName: string) {
+	const outputDir = path.join(path.dirname(root), destinationFolderName);
+
+	return async () => {
+		const versionedResourcesFolder = util.getVersionedResourcesFolder(platform, commit!);
+		const appBase = platform === 'darwin'
+			? path.join(outputDir, `${product.nameLong}.app`, 'Contents', 'Resources', 'app')
+			: path.join(outputDir, versionedResourcesFolder, 'resources', 'app');
+
+		const routerSrc = path.join(root, '.dardcor-router');
+		const routerDest = path.join(appBase, '.dardcor-router');
+		const standaloneSrc = path.join(routerSrc, '.next', 'standalone');
+
+		if (!fs.existsSync(standaloneSrc)) {
+			cp.execSync('npm run build', { cwd: routerSrc, stdio: 'inherit' });
+		}
+
+		if (fs.existsSync(standaloneSrc)) {
+			fs.mkdirSync(routerDest, { recursive: true });
+			fs.cpSync(standaloneSrc, path.join(routerDest, '.next', 'standalone'), { recursive: true, force: true });
+			fs.cpSync(standaloneSrc, routerDest, { recursive: true, force: true });
+			const customServer = path.join(routerSrc, 'custom-server.js');
+			if (fs.existsSync(customServer)) {
+				fs.copyFileSync(customServer, path.join(routerDest, 'custom-server.js'));
+			}
+			const packageJson = path.join(routerSrc, 'package.json');
+			if (fs.existsSync(packageJson)) {
+				fs.copyFileSync(packageJson, path.join(routerDest, 'package.json'));
+			}
+		}
+	};
+}
+
 const buildRoot = path.dirname(root);
 
 const BUILD_TARGETS = [
@@ -712,6 +745,7 @@ BUILD_TARGETS.forEach(buildTarget => {
 			compileNativeExtensionsBuildTask,
 			util.rimraf(path.join(buildRoot, destinationFolderName)),
 			packageTask(platform, arch, sourceFolderName, destinationFolderName, opts),
+			bundleDardcorRouterTask(platform, destinationFolderName),
 			prepareCopilotRipgrepShimTask(platform, arch, destinationFolderName)
 		];
 

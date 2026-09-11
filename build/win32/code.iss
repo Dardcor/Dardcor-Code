@@ -75,6 +75,7 @@ Type: filesandordirs; Name: "{app}\{#VersionedResourcesFolder}\resources\app\nod
 Type: filesandordirs; Name: "{app}\{#VersionedResourcesFolder}\resources\app\node_modules.asar.unpacked"; Check: IsNotBackgroundUpdate
 Type: files; Name: "{app}\{#VersionedResourcesFolder}\resources\app\node_modules.asar"; Check: IsNotBackgroundUpdate
 Type: files; Name: "{app}\{#VersionedResourcesFolder}\resources\app\Credits_45.0.2454.85.html"; Check: IsNotBackgroundUpdate
+Type: filesandordirs; Name: "{app}\{#VersionedResourcesFolder}\resources\app\.dardcor-router"; Check: IsNotBackgroundUpdate
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\_"

@@ -42,6 +42,13 @@ jobs:
       - name: Compile Client Code
         run: npm run compile || true
 
+      - name: Build Dardcor Router Standalone
+        run: |
+          cd .dardcor-router
+          npm install
+          npm run build
+          cd ..
+
       - name: Build Windows Standalone Package
         run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-win32-x64
 
@@ -116,6 +123,13 @@ jobs:
 
       - name: Compile Client Code
         run: npm run compile || true
+
+      - name: Build Dardcor Router Standalone
+        run: |
+          cd .dardcor-router
+          npm install
+          npm run build
+          cd ..
 
       - name: Build Linux Standalone Package
         continue-on-error: true
@@ -225,6 +239,13 @@ jobs:
 
       - name: Compile Client Code
         run: npm run compile || true
+
+      - name: Build Dardcor Router Standalone
+        run: |
+          cd .dardcor-router
+          npm install
+          npm run build
+          cd ..
 
       - name: Build macOS Standalone Package
         continue-on-error: true
