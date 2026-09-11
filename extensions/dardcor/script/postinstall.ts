@@ -244,9 +244,7 @@ async function copyCopilotCLIFolders(sourceDir: string, targetDir: string) {
  *   .claude/skills     →  .agents/skills
  */
 async function createClaudeSymlinks() {
-	if (process.platform === 'win32') {
-		// Creating symlinks on Windows may fail without Developer Mode or admin privileges.
-		// Skip this step to avoid postinstall failures on environments where symlinks are not available.
+	if (process.platform === 'win32' || process.env.CI) {
 		return;
 	}
 

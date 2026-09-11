@@ -133,6 +133,13 @@ function fromLocalNormal(extensionPath: string): Stream {
 		.then(fileNames => {
 			const files = fileNames
 				.map(fileName => path.join(extensionPath, fileName))
+				.filter(filePath => {
+					try {
+						return fs.statSync(filePath).isFile();
+					} catch {
+						return false;
+					}
+				})
 				.map(filePath => new File({
 					path: filePath,
 					stat: fs.statSync(filePath),
@@ -204,6 +211,13 @@ function fromLocalEsbuild(extensionPath: string, esbuildConfigFileName: string):
 
 		const files = fileNames
 			.map(fileName => path.join(extensionPath, fileName))
+			.filter(filePath => {
+				try {
+					return fs.statSync(filePath).isFile();
+				} catch {
+					return false;
+				}
+			})
 			.map(filePath => new File({
 				path: filePath,
 				stat: fs.statSync(filePath),
@@ -465,7 +479,7 @@ function doPackageLocalExtensionsStream(forWeb: boolean, disableMangle: boolean,
  */
 export function packageCopilotExtensionStream(disableMangle: boolean): Stream {
 	const extensionPath = path.join(root, 'extensions', 'copilot');
-	if (!fs.existsSync(extensionPath)) {
+	if (!fs.existsSync(extensionPath) || !fs.existsSync(path.join(extensionPath, 'package.json'))) {
 		return es.readArray([]);
 	}
 

@@ -42,12 +42,6 @@ jobs:
       - name: Compile Client Code
         run: npm run compile || true
 
-      - name: Prepare Copilot Extension Shims
-        shell: powershell
-        run: |
-          New-Item -ItemType Directory -Force -Path "extensions\copilot\node_modules\@github\copilot" | Out-Null
-          Set-Content -Path "extensions\copilot\node_modules\@github\copilot\shims.txt" -Value "Shims created"
-
       - name: Build Windows Standalone Package
         run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-win32-x64
 
@@ -122,11 +116,6 @@ jobs:
 
       - name: Compile Client Code
         run: npm run compile || true
-
-      - name: Prepare Copilot Extension Shims
-        run: |
-          mkdir -p extensions/copilot/node_modules/@github/copilot
-          echo "Shims created" > extensions/copilot/node_modules/@github/copilot/shims.txt
 
       - name: Build Linux Standalone Package
         continue-on-error: true
@@ -236,11 +225,6 @@ jobs:
 
       - name: Compile Client Code
         run: npm run compile || true
-
-      - name: Prepare Copilot Extension Shims
-        run: |
-          mkdir -p extensions/copilot/node_modules/@github/copilot
-          echo "Shims created" > extensions/copilot/node_modules/@github/copilot/shims.txt
 
       - name: Build macOS Standalone Package
         continue-on-error: true
