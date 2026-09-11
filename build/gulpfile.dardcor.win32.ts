@@ -20,7 +20,20 @@ const require = createRequire(import.meta.url);
 
 const repoPath = path.dirname(import.meta.dirname);
 const commit = getVersion(repoPath);
-const buildPath = (arch: string) => path.join(path.dirname(repoPath), `Dardcor-Code-win32-${arch}`);
+const buildPath = (arch: string) => {
+	const candidates = [
+		path.join(path.dirname(repoPath), `VSCode-win32-${arch}`),
+		path.join(path.dirname(repoPath), `Dardcor-Code-win32-${arch}`),
+		path.join(repoPath, `VSCode-win32-${arch}`),
+		path.join(repoPath, `Dardcor-Code-win32-${arch}`)
+	];
+	for (const candidate of candidates) {
+		if (fs.existsSync(candidate)) {
+			return candidate;
+		}
+	}
+	return candidates[0];
+};
 const setupDir = (arch: string, target: string) => path.join(repoPath, '.build', `win32-${arch}`, `${target}-setup`);
 let innoSetupPath = 'ISCC.exe';
 try {
@@ -84,7 +97,22 @@ function buildWin32Setup(arch: string, target: string): task.CallbackTask {
 		const versionedResourcesFolder = useVersionedUpdate ? commit!.substring(0, 10) : '';
 		const issPath = path.join(import.meta.dirname, 'win32', 'code.iss');
 		const productJsonRelativePath = path.join(versionedResourcesFolder, 'resources/app/product.json');
-		const originalProductJsonPath = path.join(sourcePath, productJsonRelativePath);
+		let originalProductJsonPath = path.join(sourcePath, productJsonRelativePath);
+		if (!fs.existsSync(originalProductJsonPath)) {
+			const fallbacks = [
+				path.join(sourcePath, 'resources', 'app', 'product.json'),
+				path.join(path.dirname(repoPath), `VSCode-win32-${arch}`, 'resources', 'app', 'product.json'),
+				path.join(path.dirname(repoPath), `Dardcor-Code-win32-${arch}`, 'resources', 'app', 'product.json'),
+				path.join(repoPath, 'resources', 'app', 'product.json'),
+				path.join(repoPath, 'product.json')
+			];
+			for (const fallback of fallbacks) {
+				if (fs.existsSync(fallback)) {
+					originalProductJsonPath = fallback;
+					break;
+				}
+			}
+		}
 		const productJsonPath = path.join(outputPath, 'product.json');
 		const productJson = JSON.parse(fs.readFileSync(originalProductJsonPath, 'utf8'));
 		productJson['target'] = target;
