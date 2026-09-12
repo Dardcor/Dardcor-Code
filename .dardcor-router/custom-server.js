@@ -54,6 +54,20 @@ http.createServer = (...args) => {
   const rest = args.filter((a) => typeof a !== "function");
   if (!handler) return origCreate(...args);
   const wrapped = (req, res) => {
+    // Inject full CORS and Private Network Access headers unconditionally
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD");
+    res.setHeader("Access-Control-Allow-Headers", "*");
+    res.setHeader("Access-Control-Allow-Private-Network", "true");
+    res.setHeader("Access-Control-Expose-Headers", "*");
+
+    // Intercept OPTIONS preflight immediately with 204 No Content
+    if (req.method === "OPTIONS") {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
     const socketIp = req.socket && req.socket.remoteAddress ? req.socket.remoteAddress : "";
     const xff = req.headers["x-forwarded-for"];
     const xRealIp = req.headers["x-real-ip"];
@@ -126,9 +140,13 @@ http.createServer = (...args) => {
 };
 
 if (require.main === module) {
-  const standaloneNext = path.join(__dirname, ".next", "standalone", "server.js");
   const standaloneRoot = path.join(__dirname, "server.js");
-  if (fs.existsSync(standaloneNext)) {
+  const standaloneNext = path.join(__dirname, ".next", "standalone", "server.js");
+  const hasLocalNext = fs.existsSync(path.join(__dirname, ".next"));
+
+  if (hasLocalNext && fs.existsSync(standaloneRoot)) {
+    require(standaloneRoot);
+  } else if (fs.existsSync(standaloneNext)) {
     require(standaloneNext);
   } else if (fs.existsSync(standaloneRoot)) {
     require(standaloneRoot);

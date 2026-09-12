@@ -6,6 +6,7 @@
 import { gulp, replace, rename } from './lib/gulp/facade.ts';
 import es from 'event-stream';
 import vfs from 'vinyl-fs';
+import * as fs from 'fs';
 import { rimraf } from './lib/util.ts';
 import { getVersion } from './lib/getVersion.ts';
 import * as task from './lib/gulp/task.ts';
@@ -34,7 +35,7 @@ function getDebPackageArch(arch: string): string {
 }
 
 function prepareDebPackage(arch: string) {
-	const binaryDir = '../VSCode-linux-' + arch;
+	const binaryDir = fs.existsSync('../Dardcor-Code-linux-' + arch) ? '../Dardcor-Code-linux-' + arch : '../VSCode-linux-' + arch;
 	const debArch = getDebPackageArch(arch);
 	const destination = '.build/linux/deb/' + debArch + '/' + product.applicationName + '-' + debArch;
 
@@ -144,7 +145,7 @@ function getRpmPackageArch(arch: string): string {
 }
 
 function prepareRpmPackage(arch: string) {
-	const binaryDir = '../VSCode-linux-' + arch;
+	const binaryDir = fs.existsSync('../Dardcor-Code-linux-' + arch) ? '../Dardcor-Code-linux-' + arch : '../VSCode-linux-' + arch;
 	const rpmArch = getRpmPackageArch(arch);
 	const stripBinary = process.env['STRIP'] ?? '/usr/bin/strip';
 
@@ -232,7 +233,7 @@ function getSnapBuildPath(arch: string): string {
 }
 
 function prepareSnapPackage(arch: string) {
-	const binaryDir = '../VSCode-linux-' + arch;
+	const binaryDir = fs.existsSync('../Dardcor-Code-linux-' + arch) ? '../Dardcor-Code-linux-' + arch : '../VSCode-linux-' + arch;
 	const destination = getSnapBuildPath(arch);
 
 	return function () {

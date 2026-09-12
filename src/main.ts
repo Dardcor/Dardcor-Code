@@ -56,6 +56,8 @@ if (args['sandbox'] &&
 	app.commandLine.appendSwitch('no-sandbox');
 	app.commandLine.appendSwitch('disable-gpu-sandbox');
 }
+app.commandLine.appendSwitch('disable-features', 'BlockInsecurePrivateNetworkRequests,PrivateNetworkAccessSendPreflights,PrivateNetworkAccessRespectPreflightResults');
+app.commandLine.appendSwitch('allow-insecure-localhost');
 
 // Set userData path before app 'ready' event
 const userDataPath = getUserDataPath(args, product.nameShort ?? 'code-oss-dev');

@@ -700,14 +700,41 @@ function bundleDardcorRouterTask(platform: string, destinationFolderName: string
 		const routerDest = path.join(appBase, '.dardcor-router');
 		const standaloneSrc = path.join(routerSrc, '.next', 'standalone');
 
-		if (!fs.existsSync(standaloneSrc)) {
+		if (!fs.existsSync(standaloneSrc) || !fs.existsSync(path.join(standaloneSrc, '.next', 'server', 'chunks'))) {
 			cp.execSync('npm run build', { cwd: routerSrc, stdio: 'inherit' });
 		}
 
 		if (fs.existsSync(standaloneSrc)) {
+			fs.rmSync(routerDest, { recursive: true, force: true });
 			fs.mkdirSync(routerDest, { recursive: true });
-			fs.cpSync(standaloneSrc, path.join(routerDest, '.next', 'standalone'), { recursive: true, force: true });
+
+			// Copy primary standalone bundle into routerDest
 			fs.cpSync(standaloneSrc, routerDest, { recursive: true, force: true });
+
+			// Ensure all generated server chunks are present in routerDest
+			const origServerChunks = path.join(routerSrc, '.next', 'server', 'chunks');
+			const destServerChunks = path.join(routerDest, '.next', 'server', 'chunks');
+			if (fs.existsSync(origServerChunks)) {
+				fs.mkdirSync(destServerChunks, { recursive: true });
+				fs.cpSync(origServerChunks, destServerChunks, { recursive: true, force: true });
+			}
+
+			// Ensure static assets are present in routerDest
+			const origStatic = path.join(routerSrc, '.next', 'static');
+			const destStatic = path.join(routerDest, '.next', 'static');
+			if (fs.existsSync(origStatic)) {
+				fs.mkdirSync(destStatic, { recursive: true });
+				fs.cpSync(origStatic, destStatic, { recursive: true, force: true });
+			}
+
+			// Ensure public folder if present is copied
+			const origPublic = path.join(routerSrc, 'public');
+			const destPublic = path.join(routerDest, 'public');
+			if (fs.existsSync(origPublic)) {
+				fs.mkdirSync(destPublic, { recursive: true });
+				fs.cpSync(origPublic, destPublic, { recursive: true, force: true });
+			}
+
 			const customServer = path.join(routerSrc, 'custom-server.js');
 			if (fs.existsSync(customServer)) {
 				fs.copyFileSync(customServer, path.join(routerDest, 'custom-server.js'));
@@ -739,7 +766,7 @@ BUILD_TARGETS.forEach(buildTarget => {
 
 	const [vscode, vscodeMin] = ['', 'min'].map(minified => {
 		const sourceFolderName = `out-dardcor-code${dashed(minified)}`;
-		const destinationFolderName = `VSCode${dashed(platform)}${dashed(arch)}`;
+		const destinationFolderName = `Dardcor-Code${dashed(platform)}${dashed(arch)}`;
 
 		const packageTasks: task.Task[] = [
 			compileNativeExtensionsBuildTask,
@@ -755,6 +782,7 @@ BUILD_TARGETS.forEach(buildTarget => {
 
 		const vscodeTaskCI = task.define(`vscode${dashed(platform)}${dashed(arch)}${dashed(minified)}-ci`, task.series(...packageTasks));
 		task.task(vscodeTaskCI);
+		task.task(task.define(`dardcor-code${dashed(platform)}${dashed(arch)}${dashed(minified)}-ci`, vscodeTaskCI));
 
 		let vscodeTask: task.Task;
 		if (useEsbuildTranspile) {
@@ -790,6 +818,7 @@ BUILD_TARGETS.forEach(buildTarget => {
 			));
 		}
 		task.task(vscodeTask);
+		task.task(task.define(`dardcor-code${dashed(platform)}${dashed(arch)}${dashed(minified)}`, vscodeTask));
 
 		return vscodeTask;
 	});
@@ -797,6 +826,8 @@ BUILD_TARGETS.forEach(buildTarget => {
 	if (process.platform === platform && process.arch === arch) {
 		task.task(task.define('vscode', task.series(vscode)));
 		task.task(task.define('vscode-min', task.series(vscodeMin)));
+		task.task(task.define('dardcor-code', task.series(vscode)));
+		task.task(task.define('dardcor-code-min', task.series(vscodeMin)));
 	}
 });
 

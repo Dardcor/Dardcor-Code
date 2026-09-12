@@ -291,9 +291,12 @@ function extractProjectId(data) {
  * Extract project ID from onboardUser response.
  */
 function extractProjectIdFromOnboard(data) {
-    if (!data?.response) return null;
+    if (!data) return null;
 
-    const project = data.response.cloudaicompanionProject;
+    const project = data.response?.cloudaicompanionProject
+        || data.cloudaicompanionProject
+        || data.response?.project
+        || data.project;
 
     if (typeof project === "string") {
         const id = project.trim();

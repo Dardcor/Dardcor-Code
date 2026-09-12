@@ -24,7 +24,7 @@ import { ILogService } from '../../../../../platform/log/common/log.js';
 import { ITelemetryService } from '../../../../../platform/telemetry/common/telemetry.js';
 import { AgentHostAllowSignedOutWhenUsableSettingId } from '../../../../../platform/agentHost/common/agentService.js';
 import { IsSessionsWindowContext } from '../../../../common/contextkeys.js';
-import { ChatContextKeys } from '../../common/actions/chatContextKeys.js';
+import { ChatContextKeys, ChatContextKeyExprs } from '../../common/actions/chatContextKeys.js';
 import { buildCustomAgentHandoffsInfo, getHandoffId, IChatMode, IChatModeService, IChatModes } from '../../common/chatModes.js';
 import { reportChatModeChange } from '../../common/chatModeTelemetry.js';
 import { chatVariableLeader } from '../../common/requestParser/chatParserTypes.js';
@@ -390,7 +390,9 @@ export class OpenModelPickerAction extends Action2 {
 						ChatContextKeys.hasPendingDelegationTarget.negate(),
 						ContextKeyExpr.or(
 							ChatContextKeys.lockedToCodingAgent.negate(),
-							ChatContextKeys.chatSessionHasTargetedModels),
+							ChatContextKeys.chatSessionHasTargetedModels,
+							IsSessionsWindowContext,
+							ChatContextKeyExprs.isAgentHostSession),
 						ContextKeyExpr.or(
 							ContextKeyExpr.equals(ChatContextKeys.location.key, ChatAgentLocation.Chat),
 							ContextKeyExpr.equals(ChatContextKeys.location.key, ChatAgentLocation.EditorInline),

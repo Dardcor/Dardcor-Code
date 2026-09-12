@@ -475,6 +475,16 @@ export class CodeApplication extends Disposable {
 
 		// https://github.com/microsoft/vscode-remote-release/issues/9246
 		session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+			if (details.url.startsWith('http://127.0.0.1:25128') || details.url.startsWith('http://localhost:25128')) {
+				const responseHeaders = details.responseHeaders ?? Object.create(null);
+				responseHeaders['Access-Control-Allow-Origin'] = ['*'];
+				responseHeaders['Access-Control-Allow-Methods'] = ['GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD'];
+				responseHeaders['Access-Control-Allow-Headers'] = ['*'];
+				responseHeaders['Access-Control-Allow-Private-Network'] = ['true'];
+				responseHeaders['Access-Control-Expose-Headers'] = ['*'];
+				return callback({ cancel: false, responseHeaders });
+			}
+
 			if (details.url.startsWith('https://vscode.download.prss.microsoft.com/')) {
 				const responseHeaders = details.responseHeaders ?? Object.create(null);
 
@@ -698,10 +708,10 @@ export class CodeApplication extends Disposable {
 			];
 			const drouterDir = candidateDirs.find(d => existsSync(d)) || candidateDirs[0];
 			const standaloneCandidates = [
-				join(drouterDir, '.next', 'standalone', 'custom-server.js'),
-				join(drouterDir, '.next', 'standalone', 'server.js'),
 				join(drouterDir, 'custom-server.js'),
-				join(drouterDir, 'server.js')
+				join(drouterDir, 'server.js'),
+				join(drouterDir, '.next', 'standalone', 'custom-server.js'),
+				join(drouterDir, '.next', 'standalone', 'server.js')
 			];
 			const standaloneServer = standaloneCandidates.find(p => existsSync(p));
 			const nextBin = join(drouterDir, 'node_modules', 'next', 'dist', 'bin', 'next');
@@ -733,6 +743,18 @@ export class CodeApplication extends Disposable {
 			try {
 				if (isLinux) {
 					try { execFileSync('fuser', ['-k', '25128/tcp'], { stdio: 'ignore' }); } catch { }
+				} else if (isMacintosh) {
+					try {
+						const pids = execFileSync('lsof', ['-ti:25128'], { encoding: 'utf8' }).trim();
+						if (pids) {
+							for (const pid of pids.split('\n')) {
+								const num = parseInt(pid.trim(), 10);
+								if (!isNaN(num) && num > 0 && num !== process.pid) {
+									try { process.kill(num, 'SIGKILL'); } catch { }
+								}
+							}
+						}
+					} catch { }
 				}
 				const attachProcessListeners = (proc: typeof drouterProcess) => {
 					if (!proc) {
@@ -775,11 +797,12 @@ export class CodeApplication extends Disposable {
 						env,
 						stdio: ['ignore', 'pipe', 'pipe']
 					});
+					const preferredCmd = this.environmentMainService.isBuilt ? process.execPath : 'node';
 					try {
-						drouterProcess = spawnServer('node');
+						drouterProcess = spawnServer(preferredCmd);
 					} catch {
 						try {
-							drouterProcess = spawnServer(process.execPath);
+							drouterProcess = spawnServer(preferredCmd === process.execPath ? 'node' : process.execPath);
 						} catch {
 							drouterProcess = fork(standaloneServer, [], {
 								cwd: standaloneCwd,

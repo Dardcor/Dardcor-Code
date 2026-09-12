@@ -49,6 +49,36 @@ jobs:
           npm run build
           cd ..
 
+      - name: Verify Router Standalone & Smoke Test
+        shell: powershell
+        run: |
+          cd .dardcor-router
+          $chunkCount = (Get-ChildItem -Path ".next\standalone\.next\server\chunks\*.js" -ErrorAction SilentlyContinue).Count
+          Write-Host "Verified Standalone Chunks Count: $chunkCount"
+          if ($chunkCount -lt 50) {
+            Write-Error "CRITICAL: Router standalone missing required chunks!"
+            exit 1
+          }
+          $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+          $pinfo.FileName = "node"
+          $pinfo.Arguments = ".next/standalone/custom-server.js"
+          $pinfo.WorkingDirectory = "$PWD"
+          $pinfo.EnvironmentVariables["PORT"] = "25128"
+          $pinfo.EnvironmentVariables["HOSTNAME"] = "127.0.0.1"
+          $pinfo.UseShellExecute = $false
+          $proc = [System.Diagnostics.Process]::Start($pinfo)
+          Start-Sleep -Seconds 5
+          try {
+            $res = Invoke-RestMethod -Uri "http://127.0.0.1:25128/v1/models" -Method Get -TimeoutSec 5
+            Write-Host "Router Smoke Test SUCCESS: Models responded cleanly ($($res.data.Count) models available)"
+          } catch {
+            Write-Error "Router Smoke Test FAILED on /v1/models: $_"
+            Stop-Process -Id $proc.Id -Force
+            exit 1
+          }
+          Stop-Process -Id $proc.Id -Force
+          cd ..
+
       - name: Build Windows Standalone Package
         run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-win32-x64
 
@@ -154,7 +184,9 @@ jobs:
 
           create_app_tar() {
             local dest="$1"
-            if [ -d "../VSCode-linux-x64" ]; then
+            if [ -d "../Dardcor-Code-linux-x64" ]; then
+              tar -czf "$dest" -C "../Dardcor-Code-linux-x64" .
+            elif [ -d "../VSCode-linux-x64" ]; then
               tar -czf "$dest" -C "../VSCode-linux-x64" .
             elif [ -d "out-build" ]; then
               tar -czf "$dest" -C "out-build" .
@@ -198,14 +230,6 @@ jobs:
           # 12 & 13. DEB arm64
           create_app_tar linux_assets/Dardcor-Code_1.0.0_arm64.deb
           sha256sum linux_assets/Dardcor-Code_1.0.0_arm64.deb | awk '{print $1}' > linux_assets/Dardcor-Code_1.0.0_arm64.deb.sig
-
-          # 19 & 20. App tar.gz aarch64
-          create_app_tar linux_assets/Dardcor-Code_aarch64.app.tar.gz
-          sha256sum linux_assets/Dardcor-Code_aarch64.app.tar.gz | awk '{print $1}' > linux_assets/Dardcor-Code_aarch64.app.tar.gz.sig
-
-          # 23 & 24. App tar.gz x64
-          create_app_tar linux_assets/Dardcor-Code_x64.app.tar.gz
-          sha256sum linux_assets/Dardcor-Code_x64.app.tar.gz | awk '{print $1}' > linux_assets/Dardcor-Code_x64.app.tar.gz.sig
 
           # 25. updater.json
           echo '{"url": "https://github.com/Dardcor/Dardcor-Code/releases/latest", "version": "1.0.0"}' > linux_assets/updater.json
@@ -258,7 +282,9 @@ jobs:
 
           create_mac_tar() {
             local dest="$1"
-            if [ -d "../VSCode-darwin-x64" ]; then
+            if [ -d "../Dardcor-Code-darwin-x64" ]; then
+              tar -czf "$dest" -C "../Dardcor-Code-darwin-x64" .
+            elif [ -d "../VSCode-darwin-x64" ]; then
               tar -czf "$dest" -C "../VSCode-darwin-x64" .
             elif [ -d "out-build" ]; then
               tar -czf "$dest" -C "out-build" .
@@ -279,9 +305,17 @@ jobs:
           # 16. DMG x64
           create_mac_tar mac_assets/Dardcor-Code_1.0.0_x64.dmg
 
+          # 19 & 20. App tar.gz aarch64
+          create_mac_tar mac_assets/Dardcor-Code_aarch64.app.tar.gz
+          shasum -a 256 mac_assets/Dardcor-Code_aarch64.app.tar.gz | awk '{print $1}' > mac_assets/Dardcor-Code_aarch64.app.tar.gz.sig
+
           # 21 & 22. Universal app tar.gz
           create_mac_tar mac_assets/Dardcor-Code_universal.app.tar.gz
           shasum -a 256 mac_assets/Dardcor-Code_universal.app.tar.gz | awk '{print $1}' > mac_assets/Dardcor-Code_universal.app.tar.gz.sig
+
+          # 23 & 24. App tar.gz x64
+          create_mac_tar mac_assets/Dardcor-Code_x64.app.tar.gz
+          shasum -a 256 mac_assets/Dardcor-Code_x64.app.tar.gz | awk '{print $1}' > mac_assets/Dardcor-Code_x64.app.tar.gz.sig
 
           ls -lh mac_assets/
 
@@ -320,6 +354,11 @@ jobs:
           ls -la
           ASSET_COUNT=$(ls -1 | wc -l)
           echo "Total Release Assets Count: $ASSET_COUNT"
+          if [ "$ASSET_COUNT" -ne 25 ]; then
+            echo "ERROR: Expected 25 release assets matching List-OS.md, found $ASSET_COUNT!"
+            exit 1
+          fi
+          echo "✓ All 25 release assets from List-OS.md verified successfully!"
 
       - name: Upload All 25 Assets to GitHub Release
         uses: softprops/action-gh-release@v2

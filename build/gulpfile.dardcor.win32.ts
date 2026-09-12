@@ -22,10 +22,10 @@ const repoPath = path.dirname(import.meta.dirname);
 const commit = getVersion(repoPath);
 const buildPath = (arch: string) => {
 	const candidates = [
-		path.join(path.dirname(repoPath), `VSCode-win32-${arch}`),
 		path.join(path.dirname(repoPath), `Dardcor-Code-win32-${arch}`),
-		path.join(repoPath, `VSCode-win32-${arch}`),
-		path.join(repoPath, `Dardcor-Code-win32-${arch}`)
+		path.join(path.dirname(repoPath), `VSCode-win32-${arch}`),
+		path.join(repoPath, `Dardcor-Code-win32-${arch}`),
+		path.join(repoPath, `VSCode-win32-${arch}`)
 	];
 	for (const candidate of candidates) {
 		if (fs.existsSync(candidate)) {
@@ -101,8 +101,8 @@ function buildWin32Setup(arch: string, target: string): task.CallbackTask {
 		if (!fs.existsSync(originalProductJsonPath)) {
 			const fallbacks = [
 				path.join(sourcePath, 'resources', 'app', 'product.json'),
-				path.join(path.dirname(repoPath), `VSCode-win32-${arch}`, 'resources', 'app', 'product.json'),
 				path.join(path.dirname(repoPath), `Dardcor-Code-win32-${arch}`, 'resources', 'app', 'product.json'),
+				path.join(path.dirname(repoPath), `VSCode-win32-${arch}`, 'resources', 'app', 'product.json'),
 				path.join(repoPath, 'resources', 'app', 'product.json'),
 				path.join(repoPath, 'product.json')
 			];

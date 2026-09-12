@@ -45,6 +45,47 @@ import { TerminalCapability } from '../../../../../platform/terminal/common/capa
 import { ITaskService } from '../../../tasks/common/taskService.js';
 import { IBrowserViewWorkbenchService } from '../../../browserView/common/browserView.js';
 
+// ---------------------------------------------------------------------------
+// Dardcor Router fetch helper — dual-host fallback + startup retry
+//
+// On Windows, `localhost` sometimes resolves to ::1 (IPv6) while the Router
+// server only binds on 127.0.0.1 (IPv4). The opposite can also be true when
+// the system prefers IPv4 but the Next.js custom-server.js starts slightly
+// late. We try 127.0.0.1 first; if the connection is refused or the request
+// fails with a network error, we immediately retry on localhost. Additionally,
+// when the router process has just been spawned and hasn't finished booting,
+// the first few requests will throw "Failed to fetch". We retry up to 3 times
+// with a 1.2-second delay between attempts so transient startup errors are
+// invisible to the user.
+// ---------------------------------------------------------------------------
+const ROUTER_PORT = 25128;
+const ROUTER_HOSTS = ['127.0.0.1', 'localhost'] as const;
+const ROUTER_AUTH_HEADER = { 'Authorization': 'Bearer sk-dardcor-local-key' };
+
+async function fetchRouter(path: string, init?: RequestInit, retries = 8): Promise<Response> {
+	let lastErr: unknown;
+	for (let attempt = 0; attempt < retries; attempt++) {
+		for (const host of ROUTER_HOSTS) {
+			const url = `http://${host}:${ROUTER_PORT}${path}`;
+			try {
+				const res = await fetch(url, init);
+				// A real HTTP error (4xx/5xx) from the router is a valid response — return it.
+				// Only retry on network-level exceptions (fetch throws, not res.ok === false).
+				return res;
+			} catch (err) {
+				lastErr = err;
+				// Connection refused / network error — try next host immediately
+			}
+		}
+		// Both hosts failed on this attempt; wait with progressive backoff before retrying
+		if (attempt < retries - 1) {
+			const delay = Math.min(500 + attempt * 300, 2000);
+			await new Promise<void>(resolve => setTimeout(resolve, delay));
+		}
+	}
+	throw lastErr;
+}
+
 //#region agent service, commands etc
 
 export interface IChatAgentHistoryEntry {
@@ -1346,21 +1387,8 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			}
 		}
 
-		if (id.startsWith('agent-host-') || id === 'workspace-agent') {
+		if (!id || id === 'dardcor.default' || id === 'chat' || id.startsWith('agent-host-') || id === 'workspace-agent') {
 			return this.streamDardcorRouter(request, progress, history, token);
-		}
-
-		if (!impl || id === 'dardcor.default') {
-			const extensionAgentsWithImpl = Array.from(this._agents.values()).filter(a => !a.data.isCore && !!a.impl && !a.data.id.startsWith('agent-host-'));
-			const preferredAgent = extensionAgentsWithImpl.find(a => a.data.id === 'github.dardcor.editsAgent')
-				?? extensionAgentsWithImpl.find(a => a.data.id === 'github.dardcor.default')
-				?? extensionAgentsWithImpl.find(a => a.data.id === 'github.dardcor.editingSession')
-				?? extensionAgentsWithImpl[0]
-				?? Array.from(this._agents.values()).find(a => !!a.impl && a.data.id !== 'dardcor.default');
-			if (preferredAgent?.impl) {
-				impl = preferredAgent.impl;
-				effectiveAgentId = preferredAgent.data.id;
-			}
 		}
 
 		if (impl) {
@@ -1374,13 +1402,13 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					}
 				};
 				const result = await impl.invoke(request, trackingProgress, history, token);
-				if (!result?.errorDetails || partsEmitted > 0) {
+				if (partsEmitted > 0 && !result?.errorDetails) {
 					markChat(request.sessionResource, ChatPerfMark.AgentDidInvoke);
 					return result;
 				}
-				console.warn('[ChatAgentService] Agent invoke produced errorDetails without parts, falling back to Dardcor Router. Result:', result);
+				console.warn(`[ChatAgentService] Agent ${effectiveAgentId} emitted 0 parts or reported error, falling back to Dardcor Router. partsEmitted=${partsEmitted}`);
 			} catch (err: any) {
-				console.warn('[ChatAgentService] Agent invoke failed, falling back to Dardcor Router:', err);
+				console.warn(`[ChatAgentService] Agent ${effectiveAgentId} invoke failed, falling back to Dardcor Router:`, err);
 			}
 		}
 
@@ -2867,7 +2895,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			const currentPrompt = typeof request.message === 'string' ? request.message : (request.message as any)?.text || String(request.message || '');
 			messages.push({ role: 'user', content: currentPrompt.trim() || 'hello' });
 			try {
-				const modelsRes = await fetch('http://127.0.0.1:25128/v1/models', { headers: { 'Authorization': 'Bearer sk-dardcor-local-key', 'x-drouter-connected-only': '1' } });
+				const modelsRes = await fetchRouter('/v1/models', { headers: { ...ROUTER_AUTH_HEADER, 'x-drouter-connected-only': '1' } });
 				if (modelsRes.ok) {
 					const modelsData = await modelsRes.json() as any;
 					if (Array.isArray(modelsData?.data) && modelsData.data.length > 0) {
@@ -2910,12 +2938,9 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					payload.tool_choice = 'auto';
 				}
 
-				let res = await fetch('http://127.0.0.1:25128/v1/chat/completions', {
+				let res = await fetchRouter('/v1/chat/completions', {
 					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						'Authorization': 'Bearer sk-dardcor-local-key'
-					},
+					headers: { 'Content-Type': 'application/json', ...ROUTER_AUTH_HEADER },
 					body: JSON.stringify(payload)
 				});
 
@@ -2923,12 +2948,9 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					supportsNativeTools = false;
 					delete payload.tools;
 					delete payload.tool_choice;
-					res = await fetch('http://127.0.0.1:25128/v1/chat/completions', {
+					res = await fetchRouter('/v1/chat/completions', {
 						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json',
-							'Authorization': 'Bearer sk-dardcor-local-key'
-						},
+						headers: { 'Content-Type': 'application/json', ...ROUTER_AUTH_HEADER },
 						body: JSON.stringify(payload)
 					});
 				}
@@ -2948,6 +2970,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				const decoder = new TextDecoder();
 				let buffer = '';
 				let streamedAssistantText = '';
+				let streamedReasoningText = '';
 				const toolCallsMap = new Map<number, { id: string; name: string; arguments: string }>();
 
 				while (true) {
@@ -2973,6 +2996,19 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 								?? choice?.message?.content
 								?? (typeof choice?.text === 'string' ? choice.text : '')
 								?? '';
+							const reasoningDelta = choice?.delta?.reasoning_content
+								?? choice?.delta?.thought
+								?? choice?.delta?.thinking
+								?? '';
+
+							if (reasoningDelta) {
+								streamedReasoningText += reasoningDelta;
+								progress([{
+									kind: 'thinking',
+									value: reasoningDelta
+								}]);
+							}
+
 							if (delta) {
 								streamedAssistantText += delta;
 								progress([{
@@ -2993,6 +3029,14 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 							}
 						} catch { }
 					}
+				}
+
+				if (!streamedAssistantText && streamedReasoningText && toolCallsMap.size === 0) {
+					streamedAssistantText = streamedReasoningText;
+					progress([{
+						kind: 'markdownContent',
+						content: new MarkdownString(streamedReasoningText)
+					}]);
 				}
 
 				const nativeToolCalls = Array.from(toolCallsMap.values()).filter(t => t.name.trim().length > 0);
@@ -3196,6 +3240,13 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 						});
 					}
 					continue;
+				}
+
+				if (!streamedAssistantText && nativeToolCalls.length === 0 && textToolCalls.length === 0) {
+					progress([{
+						kind: 'markdownContent',
+						content: new MarkdownString('*(No response content returned by model. Please verify your connection or try another model.)*')
+					}]);
 				}
 
 				break;

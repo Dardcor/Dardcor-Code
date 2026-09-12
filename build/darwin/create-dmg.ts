@@ -155,25 +155,15 @@ async function main(buildDir?: string, outDir?: string): Promise<void> {
 		throw new Error('Output directory argument is required');
 	}
 
-	const appRoot = path.join(buildDir, `VSCode-darwin-${arch}`);
+	const folderName = fs.existsSync(path.join(buildDir, `Dardcor-Code-darwin-${arch}`)) ? `Dardcor-Code-darwin-${arch}` : `VSCode-darwin-${arch}`;
+	const appRoot = path.join(buildDir, folderName);
 	const appName = product.nameLong + '.app';
 	const appPath = path.join(appRoot, appName);
-	const dmgName = `VSCode-darwin-${arch}`;
+	const dmgName = (product.nameLong || 'Dardcor-Code').replace(/\s+/g, '-') + `-darwin-${arch}`;
 	const artifactPath = path.join(outDir, `${dmgName}.dmg`);
 	const backgroundPath = path.join(import.meta.dirname, `dmg-background-${quality}.tiff`);
 	const diskIconPath = path.join(root, 'resources', 'darwin', 'code.icns');
-	let title = 'Code OSS';
-	switch (quality) {
-		case 'stable':
-			title = 'VS Code';
-			break;
-		case 'insider':
-			title = 'VS Code Insiders';
-			break;
-		case 'exploration':
-			title = 'VS Code Exploration';
-			break;
-	}
+	let title = product.nameLong || 'Dardcor Code';
 
 	if (!fs.existsSync(appPath)) {
 		throw new Error(`App path does not exist: ${appPath}`);

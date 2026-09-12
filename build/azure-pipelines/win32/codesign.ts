@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { $, usePwsh } from 'zx';
+import * as fs from 'fs';
 import { printBanner, spawnCodesignProcess, streamProcessOutputAndCheckResult } from '../common/codesign.ts';
 import { e } from '../common/publish.ts';
 
@@ -44,8 +45,9 @@ async function main() {
 	// Package client
 	if (process.env['BUILT_CLIENT']) {
 		printBanner('Package client');
-		const clientArchivePath = `.build/win32-${arch}/VSCode-win32-${arch}.zip`;
-		await $`7z.exe a -tzip ${clientArchivePath} ../VSCode-win32-${arch}/* "-xr!CodeSignSummary*.md"`.pipe(process.stdout);
+		const clientDir = fs.existsSync(`../Dardcor-Code-win32-${arch}`) ? `../Dardcor-Code-win32-${arch}` : `../VSCode-win32-${arch}`;
+		const clientArchivePath = `.build/win32-${arch}/Dardcor-Code-win32-${arch}.zip`;
+		await $`7z.exe a -tzip ${clientArchivePath} ${clientDir}/* "-xr!CodeSignSummary*.md"`.pipe(process.stdout);
 		await $`7z.exe l ${clientArchivePath}`.pipe(process.stdout);
 	}
 

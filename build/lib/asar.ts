@@ -76,12 +76,23 @@ export function createAsar(folderPath: string, unpackGlobs: string[], skipGlobs:
 		}
 	};
 
+	// CRITICAL FIX: Use a strict serial Promise chain so that filesystem.insertFile()
+	// is called ONE AT A TIME. The underlying asar library's insertFile() is async
+	// (it hashes each file with SHA-256 via getFileIntegrity) and mutates a shared
+	// `this.offset` counter. Running many insertFile() calls concurrently causes
+	// multiple files to read the same offset value before any of them finishes
+	// updating it, corrupting the ASAR header and making Electron load garbage bytes
+	// for modules like undici and yauzl — which crashes the Extension Host and
+	// AgentHost immediately on launch with SyntaxErrors.
+	let _insertSerialChain: Promise<void> = Promise.resolve();
 	const insertFile = (relativePath: string, stat: { size: number; mode: number }, shouldUnpack: boolean) => {
 		insertDirectoryForFile(relativePath);
 		pendingInserts++;
-		// Do not pass `onFileInserted` directly because it gets overwritten below.
-		// Create a closure capturing `onFileInserted`.
-		filesystem.insertFile(relativePath, shouldUnpack, { stat: stat }, {}).then(() => onFileInserted(), () => onFileInserted());
+		// Chain each insert sequentially: the next insert only begins after the
+		// previous one has fully resolved (offset committed, integrity stored).
+		_insertSerialChain = _insertSerialChain
+			.then(() => filesystem.insertFile(relativePath, shouldUnpack, { stat: stat }, {}))
+			.then(() => onFileInserted(), () => onFileInserted());
 	};
 
 	return es.through(function (file) {

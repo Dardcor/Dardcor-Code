@@ -43,6 +43,35 @@ import { ChatAgentLocation } from './constants.js';
 import { ILanguageModelsProviderGroup, ILanguageModelsConfigurationService } from './languageModelsConfiguration.js';
 import { formatDardcorRouterError } from './participants/dardcorRouterError.js';
 
+// ---------------------------------------------------------------------------
+// Dardcor Router fetch helper — dual-host fallback + startup retry
+// Same logic as chatAgents.ts: try 127.0.0.1 first (IPv4), fall back to
+// localhost (which may resolve via IPv6 on some Windows machines), and retry
+// up to 3 times with a 1.2 s pause to absorb Router startup latency.
+// ---------------------------------------------------------------------------
+const _LM_ROUTER_PORT = 25128;
+const _LM_ROUTER_HOSTS = ['127.0.0.1', 'localhost'] as const;
+const _LM_ROUTER_AUTH = { 'Authorization': 'Bearer sk-dardcor-local-key' };
+
+async function fetchRouterLM(path: string, init?: RequestInit, retries = 8): Promise<Response> {
+	let lastErr: unknown;
+	for (let attempt = 0; attempt < retries; attempt++) {
+		for (const host of _LM_ROUTER_HOSTS) {
+			try {
+				const res = await globalThis.fetch(`http://${host}:${_LM_ROUTER_PORT}${path}`, init);
+				return res;
+			} catch (err) {
+				lastErr = err;
+			}
+		}
+		if (attempt < retries - 1) {
+			const delay = Math.min(500 + attempt * 300, 2000);
+			await new Promise<void>(resolve => setTimeout(resolve, delay));
+		}
+	}
+	throw lastErr;
+}
+
 /**
  * Vendor id used for the built-in GitHub Copilot language model provider. Treated as the default
  * vendor across the chat stack (see `ILanguageModelProviderDescriptor.isDefault`).
@@ -1563,11 +1592,11 @@ export class LanguageModelsService implements ILanguageModelsService {
 		const fetchLocalModels = async (): Promise<boolean> => {
 			try {
 				const controller = new AbortController();
-				const timeoutId = setTimeout(() => controller.abort(), 3500);
-				const res = await globalThis.fetch('http://127.0.0.1:25128/v1/models', {
-					headers: { 'Authorization': 'Bearer sk-dardcor-local-key', 'x-drouter-connected-only': '1' },
+				const timeoutId = setTimeout(() => controller.abort(), 12000);
+				const res = await fetchRouterLM('/v1/models', {
+					headers: { ..._LM_ROUTER_AUTH, 'x-drouter-connected-only': '1' },
 					signal: controller.signal
-				});
+				}, 5);
 				clearTimeout(timeoutId);
 				if (res.ok) {
 					const json: any = await res.json();
@@ -1658,12 +1687,9 @@ Automatically detect the user's language and respond fluently in the exact same 
 					formattedMessages.unshift({ role: 'system', content: dardcorIdentityPrompt });
 				}
 
-				const res = await globalThis.fetch('http://127.0.0.1:25128/v1/chat/completions', {
+				const res = await fetchRouterLM('/v1/chat/completions', {
 					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						'Authorization': 'Bearer sk-dardcor-local-key'
-					},
+					headers: { 'Content-Type': 'application/json', ..._LM_ROUTER_AUTH },
 					body: JSON.stringify({
 						model: resolvedModel,
 						messages: formattedMessages,
@@ -1702,8 +1728,14 @@ Automatically detect the user's language and respond fluently in the exact same 
 									?? parsed.choices?.[0]?.delta?.text
 									?? parsed.choices?.[0]?.message?.content
 									?? '';
+								const reasoningDelta = parsed.choices?.[0]?.delta?.reasoning_content
+									?? parsed.choices?.[0]?.delta?.thought
+									?? parsed.choices?.[0]?.delta?.thinking
+									?? '';
 								if (delta) {
 									yield [{ type: 'text', value: delta } as IChatResponseTextPart];
+								} else if (reasoningDelta) {
+									yield [{ type: 'text', value: reasoningDelta } as IChatResponseTextPart];
 								}
 							} catch { }
 						}
@@ -1991,8 +2023,8 @@ Automatically detect the user's language and respond fluently in the exact same 
 			// must not hide newer connected models such as Gemini 3.7.
 			{
 				try {
-					const res = await globalThis.fetch('http://127.0.0.1:25128/v1/models', {
-						headers: { 'Authorization': 'Bearer sk-dardcor-local-key', 'x-drouter-connected-only': '1' }
+					const res = await fetchRouterLM('/v1/models', {
+						headers: { ..._LM_ROUTER_AUTH, 'x-drouter-connected-only': '1' }
 					});
 					if (res.ok) {
 						const json: any = await res.json();

@@ -43,10 +43,13 @@ async function main(buildDir?: string) {
 
 	const product = JSON.parse(fs.readFileSync(path.join(root, 'product.json'), 'utf8'));
 	const appName = product.nameLong + '.app';
-	const x64AppPath = path.join(buildDir, 'VSCode-darwin-x64', appName);
-	const arm64AppPath = path.join(buildDir, 'VSCode-darwin-arm64', appName);
+	const x64Folder = fs.existsSync(path.join(buildDir, 'Dardcor-Code-darwin-x64')) ? 'Dardcor-Code-darwin-x64' : 'VSCode-darwin-x64';
+	const arm64Folder = fs.existsSync(path.join(buildDir, 'Dardcor-Code-darwin-arm64')) ? 'Dardcor-Code-darwin-arm64' : 'VSCode-darwin-arm64';
+	const outFolder = fs.existsSync(path.join(buildDir, `Dardcor-Code-darwin-${arch}`)) ? `Dardcor-Code-darwin-${arch}` : `VSCode-darwin-${arch}`;
+	const x64AppPath = path.join(buildDir, x64Folder, appName);
+	const arm64AppPath = path.join(buildDir, arm64Folder, appName);
 	const asarRelativePath = path.join('Contents', 'Resources', 'app', 'node_modules.asar');
-	const outAppPath = path.join(buildDir, `VSCode-darwin-${arch}`, appName);
+	const outAppPath = path.join(buildDir, outFolder, appName);
 	const productJsonPath = path.resolve(outAppPath, 'Contents', 'Resources', 'app', 'product.json');
 
 	// Copilot SDK ships platform-specific native binaries that npm only installs
