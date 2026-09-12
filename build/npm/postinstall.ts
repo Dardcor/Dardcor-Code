@@ -67,7 +67,7 @@ async function npmInstallAsync(dir: string, opts?: child_process.SpawnOptions): 
 		shell: false,
 	};
 
-	const command = process.env['npm_command'] || 'install';
+	const command = (process.env['npm_command'] === 'install' || process.env['npm_command'] === 'ci') ? process.env['npm_command'] : 'install';
 	// npm 12 can expose a shim that is not resolvable from a child process.
 	// Re-enter the exact npm CLI used by the parent process when available.
 	const npmCommand = process.env['npm_execpath'] ? process.execPath : npm;

@@ -119,7 +119,8 @@ function hasSupportedVisualStudioVersion() {
 
 function installHeaders() {
 	const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-	child_process.execSync(`${npm} ${process.env.npm_command || 'ci'}`, {
+	const cmd = (process.env.npm_command === 'install' || process.env.npm_command === 'ci') ? process.env.npm_command : 'install';
+	child_process.execSync(`${npm} ${cmd}`, {
 		env: process.env,
 		cwd: path.join(import.meta.dirname, 'gyp'),
 		stdio: 'inherit'

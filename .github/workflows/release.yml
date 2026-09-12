@@ -145,12 +145,7 @@ jobs:
           node-version: 24
 
       - name: Install Project Dependencies
-        run: |
-          npm install --ignore-scripts
-          node build/npm/patch-foundry-install.cjs
-          npm run preinstall
-          npm rebuild
-          npm run postinstall
+        run: npm install
 
       - name: Pre-download Built-in Extensions
         continue-on-error: true
