@@ -293,23 +293,12 @@ export class AgentHostContribution extends Disposable implements IWorkbenchContr
 			description: agent.description,
 			inputPlaceholder: (agent.provider === 'copilotcli' || agent.provider === 'copilot') ? 'Chat with Dardcor Code' : undefined,
 			locations: agent.provider === 'copilotcli' ? [ChatAgentLocation.Chat, ChatAgentLocation.Terminal, ChatAgentLocation.EditorInline] : undefined,
-			customAgentTarget: this._isSessionsWindow ? undefined : Target.GitHubCopilot,
+			customAgentTarget: undefined,
 			canDelegate: true,
-			requiresCustomModels: !this._isSessionsWindow,
+			requiresCustomModels: false,
 			supportsAutoModel: agentHostProviderSupportsAutoModel(agent.provider),
-			// Derived live from the agent's currently-advertised protected resources
-			// (via the protected-resources service): an agent that marks the GitHub
-			// Copilot resource `required: false` (Claude in native mode, Codex on
-			// OpenAI) is usable without signing in. Falls back to "required" until the
-			// agent host resolves. The paired `onDidChangeRequiresCopilotSignIn` lets
-			// the sessions service re-evaluate this when the set changes.
-			requiresCopilotSignIn: () => {
-				if (this._isSessionsWindow || agent.provider === 'copilotcli' || agent.provider === 'copilot') {
-					return false;
-				}
-				const resources = this._protectedResourcesService.getProtectedResources(agent.provider);
-				return resources !== undefined ? protectedResourcesRequireGitHubCopilotSignIn(resources) : true;
-			},
+			// In Dardcor Code, models are powered directly by Dardcor Router and do not require GitHub Copilot sign-in.
+			requiresCopilotSignIn: () => false,
 			onDidChangeRequiresCopilotSignIn: Event.signal(Event.filter(this._protectedResourcesService.onDidChange, provider => provider === agent.provider, store)),
 			agentHostProviderId: agent.provider,
 			supportsDelegation: false,

@@ -49,7 +49,7 @@ import { CompletionItemKind as AhpCompletionItemKind, ContentEncoding, type Comp
 import { ConfirmationOptionKind, CustomizationType, JsonPrimitive, McpServerAuthRequiredState, McpServerStatus, SessionInputRequestKind, TerminalClaimKind, ToolCallContributorKind, ToolResultContentType, type ConfirmationOption, type ProtectedResourceMetadata, type SessionActiveClient, type SessionInputRequest, type SessionToolClientExecutionRequest } from '../../../../../../platform/agentHost/common/state/protocol/state.js';
 import { compareProtocolVersions } from '../../../../../../platform/agentHost/common/state/protocol/version/registry.js';
 import { ActionType, ChatTurnStartedAction, isChatAction, type ClientChatAction, type ClientSessionAction } from '../../../../../../platform/agentHost/common/state/sessionActions.js';
-import { AHP_AUTH_REQUIRED, AHP_NOT_FOUND, ProtocolError } from '../../../../../../platform/agentHost/common/state/sessionProtocol.js';
+import { AHP_AUTH_REQUIRED, AHP_NOT_FOUND, AHP_SESSION_NOT_FOUND, ProtocolError } from '../../../../../../platform/agentHost/common/state/sessionProtocol.js';
 import { buildChatUri, buildDefaultChatUri, buildSubagentChatUri, ChatOriginKind, getErrorResponsePart, getInlineToolInput, getToolSubagentContent, getTurnError, isChatReadOnly, isDefaultChatUri, isMessageHiddenFromTranscript, isMessageRequestHiddenFromTranscript, MessageAttachmentKind, MessageKind, PendingMessageKind, ResponsePartKind, ChatInputAnswerState, ChatInputAnswerValueKind, ChatInputQuestionKind, ChatInputResponseKind, SessionStatus, StateComponents, ToolCallCancellationReason, ToolCallConfirmationReason, ToolCallStatus, TurnState, parseChatUri, mergeSessionWithDefaultChat, readMessageSystemInitiatedLabel, readSessionWorkspaceless, readUsageInfoMeta, withMessageHiddenFromTranscript, type ChatState, type ISessionWithDefaultChat, type ICompletedToolCall, type InputRequestResponsePart, type MarkdownResponsePart, type Message, type MessageAttachment, type MessageAnnotationsAttachment, type MessageChatAttachment, type MessageResourceAttachment, type MessageEmbeddedResourceAttachment, type ModelSelection, type PendingMessage, type ReasoningResponsePart, type RootState, type ChatInputAnswer, type ChatInputQuestion, type ChatInputRequest, type ChatSummary, type SessionState, type StringOrMarkdown, type ToolCallPendingConfirmationState, type ToolCallResponsePart, type ToolCallRunningState, type ToolCallState, type ToolInput, type Turn, type UsageInfo } from '../../../../../../platform/agentHost/common/state/sessionState.js';
 import { ExtensionIdentifier } from '../../../../../../platform/extensions/common/extensions.js';
 import { IInstantiationService } from '../../../../../../platform/instantiation/common/instantiation.js';
@@ -356,9 +356,16 @@ function userOriginMessage(text: string, attachments: readonly MessageAttachment
 		: { text, origin: { kind: MessageKind.User } };
 }
 
-/** Whether `err` reports that the host has no such resource (AHP `NotFound`). */
+/** Whether `err` reports that the host has no such resource (AHP `NotFound` or deleted/missing session). */
 export function isNotFoundError(err: unknown): boolean {
-	return err instanceof ProtocolError && err.code === AHP_NOT_FOUND;
+	if (err instanceof ProtocolError && (err.code === AHP_NOT_FOUND || err.code === AHP_SESSION_NOT_FOUND)) {
+		return true;
+	}
+	const message = err instanceof Error ? err.message : (typeof err === 'string' ? err : undefined);
+	if (message && /explicitly deleted|session not found|not found|NotFound|ENOENT/i.test(message)) {
+		return true;
+	}
+	return false;
 }
 
 /**
@@ -370,6 +377,9 @@ export function isNotFoundError(err: unknown): boolean {
 export function unwrapSessionLoadErrorMessage(err: unknown): string | undefined {
 	const message = err instanceof Error ? err.message : (typeof err === 'string' ? err : undefined);
 	if (!message) {
+		return undefined;
+	}
+	if (/explicitly deleted|session not found/i.test(message)) {
 		return undefined;
 	}
 

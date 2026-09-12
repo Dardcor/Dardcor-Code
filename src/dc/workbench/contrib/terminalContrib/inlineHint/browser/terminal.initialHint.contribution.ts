@@ -270,28 +270,8 @@ class TerminalInitialHintWidget extends Disposable {
 
 		const aiFeaturesHidden = this._chatEntitlementService.sentiment.hidden;
 
-		// Copilot CLI hint (only shown when AI features are enabled)
-		if (!aiFeaturesHidden) {
-			const handleCopilotCliClick = () => {
-				this._telemetryService.publicLog2<WorkbenchActionExecutedEvent, WorkbenchActionExecutedClassification>('workbenchActionExecuted', {
-					id: 'terminalCopilotCli.hintAction',
-					from: 'hint'
-				});
-				this._instance.sendText('copilot', false);
-			};
-			const copilotCliHint = localize({
-				key: 'copilotCliHint',
-				comment: [
-					'Preserve double-square brackets and their order',
-				]
-			}, "Type [[copilot]] to use Copilot CLI.");
-			const copilotCliHintHandler: IContentActionHandler = {
-				callback: () => handleCopilotCliClick(),
-				disposables: this._toDispose
-			};
-			hintElement.appendChild(renderFormattedText(copilotCliHint, { actionHandler: copilotCliHintHandler }));
-			ariaLabelParts.push(localize('copilotCliHintAriaLabel', "Type copilot to use Dardcor AI CLI."));
-		}
+		// Copilot CLI hint removed — Dardcor Code does not show VS Code's
+		// "Type copilot to use Copilot CLI" branding in the terminal.
 
 		// Suggest hint - only shown when AI features are hidden (otherwise the Copilot CLI hint takes precedence)
 		const suggestEnabled = aiFeaturesHidden && this._configurationService.getValue<boolean>(TerminalSuggestSettingId.Enabled);

@@ -399,6 +399,12 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 				'**/@microsoft/mxc-sdk/bin/**',
 				'**/node-pty/build/Release/*',
 				'**/node-pty/build/Release/conpty/*',
+				// node-pty prebuilds: newer versions resolve native binaries from
+				// `prebuilds/<platform>-<arch>/` (conpty.node, conpty_console_list.node,
+				// conpty/conpty.dll, conpty/OpenConsole.exe on Windows;
+				// pty.node + spawn-helper on macOS/Linux). These must be unpacked
+				// so that the terminal process can find conpty.dll and friends at runtime.
+				'**/node-pty/prebuilds/**',
 				'**/node-pty/lib/worker/conoutSocketWorker.js',
 				'**/node-pty/lib/shared/conout.js',
 				// node-pty spawns `conoutSocketWorker.js` as a Worker from the unpacked

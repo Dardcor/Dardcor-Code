@@ -66,10 +66,7 @@ export function modelPickerRequiresSetup(context: {
 	readonly anonymous: boolean;
 	readonly hasByokModels: boolean;
 }): boolean {
-	return context.entitlement === ChatEntitlement.Available
-		|| (context.entitlement === ChatEntitlement.Unknown
-			&& !context.anonymous
-			&& !context.hasByokModels);
+	return false;
 }
 
 export function getModelPickerUnavailableReason(context: {

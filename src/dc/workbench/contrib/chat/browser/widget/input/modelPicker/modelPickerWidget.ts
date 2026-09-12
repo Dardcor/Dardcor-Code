@@ -300,15 +300,7 @@ export class ModelPickerWidget extends Disposable {
 	}
 
 	private _requiresSetup(): boolean {
-		const isSessionsWindow = this._instantiationService.invokeFunction(accessor => accessor.get(IBrowserWorkbenchEnvironmentService).isSessionsWindow);
-		if (isSessionsWindow) {
-			return false;
-		}
-		return modelPickerRequiresSetup({
-			entitlement: this._entitlementService.entitlement,
-			anonymous: this._entitlementService.anonymous,
-			hasByokModels: this._entitlementService.hasByokModels,
-		});
+		return false;
 	}
 
 	/**

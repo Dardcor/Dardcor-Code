@@ -2002,21 +2002,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 	private getModelsForSessionType(sessionType: string | undefined): ILanguageModelChatMetadataAndIdentifier[] {
 		const allModels = this.getAllMergedModels();
 
-		// In sessions window (Workspace Agent), bypass custom-model restrictions so
-		// the full model catalog is available — same as Workspace Editor. The Dardcor
-		// Router supplies models in real-time; no Copilot sign-in is needed.
-		// filterModelsForSession already falls back to the general pool when no models
-		// specifically target the agent-host session type.
-		const isSessionsWindow = this.environmentService.isSessionsWindow;
-		if (!isSessionsWindow) {
-			// Session owns a pool but no targeted models registered yet: return empty so callers don't treat general-pool models as valid.
-			if (sessionType
-				&& this.chatSessionsService.requiresCustomModelsForSessionType(sessionType)
-				&& !hasModelsTargetingSession(allModels, sessionType)) {
-				return [];
-			}
-		}
-
+		// In Dardcor Code, the Dardcor Router supplies models across all session types and windows.
 		allModels.sort((a, b) => a.metadata.name.localeCompare(b.metadata.name));
 		const sessionFiltered = filterModelsForSession(allModels, sessionType, this.currentModeKind, this.location);
 		return sessionFiltered.filter(m => !isModelHiddenInPicker(m, id => this.languageModelsService.isModelHidden(id)));
