@@ -22,3 +22,9 @@ if (!allowScripts || !foundryLocalKey || allowScripts[foundryLocalKey] !== true)
 allowScripts[foundryLocalKey] = false;
 fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, undefined, 2)}\n`);
 console.log(`Disabled ${foundryLocalKey} install script for this CI job`);
+
+const targetScript = path.resolve(import.meta.dirname, '../../../node_modules/foundry-local-sdk/script/install-standard.cjs');
+if (fs.existsSync(targetScript)) {
+	fs.writeFileSync(targetScript, 'process.exit(0);\n');
+	console.log('Overwrote foundry-local-sdk install-standard.cjs with no-op');
+}
