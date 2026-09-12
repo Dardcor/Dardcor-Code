@@ -59,7 +59,11 @@ function getSha(filename: fs.PathLike): string {
 }
 
 function getVSCodeSysrootChecksum(expectedName: string) {
-	const checksums = fs.readFileSync(path.join(REPO_ROOT, 'build', 'checksums', 'vscode-sysroot.txt'), 'utf8');
+	let checksumPath = path.join(REPO_ROOT, 'build', 'checksums', 'dardcor-sysroot.txt');
+	if (!fs.existsSync(checksumPath)) {
+		checksumPath = path.join(REPO_ROOT, 'build', 'checksums', 'vscode-sysroot.txt');
+	}
+	const checksums = fs.readFileSync(checksumPath, 'utf8');
 	for (const line of checksums.split('\n')) {
 		const [checksum, name] = line.split(/\s+/);
 		if (name === expectedName) {
