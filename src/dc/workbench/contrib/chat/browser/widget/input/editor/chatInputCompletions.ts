@@ -63,7 +63,7 @@ import { resizeImage } from '../../../chatImageUtils.js';
 import { ChatDynamicVariableModel } from '../../../attachments/chatDynamicVariables.js';
 import { IChatService } from '../../../../common/chatService/chatService.js';
 import { getChatSessionType } from '../../../../common/model/chatUri.js';
-import { attachedContextCompletionAdditionalTriggerCharacters, computeCompletionRanges, escapeForCharClass, getAttachedContextCompletionMatch, getAttachedContextCompletionSortText, getCompletionRangeWord, IChatCompletionRangeResult, isEmptyUpToCompletionWord } from './chatInputCompletionUtils.js';
+import { attachedContextCompletionAdditionalTriggerCharacters, computeCompletionRanges, escapeForCharClass, getAttachedContextCompletionMatch, getAttachedContextCompletionSortText, getCompletionRangeWord, IChatCompletionRangeResult, isEmptyUpToCompletionWord, isOnlySlashOrPromptCommandsUpToCompletionWord } from './chatInputCompletionUtils.js';
 import { getAgentSessionProviderIcon, AgentSessionProviders } from '../../../agentSessions/agentSessions.js';
 
 /**
@@ -114,8 +114,8 @@ class SlashCommandCompletions extends Disposable {
 					return null;
 				}
 
-				if (!isEmptyUpToCompletionWord(model, range)) {
-					// No text allowed before the completion
+				// Allow chaining: prior tokens must all be slash/prompt commands (e.g. `/skill1 /`)
+				if (!isOnlySlashOrPromptCommandsUpToCompletionWord(model, range)) {
 					return;
 				}
 
@@ -230,17 +230,15 @@ class SlashCommandCompletions extends Disposable {
 					return null;
 				}
 
-				if (isAgentHostBackedWidget(widget)) {
-					return;
-				}
+				// NOTE: intentionally NOT blocking agent-host sessions here,
+				// so local skills are available in Workspace Agent too.
 
 				const range = computeCompletionRanges(model, position, SlashCommandWord);
 				if (!range) {
 					return null;
 				}
 
-				if (!isEmptyUpToCompletionWord(model, range)) {
-					// No text allowed before the completion
+				if (!isOnlySlashOrPromptCommandsUpToCompletionWord(model, range)) {
 					return;
 				}
 
@@ -309,8 +307,7 @@ class SlashCommandCompletions extends Disposable {
 					return null;
 				}
 
-				if (!isEmptyUpToCompletionWord(model, range)) {
-					// No text allowed before the completion
+				if (!isOnlySlashOrPromptCommandsUpToCompletionWord(model, range)) {
 					return;
 				}
 

@@ -16,7 +16,7 @@ import { CompositeBarActionViewItem, CompositeBarAction, IActivityHoverOptions, 
 import { Codicon } from '../../../base/common/codicons.js';
 import { ThemeIcon } from '../../../base/common/themables.js';
 import { registerIcon } from '../../../platform/theme/common/iconRegistry.js';
-import { Action, IAction, Separator, SubmenuAction, toAction } from '../../../base/common/actions.js';
+import { Action, IAction, Separator, toAction } from '../../../base/common/actions.js';
 import { IMenu, IMenuService, MenuId } from '../../../platform/actions/common/actions.js';
 import { addDisposableListener, EventType, append, clearNode, hide, show, EventHelper, $, runWhenWindowIdle, getWindow } from '../../../base/browser/dom.js';
 import { StandardKeyboardEvent } from '../../../base/browser/keyboardEvent.js';
@@ -33,7 +33,7 @@ import { ILogService } from '../../../platform/log/common/log.js';
 import { IProductService } from '../../../platform/product/common/productService.js';
 import { ISecretStorageService } from '../../../platform/secrets/common/secrets.js';
 import { AuthenticationSessionInfo, getCurrentAuthenticationSessionInfo } from '../../services/authentication/browser/authenticationService.js';
-import { AuthenticationSessionAccount, IAuthenticationService, INTERNAL_AUTH_PROVIDER_PREFIX } from '../../services/authentication/common/authentication.js';
+import { AuthenticationSessionAccount, IAuthenticationService } from '../../services/authentication/common/authentication.js';
 import { IWorkbenchEnvironmentService } from '../../services/environment/common/environmentService.js';
 import { IHoverService } from '../../../platform/hover/browser/hover.js';
 import { ILifecycleService, LifecyclePhase } from '../../services/lifecycle/common/lifecycle.js';
@@ -67,7 +67,7 @@ export class GlobalCompositeBar extends Disposable {
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 		@IStorageService private readonly storageService: IStorageService,
 		@IExtensionService private readonly extensionService: IExtensionService,
-		@IBrowserWorkbenchEnvironmentService private readonly environmentService: IBrowserWorkbenchEnvironmentService,
+		@IBrowserWorkbenchEnvironmentService _environmentService: IBrowserWorkbenchEnvironmentService,
 	) {
 		super();
 
@@ -136,29 +136,21 @@ export class GlobalCompositeBar extends Disposable {
 	}
 
 	getContextMenuActions(): IAction[] {
-		return [toAction({ id: 'toggleAccountsVisibility', label: localize('accounts', "Accounts"), checked: this.accountsVisibilityPreference, run: () => this.accountsVisibilityPreference = !this.accountsVisibilityPreference })];
+		return [];
 	}
 
 	private toggleAccountsActivity() {
-		if (this.globalActivityActionBar.length() === 2 && this.accountsVisibilityPreference) {
-			return;
-		}
 		if (this.globalActivityActionBar.length() === 2) {
 			this.globalActivityActionBar.pull(GlobalCompositeBar.ACCOUNTS_ACTION_INDEX);
-		} else {
-			this.globalActivityActionBar.push(this.accountAction, { index: GlobalCompositeBar.ACCOUNTS_ACTION_INDEX });
 		}
 	}
 
 	private get accountsVisibilityPreference(): boolean {
-		if (this.environmentService.isSessionsWindow) {
-			return false;
-		}
-		return this.storageService.getBoolean(AccountsActivityActionViewItem.ACCOUNTS_VISIBILITY_PREFERENCE_KEY, StorageScope.PROFILE, true) !== false;
+		return false;
 	}
 
-	private set accountsVisibilityPreference(value: boolean) {
-		setAccountsActionVisible(this.storageService, value);
+	private set accountsVisibilityPreference(_value: boolean) {
+		setAccountsActionVisible(this.storageService, false);
 	}
 }
 
@@ -212,6 +204,10 @@ abstract class AbstractGlobalActivityActionViewItem extends CompositeBarActionVi
 
 			const disposables = new DisposableStore();
 			const actions = await this.resolveContextMenuActions(disposables);
+			if (actions.length === 0) {
+				disposables.dispose();
+				return;
+			}
 
 			const event = new StandardMouseEvent(getWindow(this.container), e);
 
@@ -246,6 +242,10 @@ abstract class AbstractGlobalActivityActionViewItem extends CompositeBarActionVi
 		const disposables = new DisposableStore();
 		const menu = disposables.add(this.menuService.createMenu(this.menuId, this.contextKeyService));
 		const actions = await this.resolveMainMenuActions(menu, disposables);
+		if (actions.length === 0) {
+			disposables.dispose();
+			return;
+		}
 		const { anchorAlignment, anchorAxisAlignment } = this.contextMenuAlignmentOptions() ?? { anchorAlignment: undefined, anchorAxisAlignment: undefined };
 
 		this.contextMenuService.showContextMenu({
@@ -258,7 +258,6 @@ abstract class AbstractGlobalActivityActionViewItem extends CompositeBarActionVi
 			menuActionOptions: { renderShortTitle: true },
 			closeAnimation: workbenchMenuCloseAnimation
 		});
-
 	}
 
 	protected async resolveMainMenuActions(menu: IMenu, _disposable: DisposableStore): Promise<IAction[]> {
@@ -273,14 +272,13 @@ export class AccountsActivityActionViewItem extends AbstractGlobalActivityAction
 	private readonly groupedAccounts: Map<string, (AuthenticationSessionAccount & { canSignOut: boolean })[]> = new Map();
 	private readonly problematicProviders: Set<string> = new Set();
 
-	private initialized = false;
 	private sessionFromEmbedder = new Lazy<Promise<AuthenticationSessionInfo | undefined>>(() => getCurrentAuthenticationSessionInfo(this.secretStorageService, this.productService));
 
 	constructor(
 		contextMenuActionsProvider: () => IAction[],
 		options: ICompositeBarActionViewItemOptions,
 		contextMenuAlignmentOptions: () => Readonly<{ anchorAlignment: AnchorAlignment; anchorAxisAlignment: AnchorAxisAlignment }> | undefined,
-		private readonly fillContextMenuActions: (actions: IAction[]) => void,
+		_fillContextMenuActions: (actions: IAction[]) => void,
 		@IThemeService themeService: IThemeService,
 		@ILifecycleService private readonly lifecycleService: ILifecycleService,
 		@IHoverService hoverService: IHoverService,
@@ -296,7 +294,7 @@ export class AccountsActivityActionViewItem extends AbstractGlobalActivityAction
 		@ILogService private readonly logService: ILogService,
 		@IActivityService activityService: IActivityService,
 		@IInstantiationService instantiationService: IInstantiationService,
-		@ICommandService private readonly commandService: ICommandService
+		@ICommandService _commandService: ICommandService
 	) {
 		const action = instantiationService.createInstance(CompositeBarAction, {
 			id: ACCOUNTS_ACTIVITY_ID,
@@ -360,162 +358,16 @@ export class AccountsActivityActionViewItem extends AbstractGlobalActivityAction
 				this.logService.error(result.reason);
 			}
 		}
-
-		this.initialized = true;
 	}
 
 	//#region overrides
 
-	protected override async resolveMainMenuActions(accountsMenu: IMenu, disposables: DisposableStore): Promise<IAction[]> {
-		await super.resolveMainMenuActions(accountsMenu, disposables);
-
-		const providers = this.authenticationService.getProviderIds().filter(p => !p.startsWith(INTERNAL_AUTH_PROVIDER_PREFIX));
-		const otherCommands = accountsMenu.getActions();
-		let menus: IAction[] = [];
-
-		const registeredProviders = providers.filter(providerId => !this.authenticationService.isDynamicAuthenticationProvider(providerId));
-		const dynamicProviders = providers.filter(providerId => this.authenticationService.isDynamicAuthenticationProvider(providerId));
-
-		if (!this.initialized) {
-			const noAccountsAvailableAction = disposables.add(new Action('noAccountsAvailable', localize('loading', "Loading..."), undefined, false));
-			menus.push(noAccountsAvailableAction);
-		} else {
-			for (const providerId of registeredProviders) {
-				const provider = this.authenticationService.getProvider(providerId);
-				const accounts = this.groupedAccounts.get(providerId);
-				if (!accounts) {
-					if (this.problematicProviders.has(providerId)) {
-						const providerUnavailableAction = disposables.add(new Action('providerUnavailable', localize('authProviderUnavailable', '{0} is currently unavailable', provider.label), undefined, false));
-						menus.push(providerUnavailableAction);
-						// try again in the background so that if the failure was intermittent, we can resolve it on the next showing of the menu
-						try {
-							await this.addAccountsFromProvider(providerId);
-						} catch (e) {
-							this.logService.error(e);
-						}
-					}
-					continue;
-				}
-
-				const canUseMcp = !!provider.authorizationServers?.length;
-				for (const account of accounts) {
-					const manageExtensionsAction = toAction({
-						id: `configureSessions${account.label}`,
-						label: localize('manageTrustedExtensions', "Manage Trusted Extensions"),
-						enabled: true,
-						run: () => this.commandService.executeCommand('_manageTrustedExtensionsForAccount', { providerId, accountLabel: account.label })
-					});
-
-
-					const providerSubMenuActions: IAction[] = [manageExtensionsAction];
-					if (canUseMcp) {
-						const manageMCPAction = toAction({
-							id: `configureSessions${account.label}`,
-							label: localize('manageTrustedMCPServers', "Manage Trusted MCP Servers"),
-							enabled: true,
-							run: () => this.commandService.executeCommand('_manageTrustedMCPServersForAccount', { providerId, accountLabel: account.label })
-						});
-						providerSubMenuActions.push(manageMCPAction);
-					}
-					if (account.canSignOut) {
-						providerSubMenuActions.push(toAction({
-							id: 'signOut',
-							label: localize('signOut', "Sign Out"),
-							enabled: true,
-							run: () => this.commandService.executeCommand('_signOutOfAccount', { providerId, accountLabel: account.label })
-						}));
-					}
-
-					const providerSubMenu = new SubmenuAction('activitybar.submenu', `${account.label} (${provider.label})`, providerSubMenuActions);
-					menus.push(providerSubMenu);
-				}
-			}
-
-			if (dynamicProviders.length && registeredProviders.length) {
-				menus.push(new Separator());
-			}
-
-			for (const providerId of dynamicProviders) {
-				const provider = this.authenticationService.getProvider(providerId);
-				const accounts = this.groupedAccounts.get(providerId);
-				// Provide _some_ discoverable way to manage dynamic authentication providers.
-				// This will either show up inside the account submenu or as a top-level menu item if there
-				// are no accounts.
-				const manageDynamicAuthProvidersAction = toAction({
-					id: 'manageDynamicAuthProviders',
-					label: localize('manageDynamicAuthProviders', "Manage Dynamic Authentication Providers..."),
-					enabled: true,
-					run: () => this.commandService.executeCommand('workbench.action.removeDynamicAuthenticationProviders')
-				});
-				if (!accounts) {
-					if (this.problematicProviders.has(providerId)) {
-						const providerUnavailableAction = disposables.add(new Action('providerUnavailable', localize('authProviderUnavailable', '{0} is currently unavailable', provider.label), undefined, false));
-						menus.push(providerUnavailableAction);
-						// try again in the background so that if the failure was intermittent, we can resolve it on the next showing of the menu
-						try {
-							await this.addAccountsFromProvider(providerId);
-						} catch (e) {
-							this.logService.error(e);
-						}
-					}
-					menus.push(manageDynamicAuthProvidersAction);
-					continue;
-				}
-
-				for (const account of accounts) {
-					// TODO@TylerLeonhardt: Is there a nice way to bring this back?
-					// const manageExtensionsAction = toAction({
-					// 	id: `configureSessions${account.label}`,
-					// 	label: localize('manageTrustedExtensions', "Manage Trusted Extensions"),
-					// 	enabled: true,
-					// 	run: () => this.commandService.executeCommand('_manageTrustedExtensionsForAccount', { providerId, accountLabel: account.label })
-					// });
-
-					const providerSubMenuActions: IAction[] = [];
-					const manageMCPAction = toAction({
-						id: `configureSessions${account.label}`,
-						label: localize('manageTrustedMCPServers', "Manage Trusted MCP Servers"),
-						enabled: true,
-						run: () => this.commandService.executeCommand('_manageTrustedMCPServersForAccount', { providerId, accountLabel: account.label })
-					});
-					providerSubMenuActions.push(manageMCPAction);
-					providerSubMenuActions.push(manageDynamicAuthProvidersAction);
-					if (account.canSignOut) {
-						providerSubMenuActions.push(toAction({
-							id: 'signOut',
-							label: localize('signOut', "Sign Out"),
-							enabled: true,
-							run: () => this.commandService.executeCommand('_signOutOfAccount', { providerId, accountLabel: account.label })
-						}));
-					}
-
-					const providerSubMenu = new SubmenuAction('activitybar.submenu', `${account.label} (${provider.label})`, providerSubMenuActions);
-					menus.push(providerSubMenu);
-				}
-			}
-		}
-
-		// Removed codexAccountActions to remove built-in login system
-
-		if (menus.length && otherCommands.length) {
-			menus.push(new Separator());
-		}
-
-		otherCommands.forEach((group, i) => {
-			const actions = group[1];
-			menus = menus.concat(actions);
-			if (i !== otherCommands.length - 1) {
-				menus.push(new Separator());
-			}
-		});
-
-		return menus;
+	protected override async resolveMainMenuActions(_accountsMenu: IMenu, _disposables: DisposableStore): Promise<IAction[]> {
+		return [];
 	}
 
-	protected override async resolveContextMenuActions(disposables: DisposableStore): Promise<IAction[]> {
-		const actions = await super.resolveContextMenuActions(disposables);
-		this.fillContextMenuActions(actions);
-		return actions;
+	protected override async resolveContextMenuActions(_disposables: DisposableStore): Promise<IAction[]> {
+		return [];
 	}
 
 	//#endregion

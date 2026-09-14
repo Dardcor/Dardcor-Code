@@ -49,8 +49,7 @@ import { ITabbedModelPickerContext, TabbedModelPicker } from './modelPickerTabbe
 import { getModelConfigSummary } from './modelPickerModelConfig.js';
 import { logModelConfigurationChange } from './modelPickerTelemetry.js';
 import { IModelPickerProviderPlaceholder } from './modelPickerTabs.js';
-import { getModelPickerUnavailableReason, isAutoModel, ModelPickerUnavailableReason, modelPickerRequiresSetup, shouldShowCacheBreakHint as computeShouldShowCacheBreakHint } from './modelPickerPresentation.js';
-import { IBrowserWorkbenchEnvironmentService } from '../../../../../../services/environment/browser/environmentService.js';
+import { getModelPickerUnavailableReason, isAutoModel, ModelPickerUnavailableReason, shouldShowCacheBreakHint as computeShouldShowCacheBreakHint } from './modelPickerPresentation.js';
 
 const CACHE_BREAK_HINT_DISMISSED_STORAGE_KEY = 'chat.cacheBreakHintDismissed';
 
@@ -487,7 +486,11 @@ export class ModelPickerWidget extends Disposable {
 	}
 
 	show(anchor?: HTMLElement): void {
-		const anchorElement = anchor ?? this._domNode;
+		const chatInputContainer = (this._domNode?.closest('.chat-input-container, .new-chat-input-area')
+			?? anchor?.closest('.chat-input-container, .new-chat-input-area')
+			?? this._domNode?.closest('.interactive-input-part')?.querySelector<HTMLElement>('.chat-input-container')
+			?? this._domNode?.closest('.interactive-session')?.querySelector<HTMLElement>('.chat-input-container')) as HTMLElement | null;
+		const anchorElement = chatInputContainer ?? anchor ?? this._domNode;
 		if (!anchorElement || this._domNode?.classList.contains('disabled')) {
 			return;
 		}
@@ -631,6 +634,9 @@ export class ModelPickerWidget extends Disposable {
 		// heading).
 		const unavailable = this.isRestrictedMode() || this.isSetupRequired();
 		const showCacheBreakHint = this.shouldShowCacheBreakHint(/* excludeAutoModel */ true);
+		const chatInputWidth = chatInputContainer?.offsetWidth;
+		const minWidth = chatInputWidth && chatInputWidth > 200 ? chatInputWidth : 200;
+		const maxWidth = chatInputWidth && chatInputWidth > 200 ? chatInputWidth : undefined;
 		const listOptions = withChatInputPickerMotion({
 			className: 'chat-model-picker-dropdown',
 			headerText: showCacheBreakHint ? localize('chat.modelPicker.cacheBreakHint', "Switching models mid-session resets the prompt cache and may increase cost.") : undefined,
@@ -648,7 +654,8 @@ export class ModelPickerWidget extends Disposable {
 				}
 			},
 			linkHandler: onLinkClick,
-			minWidth: 200,
+			minWidth,
+			maxWidth,
 		});
 		const previouslyFocusedElement = dom.getActiveElement();
 

@@ -162,7 +162,7 @@ export class ChatViewPane extends ViewPane implements IViewWelcomeDelegate {
 		@ILifecycleService lifecycleService: ILifecycleService,
 		@IProgressService private readonly progressService: IProgressService,
 		@IAgentSessionsService private readonly agentSessionsService: IAgentSessionsService,
-		@IChatEntitlementService private readonly chatEntitlementService: IChatEntitlementService,
+		@IChatEntitlementService _chatEntitlementService: IChatEntitlementService,
 		@ICommandService private readonly commandService: ICommandService,
 		@IActivityService private readonly activityService: IActivityService,
 		@IHostService private readonly hostService: IHostService,
@@ -345,16 +345,34 @@ export class ChatViewPane extends ViewPane implements IViewWelcomeDelegate {
 		this._onDidChangeViewWelcomeState.fire();
 	}
 
-	private getTransferredOrPersistedSessionInfo(): URI | undefined {
+	private async getTransferredOrPersistedSessionInfo(): Promise<URI | undefined> {
 		if (this.chatService.transferredSessionResource) {
 			return this.chatService.transferredSessionResource;
 		}
 
 		if (this.viewState.sessionResource) {
-			return this.viewState.sessionResource;
+			const revived = URI.revive(this.viewState.sessionResource);
+			if (revived) {
+				return revived;
+			}
 		}
 
-		return this.viewState.sessionId ? LocalChatSessionUri.forSession(this.viewState.sessionId) : undefined;
+		if (this.viewState.sessionId) {
+			return LocalChatSessionUri.forSession(this.viewState.sessionId);
+		}
+
+		if (this.configurationService.getValue<boolean>(ChatConfiguration.RestoreLastPanelSession) !== false) {
+			const history = await this.chatService.getLocalSessionHistory();
+			const activeSession = history.find(entry => !entry.isEmpty);
+			if (activeSession) {
+				return activeSession.sessionResource;
+			}
+			if (history.length > 0) {
+				return history[0].sessionResource;
+			}
+		}
+
+		return undefined;
 	}
 
 	protected override renderBody(parent: HTMLElement): void {
@@ -968,13 +986,11 @@ export class ChatViewPane extends ViewPane implements IViewWelcomeDelegate {
 			newSessionsContainerVisible = false; // disabled in settings
 		} else {
 
-			// Sessions control: stacked
 			if (this.sessionsViewerOrientation === AgentSessionsViewerOrientation.Stacked) {
 				newSessionsContainerVisible =
-					(!!this.chatEntitlementService.sentiment.completed || this.chatEntitlementService.hasByokModels) &&					// chat is setup (otherwise make room for terms and welcome)
-					(!this._widget || (this._widget.isEmpty() && !!this._widget.viewModel && !this._widget.viewModel.model.title)) &&	// chat widget empty (but not when model is loading or has a title)
-					this._sessionsListSuppressionCount === 0 &&																			// not mid-transition (a slow session transiently shows an empty widget)
-					!this.welcomeController?.isShowingWelcome.get();																	// welcome not showing
+					(!this._widget || (this._widget.isEmpty() && !!this._widget.viewModel && !this._widget.viewModel.model.title)) &&
+					this._sessionsListSuppressionCount === 0 &&
+					!this.welcomeController?.isShowingWelcome.get();
 			}
 
 			// Sessions control: sidebar
@@ -1300,12 +1316,30 @@ export class ChatViewPane extends ViewPane implements IViewWelcomeDelegate {
 	}
 
 	private async acquireTransferredOrPersistedSession(token: CancellationToken, debugOwner: string): Promise<IChatSessionAcquisitionResult> {
-		const sessionResource = this.getTransferredOrPersistedSessionInfo();
+		const sessionResource = await this.getTransferredOrPersistedSessionInfo();
 		if (!sessionResource) {
 			return { modelRef: undefined };
 		}
 
-		const modelRef = await this.chatService.acquireOrLoadSession(sessionResource, ChatAgentLocation.Chat, token, debugOwner);
+		let modelRef: IChatModelReference | undefined;
+		try {
+			modelRef = await this.chatService.acquireOrLoadSession(sessionResource, ChatAgentLocation.Chat, token, debugOwner);
+		} catch (error) {
+			this.logService.warn(`[ChatViewPane] Failed to acquire session ${sessionResource.toString()}, attempting fallback to last history session`, error);
+		}
+
+		if (!modelRef) {
+			const history = await this.chatService.getLocalSessionHistory();
+			const fallback = history.find(entry => !entry.isEmpty && entry.sessionResource.toString() !== sessionResource.toString());
+			if (fallback) {
+				try {
+					modelRef = await this.chatService.acquireOrLoadSession(fallback.sessionResource, ChatAgentLocation.Chat, token, debugOwner);
+				} catch {
+					modelRef = undefined;
+				}
+			}
+		}
+
 		if (!modelRef) {
 			return {
 				modelRef: undefined,

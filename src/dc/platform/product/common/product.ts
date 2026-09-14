@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { env } from '../../../base/common/process.js';
 import { IProductConfiguration } from '../../../base/common/product.js';
 import { ISandboxConfiguration } from '../../../base/parts/sandbox/common/sandboxTypes.js';
 
@@ -37,20 +36,6 @@ if (typeof vscodeGlobal !== 'undefined' && typeof vscodeGlobal.context !== 'unde
 else if ((globalThis as any)._VSCODE_PRODUCT_JSON && (globalThis as any)._VSCODE_PACKAGE_JSON) {
 	product = (globalThis as any)._VSCODE_PRODUCT_JSON as unknown as IProductConfiguration;
 	const packageConfiguration = (globalThis as any)._VSCODE_PACKAGE_JSON as unknown as IPackageConfiguration;
-
-	// Running out of sources
-	if (env['VSCODE_DEV']) {
-		Object.assign(product, {
-			nameShort: `${product.nameShort} Dev`,
-			nameLong: `${product.nameLong} Dev`,
-			dataFolderName: `${product.dataFolderName}-dev`,
-			serverDataFolderName: product.serverDataFolderName ? `${product.serverDataFolderName}-dev` : undefined
-		});
-	}
-
-	// Version is added during built time, but we still
-	// want to have it running out of sources so we
-	// read it from package.json only when we need it.
 	if (!product.version) {
 		Object.assign(product, {
 			version: packageConfiguration.version

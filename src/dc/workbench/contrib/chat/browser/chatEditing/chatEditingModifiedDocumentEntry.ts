@@ -5,7 +5,7 @@
 
 import { IReference, MutableDisposable } from '../../../../../base/common/lifecycle.js';
 import { Schemas } from '../../../../../base/common/network.js';
-import { ITransaction, autorun, transaction } from '../../../../../base/common/observable.js';
+import { ITransaction, autorun, derived, observableValue, transaction } from '../../../../../base/common/observable.js';
 import { isEqual } from '../../../../../base/common/resources.js';
 import { assertType } from '../../../../../base/common/types.js';
 import { URI } from '../../../../../base/common/uri.js';
@@ -47,12 +47,22 @@ interface IMultiDiffEntryDelegate {
 
 export class ChatEditingModifiedDocumentEntry extends AbstractChatEditingModifiedFileEntry implements IModifiedFileEntry {
 
-	readonly initialContent: string;
+	initialContent: string;
 
 	readonly originalModel: ITextModel;
 	readonly modifiedModel: ITextModel;
 
 	private readonly _docFileEditorModel: IResolvedTextEditorModel;
+	private readonly _authoritativeDiff = observableValue<{ added: number; removed: number } | undefined>(this, undefined);
+
+	setAuthoritativeDiff(diff: { added?: number; removed?: number } | undefined): void {
+		if (diff && (typeof diff.added === 'number' || typeof diff.removed === 'number')) {
+			this._authoritativeDiff.set({
+				added: diff.added ?? 0,
+				removed: diff.removed ?? 0
+			}, undefined);
+		}
+	}
 
 	override get changesCount() {
 		return this._textModelChangeService.diffInfo.map(diff => diff.changes.length);
@@ -63,19 +73,29 @@ export class ChatEditingModifiedDocumentEntry extends AbstractChatEditingModifie
 	}
 
 	get linesAdded() {
-		return this._textModelChangeService.diffInfo.map(diff => {
+		return derived(this, reader => {
+			const diff = this._textModelChangeService.diffInfo.read(reader);
 			let added = 0;
 			for (const c of diff.changes) {
 				added += Math.max(0, c.modified.endLineNumberExclusive - c.modified.startLineNumber);
+			}
+			const auth = this._authoritativeDiff.read(reader);
+			if (added === 0 && (auth?.added ?? 0) > 0) {
+				return auth!.added;
 			}
 			return added;
 		});
 	}
 	get linesRemoved() {
-		return this._textModelChangeService.diffInfo.map(diff => {
+		return derived(this, reader => {
+			const diff = this._textModelChangeService.diffInfo.read(reader);
 			let removed = 0;
 			for (const c of diff.changes) {
 				removed += Math.max(0, c.original.endLineNumberExclusive - c.original.startLineNumber);
+			}
+			const auth = this._authoritativeDiff.read(reader);
+			if (removed === 0 && (auth?.removed ?? 0) > 0) {
+				return auth!.removed;
 			}
 			return removed;
 		});
@@ -121,6 +141,9 @@ export class ChatEditingModifiedDocumentEntry extends AbstractChatEditingModifie
 		this.modifiedModel = resourceRef.object.textEditorModel;
 		this.originalURI = ChatEditingTextModelContentProvider.getFileURI(telemetryInfo.sessionResource, this.entryId, this.modifiedURI.path);
 
+		if (kind === ChatEditKind.Created && initialContent === undefined) {
+			initialContent = '';
+		}
 		this.initialContent = initialContent ?? this.modifiedModel.getValue();
 		const docSnapshot = this.originalModel = this._register(
 			modelService.createModel(
@@ -351,5 +374,17 @@ export class ChatEditingModifiedDocumentEntry extends AbstractChatEditingModifie
 		if (fileModel && !fileModel.isDisposed()) {
 			await fileModel.revert({ soft: false });
 		}
+	}
+
+	async recomputeDiff(): Promise<void> {
+		await this._textModelChangeService.recomputeDiff();
+	}
+
+	async updateOriginalContent(content: string): Promise<void> {
+		if (this.originalModel.isDisposed()) {
+			return;
+		}
+		this.initialContent = content;
+		await this._textModelChangeService.resetDocumentValues(content, undefined);
 	}
 }

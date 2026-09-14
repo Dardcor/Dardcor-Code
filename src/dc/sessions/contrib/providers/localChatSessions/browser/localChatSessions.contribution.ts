@@ -36,17 +36,12 @@ class LocalSessionsProviderContribution extends Disposable implements IWorkbench
 	) {
 		super();
 
-		// Only register the provider when enabled. The setting is read once
-		// at startup; toggling it requires a window reload.
 		if (configurationService.getValue<boolean>(LOCAL_SESSION_ENABLED_SETTING) === false) {
-			console.log('[LocalSessionsProviderContribution] Local sessions disabled via configuration');
 			return;
 		}
 
-		console.log('[LocalSessionsProviderContribution] Registering LocalChatSessionsProvider...');
 		const provider = this._register(instantiationService.createInstance(LocalChatSessionsProvider));
 		this._register(sessionsProvidersService.registerProvider(provider));
-		console.log('[LocalSessionsProviderContribution] LocalChatSessionsProvider registered successfully (id: local-chat)');
 	}
 }
 

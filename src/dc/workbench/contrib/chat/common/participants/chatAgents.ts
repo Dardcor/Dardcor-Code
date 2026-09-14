@@ -30,6 +30,7 @@ import { basename, dirname, joinPath } from '../../../../../base/common/resource
 import { EditorResourceAccessor } from '../../../../common/editor.js';
 import { ChatContextKeys } from '../actions/chatContextKeys.js';
 import { IChatAgentEditedFileEvent, IChatProgressHistoryResponseContent, IChatRequestModeInstructions, IChatRequestVariableData, ISerializableChatAgentData } from '../model/chatModel.js';
+import { IChatEditingService } from '../editing/chatEditingService.js';
 import { ChatRequestHooks } from '../promptSyntax/hookSchema.js';
 import { IRawChatCommandContribution } from './chatParticipantContribTypes.js';
 import { IChatFollowup, IChatLocationData, IChatProgress, IChatQuestion as IChatCarouselQuestion, IChatResponseErrorDetails, IChatTaskDto, ToolConfirmKind } from '../chatService/chatService.js';
@@ -1039,7 +1040,7 @@ CRITICAL DIRECTIVES:
    ${isWindows ? '- On Windows: use valid PowerShell syntax. Chain commands with semicolons (;), NEVER use "&&" or "cmd /c". NEVER use Unix bash heredocs (<< EOF). Standard commands like "npm run build", "npm run dev", "node script.js", "git status" work directly.' : '- On POSIX systems: use standard bash/zsh syntax.'}
 7. Browser & Website Testing: When the user asks to open, preview, or test a website, web app, or URL in the browser (e.g. "buka browser anda di Dardcor code", "testing website saya di browser anda", "buka website nya"):
    - You MUST immediately call the tool "open_browser_page" with the target URL (e.g. "http://localhost:3000").
-   - NEVER merely reply in text telling the user to open it manually or check external preview panels. Always call "open_browser_page" so the integrated browser opens to the side.
+   - NEVER merely reply in text telling the user to open it manually or check external preview panels. Always call "open_browser_page" so the integrated browser tab opens in the editor alongside code tabs in a single screen.
 `;
 }
 
@@ -1827,7 +1828,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 		}
 	}
 
-	private async _executeAgentTool(toolName: string, args: any, rootUri?: URI): Promise<{ output: string; externalEdit?: { uri: URI; editKind: 'create' | 'edit'; diff: { added: number; removed: number } } }> {
+	private async _executeAgentTool(toolName: string, args: any, rootUri?: URI): Promise<{ output: string; externalEdit?: { uri: URI; editKind: 'create' | 'edit' | 'delete'; initialContent?: string; diff: { added: number; removed: number } } }> {
 		let fileService: IFileService | undefined;
 		try {
 			this.instantiationService.invokeFunction(accessor => {
@@ -1866,11 +1867,13 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				try {
 					let isNew = true;
 					let oldLineCount = 0;
+					let initialContent: string | undefined;
 					try {
 						if (await fileService.exists(target)) {
 							isNew = false;
 							const oldData = await fileService.readFile(target);
-							oldLineCount = new TextDecoder().decode(oldData.value.buffer).split('\n').length;
+							initialContent = new TextDecoder().decode(oldData.value.buffer);
+							oldLineCount = initialContent.split('\n').length;
 						}
 					} catch { }
 
@@ -1887,6 +1890,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 						externalEdit: {
 							uri: target,
 							editKind: isNew ? 'create' : 'edit',
+							initialContent: isNew ? undefined : initialContent,
 							diff: isNew ? { added: newLineCount, removed: 0 } : { added: newLineCount, removed: oldLineCount }
 						}
 					};
@@ -1900,10 +1904,12 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				try {
 					if (!args.searchContent && args.content) {
 						let oldLineCount = 0;
+						let initialContent: string | undefined;
 						try {
 							if (await fileService.exists(target)) {
 								const oldData = await fileService.readFile(target);
-								oldLineCount = new TextDecoder().decode(oldData.value.buffer).split('\n').length;
+								initialContent = new TextDecoder().decode(oldData.value.buffer);
+								oldLineCount = initialContent.split('\n').length;
 							}
 						} catch { }
 						const parent = dirname(target);
@@ -1917,12 +1923,14 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 							externalEdit: {
 								uri: target,
 								editKind: 'edit',
+								initialContent,
 								diff: { added: newLineCount, removed: oldLineCount }
 							}
 						};
 					}
 					const data = await fileService.readFile(target);
-					let text = new TextDecoder().decode(data.value.buffer);
+					const initialContent = new TextDecoder().decode(data.value.buffer);
+					let text = initialContent;
 					const search = (args.searchContent ?? '').replace(/\r\n/g, '\n');
 					const replace = (args.replaceContent ?? '').replace(/\r\n/g, '\n');
 					const normText = text.replace(/\r\n/g, '\n');
@@ -1945,6 +1953,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 						externalEdit: {
 							uri: target,
 							editKind: 'edit',
+							initialContent,
 							diff: { added: addedLines, removed: removedLines }
 						}
 					};
@@ -2325,10 +2334,12 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					const stat = await fileService.resolve(target);
 					const isDir = stat.isDirectory;
 					let removedLines = 0;
+					let initialContent: string | undefined;
 					if (!isDir) {
 						try {
 							const fileData = await fileService.readFile(target);
-							removedLines = new TextDecoder().decode(fileData.value.buffer).split('\n').length;
+							initialContent = new TextDecoder().decode(fileData.value.buffer);
+							removedLines = initialContent.split('\n').length;
 						} catch { }
 					}
 					await fileService.del(target, { recursive: args.recursive !== false });
@@ -2336,7 +2347,8 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 						output: `Successfully deleted ${isDir ? 'directory' : 'file'}: ${args.filePath}`,
 						externalEdit: isDir ? undefined : {
 							uri: target,
-							editKind: 'edit',
+							editKind: 'delete',
+							initialContent,
 							diff: { added: 0, removed: removedLines }
 						}
 					};
@@ -2742,12 +2754,24 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				const targetUrl = /^https?:\/\//i.test(rawUrl) || rawUrl.startsWith('file:') ? rawUrl : `http://${rawUrl}`;
 				await this.instantiationService.invokeFunction(async accessor => {
 					try {
+						const browserService = accessor.get(IBrowserViewWorkbenchService);
+						const editorService = accessor.get(IEditorService);
 						const commandService = accessor.get(ICommandService);
-						await commandService.executeCommand('workbench.action.browser.open', {
-							url: targetUrl,
-							openToSide: true
-						});
-						output = `Successfully opened integrated browser at ${targetUrl}. The browser tab is now open alongside the editor.`;
+
+						const views = browserService ? [...browserService.getContextualBrowserViews().values()] : [];
+						const activeView = views[0];
+						if (activeView && !args?.forceNew) {
+							activeView.navigate(targetUrl);
+							await editorService.openEditor(activeView);
+							output = `Successfully displayed website at ${targetUrl} in the integrated browser tab (single screen).`;
+						} else {
+							await commandService.executeCommand('workbench.action.browser.open', {
+								url: targetUrl,
+								openToSide: false,
+								lockGroup: false
+							});
+							output = `Successfully opened integrated browser tab at ${targetUrl} in the editor.`;
+						}
 					} catch (err: any) {
 						output = `Error opening browser: ${err.message || String(err)}`;
 					}
@@ -2787,19 +2811,22 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				await this.instantiationService.invokeFunction(async accessor => {
 					try {
 						const browserService = accessor.get(IBrowserViewWorkbenchService);
+						const editorService = accessor.get(IEditorService);
 						if (browserService) {
 							const views = [...browserService.getContextualBrowserViews().values()];
 							const activeView = views[0];
 							if (activeView) {
 								activeView.navigate(targetUrl);
+								await editorService.openEditor(activeView);
 								output = `Navigated browser to ${targetUrl}`;
 							} else {
 								const commandService = accessor.get(ICommandService);
 								await commandService.executeCommand('workbench.action.browser.open', {
 									url: targetUrl,
-									openToSide: true
+									openToSide: false,
+									lockGroup: false
 								});
-								output = `Opened new browser tab at ${targetUrl}`;
+								output = `Opened new browser tab at ${targetUrl} in the editor`;
 							}
 						}
 					} catch (err: any) {
@@ -2872,6 +2899,13 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 	async streamDardcorRouter(request: IChatAgentRequest, progress: (parts: IChatProgress[]) => void, history: IChatAgentHistoryEntry[], token: CancellationToken): Promise<IChatAgentResult> {
 		let modelName = request.userSelectedModelId;
 		if (modelName === 'opencode/no-model-selected' || modelName === 'opencode/auto' || modelName === 'auto') modelName = undefined;
+
+		let chatEditingService: IChatEditingService | undefined;
+		try {
+			this.instantiationService.invokeFunction(accessor => {
+				try { chatEditingService = accessor.get(IChatEditingService); } catch { }
+			});
+		} catch { }
 
 		try {
 			const snapshot = await this.getWorkspaceSnapshot();
@@ -3061,7 +3095,39 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 							parsedArgs = JSON.parse(tc.arguments);
 						} catch { }
 
+						let targetUri: URI | undefined;
+						if (['write_file', 'edit_file', 'delete_file'].includes(tc.name)) {
+							const filePath = parsedArgs?.filePath;
+							if (filePath) {
+								const clean = filePath.replace(/^[\\\/]+/, '').trim();
+								if (snapshot.rootUri && !(/^[a-zA-Z]:[\\\/]/.test(filePath) || filePath.startsWith('/'))) {
+									targetUri = joinPath(snapshot.rootUri, clean);
+								} else {
+									targetUri = URI.file(filePath);
+								}
+							}
+						}
+
+						if (chatEditingService && targetUri) {
+							chatEditingService.setSessionRunning?.(request.sessionResource, true, [targetUri]);
+						}
+
 						const toolResult = await this._executeAgentTool(tc.name, parsedArgs, snapshot.rootUri);
+
+						if (chatEditingService) {
+							chatEditingService.setSessionRunning?.(request.sessionResource, false, []);
+							if (toolResult.externalEdit) {
+								await chatEditingService.registerFileEdit?.(
+									request.sessionResource,
+									toolResult.externalEdit.uri,
+									toolResult.externalEdit.editKind,
+									toolResult.externalEdit.initialContent,
+									request.requestId,
+									tc.id
+								);
+							}
+						}
+
 						const display = this._getToolDisplayInfo(tc.name, parsedArgs);
 
 						if (tc.name === 'ask_questions') {
@@ -3154,9 +3220,42 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					});
 
 					for (const tc of textToolCalls) {
-						const toolResult = await this._executeAgentTool(tc.name, tc.args, snapshot.rootUri);
-						const display = this._getToolDisplayInfo(tc.name, tc.args);
+						let targetUri: URI | undefined;
+						if (['write_file', 'edit_file', 'delete_file'].includes(tc.name)) {
+							const filePath = tc.args?.filePath;
+							if (filePath) {
+								const clean = filePath.replace(/^[\\\/]+/, '').trim();
+								if (snapshot.rootUri && !(/^[a-zA-Z]:[\\\/]/.test(filePath) || filePath.startsWith('/'))) {
+									targetUri = joinPath(snapshot.rootUri, clean);
+								} else {
+									targetUri = URI.file(filePath);
+								}
+							}
+						}
+
 						const callId = `text_call_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+
+						if (chatEditingService && targetUri) {
+							chatEditingService.setSessionRunning?.(request.sessionResource, true, [targetUri]);
+						}
+
+						const toolResult = await this._executeAgentTool(tc.name, tc.args, snapshot.rootUri);
+
+						if (chatEditingService) {
+							chatEditingService.setSessionRunning?.(request.sessionResource, false, []);
+							if (toolResult.externalEdit) {
+								await chatEditingService.registerFileEdit?.(
+									request.sessionResource,
+									toolResult.externalEdit.uri,
+									toolResult.externalEdit.editKind,
+									toolResult.externalEdit.initialContent,
+									request.requestId,
+									callId
+								);
+							}
+						}
+
+						const display = this._getToolDisplayInfo(tc.name, tc.args);
 
 						if (tc.name === 'ask_questions') {
 							const rawQuestions = Array.isArray(tc.args?.questions) ? tc.args.questions : [];

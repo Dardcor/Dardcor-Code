@@ -1076,8 +1076,8 @@ export class ChatSubagentContentPart extends ChatThinkingStyleContentPart implem
 	private getConfirmationPlaceholderText(): string {
 		const count = this.toolsWaitingForCarouselConfirmation;
 		return count === 1
-			? localize('chat.subagent.pendingConfirmation', '1 pending confirmation')
-			: localize('chat.subagent.pendingConfirmations', '{0} pending confirmations', count);
+			? localize('chat.subagent.pendingConfirmation', '1 confirmation pending')
+			: localize('chat.subagent.pendingConfirmations', '{0} confirmations pending', count);
 	}
 
 	private updateConfirmationPlaceholderLabel(): void {

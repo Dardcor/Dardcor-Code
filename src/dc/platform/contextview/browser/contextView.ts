@@ -46,6 +46,7 @@ export interface IContextViewDelegate {
 	anchorAlignment?: AnchorAlignment;
 	anchorAxisAlignment?: AnchorAxisAlignment;
 	anchorPosition?: AnchorPosition;
+	preventAvoid?: boolean;
 
 	// context views with higher layers are rendered over contet views with lower layers
 	layer?: number; // Default: 0

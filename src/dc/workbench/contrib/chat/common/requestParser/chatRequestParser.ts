@@ -201,8 +201,7 @@ export class ChatRequestParser {
 			return;
 		}
 
-		if (parts.some(p => !(p instanceof ChatRequestAgentPart) && !(p instanceof ChatRequestTextPart && p.text.trim() === ''))) {
-			// no other part than agent or non-whitespace text allowed: that also means no other slash command
+		if (parts.some(p => !(p instanceof ChatRequestAgentPart) && !(p instanceof ChatRequestSlashPromptPart) && !(p instanceof ChatRequestTextPart && p.text.trim() === ''))) {
 			return;
 		}
 

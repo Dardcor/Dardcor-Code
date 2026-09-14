@@ -29,7 +29,7 @@ import type { ITextModel } from '../../../../../../editor/common/model.js';
 import { IModelService } from '../../../../../../editor/common/services/model.js';
 import { localize } from '../../../../../../nls.js';
 import { AgentHostAllowSignedOutWhenUsableSettingId, AgentProvider, AgentSession, CODEX_AGENT_PROVIDER_ID, type IAgentConnection } from '../../../../../../platform/agentHost/common/agentService.js';
-import { agentHostAuthority, LOCAL_AGENT_HOST_AUTHORITY } from '../../../../../../platform/agentHost/common/agentHostUri.js';
+import { agentHostAuthority, fromAgentHostUri, LOCAL_AGENT_HOST_AUTHORITY } from '../../../../../../platform/agentHost/common/agentHostUri.js';
 import { isCustomizationEnabled } from '../../../../../../platform/agentHost/common/customizationEnablement.js';
 import { findDeepestContainingWorkingDirectory } from '../../../../../../platform/agentHost/common/agentHostWorkingDirectories.js';
 import { AgentHostElementAttachmentDisplayKind, getElementAttachmentCorrelationId, toElementAttachmentMeta } from '../../../../../../platform/agentHost/common/meta/agentElementAttachments.js';
@@ -3859,6 +3859,95 @@ export class AgentHostSessionHandler extends Disposable implements IChatSessionC
 		}));
 	}
 
+	private _extractTargetUrisFromToolCall(tc: ToolCallState): URI[] {
+		const uris: URI[] = [];
+		const pushCandidate = (cand: unknown) => {
+			if (typeof cand !== 'string' || !cand.trim()) {
+				return;
+			}
+			const trimmed = cand.trim();
+			try {
+				if (trimmed.startsWith('vscode-agent-host://')) {
+					const parsed = URI.parse(trimmed);
+					const localUri = fromAgentHostUri(parsed);
+					if (!uris.some(u => isEqual(u, localUri))) {
+						uris.push(localUri);
+					}
+				} else if (trimmed.startsWith('file://')) {
+					const parsed = URI.parse(trimmed);
+					if (!uris.some(u => isEqual(u, parsed))) {
+						uris.push(parsed);
+					}
+				} else if (/^[a-zA-Z]:[\\/]/.test(trimmed) || trimmed.startsWith('/')) {
+					const fileUri = URI.file(trimmed);
+					if (!uris.some(u => isEqual(u, fileUri))) {
+						uris.push(fileUri);
+					}
+				} else {
+					const root = this._workspaceContextService.getWorkspace().folders[0]?.uri;
+					if (root) {
+						const joined = URI.joinPath(root, trimmed);
+						if (!uris.some(u => isEqual(u, joined))) {
+							uris.push(joined);
+						}
+					}
+				}
+			} catch {
+				// Ignore invalid paths
+			}
+		};
+
+		const rawInput = 'toolInput' in tc ? (tc as { toolInput?: unknown }).toolInput : undefined;
+		const inlineInput = rawInput ? getInlineToolInput(rawInput as ToolInput) : undefined;
+		if (inlineInput) {
+			try {
+				const parsed = JSON.parse(inlineInput);
+				if (parsed && typeof parsed === 'object') {
+					const keys = [
+						'TargetFile', 'targetFile', 'target_file',
+						'filePath', 'filepath', 'file_path',
+						'path', 'file', 'fileName', 'filename',
+						'uri', 'resource', 'relativePath',
+					];
+					for (const k of keys) {
+						if (k in parsed) {
+							pushCandidate((parsed as Record<string, unknown>)[k]);
+						}
+					}
+					if (Array.isArray(parsed.files)) {
+						for (const f of parsed.files) {
+							pushCandidate(f);
+						}
+					}
+				}
+			} catch {
+				if (/^[a-zA-Z]:[\\/]/.test(inlineInput) || inlineInput.startsWith('/') || inlineInput.startsWith('file://')) {
+					pushCandidate(inlineInput);
+				}
+			}
+		}
+
+		const rawContent = 'content' in tc ? (tc as { content?: unknown }).content : undefined;
+		if (Array.isArray(rawContent)) {
+			for (const item of rawContent) {
+				if (item && item.type === ToolResultContentType.FileEdit) {
+					const fileEdit = item as any;
+					if (fileEdit.before?.uri) {
+						pushCandidate(fileEdit.before.uri);
+					}
+					if (fileEdit.after?.uri) {
+						pushCandidate(fileEdit.after.uri);
+					}
+					if (fileEdit.resource) {
+						pushCandidate(fileEdit.resource);
+					}
+				}
+			}
+		}
+
+		return uris;
+	}
+
 	private _setupToolCallPart(
 		part$: IObservable<ToolCallResponsePart>,
 		store: DisposableStore,
@@ -3866,6 +3955,23 @@ export class AgentHostSessionHandler extends Disposable implements IChatSessionC
 		subagentContext: ISubagentContext,
 	): void {
 		const initial = part$.get().toolCall;
+
+		// Drive file-explorer streaming decoration: track in-flight tool call lifecycle
+		const snapshotController = this._ensureSnapshotController(opts.sessionResource);
+		const toolCallId = initial.toolCallId;
+		store.add(autorun(reader => {
+			const tc = part$.read(reader).toolCall;
+			const status = tc.status;
+			if (status === ToolCallStatus.Running || status === ToolCallStatus.Streaming || status === ToolCallStatus.PendingResultConfirmation) {
+				const uris = this._extractTargetUrisFromToolCall(tc);
+				snapshotController?.notifyToolCallRunning(toolCallId, uris);
+			} else {
+				snapshotController?.notifyToolCallDone(toolCallId);
+			}
+		}));
+		store.add(toDisposable(() => {
+			snapshotController?.notifyToolCallDone(toolCallId);
+		}));
 		// The snapshot renders a settled tool call as a serialized part, which
 		// cannot be adopted. A live invocation for it would duplicate the card
 		// and land a tool part between the restored markdown prefix and the
@@ -5244,6 +5350,16 @@ export class AgentHostSessionHandler extends Disposable implements IChatSessionC
 		tc: ToolCallState,
 	): IChatProgress[] {
 		const controller = this._ensureSnapshotController(sessionResource);
+
+		// Drive the file-explorer spinner: mark the tool call as running so
+		// ChatDecorationsProvider shows the spinning codicon on tracked files.
+		if (tc.status === ToolCallStatus.Running || tc.status === ToolCallStatus.Streaming || tc.status === ToolCallStatus.PendingResultConfirmation) {
+			const uris = this._extractTargetUrisFromToolCall(tc);
+			controller?.notifyToolCallRunning(tc.toolCallId, uris);
+		} else {
+			controller?.notifyToolCallDone(tc.toolCallId);
+		}
+
 		controller?.addToolCallEdits(requestId, tc);
 		if (tc.status !== ToolCallStatus.Completed) {
 			return [];

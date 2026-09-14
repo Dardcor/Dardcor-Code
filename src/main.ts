@@ -14,6 +14,7 @@ import minimist from 'minimist';
 import { product } from './bootstrap-meta.js';
 import { parse } from './dc/base/common/jsonc.js';
 import { getUserDataPath } from './dc/platform/environment/node/userDataPath.js';
+import { migrateLegacyUserData } from './dc/platform/environment/node/userDataMigration.js';
 import * as perf from './dc/base/common/performance.js';
 import { resolveNLSConfiguration } from './dc/base/node/nls.js';
 import { getUNCHost, addUNCHostToAllowlist } from './dc/base/node/unc.js';
@@ -60,7 +61,8 @@ app.commandLine.appendSwitch('disable-features', 'BlockInsecurePrivateNetworkReq
 app.commandLine.appendSwitch('allow-insecure-localhost');
 
 // Set userData path before app 'ready' event
-const userDataPath = getUserDataPath(args, product.nameShort ?? 'code-oss-dev');
+const userDataPath = getUserDataPath(args, product.nameShort ?? 'Dardcor Code');
+migrateLegacyUserData(userDataPath);
 if (process.platform === 'win32') {
 	const userDataUNCHost = getUNCHost(userDataPath);
 	if (userDataUNCHost) {
@@ -453,12 +455,7 @@ function getArgvConfigPath(): string {
 		return path.join(vscodePortable, 'argv.json');
 	}
 
-	let dataFolderName = product.dataFolderName;
-	if (process.env['VSCODE_DEV']) {
-		dataFolderName = `${dataFolderName}-dev`;
-	}
-
-	return path.join(os.homedir(), dataFolderName!, 'argv.json');
+	return path.join(os.homedir(), product.dataFolderName!, 'argv.json');
 }
 
 function configureCrashReporter(): void {

@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { DeferredPromise, raceCancellationError, raceTimeout } from '../../../../../base/common/async.js';
+import { DeferredPromise, raceCancellationError, raceTimeout, RunOnceScheduler } from '../../../../../base/common/async.js';
 import { CancellationToken, CancellationTokenSource } from '../../../../../base/common/cancellation.js';
 import { IStringDictionary } from '../../../../../base/common/collections.js';
 import { toErrorMessage } from '../../../../../base/common/errorMessage.js';
@@ -177,6 +177,7 @@ export class ChatService extends Disposable implements IChatService {
 	declare _serviceBrand: undefined;
 
 	private readonly _sessionModels: ChatModelStore;
+	private readonly _persistDelayer: RunOnceScheduler;
 	private readonly _pendingRequests = this._register(new DisposableResourceMap<CancellableRequest>());
 	private readonly _queuedRequestDeferreds = new Map<string, DeferredPromise<ChatSendResult>>();
 	/** Pending requests that are synthetic streamed-turn trackers (not real in-flight requests). */
@@ -318,6 +319,19 @@ export class ChatService extends Disposable implements IChatService {
 			// re-targeting late sends. The inverse alias is intentionally retained.
 			this.chatSessionService.clearMaterializedSessionResource(model.sessionResource);
 			this._onDidDisposeSession.fire({ sessionResources: [model.sessionResource], reason: 'cleared' });
+		}));
+
+		this._persistDelayer = this._register(new RunOnceScheduler(() => this.saveState(), 300));
+		this._register(this._sessionModels.onDidCreateModel(model => {
+			this._register(model.onDidChange(e => {
+				if (e.kind === 'addRequest' || e.kind === 'completedRequest' || e.kind === 'setCustomTitle' || e.kind === 'removeRequest') {
+					if (e.kind === 'completedRequest') {
+						this.saveState();
+					} else {
+						this._persistDelayer.schedule();
+					}
+				}
+			}));
 		}));
 
 		this._chatServiceTelemetry = this.instantiationService.createInstance(ChatServiceTelemetry);

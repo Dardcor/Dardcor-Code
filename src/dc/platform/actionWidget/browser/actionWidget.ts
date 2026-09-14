@@ -65,6 +65,7 @@ class ActionWidgetService extends Disposable implements IActionWidgetService {
                 this._onWidgetClosed(didCancel);
             },
             get anchorPosition() { return list.anchorPosition; },
+            preventAvoid: listOptions?.preventAvoid,
         }, container, false);
     }
     acceptSelected(preview?: boolean) {

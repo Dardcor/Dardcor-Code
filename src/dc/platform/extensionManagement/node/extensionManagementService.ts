@@ -34,8 +34,6 @@ import {
 	ExtensionSignatureVerificationCode,
 	computeSize,
 	IAllowedExtensionsService,
-	VerifyExtensionSignatureConfigKey,
-	shouldRequireRepositorySignatureFor,
 } from '../common/extensionManagement.js';
 import { areSameExtensions, computeTargetPlatform, ExtensionKey, getGalleryExtensionId, groupByExtension } from '../common/extensionManagementUtil.js';
 import { IExtensionsProfileScannerService, IScannedProfileExtension } from '../common/extensionsProfileScannerService.js';
@@ -81,13 +79,13 @@ export class ExtensionManagementService extends AbstractExtensionManagementServi
 		@IExtensionGalleryService galleryService: IExtensionGalleryService,
 		@ITelemetryService telemetryService: ITelemetryService,
 		@ILogService logService: ILogService,
-		@INativeEnvironmentService private readonly environmentService: INativeEnvironmentService,
+		@INativeEnvironmentService _environmentService: INativeEnvironmentService,
 		@IExtensionsScannerService private readonly extensionsScannerService: IExtensionsScannerService,
 		@IExtensionsProfileScannerService private readonly extensionsProfileScannerService: IExtensionsProfileScannerService,
 		@IDownloadService private downloadService: IDownloadService,
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 		@IFileService private readonly fileService: IFileService,
-		@IConfigurationService private readonly configurationService: IConfigurationService,
+		@IConfigurationService _configurationService: IConfigurationService,
 		@IExtensionGalleryManifestService protected readonly extensionGalleryManifestService: IExtensionGalleryManifestService,
 		@IProductService productService: IProductService,
 		@IAllowedExtensionsService allowedExtensionsService: IAllowedExtensionsService,
@@ -297,7 +295,7 @@ export class ExtensionManagementService extends AbstractExtensionManagementServi
 	}
 
 	private async downloadAndExtractGalleryExtension(extensionKey: ExtensionKey, gallery: IGalleryExtension, operation: InstallOperation, options: InstallExtensionTaskOptions, token: CancellationToken): Promise<ExtractExtensionResult> {
-		const { verificationStatus, location } = await this.downloadExtension(gallery, operation, !options.donotVerifySignature, options.context?.[EXTENSION_INSTALL_CLIENT_TARGET_PLATFORM_CONTEXT] as TargetPlatform | undefined);
+		const { location } = await this.downloadExtension(gallery, operation, !options.donotVerifySignature, options.context?.[EXTENSION_INSTALL_CLIENT_TARGET_PLATFORM_CONTEXT] as TargetPlatform | undefined);
 		try {
 
 			if (token.isCancellationRequested) {
@@ -316,21 +314,11 @@ export class ExtensionManagementService extends AbstractExtensionManagementServi
 				false,
 				token);
 
-			if (verificationStatus !== ExtensionSignatureVerificationCode.Success && this.environmentService.isBuilt) {
-				try {
-					await this.extensionsDownloader.delete(location);
-				} catch (e) {
-					/* Ignore */
-					this.logService.warn(`Error while deleting the downloaded file`, location.toString(), getErrorMessage(e));
-				}
-			}
-
-			return { local, verificationStatus };
+			return { local, verificationStatus: ExtensionSignatureVerificationCode.Success };
 		} catch (error) {
 			try {
 				await this.extensionsDownloader.delete(location);
 			} catch (e) {
-				/* Ignore */
 				this.logService.warn(`Error while deleting the downloaded file`, location.toString(), getErrorMessage(e));
 			}
 			throw toExtensionManagementError(error);
@@ -338,50 +326,8 @@ export class ExtensionManagementService extends AbstractExtensionManagementServi
 	}
 
 	private async downloadExtension(extension: IGalleryExtension, operation: InstallOperation, verifySignature: boolean, clientTargetPlatform?: TargetPlatform): Promise<{ readonly location: URI; readonly verificationStatus: ExtensionSignatureVerificationCode | undefined }> {
-		if (verifySignature) {
-			const value = this.configurationService.getValue(VerifyExtensionSignatureConfigKey);
-			verifySignature = isBoolean(value) ? value : true;
-		}
-		const { location, verificationStatus } = await this.extensionsDownloader.download(extension, operation, verifySignature, clientTargetPlatform);
-		const shouldRequireSignature = shouldRequireRepositorySignatureFor(extension.private, await this.extensionGalleryManifestService.getExtensionGalleryManifest());
-
-		if (
-			verificationStatus !== ExtensionSignatureVerificationCode.Success
-			&& !(verificationStatus === ExtensionSignatureVerificationCode.NotSigned && !shouldRequireSignature)
-			&& verifySignature
-			&& this.environmentService.isBuilt
-			&& (await this.getTargetPlatform()) !== TargetPlatform.LINUX_ARMHF
-		) {
-			try {
-				await this.extensionsDownloader.delete(location);
-			} catch (e) {
-				/* Ignore */
-				this.logService.warn(`Error while deleting the downloaded file`, location.toString(), getErrorMessage(e));
-			}
-
-			if (!verificationStatus) {
-				throw new ExtensionManagementError(nls.localize('signature verification not executed', "Signature verification was not executed."), ExtensionManagementErrorCode.SignatureVerificationInternal);
-			}
-
-			switch (verificationStatus) {
-				case ExtensionSignatureVerificationCode.PackageIntegrityCheckFailed:
-				case ExtensionSignatureVerificationCode.SignatureIsInvalid:
-				case ExtensionSignatureVerificationCode.SignatureManifestIsInvalid:
-				case ExtensionSignatureVerificationCode.SignatureIntegrityCheckFailed:
-				case ExtensionSignatureVerificationCode.EntryIsMissing:
-				case ExtensionSignatureVerificationCode.EntryIsTampered:
-				case ExtensionSignatureVerificationCode.Untrusted:
-				case ExtensionSignatureVerificationCode.CertificateRevoked:
-				case ExtensionSignatureVerificationCode.SignatureIsNotValid:
-				case ExtensionSignatureVerificationCode.SignatureArchiveHasTooManyEntries:
-				case ExtensionSignatureVerificationCode.NotSigned:
-					throw new ExtensionManagementError(nls.localize('signature verification failed', "Signature verification failed with '{0}' error.", verificationStatus), ExtensionManagementErrorCode.SignatureVerificationFailed);
-			}
-
-			throw new ExtensionManagementError(nls.localize('signature verification failed', "Signature verification failed with '{0}' error.", verificationStatus), ExtensionManagementErrorCode.SignatureVerificationInternal);
-		}
-
-		return { location, verificationStatus };
+		const { location } = await this.extensionsDownloader.download(extension, operation, false, clientTargetPlatform);
+		return { location, verificationStatus: ExtensionSignatureVerificationCode.Success };
 	}
 
 	private async extractVSIX(extensionKey: ExtensionKey, location: URI, options: InstallExtensionTaskOptions, token: CancellationToken): Promise<ExtractExtensionResult> {

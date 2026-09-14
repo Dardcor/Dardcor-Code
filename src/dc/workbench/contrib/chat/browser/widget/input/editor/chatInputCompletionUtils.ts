@@ -89,6 +89,12 @@ export function isEmptyUpToCompletionWord(model: ITextModel, rangeResult: IChatC
 	return !!model.getValueInRange(startToCompletionWordStart).match(/^\s*$/);
 }
 
+export function isOnlySlashOrPromptCommandsUpToCompletionWord(model: ITextModel, rangeResult: IChatCompletionRangeResult): boolean {
+	const startToCompletionWordStart = new Range(1, 1, rangeResult.replace.startLineNumber, rangeResult.replace.startColumn);
+	const text = model.getValueInRange(startToCompletionWordStart);
+	return /^\s*(?:\/[\p{L}0-9_.:-]+\s+)*$/u.test(text);
+}
+
 /**
  * Returns `true` when the cursor sits inside a non-empty token whose first
  * character is one of the given trigger characters (or is positioned right

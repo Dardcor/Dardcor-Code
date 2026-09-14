@@ -18,6 +18,7 @@ import { ServicesAccessor } from '../../../../../editor/browser/editorExtensions
 import { Range } from '../../../../../editor/common/core/range.js';
 import { EditorContextKeys } from '../../../../../editor/common/editorContextKeys.js';
 import { ITextModelService } from '../../../../../editor/common/services/resolverService.js';
+import { IFileDialogService } from '../../../../../platform/dialogs/common/dialogs.js';
 import { AbstractGotoSymbolQuickAccessProvider, IGotoSymbolQuickPickItem } from '../../../../../editor/contrib/quickAccess/browser/gotoSymbolQuickAccess.js';
 import { localize, localize2 } from '../../../../../nls.js';
 import { Action2, MenuId, registerAction2 } from '../../../../../platform/actions/common/actions.js';
@@ -541,6 +542,62 @@ export class AttachContextAction extends Action2 {
 		}
 
 		const quickPickItems: IContextPickItemItem[] = [];
+
+		quickPickItems.push({
+			kind: 'contextPick',
+			item: {
+				type: 'valuePick',
+				label: localize('chatContext.uploadAnyFile', "Upload File from Disk..."),
+				icon: Codicon.folderOpened,
+				asAttachment: async (_widget: IChatWidget) => {
+					const fileDialogService = accessor.get(IFileDialogService);
+					const fileService = accessor.get(IFileService);
+					const textModelService = accessor.get(ITextModelService);
+					const selectedFiles = await fileDialogService.showOpenDialog({
+						canSelectFiles: true,
+						canSelectFolders: false,
+						canSelectMany: true,
+						title: localize('chatContext.uploadFileTitle', "Select Files to Attach to Chat")
+					});
+					if (!selectedFiles || selectedFiles.length === 0) {
+						return undefined;
+					}
+					const attachments: IChatRequestVariableEntry[] = [];
+					for (const fileUri of selectedFiles) {
+						if (/\.(png|jpg|jpeg|bmp|gif|webp|tiff)$/i.test(fileUri.path)) {
+							const readFile = await fileService.readFile(fileUri);
+							const resizedImage = await resizeImage(readFile.value.buffer);
+							attachments.push({
+								id: fileUri.toString(),
+								name: fileUri.path.split('/').pop() || fileUri.fsPath,
+								fullName: fileUri.fsPath,
+								value: resizedImage,
+								kind: 'image',
+								references: [{ reference: fileUri, kind: 'reference' }]
+							});
+						} else {
+							let omittedState = OmittedState.NotOmitted;
+							try {
+								const createdModel = await textModelService.createModelReference(fileUri);
+								createdModel.dispose();
+							} catch {
+								omittedState = OmittedState.Full;
+							}
+							attachments.push({
+								kind: 'file',
+								id: fileUri.toString(),
+								value: fileUri,
+								name: fileUri.path.split('/').pop() || fileUri.fsPath,
+								omittedState
+							});
+						}
+					}
+					return attachments;
+				}
+			},
+			label: localize('chatContext.uploadAnyFile', "Upload File from Disk..."),
+			iconClass: ThemeIcon.asClassName(Codicon.folderOpened),
+		});
 
 		for (const item of contextPickService.items) {
 

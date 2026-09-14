@@ -445,6 +445,7 @@ export interface IActionListOptions {
     readonly widgetClassName?: string;
     readonly closeAnimation?: IActionListCloseAnimation;
     readonly anchorPosition?: AnchorPosition;
+    readonly preventAvoid?: boolean;
 }
 export class ActionListWidget<T> extends Disposable {
     public readonly domNode: HTMLElement;
@@ -2090,17 +2091,51 @@ export class ActionList<T> extends Disposable {
     private computeActionWidgetVerticalChromeHeight(): number {
         const widgetContainer = this.domNode.parentElement?.closest('.action-widget');
         if (!widgetContainer) {
-            return 0;
+            return 12;
         }
         const style = dom.getWindow(widgetContainer).getComputedStyle(widgetContainer);
         const toPixels = (value: string): number => Number.parseFloat(value) || 0;
-        return toPixels(style.paddingTop) + toPixels(style.paddingBottom) + toPixels(style.borderTopWidth) + toPixels(style.borderBottomWidth);
+        const chrome = toPixels(style.paddingTop) + toPixels(style.paddingBottom) + toPixels(style.borderTopWidth) + toPixels(style.borderBottomWidth);
+        return Math.max(chrome, 10);
     }
     private computeHeight(): number {
         const listHeight = this._fixedContentHeight ?? this._widget.computeListHeight();
-        const filterHeight = this._widget.filterContainer ? 36 : 0;
-        const footerHeight = this._widget.footerContainer ? 32 : 0;
-        const headerHeight = this._widget.headerContainer ? this._widget.headerContainer.offsetHeight || 36 : 0;
+        let filterHeight = 0;
+        if (this._widget.filterContainer) {
+            const filterEl = this._widget.filterContainer;
+            const filterBounding = filterEl.getBoundingClientRect();
+            if (filterBounding.height > 0) {
+                const style = dom.getWindow(filterEl).getComputedStyle(filterEl);
+                const toPixels = (value: string): number => Number.parseFloat(value) || 0;
+                filterHeight = Math.ceil(filterBounding.height + toPixels(style.marginTop) + toPixels(style.marginBottom));
+            } else {
+                filterHeight = 40;
+            }
+        }
+        let footerHeight = 0;
+        if (this._widget.footerContainer) {
+            const footerEl = this._widget.footerContainer;
+            const footerBounding = footerEl.getBoundingClientRect();
+            if (footerBounding.height > 0) {
+                const style = dom.getWindow(footerEl).getComputedStyle(footerEl);
+                const toPixels = (value: string): number => Number.parseFloat(value) || 0;
+                footerHeight = Math.ceil(footerBounding.height + toPixels(style.marginTop) + toPixels(style.marginBottom));
+            } else {
+                footerHeight = 32;
+            }
+        }
+        let headerHeight = 0;
+        if (this._widget.headerContainer) {
+            const headerEl = this._widget.headerContainer;
+            const headerBounding = headerEl.getBoundingClientRect();
+            if (headerBounding.height > 0) {
+                const style = dom.getWindow(headerEl).getComputedStyle(headerEl);
+                const toPixels = (value: string): number => Number.parseFloat(value) || 0;
+                headerHeight = Math.ceil(headerBounding.height + toPixels(style.marginTop) + toPixels(style.marginBottom));
+            } else {
+                headerHeight = headerEl.offsetHeight || 36;
+            }
+        }
         const chromeHeight = filterHeight + footerHeight + headerHeight;
         const targetWindow = dom.getWindow(this.domNode);
         let availableHeight;
@@ -2109,15 +2144,17 @@ export class ActionList<T> extends Disposable {
             const anchorRect = getAnchorRect(this._anchor);
             const anchorTopInViewport = anchorRect.top - targetWindow.pageYOffset;
             const bottomGap = 30;
+            const topGap = 24;
             const spaceBelow = viewportHeight - anchorTopInViewport - anchorRect.height - bottomGap;
-            const spaceAbove = anchorTopInViewport;
+            const spaceAbove = Math.max(0, anchorTopInViewport - topGap);
             if (this._showAbove === undefined) {
                 const fullHeight = this._fixedContentHeight ?? this._widget.computeFullHeight();
                 this._showAbove = this._preferredAnchorPosition !== undefined
                     ? this._preferredAnchorPosition === AnchorPosition.ABOVE
                     : (chromeHeight + fullHeight > spaceBelow && spaceAbove > spaceBelow);
             }
-            availableHeight = Math.max(0, (this._showAbove ? spaceAbove : spaceBelow) - this.computeActionWidgetVerticalChromeHeight());
+            const verticalChromeHeight = this.computeActionWidgetVerticalChromeHeight();
+            availableHeight = Math.max(0, (this._showAbove ? spaceAbove : spaceBelow) - verticalChromeHeight - 4);
         }
         else {
             const padding = 10;
@@ -2132,9 +2169,11 @@ export class ActionList<T> extends Disposable {
             const height = Math.min(listHeight + chromeHeight, Math.max(0, maxHeight));
             return Math.max(0, height - chromeHeight);
         }
-        const maxHeight = Math.min(Math.max(availableHeight, actionLineHeight * 3 + chromeHeight), viewportMaxHeight);
+        const maxHeight = this._showAbove
+            ? Math.min(availableHeight, viewportMaxHeight)
+            : Math.min(Math.max(availableHeight, actionLineHeight * 3 + chromeHeight), viewportMaxHeight);
         const height = Math.min(listHeight + chromeHeight, maxHeight);
-        return height - chromeHeight;
+        return Math.max(0, height - chromeHeight);
     }
     layout(minWidth: number, fixedContentHeight?: number): number {
         this._hasLaidOut = true;
@@ -2147,6 +2186,10 @@ export class ActionList<T> extends Disposable {
         const computedWidth = this._widget.computeMaxWidth(minWidth);
         this._cachedMaxWidth = computedWidth;
         this._widget.layout(listHeight, this._cachedMaxWidth);
+        const widgetContainer = this.domNode.parentElement?.closest<HTMLElement>('.action-widget');
+        if (widgetContainer) {
+            widgetContainer.style.width = `${this._cachedMaxWidth}px`;
+        }
         return this._cachedMaxWidth;
     }
 }

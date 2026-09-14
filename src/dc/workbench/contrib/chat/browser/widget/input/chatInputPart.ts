@@ -32,7 +32,7 @@ import { Schemas } from '../../../../../../base/common/network.js';
 import { mixin } from '../../../../../../base/common/objects.js';
 import { autorun, constObservable, derived, derivedOpts, IObservable, ISettableObservable, ITransaction, observableFromEvent, observableSignalFromEvent, observableValue, transaction } from '../../../../../../base/common/observable.js';
 import { isMacintosh } from '../../../../../../base/common/platform.js';
-import { isEqual } from '../../../../../../base/common/resources.js';
+import { isEqual, joinPath } from '../../../../../../base/common/resources.js';
 import { ScrollbarVisibility } from '../../../../../../base/common/scrollable.js';
 import { ThemeIcon } from '../../../../../../base/common/themables.js';
 import { URI } from '../../../../../../base/common/uri.js';
@@ -131,7 +131,8 @@ import { ChatImplicitContexts } from '../../attachments/chatImplicitContext.js';
 import { ImplicitContextAttachmentWidget, isImplicitContextAlreadyAttached } from '../../attachments/implicitContextAttachment.js';
 import { IChatWidget, IChatWidgetService, IChatWidgetViewModelChangeEvent, ISessionTypePickerDelegate, isIChatResourceViewContext, isIChatViewViewContext, IWorkspacePickerDelegate } from '../../chat.js';
 import { ChatEditingShowChangesAction, ViewPreviousEditsAction } from '../../chatEditing/chatEditingActions.js';
-import { resizeImage } from '../../chatImageUtils.js';
+import { resizeImage, createFileForMedia } from '../../chatImageUtils.js';
+import { imageToHash } from './editor/chatPasteProviders.js';
 import { ChatSessionPickerActionItem, IChatSessionPickerDelegate } from '../../chatSessions/chatSessionPickerActionItem.js';
 import { AgentHostChatInputPicker, AgentHostChatInputPickerActionViewItem } from '../../agentSessions/agentHost/agentHostChatInputPicker.js';
 import { getAgentHostPickerProperty, OpenAgentHostAutoApprovePickerAction, OpenAgentHostCodexApprovalsPickerAction, OpenAgentHostModePickerAction, OpenAgentHostPermissionModePickerAction, OpenAgentHostFolderPickerAction } from '../../agentSessions/agentHost/agentHostChatInputPicker.contribution.js';
@@ -422,7 +423,6 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 	private readonly _onDidChangeActiveConfirmationSubagent = this._register(new Emitter<string | undefined>());
 	readonly onDidChangeActiveConfirmationSubagent = this._onDidChangeActiveConfirmationSubagent.event;
 	private readonly _chatEditingTodosDisposables = this._register(new DisposableStore());
-	private _lastEditingSessionResource: URI | undefined;
 
 	private _onDidLoadInputState: Emitter<void> = this._register(new Emitter());
 	readonly onDidLoadInputState: Event<void> = this._onDidLoadInputState.event;
@@ -507,6 +507,9 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 
 	private attachedContextContainer!: HTMLElement;
 	private readonly attachedContextDisposables: MutableDisposable<DisposableStore> = this._register(new MutableDisposable<DisposableStore>());
+
+	private skillChipsContainer!: HTMLElement;
+	private readonly _activeSkills = new Set<string>();
 
 	private chatEditingSessionWidgetContainer!: HTMLElement;
 	private chatInputTodoListWidgetContainer!: HTMLElement;
@@ -2399,6 +2402,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		notifyDictationSubmitted(this._inputEditor);
 		logChangesToStateModel(this._inputModel, `[ACCEPT] acceptInput -> attachmentModel.clear() in ${this._currentSessionKey}`, undefined, this._inputModel?.state.get(), this.logService);
 		this.attachmentModel.clear();
+		this.clearActiveSkills();
 		this._onDidLoadInputState.fire();
 		if (this.accessibilityService.isScreenReaderOptimized() && isMacintosh) {
 			this._acceptInputForVoiceover();
@@ -2596,8 +2600,174 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		this._inputEditor.updateOptions({ fontFamily: isCommand ? EDITOR_FONT_DEFAULTS.fontFamily : DEFAULT_FONT_FAMILY });
 	}
 
+	public addSkill(skillName: string): void {
+		const cleanName = skillName.startsWith('/') ? skillName.slice(1) : skillName;
+		if (!cleanName) {
+			return;
+		}
+		this._activeSkills.add(cleanName);
+		this.renderSkillChips();
+	}
+
+	public removeSkill(skillName: string): void {
+		this._activeSkills.delete(skillName);
+		this.renderSkillChips();
+	}
+
+	public getActiveSkills(): string[] {
+		return Array.from(this._activeSkills);
+	}
+
+	public clearActiveSkills(): void {
+		this._activeSkills.clear();
+		this.renderSkillChips();
+	}
+
+	private _isExtractingSkills = false;
+
+	public extractSkillsFromInput(model: ITextModel, allowEndOfString = false): void {
+		if (this._isExtractingSkills) {
+			return;
+		}
+		const text = model.getValue();
+		if (!text.includes('/')) {
+			return;
+		}
+
+		const BUILTIN_COMMANDS = new Set([
+			'create-agent', 'clear', 'help', 'init', 'explain', 'fix', 'test',
+			'tests', 'review', 'commit', 'start-debugging', 'setup-tests',
+			'goal', 'schedule', 'grill-me', 'learn'
+		]);
+
+		const skillPattern = allowEndOfString
+			? /(?:^|\s)\/([\p{L}0-9_.:-]+)(?=\s|$)/gu
+			: /(?:^|\s)\/([\p{L}0-9_.:-]+)\s+/gu;
+
+		const foundSkills: string[] = [];
+		let match: RegExpExecArray | null;
+
+		while ((match = skillPattern.exec(text)) !== null) {
+			const skill = match[1];
+			if (!BUILTIN_COMMANDS.has(skill.toLowerCase())) {
+				foundSkills.push(skill);
+			}
+		}
+
+		if (foundSkills.length === 0) {
+			return;
+		}
+
+		this._isExtractingSkills = true;
+		try {
+			for (const skill of foundSkills) {
+				this.addSkill(skill);
+			}
+
+			let newText = text;
+			for (const skill of foundSkills) {
+				const escaped = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+				const replaceRegex = new RegExp(`(?:^|\\s)\\/` + escaped + `(?:\\s+|$)`, 'gu');
+				newText = newText.replace(replaceRegex, ' ');
+			}
+			newText = newText.trim();
+			if (newText !== text) {
+				model.setValue(newText);
+				this._inputEditor.setPosition(getLastPosition(model));
+			}
+		} finally {
+			this._isExtractingSkills = false;
+		}
+	}
+
+	private renderSkillChips(): void {
+		if (!this.skillChipsContainer) {
+			return;
+		}
+		dom.clearNode(this.skillChipsContainer);
+		if (this._activeSkills.size === 0) {
+			dom.hide(this.skillChipsContainer);
+			return;
+		}
+		dom.show(this.skillChipsContainer);
+		for (const skill of this._activeSkills) {
+			const chip = dom.$('.chat-skill-chip');
+			const icon = dom.$('span.chat-skill-chip-icon');
+			icon.classList.add(...ThemeIcon.asClassNameArray(Codicon.sparkle));
+			const name = dom.$('span.chat-skill-chip-name', {}, skill);
+			const close = dom.$('span.chat-skill-chip-remove');
+			close.classList.add(...ThemeIcon.asClassNameArray(Codicon.closeCompact));
+			close.title = localize('chat.removeSkill', "Remove {0}", skill);
+			close.setAttribute('role', 'button');
+			close.setAttribute('tabindex', '0');
+			close.setAttribute('aria-label', localize('chat.removeSkillAria', "Remove skill {0}", skill));
+			close.onclick = (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				this.removeSkill(skill);
+			};
+			close.onkeydown = (e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					e.preventDefault();
+					e.stopPropagation();
+					this.removeSkill(skill);
+				}
+			};
+			chip.appendChild(icon);
+			chip.appendChild(name);
+			chip.appendChild(close);
+			this.skillChipsContainer.appendChild(chip);
+		}
+	}
+
 	private handleTerminalCommandPaste(e: ClipboardEvent): void {
+		if (this._handleClipboardImagePaste(e)) {
+			return;
+		}
 		handleTerminalCommandPaste(e, this._inputEditor, this.getTerminalCommandPrefix(), this.dialogService, this.storageService);
+	}
+
+	private _handleClipboardImagePaste(e: ClipboardEvent): boolean {
+		const items = e.clipboardData?.items;
+		if (!items || items.length === 0) {
+			return false;
+		}
+		for (let i = 0; i < items.length; i++) {
+			const item = items[i];
+			if (item.kind === 'file' && item.type.startsWith('image/')) {
+				const file = item.getAsFile();
+				if (file) {
+					e.preventDefault();
+					e.stopPropagation();
+					void file.arrayBuffer().then(async buffer => {
+						const uint8 = new Uint8Array(buffer);
+						const mimeType = file.type || 'image/png';
+						const scaled = await resizeImage(uint8, mimeType);
+						const hash = await imageToHash(scaled);
+						const displayName = localize('pastedImageName', 'Pasted Image');
+						let tempDisplayName = displayName;
+						const attached = this._attachmentModel.attachments;
+						for (let append = 2; attached.some(a => a.name === tempDisplayName); append++) {
+							tempDisplayName = `${displayName} ${append}`;
+						}
+						const imagesFolder = joinPath(this.environmentService.workspaceStorageHome, 'vscode-chat-images');
+						const fileRef = await createFileForMedia(this.fileService, imagesFolder, uint8, mimeType).catch(() => undefined);
+						this._attachmentModel.addContext({
+							kind: 'image',
+							value: scaled,
+							id: hash,
+							name: tempDisplayName,
+							icon: Codicon.fileMedia,
+							mimeType,
+							isPasted: true,
+							references: fileRef ? [{ reference: fileRef, kind: 'reference' }] : []
+						});
+					});
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	private areAllOptionsValid(sessionResource: URI, visibleOptionGroups: readonly IChatSessionProviderOptionGroup[]): boolean {
@@ -3024,6 +3194,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 				this.refreshViewModelScopedState();
 				this.clearQuestionCarouselIfSessionChanged(e);
 				this.clearPlanReviewIfSessionChanged(e);
+				this.clearActiveSkills();
 				// Swap the visible tool confirmation carousel for the new session
 				this._syncToolConfirmationCarouselForSession();
 				this.reconcileSessionTypeForViewModelChange(e, observableTransaction);
@@ -3143,6 +3314,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 
 	render(container: HTMLElement, initialValue: string, widget: IChatWidget) {
 		this._widget = widget;
+		this.clearActiveSkills();
 		this.updateDeferredNotificationsEligibility();
 		this._currentSessionResourceObservable.set(widget.viewModel?.sessionResource, undefined);
 		this._currentSessionModelObservable.set(widget.viewModel?.model, undefined);
@@ -3179,6 +3351,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 						dom.h(`.chat-getting-started-tip-container.${chatInputStackSlotClass}@chatGettingStartedTipContainer`),
 						dom.h('.interactive-input-and-side-toolbar@inputAndSideToolbar', [
 							dom.h('.chat-input-container@inputContainer', [
+								dom.h('.chat-input-skill-chips@skillChipsContainer'),
 								dom.h('.chat-editor-container@editorContainer'),
 								dom.h('.chat-input-toolbars@inputToolbars'),
 							]),
@@ -3217,6 +3390,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 							dom.h('.chat-attachments-container@attachmentsContainer', [
 								dom.h('.chat-attached-context@attachedContextContainer'),
 							]),
+							dom.h('.chat-input-skill-chips@skillChipsContainer'),
 							dom.h('.chat-editor-container@editorContainer'),
 							dom.h('.chat-input-toolbars@inputToolbars'),
 						]),
@@ -3251,6 +3425,8 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		const editorContainer = elements.editorContainer;
 		this.attachmentsContainer = elements.attachmentsContainer;
 		this.attachedContextContainer = elements.attachedContextContainer;
+		this.skillChipsContainer = elements.skillChipsContainer;
+		dom.hide(this.skillChipsContainer);
 		const toolbarsContainer = elements.inputToolbars;
 		this.secondaryToolbarContainer = elements.secondaryToolbar;
 		const responsivePickerContainer = elements.responsivePickerContainer;
@@ -3371,6 +3547,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		this._inputEditor = this._register(scopedInstantiationService.createInstance(CodeEditorWidget, this._inputEditorElement, options, editorOptions));
 		this.updateInputEditorFontFamily();
 		this._register(addDisposableListener(this._inputEditorElement, dom.EventType.PASTE, e => this.handleTerminalCommandPaste(e), true));
+		this._register(addDisposableListener(this.inputContainer, dom.EventType.PASTE, e => this.handleTerminalCommandPaste(e), true));
 
 		const dictationRecording = ChatContextKeys.speechToTextRecording.bindTo(this.contextKeyService);
 		const dictationPreparing = ChatContextKeys.speechToTextPreparing.bindTo(this.contextKeyService);
@@ -3387,21 +3564,40 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		this._register(Event.any(this.speechToTextService.onDidChangeState, this.speechToTextService.onDidChangePreparingModel, onDidChangeDictationEditor)(updateDictationContextKeys));
 		updateDictationContextKeys();
 
-		SuggestController.get(this._inputEditor)?.forceRenderingAbove();
+		const suggestController = SuggestController.get(this._inputEditor);
+		if (suggestController) {
+			suggestController.forceRenderingAbove();
+			this._register(suggestController.widget.value.onDidShow(() => {
+				this._updateSuggestWidgetBounds();
+			}));
+		}
 		options.overflowWidgetsDomNode?.classList.add('hideSuggestTextIcons');
 		this._inputEditorElement.classList.add('hideSuggestTextIcons');
+		this._updateSuggestWidgetBounds();
 
-		// Prevent Enter key from creating new lines - but respect user's custom keybindings
-		// Only prevent default behavior if ChatSubmitAction is bound to Enter AND its precondition is met
 		this._register(this._inputEditor.onKeyDown((e) => {
+			if (e.keyCode === KeyCode.Backspace && !hasModifierKeys(e)) {
+				const model = this._inputEditor.getModel();
+				if (model && model.getValueLength() === 0 && this._activeSkills.size > 0) {
+					const skills = Array.from(this._activeSkills);
+					const lastSkill = skills[skills.length - 1];
+					if (lastSkill) {
+						this.removeSkill(lastSkill);
+						e.preventDefault();
+						e.stopPropagation();
+						return;
+					}
+				}
+			}
 			if (e.keyCode === KeyCode.Enter && !hasModifierKeys(e)) {
-				// Check if ChatSubmitAction has a keybinding for plain Enter in the current context
-				// This respects user's custom keybindings that disable the submit action
+				const model = this._inputEditor.getModel();
+				if (model) {
+					this.extractSkillsFromInput(model, true);
+				}
 				for (const keybinding of this.keybindingService.lookupKeybindings(ChatSubmitAction.ID)) {
 					const chords = keybinding.getDispatchChords();
 					const isPlainEnter = chords.length === 1 && chords[0] === '[Enter]';
 					if (isPlainEnter) {
-						// Do NOT call stopPropagation() so the keybinding service can still process this event
 						e.preventDefault();
 						break;
 					}
@@ -3410,21 +3606,21 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		}));
 
 		this._register(this._inputEditor.onDidChangeModelContent(() => {
+			const model = this._inputEditor.getModel();
+			if (model) {
+				this.extractSkillsFromInput(model, false);
+			}
+
 			const currentHeight = Math.min(this._inputEditor.getContentHeight(), this._effectiveInputEditorMaxHeight);
 			if (currentHeight !== this.inputEditorHeight) {
 				this.inputEditorHeight = currentHeight;
-				// Directly update editor layout - ResizeObserver will notify parent about height change
 				if (this.cachedWidth) {
 					this._layout(this.cachedWidth);
 				}
 			}
 
 			this._updateInputContentContextKeys();
-
-			// Update monospace state as the command prefix is typed/removed.
 			this.updateInputEditorFontFamily();
-
-			// Debounced sync to model for text changes
 			this._syncTextDebounced.schedule();
 		}));
 		this._register(this._inputEditor.onDidContentSizeChange(e => {
@@ -4061,6 +4257,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		// into the same observation phase.
 		const updateCarouselMaxHeightScheduler = this._register(new dom.AnimationFrameScheduler(this.container, () => this.updateToolConfirmationCarouselMaxHeight()));
 		const inputResizeObserver = this._register(new dom.DisposableResizeObserver('ChatInputPart.containerHeight', () => {
+			this._updateSuggestWidgetBounds();
 			updateCarouselMaxHeightScheduler.schedule();
 			const newHeight = this.container.offsetHeight;
 			this.height.set(newHeight, undefined);
@@ -4637,13 +4834,6 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 	renderChatEditingSessionState(chatEditingSession: IChatEditingSession | null) {
 		this.setChatEditingSessionVisible(Boolean(chatEditingSession));
 
-		if (chatEditingSession) {
-			if (!isEqual(chatEditingSession.chatSessionResource, this._lastEditingSessionResource)) {
-				this._workingSetCollapsed.set(true, undefined);
-			}
-			this._lastEditingSessionResource = chatEditingSession.chatSessionResource;
-		}
-
 		const modifiedEntries = derivedOpts<IModifiedFileEntry[]>({ equalsFn: arraysEqual }, r => {
 			// Background chat sessions render the working set based on the session files, and not the editing session
 			const sessionResource = chatEditingSession?.chatSessionResource ?? this._widget?.viewModel?.model.sessionResource;
@@ -4848,8 +5038,14 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 				}) : undefined,
 				disableWhileRunning: isSessionMenu,
 				buttonConfigProvider: (action) => {
+					if (action.id === 'chatEditing.acceptAllFiles') {
+						return { showIcon: false, showLabel: true, isSecondary: false, customClass: 'chat-editing-keep-btn' };
+					}
+					if (action.id === 'chatEditing.discardAllFiles') {
+						return { showIcon: false, showLabel: true, isSecondary: true, customClass: 'chat-editing-undo-btn' };
+					}
 					if (action.id === ChatEditingShowChangesAction.ID || action.id === ViewPreviousEditsAction.Id) {
-						return { showIcon: true, showLabel: false, isSecondary: true };
+						return { showIcon: true, showLabel: false, isSecondary: true, customClass: 'chat-editing-diff-btn' };
 					}
 					// The cloud-agent "Open pull request" action renders icon-only; its sibling
 					// "Create pull request" action keeps its text label.
@@ -4865,14 +5061,25 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 			const { files, added, removed, shouldShowEditingSession } = topLevelStats.read(reader);
 
 			const buttonLabel = files === 1
-				? localize('chatEditingSession.oneFile', '1 file changed')
-				: localize('chatEditingSession.manyFiles', '{0} files changed', files);
+				? localize('chatEditingSession.oneFileWithChanges', '1 file changed')
+				: localize('chatEditingSession.manyFilesWithChanges', '{0} files changed', files);
 
 			button.label = buttonLabel;
 			button.element.setAttribute('aria-label', localize('chatEditingSession.ariaLabelWithCounts', '{0}, {1} lines added, {2} lines removed', buttonLabel, added, removed));
 
-			this._workingSetLinesAddedSpan.value.textContent = `+${added}`;
-			this._workingSetLinesRemovedSpan.value.textContent = `-${removed}`;
+			if (added > 0) {
+				this._workingSetLinesAddedSpan.value.textContent = `+${added}`;
+				dom.show(this._workingSetLinesAddedSpan.value);
+			} else {
+				dom.hide(this._workingSetLinesAddedSpan.value);
+			}
+
+			if (removed > 0) {
+				this._workingSetLinesRemovedSpan.value.textContent = `-${removed}`;
+				dom.show(this._workingSetLinesRemovedSpan.value);
+			} else {
+				dom.hide(this._workingSetLinesRemovedSpan.value);
+			}
 
 			this.setChatEditingSessionVisible(shouldShowEditingSession);
 		}));
@@ -5097,8 +5304,21 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		return Math.max(minEditorHeight, Math.min(this.inputEditorMaxHeight, Math.max(0, budgetForEditor)));
 	}
 
+	private _updateSuggestWidgetBounds(): void {
+		const overflowNode = this.options.editorOverflowWidgetsDomNode;
+		if (!overflowNode || !this.inputContainer) {
+			return;
+		}
+		const rect = this.inputContainer.getBoundingClientRect();
+		if (rect.width > 0) {
+			overflowNode.style.setProperty('--chat-input-left', `${rect.left}px`);
+			overflowNode.style.setProperty('--chat-input-width', `${rect.width}px`);
+		}
+	}
+
 	private previousInputEditorDimension: IDimension | undefined;
 	private _layout(width: number, allowRecurse = true, preserveInputEditorHeight = false): void {
+		this._updateSuggestWidgetBounds();
 		const data = this.getLayoutData();
 
 		const followupsWidth = width - data.inputPartHorizontalPadding;

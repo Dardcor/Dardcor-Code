@@ -36,6 +36,7 @@ export function withChatInputPickerMotion(listOptions: IActionListOptions | unde
 	return {
 		...withActionWidgetDropdownMotion(listOptions),
 		anchorPosition: AnchorPosition.ABOVE,
+		preventAvoid: true,
 	};
 }
 

@@ -66,6 +66,16 @@ export interface IChatEditingService {
 	 * is used instead of the default implementation.
 	 */
 	registerEditingSessionProvider(scheme: string, provider: IChatEditingSessionProvider): IDisposable;
+
+	/**
+	 * Updates the running tool state and URIs for explorer spinner decorations.
+	 */
+	setSessionRunning?(sessionResource: URI, running: boolean, uris?: readonly URI[]): void;
+
+	/**
+	 * Registers an on-disk file modification into the chat editing session for review.
+	 */
+	registerFileEdit?(sessionResource: URI, targetUri: URI, kind: 'create' | 'edit' | 'delete', initialContent: string | undefined, requestId: string, undoStopId?: string): Promise<void>;
 }
 
 export interface WorkingSetDisplayMetadata {
@@ -121,6 +131,18 @@ export interface IChatEditReviewSession extends IDisposable {
 	readEntry(uri: URI, reader: IReader): IModifiedFileEntry | undefined;
 	accept(...uris: URI[]): Promise<void>;
 	reject(...uris: URI[]): Promise<void>;
+	/**
+	 * Optional: true while the session's agent is actively running tool calls.
+	 * Used by agent-host sessions (which apply edits externally rather than streaming)
+	 * to drive the file-explorer spinner decoration via {@link ChatDecorationsProvider}.
+	 */
+	readonly isRunning?: IObservable<boolean>;
+	/**
+	 * Optional: list of file URIs currently being operated on by running tool calls.
+	 * Allows {@link ChatDecorationsProvider} to show the spinner decoration on
+	 * files before their first edit finishes and gets added to {@link entries}.
+	 */
+	readonly runningUris?: IObservable<readonly URI[]>;
 }
 
 export interface IChatEditingSession extends IChatEditReviewSession {
@@ -224,6 +246,16 @@ export interface IChatEditingSession extends IChatEditReviewSession {
 	 * Whether explanations are currently being generated or displayed.
 	 */
 	hasExplanations(): boolean;
+
+	/**
+	 * Sets the running state and running URIs for explorer decoration spinner.
+	 */
+	setRunning?(running: boolean, uris?: readonly URI[]): void;
+
+	/**
+	 * Registers an on-disk file modification into the session for user review.
+	 */
+	registerFileEdit?(targetUri: URI, kind: 'create' | 'edit' | 'delete', initialContent: string | undefined, requestId: string, undoStopId?: string): Promise<void>;
 }
 
 export function chatEditingSessionIsReady(session: IChatEditingSession): Promise<void> {
@@ -459,6 +491,10 @@ export interface IModifiedFileEntry {
 	 * Gets the document diff info, waiting for any ongoing promises to flush.
 	 */
 	getDiffInfo?(): Promise<IDocumentDiff>;
+	setAuthoritativeDiff?(diff: { added?: number; removed?: number } | undefined): void;
+	recomputeDiff?(): Promise<void>;
+	updateOriginalContent?(content: string): Promise<void>;
+	revertToDisk?(): Promise<void>;
 }
 
 export interface IChatEditingSessionStream {

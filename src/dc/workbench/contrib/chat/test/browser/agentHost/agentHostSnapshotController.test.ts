@@ -86,6 +86,12 @@ function createController(store: DisposableStore, contentMap: Map<string, string
 		'local',
 		new NullLogService(),
 		makeMockFileService(contentMap),
+		undefined as any,
+		undefined as any,
+		undefined as any,
+		undefined as any,
+		undefined as any,
+		undefined as any,
 	);
 	store.add(controller);
 	return controller;
@@ -391,5 +397,36 @@ suite('AgentHostSnapshotController', () => {
 		const fakeResponseModel = {} as IChatResponseModel;
 		assert.throws(() => controller.startStreamingEdits(URI.file('/x'), fakeResponseModel, undefined));
 		assert.throws(() => controller.applyWorkspaceEdit({ kind: 'workspaceEdit', edits: [] }, fakeResponseModel, 'stop'));
+	});
+
+	test('isRunning and runningUris track active tool calls and file URIs', () => {
+		const controller = createController(store, new Map());
+		assert.strictEqual(controller.isRunning.get(), false);
+		assert.deepStrictEqual(controller.runningUris.get(), []);
+
+		const fileA = URI.file('/a.ts');
+		const fileB = URI.file('/b.ts');
+
+		// Tool 1 starts running targeting fileA
+		controller.notifyToolCallRunning('tc-1', [fileA]);
+		assert.strictEqual(controller.isRunning.get(), true);
+		assert.strictEqual(controller.runningUris.get().length, 1);
+		assert.strictEqual(controller.runningUris.get()[0].toString(), fileA.toString());
+
+		// Tool 2 starts running targeting fileB
+		controller.notifyToolCallRunning('tc-2', [fileB]);
+		assert.strictEqual(controller.isRunning.get(), true);
+		assert.strictEqual(controller.runningUris.get().length, 2);
+
+		// Tool 1 finishes
+		controller.notifyToolCallDone('tc-1');
+		assert.strictEqual(controller.isRunning.get(), true);
+		assert.strictEqual(controller.runningUris.get().length, 1);
+		assert.strictEqual(controller.runningUris.get()[0].toString(), fileB.toString());
+
+		// Tool 2 finishes
+		controller.notifyToolCallDone('tc-2');
+		assert.strictEqual(controller.isRunning.get(), false);
+		assert.deepStrictEqual(controller.runningUris.get(), []);
 	});
 });

@@ -2189,7 +2189,7 @@ configurationRegistry.registerConfiguration({
 		[ChatConfiguration.RestoreLastPanelSession]: {
 			type: 'boolean',
 			description: nls.localize('chat.restoreLastPanelSession', "Controls whether the last session is restored in panel after restart."),
-			default: false
+			default: true
 		},
 		[ChatConfiguration.ExitAfterDelegation]: {
 			type: 'boolean',

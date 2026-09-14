@@ -3142,49 +3142,52 @@ export class ChatWidget extends Disposable implements IChatWidget {
 	 * user cancelled, signalling that input submission should be aborted.
 	 */
 	private async _applyPromptFileIfSet(requestInput: IChatRequestInputOptions, sessionResource: URI): Promise<boolean> {
-		// first check if the input has a prompt slash command
-		const agentSlashPromptPart = this.parsedInput.parts.find((r): r is ChatRequestSlashPromptPart => r instanceof ChatRequestSlashPromptPart);
-		if (!agentSlashPromptPart) {
+		const agentSlashPromptParts = this.parsedInput.parts.filter((r): r is ChatRequestSlashPromptPart => r instanceof ChatRequestSlashPromptPart);
+		const skillNames = new Set<string>(agentSlashPromptParts.map(p => p.name));
+		for (const activeSkill of this.input.getActiveSkills()) {
+			skillNames.add(activeSkill);
+		}
+		if (skillNames.size === 0) {
 			return true;
 		}
 
-		// Prompt slash commands are transformed out of the input before sendRequest.
-		// Track them now so tip exclusions still update for commands like /init.
-		this.chatTipService.recordSlashCommandUsage(agentSlashPromptPart.name);
+		for (const skillName of skillNames) {
+			this.chatTipService.recordSlashCommandUsage(skillName);
 
-		// need to resolve the slash command to get the prompt file
-		const slashCommand = await this.customizationHarnessService.resolvePromptSlashCommand(agentSlashPromptPart.name, sessionResource, CancellationToken.None);
-		if (!slashCommand) {
-			return true;
-		}
+			const slashCommand = await this.customizationHarnessService.resolvePromptSlashCommand(skillName, sessionResource, CancellationToken.None);
+			if (!slashCommand) {
+				continue;
+			}
 
-		const promptRunEvent: ChatPromptRunEvent = {
-			storage: slashCommand.storage,
-		};
-		if (slashCommand.extension) {
-			promptRunEvent.extensionId = slashCommand.extension.identifier.value;
-			promptRunEvent.promptName = slashCommand.name;
-		} else {
-			promptRunEvent.promptNameHash = hash(slashCommand.name).toString(16);
-		}
-		this.telemetryService.publicLog2<ChatPromptRunEvent, ChatPromptRunClassification>('chat.promptRun', promptRunEvent);
+			const promptRunEvent: ChatPromptRunEvent = {
+				storage: slashCommand.storage,
+			};
+			if (slashCommand.extension) {
+				promptRunEvent.extensionId = slashCommand.extension.identifier.value;
+				promptRunEvent.promptName = slashCommand.name;
+			} else {
+				promptRunEvent.promptNameHash = hash(slashCommand.name).toString(16);
+			}
+			this.telemetryService.publicLog2<ChatPromptRunEvent, ChatPromptRunClassification>('chat.promptRun', promptRunEvent);
 
-		const parseResult = slashCommand.parsedPromptFile;
-		if (!parseResult) {
-			return true;
-		}
+			const parseResult = slashCommand.parsedPromptFile;
+			if (!parseResult) {
+				continue;
+			}
 
-		// add the prompt file to the context
-		const refs = parseResult.body?.variableReferences.map(({ name, offset, fullLength }) => ({ name, range: new OffsetRange(offset, offset + fullLength) })) ?? [];
-		const toolReferences = this.toolsService.toToolReferences(refs);
-		requestInput.attachedContext.insertFirst(toPromptFileVariableEntry(parseResult.uri, PromptFileVariableKind.PromptFile, undefined, true, toolReferences));
+			const refs = parseResult.body?.variableReferences.map(({ name, offset, fullLength }) => ({ name, range: new OffsetRange(offset, offset + fullLength) })) ?? [];
+			const toolReferences = this.toolsService.toToolReferences(refs);
+			requestInput.attachedContext.insertFirst(toPromptFileVariableEntry(parseResult.uri, PromptFileVariableKind.PromptFile, undefined, true, toolReferences));
 
-		if (parseResult.header) {
-			const applied = await this._applyPromptMetadata(parseResult.header, requestInput);
-			if (!applied) {
-				return false;
+			if (parseResult.header) {
+				const applied = await this._applyPromptMetadata(parseResult.header, requestInput);
+				if (!applied) {
+					return false;
+				}
 			}
 		}
+
+		this.input.clearActiveSkills();
 
 		return true;
 	}

@@ -191,14 +191,45 @@ registerAction2(class DiscardAction extends WorkingSetAction {
 	}
 });
 
+export class ChatEditingDiscardAllAction extends EditingSessionAction {
+
+	constructor() {
+		super({
+			id: 'chatEditing.discardAllFiles',
+			title: localize('undo', 'Undo'),
+			icon: Codicon.discard,
+			tooltip: localize('discardAllEdits', 'Reject All Edits'),
+			precondition: hasUndecidedChatEditingResourceContextKey,
+			menu: [
+				{
+					id: MenuId.ChatEditingWidgetToolbar,
+					group: 'navigation',
+					order: 1,
+					when: ContextKeyExpr.and(applyingChatEditsFailedContextKey.negate(), hasUndecidedChatEditingResourceContextKey)
+				}
+			],
+			keybinding: {
+				when: ContextKeyExpr.and(hasUndecidedChatEditingResourceContextKey, ChatContextKeys.inChatInput, ChatContextKeys.inputHasText.negate()),
+				weight: KeybindingWeight.WorkbenchContrib,
+				primary: KeyMod.CtrlCmd | KeyCode.Backspace,
+			},
+		});
+	}
+
+	override async runEditingSessionAction(accessor: ServicesAccessor, editingSession: IChatEditingSession, chatWidget: IChatWidget, ...args: unknown[]) {
+		await editingSession.reject();
+	}
+}
+registerAction2(ChatEditingDiscardAllAction);
+
 export class ChatEditingAcceptAllAction extends EditingSessionAction {
 
 	constructor() {
 		super({
 			id: 'chatEditing.acceptAllFiles',
-			title: localize('accept', 'Keep'),
+			title: localize('keep', 'Keep'),
 			icon: Codicon.check,
-			tooltip: localize('acceptAllEdits', 'Keep All Edits'),
+			tooltip: localize('acceptAllEdits', 'Accept All Edits'),
 			precondition: hasUndecidedChatEditingResourceContextKey,
 			keybinding: {
 				primary: KeyMod.CtrlCmd | KeyCode.Enter,
@@ -223,37 +254,6 @@ export class ChatEditingAcceptAllAction extends EditingSessionAction {
 }
 registerAction2(ChatEditingAcceptAllAction);
 
-export class ChatEditingDiscardAllAction extends EditingSessionAction {
-
-	constructor() {
-		super({
-			id: 'chatEditing.discardAllFiles',
-			title: localize('discard', 'Undo'),
-			icon: Codicon.discard,
-			tooltip: localize('discardAllEdits', 'Undo All Edits'),
-			precondition: hasUndecidedChatEditingResourceContextKey,
-			menu: [
-				{
-					id: MenuId.ChatEditingWidgetToolbar,
-					group: 'navigation',
-					order: 1,
-					when: ContextKeyExpr.and(applyingChatEditsFailedContextKey.negate(), hasUndecidedChatEditingResourceContextKey)
-				}
-			],
-			keybinding: {
-				when: ContextKeyExpr.and(hasUndecidedChatEditingResourceContextKey, ChatContextKeys.inChatInput, ChatContextKeys.inputHasText.negate()),
-				weight: KeybindingWeight.WorkbenchContrib,
-				primary: KeyMod.CtrlCmd | KeyCode.Backspace,
-			},
-		});
-	}
-
-	override async runEditingSessionAction(accessor: ServicesAccessor, editingSession: IChatEditingSession, chatWidget: IChatWidget, ...args: unknown[]) {
-		await discardAllEditsWithConfirmation(accessor, editingSession);
-	}
-}
-registerAction2(ChatEditingDiscardAllAction);
-
 export class ToggleExplanationWidgetAction extends EditingSessionAction {
 
 	static readonly ID = 'chatEditing.toggleExplanationWidget';
@@ -268,7 +268,7 @@ export class ToggleExplanationWidgetAction extends EditingSessionAction {
 				{
 					id: MenuId.ChatEditingWidgetToolbar,
 					group: 'navigation',
-					order: 2,
+					order: 3,
 					when: ContextKeyExpr.and(hasUndecidedChatEditingResourceContextKey, ContextKeyExpr.has(`config.${ChatConfiguration.ExplainChangesEnabled}`))
 				}
 			],
@@ -311,7 +311,7 @@ export async function discardAllEditsWithConfirmation(accessor: ServicesAccessor
 
 export class ChatEditingShowChangesAction extends EditingSessionAction {
 	static readonly ID = 'chatEditing.viewChanges';
-	static readonly LABEL = localize('chatEditing.viewChanges', 'View All Edits');
+	static readonly LABEL = localize('chatEditing.viewChanges', 'View Changes');
 
 	constructor() {
 		super({
@@ -325,7 +325,7 @@ export class ChatEditingShowChangesAction extends EditingSessionAction {
 				{
 					id: MenuId.ChatEditingWidgetToolbar,
 					group: 'navigation',
-					order: 4,
+					order: 2,
 					when: ContextKeyExpr.and(applyingChatEditsFailedContextKey.negate(), ContextKeyExpr.and(hasAppliedChatEditsContextKey, hasUndecidedChatEditingResourceContextKey))
 				}
 			],

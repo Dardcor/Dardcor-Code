@@ -6,18 +6,29 @@
 import { Sequencer } from '../../../../../../base/common/async.js';
 import { VSBuffer } from '../../../../../../base/common/buffer.js';
 import { Emitter, Event } from '../../../../../../base/common/event.js';
-import { Disposable } from '../../../../../../base/common/lifecycle.js';
+import { Disposable, DisposableStore, IDisposable } from '../../../../../../base/common/lifecycle.js';
 import { Schemas } from '../../../../../../base/common/network.js';
-import { constObservable, derived, derivedOpts, IObservable, IReader, observableValue, transaction } from '../../../../../../base/common/observable.js';
+import { autorun, constObservable, derived, derivedOpts, IObservable, IReader, ITransaction, observableValue, observableValueOpts, transaction } from '../../../../../../base/common/observable.js';
+import { isEqual } from '../../../../../../base/common/resources.js';
+import { isDefined } from '../../../../../../base/common/types.js';
 import { URI } from '../../../../../../base/common/uri.js';
 import { ITextModel } from '../../../../../../editor/common/model.js';
-import { toAgentHostContentUri, toAgentHostUri } from '../../../../../../platform/agentHost/common/agentHostUri.js';
+import { ITextModelService } from '../../../../../../editor/common/services/resolverService.js';
+import { fromAgentHostUri, toAgentHostContentUri, toAgentHostUri } from '../../../../../../platform/agentHost/common/agentHostUri.js';
 import { FileEditKind, ToolCallStatus, type ToolCallState } from '../../../../../../platform/agentHost/common/state/sessionState.js';
 import { IFileService } from '../../../../../../platform/files/common/files.js';
+import { IInstantiationService } from '../../../../../../platform/instantiation/common/instantiation.js';
 import { ILogService } from '../../../../../../platform/log/common/log.js';
+import { IEditorService } from '../../../../../services/editor/common/editorService.js';
 import { IChatProgress, IChatWorkspaceEdit } from '../../../common/chatService/chatService.js';
-import { ChatEditingSessionState, IChatEditingSession, IEditSessionDiffStats, IEditSessionEntryDiff, IModifiedFileEntry, IStreamingEdits } from '../../../common/editing/chatEditingService.js';
+import { ChatEditKind, ChatEditingSessionState, IChatEditingSession, IEditSessionDiffStats, IEditSessionEntryDiff, IModifiedEntryTelemetryInfo, IModifiedFileEntry, IStreamingEdits, ModifiedFileEntryState } from '../../../common/editing/chatEditingService.js';
 import { IChatRequestDisablement, IChatResponseModel } from '../../../common/model/chatModel.js';
+import { ChatEditingDeletedFileEntry } from '../../chatEditing/chatEditingDeletedFileEntry.js';
+import { ChatEditingModifiedDocumentEntry } from '../../chatEditing/chatEditingModifiedDocumentEntry.js';
+import { CancellationToken } from '../../../../../../base/common/cancellation.js';
+import { IModelService } from '../../../../../../editor/common/services/model.js';
+import { IWorkingCopyHistoryService } from '../../../../../services/workingCopy/common/workingCopyHistory.js';
+import { IQuickDiffService } from '../../../../scm/common/quickDiff.js';
 import { fileEditsToExternalEdits, type IToolCallFileEdit } from './stateToProgressAdapter.js';
 
 /**
@@ -33,36 +44,33 @@ interface IAgentHostCheckpoint {
 }
 
 /**
- * A thin {@link IChatEditingSession} for agent host sessions. The agent host
- * has its own diff / changeset machinery and renders file edits via the
- * dedicated {@link IChatExternalEdit} progress part — so this session only
- * needs to support the chat-level "restore to checkpoint" UX.
- *
- * Concretely it implements:
- * - {@link restoreSnapshot} (writes before/after content to disk)
- * - {@link requestDisablement} (so disabled-request UI works after restore)
- * - {@link getSnapshotUri} / {@link getSnapshotContents} (so checkpoint diff
- *   viewers can resolve historical content)
- *
- * Everything else is a no-op / empty observable / `undefined`. In particular:
- * - `entries` is always empty → the global accept/reject UI doesn't appear
- * - no diff computation, no multi-diff editor, no streaming-edits APIs
- *
- * Undo/redo granularity is per-request: every request occupies one checkpoint
- * regardless of how many tool calls it ran. The `stopId` parameters on
- * {@link restoreSnapshot}, {@link getSnapshotUri}, and {@link getSnapshotContents}
- * are accepted for interface compatibility but ignored.
- *
- * Hydrated by the session handler via {@link ensureRequestCheckpoint} and
- * {@link addToolCallEdits} as turns and tool calls arrive.
+ * A full {@link IChatEditingSession} for agent host sessions.
+ * Manages live modified file entries, Monaco diff decorations, inline hunk
+ * accept/reject actions, and bottom overlay controls for files edited by the agent.
  */
 export class AgentHostSnapshotController extends Disposable implements IChatEditingSession {
 
 	readonly supportsKeepUndo = false;
-	readonly isGlobalEditingSession = false;
+	readonly isGlobalEditingSession = true;
 
 	readonly state: IObservable<ChatEditingSessionState> = constObservable(ChatEditingSessionState.Idle);
-	readonly entries: IObservable<readonly IModifiedFileEntry[]> = constObservable([]);
+
+	private readonly _entriesObs = observableValue<IModifiedFileEntry[]>(this, []);
+	readonly entries: IObservable<readonly IModifiedFileEntry[]> = this._entriesObs;
+	private readonly _entriesByUri = new Map<string, IModifiedFileEntry>();
+	private readonly _entryDisposables = this._register(new DisposableStore());
+	private readonly _filePreEditSnapshots = new Map<string, { content: string; existed: boolean; capturedAt: number }>();
+
+	// ---- Running-state tracking (drives file-explorer spinner) --------------
+
+	/** Tool-call IDs and their associated target file URIs currently executing on the agent host. */
+	private readonly _runningToolCalls = new Map<string, readonly URI[]>();
+	private readonly _runningCountObs = observableValueOpts<number>({ equalsFn: (a, b) => a === b }, 0);
+	private readonly _runningUrisObs = observableValue<readonly URI[]>(this, []);
+	/** True while at least one tool call is in flight; consumed by {@link ChatDecorationsProvider}. */
+	readonly isRunning: IObservable<boolean> = derived(this, r => this._runningCountObs.read(r) > 0);
+	/** Specific file URIs currently being operated on by running tool calls. */
+	readonly runningUris: IObservable<readonly URI[]> = this._runningUrisObs;
 
 	readonly requestDisablement: IObservable<IChatRequestDisablement[]> = derivedOpts(
 		{ equalsFn: (a, b) => a.length === b.length && a.every((v, i) => v.requestId === b[i].requestId) },
@@ -91,6 +99,12 @@ export class AgentHostSnapshotController extends Disposable implements IChatEdit
 		private readonly _connectionAuthority: string,
 		@ILogService private readonly _logService: ILogService,
 		@IFileService private readonly _fileService: IFileService,
+		@IInstantiationService private readonly _instantiationService: IInstantiationService,
+		@ITextModelService private readonly _textModelService: ITextModelService,
+		@IEditorService private readonly _editorService: IEditorService,
+		@IModelService private readonly _modelService: IModelService,
+		@IWorkingCopyHistoryService private readonly _workingCopyHistoryService: IWorkingCopyHistoryService,
+		@IQuickDiffService private readonly _quickDiffService: IQuickDiffService,
 	) {
 		super();
 	}
@@ -127,6 +141,84 @@ export class AgentHostSnapshotController extends Disposable implements IChatEdit
 		transaction(tx => {
 			this._currentCheckpointIndex.set(this._checkpoints.length - 1, tx);
 		});
+	}
+
+	/**
+	 * Called by the session handler when a tool call begins executing on the
+	 * agent host. Increments the running counter and updates running URIs so
+	 * {@link isRunning} and {@link runningUris} activate the file-explorer
+	 * spinner for active entries.
+	 */
+	notifyToolCallRunning(toolCallId: string, uris?: readonly URI[]): void {
+		this._runningToolCalls.set(toolCallId, uris ?? []);
+		transaction(tx => {
+			this._runningCountObs.set(this._runningToolCalls.size, tx);
+			this._updateRunningUris(tx);
+		});
+
+		// Proactively capture baseline snapshot for target URIs before the tool modifies disk
+		if (uris && uris.length > 0) {
+			for (const uri of uris) {
+				const targetUri = fromAgentHostUri(uri);
+				const key = targetUri.toString();
+				if (!this._filePreEditSnapshots.has(key)) {
+					const model = this._modelService.getModel(targetUri);
+					if (model) {
+						this._filePreEditSnapshots.set(key, {
+							content: model.getValue(),
+							existed: true,
+							capturedAt: Date.now()
+						});
+					} else {
+						this._fileService.readFile(targetUri).then(buf => {
+							if (!this._filePreEditSnapshots.has(key)) {
+								this._filePreEditSnapshots.set(key, {
+									content: buf.value.toString(),
+									existed: true,
+									capturedAt: Date.now()
+								});
+							}
+						}).catch(() => {
+							if (!this._filePreEditSnapshots.has(key)) {
+								this._filePreEditSnapshots.set(key, {
+									content: '',
+									existed: false,
+									capturedAt: Date.now()
+								});
+							}
+						});
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * Called by the session handler when a tool call finishes (any terminal
+	 * status). Decrements the running counter; when all tool calls complete
+	 * the file-explorer spinner is cleared.
+	 */
+	notifyToolCallDone(toolCallId: string): void {
+		if (!this._runningToolCalls.has(toolCallId)) {
+			return;
+		}
+		this._runningToolCalls.delete(toolCallId);
+		transaction(tx => {
+			this._runningCountObs.set(this._runningToolCalls.size, tx);
+			this._updateRunningUris(tx);
+		});
+	}
+
+	private _updateRunningUris(tx: ITransaction): void {
+		const allUris: URI[] = [];
+		for (const list of this._runningToolCalls.values()) {
+			for (const u of list) {
+				if (!allUris.some(existing => isEqual(existing, u))) {
+					allUris.push(u);
+				}
+			}
+		}
+		this._runningUrisObs.set(allUris, tx);
 	}
 
 	/**
@@ -176,6 +268,9 @@ export class AgentHostSnapshotController extends Disposable implements IChatEdit
 			} else {
 				cp.edits[existingIdx] = mergeFileEdit(cp.edits[existingIdx], entry);
 			}
+
+			// Register reviewable modified file entry for Antigravity-style diff review
+			this._registerModifiedFileEntry(requestId, entry);
 		}
 	}
 
@@ -305,18 +400,98 @@ export class AgentHostSnapshotController extends Disposable implements IChatEdit
 		return !!cp && cp.edits.length > 0;
 	}
 
-	// ---- Unsupported / no-op (agent host owns edits server-side) ------------
+	// ---- Review & Diff Integration (Antigravity-style) ----------------------
 
-	async show(_previousChanges?: boolean): Promise<void> { /* no-op */ }
-	getEntry(_uri: URI): IModifiedFileEntry | undefined { return undefined; }
-	readEntry(_uri: URI, _reader: IReader): IModifiedFileEntry | undefined { return undefined; }
-	async accept(..._uris: URI[]): Promise<void> { /* no-op */ }
-	async reject(..._uris: URI[]): Promise<void> { /* no-op */ }
+	async show(_previousChanges?: boolean): Promise<void> {
+		const firstModified = Array.from(this._entriesByUri.values()).find(e => e.state.get() === ModifiedFileEntryState.Modified);
+		if (firstModified && this._editorService) {
+			const pane = await this._editorService.openEditor({
+				resource: firstModified.modifiedURI,
+			});
+			if (pane) {
+				firstModified.getEditorIntegration(pane).reveal(true);
+			}
+		}
+	}
+
+	getEntry(uri: URI): IModifiedFileEntry | undefined {
+		const targetUri = fromAgentHostUri(uri);
+		return this._entriesByUri.get(targetUri.toString()) ?? this._entriesByUri.get(uri.toString());
+	}
+
+	readEntry(uri: URI, reader: IReader): IModifiedFileEntry | undefined {
+		this._entriesObs.read(reader);
+		const targetUri = fromAgentHostUri(uri);
+		return this._entriesByUri.get(targetUri.toString()) ?? this._entriesByUri.get(uri.toString());
+	}
+
+	async accept(...uris: URI[]): Promise<void> {
+		const targetEntries = uris.length > 0
+			? uris.map(u => this._entriesByUri.get(fromAgentHostUri(u).toString()) ?? this._entriesByUri.get(u.toString())).filter(isDefined)
+			: Array.from(this._entriesByUri.values()).filter(e => e.state.get() === ModifiedFileEntryState.Modified);
+
+		for (const entry of targetEntries) {
+			this._filePreEditSnapshots.delete(entry.modifiedURI.toString());
+			await entry.accept();
+		}
+	}
+
+	async reject(...uris: URI[]): Promise<void> {
+		const targetEntries = uris.length > 0
+			? uris.map(u => this._entriesByUri.get(fromAgentHostUri(u).toString()) ?? this._entriesByUri.get(u.toString())).filter(isDefined)
+			: Array.from(this._entriesByUri.values()).filter(e => e.state.get() === ModifiedFileEntryState.Modified);
+
+		for (const entry of targetEntries) {
+			this._filePreEditSnapshots.delete(entry.modifiedURI.toString());
+			if (entry instanceof ChatEditingModifiedDocumentEntry) {
+				await entry.resetToInitialContent();
+				await entry.save();
+			}
+			await entry.reject();
+		}
+	}
+
 	getEntryDiffBetweenStops(_uri: URI, _requestId: string | undefined, _stopId: string | undefined): IObservable<IEditSessionEntryDiff | undefined> | undefined { return undefined; }
 	getEntryDiffBetweenRequests(_uri: URI, _startRequestId: string, _stopRequestId: string): IObservable<IEditSessionEntryDiff | undefined> { return constObservable(undefined); }
-	getDiffsForFilesInSession(): IObservable<readonly IEditSessionEntryDiff[]> { return constObservable([]); }
-	getDiffsForFilesInRequest(_requestId: string): IObservable<readonly IEditSessionEntryDiff[]> { return constObservable([]); }
-	getDiffForSession(): IObservable<IEditSessionDiffStats> { return constObservable({ added: 0, removed: 0 }); }
+
+	getDiffsForFilesInSession(): IObservable<readonly IEditSessionEntryDiff[]> {
+		return derived(r => {
+			const diffs: IEditSessionEntryDiff[] = [];
+			for (const entry of this._entriesObs.read(r)) {
+				if (entry.state.read(r) === ModifiedFileEntryState.Modified) {
+					diffs.push({
+						originalURI: entry.originalURI,
+						modifiedURI: entry.modifiedURI,
+						added: entry.linesAdded?.read(r) ?? 0,
+						removed: entry.linesRemoved?.read(r) ?? 0,
+						quitEarly: false,
+						identical: false,
+						isFinal: true,
+						isBusy: false,
+					});
+				}
+			}
+			return diffs;
+		});
+	}
+
+	getDiffsForFilesInRequest(_requestId: string): IObservable<readonly IEditSessionEntryDiff[]> {
+		return this.getDiffsForFilesInSession();
+	}
+
+	getDiffForSession(): IObservable<IEditSessionDiffStats> {
+		return derived(r => {
+			let added = 0;
+			let removed = 0;
+			for (const entry of this._entriesObs.read(r)) {
+				if (entry.state.read(r) === ModifiedFileEntryState.Modified) {
+					added += entry.linesAdded?.read(r) ?? 0;
+					removed += entry.linesRemoved?.read(r) ?? 0;
+				}
+			}
+			return { added, removed };
+		});
+	}
 
 	async triggerExplanationGeneration(): Promise<void> { /* no-op */ }
 	clearExplanations(): void { /* no-op */ }
@@ -342,8 +517,149 @@ export class AgentHostSnapshotController extends Disposable implements IChatEdit
 	}
 
 	override dispose(): void {
+		this._entryDisposables.dispose();
+		this._filePreEditSnapshots.clear();
 		this._onDidDispose.fire();
 		super.dispose();
+	}
+
+	private async _registerModifiedFileEntry(requestId: string, edit: IToolCallFileEdit): Promise<void> {
+		if (!this._textModelService || !this._instantiationService) {
+			return;
+		}
+
+		const targetUri = fromAgentHostUri(edit.resource);
+		const key = targetUri.toString();
+
+		const existing = this._entriesByUri.get(key);
+		if (existing && existing.state.get() === ModifiedFileEntryState.Modified) {
+			if (edit.diff) {
+				existing.setAuthoritativeDiff?.(edit.diff);
+			}
+			await existing.revertToDisk?.();
+			await existing.recomputeDiff?.();
+			transaction(tx => {
+				this._entriesObs.set(Array.from(this._entriesByUri.values()), tx);
+			});
+			return;
+		}
+
+		let initialContent: string | undefined;
+		if (edit.kind === FileEditKind.Create) {
+			initialContent = '';
+		} else if (edit.beforeContentUri) {
+			try {
+				const buf = await this._fileService.readFile(edit.beforeContentUri);
+				initialContent = buf.value.toString();
+			} catch (err) {
+				this._logService.trace(`[AgentHostSnapshotController] Could not read beforeContentUri for ${targetUri.toString()}`, err);
+			}
+		}
+
+		// Tier 3: Pre-edit snapshot captured proactively when tool call started running
+		if (initialContent === undefined) {
+			const preSnap = this._filePreEditSnapshots.get(key);
+			if (preSnap) {
+				initialContent = preSnap.content;
+			}
+		}
+
+		// Tier 4: Working copy history service
+		if (initialContent === undefined && this._workingCopyHistoryService) {
+			try {
+				const entries = await this._workingCopyHistoryService.getEntries(targetUri, CancellationToken.None);
+				if (entries.length > 0) {
+					const lastEntry = entries[entries.length - 1];
+					const histBuf = await this._fileService.readFile(lastEntry.location);
+					initialContent = histBuf.value.toString();
+				}
+			} catch (err) {
+				this._logService.trace(`[AgentHostSnapshotController] Could not read workingCopyHistory for ${targetUri.toString()}`, err);
+			}
+		}
+
+		// Tier 5: SCM / Git HEAD original resolution
+		if (initialContent === undefined) {
+			initialContent = await this._resolveGitHeadContent(targetUri);
+		}
+
+		const telemetryInfo: IModifiedEntryTelemetryInfo = {
+			sessionResource: this.chatSessionResource,
+			requestId,
+			result: undefined,
+			agentId: undefined,
+			command: undefined,
+			modelId: undefined,
+			modeId: 'agent',
+			applyCodeBlockSuggestionId: undefined,
+			feature: 'sideBarChat',
+		};
+
+		const multiDiffEntryDelegate = {
+			collapse: () => { },
+		};
+
+		try {
+			let entry: IModifiedFileEntry & IDisposable;
+			if (edit.kind === FileEditKind.Delete) {
+				entry = this._instantiationService.createInstance(
+					ChatEditingDeletedFileEntry,
+					targetUri,
+					initialContent ?? '',
+					multiDiffEntryDelegate,
+					telemetryInfo,
+					'plaintext',
+				);
+			} else {
+				const kind = edit.kind === FileEditKind.Create ? ChatEditKind.Created : ChatEditKind.Modified;
+				const ref = await this._textModelService.createModelReference(targetUri);
+				entry = this._instantiationService.createInstance(
+					ChatEditingModifiedDocumentEntry,
+					ref,
+					multiDiffEntryDelegate,
+					telemetryInfo,
+					kind,
+					initialContent,
+				);
+				if (edit.diff) {
+					entry.setAuthoritativeDiff?.(edit.diff);
+				}
+			}
+
+			this._entryDisposables.add(entry);
+			this._entriesByUri.set(key, entry);
+
+			this._entryDisposables.add(autorun(reader => {
+				entry.state.read(reader);
+				transaction(tx => {
+					this._entriesObs.set(Array.from(this._entriesByUri.values()), tx);
+				});
+			}));
+
+			transaction(tx => {
+				this._entriesObs.set(Array.from(this._entriesByUri.values()), tx);
+			});
+		} catch (err) {
+			this._logService.warn(`[AgentHostSnapshotController] Failed to create IModifiedFileEntry for ${targetUri.toString()}`, err);
+		}
+	}
+
+	private async _resolveGitHeadContent(targetUri: URI): Promise<string | undefined> {
+		if (!this._quickDiffService) {
+			return undefined;
+		}
+		try {
+			const diffs = await this._quickDiffService.getQuickDiffs(targetUri);
+			for (const diff of diffs) {
+				if (diff.originalResource) {
+					const content = await this._fileService.readFile(diff.originalResource);
+					return content.value.toString();
+				}
+			}
+		} catch (err) {
+			this._logService.trace(`[AgentHostSnapshotController] Could not resolve quick diff original for ${targetUri.toString()}`, err);
+		}
+		return undefined;
 	}
 
 	// ---- Private helpers ----------------------------------------------------

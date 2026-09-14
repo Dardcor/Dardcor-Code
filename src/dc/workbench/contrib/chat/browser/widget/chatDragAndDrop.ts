@@ -18,7 +18,6 @@ import { DraggedChatReferenceIdentifier, CodeDataTransfers, containsDragType, ex
 import { ILogService } from '../../../../../platform/log/common/log.js';
 import { IThemeService, Themable } from '../../../../../platform/theme/common/themeService.js';
 import { ISharedWebContentExtractorService } from '../../../../../platform/webContentExtractor/common/webContentExtractor.js';
-import { IExtensionService, isProposedApiEnabled } from '../../../../services/extensions/common/extensions.js';
 import { extractSCMHistoryItemDropData } from '../../../scm/browser/scmHistoryChatContext.js';
 import { IChatRequestVariableEntry } from '../../common/attachments/chatVariableEntries.js';
 import { isAgentHostTarget } from '../../common/chatSessionsService.js';
@@ -64,7 +63,6 @@ export class ChatDragAndDrop extends Themable {
 		private readonly attachmentTarget: IChatAttachmentTarget,
 		private readonly styles: IChatInputStyles,
 		@IThemeService themeService: IThemeService,
-		@IExtensionService private readonly extensionService: IExtensionService,
 		@ISharedWebContentExtractorService private readonly webContentExtractorService: ISharedWebContentExtractorService,
 		@ILogService private readonly logService: ILogService,
 		@IChatAttachmentResolveService private readonly chatAttachmentResolveService: IChatAttachmentResolveService,
@@ -209,7 +207,7 @@ export class ChatDragAndDrop extends Themable {
 		} else if (containsDragType(e, CodeDataTransfers.SCM_HISTORY_ITEM)) {
 			return ChatDragAndDropType.SCM_HISTORY_ITEM;
 		} else if (containsImageDragType(e)) {
-			return this.extensionService.extensions.some(ext => isProposedApiEnabled(ext, 'chatReferenceBinaryData')) ? ChatDragAndDropType.IMAGE : undefined;
+			return ChatDragAndDropType.IMAGE;
 		} else if (containsDragType(e, 'text/html')) {
 			return ChatDragAndDropType.HTML;
 		} else if (containsDragType(e, CodeDataTransfers.SYMBOLS)) {

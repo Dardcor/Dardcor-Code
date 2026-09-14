@@ -565,30 +565,41 @@ export class CustomizationHarnessServiceBase implements ICustomizationHarnessSer
 		}
 
 		const items = await harness.itemProvider.provideChatSessionCustomizations(sessionResource, token);
-		if (!items) {
-			return [];
-		}
 		const result: IChatPromptSlashCommand[] = [];
-		for (const item of items) {
-			if ((item.enabled !== false) && (item.type === PromptsType.prompt || item.type === PromptsType.skill)) {
-				// `IChatPromptSlashCommand.storage` is `PromptsStorage`, so coerce
-				// the wider provider-supplied storage (which may be `BUILTIN_STORAGE`)
-				// down to the closest narrow value.
-				const storage = item.source;
-				const narrowStorage: PromptsStorage = storage !== undefined && storage !== BUILTIN_STORAGE
-					? storage as PromptsStorage
-					: PromptsStorage.local;
-				result.push({
-					uri: item.uri,
-					type: item.type as PromptsType.prompt | PromptsType.skill,
-					name: item.pluginUri ? getCanonicalPluginCommandId({ uri: item.pluginUri, label: item.pluginLabel }, item.name) : item.name,
-					description: item.description,
-					userInvocable: item.userInvocable ?? true,
-					storage: narrowStorage,
-					sessionTypes: [sessionType],
-				});
+		if (items) {
+			for (const item of items) {
+				if ((item.enabled !== false) && (item.type === PromptsType.prompt || item.type === PromptsType.skill)) {
+					// `IChatPromptSlashCommand.storage` is `PromptsStorage`, so coerce
+					// the wider provider-supplied storage (which may be `BUILTIN_STORAGE`)
+					// down to the closest narrow value.
+					const storage = item.source;
+					const narrowStorage: PromptsStorage = storage !== undefined && storage !== BUILTIN_STORAGE
+						? storage as PromptsStorage
+						: PromptsStorage.local;
+					result.push({
+						uri: item.uri,
+						type: item.type as PromptsType.prompt | PromptsType.skill,
+						name: item.pluginUri ? getCanonicalPluginCommandId({ uri: item.pluginUri, label: item.pluginLabel }, item.name) : item.name,
+						description: item.description,
+						userInvocable: item.userInvocable ?? true,
+						storage: narrowStorage,
+						sessionTypes: [sessionType],
+					});
+				}
 			}
 		}
+
+		// Also merge local prompt slash commands from promptsService so local workspace skills & prompts
+		// are available in Agent Host sessions (such as Workspace Agent) just like in Workspace Editor.
+		const localCommands = await this.promptsService.getPromptSlashCommands(token);
+		const seenNames = new Set(result.map(c => c.name));
+		for (const command of localCommands) {
+			if (!seenNames.has(command.name) && matchesSessionType(command.sessionTypes, sessionType)) {
+				result.push(command);
+				seenNames.add(command.name);
+			}
+		}
+
 		return result;
 	}
 
@@ -642,7 +653,11 @@ export class CustomizationHarnessServiceBase implements ICustomizationHarnessSer
 
 	public async resolvePromptSlashCommand(name: string, sessionResource: URI, token: CancellationToken): Promise<IResolvedChatPromptSlashCommand | undefined> {
 		const commands = await this.getSlashCommands(sessionResource, token);
-		const command = commands.find(cmd => cmd.name === name);
+		let command = commands.find(cmd => cmd.name === name);
+		if (!command) {
+			const localCommands = await this.promptsService.getPromptSlashCommands(token);
+			command = localCommands.find(cmd => cmd.name === name);
+		}
 		if (command) {
 			if (isAgentBuiltinCustomizationUri(command.uri)) {
 				return command;

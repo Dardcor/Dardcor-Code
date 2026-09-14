@@ -11,9 +11,9 @@ import { Emitter } from '../../../../../base/common/event.js';
 import { isStringInSample } from '../../../../../base/common/hash.js';
 import { MarkdownString } from '../../../../../base/common/htmlContent.js';
 import { Iterable } from '../../../../../base/common/iterator.js';
-import { Disposable, DisposableStore, dispose } from '../../../../../base/common/lifecycle.js';
+import { Disposable, DisposableStore, dispose, toDisposable } from '../../../../../base/common/lifecycle.js';
 import { ResourceMap } from '../../../../../base/common/map.js';
-import { derived, IObservable, IReader, ITransaction, observableValue, transaction } from '../../../../../base/common/observable.js';
+import { autorun, derived, IObservable, IReader, ITransaction, observableValue, transaction } from '../../../../../base/common/observable.js';
 import { isEqual } from '../../../../../base/common/resources.js';
 import { hasKey, Mutable } from '../../../../../base/common/types.js';
 import { URI } from '../../../../../base/common/uri.js';
@@ -182,6 +182,19 @@ export class ChatEditingSession extends Disposable implements IChatEditingSessio
 			return this._entriesObs.read(reader);
 		}
 	});
+
+	private readonly _runningUrisObs = observableValue<readonly URI[]>(this, []);
+	public readonly runningUris: IObservable<readonly URI[]> = this._runningUrisObs;
+
+	private readonly _isRunningObs = observableValue<boolean>(this, false);
+	public readonly isRunning: IObservable<boolean> = this._isRunningObs;
+
+	setRunning(running: boolean, uris: readonly URI[] = []): void {
+		transaction(tx => {
+			this._isRunningObs.set(running, tx);
+			this._runningUrisObs.set(uris, tx);
+		});
+	}
 
 	private _editorPane: MultiDiffEditor | undefined;
 	private _explanationHandle: IExplanationGenerationHandle | undefined;
@@ -1235,6 +1248,102 @@ export class ChatEditingSession extends Disposable implements IChatEditingSessio
 				return await doCreate(ChatEditKind.Created);
 			}
 		}
+	}
+
+	async registerFileEdit(
+		resource: URI,
+		kind: 'create' | 'edit' | 'delete',
+		initialContent: string | undefined,
+		requestId: string,
+		undoStopId?: string
+	): Promise<void> {
+		this._assertNotDisposed();
+
+		if (this._state.get() === ChatEditingSessionState.Initial) {
+			this._state.set(ChatEditingSessionState.Idle, undefined);
+		}
+
+		resource = CellUri.parse(resource)?.notebook ?? resource;
+		const existingEntry = this._entriesObs.get().find(e => isEqual(e.modifiedURI, resource));
+
+		if (existingEntry) {
+			if (existingEntry.state.get() === ModifiedFileEntryState.Modified) {
+				if (existingEntry instanceof ChatEditingModifiedDocumentEntry) {
+					await existingEntry.revertToDisk();
+				}
+				return;
+			} else {
+				existingEntry.dispose();
+				const filtered = this._entriesObs.get().filter(e => e !== existingEntry);
+				this._entriesObs.set(filtered, undefined);
+			}
+		}
+
+		const telemetryInfo: IModifiedEntryTelemetryInfo = {
+			sessionResource: this.chatSessionResource,
+			requestId,
+			result: undefined,
+			agentId: undefined,
+			command: undefined,
+			modelId: undefined,
+			modeId: 'agent',
+			applyCodeBlockSuggestionId: undefined,
+			feature: 'sideBarChat',
+		};
+
+		const multiDiffEntryDelegate = {
+			collapse: (transaction: ITransaction | undefined) => this._collapse(resource, transaction),
+			recordOperation: (operation: Mutable<FileOperation>) => {
+				operation.epoch = this._timeline.incrementEpoch();
+				this._timeline.recordFileOperation(operation);
+			},
+		};
+
+		let entry: AbstractChatEditingModifiedFileEntry;
+		if (kind === 'delete') {
+			const languageSelection = this._languageService.createByFilepathOrFirstLine(resource);
+			entry = this._instantiationService.createInstance(
+				ChatEditingDeletedFileEntry,
+				resource,
+				initialContent ?? '',
+				multiDiffEntryDelegate,
+				telemetryInfo,
+				languageSelection.languageId
+			);
+		} else {
+			const chatKind = kind === 'create' ? ChatEditKind.Created : ChatEditKind.Modified;
+			const ref = await this._textModelService.createModelReference(resource);
+			entry = this._instantiationService.createInstance(
+				ChatEditingModifiedDocumentEntry,
+				ref,
+				multiDiffEntryDelegate,
+				telemetryInfo,
+				chatKind,
+				initialContent
+			);
+			if (kind !== 'create') {
+				await entry.revertToDisk();
+			}
+		}
+
+		const listener = entry.onDidDelete(() => {
+			const newEntries = this._entriesObs.get().filter(e => !isEqual(e.modifiedURI, entry.modifiedURI));
+			this._entriesObs.set(newEntries, undefined);
+			this._editorService.closeEditors(this._editorService.findEditors(entry.modifiedURI));
+			entry.dispose();
+			this._store.delete(listener);
+		});
+		this._store.add(listener);
+
+		const stateListener = autorun(reader => {
+			entry.state.read(reader);
+			const current = this._entriesObs.get();
+			this._entriesObs.set([...current], undefined);
+		});
+		this._store.add(toDisposable(() => stateListener.dispose()));
+
+		const entriesArr = [...this._entriesObs.get(), entry];
+		this._entriesObs.set(entriesArr, undefined);
 	}
 
 	private _collapse(resource: URI, transaction: ITransaction | undefined) {

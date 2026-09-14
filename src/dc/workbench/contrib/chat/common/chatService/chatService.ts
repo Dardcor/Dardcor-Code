@@ -1803,6 +1803,11 @@ export interface IChatDetail {
 	stats?: IChatSessionStats;
 	lastResponseState: ResponseModelState;
 	/**
+	 * Whether this session has no requests.
+	 * Used by session restoration to skip empty sessions.
+	 */
+	isEmpty?: boolean;
+	/**
 	 * The working directory URI associated with this session.
 	 * Only populated in the sessions/agents window context.
 	 */

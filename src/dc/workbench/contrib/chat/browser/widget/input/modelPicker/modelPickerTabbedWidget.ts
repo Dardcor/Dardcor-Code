@@ -157,6 +157,7 @@ export class TabbedModelPicker extends Disposable {
 		}
 
 		const autoModel = context.models.find(isAutoModel);
+		const pickerWidth = anchor.offsetWidth > 200 ? anchor.offsetWidth : PICKER_WIDTH;
 		this._widget.show<IActionWidgetDropdownAction>({
 			user: 'ChatTabbedModelPicker',
 			anchor,
@@ -175,7 +176,7 @@ export class TabbedModelPicker extends Disposable {
 			],
 			tabLabels: 'active',
 			filterInTabBar: true,
-			width: PICKER_WIDTH,
+			width: pickerWidth,
 			createActionList: activeTab => {
 				this._cards.clear();
 				const current = this._context ?? context;
@@ -206,7 +207,7 @@ export class TabbedModelPicker extends Disposable {
 						// A tab with nothing promoted would open on an empty list, so leave it expanded.
 						collapsedByDefault: hasPromotedModels(sections) ? new Set([OTHER_MODELS_SECTION]) : undefined,
 						linkHandler: uri => current.onUnavailableLinkClick(uri),
-						maxWidth: PICKER_WIDTH,
+						maxWidth: pickerWidth,
 						hideDefaultKeybindingTooltip: true,
 						reserveSubmenuSpace: false,
 					}),

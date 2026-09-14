@@ -94,6 +94,7 @@ interface ILayout2DOptions {
 	readonly anchorAlignment?: AnchorAlignment; // default: left
 	readonly anchorPosition?: AnchorPosition; // default: above
 	readonly anchorAxisAlignment?: AnchorAxisAlignment; // default: vertical
+	readonly preventAvoid?: boolean;
 }
 
 export interface ILayout2DResult {
@@ -125,7 +126,7 @@ export function layout2d(viewport: IRect, view: ISize, anchor: IRect, options?: 
 		}
 
 		// if view intersects vertically with anchor, we must avoid the anchor
-		if (Range.intersects({ start: top, end: top + view.height }, { start: verticalAnchor.offset, end: verticalAnchor.offset + verticalAnchor.size })) {
+		if (!options?.preventAvoid && Range.intersects({ start: top, end: top + view.height }, { start: verticalAnchor.offset, end: verticalAnchor.offset + verticalAnchor.size })) {
 			horizontalAnchor.mode = LayoutAnchorMode.AVOID;
 		}
 
@@ -147,7 +148,7 @@ export function layout2d(viewport: IRect, view: ISize, anchor: IRect, options?: 
 		}
 
 		// if view intersects horizontally with anchor, we must avoid the anchor
-		if (Range.intersects({ start: left, end: left + view.width }, { start: horizontalAnchor.offset, end: horizontalAnchor.offset + horizontalAnchor.size })) {
+		if (!options?.preventAvoid && Range.intersects({ start: left, end: left + view.width }, { start: horizontalAnchor.offset, end: horizontalAnchor.offset + horizontalAnchor.size })) {
 			verticalAnchor.mode = LayoutAnchorMode.AVOID;
 		}
 

@@ -179,14 +179,14 @@ abstract class KeepOrUndoAction extends ChatEditingEditorAction {
 		super({
 			id,
 			title: _keep
-				? localize2('accept', 'Keep Chat Edits')
-				: localize2('discard', 'Undo Chat Edits'),
+				? localize2('accept', 'Accept Changes')
+				: localize2('discard', 'Reject Changes'),
 			shortTitle: _keep
-				? localize2('accept2', 'Keep')
-				: localize2('discard2', 'Undo'),
+				? localize2('accept2', 'Accept Changes')
+				: localize2('discard2', 'Reject'),
 			tooltip: _keep
-				? localize2('accept3', 'Keep Chat Edits in this File')
-				: localize2('discard3', 'Undo Chat Edits in this File'),
+				? localize2('accept3', 'Accept Changes in this File')
+				: localize2('discard3', 'Reject Changes in this File'),
 			precondition: ContextKeyExpr.and(ctxHasEditorModification, ctxIsCurrentlyBeingModified.negate()),
 			icon: _keep
 				? Codicon.check
@@ -196,8 +196,11 @@ abstract class KeepOrUndoAction extends ChatEditingEditorAction {
 				when: ContextKeyExpr.or(EditorContextKeys.focus, NOTEBOOK_EDITOR_FOCUSED),
 				weight: KeybindingWeight.WorkbenchContrib + 10, // win over new-window-action
 				primary: _keep
-					? KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyY
-					: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyN,
+					? KeyMod.CtrlCmd | KeyCode.Enter
+					: KeyMod.CtrlCmd | KeyCode.Backspace,
+				secondary: _keep
+					? [KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyY]
+					: [KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyN],
 			},
 			menu: {
 				id: MenuId.ChatEditingEditorContent,
@@ -251,16 +254,19 @@ abstract class AcceptRejectHunkAction extends ChatEditingEditorAction {
 		super(
 			{
 				id: _accept ? acceptHunkId : undoHunkId,
-				title: _accept ? localize2('acceptHunk', 'Keep this Change') : localize2('undo', 'Undo this Change'),
-				shortTitle: _accept ? localize2('acceptHunkShort', 'Keep') : localize2('undoShort', 'Undo'),
+				title: _accept ? localize2('acceptHunk', 'Accept this Change') : localize2('undo', 'Reject this Change'),
+				shortTitle: _accept ? localize2('acceptHunkShort', 'Accept') : localize2('undoShort', 'Reject'),
 				precondition: ContextKeyExpr.and(ctxHasEditorModification, ctxIsCurrentlyBeingModified.negate()),
 				f1: true,
 				keybinding: {
 					when: ContextKeyExpr.and(ctxCursorInChangeRange, ContextKeyExpr.or(EditorContextKeys.focus, NOTEBOOK_CELL_LIST_FOCUSED)),
 					weight: KeybindingWeight.WorkbenchContrib + 1,
 					primary: _accept
-						? KeyMod.CtrlCmd | KeyCode.KeyY
-						: KeyMod.CtrlCmd | KeyCode.KeyN
+						? KeyMod.Alt | KeyCode.Enter
+						: KeyMod.Shift | KeyMod.Alt | KeyCode.Backspace,
+					secondary: _accept
+						? [KeyMod.CtrlCmd | KeyCode.KeyY]
+						: [KeyMod.CtrlCmd | KeyCode.KeyN],
 				},
 				menu: {
 					id: MenuId.ChatEditingEditorHunk,

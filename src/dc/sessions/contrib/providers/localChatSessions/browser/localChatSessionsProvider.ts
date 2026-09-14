@@ -15,7 +15,7 @@ import { IChatService, IChatSendRequestOptions, IChatDetail, convertLegacyChatSe
 import { IChatSessionFileChange2, IChatSessionProviderOptionItem, SessionType } from '../../../../../workbench/contrib/chat/common/chatSessionsService.js';
 import { ISession, IChat, ISessionGitRepository, ISessionFolder, ISessionWorkspace, ISideChatSelection, SessionStatus, ISessionType, ISessionFileChange, toSessionId, SESSION_WORKSPACE_GROUP_LOCAL, IChatCheckpoints, ChatInteractivity, ChatModelSource } from '../../../../services/sessions/common/session.js';
 import { ChatAgentLocation, ChatConfiguration, ChatModeKind, ChatPermissionLevel, isChatPermissionLevel } from '../../../../../workbench/contrib/chat/common/constants.js';
-import { basename, dirname, isEqual } from '../../../../../base/common/resources.js';
+import { basename, dirname, isEqual, joinPath } from '../../../../../base/common/resources.js';
 import { IDeleteChatOptions, ISendRequestOptions, ISessionChangeEvent, ISessionModelPickerOptions, ISessionModelsSnapshot, ISessionsProvider } from '../../../../services/sessions/common/sessionsProvider.js';
 import { isBuiltinChatMode, IChatMode } from '../../../../../workbench/contrib/chat/common/chatModes.js';
 import { IChatModel } from '../../../../../workbench/contrib/chat/common/model/chatModel.js';
@@ -34,6 +34,9 @@ import { createChangesets } from '../../copilotChatSessions/browser/copilotChatS
 import { IMarkdownString } from '../../../../../base/common/htmlContent.js';
 import { CancellationToken } from '../../../../../base/common/cancellation.js';
 import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
+import { IEnvironmentService } from '../../../../../platform/environment/common/environment.js';
+import { IUserDataProfilesService } from '../../../../../platform/userDataProfile/common/userDataProfile.js';
+import { LocalChatSessionUri } from '../../../../../workbench/contrib/chat/common/model/chatUri.js';
 
 /** Local session type — in-process VS Code chat, no background agent or worktree. */
 // @ts-ignore
@@ -451,12 +454,12 @@ export class LocalChatSessionsProvider extends Disposable implements ISessionsPr
 		@IStorageService private readonly storageService: IStorageService,
 		@IDialogService private readonly dialogService: IDialogService,
 		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
+		@IFileService private readonly fileService: IFileService,
+		@IEnvironmentService private readonly environmentService: IEnvironmentService,
+		@IUserDataProfilesService private readonly userDataProfilesService: IUserDataProfilesService,
 	) {
 		super();
 
-		// Track requests on our sessions to update last message date,
-		// title, and persisted metadata when the chat widget sends
-		// subsequent messages directly (not via our sendRequest).
 		this._register(this.chatService.onDidSubmitRequest(e => {
 			const session = this._sessionCache.get(e.chatSessionResource.toString());
 			if (session) {
@@ -464,53 +467,202 @@ export class LocalChatSessionsProvider extends Disposable implements ISessionsPr
 			}
 		}));
 
-		// One-time migration: import existing local chat history into our storage
+		this._loadPersistedSessions();
 		this._migrateFromHistory().finally(() => {
-			// Load persisted local sessions on initialization
 			this._loadPersistedSessions();
 		});
 	}
 
-	/**
-	 * One-time migration that imports existing local chat sessions from
-	 * {@link IChatService.getLocalSessionHistory} into our own persisted
-	 * storage. Only sessions with a working directory are migrated, since
-	 * a working directory is mandatory for {@link LocalSession}. Sessions
-	 * that are already in our storage are skipped.
-	 */
 	private async _migrateFromHistory(): Promise<void> {
 		try {
-			const history = await this.chatService.getLocalSessionHistory();
 			const sessions = this._readStoredSessions();
 			const existingKeys = new Set(sessions.map(s => URI.revive(s.uri).toString()));
 			let changed = false;
 
-			for (const detail of history) {
-				const workingDirectory = detail.workingDirectory ?? this.workspaceContextService.getWorkspace().folders[0]?.uri;
-				if (!workingDirectory) {
-					continue;
+			try {
+				const history = await this.chatService.getLocalSessionHistory();
+				for (const detail of history) {
+					const workingDirectory = detail.workingDirectory ?? this.workspaceContextService.getWorkspace().folders[0]?.uri;
+					if (!workingDirectory) {
+						continue;
+					}
+					const key = detail.sessionResource.toString();
+					if (existingKeys.has(key)) {
+						continue;
+					}
+					const timing = convertLegacyChatSessionTiming(detail.timing);
+					const lastUpdate = detail.lastMessageDate || timing.lastRequestEnded || timing.lastRequestStarted || timing.created;
+					sessions.push({
+						uri: detail.sessionResource.toJSON(),
+						title: detail.title,
+						createdAt: timing.created,
+						lastMessageDate: lastUpdate,
+						workingDirectory: workingDirectory.toJSON(),
+					});
+					existingKeys.add(key);
+					changed = true;
 				}
-				const key = detail.sessionResource.toString();
-				if (existingKeys.has(key)) {
-					continue;
-				}
-				const timing = convertLegacyChatSessionTiming(detail.timing);
-				const lastUpdate = detail.lastMessageDate || timing.lastRequestEnded || timing.lastRequestStarted || timing.created;
-				sessions.push({
-					uri: detail.sessionResource.toJSON(),
-					title: detail.title,
-					createdAt: timing.created,
-					lastMessageDate: lastUpdate,
-					workingDirectory: workingDirectory.toJSON(),
-				});
-				changed = true;
+			} catch (e) {
+				this.logService.error('[LocalChatSessionsProvider] Failed to read local session history', e);
 			}
 
 			if (changed) {
 				this._writeStoredSessions(sessions);
 			}
+
+			await this._discoverCrossWorkspaceSessions(sessions, existingKeys);
 		} catch (e) {
 			this.logService.error('[LocalChatSessionsProvider] Failed to sync local chat history', e);
+		}
+	}
+
+	private async _discoverCrossWorkspaceSessions(sessions: IStoredLocalSession[], existingKeys: Set<string>): Promise<void> {
+		let changed = false;
+		try {
+			const storageHomeStat = await this.fileService.resolve(this.environmentService.workspaceStorageHome);
+			if (storageHomeStat.children) {
+				for (const wsDir of storageHomeStat.children) {
+					if (!wsDir.isDirectory) {
+						continue;
+					}
+
+					let workingDirectory: URI | undefined;
+					const wsJsonUri = joinPath(wsDir.resource, 'workspace.json');
+					try {
+						const wsContent = await this.fileService.readFile(wsJsonUri);
+						const wsParsed = JSON.parse(wsContent.value.toString());
+						if (wsParsed.folder) {
+							workingDirectory = URI.parse(wsParsed.folder);
+						} else if (wsParsed.workspace) {
+							workingDirectory = URI.parse(wsParsed.workspace);
+						}
+					} catch {
+					}
+
+					const chatSessionsUri = joinPath(wsDir.resource, 'chatSessions');
+					try {
+						const chatSessionsStat = await this.fileService.resolve(chatSessionsUri);
+						if (chatSessionsStat.children) {
+							for (const sessionFile of chatSessionsStat.children) {
+								if (sessionFile.isDirectory || (!sessionFile.name.endsWith('.jsonl') && !sessionFile.name.endsWith('.json'))) {
+									continue;
+								}
+
+								const sessionId = sessionFile.name.replace(/\.(jsonl|json)$/, '');
+								const sessionResource = LocalChatSessionUri.forSession(sessionId);
+								const key = sessionResource.toString();
+								if (existingKeys.has(key)) {
+									continue;
+								}
+
+								const fileContent = await this.fileService.readFile(sessionFile.resource);
+								const text = fileContent.value.toString();
+								let parsedSession: any;
+								if (sessionFile.name.endsWith('.jsonl')) {
+									const firstLine = text.split('\n', 1)[0];
+									try {
+										const lineObj = JSON.parse(firstLine);
+										parsedSession = lineObj.v ?? lineObj;
+									} catch {
+									}
+								} else {
+									try {
+										parsedSession = JSON.parse(text);
+									} catch {
+									}
+								}
+
+								if (!parsedSession || (Array.isArray(parsedSession.requests) && parsedSession.requests.length === 0)) {
+									continue;
+								}
+
+								const sessionWorkDir = parsedSession.workingDirectory ? URI.parse(parsedSession.workingDirectory) : undefined;
+								const targetWorkDir = workingDirectory ?? sessionWorkDir ?? this.workspaceContextService.getWorkspace().folders[0]?.uri ?? this.environmentService.userRoamingDataHome;
+
+								const title = parsedSession.customTitle || parsedSession.title || parsedSession.requests?.[0]?.message?.text || localize('newChat', "New Chat");
+								const createdAt = parsedSession.creationDate ?? Date.now();
+								const lastRequest = parsedSession.requests?.at(-1);
+								const lastMessageDate = lastRequest?.timestamp ?? createdAt;
+
+								sessions.push({
+									uri: sessionResource.toJSON(),
+									title,
+									createdAt,
+									lastMessageDate,
+									workingDirectory: targetWorkDir.toJSON(),
+								});
+								existingKeys.add(key);
+								changed = true;
+							}
+						}
+					} catch {
+					}
+				}
+			}
+
+			const emptyWindowRoot = joinPath(this.userDataProfilesService.defaultProfile.globalStorageHome, 'emptyWindowChatSessions');
+			try {
+				const emptyStat = await this.fileService.resolve(emptyWindowRoot);
+				if (emptyStat.children) {
+					for (const sessionFile of emptyStat.children) {
+						if (sessionFile.isDirectory || (!sessionFile.name.endsWith('.jsonl') && !sessionFile.name.endsWith('.json'))) {
+							continue;
+						}
+
+						const sessionId = sessionFile.name.replace(/\.(jsonl|json)$/, '');
+						const sessionResource = LocalChatSessionUri.forSession(sessionId);
+						const key = sessionResource.toString();
+						if (existingKeys.has(key)) {
+							continue;
+						}
+
+						const targetWorkDir = this.workspaceContextService.getWorkspace().folders[0]?.uri ?? this.environmentService.userRoamingDataHome;
+
+						const fileContent = await this.fileService.readFile(sessionFile.resource);
+						const text = fileContent.value.toString();
+						let parsedSession: any;
+						if (sessionFile.name.endsWith('.jsonl')) {
+							const firstLine = text.split('\n', 1)[0];
+							try {
+								const lineObj = JSON.parse(firstLine);
+								parsedSession = lineObj.v ?? lineObj;
+							} catch {
+							}
+						} else {
+							try {
+								parsedSession = JSON.parse(text);
+							} catch {
+							}
+						}
+
+						if (!parsedSession || (Array.isArray(parsedSession.requests) && parsedSession.requests.length === 0)) {
+							continue;
+						}
+
+						const title = parsedSession.customTitle || parsedSession.title || parsedSession.requests?.[0]?.message?.text || localize('newChat', "New Chat");
+						const createdAt = parsedSession.creationDate ?? Date.now();
+						const lastRequest = parsedSession.requests?.at(-1);
+						const lastMessageDate = lastRequest?.timestamp ?? createdAt;
+
+						sessions.push({
+							uri: sessionResource.toJSON(),
+							title,
+							createdAt,
+							lastMessageDate,
+							workingDirectory: targetWorkDir.toJSON(),
+						});
+						existingKeys.add(key);
+						changed = true;
+					}
+				}
+			} catch {
+			}
+		} catch (e) {
+			this.logService.error('[LocalChatSessionsProvider] Error discovering cross-workspace sessions', e);
+		}
+
+		if (changed) {
+			this._writeStoredSessions(sessions);
 		}
 	}
 

@@ -95,7 +95,7 @@ export class PromptExtensionInstallFailureAction extends Action {
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 		@IExtensionGalleryService private readonly galleryService: IExtensionGalleryService,
 		@IExtensionManifestPropertiesService private readonly extensionManifestPropertiesService: IExtensionManifestPropertiesService,
-		@IWorkbenchIssueService private readonly workbenchIssueService: IWorkbenchIssueService,
+		@IWorkbenchIssueService _workbenchIssueService: IWorkbenchIssueService,
 	) {
 		super('extension.promptExtensionInstallFailure');
 	}
@@ -162,52 +162,10 @@ export class PromptExtensionInstallFailureAction extends Action {
 			return;
 		}
 
-		if (ExtensionManagementErrorCode.SignatureVerificationFailed === (<ExtensionManagementErrorCode>this.error.name)) {
-			await this.dialogService.prompt({
-				type: 'error',
-				message: localize('verification failed', "Cannot install '{0}' extension because {1} cannot verify the extension signature", this.extension.displayName, this.productService.nameLong),
-				detail: getErrorMessage(this.error),
-				buttons: [{
-					label: localize('learn more', "Learn More"),
-					run: () => this.openerService.open('https://code.visualstudio.com/docs/editor/extension-marketplace#_the-extension-signature-cannot-be-verified-by-vs-code')
-				}, {
-					label: localize('install donot verify', "Install Anyway (Don't Verify Signature)"),
-					run: () => {
-						const installAction = this.instantiationService.createInstance(InstallAction, { ...this.options, donotVerifySignature: true, });
-						installAction.extension = this.extension;
-						return installAction.run();
-					}
-				}],
-				cancelButton: true
-			});
-			return;
-		}
-
-		if (ExtensionManagementErrorCode.SignatureVerificationInternal === (<ExtensionManagementErrorCode>this.error.name)) {
-			await this.dialogService.prompt({
-				type: 'error',
-				message: localize('verification failed', "Cannot install '{0}' extension because {1} cannot verify the extension signature", this.extension.displayName, this.productService.nameLong),
-				detail: getErrorMessage(this.error),
-				buttons: [{
-					label: localize('learn more', "Learn More"),
-					run: () => this.openerService.open('https://code.visualstudio.com/docs/editor/extension-marketplace#_the-extension-signature-cannot-be-verified-by-vs-code')
-				}, {
-					label: localize('report issue', "Report Issue"),
-					run: () => this.workbenchIssueService.openReporter({
-						issueTitle: localize('report issue title', "Extension Signature Verification Failed: {0}", this.extension.displayName),
-						issueBody: localize('report issue body', "Please include following log `F1 > Open View... > Shared` below.\n\n")
-					})
-				}, {
-					label: localize('install donot verify', "Install Anyway (Don't Verify Signature)"),
-					run: () => {
-						const installAction = this.instantiationService.createInstance(InstallAction, { ...this.options, donotVerifySignature: true, });
-						installAction.extension = this.extension;
-						return installAction.run();
-					}
-				}],
-				cancelButton: true
-			});
-			return;
+		if (ExtensionManagementErrorCode.SignatureVerificationFailed === (<ExtensionManagementErrorCode>this.error.name) || ExtensionManagementErrorCode.SignatureVerificationInternal === (<ExtensionManagementErrorCode>this.error.name)) {
+			const installAction = this.instantiationService.createInstance(InstallAction, { ...this.options, donotVerifySignature: true, });
+			installAction.extension = this.extension;
+			return installAction.run();
 		}
 
 		const operationMessage = this.installOperation === InstallOperation.Update ? localize('update operation', "Error while updating '{0}' extension.", this.extension.displayName || this.extension.identifier.id)

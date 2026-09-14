@@ -236,7 +236,16 @@ abstract class AbstractChatAttachmentWidget extends Disposable {
 }
 
 function modelSupportsVision(currentLanguageModel: ILanguageModelChatMetadataAndIdentifier | undefined) {
-	return isAutoLanguageModel(currentLanguageModel) || (currentLanguageModel?.metadata.capabilities?.vision ?? false);
+	if (!currentLanguageModel) {
+		return true;
+	}
+	if (isAutoLanguageModel(currentLanguageModel)) {
+		return true;
+	}
+	if (currentLanguageModel?.metadata?.capabilities?.vision !== undefined) {
+		return currentLanguageModel.metadata.capabilities.vision;
+	}
+	return true;
 }
 
 export function getEffectiveImageOmittedState(omittedState: OmittedState | undefined, currentLanguageModel: ILanguageModelChatMetadataAndIdentifier | undefined, isCurrentInput: boolean | undefined): OmittedState | undefined {
@@ -732,6 +741,20 @@ function createImageElements(resource: URI | undefined, name: string, fullName: 
 	const hoverElement = dom.$('div.chat-attached-context-hover');
 	hoverElement.setAttribute('aria-label', ariaLabel);
 
+	const onImageFailed = () => {
+		// reset to original icon on error or invalid image
+		const pillIcon = createPillIcon(Codicon.fileMediaCompact);
+		replacePill(pillIcon);
+	};
+	const hoverFullName = omittedState === OmittedState.Partial ? localize('chat.imageAttachmentWarning', "This GIF was partially omitted - current frame will be sent.") : fullName;
+	const hoverContent = createImageHoverContent(resource, hoverFullName, buffer, cacheKey, undefined, resource ? clickHandler : undefined, (url, _isThumbnail, hoverImage) => {
+		const pillImg = dom.$('img.chat-attached-context-pill-image', { src: url, alt: '' });
+		const pill = dom.$('div.chat-attached-context-pill', {}, pillImg);
+		replacePill(pill);
+		hoverImage.onerror = onImageFailed;
+	}, '', showImageInHover);
+	disposable.add(hoverContent.disposable);
+
 	if ((!supportsVision && currentLanguageModel) || omittedState === OmittedState.Full) {
 		element.classList.add('warning');
 		hoverElement.textContent = localize('chat.imageAttachmentHover', "{0} does not support images.", currentLanguageModelName ?? 'This model');
@@ -750,21 +773,6 @@ function createImageElements(resource: URI | undefined, name: string, fullName: 
 			style: HoverStyle.Pointer,
 		}));
 	} else {
-		const onImageFailed = () => {
-			// reset to original icon on error or invalid image
-			const pillIcon = createPillIcon(Codicon.fileMediaCompact);
-			replacePill(pillIcon);
-		};
-		const hoverFullName = omittedState === OmittedState.Partial ? localize('chat.imageAttachmentWarning', "This GIF was partially omitted - current frame will be sent.") : fullName;
-		const hoverContent = createImageHoverContent(resource, hoverFullName, buffer, cacheKey, undefined, resource ? clickHandler : undefined, (url, isThumbnail, hoverImage) => {
-			if (isThumbnail) {
-				const pillImg = dom.$('img.chat-attached-context-pill-image', { src: url, alt: '' });
-				const pill = dom.$('div.chat-attached-context-pill', {}, pillImg);
-				replacePill(pill);
-			}
-			hoverImage.onerror = onImageFailed;
-		}, '', showImageInHover);
-		disposable.add(hoverContent.disposable);
 		const hoverElement = hoverContent.element;
 		hoverElement.setAttribute('aria-label', ariaLabel);
 		disposable.add(hoverService.setupDelayedHover(element, {

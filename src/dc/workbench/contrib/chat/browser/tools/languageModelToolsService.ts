@@ -188,14 +188,14 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 
 		this._ctxToolsCount = ChatContextKeys.Tools.toolsCount.bindTo(_contextKeyService);
 
-		// Create the internal VS Code tool set
 		this.vscodeToolSet = this._register(this.createToolSet(
 			ToolDataSource.Internal,
 			'vscode',
-			VSCodeToolReference.vscode,
+			'vscode',
 			{
 				icon: ThemeIcon.fromId(Codicon.vscode.id),
-				description: localize('copilot.toolSet.vscode.description', 'Use VS Code features'),
+				description: localize('copilot.toolSet.vscode.description', 'Use Dardcor Code features'),
+				legacyFullNames: ['vscode'],
 				deprecated: true,
 			}
 		));
@@ -1740,7 +1740,7 @@ export class LanguageModelToolsService extends Disposable implements ILanguageMo
 
 	getToolSetByName(name: string): ToolSet | undefined {
 		for (const toolSet of this._toolSets) {
-			if (toolSet.referenceName === name) {
+			if (toolSet.referenceName === name || toolSet.id === name || (toolSet.id === 'vscode' && (name === 'vscode' || name === 'Dardcor Code' || name === 'dardcor'))) {
 				return toolSet;
 			}
 		}

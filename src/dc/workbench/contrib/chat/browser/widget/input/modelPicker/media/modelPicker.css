@@ -148,6 +148,25 @@
 	color: var(--vscode-textLink-activeForeground);
 }
 
+.action-widget:has(.chat-model-picker-dropdown) {
+	box-sizing: border-box;
+}
+
+.action-widget:has(.chat-model-picker-dropdown) .actionList,
+.action-widget:has(.chat-model-picker-dropdown) .monaco-list {
+	width: 100% !important;
+	max-width: 100% !important;
+	box-sizing: border-box !important;
+}
+
+.action-widget:has(.chat-model-picker-dropdown) .monaco-list .monaco-scrollable-element,
+.action-widget:has(.chat-model-picker-dropdown) .monaco-list .monaco-list-rows,
+.action-widget:has(.chat-model-picker-dropdown) .monaco-list .monaco-list-row {
+	width: 100% !important;
+	max-width: 100% !important;
+	box-sizing: border-box !important;
+}
+
 .action-widget:has(.chat-model-picker-dropdown) .action-list-filter-input,
 .action-widget:has(.chat-model-picker-dropdown) .action-list-filter-input:focus {
 	outline: none;

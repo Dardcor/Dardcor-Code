@@ -64,6 +64,9 @@ files_vscode.txt
 missing_in_dardcor.txt
 dc_files.txt
 vscode_files.txt
+List-OS.md
+STORAGE.md
+
 # Data Penting / Rahasia
 .env
 .env.*

@@ -12,7 +12,7 @@ import { join } from '../../../base/common/path.js';
 import { StopWatch } from '../../../base/common/stopwatch.js';
 import { URI } from '../../../base/common/uri.js';
 import { Promises } from '../../../base/node/pfs.js';
-import { InMemoryStorageDatabase, IStorage, Storage, StorageHint, StorageState, MigratingStorage } from '../../../base/parts/storage/common/storage.js';
+import { InMemoryStorageDatabase, IStorage, Storage, StorageHint, StorageState } from '../../../base/parts/storage/common/storage.js';
 import { ISQLiteStorageDatabaseLoggingOptions, SQLiteStorageDatabase } from '../../../base/parts/storage/node/storage.js';
 import { IEnvironmentService } from '../../environment/common/environment.js';
 import { IFileService } from '../../files/common/files.js';
@@ -350,7 +350,7 @@ export class ApplicationStorageMain extends BaseProfileAwareStorageMain {
 
 export class ApplicationSharedStorageMain extends BaseStorageMain {
 
-	private static readonly STORAGE_NAME = 'state.vscdb';
+	private static readonly STORAGE_NAME = 'state.dcdb';
 
 	get path(): string | undefined {
 		if (!this.options.useInMemoryStorage) {
@@ -363,7 +363,7 @@ export class ApplicationSharedStorageMain extends BaseStorageMain {
 	constructor(
 		private readonly options: IStorageMainOptions,
 		private readonly storageFolderPath: string,
-		private readonly applicationStorage: IStorageMain,
+		private readonly _applicationStorage: IStorageMain,
 		logService: ILogService,
 		fileService: IFileService,
 	) {
@@ -379,17 +379,11 @@ export class ApplicationSharedStorageMain extends BaseStorageMain {
 			logging: this.createLoggingOptions()
 		});
 
-		this.logService.info(`[shared storage] Initializing fallback application storage (path: ${this.applicationStorage.path ?? 'in-memory'})`);
-		await this.applicationStorage.init();
-		this.logService.info(`[shared storage] Fallback application storage initialized with ${this.applicationStorage.items.size} items`);
-
-		const migratingStorage = this._register(new MigratingStorage(database, { hint: wasCreated ? StorageHint.STORAGE_DOES_NOT_EXIST : undefined }));
-		migratingStorage.setFallbackStorage(this.applicationStorage.storage, false);
-		return migratingStorage;
+		return this._register(new Storage(database, { hint: wasCreated ? StorageHint.STORAGE_DOES_NOT_EXIST : undefined }));
 	}
 
 	get applicationStorageItems(): Map<string, string> {
-		return this.applicationStorage.items;
+		return this._applicationStorage.items;
 	}
 
 	private async prepareStorageFolder(): Promise<{ storageFilePath: string; wasCreated: boolean }> {
@@ -398,15 +392,34 @@ export class ApplicationSharedStorageMain extends BaseStorageMain {
 		}
 
 		const storageDatabasePath = join(this.storageFolderPath, ApplicationSharedStorageMain.STORAGE_NAME);
+		const legacyDatabasePath = join(this.storageFolderPath, 'state.vscdb');
+		const appStoragePath = this._applicationStorage.path;
 
-		const storageExists = await Promises.exists(this.storageFolderPath);
-		if (storageExists) {
-			return { storageFilePath: storageDatabasePath, wasCreated: false };
+		const folderExists = await Promises.exists(this.storageFolderPath);
+		if (!folderExists) {
+			await fs.promises.mkdir(this.storageFolderPath, { recursive: true });
 		}
 
-		await fs.promises.mkdir(this.storageFolderPath, { recursive: true });
+		let databaseExists = await Promises.exists(storageDatabasePath);
+		if (!databaseExists) {
+			if (await Promises.exists(legacyDatabasePath)) {
+				try {
+					await fs.promises.copyFile(legacyDatabasePath, storageDatabasePath);
+					databaseExists = true;
+				} catch (error) {
+					this.logService.error(`[shared storage] Failed to copy legacy database from ${legacyDatabasePath} to ${storageDatabasePath}:`, error);
+				}
+			} else if (appStoragePath && await Promises.exists(appStoragePath)) {
+				try {
+					await fs.promises.copyFile(appStoragePath, storageDatabasePath);
+					databaseExists = true;
+				} catch (error) {
+					this.logService.error(`[shared storage] Failed to copy legacy database from ${appStoragePath} to ${storageDatabasePath}:`, error);
+				}
+			}
+		}
 
-		return { storageFilePath: storageDatabasePath, wasCreated: true };
+		return { storageFilePath: storageDatabasePath, wasCreated: !databaseExists };
 	}
 }
 

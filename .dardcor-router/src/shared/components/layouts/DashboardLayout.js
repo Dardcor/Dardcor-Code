@@ -38,7 +38,7 @@ export default function DashboardLayout({ children }) {
   const removeNotification = useNotificationStore((state) => state.removeNotification);
 
   return (
-    <div className="flex h-screen h-[100dvh] w-full overflow-hidden bg-bg">
+    <div className="flex w-full overflow-hidden bg-bg" style={{ minHeight: "calc(100vh / 0.8)", height: "calc(100vh / 0.8)" }}>
       <div className="fixed top-4 right-4 z-[80] flex w-[min(92vw,380px)] flex-col gap-2">
         {notifications.map((n) => {
           const style = getToastStyle(n.type);

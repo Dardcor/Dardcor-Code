@@ -20,7 +20,7 @@ import { CommandsRegistry, ICommandService } from '../../../../platform/commands
 import { localize } from '../../../../nls.js';
 import { AICustomizationManagementCommands, AICustomizationManagementSection } from '../../../../workbench/contrib/chat/browser/aiCustomization/aiCustomizationManagement.js';
 import { IChatSubmitRequestHandlerService, type IChatSubmitRequest, type IChatSubmitRequestHandler } from '../../../../workbench/contrib/chat/browser/chatSubmitRequestHandlerService.js';
-import { IChatPromptSlashCommand } from '../../../../workbench/contrib/chat/common/promptSyntax/service/promptsService.js';
+import { IChatPromptSlashCommand, IPromptsService } from '../../../../workbench/contrib/chat/common/promptSyntax/service/promptsService.js';
 import { INewChatModelPickerService } from './newChatModelPicker.js';
 import { isAgentHostTarget } from '../../../../workbench/contrib/chat/common/chatSessionsService.js';
 import { getChatSessionType } from '../../../../workbench/contrib/chat/common/model/chatUri.js';
@@ -78,6 +78,7 @@ export class SlashCommandHandler extends Disposable implements IChatSubmitReques
 		@ISessionContext private readonly sessionContext: ISessionContext,
 		@IChatPetService private readonly chatPetService: IChatPetService,
 		@IChatSubmitRequestHandlerService submitRequestHandlerService: IChatSubmitRequestHandlerService,
+		@IPromptsService private readonly promptsService: IPromptsService,
 	) {
 		super();
 		this._commandDecorations = this._editor.createDecorationsCollection();
@@ -97,6 +98,10 @@ export class SlashCommandHandler extends Disposable implements IChatSubmitReques
 				this._refreshPromptCommands(sessionResource);
 			}
 		}));
+
+		this._register(this.promptsService.onDidChangeSlashCommands(() => {
+			this._refreshPromptCommands(this.sessionContext.session.get()?.resource);
+		}));
 	}
 
 	clearInput(): void {
@@ -113,21 +118,21 @@ export class SlashCommandHandler extends Disposable implements IChatSubmitReques
 
 	private _refreshPromptCommands(sessionResource: URI | undefined): void {
 		const refreshGeneration = ++this._promptCommandsRefreshGeneration;
-		if (!sessionResource) {
-			this._cachedPromptCommands = [];
-			this._updateDecorations();
-			return;
-		}
-		this.harnessService.getSlashCommands(sessionResource, CancellationToken.None).then(commands => {
+		const fetchPromise = sessionResource
+			? this.harnessService.getSlashCommands(sessionResource, CancellationToken.None)
+			: this.promptsService.getPromptSlashCommands(CancellationToken.None);
+		fetchPromise.then(commands => {
 			const currentSessionResource = this.sessionContext.session.get()?.resource;
-			if (refreshGeneration !== this._promptCommandsRefreshGeneration || !currentSessionResource || !isEqual(currentSessionResource, sessionResource)) {
+			if (refreshGeneration !== this._promptCommandsRefreshGeneration) {
+				return;
+			}
+			if (sessionResource && (!currentSessionResource || !isEqual(currentSessionResource, sessionResource))) {
 				return;
 			}
 			this._cachedPromptCommands = commands;
 			this._updateDecorations();
 		}, () => {
-			const currentSessionResource = this.sessionContext.session.get()?.resource;
-			if (refreshGeneration !== this._promptCommandsRefreshGeneration || !currentSessionResource || !isEqual(currentSessionResource, sessionResource)) {
+			if (refreshGeneration !== this._promptCommandsRefreshGeneration) {
 				return;
 			}
 			this._cachedPromptCommands = [];
@@ -305,17 +310,6 @@ export class SlashCommandHandler extends Disposable implements IChatSubmitReques
 			_debugDisplayName: 'sessionsPromptSlashCommands',
 			triggerCharacters: ['/'],
 			provideCompletionItems: async (model: ITextModel, position: Position, _context: CompletionContext, token: CancellationToken) => {
-				const activeSession = this.sessionContext.session.get();
-				if (!activeSession) {
-					return null;
-				}
-				if (isAgentHostTarget(getChatSessionType(activeSession.resource))) {
-					// Agent-host sessions delegate completions to the host
-					// process via `AgentHostInputCompletions`.
-					return null;
-				}
-
-
 				const range = this._computeCompletionRanges(model, position, /\/[\p{L}0-9_.:-]*/gu);
 				if (!range) {
 					return null;
@@ -326,8 +320,29 @@ export class SlashCommandHandler extends Disposable implements IChatSubmitReques
 					return null;
 				}
 
-				const promptCommands = await this.harnessService.getSlashCommands(activeSession?.resource, token);
-				const userInvocable = promptCommands.filter(c => c.userInvocable);
+				const commandsByName = new Map<string, IChatPromptSlashCommand>();
+				try {
+					const promptCommands = await this.promptsService.getPromptSlashCommands(token);
+					for (const c of promptCommands) {
+						commandsByName.set(c.name, c);
+					}
+				} catch {
+					// ignore
+				}
+
+				const activeSession = this.sessionContext.session.get();
+				if (activeSession?.resource) {
+					try {
+						const harnessCommands = await this.harnessService.getSlashCommands(activeSession.resource, token);
+						for (const c of harnessCommands) {
+							commandsByName.set(c.name, c);
+						}
+					} catch {
+						// ignore
+					}
+				}
+
+				const userInvocable = Array.from(commandsByName.values()).filter(c => c.userInvocable);
 				if (userInvocable.length === 0) {
 					return null;
 				}

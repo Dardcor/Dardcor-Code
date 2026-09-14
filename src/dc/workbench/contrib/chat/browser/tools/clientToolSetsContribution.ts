@@ -12,9 +12,6 @@ import { browserChatToolReferenceNames } from '../../../../../platform/browserVi
 import { IAICustomizationWorkspaceService } from '../../common/aiCustomizationWorkspaceService.js';
 import { ILanguageModelToolsService, IToolData, ToolDataSource } from '../../common/tools/languageModelToolsService.js';
 
-/**
- * Describes a tool set whose membership is resolved dynamically from a list of tool reference names.
- */
 interface IDynamicToolSetSpec {
 	readonly id: string;
 	readonly referenceName: string;
@@ -81,8 +78,8 @@ export class ClientToolSetsContribution extends Disposable implements IWorkbench
 			id: 'vscode-general',
 			referenceName: 'vscodeGeneral',
 			icon: Codicon.vscode,
-			description: localize('clientToolSet.vscode.description', "VS Code"),
-			detail: localize('clientToolSet.vscode.detail', "Navigate code, manage extensions, and run built-in VS Code commands."),
+			description: localize('clientToolSet.vscode.description', "Dardcor Code"),
+			detail: localize('clientToolSet.vscode.detail', "Navigate code, manage extensions, and run built-in Dardcor Code commands."),
 			members: [
 				...(workspaceService.isSessionsWindow ? [] : ['runTests', 'testFailure', 'rename', 'usages']),
 				'toolSearch',

@@ -48,6 +48,7 @@ export interface IDelegate {
 	anchorAlignment?: AnchorAlignment; // default: left
 	anchorPosition?: AnchorPosition; // default: below
 	anchorAxisAlignment?: AnchorAxisAlignment; // default: vertical
+	preventAvoid?: boolean;
 	canRelayout?: boolean; // default: true
 	onDOMEvent?(e: Event, activeElement: HTMLElement): void;
 	onHide?(data?: unknown): void;
@@ -354,7 +355,8 @@ export class ContextView extends Disposable {
 		const anchorPosition = this.delegate!.anchorPosition;
 		const anchorAlignment = this.delegate!.anchorAlignment;
 		const anchorAxisAlignment = this.delegate!.anchorAxisAlignment;
-		const layoutResult = layout2d(viewport, view, anchor, { anchorAlignment, anchorPosition, anchorAxisAlignment });
+		const preventAvoid = this.delegate!.preventAvoid;
+		const layoutResult = layout2d(viewport, view, anchor, { anchorAlignment, anchorPosition, anchorAxisAlignment, preventAvoid });
 		const { top, left } = layoutResult;
 
 		this.view.classList.remove('top', 'bottom', 'left', 'right');

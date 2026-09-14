@@ -142,7 +142,7 @@ export class RemoteStorageService extends AbstractStorageService {
 	protected getLogDetails(scope: StorageScope): string | undefined {
 		switch (scope) {
 			case StorageScope.APPLICATION_SHARED:
-				return joinPath(this.environmentService.appSharedDataHome, 'sharedStorage').with({ scheme: Schemas.file }).fsPath;
+				return joinPath(this.environmentService.appSharedDataHome, 'sharedStorage', 'state.dcdb').with({ scheme: Schemas.file }).fsPath;
 			case StorageScope.APPLICATION:
 				return this.applicationStorageProfile.globalStorageHome.with({ scheme: Schemas.file }).fsPath;
 			case StorageScope.PROFILE:

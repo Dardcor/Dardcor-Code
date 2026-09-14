@@ -189,4 +189,13 @@ Desain warna default Dardcor Code :
 49. [x] In-Editor Browser Tabs & DOM Web Automation Engine (workbench/contrib/browserView/):
     - browserViewModel.ts, browserEditorInput.ts, browserWelcome.ts, browserWelcome.css, openBrowserTool.ts, navigateBrowserTool.ts, browserToolHelpers.ts: Tab peramban web interaktif di dalam editor code dengan tool navigasi DOM, pengujian halaman, dan otomasi web terpadu.
 50. [x] Zero-Login Full Offline Mode & Local Router Interceptor (platform/agentHost/common/ & platform/agentHost/node/):
-    - Memblokir 100% semua upaya sign-in, login prompt Microsoft / GitHub / Copilot token, dan mengarahkan seluruh AI endpoints secara eksklusif ke Dardcor Router (http://127.0.0.1:25128) dalam mode offline / lokal murni.
+    - Memblokir 100% semua upaya sign-in, login prompt Microsoft / GitHub / Copilot token, dan mengarahkan seluruh AI endpoints secara eksklusif ke Dardcor Router (http://127.0.0.1:25128) dalam mode offline / lokal murni.<!-- antislop:start -->
+## antislop
+For UI, copy, people, mobile layout, or code comments work, read ntislop.md (core) and then the skill for the task:
+- UI / visual: skills/antislop-ui/SKILL.md
+- Copy & text: skills/antislop-copywriting/SKILL.md
+- People: skills/antislop-human/SKILL.md
+- Mobile / responsive: skills/antislop-layoutmobile/SKILL.md
+- Code comments: skills/antislop-code/SKILL.md
+Before starting, ask the user when antislop applies: during the work, or after it is done.
+<!-- antislop:end -->

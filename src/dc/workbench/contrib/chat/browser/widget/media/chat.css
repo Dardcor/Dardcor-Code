@@ -1505,6 +1505,14 @@ have to be updated for changes to the rules above, or to support more deeply nes
 	overflow: hidden;
 }
 
+.monaco-workbench .interactive-session .chat-editing-session .chat-editing-session-container .chat-editing-session-overview {
+	order: 1;
+}
+
+.monaco-workbench .interactive-session .chat-editing-session .chat-editing-session-container .chat-editing-session-list {
+	order: 2;
+}
+
 .interactive-session .chat-editing-session .monaco-list-row .chat-collapsible-list-action-bar {
 	padding-left: var(--vscode-spacing-size60);
 	display: none;
@@ -1556,11 +1564,11 @@ have to be updated for changes to the rules above, or to support more deeply nes
 }
 
 .interactive-session .chat-editing-session .chat-editing-session-container .chat-editing-session-overview .working-set-line-counts .working-set-lines-added {
-	color: var(--vscode-chat-linesAddedForeground);
+	color: var(--vscode-gitDecoration-addedResourceForeground, #73c991);
 }
 
 .interactive-session .chat-editing-session .chat-editing-session-container .chat-editing-session-overview .working-set-line-counts .working-set-lines-removed {
-	color: var(--vscode-chat-linesRemovedForeground);
+	color: var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c);
 }
 
 .interactive-session .chat-editing-session .chat-editing-session-list .working-set-line-counts {
@@ -1570,12 +1578,16 @@ have to be updated for changes to the rules above, or to support more deeply nes
 	font-size: var(--vscode-fontSize-label2);
 }
 
-.interactive-session .chat-editing-session .chat-editing-session-list .working-set-line-counts .working-set-lines-added {
-	color: var(--vscode-chat-linesAddedForeground);
+.interactive-session .chat-editing-session .chat-editing-session-list .working-set-line-counts .working-set-lines-added,
+.working-set-lines-added {
+	color: var(--vscode-gitDecoration-addedResourceForeground, #73c991) !important;
+	font-weight: 600;
 }
 
-.interactive-session .chat-editing-session .chat-editing-session-list .working-set-line-counts .working-set-lines-removed {
-	color: var(--vscode-chat-linesRemovedForeground);
+.interactive-session .chat-editing-session .chat-editing-session-list .working-set-line-counts .working-set-lines-removed,
+.working-set-lines-removed {
+	color: var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c) !important;
+	font-weight: 600;
 }
 
 .interactive-session .chat-editing-session .working-set-title {
@@ -1619,21 +1631,59 @@ have to be updated for changes to the rules above, or to support more deeply nes
 	cursor: default;
 }
 
-.interactive-session .chat-editing-session .chat-editing-session-actions .monaco-button.secondary.monaco-text-button.codicon {
+.interactive-session .chat-editing-session .chat-editing-session-actions .monaco-button.secondary,
+.interactive-session .chat-editing-session .monaco-button.chat-editing-undo-btn,
+.interactive-session .chat-editing-session .monaco-button.chat-editing-diff-btn,
+.monaco-button.chat-editing-undo-btn,
+.monaco-button.chat-editing-diff-btn {
+	background-color: rgba(255, 255, 255, 0.08) !important;
+	color: var(--vscode-foreground, #cccccc) !important;
+	border: 1px solid rgba(255, 255, 255, 0.16) !important;
+	border-radius: 5px !important;
+	padding: 3px 10px !important;
+	font-size: 11px !important;
+	font-weight: 500 !important;
 	cursor: pointer;
-	padding: 2px;
-	border-radius: var(--vscode-cornerRadius-small);
-	display: inline-flex;
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	transition: all 0.15s ease !important;
 }
 
-.interactive-session .chat-editing-session .chat-editing-session-actions .monaco-button.secondary.monaco-text-button {
-	background-color: var(--vscode-button-secondaryBackground);
-	color: var(--vscode-button-secondaryForeground);
+.interactive-session .chat-editing-session .chat-editing-session-actions .monaco-button.secondary:hover,
+.interactive-session .chat-editing-session .monaco-button.chat-editing-undo-btn:hover,
+.interactive-session .chat-editing-session .monaco-button.chat-editing-diff-btn:hover,
+.monaco-button.chat-editing-undo-btn:hover,
+.monaco-button.chat-editing-diff-btn:hover {
+	background-color: rgba(255, 255, 255, 0.15) !important;
+	color: #ffffff !important;
+	border-color: rgba(255, 255, 255, 0.28) !important;
 }
 
-.interactive-session .chat-editing-session .chat-editing-session-actions .monaco-button.secondary:hover {
-	background-color: var(--vscode-button-secondaryHoverBackground);
-	color: var(--vscode-button-secondaryForeground);
+.interactive-session .chat-editing-session .chat-editing-session-actions .monaco-button:not(.secondary),
+.interactive-session .chat-editing-session .monaco-button.chat-editing-keep-btn,
+.monaco-button.chat-editing-keep-btn {
+	background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%) !important;
+	color: #ffffff !important;
+	border: 1px solid rgba(255, 255, 255, 0.22) !important;
+	border-radius: 5px !important;
+	padding: 4px 14px !important;
+	font-weight: 600 !important;
+	font-size: 11px !important;
+	box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4) !important;
+	cursor: pointer;
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	transition: all 0.2s ease !important;
+}
+
+.interactive-session .chat-editing-session .chat-editing-session-actions .monaco-button:not(.secondary):hover,
+.interactive-session .chat-editing-session .monaco-button.chat-editing-keep-btn:hover,
+.monaco-button.chat-editing-keep-btn:hover {
+	background: linear-gradient(135deg, #8b5cf6 0%, #4f46e5 100%) !important;
+	box-shadow: 0 4px 14px rgba(124, 58, 237, 0.55) !important;
+	transform: translateY(-1px);
 }
 
 .interactive-session .chat-editing-session .chat-editing-session-actions .monaco-button {
@@ -3786,11 +3836,14 @@ have to be updated for changes to the rules above, or to support more deeply nes
 }
 
 .chat-attached-context-attachment .chat-attached-context-pill-image {
-	width: 13px;
-	height: 13px;
-	border-radius: var(--vscode-cornerRadius-xSmall);
+	width: 20px;
+	height: 20px;
+	border-radius: 4px;
 	object-fit: cover;
-	margin-right: var(--vscode-spacing-size40);
+	margin-right: 6px;
+	vertical-align: middle;
+	display: inline-block;
+	border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .chat-attached-context-attachment .chat-attached-context-custom-text {
@@ -3953,6 +4006,27 @@ have to be updated for changes to the rules above, or to support more deeply nes
 
 .hideSuggestTextIcons .suggest-widget .monaco-list .monaco-list-row .suggest-icon.codicon-symbol-text::before {
 	display: none;
+}
+
+.chat-editor-overflow .suggest-widget {
+	left: var(--chat-input-left) !important;
+	width: var(--chat-input-width, 100%) !important;
+	max-width: var(--chat-input-width, 100%) !important;
+	box-sizing: border-box !important;
+}
+
+.chat-editor-overflow .suggest-widget .tree,
+.chat-editor-overflow .suggest-widget .monaco-list,
+.chat-editor-overflow .suggest-widget .monaco-scrollable-element {
+	width: 100% !important;
+	max-width: 100% !important;
+	box-sizing: border-box !important;
+}
+
+.chat-editor-overflow .suggest-widget .monaco-list .monaco-list-row {
+	width: 100% !important;
+	max-width: 100% !important;
+	box-sizing: border-box !important;
 }
 
 .interactive-session:not(.chat-widget > .interactive-session) {
@@ -4984,3 +5058,104 @@ have to be updated for changes to the rules above, or to support more deeply nes
 		transform: translate(-50%, -50%) rotate(270deg);
 	}
 }
+
+.monaco-workbench .interactive-session .chat-input-skill-chips,
+.monaco-workbench .chat-input-skill-chips,
+.chat-input-skill-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	padding: 6px 10px 4px 10px;
+	align-items: center;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+	margin-bottom: 4px;
+}
+
+.monaco-workbench .interactive-session .chat-skill-chip,
+.monaco-workbench .chat-skill-chip,
+.chat-skill-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	height: 22px;
+	padding: 0 8px;
+	border-radius: 6px;
+	background: rgba(124, 58, 237, 0.18);
+	border: 1px solid rgba(138, 43, 226, 0.4);
+	color: #e9d5ff;
+	font-size: 11px;
+	font-weight: 500;
+	line-height: 20px;
+	letter-spacing: 0.1px;
+	user-select: none;
+	backdrop-filter: blur(8px);
+	box-shadow: 0 1px 4px rgba(124, 58, 237, 0.15);
+	transition: all 0.18s ease-in-out;
+}
+
+.monaco-workbench .interactive-session .chat-skill-chip:hover,
+.monaco-workbench .chat-skill-chip:hover,
+.chat-skill-chip:hover {
+	background: rgba(124, 58, 237, 0.28);
+	border-color: rgba(168, 85, 247, 0.6);
+	box-shadow: 0 2px 8px rgba(124, 58, 237, 0.25);
+	color: #ffffff;
+}
+
+.monaco-workbench .interactive-session .chat-skill-chip .codicon-sparkle,
+.monaco-workbench .chat-skill-chip .codicon-sparkle,
+.chat-skill-chip .codicon-sparkle {
+	font-size: 12px;
+	color: #c084fc;
+}
+
+.monaco-workbench .interactive-session .chat-skill-chip-name,
+.monaco-workbench .chat-skill-chip-name,
+.chat-skill-chip-name {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 220px;
+}
+
+.monaco-workbench .chat-skill-chip .chat-skill-chip-remove,
+.monaco-workbench .chat-skill-chip-remove,
+.monaco-workbench .chat-skill-chip-remove.codicon[class*='codicon-'],
+.monaco-workbench .interactive-session .chat-skill-chip-remove.codicon[class*='codicon-'],
+.chat-skill-chip-remove {
+	cursor: pointer;
+	font-size: 10px !important;
+	width: 14px !important;
+	height: 14px !important;
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	opacity: 0.7;
+	margin-left: 2px;
+	border-radius: 3px;
+	line-height: 14px !important;
+	transition: all 0.15s ease;
+}
+
+.monaco-workbench .chat-skill-chip .chat-skill-chip-remove.codicon[class*='codicon-']::before,
+.monaco-workbench .interactive-session .chat-skill-chip-remove.codicon[class*='codicon-']::before,
+.monaco-workbench .chat-skill-chip-remove.codicon::before,
+.chat-skill-chip-remove::before {
+	font-size: 10px !important;
+	line-height: 10px !important;
+	width: 10px !important;
+	height: 10px !important;
+	display: inline-block !important;
+	text-align: center !important;
+}
+
+.monaco-workbench .chat-skill-chip .chat-skill-chip-remove:hover,
+.monaco-workbench .interactive-session .chat-skill-chip-remove:hover,
+.monaco-workbench .chat-skill-chip-remove:hover,
+.chat-skill-chip-remove:hover {
+	opacity: 1;
+	transform: scale(1.15);
+	color: #ffffff;
+	background: rgba(239, 68, 68, 0.85);
+}
+

@@ -34,8 +34,10 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
 			const drouterDir = existsSync(join(root, '.dardcor-router'))
 				? join(root, '.dardcor-router')
 				: join(root, '.dardcor-provider');
+			const customServer = join(drouterDir, 'custom-server.js');
 			const standaloneServer = join(drouterDir, '.next', 'standalone', 'server.js');
-			if (existsSync(standaloneServer)) {
+			const serverScript = existsSync(customServer) ? customServer : standaloneServer;
+			if (existsSync(serverScript)) {
 				console.log('[Dardcor Router] Starting router on port 25128...');
 				const dataDir = process.env['DARDCOR_DATA_DIR'] || join(homedir(), '.dardcor', 'provider');
 				const legacyDataDir = join(homedir(), '.miawagent', 'router');
@@ -60,8 +62,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
 					DATA_DIR: dataDir,
 					LOG_LEVEL: 'warn'
 				};
-				drouterChild = spawn('node', [standaloneServer], {
-					cwd: join(drouterDir, '.next', 'standalone'),
+				drouterChild = spawn(process.execPath, [serverScript], {
+					cwd: existsSync(customServer) ? drouterDir : join(drouterDir, '.next', 'standalone'),
 					env,
 					stdio: 'inherit'
 				});

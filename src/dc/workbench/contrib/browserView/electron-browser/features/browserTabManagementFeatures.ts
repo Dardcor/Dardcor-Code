@@ -261,6 +261,8 @@ class QuickOpenBrowserAction extends Action2 {
 interface IOpenBrowserOptions {
 	url?: string;
 	openToSide?: boolean;
+	openToLeft?: boolean;
+	lockGroup?: boolean;
 
 	/**
 	 * If set, the first existing tab with a URL matching this glob pattern will be reused / focused instead of opening a new tab.
@@ -289,6 +291,7 @@ class OpenIntegratedBrowserAction extends Action2 {
 		// Parse arguments
 		const options = typeof urlOrOptions === 'string' ? { url: urlOrOptions } : (urlOrOptions ?? {});
 		const resource = BrowserViewUri.forId(generateUuid());
+
 		const group = await browserViewService.getPreferredGroup(options.openToSide ? SIDE_GROUP : undefined);
 
 		if (options.reuseUrlFilter) {
@@ -331,8 +334,9 @@ class OpenIntegratedBrowserAction extends Action2 {
 
 		const editorPane = await editorService.openEditor({ resource, options: { viewState: { url: options.url } } }, group);
 
-		// Lock the group when opening to the side
-		if (options.openToSide && editorPane?.group) {
+		// Only lock the group if explicitly requested or when opening to side by default
+		const shouldLock = options.lockGroup !== undefined ? options.lockGroup : !!options.openToSide;
+		if (shouldLock && editorPane?.group) {
 			editorPane.group.lock(true);
 		}
 	}

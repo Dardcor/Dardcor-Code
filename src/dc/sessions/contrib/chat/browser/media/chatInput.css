@@ -748,3 +748,113 @@
 .sessions-chat-attachment-remove:hover {
 	background-color: var(--vscode-toolbar-hoverBackground);
 }
+
+/* Skill chips in input */
+.chat-input-skill-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	padding: 3px 8px 5px 8px;
+	align-items: center;
+}
+
+.chat-skill-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	height: 20px;
+	padding: 0 7px;
+	border-radius: 4px;
+	background: color-mix(in srgb, var(--vscode-badge-background, #383838) 35%, transparent);
+	border: 1px solid color-mix(in srgb, var(--vscode-editorWidget-border, rgba(255, 255, 255, 0.15)) 50%, transparent);
+	color: var(--vscode-badge-foreground, #cccccc);
+	font-size: 11px;
+	font-weight: 500;
+	line-height: 18px;
+	letter-spacing: 0.15px;
+	user-select: none;
+	backdrop-filter: blur(8px);
+	transition: all 0.15s ease-in-out;
+}
+
+.chat-skill-chip:hover {
+	background: color-mix(in srgb, var(--vscode-badge-background, #383838) 55%, transparent);
+	border-color: color-mix(in srgb, var(--vscode-focusBorder, #007fd4) 40%, transparent);
+}
+
+.chat-skill-chip .codicon-sparkle {
+	font-size: 11px;
+	color: var(--vscode-textLink-foreground, #3794ff);
+}
+
+.chat-skill-chip-name {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 200px;
+}
+
+.monaco-workbench .chat-skill-chip .chat-skill-chip-remove,
+.monaco-workbench .chat-skill-chip-remove,
+.monaco-workbench .chat-skill-chip-remove.codicon[class*='codicon-'],
+.monaco-workbench .interactive-session .chat-skill-chip-remove.codicon[class*='codicon-'],
+.chat-skill-chip-remove {
+	cursor: pointer;
+	font-size: 8px !important;
+	width: 11px !important;
+	height: 11px !important;
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	opacity: 0.6;
+	margin-left: 1px;
+	border-radius: 2px;
+	line-height: 11px !important;
+	transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease;
+}
+
+.monaco-workbench .chat-skill-chip .chat-skill-chip-remove.codicon[class*='codicon-']::before,
+.monaco-workbench .interactive-session .chat-skill-chip-remove.codicon[class*='codicon-']::before,
+.monaco-workbench .chat-skill-chip-remove.codicon::before,
+.chat-skill-chip-remove::before {
+	font-size: 8px !important;
+	line-height: 8px !important;
+	width: 8px !important;
+	height: 8px !important;
+	display: inline-block !important;
+	text-align: center !important;
+}
+
+.monaco-workbench .chat-skill-chip .chat-skill-chip-remove:hover,
+.monaco-workbench .interactive-session .chat-skill-chip-remove:hover,
+.monaco-workbench .chat-skill-chip-remove:hover,
+.chat-skill-chip-remove:hover {
+	opacity: 1;
+	transform: scale(1.15);
+	color: var(--vscode-errorForeground, #f48771);
+	background: color-mix(in srgb, var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.12)) 80%, transparent);
+}
+
+.sessions-chat-editor-overflow .suggest-widget {
+	left: var(--chat-input-left) !important;
+	width: var(--chat-input-width, 100%) !important;
+	max-width: var(--chat-input-width, 100%) !important;
+	box-sizing: border-box !important;
+}
+
+.sessions-chat-editor-overflow .suggest-widget .tree,
+.sessions-chat-editor-overflow .suggest-widget .monaco-list,
+.sessions-chat-editor-overflow .suggest-widget .monaco-scrollable-element {
+	width: 100% !important;
+	max-width: 100% !important;
+	box-sizing: border-box !important;
+}
+
+.sessions-chat-editor-overflow .suggest-widget .monaco-list .monaco-list-row {
+	width: 100% !important;
+	max-width: 100% !important;
+	box-sizing: border-box !important;
+}
+
+
+

@@ -502,6 +502,19 @@
 	justify-content: center;
 }
 
+.quick-input-tree .quick-input-tree-icon.codicon-vscode,
+.quick-input-list .codicon-vscode {
+	background-image: url('../../../../workbench/browser/parts/editor/media/dardcor-code.png') !important;
+	background-size: 16px 16px !important;
+	background-position: center center !important;
+	background-repeat: no-repeat !important;
+}
+
+.quick-input-tree .quick-input-tree-icon.codicon-vscode:before,
+.quick-input-list .codicon-vscode:before {
+	content: '' !important;
+}
+
 .quick-input-tree .quick-input-tree-rows {
 	overflow: hidden;
 	text-overflow: ellipsis;

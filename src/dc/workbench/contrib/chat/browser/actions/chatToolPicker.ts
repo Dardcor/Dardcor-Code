@@ -10,6 +10,7 @@ import { Emitter, Event } from '../../../../../base/common/event.js';
 import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { ThemeIcon } from '../../../../../base/common/themables.js';
 import { URI } from '../../../../../base/common/uri.js';
+import { FileAccess } from '../../../../../base/common/network.js';
 import { localize } from '../../../../../nls.js';
 import { ICommandService } from '../../../../../platform/commands/common/commands.js';
 import { IDialogService } from '../../../../../platform/dialogs/common/dialogs.js';
@@ -139,21 +140,31 @@ function mapIconToTreeItem(icon: ThemeIcon | { dark: URI; light?: URI } | undefi
 }
 
 function createToolTreeItemFromData(tool: IToolData, checked: boolean): IToolTreeItemData {
-	const iconProps = mapIconToTreeItem(tool.icon, true); // Use default tool icon if none provided
+	let iconProps = mapIconToTreeItem(tool.icon, true);
+	let label = tool.toolReferenceName ?? tool.displayName;
+	let description = tool.userDescription ?? tool.modelDescription;
+	if (tool.id === 'vscode' || label === 'vscode') {
+		label = 'Dardcor Code';
+		if (description) {
+			description = description.replace(/VS Code/g, 'Dardcor Code');
+		}
+		const dardcorIcon = FileAccess.asBrowserUri('dc/workbench/browser/parts/editor/media/dardcor-code.png');
+		iconProps = { iconPath: { dark: dardcorIcon, light: dardcorIcon } };
+	}
 
 	return {
 		itemType: 'tool',
 		tool,
 		id: tool.id,
-		label: tool.toolReferenceName ?? tool.displayName,
-		description: tool.userDescription ?? tool.modelDescription,
+		label,
+		description,
 		checked,
 		...iconProps
 	};
 }
 
 function createToolSetTreeItem(toolset: IToolSet, checked: boolean, editorService: IEditorService, removeToolSet: (toolSet: IToolSet) => void): IToolSetTreeItem {
-	const iconProps = mapIconToTreeItem(toolset.icon);
+	let iconProps = mapIconToTreeItem(toolset.icon);
 	const buttons = [];
 	if (toolset.source.type === 'user') {
 		const resource = toolset.source.file;
@@ -167,13 +178,25 @@ function createToolSetTreeItem(toolset: IToolSet, checked: boolean, editorServic
 			action: () => removeToolSet(toolset)
 		});
 	}
+	let label = toolset.referenceName;
+	let description = toolset.description;
+	if (toolset.id === 'vscode' || toolset.referenceName === 'vscode' || toolset.referenceName === 'Dardcor Code' || toolset.id === 'vscode-general' || toolset.referenceName === 'vscodeGeneral') {
+		label = 'Dardcor Code';
+		if (description) {
+			description = description.replace(/VS Code/g, 'Dardcor Code');
+		} else {
+			description = localize('copilot.toolSet.vscode.description', 'Use Dardcor Code features');
+		}
+		const dardcorIcon = FileAccess.asBrowserUri('dc/workbench/browser/parts/editor/media/dardcor-code.png');
+		iconProps = { iconPath: { dark: dardcorIcon, light: dardcorIcon } };
+	}
 	return {
 		itemType: 'toolset',
 		toolset,
 		buttons,
 		id: toolset.id,
-		label: toolset.referenceName,
-		description: toolset.description,
+		label,
+		description,
 		checked,
 		children: undefined,
 		collapsed: true,

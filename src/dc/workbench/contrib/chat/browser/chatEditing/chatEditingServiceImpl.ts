@@ -224,6 +224,36 @@ export class ChatEditingService extends Disposable implements IChatEditingServic
 		});
 	}
 
+	setSessionRunning(sessionResource: URI, running: boolean, uris: readonly URI[] = []): void {
+		const session = this.getEditingSession(sessionResource);
+		if (session && 'setRunning' in session && typeof (session as any).setRunning === 'function') {
+			(session as any).setRunning(running, uris);
+		}
+	}
+
+	async registerFileEdit(
+		sessionResource: URI,
+		targetUri: URI,
+		kind: 'create' | 'edit' | 'delete',
+		initialContent: string | undefined,
+		requestId: string,
+		undoStopId?: string
+	): Promise<void> {
+		let session = this.getEditingSession(sessionResource);
+		if (!session) {
+			const chatModel = this._chatService.getSession(sessionResource);
+			if (chatModel) {
+				session = this.startOrContinueGlobalEditingSession(chatModel as ChatModel);
+			}
+		}
+
+		if (session && 'registerFileEdit' in session && typeof (session as any).registerFileEdit === 'function') {
+			await (session as any).registerFileEdit(targetUri, kind, initialContent, requestId, undoStopId);
+			const list = this._sessionsObs.get();
+			this._sessionsObs.set(list, undefined);
+		}
+	}
+
 	private installAutoApplyObserver(session: ChatEditingSession, chatModel: ChatModel): IDisposable {
 		if (!chatModel) {
 			throw new ErrorNoTelemetry(`Edit session was created for a non-existing chat session: ${session.chatSessionResource}`);
@@ -415,8 +445,32 @@ class ChatDecorationsProvider extends Disposable implements IDecorationsProvider
 	});
 
 	private readonly _currentlyEditingUris = derived<URI[]>(this, (r) => {
-		const uri = this._currentEntries.read(r);
-		return uri.filter(entry => entry.isCurrentlyBeingModifiedBy.read(r)).map(entry => entry.modifiedURI);
+		const sessions = this._sessions.read(r);
+		if (!sessions) {
+			return [];
+		}
+		const uris: URI[] = [];
+		for (const session of sessions) {
+			const sessionRunning = session.isRunning?.read(r) ?? false;
+			for (const entry of session.entries.read(r)) {
+				// Show spinner when the entry is being streamed OR when the whole
+				// agent-host session is running tool calls (external edit model).
+				if (entry.isCurrentlyBeingModifiedBy.read(r) || sessionRunning) {
+					const entryUri = entry.modifiedURI;
+					if (!uris.some(u => isEqual(u, entryUri))) {
+						uris.push(entryUri);
+					}
+				}
+			}
+			if (session.runningUris) {
+				for (const uri of session.runningUris.read(r)) {
+					if (!uris.some(u => isEqual(u, uri))) {
+						uris.push(uri);
+					}
+				}
+			}
+		}
+		return uris;
 	});
 
 	private readonly _modifiedUris = derived<URI[]>(this, (r) => {

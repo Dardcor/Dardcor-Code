@@ -449,6 +449,8 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 	// Input
 	private _editor!: CodeEditorWidget;
 	private _editorContainer!: HTMLElement;
+	private _inputArea: HTMLElement | undefined;
+	private _editorOverflowWidgetsDomNode: HTMLElement | undefined;
 	private _sessionControlsContainer: HTMLElement | undefined;
 	private readonly _promptTemplatePlaceholder = this._register(new MutableDisposable<PromptTemplatePlaceholderController>());
 	private readonly _promptOptionsWidget = this._register(new MutableDisposable<NewSessionPromptOptionsWidget>());
@@ -613,6 +615,7 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 		// or stacked beneath, the composer's own layout. Because it lives outside the
 		// composer, it has to be taken down with the widget rather than with `root`.
 		const editorOverflowWidgetsDomNode = this.layoutService.getContainer(dom.getWindow(root)).appendChild(dom.$('.sessions-chat-editor-overflow.monaco-editor'));
+		this._editorOverflowWidgetsDomNode = editorOverflowWidgetsDomNode;
 		// Suppress the default `Text` kind icon in the suggest widget; chat slash/skill
 		// completions use that kind and rely on the chat module's CSS rule scoped to this class.
 		editorOverflowWidgetsDomNode.classList.add('hideSuggestTextIcons');
@@ -700,6 +703,13 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 		// Input area inside the input slot
 		const inputAreaWrapper = dom.append(chatInputContainer, dom.$('.new-chat-input-area-wrapper'));
 		const inputArea = dom.append(inputAreaWrapper, dom.$('.new-chat-input-area'));
+		this._inputArea = inputArea;
+		const inputResizeObserver = this._register(new dom.DisposableResizeObserver(
+			'NewChatInputWidget.inputArea',
+			() => this._updateSuggestWidgetBounds(),
+			dom.getWindow(inputArea),
+		));
+		this._register(inputResizeObserver.observe(inputArea));
 
 		// Attachments row (pills only) inside input area, above editor
 		const contextAttachments = this._contextAttachments;
@@ -960,7 +970,14 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 		this._register(dom.addDisposableListener(this._editorContainer, dom.EventType.PASTE, e => this._handleTerminalCommandPaste(e), true));
 
 		// Ensure suggest widget renders above the input (not clipped by container)
-		SuggestController.get(this._editor)?.forceRenderingAbove();
+		const suggestController = SuggestController.get(this._editor);
+		if (suggestController) {
+			suggestController.forceRenderingAbove();
+			this._register(suggestController.widget.value.onDidShow(() => {
+				this._updateSuggestWidgetBounds();
+			}));
+		}
+		this._updateSuggestWidgetBounds();
 
 		// Update aria label when accessibility verbosity setting changes
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
@@ -1677,6 +1694,18 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 		this._editor?.layout();
 		this._primaryPickerResponsiveLayout?.layout();
 		this._secondaryPickerResponsiveLayout?.layout();
+		this._updateSuggestWidgetBounds();
+	}
+
+	private _updateSuggestWidgetBounds(): void {
+		if (!this._inputArea || !this._editorOverflowWidgetsDomNode) {
+			return;
+		}
+		const rect = this._inputArea.getBoundingClientRect();
+		if (rect.width > 0) {
+			this._editorOverflowWidgetsDomNode.style.setProperty('--chat-input-left', `${rect.left}px`);
+			this._editorOverflowWidgetsDomNode.style.setProperty('--chat-input-width', `${rect.width}px`);
+		}
 	}
 
 	focus(): void {

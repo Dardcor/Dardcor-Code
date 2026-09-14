@@ -61,7 +61,6 @@ const nextConfig = {
       {
         source: "/:path*",
         headers: [
-          { key: "Access-Control-Allow-Origin", value: "*" },
           { key: "Access-Control-Allow-Methods", value: "GET, POST, PUT, DELETE, OPTIONS, PATCH" },
           { key: "Access-Control-Allow-Headers", value: "*" },
           { key: "Access-Control-Allow-Private-Network", value: "true" },

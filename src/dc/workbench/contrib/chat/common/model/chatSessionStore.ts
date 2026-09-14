@@ -43,6 +43,7 @@ export class ChatSessionStore extends Disposable {
 	private storageRoot: URI;
 	private readonly previousEmptyWindowStorageRoot: URI | undefined;
 	private readonly transferredSessionStorageRoot: URI;
+	private readonly sessionStorageRoots = new Map<string, URI>();
 
 	private readonly storeQueue = new Sequencer();
 
@@ -348,6 +349,12 @@ export class ChatSessionStore extends Disposable {
 
 	private async writeSession(session: ChatModel | ISerializableChatData): Promise<void> {
 		try {
+			if (session instanceof ChatModel && !session.workingDirectory) {
+				const defaultDir = this.workspaceContextService.getWorkspace().folders[0]?.uri;
+				if (defaultDir) {
+					session.setWorkingDirectory(defaultDir);
+				}
+			}
 			const index = this.internalGetIndex();
 			const storageLocation = this.getStorageLocation(session.sessionId);
 			if (storageLocation.log) {
@@ -361,16 +368,10 @@ export class ChatSessionStore extends Disposable {
 					try {
 						({ op, data } = session.dataSerializer.write(session));
 					} catch (e) {
-						// This is a big of an ugly prompt, but there is _something_ going on with
-						// missing sessions. Unfortunately it's hard to root cause because users would
-						// not notice an error until they reload the window, at which point any error
-						// is gone. Throw a very verbose dialog here so we can get some quality
-						// bug reports, if the issue is indeed in the serialized.
-						// todo@connor4312: remove after a little bit
 						if (!this._didReportIssue) {
 							this._didReportIssue = true;
 							this.dialogService.prompt({
-								custom: true, // so text is copyable
+								custom: true,
 								title: localize('chatSessionStore.serializationError', 'Error saving chat session'),
 								message: localize('chatSessionStore.writeError', 'Error serializing chat session for storage. The session will be lost if the window is closed. Please report this issue to the VS Code team:\n\n{0}', e.stack || toErrorMessage(e)),
 								buttons: [
@@ -394,8 +395,7 @@ export class ChatSessionStore extends Disposable {
 				await this.fileService.writeFile(storageLocation.flat, VSBuffer.fromString(stringifyEntryWithFallback(session)));
 			}
 
-			// Write succeeded, update index
-			const newMetadata = await getSessionMetadata(session);
+			const newMetadata = await getSessionMetadata(session, this.workspaceContextService.getWorkspace().folders[0]?.uri?.toString());
 			index.entries[session.sessionId] = newMetadata;
 		} catch (e) {
 			this.reportError('sessionWrite', 'Error writing chat session', e);
@@ -403,17 +403,14 @@ export class ChatSessionStore extends Disposable {
 	}
 
 	private async writeSessionMetadataOnly(session: ChatModel): Promise<void> {
-		// Only to be used for external sessions
 		if (LocalChatSessionUri.parseLocalSessionId(session.sessionResource)) {
 			return;
 		}
 
 		try {
 			const index = this.internalGetIndex();
-
-			// TODO get this class on sessionResource
 			const externalSessionId = session.sessionResource.toString();
-			index.entries[externalSessionId] = await getSessionMetadata(session);
+			index.entries[externalSessionId] = await getSessionMetadata(session, this.workspaceContextService.getWorkspace().folders[0]?.uri?.toString());
 		} catch (e) {
 			this.reportError('sessionMetadataWrite', 'Error writing chat session metadata', e);
 		}
@@ -677,20 +674,26 @@ export class ChatSessionStore extends Disposable {
 		}
 
 		if (!rawData) {
+			const crossWorkspace = await this.findSessionInOtherWorkspaces(sessionId);
+			if (crossWorkspace) {
+				rawData = crossWorkspace.rawData;
+				fromLocation = crossWorkspace.fromLocation;
+			}
+		}
+
+		if (!rawData) {
 			return undefined;
 		}
 
 		try {
 			let session: ISerializableChatDataIn;
 			const log = new ChatSessionOperationLog();
-			if (fromLocation === logStorageLocation) {
+			if (fromLocation === logStorageLocation || fromLocation.path.endsWith('.jsonl')) {
 				session = revive(log.read(rawData));
 			} else {
 				session = revive(JSON.parse(rawData.toString()));
 			}
 
-			// TODO Copied from ChatService.ts, cleanup
-			// Revive serialized markdown strings in response data
 			for (const request of session.requests) {
 				if (Array.isArray(request.response)) {
 					request.response = request.response.map((response) => {
@@ -711,6 +714,41 @@ export class ChatSessionStore extends Disposable {
 		}
 	}
 
+	private async findSessionInOtherWorkspaces(sessionId: string): Promise<{ rawData: VSBuffer; fromLocation: URI } | undefined> {
+		try {
+			const candidateFolders: URI[] = [];
+			const emptyWindowFolder = joinPath(this.userDataProfilesService.defaultProfile.globalStorageHome, 'emptyWindowChatSessions');
+			candidateFolders.push(emptyWindowFolder);
+
+			const workspaceStorageHome = this.environmentService.workspaceStorageHome;
+			const wsHomeStat = await this.fileService.resolve(workspaceStorageHome).catch(() => undefined);
+			if (wsHomeStat?.children) {
+				for (const child of wsHomeStat.children) {
+					if (child.isDirectory) {
+						candidateFolders.push(joinPath(child.resource, 'chatSessions'));
+					}
+				}
+			}
+
+			for (const folder of candidateFolders) {
+				const logFile = getChatSessionStorageResource(folder, sessionId, '.jsonl');
+				try {
+					const data = (await this.fileService.readFile(logFile)).value;
+					this.sessionStorageRoots.set(sessionId, folder);
+					return { rawData: data, fromLocation: logFile };
+				} catch {}
+
+				const jsonFile = getChatSessionStorageResource(folder, sessionId, '.json');
+				try {
+					const data = (await this.fileService.readFile(jsonFile)).value;
+					this.sessionStorageRoots.set(sessionId, folder);
+					return { rawData: data, fromLocation: jsonFile };
+				} catch {}
+			}
+		} catch {}
+		return undefined;
+	}
+
 	private async readSessionFromPreviousLocation(sessionId: string): Promise<VSBuffer | undefined> {
 		let rawData: VSBuffer | undefined;
 
@@ -729,15 +767,13 @@ export class ChatSessionStore extends Disposable {
 	}
 
 	private getStorageLocation(chatSessionId: string): {
-		/** <1.109 flat JSON file */
 		flat: URI;
-		/** >=1.109 append log */
 		log?: URI;
 	} {
+		const root = this.sessionStorageRoots.get(chatSessionId) ?? this.storageRoot;
 		return {
-			flat: getChatSessionStorageResource(this.storageRoot, chatSessionId, '.json'),
-			// todo@connor4312: remove after stabilizing
-			log: this.configurationService.getValue('chat.useLogSessionStorage') !== false ? getChatSessionStorageResource(this.storageRoot, chatSessionId, '.jsonl') : undefined,
+			flat: getChatSessionStorageResource(root, chatSessionId, '.json'),
+			log: this.configurationService.getValue('chat.useLogSessionStorage') !== false ? getChatSessionStorageResource(root, chatSessionId, '.jsonl') : undefined,
 		};
 	}
 
@@ -749,21 +785,18 @@ export class ChatSessionStore extends Disposable {
 		return getChatSessionStorageResource(this.transferredSessionStorageRoot, sessionId, '.json');
 	}
 
-	/**
-	 * Synchronously update the in-memory index entries for the given sessions
-	 * and flush the index to storage. This ensures the index is persisted
-	 * even when called from a synchronous `onWillSaveState` handler where
-	 * async file-write work would complete after the storage service has
-	 * already flushed.
-	 */
 	updateAndFlushIndexSync(localSessions: ChatModel[], externalSessions: ChatModel[]): void {
 		const index = this.internalGetIndex();
+		const defaultDir = this.workspaceContextService.getWorkspace().folders[0]?.uri;
 		for (const session of localSessions) {
-			index.entries[session.sessionId] = getSessionMetadataSync(session);
+			if (!session.workingDirectory && defaultDir) {
+				session.setWorkingDirectory(defaultDir);
+			}
+			index.entries[session.sessionId] = getSessionMetadataSync(session, defaultDir?.toString());
 		}
 		for (const session of externalSessions) {
 			const externalSessionId = session.sessionResource.toString();
-			index.entries[externalSessionId] = getSessionMetadataSync(session);
+			index.entries[externalSessionId] = getSessionMetadataSync(session, defaultDir?.toString());
 		}
 		try {
 			this.storageService.store(ChatIndexStorageKey, index, this.getIndexStorageScope(), StorageTarget.MACHINE);
@@ -860,12 +893,7 @@ function isChatSessionIndex(data: unknown): data is IChatSessionIndexData {
 	return true;
 }
 
-/**
- * Builds session metadata synchronously from a live ChatModel.
- * Used both by {@link updateAndFlushIndexSync} (where async work is not
- * possible) and by {@link getSessionMetadata} (which layers on async stats).
- */
-function getSessionMetadataSync(session: ChatModel): IChatSessionEntryMetadata {
+function getSessionMetadataSync(session: ChatModel, defaultWorkingDirectory?: string): IChatSessionEntryMetadata {
 	const title = session.customTitle || session.title;
 
 	let lastResponseState = session.lastRequest?.response?.state ?? ResponseModelState.Complete;
@@ -889,18 +917,17 @@ function getSessionMetadataSync(session: ChatModel): IChatSessionEntryMetadata {
 		lastResponseState,
 		permissionLevel: session.inputModel.state.get()?.permissionLevel,
 		inputState,
-		workingDirectory: session.workingDirectory?.toString(),
+		workingDirectory: session.workingDirectory?.toString() ?? defaultWorkingDirectory,
 	};
 }
 
-async function getSessionMetadata(session: ChatModel | ISerializableChatData): Promise<IChatSessionEntryMetadata> {
+async function getSessionMetadata(session: ChatModel | ISerializableChatData, defaultWorkingDirectory?: string): Promise<IChatSessionEntryMetadata> {
 	if (session instanceof ChatModel) {
-		const metadata = getSessionMetadataSync(session);
+		const metadata = getSessionMetadataSync(session, defaultWorkingDirectory);
 		metadata.stats = await awaitStatsForSession(session);
 		return metadata;
 	}
 
-	// ISerializableChatData — only used in the old pre-fs storage data migration scenario
 	const lastMessageDate = session.requests.at(-1)?.timestamp ?? session.creationDate;
 
 	return {
@@ -917,6 +944,7 @@ async function getSessionMetadata(session: ChatModel | ISerializableChatData): P
 		isEmpty: session.requests.length === 0,
 		isExternal: false,
 		lastResponseState: ResponseModelState.Complete,
+		workingDirectory: session.workingDirectory ?? defaultWorkingDirectory,
 	};
 }
 

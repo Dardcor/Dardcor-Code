@@ -54,12 +54,63 @@ http.createServer = (...args) => {
   const rest = args.filter((a) => typeof a !== "function");
   if (!handler) return origCreate(...args);
   const wrapped = (req, res) => {
-    // Inject full CORS and Private Network Access headers unconditionally
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD");
-    res.setHeader("Access-Control-Allow-Headers", "*");
-    res.setHeader("Access-Control-Allow-Private-Network", "true");
-    res.setHeader("Access-Control-Expose-Headers", "*");
+    const origSetHeader = res.setHeader.bind(res);
+    const origAppendHeader = typeof res.appendHeader === "function" ? res.appendHeader.bind(res) : null;
+    const origWriteHead = res.writeHead.bind(res);
+
+    function cleanAcao(val) {
+      if (typeof val === "string" && val.includes(",")) {
+        return "*";
+      }
+      if (Array.isArray(val)) {
+        return "*";
+      }
+      return val || "*";
+    }
+
+    res.setHeader = function (name, value) {
+      if (typeof name === "string" && name.toLowerCase() === "access-control-allow-origin") {
+        return origSetHeader("Access-Control-Allow-Origin", cleanAcao(value));
+      }
+      return origSetHeader(name, value);
+    };
+
+    if (origAppendHeader) {
+      res.appendHeader = function (name, value) {
+        if (typeof name === "string" && name.toLowerCase() === "access-control-allow-origin") {
+          return origSetHeader("Access-Control-Allow-Origin", cleanAcao(value));
+        }
+        return origAppendHeader(name, value);
+      };
+    }
+
+    res.writeHead = function (statusCode, ...rest) {
+      origSetHeader("Access-Control-Allow-Origin", "*");
+      origSetHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD");
+      origSetHeader("Access-Control-Allow-Headers", "*");
+      origSetHeader("Access-Control-Allow-Private-Network", "true");
+      origSetHeader("Access-Control-Expose-Headers", "*");
+
+      for (let i = 0; i < rest.length; i++) {
+        if (rest[i] && typeof rest[i] === "object" && !Array.isArray(rest[i])) {
+          const headers = { ...rest[i] };
+          for (const key of Object.keys(headers)) {
+            if (key.toLowerCase() === "access-control-allow-origin") {
+              headers[key] = "*";
+            }
+          }
+          rest[i] = headers;
+        }
+      }
+      return origWriteHead(statusCode, ...rest);
+    };
+
+    // Inject base CORS headers
+    origSetHeader("Access-Control-Allow-Origin", "*");
+    origSetHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD");
+    origSetHeader("Access-Control-Allow-Headers", "*");
+    origSetHeader("Access-Control-Allow-Private-Network", "true");
+    origSetHeader("Access-Control-Expose-Headers", "*");
 
     // Intercept OPTIONS preflight immediately with 204 No Content
     if (req.method === "OPTIONS") {
