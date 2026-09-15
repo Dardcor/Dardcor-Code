@@ -298,6 +298,24 @@ suite('AgentHostSnapshotController', () => {
 		assert.strictEqual(contentMap.get(file), 'v0');
 	});
 
+	test('multiple tool calls editing the same file accumulate authoritative diffs', () => {
+		const controller = createController(store, new Map());
+		controller.addToolCallEdits('req-1', makeToolCall({
+			toolCallId: 'tc-1', filePath: '/file.ts',
+			beforeURI: 'agenthost-content:///before-1', afterURI: 'agenthost-content:///after-1',
+			added: 35, removed: 11,
+		}));
+		controller.addToolCallEdits('req-1', makeToolCall({
+			toolCallId: 'tc-2', filePath: '/file.ts',
+			beforeURI: 'agenthost-content:///before-2', afterURI: 'agenthost-content:///after-2',
+			added: 10, removed: 5,
+		}));
+		const cp = (controller as any)._checkpoints.find((c: any) => c.requestId === 'req-1');
+		assert.ok(cp);
+		assert.strictEqual(cp.edits.length, 1);
+		assert.deepStrictEqual(cp.edits[0].diff, { added: 45, removed: 16 });
+	});
+
 	test('hasEditsInRequest reflects added tool call edits', () => {
 		const controller = createController(store, new Map());
 		controller.addToolCallEdits('req-1', makeToolCall({
@@ -429,4 +447,42 @@ suite('AgentHostSnapshotController', () => {
 		assert.strictEqual(controller.isRunning.get(), false);
 		assert.deepStrictEqual(controller.runningUris.get(), []);
 	});
+
+	test('getAggregatedDiff accumulates line stats across multiple tool calls', () => {
+		const controller = createController(store, new Map());
+		const fileA = URI.file('/a.ts');
+		const fileB = URI.file('/b.ts');
+
+		controller.addToolCallEdits('req-1', makeToolCall({
+			toolCallId: 'tc-1',
+			filePath: fileA.fsPath,
+			beforeURI: 'agenthost-content:///snap/before1',
+			afterURI: 'agenthost-content:///snap/after1',
+			added: 10,
+			removed: 3,
+		}));
+
+		controller.addToolCallEdits('req-1', makeToolCall({
+			toolCallId: 'tc-2',
+			filePath: fileA.fsPath,
+			beforeURI: 'agenthost-content:///snap/before2',
+			afterURI: 'agenthost-content:///snap/after2',
+			added: 5,
+			removed: 2,
+		}));
+
+		controller.addToolCallEdits('req-2', makeToolCall({
+			toolCallId: 'tc-3',
+			filePath: fileB.fsPath,
+			beforeURI: 'agenthost-content:///snap/before3',
+			afterURI: 'agenthost-content:///snap/after3',
+			added: 21,
+			removed: 11,
+		}));
+
+		assert.deepStrictEqual(controller.getAggregatedDiff(fileA), { added: 15, removed: 5 });
+		assert.deepStrictEqual(controller.getAggregatedDiff(fileB), { added: 21, removed: 11 });
+		assert.deepStrictEqual(controller.getAggregatedDiff(URI.file('/unknown.ts')), { added: 0, removed: 0 });
+	});
 });
+

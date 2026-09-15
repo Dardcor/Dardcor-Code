@@ -165,9 +165,9 @@ export class SlashCommandHandler extends Disposable implements IChatSubmitReques
 			() => this.commandService.executeCommand(AICustomizationManagementCommands.OpenEditor, section);
 
 		this._slashCommands.push({
-			command: 'vscode-pet',
-			detail: localize('slashCommand.vscodePet', "Toggle an interactive VS Code pet (Experimental)"),
-			sortText: 'z3_vscodePet',
+			command: 'dccode-pet',
+			detail: localize('slashCommand.dccodePet', "Toggle an interactive dccode pet (Experimental)"),
+			sortText: 'z3_dccodePet',
 			executeImmediately: true,
 			execute: () => this.chatPetService.toggle(),
 		});
@@ -281,9 +281,10 @@ export class SlashCommandHandler extends Disposable implements IChatSubmitReques
 					return null;
 				}
 
-				// Only allow slash commands at the start of input
+				// Only allow slash commands at the start of input or after other slash commands
 				const textBefore = model.getValueInRange(new Range(1, 1, range.replace.startLineNumber, range.replace.startColumn));
-				if (textBefore.trim() !== '') {
+				const trimmedBefore = textBefore.trim();
+				if (trimmedBefore !== '' && !/^(?:\/[\p{L}0-9_.:-]+\s+)+$/u.test(trimmedBefore + ' ')) {
 					return null;
 				}
 
@@ -316,7 +317,8 @@ export class SlashCommandHandler extends Disposable implements IChatSubmitReques
 				}
 
 				const textBefore = model.getValueInRange(new Range(1, 1, range.replace.startLineNumber, range.replace.startColumn));
-				if (textBefore.trim() !== '') {
+				const trimmedBefore = textBefore.trim();
+				if (trimmedBefore !== '' && !/^(?:\/[\p{L}0-9_.:-]+\s+)+$/u.test(trimmedBefore + ' ')) {
 					return null;
 				}
 

@@ -75,7 +75,7 @@ export interface IChatEditingService {
 	/**
 	 * Registers an on-disk file modification into the chat editing session for review.
 	 */
-	registerFileEdit?(sessionResource: URI, targetUri: URI, kind: 'create' | 'edit' | 'delete', initialContent: string | undefined, requestId: string, undoStopId?: string): Promise<void>;
+	registerFileEdit?(sessionResource: URI, targetUri: URI, kind: 'create' | 'edit' | 'delete', initialContent: string | undefined, requestId: string, undoStopId?: string, diff?: { added: number; removed: number }): Promise<void>;
 }
 
 export interface WorkingSetDisplayMetadata {
@@ -255,7 +255,7 @@ export interface IChatEditingSession extends IChatEditReviewSession {
 	/**
 	 * Registers an on-disk file modification into the session for user review.
 	 */
-	registerFileEdit?(targetUri: URI, kind: 'create' | 'edit' | 'delete', initialContent: string | undefined, requestId: string, undoStopId?: string): Promise<void>;
+	registerFileEdit?(targetUri: URI, kind: 'create' | 'edit' | 'delete', initialContent: string | undefined, requestId: string, undoStopId?: string, diff?: { added: number; removed: number }): Promise<void>;
 }
 
 export function chatEditingSessionIsReady(session: IChatEditingSession): Promise<void> {
@@ -495,6 +495,8 @@ export interface IModifiedFileEntry {
 	recomputeDiff?(): Promise<void>;
 	updateOriginalContent?(content: string): Promise<void>;
 	revertToDisk?(): Promise<void>;
+	startExternalEdit?(): void;
+	stopExternalEdit?(): void;
 }
 
 export interface IChatEditingSessionStream {

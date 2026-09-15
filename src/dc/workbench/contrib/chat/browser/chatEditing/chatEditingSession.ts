@@ -1255,7 +1255,8 @@ export class ChatEditingSession extends Disposable implements IChatEditingSessio
 		kind: 'create' | 'edit' | 'delete',
 		initialContent: string | undefined,
 		requestId: string,
-		undoStopId?: string
+		undoStopId?: string,
+		diff?: { added: number; removed: number }
 	): Promise<void> {
 		this._assertNotDisposed();
 
@@ -1269,7 +1270,11 @@ export class ChatEditingSession extends Disposable implements IChatEditingSessio
 		if (existingEntry) {
 			if (existingEntry.state.get() === ModifiedFileEntryState.Modified) {
 				if (existingEntry instanceof ChatEditingModifiedDocumentEntry) {
+					if (diff) {
+						existingEntry.setAuthoritativeDiff(diff);
+					}
 					await existingEntry.revertToDisk();
+					await existingEntry.recomputeDiff();
 				}
 				return;
 			} else {
@@ -1313,7 +1318,7 @@ export class ChatEditingSession extends Disposable implements IChatEditingSessio
 		} else {
 			const chatKind = kind === 'create' ? ChatEditKind.Created : ChatEditKind.Modified;
 			const ref = await this._textModelService.createModelReference(resource);
-			entry = this._instantiationService.createInstance(
+			const docEntry = this._instantiationService.createInstance(
 				ChatEditingModifiedDocumentEntry,
 				ref,
 				multiDiffEntryDelegate,
@@ -1321,9 +1326,14 @@ export class ChatEditingSession extends Disposable implements IChatEditingSessio
 				chatKind,
 				initialContent
 			);
-			if (kind !== 'create') {
-				await entry.revertToDisk();
+			if (diff) {
+				docEntry.setAuthoritativeDiff(diff);
 			}
+			if (kind !== 'create') {
+				await docEntry.revertToDisk();
+			}
+			await docEntry.recomputeDiff();
+			entry = docEntry;
 		}
 
 		const listener = entry.onDidDelete(() => {

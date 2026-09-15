@@ -128,7 +128,7 @@ suite('AgentHostInputCompletionsBase', () => {
 
 	test('preserves slash command filter text so Monaco can fuzzy rank it', async () => {
 		const languageFeaturesService = new LanguageFeaturesService();
-		const completions = store.add(new TestAgentHostInputCompletions(languageFeaturesService, new TestChatSessionsService('/vscode-pet'), CompletionItemKind.Text, ['/']));
+		const completions = store.add(new TestAgentHostInputCompletions(languageFeaturesService, new TestChatSessionsService('/dccode-pet'), CompletionItemKind.Text, ['/']));
 		store.add(completions.register());
 		const model = store.add(createTextModel('/pet', null, undefined, URI.parse('test:input')));
 		const provider = languageFeaturesService.completionProvider.ordered(model)[0];
@@ -137,9 +137,9 @@ suite('AgentHostInputCompletionsBase', () => {
 
 		assert.deepStrictEqual(result, {
 			suggestions: [{
-				label: '/vscode-pet',
-				insertText: '/vscode-pet',
-				filterText: '/vscode-pet',
+				label: '/dccode-pet',
+				insertText: '/dccode-pet',
+				filterText: '/dccode-pet',
 				sortText: '000000',
 				range: new Range(1, 5, 1, 5),
 				kind: CompletionItemKind.Text,

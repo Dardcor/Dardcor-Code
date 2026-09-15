@@ -45,9 +45,31 @@ import { ChatPlanReviewData } from '../model/chatProgressTypes/chatPlanReviewDat
 import { TerminalCapability } from '../../../../../platform/terminal/common/capabilities/capabilities.js';
 import { ITaskService } from '../../../tasks/common/taskService.js';
 import { IBrowserViewWorkbenchService } from '../../../browserView/common/browserView.js';
+import { linesDiffComputers } from '../../../../../editor/common/diff/linesDiffComputers.js';
+
+function computeAgentFileDiff(originalContent: string, modifiedContent: string): { added: number; removed: number } {
+	if (originalContent === modifiedContent) {
+		return { added: 0, removed: 0 };
+	}
+	const origLines = originalContent.split(/\r\n|\r|\n/);
+	const modLines = modifiedContent.split(/\r\n|\r|\n/);
+	const computer = linesDiffComputers.getDefault();
+	const diff = computer.computeDiff(origLines, modLines, {
+		ignoreTrimWhitespace: false,
+		computeMoves: false,
+		maxComputationTimeMs: 1000
+	});
+	let added = 0;
+	let removed = 0;
+	for (const c of diff.changes) {
+		added += Math.max(0, c.modified.endLineNumberExclusive - c.modified.startLineNumber);
+		removed += Math.max(0, c.original.endLineNumberExclusive - c.original.startLineNumber);
+	}
+	return { added, removed };
+}
 
 // ---------------------------------------------------------------------------
-// Dardcor Router fetch helper — dual-host fallback + startup retry
+// Dardcor Router fetch helper - dual-host fallback + startup retry
 //
 // On Windows, `localhost` sometimes resolves to ::1 (IPv6) while the Router
 // server only binds on 127.0.0.1 (IPv4). The opposite can also be true when
@@ -70,12 +92,12 @@ async function fetchRouter(path: string, init?: RequestInit, retries = 8): Promi
 			const url = `http://${host}:${ROUTER_PORT}${path}`;
 			try {
 				const res = await fetch(url, init);
-				// A real HTTP error (4xx/5xx) from the router is a valid response — return it.
+				// A real HTTP error (4xx/5xx) from the router is a valid response - return it.
 				// Only retry on network-level exceptions (fetch throws, not res.ok === false).
 				return res;
 			} catch (err) {
 				lastErr = err;
-				// Connection refused / network error — try next host immediately
+				// Connection refused / network error - try next host immediately
 			}
 		}
 		// Both hosts failed on this attempt; wait with progressive backoff before retrying
@@ -1866,32 +1888,31 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				const target = resolveUri(args.filePath);
 				try {
 					let isNew = true;
-					let oldLineCount = 0;
 					let initialContent: string | undefined;
 					try {
 						if (await fileService.exists(target)) {
 							isNew = false;
 							const oldData = await fileService.readFile(target);
 							initialContent = new TextDecoder().decode(oldData.value.buffer);
-							oldLineCount = initialContent.split('\n').length;
 						}
 					} catch { }
 
 					const content = args.content ?? '';
-					const newLineCount = content.split('\n').length;
-
 					const parent = dirname(target);
 					if (!(await fileService.exists(parent))) {
 						await fileService.createFolder(parent);
 					}
 					await fileService.writeFile(target, VSBuffer.fromString(content));
+					const diff = isNew
+						? { added: content ? content.split(/\r\n|\r|\n/).length : 0, removed: 0 }
+						: computeAgentFileDiff(initialContent ?? '', content);
 					return {
 						output: `Successfully wrote ${content.length} bytes to ${args.filePath}`,
 						externalEdit: {
 							uri: target,
 							editKind: isNew ? 'create' : 'edit',
 							initialContent: isNew ? undefined : initialContent,
-							diff: isNew ? { added: newLineCount, removed: 0 } : { added: newLineCount, removed: oldLineCount }
+							diff
 						}
 					};
 				} catch (e: any) {
@@ -1903,13 +1924,11 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				const target = resolveUri(args.filePath);
 				try {
 					if (!args.searchContent && args.content) {
-						let oldLineCount = 0;
 						let initialContent: string | undefined;
 						try {
 							if (await fileService.exists(target)) {
 								const oldData = await fileService.readFile(target);
 								initialContent = new TextDecoder().decode(oldData.value.buffer);
-								oldLineCount = initialContent.split('\n').length;
 							}
 						} catch { }
 						const parent = dirname(target);
@@ -1917,14 +1936,14 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 							await fileService.createFolder(parent);
 						}
 						await fileService.writeFile(target, VSBuffer.fromString(args.content));
-						const newLineCount = (args.content || '').split('\n').length;
+						const diff = computeAgentFileDiff(initialContent ?? '', args.content || '');
 						return {
 							output: `Successfully updated ${args.filePath}`,
 							externalEdit: {
 								uri: target,
 								editKind: 'edit',
 								initialContent,
-								diff: { added: newLineCount, removed: oldLineCount }
+								diff
 							}
 						};
 					}
@@ -1946,15 +1965,14 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					}
 
 					await fileService.writeFile(target, VSBuffer.fromString(text));
-					const removedLines = search.split('\n').length;
-					const addedLines = replace.split('\n').length;
+					const diff = computeAgentFileDiff(initialContent, text);
 					return {
 						output: `Successfully applied edits to ${args.filePath}`,
 						externalEdit: {
 							uri: target,
 							editKind: 'edit',
 							initialContent,
-							diff: { added: addedLines, removed: removedLines }
+							diff
 						}
 					};
 				} catch (e: any) {
@@ -3123,7 +3141,8 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 									toolResult.externalEdit.editKind,
 									toolResult.externalEdit.initialContent,
 									request.requestId,
-									tc.id
+									tc.id,
+									toolResult.externalEdit.diff
 								);
 							}
 						}
@@ -3250,7 +3269,8 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 									toolResult.externalEdit.editKind,
 									toolResult.externalEdit.initialContent,
 									request.requestId,
-									callId
+									callId,
+									toolResult.externalEdit.diff
 								);
 							}
 						}

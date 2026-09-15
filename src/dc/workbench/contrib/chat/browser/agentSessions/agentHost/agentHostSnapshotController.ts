@@ -60,6 +60,13 @@ export class AgentHostSnapshotController extends Disposable implements IChatEdit
 	private readonly _entriesByUri = new Map<string, IModifiedFileEntry>();
 	private readonly _entryDisposables = this._register(new DisposableStore());
 	private readonly _filePreEditSnapshots = new Map<string, { content: string; existed: boolean; capturedAt: number }>();
+	private readonly _pendingRegistrations = new Map<string, Promise<void>>();
+	private readonly _aggregatedDiffsByUri = new Map<string, { added: number; removed: number }>();
+
+	getAggregatedDiff(resource: URI): { added: number; removed: number } | undefined {
+		const targetUri = fromAgentHostUri(resource);
+		return this._aggregatedDiffsByUri.get(targetUri.toString());
+	}
 
 	// ---- Running-state tracking (drives file-explorer spinner) --------------
 
@@ -162,7 +169,7 @@ export class AgentHostSnapshotController extends Disposable implements IChatEdit
 				const targetUri = fromAgentHostUri(uri);
 				const key = targetUri.toString();
 				if (!this._filePreEditSnapshots.has(key)) {
-					const model = this._modelService.getModel(targetUri);
+					const model = this._modelService?.getModel(targetUri);
 					if (model) {
 						this._filePreEditSnapshots.set(key, {
 							content: model.getValue(),
@@ -246,6 +253,17 @@ export class AgentHostSnapshotController extends Disposable implements IChatEdit
 		const authority = this._connectionAuthority;
 		for (const edit of fileEdits) {
 			const resource = toAgentHostUri(edit.resource, authority);
+			const targetKey = fromAgentHostUri(resource).toString();
+			if (edit.diff) {
+				const prev = this._aggregatedDiffsByUri.get(targetKey) ?? { added: 0, removed: 0 };
+				const added = typeof edit.diff.added === 'number' ? edit.diff.added : (edit.diff.added !== undefined ? Number(edit.diff.added) : 0);
+				const removed = typeof edit.diff.removed === 'number' ? edit.diff.removed : (edit.diff.removed !== undefined ? Number(edit.diff.removed) : 0);
+				this._aggregatedDiffsByUri.set(targetKey, {
+					added: prev.added + (isNaN(added) ? 0 : added),
+					removed: prev.removed + (isNaN(removed) ? 0 : removed),
+				});
+			}
+
 			const entry: IToolCallFileEdit = {
 				kind: edit.kind,
 				resource,
@@ -263,14 +281,17 @@ export class AgentHostSnapshotController extends Disposable implements IChatEdit
 			// _writeCheckpointContent would apply duplicate writes in
 			// parallel and race to leave the file in an undefined state.
 			const existingIdx = cp.edits.findIndex(e => e.resource.toString() === resource.toString());
+			let targetEntry: IToolCallFileEdit;
 			if (existingIdx < 0) {
 				cp.edits.push(entry);
+				targetEntry = entry;
 			} else {
 				cp.edits[existingIdx] = mergeFileEdit(cp.edits[existingIdx], entry);
+				targetEntry = cp.edits[existingIdx];
 			}
 
 			// Register reviewable modified file entry for Antigravity-style diff review
-			this._registerModifiedFileEntry(requestId, entry);
+			this._registerModifiedFileEntry(requestId, targetEntry);
 		}
 	}
 
@@ -531,13 +552,45 @@ export class AgentHostSnapshotController extends Disposable implements IChatEdit
 		const targetUri = fromAgentHostUri(edit.resource);
 		const key = targetUri.toString();
 
+		const previousPromise = this._pendingRegistrations.get(key) ?? Promise.resolve();
+		const currentPromise = (async () => {
+			await previousPromise;
+			await this._doRegisterModifiedFileEntry(requestId, edit);
+		})();
+		this._pendingRegistrations.set(key, currentPromise);
+		try {
+			await currentPromise;
+		} finally {
+			if (this._pendingRegistrations.get(key) === currentPromise) {
+				this._pendingRegistrations.delete(key);
+			}
+		}
+	}
+
+	private async _doRegisterModifiedFileEntry(requestId: string, edit: IToolCallFileEdit): Promise<void> {
+		if (edit.kind === FileEditKind.Rename) {
+			return;
+		}
+
+		const targetUri = fromAgentHostUri(edit.resource);
+		const key = targetUri.toString();
+
 		const existing = this._entriesByUri.get(key);
 		if (existing && existing.state.get() === ModifiedFileEntryState.Modified) {
-			if (edit.diff) {
-				existing.setAuthoritativeDiff?.(edit.diff);
+			const aggregatedDiff = this._aggregatedDiffsByUri.get(key) ?? edit.diff;
+			if (aggregatedDiff) {
+				existing.setAuthoritativeDiff?.(aggregatedDiff);
 			}
-			await existing.revertToDisk?.();
-			await existing.recomputeDiff?.();
+			existing.startExternalEdit?.();
+			try {
+				await existing.revertToDisk?.();
+				await existing.recomputeDiff?.();
+			} finally {
+				existing.stopExternalEdit?.();
+			}
+			if (aggregatedDiff) {
+				existing.setAuthoritativeDiff?.(aggregatedDiff);
+			}
 			transaction(tx => {
 				this._entriesObs.set(Array.from(this._entriesByUri.values()), tx);
 			});
@@ -621,8 +674,9 @@ export class AgentHostSnapshotController extends Disposable implements IChatEdit
 					kind,
 					initialContent,
 				);
-				if (edit.diff) {
-					entry.setAuthoritativeDiff?.(edit.diff);
+				const aggregatedDiff = this._aggregatedDiffsByUri.get(key) ?? edit.diff;
+				if (aggregatedDiff) {
+					entry.setAuthoritativeDiff?.(aggregatedDiff);
 				}
 			}
 
@@ -757,6 +811,18 @@ function mergeFileEdit(prev: IToolCallFileEdit, next: IToolCallFileEdit): IToolC
 		kind = FileEditKind.Edit;
 	}
 
+	let diff: { added?: number; removed?: number } | undefined;
+	if (prev.diff || next.diff) {
+		const prevAdded = typeof prev.diff?.added === 'number' ? prev.diff.added : (prev.diff?.added !== undefined ? Number(prev.diff.added) : 0);
+		const nextAdded = typeof next.diff?.added === 'number' ? next.diff.added : (next.diff?.added !== undefined ? Number(next.diff.added) : 0);
+		const prevRemoved = typeof prev.diff?.removed === 'number' ? prev.diff.removed : (prev.diff?.removed !== undefined ? Number(prev.diff.removed) : 0);
+		const nextRemoved = typeof next.diff?.removed === 'number' ? next.diff.removed : (next.diff?.removed !== undefined ? Number(next.diff.removed) : 0);
+		diff = {
+			added: (isNaN(prevAdded) ? 0 : prevAdded) + (isNaN(nextAdded) ? 0 : nextAdded),
+			removed: (isNaN(prevRemoved) ? 0 : prevRemoved) + (isNaN(nextRemoved) ? 0 : nextRemoved),
+		};
+	}
+
 	return {
 		kind,
 		resource: next.resource,
@@ -767,6 +833,6 @@ function mergeFileEdit(prev: IToolCallFileEdit, next: IToolCallFileEdit): IToolC
 		beforeContentUri: prev.beforeContentUri,
 		afterContentUri: next.afterContentUri,
 		undoStopId: prev.undoStopId,
-		diff: next.diff ?? prev.diff,
+		diff,
 	};
 }

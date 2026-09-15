@@ -26,7 +26,7 @@ import { Iterable } from '../../../../../../base/common/iterator.js';
 import { KeyCode } from '../../../../../../base/common/keyCodes.js';
 import { Lazy } from '../../../../../../base/common/lazy.js';
 import { Disposable, DisposableMap, DisposableStore, IDisposable, MutableDisposable, toDisposable } from '../../../../../../base/common/lifecycle.js';
-import { ResourceSet } from '../../../../../../base/common/map.js';
+import { ResourceMap, ResourceSet } from '../../../../../../base/common/map.js';
 import { MarshalledId } from '../../../../../../base/common/marshallingIds.js';
 import { Schemas } from '../../../../../../base/common/network.js';
 import { mixin } from '../../../../../../base/common/objects.js';
@@ -98,6 +98,8 @@ import { getStoredSelectedModel, storeSelectedModel } from '../../../common/chat
 import { ChatAgentLocation, ChatConfiguration, ChatModeKind, ChatPermissionLevel, isChatPermissionLevel } from '../../../common/constants.js';
 import { isAutoApprovePolicyRestricted, isAutoApproveValuePolicyRestricted } from '../../../common/agentHostConfigPolicy.js';
 import { IChatEditingSession, IModifiedFileEntry, ModifiedFileEntryState } from '../../../common/editing/chatEditingService.js';
+import { AgentHostSnapshotController } from '../../agentSessions/agentHost/agentHostSnapshotController.js';
+import { fromAgentHostUri } from '../../../../../../platform/agentHost/common/agentHostUri.js';
 import { ILanguageModelChatMetadata, ILanguageModelChatMetadataAndIdentifier, ILanguageModelsService } from '../../../common/languageModels.js';
 import { ChatInputModelSelectionController, IChatInputModelSelectionRuntime } from './chatInputModelSelectionController.js';
 import { ChatModelConfigurationStore } from './chatModelConfigurationStore.js';
@@ -146,7 +148,7 @@ import { ChatQuestionCarouselPart, IChatQuestionCarouselOptions } from '../chatC
 import { ChatToolConfirmationCarouselPart, RevealSubagentCallback, ToolInvocationPartFactory } from '../chatContentParts/toolInvocationParts/chatToolConfirmationCarouselPart.js';
 import { ChatToolInvocationPart } from '../chatContentParts/toolInvocationParts/chatToolInvocationPart.js';
 import { IChatContentPartRenderContext } from '../chatContentParts/chatContentParts.js';
-import { CollapsibleListPool, IChatCollapsibleListItem } from '../chatContentParts/chatReferencesContentPart.js';
+import { CollapsibleListPool, IChatCollapsibleListItem, IChatReferenceListItem } from '../chatContentParts/chatReferencesContentPart.js';
 import { ChatTodoListWidget } from '../chatContentParts/chatTodoListWidget.js';
 import { ChatArtifactsWidget } from '../chatArtifactsWidget.js';
 import { handleTerminalCommandPaste, isTerminalCommandInput, isTerminalCommandPaste as isTerminalCommandPasteContent } from '../../chatTerminalCommandPaste.js';
@@ -2693,7 +2695,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		for (const skill of this._activeSkills) {
 			const chip = dom.$('.chat-skill-chip');
 			const icon = dom.$('span.chat-skill-chip-icon');
-			icon.classList.add(...ThemeIcon.asClassNameArray(Codicon.sparkle));
+			icon.classList.add(...ThemeIcon.asClassNameArray(Codicon.terminal));
 			const name = dom.$('span.chat-skill-chip-name', {}, skill);
 			const close = dom.$('span.chat-skill-chip-remove');
 			close.classList.add(...ThemeIcon.asClassNameArray(Codicon.closeCompact));
@@ -4856,13 +4858,20 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 					seenEntries.add(entry.modifiedURI);
 					const linesAdded = entry.linesAdded?.read(reader);
 					const linesRemoved = entry.linesRemoved?.read(reader);
+					let diffMeta = { added: linesAdded ?? 0, removed: linesRemoved ?? 0 };
+					if (diffMeta.added === 0 && diffMeta.removed === 0 && chatEditingSession instanceof AgentHostSnapshotController) {
+						const agg = chatEditingSession.getAggregatedDiff(entry.modifiedURI);
+						if (agg && (agg.added > 0 || agg.removed > 0)) {
+							diffMeta = { added: agg.added, removed: agg.removed };
+						}
+					}
 					entries.push({
 						reference: entry.modifiedURI,
 						state: ModifiedFileEntryState.Modified,
 						kind: 'reference',
 						options: {
 							status: undefined,
-							diffMeta: { added: linesAdded ?? 0, removed: linesRemoved ?? 0 },
+							diffMeta,
 							isDeletion: !!entry.isDeletion,
 							originalUri: entry.isDeletion ? entry.originalURI : undefined,
 						}
@@ -4992,31 +5001,114 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 			ariaLabel: localize('chatEditingSession.toggleWorkingSet', 'Toggle changed files.'),
 		}));
 
-		const topLevelStats = derived(reader => {
-			const entries = editSessionEntriesObs.read(reader);
-			const sessionEntries = sessionEntriesObs.read(reader);
+		const allCombinedEntriesObs = derived((reader): IChatCollapsibleListItem[] => {
+			const editEntries = editSessionEntriesObs.read(reader);
+			const sessionFileEntries = sessionEntriesObs.read(reader);
 
-			let added = 0, removed = 0;
+			const combined: IChatCollapsibleListItem[] = [];
+			const entryMap = new ResourceMap<IChatReferenceListItem>();
 
-			if (entries.length > 0) {
-				for (const entry of entries) {
-					if (entry.kind === 'reference' && entry.options?.diffMeta) {
-						added += entry.options.diffMeta.added;
-						removed += entry.options.diffMeta.removed;
-					}
+			for (const entry of editEntries) {
+				if (entry.kind === 'reference' && URI.isUri(entry.reference)) {
+					const cloned: IChatReferenceListItem = { ...entry, options: { ...entry.options } };
+					entryMap.set(entry.reference, cloned);
+					combined.push(cloned);
+				} else {
+					combined.push(entry);
 				}
-			} else {
-				for (const entry of sessionEntries) {
-					if (entry.kind === 'reference' && entry.options?.diffMeta) {
-						added += entry.options.diffMeta.added;
-						removed += entry.options.diffMeta.removed;
+			}
+
+			for (const entry of sessionFileEntries) {
+				if (entry.kind === 'reference' && URI.isUri(entry.reference)) {
+					const existing = entryMap.get(entry.reference);
+					if (existing) {
+						const existingDiff = existing.options?.diffMeta;
+						const entryDiff = entry.options?.diffMeta;
+						if (entryDiff && (entryDiff.added > 0 || entryDiff.removed > 0)) {
+							if (!existingDiff || (existingDiff.added === 0 && existingDiff.removed === 0)) {
+								existing.options = {
+									...existing.options,
+									diffMeta: { added: entryDiff.added, removed: entryDiff.removed }
+								};
+							}
+						}
+					} else {
+						const cloned: IChatReferenceListItem = { ...entry, options: { ...entry.options } };
+						entryMap.set(entry.reference, cloned);
+						combined.push(cloned);
+					}
+				} else {
+					combined.push(entry);
+				}
+			}
+
+			for (const item of combined) {
+				if (item.kind === 'reference' && URI.isUri(item.reference)) {
+					const diffMeta = item.options?.diffMeta;
+					if (!diffMeta || (diffMeta.added === 0 && diffMeta.removed === 0)) {
+						let reconciledDiff: { added: number; removed: number } | undefined;
+						if (chatEditingSession instanceof AgentHostSnapshotController) {
+							reconciledDiff = chatEditingSession.getAggregatedDiff(item.reference);
+						}
+						if (!reconciledDiff || (reconciledDiff.added === 0 && reconciledDiff.removed === 0)) {
+							const currentChatModel = this._widget?.viewModel?.model;
+							if (currentChatModel) {
+								let accAdded = 0;
+								let accRemoved = 0;
+								let found = false;
+								for (const req of currentChatModel.getRequests()) {
+									const response = req.response;
+									if (!response) {
+										continue;
+									}
+									for (const part of response.response.value) {
+										if (part.kind === 'externalEdit' && part.diff) {
+											const partUri = fromAgentHostUri(part.uri);
+											if (isEqual(partUri, item.reference) || partUri.path.toLowerCase() === item.reference.path.toLowerCase()) {
+												const a = typeof part.diff.added === 'number' ? part.diff.added : (part.diff.added !== undefined ? Number(part.diff.added) : 0);
+												const r = typeof part.diff.removed === 'number' ? part.diff.removed : (part.diff.removed !== undefined ? Number(part.diff.removed) : 0);
+												accAdded += isNaN(a) ? 0 : a;
+												accRemoved += isNaN(r) ? 0 : r;
+												found = true;
+											}
+										}
+									}
+								}
+								if (found && (accAdded > 0 || accRemoved > 0)) {
+									reconciledDiff = { added: accAdded, removed: accRemoved };
+								}
+							}
+						}
+						if (reconciledDiff && (reconciledDiff.added > 0 || reconciledDiff.removed > 0)) {
+							item.options = {
+								...item.options,
+								diffMeta: { added: reconciledDiff.added, removed: reconciledDiff.removed }
+							};
+						}
 					}
 				}
 			}
 
-			const files = entries.length > 0 ? entries.length : sessionEntries.length;
-			const topLevelIsSessionMenu = entries.length === 0 && sessionEntries.length > 0;
-			const shouldShowEditingSession = entries.length > 0 || sessionEntries.length > 0;
+			return combined;
+		});
+
+		const topLevelStats = derived(reader => {
+			const combined = allCombinedEntriesObs.read(reader);
+			const editEntries = editSessionEntriesObs.read(reader);
+			const sessionEntries = sessionEntriesObs.read(reader);
+
+			let added = 0, removed = 0;
+
+			for (const entry of combined) {
+				if (entry.kind === 'reference' && entry.options?.diffMeta) {
+					added += entry.options.diffMeta.added;
+					removed += entry.options.diffMeta.removed;
+				}
+			}
+
+			const files = combined.length;
+			const topLevelIsSessionMenu = editEntries.length === 0 && sessionEntries.length > 0;
+			const shouldShowEditingSession = combined.length > 0;
 
 			return { files, added, removed, shouldShowEditingSession, topLevelIsSessionMenu };
 		});
@@ -5163,13 +5255,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		}
 
 		store.add(autorun(reader => {
-			const editEntries = editSessionEntriesObs.read(reader);
-			const sessionFileEntries = sessionEntriesObs.read(reader);
-
-			// Combine edit session entries with session file changes. At the moment, we
-			// we can combine these two arrays since local chat sessions use edit session
-			// entries, while background chat sessions use session file changes.
-			const allEntries = editEntries.concat(sessionFileEntries);
+			const allEntries = allCombinedEntriesObs.read(reader);
 
 			const maxItemsShown = 6;
 			const itemsShown = Math.min(allEntries.length, maxItemsShown);

@@ -3212,6 +3212,18 @@ export class ChatWidget extends Disposable implements IChatWidget {
 		}
 
 		let savedBeforeSend = false;
+		const isUserQuery = !query;
+		let rawInputValue = isUserQuery ? this.getInput() : query.query;
+		if (isUserQuery) {
+			const activeSkills = this.input.getActiveSkills();
+			const missingSkills = activeSkills.filter(s => !rawInputValue.includes(`/${s}`));
+			if (missingSkills.length > 0) {
+				const skillPrefix = missingSkills.map(s => `/${s}`).join(' ') + ' ';
+				rawInputValue = (skillPrefix + rawInputValue).trim();
+			}
+		}
+		const inputValue = rawInputValue;
+
 		// Check if a custom submit handler wants to handle this submission
 		if (this.viewOptions.submitHandler) {
 			if (this._submitHandlerInFlight) {
@@ -3219,7 +3231,6 @@ export class ChatWidget extends Disposable implements IChatWidget {
 			}
 			this._submitHandlerInFlight = true;
 			try {
-				const inputValue = !query ? this.getInput() : query.query;
 				await saveAllBeforeChatSend(this.configurationService, this.editorService);
 				savedBeforeSend = true;
 				const attachedContext = this.input.getAttachedContext().asArray();
@@ -3232,8 +3243,6 @@ export class ChatWidget extends Disposable implements IChatWidget {
 			}
 		}
 
-		const isUserQuery = !query;
-		const inputValue = isUserQuery ? this.getInput() : query.query;
 		if (this.viewModel.model.hasActiveRequest.get() && await this._tryExecuteImmediateSlashCommand(inputValue, isUserQuery ? this.parsedInput : undefined)) {
 			this.setInput('');
 			return;

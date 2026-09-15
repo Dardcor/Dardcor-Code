@@ -450,6 +450,9 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 	private _editor!: CodeEditorWidget;
 	private _editorContainer!: HTMLElement;
 	private _inputArea: HTMLElement | undefined;
+	private _skillChipsContainer: HTMLElement | undefined;
+	private readonly _activeSkills = new Set<string>();
+	private _isExtractingSkills = false;
 	private _editorOverflowWidgetsDomNode: HTMLElement | undefined;
 	private _sessionControlsContainer: HTMLElement | undefined;
 	private readonly _promptTemplatePlaceholder = this._register(new MutableDisposable<PromptTemplatePlaceholderController>());
@@ -619,8 +622,8 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 		// Suppress the default `Text` kind icon in the suggest widget; chat slash/skill
 		// completions use that kind and rely on the chat module's CSS rule scoped to this class.
 		editorOverflowWidgetsDomNode.classList.add('hideSuggestTextIcons');
-		// Registered before the editor so it is removed after the editor — and the
-		// overflow widgets it owns — have been disposed.
+		// Registered before the editor so it is removed after the editor - and the
+		// overflow widgets it owns - have been disposed.
 		this._register(toDisposable(() => editorOverflowWidgetsDomNode.remove()));
 
 		this._register(this.chatInputNoticeHubService.registerHost(this.noticeHost, chatInputContainer));
@@ -742,6 +745,9 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 			listBackground: inactiveSessionViewBackground,
 			overlayBackground: EDITOR_DRAG_AND_DROP_BACKGROUND,
 		})).addOverlay(root, root);
+
+		this._skillChipsContainer = dom.append(inputArea, dom.$('.chat-input-skill-chips'));
+		dom.hide(this._skillChipsContainer);
 
 		this._createEditor(inputArea, editorOverflowWidgetsDomNode);
 		const inputHasContent = observableFromEvent(this, this._editor.onDidChangeModelContent, () => this._editor.getValue().length > 0);
@@ -1020,6 +1026,19 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 			if (e.browserEvent.defaultPrevented) {
 				return;
 			}
+			if (e.keyCode === KeyCode.Backspace) {
+				const model = this._editor.getModel();
+				if (model && model.getValueLength() === 0 && this._activeSkills.size > 0) {
+					const skills = Array.from(this._activeSkills);
+					const lastSkill = skills[skills.length - 1];
+					if (lastSkill) {
+						this.removeSkill(lastSkill);
+						e.preventDefault();
+						e.stopPropagation();
+						return;
+					}
+				}
+			}
 			if (e.keyCode === KeyCode.Enter && !e.shiftKey && !e.ctrlKey && !e.altKey && this._promptTemplatePlaceholder.value?.replaceAtCursor()) {
 				e.preventDefault();
 				e.stopPropagation();
@@ -1030,17 +1049,25 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 				if (this._editor.contextKeyService.getContextKeyValue<boolean>('suggestWidgetVisible')) {
 					return;
 				}
+				const model = this._editor.getModel();
+				if (model) {
+					this.extractSkillsFromInput(model, true);
+				}
 				e.preventDefault();
 				e.stopPropagation();
 				this._send();
 			}
-			// Alt+Enter — send in the background without navigating into the session
+			// Alt+Enter: send in the background without navigating into the session
 			if (this.options.supportsBackground && e.keyCode === KeyCode.Enter && !e.shiftKey && !e.ctrlKey && e.altKey) {
+				const model = this._editor.getModel();
+				if (model) {
+					this.extractSkillsFromInput(model, true);
+				}
 				e.preventDefault();
 				e.stopPropagation();
 				this._send(true);
 			}
-			// Cmd+/ / Ctrl+/ — open the context picker (same as the attach button)
+			// Cmd+/ / Ctrl+/: open the context picker (same as the attach button)
 			if (e.equals(KeyMod.CtrlCmd | KeyCode.Slash)) {
 				e.preventDefault();
 				e.stopPropagation();
@@ -1103,6 +1130,10 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 		)));
 
 		this._register(this._editor.onDidChangeModelContent(() => {
+			const model = this._editor.getModel();
+			if (model) {
+				this.extractSkillsFromInput(model, false);
+			}
 			this._syncInputGitHubContext();
 			this._updateDraftState();
 			this._updateSendButtonState();
@@ -1157,7 +1188,7 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 
 		this._createAttachButton(toolbar);
 
-		// Session config pickers (such as model) — rendered via MenuWorkbenchToolBar
+		// Session config pickers (such as model) - rendered via MenuWorkbenchToolBar
 		// Visibility controlled by context keys (isActiveSessionBackgroundProvider, isNewChatSession)
 		const configContainer = dom.append(toolbar, dom.$('.sessions-chat-config-toolbar'));
 		const configToolbar = this._register(createNewSessionConfigToolbar(configContainer, this._scopedInstantiationService, this._compactModelPicker));
@@ -1561,7 +1592,7 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 		const query = rawQuery.trim();
 		const queryOffset = rawQuery.length - rawQuery.trimStart().length;
 		const hasAdditionalSendContent = this.options.hasAdditionalSendContent?.get() ?? false;
-		if (!hasSendableNewChatContent(query, this._contextAttachments.attachments, hasAdditionalSendContent) || this._sending) {
+		if ((!hasSendableNewChatContent(query, this._contextAttachments.attachments, hasAdditionalSendContent) && this._activeSkills.size === 0) || this._sending) {
 			return false;
 		}
 
@@ -1591,7 +1622,10 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 		const attachedContext = attachments.length > 0
 			? attachments
 			: undefined;
-		const request = query;
+		const skills = Array.from(this._activeSkills);
+		const missingSkills = skills.filter(s => !query.includes(`/${s}`));
+		const skillPrefix = missingSkills.length > 0 ? missingSkills.map(s => `/${s}`).join(' ') + ' ' : '';
+		const request = (skillPrefix + query).trim();
 		const notificationContext = this._getNotificationContext();
 
 		if (this._draftState) {
@@ -1612,6 +1646,7 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 			}
 			this.chatInputNotificationService.handleMessageSent(notificationContext);
 			this._contextAttachments.clear();
+			this.clearActiveSkills();
 			this._editor.getModel()?.setValue('');
 		} catch (e) {
 			this.logService.error('Failed to send request:', e);
@@ -1646,7 +1681,7 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 		}
 		const hasAdditionalSendContent = this.options.hasAdditionalSendContent?.get() ?? false;
 		this._sendButton.enabled = !this._sending
-			&& hasSendableNewChatContent(this._editor?.getModel()?.getValue() ?? '', this._contextAttachments.attachments, hasAdditionalSendContent)
+			&& (hasSendableNewChatContent(this._editor?.getModel()?.getValue() ?? '', this._contextAttachments.attachments, hasAdditionalSendContent) || this._activeSkills.size > 0)
 			&& this._canSendRequest.get();
 	}
 
@@ -1954,6 +1989,128 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 
 	selectVoiceModel(identifier: string): boolean {
 		return this._modelSelection.selectModel(identifier);
+	}
+
+	public addSkill(skillName: string): void {
+		const cleanName = skillName.startsWith('/') ? skillName.slice(1) : skillName;
+		if (!cleanName) {
+			return;
+		}
+		this._activeSkills.add(cleanName);
+		this.renderSkillChips();
+	}
+
+	public removeSkill(skillName: string): void {
+		this._activeSkills.delete(skillName);
+		this.renderSkillChips();
+	}
+
+	public getActiveSkills(): string[] {
+		return Array.from(this._activeSkills);
+	}
+
+	public clearActiveSkills(): void {
+		this._activeSkills.clear();
+		this.renderSkillChips();
+	}
+
+	public extractSkillsFromInput(model: ITextModel, allowEndOfString = false): void {
+		if (this._isExtractingSkills) {
+			return;
+		}
+		const text = model.getValue();
+		if (!text.includes('/')) {
+			return;
+		}
+
+		const BUILTIN_COMMANDS = new Set([
+			'create-agent', 'clear', 'help', 'init', 'explain', 'fix', 'test',
+			'tests', 'review', 'commit', 'start-debugging', 'setup-tests',
+			'goal', 'schedule', 'grill-me', 'learn'
+		]);
+
+		const skillPattern = allowEndOfString
+			? /(?:^|\s)\/([\p{L}0-9_.:-]+)(?=\s|$)/gu
+			: /(?:^|\s)\/([\p{L}0-9_.:-]+)\s+/gu;
+
+		const foundSkills: string[] = [];
+		let match: RegExpExecArray | null;
+
+		while ((match = skillPattern.exec(text)) !== null) {
+			const skill = match[1];
+			if (!BUILTIN_COMMANDS.has(skill.toLowerCase())) {
+				foundSkills.push(skill);
+			}
+		}
+
+		if (foundSkills.length === 0) {
+			return;
+		}
+
+		this._isExtractingSkills = true;
+		try {
+			for (const skill of foundSkills) {
+				this.addSkill(skill);
+			}
+
+			let newText = text;
+			for (const skill of foundSkills) {
+				const escaped = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+				const replaceRegex = new RegExp(`(?:^|\\s)\\/` + escaped + `(?:\\s+|$)`, 'gu');
+				newText = newText.replace(replaceRegex, ' ');
+			}
+			newText = newText.trim();
+			if (newText !== text) {
+				model.setValue(newText);
+				const lineCount = model.getLineCount();
+				const maxCol = model.getLineMaxColumn(lineCount);
+				this._editor.setPosition({ lineNumber: lineCount, column: maxCol });
+			}
+		} finally {
+			this._isExtractingSkills = false;
+		}
+	}
+
+	private renderSkillChips(): void {
+		if (!this._skillChipsContainer) {
+			return;
+		}
+		dom.clearNode(this._skillChipsContainer);
+		if (this._activeSkills.size === 0) {
+			dom.hide(this._skillChipsContainer);
+			this._updateSendButtonState();
+			return;
+		}
+		dom.show(this._skillChipsContainer);
+		for (const skill of this._activeSkills) {
+			const chip = dom.$('.chat-skill-chip');
+			const icon = dom.$('span.chat-skill-chip-icon');
+			icon.classList.add(...ThemeIcon.asClassNameArray(Codicon.terminal));
+			const name = dom.$('span.chat-skill-chip-name', {}, skill);
+			const close = dom.$('span.chat-skill-chip-remove');
+			close.classList.add(...ThemeIcon.asClassNameArray(Codicon.closeCompact));
+			close.title = localize('chat.removeSkill', "Remove {0}", skill);
+			close.setAttribute('role', 'button');
+			close.setAttribute('tabindex', '0');
+			close.setAttribute('aria-label', localize('chat.removeSkillAria', "Remove skill {0}", skill));
+			close.onclick = (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				this.removeSkill(skill);
+			};
+			close.onkeydown = (e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					e.preventDefault();
+					e.stopPropagation();
+					this.removeSkill(skill);
+				}
+			};
+			chip.appendChild(icon);
+			chip.appendChild(name);
+			chip.appendChild(close);
+			this._skillChipsContainer.appendChild(chip);
+		}
+		this._updateSendButtonState();
 	}
 }
 

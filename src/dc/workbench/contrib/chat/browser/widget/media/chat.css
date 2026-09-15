@@ -5064,11 +5064,11 @@ have to be updated for changes to the rules above, or to support more deeply nes
 .chat-input-skill-chips {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 6px;
-	padding: 6px 10px 4px 10px;
+	gap: 4px;
+	padding: 3px 6px 2px 6px;
 	align-items: center;
-	border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-	margin-bottom: 4px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+	margin-bottom: 2px;
 }
 
 .monaco-workbench .interactive-session .chat-skill-chip,
@@ -5076,37 +5076,46 @@ have to be updated for changes to the rules above, or to support more deeply nes
 .chat-skill-chip {
 	display: inline-flex;
 	align-items: center;
-	gap: 5px;
-	height: 22px;
-	padding: 0 8px;
-	border-radius: 6px;
-	background: rgba(124, 58, 237, 0.18);
-	border: 1px solid rgba(138, 43, 226, 0.4);
+	gap: 3.5px;
+	height: 18px;
+	padding: 0 5px;
+	border-radius: 4px;
+	background: rgba(124, 58, 237, 0.16);
+	border: 1px solid rgba(138, 43, 226, 0.35);
 	color: #e9d5ff;
-	font-size: 11px;
+	font-size: 10px;
 	font-weight: 500;
-	line-height: 20px;
+	line-height: 16px;
 	letter-spacing: 0.1px;
 	user-select: none;
 	backdrop-filter: blur(8px);
-	box-shadow: 0 1px 4px rgba(124, 58, 237, 0.15);
-	transition: all 0.18s ease-in-out;
+	box-shadow: 0 1px 2px rgba(124, 58, 237, 0.1);
+	transition: all 0.15s ease-in-out;
 }
 
 .monaco-workbench .interactive-session .chat-skill-chip:hover,
 .monaco-workbench .chat-skill-chip:hover,
 .chat-skill-chip:hover {
-	background: rgba(124, 58, 237, 0.28);
-	border-color: rgba(168, 85, 247, 0.6);
-	box-shadow: 0 2px 8px rgba(124, 58, 237, 0.25);
+	background: rgba(124, 58, 237, 0.26);
+	border-color: rgba(168, 85, 247, 0.55);
+	box-shadow: 0 2px 6px rgba(124, 58, 237, 0.2);
 	color: #ffffff;
 }
 
+.monaco-workbench .interactive-session .chat-skill-chip .chat-skill-chip-icon,
+.monaco-workbench .interactive-session .chat-skill-chip .codicon-terminal,
 .monaco-workbench .interactive-session .chat-skill-chip .codicon-sparkle,
+.monaco-workbench .chat-skill-chip .chat-skill-chip-icon,
+.monaco-workbench .chat-skill-chip .codicon-terminal,
 .monaco-workbench .chat-skill-chip .codicon-sparkle,
+.chat-skill-chip .chat-skill-chip-icon,
+.chat-skill-chip .codicon-terminal,
 .chat-skill-chip .codicon-sparkle {
-	font-size: 12px;
+	font-size: 10px;
 	color: #c084fc;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 }
 
 .monaco-workbench .interactive-session .chat-skill-chip-name,
@@ -5115,7 +5124,9 @@ have to be updated for changes to the rules above, or to support more deeply nes
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	max-width: 220px;
+	max-width: 200px;
+	font-size: 10px;
+	line-height: 16px;
 }
 
 .monaco-workbench .chat-skill-chip .chat-skill-chip-remove,
@@ -5124,16 +5135,16 @@ have to be updated for changes to the rules above, or to support more deeply nes
 .monaco-workbench .interactive-session .chat-skill-chip-remove.codicon[class*='codicon-'],
 .chat-skill-chip-remove {
 	cursor: pointer;
-	font-size: 10px !important;
-	width: 14px !important;
-	height: 14px !important;
+	font-size: 8px !important;
+	width: 12px !important;
+	height: 12px !important;
 	display: inline-flex !important;
 	align-items: center !important;
 	justify-content: center !important;
 	opacity: 0.7;
-	margin-left: 2px;
-	border-radius: 3px;
-	line-height: 14px !important;
+	margin-left: 1px;
+	border-radius: 2px;
+	line-height: 12px !important;
 	transition: all 0.15s ease;
 }
 
@@ -5141,10 +5152,10 @@ have to be updated for changes to the rules above, or to support more deeply nes
 .monaco-workbench .interactive-session .chat-skill-chip-remove.codicon[class*='codicon-']::before,
 .monaco-workbench .chat-skill-chip-remove.codicon::before,
 .chat-skill-chip-remove::before {
-	font-size: 10px !important;
-	line-height: 10px !important;
-	width: 10px !important;
-	height: 10px !important;
+	font-size: 8px !important;
+	line-height: 8px !important;
+	width: 8px !important;
+	height: 8px !important;
 	display: inline-block !important;
 	text-align: center !important;
 }
@@ -5154,8 +5165,18 @@ have to be updated for changes to the rules above, or to support more deeply nes
 .monaco-workbench .chat-skill-chip-remove:hover,
 .chat-skill-chip-remove:hover {
 	opacity: 1;
-	transform: scale(1.15);
+	transform: scale(1.12);
 	color: #ffffff;
 	background: rgba(239, 68, 68, 0.85);
 }
+
+.monaco-workbench .interactive-session .chat-skill-chip.chat-skill-chip-sent,
+.monaco-workbench .chat-skill-chip.chat-skill-chip-sent,
+.chat-skill-chip.chat-skill-chip-sent {
+	vertical-align: middle;
+	margin: 0 4px 0 0;
+	cursor: default;
+	pointer-events: auto;
+}
+
 

@@ -237,7 +237,8 @@ export class ChatEditingService extends Disposable implements IChatEditingServic
 		kind: 'create' | 'edit' | 'delete',
 		initialContent: string | undefined,
 		requestId: string,
-		undoStopId?: string
+		undoStopId?: string,
+		diff?: { added: number; removed: number }
 	): Promise<void> {
 		let session = this.getEditingSession(sessionResource);
 		if (!session) {
@@ -248,7 +249,7 @@ export class ChatEditingService extends Disposable implements IChatEditingServic
 		}
 
 		if (session && 'registerFileEdit' in session && typeof (session as any).registerFileEdit === 'function') {
-			await (session as any).registerFileEdit(targetUri, kind, initialContent, requestId, undoStopId);
+			await (session as any).registerFileEdit(targetUri, kind, initialContent, requestId, undoStopId, diff);
 			const list = this._sessionsObs.get();
 			this._sessionsObs.set(list, undefined);
 		}

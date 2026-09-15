@@ -4,6 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as dom from '../../../../../../base/browser/dom.js';
+import { Codicon } from '../../../../../../base/common/codicons.js';
+import { ThemeIcon } from '../../../../../../base/common/themables.js';
 import { Button } from '../../../../../../base/browser/ui/button/button.js';
 import { getDefaultHoverDelegate } from '../../../../../../base/browser/ui/hover/hoverDelegateFactory.js';
 import { toErrorMessage } from '../../../../../../base/common/errorMessage.js';
@@ -79,6 +81,7 @@ interface ISlashCommandWidgetArgs {
 
 export interface IDecorationWidgetArgs {
 	title?: string;
+	isSkill?: boolean;
 }
 
 export class ChatMarkdownDecorationsRenderer extends Disposable {
@@ -123,6 +126,7 @@ export class ChatMarkdownDecorationsRenderer extends Disposable {
 		const uri = part instanceof ChatRequestDynamicVariablePart && part.data instanceof URI ?
 			part.data :
 			undefined;
+		const isSkill = part instanceof ChatRequestSlashPromptPart;
 		const title = uri ? this.labelService.getUriLabel(uri, { relative: true }) :
 			part instanceof ChatRequestSlashCommandPart ? part.slashCommand.detail :
 				part instanceof ChatRequestAgentSubcommandPart ? part.command.description :
@@ -130,7 +134,7 @@ export class ChatMarkdownDecorationsRenderer extends Disposable {
 						part instanceof ChatRequestToolPart ? (this.toolsService.getTool(part.toolId)?.userDescription) :
 							'';
 
-		const args: IDecorationWidgetArgs = { title };
+		const args: IDecorationWidgetArgs = { title, isSkill };
 		const text = part.text;
 		return `[${text}](${decorationRefUrl}?${encodeURIComponent(JSON.stringify(args))})`;
 	}
@@ -266,6 +270,20 @@ export class ChatMarkdownDecorationsRenderer extends Disposable {
 	}
 
 	private renderResourceWidget(name: string, args: IDecorationWidgetArgs | undefined, store: DisposableStore): HTMLElement {
+		if (args?.isSkill) {
+			const container = dom.$('span.chat-skill-chip.chat-skill-chip-sent');
+			const icon = dom.$('span.chat-skill-chip-icon');
+			icon.classList.add(...ThemeIcon.asClassNameArray(Codicon.terminal));
+			const cleanName = name.startsWith('/') ? name.slice(1) : name;
+			const alias = dom.$('span.chat-skill-chip-name', undefined, cleanName);
+			container.appendChild(icon);
+			container.appendChild(alias);
+			if (args.title) {
+				store.add(this.hoverService.setupManagedHover(getDefaultHoverDelegate('element'), container, args.title));
+			}
+			return container;
+		}
+
 		const container = dom.$('span.chat-resource-widget');
 		const alias = dom.$('span', undefined, name);
 		if (args?.title) {

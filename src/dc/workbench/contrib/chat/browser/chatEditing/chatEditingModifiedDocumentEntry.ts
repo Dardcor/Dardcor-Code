@@ -39,6 +39,28 @@ import { ChatEditingCodeEditorIntegration } from './chatEditingCodeEditorIntegra
 import { AbstractChatEditingModifiedFileEntry } from './chatEditingModifiedFileEntry.js';
 import { ChatEditingTextModelChangeService } from './chatEditingTextModelChangeService.js';
 import { ChatEditingSnapshotTextModelContentProvider, ChatEditingTextModelContentProvider } from './chatEditingTextModelContentProviders.js';
+import { linesDiffComputers } from '../../../../../editor/common/diff/linesDiffComputers.js';
+
+function computeQuickLineDiff(originalContent: string, modifiedContent: string): { added: number; removed: number } {
+	if (originalContent === modifiedContent) {
+		return { added: 0, removed: 0 };
+	}
+	const origLines = originalContent.split(/\r\n|\r|\n/);
+	const modLines = modifiedContent.split(/\r\n|\r|\n/);
+	const computer = linesDiffComputers.getDefault();
+	const diff = computer.computeDiff(origLines, modLines, {
+		ignoreTrimWhitespace: false,
+		computeMoves: false,
+		maxComputationTimeMs: 1000
+	});
+	let added = 0;
+	let removed = 0;
+	for (const c of diff.changes) {
+		added += Math.max(0, c.modified.endLineNumberExclusive - c.modified.startLineNumber);
+		removed += Math.max(0, c.original.endLineNumberExclusive - c.original.startLineNumber);
+	}
+	return { added, removed };
+}
 
 interface IMultiDiffEntryDelegate {
 	collapse: (transaction: ITransaction | undefined) => void;
@@ -56,16 +78,30 @@ export class ChatEditingModifiedDocumentEntry extends AbstractChatEditingModifie
 	private readonly _authoritativeDiff = observableValue<{ added: number; removed: number } | undefined>(this, undefined);
 
 	setAuthoritativeDiff(diff: { added?: number; removed?: number } | undefined): void {
-		if (diff && (typeof diff.added === 'number' || typeof diff.removed === 'number')) {
-			this._authoritativeDiff.set({
-				added: diff.added ?? 0,
-				removed: diff.removed ?? 0
-			}, undefined);
+		if (diff) {
+			const added = typeof diff.added === 'number' ? diff.added : (diff.added !== undefined ? Number(diff.added) : undefined);
+			const removed = typeof diff.removed === 'number' ? diff.removed : (diff.removed !== undefined ? Number(diff.removed) : undefined);
+			if ((typeof added === 'number' && !isNaN(added)) || (typeof removed === 'number' && !isNaN(removed))) {
+				this._authoritativeDiff.set({
+					added: added ?? 0,
+					removed: removed ?? 0,
+				}, undefined);
+			}
 		}
 	}
 
 	override get changesCount() {
-		return this._textModelChangeService.diffInfo.map(diff => diff.changes.length);
+		return derived(this, reader => {
+			const diff = this._textModelChangeService.diffInfo.read(reader);
+			if (diff.changes.length > 0) {
+				return diff.changes.length;
+			}
+			const auth = this._authoritativeDiff.read(reader);
+			if (auth && (auth.added > 0 || auth.removed > 0)) {
+				return 1;
+			}
+			return 0;
+		});
 	}
 
 	get diffInfo() {
@@ -74,30 +110,42 @@ export class ChatEditingModifiedDocumentEntry extends AbstractChatEditingModifie
 
 	get linesAdded() {
 		return derived(this, reader => {
-			const diff = this._textModelChangeService.diffInfo.read(reader);
-			let added = 0;
-			for (const c of diff.changes) {
-				added += Math.max(0, c.modified.endLineNumberExclusive - c.modified.startLineNumber);
-			}
 			const auth = this._authoritativeDiff.read(reader);
-			if (added === 0 && (auth?.added ?? 0) > 0) {
-				return auth!.added;
+			const diff = this._textModelChangeService.diffInfo.read(reader);
+			let computedAdded = 0;
+			for (const c of diff.changes) {
+				computedAdded += Math.max(0, c.modified.endLineNumberExclusive - c.modified.startLineNumber);
 			}
-			return added;
+			if (computedAdded > 0) {
+				return computedAdded;
+			}
+			if (diff.changes.length === 0 && auth !== undefined && typeof auth.added === 'number') {
+				return auth.added;
+			}
+			if (auth !== undefined && typeof auth.added === 'number' && auth.added > 0) {
+				return auth.added;
+			}
+			return computedAdded;
 		});
 	}
 	get linesRemoved() {
 		return derived(this, reader => {
-			const diff = this._textModelChangeService.diffInfo.read(reader);
-			let removed = 0;
-			for (const c of diff.changes) {
-				removed += Math.max(0, c.original.endLineNumberExclusive - c.original.startLineNumber);
-			}
 			const auth = this._authoritativeDiff.read(reader);
-			if (removed === 0 && (auth?.removed ?? 0) > 0) {
-				return auth!.removed;
+			const diff = this._textModelChangeService.diffInfo.read(reader);
+			let computedRemoved = 0;
+			for (const c of diff.changes) {
+				computedRemoved += Math.max(0, c.original.endLineNumberExclusive - c.original.startLineNumber);
 			}
-			return removed;
+			if (computedRemoved > 0) {
+				return computedRemoved;
+			}
+			if (diff.changes.length === 0 && auth !== undefined && typeof auth.removed === 'number') {
+				return auth.removed;
+			}
+			if (auth !== undefined && typeof auth.removed === 'number' && auth.removed > 0) {
+				return auth.removed;
+			}
+			return computedRemoved;
 		});
 	}
 
@@ -154,6 +202,16 @@ export class ChatEditingModifiedDocumentEntry extends AbstractChatEditingModifie
 			)
 		);
 
+		if (this.initialContent !== undefined) {
+			const modVal = this.modifiedModel.getValue();
+			if (this.initialContent !== modVal) {
+				const quickDiff = computeQuickLineDiff(this.initialContent, modVal);
+				if (quickDiff.added > 0 || quickDiff.removed > 0) {
+					this.setAuthoritativeDiff(quickDiff);
+				}
+			}
+		}
+
 		this._textModelChangeService = this._register(instantiationService.createInstance(ChatEditingTextModelChangeService,
 			this.originalModel, this.modifiedModel, this._stateObs, () => this._isExternalEditInProgress));
 
@@ -185,6 +243,18 @@ export class ChatEditingModifiedDocumentEntry extends AbstractChatEditingModifie
 
 		this._register(this._textModelChangeService.onDidUserEditModel(() => {
 			this._userEditScheduler.schedule();
+			const diff = this._textModelChangeService.diffInfo.get();
+			let hasDiffChanges = false;
+			for (const c of diff.changes) {
+				if ((c.modified.endLineNumberExclusive - c.modified.startLineNumber) > 0 ||
+					(c.original.endLineNumberExclusive - c.original.startLineNumber) > 0) {
+					hasDiffChanges = true;
+					break;
+				}
+			}
+			if (hasDiffChanges) {
+				this._authoritativeDiff.set(undefined, undefined);
+			}
 			const didResetToOriginalContent = this.modifiedModel.getValue() === this.initialContent;
 			if (this._stateObs.get() === ModifiedFileEntryState.Modified && didResetToOriginalContent) {
 				this._stateObs.set(ModifiedFileEntryState.Rejected, undefined);
@@ -369,10 +439,24 @@ export class ChatEditingModifiedDocumentEntry extends AbstractChatEditingModifie
 			return;
 		}
 
-		// Revert to reload from disk, ensuring in-memory model matches disk
-		const fileModel = this._textFileService.files.get(this.modifiedModel.uri);
-		if (fileModel && !fileModel.isDisposed()) {
-			await fileModel.revert({ soft: false });
+		this.startExternalEdit();
+		try {
+			const fileModel = this._textFileService.files.get(this.modifiedModel.uri);
+			if (fileModel && !fileModel.isDisposed()) {
+				await fileModel.revert({ soft: false });
+			} else {
+				try {
+					const diskContent = await this._fileService.readFile(this.modifiedModel.uri);
+					const diskStr = new TextDecoder().decode(diskContent.value.buffer);
+					if (this.modifiedModel.getValue() !== diskStr) {
+						this.modifiedModel.setValue(diskStr);
+					}
+				} catch {
+					// file may have been deleted or inaccessible
+				}
+			}
+		} finally {
+			this.stopExternalEdit();
 		}
 	}
 
