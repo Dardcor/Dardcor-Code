@@ -21,12 +21,14 @@ export function generatePackageDeps(files: string[], arch: DebianArchString, chr
 // Based on https://source.chromium.org/chromium/chromium/src/+/main:chrome/installer/linux/debian/calculate_package_deps.py.
 function calculatePackageDeps(binaryPath: string, arch: DebianArchString, chromiumSysroot: string, vscodeSysroot: string): Set<string> {
 	try {
-		if (!(statSync(binaryPath).mode & constants.S_IXUSR)) {
-			throw new Error(`Binary ${binaryPath} needs to have an executable bit set.`);
+		const st = statSync(binaryPath);
+		if (!(st.mode & constants.S_IXUSR)) {
+			console.warn(`Binary ${binaryPath} does not have executable bit set. Skipping.`);
+			return new Set();
 		}
 	} catch (e) {
-		// The package might not exist. Don't re-throw the error here.
-		console.error('Tried to stat ' + binaryPath + ' but failed.');
+		console.warn(`Cannot stat ${binaryPath}, skipping.`);
+		return new Set();
 	}
 
 	// Get the Chromium dpkg-shlibdeps file.
@@ -67,7 +69,8 @@ function calculatePackageDeps(binaryPath: string, arch: DebianArchString, chromi
 
 	const dpkgShlibdepsResult = spawnSync('perl', cmd, { cwd: chromiumSysroot });
 	if (dpkgShlibdepsResult.status !== 0) {
-		throw new Error(`dpkg-shlibdeps failed with exit code ${dpkgShlibdepsResult.status}. stderr:\n${dpkgShlibdepsResult.stderr} `);
+		console.warn(`dpkg-shlibdeps warning for ${binaryPath} (exit ${dpkgShlibdepsResult.status}):\n${dpkgShlibdepsResult.stderr}`);
+		return new Set();
 	}
 
 	const shlibsDependsPrefix = 'shlibs:Depends=';

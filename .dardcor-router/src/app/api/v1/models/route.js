@@ -671,7 +671,8 @@ export async function GET(request) {
   try {
     // Detect cross-instance recursive /models fetch (another dardcor-code fetching our /models)
     const skipDynamicFetch = request?.headers?.get(INTERNAL_MODELS_FETCH_HEADER) === "1";
-    const connectedOnly = request?.headers?.get("x-drouter-connected-only") === "1";
+    const connectedOnly = request?.headers?.get("x-drouter-connected-only") === "1"
+      || request?.nextUrl?.searchParams?.get("connectedOnly") === "true";
     const data = await buildModelsList([LLM_KIND], { skipDynamicFetch, connectedOnly });
     return Response.json({ object: "list", data }, {
       headers: {

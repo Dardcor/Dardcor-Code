@@ -22,10 +22,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install Inno Setup
+      - name: Install Build Tools (Inno Setup & WiX)
         run: |
           choco install innosetup -y
+          choco install wixtoolset -y
           echo "C:\Program Files (x86)\Inno Setup 6" >> $env:GITHUB_PATH
+          echo "C:\Program Files (x86)\WiX Toolset v3.11\bin" >> $env:GITHUB_PATH
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -34,13 +36,6 @@ jobs:
 
       - name: Install Project Dependencies
         run: npm install
-
-      - name: Pre-download Built-in Extensions
-        continue-on-error: true
-        run: node --experimental-strip-types ./build/lib/builtInExtensions.ts
-
-      - name: Compile Client Code
-        run: npm run compile || true
 
       - name: Build Dardcor Router Standalone
         run: |
@@ -82,6 +77,13 @@ jobs:
           }
           cd ..
 
+      - name: Pre-download Built-in Extensions
+        continue-on-error: true
+        run: node --experimental-strip-types ./build/lib/builtInExtensions.ts
+
+      - name: Compile Client Code
+        run: npm run compile
+
       - name: Build Windows Standalone Package
         run: node --experimental-strip-types --max-old-space-size=8192 ./node_modules/gulp/bin/gulp.js vscode-win32-x64
 
@@ -116,8 +118,10 @@ jobs:
           Write-Host "Setup installer size: $size MB"
 
           # Authentic MSI Package via WiX Toolset
+          $candleCmd = Get-Command candle.exe -ErrorAction SilentlyContinue
+          $candlePath = if ($candleCmd) { $candleCmd.Source } else { $null }
           $wixCandidate = @(
-            (Get-Command candle.exe -ErrorAction SilentlyContinue)?.Source,
+            $candlePath,
             "${env:ProgramFiles(x86)}\WiX Toolset v3.11\bin\candle.exe",
             "${env:ProgramFiles}\WiX Toolset v3.11\bin\candle.exe",
             "C:\Program Files (x86)\WiX Toolset v3.11\bin\candle.exe"
@@ -171,19 +175,19 @@ jobs:
       - name: Install Project Dependencies
         run: npm install
 
-      - name: Pre-download Built-in Extensions
-        continue-on-error: true
-        run: node --experimental-strip-types ./build/lib/builtInExtensions.ts
-
-      - name: Compile Client Code
-        run: npm run compile || true
-
       - name: Build Dardcor Router Standalone
         run: |
           cd .dardcor-router
           npm install
           npm run build
           cd ..
+
+      - name: Pre-download Built-in Extensions
+        continue-on-error: true
+        run: node --experimental-strip-types ./build/lib/builtInExtensions.ts
+
+      - name: Compile Client Code
+        run: npm run compile
 
       - name: Build Linux Standalone Package
         continue-on-error: true
@@ -281,19 +285,19 @@ jobs:
       - name: Install Project Dependencies
         run: npm install
 
-      - name: Pre-download Built-in Extensions
-        continue-on-error: true
-        run: node --experimental-strip-types ./build/lib/builtInExtensions.ts
-
-      - name: Compile Client Code
-        run: npm run compile || true
-
       - name: Build Dardcor Router Standalone
         run: |
           cd .dardcor-router
           npm install
           npm run build
           cd ..
+
+      - name: Pre-download Built-in Extensions
+        continue-on-error: true
+        run: node --experimental-strip-types ./build/lib/builtInExtensions.ts
+
+      - name: Compile Client Code
+        run: npm run compile
 
       - name: Build macOS Standalone Package
         continue-on-error: true

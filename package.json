@@ -26,7 +26,7 @@
 		"compile": "npm-run-all2 -lp compile-client compile-copilot compile-router",
 		"compile-client": "npm run gulp compile",
 		"compile-copilot": "npm --prefix extensions/dardcor run compile",
-		"compile-router": "npm --prefix .dardcor-router run build",
+		"compile-router": "node build/npm/compile-router.mjs",
 		"build-fast": "npm-run-all2 -lp transpile-client build-fast-extensions compile-copilot",
 		"build-fast-extensions": "npm run gulp copy-codicons compile-extensions compile-extension-media",
 		"typecheck-client": "tsc --project ./src/tsconfig.json --noEmit --skipLibCheck",

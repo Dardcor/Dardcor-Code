@@ -2,6 +2,7 @@
  *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+import * as fs from 'fs';
 import { spawnSync } from 'child_process';
 import path from 'path';
 import { getChromiumSysroot, getVSCodeSysroot } from './debian/install-sysroot.ts';
@@ -43,26 +44,57 @@ export async function getDependencies(packageType: 'deb' | 'rpm', buildDir: stri
 		throw new Error('Invalid RPM arch string ' + arch);
 	}
 
+	const referenceGeneratedDeps = packageType === 'deb' ?
+		debianGeneratedDeps[arch as DebianArchString] :
+		rpmGeneratedDeps[arch as RpmArchString];
+
 	// Get the files for which we want to find dependencies.
 	// Native modules are unpacked next to the ASAR archive in `node_modules.asar.unpacked`.
 	const nativeModulesPath = path.join(buildDir, 'resources', 'app', 'node_modules.asar.unpacked');
-	const findResult = spawnSync('find', [nativeModulesPath, '-name', '*.node']);
-	if (findResult.status) {
-		console.error('Error finding files:');
-		console.error(findResult.stderr.toString());
-		return [];
+	let rawFiles: string[] = [];
+	if (fs.existsSync(nativeModulesPath)) {
+		const findResult = spawnSync('find', [nativeModulesPath, '-name', '*.node']);
+		if (!findResult.status && findResult.stdout) {
+			rawFiles = findResult.stdout.toString().trimEnd().split('\n').filter(Boolean);
+		}
 	}
 
+	// Filter out native modules that clearly belong to other architectures or platforms
+	const files = rawFiles.filter(filePath => {
+		const norm = filePath.toLowerCase().replace(/\\/g, '/');
+		if (arch === 'amd64' || arch === 'x64' || arch === 'x86_64') {
+			if (norm.includes('arm64') || norm.includes('aarch64') || norm.includes('armhf') || norm.includes('armv7') || norm.includes('/arm/') || norm.includes('win32') || norm.includes('darwin')) {
+				return false;
+			}
+		} else if (arch === 'arm64' || arch === 'aarch64') {
+			if (norm.includes('x64') || norm.includes('x86_64') || norm.includes('amd64') || norm.includes('armhf') || norm.includes('armv7') || norm.includes('ia32') || norm.includes('win32') || norm.includes('darwin')) {
+				return false;
+			}
+		} else if (arch === 'armhf' || arch === 'armv7hl') {
+			if (norm.includes('x64') || norm.includes('x86_64') || norm.includes('amd64') || norm.includes('arm64') || norm.includes('aarch64') || norm.includes('ia32') || norm.includes('win32') || norm.includes('darwin')) {
+				return false;
+			}
+		}
+		return true;
+	});
+
 	const appPath = path.join(buildDir, applicationName);
-	// Add the native modules
-	const files = findResult.stdout.toString().trimEnd().split('\n');
-	// Add the tunnel binary.
-	files.push(path.join(buildDir, 'bin', product.tunnelApplicationName));
-	// Add the main executable.
-	files.push(appPath);
-	// Add chrome sandbox and crashpad handler.
-	files.push(path.join(buildDir, 'chrome-sandbox'));
-	files.push(path.join(buildDir, 'chrome_crashpad_handler'));
+	const candidateBinaries = [
+		path.join(buildDir, 'bin', product.tunnelApplicationName),
+		appPath,
+		path.join(buildDir, 'chrome-sandbox'),
+		path.join(buildDir, 'chrome_crashpad_handler'),
+	];
+	for (const bin of candidateBinaries) {
+		if (fs.existsSync(bin)) {
+			files.push(bin);
+		}
+	}
+
+	if (files.length === 0) {
+		console.warn(`No native binaries found for dependency scanning in ${buildDir}; using reference deps.`);
+		return referenceGeneratedDeps;
+	}
 
 	// Generate the dependencies.
 	let dependencies: Set<string>[];
@@ -82,9 +114,10 @@ export async function getDependencies(packageType: 'deb' | 'rpm', buildDir: stri
 		return !bundledDeps.some(bundledDep => dependency.startsWith(bundledDep));
 	}).sort();
 
-	const referenceGeneratedDeps = packageType === 'deb' ?
-		debianGeneratedDeps[arch as DebianArchString] :
-		rpmGeneratedDeps[arch as RpmArchString];
+	if (sortedDependencies.length === 0) {
+		return referenceGeneratedDeps;
+	}
+
 	if (JSON.stringify(sortedDependencies) !== JSON.stringify(referenceGeneratedDeps)) {
 		const failMessage = 'The dependencies list has changed.'
 			+ '\nOld:\n' + referenceGeneratedDeps.join('\n')

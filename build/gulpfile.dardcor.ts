@@ -753,6 +753,67 @@ function bundleDardcorRouterTask(platform: string, destinationFolderName: string
 	};
 }
 
+function pruneNonTargetPrebuildsTask(platform: string, arch: string, destinationFolderName: string) {
+	const outputDir = path.join(path.dirname(root), destinationFolderName);
+
+	return async () => {
+		const versionedResourcesFolder = util.getVersionedResourcesFolder(platform, commit!);
+		const appBase = platform === 'darwin'
+			? path.join(outputDir, `${product.nameLong}.app`, 'Contents', 'Resources', 'app')
+			: path.join(outputDir, versionedResourcesFolder, 'resources', 'app');
+		const unpackedDir = path.join(appBase, 'node_modules.asar.unpacked');
+
+		if (!fs.existsSync(unpackedDir)) {
+			return;
+		}
+
+		const findPrebuildsDirs = (dir: string): string[] => {
+			const results: string[] = [];
+			try {
+				const entries = fs.readdirSync(dir, { withFileTypes: true });
+				for (const entry of entries) {
+					const fullPath = path.join(dir, entry.name);
+					if (entry.isDirectory()) {
+						if (entry.name === 'prebuilds') {
+							results.push(fullPath);
+						} else {
+							results.push(...findPrebuildsDirs(fullPath));
+						}
+					}
+				}
+			} catch { }
+			return results;
+		};
+
+		const prebuildsDirs = findPrebuildsDirs(unpackedDir);
+		for (const pbDir of prebuildsDirs) {
+			try {
+				const subDirs = fs.readdirSync(pbDir, { withFileTypes: true });
+				for (const sub of subDirs) {
+					if (sub.isDirectory()) {
+						const subName = sub.name.toLowerCase();
+						let isForeign = false;
+						if (platform === 'linux') {
+							if (subName.startsWith('win32') || subName.startsWith('darwin')) isForeign = true;
+							if (arch === 'x64' && (subName.includes('arm64') || subName.includes('armhf') || subName.includes('arm') || subName.includes('ia32'))) isForeign = true;
+							if (arch === 'arm64' && (subName.includes('x64') || subName.includes('x86') || subName.includes('ia32') || subName.includes('armhf'))) isForeign = true;
+						} else if (platform === 'win32') {
+							if (subName.startsWith('linux') || subName.startsWith('darwin')) isForeign = true;
+							if (arch === 'x64' && (subName.includes('arm64') || subName.includes('ia32') || subName.includes('x86'))) isForeign = true;
+							if (arch === 'arm64' && (subName.includes('x64') || subName.includes('ia32') || subName.includes('x86'))) isForeign = true;
+						} else if (platform === 'darwin') {
+							if (subName.startsWith('linux') || subName.startsWith('win32')) isForeign = true;
+						}
+						if (isForeign) {
+							fs.rmSync(path.join(pbDir, sub.name), { recursive: true, force: true });
+						}
+					}
+				}
+			} catch { }
+		}
+	};
+}
+
 const buildRoot = path.dirname(root);
 
 const BUILD_TARGETS = [
@@ -778,6 +839,7 @@ BUILD_TARGETS.forEach(buildTarget => {
 			compileNativeExtensionsBuildTask,
 			util.rimraf(path.join(buildRoot, destinationFolderName)),
 			packageTask(platform, arch, sourceFolderName, destinationFolderName, opts),
+			pruneNonTargetPrebuildsTask(platform, arch, destinationFolderName),
 			bundleDardcorRouterTask(platform, destinationFolderName),
 			prepareCopilotRipgrepShimTask(platform, arch, destinationFolderName)
 		];
