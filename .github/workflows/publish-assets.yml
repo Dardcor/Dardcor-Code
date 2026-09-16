@@ -1,0 +1,83 @@
+name: Publish Verified Assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Workflow run ID containing the build artifacts'
+        required: true
+        default: '35072325300'
+      tag_name:
+        description: 'Release tag name'
+        required: true
+        default: 'Dardcor-Code-v1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: Publish GitHub Release (25 Assets)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Windows Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: win_assets
+          path: release_assets/
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download Linux Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux_assets
+          path: release_assets/
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download macOS Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: mac_assets
+          path: release_assets/
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify Total 25 Assets Count
+        run: |
+          cd release_assets
+          rm -f *.wixpdb
+          ls -la
+          ASSET_COUNT=$(ls -1 | wc -l)
+          echo "Total Release Assets Count: $ASSET_COUNT"
+          if [ "$ASSET_COUNT" -ne 25 ]; then
+            echo "ERROR: Expected 25 release assets matching List-OS.md, found $ASSET_COUNT!"
+            exit 1
+          fi
+          echo "✓ All 25 release assets from List-OS.md verified successfully!"
+
+      - name: Clean Existing Release Assets If Present
+        continue-on-error: true
+        run: |
+          RELEASE_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ inputs.tag_name }}" | jq -r '.id // empty')
+          if [ -n "$RELEASE_ID" ]; then
+            echo "Found existing release $RELEASE_ID. Deleting existing assets to ensure clean overwrite..."
+            ASSETS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets" | jq -r '.[].id')
+            for ASSET in $ASSETS; do
+              echo "Deleting asset $ASSET..."
+              curl -s -X DELETE -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                "https://api.github.com/repos/${{ github.repository }}/releases/assets/$ASSET"
+            done
+          fi
+
+      - name: Upload All 25 Assets to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Dardcor Code v1.0.0"
+          tag_name: ${{ inputs.tag_name }}
+          files: release_assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

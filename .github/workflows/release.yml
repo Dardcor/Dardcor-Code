@@ -136,7 +136,8 @@ jobs:
             Copy-Item -Path "build\win32\dardcor.wxs" -Destination "dardcor.wxs" -Force
             (Get-Content "dardcor.wxs") -replace 'SETUP_EXE_PATH', $setupPath | Set-Content "dardcor.wxs" -Encoding utf8
             & "$wixBinDir\candle.exe" -arch x64 dardcor.wxs -out dardcor.wixobj
-            & "$wixBinDir\light.exe" -ext WixUIExtension dardcor.wixobj -out "win_assets\Dardcor-Code_1.0.0_x64_en-US.msi"
+            & "$wixBinDir\light.exe" -spdb -ext WixUIExtension dardcor.wixobj -out "win_assets\Dardcor-Code_1.0.0_x64_en-US.msi"
+            Remove-Item -Path "win_assets\*.wixpdb" -Force -ErrorAction SilentlyContinue
             Write-Host "SUCCESS: Generated authentic WiX MSI package: win_assets\Dardcor-Code_1.0.0_x64_en-US.msi"
           } else {
             Write-Host "WARNING: WiX Toolset not found, creating fallback MSI placeholder"
@@ -379,6 +380,7 @@ jobs:
       - name: Verify Total 25 Assets Count
         run: |
           cd release_assets
+          rm -f *.wixpdb
           ls -la
           ASSET_COUNT=$(ls -1 | wc -l)
           echo "Total Release Assets Count: $ASSET_COUNT"
