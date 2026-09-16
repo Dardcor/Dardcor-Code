@@ -74,7 +74,8 @@ jobs:
       - name: Build Rspack
         continue-on-error: true
         run: |
-          mkdir -p src/vs/base/browser/ui/codicons/codicon
+          mkdir -p src/dc/base/browser/ui/codicons/codicon src/vs/base/browser/ui/codicons/codicon
+          cp node_modules/@vscode/codicons/dist/codicon.ttf src/dc/base/browser/ui/codicons/codicon/codicon.ttf 2>/dev/null || true
           cp node_modules/@vscode/codicons/dist/codicon.ttf src/vs/base/browser/ui/codicons/codicon/codicon.ttf 2>/dev/null || true
           npx rspack build --config rspack.serve-out.config.mts || true
         working-directory: build/rspack

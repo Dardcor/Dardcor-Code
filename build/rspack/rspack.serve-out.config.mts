@@ -31,7 +31,9 @@ export default {
 	target: 'web',
 	devtool: 'source-map',
 	entry: {
-		workbench: path.join(repoRoot, 'src', 'vs', 'code', 'browser', 'workbench', 'workbench.ts'),
+		workbench: fs.existsSync(path.join(repoRoot, 'src', 'dc', 'code', 'browser', 'workbench', 'workbench.ts'))
+			? path.join(repoRoot, 'src', 'dc', 'code', 'browser', 'workbench', 'workbench.ts')
+			: path.join(repoRoot, 'src', 'vs', 'code', 'browser', 'workbench', 'workbench.ts'),
 	},
 	output: {
 		path: path.join(repoRoot, '.build', 'rspack-serve-out'),
@@ -118,16 +120,16 @@ export default {
 			}
 
 			const requestedPath = path.resolve(resource.context, resource.request);
-			const outVsSegment = `${path.sep}out${path.sep}vs${path.sep}`;
-			const srcVsSegment = `${path.sep}src${path.sep}vs${path.sep}`;
-
-			if (!requestedPath.includes(outVsSegment) || fs.existsSync(requestedPath)) {
-				return;
-			}
-
-			const sourceCssPath = requestedPath.replace(outVsSegment, srcVsSegment);
-			if (sourceCssPath !== requestedPath && fs.existsSync(sourceCssPath)) {
-				resource.request = sourceCssPath;
+			for (const prefix of ['dc', 'vs']) {
+				const outSegment = `${path.sep}out${path.sep}${prefix}${path.sep}`;
+				const srcSegment = `${path.sep}src${path.sep}${prefix}${path.sep}`;
+				if (requestedPath.includes(outSegment) && !fs.existsSync(requestedPath)) {
+					const sourceCssPath = requestedPath.replace(outSegment, srcSegment);
+					if (sourceCssPath !== requestedPath && fs.existsSync(sourceCssPath)) {
+						resource.request = sourceCssPath;
+						return;
+					}
+				}
 			}
 		}),
 		new HtmlRspackPlugin({
