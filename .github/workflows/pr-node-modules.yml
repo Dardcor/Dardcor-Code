@@ -54,7 +54,7 @@ jobs:
           node build/azure-pipelines/common/computeBuiltInDepsCacheKey.ts > .build/builtindepshash
         continue-on-error: true
         id: cache-builtin-extensions
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           enableCrossOsArchive: true
           path: .build/builtInExtensions
