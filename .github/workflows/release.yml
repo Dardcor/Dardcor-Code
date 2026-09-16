@@ -388,6 +388,22 @@ jobs:
           fi
           echo "✓ All 25 release assets from List-OS.md verified successfully!"
 
+      - name: Clean Existing Release Assets If Present
+        continue-on-error: true
+        run: |
+          RELEASE_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.ref_name }}" | jq -r '.id // empty')
+          if [ -n "$RELEASE_ID" ]; then
+            echo "Found existing release $RELEASE_ID. Deleting existing assets to ensure clean overwrite..."
+            ASSETS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets" | jq -r '.[].id')
+            for ASSET in $ASSETS; do
+              echo "Deleting asset $ASSET..."
+              curl -s -X DELETE -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                "https://api.github.com/repos/${{ github.repository }}/releases/assets/$ASSET"
+            done
+          fi
+
       - name: Upload All 25 Assets to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
