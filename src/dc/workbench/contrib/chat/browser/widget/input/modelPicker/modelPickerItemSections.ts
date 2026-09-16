@@ -7,9 +7,11 @@ import { toAction } from '../../../../../../../base/common/actions.js';
 import { Codicon } from '../../../../../../../base/common/codicons.js';
 import { MarkdownString } from '../../../../../../../base/common/htmlContent.js';
 import { ThemeIcon } from '../../../../../../../base/common/themables.js';
+import { URI } from '../../../../../../../base/common/uri.js';
 import { localize } from '../../../../../../../nls.js';
 import { ActionListItemKind, IActionListItem } from '../../../../../../../platform/actionWidget/browser/actionList.js';
 import { IActionWidgetDropdownAction } from '../../../../../../../platform/actionWidget/browser/actionWidgetDropdown.js';
+import { IOpenerService } from '../../../../../../../platform/opener/common/opener.js';
 import { ChatEntitlement } from '../../../../../../services/chat/common/chatEntitlementService.js';
 import { IModelControlEntry, ILanguageModelChatMetadata, ILanguageModelChatMetadataAndIdentifier } from '../../../../common/languageModels.js';
 import { buildModelToProviderGroupMap, createModelAction, createModelItem, createPinAction, createUnavailableModelItem, getProviderGroupForModel, getProviderGroupKey, getUnavailableReason, isVersionAtLeast, ProviderGroupKey } from './modelPickerItemPrimitives.js';
@@ -22,6 +24,29 @@ export const ModelPickerSection = {
 
 export const RESTRICTED_MODE_TRUST_ACTION_ID = 'restrictedModeTrust';
 export const SETUP_REQUIRED_SIGN_IN_ACTION_ID = 'setupRequiredSignIn';
+
+function createConfigureRouterItem(openerService: IOpenerService): IActionListItem<IActionWidgetDropdownAction> {
+	const hover = new MarkdownString(localize('chat.modelPicker.configureRouterHover', "Configure providers and models in Dardcor Router (http://localhost:25128/)"), { isTrusted: true });
+	return {
+		item: {
+			id: 'configureRouter',
+			enabled: true,
+			checked: false,
+			class: undefined,
+			tooltip: localize('chat.modelPicker.configureRouter', "Open Dardcor Router settings"),
+			label: localize('chat.modelPicker.configureRouterLabel', "Configure in Dardcor Router..."),
+			run: () => {
+				openerService.open(URI.parse('http://localhost:25128/'));
+			},
+		},
+		kind: ActionListItemKind.Action,
+		label: localize('chat.modelPicker.configureRouterLabel', "Configure in Dardcor Router..."),
+		group: { title: '', icon: ThemeIcon.fromId(Codicon.settingsGear.id) },
+		disabled: false,
+		hideIcon: false,
+		hover: { content: hover },
+	};
+}
 
 function createSyntheticAutoItem(): IActionListItem<IActionWidgetDropdownAction> {
 	return createModelItem({
@@ -108,7 +133,7 @@ export function buildUnavailableStateItems(options: IBuildModelPickerItemsOption
 		: undefined;
 	const hover = canUpgrade ? new MarkdownString('', { isTrusted: true, supportThemeIcons: true }) : undefined;
 	hover?.appendMarkdown(localize('chat.modelPicker.upgradeHover', "[Upgrade to GitHub Copilot Pro](command:workbench.action.chat.upgradePlan \" \") to use the best models."));
-	return [{
+	const result: IActionListItem<IActionWidgetDropdownAction>[] = [{
 		item: {
 			id: 'noModels',
 			enabled: false,
@@ -126,12 +151,19 @@ export function buildUnavailableStateItems(options: IBuildModelPickerItemsOption
 		hideIcon: false,
 		hover: hover ? { content: hover } : undefined,
 	}];
+	if (options.openerService) {
+		result.push(createConfigureRouterItem(options.openerService));
+	}
+	return result;
 }
 
 export function buildFlatModelItems(options: IBuildModelPickerItemsOptions): IActionListItem<IActionWidgetDropdownAction>[] {
 	const items: IActionListItem<IActionWidgetDropdownAction>[] = [];
 	if (options.models.length === 0 && options.presentation.showAutoModel) {
 		items.push(createSyntheticAutoItem());
+	}
+	if (options.openerService && options.models.length === 0) {
+		items.push(createConfigureRouterItem(options.openerService));
 	}
 	const autoModel = options.models.find(isAutoModel);
 	if (autoModel) {
@@ -383,6 +415,9 @@ export function buildGroupedModelItems(options: IBuildModelPickerItemsOptions): 
 	const pinnedSet = appendPinnedModels(context);
 	appendPromotedModels(context, autoModel, pinnedSet);
 	const hasOtherModels = appendOtherModels(context);
+	if (options.openerService && options.models.length === 0) {
+		context.items.push(createConfigureRouterItem(options.openerService));
+	}
 	if (options.manageModelsAction && !hasOtherModels) {
 		context.items.push({ kind: ActionListItemKind.Separator });
 		context.items.push({

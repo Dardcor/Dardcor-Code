@@ -112,8 +112,29 @@ jobs:
           $size = [math]::Round((Get-Item "win_assets\Dardcor-Code_1.0.0_x64-setup.exe").Length / 1MB, 2)
           Write-Host "Setup installer size: $size MB"
 
-          # MSI Package
-          Copy-Item -Path "win_assets\Dardcor-Code_1.0.0_x64-setup.exe" -Destination "win_assets\Dardcor-Code_1.0.0_x64_en-US.msi" -Force
+          # Authentic MSI Package via WiX Toolset
+          $wixCandidate = @(
+            (Get-Command candle.exe -ErrorAction SilentlyContinue)?.Source,
+            "${env:ProgramFiles(x86)}\WiX Toolset v3.11\bin\candle.exe",
+            "${env:ProgramFiles}\WiX Toolset v3.11\bin\candle.exe",
+            "C:\Program Files (x86)\WiX Toolset v3.11\bin\candle.exe"
+          ) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+
+          if ($wixCandidate) {
+            $wixBinDir = Split-Path $wixCandidate
+            $env:PATH = "$wixBinDir;$env:PATH"
+            Write-Host "Found WiX Toolset at: $wixBinDir"
+
+            $setupPath = (Resolve-Path "win_assets\Dardcor-Code_1.0.0_x64-setup.exe").Path
+            Copy-Item -Path "build\win32\dardcor.wxs" -Destination "dardcor.wxs" -Force
+            (Get-Content "dardcor.wxs") -replace 'SETUP_EXE_PATH', $setupPath | Set-Content "dardcor.wxs" -Encoding utf8
+            & "$wixBinDir\candle.exe" -arch x64 dardcor.wxs -out dardcor.wixobj
+            & "$wixBinDir\light.exe" -ext WixUIExtension dardcor.wixobj -out "win_assets\Dardcor-Code_1.0.0_x64_en-US.msi"
+            Write-Host "SUCCESS: Generated authentic WiX MSI package: win_assets\Dardcor-Code_1.0.0_x64_en-US.msi"
+          } else {
+            Write-Host "WARNING: WiX Toolset not found, creating fallback MSI placeholder"
+            Copy-Item -Path "win_assets\Dardcor-Code_1.0.0_x64-setup.exe" -Destination "win_assets\Dardcor-Code_1.0.0_x64_en-US.msi" -Force
+          }
 
           # Generate SHA256 Signatures
           (Get-FileHash "win_assets\Dardcor-Code_1.0.0_x64-setup.exe" -Algorithm SHA256).Hash.ToLower() | Out-File -FilePath "win_assets\Dardcor-Code_1.0.0_x64-setup.exe.sig" -Encoding utf8

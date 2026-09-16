@@ -36,7 +36,7 @@
 					data = undefined; // high contrast mode has been turned by the OS -> ignore stored colors and layouts
 				}
 			} else if (configuration.autoDetectColorScheme) {
-				if ((configuration.colorScheme.dark && data.baseTheme !== 'vs-dark') || (!configuration.colorScheme.dark && data.baseTheme !== 'vs')) {
+				if ((configuration.colorScheme.dark && data.baseTheme !== 'dc-dark' && data.baseTheme !== 'vs-dark') || (!configuration.colorScheme.dark && data.baseTheme !== 'dc' && data.baseTheme !== 'vs')) {
 					data = undefined; // OS color scheme is tracked and has changed
 				}
 			}
@@ -48,9 +48,9 @@
 		}
 
 		// minimal color configuration (works with or without persisted data)
-		let baseTheme;
-		let shellBackground;
-		let shellForeground;
+		let baseTheme: string | undefined = 'dc-dark';
+		let shellBackground: string | undefined = '#000000';
+		let shellForeground: string | undefined = '#CCCCCC';
 		if (data) {
 			baseTheme = data.baseTheme;
 			shellBackground = data.colorInfo.editorBackground;
@@ -67,11 +67,11 @@
 			}
 		} else if (configuration.autoDetectColorScheme) {
 			if (configuration.colorScheme.dark) {
-				baseTheme = 'vs-dark';
+				baseTheme = 'dc-dark';
 				shellBackground = '#000000';
 				shellForeground = '#CCCCCC';
 			} else {
-				baseTheme = 'vs';
+				baseTheme = 'dc';
 				shellBackground = '#FFFFFF';
 				shellForeground = '#000000';
 			}
@@ -97,7 +97,7 @@
 
 			const splash = document.createElement('div');
 			splash.id = 'monaco-parts-splash';
-			splash.className = baseTheme ?? 'vs-dark';
+			splash.className = baseTheme ?? 'dc-dark';
 
 			if (layoutInfo.windowBorder && colorInfo.windowBorder) {
 				const borderElement = document.createElement('div');

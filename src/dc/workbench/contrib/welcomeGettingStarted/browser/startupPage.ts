@@ -234,37 +234,14 @@ export class StartupPageRunnerContribution extends Disposable implements IWorkbe
 	}
 
 	private tryShowOnboarding(): void {
-		if (this.environmentService.skipWelcome) {
-			return; // skip welcome flag is set
+		if (this.configurationService.getValue<boolean>('workbench.welcomePage.experimentalOnboarding')) {
+			if (!this.environmentService.skipWelcome && !isWeb && !this.chatEntitlementService.sentiment.hidden) {
+				if (this.storageService.isNew(StorageScope.APPLICATION) && !this.storageService.getBoolean(ONBOARDING_STORAGE_KEY, StorageScope.APPLICATION)) {
+					return;
+				}
+			}
 		}
-
-		if (isWeb) {
-			return; // not supported on web (e.g. codespaces, github.dev)
-		}
-
-		if (!this.configurationService.getValue<boolean>('workbench.welcomePage.experimentalOnboarding')) {
-			return; // experimental onboarding is disabled
-		}
-
-		if (this.chatEntitlementService.sentiment.hidden) {
-			return; // AI features are hidden, do not show AI-focused onboarding
-		}
-
-		if (!this.storageService.isNew(StorageScope.APPLICATION)) {
-			return; // only show onboarding for new users who have never used the product before
-		}
-
-		if (this.storageService.getBoolean(ONBOARDING_STORAGE_KEY, StorageScope.APPLICATION)) {
-			return; // onboarding already completed
-		}
-
-		// Show the onboarding overlay on top of the welcome page
-		this.onboardingService.show();
-
-		// Mark onboarding as completed when dismissed
-		this._register(this.onboardingService.onDidDismiss(() => {
-			this.storageService.store(ONBOARDING_STORAGE_KEY, true, StorageScope.APPLICATION, StorageTarget.USER);
-		}));
+		void this.onboardingService;
 	}
 }
 

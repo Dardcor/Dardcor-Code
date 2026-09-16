@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { SequencerByKey, timeout } from '../../../../base/common/async.js';
+import { raceCancellation, SequencerByKey, timeout } from '../../../../base/common/async.js';
 import { VSBuffer } from '../../../../base/common/buffer.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { IStringDictionary } from '../../../../base/common/collections.js';
@@ -44,7 +44,7 @@ import { ILanguageModelsProviderGroup, ILanguageModelsConfigurationService } fro
 import { formatDardcorRouterError } from './participants/dardcorRouterError.js';
 
 // ---------------------------------------------------------------------------
-// Dardcor Router fetch helper — dual-host fallback + startup retry
+// Dardcor Router fetch helper - dual-host fallback + startup retry
 // Same logic as chatAgents.ts: try 127.0.0.1 first (IPv4), fall back to
 // localhost (which may resolve via IPv6 on some Windows machines), and retry
 // up to 3 times with a 1.2 s pause to absorb Router startup latency.
@@ -53,12 +53,22 @@ const _LM_ROUTER_PORT = 25128;
 const _LM_ROUTER_HOSTS = ['127.0.0.1', 'localhost'] as const;
 const _LM_ROUTER_AUTH = { 'Authorization': 'Bearer sk-dardcor-local-key' };
 
-async function fetchRouterLM(path: string, init?: RequestInit, retries = 8): Promise<Response> {
+async function fetchRouterLM(path: string, init?: RequestInit, retries = 8, timeoutMs = 30000): Promise<Response> {
 	let lastErr: unknown;
 	for (let attempt = 0; attempt < retries; attempt++) {
 		for (const host of _LM_ROUTER_HOSTS) {
 			try {
-				const res = await globalThis.fetch(`http://${host}:${_LM_ROUTER_PORT}${path}`, init);
+				let signal = init?.signal;
+				let timeoutId: any;
+				if (!signal && typeof AbortSignal !== 'undefined' && typeof (AbortSignal as any).timeout === 'function') {
+					signal = (AbortSignal as any).timeout(timeoutMs);
+				} else if (!signal) {
+					const controller = new AbortController();
+					timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+					signal = controller.signal;
+				}
+				const res = await globalThis.fetch(`http://${host}:${_LM_ROUTER_PORT}${path}`, { ...init, signal });
+				if (timeoutId) clearTimeout(timeoutId);
 				return res;
 			} catch (err) {
 				lastErr = err;
@@ -1498,15 +1508,28 @@ export class LanguageModelsService implements ILanguageModelsService {
 
 		const DARDCOR_MODELS_CACHE_STORAGE_KEY = 'chat.cachedDrouterModels';
 		const localDrouterModelIds = new Set<string>();
+		const onDidChangeDardcorProvider = this._store.add(new Emitter<void>());
 
 		const populateModelsFromList = (list: any[], allowPruning: boolean = false): boolean => {
-			if (!Array.isArray(list) || list.length === 0) return false;
+			if (!Array.isArray(list) || list.length === 0) {
+				if (allowPruning && localDrouterModelIds.size > 0) {
+					for (const id of localDrouterModelIds) {
+						this._modelCache.delete(id);
+						const clean = id.includes('/') ? id.slice(id.indexOf('/') + 1) : id;
+						if (clean !== id) {
+							this._modelCache.delete(clean);
+						}
+					}
+					localDrouterModelIds.clear();
+					return true;
+				}
+				return false;
+			}
 			const nextIds = new Set<string>();
 			const seen = new Set<string>();
 			for (const m of list) {
 				let id = typeof m === 'string' ? m : (m.id || m.name || '');
 				if (typeof id === 'string' && id.toLowerCase().endsWith('-free') && !id.includes('/')) id = `oc/${id}`;
-				if (typeof id === 'string' && id.toLowerCase() === 'big-pickle') id = 'oc/big-pickle';
 				if (!id || id.toLowerCase() === 'auto' || id.toLowerCase() === 'claude-none') continue;
 
 				const lowerId = id.toLowerCase();
@@ -1564,7 +1587,13 @@ export class LanguageModelsService implements ILanguageModelsService {
 				this._modelCache.delete('opencode/no-model-selected');
 				if (allowPruning) {
 					for (const id of localDrouterModelIds) {
-						if (!nextIds.has(id)) this._modelCache.delete(id);
+						if (!nextIds.has(id)) {
+							this._modelCache.delete(id);
+							const clean = id.includes('/') ? id.slice(id.indexOf('/') + 1) : id;
+							if (clean !== id) {
+								this._modelCache.delete(clean);
+							}
+						}
 					}
 					localDrouterModelIds.clear();
 				}
@@ -1574,15 +1603,14 @@ export class LanguageModelsService implements ILanguageModelsService {
 			return false;
 		};
 
-		// Always initialize the model cache with the full offline catalog
-		populateModelsFromList(DARDCOR_ROUTER_OFFLINE_CATALOG);
-
-		// Load cached models if previously saved to overlay
+		// Load cached models if previously saved by an active session
 		try {
 			const cachedRaw = this._storageService.get(DARDCOR_MODELS_CACHE_STORAGE_KEY, StorageScope.APPLICATION);
 			if (cachedRaw) {
 				const parsed = JSON.parse(cachedRaw);
-				populateModelsFromList(parsed);
+				if (Array.isArray(parsed) && parsed.length > 0) {
+					populateModelsFromList(parsed);
+				}
 			}
 		} catch {
 			// ignore parse error
@@ -1601,18 +1629,21 @@ export class LanguageModelsService implements ILanguageModelsService {
 				if (res.ok) {
 					const json: any = await res.json();
 					const list = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
-					if (list.length > 0) {
-						const updated = populateModelsFromList(list);
-						if (updated) {
-							hasReceivedLiveModels = true;
-							try {
+					const updated = populateModelsFromList(list, true);
+					if (updated) {
+						hasReceivedLiveModels = true;
+						try {
+							if (list.length > 0) {
 								this._storageService.store(DARDCOR_MODELS_CACHE_STORAGE_KEY, JSON.stringify(list), StorageScope.APPLICATION, StorageTarget.MACHINE);
-							} catch {
-								// ignore storage error
+							} else {
+								this._storageService.remove(DARDCOR_MODELS_CACHE_STORAGE_KEY, StorageScope.APPLICATION);
 							}
-							this._onLanguageModelChange.fire('dardcor');
-							return true;
+						} catch {
+							// ignore storage error
 						}
+						this._onLanguageModelChange.fire('dardcor');
+						onDidChangeDardcorProvider.fire();
+						return true;
 					}
 				}
 			} catch {
@@ -1636,11 +1667,21 @@ export class LanguageModelsService implements ILanguageModelsService {
 		}, 800);
 		this._store.add(toDisposable(() => clearInterval(startupPollTimer)));
 
-		// Regular background refresh
-		const refreshTimer = setInterval(() => void fetchLocalModels(), 15_000);
-		this._store.add(toDisposable(() => clearInterval(refreshTimer)));
+		// Dynamic adaptive polling: 2s when no models configured, 15s when populated
+		let activePollTimer: any = undefined;
+		const scheduleNextPoll = () => {
+			if (activePollTimer) clearTimeout(activePollTimer);
+			const delay = localDrouterModelIds.size === 0 ? 2000 : 15000;
+			activePollTimer = setTimeout(async () => {
+				await fetchLocalModels();
+				scheduleNextPoll();
+			}, delay);
+		};
+		scheduleNextPoll();
+		this._store.add(toDisposable(() => {
+			if (activePollTimer) clearTimeout(activePollTimer);
+		}));
 
-		const onDidChangeDardcorProvider = this._store.add(new Emitter<void>());
 		this._store.add(this.registerLanguageModelProvider('dardcor', {
 			onDidChange: onDidChangeDardcorProvider.event,
 			provideLanguageModelChatInfo: async () => {
@@ -1660,7 +1701,14 @@ export class LanguageModelsService implements ILanguageModelsService {
 				let resolvedModel = modelId;
 				if (resolvedModel.toLowerCase().startsWith('opencode/')) resolvedModel = `oc/${resolvedModel.slice('opencode/'.length)}`;
 				if (resolvedModel.toLowerCase().endsWith('-free') && !resolvedModel.includes('/')) resolvedModel = `oc/${resolvedModel}`;
-				if (resolvedModel === 'opencode/no-model-selected' || resolvedModel === 'auto') resolvedModel = 'oc/big-pickle';
+				if (resolvedModel === 'opencode/no-model-selected' || resolvedModel === 'auto' || !resolvedModel) {
+					const firstAvailable = localDrouterModelIds.values().next().value;
+					if (firstAvailable) {
+						resolvedModel = firstAvailable;
+					} else {
+						throw new Error('No AI model is configured. Please configure at least one provider in Dardcor Router (http://localhost:25128/).');
+					}
+				}
 
 				const formattedMessages: any[] = [];
 				for (const msg of messages) {
@@ -1707,38 +1755,68 @@ Automatically detect the user's language and respond fluently in the exact same 
 					if (!reader) return;
 					const decoder = new TextDecoder();
 					let buffer = '';
-					while (true) {
-						if (token.isCancellationRequested) {
-							reader.cancel();
-							break;
+
+					const cancelListener = token.onCancellationRequested(() => {
+						try { reader.cancel(); } catch { }
+					});
+
+					const readWithTimeout = (r: typeof reader) => {
+						return new Promise<ReadableStreamReadResult<Uint8Array>>((resolve, reject) => {
+							const timer = setTimeout(() => {
+								try { r.cancel(); } catch { }
+								reject(new Error('Stream idle timeout'));
+							}, 60000);
+							r.read().then(
+								res => { clearTimeout(timer); resolve(res); },
+								err => { clearTimeout(timer); reject(err); }
+							);
+						});
+					};
+
+					try {
+						while (true) {
+							if (token.isCancellationRequested) {
+								try { reader.cancel(); } catch { }
+								break;
+							}
+							const readResult = await raceCancellation(readWithTimeout(reader), token);
+							if (!readResult || readResult.done || token.isCancellationRequested) {
+								break;
+							}
+							const value = readResult.value;
+							buffer += decoder.decode(value, { stream: true });
+							const lines = buffer.split('\n');
+							buffer = lines.pop() ?? '';
+							for (const line of lines) {
+								const trimmed = line.trim();
+								if (!trimmed || !trimmed.startsWith('data:')) continue;
+								const jsonStr = trimmed.slice(5).trim();
+								if (jsonStr === '[DONE]') continue;
+								try {
+									const parsed = JSON.parse(jsonStr);
+									const delta = parsed.choices?.[0]?.delta?.content
+										?? parsed.choices?.[0]?.delta?.text
+										?? parsed.choices?.[0]?.message?.content
+										?? '';
+									const reasoningDelta = parsed.choices?.[0]?.delta?.reasoning_content
+										?? parsed.choices?.[0]?.delta?.thought
+										?? parsed.choices?.[0]?.delta?.thinking
+										?? '';
+									if (delta) {
+										yield [{ type: 'text', value: delta } as IChatResponseTextPart];
+									} else if (reasoningDelta) {
+										yield [{ type: 'text', value: reasoningDelta } as IChatResponseTextPart];
+									}
+								} catch { }
+							}
 						}
-						const { done, value } = await reader.read();
-						if (done) break;
-						buffer += decoder.decode(value, { stream: true });
-						const lines = buffer.split('\n');
-						buffer = lines.pop() ?? '';
-						for (const line of lines) {
-							const trimmed = line.trim();
-							if (!trimmed || !trimmed.startsWith('data:')) continue;
-							const jsonStr = trimmed.slice(5).trim();
-							if (jsonStr === '[DONE]') continue;
-							try {
-								const parsed = JSON.parse(jsonStr);
-								const delta = parsed.choices?.[0]?.delta?.content
-									?? parsed.choices?.[0]?.delta?.text
-									?? parsed.choices?.[0]?.message?.content
-									?? '';
-								const reasoningDelta = parsed.choices?.[0]?.delta?.reasoning_content
-									?? parsed.choices?.[0]?.delta?.thought
-									?? parsed.choices?.[0]?.delta?.thinking
-									?? '';
-								if (delta) {
-									yield [{ type: 'text', value: delta } as IChatResponseTextPart];
-								} else if (reasoningDelta) {
-									yield [{ type: 'text', value: reasoningDelta } as IChatResponseTextPart];
-								}
-							} catch { }
+					} catch (err) {
+						if (!token.isCancellationRequested) {
+							console.warn('[makeStream] stream reading terminated:', err);
 						}
+					} finally {
+						cancelListener.dispose();
+						try { reader.cancel(); } catch { }
 					}
 				}
 

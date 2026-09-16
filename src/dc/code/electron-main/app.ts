@@ -678,6 +678,7 @@ export class CodeApplication extends Disposable {
 		validatedIpcMain.on('vscode:openDevTools', event => event.sender.openDevTools());
 
 		let drouterProcess: ChildProcess | null = null;
+		let isAppQuitting = false;
 		const startDrouterProcess = async () => {
 			if (drouterProcess && !drouterProcess.killed) {
 				return;
@@ -755,27 +756,62 @@ export class CodeApplication extends Disposable {
 							}
 						}
 					} catch { }
+				} else if (isWindows) {
+					try {
+						const netstat = execFileSync('netstat', ['-ano', '-p', 'tcp'], { encoding: 'utf8' });
+						for (const line of netstat.split('\n')) {
+							if (line.includes(':25128') && line.includes('LISTENING')) {
+								const parts = line.trim().split(/\s+/);
+								const pidStr = parts[parts.length - 1];
+								const pidNum = parseInt(pidStr, 10);
+								if (!isNaN(pidNum) && pidNum > 0 && pidNum !== process.pid) {
+									try { execFileSync('taskkill', ['/F', '/PID', String(pidNum)], { stdio: 'ignore' }); } catch { }
+								}
+							}
+						}
+					} catch { }
 				}
 				const attachProcessListeners = (proc: typeof drouterProcess) => {
 					if (!proc) {
 						return;
 					}
-					proc.stdout?.on('data', (data) => {
-						const msg = data.toString().trim();
-						if (msg) {
-							this.logService.info('[Dardcor Router]', msg);
+					let stdoutRemainder = '';
+					proc.stdout?.on('data', (data: Buffer | string) => {
+						stdoutRemainder += data.toString();
+						const lines = stdoutRemainder.split(/\r?\n/);
+						stdoutRemainder = lines.pop() ?? '';
+						for (const line of lines) {
+							const trimmed = line.trim();
+							if (!trimmed) continue;
+							if (trimmed.startsWith('data:') || trimmed.includes('[STREAM]')) continue;
+							const safeMsg = trimmed.length > 300 ? `${trimmed.slice(0, 300)}...` : trimmed;
+							this.logService.info('[Dardcor Router]', safeMsg);
 						}
 					});
-					proc.stderr?.on('data', (data) => {
-						const msg = data.toString().trim();
-						if (msg) {
-							this.logService.warn('[Dardcor Router]', msg);
+					let stderrRemainder = '';
+					proc.stderr?.on('data', (data: Buffer | string) => {
+						stderrRemainder += data.toString();
+						const lines = stderrRemainder.split(/\r?\n/);
+						stderrRemainder = lines.pop() ?? '';
+						for (const line of lines) {
+							const trimmed = line.trim();
+							if (!trimmed) continue;
+							const safeMsg = trimmed.length > 300 ? `${trimmed.slice(0, 300)}...` : trimmed;
+							this.logService.warn('[Dardcor Router]', safeMsg);
 						}
 					});
 					proc.on('exit', (code, sig) => {
 						this.logService.info('[Dardcor Router] Process exited', code, sig);
 						if (drouterProcess === proc) {
 							drouterProcess = null;
+							if (!isAppQuitting) {
+								setTimeout(() => {
+									if (!drouterProcess && !isAppQuitting) {
+										this.logService.info('[Dardcor Router] Auto-recovering router process...');
+										void startDrouterProcess();
+									}
+								}, 1500);
+							}
 						}
 					});
 					proc.on('error', (err: NodeJS.ErrnoException) => {
@@ -835,6 +871,7 @@ export class CodeApplication extends Disposable {
 		void startDrouterProcess();
 
 		app.on('will-quit', () => {
+			isAppQuitting = true;
 			if (drouterProcess) {
 				drouterProcess.kill();
 				drouterProcess = null;

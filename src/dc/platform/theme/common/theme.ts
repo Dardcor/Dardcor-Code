@@ -16,6 +16,8 @@ export enum ColorScheme {
 export enum ThemeTypeSelector {
 	VS = 'vs',
 	VS_DARK = 'vs-dark',
+	DC = 'dc',
+	DC_DARK = 'dc-dark',
 	HC_BLACK = 'hc-black',
 	HC_LIGHT = 'hc-light'
 }

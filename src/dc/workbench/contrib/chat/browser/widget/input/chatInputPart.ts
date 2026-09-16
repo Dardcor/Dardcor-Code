@@ -5042,6 +5042,37 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 				}
 			}
 
+			let chatModelDiffMap: ResourceMap<{ added: number; removed: number }> | undefined;
+			const getChatModelDiff = (targetUri: URI): { added: number; removed: number } | undefined => {
+				if (!chatModelDiffMap) {
+					chatModelDiffMap = new ResourceMap<{ added: number; removed: number }>();
+					const currentChatModel = this._widget?.viewModel?.model;
+					if (currentChatModel) {
+						for (const req of currentChatModel.getRequests()) {
+							const response = req.response;
+							if (!response) {
+								continue;
+							}
+							for (const part of response.response.value) {
+								if (part.kind === 'externalEdit' && part.diff) {
+									try {
+										const partUri = fromAgentHostUri(part.uri);
+										const a = typeof part.diff.added === 'number' ? part.diff.added : (part.diff.added !== undefined ? Number(part.diff.added) : 0);
+										const r = typeof part.diff.removed === 'number' ? part.diff.removed : (part.diff.removed !== undefined ? Number(part.diff.removed) : 0);
+										const existing = chatModelDiffMap.get(partUri) || { added: 0, removed: 0 };
+										chatModelDiffMap.set(partUri, {
+											added: existing.added + (isNaN(a) ? 0 : a),
+											removed: existing.removed + (isNaN(r) ? 0 : r)
+										});
+									} catch { }
+								}
+							}
+						}
+					}
+				}
+				return chatModelDiffMap.get(targetUri);
+			};
+
 			for (const item of combined) {
 				if (item.kind === 'reference' && URI.isUri(item.reference)) {
 					const diffMeta = item.options?.diffMeta;
@@ -5051,32 +5082,9 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 							reconciledDiff = chatEditingSession.getAggregatedDiff(item.reference);
 						}
 						if (!reconciledDiff || (reconciledDiff.added === 0 && reconciledDiff.removed === 0)) {
-							const currentChatModel = this._widget?.viewModel?.model;
-							if (currentChatModel) {
-								let accAdded = 0;
-								let accRemoved = 0;
-								let found = false;
-								for (const req of currentChatModel.getRequests()) {
-									const response = req.response;
-									if (!response) {
-										continue;
-									}
-									for (const part of response.response.value) {
-										if (part.kind === 'externalEdit' && part.diff) {
-											const partUri = fromAgentHostUri(part.uri);
-											if (isEqual(partUri, item.reference) || partUri.path.toLowerCase() === item.reference.path.toLowerCase()) {
-												const a = typeof part.diff.added === 'number' ? part.diff.added : (part.diff.added !== undefined ? Number(part.diff.added) : 0);
-												const r = typeof part.diff.removed === 'number' ? part.diff.removed : (part.diff.removed !== undefined ? Number(part.diff.removed) : 0);
-												accAdded += isNaN(a) ? 0 : a;
-												accRemoved += isNaN(r) ? 0 : r;
-												found = true;
-											}
-										}
-									}
-								}
-								if (found && (accAdded > 0 || accRemoved > 0)) {
-									reconciledDiff = { added: accAdded, removed: accRemoved };
-								}
+							const foundDiff = getChatModelDiff(item.reference);
+							if (foundDiff && (foundDiff.added > 0 || foundDiff.removed > 0)) {
+								reconciledDiff = foundDiff;
 							}
 						}
 						if (reconciledDiff && (reconciledDiff.added > 0 || reconciledDiff.removed > 0)) {

@@ -323,17 +323,6 @@ export async function buildModelsList(kindFilter, options = {}) {
     console.log("Could not fetch providers, returning all models");
   }
 
-  // OpenCode Zen is a DRouter no-auth provider. Keep it discoverable from its
-  // live catalog even though it does not need a saved credential row.
-  if (connectedOnly && !connections.some((conn) => conn.provider === "opencode")) {
-    connections.push({
-      id: "drouter-opencode-zen",
-      provider: "opencode",
-      isActive: true,
-      providerSpecificData: {},
-    });
-  }
-
   // The IDE model picker must never fall back to the static catalog: it only
   // offers models that belong to an active DRouter connection.
   if (connectedOnly && connections.length === 0) {

@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { findLast } from '../../../../../base/common/arraysFind.js';
+import { raceCancellation } from '../../../../../base/common/async.js';
 import { CancellationToken } from '../../../../../base/common/cancellation.js';
 import { IStringDictionary } from '../../../../../base/common/collections.js';
 import { Emitter, Event } from '../../../../../base/common/event.js';
@@ -85,22 +86,28 @@ const ROUTER_PORT = 25128;
 const ROUTER_HOSTS = ['127.0.0.1', 'localhost'] as const;
 const ROUTER_AUTH_HEADER = { 'Authorization': 'Bearer sk-dardcor-local-key' };
 
-async function fetchRouter(path: string, init?: RequestInit, retries = 8): Promise<Response> {
+async function fetchRouter(path: string, init?: RequestInit, retries = 8, timeoutMs = 30000): Promise<Response> {
 	let lastErr: unknown;
 	for (let attempt = 0; attempt < retries; attempt++) {
 		for (const host of ROUTER_HOSTS) {
 			const url = `http://${host}:${ROUTER_PORT}${path}`;
 			try {
-				const res = await fetch(url, init);
-				// A real HTTP error (4xx/5xx) from the router is a valid response - return it.
-				// Only retry on network-level exceptions (fetch throws, not res.ok === false).
+				let signal = init?.signal;
+				let timeoutId: any;
+				if (!signal && typeof AbortSignal !== 'undefined' && typeof (AbortSignal as any).timeout === 'function') {
+					signal = (AbortSignal as any).timeout(timeoutMs);
+				} else if (!signal) {
+					const controller = new AbortController();
+					timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+					signal = controller.signal;
+				}
+				const res = await fetch(url, { ...init, signal });
+				if (timeoutId) clearTimeout(timeoutId);
 				return res;
 			} catch (err) {
 				lastErr = err;
-				// Connection refused / network error - try next host immediately
 			}
 		}
-		// Both hosts failed on this attempt; wait with progressive backoff before retrying
 		if (attempt < retries - 1) {
 			const delay = Math.min(500 + attempt * 300, 2000);
 			await new Promise<void>(resolve => setTimeout(resolve, delay));
@@ -2969,7 +2976,11 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			}
 
 			if (!modelName) {
-				modelName = 'oc/big-pickle';
+				progress([{
+					kind: 'markdownContent',
+					content: new MarkdownString('No AI model is configured. Please configure at least one provider in [Dardcor Router](http://localhost:25128/) to start chatting.')
+				}]);
+				return { errorDetails: { message: 'No AI model is configured in Dardcor Router.' } };
 			}
 
 			let turn = 0;
@@ -3025,62 +3036,91 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				let streamedReasoningText = '';
 				const toolCallsMap = new Map<number, { id: string; name: string; arguments: string }>();
 
-				while (true) {
-					if (token.isCancellationRequested) {
-						reader.cancel();
-						break;
-					}
-					const { done, value } = await reader.read();
-					if (done) break;
-					buffer += decoder.decode(value, { stream: true });
-					const lines = buffer.split('\n');
-					buffer = lines.pop() ?? '';
-					for (const line of lines) {
-						const trimmed = line.trim();
-						if (!trimmed || !trimmed.startsWith('data:')) continue;
-						const jsonStr = trimmed.slice(5).trim();
-						if (jsonStr === '[DONE]') continue;
-						try {
-							const parsed = JSON.parse(jsonStr);
-							const choice = parsed.choices?.[0];
-							const delta = choice?.delta?.content
-								?? choice?.delta?.text
-								?? choice?.message?.content
-								?? (typeof choice?.text === 'string' ? choice.text : '')
-								?? '';
-							const reasoningDelta = choice?.delta?.reasoning_content
-								?? choice?.delta?.thought
-								?? choice?.delta?.thinking
-								?? '';
+				const cancelListener = token.onCancellationRequested(() => {
+					try { reader.cancel(); } catch { }
+				});
 
-							if (reasoningDelta) {
-								streamedReasoningText += reasoningDelta;
-								progress([{
-									kind: 'thinking',
-									value: reasoningDelta
-								}]);
-							}
+				const readWithTimeout = (r: typeof reader) => {
+					return new Promise<ReadableStreamReadResult<Uint8Array>>((resolve, reject) => {
+						const timer = setTimeout(() => {
+							try { r.cancel(); } catch { }
+							reject(new Error('Stream idle timeout'));
+						}, 60000);
+						r.read().then(
+							res => { clearTimeout(timer); resolve(res); },
+							err => { clearTimeout(timer); reject(err); }
+						);
+					});
+				};
 
-							if (delta) {
-								streamedAssistantText += delta;
-								progress([{
-									kind: 'markdownContent',
-									content: new MarkdownString(delta)
-								}]);
-							}
+				try {
+					while (true) {
+						if (token.isCancellationRequested) {
+							try { reader.cancel(); } catch { }
+							break;
+						}
+						const readResult = await raceCancellation(readWithTimeout(reader), token);
+						if (!readResult || readResult.done || token.isCancellationRequested) {
+							break;
+						}
+						const value = readResult.value;
+						buffer += decoder.decode(value, { stream: true });
+						const lines = buffer.split('\n');
+						buffer = lines.pop() ?? '';
+						for (const line of lines) {
+							const trimmed = line.trim();
+							if (!trimmed || !trimmed.startsWith('data:')) continue;
+							const jsonStr = trimmed.slice(5).trim();
+							if (jsonStr === '[DONE]') continue;
+							try {
+								const parsed = JSON.parse(jsonStr);
+								const choice = parsed.choices?.[0];
+								const delta = choice?.delta?.content
+									?? choice?.delta?.text
+									?? choice?.message?.content
+									?? (typeof choice?.text === 'string' ? choice.text : '')
+									?? '';
+								const reasoningDelta = choice?.delta?.reasoning_content
+									?? choice?.delta?.thought
+									?? choice?.delta?.thinking
+									?? '';
 
-							if (Array.isArray(choice?.delta?.tool_calls)) {
-								for (const tc of choice.delta.tool_calls) {
-									const idx = tc.index ?? 0;
-									const existing = toolCallsMap.get(idx) || { id: tc.id || `call_${idx}_${Date.now()}`, name: '', arguments: '' };
-									if (tc.id) existing.id = tc.id;
-									if (tc.function?.name) existing.name += tc.function.name;
-									if (tc.function?.arguments) existing.arguments += tc.function.arguments;
-									toolCallsMap.set(idx, existing);
+								if (reasoningDelta) {
+									streamedReasoningText += reasoningDelta;
+									progress([{
+										kind: 'thinking',
+										value: reasoningDelta
+									}]);
 								}
-							}
-						} catch { }
+
+								if (delta) {
+									streamedAssistantText += delta;
+									progress([{
+										kind: 'markdownContent',
+										content: new MarkdownString(delta)
+									}]);
+								}
+
+								if (Array.isArray(choice?.delta?.tool_calls)) {
+									for (const tc of choice.delta.tool_calls) {
+										const idx = tc.index ?? 0;
+										const existing = toolCallsMap.get(idx) || { id: tc.id || `call_${idx}_${Date.now()}`, name: '', arguments: '' };
+										if (tc.id) existing.id = tc.id;
+										if (tc.function?.name) existing.name += tc.function.name;
+										if (tc.function?.arguments) existing.arguments += tc.function.arguments;
+										toolCallsMap.set(idx, existing);
+									}
+								}
+							} catch { }
+						}
 					}
+				} catch (err) {
+					if (!token.isCancellationRequested) {
+						console.warn('[streamDardcorRouter] stream reading terminated:', err);
+					}
+				} finally {
+					cancelListener.dispose();
+					try { reader.cancel(); } catch { }
 				}
 
 				if (!streamedAssistantText && streamedReasoningText && toolCallsMap.size === 0) {
