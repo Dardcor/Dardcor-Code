@@ -391,7 +391,18 @@ async function main() {
 	// the addon and the core libraries, falling back to the original
 	// package-relative logic so dev-from-source still works. Idempotent.
 	for (const dir of ['', 'remote']) {
-		const coreInteropFile = path.join(root, dir, 'node_modules', 'foundry-local-sdk', 'dist', 'detail', 'coreInterop.js');
+		const vendorDir = path.join(root, 'build', 'vendor', 'foundry-local-sdk');
+		const nodeModulesDir = path.join(root, dir, 'node_modules');
+		const sdkDir = path.join(nodeModulesDir, 'foundry-local-sdk');
+		if (fs.existsSync(vendorDir) && fs.existsSync(nodeModulesDir) && !fs.existsSync(path.join(sdkDir, 'dist', 'index.d.ts'))) {
+			try {
+				fs.cpSync(vendorDir, sdkDir, { recursive: true, force: true });
+				log(dir || '.', 'Synced vendored foundry-local-sdk into node_modules');
+			} catch (err) {
+				log(dir || '.', `Failed to sync vendored foundry-local-sdk: ${err}`);
+			}
+		}
+		const coreInteropFile = path.join(sdkDir, 'dist', 'detail', 'coreInterop.js');
 		if (!fs.existsSync(coreInteropFile)) {
 			continue;
 		}

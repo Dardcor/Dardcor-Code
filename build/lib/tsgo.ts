@@ -8,6 +8,7 @@ import * as cp from 'child_process';
 import es from 'event-stream';
 import fancyLog from 'fancy-log';
 import { createRequire } from 'module';
+import * as fs from 'fs';
 import * as path from 'path';
 
 const root = path.dirname(path.dirname(import.meta.dirname));
@@ -25,6 +26,14 @@ const timestampRegex = /^\[\d{2}:\d{2}:\d{2}\]\s*/;
 const ts7TscPath = path.join(path.dirname(createRequire(import.meta.url).resolve('@typescript/native/package.json')), 'bin', 'tsc');
 
 export function spawnTsgo(projectPath: string, config: { taskName: string; noEmit?: boolean; continueOnError?: boolean }, onComplete?: () => Promise<void> | void): Promise<void> {
+	const vendorSdk = path.join(root, 'build', 'vendor', 'foundry-local-sdk');
+	const rootSdk = path.join(root, 'node_modules', 'foundry-local-sdk');
+	if (fs.existsSync(vendorSdk) && !fs.existsSync(path.join(rootSdk, 'dist', 'index.d.ts'))) {
+		try {
+			fs.cpSync(vendorSdk, rootSdk, { recursive: true, force: true });
+		} catch { }
+	}
+
 	function runReporter(output: string) {
 		const lines = (output || '').split('\n');
 		const errorLines = lines.filter(line => /error \w+:/.test(line));
