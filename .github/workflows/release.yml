@@ -59,24 +59,27 @@ jobs:
             Write-Error "CRITICAL: Router standalone missing required chunks!"
             exit 1
           }
-          $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-          $pinfo.FileName = "node"
-          $pinfo.Arguments = ".next/standalone/custom-server.js"
-          $pinfo.WorkingDirectory = "$PWD"
-          $pinfo.EnvironmentVariables["PORT"] = "25128"
-          $pinfo.EnvironmentVariables["HOSTNAME"] = "127.0.0.1"
-          $pinfo.UseShellExecute = $false
-          $proc = [System.Diagnostics.Process]::Start($pinfo)
-          Start-Sleep -Seconds 5
-          try {
-            $res = Invoke-RestMethod -Uri "http://127.0.0.1:25128/v1/models" -Method Get -TimeoutSec 5
-            Write-Host "Router Smoke Test SUCCESS: Models responded cleanly ($($res.data.Count) models available)"
-          } catch {
-            Write-Error "Router Smoke Test FAILED on /v1/models: $_"
-            Stop-Process -Id $proc.Id -Force
-            exit 1
+          $env:PORT = "25128"
+          $env:HOSTNAME = "127.0.0.1"
+          $env:DATA_DIR = "$HOME\.dardcor\provider"
+          $proc = Start-Process -FilePath "node" -ArgumentList ".next/standalone/custom-server.js" -PassThru -NoNewWindow
+          $ready = $false
+          for ($i = 0; $i -lt 20; $i++) {
+            Start-Sleep -Seconds 1
+            try {
+              $res = Invoke-RestMethod -Uri "http://127.0.0.1:25128/v1/models" -TimeoutSec 3 -ErrorAction Stop
+              if ($res) {
+                $ready = $true
+                Write-Host "Router Smoke Test OK, models response received on attempt $i"
+                break
+              }
+            } catch { }
           }
           Stop-Process -Id $proc.Id -Force
+          if (-not $ready) {
+            Write-Error "Router Smoke Test FAILED: server did not respond on /v1/models within 20s"
+            exit 1
+          }
           cd ..
 
       - name: Build Windows Standalone Package
