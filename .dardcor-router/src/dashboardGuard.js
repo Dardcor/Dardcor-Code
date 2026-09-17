@@ -34,7 +34,8 @@ const PUBLIC_API_PATHS = [
 ];
 
 // Public top-level prefixes (LLM API endpoints with their own API key auth).
-const PUBLIC_PREFIXES = ["/v1", "/v1beta", "/api/v1", "/api/v1beta", "/codex"];
+// Keep root-level rewrites here too: middleware runs before Next.js rewrites.
+const PUBLIC_PREFIXES = ["/v1", "/v1beta", "/api/v1", "/api/v1beta", "/codex", "/responses"];
 
 // Always require JWT token regardless of requireLogin setting
 const ALWAYS_PROTECTED = [
@@ -109,17 +110,13 @@ function isLoopbackPeer(request) {
   if (hasTrustedPeerHeaders(request)) {
     return isLoopbackHostname(request.headers.get("x-9r-real-ip"));
   }
-  // If x-9r-real-ip is missing, custom-server.js is bypassed (e.g. IDE launched server.js directly).
-  // The IDE sets HOSTNAME=127.0.0.1, making the socket inherently local.
-  // We fallback to checking the Host header.
-  if (!request.headers.get("x-9r-real-ip")) {
+  // Bare `next dev` forks its server, so the wrapper never loads and no peer address
+  // reaches us. Host is spoofable, so this stays confined to development.
+  if (process.env.NODE_ENV === "development") {
     return isLoopbackHostname(request.headers.get("host"));
   }
   return false;
 }
-
-const VSCODE_PROTOCOLS = new Set(["vscode-file:", "vscode-webview:"]);
-const VSCODE_HOSTS = new Set(["vscode-app", "vscode-webview"]);
 
 export function isLocalRequest(request) {
   // Stamped by custom-server.js when forwarding headers exist: request came through
@@ -129,11 +126,7 @@ export function isLocalRequest(request) {
   const origin = request.headers.get("origin");
   if (origin) {
     try {
-      const parsed = new URL(origin);
-      if (VSCODE_PROTOCOLS.has(parsed.protocol) || VSCODE_HOSTS.has(parsed.hostname)) {
-        return true;
-      }
-      if (!isLoopbackHostname(parsed.hostname)) return false;
+      if (!isLoopbackHostname(new URL(origin).hostname)) return false;
     } catch { return false; }
   }
   return true;
@@ -160,7 +153,6 @@ async function hasValidApiKey(request) {
 }
 
 async function canAccessPublicLlmApi(request) {
-  if (request.method === "OPTIONS") return true;
   if (isLocalRequest(request)) return true;
   if (await hasValidCliToken(request)) return true;
   return await hasValidApiKey(request);
@@ -188,9 +180,10 @@ async function loadSettings() {
 }
 
 async function isAuthenticated(request) {
-  if (isLocalRequest(request)) return true;
   if (await hasValidToken(request)) return true;
-  return true;
+  const settings = await loadSettings();
+  if (settings && settings.requireLogin !== true) return true;
+  return false;
 }
 
 function isPublicApi(pathname) {
@@ -207,19 +200,6 @@ export const __test__ = {
 };
 
 export async function proxy(request) {
-  // Always allow CORS preflight OPTIONS requests through with 200 and headers
-  if (request.method === "OPTIONS") {
-    return new NextResponse(null, {
-      status: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
-        "Access-Control-Allow-Headers": "*",
-        "Access-Control-Expose-Headers": "*",
-      },
-    });
-  }
-
   const { pathname } = request.nextUrl;
 
   // Local-only gate for spawn-capable / host-secret routes.
@@ -229,19 +209,9 @@ export async function proxy(request) {
     }
   }
 
-  // Redirect /login to /dashboard
-  if (pathname === "/login") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
-
-  // Redirect / to /dashboard
-  if (pathname === "/") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
-
   // Always protected - require valid JWT or local CLI token (machineId-based)
   if (ALWAYS_PROTECTED.some((p) => pathname.startsWith(p))) {
-    if (isLocalRequest(request) || await hasValidCliToken(request) || await hasValidToken(request))
+    if (await hasValidCliToken(request) || await hasValidToken(request))
       return NextResponse.next();
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -251,17 +221,79 @@ export async function proxy(request) {
     return NextResponse.json({ error: "API key required for remote API access" }, { status: 401 });
   }
 
-  // Allow /api/* for local requests or public APIs
+  // Deny-by-default for /api/* — public allow-list bypasses, everything else requires auth.
   if (pathname.startsWith("/api/")) {
-    if (isPublicApi(pathname) || isLocalRequest(request) || await hasValidCliToken(request) || await isAuthenticated(request)) {
+    if (isPublicApi(pathname)) return NextResponse.next();
+    if (await hasValidCliToken(request) || await isAuthenticated(request))
       return NextResponse.next();
-    }
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // All dashboard routes are open without login
-  if (pathname.startsWith("/dashboard")) {
+  // Redirect /login to /dashboard if login is not required or user is already authenticated
+  if (pathname === "/login" || pathname === "/login/") {
+    let requireLogin = false;
+    try {
+      const settings = await loadSettings();
+      if (settings) {
+        requireLogin = settings.requireLogin === true;
+      }
+    } catch {}
+
+    if (!requireLogin) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+
+    if (await hasValidToken(request)) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+
     return NextResponse.next();
+  }
+
+  // Protect all dashboard routes
+  if (pathname.startsWith("/dashboard")) {
+    let requireLogin = false;
+    let tunnelDashboardAccess = true;
+
+    try {
+      const settings = await loadSettings();
+      if (settings) {
+        requireLogin = settings.requireLogin === true;
+        tunnelDashboardAccess = settings.tunnelDashboardAccess === true;
+
+        // Block tunnel/tailscale access if disabled (redirect to login)
+        if (!tunnelDashboardAccess) {
+          const host = (request.headers.get("host") || "").split(":")[0].toLowerCase();
+          const tunnelHost = settings.tunnelUrl ? new URL(settings.tunnelUrl).hostname.toLowerCase() : "";
+          const tailscaleHost = settings.tailscaleUrl ? new URL(settings.tailscaleUrl).hostname.toLowerCase() : "";
+          if ((tunnelHost && host === tunnelHost) || (tailscaleHost && host === tailscaleHost)) {
+            return NextResponse.redirect(new URL("/login", request.url));
+          }
+        }
+      }
+    } catch {
+      requireLogin = false;
+    }
+
+    // If login not required, allow through
+    if (!requireLogin) return NextResponse.next();
+
+    // Verify JWT token
+    const token = request.cookies.get("auth_token")?.value;
+    if (token) {
+      if (await verifyDashboardAuthToken(token)) {
+        return NextResponse.next();
+      } else {
+        return NextResponse.redirect(new URL("/login", request.url));
+      }
+    }
+
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  // Redirect / to /dashboard if logged in, or /dashboard if it's the root
+  if (pathname === "/") {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return NextResponse.next();

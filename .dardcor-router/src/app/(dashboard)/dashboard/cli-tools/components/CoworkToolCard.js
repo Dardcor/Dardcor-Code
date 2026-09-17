@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, Button, ManualConfigModal, ComboFormModal, McpMarketplaceModal, ModelSelectModal } from "@/shared/components";
 import Image from "next/image";
 import BaseUrlSelect from "./BaseUrlSelect";
+import { rememberEndpoint } from "./cliEndpointPresets";
 import ApiKeySelect from "./ApiKeySelect";
 
 const ENDPOINT = "/api/cli-tools/cowork-settings";
@@ -110,6 +111,8 @@ export default function CoworkToolCard({
 
   const getEffectiveBaseUrl = () => ensureV1(customBaseUrl);
 
+  const currentBaseUrl = status?.cowork?.baseUrl || "";
+
   const getConfigStatus = () => {
     if (!status?.installed) return null;
     const url = status?.cowork?.baseUrl;
@@ -132,7 +135,7 @@ export default function CoworkToolCard({
     try {
       const keyToUse = selectedApiKey?.trim()
         || (apiKeys?.length > 0 ? apiKeys[0].key : null)
-        || (!cloudEnabled ? "sk_dardcor-code" : null);
+        || (!cloudEnabled ? "sk_dardcor" : null);
 
       const res = await fetch(ENDPOINT, {
         method: "POST",
@@ -148,6 +151,8 @@ export default function CoworkToolCard({
       });
       const data = await res.json();
       if (res.ok) {
+        // Remember the endpoint so it stays selectable next time
+        rememberEndpoint(getEffectiveBaseUrl(), { tunnelPublicUrl, tailscaleUrl });
         setMessage({ type: "success", text: "Settings applied. Quit & reopen Claude Desktop to load." });
         checkStatus();
       } else {
@@ -228,7 +233,7 @@ export default function CoworkToolCard({
   const getManualConfigs = () => {
     const keyToUse = (selectedApiKey && selectedApiKey.trim())
       ? selectedApiKey
-      : (!cloudEnabled ? "sk_dardcor-code" : "<API_KEY_FROM_DASHBOARD>");
+      : (!cloudEnabled ? "sk_dardcor" : "<API_KEY_FROM_DASHBOARD>");
 
     const modelsToShow = selectedModels.length > 0 ? selectedModels : ["provider/model-id"];
     const cfg = {
@@ -306,6 +311,7 @@ export default function CoworkToolCard({
                     tailscaleUrl={tailscaleUrl}
                     cloudEnabled={cloudEnabled}
                     cloudUrl={cloudUrl}
+                    currentUrl={currentBaseUrl}
                   />
                 </div>
 

@@ -43,7 +43,7 @@
 │   Tool CLI  │  (Claude Code, Codex, Gemini CLI, OpenClaw, Cursor, Cline...)
 │    kamu     │
 └──────┬──────┘
-       │ http://localhost:20128/v1
+       │ http://localhost:21128/v1
        ↓
 ┌─────────────────────────────────────────┐
 │         Dardcor Code (Smart Router)          │
@@ -72,7 +72,7 @@ npm install -g dardcor-code
 dardcor-code
 ```
 
-🎉 Dashboard terbuka di `http://localhost:20128`
+🎉 Dashboard terbuka di `http://localhost:21128`
 
 **2. Hubungkan provider gratis (tanpa perlu daftar):**
 
@@ -82,7 +82,7 @@ Dashboard → Providers → hubungkan **Claude Code** atau **Antigravity** → l
 
 ```
 Konfigurasi Claude Code/Codex/Gemini CLI/OpenClaw/Cursor/Cline:
-  Endpoint: http://localhost:20128/v1
+  Endpoint: http://localhost:21128/v1
   API Key: [salin dari dashboard]
   Model: if/kimi-k2-thinking
 ```
@@ -96,19 +96,19 @@ Paket repo ini bersifat privat (`dardcor-code-app`), jadi menjalankan dari sourc
 ```bash
 cp .env.example .env
 npm install
-PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
+PORT=21128 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run dev
 ```
 
 Mode produksi:
 
 ```bash
 npm run build
-PORT=20128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run start
+PORT=21128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run start
 ```
 
 URL default:
-- Dashboard: `http://localhost:20128/dashboard`
-- API kompatibel OpenAI: `http://localhost:20128/v1`
+- Dashboard: `http://localhost:21128/dashboard`
+- API kompatibel OpenAI: `http://localhost:21128/v1`
 
 ---
 
@@ -872,14 +872,14 @@ Biaya bulanan: $0
 ```bash
 docker run -d \
   --name dardcor-code \
-  -p 20128:20128 \
+  -p 21128:21128 \
   -v dardcor-code-data:/app/data \
-  -e PORT=20128 \
-  -e BASE_URL=http://localhost:20128 \
+  -e PORT=21128 \
+  -e BASE_URL=http://localhost:21128 \
   ghcr.io/dardcor/dardcor-code:latest
 ```
 
-Dashboard: `http://localhost:20128/dashboard`
+Dashboard: `http://localhost:21128/dashboard`
 
 </details>
 
@@ -888,7 +888,7 @@ Dashboard: `http://localhost:20128/dashboard`
 
 ```bash
 npm install -g dardcor-code
-PORT=20128 HOSTNAME=0.0.0.0 BASE_URL=https://your-domain.com dardcor-code
+PORT=21128 HOSTNAME=0.0.0.0 BASE_URL=https://your-domain.com dardcor-code
 ```
 
 Disarankan menaruhnya di belakang reverse proxy (Nginx/Caddy) dengan HTTPS, dan membatasi akses hanya untuk dirimu sendiri.
@@ -913,7 +913,7 @@ Atur `BASE_URL` dan `CLOUD_URL` sebagai environment variable di dashboard Cloudf
 
 | Masalah | Kemungkinan Penyebab | Solusi |
 |---------|----------------------|--------|
-| Tool CLI tidak bisa konek | Endpoint salah | Pastikan `http://localhost:20128/v1` |
+| Tool CLI tidak bisa konek | Endpoint salah | Pastikan `http://localhost:21128/v1` |
 | 401 / Unauthorized | API key salah | Salin ulang key dari dashboard |
 | Model tidak ditemukan | Prefix provider salah | Pakai format `provider/model`, mis. `if/kimi-k2-thinking` |
 | Selalu fallback ke gratis | Kuota langganan habis | Cek hitung mundur reset di dashboard |

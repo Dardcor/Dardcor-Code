@@ -94,7 +94,7 @@ ProviderNode.propTypes = {
   data: PropTypes.object.isRequired,
 };
 
-// Center DRouter node — pulse/glow on card only (no expanding rings)
+// Center Dardcor Router node — pulse/glow on card only (no expanding rings)
 function RouterNode({ data }) {
   const powering = (data.activeCount || 0) > 0;
   return (

@@ -50,14 +50,14 @@ npx dardcor-code
 **Option 2 — Docker (server/VPS):**
 
 ```bash
-docker run -d --name dardcor-code -p 20128:20128 \
+docker run -d --name dardcor-code -p 21128:21128 \
   -v "$HOME/.dardcor-code:/app/data" -e DATA_DIR=/app/data \
   dardcor/dardcor-code:latest
 ```
 
 Published images: [Docker Hub](https://hub.docker.com/r/dardcor/dardcor-code) • [GHCR](https://github.com/dardcor/dardcor-code/pkgs/container/dardcor-code) (multi-platform amd64/arm64).
 
-🎉 Dashboard opens at `http://localhost:20128`
+🎉 Dashboard opens at `http://localhost:21128`
 
 **2. Connect a FREE provider (no signup needed):**
 
@@ -67,7 +67,7 @@ Dashboard → Providers → Connect **Kiro AI** (free Claude unlimited) or **Ope
 
 ```
 Claude Code/Codex/OpenClaw/Cursor/Cline Settings:
-  Endpoint: http://localhost:20128/v1
+  Endpoint: http://localhost:21128/v1
   API Key:  [copy from dashboard]
   Model:    kr/claude-sonnet-4.5
 ```
@@ -86,7 +86,7 @@ dardcor-code --skip-update      # Skip auto-update check
 dardcor-code --help             # Show all options
 ```
 
-**Dashboard**: `http://localhost:20128/dashboard`
+**Dashboard**: `http://localhost:21128/dashboard`
 
 ---
 

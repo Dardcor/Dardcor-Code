@@ -16,7 +16,7 @@ import { getSettings, updateSettings } from "@/lib/localDb";
 
 initDbHooks(getSettings, updateSettings);
 
-const DEFAULT_MITM_ROUTER_BASE = "http://localhost:20128";
+const DEFAULT_MITM_ROUTER_BASE = "http://localhost:21128";
 
 function normalizeMitmRouterBaseUrlInput(input) {
   if (input == null || String(input).trim() === "") {
@@ -105,7 +105,7 @@ export async function POST(request) {
 
     if (!checkPrivilege(pwd)) {
       return NextResponse.json(
-        { error: isWin ? "Administrator required — restart DRouter as Administrator" : "Root or sudo password required to start MITM" },
+        { error: isWin ? "Administrator required — restart Dardcor Router as Administrator" : "Root or sudo password required to start MITM" },
         { status: 403 }
       );
     }
@@ -173,7 +173,7 @@ export async function PATCH(request) {
     }
     if (!checkPrivilege(pwd)) {
       return NextResponse.json(
-        { error: isWin ? "Administrator required — restart DRouter as Administrator" : "Root or sudo password required to modify DNS" },
+        { error: isWin ? "Administrator required — restart Dardcor Router as Administrator" : "Root or sudo password required to modify DNS" },
         { status: 403 }
       );
     }

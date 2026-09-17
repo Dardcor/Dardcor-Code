@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Card, Button, ModelSelectModal, ManualConfigModal } from "@/shared/components";
 import Image from "next/image";
 import BaseUrlSelect from "./BaseUrlSelect";
+import { rememberEndpoint } from "./cliEndpointPresets";
 import ApiKeySelect from "./ApiKeySelect";
 import { matchKnownEndpoint } from "./cliEndpointMatch";
 
@@ -36,6 +37,8 @@ export default function OpenClawToolCard({
   const [showManualConfigModal, setShowManualConfigModal] = useState(false);
   const [customBaseUrl, setCustomBaseUrl] = useState("");
   const hasInitializedModel = useRef(false);
+
+  const currentBaseUrl = openclawStatus?.settings?.models?.providers?.["dardcor-code"]?.baseUrl || "";
 
   const getConfigStatus = () => {
     if (!openclawStatus?.installed) return null;
@@ -113,7 +116,7 @@ export default function OpenClawToolCard({
     if (typeof window !== "undefined") {
       return normalizeLocalhost(window.location.origin);
     }
-    return "http://127.0.0.1:20128";
+    return "http://127.0.0.1:21128";
   };
 
   const getEffectiveBaseUrl = () => {
@@ -132,7 +135,7 @@ export default function OpenClawToolCard({
     try {
       const keyToUse = selectedApiKey?.trim()
         || (apiKeys?.length > 0 ? apiKeys[0].key : null)
-        || (!cloudEnabled ? "sk_dardcor-code" : null);
+        || (!cloudEnabled ? "sk_dardcor" : null);
 
       const res = await fetch("/api/cli-tools/openclaw-settings", {
         method: "POST",
@@ -146,6 +149,8 @@ export default function OpenClawToolCard({
       });
       const data = await res.json();
       if (res.ok) {
+        // Remember the endpoint so it stays selectable next time
+        rememberEndpoint(getEffectiveBaseUrl(), { tunnelPublicUrl, tailscaleUrl });
         setMessage({ type: "success", text: "Settings applied successfully!" });
         checkOpenclawStatus();
       } else {
@@ -192,7 +197,7 @@ export default function OpenClawToolCard({
   const getManualConfigs = () => {
     const keyToUse = (selectedApiKey && selectedApiKey.trim())
       ? selectedApiKey
-      : (!cloudEnabled ? "sk_dardcor-code" : "<API_KEY_FROM_DASHBOARD>");
+      : (!cloudEnabled ? "sk_dardcor" : "<API_KEY_FROM_DASHBOARD>");
 
     const settingsContent = {
       agents: {
@@ -291,6 +296,7 @@ export default function OpenClawToolCard({
                     tunnelPublicUrl={tunnelPublicUrl}
                     tailscaleEnabled={tailscaleEnabled}
                     tailscaleUrl={tailscaleUrl}
+                    currentUrl={currentBaseUrl}
                   />
                 </div>
 

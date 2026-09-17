@@ -70,9 +70,14 @@ const KNOWN_PROVIDER_DIRS = {
   cursor: "Cursor",
   qwen: "Qwen",
   iflow: "iFlow",
+  "xiaomi-mimo": "Xiaomi-MiMo",
 };
 
 export const ALL_CANONICAL_PROVIDERS = Array.from(new Set(Object.values(KNOWN_PROVIDER_DIRS)));
+
+export const KNOWN_DIR_TO_PROVIDER = Object.fromEntries(
+  Object.entries(KNOWN_PROVIDER_DIRS).map(([k, v]) => [v.toLowerCase(), k])
+);
 
 // Runtime cache of discovered provider folders
 const discoveredProviderDirs = new Map();
@@ -80,6 +85,33 @@ const discoveredProviderDirs = new Map();
 export function registerProviderDir(providerId, dirName) {
   if (providerId && dirName) {
     discoveredProviderDirs.set(providerId.toLowerCase(), dirName);
+  }
+}
+
+export function resolveProviderStatusPath(providerId, baseDir) {
+  const { dirPath } = resolveProviderDbPath(providerId, baseDir);
+  return path.join(dirPath, "status.json");
+}
+
+export function saveProviderStatusSync(adapter, providerId, enabled, baseDir) {
+  baseDir = getBaseDir(baseDir);
+  if (!providerId || typeof providerId !== "string") return;
+  const { dirPath } = resolveProviderDbPath(providerId, baseDir);
+  if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
+  const statusFile = path.join(dirPath, "status.json");
+  const statusData = {
+    provider: providerId,
+    enabled: Boolean(enabled),
+    updatedAt: new Date().toISOString(),
+  };
+  fs.writeFileSync(statusFile, JSON.stringify(statusData, null, 2), "utf-8");
+
+  if (adapter) {
+    adapter.run(
+      `INSERT OR REPLACE INTO kv(scope, key, value) VALUES('providerStatus', ?, ?)`,
+      [providerId, stringifyJson(statusData)]
+    );
+    saveSystemDbSync(adapter, "aliases", baseDir);
   }
 }
 
@@ -203,6 +235,15 @@ export function ensureAllProviderFoldersExist(baseDir) {
     }
     if (!fs.existsSync(file)) {
       fs.writeFileSync(file, "[]\n", "utf-8");
+    }
+    const statusFile = path.join(dir, "status.json");
+    if (!fs.existsSync(statusFile)) {
+      const provKey = KNOWN_DIR_TO_PROVIDER[provDirName.toLowerCase()] || provDirName.toLowerCase();
+      fs.writeFileSync(
+        statusFile,
+        JSON.stringify({ provider: provKey, enabled: false, updatedAt: new Date().toISOString() }, null, 2),
+        "utf-8"
+      );
     }
   }
 }
@@ -492,6 +533,20 @@ export function loadAllProvidersFromDisk(adapter, baseDir) {
     } catch (e) {
       console.warn(`[DB] Failed to load provider file ${provFile}: ${e.message}`);
     }
+
+    const statusFile = path.join(provDir, "status.json");
+    if (fs.existsSync(statusFile)) {
+      try {
+        const rawStatus = JSON.parse(fs.readFileSync(statusFile, "utf-8"));
+        const resolvedProv = rawStatus.provider || KNOWN_DIR_TO_PROVIDER[entry.name.toLowerCase()] || entry.name.toLowerCase();
+        adapter.run(
+          `INSERT OR REPLACE INTO kv(scope, key, value) VALUES('providerStatus', ?, ?)`,
+          [resolvedProv, stringifyJson(rawStatus)]
+        );
+      } catch (e) {
+        console.warn(`[DB] Failed to load status for ${entry.name}: ${e.message}`);
+      }
+    }
   }
 }
 
@@ -628,6 +683,9 @@ export function importFromModular(adapter, baseDir) {
           }
           for (const [prov, ids] of Object.entries(raw.disabledModels || {})) {
             adapter.run(`INSERT OR REPLACE INTO kv(scope, key, value) VALUES('disabledModels', ?, ?)`, [prov, stringifyJson(ids || [])]);
+          }
+          for (const [prov, statusVal] of Object.entries(raw.providerStatus || {})) {
+            adapter.run(`INSERT OR REPLACE INTO kv(scope, key, value) VALUES('providerStatus', ?, ?)`, [prov, stringifyJson(statusVal)]);
           }
         }
       } catch (e) {
@@ -791,7 +849,7 @@ export function saveSystemDbSync(adapter, target, baseDir) {
       break;
     }
     case "aliases": {
-      const aliasesObj = { modelAliases: {}, customModels: [], mitmAlias: {}, disabledModels: {} };
+      const aliasesObj = { modelAliases: {}, customModels: [], mitmAlias: {}, disabledModels: {}, providerStatus: {} };
       for (const r of adapter.all(`SELECT key, value FROM kv WHERE scope = 'modelAliases'`)) {
         aliasesObj.modelAliases[r.key] = parseJson(r.value, r.value);
       }
@@ -803,6 +861,9 @@ export function saveSystemDbSync(adapter, target, baseDir) {
       }
       for (const r of adapter.all(`SELECT key, value FROM kv WHERE scope = 'disabledModels'`)) {
         aliasesObj.disabledModels[r.key] = parseJson(r.value, r.value);
+      }
+      for (const r of adapter.all(`SELECT key, value FROM kv WHERE scope = 'providerStatus'`)) {
+        aliasesObj.providerStatus[r.key] = parseJson(r.value, r.value);
       }
       fs.writeFileSync(path.join(sysDbDir, "aliases.json"), JSON.stringify(aliasesObj, null, 2), "utf-8");
       break;

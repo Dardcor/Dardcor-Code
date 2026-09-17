@@ -20,7 +20,7 @@ npm install -g dardcor-code
 dardcor-code
 ```
 
-🎉 **Dashboard opens automatically** at `http://localhost:20128`
+🎉 **Dashboard opens automatically** at `http://localhost:21128`
 
 - Default password: `123456` (change in dashboard)
 - API key generated automatically
@@ -89,7 +89,7 @@ Point your coding tool to Dardcor Code:
 
 ```
 Settings → Models → Advanced:
-  OpenAI API Base URL: http://localhost:20128/v1
+  OpenAI API Base URL: http://localhost:21128/v1
   OpenAI API Key: [from dardcor-code dashboard]
   Model: cc/claude-opus-4-5-20251101
 ```
@@ -100,7 +100,7 @@ Edit `~/.claude/config.json`:
 
 ```json
 {
-  "anthropic_api_base": "http://localhost:20128/v1",
+  "anthropic_api_base": "http://localhost:21128/v1",
   "anthropic_api_key": "your-dardcor-code-api-key"
 }
 ```
@@ -109,7 +109,7 @@ Edit `~/.claude/config.json`:
 
 ```
 Provider: OpenAI Compatible
-Base URL: http://localhost:20128/v1
+Base URL: http://localhost:21128/v1
 API Key: [from dashboard]
 Model: cc/claude-opus-4-5-20251101
 ```
@@ -117,7 +117,7 @@ Model: cc/claude-opus-4-5-20251101
 ### Codex CLI
 
 ```bash
-export OPENAI_BASE_URL="http://localhost:20128"
+export OPENAI_BASE_URL="http://localhost:21128"
 export OPENAI_API_KEY="your-dardcor-code-api-key"
 
 codex "your prompt"

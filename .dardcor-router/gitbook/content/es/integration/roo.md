@@ -22,7 +22,7 @@ Inicia Roo AI Assistant y abre el panel de configuración.
 
 **Para Dardcor Code local:**
 ```
-Base URL: http://localhost:20128/v1
+Base URL: http://localhost:21128/v1
 API Key: your-api-key-from-dashboard
 ```
 
@@ -87,7 +87,7 @@ Modelo: cx/deepseek-reasoner
 ## Solución de problemas
 
 ### Connection Failed
-- Verifica que Dardcor Code esté corriendo: `curl http://localhost:20128/health`
+- Verifica que Dardcor Code esté corriendo: `curl http://localhost:21128/health`
 - Verifica que la API key sea correcta
 - Asegúrate de que la Base URL incluya el sufijo `/v1`
 

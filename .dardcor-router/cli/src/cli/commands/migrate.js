@@ -77,18 +77,17 @@ const REWRITE_COLLECTIONS = new Set([
 ]);
 
 const HELP = `
-Usage: dardcor-code migrate --from-9router [options]
+Usage: dardcor-code migrate --from-legacy [options]
 
-Migrate data from a legacy 9router install (same machine) into this
+Migrate data from a legacy gateway install (same machine) into this
 Dardcor Code gateway. Reads the source only through the authenticated
 export API — never copies data.sqlite, never writes into the source.
 
 Options:
-  --from-9router          Name the migration source (legacy 9router install)
+  --from-legacy           Name the migration source (legacy install)
   --legacy-host <host>    Legacy gateway host (default: ${DEFAULT_LEGACY_HOST})
   --legacy-port <port>    Legacy gateway port (default: ${DEFAULT_LEGACY_PORT})
   --legacy-dir <dir>      Legacy data dir holding machine-id + auth/cli-secret
-                          (default: ~/.9router, Win %APPDATA%\\9router)
   --host <host>           Target Dardcor Code host (default: ${DEFAULT_TARGET_HOST})
   --port <port>           Target Dardcor Code port (default: ${DEFAULT_TARGET_PORT})
   --legacy-password <pw>  Legacy dashboard password (fallback when the legacy
@@ -397,7 +396,7 @@ async function run(argv) {
     return 0;
   }
   if (!opts.from9router) {
-    console.error("❌ Use: dardcor-code migrate --from-9router [options]");
+    console.error("❌ Use: dardcor-code migrate --from-legacy [options]");
     console.log(HELP);
     return 1;
   }
@@ -417,7 +416,7 @@ async function run(argv) {
     console.error(`❌ ${result.report.error}`);
     return 1;
   }
-  console.log("✅ Migration complete. Source 9router install left untouched.");
+  console.log("✅ Migration complete. Source install left untouched.");
   printReport(result.report);
   return 0;
 }
@@ -438,7 +437,7 @@ function parseArgs(argv) {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const next = () => argv[++i];
-    if (a === "--from-9router") opts.from9router = true;
+    if (a === "--from-legacy" || a === "--from-9router") opts.from9router = true;
     else if (a === "--legacy-host") opts.legacyHost = next() || DEFAULT_LEGACY_HOST;
     else if (a === "--legacy-port") opts.legacyPort = parseInt(next(), 10) || DEFAULT_LEGACY_PORT;
     else if (a === "--legacy-dir") opts.legacyDir = next() || defaultLegacyDir();

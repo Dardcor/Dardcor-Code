@@ -53,8 +53,8 @@ function generateRootCA() {
   cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 10);
 
   const attrs = [
-    { name: "commonName", value: "DRouter MITM Root CA" },
-    { name: "organizationName", value: "DRouter" },
+    { name: "commonName", value: "Dardcor Router MITM Root CA" },
+    { name: "organizationName", value: "Dardcor Router" },
     { name: "countryName", value: "US" }
   ];
 

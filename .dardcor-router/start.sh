@@ -1,4 +1,4 @@
-docker stop 9router
-docker rm 9router
-docker build -t 9router .
-docker run -d --name 9router -p 20128:20128 --env-file .env -v 9router-data:/app/data 9router
+docker stop dardcor-router
+docker rm dardcor-router
+docker build -t dardcor-router .
+docker run -d --name dardcor-router -p 21128:21128 --env-file .env -v dardcor-router-data:/app/data dardcor-router

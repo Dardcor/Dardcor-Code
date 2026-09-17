@@ -7,6 +7,12 @@ import {
 
 const DEFAULT_TIMEOUT_MS = 3000;
 
+function normalizeTimeout(value) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? value
+    : DEFAULT_TIMEOUT_MS;
+}
+
 function jsonBytes(value) {
   try {
     return new TextEncoder().encode(JSON.stringify(value) || "").length;
@@ -238,8 +244,9 @@ async function callCompress(url, messages, model, timeoutMs, compressUserMessage
 
 // Compress request body via Headroom proxy. Fail-open: returns null on any error.
 // /v1/compress only understands OpenAI shape, so Claude bodies are translated
-// to OpenAI, compressed, then translated back using DRouter's own translators.
+// to OpenAI, compressed, then translated back using Dardcor Code's own translators.
 export async function compressWithHeadroom(body, { enabled, url, model, format, compressUserMessages, timeoutMs = DEFAULT_TIMEOUT_MS, diagnostics = null } = {}) {
+  timeoutMs = normalizeTimeout(timeoutMs);
   if (!enabled) {
     setDiagnostic(diagnostics, "disabled");
     return null;
@@ -281,7 +288,10 @@ export async function compressWithHeadroom(body, { enabled, url, model, format, 
         return null;
       }
       const oai = openaiResponsesToOpenAIRequest(model, body, false);
-      if (!Array.isArray(oai?.messages)) return null;
+      if (!Array.isArray(oai?.messages)) {
+        setDiagnostic(diagnostics, "openai-responses request did not translate to messages[]");
+        return null;
+      }
       const data = await callCompress(url, oai.messages, model, timeoutMs, compressUserMessages, diagnostics || {});
       if (!data) return null;
       // input: undefined so the translator rebuilds input from the compressed

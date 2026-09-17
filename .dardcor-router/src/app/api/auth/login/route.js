@@ -8,7 +8,7 @@ import { isSamlConfigured } from "@/lib/auth/saml.js";
 import { checkLock, recordFail, recordSuccess, getClientIp } from "@/lib/auth/loginLimiter";
 import { isLocalRequest } from "@/dashboardGuard";
 
-const RESET_HINT = "Forgot password? Reset to default via DRouter CLI → Settings → Reset Password to Default.";
+const RESET_HINT = "Forgot password? Reset in Dardcor Router Settings.";
 const NO_STORE_HEADERS = { "Cache-Control": "no-store" };
 
 function isTunnelRequest(request, settings) {
@@ -37,7 +37,6 @@ export async function POST(request) {
       return NextResponse.json({ error: "Dashboard access via tunnel is disabled" }, { status: 403 });
     }
 
-    // Default password is '123456' if not set
     const storedHash = settings.password;
 
     if (settings.authMode === "sso" || settings.authMode === "saml" || settings.authMode === "oidc") {
@@ -53,10 +52,13 @@ export async function POST(request) {
     let isValid = false;
     if (storedHash) {
       isValid = await bcrypt.compare(password, storedHash);
+    } else if (process.env.INITIAL_PASSWORD) {
+      isValid = password === process.env.INITIAL_PASSWORD;
     } else {
-      // Use env var or default
-      const initialPassword = process.env.INITIAL_PASSWORD || "123456";
-      isValid = password === initialPassword;
+      return NextResponse.json(
+        { error: "Password is not configured. Please set a password in Settings." },
+        { status: 400 }
+      );
     }
 
     if (isValid) {

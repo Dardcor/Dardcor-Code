@@ -1,19 +1,19 @@
 const { log, err } = require("../logger");
 
-const DEFAULT_LOCAL_ROUTER = "http://localhost:20128";
+const DEFAULT_LOCAL_ROUTER = "http://localhost:21128";
 const ROUTER_BASE = String(process.env.MITM_ROUTER_BASE || DEFAULT_LOCAL_ROUTER)
   .trim()
   .replace(/\/+$/, "") || DEFAULT_LOCAL_ROUTER;
 const API_KEY = process.env.ROUTER_API_KEY;
 
-// Headers that must not be forwarded to DRouter
+// Headers that must not be forwarded to Dardcor Router
 const STRIP_HEADERS = new Set([
   "host", "content-length", "connection", "transfer-encoding",
   "content-type", "authorization"
 ]);
 
 /**
- * Send body to DRouter at the given path and return the fetch Response object.
+ * Send body to Dardcor Router at the given path and return the fetch Response object.
  * Optionally forwards client headers (stripped of hop-by-hop / overridden keys).
  */
 async function fetchRouter(openaiBody, path = "/v1/chat/completions", clientHeaders = {}) {
@@ -70,7 +70,7 @@ async function pipeSSE(routerRes, res, dumper) {
  * Reads SSE data: lines, parses JSON, calls transformFn(parsed, state),
  * and writes returned SSE strings to the client response.
  *
- * @param {Response} routerRes - Fetch Response from DRouter
+ * @param {Response} routerRes - Fetch Response from Dardcor Router
  * @param {http.ServerResponse} res - Client response
  * @param {Function} transformFn - (parsedChunk, state) => string|string[]|null
  * @param {object} state - Mutable state object shared across chunks and flush
@@ -149,7 +149,7 @@ async function pipeTransformedSSE(routerRes, res, transformFn, state) {
  * Reads SSE data: lines, parses JSON, calls transformFn(parsed, state),
  * and writes returned Uint8Array frames to the client response.
  *
- * @param {Response} routerRes - Fetch Response from DRouter
+ * @param {Response} routerRes - Fetch Response from Dardcor Router
  * @param {http.ServerResponse} res - Client response
  * @param {Function} transformFn - (parsedChunk, state) => Uint8Array|Uint8Array[]|null
  * @param {object} state - Mutable state object shared across chunks and flush

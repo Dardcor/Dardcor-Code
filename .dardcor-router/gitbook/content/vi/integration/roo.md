@@ -22,7 +22,7 @@ Khởi chạy Roo AI Assistant và mở panel settings.
 
 **Cho Dardcor Code cục bộ:**
 ```
-Base URL: http://localhost:20128/v1
+Base URL: http://localhost:21128/v1
 API Key: your-api-key-from-dashboard
 ```
 
@@ -87,7 +87,7 @@ Model: cx/deepseek-reasoner
 ## Troubleshooting
 
 ### Connection Failed
-- Xác minh Dardcor Code đang chạy: `curl http://localhost:20128/health`
+- Xác minh Dardcor Code đang chạy: `curl http://localhost:21128/health`
 - Kiểm tra API key đúng
 - Đảm bảo Base URL bao gồm hậu tố `/v1`
 

@@ -1,7 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import { getAdapter } from "../driver.js";
 import { parseJson, stringifyJson } from "../helpers/jsonCol.js";
-import { saveProviderSync } from "../modularStore.js";
 
 const OPTIONAL_FIELDS = [
   "displayName", "email", "globalPriority", "defaultModel",
@@ -10,6 +9,28 @@ const OPTIONAL_FIELDS = [
   "lastTested", "lastError", "lastErrorAt", "rateLimitedUntil", "expiresIn", "errorCode",
   "consecutiveUseCount", "idToken", "lastRefreshAt",
 ];
+
+const MODEL_LOCK_PREFIX = "modelLock_";
+
+function resetHealthStateOnActivation(existing, patch) {
+  if (patch?.testStatus !== "active") return patch;
+
+  const normalized = {
+    ...patch,
+    testStatus: "active",
+    lastError: Object.hasOwn(patch, "lastError") ? patch.lastError : null,
+    lastErrorAt: Object.hasOwn(patch, "lastErrorAt") ? patch.lastErrorAt : null,
+    errorCode: null,
+    rateLimitedUntil: null,
+    backoffLevel: 0,
+  };
+
+  for (const key of Object.keys(existing || {})) {
+    if (key.startsWith(MODEL_LOCK_PREFIX)) normalized[key] = null;
+  }
+
+  return normalized;
+}
 
 function rowToConn(row) {
   if (!row) return null;
@@ -148,7 +169,8 @@ export async function createProviderConnection(data) {
     // access_token: never dedup — user manages duplicates manually
 
     if (existing) {
-      const merged = { ...existing, ...data, updatedAt: now };
+      const normalized = resetHealthStateOnActivation(existing, data);
+      const merged = { ...existing, ...normalized, updatedAt: now };
       upsert(db, merged);
       result = merged;
       return;
@@ -186,10 +208,6 @@ export async function createProviderConnection(data) {
     result = conn;
   });
 
-  if (result?.provider) {
-    saveProviderSync(db, result.provider);
-  }
-
   return result;
 }
 
@@ -197,42 +215,29 @@ export async function createProviderConnection(data) {
 export async function updateProviderConnection(id, data) {
   const db = await getAdapter();
   let result;
-  let targetProvider = null;
   db.transaction(() => {
     const row = db.get(`SELECT * FROM providerConnections WHERE id = ?`, [id]);
     if (!row) { result = null; return; }
     const existing = rowToConn(row);
-    targetProvider = existing.provider;
-    const merged = { ...existing, ...data, updatedAt: new Date().toISOString() };
+    const normalized = resetHealthStateOnActivation(existing, data);
+    const merged = { ...existing, ...normalized, updatedAt: new Date().toISOString() };
     upsert(db, merged);
     if (data.priority !== undefined) reorderInTx(db, existing.provider);
     result = merged;
   });
-
-  if (targetProvider) {
-    saveProviderSync(db, targetProvider);
-  }
-
   return result;
 }
 
 export async function deleteProviderConnection(id) {
   const db = await getAdapter();
   let ok = false;
-  let targetProvider = null;
   db.transaction(() => {
     const row = db.get(`SELECT provider FROM providerConnections WHERE id = ?`, [id]);
     if (!row) return;
-    targetProvider = row.provider;
     db.run(`DELETE FROM providerConnections WHERE id = ?`, [id]);
     reorderInTx(db, row.provider);
     ok = true;
   });
-
-  if (targetProvider) {
-    saveProviderSync(db, targetProvider);
-  }
-
   return ok;
 }
 
@@ -240,14 +245,12 @@ export async function deleteProviderConnectionsByProvider(providerId) {
   const db = await getAdapter();
   const before = db.get(`SELECT COUNT(*) AS n FROM providerConnections WHERE provider = ?`, [providerId]);
   db.run(`DELETE FROM providerConnections WHERE provider = ?`, [providerId]);
-  saveProviderSync(db, providerId);
   return before?.n || 0;
 }
 
 export async function reorderProviderConnections(providerId) {
   const db = await getAdapter();
   db.transaction(() => reorderInTx(db, providerId));
-  saveProviderSync(db, providerId);
 }
 
 export async function cleanupProviderConnections() {
@@ -260,7 +263,6 @@ export async function cleanupProviderConnections() {
     "consecutiveUseCount",
   ];
   let cleaned = 0;
-  const dirtyProviders = new Set();
   db.transaction(() => {
     const rows = db.all(`SELECT * FROM providerConnections`);
     for (const row of rows) {
@@ -276,16 +278,8 @@ export async function cleanupProviderConnections() {
         cleaned++;
         dirty = true;
       }
-      if (dirty) {
-        upsert(db, conn);
-        dirtyProviders.add(conn.provider);
-      }
+      if (dirty) upsert(db, conn);
     }
   });
-
-  for (const prov of dirtyProviders) {
-    saveProviderSync(db, prov);
-  }
-
   return cleaned;
 }

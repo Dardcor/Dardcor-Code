@@ -866,7 +866,7 @@
   "Please install Open Claw CLI to use this feature.": "لطفاً برای استفاده از این ویژگی، Open Claw CLI را نصب کنید.",
   "Please install OpenCode CLI to use auto-apply feature.": "لطفاً برای استفاده از ویژگی اعمال خودکار، OpenCode CLI را نصب کنید.",
   "Please wait while we complete the authorization.": "لطفاً در حالی که مجوز را تکمیل می‌کنیم، منتظر بمانید.",
-  "Point your CLI tools to http://localhost:20128": "ابزارهای CLI خود را به http://localhost:20128 هدایت کنید",
+  "Point your CLI tools to http://localhost:21128": "ابزارهای CLI خود را به http://localhost:21128 هدایت کنید",
   "Pool:": "استخر:",
   "Popup blocked? Enter URL manually": "پنجره بازشو مسدود شد؟ URL را به صورت دستی وارد کنید",
   "Port 443 Already In Use": "پورت ۴۴۳ در حال استفاده است",

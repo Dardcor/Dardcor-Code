@@ -60,20 +60,20 @@ describe("scanBranding", () => {
   it("flags each scan term from REBRAND.md §1", () => {
     const root = makeTree({
       "src/terms.js": [
-        "9router", "9r_", "X-9Router", "DARDCORROUTER", "20127", "20128",
-        "20129", "dardcor", ".9router", "9router.com",
+        "9router", "9r_", "X-9Router", "ninerouter", "20127", "20128",
+        "20129", ".9router", "9router.com",
       ].join("\n"),
     });
     const result = scanBranding({ root });
     const terms = new Set(result.forbidden.map((h) => h.term));
-    for (const expected of ["9router", "9r_", "X-9Router", "DARDCORROUTER", "20127", "20128", "20129", "dardcor", ".9router", "9router.com"]) {
+    for (const expected of ["9router", "9r_", "X-9Router", "ninerouter", "20127", "20128", "20129", ".9router", "9router.com"]) {
       expect(terms.has(expected), `missing forbidden hit for ${expected}`).toBe(true);
     }
   });
 
   it("provenance files (REBRAND.md §3) are allowlisted, never forbidden", () => {
     const root = makeTree({
-      "LICENSE": "Copyright (c) dardcor and contributors\n",
+      "LICENSE": "Copyright (c) 9router and contributors\n",
       "docs/UPSTREAM.md": "upstream: github.com/dardcor/9router\n",
       "docs/superpowers/specs/old.md": "9Router history\n",
       "src/app.js": "9Router\n",

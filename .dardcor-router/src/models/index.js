@@ -35,4 +35,7 @@ export {
   deleteApiKey,
   validateApiKey,
   isCloudEnabled,
+  getAllProviderStatuses,
+  getProviderStatus,
+  setProviderStatus,
 } from "@/lib/localDb";

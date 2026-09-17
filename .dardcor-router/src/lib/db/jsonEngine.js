@@ -257,6 +257,7 @@ export function createJsonStoreAdapter() {
   }
 
   function executeSelect(sql, params = []) {
+    sql = sql.trim();
     // 1. Check sqlite_master
     if (/FROM\s+sqlite_master/i.test(sql)) {
       const names = Object.keys(tables).filter((t) => !t.startsWith("sqlite_"));
@@ -442,6 +443,7 @@ export function createJsonStoreAdapter() {
   }
 
   function executeInsert(sql, params = []) {
+    sql = sql.trim();
     const insertMatch = sql.match(
       /^INSERT(?:\s+OR\s+REPLACE)?\s+INTO\s+([a-zA-Z0-9_]+)\s*\(([^)]+)\)\s*VALUES\s*\(([^)]+)\)(?:\s+ON\s+CONFLICT\s*(?:\(([^)]+)\))?\s*DO\s+UPDATE\s+SET\s+([\s\S]+))?$/i
     );
@@ -527,6 +529,7 @@ export function createJsonStoreAdapter() {
   }
 
   function executeUpdate(sql, params = []) {
+    sql = sql.trim();
     const updateMatch = sql.match(/^UPDATE\s+([a-zA-Z0-9_]+)\s+SET\s+([\s\S]+?)(?:\s+WHERE\s+([\s\S]+))?$/i);
     if (!updateMatch) throw new Error(`[JsonEngine] Unsupported UPDATE: ${sql}`);
 
@@ -566,6 +569,7 @@ export function createJsonStoreAdapter() {
   }
 
   function executeDelete(sql, params = []) {
+    sql = sql.trim();
     const deleteMatch = sql.match(/^DELETE\s+FROM\s+([a-zA-Z0-9_]+)(?:\s+WHERE\s+([\s\S]+))?$/i);
     if (!deleteMatch) throw new Error(`[JsonEngine] Unsupported DELETE: ${sql}`);
 

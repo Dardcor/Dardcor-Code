@@ -14,9 +14,6 @@ export default {
   noAuth: true,
   transport: {
     baseUrl: "https://opencode.ai",
-    headers: {
-      "x-opencode-client": "desktop",
-    },
     noAuth: true,
   },
   models: [

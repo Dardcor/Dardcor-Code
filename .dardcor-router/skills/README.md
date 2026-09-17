@@ -31,7 +31,7 @@ Then ask normally — *"generate an image of a cat"*, *"transcribe this URL"*, e
 ## Configure your shell once
 
 ```bash
-export DARDCORROUTER_URL="http://localhost:20128"   # local default, or your VPS / tunnel URL
+export DARDCOR_ROUTER_URL="http://localhost:21128"   # local default, or your VPS / tunnel URL
 export DARDCORROUTER_KEY="sk-..."                   # from Dashboard → Keys (only if requireApiKey=true)
 ```
 

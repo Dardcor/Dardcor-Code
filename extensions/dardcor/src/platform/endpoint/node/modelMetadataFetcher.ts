@@ -266,7 +266,7 @@ export class ModelMetadataFetcher extends Disposable implements IModelMetadataFe
 			const res = await globalThis.fetch(`http://127.0.0.1:${DARDCOR_PORT}/v1/models`, {
 				headers: {
 					'Authorization': `Bearer ${DARDCOR_KEY}`,
-					'x-drouter-connected-only': '1'
+					'x-dardcor-router-connected-only': '1'
 				},
 				signal: controller.signal
 			});

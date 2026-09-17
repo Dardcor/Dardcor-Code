@@ -201,7 +201,7 @@ See [Cursor integration guide](integration/cursor.md) for details.
 npm install -g dardcor-code
 dardcor-code
 → Dashboard: http://localhost:3000
-→ API: http://localhost:20128/v1
+→ API: http://localhost:21128/v1
 ```
 
 ### VPS/Cloud

@@ -48,7 +48,7 @@
 │  Your CLI   │  (Claude Code, Codex, OpenClaw, Cursor, Cline...)
 │   Tool      │
 └──────┬──────┘
-       │ http://localhost:20128/v1
+       │ http://localhost:21128/v1
        ↓
 ┌─────────────────────────────────────────────┐
 │           Dardcor Code (Smart Router)            │
@@ -78,7 +78,7 @@ npm install -g dardcor-code
 dardcor-code
 ```
 
-🎉 เปิดแดชบอร์ดที่ `http://localhost:20128`
+🎉 เปิดแดชบอร์ดที่ `http://localhost:21128`
 
 **2. เชื่อมต่อผู้ให้บริการฟรี (ไม่ต้องสมัคร):**
 
@@ -88,7 +88,7 @@ dardcor-code
 
 ```
 ตั้งค่า Claude Code/Codex/OpenClaw/Cursor/Cline:
-  Endpoint: http://localhost:20128/v1
+  Endpoint: http://localhost:21128/v1
   API Key: [คัดลอกจากแดชบอร์ด]
   Model: kr/claude-sonnet-4.5
 ```
@@ -102,19 +102,19 @@ Repo นี้เป็น private package (`dardcor-code-app`) ดังนั�
 ```bash
 cp .env.example .env
 npm install
-PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
+PORT=21128 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run dev
 ```
 
 โหมด Production:
 
 ```bash
 npm run build
-PORT=20128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run start
+PORT=21128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run start
 ```
 
 URL ค่าเริ่มต้น:
-- แดชบอร์ด: `http://localhost:20128/dashboard`
-- OpenAI-compatible API: `http://localhost:20128/v1`
+- แดชบอร์ด: `http://localhost:21128/dashboard`
+- OpenAI-compatible API: `http://localhost:21128/v1`
 
 ---
 
@@ -645,7 +645,7 @@ Dardcor Code แค่เลือกเส้นทางคำขอของ�
 - ใช้ชั้นฟรี (Kiro, OpenCode Free, Vertex) สำหรับงานที่ไม่สำคัญ
 
 **แดชบอร์ดเปิดผิดพอร์ต**
-- ตั้ง `PORT=20128` และ `NEXT_PUBLIC_BASE_URL=http://localhost:20128`
+- ตั้ง `PORT=21128` และ `NEXT_PUBLIC_BASE_URL=http://localhost:21128`
 
 **ล็อกอินครั้งแรกไม่ทำงาน**
 - ตรวจสอบ `INITIAL_PASSWORD` ใน `.env`
@@ -672,7 +672,7 @@ Dardcor Code แค่เลือกเส้นทางคำขอของ�
 ### Chat Completions
 
 ```bash
-POST http://localhost:20128/v1/chat/completions
+POST http://localhost:21128/v1/chat/completions
 Authorization: Bearer your-api-key
 Content-Type: application/json
 
@@ -688,7 +688,7 @@ Content-Type: application/json
 ### List Models
 
 ```bash
-GET http://localhost:20128/v1/models
+GET http://localhost:21128/v1/models
 Authorization: Bearer your-api-key
 
 → คืนค่าโมเดลทั้งหมด + combo ในรูปแบบ OpenAI

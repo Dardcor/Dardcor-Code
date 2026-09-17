@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { getProviderIconSrc, markProviderIconMissing } from "@/shared/utils/providerIcon";
-import { Card, Button, Badge, Input, Modal, CardSkeleton, OAuthModal, KiroOAuthWrapper, CursorAuthModal, IFlowCookieModal, GitLabAuthModal, Toggle, Select, EditConnectionModal, NoAuthProxyCard, ConfirmModal } from "@/shared/components";
+import { Card, Button, Badge, Input, Modal, CardSkeleton, OAuthModal, KiroOAuthWrapper, CursorAuthModal, XiaomiMimoAuthModal, IFlowCookieModal, GitLabAuthModal, Toggle, Select, EditConnectionModal, NoAuthProxyCard, ConfirmModal } from "@/shared/components";
 import { OAUTH_PROVIDERS, APIKEY_PROVIDERS, FREE_PROVIDERS, FREE_TIER_PROVIDERS, WEB_COOKIE_PROVIDERS, getProviderAlias, isOpenAICompatibleProvider, isAnthropicCompatibleProvider, AI_PROVIDERS } from "@/shared/constants/providers";
 import { getModelsByProviderId, getModelKind } from "@/shared/constants/models";
 import { getThinkingLevels } from "open-sse/providers/thinkingLevels.js";
@@ -22,6 +22,8 @@ import AddApiKeyModal from "./AddApiKeyModal";
 import EditCompatibleNodeModal from "./EditCompatibleNodeModal";
 import AddCustomModelModal from "./AddCustomModelModal";
 import BulkImportCodexModal from "./BulkImportCodexModal";
+import BulkImportGrokCliModal from "./BulkImportGrokCliModal";
+import { useNotificationStore } from "@/store/notificationStore";
 
 const ONE_BY_ONE_DELAY_MS = 1000;
 
@@ -44,10 +46,12 @@ export default function ProviderDetailPage() {
   const [providerNode, setProviderNode] = useState(null);
   const [proxyPools, setProxyPools] = useState([]);
   const [showOAuthModal, setShowOAuthModal] = useState(false);
+  const [showXiaomiMimoModal, setShowXiaomiMimoModal] = useState(false);
   const [showIFlowCookieModal, setShowIFlowCookieModal] = useState(false);
   const [showAddApiKeyModal, setShowAddApiKeyModal] = useState(false);
   const [addConnectionError, setAddConnectionError] = useState("");
   const [showBulkImportCodex, setShowBulkImportCodex] = useState(false);
+  const [showBulkImportGrokCli, setShowBulkImportGrokCli] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showEditNodeModal, setShowEditNodeModal] = useState(false);
   const [showBulkProxyModal, setShowBulkProxyModal] = useState(false);
@@ -79,7 +83,11 @@ export default function ProviderDetailPage() {
   const [oneByOneSummary, setOneByOneSummary] = useState(null);
   const stopOneByOneRef = useRef(false);
   const [importingQoderModels, setImportingQoderModels] = useState(false);
+  const [importingClineModels, setImportingClineModels] = useState(false);
   const [refreshingModels, setRefreshingModels] = useState(false);
+  const [providerEnabled, setProviderEnabled] = useState(false);
+  const [togglingStatus, setTogglingStatus] = useState(false);
+  const notify = useNotificationStore();
   const { copied, copy } = useCopyToClipboard();
 
   const AG_RISK_STORAGE_KEY = "ag_risk_confirmed";
@@ -95,6 +103,11 @@ export default function ProviderDetailPage() {
         setShowAgRiskModal(true);
         return;
       }
+    }
+    // Xiaomi Desktop: auto-import local credentials first, OAuth as fallback
+    if (providerId === "xiaomi-mimo") {
+      setShowXiaomiMimoModal(true);
+      return;
     }
     if (isOAuth) {
       openOAuthConnection();
@@ -457,23 +470,6 @@ export default function ProviderDetailPage() {
     fetchAliases();
     fetchCustomModels();
     fetchDisabledModels();
-
-    const handleUpdate = () => {
-      fetchConnections();
-    };
-
-    window.addEventListener("providersChanged", handleUpdate);
-    window.addEventListener("focus", handleUpdate);
-    window.addEventListener("storage", handleUpdate);
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") fetchConnections();
-    });
-
-    return () => {
-      window.removeEventListener("providersChanged", handleUpdate);
-      window.removeEventListener("focus", handleUpdate);
-      window.removeEventListener("storage", handleUpdate);
-    };
   }, [fetchConnections, fetchAliases, fetchCustomModels, fetchDisabledModels]);
 
   // Cursor's model availability is account-specific and changes frequently.
@@ -511,6 +507,89 @@ export default function ProviderDetailPage() {
     fetchSuggestedModels(fetcher).then(setSuggestedModels);
   }, [providerId]);
 
+  const fetchProviderStatus = useCallback(async () => {
+    if (!providerId) return;
+    try {
+      const res = await fetch(`/api/providers/status/${encodeURIComponent(providerId)}`, { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (typeof data.enabled === "boolean") {
+          setProviderEnabled(data.enabled);
+        }
+      }
+    } catch (error) {
+      console.log("Error fetching provider status:", error);
+    }
+  }, [providerId]);
+
+  useEffect(() => {
+    fetchProviderStatus();
+  }, [fetchProviderStatus]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleStatusUpdate = (e) => {
+      const detail = e.detail;
+      if (!detail) {
+        fetchProviderStatus();
+        return;
+      }
+      if (detail.providerId && detail.providerId.toLowerCase() === providerId?.toLowerCase()) {
+        if (typeof detail.enabled === "boolean") {
+          setProviderEnabled(detail.enabled);
+        }
+      }
+    };
+    window.addEventListener("providerStatusChanged", handleStatusUpdate);
+    return () => window.removeEventListener("providerStatusChanged", handleStatusUpdate);
+  }, [providerId, fetchProviderStatus]);
+
+  const handleToggleProviderStatus = async () => {
+    if (togglingStatus) return;
+    const nextState = !providerEnabled;
+    setTogglingStatus(true);
+    setProviderEnabled(nextState);
+
+    try {
+      const res = await fetch(`/api/providers/status/${encodeURIComponent(providerId)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: nextState }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setProviderEnabled(!nextState);
+        notify?.addNotification?.({
+          type: "error",
+          message: `Failed to change status for ${providerInfo.name}`,
+        });
+      } else {
+        notify?.addNotification?.({
+          type: nextState ? "success" : "info",
+          message: `${providerInfo.name} is now ${nextState ? "ON (Active)" : "OFF (Disabled)"}`,
+        });
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("providerStatusChanged", {
+              detail: { providerId, enabled: nextState },
+            })
+          );
+          window.dispatchEvent(new CustomEvent("providersChanged"));
+          window.dispatchEvent(new CustomEvent("modelsChanged"));
+        }
+      }
+    } catch (error) {
+      console.log("Error toggling provider status:", error);
+      setProviderEnabled(!nextState);
+      notify?.addNotification?.({
+        type: "error",
+        message: `Error updating status for ${providerInfo.name}`,
+      });
+    } finally {
+      setTogglingStatus(false);
+    }
+  };
+
   const handleRefreshModels = async () => {
     if (refreshingModels) return;
     setRefreshingModels(true);
@@ -520,6 +599,7 @@ export default function ProviderDetailPage() {
         fetchAliases(),
         fetchCustomModels(),
         fetchDisabledModels(),
+        fetchProviderStatus(),
         (async () => {
           const fetcher = (OAUTH_PROVIDERS[providerId] || APIKEY_PROVIDERS[providerId] || FREE_PROVIDERS[providerId] || FREE_TIER_PROVIDERS[providerId])?.modelsFetcher;
           if (fetcher) setSuggestedModels(await fetchSuggestedModels(fetcher));
@@ -534,6 +614,10 @@ export default function ProviderDetailPage() {
             })()
           : Promise.resolve(),
       ]);
+      notify?.addNotification?.({
+        type: "success",
+        message: `Refreshed models for ${providerInfo.name}`,
+      });
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("providersChanged"));
         window.dispatchEvent(new CustomEvent("modelsChanged"));
@@ -577,12 +661,12 @@ export default function ProviderDetailPage() {
     }
   };
 
-  const handleAddCustomModel = async (modelId, type = "llm", providerAliasOverride = providerStorageAlias) => {
+  const handleAddCustomModel = async (modelId, type = "llm", providerAliasOverride = providerStorageAlias, caps) => {
     try {
       const res = await fetch("/api/models/custom", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ providerAlias: providerAliasOverride, id: modelId, type }),
+        body: JSON.stringify({ providerAlias: providerAliasOverride, id: modelId, type, ...(caps ? { caps } : {}) }),
       });
       if (res.ok) {
         await fetchCustomModels();
@@ -660,6 +744,53 @@ export default function ProviderDetailPage() {
       alert(translate("Error fetching models") + ": " + error.message);
     } finally {
       setImportingQoderModels(false);
+    }
+  };
+  // Fetch the live Cline /models catalog and add every model not yet present.
+  // Cline and ClinePass share the same catalog endpoint (api.cline.bot/api/v1/models).
+  const handleImportClineModels = async () => {
+    if (importingClineModels) return;
+    const activeConnection = connections.find((conn) => conn.isActive !== false);
+    if (!activeConnection) {
+      alert(translate("Please add an active Cline connection first"));
+      return;
+    }
+    setImportingClineModels(true);
+    try {
+      const res = await fetch(`/api/providers/${activeConnection.id}/models`);
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || translate("Failed to fetch models"));
+        return;
+      }
+      const models = data.models || [];
+      if (models.length === 0) {
+        alert(translate("No models returned"));
+        return;
+      }
+      let importedCount = 0;
+      for (const model of models) {
+        const modelId = model.id || model.name;
+        if (!modelId) continue;
+        const alreadyExists = customModels.some(
+          (entry) => entry.providerAlias === providerStorageAlias && entry.id === modelId && (entry.kind || entry.type || "llm") === "llm"
+        ) || Object.values(modelAliases).includes(`${providerStorageAlias}/${modelId}`);
+        if (alreadyExists) {
+          continue;
+        }
+        await handleAddCustomModel(modelId, "llm", providerStorageAlias);
+        importedCount += 1;
+      }
+      if (importedCount === 0) {
+        alert(translate("All models already exist, no new models added"));
+      } else {
+        alert(translate("Successfully added") + ` ${importedCount} ` + translate("models"));
+      }
+    } catch (error) {
+      console.log("Error importing Cline models:", error);
+      alert(translate("Error fetching models") + ": " + error.message);
+    } finally {
+      setImportingClineModels(false);
     }
   };
 
@@ -993,7 +1124,7 @@ export default function ProviderDetailPage() {
   const isSelected = (connectionId) => selectedConnectionIds.includes(connectionId);
 
   const connectionsList = (
-    <div className="flex min-w-0 flex-col divide-y divide-black/[0.03] dark:divide-white/[0.03]">
+    <div className="flex min-w-0 flex-col divide-y divide-black/[0.03] dark:divide-white/[0.03] max-h-[500px] overflow-y-auto pr-1">
       {connections
         .map((conn, index) => (
           <div key={conn.id} className="flex min-w-0 items-stretch">
@@ -1237,6 +1368,20 @@ export default function ProviderDetailPage() {
           </button>
         )}
 
+        {/* Import Cline /models catalog button — only show for cline and clinepass providers */}
+        {(providerId === "cline" || providerId === "clinepass") && connections.some((conn) => conn.isActive !== false) && (
+          <button
+            onClick={handleImportClineModels}
+            disabled={importingClineModels}
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-blue-500/40 px-3 py-2 text-xs text-blue-600 dark:text-blue-400 transition-colors hover:border-blue-500 hover:bg-blue-500/5 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span className="material-symbols-outlined text-sm" style={importingClineModels ? { animation: "spin 1s linear infinite" } : undefined}>
+              {importingClineModels ? "progress_activity" : "download"}
+            </span>
+            {importingClineModels ? translate("Fetching...") : translate("Import from /models")}
+          </button>
+        )}
+
         {/* Suggested models from provider API — show only models not yet added */}
         {suggestedModels.length > 0 && (() => {
           const addedFullModels = new Set([
@@ -1376,8 +1521,8 @@ export default function ProviderDetailPage() {
                 </a>
               )}
             </div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <p className="text-text-muted">
+            <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+              <p className="text-text-muted text-sm">
                 {connections.length} connection{connections.length === 1 ? "" : "s"}
               </p>
               <Button
@@ -1387,16 +1532,57 @@ export default function ProviderDetailPage() {
                 disabled={refreshingModels}
                 title="Refresh provider models"
                 aria-label="Refresh provider models"
+                className="h-7 px-2.5 text-xs font-medium"
               >
                 <span className={`material-symbols-outlined text-[15px]${refreshingModels ? " animate-spin" : ""}`}>
                   refresh
                 </span>
                 {refreshingModels ? "Refreshing..." : "Refresh Models"}
               </Button>
+
+              <button
+                type="button"
+                onClick={handleToggleProviderStatus}
+                disabled={togglingStatus}
+                title={providerEnabled ? `Deactivate ${providerInfo.name}` : `Activate ${providerInfo.name}`}
+                aria-label={providerEnabled ? "Disable Provider" : "Enable Provider"}
+                className={`relative inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-all duration-150 shadow-sm border ${
+                  providerEnabled
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20 active:scale-95"
+                    : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/20 active:scale-95"
+                } ${togglingStatus ? "opacity-70 cursor-wait" : ""}`}
+              >
+                <span
+                  className={`inline-block h-2 w-2 rounded-full transition-colors ${
+                    providerEnabled ? "bg-emerald-500 animate-pulse" : "bg-rose-500"
+                  }`}
+                />
+                <span className="material-symbols-outlined text-[15px]">
+                  {providerEnabled ? "power_settings_new" : "power_off"}
+                </span>
+                <span>{providerEnabled ? "Provider ON" : "Provider OFF"}</span>
+              </button>
             </div>
           </div>
         </div>
       </div>
+
+      {!providerEnabled && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 transition-all">
+          <span className="material-symbols-outlined text-lg shrink-0">power_off</span>
+          <div className="text-xs leading-relaxed flex-1">
+            <strong className="font-semibold">Provider Disabled:</strong> {providerInfo.name} is currently switched OFF. All incoming requests to its models will be bypassed or rejected until it is turned back ON.
+          </div>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="shrink-0 text-xs h-7 border-rose-500/40 text-rose-500 hover:bg-rose-500/20"
+            onClick={handleToggleProviderStatus}
+          >
+            Turn ON
+          </Button>
+        </div>
+      )}
 
       {providerInfo.deprecated && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
@@ -1596,6 +1782,11 @@ export default function ProviderDetailPage() {
                         {translate("Bulk Add")}
                       </Button>
                     )}
+                    {providerId === "grok-cli" && (
+                      <Button size="sm" icon="playlist_add" variant="secondary" onClick={() => setShowBulkImportGrokCli(true)}>
+                        {translate("Bulk Add")}
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       icon="add"
@@ -1660,6 +1851,18 @@ export default function ProviderDetailPage() {
                       variant="secondary"
                       onClick={() => setShowBulkImportCodex(true)}
                       title={translate("Bulk import codex accounts from JSON")}
+                      className="w-full sm:w-auto"
+                    >
+                      {translate("Bulk Add")}
+                    </Button>
+                  )}
+                  {providerId === "grok-cli" && (
+                    <Button
+                      size="sm"
+                      icon="playlist_add"
+                      variant="secondary"
+                      onClick={() => setShowBulkImportGrokCli(true)}
+                      title={translate("Bulk import Grok CLI accounts from JSON")}
                       className="w-full sm:w-auto"
                     >
                       {translate("Bulk Add")}
@@ -1782,6 +1985,13 @@ export default function ProviderDetailPage() {
           onClose={() => setShowOAuthModal(false)}
         />
       )}
+
+      {/* Xiaomi Desktop: auto-import local credentials modal */}
+      <XiaomiMimoAuthModal
+        isOpen={showXiaomiMimoModal}
+        onSuccess={handleOAuthSuccess}
+        onClose={() => setShowXiaomiMimoModal(false)}
+      />
       {providerId === "iflow" && (
         <IFlowCookieModal
           isOpen={showIFlowCookieModal}
@@ -1829,8 +2039,8 @@ export default function ProviderDetailPage() {
           isOpen={showAddCustomModel}
           providerAlias={providerStorageAlias}
           providerDisplayAlias={providerDisplayAlias}
-          onSave={async (modelId) => {
-            await handleAddCustomModel(modelId, "llm", providerStorageAlias);
+          onSave={async (modelId, caps) => {
+            await handleAddCustomModel(modelId, "llm", providerStorageAlias, caps);
             setShowAddCustomModel(false);
           }}
           onClose={() => setShowAddCustomModel(false)}
@@ -1841,6 +2051,14 @@ export default function ProviderDetailPage() {
         <BulkImportCodexModal
           isOpen={showBulkImportCodex}
           onClose={() => setShowBulkImportCodex(false)}
+          onSuccess={fetchConnections}
+        />
+      )}
+
+      {providerId === "grok-cli" && (
+        <BulkImportGrokCliModal
+          isOpen={showBulkImportGrokCli}
+          onClose={() => setShowBulkImportGrokCli(false)}
           onSuccess={fetchConnections}
         />
       )}

@@ -64,7 +64,7 @@ describe("dashboard guard public LLM API access", () => {
   });
 
   it("allows loopback public LLM API without API key", async () => {
-    const response = await proxy(localRequest("/v1/chat/completions", { host: "localhost:20128" }));
+    const response = await proxy(localRequest("/v1/chat/completions", { host: "localhost:21128" }));
 
     expect(response).toBe(mocks.nextResponse);
     expect(mocks.validateApiKey).not.toHaveBeenCalled();
@@ -82,7 +82,7 @@ describe("dashboard guard public LLM API access", () => {
 
   it("allows loopback peer IP regardless of Host", async () => {
     const response = await proxy(localRequest("/v1/chat/completions", {
-      host: "localhost:20128",
+      host: "localhost:21128",
       "x-9r-real-ip": "127.0.0.1",
     }));
 
@@ -98,7 +98,7 @@ describe("dashboard guard public LLM API access", () => {
   });
 
   it("allows loopback rewritten public LLM API without API key", async () => {
-    const response = await proxy(localRequest("/api/v1/chat/completions", { host: "localhost:20128" }));
+    const response = await proxy(localRequest("/api/v1/chat/completions", { host: "localhost:21128" }));
 
     expect(response).toBe(mocks.nextResponse);
     expect(mocks.validateApiKey).not.toHaveBeenCalled();
@@ -218,8 +218,8 @@ describe("dashboard guard local-only access", () => {
 
   it("rejects local-only route on loopback when requireLogin=true and no JWT", async () => {
     const response = await proxy(localRequest("/api/mcp/filesystem/sse", {
-      host: "localhost:20128",
-      origin: "http://localhost:20128",
+      host: "localhost:21128",
+      origin: "http://localhost:21128",
     }));
 
     expect(response.status).toBe(403);
@@ -230,8 +230,8 @@ describe("dashboard guard local-only access", () => {
     mocks.getSettings.mockResolvedValue({ requireLogin: false });
 
     const response = await proxy(localRequest("/api/cli-tools/antigravity-mitm", {
-      host: "localhost:20128",
-      origin: "http://localhost:20128",
+      host: "localhost:21128",
+      origin: "http://localhost:21128",
     }));
 
     expect(response).toBe(mocks.nextResponse);
@@ -251,7 +251,7 @@ describe("dashboard guard local-only access", () => {
     mocks.getSettings.mockResolvedValue({ requireLogin: false });
 
     const response = await proxy(localRequest("/api/cli-tools/antigravity-mitm", {
-      host: "localhost:20128",
+      host: "localhost:21128",
       origin: "http://evil.example.com",
     }));
 

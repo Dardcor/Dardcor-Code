@@ -5,6 +5,7 @@ import { Card, Button, ModelSelectModal, ManualConfigModal } from "@/shared/comp
 import { useModelCaps } from "@/shared/hooks/useModelCaps";
 import Image from "next/image";
 import BaseUrlSelect from "./BaseUrlSelect";
+import { rememberEndpoint } from "./cliEndpointPresets";
 import ApiKeySelect from "./ApiKeySelect";
 import { matchKnownEndpoint } from "./cliEndpointMatch";
 
@@ -96,6 +97,7 @@ export default function GrokBuildToolCard({
   const hasFetchedStatus = useRef(Boolean(initialStatus));
 
   const configuredModel = grokStatus?.settings?.model;
+  const currentBaseUrl = configuredModel?.base_url || "";
   const configStatus = !grokStatus?.installed
     ? null
     : !configuredModel?.base_url
@@ -154,7 +156,7 @@ export default function GrokBuildToolCard({
   const getEffectiveBaseUrl = () => {
     const url = customBaseUrl || (typeof window !== "undefined"
       ? window.location.origin.replace("://localhost", "://127.0.0.1")
-      : "http://127.0.0.1:20128");
+      : "http://127.0.0.1:21128");
     return url.endsWith("/v1") ? url : `${url}/v1`;
   };
 
@@ -164,7 +166,7 @@ export default function GrokBuildToolCard({
     try {
       const keyToUse = selectedApiKey?.trim()
         || (apiKeys?.length > 0 ? apiKeys[0].key : null)
-        || (!cloudEnabled ? "sk_dardcor-code" : null);
+        || (!cloudEnabled ? "sk_dardcor" : null);
       const mappedSubagents = {};
       for (const type of SUBAGENT_TYPES) {
         const model = subagentModels[type.id]?.trim();
@@ -184,6 +186,8 @@ export default function GrokBuildToolCard({
       });
       const data = await res.json();
       if (res.ok) {
+        // Remember the endpoint so it stays selectable next time
+        rememberEndpoint(getEffectiveBaseUrl(), { tunnelPublicUrl, tailscaleUrl });
         setMessage({ type: "success", text: "Main and subagent models applied successfully!" });
         checkStatus();
       } else {
@@ -228,12 +232,12 @@ export default function GrokBuildToolCard({
 
   const getManualConfigs = () => {
     const keyToUse = selectedApiKey?.trim()
-      || (!cloudEnabled ? "sk_dardcor-code" : "<API_KEY_FROM_DASHBOARD>");
+      || (!cloudEnabled ? "sk_dardcor" : "<API_KEY_FROM_DASHBOARD>");
     const baseUrl = getEffectiveBaseUrl();
     const mainModel = selectedModel || "provider/model-id";
     const blocks = [
       `[models]\ndefault = "${MODEL_SLOT}"`,
-      `[model.${MODEL_SLOT}]\nmodel = "${mainModel}"\nbase_url = "${baseUrl}"\nname = "DRouter"\ndescription = "Routed via DRouter gateway"\napi_backend = "chat_completions"\napi_key = "${keyToUse}"\ncontext_window = ${getContextWindow(mainModel) || 200000}`,
+      `[model.${MODEL_SLOT}]\nmodel = "${mainModel}"\nbase_url = "${baseUrl}"\nname = "Dardcor Code"\ndescription = "Routed via Dardcor Code gateway"\napi_backend = "chat_completions"\napi_key = "${keyToUse}"\ncontext_window = ${getContextWindow(mainModel) || 200000}`,
     ];
     const mappings = [];
     for (const type of SUBAGENT_TYPES) {
@@ -241,7 +245,7 @@ export default function GrokBuildToolCard({
       if (!model) continue;
       const slot = `${MODEL_SLOT}-${type.id}`;
       mappings.push(`${type.id} = "${slot}"`);
-      blocks.push(`[model.${slot}]\nmodel = "${model}"\nbase_url = "${baseUrl}"\nname = "DRouter ${type.id}"\ndescription = "Routed via DRouter gateway"\napi_backend = "chat_completions"\napi_key = "${keyToUse}"\ncontext_window = ${getContextWindow(model) || 200000}`);
+      blocks.push(`[model.${slot}]\nmodel = "${model}"\nbase_url = "${baseUrl}"\nname = "Dardcor Code ${type.id}"\ndescription = "Routed via Dardcor Code gateway"\napi_backend = "chat_completions"\napi_key = "${keyToUse}"\ncontext_window = ${getContextWindow(model) || 200000}`);
     }
     if (mappings.length) blocks.splice(1, 0, `[subagents.models]\n${mappings.join("\n")}`);
     return [{ filename: "~/.grok/config.toml", content: `${blocks.join("\n\n")}\n` }];
@@ -310,7 +314,7 @@ export default function GrokBuildToolCard({
                 <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr] sm:items-center sm:gap-2">
                   <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Select Endpoint</span>
                   <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
-                  <BaseUrlSelect value={customBaseUrl || getEffectiveBaseUrl()} onChange={setCustomBaseUrl} requiresExternalUrl={tool.requiresExternalUrl} tunnelEnabled={tunnelEnabled} tunnelPublicUrl={tunnelPublicUrl} tailscaleEnabled={tailscaleEnabled} tailscaleUrl={tailscaleUrl} />
+                  <BaseUrlSelect value={customBaseUrl || getEffectiveBaseUrl()} onChange={setCustomBaseUrl} requiresExternalUrl={tool.requiresExternalUrl} tunnelEnabled={tunnelEnabled} tunnelPublicUrl={tunnelPublicUrl} tailscaleEnabled={tailscaleEnabled} tailscaleUrl={tailscaleUrl} currentUrl={currentBaseUrl} />
                 </div>
 
                 {configuredModel?.base_url && (

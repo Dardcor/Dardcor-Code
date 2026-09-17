@@ -13,6 +13,8 @@ import {
   refreshGoogleToken as _refreshGoogleToken,
   refreshCodexToken as _refreshCodexToken,
   refreshIflowToken as _refreshIflowToken,
+  refreshGitHubToken as _refreshGitHubToken,
+  refreshCopilotToken as _refreshCopilotToken,
   getAccessToken as _getAccessToken,
   refreshTokenByProvider as _refreshTokenByProvider,
   formatProviderCredentials as _formatProviderCredentials,
@@ -43,6 +45,12 @@ export const refreshCodexToken = (refreshToken) =>
 
 export const refreshIflowToken = (refreshToken) =>
   _refreshIflowToken(refreshToken, log);
+
+export const refreshGitHubToken = (refreshToken) =>
+  _refreshGitHubToken(refreshToken, log);
+
+export const refreshCopilotToken = (githubAccessToken) =>
+  _refreshCopilotToken(githubAccessToken, log);
 
 export const refreshKiroToken = (refreshToken, providerSpecificData) =>
   _refreshKiroToken(refreshToken, providerSpecificData, log);
@@ -116,25 +124,30 @@ function needsProjectId(provider) {
 function _refreshProjectId(provider, connectionId, accessToken) {
   if (!needsProjectId(provider) || !connectionId || !accessToken) return;
 
-  // Evict the stale cached entry so getProjectIdForConnection does a real fetch
+  // Invalidate the stale cached entry so getProjectIdForConnection does a real fetch
   invalidateProjectId(connectionId);
 
-  getProjectIdForConnection(connectionId, accessToken)
-    .then((projectId) => {
-      if (!projectId) return;
-      updateProviderCredentials(connectionId, { projectId }).catch((err) => {
-        log.debug("TOKEN_REFRESH", "Failed to persist refreshed projectId", {
+  // Lazy resolution: Do not eagerly trigger onboardUser during background token refresh.
+  // Eagerly fetching projectId across multiple accounts simultaneously triggers Google Cloud anti-abuse / rate limits.
+  // Runtime handlers (e.g. chat handler) will lazily call getProjectIdForConnection() on demand.
+  if (process.env.EAGER_PROJECT_ID_REFRESH === "true") {
+    getProjectIdForConnection(connectionId, accessToken, provider)
+      .then((projectId) => {
+        if (!projectId) return;
+        updateProviderCredentials(connectionId, { projectId }).catch((err) => {
+          log.debug("TOKEN_REFRESH", "Failed to persist refreshed projectId", {
+            connectionId,
+            error: err?.message ?? err,
+          });
+        });
+      })
+      .catch((err) => {
+        log.debug("TOKEN_REFRESH", "Failed to fetch projectId after token refresh", {
           connectionId,
           error: err?.message ?? err,
         });
       });
-    })
-    .catch((err) => {
-      log.debug("TOKEN_REFRESH", "Failed to fetch projectId after token refresh", {
-        connectionId,
-        error: err?.message ?? err,
-      });
-    });
+  }
 }
 
 // ─── Local-specific: persist credentials to localDb ──────────────────────────
@@ -255,7 +268,63 @@ export async function checkAndRefreshToken(provider, credentials, options = {}) 
     }
   }
 
+  // ── 2. GitHub Copilot token expiry ────────────────────────────────────────
+  if (provider === "github") {
+    const copilotToken = creds.providerSpecificData?.copilotToken;
+    const copilotExpiresAt = creds.providerSpecificData?.copilotTokenExpiresAt
+      ? creds.providerSpecificData.copilotTokenExpiresAt * 1000
+      : 0;
+    const now              = Date.now();
+    const remaining        = copilotExpiresAt - now;
+
+    if (!copilotToken || remaining < TOKEN_EXPIRY_BUFFER_MS) {
+      log.info("TOKEN_REFRESH", "Copilot token expiring soon or missing, refreshing proactively", {
+        provider,
+        expiresIn: copilotToken ? Math.round(remaining / 1000) : "missing",
+      });
+
+      const copilotTokenResult = await refreshCopilotToken(creds.accessToken);
+      if (copilotTokenResult) {
+        const updatedSpecific = {
+          ...creds.providerSpecificData,
+          copilotToken:          copilotTokenResult.token,
+          copilotTokenExpiresAt: copilotTokenResult.expiresAt,
+        };
+
+        await updateProviderCredentials(creds.connectionId, {
+          providerSpecificData: updatedSpecific,
+        });
+
+        creds.providerSpecificData = updatedSpecific;
+        creds.copilotToken = copilotTokenResult.token;
+      }
+    }
+  }
+
   return creds;
 }
 
+// ─── Local-specific: combined GitHub + Copilot refresh ───────────────────────
 
+/**
+ * Refresh the GitHub OAuth token and immediately exchange it for a fresh
+ * Copilot token.
+ *
+ * @param {object} credentials  – must contain `refreshToken`
+ * @returns {Promise<object|null>} merged credentials or the raw GitHub credentials on Copilot failure
+ */
+export async function refreshGitHubAndCopilotTokens(credentials) {
+  const newGitHubCreds = await refreshGitHubToken(credentials.refreshToken);
+  if (!newGitHubCreds?.accessToken) return newGitHubCreds;
+
+  const copilotToken = await refreshCopilotToken(newGitHubCreds.accessToken);
+  if (!copilotToken) return newGitHubCreds;
+
+  return {
+    ...newGitHubCreds,
+    providerSpecificData: {
+      copilotToken:          copilotToken.token,
+      copilotTokenExpiresAt: copilotToken.expiresAt,
+    },
+  };
+}

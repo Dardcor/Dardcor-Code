@@ -10,14 +10,14 @@ Run Dardcor Code in a container. Published image: [`dardcor/dardcor-code`](https
 
 ```bash
 docker run -d \
-  -p 20128:20128 \
+  -p 21128:21128 \
   -v "$HOME/.dardcor-code:/app/data" \
   -e DATA_DIR=/app/data \
   --name dardcor-code \
   dardcor/dardcor-code:latest
 ```
 
-App listens on port `20128`. Open: http://localhost:20128
+App listens on port `21128`. Open: http://localhost:21128
 
 ## Manage container
 
@@ -54,10 +54,10 @@ Container path: `/app/data/db/data.sqlite`
 
 ```bash
 docker run -d \
-  -p 20128:20128 \
+  -p 21128:21128 \
   -v "$HOME/.dardcor-code:/app/data" \
   -e DATA_DIR=/app/data \
-  -e PORT=20128 \
+  -e PORT=21128 \
   -e HOSTNAME=0.0.0.0 \
   -e DEBUG=true \
   --name dardcor-code \
@@ -73,7 +73,7 @@ services:
   dardcor-code:
     image: dardcor/dardcor-code:latest
     ports:
-      - "20128:20128"
+      - "21128:21128"
     volumes:
       - "$HOME/.dardcor-code:/app/data"
     environment:
@@ -109,7 +109,7 @@ docker rm -f dardcor-code
 ```bash
 cd app && docker build -t dardcor-code .
 
-docker run --rm -p 20128:20128 \
+docker run --rm -p 21128:21128 \
   -v "$HOME/.dardcor-code:/app/data" \
   -e DATA_DIR=/app/data \
   dardcor-code

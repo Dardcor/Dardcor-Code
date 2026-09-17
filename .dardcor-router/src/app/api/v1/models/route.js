@@ -1,17 +1,21 @@
-import { PROVIDER_ID_TO_ALIAS, getModelKind } from "@/shared/constants/models";
-import { PROVIDER_MODELS } from "open-sse/config/providerModels.js";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+import { PROVIDER_MODELS, PROVIDER_ID_TO_ALIAS, getModelKind } from "@/shared/constants/models";
 import {
   AI_PROVIDERS,
   getProviderAlias,
   isAnthropicCompatibleProvider,
   isOpenAICompatibleProvider,
 } from "@/shared/constants/providers";
-import { getProviderConnections, getCombos, getCustomModels, getModelAliases } from "@/lib/localDb";
+import { getProviderConnections, getCombos, getCustomModels, getModelAliases, getAllProviderStatuses } from "@/lib/localDb";
 import { getDisabledModels } from "@/lib/disabledModelsDb";
+import { FILTERS } from "@/app/api/providers/suggested-models/filters.js";
 import { resolveKiroModels } from "open-sse/services/kiroModels.js";
 import { resolveKimchiModels } from "open-sse/services/kimchiModels.js";
-import { resolveQoderModels } from "open-sse/services/qoderModels.js";
-import { resolveClinepassModels } from "open-sse/services/clinepassModels.js";
+import { resolveQoderModels, routableQoderModels } from "open-sse/services/qoderModels.js";
+import { resolveCopilotModels } from "open-sse/services/copilotModels.js";
+import { resolveClinepassModels, resolveClineModels } from "open-sse/services/clinepassModels.js";
 import { resolveGrokCliModels } from "open-sse/services/grokCliModels.js";
 import { resolveCursorModels } from "open-sse/services/cursorModels.js";
 import { resolveZedModels } from "open-sse/shared/zedAuth.js";
@@ -19,165 +23,131 @@ import { updateProviderCredentials } from "@/sse/services/tokenRefresh";
 import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy";
 import { capabilitiesFromServiceKind, getCapabilitiesForModel } from "open-sse/providers/capabilities.js";
 
-const OPENCODE_FALLBACK_MODELS = [
-  { id: "kimi-k2.5-free", name: "Kimi K2.5 (Free)", capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true, reasoning: true, toolCalling: true } },
-  { id: "glm-4.7-free", name: "GLM 4.7 (Free)", capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true, reasoning: true, toolCalling: true } },
-  { id: "qwen3-coder-free", name: "Qwen 3 Coder (Free)", capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false, reasoning: true, toolCalling: true } },
-  { id: "deepseek-r1-free", name: "DeepSeek R1 (Free)", capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false, reasoning: true, toolCalling: true } },
-  { id: "gemini-2.5-flash-free", name: "Gemini 2.5 Flash (Free)", capabilities: { contextWindow: 200000, maxOutput: 64000, vision: true, reasoning: true, toolCalling: true } },
-  { id: "big-pickle", name: "Big Pickle", capabilities: { contextWindow: 200000, maxOutput: 64000, vision: false, reasoning: false, toolCalling: true } },
-];
-
-let opencodeCache = null;
-let opencodeCacheTime = 0;
-
 // Per-provider live model resolvers. Each receives a connection record and
 // returns { models: [{ id, name? }, ...] } | null on failure.
 // Adding a provider here makes /v1/models prefer the live catalog for it.
 const LIVE_MODEL_RESOLVERS = {
   opencode: async () => {
-    const now = Date.now();
-    if (opencodeCache && (now - opencodeCacheTime < 300_000)) {
-      return opencodeCache;
-    }
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2500);
-      const response = await fetch("https://opencode.ai/zen/v1/models", {
-        headers: {
-          Accept: "application/json",
-          "User-Agent": "opencode/1.0",
-          "x-opencode-client": "desktop",
-        },
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-      if (!response.ok) {
-        return opencodeCache || { models: OPENCODE_FALLBACK_MODELS };
-      }
-      const payload = await response.json();
-      const models = parseOpenAIStyleModels(payload)
-        .filter((model) => model && typeof model.id === "string")
-        .map((model) => ({ id: model.id, name: model.name || model.id, capabilities: model.capabilities }));
-      if (models.length) {
-        opencodeCache = { models };
-        opencodeCacheTime = now;
-        return opencodeCache;
-      }
-      return opencodeCache || { models: OPENCODE_FALLBACK_MODELS };
+      const res = await fetch("https://opencode.ai/zen/v1/models");
+      if (!res.ok) return null;
+      const json = await res.json();
+      const raw = json.data ?? json.models ?? json;
+      const filter = FILTERS["opencode-free"];
+      const free = filter ? filter(Array.isArray(raw) ? raw : []) : [];
+      return free.length ? { models: free } : null;
     } catch {
-      return opencodeCache || { models: OPENCODE_FALLBACK_MODELS };
+      return null;
     }
   },
   kiro: async (conn) => {
-    try {
-      const result = await resolveKiroModels({
-        accessToken: conn.accessToken,
-        refreshToken: conn.refreshToken,
-        providerSpecificData: conn.providerSpecificData || {}
-      }, { log: console });
-      return result?.models?.length ? { models: result.models } : null;
-    } catch {
-      return null;
-    }
+    const result = await resolveKiroModels({
+      accessToken: conn.accessToken,
+      refreshToken: conn.refreshToken,
+      providerSpecificData: conn.providerSpecificData || {}
+    }, { log: console });
+    return result?.models?.length ? { models: result.models } : null;
   },
   qoder: async (conn) => {
-    try {
-      const result = await resolveQoderModels({
-        accessToken: conn.accessToken,
-        refreshToken: conn.refreshToken,
-        email: conn.email,
-        displayName: conn.displayName,
-        providerSpecificData: conn.providerSpecificData || {}
-      });
-      if (!result?.models?.length) return null;
-      return {
-        models: result.models.map((m) => ({ id: m.id, name: m.name })),
-      };
-    } catch {
-      return null;
-    }
+    const result = await resolveQoderModels({
+      accessToken: conn.accessToken,
+      // PAT (pt-...) connections keep the token in apiKey; without it the live
+      // catalog silently fails and /v1/models falls back to the static list.
+      apiKey: conn.apiKey,
+      refreshToken: conn.refreshToken,
+      email: conn.email,
+      displayName: conn.displayName,
+      providerSpecificData: conn.providerSpecificData || {}
+    });
+    // Visible + hidden (enable:false) catalog keys — chat routes all of them.
+    const models = routableQoderModels(result);
+    if (!models.length) return null;
+    return { models: models.map((m) => ({ id: m.id, name: m.name })) };
   },
   kimchi: async (conn) => {
-    try {
-      const result = await resolveKimchiModels({
-        accessToken: conn.accessToken,
-        apiKey: conn.apiKey,
-        providerSpecificData: conn.providerSpecificData || {}
-      }, { log: console });
-      return result?.models?.length ? { models: result.models } : null;
-    } catch {
-      return null;
-    }
+    const result = await resolveKimchiModels({
+      accessToken: conn.accessToken,
+      apiKey: conn.apiKey,
+      providerSpecificData: conn.providerSpecificData || {}
+    }, { log: console });
+    return result?.models?.length ? { models: result.models } : null;
+  },
+  github: async (conn) => {
+    const result = await resolveCopilotModels({
+      accessToken: conn.accessToken,
+      refreshToken: conn.refreshToken,
+      providerSpecificData: conn.providerSpecificData || {}
+    }, {
+      log: console,
+      onCredentialsRefreshed: async (refreshed) => {
+        await updateProviderCredentials(conn.id, {
+          copilotToken: refreshed.copilotToken,
+          copilotTokenExpiresAt: refreshed.copilotTokenExpiresAt,
+          existingProviderSpecificData: conn.providerSpecificData || {},
+        });
+      },
+    });
+    return result?.models?.length ? { models: result.models } : null;
   },
   clinepass: async (conn) => {
-    try {
-      const result = await resolveClinepassModels({
-        accessToken: conn.accessToken,
-        apiKey: conn.apiKey,
-      });
-      return result?.models?.length ? { models: result.models } : null;
-    } catch {
-      return null;
-    }
+    const result = await resolveClinepassModels({
+      accessToken: conn.accessToken,
+      apiKey: conn.apiKey,
+    });
+    return result?.models?.length ? { models: result.models } : null;
+  },
+  cline: async (conn) => {
+    const result = await resolveClineModels({
+      accessToken: conn.accessToken,
+      apiKey: conn.apiKey,
+    });
+    return result?.models?.length ? { models: result.models } : null;
   },
   "grok-cli": async (conn) => {
-    try {
-      const proxy = await resolveConnectionProxyConfig(conn.providerSpecificData || {});
-      const result = await resolveGrokCliModels({
-        ...conn,
-        connectionId: conn.id,
-      }, {
-        log: console,
-        proxyOptions: {
-          connectionProxyEnabled: proxy.connectionProxyEnabled === true,
-          connectionProxyUrl: proxy.connectionProxyUrl || "",
-          connectionNoProxy: proxy.connectionNoProxy || "",
-          vercelRelayUrl: proxy.vercelRelayUrl || "",
-          strictProxy: proxy.strictProxy === true,
-        },
-        onCredentialsRefreshed: async (refreshed) => {
-          await updateProviderCredentials(conn.id, {
-            ...refreshed,
-            existingProviderSpecificData: conn.providerSpecificData || {},
-          });
-        },
-      });
-      return result?.models?.length ? { models: result.models } : null;
-    } catch {
-      return null;
-    }
+    const proxy = await resolveConnectionProxyConfig(conn.providerSpecificData || {});
+    const result = await resolveGrokCliModels({
+      ...conn,
+      connectionId: conn.id,
+    }, {
+      log: console,
+      proxyOptions: {
+        connectionProxyEnabled: proxy.connectionProxyEnabled === true,
+        connectionProxyUrl: proxy.connectionProxyUrl || "",
+        connectionNoProxy: proxy.connectionNoProxy || "",
+        vercelRelayUrl: proxy.vercelRelayUrl || "",
+        strictProxy: proxy.strictProxy === true,
+      },
+      onCredentialsRefreshed: async (refreshed) => {
+        await updateProviderCredentials(conn.id, {
+          ...refreshed,
+          existingProviderSpecificData: conn.providerSpecificData || {},
+        });
+      },
+    });
+    return result?.models?.length ? { models: result.models } : null;
   },
   cursor: async (conn) => {
-    try {
-      const result = await resolveCursorModels({
-        accessToken: conn.accessToken,
-        providerSpecificData: conn.providerSpecificData || {},
-      }, { log: console });
-      return result?.models?.length ? { models: result.models } : null;
-    } catch {
-      return null;
-    }
+    const result = await resolveCursorModels({
+      accessToken: conn.accessToken,
+      providerSpecificData: conn.providerSpecificData || {},
+    }, { log: console });
+    return result?.models?.length ? { models: result.models } : null;
   },
   zed: async (conn) => {
-    try {
-      const result = await resolveZedModels({
-        accessToken: conn.accessToken,
-        providerSpecificData: conn.providerSpecificData || {},
-      });
-      if (!result?.models?.length) return null;
-      return {
-        models: result.models
-          .filter((m) => !m.isDisabled)
-          .map((m) => ({
-            id: m.id,
-            name: m.name,
-            capabilities: m.supportsTools ? { tools: true } : undefined,
-          })),
-      };
-    } catch {
-      return null;
-    }
+    const result = await resolveZedModels({
+      accessToken: conn.accessToken,
+      providerSpecificData: conn.providerSpecificData || {},
+    });
+    if (!result?.models?.length) return null;
+    return {
+      models: result.models
+        .filter((m) => !m.isDisabled)
+        .map((m) => ({
+          id: m.id,
+          name: m.name,
+          capabilities: m.supportsTools ? { tools: true } : undefined,
+        })),
+    };
   },
 };
 
@@ -294,9 +264,6 @@ function comboMatchesKinds(combo, kindFilter) {
   return kindFilter.includes(kind);
 }
 
-const modelsListCache = new Map();
-const CACHE_TTL_MS = 15_000; // 15 seconds
-
 /**
  * Build OpenAI-format models list filtered by service kinds.
  * @param {string[]} kindFilter - List of service kinds to include (e.g. ["llm"], ["webSearch","webFetch"]).
@@ -306,27 +273,12 @@ export async function buildModelsList(kindFilter, options = {}) {
   // dardcor-code instance's fetchCompatibleModelIds — skip dynamic fetch to break
   // cross-instance recursive loops.
   const skipDynamicFetch = options.skipDynamicFetch === true;
-  const connectedOnly = options.connectedOnly === true;
-
-  const cacheKey = `${kindFilter.slice().sort().join(",")}_conn:${connectedOnly ? 1 : 0}_skip:${skipDynamicFetch ? 1 : 0}`;
-  const now = Date.now();
-  const cached = modelsListCache.get(cacheKey);
-  if (cached && (now - cached.timestamp < CACHE_TTL_MS) && Array.isArray(cached.data) && cached.data.length > 0) {
-    return cached.data;
-  }
-
   let connections = [];
   try {
     connections = await getProviderConnections();
     connections = connections.filter(c => c.isActive !== false);
   } catch (e) {
     console.log("Could not fetch providers, returning all models");
-  }
-
-  // The IDE model picker must never fall back to the static catalog: it only
-  // offers models that belong to an active DRouter connection.
-  if (connectedOnly && connections.length === 0) {
-    return [];
   }
 
   let combos = [];
@@ -358,10 +310,31 @@ export async function buildModelsList(kindFilter, options = {}) {
   }
   const isDisabled = (alias, modelId) => Array.isArray(disabledByAlias[alias]) && disabledByAlias[alias].includes(modelId);
 
+  let providerStatuses = {};
+  try {
+    providerStatuses = await getAllProviderStatuses();
+  } catch (e) {
+    console.log("Could not fetch provider statuses");
+  }
+
   const activeConnectionByProvider = new Map();
   for (const conn of connections) {
     if (!activeConnectionByProvider.has(conn.provider)) {
       activeConnectionByProvider.set(conn.provider, conn);
+    }
+  }
+
+  // Include noAuth / free providers if their status is enabled (providerStatuses[id] === true)
+  for (const provider of Object.values(AI_PROVIDERS)) {
+    if (provider.noAuth && !activeConnectionByProvider.has(provider.id)) {
+      if (providerStatuses[provider.id.toLowerCase()] === true) {
+        activeConnectionByProvider.set(provider.id, {
+          id: "noauth",
+          provider: provider.id,
+          isActive: true,
+          providerSpecificData: {},
+        });
+      }
     }
   }
 
@@ -381,13 +354,14 @@ export async function buildModelsList(kindFilter, options = {}) {
     models.push(entry);
   }
 
-  if (connections.length === 0) {
+  if (activeConnectionByProvider.size === 0) {
     // DB unavailable -> return static models, filtered by per-model kind
     const aliasToProviderId = Object.fromEntries(
       Object.entries(PROVIDER_ID_TO_ALIAS).map(([id, alias]) => [alias, id])
     );
     for (const [alias, providerModels] of Object.entries(PROVIDER_MODELS)) {
       const providerId = aliasToProviderId[alias] || alias;
+      if (providerStatuses[providerId.toLowerCase()] !== true) continue;
       if (!providerMatchesKinds(providerId, kindFilter)) continue;
       for (const model of providerModels) {
         if (!kindFilter.includes(modelKind(model))) continue;
@@ -406,6 +380,7 @@ export async function buildModelsList(kindFilter, options = {}) {
       if (!kindFilter.includes(LLM_KIND)) continue;
       const providerAlias = customModel.providerAlias;
       if (!providerAlias) continue;
+      if (providerStatuses[providerAlias.toLowerCase()] !== true) continue;
 
       const modelId = String(customModel.id).trim();
       if (!modelId) continue;
@@ -417,9 +392,9 @@ export async function buildModelsList(kindFilter, options = {}) {
       });
     }
   } else {
-    // Resolve live models for active providers in parallel
-    const providerTasks = Array.from(activeConnectionByProvider.entries()).map(async ([providerId, conn]) => {
-      if (!providerMatchesKinds(providerId, kindFilter)) return null;
+    for (const [providerId, conn] of activeConnectionByProvider.entries()) {
+      if (providerStatuses[providerId.toLowerCase()] !== true) continue;
+      if (!providerMatchesKinds(providerId, kindFilter)) continue;
 
       const staticAlias = PROVIDER_ID_TO_ALIAS[providerId] || providerId;
       const outputAlias = (
@@ -434,6 +409,7 @@ export async function buildModelsList(kindFilter, options = {}) {
       const isCompatibleProvider =
         isOpenAICompatibleProvider(providerId) || isAnthropicCompatibleProvider(providerId);
 
+      // Build kind lookup for static models so we can filter even when only IDs are exposed
       const staticModelKindById = new Map(
         providerModels.map((m) => [m.id, modelKind(m)])
       );
@@ -451,13 +427,12 @@ export async function buildModelsList(kindFilter, options = {}) {
         : providerModels.map((model) => model.id);
 
       if (isCompatibleProvider && rawModelIds.length === 0 && !skipDynamicFetch) {
-        try {
-          rawModelIds = await fetchCompatibleModelIds(conn);
-        } catch {
-          rawModelIds = [];
-        }
+        rawModelIds = await fetchCompatibleModelIds(conn);
       }
 
+      // Config-driven live catalog override (e.g. Kiro returns dynamic
+      // -thinking/-agentic variants per account). On failure, fall back to
+      // whatever rawModelIds already holds.
       const liveResolver = LIVE_MODEL_RESOLVERS[providerId];
       if (liveResolver && !hasExplicitEnabledModels) {
         try {
@@ -479,35 +454,6 @@ export async function buildModelsList(kindFilter, options = {}) {
           console.log(`Live model fetch failed for ${providerId}: ${err?.message || err}`);
         }
       }
-
-      return {
-        providerId,
-        conn,
-        staticAlias,
-        outputAlias,
-        rawModelIds,
-        staticModelKindById,
-        liveModelKindById,
-        liveCapabilitiesById,
-      };
-    });
-
-    const resolvedResults = await Promise.allSettled(providerTasks);
-    const resolvedProviders = resolvedResults
-      .filter((r) => r.status === "fulfilled" && r.value !== null)
-      .map((r) => r.value);
-
-    for (const res of resolvedProviders) {
-      const {
-        providerId,
-        conn,
-        staticAlias,
-        outputAlias,
-        rawModelIds,
-        staticModelKindById,
-        liveModelKindById,
-        liveCapabilitiesById,
-      } = res;
 
       const modelIds = rawModelIds
         .map((modelId) => {
@@ -643,10 +589,6 @@ export async function buildModelsList(kindFilter, options = {}) {
     dedupedModels.push(model);
   }
 
-  if (dedupedModels.length > 0) {
-    modelsListCache.set(cacheKey, { timestamp: now, data: dedupedModels });
-  }
-
   return dedupedModels;
 }
 
@@ -671,28 +613,20 @@ export async function GET(request) {
   try {
     // Detect cross-instance recursive /models fetch (another dardcor-code fetching our /models)
     const skipDynamicFetch = request?.headers?.get(INTERNAL_MODELS_FETCH_HEADER) === "1";
-    const connectedOnly = request?.headers?.get("x-drouter-connected-only") === "1"
-      || request?.nextUrl?.searchParams?.get("connectedOnly") === "true";
-    const data = await buildModelsList([LLM_KIND], { skipDynamicFetch, connectedOnly });
+    const data = await buildModelsList([LLM_KIND], { skipDynamicFetch });
     return Response.json({ object: "list", data }, {
       headers: {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
-        "Access-Control-Allow-Headers": "*",
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0",
       },
     });
   } catch (error) {
     console.log("Error fetching models:", error);
     return Response.json(
       { error: { message: error.message, type: "server_error" } },
-      {
-        status: 500,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, OPTIONS",
-          "Access-Control-Allow-Headers": "*",
-        },
-      }
+      { status: 500 }
     );
   }
 }

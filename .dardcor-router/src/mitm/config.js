@@ -16,6 +16,7 @@ const LSOF_BIN = (() => {
 const TARGET_HOSTS = [
   "daily-cloudcode-pa.googleapis.com",
   "cloudcode-pa.googleapis.com",
+  "api.individual.githubcopilot.com",
   "q.us-east-1.amazonaws.com",
   "codewhisperer.us-east-1.amazonaws.com",
   "runtime.us-east-1.kiro.dev",
@@ -24,6 +25,7 @@ const TARGET_HOSTS = [
 
 const URL_PATTERNS = {
   antigravity: [":generateContent", ":streamGenerateContent"],
+  copilot: ["/chat/completions", "/v1/messages", "/responses"],
   // Legacy path form. Kiro IDE 1.0.228+ posts to `/` with x-amz-target instead —
   // see isChatRequest() for the header-based match.
   kiro: ["/generateAssistantResponse"],
@@ -53,7 +55,11 @@ const MODEL_SYNONYMS = {
     "gemini-3.5-flash-high": "gemini-3-flash-agent",
     "gemini-3.5-flash-medium": "gemini-3.5-flash-low",
     "gemini-3.5-flash-extra-low": "gemini-3.5-flash-extra-low",
-     "gemini-3.7-flash-high": "gemini-3.7-flash-high",
+    "gemini-3.8-flash": "gemini-3.8-flash-medium",
+    "gemini-3.8-flash-high": "gemini-3.8-flash-high",
+    "gemini-3.8-flash-medium": "gemini-3.8-flash-medium",
+    "gemini-3.8-flash-low": "gemini-3.8-flash-low",
+    "gemini-3.7-flash-high": "gemini-3.7-flash-high",
     "gemini-3.7-flash-medium": "gemini-3.7-flash-medium",
     "gemini-3.7-flash-low": "gemini-3.7-flash-low",
     "gemini-3.1-pro-high": "gemini-pro-agent",
@@ -80,7 +86,7 @@ const MODEL_PATTERNS = {
 // Models that must NEVER be re-routed — always passthrough to the real upstream, even when
 // the tool's other models are mapped. Antigravity's tab-autocomplete (`tab_jump_flash_lite_preview`,
 // `tab_flash_lite_preview`, requestType tab/tab_jump) is latency-critical inline completion; routing
-// it through DRouter to an external chat model makes typing laggy and burns provider quota per
+// it through Dardcor Code to an external chat model makes typing laggy and burns provider quota per
 // keystroke. Without this guard the broad `flash` pattern in MODEL_PATTERNS hijacks them onto the
 // flash-agent slot. Verified via MITM dump capture of streamGenerateContent (see AI_JOURNAL).
 const MODEL_NO_MAP = {
@@ -98,6 +104,7 @@ const LOG_BLACKLIST_URL_PARTS = [
 
 function getToolForHost(host) {
   const h = (host || "").split(":")[0];
+  if (h === "api.individual.githubcopilot.com") return "copilot";
   if (h === "daily-cloudcode-pa.googleapis.com" || h === "cloudcode-pa.googleapis.com") return "antigravity";
   if (h === "q.us-east-1.amazonaws.com" || h === "codewhisperer.us-east-1.amazonaws.com" || h === "runtime.us-east-1.kiro.dev") return "kiro";
   if (h === "api2.cursor.sh") return "cursor";
@@ -132,8 +139,8 @@ function extractModel(url, body) {
     }
     const model = urlModel || parsed.model || null;
     const cleanModelName = String(model).replace(/^models\//, "");
-    if (cleanModelName === "gemini-3.6-flash-tiered" || cleanModelName === "gemini-3.7-flash-tiered") {
-      const ver = cleanModelName.includes("3.7") ? "3.7" : "3.6";
+    if (cleanModelName === "gemini-3.6-flash-tiered" || cleanModelName === "gemini-3.7-flash-tiered" || cleanModelName === "gemini-3.8-flash-tiered") {
+      const ver = cleanModelName.includes("3.8") ? "3.8" : cleanModelName.includes("3.7") ? "3.7" : "3.6";
       const rawLevel = parsed.request?.generationConfig?.thinkingConfig?.thinkingLevel
         || parsed.generationConfig?.thinkingConfig?.thinkingLevel;
       const level = ["high", "medium", "low"].includes(String(rawLevel).toLowerCase())

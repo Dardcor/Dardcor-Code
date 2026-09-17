@@ -132,11 +132,11 @@ Common issues and solutions when using Dardcor Code.
 
 ## Connection Refused
 
-**Problem:** "ECONNREFUSED" or "Cannot connect to localhost:20128".
+**Problem:** "ECONNREFUSED" or "Cannot connect to localhost:21128".
 
 **Causes:**
 - Dardcor Code not running
-- Port 20128 blocked
+- Port 21128 blocked
 - Firewall blocking connection
 
 **Solutions:**
@@ -147,19 +147,19 @@ Common issues and solutions when using Dardcor Code.
    ```
    Dashboard should open at http://localhost:3000
 
-2. **Verify port 20128:**
+2. **Verify port 21128:**
    ```bash
    # Check if port is listening
-   lsof -i :20128
+   lsof -i :21128
    
    # Or on Windows
-   netstat -ano | findstr :20128
+   netstat -ano | findstr :21128
    ```
 
 3. **Check firewall:**
    - macOS: System Settings → Network → Firewall
    - Windows: Windows Defender Firewall → Allow app
-   - Linux: `sudo ufw allow 20128`
+   - Linux: `sudo ufw allow 21128`
 
 4. **Use cloud endpoint:**
    If localhost doesn't work (e.g., Cursor IDE):
@@ -243,7 +243,7 @@ Common issues and solutions when using Dardcor Code.
 
 3. **List available models:**
    ```bash
-   curl http://localhost:20128/v1/models \
+   curl http://localhost:21128/v1/models \
      -H "Authorization: Bearer your-api-key"
    ```
 
@@ -320,8 +320,8 @@ Common issues and solutions when using Dardcor Code.
 
 2. **Verify key format:**
    ```
-   Correct: 9r_xxxxxxxxxxxxxxxxxxxxxxxx
-   Wrong: Missing 9r_ prefix
+   Correct: dc_xxxxxxxxxxxxxxxxxxxxxxxx
+   Wrong: Missing dc_ prefix
    ```
 
 3. **Check key in CLI config:**
@@ -333,13 +333,13 @@ Common issues and solutions when using Dardcor Code.
    Settings → API Key
    
    # Environment variable
-   export OPENAI_API_KEY="9r_your_key"
+   export OPENAI_API_KEY="dc_your_key"
    ```
 
 4. **Test API key:**
    ```bash
-   curl http://localhost:20128/v1/models \
-     -H "Authorization: Bearer 9r_your_key"
+   curl http://localhost:21128/v1/models \
+     -H "Authorization: Bearer dc_your_key"
    ```
 
 ---

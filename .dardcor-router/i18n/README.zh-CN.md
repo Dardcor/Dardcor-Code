@@ -45,7 +45,7 @@
 │  Your CLI   │  (Claude Code, Codex, OpenClaw, Cursor, Cline, Antigravity...)
 │   Tool      │
 └──────┬──────┘
-       │ http://localhost:20128/v1
+       │ http://localhost:21128/v1
        ↓
 ┌─────────────────────────────────────────────┐
 │           Dardcor Code (Smart Router)            │
@@ -75,7 +75,7 @@ npm install -g dardcor-code
 dardcor-code
 ```
 
-🎉 仪表板将在 `http://localhost:20128` 打开
+🎉 仪表板将在 `http://localhost:21128` 打开
 
 **2. 连接免费提供商（无需注册）：**
 
@@ -85,7 +85,7 @@ dardcor-code
 
 ```
 Claude Code/Codex/Gemini CLI/OpenClaw/Cursor/Cline 设置:
-  Endpoint: http://localhost:20128/v1
+  Endpoint: http://localhost:21128/v1
   API Key: [从仪表板复制]
   Model: if/kimi-k2-thinking
 ```
@@ -99,19 +99,19 @@ Claude Code/Codex/Gemini CLI/OpenClaw/Cursor/Cline 设置:
 ```bash
 cp .env.example .env
 npm install
-PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
+PORT=21128 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run dev
 ```
 
 生产模式：
 
 ```bash
 npm run build
-PORT=20128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run start
+PORT=21128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run start
 ```
 
 默认 URL：
-- 仪表板：`http://localhost:20128/dashboard`
-- OpenAI 兼容 API：`http://localhost:20128/v1`
+- 仪表板：`http://localhost:21128/dashboard`
+- OpenAI 兼容 API：`http://localhost:21128/v1`
 
 ---
 
@@ -862,7 +862,7 @@ Cost: $0 forever!
 
 ```
 Settings → Models → Advanced:
-  OpenAI API Base URL: http://localhost:20128/v1
+  OpenAI API Base URL: http://localhost:21128/v1
   OpenAI API Key: [from dardcor-code dashboard]
   Model: cc/claude-opus-4-6
 ```
@@ -875,7 +875,7 @@ Settings → Models → Advanced:
 
 ```json
 {
-  "anthropic_api_base": "http://localhost:20128/v1",
+  "anthropic_api_base": "http://localhost:21128/v1",
   "anthropic_api_key": "your-dardcor-code-api-key"
 }
 ```
@@ -883,7 +883,7 @@ Settings → Models → Advanced:
 ### Codex CLI
 
 ```bash
-export OPENAI_BASE_URL="http://localhost:20128"
+export OPENAI_BASE_URL="http://localhost:21128"
 export OPENAI_API_KEY="your-dardcor-code-api-key"
 
 codex "your prompt"
@@ -911,7 +911,7 @@ Dashboard → CLI Tools →Claw → Select Model → Apply
   "models": {
     "providers": {
       "dardcor-code": {
-        "baseUrl": "http://127.0.0.1:20128/v1",
+        "baseUrl": "http://127.0.0.1:21128/v1",
         "apiKey": "sk_dardcor-code",
         "api": "openai-completions",
         "models": [
@@ -932,7 +932,7 @@ Dashboard → CLI Tools →Claw → Select Model → Apply
 
 ```
 Provider: OpenAI Compatible
-Base URL: http://localhost:20128/v1
+Base URL: http://localhost:21128/v1
 API Key: [from dashboard]
 Model: cc/claudeus-4-6
 ```
@@ -955,10 +955,10 @@ npm run build
 export JWT_SECRET="your-secure-secret-change-this"
 export INITIAL_PASSWORD="your-password"
 export DATA_DIR="/var/lib/dardcor-code"
-export PORT="20128"
+export PORT="21128"
 export HOSTNAME="0.0.0.0"
 export NODE_ENV="production"
-export NEXT_PUBLIC_BASE_URLhttp://localhost:20128"
+export NEXT_PUBLIC_BASE_URLhttp://localhost:21128"
 export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.web.id"
 export API_KEY_SECRET="endpoint-proxy-api-key-secret"
 export MACHINE_ID_SALT="endpoint-proxy-salt"
@@ -981,7 +981,7 @@ docker build -t dardcor-code .
 
 # Run container (command used in current setup)
 docker run -d \
-  --name dardcor-code  -p 20128:20128 \
+  --name dardcor-code  -p 21128:21128 \
   --env-file /root/dev/dardcor-code/.env \
   -v dardcor-code-data:/app/data \
   -v dardcor-code-usage:/root/.dardcor-code \
@@ -993,7 +993,7 @@ docker run -d \
 ```bash
 docker run -d \
   --name dardcor-code \
-  -p 20128:20128 \
+  -p 21128:21128 \
   --env-file ./.env \
   -v dardcor-code-data:/app/data \
   -v dardcor-code-usage:/root/.dardcor-code \
@@ -1001,7 +1001,7 @@ docker run -d \
 ```
 
 容器默认值：
-- `PORT=20128`
+- `PORT=21128`
 - `HOSTNAME=0.0.0.0`
 
 有用命令：
@@ -1019,10 +1019,10 @@ docker stop dardcor-code && docker rm dardcor-code
 | `JWT_SECRET` | 自动生成（`~/.dardcor-code/jwt-secret`） | 仪表板认证 cookie 的 JWT 签名密钥（设置可在多实例间共享） |
 | `INITIAL_PASSWORD | `123456` | 当没有保存的哈希时的首次登录密码 |
 | `DATA_DIR` | `~/.dardcor-code` | 主应用数据库位置（`db.json`） |
-| `PORT` | 框架默认值 | 服务端口（示例中为 `20128`） |
+| `PORT` | 框架默认值 | 服务端口（示例中为 `21128`） |
 | `HOSTNAME` | 框架默认值 | 绑定主机（Docker 默认为 `0.0.0.0`） |
 | `NODE_ENV` | 运行时默认值 | 部署时设置 `production` |
-| `BASE_URL` |http://localhost:20128` | 云同步作业使用的服务器端内部基础 URL |
+| `BASE_URL` |http://localhost:21128` | 云同步作业使用的服务器端内部基础 URL |
 | `CLOUD_URL` | `https://dardcor-code.web.id` | 服务器端云同步端点基础 URL |
 | `NEXT_PUBLIC_BASE_URL` | `http://localhost:3000` | 向后兼容/公共基础 URL（服务器运行时优先使用 `BASE_URL`） |
 | `NEXT_PUBLIC_CLOUD_URL` | `https://dardcor-code.web.id` | 向后兼容/公共云 URL（服务器运行时优先使用 `CLOUD_URL`） |
@@ -1114,10 +1114,10 @@ docker stop dardcor-code && docker rm dardcor-code
 - 对非关键任务使用免费层（Gemini CLI, iFlow）
 
 **仪表板在错误的端口打开**
-- 设置 `PORT=20128` 和 `NEXT_PUBLIC_BASE_URL=http://localhost:20128`
+- 设置 `PORT=21128` 和 `NEXT_PUBLIC_BASE_URL=http://localhost:21128`
 
 **云端同步错误**
-- 验证 `BASE_URL` 指向您正在运行的实例（例如：`http://localhost:20128`）
+- 验证 `BASE_URL` 指向您正在运行的实例（例如：`http://localhost:21128`）
 - 验证 `CLOUD_URL` 指向您预期的云端端点（例如：`https://dardcor-code.web.id`）
 - 尽可能保持 `NEXT_PUBLIC_*` 值与服务器端值一致。
 
@@ -1156,7 +1156,7 @@ docker stop dardcor-code && docker rm dardcor-code
 ### Chat Completions
 
 ```bash
-POST httplocalhost:20128/v1/chat/completions
+POST httplocalhost:21128/v1/chat/completions
 Authorization: Bearer your-api-key
 Content-Type: application/json
 
@@ -1172,7 +1172,7 @@ Content-Type: application/json
 ### 列出模型
 
 ```bash
-GET http://localhost:20128/v1/models
+GET http://localhost:21128/v1/models
 Authorization: Bearer your-api-key
 
 → Returns all models + combos in OpenAI format
@@ -1214,7 +1214,7 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 
 最近验证的预期行为：
 
-- 本地运行时（`http://127.0.0.1:20128/v1/chat/completions`）：使用 `stream=false` 和 `stream=true` 都可以工作。
+- 本地运行时（`http://127.0.0.1:21128/v1/chat/completions`）：使用 `stream=false` 和 `stream=true` 都可以工作。
 - Docker 运行时（容器暴露的相同 API 路径）：加固检查通过，云端认证保护工作，启用时严格 API 密钥模式工作。
 - 公共云端端点（`https://dardcor-code.web.id/v1/chat/completions`）：
   - `stream=true`：预期成功（返回 SSE 块）。

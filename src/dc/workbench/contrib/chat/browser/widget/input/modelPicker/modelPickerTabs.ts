@@ -10,7 +10,6 @@ import { localize } from '../../../../../../../nls.js';
 import { COPILOT_VENDOR_ID, ILanguageModelChatMetadata, ILanguageModelChatMetadataAndIdentifier, ILanguageModelsService, IModelControlEntry } from '../../../../common/languageModels.js';
 import { buildModelToProviderGroupMap, getProviderGroupForModel, getProviderGroupKey, isVersionAtLeast } from './modelPickerItemPrimitives.js';
 import { isDeprecated } from './modelPickerBadges.js';
-import { isEarlyAccessModel, latestOfEachLine } from './modelPickerLineage.js';
 import { getProviderIconForIdentity } from './modelProviderIcons.js';
 import { isAutoModel } from './modelPickerPresentation.js';
 
@@ -220,36 +219,6 @@ export function buildModelPickerSections(options: IModelPickerSectionsOptions): 
 	const pinned = options.pinnedModelIds.map(take).filter(isDefined);
 
 	const suggested: ILanguageModelChatMetadataAndIdentifier[] = [];
-	if (options.showSuggested) {
-		for (const model of options.models) {
-			if (!model.metadata.promo) {
-				continue;
-			}
-			// Resolved through `take`, which draws only from the selectable models: an
-			// offer on a model this build is too old to run is surfaced as the update
-			// it needs rather than as a row that cannot be picked.
-			const promoted = take(model.identifier);
-			if (promoted) {
-				suggested.push(promoted);
-			}
-		}
-		// The newest model of each line leads. A line replaced by a different line rather
-		// than by a newer version of itself is marked demoted instead.
-		for (const model of latestOfEachLine(selectable)) {
-			if (isEarlyAccessModel(model.metadata.id) || options.controlModels[model.metadata.id]?.demoted) {
-				continue;
-			}
-			const latest = take(model.identifier);
-			if (latest) {
-				suggested.push(latest);
-			}
-		}
-		// The model in use is never folded away, however the catalogue rates it.
-		const selected = take(options.selectedModelId);
-		if (selected) {
-			suggested.push(selected);
-		}
-	}
 
 	const byName = (left: ILanguageModelChatMetadataAndIdentifier, right: ILanguageModelChatMetadataAndIdentifier) =>
 		left.metadata.name.localeCompare(right.metadata.name);

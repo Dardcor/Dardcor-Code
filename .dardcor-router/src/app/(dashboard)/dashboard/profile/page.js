@@ -81,6 +81,12 @@ export default function ProfilePage() {
   const [proxyLoading, setProxyLoading] = useState(false);
   const [proxyTestLoading, setProxyTestLoading] = useState(false);
 
+  const [isRemoteHost, setIsRemoteHost] = useState(false);
+  useEffect(() => {
+    if (typeof window !== "undefined")
+      setIsRemoteHost(!["localhost", "127.0.0.1", "::1"].includes(window.location.hostname));
+  }, []);
+
   useEffect(() => {
     fetch("/api/settings")
       .then((res) => res.json())
@@ -758,7 +764,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto w-full min-w-0">
+    <div className="max-w-2xl mx-auto px-4 sm:px-0">
       <div className="flex flex-col gap-6">
         {/* Local Mode Info */}
         <Card>
@@ -797,7 +803,7 @@ export default function ProfilePage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 rounded-lg bg-bg border border-border gap-2">
               <div>
                 <p className="font-medium text-sm sm:text-base">Database Location</p>
-                <p className="text-xs sm:text-sm text-text-muted font-mono break-all">~/.dardcor-code/db/database.json</p>
+                <p className="text-xs sm:text-sm text-text-muted font-mono break-all">~/.dardcor/db/data.sqlite</p>
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
@@ -1490,10 +1496,10 @@ export default function ProfilePage() {
 
             {/* Combo Sticky Round Robin Limit */}
             {settings.comboStrategy === "round-robin" && (
-              <div className="flex items-start sm:items-center justify-between gap-4 pt-2 border-t border-border/50">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm sm:text-base">Combo Sticky Limit</p>
-                  <p className="text-xs sm:text-sm text-text-muted">
+              <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                <div>
+                  <p className="font-medium">Combo Sticky Limit</p>
+                  <p className="text-sm text-text-muted">
                     Calls per combo model before switching
                   </p>
                 </div>
@@ -1504,7 +1510,7 @@ export default function ProfilePage() {
                   value={settings.comboStickyRoundRobinLimit || 1}
                   onChange={(e) => updateComboStickyLimit(e.target.value)}
                   disabled={loading}
-                  className="w-16 sm:w-20 text-center shrink-0"
+                  className="w-20 text-center"
                 />
               </div>
             )}
@@ -1639,7 +1645,7 @@ export default function ProfilePage() {
         {/* App Info */}
         <div className="text-center text-xs sm:text-sm text-text-muted py-4">
           <p>{APP_CONFIG.name} v{APP_CONFIG.version}</p>
-          <p className="mt-1">Local Mode - All data stored on your machine</p>
+          <p className="mt-1">{isRemoteHost ? "Remote Mode" : "Local Mode - All data stored on your machine"}</p>
         </div>
       </div>
 

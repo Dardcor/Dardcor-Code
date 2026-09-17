@@ -28,6 +28,7 @@ const HOST_REWRITE = {
 
 const handlers = {
   antigravity: require("./handlers/antigravity"),
+  copilot: require("./handlers/copilot"),
   kiro: require("./handlers/kiro"),
   cursor: require("./handlers/cursor"),
 };
@@ -131,7 +132,7 @@ async function passthrough(req, res, bodyBuffer, onResponse) {
 
   const tool = getToolForHost(req.headers.host);
   const versionOverride = tool === "antigravity"
-    ? applyAntigravityIdeVersionOverride(bodyBuffer, req.headers)
+    ? applyAntigravityIdeVersionOverride(bodyBuffer, req.headers, req.url)
     : { bodyBuffer, headers: req.headers };
   const bodyForForwarding = versionOverride.bodyBuffer;
   const headersForForwarding = { ...versionOverride.headers, host: targetHost };
@@ -302,7 +303,7 @@ const server = https.createServer(sslOptions, async (req, res) => {
     const bodyBuffer = await collectBodyRaw(req);
     if (ENABLE_FILE_LOG) dumpRequest(req, bodyBuffer, "raw");
 
-    // Anti-loop: skip requests from DRouter
+    // Anti-loop: skip requests from Dardcor Code
     if (req.headers[INTERNAL_REQUEST_HEADER.name] === INTERNAL_REQUEST_HEADER.value) {
       return passthrough(req, res, bodyBuffer);
     }

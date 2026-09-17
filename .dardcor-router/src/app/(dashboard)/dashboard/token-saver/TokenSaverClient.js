@@ -14,6 +14,7 @@ export default function TokenSaverClient() {
   const [rtkEnabled, setRtkEnabledState] = useState(true);
   const [headroomEnabled, setHeadroomEnabled] = useState(false);
   const [headroomUrl, setHeadroomUrl] = useState("http://localhost:8787");
+  const [headroomTimeoutMs, setHeadroomTimeoutMs] = useState(3000);
   const [headroomStatus, setHeadroomStatus] = useState({
     installed: false,
     running: false,
@@ -406,6 +407,13 @@ export default function TokenSaverClient() {
     patchSetting({ pxpipeMinChars: next });
   };
 
+  const handleHeadroomTimeoutBlur = () => {
+    const raw = Math.round(Number(headroomTimeoutMs));
+    const next = Number.isFinite(raw) && raw > 0 ? raw : 3000;
+    setHeadroomTimeoutMs(next);
+    patchSetting({ headroomTimeoutMs: next });
+  };
+
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -415,6 +423,7 @@ export default function TokenSaverClient() {
           setRtkEnabledState(data.rtkEnabled !== false);
           setHeadroomEnabled(!!data.headroomEnabled);
           setHeadroomUrl(data.headroomUrl || "http://localhost:8787");
+          if (typeof data.headroomTimeoutMs === "number") setHeadroomTimeoutMs(data.headroomTimeoutMs);
           setCodeAware(data.headroomCodeAware === true);
           setKompress(data.headroomKompress !== false);
           setCavemanEnabled(!!data.cavemanEnabled);
@@ -465,7 +474,7 @@ export default function TokenSaverClient() {
       : "bg-warning/15 text-warning";
 
   return (
-    <div className="flex min-w-0 flex-col gap-6 px-1 sm:px-0">
+    <div className="space-y-6 p-6">
       <Card id="rtk">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -645,7 +654,7 @@ export default function TokenSaverClient() {
               </a>
             </p>
             <p className="text-sm text-text-muted">
-              Terse-style system prompt → ~65% fewer output tokens (up to 87%)
+              Terse-style system prompt for shorter technical responses
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
@@ -818,6 +827,19 @@ export default function TokenSaverClient() {
               like http://headroom:8787.
             </p>
           </div>
+          <div className="flex flex-col gap-1">
+            <p className="text-sm font-medium">Timeout (ms)</p>
+            <Input
+              value={String(headroomTimeoutMs)}
+              onChange={(e) => setHeadroomTimeoutMs(e.target.value)}
+              onBlur={handleHeadroomTimeoutBlur}
+              placeholder="3000"
+              className="font-mono text-sm"
+            />
+            <p className="text-xs text-text-muted">
+              Request timeout in milliseconds. Defaults to 3000 ms.
+            </p>
+          </div>
           {headroomManaged ? (
             <Button
               onClick={handleHeadroomStop}
@@ -935,7 +957,7 @@ export default function TokenSaverClient() {
               </Button>
               <p className="text-xs text-text-muted">
                 Installs the npm package <code className="font-mono">pxpipe-proxy</code> into
-                the Dardcor Router data directory. May take a few minutes.
+                the Dardcor Code data directory. May take a few minutes.
               </p>
             </div>
           ) : (

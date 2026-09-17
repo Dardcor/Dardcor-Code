@@ -166,7 +166,7 @@ export default function QuotaTable({
               className={`flex items-center gap-2 border-b border-black/5 dark:border-white/5 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors ${cellPad}`}
             >
               {/* Name */}
-              <div className="flex w-24 xs:w-28 sm:w-36 min-w-0 shrink-0 items-center gap-1.5">
+              <div className="flex w-36 min-w-0 items-center gap-1.5">
                 <span className="text-[10px] shrink-0">{colors.emoji}</span>
                 <span className={`${nameText} font-medium text-text-primary truncate`}>
                   {quota.name}

@@ -11,6 +11,7 @@ import { resolveQoderModels } from "open-sse/services/qoderModels.js";
 import { resolveGrokCliModels } from "open-sse/services/grokCliModels.js";
 import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy";
 import { resolveCursorModels } from "open-sse/services/cursorModels.js";
+import { resolveClineModels, resolveClinepassModels } from "open-sse/services/clinepassModels.js";
 
 const GEMINI_CLI_MODELS_URL = "https://cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels";
 
@@ -257,58 +258,6 @@ const PROVIDER_MODELS_CONFIG = {
   nvidia: createOpenAIModelsConfig("https://integrate.api.nvidia.com/v1/models"),
   assemblyai: createOpenAIModelsConfig("https://api.assemblyai.com/v1/models"),
   "vercel-ai-gateway": createOpenAIModelsConfig("https://ai-gateway.vercel.sh/v1/models"),
-  opencode: {
-    customResolver: async () => {
-      try {
-        const response = await fetch("https://opencode.ai/zen/v1/models", {
-          headers: {
-            Accept: "application/json",
-            "User-Agent": "opencode/1.0",
-            "x-opencode-client": "desktop",
-          },
-        });
-        if (!response.ok) {
-          return { models: [], warning: `OpenCode models endpoint returned HTTP ${response.status}` };
-        }
-        const payload = await response.json();
-        const list = parseOpenAIStyleModels(payload);
-        const models = list.map((m) => ({
-          id: m.id,
-          name: m.name || m.id,
-          capabilities: m.capabilities,
-        }));
-        return { models: models.length ? models : [] };
-      } catch (err) {
-        return { models: [], warning: `Failed to fetch OpenCode models: ${err.message}` };
-      }
-    }
-  },
-  "opencode-go": {
-    customResolver: async (connection) => {
-      const apiKey = connection.apiKey || connection.accessToken;
-      if (!apiKey) {
-        return { models: getStaticProviderModels("opencode-go") };
-      }
-      try {
-        const response = await fetch("https://opencode.ai/zen/v1/models", {
-          headers: {
-            Accept: "application/json",
-            "Authorization": `Bearer ${apiKey}`,
-            "User-Agent": "opencode/1.0",
-            "x-opencode-client": "desktop",
-          },
-        });
-        if (response.ok) {
-          const payload = await response.json();
-          const list = parseOpenAIStyleModels(payload);
-          if (list.length > 0) {
-            return { models: list.map(m => ({ id: m.id, name: m.name || m.id })) };
-          }
-        }
-      } catch {}
-      return { models: getStaticProviderModels("opencode-go") };
-    }
-  },
   kimchi: {
     customResolver: async (connection) => {
       const result = await resolveKimchiModels({
@@ -335,6 +284,37 @@ const PROVIDER_MODELS_CONFIG = {
       return {
         models: getStaticProviderModels("cursor"),
         warning: "Cursor returned no live models; falling back to static catalog.",
+      };
+    },
+  },
+
+  // Cline/ClinePass share api.cline.bot/api/v1/models. The service layer already
+  // handles Bearer-vs-`workos:` auth and swallows failures into null, so these follow
+  // the cursor direct pattern (no refreshFn) and only differ in filtering:
+  // cline returns the whole catalog verbatim, clinepass keeps cline-pass/* only.
+  cline: {
+    customResolver: async (connection) => {
+      const result = await resolveClineModels({
+        accessToken: connection.accessToken,
+        apiKey: connection.apiKey,
+      });
+      if (result?.models?.length) return { models: result.models };
+      return {
+        models: getStaticProviderModels("cline"),
+        warning: "Cline returned no live models; falling back to static catalog.",
+      };
+    },
+  },
+  clinepass: {
+    customResolver: async (connection) => {
+      const result = await resolveClinepassModels({
+        accessToken: connection.accessToken,
+        apiKey: connection.apiKey,
+      });
+      if (result?.models?.length) return { models: result.models };
+      return {
+        models: getStaticProviderModels("clinepass"),
+        warning: "ClinePass returned no live models; falling back to static catalog.",
       };
     },
   },

@@ -561,7 +561,7 @@ budget-combo:
 ### 获取配额状态
 
 ```bash
-GET http://localhost:20128/api/quota
+GET http://localhost:21128/api/quota
 Authorization: Bearer your-api-key
 
 Response:
@@ -614,7 +614,7 @@ Response:
 ### 获取使用统计
 
 ```bash
-GET http://localhost:20128/api/usage?period=today
+GET http://localhost:21128/api/usage?period=today
 Authorization: Bearer your-api-key
 
 Response:

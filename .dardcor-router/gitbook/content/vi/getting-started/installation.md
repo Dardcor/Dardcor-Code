@@ -97,7 +97,7 @@ dardcor-code
 ```
 
 **Điều gì xảy ra:**
-1. Server khởi động tại `http://localhost:20128`
+1. Server khởi động tại `http://localhost:21128`
 2. Dashboard tự động mở trong browser
 3. Data directory được tạo tại `~/.dardcor-code`
 4. API key được tạo tự động
@@ -122,7 +122,7 @@ Dashboard → Settings → API Keys
 
 **Ví dụ format API key:**
 ```
-9r_1234567890abcdef1234567890abcdef
+dc_1234567890abcdef1234567890abcdef
 ```
 
 ---
@@ -132,7 +132,7 @@ Dashboard → Settings → API Keys
 ### Kiểm tra trạng thái Server
 
 ```bash
-curl http://localhost:20128/health
+curl http://localhost:21128/health
 ```
 
 **Phản hồi dự kiến:**
@@ -146,7 +146,7 @@ curl http://localhost:20128/health
 ### Liệt kê Model khả dụng
 
 ```bash
-curl http://localhost:20128/v1/models \
+curl http://localhost:21128/v1/models \
   -H "Authorization: Bearer your-api-key"
 ```
 
@@ -168,7 +168,7 @@ curl http://localhost:20128/v1/models \
 ### Test Chat Completion
 
 ```bash
-curl http://localhost:20128/v1/chat/completions \
+curl http://localhost:21128/v1/chat/completions \
   -H "Authorization: Bearer your-api-key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -196,7 +196,7 @@ export INITIAL_PASSWORD="your-password"
 export DATA_DIR="~/.dardcor-code"
 
 # Server
-export PORT="20128"
+export PORT="21128"
 export NODE_ENV="production"
 
 # Logging
@@ -224,7 +224,7 @@ dardcor-code
 
 ### Cấu hình Port
 
-**Port mặc định:** `20128`
+**Port mặc định:** `21128`
 
 **Đổi port:**
 
@@ -247,14 +247,14 @@ dardcor-code --port 3000
 
 **Lỗi:**
 ```
-Error: listen EADDRINUSE: address already in use :::20128
+Error: listen EADDRINUSE: address already in use :::21128
 ```
 
 **Giải pháp 1: Kill process hiện có**
 
 ```bash
-# Find process using port 20128
-lsof -i :20128
+# Find process using port 21128
+lsof -i :21128
 
 # Kill process
 kill -9 <PID>
@@ -310,7 +310,7 @@ nvm use 20
 **Giải pháp 1: Mở thủ công**
 
 ```
-http://localhost:20128
+http://localhost:21128
 ```
 
 **Giải pháp 2: Kiểm tra firewall**
@@ -404,7 +404,7 @@ pm2 startup
 docker pull dardcor-code/dardcor-code:latest
 
 docker run -d \
-  -p 20128:20128 \
+  -p 21128:21128 \
   -e JWT_SECRET="your-secure-secret" \
   -e INITIAL_PASSWORD="your-password" \
   -v dardcor-code-data:/root/.dardcor-code \
@@ -422,7 +422,7 @@ server {
     server_name your-domain.com;
 
     location / {
-        proxy_pass http://localhost:20128;
+        proxy_pass http://localhost:21128;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';

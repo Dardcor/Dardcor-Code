@@ -7,6 +7,7 @@ import { DATA_DIR } from "@/lib/dataDir";
 import { getSettings } from "@/lib/localDb";
 
 const DEFAULT_PASSWORD = "123456";
+const SESSION_MAX_AGE_SEC = 24 * 60 * 60;
 
 function loadJwtSecret() {
   if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
@@ -30,9 +31,7 @@ export function shouldUseSecureCookie(request) {
 }
 
 export async function createDashboardAuthToken(claims = {}) {
-  const settings = await getSettings();
-  const sessionVersion = typeof settings?.sessionVersion === "number" ? settings.sessionVersion : 0;
-  return new SignJWT({ authenticated: true, sv: sessionVersion, ...claims })
+  return new SignJWT({ authenticated: true, ...claims })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("24h")
@@ -42,10 +41,8 @@ export async function createDashboardAuthToken(claims = {}) {
 export async function verifyDashboardAuthToken(token) {
   if (!token) return false;
   try {
-    const { payload } = await jwtVerify(token, SECRET);
-    const settings = await getSettings();
-    const currentSv = typeof settings?.sessionVersion === "number" ? settings.sessionVersion : 0;
-    return payload.sv === currentSv;
+    await jwtVerify(token, SECRET);
+    return true;
   } catch {
     return false;
   }
@@ -55,9 +52,6 @@ export async function getDashboardAuthSession(token) {
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, SECRET);
-    const settings = await getSettings();
-    const currentSv = typeof settings?.sessionVersion === "number" ? settings.sessionVersion : 0;
-    if (payload.sv !== currentSv) return null;
     return payload;
   } catch {
     return null;
@@ -71,6 +65,7 @@ export async function setDashboardAuthCookie(cookieStore, request, claims = {}) 
     secure: shouldUseSecureCookie(request),
     sameSite: "lax",
     path: "/",
+    maxAge: SESSION_MAX_AGE_SEC,
   });
 }
 

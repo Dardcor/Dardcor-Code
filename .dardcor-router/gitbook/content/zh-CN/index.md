@@ -116,7 +116,7 @@ dardcor-code
 **在你的 CLI 工具中使用:**
 
 ```
-Endpoint: http://localhost:20128/v1
+Endpoint: http://localhost:21128/v1
 API Key: [从仪表盘获取]
 Model: cc/claude-opus-4-5-20251101
 ```

@@ -13,10 +13,10 @@ import { IWebviewWorkbenchService } from '../../../webviewPanel/browser/webviewW
 import { WebviewInput } from '../../../webviewPanel/browser/webviewEditorInput.js';
 import { ACTIVE_GROUP } from '../../../../services/editor/common/editorService.js';
 
-let drouterWebview: WebviewInput | undefined;
-let drouterDisposeListener: IDisposable | undefined;
+let dardcorRouterWebview: WebviewInput | undefined;
+let dardcorRouterDisposeListener: IDisposable | undefined;
 
-function drouterHtml(): string {
+function dardcorRouterHtml(): string {
 	return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -39,23 +39,23 @@ registerAction2(class extends Action2 {
 	}
 	async run(accessor: ServicesAccessor) {
 		const webviewWorkbenchService = accessor.get(IWebviewWorkbenchService);
-		if (drouterWebview) {
-			webviewWorkbenchService.revealWebview(drouterWebview, ACTIVE_GROUP, false);
+		if (dardcorRouterWebview) {
+			webviewWorkbenchService.revealWebview(dardcorRouterWebview, ACTIVE_GROUP, false);
 			return;
 		}
 
-		drouterWebview = webviewWorkbenchService.openWebview({
+		dardcorRouterWebview = webviewWorkbenchService.openWebview({
 			title: 'Model',
 			options: { enableFindWidget: true, disableServiceWorker: true },
 			contentOptions: { allowScripts: true },
 			extension: undefined
 		}, 'dardcor.model', 'Model', undefined, { group: ACTIVE_GROUP, preserveFocus: false });
-		drouterWebview.webview.setHtml(drouterHtml());
-		drouterDisposeListener?.dispose();
-		drouterDisposeListener = drouterWebview.webview.onDidDispose(() => {
-		drouterWebview = undefined;
-		drouterDisposeListener?.dispose();
-		drouterDisposeListener = undefined;
+		dardcorRouterWebview.webview.setHtml(dardcorRouterHtml());
+		dardcorRouterDisposeListener?.dispose();
+		dardcorRouterDisposeListener = dardcorRouterWebview.webview.onDidDispose(() => {
+		dardcorRouterWebview = undefined;
+		dardcorRouterDisposeListener?.dispose();
+		dardcorRouterDisposeListener = undefined;
 	});
 	}
 });

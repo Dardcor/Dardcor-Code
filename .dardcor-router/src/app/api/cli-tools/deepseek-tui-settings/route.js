@@ -51,7 +51,7 @@ const parseToml = (content) => {
     return result;
 };
 
-// Build TOML config for DRouter (openai provider mode)
+// Build TOML config for Dardcor Router (openai provider mode)
 const buildDardcorCodeConfig = (baseUrl, apiKey, model) => {
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
     return `provider = "openai"
@@ -92,7 +92,7 @@ const readConfigToml = async () => {
     }
 };
 
-// Detect DRouter by checking if provider is "openai" and base_url points to localhost/127.0.0.1
+// Detect Dardcor Router by checking if provider is "openai" and base_url points to localhost/127.0.0.1
 const hasDardcorCodeConfig = (config) => {
     if (!config) return false;
     const provider = config.provider;

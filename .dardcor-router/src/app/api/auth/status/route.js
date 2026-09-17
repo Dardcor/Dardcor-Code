@@ -10,7 +10,7 @@ export async function GET() {
     const settings = await getSettings();
     const cookieStore = await cookies();
     const session = await getDashboardAuthSession(cookieStore.get("auth_token")?.value);
-    const requireLogin = settings.requireLogin !== false;
+    const requireLogin = settings.requireLogin === true;
     const authMode = settings.authMode || "password";
     const ssoType = settings.ssoType || "oidc";
     const oidcName = String(session?.oidcName || "").trim();
@@ -48,7 +48,7 @@ export async function GET() {
     });
   } catch {
     return NextResponse.json({
-      requireLogin: true,
+      requireLogin: false,
       authMode: "password",
       ssoType: "oidc",
       oidcConfigured: false,

@@ -157,6 +157,10 @@ export class ModelPickerActionItem extends BaseActionViewItem {
 		return this._pickerWidget.isSetupRequired();
 	}
 
+	public isNoModelConfigured(): boolean {
+		return this._pickerWidget.isNoModelConfigured();
+	}
+
 	private _showPicker(): void {
 		this._pickerWidget.show(this._getAnchorElement());
 	}
@@ -178,24 +182,23 @@ export class ModelPickerActionItem extends BaseActionViewItem {
 	}
 
 	private _getHoverContents(): IManagedHoverContent {
-		// Keep the hover prefix in sync with the picker's visible "Models" label
-		// (the same localization key) so the hover doesn't read "Pick Model • …".
-		let label = localize('chat.modelPicker.modelsLabel', "Models");
+		const noModel = this._pickerWidget.isNoModelConfigured();
+		let label = noModel
+			? localize('chat.modelPicker.noModelConfigure', "No Model Configure")
+			: localize('chat.modelPicker.modelsLabel', "Models");
 		const keybindingLabel = this.keybindingService.lookupKeybinding(this._action.id, this._contextKeyService)?.getLabel();
 		if (keybindingLabel) {
 			label += ` (${keybindingLabel})`;
 		}
 		if (this._pickerWidget.isRestrictedMode()) {
-			// Suffix avoids a leading "Models" so the hover doesn't stutter as
-			// "Models • Models unavailable…" once the prefix is "Models".
 			return localize('chat.modelPicker.restrictedHover', "{0} • Unavailable while in Restricted mode. Trust Workspace to enable models.", label);
 		}
 		if (this._pickerWidget.isSetupRequired()) {
-			return localize('chat.modelPicker.setupRequiredHover', "{0} • Sign in to GitHub Copilot to choose a model.", label);
+			return localize('chat.modelPicker.setupRequiredHover', "{0} • Configure a model provider to choose a model.", label);
 		}
 		const selectedModel = this._pickerWidget.selectedModel;
 		const { statusIcon, tooltip } = selectedModel?.metadata || {};
-		if (selectedModel) {
+		if (selectedModel && !noModel) {
 			label = localize('chat.modelPicker.selectedModelHover', "{0} • {1}", label, getLanguageModelDisplayNameWithSubscriptionSource(selectedModel));
 		}
 		return statusIcon && tooltip

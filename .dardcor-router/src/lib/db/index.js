@@ -55,6 +55,11 @@ export {
   getDisabledModels, getDisabledByProvider, disableModels, enableModels,
 } from "./repos/disabledModelsRepo.js";
 
+// Provider status (ON/OFF)
+export {
+  getAllProviderStatuses, getProviderStatus, setProviderStatus,
+} from "./repos/providerStatusRepo.js";
+
 // Usage
 export {
   statsEmitter, trackPendingRequest, getActiveRequests,

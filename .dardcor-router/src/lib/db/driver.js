@@ -13,7 +13,6 @@ import {
 } from "./modularStore.js";
 import { createJsonStoreAdapter } from "./jsonEngine.js";
 
-// Use global to survive Next.js dev hot-reload (module state resets on reload)
 if (!global._dbAdapter) global._dbAdapter = { instance: null, initPromise: null, logged: false };
 const state = global._dbAdapter;
 
@@ -23,26 +22,26 @@ function detectAndScheduleSave(adapter, sql, params) {
   if (upper.startsWith("SELECT") || upper.startsWith("PRAGMA")) return;
 
   if (upper.includes("SETTINGS")) {
-    scheduleModularSave(adapter, { systemDb: "settings" });
+    saveSystemDbSync(adapter, "settings");
   }
   if (upper.includes("APIKEYS") || upper.includes("API_KEYS")) {
-    scheduleModularSave(adapter, { systemDb: "api-keys" });
+    saveSystemDbSync(adapter, "api-keys");
   }
   if (upper.includes("COMBOS")) {
-    scheduleModularSave(adapter, { systemDb: "combos" });
+    saveSystemDbSync(adapter, "combos");
   }
   if (upper.includes("PROXYPOOLS") || upper.includes("PROXY_POOLS")) {
-    scheduleModularSave(adapter, { systemDb: "proxy-pools" });
+    saveSystemDbSync(adapter, "proxy-pools");
   }
   if (upper.includes("PROVIDERNODES") || upper.includes("PROVIDER_NODES")) {
-    scheduleModularSave(adapter, { systemDb: "nodes" });
+    saveSystemDbSync(adapter, "nodes");
   }
   if (upper.includes("KV")) {
-    scheduleModularSave(adapter, { systemDb: "aliases" });
-    scheduleModularSave(adapter, { systemDb: "pricing" });
+    saveSystemDbSync(adapter, "aliases");
+    saveSystemDbSync(adapter, "pricing");
   }
   if (upper.includes("_META")) {
-    scheduleModularSave(adapter, { systemDb: "meta" });
+    saveSystemDbSync(adapter, "meta");
   }
   if (upper.includes("USAGEHISTORY") || upper.includes("USAGE_HISTORY")) {
     scheduleModularSave(adapter, { systemUsage: "history" });
@@ -54,6 +53,7 @@ function detectAndScheduleSave(adapter, sql, params) {
     scheduleModularSave(adapter, { systemUsage: "request-details" });
   }
   if (upper.includes("PROVIDERCONNECTIONS") || upper.includes("PROVIDER_CONNECTIONS")) {
+    let savedAny = false;
     if (params && Array.isArray(params)) {
       for (const p of params) {
         if (
@@ -67,9 +67,13 @@ function detectAndScheduleSave(adapter, sql, params) {
           p !== "access_token" &&
           p !== "password"
         ) {
-          scheduleModularSave(adapter, { provider: p });
+          saveProviderSync(adapter, p);
+          savedAny = true;
         }
       }
+    }
+    if (!savedAny) {
+      flushModularSaveSync(adapter);
     }
   }
 }
@@ -107,22 +111,16 @@ async function initAdapter() {
   const adapter = createMemoryAdapter();
   if (!adapter) throw new Error("[DB] JSON Store initialization failed");
 
-  // Bootstrap core table schema
   for (const [name, def] of Object.entries(TABLES)) {
     adapter.exec(buildCreateTableSql(name, def));
   }
 
-  // Check for legacy migration: if database.json exists and modular layout not yet created
   migrateLegacyDatabaseJson();
-
-  // Import modular data into in-memory SQLite
   importFromModular(adapter);
 
-  // Run versioned migrations chain & additive schema sync
   const { runMigrationOnce } = await import("./migrate.js");
   await runMigrationOnce(adapter);
 
-  // Wrap adapter methods to intercept writes and sync to modular files
   const originalRun = adapter.run.bind(adapter);
   adapter.run = (sql, params) => {
     const res = originalRun(sql, params);

@@ -50,7 +50,7 @@
 │  Your CLI   │  (Claude Code, Codex, OpenClaw, Cursor, Cline...)
 │   Tool      │
 └──────┬──────┘
-       │ http://localhost:20128/v1
+       │ http://localhost:21128/v1
        ↓
 ┌─────────────────────────────────────────────┐
 │           Dardcor Code (Smart Router)            │
@@ -80,7 +80,7 @@ npm install -g dardcor-code
 dardcor-code
 ```
 
-🎉 El panel de control se abre en `http://localhost:20128`
+🎉 El panel de control se abre en `http://localhost:21128`
 
 **2. Conecta un proveedor GRATUITO (no requiere registro):**
 
@@ -90,7 +90,7 @@ Panel de control → Providers → Conecta **Kiro AI** (Claude gratuito e ilimit
 
 ```
 Ajustes de Claude Code/Codex/OpenClaw/Cursor/Cline:
-  Endpoint: http://localhost:20128/v1
+  Endpoint: http://localhost:21128/v1
   API Key: [copia desde el panel de control]
   Model: kr/claude-sonnet-4.5
 ```
@@ -104,20 +104,20 @@ El paquete de este repositorio es privado (`dardcor-code-app`), por lo que ejecu
 ```bash
 cp .env.example .env
 npm install
-PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
+PORT=21128 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run dev
 ```
 
 Modo de producción:
 
 ```bash
 npm run build
-PORT=20128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run start
+PORT=21128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run start
 ```
 
 URLs por defecto:
 
-- Panel de control: `http://localhost:20128/dashboard`
-- API compatible con OpenAI: `http://localhost:20128/v1`
+- Panel de control: `http://localhost:21128/dashboard`
+- API compatible con OpenAI: `http://localhost:21128/v1`
 
 ---
 
@@ -1043,7 +1043,7 @@ Coste: $0 para siempre (+ 20-40% de ahorro de tokens vía RTK)!
 
 ```
 Settings → Models → Advanced:
-  OpenAI API Base URL: http://localhost:20128/v1
+  OpenAI API Base URL: http://localhost:21128/v1
   OpenAI API Key: [desde el panel de dardcor-code]
   Model: cc/claude-opus-4-7
 ```
@@ -1056,7 +1056,7 @@ Edita `~/.claude/config.json`:
 
 ```json
 {
-  "anthropic_api_base": "http://localhost:20128/v1",
+  "anthropic_api_base": "http://localhost:21128/v1",
   "anthropic_api_key": "tu-clave-api-de-dardcor-code"
 }
 ```
@@ -1064,7 +1064,7 @@ Edita `~/.claude/config.json`:
 ### Codex CLI
 
 ```bash
-export OPENAI_BASE_URL="http://localhost:20128"
+export OPENAI_BASE_URL="http://localhost:21128"
 export OPENAI_API_KEY="tu-clave-api-de-dardcor-code"
 
 codex "tu prompt"
@@ -1092,7 +1092,7 @@ Panel de control → CLI Tools → OpenClaw → Selecciona el modelo → Aplicar
   "models": {
     "providers": {
       "dardcor-code": {
-        "baseUrl": "http://127.0.0.1:20128/v1",
+        "baseUrl": "http://127.0.0.1:21128/v1",
         "apiKey": "sk_dardcor-code",
         "api": "openai-completions",
         "models": [
@@ -1113,7 +1113,7 @@ Panel de control → CLI Tools → OpenClaw → Selecciona el modelo → Aplicar
 
 ```
 Provider: OpenAI Compatible
-Base URL: http://localhost:20128/v1
+Base URL: http://localhost:21128/v1
 API Key: [desde el panel]
 Model: cc/claude-opus-4-7
 ```
@@ -1136,10 +1136,10 @@ npm run build
 export JWT_SECRET="tu-secreto-seguro-cámbialo"
 export INITIAL_PASSWORD="tu-contraseña"
 export DATA_DIR="/var/lib/dardcor-code"
-export PORT="20128"
+export PORT="21128"
 export HOSTNAME="0.0.0.0"
 export NODE_ENV="production"
-export NEXT_PUBLIC_BASE_URL="http://localhost:20128"
+export NEXT_PUBLIC_BASE_URL="http://localhost:21128"
 export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.web.id"
 export API_KEY_SECRET="endpoint-proxy-api-key-secret"
 export MACHINE_ID_SALT="endpoint-proxy-salt"
@@ -1166,13 +1166,13 @@ Imágenes publicadas (multi-plataforma `linux/amd64` + `linux/arm64`):
 ```bash
 docker run -d \
   --name dardcor-code \
-  -p 20128:20128 \
+  -p 21128:21128 \
   -v "$HOME/.dardcor-code:/app/data" \
   -e DATA_DIR=/app/data \
   dardcor/dardcor-code:latest
 ```
 
-→ Abre http://localhost:20128
+→ Abre http://localhost:21128
 
 **Compilar desde el código fuente (dev):**
 
@@ -1180,13 +1180,13 @@ docker run -d \
 git clone https://github.com/dardcor/dardcor-code.git
 cd dardcor-code/app
 docker build -t dardcor-code .
-docker run -d --name dardcor-code -p 20128:20128 \
+docker run -d --name dardcor-code -p 21128:21128 \
   -v "$HOME/.dardcor-code:/app/data" -e DATA_DIR=/app/data dardcor-code
 ```
 
 **Valores por defecto del contenedor:**
 
-- `PORT=20128`
+- `PORT=21128`
 - `HOSTNAME=0.0.0.0`
 
 **Comandos útiles:**
@@ -1207,10 +1207,10 @@ docker pull dardcor/dardcor-code:latest   # actualiza a la última versión
 | `JWT_SECRET`                                         | Generado automáticamente (`~/.dardcor-code/jwt-secret`) | Secreto de firma JWT para la cookie de autenticación del panel (sobreescríbelo para compartir entre instancias) |
 | `INITIAL_PASSWORD`                                   | `123456`                                   | Contraseña del primer inicio de sesión cuando no existe un hash guardado             |
 | `DATA_DIR`                                           | `~/.dardcor-code`                               | Ubicación principal de datos de la app (SQLite en `$DATA_DIR/db/data.sqlite`)        |
-| `PORT`                                               | por defecto del framework                  | Puerto del servicio (`20128` en los ejemplos)                                        |
+| `PORT`                                               | por defecto del framework                  | Puerto del servicio (`21128` en los ejemplos)                                        |
 | `HOSTNAME`                                           | por defecto del framework                  | Host de enlace (Docker usa `0.0.0.0` por defecto)                                    |
 | `NODE_ENV`                                           | por defecto del runtime                    | Establece `production` para el despliegue                                            |
-| `BASE_URL`                                           | `http://localhost:20128`                   | URL base interna del lado del servidor usada por los trabajos de sincronización en la nube |
+| `BASE_URL`                                           | `http://localhost:21128`                   | URL base interna del lado del servidor usada por los trabajos de sincronización en la nube |
 | `CLOUD_URL`                                          | `https://dardcor-code.web.id`                      | URL base del endpoint de sincronización en la nube del lado del servidor             |
 | `NEXT_PUBLIC_BASE_URL`                               | `http://localhost:3000`                    | URL base pública/compatible con versiones anteriores (prefiere `BASE_URL` para el runtime del servidor) |
 | `NEXT_PUBLIC_CLOUD_URL`                              | `https://dardcor-code.web.id`                      | URL de nube pública/compatible (prefiere `CLOUD_URL` para el runtime del servidor)   |
@@ -1343,7 +1343,7 @@ Notas:
 
 **El panel se abre en el puerto equivocado**
 
-- Establece `PORT=20128` y `NEXT_PUBLIC_BASE_URL=http://localhost:20128`
+- Establece `PORT=21128` y `NEXT_PUBLIC_BASE_URL=http://localhost:21128`
 
 **El primer inicio de sesión no funciona**
 
@@ -1372,7 +1372,7 @@ Notas:
 ### Chat Completions
 
 ```bash
-POST http://localhost:20128/v1/chat/completions
+POST http://localhost:21128/v1/chat/completions
 Authorization: Bearer tu-clave-api
 Content-Type: application/json
 
@@ -1388,7 +1388,7 @@ Content-Type: application/json
 ### Listar modelos
 
 ```bash
-GET http://localhost:20128/v1/models
+GET http://localhost:21128/v1/models
 Authorization: Bearer tu-clave-api
 
 → Devuelve todos los modelos y combos en formato OpenAI

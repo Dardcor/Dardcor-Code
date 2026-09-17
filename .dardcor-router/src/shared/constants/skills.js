@@ -1,7 +1,7 @@
 // Agent Skills metadata — single source of truth for /dashboard/skills page.
 // Each skill = 1 raw GitHub URL the user copies and pastes to any AI agent.
 
-const REPO = "dardcor/dardcor-code";
+const REPO = "decolua/dardcor-code";
 const BRANCH = "master";
 const SKILL_PATH = "skills";
 
@@ -12,7 +12,7 @@ export const SKILLS_BLOB_BASE = `https://github.com/${REPO}/blob/${BRANCH}/${SKI
 export const SKILLS = [
   {
     id: "dardcor-code",
-    name: "Dardcor Router (Entry)",
+    name: "Dardcor Code (Entry)",
     description: "Setup + index of all capabilities. Start here — covers base URL, auth, model discovery, and links to every capability skill.",
     endpoint: null,
     icon: "hub",
@@ -56,7 +56,7 @@ export const SKILLS = [
   {
     id: "dardcor-code-web-search",
     name: "Web Search",
-    description: "Tavily / Exa / Brave / Serper / SearXNG / Google PSE / You.com.",
+    description: "Web and X search via Tavily / Exa / Brave / Serper / SearXNG / Google PSE / You.com / Xquik.",
     endpoint: "/v1/search",
     icon: "search",
   },

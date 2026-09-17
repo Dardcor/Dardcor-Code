@@ -132,11 +132,11 @@
 
 ## 连接被拒绝
 
-**问题:** 出现 "ECONNREFUSED" 或 "Cannot connect to localhost:20128"。
+**问题:** 出现 "ECONNREFUSED" 或 "Cannot connect to localhost:21128"。
 
 **原因:**
 - Dardcor Code 未运行
-- 端口 20128 被阻止
+- 端口 21128 被阻止
 - 防火墙拦截连接
 
 **解决方案:**
@@ -147,19 +147,19 @@
    ```
    仪表盘应该在 http://localhost:3000 打开。
 
-2. **检查端口 20128:**
+2. **检查端口 21128:**
    ```bash
    # 检查端口是否监听
-   lsof -i :20128
+   lsof -i :21128
    
    # Windows
-   netstat -ano | findstr :20128
+   netstat -ano | findstr :21128
    ```
 
 3. **检查防火墙:**
    - macOS: 系统设置 → 网络 → 防火墙
    - Windows: Windows Defender 防火墙 → 允许应用
-   - Linux: `sudo ufw allow 20128`
+   - Linux: `sudo ufw allow 21128`
 
 4. **使用云端 endpoint:**
    如果 localhost 不行(例如 Cursor IDE):
@@ -243,7 +243,7 @@
 
 3. **列出可用模型:**
    ```bash
-   curl http://localhost:20128/v1/models \
+   curl http://localhost:21128/v1/models \
      -H "Authorization: Bearer your-api-key"
    ```
 
@@ -320,8 +320,8 @@
 
 2. **检查 key 格式:**
    ```
-   正确: 9r_xxxxxxxxxxxxxxxxxxxxxxxx
-   错误: 缺少 9r_ 前缀
+   正确: dc_xxxxxxxxxxxxxxxxxxxxxxxx
+   错误: 缺少 dc_ 前缀
    ```
 
 3. **检查 CLI 配置中的 key:**
@@ -333,13 +333,13 @@
    Settings → API Key
    
    # 环境变量
-   export OPENAI_API_KEY="9r_your_key"
+   export OPENAI_API_KEY="dc_your_key"
    ```
 
 4. **测试 API key:**
    ```bash
-   curl http://localhost:20128/v1/models \
-     -H "Authorization: Bearer 9r_your_key"
+   curl http://localhost:21128/v1/models \
+     -H "Authorization: Bearer dc_your_key"
    ```
 
 ---

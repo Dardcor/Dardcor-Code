@@ -8,13 +8,13 @@ describe("agent registry core", () => {
   it("derives honest states only from status checks", () => {
     expect(normalizeAgentStatus({ installed: false })).toMatchObject({ state: "unavailable", available: false, running: false });
     expect(normalizeAgentStatus({ installed: true })).toMatchObject({ state: "available", available: true, configured: false });
-    expect(normalizeAgentStatus({ installed: true, has9Router: true })).toMatchObject({ state: "configured", configured: true, running: false });
+    expect(normalizeAgentStatus({ installed: true, hasDardcorCode: true })).toMatchObject({ state: "configured", configured: true, running: false });
     expect(normalizeAgentStatus({ installed: true, running: true, pid: 42 })).toMatchObject({ state: "running", running: true });
     expect(normalizeAgentStatus({ error: "probe failed" })).toMatchObject({ state: "error", error: "Status check failed" });
   });
 
   it("exposes fixed capabilities without commands or secrets", async () => {
-    const registry = createAgentRegistry({ claude: vi.fn(async () => ({ installed: true, has9Router: true, apiKey: "secret" })) });
+    const registry = createAgentRegistry({ claude: vi.fn(async () => ({ installed: true, hasDardcorCode: true, apiKey: "secret" })) });
     const agents = await registry.list();
     const claude = agents.find((agent) => agent.id === "claude");
     expect(claude).toMatchObject({

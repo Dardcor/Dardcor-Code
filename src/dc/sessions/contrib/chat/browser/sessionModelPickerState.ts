@@ -44,7 +44,7 @@ export function hasSelectableModel(
 	models: readonly ILanguageModelChatMetadataAndIdentifier[],
 	options: INormalizedSessionModelPickerOptions,
 ): boolean {
-	return models.length > 0 || options.showAutoModel;
+	return models.length > 0;
 }
 
 export function hasSendableModelSelection(state: ISessionModelSelectionState): boolean {

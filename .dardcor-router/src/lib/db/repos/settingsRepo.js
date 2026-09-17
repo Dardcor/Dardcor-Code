@@ -1,7 +1,7 @@
 import { getAdapter } from "../driver.js";
 import { parseJson, stringifyJson } from "../helpers/jsonCol.js";
 
-const DEFAULT_MITM_ROUTER_BASE = "http://localhost:25128";
+const DEFAULT_MITM_ROUTER_BASE = "http://localhost:21128";
 const DEFAULT_HEADROOM_URL = process.env.HEADROOM_URL || "http://localhost:8787";
 
 const DEFAULT_SETTINGS = {
@@ -23,8 +23,8 @@ const DEFAULT_SETTINGS = {
     audioInput: { enabled: true, roundRobin: false, models: [] },
     videoInput: { enabled: false, roundRobin: false, models: [] },
   },
-  requireLogin: true,
-  requireApiKey: false,
+  requireLogin: false,
+  requireApiKey: true,
   tunnelDashboardAccess: true,
   authMode: "password",
   ssoType: "oidc",
@@ -34,7 +34,7 @@ const DEFAULT_SETTINGS = {
   oidcScopes: "openid profile email",
   oidcLoginLabel: "Sign in with OIDC",
   samlEntryPoint: "",
-  samlIssuer: "urn:9router:sp",
+  samlIssuer: "urn:dardcor-code:sp",
   samlCert: "",
   samlLoginLabel: "Sign in with SAML SSO",
   samlAttributeEmail: "email",
@@ -53,6 +53,7 @@ const DEFAULT_SETTINGS = {
   headroomEnabled: false,
   headroomUrl: DEFAULT_HEADROOM_URL,
   headroomCompressUserMessages: false,
+  headroomTimeoutMs: 3000,
   cavemanEnabled: false,
   cavemanLevel: "full",
   ponytailEnabled: false,
@@ -61,7 +62,6 @@ const DEFAULT_SETTINGS = {
   pxpipeAutoInstall: true,
   pxpipeMinChars: 25000,
   pxpipeTimeoutMs: 15000,
-  sessionVersion: 0,
 };
 
 async function readRaw() {
@@ -102,9 +102,6 @@ export async function updateSettings(updates) {
     const row = db.get(`SELECT data FROM settings WHERE id = 1`);
     const current = row ? parseJson(row.data, {}) : {};
     next = { ...current, ...updates };
-    if ("password" in updates) {
-      next.sessionVersion = (current.sessionVersion ?? 0) + 1;
-    }
     db.run(
       `INSERT INTO settings(id, data) VALUES(1, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data`,
       [stringifyJson(next)],

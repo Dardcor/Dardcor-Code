@@ -31,11 +31,10 @@ export const TERMS = [
   { name: "9router", re: /9router/gi },
   { name: "9r_", re: /9r_/gi },
   { name: "X-9Router", re: /x-9router/gi },
-  { name: "DARDCORROUTER", re: /ninerouter/gi },
+  { name: "ninerouter", re: /ninerouter/gi },
   { name: "20127", re: /20127/g },
   { name: "20128", re: /20128/g },
   { name: "20129", re: /20129/g },
-  { name: "dardcor", re: /dardcor/gi },
   { name: ".9router", re: /\.9router/gi },
   { name: "9router.com", re: /9router\.com/gi },
 ];
@@ -87,7 +86,7 @@ export const COMPAT_ALIASES = {
   "open-sse/executors/zed.js": ["9router"],
   // §5: legacy config dir reads — ~/.9router, ~/.9router/db.json (lines 83, 192, 858),
   // legacy process-name matches (kill stale 9router installs), legacy Win AppData path.
-  "cli/cli.js": ["9router", ".9router"],
+  "cli/cli.js": [".9router"],
   // §5: legacy DARDCOR_CLI_APP_DIR read fallback + build log strings.
   "cli/scripts/build-cli.js": ["DARDCORROUTER", "9router"],
   "cli/scripts/buildMitm.js": ["DARDCORROUTER"],

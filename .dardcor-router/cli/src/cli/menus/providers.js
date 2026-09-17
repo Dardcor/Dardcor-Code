@@ -53,6 +53,9 @@ const PROVIDER_MODELS = {
     { id: "glm-4.7" },
   ],
   ag: [
+    { id: "gemini-3.8-flash-high" },
+    { id: "gemini-3.8-flash-medium" },
+    { id: "gemini-3.8-flash-low" },
     { id: "gemini-3.7-flash-high" },
     { id: "gemini-3.7-flash-medium" },
     { id: "gemini-3.7-flash-low" },
@@ -101,6 +104,8 @@ const PROVIDER_MODELS = {
     { id: "claude-3-5-sonnet-20241022" },
   ],
   gemini: [
+    { id: "gemini-3.8-flash" },
+    { id: "gemini-3.7-flash" },
     { id: "gemini-3.6-flash" },
     { id: "gemini-3.5-flash-lite" },
     { id: "gemini-3-pro-preview" },
@@ -500,7 +505,7 @@ async function handleAddOAuthConnection(providerId) {
   console.log(`  ${COLORS.bold}${COLORS.cyan}2.${COLORS.reset} Complete authorization in browser`);
   console.log();
   console.log(`  ${COLORS.bold}${COLORS.cyan}3.${COLORS.reset} Copy the callback URL from address bar`);
-  console.log(`     ${COLORS.dim}(looks like: http://localhost:20128/callback?code=...)${COLORS.reset}`);
+  console.log(`     ${COLORS.dim}(looks like: http://localhost:21128/callback?code=...)${COLORS.reset}`);
   console.log();
   
   const callbackUrl = await prompt("  Paste callback URL: ");

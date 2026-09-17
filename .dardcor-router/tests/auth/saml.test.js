@@ -28,9 +28,9 @@ test("generateSamlMetadata produces valid SP XML", () => {
     samlIssuer: "urn:dardcor-code:sp",
     samlCert: "MIIC123456789012345678901234567890123456789012345678901234567890",
   };
-  const xml = generateSamlMetadata("https://localhost:20127", settings);
+  const xml = generateSamlMetadata("https://localhost:21127", settings);
   assert.match(xml, /entityID="urn:dardcor-code:sp"/);
-  assert.match(xml, /Location="https:\/\/localhost:20127\/api\/auth\/saml\/acs"/);
+  assert.match(xml, /Location="https:\/\/localhost:21127\/api\/auth\/saml\/acs"/);
 });
 
 test("Claims Extraction pickSamlEmail & pickSamlDisplayName", () => {

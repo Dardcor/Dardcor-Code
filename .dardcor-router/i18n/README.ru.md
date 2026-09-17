@@ -45,7 +45,7 @@
 │  Your CLI   │  (Claude Code, Codex, Gemini CLI, OpenClaw, Cursor, Cline...)
 │   Tool      │
 └──────┬──────┘
-       │ http://localhost:20128/v1
+       │ http://localhost:21128/v1
        ↓
 ┌────────────────────────────────────────┐
 │           Dardcor Code (Smart Router)        │
@@ -74,7 +74,7 @@ npm install -g dardcor-code
 dardcor-code
 ```
 
-🎉 Панель управления откроется на `http://localhost:20128`
+🎉 Панель управления откроется на `http://localhost:21128`
 
 **2. Подключите БЕСПЛАТНОГО провайдера (без подписки):**
 
@@ -84,7 +84,7 @@ dardcor-code
 
 ```
 Настройки Claude Code/Codex/Gemini CLI/OpenClaw/Cursor/Cline:
-  Endpoint: http://localhost:20128/v1
+  Endpoint: http://localhost:21128/v1
   API Key: [скопируйте из панели управления]
   Model: if/kimi-k2-thinking
 ```
@@ -98,19 +98,19 @@ dardcor-code
 ```bash
 cp .env.example .env
 npm install
-PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
+PORT=21128 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run dev
 ```
 
 Режим Production:
 
 ```bash
 npm run build
-PORT=20128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run start
+PORT=21128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run start
 ```
 
 URL по умолчанию:
-- Панель управления: `http://localhost:20128/dashboard`
-- OpenAI-совместимый API: `http://localhost:20128/v1`
+- Панель управления: `http://localhost:21128/dashboard`
+- OpenAI-совместимый API: `http://localhost:21128/v1`
 
 ---
 
@@ -864,7 +864,7 @@ Dardcor Code только маршрутизирует ваши запросы �
 
 ```
 Settings → Models → Advanced:
-  OpenAI API Base URL: http://localhost:20128/v1
+  OpenAI API Base URL: http://localhost:21128/v1
   OpenAI API Key: [из панели управления dardcor-code]
   Model: cc/claude-opus-4-6
 ```
@@ -877,7 +877,7 @@ Settings → Models → Advanced:
 
 ```json
 {
-  "anthropic_api_base": "http://localhost:20128/v1",
+  "anthropic_api_base": "http://localhost:21128/v1",
   "anthropic_api_key": "your-dardcor-code-api-key"
 }
 ```
@@ -885,7 +885,7 @@ Settings → Models → Advanced:
 ### Codex CLI
 
 ```bash
-export OPENAI_BASE_URL="http://localhost:20128"
+export OPENAI_BASE_URL="http://localhost:21128"
 export OPENAI_API_KEY="your-dardcor-code-api-key"
 
 codex "ваш промпт"
@@ -913,7 +913,7 @@ codex "ваш промпт"
   "models": {
     "providers": {
       "dardcor-code": {
-        "baseUrl": "http://127.0.0.1:20128/v1",
+        "baseUrl": "http://127.0.0.1:21128/v1",
         "apiKey": "sk_dardcor-code",
         "api": "openai-completions",
         "models": [
@@ -934,7 +934,7 @@ codex "ваш промпт"
 
 ```
 Provider: OpenAI Compatible
-Base URL: http://localhost:20128/v1
+Base URL: http://localhost:21128/v1
 API Key: [из панели управления]
 Model: cc/claude-opus-4-6
 ```
@@ -957,10 +957,10 @@ npm run build
 export JWT="your-secure-secret-change-this"
 export INITIAL_PASSWORD="your-password"
 export DATA_DIR="/var/lib/dardcor-code"
-export PORT="20128"
+export PORT="21128"
 export HOSTNAME="0.0.0.0"
 export NODE_ENV="production"
-export NEXT_PUBLIC_BASE_URL="http://localhost:20128"
+export NEXT_PUBLIC_BASE_URL="http://localhost:21128"
 export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.web.id"
 export API_KEY_SECRET="endpoint-proxy-api-key-secret"
 export MACHINE_ID_SALT="endpoint-proxy-salt"
@@ -984,7 +984,7 @@ docker build -t dardcor-code .
 # Run container (command used in current setup)
 docker run -d \
   --name dardcor-code \
-  -p 20128:20128 \
+  -p 21128:21128 \
   --env-file /root/dev/dardcor-code/.env \
   -v dardcor-code-data:/app/data \
   -v dardcor-code-usage:/root/.dardcor-code \
@@ -996,7 +996,7 @@ docker run -d \
 ```bash
 docker run -d \
   --name dardcor-code \
-  -p 20128:20128 \
+  -p 21128:21128 \
   --env-file ./.env \
   -v dardcor-code-data:/app/data \
   -v dardcor-code-usage:/root/.dardcor-code \
@@ -1004,7 +1004,7 @@ docker run -d \
 ```
 
 Значения по умолчанию контейнера:
-- `PORT=20128`
+- `PORT=21128`
 - `HOSTNAME=0.0.0.0`
 
 Полезные команды:
@@ -1022,10 +1022,10 @@ docker stop dardcor-code && docker rm dardcor-code
 | `JWT_SECRET` | Автогенерация (`~/.dardcor-code/jwt-secret`) | Секрет подписи JWT для cookie аутентификации панели (задайте для общего доступа между инстансами) |
 | `INITIAL_PASSWORD` | `123456` | Пароль первого входа при отсутствии сохранённого хеша |
 | `DATA_DIR` | `~/.dardcor-code` | Расположение основной БД приложения (`db.json`) |
-| `PORT` | framework default | Порт сервиса (`20128` в примерах) |
+| `PORT` | framework default | Порт сервиса (`21128` в примерах) |
 | `HOSTNAME` | framework default | Bind host (Docker по умолчанию `0.0.0.0`) |
 | `NODE_ENV` | runtime default | Установите `production` для развёртывания |
-| `BASE_URL` | `http://localhost:20128` | Внутренний серверный базовый URL для задач облачной синхронизации |
+| `BASE_URL` | `http://localhost:21128` | Внутренний серверный базовый URL для задач облачной синхронизации |
 | `CLOUD_URL` | `https://dardcor-code.web.id` | Серверный базовый URL эндпоинта облачной синхронизации |
 | `NEXT_PUBLIC_BASE_URL` | `http://localhost:3000` | Обратно совместимый/публичный базовый URL (приоритет `BASE_URL` для серверного рантайма) |
 | `NEXT_PUBLIC_CLOUD_URL` | `https://dardcor-code.web.id` | Обратно совместимый/публичный облачный URL (приоритет `CLOUD_URL` для серверного рантайма) |
@@ -1118,10 +1118,10 @@ docker stop dardcor-code && docker rm dardcor-code
 - Используйте бесплатные уровни (Gemini CLI, iFlow) для некритичных задач
 
 **Панель открывается на неверном порту**
-- Установите `PORT=20128` и `NEXT_PUBLIC_BASE_URL=http://localhost:20128`
+- Установите `PORT=21128` и `NEXT_PUBLIC_BASE_URL=http://localhost:21128`
 
 **Ошибки облачной синхронизации**
-- Убедитесь, что `BASE_URL` указывает на ваш работающий инстанс (например, `http://localhost:20128`)
+- Убедитесь, что `BASE_URL` указывает на ваш работающий инстанс (например, `http://localhost:21128`)
 - Убедитесь, что `CLOUD_URL` указывает на ожидаемый облачный эндпоинт (например, `https://dardcor-code.web.id`)
 - По возможности держите значения `NEXT_PUBLIC_*` согласованными с серверными значениями.
 
@@ -1160,7 +1160,7 @@ docker stop dardcor-code && docker rm dardcor-code
 ### Chat Completions
 
 ```bash
-POST http://localhost:20128/v1/chat/completions
+POST http://localhost:21128/v1/chat/completions
 Authorization: Bearer your-api-key
 Content-Type: application/json
 
@@ -1176,7 +1176,7 @@ Content-Type: application/json
 ### Список моделей
 
 ```bash
-GET http://localhost:20128/v1/models
+GET http://localhost:21128/v1/models
 Authorization: Bearer your-api-key
 
 → Возвращает все модели + комбо в формате OpenAI
@@ -1218,7 +1218,7 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 
 Ожидаемое поведение по результатам недавней проверки:
 
-- Локально (`http://127.0.0.1:20128/v1/chat/completions`): работает с `stream=false` и `stream=true`.
+- Локально (`http://127.0.0.1:21128/v1/chat/completions`): работает с `stream=false` и `stream=true`.
 - Docker-рантайм (тот же API-путь, экспонируемый контейнером): hardening-проверки проходят, cloud auth guard работает, строгий режим API-ключа работает при включении.
 - Публичный облачный эндпоинт (`https://dardcor-code.web.id/v1/chat/completions`):
   - `stream=true`: ожидается успех (возвращает SSE-чанки).

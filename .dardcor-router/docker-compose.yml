@@ -1,17 +1,17 @@
 services:
-  9router:
-    image: dardcor/9router:latest
-    container_name: 9router
+  dardcor-router:
+    image: dardcor/dardcor-router:latest
+    container_name: dardcor-router
     restart: always
     ports:
-      - "20128:20128"
+      - "21128:21128"
     volumes:
-      - 9router-data:/app/data
+      - dardcor-router-data:/app/data
     env_file:
       - .env
     environment:
       DATA_DIR: /app/data
-      PORT: "20128"
+      PORT: "21128"
       HOSTNAME: "0.0.0.0"
       NODE_ENV: production
       HEADROOM_URL: http://headroom:8787
@@ -26,5 +26,5 @@ services:
       - "8787:8787"
 
 volumes:
-  9router-data:
-    name: 9router-data
+  dardcor-router-data:
+    name: dardcor-router-data

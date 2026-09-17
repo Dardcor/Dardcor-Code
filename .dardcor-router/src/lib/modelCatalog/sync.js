@@ -22,7 +22,7 @@ const MIN_SHARE = 0.5;
 // Ignore limit differences below this: gateways round 200000 vs 202752.
 const LIMIT_TOLERANCE = 0.1;
 
-// 9router provider id -> models.dev provider id, for context/maxOutput only.
+// dardcor-code provider id -> models.dev provider id, for context/maxOutput only.
 // Providers absent here keep whatever the local pattern table resolves; names
 // that already match are resolved automatically.
 const PROVIDER_ALIASES = {

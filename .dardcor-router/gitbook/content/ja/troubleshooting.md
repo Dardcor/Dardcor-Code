@@ -132,11 +132,11 @@ Dardcor Code利用時の一般的な問題と解決策。
 
 ## Connection Refused
 
-**問題:** 「ECONNREFUSED」または「Cannot connect to localhost:20128」。
+**問題:** 「ECONNREFUSED」または「Cannot connect to localhost:21128」。
 
 **原因:**
 - Dardcor Codeが起動していない
-- ポート20128がブロックされている
+- ポート21128がブロックされている
 - ファイアウォールが接続をブロック
 
 **解決策:**
@@ -147,19 +147,19 @@ Dardcor Code利用時の一般的な問題と解決策。
    ```
    ダッシュボードがhttp://localhost:3000で開くはず
 
-2. **ポート20128を確認:**
+2. **ポート21128を確認:**
    ```bash
    # ポートがリッスンしているか確認
-   lsof -i :20128
+   lsof -i :21128
    
    # またはWindowsで
-   netstat -ano | findstr :20128
+   netstat -ano | findstr :21128
    ```
 
 3. **ファイアウォールを確認:**
    - macOS: システム設定 → ネットワーク → ファイアウォール
    - Windows: Windows Defenderファイアウォール → アプリを許可
-   - Linux: `sudo ufw allow 20128`
+   - Linux: `sudo ufw allow 21128`
 
 4. **クラウドエンドポイントを使用:**
    localhostが動作しない場合(例: Cursor IDE):
@@ -243,7 +243,7 @@ Dardcor Code利用時の一般的な問題と解決策。
 
 3. **利用可能なモデルを一覧表示:**
    ```bash
-   curl http://localhost:20128/v1/models \
+   curl http://localhost:21128/v1/models \
      -H "Authorization: Bearer your-api-key"
    ```
 
@@ -320,8 +320,8 @@ Dardcor Code利用時の一般的な問題と解決策。
 
 2. **キー形式を確認:**
    ```
-   正しい: 9r_xxxxxxxxxxxxxxxxxxxxxxxx
-   誤り: 9r_プレフィックスがない
+   正しい: dc_xxxxxxxxxxxxxxxxxxxxxxxx
+   誤り: dc_プレフィックスがない
    ```
 
 3. **CLI設定でキーを確認:**
@@ -333,13 +333,13 @@ Dardcor Code利用時の一般的な問題と解決策。
    Settings → API Key
    
    # 環境変数
-   export OPENAI_API_KEY="9r_your_key"
+   export OPENAI_API_KEY="dc_your_key"
    ```
 
 4. **APIキーをテスト:**
    ```bash
-   curl http://localhost:20128/v1/models \
-     -H "Authorization: Bearer 9r_your_key"
+   curl http://localhost:21128/v1/models \
+     -H "Authorization: Bearer dc_your_key"
    ```
 
 ---

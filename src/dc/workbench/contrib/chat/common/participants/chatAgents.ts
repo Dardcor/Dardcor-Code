@@ -2954,33 +2954,43 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			const currentPrompt = typeof request.message === 'string' ? request.message : (request.message as any)?.text || String(request.message || '');
 			messages.push({ role: 'user', content: currentPrompt.trim() || 'hello' });
 			try {
-				const modelsRes = await fetchRouter('/v1/models', { headers: { ...ROUTER_AUTH_HEADER, 'x-drouter-connected-only': '1' } });
+				const modelsRes = await fetchRouter('/v1/models', { headers: { ...ROUTER_AUTH_HEADER, 'x-dardcor-router-connected-only': '1', 'x-drouter-connected-only': '1' } });
 				if (modelsRes.ok) {
 					const modelsData = await modelsRes.json() as any;
 					if (Array.isArray(modelsData?.data) && modelsData.data.length > 0) {
 						if (!modelName) {
 							modelName = modelsData.data[0].id;
 						} else {
-							const target = (modelName || '').replace(/^(ag|oc|ds|opencode|gemini|grok|claude)\//i, '').toLowerCase().trim();
+							const target = (modelName || '').replace(/^(dardcor|ag|oc|ds|opencode|gemini|grok|claude)\//i, '').toLowerCase().trim();
 							const match = modelsData.data.find((m: any) => target && (m?.id === modelName || m?.id?.toLowerCase() === modelName?.toLowerCase() || m?.id?.toLowerCase().endsWith('/' + target) || m?.id?.toLowerCase() === target));
 							if (match) {
 								modelName = match.id;
+							} else {
+								modelName = modelsData.data[0].id;
 							}
 						}
+					} else {
+						modelName = undefined;
 					}
+				} else {
+					modelName = undefined;
 				}
-			} catch { }
+			} catch {
+				modelName = undefined;
+			}
 			if (typeof modelName === 'string') {
 				if (modelName.toLowerCase().startsWith('opencode/')) modelName = `oc/${modelName.slice('opencode/'.length)}`;
 				if (modelName.toLowerCase().endsWith('-free') && !modelName.includes('/')) modelName = `oc/${modelName}`;
 			}
 
 			if (!modelName) {
+				const md = new MarkdownString('No AI model is configured. Please configure at least one provider in [Dardcor Router](http://localhost:25128/) to start chatting.');
+				md.isTrusted = true;
 				progress([{
 					kind: 'markdownContent',
-					content: new MarkdownString('No AI model is configured. Please configure at least one provider in [Dardcor Router](http://localhost:25128/) to start chatting.')
+					content: md
 				}]);
-				return { errorDetails: { message: 'No AI model is configured in Dardcor Router.' } };
+				return {};
 			}
 
 			let turn = 0;

@@ -29,7 +29,7 @@ Establece la URL base a tu endpoint de Dardcor Code:
 
 **Para Dardcor Code local:**
 ```
-http://localhost:20128/v1
+http://localhost:21128/v1
 ```
 
 **Para Dardcor Code en la nube:**
@@ -70,7 +70,7 @@ Tu configuración de Cline debería verse así:
 
 ```
 API Provider: Ollama
-Base URL: http://localhost:20128/v1
+Base URL: http://localhost:21128/v1
 API Key: sk-dardcor-code-xxxxxxxxxxxxx
 Model: gpt-4
 ```
@@ -118,9 +118,9 @@ Puedes usar cualquier modelo configurado en tu dashboard de Dardcor Code. Ejempl
 
 ### Error "Connection Failed"
 
-1. Verifica que Dardcor Code esté corriendo: `curl http://localhost:20128/health`
+1. Verifica que Dardcor Code esté corriendo: `curl http://localhost:21128/health`
 2. Verifica que la URL base sea correcta e incluya `/v1`
-3. Asegúrate de que ningún firewall esté bloqueando el puerto 20128
+3. Asegúrate de que ningún firewall esté bloqueando el puerto 21128
 4. Intenta reiniciar VSCode
 
 ### Error "Invalid API Key"

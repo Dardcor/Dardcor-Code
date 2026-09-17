@@ -1506,22 +1506,32 @@ export class LanguageModelsService implements ILanguageModelsService {
 		this._readVisibility();
 		this._initChatControlData();
 
-		const DARDCOR_MODELS_CACHE_STORAGE_KEY = 'chat.cachedDrouterModels';
-		const localDrouterModelIds = new Set<string>();
+		const DARDCOR_MODELS_CACHE_STORAGE_KEY = 'chat.cachedDardcorRouterModels';
+		const localDardcorRouterModelIds = new Set<string>();
 		const onDidChangeDardcorProvider = this._store.add(new Emitter<void>());
 
 		const populateModelsFromList = (list: any[], allowPruning: boolean = false): boolean => {
 			if (!Array.isArray(list) || list.length === 0) {
-				if (allowPruning && localDrouterModelIds.size > 0) {
-					for (const id of localDrouterModelIds) {
+				if (allowPruning) {
+					let hadModels = localDardcorRouterModelIds.size > 0;
+					for (const id of localDardcorRouterModelIds) {
 						this._modelCache.delete(id);
 						const clean = id.includes('/') ? id.slice(id.indexOf('/') + 1) : id;
 						if (clean !== id) {
 							this._modelCache.delete(clean);
 						}
 					}
-					localDrouterModelIds.clear();
-					return true;
+					localDardcorRouterModelIds.clear();
+					for (const [id, meta] of this._modelCache.entries()) {
+						if (meta.vendor === 'dardcor') {
+							this._modelCache.delete(id);
+							hadModels = true;
+						}
+					}
+					try {
+						this._storageService.remove(DARDCOR_MODELS_CACHE_STORAGE_KEY, StorageScope.APPLICATION);
+					} catch { }
+					return hadModels;
 				}
 				return false;
 			}
@@ -1586,7 +1596,7 @@ export class LanguageModelsService implements ILanguageModelsService {
 			if (nextIds.size > 0) {
 				this._modelCache.delete('opencode/no-model-selected');
 				if (allowPruning) {
-					for (const id of localDrouterModelIds) {
+					for (const id of localDardcorRouterModelIds) {
 						if (!nextIds.has(id)) {
 							this._modelCache.delete(id);
 							const clean = id.includes('/') ? id.slice(id.indexOf('/') + 1) : id;
@@ -1595,9 +1605,9 @@ export class LanguageModelsService implements ILanguageModelsService {
 							}
 						}
 					}
-					localDrouterModelIds.clear();
+					localDardcorRouterModelIds.clear();
 				}
-				for (const id of nextIds) localDrouterModelIds.add(id);
+				for (const id of nextIds) localDardcorRouterModelIds.add(id);
 				return true;
 			}
 			return false;
@@ -1622,7 +1632,7 @@ export class LanguageModelsService implements ILanguageModelsService {
 				const controller = new AbortController();
 				const timeoutId = setTimeout(() => controller.abort(), 12000);
 				const res = await fetchRouterLM('/v1/models', {
-					headers: { ..._LM_ROUTER_AUTH, 'x-drouter-connected-only': '1' },
+					headers: { ..._LM_ROUTER_AUTH, 'x-dardcor-router-connected-only': '1', 'x-drouter-connected-only': '1' },
 					signal: controller.signal
 				}, 5);
 				clearTimeout(timeoutId);
@@ -1667,11 +1677,11 @@ export class LanguageModelsService implements ILanguageModelsService {
 		}, 800);
 		this._store.add(toDisposable(() => clearInterval(startupPollTimer)));
 
-		// Dynamic adaptive polling: 2s when no models configured, 15s when populated
+		// Real-time polling: 2s interval to ensure provider toggles & new models appear in real-time
 		let activePollTimer: any = undefined;
 		const scheduleNextPoll = () => {
 			if (activePollTimer) clearTimeout(activePollTimer);
-			const delay = localDrouterModelIds.size === 0 ? 2000 : 15000;
+			const delay = 2000;
 			activePollTimer = setTimeout(async () => {
 				await fetchLocalModels();
 				scheduleNextPoll();
@@ -1681,6 +1691,13 @@ export class LanguageModelsService implements ILanguageModelsService {
 		this._store.add(toDisposable(() => {
 			if (activePollTimer) clearTimeout(activePollTimer);
 		}));
+
+		// Instant sync on window focus (e.g. returning from Dardcor Router dashboard)
+		if (typeof window !== 'undefined') {
+			const onWindowFocus = () => { void fetchLocalModels(); };
+			window.addEventListener('focus', onWindowFocus);
+			this._store.add(toDisposable(() => window.removeEventListener('focus', onWindowFocus)));
+		}
 
 		this._store.add(this.registerLanguageModelProvider('dardcor', {
 			onDidChange: onDidChangeDardcorProvider.event,
@@ -1702,7 +1719,7 @@ export class LanguageModelsService implements ILanguageModelsService {
 				if (resolvedModel.toLowerCase().startsWith('opencode/')) resolvedModel = `oc/${resolvedModel.slice('opencode/'.length)}`;
 				if (resolvedModel.toLowerCase().endsWith('-free') && !resolvedModel.includes('/')) resolvedModel = `oc/${resolvedModel}`;
 				if (resolvedModel === 'opencode/no-model-selected' || resolvedModel === 'auto' || !resolvedModel) {
-					const firstAvailable = localDrouterModelIds.values().next().value;
+					const firstAvailable = localDardcorRouterModelIds.values().next().value;
 					if (firstAvailable) {
 						resolvedModel = firstAvailable;
 					} else {
@@ -2096,13 +2113,15 @@ Automatically detect the user's language and respond fluently in the exact same 
 				}
 			}
 
-			// Always merge the live Dardcor Router catalog. The extension provider may
-			// already have an older/static list (for example Gemini 3.6), but that
-			// must not hide newer connected models such as Gemini 3.7.
+			// Always merge the live Dardcor Router catalog.
+			if (vendorId === 'dardcor') {
+				allModels.length = 0;
+				languageModelsGroups.length = 0;
+			}
 			{
 				try {
 					const res = await fetchRouterLM('/v1/models', {
-						headers: { ..._LM_ROUTER_AUTH, 'x-drouter-connected-only': '1' }
+						headers: { ..._LM_ROUTER_AUTH, 'x-dardcor-router-connected-only': '1', 'x-drouter-connected-only': '1' }
 					});
 					if (res.ok) {
 						const json: any = await res.json();

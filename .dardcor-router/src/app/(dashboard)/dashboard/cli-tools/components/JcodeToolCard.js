@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Card, Button, ModelSelectModal, ManualConfigModal } from "@/shared/components";
 import Image from "next/image";
 import BaseUrlSelect from "./BaseUrlSelect";
+import { rememberEndpoint } from "./cliEndpointPresets";
 import ApiKeySelect from "./ApiKeySelect";
 import { matchKnownEndpoint } from "./cliEndpointMatch";
 
@@ -34,6 +35,8 @@ export default function JcodeToolCard({
   const [showManualConfigModal, setShowManualConfigModal] = useState(false);
   const [customBaseUrl, setCustomBaseUrl] = useState("");
   const hasInitializedModel = useRef(false);
+
+  const currentBaseUrl = jcodeStatus?.config?.providers?.["dardcor-code"]?.base_url || "";
 
   const getConfigStatus = () => {
     if (!jcodeStatus?.installed) return null;
@@ -108,7 +111,7 @@ export default function JcodeToolCard({
     if (typeof window !== "undefined") {
       return normalizeLocalhost(window.location.origin);
     }
-    return "http://127.0.0.1:20128";
+    return "http://127.0.0.1:21128";
   };
 
   const getEffectiveBaseUrl = () => {
@@ -127,7 +130,7 @@ export default function JcodeToolCard({
     try {
       const keyToUse = selectedApiKey?.trim()
         || (apiKeys?.length > 0 ? apiKeys[0].key : null)
-        || (!cloudEnabled ? "sk_dardcor-code" : null);
+        || (!cloudEnabled ? "sk_dardcor" : null);
 
       const res = await fetch("/api/cli-tools/jcode-settings", {
         method: "POST",
@@ -140,6 +143,8 @@ export default function JcodeToolCard({
       });
       const data = await res.json();
       if (res.ok) {
+        // Remember the endpoint so it stays selectable next time
+        rememberEndpoint(getEffectiveBaseUrl(), { tunnelPublicUrl, tailscaleUrl });
         setMessage({ type: "success", text: "Settings applied successfully!" });
         checkJcodeStatus();
       } else {
@@ -181,21 +186,21 @@ export default function JcodeToolCard({
   const getManualConfigs = () => {
     const keyToUse = (selectedApiKey && selectedApiKey.trim())
       ? selectedApiKey
-      : (!cloudEnabled ? "sk_dardcor-code" : "<API_KEY_FROM_DASHBOARD>");
+      : (!cloudEnabled ? "sk_dardcor" : "<API_KEY_FROM_DASHBOARD>");
 
-    const configToml = `[providers.dardcor-code]
+    const configToml = `[providers.dardcor]
 type = "openai-compatible"
 base_url = "${getEffectiveBaseUrl()}"
 auth = "bearer"
-api_key_env = "JCODE_DARDCOR_CODE_API_KEY"
+api_key_env = "JCODE_DARDCOR_API_KEY"
 env_file = "provider-dardcor-code.env"
 default_model = "${selectedModel || "cc/claude-opus-4-7"}"
 requires_api_key = true
 
-[[providers.dardcor-code.models]]
+[[providers.dardcor.models]]
 id = "${selectedModel || "cc/claude-opus-4-7"}"`;
 
-    const envContent = `JCODE_DARDCOR_CODE_API_KEY="${keyToUse}"`;
+    const envContent = `JCODE_DARDCOR_API_KEY="${keyToUse}"`;
 
     return [
       {
@@ -295,6 +300,7 @@ id = "${selectedModel || "cc/claude-opus-4-7"}"`;
                     tunnelPublicUrl={tunnelPublicUrl}
                     tailscaleEnabled={tailscaleEnabled}
                     tailscaleUrl={tailscaleUrl}
+                    currentUrl={currentBaseUrl}
                   />
                 </div>
 

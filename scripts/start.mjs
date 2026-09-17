@@ -28,19 +28,21 @@ function checkPort(port) {
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
 	(async () => {
-		let drouterChild = null;
+		let dardcorRouterChild = null;
 		const isPortOpen = await checkPort(25128);
 		if (!isPortOpen) {
-			const drouterDir = existsSync(join(root, '.dardcor-router'))
+			const dardcorRouterDir = existsSync(join(root, '.dardcor-router'))
 				? join(root, '.dardcor-router')
 				: join(root, '.dardcor-provider');
-			const customServer = join(drouterDir, 'custom-server.js');
-			const standaloneServer = join(drouterDir, '.next', 'standalone', 'server.js');
+			const customServer = join(dardcorRouterDir, 'custom-server.js');
+			const standaloneServer = join(dardcorRouterDir, '.next', 'standalone', 'server.js');
 			const serverScript = existsSync(customServer) ? customServer : standaloneServer;
 			if (existsSync(serverScript)) {
 				console.log('[Dardcor Router] Starting router on port 25128...');
 				const dataDir = process.env['DARDCOR_DATA_DIR'] || join(homedir(), '.dardcor', 'provider');
-				const legacyDataDir = join(homedir(), '.miawagent', 'router');
+				const legacyDataDir = existsSync(join(homedir(), '.dardcor', 'router'))
+					? join(homedir(), '.dardcor', 'router')
+					: join(homedir(), '.dardcor-router');
 				try {
 					const legacyDb = join(legacyDataDir, 'db', 'database.json');
 					const targetDb = join(dataDir, 'db', 'database.json');
@@ -49,7 +51,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
 						const targetSize = existsSync(targetDb) ? statSync(targetDb).size : 0;
 						if (!existsSync(targetDb) || targetSize < legacySize) {
 							cpSync(legacyDataDir, dataDir, { recursive: true, force: true });
-							console.log('[Dardcor Router] Migrated database from legacy .miawagent/router to .dardcor/provider');
+							console.log('[Dardcor Router] Migrated database from legacy Dardcor Router to .dardcor/provider');
 						}
 					}
 				} catch (err) {
@@ -62,12 +64,12 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
 					DATA_DIR: dataDir,
 					LOG_LEVEL: 'warn'
 				};
-				drouterChild = spawn(process.execPath, [serverScript], {
-					cwd: existsSync(customServer) ? drouterDir : join(drouterDir, '.next', 'standalone'),
+				dardcorRouterChild = spawn(process.execPath, [serverScript], {
+					cwd: existsSync(customServer) ? dardcorRouterDir : join(dardcorRouterDir, '.next', 'standalone'),
 					env,
 					stdio: 'inherit'
 				});
-				drouterChild.on('error', err => console.error('[Dardcor Router] error:', err));
+				dardcorRouterChild.on('error', err => console.error('[Dardcor Router] error:', err));
 				for (let i = 0; i < 40; i++) {
 					await new Promise(r => setTimeout(r, 100));
 					if (await checkPort(25128)) {
@@ -80,9 +82,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
 		}
 
 		const cleanup = () => {
-			if (drouterChild) {
-				try { drouterChild.kill(); } catch {}
-				drouterChild = null;
+			if (dardcorRouterChild) {
+				try { dardcorRouterChild.kill(); } catch {}
+				dardcorRouterChild = null;
 			}
 		};
 

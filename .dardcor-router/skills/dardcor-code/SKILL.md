@@ -10,7 +10,7 @@ Local/remote AI gateway exposing OpenAI-compatible REST. One key, many providers
 ## Setup
 
 ```bash
-export DARDCORROUTER_URL="http://localhost:20128"      # or VPS / tunnel URL
+export DARDCOR_ROUTER_URL="http://localhost:21128"      # or VPS / tunnel URL
 export DARDCORROUTER_KEY="sk-..."                      # from Dashboard → Keys (only if requireApiKey=true)
 ```
 

@@ -73,10 +73,10 @@ const readConfig = async () => {
   }
 };
 
-// Check if config has DRouter settings
+// Check if config has Dardcor Code settings
 const hasDardcorCodeConfig = (config) => {
   if (!config) return false;
-  return config.includes("model_provider = \"dardcor-code\"") || config.includes("[model_providers.dardcor-code]");
+  return config.includes("model_provider = \"dardcor-code\"") || config.includes("[model_providers.dardcor]");
 };
 
 // GET - Check codex CLI and read current settings
@@ -106,7 +106,7 @@ export async function GET() {
   }
 }
 
-// POST - Update DRouter settings (merge with existing config)
+// POST - Update Dardcor Code settings (merge with existing config)
 export async function POST(request) {
   try {
     const { baseUrl, apiKey, model, subagentModel } = await request.json();
@@ -128,41 +128,28 @@ export async function POST(request) {
       parsed = parsedToWritable(parseTOML(existingConfig));
     } catch { /* No existing config */ }
 
-    // Update only DRouter related fields (api_key goes to auth.json, not config.toml)
+    // Update only Dardcor Code related fields (api_key goes to auth.json, not config.toml)
     parsed.model = model;
     parsed.model_provider = "dardcor-code";
 
     // Update or create dardcor-code provider section (no api_key - Codex reads from auth.json)
     // Ensure /v1 suffix is added only once
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
-    setNestedSection(parsed, "model_providers.dardcor-code", {
-      name: "DRouter",
+    // Custom providers ignore auth.json - the key must travel as a static header
+    setNestedSection(parsed, "model_providers.dardcor", {
+      name: "Dardcor Code",
       base_url: normalizedBaseUrl,
       wire_api: "responses",
+      http_headers: { Authorization: `Bearer ${apiKey}` },
     });
 
-    // Add subagent configuration
-    const effectiveSubagentModel = subagentModel || model;
-    setNestedSection(parsed, "agents.subagent", {
-      model: effectiveSubagentModel,
-    });
+    // Subagent model is a scalar under [agents]; agents.<role> now means a custom role
+    deleteNestedSection(parsed, "agents.subagent");
+    setNestedSection(parsed, "agents.default_subagent_model", subagentModel || model);
 
     // Write merged config
     const configContent = stringifyTOML(parsed);
     await fs.writeFile(configPath, configContent);
-
-    // Update auth.json with OPENAI_API_KEY (Codex reads this first)
-    const authPath = getCodexAuthPath();
-    let authData = {};
-    try {
-      const existingAuth = await fs.readFile(authPath, "utf-8");
-      authData = JSON.parse(existingAuth);
-    } catch { /* No existing auth */ }
-    
-    // Force apikey mode (keep existing tokens untouched for ChatGPT login reuse)
-    authData.OPENAI_API_KEY = apiKey;
-    authData.auth_mode = "apikey";
-    await fs.writeFile(authPath, JSON.stringify(authData, null, 2));
 
     return NextResponse.json({
       success: true,
@@ -175,7 +162,7 @@ export async function POST(request) {
   }
 }
 
-// DELETE - Remove DRouter settings only (keep other settings)
+// DELETE - Remove Dardcor Code settings only (keep other settings)
 export async function DELETE() {
   try {
     const configPath = getCodexConfigPath();
@@ -195,16 +182,17 @@ export async function DELETE() {
       throw error;
     }
 
-    // Remove DRouter related root fields only if they point to dardcor-code
+    // Remove Dardcor Code related root fields only if they point to dardcor-code
     if (parsed.model_provider === "dardcor-code") {
       delete parsed.model;
       delete parsed.model_provider;
     }
 
     // Remove dardcor-code provider section
-    deleteNestedSection(parsed, "model_providers.dardcor-code");
+    deleteNestedSection(parsed, "model_providers.dardcor");
 
-    // Remove subagent configuration
+    // Remove subagent configuration (both the current key and the legacy role form)
+    deleteNestedSection(parsed, "agents.default_subagent_model");
     deleteNestedSection(parsed, "agents.subagent");
 
     // Write updated config
@@ -229,7 +217,7 @@ export async function DELETE() {
 
     return NextResponse.json({
       success: true,
-      message: "DRouter settings removed successfully",
+      message: "Dardcor Code settings removed successfully",
     });
   } catch (error) {
     console.log("Error resetting codex settings:", error);

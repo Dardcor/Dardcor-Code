@@ -1,4 +1,7 @@
 {
+  "css.validate": false,
+  "scss.validate": false,
+  "less.validate": false,
   "css.lint.unknownAtRules": "ignore",
   "sonarlint.rules": {
     "css:S4662": {

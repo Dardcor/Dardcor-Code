@@ -43,7 +43,7 @@
 │  Công cụ    │  (Claude Code, Codex, OpenClaw, Cursor, Cline, Antigravity...)
 │  CLI AI     │
 └──────┬──────┘
-       │ http://localhost:20128/v1
+       │ http://localhost:21128/v1
        ↓
 ┌─────────────────────────────────────────────┐
 │           Dardcor Code (Smart Router)            │
@@ -73,7 +73,7 @@ npm install -g dardcor-code
 dardcor-code
 ```
 
-🎉 Bảng điều khiển (Dashboard) sẽ tự động mở tại `http://localhost:20128`
+🎉 Bảng điều khiển (Dashboard) sẽ tự động mở tại `http://localhost:21128`
 
 **2. Kết nối nhà cung cấp MIỄN PHÍ (không cần đăng ký):**
 
@@ -83,7 +83,7 @@ Bảng điều khiển → Providers → Kết nối **Kiro AI** (~50 credits/th
 
 ```
 Cài đặt Claude Code/Codex/OpenClaw/Cursor/Cline/Antigravity:
-  Endpoint: http://localhost:20128/v1
+  Endpoint: http://localhost:21128/v1
   API Key: [sao chép từ bảng điều khiển]
   Model: kr/claude-sonnet-4.5
 ```
@@ -97,19 +97,19 @@ Gói kho lưu trữ này là riêng tư (`dardcor-code-app`), vì vậy việc c
 ```bash
 cp .env.example .env
 npm install
-PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
+PORT=21128 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run dev
 ```
 
 Chế độ Production:
 
 ```bash
 npm run build
-PORT=20128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run start
+PORT=21128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run start
 ```
 
 URL mặc định:
-- Bảng điều khiển Dashboard: `http://localhost:20128/dashboard`
-- API tương thích OpenAI: `http://localhost:20128/v1`
+- Bảng điều khiển Dashboard: `http://localhost:21128/dashboard`
+- API tương thích OpenAI: `http://localhost:21128/v1`
 
 ---
 
@@ -863,7 +863,7 @@ Chi phí: $0 mãi mãi!
 
 ```
 Settings → Models → Advanced:
-  OpenAI API Base URL: http://localhost:20128/v1
+  OpenAI API Base URL: http://localhost:21128/v1
   OpenAI API Key: [từ bảng điều khiển dardcor-code]
   Model: cc/claude-opus-4-6
 ``Hoặc sử dụng combo: `premium-coding`
@@ -874,7 +874,7 @@ Chỉnh sửa `~/.claude/config.json`:
 
 ```json
 {
-  "anthropic_api_base": "http://localhost:20128/v1",
+  "anthropic_api_base": "http://localhost:21128/v1",
   "anthropic_api_key": "your-dardcor-code-api-key"
 }
 ```
@@ -882,7 +882,7 @@ Chỉnh sửa `~/.claude/config.json`:
 ### Codex CLI
 
 ```bash
-export OPENAI_BASE_URL="http://localhost:20128"
+export OPENAI_BASE_URL="http://localhost:21128"
 export OPENAI_API_KEY="your-dardcor-code-api-key"
 
 codex "prompt của bạn"
@@ -910,7 +910,7 @@ Bảng điều khiển → CLI Tools → OpenClaw → Chọn Mô hình → Áp d
   "models": {
     "providers": {
       "dardcor-code": {
-        "baseUrl": "://127.0.0.1:20128/v1",
+        "baseUrl": "://127.0.0.1:21128/v1",
         "apiKey": "sk_dardcor-code",
         "api": "openai-completions",
         "models": [
@@ -931,7 +931,7 @@ Bảng điều khiển → CLI Tools → OpenClaw → Chọn Mô hình → Áp d
 
 ```
 Provider: OpenAI Compatible
-Base URL: http://localhost:20128/v1
+Base URL: http://localhost:21128/v1
 API Key: [từ bảng điều khiển]
 Model: cc/claude-opus-4-6
 ```
@@ -954,10 +954,10 @@ npm run build
 export JWT="your-secure-secret-change-this"
 export INITIAL_PASSWORD="your-password"
 export DATA_DIR="/var/lib/dardcor-code"
-export PORT="20128"
+export PORT="21128"
 export HOSTNAME="0.0.0.0"
 export NODE_ENV="production"
-export NEXT_PUBLIC_BASE_URL="http://localhost:20128"
+export NEXT_PUBLIC_BASE_URL="http://localhost:21128"
 export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.web.id"
 export API_KEY_SECRET="endpoint-proxy-api-key-secret"
 export MACHINE_ID_SALT="endpoint-proxy-salt"
@@ -981,7 +981,7 @@ docker build -t dardcor-code .
 # Chạy container (lệnh được sử dụng trong thiết lập hiện tại)
 docker run -d \
   --name dardcor-code \
-  -p 20128:20128 \
+  -p 21128:21128 \
   --env-file /root/dev/dardcor-code/.env \
   -v dardcor-code-data:/app/data \
   -v dardcor-code-usage:/root/.dardcor-code \
@@ -993,7 +993,7 @@ Lệnh di động (nếu bạn đã ở gốc kho lưu trữ):
 ```bash
 docker run -d \
   --name dardcor-code \
-  -p 20128:20128 \
+  -p 21128:21128 \
   --env-file ./.env \
   -v dardcor-code-data:/app/data \
   -v dardcor-code-usage:/root/.dardcor-code \
@@ -1001,7 +1001,7 @@ docker run -d \
 ```
 
 Mặc định container:
-- `PORT=20128`
+- `PORT=21128`
 - `HOSTNAME=0.0.0.0`
 
 Các lệnh hữu ích:
@@ -1019,10 +1019,10 @@ docker stop dardcor-code && docker rm dardcor-code
 | `JWT_SECRET` | Tự động sinh (`~/.dardcor-code/jwt-secret`) | Bí mật ký JWT cho cookie xác thực bảng điều khiển (đặt để chia sẻ giữa nhiều instance) |
 | `INITIAL_PASSWORD` | `123456` | Mật khẩu đăng nhập đầu tiên khi không có hash đã lưu tồn tại |
 | `DATA_DIR` | `~/.dardcor-code` |ị trí cơ sở dữ liệu ứng dụng chính (`db.json`) |
-| `PORT` | framework default | Cổng dịch vụ (`20128` trong các ví dụ) |
+| `PORT` | framework default | Cổng dịch vụ (`21128` trong các ví dụ) |
 | `HOSTNAME` | framework default | Bind host (Docker mặc định là `0.0.0.0`) |
 | `NODE_ENV` | runtime default | Đặt `production` để triển khai |
-| `BASE_URL` | `http://localhost:20128` | URL cơ sở nội bộ phía máy chủ được sử dụng bởi các tác vụ đồng bộ đám mây |
+| `BASE_URL` | `http://localhost:21128` | URL cơ sở nội bộ phía máy chủ được sử dụng bởi các tác vụ đồng bộ đám mây |
 | `CLOUD_URL` | `https://dardcor-code.web.id` | URL cơ sở endpoint đồng bộ đám mây phía máy chủ |
 | `NEXT_PUBLIC_BASE_URL` | `http://localhost:3000` | URL cơ sở tương thích ngược/công khai (ưu tiên `BASE_URL` cho runtime máy chủ) |
 | `NEXT_PUBLIC_CLOUD_URL` | `https://dardcor-code.web.id` | URL đám mây tương thích ngược/công khai (ưu tiên `CLOUD_URL` cho runtime máy chủ) |
@@ -1115,10 +1115,10 @@ Ghi chú:
 - Sử dụng tầng miễn phí (Gemini CLI, iFlow) cho các tác vụ không quan trọng
 
 **Bảng điều khiển mở sai cổng**
-- Đặt `PORT=20128` và `NEXT_PUBLIC_BASE_URL=http://localhost:20128`
+- Đặt `PORT=21128` và `NEXT_PUBLIC_BASE_URL=http://localhost:21128`
 
 **Lỗi đồng bộ đám mây**
-- Xác minh `BASE_URL` trỏ đến phiên bản đang chạy của bạn (ví dụ: `http://localhost:20128`)
+- Xác minh `BASE_URL` trỏ đến phiên bản đang chạy của bạn (ví dụ: `http://localhost:21128`)
 - Xác minh `CLOUD_URL` trỏ đến endpoint đám mây dự kiến của bạn (ví dụ: `https://dardcor-code.web.id`)
 - Giữ các giá trị `NEXT_PUBLIC_*` phù hợp với giá trị phía máy chủ khi có thể.
 
@@ -1157,7 +1157,7 @@ Ghi chú:
 ### Chat Completions
 
 ```bash
-POST http://localhost:20128/v1/chat/completions
+POST http://localhost:21128/v1/chat/completions
 Authorization: Bearer your-api-key
 Content-Type: application/json
 
@@ -1173,7 +1173,7 @@ Content-Type: application/json
 ### Liệt kê Mô hình
 
 ```bash
-GET http://localhost:20128/v1/models
+GET http://localhost:21128/v1/models
 Authorization: Bearer your-api-key
 
 → Trả về tất cả các mô hình + combo ở định dạng OpenAI
@@ -1215,7 +1215,7 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 
 Hành vi dự kiến từ việc xác thực gần đây:
 
-- cục bộ (`http://127.0.0.1:20128/v1/chat/completions`): hoạt động với `stream=false` và `stream=true`.
+- cục bộ (`http://127.0.0.1:21128/v1/chat/completions`): hoạt động với `stream=false` và `stream=true`.
 - Runtime Docker (cùng đường dẫn API được expose bởi container): các kiểm tra hardening đạt, cloud auth guard hoạt động, chế độ API key nghiêm ngặt hoạt động khi được bật.
 - Endpoint đám mây công khai (`https://dardcor-code.web.id/v1/chat/completions`):
   - `stream=true`: dự kiến thành công (trả về các khối SSE).

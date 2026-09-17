@@ -1,7 +1,7 @@
 // Kimchi browser-login service.
 //
 // Ports Kimchi CLI's authenticateViaBrowser (src/cli-auth/index.ts) onto
-// DRouter's shared startLocalServer util (same one xai/antigravity use).
+// Dardcor Router's shared startLocalServer util (same one xai/antigravity use).
 // Simpler than those: the token arrives directly on the callback query
 // string — no authorization-code exchange, no PKCE.
 //

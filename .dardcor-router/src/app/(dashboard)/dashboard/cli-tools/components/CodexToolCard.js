@@ -6,6 +6,7 @@ import Image from "next/image";
 import BaseUrlSelect from "./BaseUrlSelect";
 import ApiKeySelect from "./ApiKeySelect";
 import { matchKnownEndpoint } from "./cliEndpointMatch";
+import { rememberEndpoint } from "./cliEndpointPresets";
 
 export default function CodexToolCard({ tool, isExpanded, onToggle, baseUrl, apiKeys, activeProviders, cloudEnabled, initialStatus, tunnelEnabled, tunnelPublicUrl, tailscaleEnabled, tailscaleUrl }) {
   const [codexStatus, setCodexStatus] = useState(initialStatus || null);
@@ -57,17 +58,22 @@ export default function CodexToolCard({ tool, isExpanded, onToggle, baseUrl, api
       if (modelMatch) setSelectedModel(modelMatch[1]);
 
       // Parse subagent settings
-      const subagentModelMatch = codexStatus.config.match(/\[agents\.subagent\]\s*\n\s*model\s*=\s*"([^"]+)"/m);
+      const subagentModelMatch = codexStatus.config.match(/^default_subagent_model\s*=\s*"([^"]+)"/m);
       if (subagentModelMatch) setSubagentModel(subagentModelMatch[1]);
     }
   }, [codexStatus]);
 
+  const getCurrentBaseUrl = () => {
+    const parsed = codexStatus?.config?.match(/base_url\s*=\s*"([^"]+)"/);
+    return parsed ? parsed[1] : "";
+  };
+
+  const currentBaseUrl = getCurrentBaseUrl();
+
   const getConfigStatus = () => {
     if (!codexStatus?.installed) return null;
     if (!codexStatus.config) return "not_configured";
-    const parsed = codexStatus.config.match(/base_url\s*=\s*"([^"]+)"/);
-    const currentUrl = parsed ? parsed[1] : "";
-    return matchKnownEndpoint(currentUrl, { tunnelPublicUrl, tailscaleUrl }) ? "configured" : "other";
+    return matchKnownEndpoint(currentBaseUrl, { tunnelPublicUrl, tailscaleUrl }) ? "configured" : "other";
   };
 
   const configStatus = getConfigStatus();
@@ -97,10 +103,10 @@ export default function CodexToolCard({ tool, isExpanded, onToggle, baseUrl, api
     setApplying(true);
     setMessage(null);
     try {
-      // Use sk_dardcor-code for localhost if no key, otherwise use selected key
+      // Use sk_dardcor for localhost if no key, otherwise use selected key
       const keyToUse = (selectedApiKey && selectedApiKey.trim())
         ? selectedApiKey
-        : (!cloudEnabled ? "sk_dardcor-code" : selectedApiKey);
+        : (!cloudEnabled ? "sk_dardcor" : selectedApiKey);
 
       const res = await fetch("/api/cli-tools/codex-settings", {
         method: "POST",
@@ -114,6 +120,8 @@ export default function CodexToolCard({ tool, isExpanded, onToggle, baseUrl, api
       });
       const data = await res.json();
       if (res.ok) {
+        // Remember the endpoint so it stays selectable next time
+        rememberEndpoint(getEffectiveBaseUrl(), { tunnelPublicUrl, tailscaleUrl });
         setMessage({ type: "success", text: "Settings applied successfully!" });
         checkCodexStatus();
       } else {
@@ -159,36 +167,30 @@ export default function CodexToolCard({ tool, isExpanded, onToggle, baseUrl, api
   const getManualConfigs = () => {
     const keyToUse = (selectedApiKey && selectedApiKey.trim())
       ? selectedApiKey
-      : (!cloudEnabled ? "sk_dardcor-code" : "<API_KEY_FROM_DASHBOARD>");
+      : (!cloudEnabled ? "sk_dardcor" : "<API_KEY_FROM_DASHBOARD>");
 
     const effectiveSubagentModel = subagentModel || selectedModel;
 
-    const configContent = `# Dardcor Router Configuration for Codex CLI
+    const configContent = `# Dardcor Code Configuration for Codex CLI
 model = "${selectedModel}"
 model_provider = "dardcor-code"
 
-[model_providers.dardcor-code]
-name = "Dardcor Router"
+[model_providers.dardcor]
+name = "Dardcor Code"
 base_url = "${getEffectiveBaseUrl()}"
 wire_api = "responses"
 
-[agents.subagent]
-model = "${effectiveSubagentModel}"
-`;
+[model_providers.dardcor.http_headers]
+Authorization = "Bearer ${keyToUse}"
 
-    const authContent = JSON.stringify({
-      auth_mode: "apikey",
-      OPENAI_API_KEY: keyToUse
-    }, null, 2);
+[agents]
+default_subagent_model = "${effectiveSubagentModel}"
+`;
 
     return [
       {
         filename: "~/.codex/config.toml",
         content: configContent,
-      },
-      {
-        filename: "~/.codex/auth.json",
-        content: authContent,
       },
     ];
   };
@@ -254,7 +256,7 @@ model = "${effectiveSubagentModel}"
                     <p className="text-text-muted">After installation, run <code className="px-1 bg-black/5 dark:bg-white/5 rounded">codex</code> to verify.</p>
                     <div className="pt-2 border-t border-border">
                       <p className="text-text-muted text-xs">
-                        Codex uses <code className="px-1 bg-black/5 dark:bg-white/5 rounded">~/.codex/auth.json</code> with <code className="px-1 bg-black/5 dark:bg-white/5 rounded">OPENAI_API_KEY</code>.
+                        Codex reads custom providers from <code className="px-1 bg-black/5 dark:bg-white/5 rounded">~/.codex/config.toml</code>.
                         Click &quot;Apply&quot; to auto-configure.
                       </p>
                     </div>
@@ -279,13 +281,12 @@ model = "${effectiveSubagentModel}"
                     tunnelPublicUrl={tunnelPublicUrl}
                     tailscaleEnabled={tailscaleEnabled}
                     tailscaleUrl={tailscaleUrl}
+                    currentUrl={currentBaseUrl}
                   />
                 </div>
 
                 {/* Current configured */}
                 {codexStatus?.config && (() => {
-                  const parsed = codexStatus.config.match(/base_url\s*=\s*"([^"]+)"/);
-                  const currentBaseUrl = parsed ? parsed[1] : null;
                   return currentBaseUrl ? (
                     <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
                       <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Current</span>

@@ -1994,15 +1994,6 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		return !sessionType || this.chatSessionsService.supportsAutoModelForSessionType(sessionType);
 	}
 
-	/**
-	 * True when the current session type cannot fall back to the Auto model
-	 * and no models are available to it — e.g. the Claude agent host for a
-	 * Copilot Free / Student user. In this state there is no model to send a
-	 * request with, so sending is blocked.
-	 */
-	private hasNoAvailableModel(): boolean {
-		return !this._showAutoModel() && this.getModels().length === 0;
-	}
 
 	private getModelsForSessionType(sessionType: string | undefined): ILanguageModelChatMetadataAndIdentifier[] {
 		const allModels = this.getAllMergedModels();
@@ -2459,9 +2450,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		const inputHasText = !!this._inputEditor?.getModel()?.getValue().trim();
 		this.inputEditorHasText.set(inputHasText);
 		const hasSendableContent = inputHasText || this._attachmentModel.attachments.some(isExplicitFileOrImageVariableEntry);
-		// Block sending when the session type has no usable model (and can't
-		// fall back to Auto): there is nothing to send the request with.
-		this.inputEditorHasSendableContent.set(hasSendableContent && !this.hasNoAvailableModel() && !this.hasPendingProgrammaticModelSelection);
+		this.inputEditorHasSendableContent.set(hasSendableContent && !this.hasPendingProgrammaticModelSelection);
 	}
 
 	private getOrCreateOptionEmitter(optionGroupId: string): Emitter<IChatSessionProviderOptionItem> {

@@ -866,7 +866,7 @@
   "Please install Open Claw CLI to use this feature.": "กรุณาติดตั้ง Open Claw CLI เพื่อใช้คุณสมบัตินี้",
   "Please install OpenCode CLI to use auto-apply feature.": "กรุณาติดตั้ง OpenCode CLI เพื่อใช้คุณสมบัติ auto-apply",
   "Please wait while we complete the authorization.": "กรุณารอในขณะที่เราดำเนินการอนุมัติให้เสร็จสิ้น",
-  "Point your CLI tools to http://localhost:20128": "ชี้ CLI tools ของคุณไปที่ http://localhost:20128",
+  "Point your CLI tools to http://localhost:21128": "ชี้ CLI tools ของคุณไปที่ http://localhost:21128",
   "Pool:": "Pool:",
   "Popup blocked? Enter URL manually": "ป๊อปอัปถูกบล็อก? ป้อน URL ด้วยตนเอง",
   "Port 443 Already In Use": "Port 443 ถูกใช้งานอยู่แล้ว",

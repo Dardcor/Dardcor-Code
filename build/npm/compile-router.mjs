@@ -22,6 +22,12 @@ if (fs.existsSync(path.join(routerDir, 'package.json'))) {
 		cp.execSync(`${npmCmd} install`, { cwd: routerDir, stdio: 'inherit' });
 	}
 
+	if (isWindows) {
+		try {
+			cp.execSync('powershell -NoProfile -Command "Get-Process -Id (Get-NetTCPConnection -LocalPort 25128 -ErrorAction SilentlyContinue).OwningProcess -ErrorAction SilentlyContinue | Stop-Process -Force"', { stdio: 'ignore' });
+		} catch {}
+	}
+
 	console.log('[compile-router] Building .dardcor-router standalone bundle...');
 	cp.execSync(`${npmCmd} run build`, { cwd: routerDir, stdio: 'inherit' });
 	console.log('[compile-router] Build completed successfully.');

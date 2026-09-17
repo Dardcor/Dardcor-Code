@@ -99,7 +99,6 @@ import { IChatSubmitRequestHandlerService } from '../../../../workbench/contrib/
 import { isPhoneLayout } from '../../../browser/parts/mobile/mobileLayout.js';
 import { INewChatModelPickerService, NewChatModelPickerService } from './newChatModelPicker.js';
 import { ISessionModelSelection, SessionModelSelection } from './sessionModelSelection.js';
-import { hasSendableModelSelection } from './sessionModelPickerState.js';
 import { createNewSessionConfigToolbar, createNewSessionControlToolbar } from './newSessionConfigToolbars.js';
 import { ISessionContext, SessionContext } from '../../../services/sessions/browser/sessionContext.js';
 import { AGENT_SESSIONS_SCOPED_INPUT_HISTORY_SETTING } from './sessionsChatHistory.js';
@@ -562,8 +561,7 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 			if (this.options.canSubmitWithoutSession?.read(reader)) {
 				return true;
 			}
-			const modelSelection = this._modelSelection.state.read(reader);
-			return this.options.canSendRequest.read(reader) && hasSendableModelSelection(modelSelection);
+			return this.options.canSendRequest.read(reader);
 		});
 		this._scopedInstantiationService = this._register(this.instantiationService.createChild(new ServiceCollection(
 			[INewChatModelPickerService, this._newChatModelPickerService],

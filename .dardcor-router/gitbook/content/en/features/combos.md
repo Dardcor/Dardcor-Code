@@ -71,7 +71,7 @@ cc/claude-opus-4-5 → cx/gpt-5.2-codex → gc/gemini-3-pro
 ### Step 1: Open Dashboard
 
 ```
-http://localhost:20128
+http://localhost:21128
 → Login with your password
 ```
 
@@ -182,7 +182,7 @@ Models:
 ```
 Cline:
   Provider: OpenAI Compatible
-  Base URL: http://localhost:20128/v1
+  Base URL: http://localhost:21128/v1
   Model: budget-combo
 ```
 
@@ -261,7 +261,7 @@ Models:
 **Usage:**
 ```
 Codex CLI:
-  export OPENAI_BASE_URL="http://localhost:20128"
+  export OPENAI_BASE_URL="http://localhost:21128"
   Model: quality-first
 ```
 
@@ -343,7 +343,7 @@ Models:
 
 ```
 Settings → Models → Advanced:
-  OpenAI API Base URL: http://localhost:20128/v1
+  OpenAI API Base URL: http://localhost:21128/v1
   OpenAI API Key: [from dashboard]
   Model: premium-coding
 ```
@@ -353,7 +353,7 @@ Settings → Models → Advanced:
 Edit `~/.claude/config.json`:
 ```json
 {
-  "anthropic_api_base": "http://localhost:20128/v1",
+  "anthropic_api_base": "http://localhost:21128/v1",
   "anthropic_api_key": "your-dardcor-code-api-key",
   "model": "budget-combo"
 }
@@ -362,7 +362,7 @@ Edit `~/.claude/config.json`:
 ### Codex CLI
 
 ```bash
-export OPENAI_BASE_URL="http://localhost:20128"
+export OPENAI_BASE_URL="http://localhost:21128"
 export OPENAI_API_KEY="your-dardcor-code-api-key"
 
 codex --model quality-first "your prompt"
@@ -372,7 +372,7 @@ codex --model quality-first "your prompt"
 
 ```
 Provider: OpenAI Compatible
-Base URL: http://localhost:20128/v1
+Base URL: http://localhost:21128/v1
 API Key: [from dashboard]
 Model: free-combo
 ```
@@ -380,7 +380,7 @@ Model: free-combo
 ### API Request
 
 ```bash
-curl http://localhost:20128/v1/chat/completions \
+curl http://localhost:21128/v1/chat/completions \
   -H "Authorization: Bearer your-api-key" \
   -H "Content-Type: application/json" \
   -d '{

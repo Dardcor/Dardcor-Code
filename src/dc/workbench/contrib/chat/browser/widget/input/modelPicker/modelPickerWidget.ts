@@ -60,6 +60,7 @@ const MODEL_PICKER_MINIMUM_LABEL_WIDTH = 60;
 const MODEL_PICKER_NAME_CHROME_WIDTH = 30;
 const MODEL_PICKER_MINIMUM_NAME_WIDTH = MODEL_PICKER_MINIMUM_LABEL_WIDTH + MODEL_PICKER_NAME_CHROME_WIDTH;
 const MODEL_PICKER_AUTO_NAME_WIDTH = 50;
+const MODEL_PICKER_NO_MODEL_NAME_WIDTH = 140;
 const MODEL_PICKER_COMPACT_NAME_WIDTH = 22;
 type ChatModelChangeClassification = {
 	owner: 'lramos15';
@@ -319,6 +320,29 @@ export class ModelPickerWidget extends Disposable {
 		return this._unavailableReason() === ModelPickerUnavailableReason.SetupRequired;
 	}
 
+	isNoModelConfigured(): boolean {
+		const { reason, activating, genericNoModels } = this._availability();
+		if (activating) {
+			return false;
+		}
+		if (reason !== undefined) {
+			return true;
+		}
+		const empty = this._delegate.getModels().length === 0;
+		if (empty) {
+			return true;
+		}
+		const selectedModel = this._selectedModel;
+		if (!selectedModel) {
+			return true;
+		}
+		if (isAutoModel(selectedModel)) {
+			return empty || genericNoModels || !this._delegate.getPresentationOptions().showAutoModel;
+		}
+		const models = this._delegate.getModels();
+		return !models.some(m => m.identifier === selectedModel.identifier);
+	}
+
 	private _clearActivating(): void {
 		this._activatingAfterTrust = false;
 		this._activatingTimer.clear();
@@ -435,7 +459,7 @@ export class ModelPickerWidget extends Disposable {
 		const empty = this._delegate.getModels().length === 0;
 		const activating = reason === undefined && empty && this._activatingAfterTrust;
 		const genericNoModels = reason === undefined && !activating && empty && !this._delegate.getPresentationOptions().showAutoModel;
-		return { reason, activating, genericNoModels, noModels: reason !== undefined || activating || genericNoModels };
+		return { reason, activating, genericNoModels, noModels: reason !== undefined || activating || genericNoModels || empty };
 	}
 
 	/** Thin wrapper over {@link computeShouldShowCacheBreakHint} that supplies this picker's live state. */
@@ -707,53 +731,52 @@ export class ModelPickerWidget extends Disposable {
 			return;
 		}
 
-		const name = this._selectedModel
-			? getLanguageModelDisplayNameWithSubscriptionSource(this._selectedModel)
+		const selectedModel = this._selectedModel;
+		const name = selectedModel
+			? getLanguageModelDisplayNameWithSubscriptionSource(selectedModel)
 			: undefined;
 
-		const { reason, activating, genericNoModels, noModels: noModelsAvailable } = this._availability();
+		const { reason, activating, noModels: noModelsAvailable } = this._availability();
 		const restrictedMode = reason === ModelPickerUnavailableReason.Restricted;
 		const setupRequired = reason === ModelPickerUnavailableReason.SetupRequired;
 		const unavailable = reason !== undefined;
 
 		// --- Name section ---
 		const nameChildren: (HTMLElement | string)[] = [];
-		const modelIcon = this._selectedModel
+		const modelIcon = selectedModel
 			? (this._delegate.getPresentationOptions().showModelIcon
-				? getCompactModelPickerIcon(this._selectedModel)
-				: this._selectedModel.metadata.statusIcon ? getCompactCodicon(this._selectedModel.metadata.statusIcon) : undefined)
+				? getCompactModelPickerIcon(selectedModel)
+				: selectedModel.metadata.statusIcon ? getCompactCodicon(selectedModel.metadata.statusIcon) : undefined)
 			: undefined;
 		const compact = this._compact?.get() ?? false;
 		const minimal = this._minimal?.get() ?? false;
 		if (modelIcon && !noModelsAvailable) {
 			nameChildren.push(renderIcon(modelIcon));
 		}
-		// A "Models" placeholder (no badge) beats a dead-end label while unavailable — the hover and
-		// dropdown carry the Restricted Mode explanation and the Trust Workspace / Sign In action.
-		// "Activating..." is transient while models load after a Trust grant; "No models available"
-		// is the genuinely empty state (e.g. an agent-host session with no Auto fallback).
-		const modelLabel = unavailable
-			? localize('chat.modelPicker.modelsLabel', "Models")
-			: activating
-				? localize('chat.modelPicker.activating', "Activating...")
-				: genericNoModels
-					? localize('chat.modelPicker.noModels', "No models available")
-					: (name ?? localize('chat.modelPicker.auto', "Auto"));
+		const noModelConfigured = this.isNoModelConfigured();
+		const modelLabel = activating
+			? localize('chat.modelPicker.activating', "Activating...")
+			: noModelConfigured
+				? localize('chat.modelPicker.noModelConfigure', "No Model Configure")
+				: (name ?? (selectedModel && isAutoModel(selectedModel) ? localize('chat.modelPicker.auto', "Auto") : localize('chat.modelPicker.noModelConfigure', "No Model Configure")));
 		// The tabbed picker has no separate configuration button, so the chip reads out
 		// what the model was tuned to.
-		const configSummary = this.isTabbedPickerEnabled() && !unavailable && !minimal
-			? getModelConfigSummary(this._selectedModel, this._delegate.modelConfiguration ?? this._languageModelsService)
+		const configSummary = this.isTabbedPickerEnabled() && !unavailable && !minimal && selectedModel
+			? getModelConfigSummary(selectedModel, this._delegate.modelConfiguration ?? this._languageModelsService)
 			: undefined;
-		const showModelLabel = !compact || !modelIcon || noModelsAvailable;
+		const showModelLabel = !compact || !modelIcon || noModelsAvailable || noModelConfigured;
 		// Fixed rather than measured: this runs from a resize-driven autorun, so reading
 		// the rendered width here would dirty layout from inside the ResizeObserver
 		// callback and never settle.
-		const showingAuto = !unavailable && !activating && !genericNoModels && (!this._selectedModel || isAutoModel(this._selectedModel));
+		const showingNoModel = !activating && noModelConfigured;
+		const showingAuto = !activating && !noModelConfigured && (!selectedModel || isAutoModel(selectedModel));
 		const nameMinimumWidth = compact && !showModelLabel
 			? MODEL_PICKER_COMPACT_NAME_WIDTH
-			: showingAuto
-				? MODEL_PICKER_AUTO_NAME_WIDTH
-				: MODEL_PICKER_MINIMUM_NAME_WIDTH;
+			: showingNoModel
+				? MODEL_PICKER_NO_MODEL_NAME_WIDTH
+				: showingAuto
+					? MODEL_PICKER_AUTO_NAME_WIDTH
+					: MODEL_PICKER_MINIMUM_NAME_WIDTH;
 		this._nameButton.style.minWidth = `${nameMinimumWidth}px`;
 		if (showModelLabel) {
 			nameChildren.push(dom.$('span.chat-input-picker-label', undefined, modelLabel));
@@ -779,9 +802,9 @@ export class ModelPickerWidget extends Disposable {
 		// Aria — name the control "Models" to match the visible label; the comma
 		// separates the control name from its current value / state.
 		const ariaLabel = restrictedMode
-			? localize('chat.modelPicker.ariaLabelRestricted', "Models, unavailable while in Restricted mode")
+			? localize('chat.modelPicker.ariaLabelRestricted', "Models, {0}, unavailable while in Restricted mode", modelLabel)
 			: setupRequired
-				? localize('chat.modelPicker.ariaLabelSetupRequired', "Models, sign in to use Copilot")
+				? localize('chat.modelPicker.ariaLabelSetupRequired', "Models, {0}, configuration required", modelLabel)
 				: configSummary
 					? localize('chat.modelPicker.ariaLabelConfigured', "Models, {0}, {1}", modelLabel, configSummary)
 					: localize('chat.modelPicker.ariaLabel', "Models, {0}", modelLabel);

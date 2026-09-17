@@ -48,7 +48,7 @@
 │  你的 CLI   │  (Claude Code、Codex、OpenClaw、Cursor、Cline...)
 │   工具      │
 └──────┬──────┘
-       │ http://localhost:20128/v1
+       │ http://localhost:21128/v1
        ↓
 ┌─────────────────────────────────────────────┐
 │           Dardcor Code（智能路由器）              │
@@ -78,7 +78,7 @@ npm install -g dardcor-code
 dardcor-code
 ```
 
-🎉 控制面板在 `http://localhost:20128` 打开
+🎉 控制面板在 `http://localhost:21128` 打开
 
 **2. 连接免费提供商（无需注册）：**
 
@@ -88,7 +88,7 @@ dardcor-code
 
 ```
 Claude Code/Codex/OpenClaw/Cursor/Cline 设置：
-  Endpoint: http://localhost:20128/v1
+  Endpoint: http://localhost:21128/v1
   API Key: [从控制面板复制]
   Model: kr/claude-sonnet-4.5
 ```
@@ -102,19 +102,19 @@ Claude Code/Codex/OpenClaw/Cursor/Cline 设置：
 ```bash
 cp .env.example .env
 npm install
-PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev
+PORT=21128 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run dev
 ```
 
 生产模式：
 
 ```bash
 npm run build
-PORT=20128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run start
+PORT=21128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:21128 npm run start
 ```
 
 默认 URL：
-- 控制面板：`http://localhost:20128/dashboard`
-- OpenAI 兼容 API：`http://localhost:20128/v1`
+- 控制面板：`http://localhost:21128/dashboard`
+- OpenAI 兼容 API：`http://localhost:21128/v1`
 
 ---
 
@@ -938,7 +938,7 @@ Vertex 合作伙伴（通过 Vertex 提供 Anthropic / DeepSeek / GLM / Qwen）�
 
 ```
 设置 → 模型 → 高级：
-  OpenAI API Base URL：http://localhost:20128/v1
+  OpenAI API Base URL：http://localhost:21128/v1
   OpenAI API Key：[来自 dardcor-code 控制面板]
   Model：cc/claude-opus-4-7
 ```
@@ -951,7 +951,7 @@ Vertex 合作伙伴（通过 Vertex 提供 Anthropic / DeepSeek / GLM / Qwen）�
 
 ```json
 {
-  "anthropic_api_base": "http://localhost:20128/v1",
+  "anthropic_api_base": "http://localhost:21128/v1",
   "anthropic_api_key": "your-dardcor-code-api-key"
 }
 ```
@@ -959,7 +959,7 @@ Vertex 合作伙伴（通过 Vertex 提供 Anthropic / DeepSeek / GLM / Qwen）�
 ### Codex CLI
 
 ```bash
-export OPENAI_BASE_URL="http://localhost:20128"
+export OPENAI_BASE_URL="http://localhost:21128"
 export OPENAI_API_KEY="your-dardcor-code-api-key"
 
 codex "your prompt"
@@ -987,7 +987,7 @@ codex "your prompt"
   "models": {
     "providers": {
       "dardcor-code": {
-        "baseUrl": "http://127.0.0.1:20128/v1",
+        "baseUrl": "http://127.0.0.1:21128/v1",
         "apiKey": "sk_dardcor-code",
         "api": "openai-completions",
         "models": [
@@ -1008,7 +1008,7 @@ codex "your prompt"
 
 ```
 Provider：OpenAI 兼容
-Base URL：http://localhost:20128/v1
+Base URL：http://localhost:21128/v1
 API Key：[来自控制面板]
 Model：cc/claude-opus-4-7
 ```
@@ -1031,10 +1031,10 @@ npm run build
 export JWT_SECRET="your-secure-secret-change-this"
 export INITIAL_PASSWORD="your-password"
 export DATA_DIR="/var/lib/dardcor-code"
-export PORT="20128"
+export PORT="21128"
 export HOSTNAME="0.0.0.0"
 export NODE_ENV="production"
-export NEXT_PUBLIC_BASE_URL="http://localhost:20128"
+export NEXT_PUBLIC_BASE_URL="http://localhost:21128"
 export NEXT_PUBLIC_CLOUD_URL="https://dardcor-code.web.id"
 export API_KEY_SECRET="endpoint-proxy-api-key-secret"
 export MACHINE_ID_SALT="endpoint-proxy-salt"
@@ -1058,7 +1058,7 @@ docker build -t dardcor-code .
 # 运行容器（当前设置使用的命令）
 docker run -d \
   --name dardcor-code \
-  -p 20128:20128 \
+  -p 21128:21128 \
   --env-file /root/dev/dardcor-code/.env \
   -v dardcor-code-data:/app/data \
   -v dardcor-code-usage:/root/.dardcor-code \
@@ -1070,7 +1070,7 @@ docker run -d \
 ```bash
 docker run -d \
   --name dardcor-code \
-  -p 20128:20128 \
+  -p 21128:21128 \
   --env-file ./.env \
   -v dardcor-code-data:/app/data \
   -v dardcor-code-usage:/root/.dardcor-code \
@@ -1078,7 +1078,7 @@ docker run -d \
 ```
 
 容器默认值：
-- `PORT=20128`
+- `PORT=21128`
 - `HOSTNAME=0.0.0.0`
 
 常用命令：
@@ -1096,10 +1096,10 @@ docker stop dardcor-code && docker rm dardcor-code
 | `JWT_SECRET` | 自动生成（`~/.dardcor-code/jwt-secret`） | 用于控制面板 auth cookie 的 JWT 签名密钥（设置可在多实例间共享） |
 | `INITIAL_PASSWORD` | `123456` | 当没有保存的哈希时首次登录的密码 |
 | `DATA_DIR` | `~/.dardcor-code` | 主应用数据库位置（`db.json`） |
-| `PORT` | 框架默认值 | 服务端口（示例中为 `20128`） |
+| `PORT` | 框架默认值 | 服务端口（示例中为 `21128`） |
 | `HOSTNAME` | 框架默认值 | 绑定主机（Docker 默认为 `0.0.0.0`） |
 | `NODE_ENV` | 运行时默认值 | 设置 `production` 用于部署 |
-| `BASE_URL` | `http://localhost:20128` | 云同步任务使用的服务端内部基础 URL |
+| `BASE_URL` | `http://localhost:21128` | 云同步任务使用的服务端内部基础 URL |
 | `CLOUD_URL` | `https://dardcor-code.web.id` | 服务端云同步端点基础 URL |
 | `NEXT_PUBLIC_BASE_URL` | `http://localhost:3000` | 向后兼容/公开基础 URL（服务端运行时优先使用 `BASE_URL`） |
 | `NEXT_PUBLIC_CLOUD_URL` | `https://dardcor-code.web.id` | 向后兼容/公开云 URL（服务端运行时优先使用 `CLOUD_URL`） |
@@ -1215,7 +1215,7 @@ docker stop dardcor-code && docker rm dardcor-code
 - 对于非关键任务使用免费等级（Kiro、OpenCode Free、Vertex）
 
 **控制面板在错误端口打开**
-- 设置 `PORT=20128` 和 `NEXT_PUBLIC_BASE_URL=http://localhost:20128`
+- 设置 `PORT=21128` 和 `NEXT_PUBLIC_BASE_URL=http://localhost:21128`
 
 **首次登录不工作**
 - 检查 `.env` 中的 `INITIAL_PASSWORD`
@@ -1242,7 +1242,7 @@ docker stop dardcor-code && docker rm dardcor-code
 ### 聊天补全
 
 ```bash
-POST http://localhost:20128/v1/chat/completions
+POST http://localhost:21128/v1/chat/completions
 Authorization: Bearer your-api-key
 Content-Type: application/json
 
@@ -1258,7 +1258,7 @@ Content-Type: application/json
 ### 列出模型
 
 ```bash
-GET http://localhost:20128/v1/models
+GET http://localhost:21128/v1/models
 Authorization: Bearer your-api-key
 
 → 以 OpenAI 格式返回所有模型和组合

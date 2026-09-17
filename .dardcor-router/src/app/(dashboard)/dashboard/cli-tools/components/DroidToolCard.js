@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Card, Button, ModelSelectModal, ManualConfigModal } from "@/shared/components";
 import Image from "next/image";
 import BaseUrlSelect from "./BaseUrlSelect";
+import { rememberEndpoint } from "./cliEndpointPresets";
 import ApiKeySelect from "./ApiKeySelect";
 import { matchKnownEndpoint } from "./cliEndpointMatch";
 
@@ -39,10 +40,12 @@ export default function DroidToolCard({
   const [customBaseUrl, setCustomBaseUrl] = useState("");
   const hasInitializedModel = useRef(false);
 
+  const currentBaseUrl = droidStatus?.settings?.customModels?.find((m) => m.id?.startsWith("custom:Dardcor Code"))?.baseUrl || "";
+
   const getConfigStatus = () => {
     if (!droidStatus?.installed) return null;
-    // Check for any DRouter model entry (support multi-model: custom:DRouter-0, custom:DRouter-1, ...)
-    const currentConfig = droidStatus.settings?.customModels?.find(m => m.id?.startsWith("custom:DRouter"));
+    // Check for any Dardcor Code model entry (support multi-model: custom:Dardcor Code-0, custom:Dardcor Code-1, ...)
+    const currentConfig = droidStatus.settings?.customModels?.find(m => m.id?.startsWith("custom:Dardcor Code"));
     if (!currentConfig) return "not_configured";
     return matchKnownEndpoint(currentConfig.baseUrl, { tunnelPublicUrl, tailscaleUrl, cloudUrl: cloudEnabled ? CLOUD_URL : null }) ? "configured" : "other";
   };
@@ -81,14 +84,14 @@ export default function DroidToolCard({
     if (droidStatus?.installed && !hasInitializedModel.current) {
       hasInitializedModel.current = true;
       const existingModels = (droidStatus.settings?.customModels || [])
-        .filter(m => m.id?.startsWith("custom:DRouter"))
+        .filter(m => m.id?.startsWith("custom:Dardcor Code"))
         .sort((a, b) => (a.index || 0) - (b.index || 0))
         .map(m => m.model);
       if (existingModels.length > 0) {
         setModelList(existingModels);
       } else {
-        // Legacy: single model stored as custom:DRouter-0
-        const legacy = droidStatus.settings?.customModels?.find(m => m.id === "custom:DRouter-0");
+        // Legacy: single model stored as custom:Dardcor Code-0
+        const legacy = droidStatus.settings?.customModels?.find(m => m.id === "custom:Dardcor Code-0");
         if (legacy?.model) {
           setModelList([legacy.model]);
         }
@@ -140,7 +143,7 @@ export default function DroidToolCard({
     try {
       const keyToUse = selectedApiKey?.trim()
         || (apiKeys?.length > 0 ? apiKeys[0].key : null)
-        || (!cloudEnabled ? "sk_dardcor-code" : null);
+        || (!cloudEnabled ? "sk_dardcor" : null);
 
       const res = await fetch("/api/cli-tools/droid-settings", {
         method: "POST",
@@ -154,6 +157,8 @@ export default function DroidToolCard({
       });
       const data = await res.json();
       if (res.ok) {
+        // Remember the endpoint so it stays selectable next time
+        rememberEndpoint(getEffectiveBaseUrl(), { tunnelPublicUrl, tailscaleUrl });
         setMessage({ type: "success", text: "Settings applied successfully!" });
         checkDroidStatus();
       } else {
@@ -189,12 +194,12 @@ export default function DroidToolCard({
   const getManualConfigs = () => {
     const keyToUse = (selectedApiKey && selectedApiKey.trim())
       ? selectedApiKey
-      : (!cloudEnabled ? "sk_dardcor-code" : "<API_KEY_FROM_DASHBOARD>");
+      : (!cloudEnabled ? "sk_dardcor" : "<API_KEY_FROM_DASHBOARD>");
 
     const settingsContent = {
       customModels: modelList.map((m, i) => ({
         model: m,
-        id: `custom:DRouter-${i}`,
+        id: `custom:Dardcor Code-${i}`,
         index: i,
         baseUrl: getEffectiveBaseUrl(),
         apiKey: keyToUse,
@@ -299,16 +304,17 @@ export default function DroidToolCard({
                     tunnelPublicUrl={tunnelPublicUrl}
                     tailscaleEnabled={tailscaleEnabled}
                     tailscaleUrl={tailscaleUrl}
+                    currentUrl={currentBaseUrl}
                   />
                 </div>
 
                 {/* Current configured */}
-                {droidStatus?.settings?.customModels?.find(m => m.id?.startsWith("custom:DRouter"))?.baseUrl && (
+                {droidStatus?.settings?.customModels?.find(m => m.id?.startsWith("custom:Dardcor Code"))?.baseUrl && (
                   <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
                     <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Current</span>
                     <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
                     <span className="min-w-0 truncate rounded bg-surface/40 px-2 py-2 text-xs text-text-muted sm:py-1.5">
-                      {droidStatus.settings.customModels.find(m => m.id?.startsWith("custom:DRouter")).baseUrl}
+                      {droidStatus.settings.customModels.find(m => m.id?.startsWith("custom:Dardcor Code")).baseUrl}
                     </span>
                   </div>
                 )}
